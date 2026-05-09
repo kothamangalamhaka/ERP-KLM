@@ -1,32 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { Pool } = require('pg');
+const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
 const ExcelJS = require('exceljs'); // 🟢 Excel Export Library
+const { verifyToken } = require('../middlewares/auth');
 
-const pool = new Pool({
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME
-});
 
 const JWT_SECRET = process.env.JWT_SECRET || 'expense_secure_secret_key';
 
-// 🟢 Middleware to protect routes
-const verifyToken = (req, res, next) => {
-    // 🟢 Excel Download-നു വേണ്ടി URL parameter വഴിയും ടോക്കൺ സ്വീകരിക്കുന്നു
-    const token = req.headers.authorization?.split(' ')[1] || req.query.token;
-    if (!token) return res.status(401).json({ success: false, message: 'Access Denied. No token provided.' });
 
-    try {
-        req.user = jwt.verify(token, JWT_SECRET);
-        next();
-    } catch (e) {
-        res.status(403).json({ success: false, message: 'Invalid or expired session.' });
-    }
-};
 
 // 🟢 Secure Admin Login Route
 router.post('/login', (req, res) => {

@@ -1,35 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { Pool } = require('pg');
+const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
+const { verifyToken } = require('../middlewares/auth');
 
-const pool = new Pool({
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME
-});
+
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_change_this';
 
-// 🟢 Middleware to protect routes
-const verifyToken = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false, message: 'Access Denied. No token provided.' });
 
-    try {
-        req.user = jwt.verify(token, JWT_SECRET);
-        next();
-    } catch (e) {
-        res.status(403).json({ success: false, message: 'Invalid or expired session.' });
-    }
-};
 
 // 🟢 Secure PIN Verification (Generates JWT Token)
 router.post('/verify-pin', (req, res) => {
     const { pin } = req.body;
-    const validPin = process.env.EMP_PIN || '0000';
+    const validPin = process.env.EMP_PIN;
 
     if (pin === validPin) {
         // Issue a token valid for 12 hours

@@ -1,51 +1,39 @@
 const express = require('express');
-const { Pool } = require('pg');
+const pool = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
-
+const { verifyToken, verifySuperAdmin, verifyEditor } = require('../middlewares/auth');
 const router = express.Router();
 
-const pool = new Pool({
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME
-});
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const otpStore = new Map();
-
-// ==========================================
-// MIDDLEWARES
-// ==========================================
-const verifyToken = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.json({ success: false, message: 'No token provided' });
-    try { req.user = jwt.verify(token, JWT_SECRET); next(); }
-    catch (e) { res.json({ success: false, message: 'Invalid session' }); }
-};
-
-const verifySuperAdmin = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.json({ success: false, message: 'No token provided' });
+router.post('/forgot-password/request', async (req, res) => {
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded.role !== 'Super Admin') return res.json({ success: false, message: 'Access Denied.' });
-        req.user = decoded; next();
-    } catch (e) { res.json({ success: false, message: 'Invalid token' }); }
-};
+        const { email } = req.body;
+        const userRes = await pool.query('SELECT username FROM timesheet_users WHERE email = $1', [email]);
+        if (userRes.rows.length === 0) return res.json({ success: false, message: 'Email not found.' });
+        
+        const username = userRes.rows[0].username;
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
 
-const verifyEditor = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.json({ success: false, message: 'No token provided' });
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        if (!['Super Admin', 'Editor'].includes(decoded.role)) return res.json({ success: false, message: 'Access Denied.' });
-        req.user = decoded; next();
-    } catch (e) { res.json({ success: false, message: 'Invalid token' }); }
-};
+        // ഡാറ്റാബേസിൽ കോളങ്ങൾ ഇല്ലെങ്കിൽ തനിയെ ഉണ്ടാക്കാൻ ഉള്ള കോഡ് (Auto-Heal)
+        await pool.query(`ALTER TABLE timesheet_users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(10)`);
+        await pool.query(`ALTER TABLE timesheet_users ADD COLUMN IF NOT EXISTS otp_expiry TIMESTAMP`);
+
+        // OTP ഡാറ്റാബേസിലേക്ക് സേവ് ചെയ്യുന്നു
+        await pool.query("UPDATE timesheet_users SET reset_otp = $1, otp_expiry = $2 WHERE email = $3", [otp, expiry, email]);
+
+        let transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } });
+        await transporter.sendMail({
+            from: `"Timesheet System" <${process.env.EMAIL_USER}>`, to: email, subject: `Password Reset OTP`,
+            html: `<div style="padding:20px;"><h2>Password Reset Request</h2><p>Hello ${username},</p><p>Your OTP is: <b style="font-size:24px; color:#0d6efd;">${otp}</b></p></div>`
+        });
+        res.json({ success: true, message: `OTP sent successfully.` });
+    } catch (error) { res.json({ success: false, message: error.message }); }
+});
+
 
 // ==========================================
 // AUTH & ADMIN
@@ -95,13 +83,25 @@ router.post('/forgot-password/request', async (req, res) => {
 router.post('/forgot-password/reset', async (req, res) => {
     try {
         const { email, otp, newPassword } = req.body;
-        const storedData = otpStore.get(email);
-        if (!storedData) return res.json({ success: false, message: 'No active OTP request found.' });
-        if (Date.now() > storedData.expiry) { otpStore.delete(email); return res.json({ success: false, message: 'OTP expired.' }); }
-        if (storedData.otp !== otp) return res.json({ success: false, message: 'Incorrect OTP.' });
+        
+        const userRes = await pool.query('SELECT reset_otp, otp_expiry FROM timesheet_users WHERE email = $1', [email]);
+        if (userRes.rows.length === 0) return res.json({ success: false, message: 'No active OTP request found.' });
+
+        const storedData = userRes.rows[0];
+        
+        if (!storedData.reset_otp) return res.json({ success: false, message: 'No active OTP request found.' });
+        if (new Date() > new Date(storedData.otp_expiry)) { 
+            // OTP Expired ആയതുകൊണ്ട് ഡാറ്റാബേസിൽ നിന്ന് ഡിലീറ്റ് ചെയ്യുന്നു
+            await pool.query("UPDATE timesheet_users SET reset_otp = NULL, otp_expiry = NULL WHERE email = $1", [email]);
+            return res.json({ success: false, message: 'OTP expired.' }); 
+        }
+        if (storedData.reset_otp !== otp) return res.json({ success: false, message: 'Incorrect OTP.' });
+
         const hashedNew = await bcrypt.hash(newPassword, 10);
-        await pool.query("UPDATE timesheet_users SET password_hash = $1 WHERE email = $2", [hashedNew, email]);
-        otpStore.delete(email);
+        
+        // പുതിയ പാസ്‌വേഡ് സേവ് ചെയ്യുന്നു, ഒപ്പം OTP വിവരങ്ങൾ ഡിലീറ്റ് ചെയ്യുന്നു
+        await pool.query("UPDATE timesheet_users SET password_hash = $1, reset_otp = NULL, otp_expiry = NULL WHERE email = $2", [hashedNew, email]);
+        
         res.json({ success: true, message: 'Password reset successful!' });
     } catch (error) { res.json({ success: false, message: error.message }); }
 });

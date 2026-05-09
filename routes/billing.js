@@ -1,16 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { Pool } = require('pg');
+const pool = require('../config/db');
 const ExcelJS = require('exceljs');
 const jwt = require('jsonwebtoken');
 
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASS,
-    port: process.env.DB_PORT || 5432,
-});
+
 
 const JWT_SECRET = process.env.JWT_SECRET;
 

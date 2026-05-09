@@ -1,8 +1,9 @@
 require('dotenv').config();
 require('./routes/backup');
+const { verifyToken, verifySuperAdmin, verifyEditor } = require('./middlewares/auth');
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
+const pool = require('./config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cron = require('node-cron');
@@ -17,7 +18,7 @@ const timesheetRoutes = require('./routes/Timesheet');
 const paymentRoutes = require('./routes/paymentstatus');
 const employeeRoutes = require('./routes/employee');
 const expenseRoutes = require('./routes/expense');
-const masterDatabaseRoutes = require('./routes/master_database'); // 🟢 NEW IMPORT
+const masterDatabaseRoutes = require('./routes/master_database'); 
 
 const app = express();
 app.use(compression());
@@ -31,20 +32,13 @@ app.use('/timesheet', timesheetRoutes);
 app.use('/payment', paymentRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/expenses', expenseRoutes);
-
-const pool = new Pool({
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME
-});
+app.use('/master', masterDatabaseRoutes);
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_LOG_CHAT_ID = process.env.TELEGRAM_LOG_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
-const otpStore = new Map();
+
 
 // 🟢 INITIALIZE DATABASE
 async function initializeSystem() {
@@ -128,39 +122,6 @@ async function initializeSystem() {
     } catch (err) { console.error("Init Error:", err.message); }
 }
 initializeSystem();
-
-// ==========================================
-// 🛡️ MIDDLEWARES
-// ==========================================
-const verifyToken = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.json({ success: false, message: 'No token provided' });
-    try { req.user = jwt.verify(token, JWT_SECRET); next(); }
-    catch (e) { res.json({ success: false, message: 'Invalid session' }); }
-};
-
-const verifySuperAdmin = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.json({ success: false, message: 'No token provided' });
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded.role !== 'Super Admin') return res.json({ success: false, message: 'Access Denied: Super Admin only.' });
-        req.user = decoded; next();
-    } catch (e) { res.json({ success: false, message: 'Invalid token' }); }
-};
-
-const verifyEditor = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.json({ success: false, message: 'No token provided' });
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        const allowedRoles = ['Super Admin', 'Admin', 'Site Coordinator'];
-        if (!allowedRoles.includes(decoded.role)) {
-            return res.json({ success: false, message: 'Access Denied: Restricted to Site Co/Admin/Super Admin.' });
-        }
-        req.user = decoded; next();
-    } catch (e) { res.json({ success: false, message: 'Invalid token' }); }
-};
 
 // ==========================================
 // 🤖 SHARED HELPERS (Telegram & Backup)
@@ -282,7 +243,13 @@ app.post('/api/forgot-password/request', async (req, res) => {
         if (!email || !email.includes('@')) return res.json({ success: false, message: 'No valid email associated. Contact Admin.' });
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        otpStore.set(username, { otp: otp, expiry: Date.now() + 10 * 60 * 1000 });
+        const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        // Auto-Heal for 'users' table
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(10)`);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expiry TIMESTAMP`);
+
+        await pool.query("UPDATE users SET reset_otp = $1, otp_expiry = $2 WHERE username = $3", [otp, expiry, username]);
 
         let transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } });
         await transporter.sendMail({
@@ -304,18 +271,21 @@ app.post('/api/forgot-password/request', async (req, res) => {
 app.post('/api/forgot-password/reset', async (req, res) => {
     try {
         const { username, otp, newPassword } = req.body;
-        const storedData = otpStore.get(username);
+        
+        const userRes = await pool.query('SELECT reset_otp, otp_expiry FROM users WHERE username = $1', [username]);
+        if (userRes.rows.length === 0) return res.json({ success: false, message: 'No active OTP request found. Try again.' });
 
-        if (!storedData) return res.json({ success: false, message: 'No active OTP request found. Try again.' });
-        if (Date.now() > storedData.expiry) {
-            otpStore.delete(username);
+        const storedData = userRes.rows[0];
+
+        if (!storedData.reset_otp) return res.json({ success: false, message: 'No active OTP request found. Try again.' });
+        if (new Date() > new Date(storedData.otp_expiry)) {
+            await pool.query("UPDATE users SET reset_otp = NULL, otp_expiry = NULL WHERE username = $1", [username]);
             return res.json({ success: false, message: 'OTP has expired. Please request a new one.' });
         }
-        if (storedData.otp !== otp) return res.json({ success: false, message: 'Incorrect OTP entered.' });
+        if (storedData.reset_otp !== otp) return res.json({ success: false, message: 'Incorrect OTP entered.' });
 
         const hashedNew = await bcrypt.hash(newPassword, 10);
-        await pool.query("UPDATE users SET password_hash = $1 WHERE username = $2", [hashedNew, username]);
-        otpStore.delete(username);
+        await pool.query("UPDATE users SET password_hash = $1, reset_otp = NULL, otp_expiry = NULL WHERE username = $2", [hashedNew, username]);
 
         await pool.query("INSERT INTO activity_logs (username, action, details) VALUES ($1, 'RESET_PASSWORD', $2)", ['System', JSON.stringify({ target_user: username })]);
 

@@ -1,14 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { Pool } = require('pg');
+const pool = require('../config/db');
 
-const pool = new Pool({
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME
-});
 
 // 🟢 Get existing invoice data (ഇപ്പോൾ ഒരു വണ്ടിക്ക് ഒന്നിലധികം സൈറ്റിലെ ഇൻവോയ്സുകൾ ഉണ്ടാകാം)
 router.get('/get-invoice', async (req, res) => {
