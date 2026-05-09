@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recycle Bin | Haka ERP</title>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Uses your existing CSS for seamless design matching -->
+    <link rel="stylesheet" href="style/mdb.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+</head>
+
+<body>
+    <!-- Top Header Bar -->
+    <div class="header-bar">
+        <div class="header-title">
+            <i class="material-icons btn-icon" onclick="window.location.href='./Database.html'"
+                title="Back to Master Data" style="margin-right: 10px; color: var(--primary);">arrow_back</i>
+            <h2 style="color: var(--danger); display: flex; align-items: center; gap: 8px;">
+                <span class="material-icons">delete_sweep</span> Recycle Bin
+            </h2>
+        </div>
+
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="window.location.href='./Database.html'">
+                <span class="material-icons" style="font-size:16px;">table_view</span> Master Database
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper" style="max-width: 900px; margin: 0 auto; margin-top: 20px;">
+
+        <div
+            style="padding: 15px 20px; background: #fff8f8; border-left: 4px solid var(--danger); border-radius: 4px; margin-bottom: 20px;">
+            <p style="font-size: 13px; color: #7f1d1d; margin: 0; font-weight: 500;">
+                <strong style="font-weight: 700;">Note:</strong> Columns deleted from the Master Database are kept here
+                for 30 days. You can restore them below. After 30 days, they will be permanently erased by the system.
+            </p>
+        </div>
+
+        <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead style="background: #f8fafc; border-bottom: 2px solid var(--border-color);">
+                    <tr>
+                        <th style="padding: 12px 15px; font-weight: 600; color: #334155; font-size: 13px;">Deleted
+                            Column Name</th>
+                        <th style="padding: 12px 15px; font-weight: 600; color: #334155; font-size: 13px;">Deleted Date
+                            & Time</th>
+                        <th
+                            style="padding: 12px 15px; font-weight: 600; color: #334155; font-size: 13px; text-align: center;">
+                            Action</th>
+                    </tr>
+                </thead>
+                <tbody id="recycleBinBody">
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 30px; color: #64748b;">
+                            <span class="material-icons" style="animation: spin 2s linear infinite;">sync</span> Loading
+                            data...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 🟢 SECURITY & AUTHENTICATION CHECK
+        let currentUser = JSON.parse(localStorage.getItem('erpUser'));
+        let token = localStorage.getItem('erpToken');
+
+        if (!token || !currentUser) {
+            window.location.href = './index.html';
+        }
+
+        // Only Super Admin can access the Recycle Bin
+        if (currentUser.role !== 'Super Admin') {
+            Swal.fire('Access Denied', 'Only Super Admins can access the Recycle Bin.', 'error')
+                .then(() => { window.location.href = './Database.html'; });
+        }
+
+        // Apply Theme properly based on settings
+        const savedTheme = localStorage.getItem('erpThemeMaster');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+
+        const savedFont = localStorage.getItem('erpFont');
+        if (savedFont) {
+            document.body.style.fontFamily = savedFont;
+        }
+
+        // 🟢 FETCH DELETED COLUMNS
+        async function fetchDeletedColumns() {
+            try {
+                const res = await fetch('/api/admin/recycle-bin/columns', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    renderRecycleBin(data.columns);
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (error) {
+                $('#recycleBinBody').html(`<tr><td colspan="3" style="text-align: center; color: var(--danger); padding: 20px;">Failed to connect to the server.</td></tr>`);
+            }
+        }
+
+        // 🟢 RENDER TABLE
+        function renderRecycleBin(columns) {
+            const tbody = document.getElementById('recycleBinBody');
+            tbody.innerHTML = '';
+
+            if (columns.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 40px; color: #64748b;">
+                            <span class="material-icons" style="font-size: 48px; color: #e2e8f0; display:block; margin-bottom:10px;">delete_outline</span>
+                            Recycle Bin is empty. No columns have been deleted recently.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            columns.forEach(col => {
+                // Format Date nicely
+                let dateObj = new Date(col.deleted_at);
+                let formattedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + " " + dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                let tr = document.createElement('tr');
+                tr.style.borderBottom = "1px solid var(--border-color)";
+                tr.innerHTML = `
+                    <td style="padding: 12px 15px; font-weight: 600; color: var(--text-dark);">${col.header_name}</td>
+                    <td style="padding: 12px 15px; font-size: 13px; color: #64748b;">${formattedDate}</td>
+                    <td style="padding: 12px 15px; text-align: center;">
+                        <button class="btn btn-success" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" onclick="restoreColumn('${col.header_name}')">
+                            <span class="material-icons" style="font-size: 14px;">restore</span> Restore
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 🟢 RESTORE COLUMN LOGIC
+        function restoreColumn(colName) {
+            Swal.fire({
+                title: 'Restore Column?',
+                text: `Are you sure you want to restore "${colName}" back to the Master Database? All hidden data will become visible again.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Restore it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({ title: 'Restoring...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                    try {
+                        const res = await fetch('/api/admin/recycle-bin/restore-column', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ colName: colName })
+                        });
+
+                        const data = await res.json();
+
+                        if (data.success) {
+                            Swal.fire('Restored!', `"${colName}" has been successfully restored.`, 'success');
+                            fetchDeletedColumns(); // Refresh table
+                        } else {
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    } catch (error) {
+                        Swal.fire('Error', 'Failed to communicate with the server.', 'error');
+                    }
+                }
+            });
+        }
+
+        // Initial Load
+        fetchDeletedColumns();
+    </script>
+</body>
+
+</html>

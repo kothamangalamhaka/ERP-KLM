@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesheet Dashboard - Haka ERP</title>
+
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style/timesheet_dashboard.css">
+</head>
+
+<body>
+
+    <div class="controls-wrapper no-print">
+        <h2><a href="Timesheet.html">Haka Monthly Timesheet</a></h2>
+
+        <div class="control-group">
+            <label>Month</label>
+            <select id="selMonth" style="width: 100px;">
+                <option value="January">January</option>
+                <option value="February">February</option>
+                <option value="March">March</option>
+                <option value="April">April</option>
+                <option value="May">May</option>
+                <option value="June">June</option>
+                <option value="July">July</option>
+                <option value="August">August</option>
+                <option value="September">September</option>
+                <option value="October">October</option>
+                <option value="November">November</option>
+                <option value="December">December</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Year</label>
+            <input type="number" id="selYear" value="2026" style="width: 65px;">
+        </div>
+
+        <button class="btn btn-primary" onclick="fetchAndGenerateDashboard()" id="btnGen">
+            <span class="loader" id="genLoader"></span> Fetch
+        </button>
+
+        <div class="edit-toggle-wrapper">
+            <input type="checkbox" id="editToggle" onchange="toggleEditMode()">
+            <label for="editToggle">Edit</label>
+        </div>
+
+        <div style="width: 10px;"></div>
+
+        <div class="nav-buttons-container">
+            <a href="Timesheet.html" class="btn btn-nav home">🏠 Home</a>
+            <a href="entry.html" class="btn btn-nav entry">⌨️ Data Entry</a>
+            <a href="blank.html" class="btn btn-nav pending">⏳ Pending</a>
+            <a href="view.html" class="btn btn-nav ts">🗂️ TS Card</a>
+        </div>
+
+        <div class="right-actions">
+            <!-- 🟢 NEW: Plate Count Display -->
+            <div id="plateCountDisplay" class="plate-count" style="display: none;">
+                Plate No Count :: <span id="plateCountNumber">0</span>
+            </div>
+
+            <div class="control-group">
+                <label>Search Global</label>
+                <input type="text" id="globalSearch" class="global-search" placeholder="Type here..."
+                    onkeyup="applyGridFilters()">
+            </div>
+
+            <div class="export-wrapper" style="margin-top: 14px;">
+                <button class="btn btn-success" onclick="toggleExportMenu()" id="btnExport">
+                    <span class="loader" id="exportLoader"></span> 📗 Export
+                </button>
+                <div class="export-menu" id="exportMenu">
+                    <button onclick="exportCurrentExcel()">📊 Current View (Excel)</button>
+                    <button onclick="openBatchModal()">📚 Batch Multi-Month (Excel)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Excel Filter Popup Menu -->
+    <div id="excelFilterMenu" class="excel-filter-menu" onclick="event.stopPropagation()">
+        <div class="excel-filter-search">
+            <input type="text" id="filterSearchInput" placeholder="Search filters...">
+        </div>
+        <div class="filter-item"
+            style="border-bottom: 1px solid #e2e8f0; background: #f8fafc; position: sticky; top:0; z-index: 5;">
+            <input type="checkbox" id="filterSelectAll" checked>
+            <label for="filterSelectAll" style="font-weight:700;">(Select All)</label>
+        </div>
+        <div class="excel-filter-list" id="filterChecklist"></div>
+        <div class="excel-filter-actions">
+            <button class="btn-apply-filter" onclick="applyCustomFilter()">Apply</button>
+            <button class="btn-clear-filter" onclick="closeCustomFilter()">Cancel</button>
+        </div>
+    </div>
+
+    <div id="hiddenTableContainer" style="display: none;"></div>
+
+    <div class="table-container" id="tableContainer">
+        <div style="color: #64748b; margin-top: 50px; font-weight: 500; font-size: 15px; text-align: center;">
+            Select Month/Year and click "Fetch"
+        </div>
+    </div>
+
+    <!-- Batch Export Modal -->
+    <div id="batchModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Export Multi-Month Excel</h3>
+                <button class="close-btn" onclick="closeBatchModal()">✖</button>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <label>From Month</label>
+                    <select id="batchFromMonth" style="height: fit-content;">
+                        <option value="January">January</option>
+                        <option value="February">February</option>
+                        <option value="March">March</option>
+                        <option value="April">April</option>
+                        <option value="May">May</option>
+                        <option value="June">June</option>
+                        <option value="July">July</option>
+                        <option value="August">August</option>
+                        <option value="September">September</option>
+                        <option value="October">October</option>
+                        <option value="November">November</option>
+                        <option value="December">December</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label>From Year</label>
+                    <input type="number" id="batchFromYear" value="2025" style="height: fit-content;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+                <div style="flex: 1;">
+                    <label>To Month</label>
+                    <select id="batchToMonth" style="height: fit-content;">
+                        <option value="January">January</option>
+                        <option value="February">February</option>
+                        <option value="March">March</option>
+                        <option value="April">April</option>
+                        <option value="May">May</option>
+                        <option value="June">June</option>
+                        <option value="July">July</option>
+                        <option value="August">August</option>
+                        <option value="September">September</option>
+                        <option value="October">October</option>
+                        <option value="November">November</option>
+                        <option value="December">December</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label>To Year</label>
+                    <input type="number" id="batchToYear" value="2026" style="height: fit-content;">
+                </div>
+            </div>
+
+            <button class="btn btn-success" style="width: 100%; height: 35px; font-size: 13px;"
+                onclick="startBatchExport()" id="btnStartBatch">
+                Generate Excel Book
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="customAlertModal" class="modal-overlay" style="z-index: 3000;">
+        <div class="modal-box" style="width: 350px; text-align: center; padding-top: 30px;">
+            <h3 id="alertTitle" style="justify-content: center; border-bottom: none; margin-bottom: 5px;">Notice</h3>
+            <p id="alertMessage" style="font-size: 13px; color: #4b5563; margin-bottom: 25px; line-height: 1.5;">Message
+                goes here</p>
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; height: 35px;"
+                onclick="resolveAlert()">OK</button>
+        </div>
+    </div>
+
+    <!-- Custom Script -->
+    <script src="scripts/timesheet_dashboard.js"></script>
+</body>
+
+</html>

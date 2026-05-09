@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesheet - Secure Login</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            color: #333;
+        }
+        .container { 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            width: 100%; 
+            max-width: 400px; 
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease-in-out;
+        }
+        h2 { 
+            text-align: center; 
+            color: #111; 
+            margin-bottom: 25px; 
+            font-weight: 600;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        input { 
+            width: 100%; 
+            padding: 12px 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0,123,255,0.3);
+        }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            background-color: #0056b3; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            font-weight: 500;
+            margin-top: 10px; 
+            transition: background-color 0.3s;
+        }
+        button:hover { 
+            background-color: #004494; 
+        }
+        .toggle-link { 
+            text-align: center; 
+            margin-top: 15px; 
+            color: #0056b3; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .toggle-link:hover { 
+            color: #003366;
+            text-decoration: underline; 
+        }
+        .section { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
+        .active-section { display: block; opacity: 1; }
+        .message { text-align: center; margin-top: 15px; font-size: 14px; font-weight: 500; min-height: 20px;}
+        
+        /* Loading Spinner */
+        .loader {
+            display: none;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0056b3;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="loginSection" class="section active-section">
+        <h2>Timesheet Portal</h2>
+        <div class="input-group">
+            <input type="text" id="logUsername" placeholder="Username" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <input type="password" id="logPassword" placeholder="Password" autocomplete="off">
+        </div>
+        <button onclick="login()">Login</button>
+        <div class="toggle-link" onclick="switchSection('registerSection')">Need an account? Register</div>
+        <div class="toggle-link" onclick="switchSection('forgotSection')">Forgot Password?</div>
+        <div id="logLoader" class="loader" style="margin-top:15px;"></div>
+        <div id="logMessage" class="message"></div>
+    </div>
+
+    <div id="registerSection" class="section">
+        <h2>Register Account</h2>
+        <div class="input-group">
+            <input type="text" id="regUsername" placeholder="Username" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <input type="email" id="regEmail" placeholder="Email Address" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <input type="password" id="regPassword" placeholder="Password" autocomplete="off">
+        </div>
+        <button onclick="register()">Create Account</button>
+        <div class="toggle-link" onclick="switchSection('loginSection')">Back to Login</div>
+        <div id="regLoader" class="loader" style="margin-top:15px;"></div>
+        <div id="regMessage" class="message"></div>
+    </div>
+
+    <div id="forgotSection" class="section">
+        <h2>Reset Password</h2>
+        <div class="input-group">
+            <input type="email" id="forgotEmail" placeholder="Enter Registered Email">
+        </div>
+        <button onclick="requestOTP()" id="otpBtn">Request OTP</button>
+        
+        <div id="otpFields" style="display:none; margin-top:15px;">
+            <div class="input-group">
+                <input type="text" id="forgotOtp" placeholder="Enter OTP">
+            </div>
+            <div class="input-group">
+                <input type="password" id="forgotNewPassword" placeholder="New Password">
+            </div>
+            <button onclick="resetPassword()">Confirm New Password</button>
+        </div>
+        
+        <div class="toggle-link" onclick="switchSection('loginSection')">Back to Login</div>
+        <div id="forgotLoader" class="loader" style="margin-top:15px;"></div>
+        <div id="forgotMessage" class="message"></div>
+    </div>
+</div>
+
+<script>
+    // 🟢 AUTO REDIRECT TO TIMESHEET IF ALREADY LOGGED IN
+    window.onload = () => {
+        if(localStorage.getItem('timesheetToken')) {
+            window.location.href = 'Timesheet.html';
+        }
+    }
+
+    function switchSection(id) {
+        document.querySelectorAll('.section').forEach(sec => {
+            sec.classList.remove('active-section');
+        });
+        setTimeout(() => {
+            document.getElementById(id).classList.add('active-section');
+        }, 50);
+        document.querySelectorAll('.message').forEach(msg => msg.innerText = '');
+        document.querySelectorAll('.loader').forEach(ldr => ldr.style.display = 'none');
+    }
+
+    async function login() {
+        const u = document.getElementById('logUsername').value;
+        const p = document.getElementById('logPassword').value;
+        const msgDiv = document.getElementById('logMessage');
+        const loader = document.getElementById('logLoader');
+        
+        if(!u || !p) {
+            msgDiv.innerText = "Please enter both username and password.";
+            msgDiv.style.color = "#dc3545";
+            return;
+        }
+
+        msgDiv.innerText = "";
+        loader.style.display = "block";
+        
+        try {
+            const res = await fetch('/timesheet/login', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+            const data = await res.json();
+            loader.style.display = "none";
+            
+            if(data.success) {
+                localStorage.setItem('timesheetToken', data.token);
+                localStorage.setItem('timesheetUser', JSON.stringify(data.user));
+                // 🟢 REDIRECT TO TIMESHEET DASHBOARD
+                window.location.href = 'Timesheet.html';
+            } else {
+                msgDiv.innerText = data.message;
+                msgDiv.style.color = "#dc3545";
+            }
+        } catch(e) { 
+            loader.style.display = "none";
+            msgDiv.innerText = "Error connecting to server."; 
+            msgDiv.style.color = "#dc3545";
+        }
+    }
+
+    async function register() {
+        const u = document.getElementById('regUsername').value;
+        const e = document.getElementById('regEmail').value;
+        const p = document.getElementById('regPassword').value;
+        const msgDiv = document.getElementById('regMessage');
+        const loader = document.getElementById('regLoader');
+
+        if(!u || !e || !p) {
+            msgDiv.innerText = "All fields are required.";
+            msgDiv.style.color = "#dc3545";
+            return;
+        }
+
+        msgDiv.innerText = "";
+        loader.style.display = "block";
+        
+        try {
+            const res = await fetch('/timesheet/register', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, email: e, password: p })
+            });
+            const data = await res.json();
+            loader.style.display = "none";
+            
+            msgDiv.innerText = data.message;
+            msgDiv.style.color = data.success ? "#28a745" : "#dc3545";
+            if(data.success) {
+                setTimeout(() => switchSection('loginSection'), 3000);
+            }
+        } catch(err) { 
+            loader.style.display = "none";
+            msgDiv.innerText = "Error connecting to server."; 
+            msgDiv.style.color = "#dc3545";
+        }
+    }
+
+    async function requestOTP() {
+        const e = document.getElementById('forgotEmail').value;
+        const msgDiv = document.getElementById('forgotMessage');
+        const loader = document.getElementById('forgotLoader');
+
+        if(!e) {
+            msgDiv.innerText = "Please enter your email.";
+            msgDiv.style.color = "#dc3545";
+            return;
+        }
+
+        msgDiv.innerText = "";
+        loader.style.display = "block";
+        
+        try {
+            const res = await fetch('/timesheet/forgot-password/request', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: e })
+            });
+            const data = await res.json();
+            loader.style.display = "none";
+            
+            msgDiv.innerText = data.message;
+            if(data.success) {
+                msgDiv.style.color = "#28a745";
+                document.getElementById('otpFields').style.display = "block";
+                document.getElementById('otpBtn').style.display = "none";
+            } else {
+                msgDiv.style.color = "#dc3545";
+            }
+        } catch(err) { 
+            loader.style.display = "none";
+            msgDiv.innerText = "Error connecting to server."; 
+            msgDiv.style.color = "#dc3545";
+        }
+    }
+
+    async function resetPassword() {
+        const e = document.getElementById('forgotEmail').value;
+        const o = document.getElementById('forgotOtp').value;
+        const p = document.getElementById('forgotNewPassword').value;
+        const msgDiv = document.getElementById('forgotMessage');
+        const loader = document.getElementById('forgotLoader');
+
+        if(!o || !p) {
+            msgDiv.innerText = "Please fill all fields.";
+            msgDiv.style.color = "#dc3545";
+            return;
+        }
+
+        msgDiv.innerText = "";
+        loader.style.display = "block";
+        
+        try {
+            const res = await fetch('/timesheet/forgot-password/reset', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: e, otp: o, newPassword: p })
+            });
+            const data = await res.json();
+            loader.style.display = "none";
+            
+            msgDiv.innerText = data.message;
+            msgDiv.style.color = data.success ? "#28a745" : "#dc3545";
+            if(data.success) {
+                setTimeout(() => switchSection('loginSection'), 2000);
+            }
+        } catch(err) { 
+            loader.style.display = "none";
+            msgDiv.innerText = "Error connecting to server."; 
+            msgDiv.style.color = "#dc3545";
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesheet Dashboard - Haka ERP</title>
+
+    <!-- External Libraries & Fonts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+
+    <!-- Link the external CSS -->
+    <link rel="stylesheet" href="style/timesheet.css">
+
+    <!-- 🟢 SECURITY FIX: Immediate Auth Check to prevent page flashing -->
+    <script>
+        if (!localStorage.getItem('timesheetToken') || !localStorage.getItem('timesheetUser')) {
+            window.location.replace('index.html');
+        }
+    </script>
+</head>
+
+<body>
+
+    <div class="navbar">
+        <h2>⏱️ Timesheet ERP</h2>
+        <div class="user-info">
+            <span class="user-badge" id="userInfo">Loading...</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome-section">
+            <h1 id="welcomeText">Welcome back!</h1>
+            <p>Select a module below to manage your Monthly Timesheet and Vehicle Operations.</p>
+        </div>
+
+        <div class="module-grid">
+            <a href="Dashboard.html" class="module-card card-dashboard">
+                <div class="module-icon">🏠</div>
+                <div class="module-title">Monthly Time Sheet</div>
+                <div class="module-desc">View main timesheet analytics, overall metrics, and dashboard insights.</div>
+                <div class="arrow-icon">➔</div>
+            </a>
+
+            <a href="entry.html" class="module-card card-entry" id="cardEntry" style="display: none;">
+                <div class="module-icon">📝</div>
+                <div class="module-title">Live Grid Entry</div>
+                <div class="module-desc">Enter daily working hours, fuel, distance, and manage operational records.
+                </div>
+                <div class="arrow-icon">➔</div>
+            </a>
+
+            <a href="view.html" class="module-card card-view">
+                <div class="module-icon">📊</div>
+                <div class="module-title">Report Viewer</div>
+                <div class="module-desc">Generate, View, Print Individual Monthly Timesheet Report Card.</div>
+                <div class="arrow-icon">➔</div>
+            </a>
+
+            <a href="db.html" class="module-card card-db" id="cardDB" style="display: none;">
+                <div class="module-icon">🗄️</div>
+                <div class="module-title">Time Sheet Database</div>
+                <div class="module-desc">Manage vehicles, site allocation logs, driver assignments, and Excel Sync.
+                </div>
+                <div class="arrow-icon">➔</div>
+            </a>
+
+            <div class="module-card card-excel" id="cardExcelSync" style="display: none;" onclick="openExcelModal()">
+                <div class="module-icon">📗</div>
+                <div class="module-title">Daily Data Sync</div>
+                <div class="module-desc">Bulk Export/Import of daily working grid records via Excel.</div>
+                <div class="arrow-icon">➔</div>
+            </div>
+
+            <a href="blank.html" class="module-card card-pending">
+                <div class="module-icon">⏳</div>
+                <div class="module-title">Pending Logsheets</div>
+                <div class="module-desc">Track Missing log sheets From the side of Drivers & Co-Ordinators, To Analyze
+                    Total Worked Hrs & blank dates.</div>
+                <div class="arrow-icon">➔</div>
+            </a>
+
+            <a href="../Billing/index.html" class="module-card card-vendor" id="cardVendor">
+                <div class="module-icon">🧾</div>
+                <div class="module-title">Vendor Bill Summary Generator</div>
+                <div class="module-desc">
+                    Monthly summary of vendor bills based on timesheet data & invoice details, with export options for
+                    Excel and PNG.
+                </div>
+                <div class="arrow-icon">➔</div>
+            </a>
+
+            <a href="../invoice_data/report.html" class="module-card card-report">
+                <div class="module-icon">📊</div>
+                <div class="module-title">Invoice & Payment</div>
+                <div class="module-desc">View and Analyze Invoice Data, TimeSheet Data & Vendor Bill Summary - In One
+                    Place.</div>
+                <div class="arrow-icon">➔</div>
+            </a>
+
+            <a href="../Master_Data_Base/index.html" class="module-card card-db" id="cardDB">
+                <div class="module-icon">🗄️</div>
+                <div class="module-title">Master Database</div>
+                <div class="module-desc">Combined Database for All Equipments.
+                </div>
+                <div class="arrow-icon">➔</div>
+            </a>
+
+            <div class="module-card card-rules" id="cardRules" style="display: none;" onclick="openRulesModal()">
+                <div class="module-icon">⚖️</div>
+                <div class="module-title">Calculation Rules</div>
+                <div class="module-desc">Define logic and OT deduction parameters for specific operational sites.</div>
+                <div class="arrow-icon">➔</div>
+            </div>
+
+            <a href="admin/index.html" class="module-card card-admin" id="cardAdmin" style="display: none;">
+                <div class="module-icon">⚙️</div>
+                <div class="module-title">System Settings</div>
+                <div class="module-desc">Manage user roles, approvals, and system-wide configurations.</div>
+                <div class="arrow-icon">➔</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="customAlertModal" class="modal-overlay" style="z-index: 3000;">
+        <div class="modal-box alert">
+            <h3 id="alertTitle">Notice</h3>
+            <p id="alertMessage" style="font-size: 14px; color: #4b5563; margin-bottom: 25px;">Message goes here</p>
+            <button class="btn-primary" style="width: 100%;" onclick="resolveAlert()">OK</button>
+        </div>
+    </div>
+
+    <!-- Excel Sync Modal -->
+    <div id="excelModal" class="modal-overlay">
+        <div class="modal-box small">
+            <h3>Daily Grid Sync (Excel) <button class="close-btn" onclick="closeModal('excelModal')">✖</button></h3>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">
+                Export existing monthly data, edit offline, and import back. Calculated columns (Distance, Time) will be
+                automatically computed upon import.<br><br>
+                <b>Note:</b> Use exact dates (e.g., <b>1, 2, 3</b>) in the Date column and <b>TRUE / FALSE</b> in the NL
+                column.
+            </p>
+            <div class="control-group">
+                <select id="bulkMonth">
+                    <option value="January">January</option>
+                    <option value="February">February</option>
+                    <option value="March">March</option>
+                    <option value="April" selected>April</option>
+                    <option value="May">May</option>
+                    <option value="June">June</option>
+                    <option value="July">July</option>
+                    <option value="August">August</option>
+                    <option value="September">September</option>
+                    <option value="October">October</option>
+                    <option value="November">November</option>
+                    <option value="December">December</option>
+                </select>
+                <input type="number" id="bulkYear" value="2026" style="width: 100px;">
+                <button class="btn-primary" onclick="exportExcel()">⬇ Export Data</button>
+            </div>
+            <div
+                style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <input type="file" id="excelFile" accept=".xlsx, .xls" style="background: #f8fafc; flex: 1;">
+                <button class="btn-success" onclick="importExcel()">⬆ Process & Import</button>
+                <div style="width: 100%;"><span id="importStatus"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div id="rulesModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Time Calculation Rules <button class="close-btn" onclick="closeModal('rulesModal')">✖</button></h3>
+            <p style="font-size: 13px; color: #64748b;">
+                Define site-specific deduction rules. <b>Deduct (Hrs <= 11)</b> applies when total working hours are 11
+                        or less.
+            </p>
+            <div class="table-wrapper">
+                <table id="rulesTable">
+                    <thead>
+                        <tr>
+                            <th>Site Keyword</th>
+                            <th>Default Deduct</th>
+                            <th>Deduct (Hrs <= 11)</th>
+                            <th>Deduct (Hrs >= 12)</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rulesBody"></tbody>
+                    <tfoot>
+                        <tr class="new-rule-row">
+                            <td><input type="text" id="new_site" placeholder="NEW SITE NAME"
+                                    style="text-transform: uppercase;"></td>
+                            <td><input type="number" step="0.1" id="new_def" value="1"></td>
+                            <td><input type="number" step="0.1" id="new_u11" value="1"></td>
+                            <td><input type="number" step="0.1" id="new_o12" value="1"></td>
+                            <td><button class="btn-warning" onclick="addRule()">+ Add Rule</button></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link the external JS at the end of the body -->
+    <script src="scripts/timesheet.js"></script>
+</body>
+
+</html>

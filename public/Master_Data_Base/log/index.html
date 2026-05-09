@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Logs | Haka ERP</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --surface-color: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --primary: #0ea5e9;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 24px;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface-color);
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .main-wrapper {
+            background: var(--surface-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            flex-grow: 1;
+        }
+
+        table.dataTable {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 13px;
+        }
+
+        table.dataTable thead th {
+            background: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 11px;
+            padding: 12px;
+            border-bottom: 2px solid #cbd5e1;
+        }
+
+        table.dataTable tbody td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+
+        .action-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .action-LOGIN {
+            background: #dcfce7;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+
+        .action-ADMIN_LOGIN {
+            background: #f3e8ff;
+            color: #7e22ce;
+            border: 1px solid #e9d5ff;
+        }
+
+        .action-UPDATE_CELL {
+            background: #e0f2fe;
+            color: #0284c7;
+            border: 1px solid #bae6fd;
+        }
+
+        .action-ADD_ROW {
+            background: #fef9c3;
+            color: #ca8a04;
+            border: 1px solid #fde047;
+        }
+
+        .action-ADD_COLUMN {
+            background: #ffedd5;
+            color: #c2410c;
+            border: 1px solid #fed7aa;
+        }
+
+        .action-UPDATE_DRIVER {
+            background: #fce7f3;
+            color: #be185d;
+            border: 1px solid #fbcfe8;
+        }
+
+        .action-EDIT_DRIVER_LOG {
+            background: #fce7f3;
+            color: #db2777;
+            border: 1px solid #fbcfe8;
+        }
+
+        .action-DELETE_COLUMN,
+        .action-DELETE_USER {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .action-BULK_IMPORT {
+            background: #ccfbf1;
+            color: #047857;
+            border: 1px solid #99f6e4;
+        }
+
+        .action-RESET_PASSWORD {
+            background: #e0e7ff;
+            color: #6d28d9;
+            border: 1px solid #c7d2fe;
+        }
+
+        .details-box {
+            background: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            color: #475569;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .diff-old {
+            color: #dc2626;
+            text-decoration: line-through;
+            margin-right: 10px;
+            font-weight: 600;
+        }
+
+        .diff-new {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .diff-arrow {
+            color: #94a3b8;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header-bar">
+        <div class="header-title">
+            <span class="material-icons" style="color: #0ea5e9; font-size: 28px;">history</span>
+            <h2>System Activity Logs</h2>
+        </div>
+        <div>
+            <button onclick="logout()"
+                style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; color: #475569;">Back
+                to System</button>
+        </div>
+    </div>
+
+    <div class="main-wrapper">
+        <table id="logTable" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th style="width: 150px;">Date & Time</th>
+                    <th style="width: 150px;">User</th>
+                    <th style="width: 120px;">Action</th>
+                    <th>Details / Modifications</th>
+                </tr>
+            </thead>
+            <tbody id="logBody">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('erpToken');
+        const currentUser = JSON.parse(localStorage.getItem('erpUser'));
+
+        if (!token || !currentUser || currentUser.role !== 'Super Admin') {
+            alert("Access Denied: Super Admin privileges required.");
+            sessionStorage.setItem('redirectAfterLogin', window.location.href);
+            window.location.href = '../index.html';
+        }
+
+        function logout() {
+            window.location.href = '../Database.html';
+        }
+
+        function formatDateTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+            });
+        }
+
+        function formatDetails(action, details) {
+            if (!details) return '-';
+
+            try {
+                if (action === 'UPDATE_CELL') {
+                    return `
+                        <div><b>Plate/Vehicle:</b> <span style="color:#0f172a;">${details.plate || 'N/A'}</span></div>
+                        <div style="margin-top: 4px;"><b>Column Modified:</b> ${details.column}</div>
+                        <div style="margin-top: 6px; background: #fff; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                            <span class="diff-old">${details.old_value || '(Blank)'}</span>
+                            <span class="diff-arrow">➔</span>
+                            <span class="diff-new">${details.new_value || '(Blank)'}</span>
+                        </div>
+                    `;
+                }
+                if (action === 'UPDATE_DRIVER') {
+                    return `
+                        <div><b>Plate/Vehicle:</b> <span style="color:#0f172a;">${details.plate || 'N/A'}</span></div>
+                        <div style="margin-top: 6px; background: #fff; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
+                            <span class="diff-old">${details.old_driver || '(Blank)'}</span>
+                            <span class="diff-arrow">➔</span>
+                            <span class="diff-new">${details.new_driver || '(Blank)'}</span>
+                        </div>
+                        <div style="margin-top: 4px; font-size:11px; color:#64748b;">Work Start: ${details.work_start}</div>
+                    `;
+                }
+                if (action === 'EDIT_DRIVER_LOG') {
+                    return `<b>Edited Log ID:</b> ${details.log_id || 'N/A'}<br><b>Driver Name:</b> ${details.driver_name || 'N/A'}`;
+                }
+                if (action === 'ADD_ROW') {
+                    return `<b>New Entry Created</b> - Plate: ${details.plate || 'N/A'}, Site: ${details.site || 'N/A'}`;
+                }
+                if (action === 'ADD_COLUMN' || action === 'ADD_COLUMN_RELATIVE') {
+                    return `<b>New Column Added:</b> ${details.column}`;
+                }
+                if (action === 'DELETE_COLUMN') {
+                    return `<b>Column Deleted:</b> <span style="color:#dc2626;">${details.column}</span>`;
+                }
+                if (action === 'DELETE_USER') {
+                    return `<b>User Deleted:</b> <span style="color:#dc2626;">${details.target_user}</span>`;
+                }
+                if (action === 'RESET_PASSWORD') {
+                    return `<b>Password Reset for:</b> ${details.target_user}`;
+                }
+                if (action === 'BULK_IMPORT') {
+                    return `<b>Database was completely wiped and replaced with new Excel Import.</b>`;
+                }
+
+                if (Object.keys(details).length === 0) return `<span style="color:#94a3b8; font-style:italic;">Standard verification</span>`;
+                return `<div class="details-box">${JSON.stringify(details, null, 2)}</div>`;
+
+            } catch (e) {
+                return `<div class="details-box">${details}</div>`;
+            }
+        }
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch('/api/admin/logs', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (!data.success) {
+                    alert(data.message);
+                    return;
+                }
+
+                let html = '';
+                data.logs.forEach(log => {
+                    // 🟢 FIX: Added data-sort with Unix Timestamp so DataTables sorts exactly by time, not text!
+                    html += `
+                        <tr>
+                            <td data-sort="${new Date(log.created_at).getTime()}" style="font-family: monospace; color: #475569;">${formatDateTime(log.created_at)}</td>
+                            <td style="font-weight: 700; color: #1e293b;">@${log.username || 'System'}</td>
+                            <td><span class="action-badge action-${log.action}">${log.action.replace(/_/g, ' ')}</span></td>
+                            <td>${formatDetails(log.action, log.details)}</td>
+                        </tr>
+                    `;
+                });
+
+                document.getElementById('logBody').innerHTML = html;
+
+                $('#logTable').DataTable({
+                    order: [[0, 'desc']],
+                    pageLength: 50,
+                    language: { searchPlaceholder: "Search logs..." }
+                });
+
+            } catch (error) {
+                console.error("Error fetching logs:", error);
+            }
+        }
+
+        $(document).ready(() => {
+            if (token && currentUser && currentUser.role === 'Super Admin') {
+                fetchLogs();
+            }
+        });
+    </script>
+</body>
+
+</html>

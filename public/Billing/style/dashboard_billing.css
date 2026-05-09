@@ -1,0 +1,268 @@
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 20px;
+    background-color: #f0f2f5;
+    color: #333;
+}
+
+#loginScreen {
+    position: fixed;
+    inset: 0;
+    background: #0f172a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.login-box {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    width: 350px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+.login-box h2 {
+    margin-top: 0;
+    color: #1e293b;
+    margin-bottom: 25px;
+}
+
+.login-box input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 15px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.login-box button {
+    width: 100%;
+    padding: 12px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.container {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    width: 1250px;
+    margin: auto;
+    overflow-x: auto;
+    display: none;
+}
+
+.header-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+.btn-back {
+    background-color: #6c757d;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.controls-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background-color: #1a4d80;
+    color: white;
+    padding: 12px 10px;
+    font-size: 12px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.filter-icon {
+    font-size: 9px;
+    margin-left: 5px;
+    color: #cbd5e1;
+}
+
+td {
+    border: 1px solid #eee;
+    padding: 10px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.money {
+    color: #28a745;
+    font-family: monospace;
+}
+
+.grand-total {
+    color: #d62828;
+}
+
+.btn-excel {
+    background-color: #1d6f42;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* 🟢 Filter Popup Professional Styles */
+.filter-popup {
+    position: absolute;
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 2000;
+    width: 250px;
+    padding: 15px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filter-popup input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 13px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.filter-popup input[type="text"]:focus {
+    border-color: #1a4d80;
+    box-shadow: 0 0 0 2px rgba(26, 77, 128, 0.1);
+}
+
+.filter-options {
+    max-height: 220px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding-right: 5px;
+}
+
+.filter-options::-webkit-scrollbar {
+    width: 5px;
+}
+
+.filter-options::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.filter-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.filter-item:hover {
+    background: #f1f5f9;
+}
+
+.filter-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 12px;
+    gap: 10px;
+}
+
+.filter-actions button {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.apply-btn {
+    background: #1a4d80;
+    color: white;
+}
+
+.apply-btn:hover {
+    background: #113a5d;
+}
+
+.clear-btn {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.clear-btn:hover {
+    background: #e2e8f0;
+}
+
+#loader {
+    text-align: center;
+    padding: 20px;
+    font-weight: bold;
+    color: #1a4d80;
+}

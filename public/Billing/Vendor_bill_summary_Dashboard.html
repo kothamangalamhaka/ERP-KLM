@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Billing Dashboard | Haka ERP</title>
+    <link rel="stylesheet" href="/Billing/style/dashboard_billing.css">
+</head>
+
+<body>
+
+    <!-- 🟢 Secure ERP Login Screen -->
+    <div id="loginScreen">
+        <div class="login-box">
+            <h2>Haka ERP Login</h2>
+            <input type="text" id="loginUserId" placeholder="Username"
+                onkeypress="if(event.key==='Enter') executeLogin()">
+            <input type="password" id="loginPass" placeholder="Password"
+                onkeypress="if(event.key==='Enter') executeLogin()">
+            <button onclick="executeLogin()">Secure Login</button>
+        </div>
+    </div>
+
+    <div class="container" id="mainAppContainer">
+        <div class="header-area">
+            <h2>Detailed Billing Dashboard</h2>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-back"
+                    style="background:#dc3545; border:none; font-family:Georgia, 'Times New Roman', Times, serif;"
+                    onclick="executeLogout()">Logout</button>
+                <a href="/Billing/index.html" class="btn-back">⬅ Back to Billing</a>
+            </div>
+        </div>
+
+        <div class="controls-area">
+            <div class="filter-group">
+                <p
+                    style="font-size: 18px; font-weight: bold; font-family: Georgia, 'Times New Roman', Times, serif; color: #000000; padding: 0; margin: 0;">
+                    Monthly Vendor Bill Summary Report.</p>
+            </div>
+            <button class="btn-excel" onclick="exportToExcel()">
+                📊 Export to Excel
+            </button>
+        </div>
+
+        <div id="loader">Fetching records from Database...</div>
+
+        <table id="dashboardTable" style="display:none;">
+            <thead>
+                <tr id="headerRow">
+                    <th data-col="billing_month">Month <span class="filter-icon">▼</span></th>
+                    <th data-col="site_name">Site Name <span class="filter-icon">▼</span></th>
+                    <th data-col="owner">Owner <span class="filter-icon">▼</span></th>
+                    <th data-col="plate_no">Plate No <span class="filter-icon">▼</span></th>
+                    <th data-col="nhr">N.Hr <span class="filter-icon">▼</span></th>
+                    <th data-col="othr">OT Hr <span class="filter-icon">▼</span></th>
+                    <th data-col="rent">Total Rent <span class="filter-icon">▼</span></th>
+                    <th data-col="vat_amount">Total VAT <span class="filter-icon">▼</span></th>
+                    <th data-col="adjustment_desc">Adjustment Desc <span class="filter-icon">▼</span></th>
+                    <th data-col="adjusted_amount">Adj Amount <span class="filter-icon">▼</span></th>
+                    <th data-col="after_adjustment">After Adjustment <span class="filter-icon">▼</span></th>
+                </tr>
+            </thead>
+            <tbody id="dashboardBody"></tbody>
+        </table>
+    </div>
+
+    <!-- 🟢 Excel Style Filter Menu -->
+    <div id="filterMenu" class="filter-popup" style="display:none;">
+        <input type="text" id="filterSearch" placeholder="Search..." onkeyup="filterCheckboxes()">
+        <div class="filter-options" id="filterOptions"></div>
+        <div class="filter-actions">
+            <button class="apply-btn" onclick="applyFilters()">Apply</button>
+            <button class="clear-btn" onclick="clearFilters()">Clear</button>
+        </div>
+    </div>
+
+    <script src="/Billing/script/dashboard_billing.js"></script>
+</body>
+
+</html>

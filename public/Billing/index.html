@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Haka Bill Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="style/billing.css">
+</head>
+
+<body>
+
+    <div class="loader-overlay" id="loader">
+        <div class="spinner"></div>
+        <h3 style="margin-top:20px; color:#1a4d80;">Processing Data...</h3>
+    </div>
+
+    <div id="loginScreen">
+        <div class="login-box">
+            <h2>Haka ERP Login</h2>
+            <input type="text" id="loginUserId" placeholder="Username"
+                onkeypress="if(event.key==='Enter') executeLogin()">
+            <input type="password" id="loginPass" placeholder="Password"
+                onkeypress="if(event.key==='Enter') executeLogin()">
+            <button onclick="executeLogin()">Secure Login</button>
+        </div>
+    </div>
+
+    <div id="mainAppContainer">
+        <div class="top-controls">
+            <div class="btn-panel">
+                <button type="button" class="btn btn-dash" onclick="goToDashboard()" title="Dashboard">
+                    <i class="material-icons" style="font-size: 26px; color: #007bff;">dashboard</i>
+                </button>
+                <button type="button" id="btnAdjustments" class="btn btn-adjust" onclick="toggleAdjustments()"
+                    title="Adjustments">
+                    <svg width="24" height="20" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="8" cy="6" r="3"></circle>
+                        <line x1="3" y1="6" x2="5" y2="6"></line>
+                        <line x1="11" y1="6" x2="21" y2="6"></line>
+                        <circle cx="16" cy="12" r="3"></circle>
+                        <line x1="3" y1="12" x2="13" y2="12"></line>
+                        <line x1="19" y1="12" x2="21" y2="12"></line>
+                        <circle cx="10" cy="18" r="3"></circle>
+                        <line x1="3" y1="18" x2="7" y2="18"></line>
+                        <line x1="13" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <button type="button" class="btn btn-reset" onclick="resetForm()">Reset</button>
+
+                <button type="button" id="btnToggleImages" class="btn btn-hide-imgs" onclick="toggleImages()">Show
+                    Images</button>
+
+                <label class="toggle-container" title="Hide N.Rate & OT Rate ONLY">
+                    <input type="checkbox" id="hideRatesOnlyToggle" onchange="toggleRatesOnlyView()"> <span>Rate</span>
+                </label>
+                <label class="toggle-container" title="Hide Rates, VAT, Total">
+                    <input type="checkbox" id="hideRatesToggle" onchange="toggleRatesAndVatView()" checked> <span>Rate &
+                        VAT</span>
+                </label>
+                <label class="toggle-container" title="Hide VAT & Total Only">
+                    <input type="checkbox" id="hideVatOnlyToggle" onchange="toggleVatOnlyView()"> <span>VAT</span>
+                </label>
+                <label class="toggle-container" title="Hide Rent Column">
+                    <input type="checkbox" id="hideRentToggle" onchange="toggleRentView()"> <span>Hide Rent</span>
+                </label>
+            </div>
+
+            <div class="dropdown-group">
+                <div class="selector-wrapper">
+                    <label>Company:</label>
+                    <select id="companySelector" onchange="changeCompany()">
+                        <option value="Haka" selected>Haka</option>
+                        <option value="Aljoda">Aljoda</option>
+                        <option value="Masar Wheels">Masar Wheels</option>
+                        <option value="We1 Track">We1 Track</option>
+                    </select>
+                </div>
+
+                <div class="selector-wrapper">
+                    <label>Owner:</label>
+                    <div class="custom-dropdown" id="ownerDropdownContainer">
+                        <div class="custom-dropdown-selected" onclick="toggleOwnerDropdown()">
+                            <span id="selectedOwnerText">All Owners</span>
+                            <span style="font-size:10px; margin-left: 5px;">▼</span>
+                        </div>
+                        <div class="custom-dropdown-options" id="ownerOptions">
+                            <input type="text" id="ownerSearchInput" placeholder="Search Owner..."
+                                onkeyup="filterOwnerDropdownSearch()">
+                            <div id="ownerListContainer"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="ownerSelector" value="All">
+                </div>
+
+                <div class="selector-wrapper">
+                    <label>Site:</label>
+                    <select id="siteSelector" onchange="filterData('site')">
+                        <option value="All">All Sites</option>
+                    </select>
+                </div>
+
+                <div class="selector-wrapper" style="border: none; background: transparent; padding: 0; gap: 8px;">
+                    <label class="month-label">Month:</label>
+                    <div class="custom-dropdown" id="monthDropdownContainer">
+                        <div class="custom-dropdown-selected" onclick="toggleMonthDropdown()">
+                            <span id="selectedMonthText">Loading...</span>
+                            <span style="font-size:10px;">▼</span>
+                        </div>
+                        <div class="custom-dropdown-options" id="monthOptions"></div>
+                    </div>
+                    <button type="button" class="btn btn-fetch" onclick="fetchDataFromERP()">Fetch Data</button>
+                    <button type="button" class="btn btn-reset" onclick="executeLogout()">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="container" id="billContainer">
+            <img id="mainHeaderImage" src="https://i.ibb.co/Ld752yD5/hd.png" class="header-img hidden-image"
+                alt="Company Header" crossorigin="anonymous">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <label class="toggle-container no-export" title="Hide Owner Name in Image"
+                        style="margin-bottom: 0; padding: 4px 8px;">
+                        <input type="checkbox" id="hideOwnerToggle" checked> <span>Hidden</span>
+                    </label>
+
+                    <div id="billOwnerDisplay"
+                        style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase;"></div>
+                </div>
+                <div></div>
+            </div>
+
+            <h3 id="mainHeading" style="margin-top: 5px;">Bill Summary for Each Month ملخص فاتورة الشهر</h3>
+
+            <table id="billTable">
+                <thead>
+                    <tr>
+                        <th class="col-num">#</th>
+                        <th class="col-date">Date</th>
+                        <th class="col-vtype">Vehicle Type</th>
+                        <th class="col-driver">Driver</th>
+                        <th class="col-site no-export hidden-export" style="width: 130px;">Site</th>
+                        <th class="col-plate">Plate No</th>
+                        <th class="col-small">N.Hr</th>
+                        <th class="col-small rate-col hidden-export">N.Rate</th>
+                        <th class="col-small">OT Hr</th>
+                        <th class="col-small rate-col hidden-export">OT Rate</th>
+                        <th class="col-money rent-col">Rent</th>
+                        <th class="col-small vat-col no-export hidden-export">VAT %</th>
+                        <th class="col-money vat-col hidden-export">VAT Amt</th>
+                        <th class="col-money total-col hidden-export">Total</th>
+                        <th class="col-action no-export">Act</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="6" style="text-align:right; padding-right:15px;">Grand Total:</td>
+                        <td id="grandNHr">0</td>
+                        <td class="rate-col hidden-export"></td>
+                        <td id="grandOTHr">0</td>
+                        <td class="rate-col hidden-export"></td>
+                        <td id="grandRent" class="rent-col">0.00</td>
+                        <td class="vat-col no-export hidden-export"></td>
+                        <td id="grandVat" class="vat-col hidden-export">0.00</td>
+                        <td id="grandTotal" class="total-col hidden-export">0.00</td>
+                        <td class="no-export" style="text-align: center;">
+                            <button type="button" class="btn btn-add-circle" title="Add New Row"
+                                onclick="addRow()">+</button>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div id="adjustmentsSection" style="display:none; margin-top: 30px;">
+                <h3>Adjustments</h3>
+                <table id="adjTable">
+                    <thead>
+                        <tr>
+                            <th class="col-num">Sl</th>
+                            <th class="col-date">Date</th>
+                            <th class="col-plate">Plate No</th>
+                            <th>Description</th>
+                            <th class="col-money">Amount</th>
+                            <th class="col-small no-export-col">Type</th>
+                            <th class="col-action no-export">Act</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adjBody"></tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="4" style="text-align:right; padding-right:15px;">Total Adjustment:</td>
+                            <td id="adjGrandTotal" style="text-align:center;">0.00</td>
+                            <td colspan="2" class="no-export" style="text-align:right; padding:5px; border:none;">
+                                <button type="button" class="btn btn-add-circle" title="Add Adjustment"
+                                    onclick="addAdjRow()">+</button>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <table style="width: 100%; margin-top: 10px;">
+                    <tr class="balance-row">
+                        <td style="text-align:right; padding-right:15px; border:none;">Balance After Adjustment:</td>
+                        <td id="finalBalance" style="width:130px; border: 1px solid #ccc; text-align:center;">0.00</td>
+                        <td class="col-action no-export" style="border:none;"></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="footer">
+                <div id="footerSignArea" class="hidden-image" style="text-align: left; padding-bottom: 20px;">
+                    <img id="mainSignatureImage" src="https://i.ibb.co/CK8X4YpV/Screenshot-2026-03-28-111438.png"
+                        class="signature-img" alt="Signature" crossorigin="anonymous">
+                    <p style="margin-bottom: 5px;"><b id="footerText">Prepared & Approved by Haka Accounts</b></p>
+                    <p style="border-top: 1px solid #333; width: 250px;"></p>
+                </div>
+                <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
+                    <img id="mainSealImage" src="https://i.ibb.co/mrLFJdBy/sl.png" class="seal hidden-image"
+                        alt="Company Seal" crossorigin="anonymous">
+
+                    <div class="no-export action-buttons">
+                        <button type="button" class="btn btn-wa" onclick="shareToWhatsApp()">Share to WhatsApp</button>
+                        <button type="button" class="btn btn-img" onclick="exportImage()">Download Image</button>
+                        <button type="button" id="submitBtn" class="btn btn-save" onclick="submitData()">Save to
+                            ERP</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+    <script src="script/billing.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Payment Report - Haka ERP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-hover: #0284c7;
+            --secondary: #0f2027;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --gain: #3b82f6;
+            --warning: #f59e0b;
+            --border-color: #cbd5e1;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            font-size: 13px;
+            color: var(--text-main);
+        }
+
+        #loginScreen {
+            position: fixed;
+            inset: 0;
+            background: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            width: 350px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .login-box h2 {
+            margin-top: 0;
+            color: #1e293b;
+            margin-bottom: 25px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .login-box input:focus {
+            border-color: var(--primary);
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .login-box button:hover {
+            background: var(--primary-hover);
+        }
+
+        #mainAppContainer {
+            display: none;
+        }
+
+        .navbar {
+            background-color: var(--secondary);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar h2 {
+            margin: 0;
+            font-size: 20px;
+            font-family: "Times New Roman", Times, serif;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn-logout {
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .btn-logout:hover {
+            background-color: #cc0000;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
+        .controls-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        select,
+        input {
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            outline: none;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-fetch {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-excel {
+            background-color: #16a34a;
+            color: white;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .btn-batch {
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .btn-single-excel {
+            background-color: #f59e0b;
+            color: white;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .btn-copy,
+        .btn-primary {
+            background-color: #0d9488;
+            color: white;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .btn-copy:hover,
+        .btn-primary:hover {
+            background-color: #0f766e;
+        }
+
+        .btn-single-excel:hover {
+            background-color: #d97706;
+        }
+
+        .table-wrapper {
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+            max-height: 75vh;
+            position: relative;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1650px;
+        }
+
+        th,
+        td {
+            border: 1px solid var(--border-color);
+            padding: 10px 8px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .th-vehicle {
+            background-color: #1e293b;
+            color: white;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .th-vehicle:hover {
+            background-color: #334155;
+        }
+
+        .th-ts {
+            background-color: #166534;
+            color: white;
+        }
+
+        .th-inv {
+            background-color: #1e40af;
+            color: white;
+        }
+
+        .th-bill {
+            background-color: #6b21a8;
+            color: white;
+        }
+
+        .th-amt {
+            background-color: #059669;
+            color: white;
+        }
+
+        .th-extra {
+            background-color: #334155;
+            color: white;
+        }
+
+        .th-status {
+            background-color: #0f172a;
+            color: white;
+        }
+
+        .col-ts {
+            background-color: rgba(22, 101, 52, 0.03);
+            font-weight: 600;
+        }
+
+        .col-inv {
+            background-color: rgba(30, 64, 175, 0.03);
+            font-weight: 600;
+        }
+
+        .col-bill {
+            background-color: rgba(107, 33, 168, 0.03);
+            font-weight: 600;
+        }
+
+        .col-amt {
+            background-color: rgba(5, 150, 105, 0.03);
+            font-weight: 600;
+        }
+
+        .col-owner {
+            padding-left: 3px !important;
+            padding-right: 3px !important;
+            white-space: nowrap;
+            font-size: 12px;
+            color: #475569;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .editable-cell {
+            cursor: text;
+            white-space: pre-wrap;
+            text-align: left;
+            font-size: 12px;
+            color: #1e293b;
+            min-width: 150px;
+            border: 1px solid transparent;
+        }
+
+        .editable-cell:hover {
+            background-color: #f8fafc;
+            border: 1px dashed var(--primary);
+        }
+
+        .editable-cell textarea {
+            border: 1px solid var(--primary);
+            outline: none;
+            border-radius: 4px;
+            resize: vertical;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 12px;
+            padding: 4px;
+        }
+
+        tbody tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        .status-cell {
+            font-weight: bold;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .bg-matched {
+            background-color: #d1fae5 !important;
+            color: #065f46;
+        }
+
+        .bg-gain {
+            background-color: #dbeafe !important;
+            color: #1e40af;
+        }
+
+        .bg-loss {
+            background-color: #fee2e2 !important;
+            color: #991b1b;
+        }
+
+        .bg-warning {
+            background-color: #fef3c7 !important;
+            color: #92400e;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            width: 450px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: var(--secondary);
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        /* Excel Filter CSS */
+        .filter-icon {
+            font-size: 10px;
+            margin-left: 6px;
+            color: #cbd5e1;
+            transition: color 0.2s;
+        }
+
+        .filter-icon.filter-active {
+            color: #f59e0b !important;
+        }
+
+        .excel-filter-menu {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            z-index: 9999;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            overflow: hidden;
+            width: 240px;
+            color: #111;
+        }
+
+        .excel-filter-search {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .excel-filter-search input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .excel-filter-list {
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 5px 0;
+        }
+
+        .filter-item {
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .filter-item:hover {
+            background: #f1f5f9;
+        }
+
+        .filter-item label {
+            cursor: pointer;
+            flex-grow: 1;
+            user-select: none;
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .filter-item input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .excel-filter-actions {
+            padding: 10px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            background: #f8fafc;
+            gap: 10px;
+        }
+
+        .excel-filter-actions button {
+            flex: 1;
+            padding: 6px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-apply-filter {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-clear-filter {
+            background: #e2e8f0;
+            color: #475569;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loginScreen">
+        <div class="login-box">
+            <h2>Haka ERP Login</h2>
+            <input type="text" id="loginUserId" placeholder="Username"
+                onkeypress="if(event.key==='Enter') executeLogin()">
+            <input type="password" id="loginPass" placeholder="Password"
+                onkeypress="if(event.key==='Enter') executeLogin()">
+            <button onclick="executeLogin()">Secure Login</button>
+        </div>
+    </div>
+
+    <div id="mainAppContainer">
+        <div class="navbar">
+            <h2>Master Payment Report</h2>
+            <div class="navbar-links">
+                <a href="../Timesheet/Timesheet.html">
+                    <div style="font-weight: 500; font-size: 14px; color: white;">Haka ERP System</div>
+                </a>
+                <button class="btn-logout" onclick="executeLogout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="controls-card">
+                <div class="form-group" style="width: 120px;">
+                    <label>Month</label>
+                    <select id="selMonth">
+                        <option value="January">January</option>
+                        <option value="February">February</option>
+                        <option value="March">March</option>
+                        <option value="April">April</option>
+                        <option value="May">May</option>
+                        <option value="June">June</option>
+                        <option value="July">July</option>
+                        <option value="August">August</option>
+                        <option value="September">September</option>
+                        <option value="October">October</option>
+                        <option value="November">November</option>
+                        <option value="December">December</option>
+                    </select>
+                </div>
+                <div class="form-group" style="width: 80px;">
+                    <label>Year</label>
+                    <input type="number" id="selYear" value="2026">
+                </div>
+                <div class="form-group">
+                    <button class="btn-fetch" onclick="fetchAndRenderUI()">Load Data</button>
+                </div>
+
+                <div style="width: 2px; background: #e2e8f0; margin: 0 10px; height: 35px;"></div>
+
+                <div class="form-group" style="width: 150px;">
+                    <label>Filter Owner</label>
+                    <select id="filterOwner" onchange="applyFilters()">
+                        <option value="ALL">All Owners</option>
+                    </select>
+                </div>
+                <div class="form-group" style="width: 150px;">
+                    <label>Filter Site</label>
+                    <select id="filterSite" onchange="applyFilters()">
+                        <option value="ALL">All Sites</option>
+                    </select>
+                </div>
+                <div class="form-group" style="width: 150px;">
+                    <label>Filter Plate No</label>
+                    <input type="text" id="filterPlate" placeholder="Type Plate..." onkeyup="applyFilters()"
+                        style="text-transform: uppercase;">
+                </div>
+
+                <button class="btn-excel" onclick="exportCurrentToExcel()">Export Excel</button>
+                <button class="btn-batch" onclick="openBatchModal()">Batch Export</button>
+                <button class="btn-single-excel" onclick="openSingleExcelModal()">Single Excel</button>
+
+                <!-- 🟢 NEW: Copy Plates Button -->
+                <button class="btn-primary" onclick="openDataFeedModal()"
+                    style="margin-left: 10px; background-color: #2563eb;">⚙️ Data Feed</button>
+            </div>
+
+            <div id="loader" class="loader">Processing Data... Please wait.</div>
+
+            <div class="table-wrapper" id="tableContainer">
+                <table id="reportTable">
+                    <thead>
+                        <tr>
+                            <th colspan="3" class="th-vehicle">VEHICLE INFO</th>
+                            <th colspan="2" class="th-ts">TIMESHEET</th>
+                            <th colspan="2" class="th-inv">INVOICE HR</th>
+                            <th colspan="2" class="th-bill">BILLING DB</th>
+                            <th colspan="4" class="th-amt">AMOUNT</th>
+                            <th colspan="5" class="th-extra">EXTRA DETAILS</th>
+                        </tr>
+                        <tr>
+                            <th class="th-vehicle" style="width: 130px;"
+                                onclick="openExcelFilterMenu(event, 'site', 0)">Site <span class="filter-icon">▼</span>
+                            </th>
+                            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'owner', 1)">Owner Name <span
+                                    class="filter-icon">▼</span></th>
+                            <th class="th-vehicle" style="width: 100px;"
+                                onclick="openExcelFilterMenu(event, 'plate', 2)">Plate No <span
+                                    class="filter-icon">▼</span></th>
+
+                            <th class="th-ts" style="width: 70px;">TS N.Hr</th>
+                            <th class="th-ts" style="width: 70px;">TS OT</th>
+
+                            <th class="th-inv" style="width: 70px;">Inv N.Hr</th>
+                            <th class="th-inv" style="width: 70px;">Inv OT</th>
+
+                            <th class="th-bill" style="width: 70px;">Bill N.Hr</th>
+                            <th class="th-bill" style="width: 70px;">Bill OT</th>
+
+                            <th class="th-amt" style="width: 70px;">NR Rate</th>
+                            <th class="th-amt" style="width: 70px;">OT Rate</th>
+                            <th class="th-amt" style="width: 90px;">Rent</th>
+                            <th class="th-amt" style="width: 100px;">Inv Amount</th>
+
+                            <th class="th-status" style="width: 150px;">STATUS</th>
+                            <th class="th-extra" style="width: 100px;">Invoice No</th>
+                            <th class="th-extra" style="width: 100px;">Bill No</th>
+                            <th class="th-extra" style="width: 150px;">Edit Note</th>
+                            <th class="th-extra" style="width: 200px;">Accounts Note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportBody">
+                        <tr>
+                            <td colspan="18" style="padding: 30px; color: #64748b;">Click "Load Data" to fetch reports.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Excel Filter Menu -->
+    <div id="excelFilterMenu" class="excel-filter-menu" onclick="event.stopPropagation()">
+        <div class="excel-filter-search">
+            <input type="text" id="filterSearchInput" placeholder="Search...">
+        </div>
+        <div class="filter-item" style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+            <input type="checkbox" id="filterSelectAll" checked>
+            <label for="filterSelectAll" style="font-weight:700;">(Select All)</label>
+        </div>
+        <div class="excel-filter-list" id="filterChecklist"></div>
+        <div class="excel-filter-actions">
+            <button class="btn-apply-filter" onclick="applyExcelFilter()">Apply</button>
+            <button class="btn-clear-filter" onclick="closeExcelFilter()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Batch Export Modal -->
+    <div id="batchModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Batch Excel Export</h3>
+            <p style="font-size: 12px; color: #64748b; margin-bottom: 15px;">Select the range to export multiple months
+                in one file (Separate Tabs).</p>
+
+            <div class="flex-row">
+                <div class="form-group" style="flex:1;">
+                    <label>From Month</label>
+                    <select id="batchFromM">
+                        <option value="January">January</option>
+                        <option value="February">February</option>
+                        <option value="March">March</option>
+                        <option value="April">April</option>
+                        <option value="May">May</option>
+                        <option value="June">June</option>
+                        <option value="July">July</option>
+                        <option value="August">August</option>
+                        <option value="September">September</option>
+                        <option value="October">October</option>
+                        <option value="November">November</option>
+                        <option value="December">December</option>
+                    </select>
+                </div>
+                <div class="form-group" style="width: 80px;">
+                    <label>Year</label>
+                    <input type="number" id="batchFromY" value="2026">
+                </div>
+            </div>
+
+            <div class="flex-row">
+                <div class="form-group" style="flex:1;">
+                    <label>To Month</label>
+                    <select id="batchToM">
+                        <option value="January">January</option>
+                        <option value="February">February</option>
+                        <option value="March">March</option>
+                        <option value="April">April</option>
+                        <option value="May">May</option>
+                        <option value="June">June</option>
+                        <option value="July">July</option>
+                        <option value="August">August</option>
+                        <option value="September">September</option>
+                        <option value="October">October</option>
+                        <option value="November">November</option>
+                        <option value="December">December</option>
+                    </select>
+                </div>
+                <div class="form-group" style="width: 80px;">
+                    <label>Year</label>
+                    <input type="number" id="batchToY" value="2026">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn-fetch" style="flex:1; background: #64748b;"
+                    onclick="closeBatchModal()">Cancel</button>
+                <button class="btn-excel" style="flex:1; margin:0;" onclick="executeBatchExport()">Generate
+                    Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Single Excel Modal (Analysis) -->
+    <div id="singleExcelModal" class="modal-overlay">
+        <div class="modal-content" style="width: 500px;">
+            <h3>Single Excel Export (Analysis)</h3>
+            <p style="font-size: 12px; color: #64748b; margin-bottom: 15px;">Combine data into a single Excel sheet (One
+                Tab) for easy analysis.</p>
+
+            <div style="margin-bottom: 20px; font-size: 13px;">
+                <label style="margin-right: 15px; cursor: pointer; font-weight: bold;">
+                    <input type="radio" name="exportMode" value="entire" checked onchange="toggleSingleExcelDates()">
+                    Entire Period
+                </label>
+                <label style="cursor: pointer; font-weight: bold;">
+                    <input type="radio" name="exportMode" value="custom" onchange="toggleSingleExcelDates()"> Custom
+                    Period
+                </label>
+            </div>
+
+            <div id="singleExcelDateSelectors" style="display: none; flex-direction: column; gap: 15px;">
+                <div class="flex-row" style="margin-bottom: 0;">
+                    <div class="form-group" style="flex:1;">
+                        <label>From Month</label>
+                        <select id="singleFromM">
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="width: 80px;">
+                        <label>Year</label>
+                        <input type="number" id="singleFromY" value="2025">
+                    </div>
+                </div>
+                <div class="flex-row" style="margin-bottom: 0;">
+                    <div class="form-group" style="flex:1;">
+                        <label>To Month</label>
+                        <select id="singleToM">
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="width: 80px;">
+                        <label>Year</label>
+                        <input type="number" id="singleToY" value="2026">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button class="btn-fetch" style="flex:1; background: #64748b;"
+                    onclick="closeSingleExcelModal()">Cancel</button>
+                <button class="btn-single-excel" style="flex:1; margin:0;" onclick="executeSingleExcelExport()">Generate
+                    Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🟢 NEW: Data Feed Modal with Period Selection -->
+    <div id="dataFeedModal" class="modal-overlay">
+        <div class="modal-content" style="width: 500px;">
+            <h3 style="color: #1e40af; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">⚙️ Data Feed (Invoice
+                Entry)</h3>
+
+            <!-- EXPORT SECTION -->
+            <div
+                style="background: #f8fafc; padding: 15px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin-top: 0; color: #0f172a;">1. Download Template</h4>
+                <p style="font-size: 11px; color: #64748b; margin-top: -10px;">Select a period to generate a pre-filled
+                    Excel template.</p>
+
+                <div class="flex-row" style="margin-bottom: 10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>From Month</label>
+                        <select id="feedFromMonth">
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="width: 80px;">
+                        <label>Year</label>
+                        <input type="number" id="feedFromYear" value="2026">
+                    </div>
+                </div>
+
+                <div class="flex-row" style="margin-bottom: 15px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>To Month</label>
+                        <select id="feedToMonth">
+                            <option value="January">January</option>
+                            <option value="February">February</option>
+                            <option value="March">March</option>
+                            <option value="April">April</option>
+                            <option value="May">May</option>
+                            <option value="June">June</option>
+                            <option value="July">July</option>
+                            <option value="August">August</option>
+                            <option value="September">September</option>
+                            <option value="October">October</option>
+                            <option value="November">November</option>
+                            <option value="December">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="width: 80px;">
+                        <label>Year</label>
+                        <input type="number" id="feedToYear" value="2026">
+                    </div>
+                </div>
+
+                <button class="btn-fetch" style="width: 100%;" onclick="exportDataEntryTemplate()">📥 Download
+                    Template</button>
+            </div>
+
+            <!-- IMPORT SECTION -->
+            <div style="background: #f0fdf4; padding: 15px; border: 1px solid #86efac; border-radius: 8px;">
+                <h4 style="margin-top: 0; color: #166534;">2. Upload Filled Data</h4>
+                <p style="font-size: 11px; color: #15803d; margin-top: -10px;">Upload the filled Excel file to sync with
+                    database.</p>
+                <input type="file" id="importExcelFile" accept=".xlsx, .xls"
+                    style="margin-bottom: 15px; width: 100%; padding: 5px; border: 1px dashed #4ade80;">
+                <button class="btn-excel" style="width: 100%; background: #16a34a;" onclick="importExcelData()">📤 Sync
+                    to Database</button>
+            </div>
+
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn-clear-filter" style="padding: 8px 20px; cursor: pointer;"
+                    onclick="closeDataFeedModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Login System Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('timesheetToken')) {
+                loadApp();
+            } else {
+                document.getElementById('loginUserId').focus();
+            }
+        });
+
+        async function executeLogin() {
+            const username = document.getElementById('loginUserId').value;
+            const password = document.getElementById('loginPass').value;
+
+            if (!username || !password) return alert("Enter credentials");
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    if (data.user.role === 'Viewer') {
+                        alert("Access Denied: Viewers cannot access reports.");
+                        return;
+                    }
+                    localStorage.setItem('timesheetToken', data.token);
+                    loadApp();
+                } else {
+                    alert(data.message || "Invalid Credentials!");
+                    document.getElementById('loginPass').value = '';
+                }
+            } catch (err) {
+                alert("Server Connection Error.");
+            }
+        }
+
+        function executeLogout() {
+            localStorage.removeItem('timesheetToken');
+            window.location.reload();
+        }
+
+        function loadApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainAppContainer').style.display = 'block';
+
+            const dDate = new Date();
+            document.getElementById('selYear').value = dDate.getFullYear();
+            document.getElementById('selMonth').value = months[dDate.getMonth()];
+        }
+
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        let masterData = [];
+
+        let headerFilters = { site: [], owner: [], plate: [] };
+        let currentFilterColInfo = { key: '', index: -1 };
+
+        async function fetchReportDataAPI(monthStr, yearStr) {
+            const token = localStorage.getItem('timesheetToken');
+            try {
+                const res = await fetch(`/payment/master-report-data?month=${monthStr}&year=${yearStr}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    return processDataLogic(data, monthStr, yearStr);
+                } else {
+                    if (data.message && data.message.includes('token')) executeLogout();
+                    return [];
+                }
+            } catch (e) {
+                console.error(e);
+                return [];
+            }
+        }
+
+        function getDayName(dayNum, monthStr, year) {
+            const dateObj = new Date(`${monthStr} ${dayNum}, ${year}`);
+            return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dateObj.getDay()];
+        }
+
+        // 🟢 Helper Function to rigorously clean Plate Numbers
+        function cleanPlate(p) {
+            return String(p || "").toUpperCase().replace(/[^A-Z0-9]/g, '');
+        }
+
+        // 🟢 Helper Function to safely parse Dates
+        function safeDate(dStr, fallback) {
+            if (!dStr || String(dStr).trim() === "" || String(dStr).trim() === "-") return new Date(fallback);
+            let d = new Date(dStr);
+            return isNaN(d.getTime()) ? new Date(fallback) : d;
+        }
+        // 🟢 Helper Function to rigorously clean Plate Numbers
+        function cleanPlate(p) {
+            return String(p || "").toUpperCase().replace(/[^A-Z0-9]/g, '');
+        }
+
+        // 🟢 Helper Function to safely parse Dates
+        function safeDate(dStr, fallback) {
+            if (!dStr || String(dStr).trim() === "" || String(dStr).trim() === "-") return new Date(fallback);
+            let d = new Date(dStr);
+            return isNaN(d.getTime()) ? new Date(fallback) : d;
+        }
+
+        // 🟢 BULLETPROOF: Perfected TS Calculation & Released Vehicle Fix
+        function processDataLogic(data, monthStr, yearStr) {
+            const mIdx = months.indexOf(monthStr);
+            const monthStart = new Date(yearStr, mIdx, 1);
+            const monthEnd = new Date(yearStr, mIdx + 1, 0);
+            const daysInMonth = monthEnd.getDate();
+
+            let processedArray = [];
+
+            data.vehicles.forEach(v => {
+                let originalPlate = String(v.plate_no || "").trim();
+                let pClean = cleanPlate(originalPlate); // 100% Cleaned Plate No
+                let owner = v.owner_name || "N/A";
+                let defaultSite = (v.site_name || "N/A").trim();
+
+                if (!pClean) return;
+
+                // 1. STRICT CHECK: Is the vehicle ACTIVE in this specific month?
+                let vSites = data.sites.filter(s => cleanPlate(s.plate_no) === pClean);
+                let strictlyActiveSites = vSites.filter(s => {
+                    let st = safeDate(s.work_start_date, '2000-01-01');
+                    let ed = safeDate(s.work_end_date, '2099-01-01');
+                    // Check if start date is before month end AND end date is after month start
+                    return st <= monthEnd && ed >= monthStart;
+                });
+
+                // 2. Check if it has any actual data entered for this month
+                let vTimesheets = data.timesheets.filter(ts => cleanPlate(ts.plate_no) === pClean);
+                let billData = data.billing.find(b => cleanPlate(b.plate_no) === pClean);
+                let vInvoices = data.invoices.filter(i => cleanPlate(i.plate_no) === pClean);
+
+                // 🔥 THE MAJOR FIX: If it's RELEASED/INACTIVE this month AND has NO DATA, SKIP IT COMPLETELY!
+                if (strictlyActiveSites.length === 0 && vTimesheets.length === 0 && !billData && vInvoices.length === 0) {
+                    return;
+                }
+
+                // If active but no site log, fallback to default site
+                let activeSites = strictlyActiveSites.length > 0 ? strictlyActiveSites : [{ site_name: defaultSite }];
+
+                let siteDataMap = {};
+                activeSites.forEach(s => {
+                    let sName = (s.site_name || "N/A").trim();
+                    if (!siteDataMap[sName]) siteDataMap[sName] = { ts_nr: 0, ts_ot: 0 };
+                });
+                if (!siteDataMap["N/A"]) siteDataMap["N/A"] = { ts_nr: 0, ts_ot: 0 };
+
+                // 3. Timesheet Calculation per site based on date
+                for (let i = 1; i <= daysInMonth; i++) {
+                    let ts = vTimesheets.find(r => parseInt(r.record_date) === i);
+                    if (!ts) continue;
+
+                    let dayName = getDayName(i, monthStr, yearStr);
+                    let isFullOT = (dayName === 'Fri' || i === 31);
+                    let tm = parseFloat(ts.calc_time) || 0;
+                    let bd = String(ts.bd || "").trim().toUpperCase();
+
+                    let nHr = 0, otHr = 0;
+                    if (bd === 'ID' || bd === 'NP') {
+                        if (isFullOT) { otHr = 10; } else { nHr = 10; }
+                    } else if (bd === 'B' || bd === 'H') {
+                        nHr = 0; otHr = 0;
+                    } else if (tm > 0) {
+                        if (isFullOT) { otHr = tm; }
+                        else {
+                            if (tm > 10) { nHr = 10; otHr = tm - 10; } else { nHr = tm; }
+                        }
+                    }
+
+                    let checkDate = new Date(yearStr, mIdx, i);
+                    let currentSite = defaultSite; // Fallback to default
+
+                    for (let s of activeSites) {
+                        if (s.site_name === "N/A" || s.site_name === defaultSite) continue;
+                        let st = safeDate(s.work_start_date, '2000-01-01');
+                        let ed = safeDate(s.work_end_date, '2099-01-01');
+                        st.setHours(0, 0, 0, 0); ed.setHours(23, 59, 59, 999);
+
+                        if (checkDate >= st && checkDate <= ed) {
+                            currentSite = (s.site_name || "N/A").trim();
+                            break;
+                        }
+                    }
+
+                    if (!siteDataMap[currentSite]) siteDataMap[currentSite] = { ts_nr: 0, ts_ot: 0 };
+                    siteDataMap[currentSite].ts_nr += nHr;
+                    siteDataMap[currentSite].ts_ot += otHr;
+                }
+
+                // 4. Billing & Invoices Setup
+                let bill_db_nr = billData ? parseFloat(billData.nhr) || 0 : 0;
+                let bill_db_ot = billData ? parseFloat(billData.othr) || 0 : 0;
+                let bill_nrate = billData ? parseFloat(billData.nrate) || 0 : 0;
+                let bill_otrate = billData ? parseFloat(billData.otrate) || 0 : 0;
+                let bill_rent = billData ? parseFloat(billData.rent) || 0 : 0;
+
+                Object.keys(siteDataMap).forEach((sName, index) => {
+                    let ts_nr = siteDataMap[sName].ts_nr;
+                    let ts_ot = siteDataMap[sName].ts_ot;
+
+                    if (sName === "N/A" && ts_nr === 0 && ts_ot === 0 && Object.keys(siteDataMap).length > 1) return;
+
+                    let invData = vInvoices.find(i => (i.site_name || "").trim() === sName);
+
+                    if (!invData && sName !== "N/A") {
+                        invData = vInvoices.find(i => !i.site_name || i.site_name === "N/A");
+                    }
+
+                    let inv_nr = invData ? parseFloat(invData.bill_nr) || 0 : 0;
+                    let inv_ot = invData ? parseFloat(invData.bill_ot) || 0 : 0;
+                    let inv_no = invData ? (invData.invoice_no || "") : "";
+                    let bill_no = invData ? (invData.bill_no || "") : "";
+                    let note = invData ? (invData.edit_reason || "") : "";
+                    let accounts_note = invData ? (invData.accounts_note || "") : "";
+                    let inv_amount = invData ? parseFloat(invData.invoice_amount) || 0 : 0;
+
+                    let ts_tot = ts_nr + ts_ot;
+                    let inv_tot = inv_nr + inv_ot;
+
+                    let statusClass = '';
+                    let statusPlain = '';
+
+                    if (inv_no === '') {
+                        statusClass = 'bg-warning'; statusPlain = "No Invoice";
+                    } else if (ts_nr === inv_nr && ts_tot === inv_tot) {
+                        statusClass = 'bg-matched'; statusPlain = "Matched";
+                    } else if (ts_nr <= inv_nr && ts_tot <= inv_tot) {
+                        statusClass = 'bg-gain'; statusPlain = "Gain";
+                    } else {
+                        let parts = [];
+                        if (ts_nr > inv_nr) parts.push(`NR: ${ts_nr - inv_nr}`);
+                        if (ts_ot > inv_ot) parts.push(`OT: ${ts_ot - inv_ot}`);
+                        statusClass = 'bg-loss';
+                        statusPlain = parts.length > 0 ? `Loss (${parts.join(', ')})` : `Loss`;
+                    }
+
+                    processedArray.push({
+                        plate: originalPlate,
+                        owner, site: sName, ts_nr, ts_ot, inv_nr, inv_ot,
+                        bill_db_nr: index === 0 ? bill_db_nr : 0,
+                        bill_db_ot: index === 0 ? bill_db_ot : 0,
+                        bill_nrate: index === 0 ? bill_nrate : 0,
+                        bill_otrate: index === 0 ? bill_otrate : 0,
+                        bill_rent: index === 0 ? bill_rent : 0,
+                        inv_amount, statusClass, statusPlain, inv_no, bill_no, note, accounts_note
+                    });
+                });
+            });
+
+            processedArray.sort((a, b) => a.site.localeCompare(b.site) || a.plate.localeCompare(b.plate));
+            return processedArray;
+        }
+
+        async function fetchAndRenderUI() {
+            const month = document.getElementById('selMonth').value;
+            const year = document.getElementById('selYear').value;
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('reportBody').innerHTML = '';
+
+            headerFilters = { site: [], owner: [], plate: [] };
+            document.querySelectorAll('.filter-icon').forEach(i => i.classList.remove('filter-active'));
+
+            masterData = await fetchReportDataAPI(month, year);
+
+            let uniqueOwners = new Set();
+            let uniqueSites = new Set();
+            masterData.forEach(d => { uniqueOwners.add(d.owner); uniqueSites.add(d.site); });
+
+            populateSelect('filterOwner', uniqueOwners);
+            populateSelect('filterSite', uniqueSites);
+
+            applyFilters();
+            document.getElementById('loader').style.display = 'none';
+        }
+
+        function populateSelect(id, setObj) {
+            let select = document.getElementById(id);
+            select.innerHTML = `<option value="ALL">All</option>`;
+            [...setObj].sort().forEach(item => {
+                select.innerHTML += `<option value="${item}">${item}</option>`;
+            });
+        }
+
+        function applyFilters() {
+            let fOwner = document.getElementById('filterOwner').value;
+            let fSite = document.getElementById('filterSite').value;
+            let fPlate = document.getElementById('filterPlate').value.trim().toUpperCase();
+
+            let filtered = masterData.filter(d => {
+                let matchO = (fOwner === "ALL" || d.owner === fOwner);
+                let matchS = (fSite === "ALL" || d.site === fSite);
+                let matchP = (fPlate === "" || d.plate.includes(fPlate));
+
+                let hMatchS = headerFilters.site.length === 0 || headerFilters.site.includes(d.site);
+                let hMatchO = headerFilters.owner.length === 0 || headerFilters.owner.includes(d.owner);
+                let hMatchP = headerFilters.plate.length === 0 || headerFilters.plate.includes(d.plate);
+
+                return matchO && matchS && matchP && hMatchS && hMatchO && hMatchP;
+            });
+            renderTable(filtered);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('reportBody');
+            tbody.innerHTML = '';
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="18" style="padding: 20px;">No data found.</td></tr>';
+                return;
+            }
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 600; white-space:nowrap; text-align: left; padding-left: 15px;">${row.site}</td>
+                    <td class="col-owner">${row.owner}</td>
+                    <td style="font-weight: 700; white-space:nowrap;">${row.plate}</td>
+                    
+                    <td class="col-ts">${row.ts_nr}</td><td class="col-ts">${row.ts_ot}</td>
+                    
+                    <td class="col-inv">${row.inv_nr || ''}</td>
+                    <td class="col-inv">${row.inv_ot || ''}</td>
+                    
+                    <td class="col-bill">${row.bill_db_nr || ''}</td>
+                    <td class="col-bill">${row.bill_db_ot || ''}</td>
+                    
+                    <td class="col-amt">${row.bill_nrate || ''}</td>
+                    <td class="col-amt">${row.bill_otrate || ''}</td>
+                    <td class="col-amt" style="font-weight: 700;">${row.bill_rent > 0 ? row.bill_rent.toFixed(2) : ''}</td>
+                    <td class="col-amt" style="font-weight: 700; color: #0f172a;">${row.inv_amount > 0 ? row.inv_amount.toFixed(2) : ''}</td>
+                    
+                    <td class="status-cell ${row.statusClass}">${row.statusPlain}</td>
+                    <td style="color:#1e40af; font-weight:600; white-space: nowrap;">${row.inv_no}</td>
+                    <td style="white-space: nowrap;">${row.bill_no || '-'}</td>
+                    <td style="font-size:11px; color:#64748b;">${row.note || '-'}</td>
+                    <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editAccountsNote(this)">${row.accounts_note || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function editAccountsNote(td) {
+            if (td.querySelector('textarea')) return;
+            let currentVal = td.innerText === '-' ? '' : td.innerText;
+            let plate = td.dataset.plate;
+            let site = td.dataset.site;
+            td.innerHTML = `<textarea onblur="saveAccountsNote(this, '${plate}', '${site}')">${currentVal}</textarea>`;
+            let ta = td.querySelector('textarea');
+            ta.focus();
+            ta.selectionStart = ta.selectionEnd = ta.value.length;
+        }
+
+        async function saveAccountsNote(textarea, plate, site) {
+            let newVal = textarea.value.trim();
+            let td = textarea.parentElement;
+            td.innerText = newVal || '-';
+            let rowObj = masterData.find(d => d.plate === plate && d.site === site);
+            if (rowObj) rowObj.accounts_note = newVal;
+            const fullMonth = `${document.getElementById('selMonth').value} ${document.getElementById('selYear').value}`;
+            const token = localStorage.getItem('timesheetToken');
+            try {
+                await fetch('/payment/save-accounts-note', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ plate_no: plate, month: fullMonth, site_name: site, accounts_note: newVal })
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function openExcelFilterMenu(event, key, colIndex) {
+            event.stopPropagation();
+            currentFilterColInfo = { key, index: colIndex };
+            const menu = document.getElementById('excelFilterMenu');
+            const listContainer = document.getElementById('filterChecklist');
+            listContainer.innerHTML = '';
+
+            let allOptions = new Set();
+
+            let tempFiltered = masterData.filter(d => {
+                let fOwner = document.getElementById('filterOwner').value;
+                let fSite = document.getElementById('filterSite').value;
+                let fPlate = document.getElementById('filterPlate').value.trim().toUpperCase();
+
+                let matchO = (fOwner === "ALL" || d.owner === fOwner);
+                let matchS = (fSite === "ALL" || d.site === fSite);
+                let matchP = (fPlate === "" || d.plate.includes(fPlate));
+
+                let passesOtherHeaders = true;
+                for (let filterKey in headerFilters) {
+                    if (filterKey === key) continue;
+                    if (headerFilters[filterKey].length > 0 && !headerFilters[filterKey].includes(d[filterKey])) {
+                        passesOtherHeaders = false;
+                        break;
+                    }
+                }
+                return matchO && matchS && matchP && passesOtherHeaders;
+            });
+
+            tempFiltered.forEach(row => allOptions.add(row[key]));
+
+            let allDataArr = Array.from(allOptions).sort();
+            let previouslySelected = headerFilters[key] || [];
+            let isAllSelected = previouslySelected.length === 0;
+
+            document.getElementById('filterSelectAll').checked = isAllSelected;
+
+            allDataArr.forEach(val => {
+                let displayVal = val === "" ? "(Blank)" : val;
+                let isChecked = isAllSelected || previouslySelected.includes(val);
+                let id = 'flt_' + Math.random().toString(36).substr(2, 9);
+                listContainer.insertAdjacentHTML('beforeend', `
+                    <div class="filter-item filter-row-item">
+                        <input type="checkbox" id="${id}" value="${val.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''} class="col-filter-cb">
+                        <label for="${id}">${displayVal}</label>
+                    </div>
+                `);
+            });
+
+            let iconRect = event.target.getBoundingClientRect();
+            menu.style.top = (iconRect.bottom + window.scrollY + 5) + 'px';
+            menu.style.left = (iconRect.left + window.scrollX) + 'px';
+            menu.style.display = 'block';
+
+            document.getElementById('filterSearchInput').value = '';
+            document.getElementById('filterSearchInput').focus();
+        }
+
+        document.getElementById('filterSelectAll')?.addEventListener('change', function () {
+            let isChecked = this.checked;
+            document.querySelectorAll('.col-filter-cb').forEach(cb => {
+                if (cb.parentElement.style.display !== 'none') cb.checked = isChecked;
+            });
+        });
+
+        document.getElementById('filterSearchInput')?.addEventListener('keyup', function () {
+            let keyword = this.value.toLowerCase();
+            document.querySelectorAll('.filter-row-item').forEach(item => {
+                if (item.textContent.toLowerCase().includes(keyword)) item.style.display = '';
+                else item.style.display = 'none';
+            });
+        });
+
+        function closeExcelFilter() {
+            document.getElementById('excelFilterMenu').style.display = 'none';
+        }
+
+        function applyExcelFilter() {
+            let selectedValues = [];
+            let totalVisible = 0;
+            let checkedCount = 0;
+            document.querySelectorAll('.col-filter-cb').forEach(cb => {
+                totalVisible++;
+                if (cb.checked) {
+                    selectedValues.push(cb.value);
+                    checkedCount++;
+                }
+            });
+
+            const key = currentFilterColInfo.key;
+            let thIndex = key === 'site' ? 0 : (key === 'owner' ? 1 : 2);
+            const icon = document.querySelectorAll('.th-vehicle .filter-icon')[thIndex];
+
+            if (checkedCount === totalVisible || checkedCount === 0) {
+                headerFilters[key] = [];
+                if (icon) { icon.classList.remove('filter-active'); }
+            } else {
+                headerFilters[key] = selectedValues;
+                if (icon) { icon.classList.add('filter-active'); }
+            }
+
+            closeExcelFilter();
+            applyFilters();
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.excel-filter-menu') && !e.target.classList.contains('filter-icon')) {
+                closeExcelFilter();
+            }
+        });
+
+        function exportCurrentToExcel() {
+            let fOwner = document.getElementById('filterOwner').value;
+            let fSite = document.getElementById('filterSite').value;
+            let fPlate = document.getElementById('filterPlate').value.trim().toUpperCase();
+
+            let filtered = masterData.filter(d => {
+                let matchO = (fOwner === "ALL" || d.owner === fOwner);
+                let matchS = (fSite === "ALL" || d.site === fSite);
+                let matchP = (fPlate === "" || d.plate.includes(fPlate));
+
+                let hMatchS = headerFilters.site.length === 0 || headerFilters.site.includes(d.site);
+                let hMatchO = headerFilters.owner.length === 0 || headerFilters.owner.includes(d.owner);
+                let hMatchP = headerFilters.plate.length === 0 || headerFilters.plate.includes(d.plate);
+
+                return matchO && matchS && matchP && hMatchS && hMatchO && hMatchP;
+            });
+            if (filtered.length === 0) { alert("No data."); return; }
+            let wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, createSheetFromData(filtered), "Report");
+            XLSX.writeFile(wb, `Payment_Report_${document.getElementById('selMonth').value}.xlsx`);
+        }
+
+        function openBatchModal() { document.getElementById('batchModal').style.display = 'flex'; }
+        function closeBatchModal() { document.getElementById('batchModal').style.display = 'none'; }
+
+        async function executeBatchExport() {
+            const fromM = document.getElementById('batchFromM').value;
+            const fromY = document.getElementById('batchFromY').value;
+            const toM = document.getElementById('batchToM').value;
+            const toY = document.getElementById('batchToY').value;
+            let start = new Date(fromY, months.indexOf(fromM), 1);
+            let end = new Date(toY, months.indexOf(toM), 1);
+            if (start > end) { alert("Invalid range."); return; }
+            closeBatchModal();
+            document.getElementById('loader').style.display = 'block';
+            let wb = XLSX.utils.book_new();
+            let current = new Date(start);
+            while (current <= end) {
+                let m = months[current.getMonth()], y = current.getFullYear();
+                let data = await fetchReportDataAPI(m, y);
+                if (data.length > 0) XLSX.utils.book_append_sheet(wb, createSheetFromData(data), `${m} ${y}`.substring(0, 31));
+                current.setMonth(current.getMonth() + 1);
+            }
+            document.getElementById('loader').style.display = 'none';
+            XLSX.writeFile(wb, "Batch_Report.xlsx");
+        }
+
+        function openSingleExcelModal() { document.getElementById('singleExcelModal').style.display = 'flex'; }
+        function closeSingleExcelModal() { document.getElementById('singleExcelModal').style.display = 'none'; }
+
+        function toggleSingleExcelDates() {
+            const mode = document.querySelector('input[name="exportMode"]:checked').value;
+            document.getElementById('singleExcelDateSelectors').style.display = mode === 'custom' ? 'flex' : 'none';
+        }
+
+        async function executeSingleExcelExport() {
+            const mode = document.querySelector('input[name="exportMode"]:checked').value;
+            let start, end;
+
+            if (mode === 'custom') {
+                const fromM = document.getElementById('singleFromM').value;
+                const fromY = document.getElementById('singleFromY').value;
+                const toM = document.getElementById('singleToM').value;
+                const toY = document.getElementById('singleToY').value;
+                start = new Date(fromY, months.indexOf(fromM), 1);
+                end = new Date(toY, months.indexOf(toM), 1);
+            } else {
+                start = new Date(2024, 0, 1);
+                const currY = new Date().getFullYear();
+                end = new Date(currY + 1, 11, 1);
+            }
+
+            if (start > end) { alert("Invalid range."); return; }
+            closeSingleExcelModal();
+
+            const loader = document.getElementById('loader');
+            loader.innerText = "Extracting Analysis Data... Please wait.";
+            loader.style.display = 'block';
+
+            let combinedData = [];
+            let current = new Date(start);
+
+            while (current <= end) {
+                let m = months[current.getMonth()], y = current.getFullYear();
+                let data = await fetchReportDataAPI(m, y);
+                if (data.length > 0) {
+                    data.forEach(row => {
+                        row.report_month = `${m} ${y}`;
+                        combinedData.push(row);
+                    });
+                }
+                current.setMonth(current.getMonth() + 1);
+            }
+
+            loader.style.display = 'none';
+            loader.innerText = "Processing Data... Please wait.";
+
+            if (combinedData.length === 0) {
+                alert("No data found for the selected period.");
+                return;
+            }
+
+            let wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, createSingleSheetFromData(combinedData), "Master_Analysis");
+            XLSX.writeFile(wb, "Haka_Analysis_Report.xlsx");
+        }
+
+        function createSingleSheetFromData(dataArray) {
+            let aoa = [
+                ["REPORT MONTH", "VEHICLE INFO", "", "", "TIMESHEET", "", "INVOICE HR", "", "BILLING DB", "", "AMOUNT", "", "", "", "EXTRA DETAILS", "", "", "", ""],
+                ["Month", "Site", "Owner Name", "Plate No", "TS N.Hr", "TS OT", "Inv N.Hr", "Inv OT", "Bill N.Hr", "Bill OT", "NR Rate", "OT Rate", "Rent", "Inv Amount", "STATUS", "Invoice No", "Bill No", "Edit Note", "Accounts Note"]
+            ];
+            dataArray.forEach(r => {
+                aoa.push([
+                    r.report_month,
+                    r.site, r.owner, r.plate,
+                    r.ts_nr, r.ts_ot, r.inv_nr || '', r.inv_ot || '', r.bill_db_nr || '', r.bill_db_ot || '',
+                    r.bill_nrate || '', r.bill_otrate || '', r.bill_rent > 0 ? r.bill_rent.toFixed(2) : '', r.inv_amount > 0 ? r.inv_amount.toFixed(2) : '',
+                    r.statusPlain, r.inv_no, r.bill_no, r.note || '-', r.accounts_note || '-'
+                ]);
+            });
+            let ws = XLSX.utils.aoa_to_sheet(aoa);
+
+            ws['!merges'] = [
+                { s: { r: 0, c: 1 }, e: { r: 0, c: 3 } },
+                { s: { r: 0, c: 4 }, e: { r: 0, c: 5 } },
+                { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },
+                { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },
+                { s: { r: 0, c: 10 }, e: { r: 0, c: 13 } },
+                { s: { r: 0, c: 14 }, e: { r: 0, c: 18 } }
+            ];
+
+            ws['!cols'] = [
+                { wch: 15 },
+                { wch: 20 }, { wch: 25 }, { wch: 12 },
+                { wch: 10 }, { wch: 10 },
+                { wch: 10 }, { wch: 10 },
+                { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 },
+                { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 30 }
+            ];
+
+            return ws;
+        }
+
+        function createSheetFromData(dataArray) {
+            let aoa = [
+                ["VEHICLE INFO", "", "", "TIMESHEET", "", "INVOICE HR", "", "BILLING DB", "", "AMOUNT", "", "", "", "EXTRA DETAILS", "", "", "", ""],
+                ["Site", "Owner Name", "Plate No", "TS N.Hr", "TS OT", "Inv N.Hr", "Inv OT", "Bill N.Hr", "Bill OT", "NR Rate", "OT Rate", "Rent", "Inv Amount", "STATUS", "Invoice No", "Bill No", "Edit Note", "Accounts Note"]
+            ];
+            dataArray.forEach(r => {
+                aoa.push([
+                    r.site, r.owner, r.plate,
+                    r.ts_nr, r.ts_ot, r.inv_nr || '', r.inv_ot || '', r.bill_db_nr || '', r.bill_db_ot || '',
+                    r.bill_nrate || '', r.bill_otrate || '', r.bill_rent > 0 ? r.bill_rent.toFixed(2) : '', r.inv_amount > 0 ? r.inv_amount.toFixed(2) : '',
+                    r.statusPlain, r.inv_no, r.bill_no, r.note || '-', r.accounts_note || '-'
+                ]);
+            });
+            let ws = XLSX.utils.aoa_to_sheet(aoa);
+
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
+                { s: { r: 0, c: 3 }, e: { r: 0, c: 4 } },
+                { s: { r: 0, c: 5 }, e: { r: 0, c: 6 } },
+                { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },
+                { s: { r: 0, c: 9 }, e: { r: 0, c: 12 } },
+                { s: { r: 0, c: 13 }, e: { r: 0, c: 17 } }
+            ];
+
+            ws['!cols'] = [
+                { wch: 20 }, { wch: 25 }, { wch: 12 },
+                { wch: 10 }, { wch: 10 },
+                { wch: 10 }, { wch: 10 },
+                { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 },
+                { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 30 }
+            ];
+
+            return ws;
+        }
+
+        // 🟢 NEW: Copy Visible Plate Numbers Logic
+        function copyVisiblePlates() {
+            const rows = document.querySelectorAll('#reportBody tr');
+            let plates = [];
+
+            rows.forEach(tr => {
+                // പ്ലേറ്റ് നമ്പർ ഉള്ളത് 3-ാമത്തെ കോളത്തിലാണ് (Index 2)
+                if (tr.cells.length >= 3) {
+                    let plateNo = tr.cells[2].innerText.trim();
+                    if (plateNo && plateNo !== "Plate No") {
+                        plates.push(plateNo);
+                    }
+                }
+            });
+
+            // ഡ്യൂപ്ലിക്കേറ്റ് നമ്പറുകൾ ഒഴിവാക്കാൻ (Unique Plates)
+            let uniquePlates = [...new Set(plates)];
+
+            if (uniquePlates.length === 0) {
+                alert("No plates found to copy.");
+                return;
+            }
+
+            // ഓരോ നമ്പറും പുതിയ വരിയിൽ വരുന്ന രീതിയിൽ കോപ്പി ചെയ്യുന്നു
+            const textToCopy = uniquePlates.join('\n');
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const btn = document.getElementById('btnCopyPlates');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.style.backgroundColor = '#10b981'; // Green color for success
+
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.backgroundColor = ''; // Revert to original
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert("Failed to copy plates.");
+            });
+        }
+
+        // 🟢 NEW: Data Feed Logic (Export & Import with Period Selection)
+        function openDataFeedModal() {
+            const dDate = new Date();
+            let currYear = dDate.getFullYear();
+            let currMonth = months[dDate.getMonth()];
+
+            document.getElementById('feedFromYear').value = currYear;
+            document.getElementById('feedFromMonth').value = currMonth;
+            document.getElementById('feedToYear').value = currYear;
+            document.getElementById('feedToMonth').value = currMonth;
+
+            document.getElementById('dataFeedModal').style.display = 'flex';
+        }
+
+        function closeDataFeedModal() {
+            document.getElementById('dataFeedModal').style.display = 'none';
+        }
+
+        async function exportDataEntryTemplate() {
+            const fromM = document.getElementById('feedFromMonth').value;
+            const fromY = parseInt(document.getElementById('feedFromYear').value);
+            const toM = document.getElementById('feedToMonth').value;
+            const toY = parseInt(document.getElementById('feedToYear').value);
+
+            let start = new Date(fromY, months.indexOf(fromM), 1);
+            let end = new Date(toY, months.indexOf(toM), 1);
+
+            if (start > end) {
+                alert("Invalid Date Range. 'From Month' cannot be after 'To Month'.");
+                return;
+            }
+
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('loader').innerText = "Generating Template... Please wait.";
+
+            // 🟢 NEW: Added all Inv and Bill columns exactly as needed
+            let aoa = [
+                ["Month", "Plate No", "Site Name", "Owner", "TS N.Hr", "TS OT", "Inv N.Hr", "Inv OT", "Invoice No", "Invoice Amount", "Bill No", "Bill N.Hr", "Bill OT", "NR Rate", "OT Rate", "Edit Note", "Accounts Note"]
+            ];
+
+            let current = new Date(start);
+            let hasData = false;
+
+            while (current <= end) {
+                let m = months[current.getMonth()];
+                let y = current.getFullYear();
+                let fullMonth = `${m} ${y}`;
+
+                let data = await fetchReportDataAPI(m, y);
+
+                if (data.length > 0) {
+                    hasData = true;
+                    data.forEach(r => {
+                        aoa.push([
+                            fullMonth, r.plate, r.site, r.owner,
+                            r.ts_nr, r.ts_ot,
+                            r.inv_nr || '', r.inv_ot || '', r.inv_no || '', r.inv_amount || '', r.bill_no || '',
+                            r.bill_db_nr || '', r.bill_db_ot || '', r.bill_nrate || '', r.bill_otrate || '',
+                            r.note || '', r.accounts_note || ''
+                        ]);
+                    });
+                }
+                current.setMonth(current.getMonth() + 1);
+            }
+
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('loader').innerText = "Processing Data... Please wait.";
+
+            if (!hasData) {
+                alert("No vehicles found for the selected period.");
+                return;
+            }
+
+            let ws = XLSX.utils.aoa_to_sheet(aoa);
+            let wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data_Entry");
+
+            let fileName = (start.getTime() === end.getTime())
+                ? `Master_Entry_${fromM}_${fromY}.xlsx`
+                : `Master_Entry_${fromM}_${fromY}_to_${toM}_${toY}.xlsx`;
+
+            XLSX.writeFile(wb, fileName);
+        }
+
+        async function importExcelData() {
+            const fileInput = document.getElementById('importExcelFile');
+            if (!fileInput.files.length) { alert("Please select an Excel file to upload."); return; }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert to JSON
+                const jsonRecords = XLSX.utils.sheet_to_json(worksheet);
+
+                if (jsonRecords.length === 0) { alert("The uploaded file is empty."); return; }
+
+                document.getElementById('loader').style.display = 'block';
+                closeDataFeedModal();
+
+                const token = localStorage.getItem('timesheetToken');
+                try {
+                    const res = await fetch('/payment/import-invoices', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ records: jsonRecords })
+                    });
+                    const result = await res.json();
+                    document.getElementById('loader').style.display = 'none';
+
+                    if (result.success) {
+                        alert("✅ Database Synced Successfully!");
+                        fileInput.value = ""; // Clear file input
+                        fetchAndRenderUI(); // Reload table
+                    } else {
+                        alert("Error: " + result.message);
+                    }
+                } catch (err) {
+                    document.getElementById('loader').style.display = 'none';
+                    alert("Network Error during upload.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+
+</html>

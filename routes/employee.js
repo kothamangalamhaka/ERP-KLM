@@ -1,0 +1,137 @@
+const express = require('express');
+const router = express.Router();
+const { Pool } = require('pg');
+const jwt = require('jsonwebtoken');
+
+const pool = new Pool({
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    database: process.env.DB_NAME
+});
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_change_this';
+
+// 🟢 Middleware to protect routes
+const verifyToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ success: false, message: 'Access Denied. No token provided.' });
+
+    try {
+        req.user = jwt.verify(token, JWT_SECRET);
+        next();
+    } catch (e) {
+        res.status(403).json({ success: false, message: 'Invalid or expired session.' });
+    }
+};
+
+// 🟢 Secure PIN Verification (Generates JWT Token)
+router.post('/verify-pin', (req, res) => {
+    const { pin } = req.body;
+    const validPin = process.env.EMP_PIN || '0000';
+
+    if (pin === validPin) {
+        // Issue a token valid for 12 hours
+        const token = jwt.sign({ role: 'admin_access' }, JWT_SECRET, { expiresIn: '12h' });
+        res.json({ success: true, token });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid PIN' });
+    }
+});
+
+// Apply JWT verification middleware to ALL routes below this line
+router.use(verifyToken);
+
+// 1. Get all employees
+router.get('/', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM employee_data ORDER BY id DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// 2. Add a new employee
+router.post('/new', async (req, res) => {
+    try {
+        const { name, mobile, base_salary, shift_hours, start, end } = req.body;
+        const newEmployee = await pool.query(
+            'INSERT INTO employee_data (name, mobile, base_salary, shift_hours, start_date, end_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [name, mobile, base_salary || 0, shift_hours || 10, start || null, end || null]
+        );
+        res.status(201).json(newEmployee.rows[0]);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// 3. Update an existing employee
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, mobile, base_salary, shift_hours, start, end } = req.body;
+        const updateEmployee = await pool.query(
+            'UPDATE employee_data SET name = $1, mobile = $2, base_salary = $3, shift_hours = $4, start_date = $5, end_date = $6 WHERE id = $7 RETURNING *',
+            [name, mobile, base_salary || 0, shift_hours || 10, start || null, end || null, id]
+        );
+        res.json(updateEmployee.rows[0]);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// 4. Get attendance logs
+router.get('/logs', async (req, res) => {
+    try {
+        const { empId, from, to } = req.query;
+        const result = await pool.query(
+            `SELECT * FROM attendance_logs 
+             WHERE emp_id = $1 AND log_date >= $2 AND log_date <= $3 
+             ORDER BY log_date ASC`,
+            [empId, from, to]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// 5. Save or Update Daily Log (Fixed Race Condition with UPSERT)
+router.post('/logs/save', async (req, res) => {
+    try {
+        const { emp_id, log_date, day_name, shift_start, shift_end, absent, break_start, break_end, remarks, break_hr, shift_hr, worked_hr, normal_hr, ot_hr } = req.body;
+
+        const query = `
+            INSERT INTO attendance_logs (emp_id, log_date, day_name, shift_start, shift_end, absent, break_start, break_end, remarks, break_hr, shift_hr, worked_hr, normal_hr, ot_hr) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            ON CONFLICT (emp_id, log_date) 
+            DO UPDATE SET 
+                shift_start = EXCLUDED.shift_start, 
+                shift_end = EXCLUDED.shift_end, 
+                absent = EXCLUDED.absent, 
+                break_start = EXCLUDED.break_start, 
+                break_end = EXCLUDED.break_end, 
+                remarks = EXCLUDED.remarks, 
+                break_hr = EXCLUDED.break_hr, 
+                shift_hr = EXCLUDED.shift_hr, 
+                worked_hr = EXCLUDED.worked_hr, 
+                normal_hr = EXCLUDED.normal_hr, 
+                ot_hr = EXCLUDED.ot_hr
+        `;
+
+        await pool.query(query, [emp_id, log_date, day_name, shift_start, shift_end, absent, break_start, break_end, remarks, break_hr, shift_hr, worked_hr, normal_hr, ot_hr]);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+module.exports = router;

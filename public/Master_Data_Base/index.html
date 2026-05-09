@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Haka ERP | Secure Authentication</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #4f73aa;
+            background-image: radial-gradient(circle, #000000 10%, #2c5797 90%);
+        }
+
+        .wrapper {
+            overflow: hidden;
+            max-width: 390px;
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 15px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+        }
+
+        .wrapper .title-text {
+            display: flex;
+            width: 200%;
+        }
+
+        .wrapper .title {
+            width: 50%;
+            font-size: 30px;
+            font-weight: 700;
+            text-align: center;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+
+        .slide-controls {
+            position: relative;
+            display: flex;
+            height: 50px;
+            width: 100%;
+            overflow: hidden;
+            margin: 10px 0 30px 0;
+            justify-content: space-between;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        .slide-controls .slide {
+            height: 100%;
+            width: 100%;
+            color: #475569;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            line-height: 50px;
+            cursor: pointer;
+            z-index: 1;
+            transition: all 0.6s ease;
+        }
+
+        .slide-controls label.signup {
+            color: #475569;
+        }
+
+        .slide-controls .slider-tab {
+            position: absolute;
+            height: 100%;
+            width: 50%;
+            left: 0;
+            z-index: 0;
+            border-radius: 8px;
+            background: #0d6efd;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        input[type="radio"] {
+            display: none;
+        }
+
+        #signup:checked~.slider-tab {
+            left: 50%;
+        }
+
+        #signup:checked~label.signup {
+            color: #fff;
+            cursor: default;
+            user-select: none;
+        }
+
+        #signup:checked~label.login {
+            color: #475569;
+        }
+
+        #login:checked~label.signup {
+            color: #475569;
+        }
+
+        #login:checked~label.login {
+            color: #fff;
+            cursor: default;
+            user-select: none;
+        }
+
+        .form-container {
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .form-inner {
+            display: flex;
+            width: 200%;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .form-inner form {
+            width: 50%;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .form-inner form .field {
+            height: 50px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .form-inner form .field input {
+            height: 100%;
+            width: 100%;
+            outline: none;
+            padding-left: 15px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            border-bottom-width: 2px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .form-inner form .field input:focus {
+            border-color: #0d6efd;
+        }
+
+        .form-inner form .pass-link {
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        .form-inner form .pass-link a,
+        .form-inner form .signup-link a {
+            color: #0d6efd;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-inner form .pass-link a:hover,
+        .form-inner form .signup-link a:hover {
+            text-decoration: underline;
+        }
+
+        .form-inner form .btn {
+            height: 50px;
+            width: 100%;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            margin-top: 25px;
+        }
+
+        .form-inner form .btn button,
+        .modal-btn {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+            position: relative;
+            background: #0d6efd;
+            border: none;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .form-inner form .btn button:hover,
+        .modal-btn:hover {
+            background: #0b5ed7;
+        }
+
+        .form-inner form .btn button:disabled,
+        .modal-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .form-inner form .signup-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        /* Custom Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 350px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            position: relative;
+        }
+
+        .modal-box h3 {
+            margin-top: 0;
+            color: #1e293b;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .modal-box p {
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            outline: none;
+            font-size: 14px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .modal-input:focus {
+            border-color: #0d6efd;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #ef4444;
+        }
+
+        .modal-btn {
+            padding: 12px;
+            margin-top: 5px;
+        }
+
+        #toast {
+            visibility: hidden;
+            min-width: 280px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 3000;
+            left: 50%;
+            bottom: 20px;
+            transform: translateX(-50%);
+            font-size: 14px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.4s ease, bottom 0.4s ease, visibility 0.4s;
+            font-weight: 600;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+        #toast.success {
+            background-color: #10b981;
+        }
+
+        #toast.error {
+            background-color: #ef4444;
+        }
+
+        #toast.info {
+            background-color: #3b82f6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="toast"></div>
+
+    <div class="wrapper">
+        <div class="title-text">
+            <div class="title login">Master Database</div>
+            <div class="title signup">Haka ERP</div>
+        </div>
+
+        <div class="form-container">
+            <div class="slide-controls">
+                <input type="radio" name="slide" id="login" checked>
+                <input type="radio" name="slide" id="signup">
+                <label for="login" class="slide login">Login</label>
+                <label for="signup" class="slide signup">Signup</label>
+                <div class="slider-tab"></div>
+            </div>
+
+            <div class="form-inner">
+                <form action="#" class="login" onsubmit="event.preventDefault(); processLogin();">
+                    <div class="field">
+                        <input type="text" id="logUser" placeholder="Username" required>
+                    </div>
+                    <div class="field">
+                        <input type="password" id="logPass" placeholder="Password" required>
+                    </div>
+                    <div class="pass-link">
+                        <a href="javascript:void(0)" onclick="openForgotModal()">Forgot password?</a>
+                    </div>
+                    <div class="field btn">
+                        <button type="submit" id="btnLogin">Login</button>
+                    </div>
+                    <div class="signup-link">
+                        Not a member? <a href="javascript:void(0)"
+                            onclick="document.querySelector('label.signup').click();">Signup now</a>
+                    </div>
+                </form>
+
+                <form action="#" class="signup" onsubmit="event.preventDefault(); processRegister();">
+                    <div class="field">
+                        <input type="text" id="regName" placeholder="Full Name" required>
+                    </div>
+                    <div class="field">
+                        <input type="text" id="regUser" placeholder="Username" required>
+                    </div>
+                    <div class="field">
+                        <input type="password" id="regPass" placeholder="Password" required>
+                    </div>
+                    <div class="field">
+                        <input type="email" id="regEmail" placeholder="Email Address" required
+                            title="Required for password recovery">
+                    </div>
+                    <div class="field btn">
+                        <button type="submit" id="btnReg">Signup</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="forgotModal" class="modal-overlay">
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeForgotModal()">&times;</button>
+
+            <div id="stepRequestOTP">
+                <h3>Password Recovery</h3>
+                <p>Enter your username. We will send an OTP to your registered email address.</p>
+                <input type="text" id="recoveryUsername" class="modal-input" placeholder="Username" required>
+                <button id="btnRequestOtp" class="modal-btn" onclick="requestOTP()">Send OTP</button>
+            </div>
+
+            <div id="stepResetPassword" style="display: none;">
+                <h3>Reset Password</h3>
+                <p>Enter the 6-digit OTP sent to your email and create a new password.</p>
+                <input type="text" id="recoveryOtp" class="modal-input" placeholder="Enter OTP" required>
+                <input type="password" id="recoveryNewPass" class="modal-input" placeholder="New Password" required>
+                <button id="btnResetPass" class="modal-btn" onclick="resetPassword()">Reset Password</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Redirecting correctly if a user is already logged in
+        window.onload = function () {
+            if (localStorage.getItem('erpToken')) {
+                const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+                if (redirectUrl) {
+                    sessionStorage.removeItem('redirectAfterLogin'); // clear after reading
+                    window.location.href = redirectUrl;
+                } else {
+                    window.location.href = './Database.html';
+                }
+            }
+        };
+
+        const loginText = document.querySelector(".title-text .login");
+        const loginForm = document.querySelector("form.login");
+        const loginBtn = document.querySelector("label.login");
+        const signupBtn = document.querySelector("label.signup");
+
+        signupBtn.onclick = (() => { loginForm.style.marginLeft = "-50%"; loginText.style.marginLeft = "-50%"; });
+        loginBtn.onclick = (() => { loginForm.style.marginLeft = "0%"; loginText.style.marginLeft = "0%"; });
+
+        function showToast(message, type) {
+            const toast = document.getElementById("toast");
+            toast.innerText = message;
+            toast.className = "show " + type;
+            setTimeout(() => { toast.className = toast.className.replace("show", "").trim(); }, 3500);
+        }
+
+        async function processLogin() {
+            const user = document.getElementById('logUser').value.trim();
+            const pass = document.getElementById('logPass').value;
+            if (!user || !pass) return showToast('Please enter both username and password.', 'error');
+
+            const btn = document.getElementById('btnLogin');
+            btn.disabled = true; btn.innerText = 'Authenticating...';
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const response = await res.json();
+                btn.disabled = false; btn.innerText = 'Login';
+
+                if (response.success) {
+                    localStorage.setItem('erpToken', response.token);
+                    localStorage.setItem('erpUser', JSON.stringify(response.user));
+                    showToast("Login Success! Loading...", 'success');
+
+                    // Route to correct page after login
+                    setTimeout(() => {
+                        const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+                        if (redirectUrl) {
+                            sessionStorage.removeItem('redirectAfterLogin'); // clear after reading
+                            window.location.href = redirectUrl;
+                        } else {
+                            window.location.href = './Database.html';
+                        }
+                    }, 1000);
+
+                } else { showToast(response.message, 'error'); }
+            } catch (e) { btn.disabled = false; btn.innerText = 'Login'; showToast('Server connection failed.', 'error'); }
+        }
+
+        async function processRegister() {
+            const name = document.getElementById('regName').value.trim();
+            const user = document.getElementById('regUser').value.trim();
+            const pass = document.getElementById('regPass').value;
+            const email = document.getElementById('regEmail').value.trim();
+
+            if (!name || !user || !pass || !email) return showToast('All fields are required.', 'error');
+
+            const btn = document.getElementById('btnReg');
+            btn.disabled = true; btn.innerText = 'Registering...';
+
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ displayName: name, username: user, password: pass, email: email })
+                });
+                const response = await res.json();
+                btn.disabled = false; btn.innerText = 'Signup';
+
+                if (response.success) {
+                    showToast(response.message, 'success');
+                    document.getElementById('regName').value = ''; document.getElementById('regUser').value = '';
+                    document.getElementById('regPass').value = ''; document.getElementById('regEmail').value = '';
+                    setTimeout(() => { document.querySelector('label.login').click(); }, 1500);
+                } else { showToast(response.message, 'error'); }
+            } catch (e) { btn.disabled = false; btn.innerText = 'Signup'; showToast('Server connection failed.', 'error'); }
+        }
+
+        // ==========================================
+        // FORGOT PASSWORD MODAL LOGIC
+        // ==========================================
+        function openForgotModal() {
+            document.getElementById('forgotModal').style.display = 'flex';
+            document.getElementById('stepRequestOTP').style.display = 'block';
+            document.getElementById('stepResetPassword').style.display = 'none';
+            document.getElementById('recoveryUsername').value = '';
+        }
+
+        function closeForgotModal() {
+            document.getElementById('forgotModal').style.display = 'none';
+        }
+
+        async function requestOTP() {
+            const username = document.getElementById('recoveryUsername').value.trim();
+            if (!username) return showToast("Enter your username", "error");
+
+            const btn = document.getElementById('btnRequestOtp');
+            btn.disabled = true; btn.innerText = "Sending OTP...";
+
+            try {
+                const res = await fetch('/api/forgot-password/request', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username })
+                });
+                const data = await res.json();
+                btn.disabled = false; btn.innerText = "Send OTP";
+
+                if (data.success) {
+                    showToast(data.message, "success");
+                    document.getElementById('stepRequestOTP').style.display = 'none';
+                    document.getElementById('stepResetPassword').style.display = 'block';
+                } else {
+                    showToast(data.message, "error");
+                }
+            } catch (e) {
+                btn.disabled = false; btn.innerText = "Send OTP";
+                showToast("Server Error", "error");
+            }
+        }
+
+        async function resetPassword() {
+            const username = document.getElementById('recoveryUsername').value.trim();
+            const otp = document.getElementById('recoveryOtp').value.trim();
+            const newPass = document.getElementById('recoveryNewPass').value;
+
+            if (!otp || !newPass) return showToast("Enter OTP and New Password", "error");
+            if (newPass.length < 6) return showToast("Password must be at least 6 characters", "error");
+
+            const btn = document.getElementById('btnResetPass');
+            btn.disabled = true; btn.innerText = "Resetting...";
+
+            try {
+                const res = await fetch('/api/forgot-password/reset', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, otp: otp, newPassword: newPass })
+                });
+                const data = await res.json();
+                btn.disabled = false; btn.innerText = "Reset Password";
+
+                if (data.success) {
+                    showToast(data.message, "success");
+                    closeForgotModal();
+                } else {
+                    showToast(data.message, "error");
+                }
+            } catch (e) {
+                btn.disabled = false; btn.innerText = "Reset Password";
+                showToast("Server Error", "error");
+            }
+        }
+    </script>
+</body>
+
+</html>
