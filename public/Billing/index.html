@@ -1,108 +1,234 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Haka Bulk Bill Generator</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="style/billing.css">
-</head>
-<body>
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style/billing.css" />
+  </head>
+  <body>
     <div class="loader-overlay" id="loader">
-        <div class="spinner"></div>
-        <h3 id="loaderText" style="margin-top:20px; color:#1a4d80;">Processing Data...</h3>
+      <div class="spinner"></div>
+      <h3 id="loaderText" style="margin-top: 20px; color: #1a4d80">
+        Processing Data...
+      </h3>
     </div>
 
     <div id="loginScreen">
-        <div class="login-box">
-            <h2>Haka ERP Login</h2>
-            <input type="text" id="loginUserId" placeholder="Username" onkeypress="if(event.key==='Enter') executeLogin()">
-            <input type="password" id="loginPass" placeholder="Password" onkeypress="if(event.key==='Enter') executeLogin()">
-            <button onclick="executeLogin()">Secure Login</button>
-        </div>
+      <div class="login-box">
+        <h2>Haka ERP Login</h2>
+        <input
+          type="text"
+          id="loginUserId"
+          placeholder="Username"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <input
+          type="password"
+          id="loginPass"
+          placeholder="Password"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <button onclick="executeLogin()">Secure Login</button>
+      </div>
     </div>
 
-    <div id="mainAppContainer" style="display: none;">
-        
-        <div class="top-controls-wrapper">
-            <div class="top-controls">
-                
-                <div class="selector-wrapper">
-                    <label class="month-label">Month:</label>
-                    <div class="custom-dropdown" id="monthDropdownContainer" style="width: 120px;">
-                        <div class="custom-dropdown-selected" onclick="toggleDropdown('monthOptions')">
-                            <span id="selectedMonthText">Loading...</span>
-                            <span style="font-size:10px;">▼</span>
-                        </div>
-                        <div class="custom-dropdown-options" id="monthOptions"></div>
-                    </div>
-                </div>
-
-                <button type="button" class="btn btn-fetch" onclick="fetchDataFromERP()">1. Fetch Data</button>
-
-                <div class="selector-wrapper">
-                    <label>Owner:</label>
-                    <div class="custom-dropdown" style="width: 150px;">
-                        <div class="custom-dropdown-selected" onclick="toggleDropdown('ownerOptions')">
-                            <span id="ownerSelectText">All Owners</span>
-                            <span style="font-size:10px;">▼</span>
-                        </div>
-                        <div class="custom-dropdown-options" id="ownerOptions" style="width: 250px;">
-                            <input type="text" class="dropdown-search" id="ownerSearch" placeholder="Search Owner..." onkeyup="filterCheckboxList('ownerSearch', 'ownerList')">
-                            <div class="checkbox-list" id="ownerList">
-                                <label class="check-item"><input type="checkbox" id="selectAllOwners" checked onchange="toggleAllCheckboxes('ownerList', this.checked)"> <b>Select All</b></label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="selector-wrapper">
-                    <label>Site:</label>
-                    <div class="custom-dropdown" style="width: 150px;">
-                        <div class="custom-dropdown-selected" onclick="toggleDropdown('siteOptions')">
-                            <span id="siteSelectText">All Sites</span>
-                            <span style="font-size:10px;">▼</span>
-                        </div>
-                        <div class="custom-dropdown-options" id="siteOptions" style="width: 250px;">
-                            <input type="text" class="dropdown-search" id="siteSearch" placeholder="Search Site..." onkeyup="filterCheckboxList('siteSearch', 'siteList')">
-                            <div class="checkbox-list" id="siteList">
-                                <label class="check-item"><input type="checkbox" id="selectAllSites" checked onchange="toggleAllCheckboxes('siteList', this.checked)"> <b>Select All</b></label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button type="button" class="btn" style="background:#6f42c1;" onclick="arrangeProperly()">2. Arrange ✨</button>
-
-                <button type="button" class="btn" id="btnCombineToggle" style="background:#007bff;" onclick="toggleCombineView()">
-                    <i class="material-icons" style="font-size:16px;">call_merge</i> Combine All
-                </button>
-
-                <button type="button" class="btn" style="background:#17a2b8;" onclick="createManualTable()">+ Manual Entry</button>
-
-                <button type="button" class="btn btn-save" onclick="submitBulkData()">3. Save All</button>
-
-                <button type="button" class="btn" style="background:#dc3545;" onclick="downloadAllAsZip()">4. ZIP All 📦</button>
-
-                <button type="button" class="btn btn-reset" onclick="executeLogout()">Logout</button>
-                <button type="button" class="btn btn-dash" onclick="goToDashboard()" title="Dashboard">
-                    <i class="material-icons" style="font-size: 20px; color: #007bff;">dashboard</i>
-                </button>
+    <div id="mainAppContainer" style="display: none">
+      <div class="top-controls-wrapper">
+        <div class="top-controls">
+          <div class="selector-wrapper">
+            <label class="month-label">Month:</label>
+            <div
+              class="custom-dropdown"
+              id="monthDropdownContainer"
+              style="width: 120px"
+            >
+              <div
+                class="custom-dropdown-selected"
+                onclick="toggleDropdown('monthOptions')"
+              >
+                <span id="selectedMonthText">Loading...</span>
+                <span style="font-size: 10px">▼</span>
+              </div>
+              <div class="custom-dropdown-options" id="monthOptions"></div>
             </div>
-        </div>
+          </div>
 
-        <div id="dynamicBillsContainer" style="display: flex; flex-direction: column; gap: 40px; margin-bottom: 50px;">
-            <div style="text-align:center; padding: 50px; color: #666; background: white; border-radius: 8px; border: 1px dashed #ccc;">
-                <h2>No Bills Generated Yet</h2>
-                <p>Click "Fetch Data", select filters, and then click "Arrange ✨".</p>
+          <button
+            type="button"
+            class="btn btn-fetch"
+            onclick="fetchDataFromERP()"
+          >
+            1. Fetch Data
+          </button>
+
+          <div class="selector-wrapper">
+            <label>Owner:</label>
+            <div class="custom-dropdown" style="width: 150px">
+              <div
+                class="custom-dropdown-selected"
+                onclick="toggleDropdown('ownerOptions')"
+              >
+                <span id="ownerSelectText">All Owners</span>
+                <span style="font-size: 10px">▼</span>
+              </div>
+              <div
+                class="custom-dropdown-options"
+                id="ownerOptions"
+                style="width: 250px"
+              >
+                <input
+                  type="text"
+                  class="dropdown-search"
+                  id="ownerSearch"
+                  placeholder="Search Owner..."
+                  onkeyup="filterCheckboxList('ownerSearch', 'ownerList')"
+                />
+                <div class="checkbox-list" id="ownerList">
+                  <label class="check-item"
+                    ><input
+                      type="checkbox"
+                      id="selectAllOwners"
+                      checked
+                      onchange="toggleAllCheckboxes('ownerList', this.checked)"
+                    />
+                    <b>Select All</b></label
+                  >
+                </div>
+              </div>
             </div>
+          </div>
+
+          <div class="selector-wrapper">
+            <label>Site:</label>
+            <div class="custom-dropdown" style="width: 150px">
+              <div
+                class="custom-dropdown-selected"
+                onclick="toggleDropdown('siteOptions')"
+              >
+                <span id="siteSelectText">All Sites</span>
+                <span style="font-size: 10px">▼</span>
+              </div>
+              <div
+                class="custom-dropdown-options"
+                id="siteOptions"
+                style="width: 250px"
+              >
+                <input
+                  type="text"
+                  class="dropdown-search"
+                  id="siteSearch"
+                  placeholder="Search Site..."
+                  onkeyup="filterCheckboxList('siteSearch', 'siteList')"
+                />
+                <div class="checkbox-list" id="siteList">
+                  <label class="check-item"
+                    ><input
+                      type="checkbox"
+                      id="selectAllSites"
+                      checked
+                      onchange="toggleAllCheckboxes('siteList', this.checked)"
+                    />
+                    <b>Select All</b></label
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="btn"
+            style="background: #6f42c1"
+            onclick="arrangeProperly()"
+          >
+            2. Arrange ✨
+          </button>
+
+          <button
+            type="button"
+            class="btn"
+            id="btnCombineToggle"
+            style="background: #007bff"
+            onclick="toggleCombineView()"
+          >
+            <i class="material-icons" style="font-size: 16px">call_merge</i>
+            Combine All
+          </button>
+
+          <button
+            type="button"
+            class="btn"
+            style="background: #17a2b8"
+            onclick="createManualTable()"
+          >
+            + Manual Entry
+          </button>
+
+          <button type="button" class="btn btn-save" onclick="submitBulkData()">
+            3. Save All
+          </button>
+
+          <button
+            type="button"
+            class="btn"
+            style="background: #dc3545"
+            onclick="downloadAllAsZip()"
+          >
+            4. ZIP All 📦
+          </button>
+
+          <button type="button" class="btn btn-reset" onclick="executeLogout()">
+            Logout
+          </button>
+          <button
+            type="button"
+            class="btn btn-dash"
+            onclick="goToDashboard()"
+            title="Dashboard"
+          >
+            <i class="material-icons" style="font-size: 20px; color: #007bff"
+              >dashboard</i
+            >
+          </button>
         </div>
+      </div>
+
+      <div
+        id="dynamicBillsContainer"
+        style="
+          display: flex;
+          flex-direction: column;
+          gap: 40px;
+          margin-bottom: 50px;
+        "
+      >
+        <div
+          style="
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            background: white;
+            border-radius: 8px;
+            border: 1px dashed #ccc;
+          "
+        >
+          <h2>No Bills Generated Yet</h2>
+          <p>
+            Click "Fetch Data", select filters, and then click "Arrange ✨".
+          </p>
+        </div>
+      </div>
     </div>
 
     <div id="toast"></div>
     <script src="script/billing.js"></script>
-</body>
+  </body>
 </html>
