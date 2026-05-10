@@ -7,53 +7,34 @@ const companyData = {
 
 let masterData = [];
 let savedBillingData = [];
-let filteredData = [];
-
-let isRatesAndVatHidden = true;
-let isRatesOnlyHidden = false;
-let isVatOnlyHidden = false;
-let isRentHidden = false;
-let isImagesHidden = true;
-let isAdjEnabled = false;
+let manualTableCount = 0;
+let isCombinedView = false; // 🟢 Tracks if Combine or Split view is active
 
 document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('token');
-
-    if (token) {
-        document.getElementById('loader').style.display = 'flex';
-
-        try {
-            const res = await fetch('/billing/verify-session', {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            document.getElementById('loader').style.display = 'none';
-
-            if (res.ok) {
-                const data = await res.json();
-                if (data.success) {
-                    loadApp();
-                } else {
-                    executeLogout();
-                }
-            } else {
-                executeLogout();
-            }
-        } catch (err) {
-            document.getElementById('loader').style.display = 'none';
-            console.error("Session verification failed:", err);
-            executeLogout();
-        }
-    } else {
-        document.getElementById('loginUserId').focus();
-    }
+    if (token) verifyToken(token);
+    else document.getElementById('loginUserId').focus();
 });
+
+async function verifyToken(token) {
+    document.getElementById('loader').style.display = 'flex';
+    try {
+        const res = await fetch('/billing/verify-session', { headers: { 'Authorization': `Bearer ${token}` } });
+        document.getElementById('loader').style.display = 'none';
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success) loadApp();
+            else executeLogout();
+        } else executeLogout();
+    } catch (err) {
+        document.getElementById('loader').style.display = 'none';
+        executeLogout();
+    }
+}
 
 async function executeLogin() {
     const username = document.getElementById('loginUserId').value;
     const password = document.getElementById('loginPass').value;
-
     if (!username || !password) return alert("Enter credentials");
 
     try {
@@ -63,21 +44,11 @@ async function executeLogin() {
             body: JSON.stringify({ username, password })
         });
         const data = await res.json();
-
         if (data.success) {
-            if (data.user.role === 'Viewer') {
-                alert("Access Denied: Viewers cannot access billing.");
-                return;
-            }
             localStorage.setItem('token', data.token);
             loadApp();
-        } else {
-            alert(data.message || "Invalid Credentials!");
-            document.getElementById('loginPass').value = '';
-        }
-    } catch (err) {
-        alert("Server Connection Error.");
-    }
+        } else alert(data.message);
+    } catch (err) { alert("Server Error."); }
 }
 
 function executeLogout() {
@@ -88,641 +59,487 @@ function executeLogout() {
 function loadApp() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainAppContainer').style.display = 'block';
-
-    document.getElementById('hideRatesToggle').checked = true;
-
     initMonth();
-    addRow();
-    changeCompany();
-    applyHiddenColumns();
-}
-
-function resetForm() {
-    document.getElementById('tableBody').innerHTML = '';
-    document.getElementById('adjBody').innerHTML = '';
-
-    addRow();
-    if (isAdjEnabled) addAdjRow();
-    updateGrandTotal();
-
-    document.getElementById('ownerSelector').value = 'All';
-    document.getElementById('selectedOwnerText').innerText = 'All Owners';
-    document.getElementById('siteSelector').value = 'All';
-
-    filterData('all');
-    showToast("Table Cleared!");
-}
-
-function toggleOwnerDropdown() {
-    let opts = document.getElementById('ownerOptions');
-    opts.classList.toggle('show');
-    if (opts.classList.contains('show')) {
-        let searchInput = document.getElementById('ownerSearchInput');
-        searchInput.value = '';
-        filterOwnerDropdownSearch();
-        searchInput.focus();
-    }
-}
-
-function selectOwner(val, text) {
-    document.getElementById('ownerSelector').value = val;
-    document.getElementById('selectedOwnerText').innerText = text;
-    document.getElementById('ownerOptions').classList.remove('show');
-    filterData('owner');
-}
-
-function filterOwnerDropdownSearch() {
-    let filter = document.getElementById('ownerSearchInput').value.toUpperCase();
-    let items = document.getElementById('ownerListContainer').getElementsByClassName('custom-dropdown-item');
-    for (let i = 0; i < items.length; i++) {
-        let txtValue = items[i].textContent || items[i].innerText;
-        items[i].style.display = (txtValue.toUpperCase().indexOf(filter) > -1) ? "" : "none";
-    }
-}
-
-function toggleImages() {
-    isImagesHidden = !isImagesHidden;
-    const header = document.getElementById('mainHeaderImage');
-    const seal = document.getElementById('mainSealImage');
-    const signArea = document.getElementById('footerSignArea');
-    const btn = document.getElementById('btnToggleImages');
-
-    if (isImagesHidden) {
-        header.classList.add('hidden-image');
-        seal.classList.add('hidden-image');
-        signArea.classList.add('hidden-image');
-        btn.innerText = 'Show Images';
-        btn.style.backgroundColor = '#6f42c1';
-    } else {
-        header.classList.remove('hidden-image');
-        seal.classList.remove('hidden-image');
-        signArea.classList.remove('hidden-image');
-        btn.innerText = 'Hide Images';
-        btn.style.backgroundColor = '#20c997';
-    }
-}
-
-function toggleRatesAndVatView() {
-    isRatesAndVatHidden = document.getElementById('hideRatesToggle').checked;
-    if (isRatesAndVatHidden) {
-        document.getElementById('hideRatesOnlyToggle').checked = false;
-        document.getElementById('hideVatOnlyToggle').checked = false;
-        isRatesOnlyHidden = false;
-        isVatOnlyHidden = false;
-    }
-    applyHiddenColumns();
-}
-
-function toggleRatesOnlyView() {
-    isRatesOnlyHidden = document.getElementById('hideRatesOnlyToggle').checked;
-    if (isRatesOnlyHidden) {
-        document.getElementById('hideRatesToggle').checked = false;
-        isRatesAndVatHidden = false;
-    }
-    applyHiddenColumns();
-}
-
-function toggleVatOnlyView() {
-    isVatOnlyHidden = document.getElementById('hideVatOnlyToggle').checked;
-    if (isVatOnlyHidden) {
-        document.getElementById('hideRatesToggle').checked = false;
-        isRatesAndVatHidden = false;
-    }
-    applyHiddenColumns();
-}
-
-function toggleRentView() {
-    isRentHidden = document.getElementById('hideRentToggle').checked;
-    applyHiddenColumns();
-}
-
-function applyHiddenColumns(skipCalculate = false) {
-    document.querySelectorAll('.rate-col').forEach(el => {
-        if (isRatesAndVatHidden || isRatesOnlyHidden) el.classList.add('hidden-export');
-        else el.classList.remove('hidden-export');
-    });
-
-    document.querySelectorAll('.vat-col').forEach(el => {
-        if (isRatesAndVatHidden || isVatOnlyHidden) el.classList.add('hidden-export');
-        else el.classList.remove('hidden-export');
-    });
-
-    document.querySelectorAll('.total-col').forEach(el => {
-        if (isRatesAndVatHidden || isVatOnlyHidden) el.classList.add('hidden-export');
-        else el.classList.remove('hidden-export');
-    });
-
-    document.querySelectorAll('.rent-col').forEach(el => {
-        if (isRentHidden) el.classList.add('hidden-export');
-        else el.classList.remove('hidden-export');
-    });
-
-    if (!skipCalculate) {
-        calculateAll();
-    }
-}
-
-function toggleAdjustments() {
-    isAdjEnabled = !isAdjEnabled;
-    document.getElementById('adjustmentsSection').style.display = isAdjEnabled ? 'block' : 'none';
-    if (isAdjEnabled && document.getElementById('adjBody').rows.length === 0) addAdjRow();
-    updateGrandTotal();
 }
 
 function initMonth() {
     const optsContainer = document.getElementById('monthOptions');
     optsContainer.innerHTML = '';
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
     let currentD = new Date();
-    let currentYear = currentD.getFullYear();
-    let currentMonth = currentD.getMonth();
-    let startYear = 2026;
-    let startMonth = 0;
-
-    for (let y = startYear; y <= currentYear; y++) {
-        let mStart = (y === startYear) ? startMonth : 0;
-        let mEnd = (y === currentYear) ? currentMonth : 11;
-
-        for (let m = mStart; m <= mEnd; m++) {
+    for (let y = 2026; y <= currentD.getFullYear(); y++) {
+        let mEnd = (y === currentD.getFullYear()) ? currentD.getMonth() : 11;
+        for (let m = 0; m <= mEnd; m++) {
             let value = `${months[m]} ${y}`;
             optsContainer.innerHTML += `<div class="custom-dropdown-item" onclick="selectMonth('${value}')">${value}</div>`;
         }
     }
-    optsContainer.innerHTML += `<div class="custom-dropdown-item custom-dropdown-add" onclick="addNewMonth()">➕ Add New</div>`;
-    selectMonth(`${months[currentMonth]} ${currentYear}`);
-}
-
-function toggleMonthDropdown() {
-    document.getElementById('monthOptions').classList.toggle('show');
+    selectMonth(`${months[currentD.getMonth()]} ${currentD.getFullYear()}`);
 }
 
 function selectMonth(val) {
     document.getElementById('selectedMonthText').innerText = val;
     document.getElementById('monthOptions').classList.remove('show');
-    updateTableDates();
+    document.querySelectorAll('.date-cell').forEach(cell => cell.innerText = getShortDate());
 }
-
-function addNewMonth() {
-    let newVal = prompt("Enter new Month & Year (e.g., May 2026):");
-    if (newVal && newVal.trim() !== "") selectMonth(newVal.trim());
-}
-
-document.addEventListener('click', function (e) {
-    if (!e.target.closest('#monthDropdownContainer')) {
-        let monthOpts = document.getElementById('monthOptions');
-        if (monthOpts) monthOpts.classList.remove('show');
-    }
-    if (!e.target.closest('#ownerDropdownContainer')) {
-        let ownerOpts = document.getElementById('ownerOptions');
-        if (ownerOpts) ownerOpts.classList.remove('show');
-    }
-});
 
 function getShortDate() {
     let val = document.getElementById('selectedMonthText').innerText.trim();
-    if (!val || val === "Loading...") return "";
     let parts = val.split(' ');
     if (parts.length >= 2) return parts[0].substring(0, 3) + " " + parts[1].substring(2, 4);
     return val;
 }
 
-function updateTableDates() {
-    let shortDate = getShortDate();
-    document.querySelectorAll('.date-cell').forEach(cell => {
-        if (!cell.querySelector('input')) cell.innerText = shortDate;
+function toggleDropdown(id) {
+    let el = document.getElementById(id);
+    let isShowing = el.classList.contains('show');
+    document.querySelectorAll('.custom-dropdown-options').forEach(d => d.classList.remove('show'));
+    if (!isShowing) el.classList.add('show');
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.custom-dropdown')) {
+        document.querySelectorAll('.custom-dropdown-options').forEach(d => d.classList.remove('show'));
+    }
+});
+
+function filterCheckboxList(inputId, listId) {
+    let filter = document.getElementById(inputId).value.toUpperCase();
+    let items = document.getElementById(listId).querySelectorAll('.dynamic-item');
+    items.forEach(item => {
+        let txt = item.innerText || item.textContent;
+        item.style.display = txt.toUpperCase().includes(filter) ? "" : "none";
     });
 }
 
-function changeCompany() {
-    const selectedCompany = document.getElementById('companySelector').value;
-    const data = companyData[selectedCompany];
-    if (data) {
-        document.getElementById('mainHeaderImage').src = data.header;
-        document.getElementById('mainSealImage').src = data.seal;
-        document.getElementById('footerText').innerText = data.text;
-        document.getElementById('mainSignatureImage').src = data.signature;
-    }
+function toggleAllCheckboxes(listId, isChecked) {
+    let items = document.getElementById(listId).querySelectorAll('.dynamic-check');
+    items.forEach(item => {
+        if(item.parentElement.style.display !== "none") item.checked = isChecked;
+    });
+    updateSelectTexts();
 }
 
-function goToDashboard() {
-    window.location.href = '/billing/dashboard';
+function getSelectedCheckboxes(listId) {
+    let selected = [];
+    document.getElementById(listId).querySelectorAll('.dynamic-check:checked').forEach(chk => selected.push(chk.value));
+    return selected;
+}
+
+function updateSelectTexts() {
+    let owners = getSelectedCheckboxes('ownerList');
+    let sites = getSelectedCheckboxes('siteList');
+    document.getElementById('ownerSelectText').innerText = owners.length > 0 ? `${owners.length} Selected` : "None Selected";
+    document.getElementById('siteSelectText').innerText = sites.length > 0 ? `${sites.length} Selected` : "None Selected";
 }
 
 function fetchDataFromERP() {
     const fullMonth = document.getElementById('selectedMonthText').innerText.trim();
     const token = localStorage.getItem('token');
-
-    if (!fullMonth || fullMonth === "Loading...") {
-        return showToast("Please select a valid month.");
-    }
+    if (!fullMonth || fullMonth === "Loading...") return showToast("Select a month.");
 
     document.getElementById('loader').style.display = 'flex';
-
-    fetch('/billing/vehicles?month=' + encodeURIComponent(fullMonth), {
-        headers: { 'Authorization': `Bearer ${token}` }
-    })
-        .then(res => {
-            if (!res.ok) throw new Error("Session Expired or Unauthorized");
+    fetch('/billing/vehicles?month=' + encodeURIComponent(fullMonth), { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(async res => {
+            if (res.status === 401 || res.status === 403) { executeLogout(); throw new Error("Session Expired"); }
             return res.json();
         })
         .then(data => {
             if (data.success) {
-                masterData = [];
+                masterData = data.data;
                 savedBillingData = data.saved_bills || [];
-
-                data.data.forEach(item => {
-                    let plate = item.plate_number || "";
-                    let savedForPlate = savedBillingData.filter(s => s.plate_no === plate);
-
-                    if (savedForPlate.length > 0) {
-                        let seenSites = new Set();
-                        savedForPlate.forEach(savedItem => {
-                            let siteKey = (savedItem.site_name || item.site || "").trim().toUpperCase();
-                            if (!seenSites.has(siteKey)) {
-                                seenSites.add(siteKey);
-                                masterData.push({
-                                    plate: plate.toUpperCase(),
-                                    owner: item.owner || "",
-                                    site: savedItem.site_name || item.site || "",
-                                    driver: item.driver_name || "",
-                                    vtype: item.vehicle_type || "",
-                                    nrate: item.nrate || 0,
-                                    otrate: item.otrate || 0,
-                                    vat_bill: item.vat_bill || "No",
-                                    active_sites: item.active_sites || [],
-                                    saved_ref: savedItem,
-                                    is_saved: true
-                                });
-                            }
-                        });
-                    } else {
-                        masterData.push({
-                            plate: plate.toUpperCase(),
-                            owner: item.owner || "",
-                            site: item.site || "",
-                            driver: item.driver_name || "",
-                            vtype: item.vehicle_type || "",
-                            nrate: item.nrate || 0,
-                            otrate: item.otrate || 0,
-                            vat_bill: item.vat_bill || "No",
-                            active_sites: item.active_sites || [],
-                            is_saved: false
-                        });
-                    }
-                });
-
-                filteredData = [...masterData];
-
-                const owners = [...new Set(masterData.map(m => m.owner).filter(o => o !== ""))].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-                const ownerListContainer = document.getElementById('ownerListContainer');
-                ownerListContainer.innerHTML = '';
-
-                let allDiv = document.createElement('div');
-                allDiv.className = 'custom-dropdown-item';
-                allDiv.textContent = 'All Owners';
-                allDiv.onclick = function () { selectOwner('All', 'All Owners'); };
-                ownerListContainer.appendChild(allDiv);
-
-                owners.forEach(o => {
-                    let div = document.createElement('div');
-                    div.className = 'custom-dropdown-item';
-                    div.textContent = o;
-                    div.onclick = function () { selectOwner(o, o); };
-                    ownerListContainer.appendChild(div);
-                });
-
-                const sites = [...new Set(masterData.map(m => m.site).filter(s => s !== ""))].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-                const siteSelect = document.getElementById('siteSelector');
-                siteSelect.innerHTML = '<option value="All">All Sites</option>';
-
-                sites.forEach(s => {
-                    let opt = document.createElement('option');
-                    opt.value = s;
-                    opt.textContent = s;
-                    siteSelect.appendChild(opt);
-                });
-
-                updateTableDates();
-                filterData('init');
-
-                if (masterData.length > 0) {
-                    showToast(`Fetched ${masterData.length} entries & ${savedBillingData.length} saved bills!`);
-                } else {
-                    showToast("No running vehicles found in DB.");
-                }
-            } else {
-                showToast("Backend Error: " + data.message);
-            }
+                populateCheckboxes();
+                showToast(`Fetched ${masterData.length} vehicles! Select filters and click 'Arrange ✨'`);
+            } else showToast("Backend Error: " + data.message);
             document.getElementById('loader').style.display = 'none';
-        })
-        .catch(err => {
+        }).catch(err => {
             document.getElementById('loader').style.display = 'none';
-            showToast(err.message || "Server Connection Failed!");
-            if (err.message.includes("Expired")) setTimeout(executeLogout, 2000);
+            if(err.message !== "Session Expired") showToast("Server Connection Failed!");
         });
 }
 
-function filterData(source) {
-    let selectedOwner = document.getElementById('ownerSelector').value;
-    let selectedSite = document.getElementById('siteSelector').value;
+function populateCheckboxes() {
+    let owners = [...new Set(masterData.map(item => item.owner?.trim().toUpperCase() || "COMPANY VEHICLE"))].sort();
+    let sites = [...new Set(masterData.map(item => item.site?.trim() || "N/A"))].sort();
 
-    if (source === 'site' || source === 'init') {
-        let validOwners = selectedSite === "All"
-            ? [...new Set(masterData.map(m => m.owner).filter(o => o !== ""))]
-            : [...new Set(masterData.filter(m => m.site === selectedSite).map(m => m.owner).filter(o => o !== ""))];
+    let oList = document.getElementById('ownerList');
+    let sList = document.getElementById('siteList');
 
-        validOwners.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    oList.querySelectorAll('.dynamic-item').forEach(e => e.remove());
+    sList.querySelectorAll('.dynamic-item').forEach(e => e.remove());
 
-        const ownerListContainer = document.getElementById('ownerListContainer');
-        ownerListContainer.innerHTML = '';
+    owners.forEach(o => oList.innerHTML += `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${o}" checked onchange="updateSelectTexts()"> ${o}</label>`);
+    sites.forEach(s => sList.innerHTML += `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${s}" checked onchange="updateSelectTexts()"> ${s}</label>`);
+    updateSelectTexts();
+}
 
-        let allDiv = document.createElement('div');
-        allDiv.className = 'custom-dropdown-item';
-        allDiv.textContent = 'All Owners';
-        allDiv.onclick = function () { selectOwner('All', 'All Owners'); };
-        ownerListContainer.appendChild(allDiv);
+function getCompanyFromSite(siteName) {
+    if (!siteName) return "Haka";
+    let s = siteName.toUpperCase();
+    if (s.includes("ALJODA")) return "Aljoda";
+    if (s.includes("MASAR")) return "Masar Wheels";
+    if (s.includes("WE1") || s.includes("WE 1")) return "We1 Track";
+    return "Haka";
+}
 
-        validOwners.forEach(o => {
-            let div = document.createElement('div');
-            div.className = 'custom-dropdown-item';
-            div.textContent = o;
-            div.onclick = function () { selectOwner(o, o); };
-            ownerListContainer.appendChild(div);
-        });
-
-        if (selectedOwner !== "All" && !validOwners.includes(selectedOwner)) {
-            document.getElementById('ownerSelector').value = "All";
-            document.getElementById('selectedOwnerText').innerText = "All Owners";
-            selectedOwner = "All";
+// 🟢 NEW: COMBINE / SPLIT TOGGLE FUNCTION
+window.toggleCombineView = function() {
+    isCombinedView = !isCombinedView;
+    let btn = document.getElementById('btnCombineToggle');
+    if (btn) {
+        if (isCombinedView) {
+            btn.innerHTML = '<i class="material-icons" style="font-size:16px;">splitscreen</i> Split View';
+            btn.style.background = '#e83e8c'; 
+        } else {
+            btn.innerHTML = '<i class="material-icons" style="font-size:16px;">call_merge</i> Combine All';
+            btn.style.background = '#007bff'; 
         }
     }
+    arrangeProperly(); 
+};
 
-    filteredData = masterData.filter(d => {
-        let matchOwner = selectedOwner === "All" || d.owner === selectedOwner;
-        let matchSite = selectedSite === "All" || d.site === selectedSite;
-        return matchOwner && matchSite;
+function arrangeProperly() {
+    if (masterData.length === 0 && savedBillingData.length === 0) return showToast("Fetch data first!");
+
+    let selectedOwners = getSelectedCheckboxes('ownerList');
+    let selectedSites = getSelectedCheckboxes('siteList');
+
+    if (selectedOwners.length === 0 || selectedSites.length === 0) return showToast("Please select at least one Owner and one Site.");
+
+    document.getElementById('loader').style.display = 'flex';
+    document.getElementById('loaderText').innerText = isCombinedView ? "Combining Bills by Site..." : "Arranging Bills...";
+
+    setTimeout(() => {
+        let groups = {};
+        masterData.forEach(item => {
+            let owner = (item.owner && item.owner.trim() !== "") ? item.owner.trim().toUpperCase() : "COMPANY VEHICLE";
+            let site = item.site || "N/A";
+            if (!selectedOwners.includes(owner) || !selectedSites.includes(site)) return;
+            let comp = getCompanyFromSite(site);
+            
+            // 🟢 COMBINE LOGIC
+            let key = isCombinedView ? (comp + "|||" + site) : (comp + "|||" + owner);
+
+            if (!groups[key]) {
+                groups[key] = { 
+                    company: comp, 
+                    owner: isCombinedView ? "VARIOUS OWNERS" : owner, 
+                    items: [] 
+                };
+            }
+            groups[key].items.push(item);
+        });
+
+        const container = document.getElementById('dynamicBillsContainer');
+        container.innerHTML = '';
+
+        if (Object.keys(groups).length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding: 50px; background: white; border-radius:8px;"><h2>No Vehicles Found for Selected Filters</h2></div>`;
+        } else {
+            let groupCount = 0;
+            Object.values(groups).forEach(group => {
+                groupCount++;
+                container.appendChild(createBillCard(group, `group_${groupCount}`));
+            });
+            document.querySelectorAll('.nhr, .othr, .nrate, .otrate, .rent').forEach(el => calculateRow(el));
+            showToast(`Successfully generated ${groupCount} table(s)!`);
+        }
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('loaderText').innerText = "Processing Data...";
+    }, 500);
+}
+
+function createManualTable() {
+    manualTableCount++;
+    const container = document.getElementById('dynamicBillsContainer');
+    if(container.innerHTML.includes("No Bills Generated Yet")) container.innerHTML = '';
+
+    let manualGroup = {
+        company: "Haka",
+        owner: "",
+        items: [{ vehicle_type: "", driver: "", site: "", plate_number: "", nrate: 0, otrate: 0, vat_bill: "No" }]
+    };
+    container.insertAdjacentElement('afterbegin', createBillCard(manualGroup, `manual_${manualTableCount}`));
+    showToast("Blank Manual Table Added!");
+}
+
+function createBillCard(group, id) {
+    const card = document.createElement('div');
+    card.className = 'container bill-card';
+    card.id = `billCard_${id}`;
+    card.dataset.company = group.company;
+    card.dataset.owner = group.owner;
+
+    const compConfig = companyData[group.company] || companyData["Haka"];
+    const shortDate = getShortDate();
+    let requiresVat = group.items.some(item => item.vat_bill === "Yes");
+    if (id.toString().startsWith('manual_')) requiresVat = true; 
+    let vatDisplay = requiresVat ? "" : "none";
+
+    let html = `
+        <div class="no-export" style="display:flex; justify-content:space-between; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:5px; border:1px solid #ddd;">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <b style="color:#1a4d80; font-size:16px;">${group.company} - ${group.owner || "Manual Entry"}</b>
+                <button class="icon-btn" title="Toggle Images" style="background:#6f42c1;" onclick="toggleCardImages('${id}')"><i class="material-icons">visibility</i></button>
+                <button class="icon-btn" title="Adjustments" style="background:#6c757d;" onclick="toggleCardAdjustments('${id}')"><i class="material-icons">settings</i></button>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="icon-btn" title="Download Image" style="background:#007bff;" onclick="exportSingleImage('${id}')"><i class="material-icons">download</i></button>
+                <button class="icon-btn" title="Share WhatsApp" style="background:#25D366;" onclick="shareSingleWhatsApp('${id}')"><i class="material-icons">chat</i></button>
+                <button class="icon-btn" title="Remove Table" style="background:#dc3545; margin-left:15px;" onclick="this.closest('.bill-card').remove()"><i class="material-icons">delete</i></button>
+            </div>
+        </div>
+
+        <div class="print-area" id="printArea_${id}" style="background:white; padding:20px; border:1px solid #eee;">
+            <img src="${compConfig.header}" class="header-img hidden-image" alt="Header" crossorigin="anonymous">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                <div style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase;">
+                    OWNER : <input type="text" class="owner-input" value="${group.owner}" placeholder="Enter Owner Name" style="border:none; border-bottom:1px solid #ccc; font-weight:bold; font-size:16px; color:#1a4d80; width:300px; text-transform:uppercase; background:transparent;">
+                </div>
+            </div>
+
+            <h3>Bill Summary for Each Month ملخص فاتورة الشهر</h3>
+
+            <table class="billTable">
+                <thead>
+                    <tr>
+                        <th class="col-num">#</th>
+                        <th class="col-date">Date</th>
+                        <th class="col-vtype">Vehicle Type</th>
+                        <th class="col-driver">Driver</th>
+                        <th class="col-site">Site</th>
+                        <th class="col-plate">Plate No</th>
+                        <th class="col-small">N.Hr</th>
+                        <th class="col-small rate-col">N.Rate</th> 
+                        <th class="col-small">OT Hr</th>
+                        <th class="col-small rate-col">OT Rate</th> 
+                        <th class="col-money">Rent</th>
+                        <th class="col-small vat-col" style="display:${vatDisplay};">VAT %</th>
+                        <th class="col-money vat-col" style="display:${vatDisplay};">VAT Amt</th>
+                        <th class="col-money total-col" style="display:${vatDisplay};">Total</th>
+                        <th class="col-action no-export">Act</th>
+                    </tr>
+                </thead>
+                <tbody class="tableBody">
+    `;
+
+    group.items.forEach((item, index) => {
+        let saved = savedBillingData.find(s => s.plate_no === item.plate_number && s.site_name === item.site);
+        let nhr = saved ? saved.nhr : 0;
+        let othr = saved ? saved.othr : 0;
+        let nrate = parseFloat(saved ? saved.nrate : item.nrate || 0).toFixed(2);
+        let otrate = parseFloat(saved ? saved.otrate : item.otrate || 0).toFixed(2);
+        let vatPerc = saved ? saved.vat_percent : (item.vat_bill === "Yes" ? 15 : 0);
+        let driverName = item.driver_name || item.driver || "";
+        if (saved && saved.driver) driverName = saved.driver;
+
+        html += generateRowHTML(index + 1, shortDate, item.vehicle_type, driverName, item.site, item.plate_number, nhr, nrate, othr, otrate, vatPerc, vatDisplay);
     });
 
-    const tbody = document.getElementById('tableBody');
+    html += `
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="6" style="text-align:right; padding-right:15px;">Grand Total:</td>
+                        <td class="grandNHr">0</td>
+                        <td class="rate-col"></td>
+                        <td class="grandOTHr">0</td>
+                        <td class="rate-col"></td>
+                        <td class="grandRent">0.00</td>
+                        <td class="vat-col" style="display:${vatDisplay};"></td>
+                        <td class="grandVat vat-col" style="display:${vatDisplay};">0.00</td>
+                        <td class="grandTotal total-col" style="display:${vatDisplay};">0.00</td>
+                        <td class="no-export" style="text-align: center;">
+                            <button type="button" class="btn-add-circle" onclick="addDynamicRow('${id}')">+</button>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
 
-    if (selectedOwner !== "All" || selectedSite !== "All") {
-        tbody.innerHTML = '';
-        if (filteredData.length === 0) {
-            addRow();
-        } else {
-            filteredData.forEach((match) => {
-                let tr = addRow(true);
-                let pInput = tr.querySelector('.plate');
-                pInput.value = match.plate;
-                autoFill(pInput, true);
-            });
+            ${id.toString().startsWith('manual_') ? `
+            <div class="no-export" style="text-align: right; margin-top: 10px;">
+                <button type="button" class="btn" style="background:#ff9800; color:white; display:inline-flex; align-items:center; gap:5px;" onclick="arrangeSingleCard('${id}')">
+                    <i class="material-icons" style="font-size:16px;">auto_awesome</i> Arrange Manual Data
+                </button>
+            </div>
+            ` : ''}
+
+            <div class="adjustmentsSection" style="display:none; margin-top: 20px;">
+                <h4 style="margin-bottom:5px; color:#1a4d80;">Adjustments</h4>
+                <table class="adjTable">
+                    <thead>
+                        <tr>
+                            <th class="col-date">Date</th>
+                            <th class="col-plate">Plate No</th>
+                            <th>Description</th>
+                            <th class="col-money">Amount</th>
+                            <th class="col-small no-export-col">Type</th>
+                            <th class="col-action no-export"><button type="button" class="btn-add-circle" onclick="addAdjRowToCard('${id}')">+</button></th>
+                        </tr>
+                    </thead>
+                    <tbody class="adjBody"></tbody>
+                    <tfoot>
+                        <tr class="balance-row">
+                            <td colspan="3" style="text-align:right; padding-right:15px; border:none;">Final Balance After Adjustment:</td>
+                            <td class="finalBalance" style="width:130px; border: 1px solid #ccc; text-align:center;">0.00</td>
+                            <td colspan="2" class="no-export" style="border:none;"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="footer" style="margin-top:40px; display:flex; justify-content:space-between; align-items:flex-end;">
+                <div style="text-align: left;">
+                    <img src="${compConfig.signature}" class="signature-img hidden-image" alt="Signature" crossorigin="anonymous">
+                    <p style="margin-bottom: 5px;"><b>${compConfig.text}</b></p>
+                    <p style="border-top: 1px solid #333; width: 250px;"></p>
+                </div>
+                <div style="text-align: right;">
+                    <img src="${compConfig.seal}" class="seal hidden-image" alt="Company Seal" crossorigin="anonymous">
+                </div>
+            </div>
+        </div>
+    `;
+
+    card.innerHTML = html;
+    return card;
+}
+
+function generateRowHTML(index, date, vtype, driver, site, plate, nhr, nrate, othr, otrate, vatPerc, vatDisplay) {
+    return `
+        <tr>
+            <td class="row-num">${index}</td>
+            <td class="date-cell">${date}</td>
+            <td><input type="text" class="vtype" value="${vtype || ''}"></td>
+            <td><input type="text" class="driver" value="${driver || ''}"></td>
+            <td><input type="text" class="site" value="${site || ''}"></td>
+            <td class="autocomplete-wrapper">
+                <input type="text" class="plate" value="${plate || ''}" oninput="showSuggestions(this)" onkeydown="handleGlobalKeyDown(event, this)" onblur="handlePlateBlur(this)" autocomplete="off">
+                <div class="suggestion-box"></div>
+            </td>
+            <td><input type="number" class="nhr" value="${nhr}" oninput="calculateRow(this)"></td>
+            <td class="rate-col"><input type="number" class="nrate" value="${nrate}" oninput="calculateRow(this)"></td> 
+            <td><input type="number" class="othr" value="${othr}" oninput="calculateRow(this)"></td>
+            <td class="rate-col"><input type="number" class="otrate" value="${otrate}" oninput="calculateRow(this)"></td> 
+            <td><input type="number" class="rent" value="0.00" oninput="calculateFromRent(this)"></td>
+            <td class="vat-col" style="display:${vatDisplay};">
+                <select class="vat-rate table-select" onchange="calculateRow(this)">
+                    <option value="15" ${vatPerc == 15 ? 'selected' : ''}>15%</option>
+                    <option value="0" ${vatPerc == 0 ? 'selected' : ''}>0%</option>
+                </select>
+            </td>
+            <td class="vat vat-col" style="display:${vatDisplay};">0.00</td>
+            <td class="total total-col" style="display:${vatDisplay};">0.00</td>
+            <td class="no-export"><button type="button" class="btn-remove" onclick="removeDynamicRow(this)">✖</button></td>
+        </tr>
+    `;
+}
+
+window.arrangeSingleCard = function(cardId) {
+    const card = document.getElementById(`billCard_${cardId}`);
+    let itemsToGroup = [];
+    let fallbackOwner = card.querySelector('.owner-input') ? card.querySelector('.owner-input').value.trim() : card.dataset.owner;
+
+    card.querySelectorAll('.tableBody tr').forEach(row => {
+        let plate = row.querySelector('.plate').value.trim().toUpperCase();
+        let site = row.querySelector('.site').value.trim();
+        let vtype = row.querySelector('.vtype').value.trim();
+        let driver = row.querySelector('.driver').value.trim();
+        let nhr = parseFloat(row.querySelector('.nhr').value) || 0;
+        let nrate = parseFloat(row.querySelector('.nrate').value) || 0;
+        let othr = parseFloat(row.querySelector('.othr').value) || 0;
+        let otrate = parseFloat(row.querySelector('.otrate').value) || 0;
+        let vatSelect = row.querySelector('.vat-rate');
+        let vatPerc = vatSelect ? (parseFloat(vatSelect.value) || 0) : 0;
+        let isVat = vatPerc > 0 ? "Yes" : "No";
+
+        if (!plate && !site && nhr === 0 && othr === 0) return;
+
+        let itemOwner = fallbackOwner;
+        if (plate) {
+            let masterMatch = masterData.find(m => (m.plate_number || m.plate || "").toUpperCase() === plate);
+            if (masterMatch && masterMatch.owner) itemOwner = masterMatch.owner.trim();
         }
-        showToast(`Loaded ${filteredData.length} vehicles`);
-    } else {
-        tbody.innerHTML = '';
-        addRow();
-    }
+        if (!itemOwner) itemOwner = "COMPANY VEHICLE";
 
-    autoConfigureColumns();
-    updateOwnerDisplay();
-}
-
-function addRow(returnElement = false) {
-    const tbody = document.getElementById('tableBody');
-    const rowCount = tbody.rows.length + 1;
-    const tr = document.createElement('tr');
-
-    const rateClass = (isRatesAndVatHidden || isRatesOnlyHidden) ? " hidden-export" : "";
-    const vatClass = (isRatesAndVatHidden || isVatOnlyHidden) ? " hidden-export" : "";
-    const totalClass = (isRatesAndVatHidden || isVatOnlyHidden) ? " hidden-export" : "";
-    const rentClass = isRentHidden ? " hidden-export" : "";
-
-    tr.innerHTML = `
-<td class="row-num">${rowCount}</td>
-<td class="date-cell">${getShortDate()}</td>
-<td><input type="text" class="vtype" onkeydown="handleGlobalKeyDown(event, this)"></td>
-<td class="col-driver-cell"><input type="text" class="driver" onkeydown="handleGlobalKeyDown(event, this)"></td>
-<td class="no-export hidden-export" style="padding: 2px;">
-    <select class="site-dropdown table-select" style="font-weight:bold; color:#1a4d80; width:100%;"><option value="N/A">N/A</option></select>
-</td>
-<td class="autocomplete-wrapper">
-<input type="text" class="plate" oninput="showSuggestions(this)" onkeydown="handleGlobalKeyDown(event, this)" onblur="handlePlateBlur(this)" autocomplete="off">
-<div class="suggestion-box"></div>
-</td>
-<td><input type="number" class="nhr" value="0" oninput="calculate(this)" onkeydown="handleGlobalKeyDown(event, this)"></td>
-<td class="rate-col${rateClass}"><input type="number" class="nrate" value="0" oninput="calculate(this)" onkeydown="handleGlobalKeyDown(event, this)"></td>
-<td><input type="number" class="othr" value="0" oninput="calculate(this)" onkeydown="handleGlobalKeyDown(event, this)"></td>
-<td class="rate-col${rateClass}"><input type="number" class="otrate" value="0" oninput="calculate(this)" onkeydown="handleGlobalKeyDown(event, this)"></td>
-<td class="rent-col${rentClass}"><input type="number" class="rent" value="0.00" oninput="calculateFromRent(this)" onkeydown="handleGlobalKeyDown(event, this)"></td>
-<td class="vat-col no-export${vatClass}">
-<select class="vat-rate table-select" onchange="calculate(this)">
-    <option value="15">15%</option>
-    <option value="0">0%</option>
-</select>
-</td>
-<td class="vat vat-col${vatClass}">0.00</td>
-<td class="total total-col${totalClass}">0.00</td>
-<td class="no-export"><button type="button" class="btn-remove" onclick="removeRow(this)">✖</button></td>
-`;
-    tbody.appendChild(tr);
-
-    if (returnElement) {
-        return tr;
-    }
-}
-
-function addAdjRow() {
-    const tbody = document.getElementById('adjBody');
-    const rowCount = tbody.rows.length + 1;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-<td class="adj-num">${rowCount}</td>
-<td style="position: relative; padding: 0; cursor: pointer;">
- <span class="adj-date-display" style="position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; font-weight:bold; pointer-events:none;"></span>
- <input type="month" class="adj-date no-export-col" onchange="formatDateDisplay(this)" style="opacity:0; width:100%; height:100%; position:absolute; inset:0; cursor:pointer; margin:0; padding:0;">
-</td>
-<td class="autocomplete-wrapper">
-<input type="text" class="plate adj-plate" oninput="showSuggestions(this)" onkeydown="handleGlobalKeyDown(event, this)" onblur="handlePlateBlur(this)" autocomplete="off">
-<div class="suggestion-box"></div>
-</td>
-<td><input type="text" class="adj-desc" style="font-weight:bold;"></td>
-<td><input type="number" class="adj-amt" value="0" oninput="updateGrandTotal()"></td>
-<td class="no-export-col">
-<select class="adj-type table-select" onchange="updateGrandTotal()"><option value="add">Add</option><option value="less">Less</option></select>
-</td>
-<td class="no-export"><button type="button" class="btn-remove" onclick="removeAdjRow(this)">✖</button></td>
-`;
-    tbody.appendChild(tr);
-    updateGrandTotal();
-}
-
-function formatDateDisplay(input) {
-    if (!input.value) {
-        input.previousElementSibling.innerText = "";
-        return;
-    }
-    const parts = input.value.split('-');
-    if (parts.length === 2) {
-        const year = parts[0].slice(-2);
-        const monthIndex = parseInt(parts[1]) - 1;
-        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        input.previousElementSibling.innerText = `${months[monthIndex]} ${year}`;
-    }
-}
-
-function removeRow(btn) {
-    try {
-        let row = btn.closest('tr');
-        if (row) row.remove();
-
-        let tbody = document.getElementById('tableBody');
-        if (tbody.rows.length === 0) {
-            addRow();
-        } else {
-            Array.from(tbody.rows).forEach((r, index) => {
-                let numCell = r.querySelector('.row-num');
-                if (numCell) numCell.innerText = index + 1;
-            });
-        }
-
-        updateGrandTotal();
-        autoConfigureColumns();
-        updateOwnerDisplay();
-    } catch (e) {
-        console.error("Error removing row:", e);
-    }
-}
-
-function removeAdjRow(btn) {
-    try {
-        let row = btn.closest('tr');
-        if (row) row.remove();
-
-        let tbody = document.getElementById('adjBody');
-        Array.from(tbody.rows).forEach((r, index) => {
-            let numCell = r.querySelector('.adj-num');
-            if (numCell) numCell.innerText = index + 1;
+        itemsToGroup.push({
+            plate_number: plate, site: site, vehicle_type: vtype, driver_name: driver,
+            nrate: nrate, otrate: otrate, vat_bill: isVat, owner: itemOwner,
+            temp_nhr: nhr, temp_othr: othr
         });
-
-        updateGrandTotal();
-    } catch (e) {
-        console.error("Error removing adj row:", e);
-    }
-}
-
-function handleGlobalKeyDown(e, input) {
-    if (input.classList.contains('plate') && navigateSuggestions(e, input)) return;
-
-    const allowedKeys = ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'];
-    if (!allowedKeys.includes(e.key)) return;
-
-    if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && input.type === 'number') {
-        e.preventDefault();
-    }
-
-    const td = input.closest('td');
-    const tr = input.closest('tr');
-    const colIndex = Array.from(tr.children).indexOf(td);
-    let targetInput = null;
-
-    if (e.key === 'ArrowRight') {
-        const nextTd = td.nextElementSibling;
-        if (nextTd) targetInput = nextTd.querySelector('input');
-    } else if (e.key === 'ArrowLeft') {
-        const prevTd = td.previousElementSibling;
-        if (prevTd) targetInput = prevTd.querySelector('input');
-    } else if (e.key === 'ArrowDown') {
-        const nextTr = tr.nextElementSibling;
-        if (nextTr) {
-            const targetTd = nextTr.children[colIndex];
-            if (targetTd) targetInput = targetTd.querySelector('input');
-        }
-    } else if (e.key === 'ArrowUp') {
-        const prevTr = tr.previousElementSibling;
-        if (prevTr) {
-            const targetTd = prevTr.children[colIndex];
-            if (targetTd) targetInput = targetTd.querySelector('input');
-        }
-    }
-
-    if (targetInput) {
-        e.preventDefault();
-        targetInput.focus();
-        if (targetInput.type === 'text' || targetInput.type === 'number') targetInput.select();
-    }
-}
-
-function navigateSuggestions(e, input) {
-    const box = input.parentElement.querySelector('.suggestion-box');
-    if (!box || box.style.display === 'none') return false;
-
-    let items = box.querySelectorAll('.suggestion-item');
-    if (items.length === 0) return false;
-
-    let activeIndex = -1;
-    items.forEach((item, index) => {
-        if (item.classList.contains('active')) activeIndex = index;
     });
 
-    if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        activeIndex++;
-        if (activeIndex >= items.length) activeIndex = 0;
-        setActive(items, activeIndex, box);
-        return true;
-    } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        activeIndex--;
-        if (activeIndex < 0) activeIndex = items.length - 1;
-        setActive(items, activeIndex, box);
-        return true;
-    } else if (e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'Tab') {
-        e.preventDefault();
-        input.value = activeIndex > -1 ? items[activeIndex].innerText : items[0].innerText;
-        box.style.display = 'none';
-        autoFill(input);
+    if (itemsToGroup.length === 0) return showToast("No data to arrange!");
 
-        if (e.key === 'ArrowRight' || e.key === 'Tab') {
-            const td = input.closest('td');
-            const nextTd = td.nextElementSibling;
-            if (nextTd) {
-                const targetInput = nextTd.querySelector('input');
-                if (targetInput) {
-                    targetInput.focus();
-                    if (targetInput.type === 'text' || targetInput.type === 'number') targetInput.select();
-                }
+    document.getElementById('loader').style.display = 'flex';
+    document.getElementById('loaderText').innerText = "Arranging Manual Data...";
+
+    setTimeout(() => {
+        let groups = {};
+        itemsToGroup.forEach(item => {
+            let comp = getCompanyFromSite(item.site);
+            // 🟢 COMBINE LOGIC FOR MANUAL TABLE
+            let key = isCombinedView ? (comp + "|||" + item.site) : (comp + "|||" + item.owner.toUpperCase());
+            
+            if (!groups[key]) {
+                groups[key] = { 
+                    company: comp, 
+                    owner: isCombinedView ? "VARIOUS OWNERS" : item.owner.toUpperCase(), 
+                    items: [] 
+                };
             }
-        }
-        return true;
-    }
-    return false;
+            groups[key].items.push(item);
+        });
+
+        let groupCount = 0;
+        Object.values(groups).forEach(group => {
+            groupCount++;
+            let newId = 'manual_arr_' + Date.now() + '_' + groupCount;
+            let newCard = createBillCard(group, newId);
+            
+            group.items.forEach((item, idx) => {
+                let row = newCard.querySelector(`.tableBody tr:nth-child(${idx + 1})`);
+                if (row) {
+                    row.querySelector('.nhr').value = item.temp_nhr;
+                    row.querySelector('.othr').value = item.temp_othr;
+                    calculateRow(row.querySelector('.nhr'));
+                }
+            });
+            card.insertAdjacentElement('afterend', newCard);
+        });
+
+        card.remove(); 
+        document.getElementById('loader').style.display = 'none';
+        showToast(`Arranged into ${groupCount} table(s)!`);
+    }, 300);
 }
 
-function setActive(items, index, box) {
-    items.forEach(item => item.classList.remove('active'));
-    items[index].classList.add('active');
+function addDynamicRow(cardId) {
+    const card = document.getElementById(`billCard_${cardId}`);
+    const tbody = card.querySelector('.tableBody');
+    const index = tbody.rows.length + 1;
+    let vatCol = card.querySelector('.vat-col');
+    let vatDisplay = vatCol ? vatCol.style.display : "";
+    const tr = document.createElement('tr');
+    tr.innerHTML = generateRowHTML(index, getShortDate(), "", "", "", "", 0, "0.00", 0, "0.00", 15, vatDisplay);
+    tbody.appendChild(tr);
+}
 
-    const itemHeight = items[index].offsetHeight;
-    const itemTop = items[index].offsetTop;
-
-    if (itemTop < box.scrollTop) {
-        box.scrollTop = itemTop;
-    } else if (itemTop + itemHeight > box.scrollTop + box.offsetHeight) {
-        box.scrollTop = itemTop + itemHeight - box.offsetHeight;
-    }
+function removeDynamicRow(btn) {
+    const card = btn.closest('.bill-card');
+    btn.closest('tr').remove();
+    let tbody = card.querySelector('.tableBody');
+    Array.from(tbody.rows).forEach((r, idx) => r.querySelector('.row-num').innerText = idx + 1);
+    updateCardTotals(card);
 }
 
 function showSuggestions(input) {
     const val = input.value.trim().toUpperCase().replace(/\s+/g, '');
     const box = input.parentElement.querySelector('.suggestion-box');
+    if (!val) { box.style.display = 'none'; return; }
 
-    if (!val) {
-        box.style.display = 'none';
-        return;
-    }
-
-    const plates = [...new Set(filteredData.map(r => r.plate))];
+    const plates = [...new Set(masterData.map(r => r.plate_number || r.plate))];
     const matches = plates.filter(p => p && p.toUpperCase().replace(/\s+/g, '').includes(val));
 
     if (matches.length > 0) {
@@ -741,9 +558,7 @@ function showSuggestions(input) {
             box.appendChild(div);
         });
         box.style.display = 'block';
-    } else {
-        box.style.display = 'none';
-    }
+    } else box.style.display = 'none';
 }
 
 function handlePlateBlur(input) {
@@ -751,192 +566,405 @@ function handlePlateBlur(input) {
         let box = input.parentElement.querySelector('.suggestion-box');
         if (box) box.style.display = 'none';
         autoFill(input);
+
+        if (input.value.trim() !== '') {
+            const row = input.closest('tr');
+            const tbody = row.parentElement;
+            if (row === tbody.lastElementChild) {
+                const card = row.closest('.bill-card');
+                const cardId = card.id.replace('billCard_', '');
+                addDynamicRow(cardId);
+            }
+        }
     }, 200);
 }
 
-function autoFill(input, isAutoLoad = false) {
-    const val = input.value.trim().toUpperCase().replace(/\s+/g, '');
-    const row = input.closest('tr');
+function handleGlobalKeyDown(e, input) {
+    const box = input.parentElement.querySelector('.suggestion-box');
+    if (box && box.style.display === 'block') {
+        let items = box.querySelectorAll('.suggestion-item');
+        let activeIndex = Array.from(items).findIndex(item => item.classList.contains('active'));
 
-    if (!val || row.closest('table').id === 'adjTable') return;
-
-    if (!isAutoLoad && input.dataset.lastPlate === val) return;
-    input.dataset.lastPlate = val;
-
-    const masterMatch = filteredData.find(r => r.plate && r.plate.toUpperCase().replace(/\s+/g, '') === val);
-    const savedMatch = masterMatch && masterMatch.is_saved ? masterMatch.saved_ref : savedBillingData.find(r => r.plate_no && r.plate_no.toUpperCase().replace(/\s+/g, '') === val);
-
-    let siteSelect = row.querySelector('.site-dropdown');
-    siteSelect.innerHTML = '';
-
-    let availableSites = [];
-    if (masterMatch && masterMatch.active_sites && masterMatch.active_sites.length > 0) {
-        availableSites = masterMatch.active_sites;
-    } else {
-        let fallbackSite = masterMatch ? masterMatch.site : (savedMatch ? savedMatch.site_name : "N/A");
-        availableSites = [fallbackSite];
-    }
-
-    availableSites.forEach(site => {
-        let opt = document.createElement('option');
-        opt.value = site;
-        opt.textContent = site;
-        siteSelect.appendChild(opt);
-    });
-
-    if (savedMatch && savedMatch.site_name) {
-        siteSelect.value = savedMatch.site_name;
-    }
-
-    if (availableSites.length <= 1) {
-        siteSelect.style.appearance = 'none';
-        siteSelect.style.pointerEvents = 'none';
-        siteSelect.style.background = 'transparent';
-    } else {
-        siteSelect.style.appearance = 'auto';
-        siteSelect.style.pointerEvents = 'auto';
-        siteSelect.style.background = 'white';
-    }
-
-    if (savedMatch) {
-        input.value = savedMatch.plate_no;
-        row.querySelector('.vtype').value = savedMatch.vtype;
-        row.querySelector('.driver').value = masterMatch ? masterMatch.driver : savedMatch.driver;
-        row.querySelector('.nhr').value = parseFloat(savedMatch.nhr);
-
-        let preciseNrate = parseFloat(savedMatch.nrate);
-        let preciseOtrate = parseFloat(savedMatch.otrate);
-
-        // Prioritize Timesheet calculated rate dynamically, else use saved DB rate
-        if (masterMatch && masterMatch.nrate) {
-            if (Math.abs(preciseNrate - masterMatch.nrate) < 0.05) preciseNrate = masterMatch.nrate;
-            if (Math.abs(preciseOtrate - masterMatch.otrate) < 0.05) preciseOtrate = masterMatch.otrate;
-        }
-
-        row.querySelector('.nrate').value = preciseNrate;
-        row.querySelector('.othr').value = parseFloat(savedMatch.othr);
-        row.querySelector('.otrate').value = preciseOtrate;
-
-        let vatRateDropdown = row.querySelector('.vat-rate');
-        let savedVat = parseFloat(savedMatch.vat_percent);
-
-        if (savedVat === 15 || savedVat === 0) {
-            vatRateDropdown.value = String(savedVat);
-        } else {
-            vatRateDropdown.value = (masterMatch && masterMatch.vat_bill === "Yes") ? "15" : "0";
-        }
-
-    } else if (masterMatch) {
-        input.value = masterMatch.plate;
-        row.querySelector('.vtype').value = masterMatch.vtype;
-        row.querySelector('.driver').value = masterMatch.driver;
-        row.querySelector('.nhr').value = 0;
-        row.querySelector('.nrate').value = masterMatch.nrate;
-        row.querySelector('.othr').value = 0;
-        row.querySelector('.otrate').value = masterMatch.otrate;
-
-        let vatRateDropdown = row.querySelector('.vat-rate');
-        vatRateDropdown.value = (masterMatch.vat_bill === "Yes") ? "15" : "0";
-    }
-
-    calculate(input);
-
-    if (!isAutoLoad) {
-        autoConfigureColumns(true);
-        updateOwnerDisplay();
-
-        const tbody = document.getElementById('tableBody');
-        if (row === tbody.lastElementChild) {
-            addRow();
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIndex = (activeIndex + 1) % items.length;
+            updateActiveSuggestion(items, activeIndex, box);
+            return;
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIndex = (activeIndex - 1 + items.length) % items.length;
+            updateActiveSuggestion(items, activeIndex, box);
+            return;
+        } else if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            input.value = activeIndex > -1 ? items[activeIndex].innerText : items[0].innerText;
+            box.style.display = 'none';
+            autoFill(input);
+            return;
         }
     }
 }
 
-function calculateAll() {
-    document.querySelectorAll('#tableBody .nhr').forEach(input => calculate(input));
+function updateActiveSuggestion(items, index, box) {
+    items.forEach(item => item.classList.remove('active'));
+    if(items[index]) {
+        items[index].classList.add('active');
+        const itemTop = items[index].offsetTop;
+        if (itemTop < box.scrollTop) box.scrollTop = itemTop;
+        else if (itemTop + items[index].offsetHeight > box.scrollTop + box.offsetHeight) {
+            box.scrollTop = itemTop + items[index].offsetHeight - box.offsetHeight;
+        }
+    }
 }
 
-function calculate(input) {
+function autoFill(input) {
+    const val = input.value.trim().toUpperCase();
+    if (!val) return;
+
+    let match = masterData.find(d => (d.plate_number || d.plate || "").toUpperCase() === val);
+    
+    if (match) {
+        const row = input.closest('tr');
+        if (match.vehicle_type || match.vtype) row.querySelector('.vtype').value = match.vehicle_type || match.vtype;
+        if (match.driver_name || match.driver) row.querySelector('.driver').value = match.driver_name || match.driver;
+        if (match.site || match.site_name) row.querySelector('.site').value = match.site || match.site_name;
+        if (match.nrate) row.querySelector('.nrate').value = parseFloat(match.nrate).toFixed(2);
+        if (match.otrate) row.querySelector('.otrate').value = parseFloat(match.otrate).toFixed(2);
+        
+        let vatSelect = row.querySelector('.vat-rate');
+        if(vatSelect) vatSelect.value = (match.vat_bill === "Yes") ? "15" : "0";
+        
+        calculateRow(input);
+    }
+
     const row = input.closest('tr');
+    const tbody = row.parentElement;
+    
+    if (row === tbody.lastElementChild) {
+        const card = row.closest('.bill-card');
+        const cardId = card.id.replace('billCard_', '');
+        addDynamicRow(cardId);
+    }
+}
+
+function calculateRow(input) {
+    const row = input.closest('tr');
+    const card = input.closest('.bill-card');
+    
     const nhr = parseFloat(row.querySelector('.nhr').value) || 0;
     let nrate = parseFloat(row.querySelector('.nrate').value) || 0;
     const othr = parseFloat(row.querySelector('.othr').value) || 0;
     let otrate = parseFloat(row.querySelector('.otrate').value) || 0;
 
-    if (input && !input.classList.contains('otrate')) {
+    if (input && input.classList.contains('nrate')) {
         otrate = nrate * 0.7;
-        row.querySelector('.otrate').value = otrate;
+        row.querySelector('.otrate').value = otrate.toFixed(2);
     }
 
     const rent = (nhr * nrate) + (othr * otrate);
     row.querySelector('.rent').value = rent.toFixed(2);
 
-    const vatRate = parseFloat(row.querySelector('.vat-rate').value) || 0;
-
-    let isVatDisabled = isRatesAndVatHidden || isVatOnlyHidden;
-    let vat = (vatRate > 0 && !isVatDisabled) ? rent * (vatRate / 100) : 0;
-
-    row.querySelector('.vat').innerText = vat.toFixed(2);
-    row.querySelector('.total').innerText = (rent + vat).toFixed(2);
-
-    updateGrandTotal();
+    updateRowVat(row, rent);
+    updateCardTotals(card);
 }
 
 function calculateFromRent(input) {
     const row = input.closest('tr');
+    const card = input.closest('.bill-card');
     const rent = parseFloat(row.querySelector('.rent').value) || 0;
 
     row.querySelector('.nhr').value = 0;
     row.querySelector('.othr').value = 0;
 
-    const vatRate = parseFloat(row.querySelector('.vat-rate').value) || 0;
-    let isVatDisabled = isRatesAndVatHidden || isVatOnlyHidden;
-    let vat = (vatRate > 0 && !isVatDisabled) ? rent * (vatRate / 100) : 0;
-
-    row.querySelector('.vat').innerText = vat.toFixed(2);
-    row.querySelector('.total').innerText = (rent + vat).toFixed(2);
-
-    updateGrandTotal();
+    updateRowVat(row, rent);
+    updateCardTotals(card);
 }
 
-function updateGrandTotal() {
+function updateRowVat(row, rent) {
+    let vatSelect = row.querySelector('.vat-rate');
+    let vatRate = vatSelect ? (parseFloat(vatSelect.value) || 0) : 0;
+    let vat = rent * (vatRate / 100);
+    let vatCell = row.querySelector('.vat');
+    let totalCell = row.querySelector('.total');
+    
+    if(vatCell) vatCell.innerText = vat.toFixed(2);
+    if(totalCell) totalCell.innerText = (rent + vat).toFixed(2);
+}
+
+function updateCardTotals(card) {
     let gRent = 0, gVat = 0, gTotal = 0, gNhr = 0, gOthr = 0;
 
-    document.querySelectorAll('#tableBody tr').forEach(row => {
-        if (!row.classList.contains('empty-row-hidden')) {
-            gNhr += parseFloat(row.querySelector('.nhr').value) || 0;
-            gOthr += parseFloat(row.querySelector('.othr').value) || 0;
-            gRent += parseFloat(row.querySelector('.rent').value) || 0;
-            gVat += parseFloat(row.querySelector('.vat').innerText) || 0;
-            gTotal += parseFloat(row.querySelector('.total').innerText) || 0;
-        }
+    card.querySelectorAll('.tableBody tr').forEach(row => {
+        gNhr += parseFloat(row.querySelector('.nhr').value) || 0;
+        gOthr += parseFloat(row.querySelector('.othr').value) || 0;
+        gRent += parseFloat(row.querySelector('.rent').value) || 0;
+        gVat += parseFloat(row.querySelector('.vat')?.innerText || 0);
+        let rowTotalStr = row.querySelector('.total')?.innerText;
+        gTotal += rowTotalStr ? parseFloat(rowTotalStr) : parseFloat(row.querySelector('.rent').value || 0);
     });
 
-    document.getElementById('grandNHr').innerText = gNhr;
-    document.getElementById('grandOTHr').innerText = gOthr;
-    document.getElementById('grandRent').innerText = gRent.toFixed(2);
-    document.getElementById('grandVat').innerText = gVat.toFixed(2);
-    document.getElementById('grandTotal').innerText = gTotal.toFixed(2);
+    card.querySelector('.grandNHr').innerText = gNhr;
+    card.querySelector('.grandOTHr').innerText = gOthr;
+    card.querySelector('.grandRent').innerText = gRent.toFixed(2);
+    
+    let gVatEl = card.querySelector('.grandVat');
+    let gTotalEl = card.querySelector('.grandTotal');
+    if(gVatEl) gVatEl.innerText = gVat.toFixed(2);
+    if(gTotalEl) gTotalEl.innerText = gTotal.toFixed(2);
 
     let finalBal = gTotal;
-    let totalAdj = 0;
+    card.querySelectorAll('.adjBody tr').forEach(row => {
+        let amt = parseFloat(row.querySelector('.adj-amt').value) || 0;
+        let type = row.querySelector('.adj-type').value;
+        finalBal += (type === 'add') ? amt : -Math.abs(amt);
+    });
+    card.querySelector('.finalBalance').innerText = finalBal.toFixed(2);
+}
 
-    if (isAdjEnabled) {
-        document.querySelectorAll('#adjBody tr').forEach(row => {
-            let amt = parseFloat(row.querySelector('.adj-amt').value) || 0;
-            let type = row.querySelector('.adj-type').value;
-            if (type === 'add') {
-                finalBal += amt;
-                totalAdj += amt;
-            } else {
-                finalBal -= amt;
-                totalAdj -= amt;
+function toggleCardImages(id) {
+    const card = document.getElementById(`billCard_${id}`);
+    card.querySelectorAll('.header-img, .seal, .signature-img').forEach(img => img.classList.toggle('hidden-image'));
+}
+
+function toggleCardAdjustments(id) {
+    const card = document.getElementById(`billCard_${id}`);
+    const sec = card.querySelector('.adjustmentsSection');
+    sec.style.display = (sec.style.display === 'none') ? 'block' : 'none';
+}
+
+function addAdjRowToCard(id) {
+    const card = document.getElementById(`billCard_${id}`);
+    const tbody = card.querySelector('.adjBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="text" class="adj-date" placeholder="DD-MMM-YY"></td>
+        <td><input type="text" class="adj-plate"></td>
+        <td><input type="text" class="adj-desc"></td>
+        <td><input type="number" class="adj-amt" value="0" oninput="updateCardTotals(this.closest('.bill-card'))"></td>
+        <td class="no-export-col"><select class="adj-type table-select" onchange="updateCardTotals(this.closest('.bill-card'))"><option value="add">Add</option><option value="less">Less</option></select></td>
+        <td class="no-export"><button class="btn-remove" onclick="this.closest('tr').remove(); updateCardTotals(this.closest('.bill-card'));">✖</button></td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function getDynamicFileName(card) {
+    let plates = [];
+    let sites = [];
+    card.querySelectorAll('.tableBody tr').forEach(row => {
+        let p = row.querySelector('.plate').value.trim();
+        let s = row.querySelector('.site').value.trim();
+        if(p) plates.push(p);
+        if(s) sites.push(s);
+    });
+
+    let uniquePlates = [...new Set(plates)];
+    let uniqueSites = [...new Set(sites)];
+    let shortDate = getShortDate().replace(/ /g, '_');
+    
+    let ownerInput = card.querySelector('.owner-input');
+    let ownerName = ownerInput ? ownerInput.value.trim() : card.dataset.owner;
+    if(!ownerName) ownerName = "Manual";
+
+    let siteStr = uniqueSites.length > 0 ? uniqueSites[0] : "Site";
+
+    let filename = "";
+    if (uniquePlates.length === 1) filename = `${uniquePlates[0]}_${shortDate}.png`;
+    else filename = `${ownerName}_${siteStr}_${shortDate}.png`;
+    
+    return filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+}
+
+function convertInputsToText(card) {
+    card.querySelectorAll('input').forEach(input => {
+        if (input.type !== 'hidden') {
+            const span = document.createElement('span');
+            span.className = 'temp-export-span';
+            span.innerText = input.type === 'number' ? parseFloat(input.value || 0).toFixed(2) : input.value;
+            if (input.classList.contains('owner-input')) {
+                span.style.textAlign = 'left';
+                span.style.fontSize = '16px';
             }
-        });
+            input.style.display = 'none';
+            input.parentNode.appendChild(span);
+        }
+    });
+    card.querySelectorAll('.no-export, .no-export-col').forEach(el => el.style.display = 'none');
+    card.querySelectorAll('.rate-col').forEach(el => el.style.display = 'none');
+
+    // 🟢 SMART VAT HIDE LOGIC FOR EXPORT
+    let grandVat = parseFloat(card.querySelector('.grandVat')?.innerText || 0);
+    if (grandVat === 0) {
+        card.querySelectorAll('.vat-col').forEach(el => el.style.display = 'none');
+    } else {
+        card.querySelectorAll('.vat-col').forEach(el => el.style.display = '');
+    }
+}
+
+function revertInputsFromText(card) {
+    card.querySelectorAll('.temp-export-span').forEach(el => el.remove());
+    card.querySelectorAll('input').forEach(input => input.style.display = '');
+    card.querySelectorAll('.no-export, .no-export-col').forEach(el => el.style.display = '');
+    card.querySelectorAll('.rate-col').forEach(el => el.style.display = '');
+
+    // 🟢 RESTORE VAT DISPLAY IN UI
+    let hasVat = false;
+    card.querySelectorAll('.vat-rate').forEach(sel => {
+        if (parseFloat(sel.value) > 0) hasVat = true;
+    });
+    // Manual table keep it visible always in UI
+    if (card.id.includes('manual_')) hasVat = true; 
+
+    card.querySelectorAll('.vat-col').forEach(el => {
+        el.style.display = hasVat ? '' : 'none';
+    });
+}
+
+async function exportSingleImage(id) {
+    const card = document.getElementById(`billCard_${id}`);
+    const printArea = document.getElementById(`printArea_${id}`);
+    const filename = getDynamicFileName(card);
+    
+    convertInputsToText(printArea);
+    const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+    revertInputsFromText(printArea);
+
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+async function shareSingleWhatsApp(id) {
+    const card = document.getElementById(`billCard_${id}`);
+    const printArea = document.getElementById(`printArea_${id}`);
+    const filename = getDynamicFileName(card);
+    
+    convertInputsToText(printArea);
+    const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+    revertInputsFromText(printArea);
+
+    canvas.toBlob(async (blob) => {
+        try {
+            const file = new File([blob], filename, { type: 'image/png' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file] });
+            } else {
+                showToast("Direct Share not supported. Downloading instead.");
+                exportSingleImage(id);
+            }
+        } catch (error) { showToast("Share cancelled."); }
+    }, 'image/png', 1.0);
+}
+
+async function downloadAllAsZip() {
+    const cards = document.querySelectorAll('.bill-card');
+    if (cards.length === 0) return showToast("No bills to download!");
+
+    document.getElementById('loader').style.display = 'flex';
+    document.getElementById('loaderText').innerText = "Creating ZIP file... Please wait.";
+
+    const zip = new JSZip();
+    let shortDate = getShortDate().replace(/ /g, '_');
+
+    for (let i = 0; i < cards.length; i++) {
+        let card = cards[i];
+        let printArea = card.querySelector('.print-area');
+        let filename = getDynamicFileName(card);
+        
+        convertInputsToText(printArea);
+        const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+        revertInputsFromText(printArea);
+
+        let imgData = canvas.toDataURL("image/png").split('base64,')[1];
+        zip.file(filename, imgData, { base64: true });
     }
 
-    document.getElementById('adjGrandTotal').innerText = totalAdj.toFixed(2);
-    document.getElementById('finalBalance').innerText = finalBal.toFixed(2);
+    zip.generateAsync({ type: "blob" }).then(function (content) {
+        saveAs(content, `Haka_Bulk_Bills_${shortDate}.zip`);
+        document.getElementById('loader').style.display = 'none';
+        showToast("ZIP Downloaded Successfully!");
+    });
+}
+
+function submitBulkData() {
+    const fullMonth = document.getElementById('selectedMonthText').innerText.trim();
+    const token = localStorage.getItem('token');
+    const cards = document.querySelectorAll('.bill-card');
+
+    if (!fullMonth || cards.length === 0) return showToast("No generated bills to save.");
+
+    const dataToUpdate = [];
+
+    cards.forEach(card => {
+        let company = card.dataset.company || "Haka";
+        let ownerInput = card.querySelector('.owner-input');
+        let owner = ownerInput ? ownerInput.value.trim() : card.dataset.owner;
+
+        let adjDescStr = "";
+        let adjAmtTotal = 0;
+        card.querySelectorAll('.adjBody tr').forEach(adjRow => {
+            let date = adjRow.querySelector('.adj-date').value.trim();
+            let plate = adjRow.querySelector('.adj-plate').value.trim();
+            let desc = adjRow.querySelector('.adj-desc').value.trim();
+            let fullDesc = `${date} ${plate} ${desc}`.trim();
+            
+            let amt = parseFloat(adjRow.querySelector('.adj-amt').value) || 0;
+            let type = adjRow.querySelector('.adj-type').value;
+            if (type === 'less') amt = -Math.abs(amt);
+
+            if(fullDesc || amt !== 0) {
+                adjDescStr += (adjDescStr ? ", " : "") + fullDesc;
+                adjAmtTotal += amt;
+            }
+        });
+
+        card.querySelectorAll('.tableBody tr').forEach(row => {
+            let plate = row.querySelector('.plate').value.trim();
+            if (plate) {
+                let rentVal = parseFloat(row.querySelector('.rent').value) || 0;
+                let vatAmt = parseFloat(row.querySelector('.vat')?.innerText || 0);
+                let totalVal = rentVal + vatAmt;
+
+                dataToUpdate.push({
+                    date: row.querySelector('.date-cell').innerText.trim(),
+                    owner: owner,
+                    company: company,
+                    site_name: row.querySelector('.site').value,
+                    vtype: row.querySelector('.vtype').value,
+                    driver: row.querySelector('.driver').value,
+                    plate: plate,
+                    nhr: parseFloat(row.querySelector('.nhr').value) || 0,
+                    nrate: parseFloat(row.querySelector('.nrate').value) || 0,
+                    othr: parseFloat(row.querySelector('.othr').value) || 0,
+                    otrate: parseFloat(row.querySelector('.otrate').value) || 0,
+                    rent: rentVal,
+                    vat_percent: parseFloat(row.querySelector('.vat-rate')?.value || 0),
+                    vat_amount: vatAmt,
+                    total: totalVal,
+                    adjustment_desc: adjDescStr, 
+                    adjusted_amount: adjAmtTotal,
+                    after_adjustment: totalVal + adjAmtTotal
+                });
+            }
+        });
+    });
+
+    document.getElementById('loader').style.display = 'flex';
+    document.getElementById('loaderText').innerText = "Saving to ERP...";
+
+    fetch('/billing/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ billing_period: fullMonth, items: dataToUpdate })
+    })
+    .then(res => res.json())
+    .then(res => {
+        document.getElementById('loader').style.display = 'none';
+        showToast(res.success ? "All Bulk Bills Saved to ERP!" : "Error: " + res.message);
+    }).catch(err => {
+        document.getElementById('loader').style.display = 'none';
+        showToast("Error saving data.");
+    });
 }
 
 function showToast(msg) {
@@ -946,315 +974,64 @@ function showToast(msg) {
     setTimeout(() => t.className = "", 3000);
 }
 
-function submitData() {
-    const fullMonth = document.getElementById('selectedMonthText').innerText.trim();
-    const token = localStorage.getItem('token');
+document.addEventListener('keydown', function(e) {
+    const target = e.target;
+    
+    if (!target.closest('.billTable') || (target.tagName !== 'INPUT' && target.tagName !== 'SELECT')) return;
 
-    if (!fullMonth || fullMonth === "Loading...") {
-        showToast("Please select Month first.");
-        return;
+    if (target.classList.contains('plate')) {
+        const box = target.parentElement.querySelector('.suggestion-box');
+        if (box && box.style.display === 'block' && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter')) {
+            return; 
+        }
     }
 
-    const dataToUpdate = [];
-    document.querySelectorAll('#tableBody tr').forEach(row => {
-        const plate = row.querySelector('.plate').value.trim();
+    const td = target.closest('td');
+    const tr = target.closest('tr');
+    const tbody = target.closest('tbody');
+    if (!td || !tr || !tbody) return;
 
-        if (plate) {
-            let dbMatch = masterData.find(d => d.plate && d.plate.toUpperCase() === plate.toUpperCase());
+    const cellIndex = Array.from(tr.children).indexOf(td);
+    const rowIndex = Array.from(tbody.children).indexOf(tr);
 
-            let siteVal = row.querySelector('.site-dropdown').value;
-            let rentVal = parseFloat(row.querySelector('.rent').value) || 0;
-            let vatPerc = parseFloat(row.querySelector('.vat-rate').value) || 0;
-            let vatAmt = parseFloat(row.querySelector('.vat').innerText) || 0;
-
-            if (isRatesAndVatHidden || isVatOnlyHidden) {
-                vatPerc = 0;
-                vatAmt = 0;
-            }
-
-            let totalVal = rentVal + vatAmt;
-            let adjDescStr = "";
-            let adjAmtTotal = 0;
-
-            if (isAdjEnabled) {
-                document.querySelectorAll('#adjBody tr').forEach(adjRow => {
-                    let adjPlate = adjRow.querySelector('.adj-plate').value.trim();
-                    if (adjPlate.toUpperCase() === plate.toUpperCase()) {
-                        let rawDesc = adjRow.querySelector('.adj-desc').value.trim();
-                        let formattedDate = adjRow.querySelector('.adj-date-display').innerText.trim();
-                        let descWithDate = rawDesc ? `${rawDesc} - ${formattedDate}` : formattedDate;
-
-                        let amt = parseFloat(adjRow.querySelector('.adj-amt').value) || 0;
-                        let type = adjRow.querySelector('.adj-type').value;
-                        if (type === 'less') amt = -Math.abs(amt);
-
-                        adjDescStr += (adjDescStr ? ", " : "") + descWithDate;
-                        adjAmtTotal += amt;
-                    }
-                });
-            }
-
-            let afterAdjustment = totalVal + adjAmtTotal;
-
-            dataToUpdate.push({
-                date: row.querySelector('.date-cell').innerText.trim(),
-                owner: dbMatch ? dbMatch.owner : "",
-                site_name: siteVal,
-                db_rate: dbMatch ? dbMatch.original_rate : 0,
-                vtype: row.querySelector('.vtype').value,
-                driver: row.querySelector('.driver').value,
-                plate: plate,
-                nhr: parseFloat(row.querySelector('.nhr').value) || 0,
-                nrate: parseFloat(row.querySelector('.nrate').value) || 0,
-                othr: parseFloat(row.querySelector('.othr').value) || 0,
-                otrate: parseFloat(row.querySelector('.otrate').value) || 0,
-                rent: rentVal,
-                vat_percent: vatPerc,
-                vat_amount: vatAmt,
-                total: totalVal,
-                adjustment_desc: adjDescStr,
-                adjusted_amount: adjAmtTotal,
-                after_adjustment: afterAdjustment
-            });
-        }
-    });
-
-    if (dataToUpdate.length === 0) {
-        showToast("No data to submit.");
-        return;
-    }
-
-    document.getElementById('loader').style.display = 'flex';
-
-    fetch('/billing/save', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ billing_period: fullMonth, items: dataToUpdate })
-    })
-        .then(res => {
-            if (!res.ok) throw new Error("Unauthorized");
-            return res.json();
-        })
-        .then(res => {
-            document.getElementById('loader').style.display = 'none';
-            showToast(res.success ? "Data saved to ERP Database!" : "Error: " + res.message);
-        })
-        .catch(err => {
-            document.getElementById('loader').style.display = 'none';
-            showToast("Error connecting to server. Is session expired?");
-            if (err.message.includes("Unauthorized")) setTimeout(executeLogout, 2000);
-        });
-}
-
-function getDynamicFileName() {
-    let plates = [];
-    document.querySelectorAll('#tableBody tr').forEach(row => {
-        if (!row.classList.contains('empty-row-hidden')) {
-            let p = row.querySelector('.plate');
-            if (p && p.value.trim() !== "") plates.push(p.value.trim());
-        }
-    });
-
-    if (isAdjEnabled) {
-        document.querySelectorAll('#adjBody tr').forEach(row => {
-            let p = row.querySelector('.adj-plate');
-            if (p && p.value.trim() !== "") plates.push(p.value.trim());
-        });
-    }
-
-    let uniquePlates = [...new Set(plates)];
-    let fileNameStr = "Bill";
-
-    if (uniquePlates.length === 1) {
-        fileNameStr = uniquePlates[0];
-    } else if (uniquePlates.length > 1) {
-        let ownerName = document.getElementById('ownerSelector').value;
-        if (ownerName && ownerName !== "All") {
-            fileNameStr = ownerName;
-        } else {
-            fileNameStr = document.getElementById('companySelector').value + "_Multiple";
-        }
-    } else {
-        fileNameStr = document.getElementById('companySelector').value;
-    }
-
-    let shortDate = getShortDate().replace(' ', '_');
-    fileNameStr = fileNameStr.replace(/[^a-zA-Z0-9_ -]/g, '_');
-
-    return fileNameStr + '_' + shortDate + '.png';
-}
-
-function hideElementsForExport() {
-    document.querySelectorAll('.no-export').forEach(el => el.style.display = 'none');
-
-    let grandTotalTd = document.querySelector('#billTable tfoot td');
-    if (grandTotalTd) grandTotalTd.setAttribute('colspan', '5');
-
-    document.querySelectorAll('.adj-date').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.adj-date-display').forEach(el => el.style.display = 'flex');
-
-    document.querySelectorAll('#tableBody tr').forEach(row => {
-        let pInput = row.querySelector('.plate');
-        if (pInput && pInput.value.trim() === "") {
-            row.classList.add('empty-row-hidden');
-        } else {
-            let inputsToWrap = row.querySelectorAll('.driver, .vtype, .plate, .nhr, .nrate, .othr, .otrate, .rent');
-            inputsToWrap.forEach(input => {
-                const span = document.createElement('span');
-                span.className = 'temp-export-span';
-
-                if (input.classList.contains('nrate') || input.classList.contains('otrate') || input.classList.contains('rent')) {
-                    let numVal = parseFloat(input.value);
-                    span.innerText = isNaN(numVal) ? "0.00" : numVal.toFixed(2);
-                } else {
-                    span.innerText = input.value;
-                }
-
-                span.style.display = 'block';
-                span.style.width = '100%';
-                span.style.wordWrap = 'break-word';
-                span.style.whiteSpace = 'normal';
-                span.style.fontSize = '13px';
-                span.style.lineHeight = '1.2';
-                span.style.padding = '4px 2px';
-                input.style.display = 'none';
-                input.parentNode.appendChild(span);
-            });
-        }
-    });
-
-    let hideOwnerCheck = document.getElementById('hideOwnerToggle');
-    let ownerDisplay = document.getElementById('billOwnerDisplay');
-    if (hideOwnerCheck && hideOwnerCheck.checked && ownerDisplay) {
-        ownerDisplay.style.display = 'none';
-    }
-}
-
-function showElementsAfterExport() {
-    document.querySelectorAll('.no-export').forEach(el => el.style.display = '');
-
-    let grandTotalTd = document.querySelector('#billTable tfoot td');
-    if (grandTotalTd) grandTotalTd.setAttribute('colspan', '6');
-
-    document.querySelectorAll('.adj-date').forEach(el => el.style.display = 'block');
-    document.querySelectorAll('.adj-date-display').forEach(el => el.style.display = 'none');
-
-    document.querySelectorAll('.empty-row-hidden').forEach(row => row.classList.remove('empty-row-hidden'));
-    document.querySelectorAll('.temp-export-span').forEach(el => el.remove());
-    document.querySelectorAll('.driver, .vtype, .plate, .nhr, .nrate, .othr, .otrate, .rent').forEach(el => el.style.display = '');
-
-    let ownerDisplay = document.getElementById('billOwnerDisplay');
-    if (ownerDisplay) {
-        ownerDisplay.style.display = '';
-    }
-}
-
-async function exportImage() {
-    hideElementsForExport();
-    const element = document.getElementById('billContainer');
-    const canvas = await html2canvas(element, { scale: 4, useCORS: true });
-    showElementsAfterExport();
-
-    const link = document.createElement('a');
-    link.download = getDynamicFileName();
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-}
-
-async function shareToWhatsApp() {
-    hideElementsForExport();
-    const element = document.getElementById('billContainer');
-    const canvas = await html2canvas(element, { scale: 4, useCORS: true });
-    showElementsAfterExport();
-
-    const fileName = getDynamicFileName();
-
-    canvas.toBlob(async (blob) => {
-        try {
-            const file = new File([blob], fileName, { type: 'image/png' });
-            const shareData = { files: [file] };
-
-            if (navigator.canShare && navigator.canShare(shareData)) {
-                await navigator.share(shareData);
-                showToast("Image shared successfully!");
-            } else {
-                const dataUrl = canvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.href = dataUrl;
-                link.download = fileName;
-                link.click();
-                showToast("Direct sharing not supported on this browser. Image downloaded.");
-            }
-        } catch (error) {
-            console.error('Sharing failed', error);
-            showToast("Sharing cancelled or failed.");
-        }
-    }, 'image/png', 1.0);
-}
-
-function autoConfigureColumns(skipCalculate = false) {
-    let hasVat = false;
-    let rowCount = 0;
-
-    document.querySelectorAll('#tableBody tr').forEach(row => {
-        let pInput = row.querySelector('.plate');
-        if (pInput && pInput.value.trim() !== "") {
-            rowCount++;
-            let match = masterData.find(m => m.plate === pInput.value.trim().toUpperCase());
-            if (match && match.vat_bill === "Yes") {
-                hasVat = true;
-            }
-        }
-    });
-
-    if (rowCount > 0) {
-        if (hasVat) {
-            document.getElementById('hideRatesOnlyToggle').checked = true;
-            document.getElementById('hideRatesToggle').checked = false;
-            document.getElementById('hideVatOnlyToggle').checked = false;
-            isRatesOnlyHidden = true;
-            isRatesAndVatHidden = false;
-            isVatOnlyHidden = false;
-        } else {
-            document.getElementById('hideRatesToggle').checked = true;
-            document.getElementById('hideRatesOnlyToggle').checked = false;
-            document.getElementById('hideVatOnlyToggle').checked = false;
-            isRatesAndVatHidden = true;
-            isRatesOnlyHidden = false;
-            isVatOnlyHidden = false;
-        }
-        applyHiddenColumns(skipCalculate);
-    }
-}
-
-function updateOwnerDisplay() {
-    let owners = [];
-
-    document.querySelectorAll('#tableBody tr').forEach(row => {
-        if (!row.classList.contains('empty-row-hidden')) {
-            let pInput = row.querySelector('.plate');
-            if (pInput && pInput.value.trim() !== "") {
-                let match = masterData.find(m => m.plate === pInput.value.trim().toUpperCase());
-                if (match && match.owner && match.owner.trim() !== "") {
-                    owners.push(match.owner.trim());
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault(); 
+        
+        let targetRow = (e.key === 'ArrowUp') ? tbody.children[rowIndex - 1] : tbody.children[rowIndex + 1];
+        if (targetRow) {
+            let targetTd = targetRow.children[cellIndex];
+            if (targetTd) {
+                let nextInput = targetTd.querySelector('input, select');
+                if (nextInput) {
+                    nextInput.focus();
+                    if(nextInput.select) nextInput.select(); 
                 }
             }
         }
-    });
+    }
+    
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        let shouldMove = false;
+        
+        if (target.type === 'number' || target.tagName === 'SELECT') {
+            shouldMove = true;
+        } else if (target.type === 'text') {
+            if (e.key === 'ArrowLeft' && target.selectionStart === 0) shouldMove = true;
+            if (e.key === 'ArrowRight' && target.selectionEnd === target.value.length) shouldMove = true;
+        }
 
-    let uniqueOwners = [...new Set(owners)];
-    let ownerNameStr = uniqueOwners.join(", ");
-
-    let displayEl = document.getElementById('billOwnerDisplay');
-    if (displayEl) {
-        displayEl.innerText = ownerNameStr ? "OWNER : " + ownerNameStr : "";
-
-        let toggleLabel = document.getElementById('hideOwnerToggle').closest('label');
-        if (toggleLabel) {
-            toggleLabel.style.display = ownerNameStr ? "flex" : "none";
+        if (shouldMove) {
+            e.preventDefault();
+            let allInputs = Array.from(tr.querySelectorAll('input:not([style*="display: none"]), select'));
+            let currentIndex = allInputs.indexOf(target);
+            
+            let nextInput = (e.key === 'ArrowLeft') ? allInputs[currentIndex - 1] : allInputs[currentIndex + 1];
+            if (nextInput) {
+                nextInput.focus();
+                if(nextInput.select) nextInput.select();
+            }
         }
     }
-}
+});
+
+function goToDashboard() { window.location.href = '/billing/dashboard'; }

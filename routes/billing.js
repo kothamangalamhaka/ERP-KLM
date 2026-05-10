@@ -4,8 +4,6 @@ const pool = require('../config/db');
 const ExcelJS = require('exceljs');
 const jwt = require('jsonwebtoken');
 
-
-
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const verifyBillingEditor = (req, res, next) => {
@@ -36,12 +34,12 @@ router.get('/verify-session', (req, res) => {
     res.status(200).json({ success: true, message: "Session is valid" });
 });
 
-// 1. Fetch Vehicle Data (100% FROM TIMESHEET DB NOW)
+// 1. Fetch Vehicle Data (100% FROM TIMESHEET DB NOW + SMART RATE LOGIC)
 router.get('/vehicles', async (req, res) => {
     try {
         const { month } = req.query;
 
-        // Fetch Timesheet DB (The New Foundation)
+        // Fetch Timesheet DB
         const tsVehiclesResult = await pool.query('SELECT * FROM timesheet_vehicles');
         const driverLogs = await pool.query('SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log');
         const siteLogs = await pool.query('SELECT plate_no, site_name, rate, work_start_date, work_end_date FROM vehicle_site_log');
@@ -66,7 +64,6 @@ router.get('/vehicles', async (req, res) => {
         let validVehicles = [];
         let processedPlates = new Set();
 
-        // Loop through Timesheet DB
         tsVehiclesResult.rows.forEach(tsItem => {
             let plate = (tsItem.plate_no || "").toUpperCase().trim();
             if (!plate || processedPlates.has(plate)) return;
@@ -77,7 +74,6 @@ router.get('/vehicles', async (req, res) => {
             let activeSiteRate = 0;
 
             if (targetStart && targetEnd) {
-                // Determine accurate driver from logs
                 let dLogs = driverLogs.rows.filter(l => (l.plate_no || "").toUpperCase() === plate);
                 let validDLogs = dLogs.filter(l => {
                     let st = l.work_start_date ? new Date(l.work_start_date) : new Date('2000-01-01');
@@ -91,7 +87,6 @@ router.get('/vehicles', async (req, res) => {
                     correctDriver = [...new Set(driverNames)].join(" / ");
                 }
 
-                // Determine accurate site and RATE from logs
                 let sLogs = siteLogs.rows.filter(l => (l.plate_no || "").toUpperCase() === plate);
                 let validSLogs = sLogs.filter(l => {
                     let st = l.work_start_date ? new Date(l.work_start_date) : new Date('2000-01-01');
@@ -102,14 +97,11 @@ router.get('/vehicles', async (req, res) => {
                 if (validSLogs.length > 0) {
                     validSLogs.sort((a, b) => new Date(a.work_start_date || '2000-01-01') - new Date(b.work_start_date || '2000-01-01'));
                     activeSites = [...new Set(validSLogs.map(s => s.site_name).filter(Boolean))];
-
-                    // Take rate from the most recent valid site log
                     let latestLog = validSLogs[validSLogs.length - 1];
                     activeSiteRate = parseFloat(latestLog.rate) || 0;
                 }
             }
 
-            // Fallback to primary Timesheet DB Data if no log exists for the month
             if (activeSites.length === 0) {
                 let defaultSite = (tsItem.site_name || "N/A").trim();
                 activeSites = [defaultSite];
@@ -117,13 +109,10 @@ router.get('/vehicles', async (req, res) => {
             if (activeSiteRate === 0) {
                 activeSiteRate = parseFloat(tsItem.rate) || 0;
             }
-
-            // Fallback driver
             if (!correctDriver) {
                 correctDriver = (tsItem.driver_name || "").trim();
             }
 
-            // Safe extraction of Dynamic Columns from Timesheet DB
             let vtype = tsItem.vehicle_type || tsItem.vtype || tsItem['vehicle type'] || "";
             let vatRaw = String(tsItem.vat || tsItem.vat_bill || tsItem['vat (yes/no)'] || "No").trim().toLowerCase();
             let isVatBill = (vatRaw === 'yes' || vatRaw === 'true' || vatRaw === '15' || vatRaw === '15%') ? "Yes" : "No";
@@ -143,13 +132,25 @@ router.get('/vehicles', async (req, res) => {
             });
         });
 
+        // 🟢 SMART RATE LOGIC: Update saved rates if they are currently 0
+        savedResult.rows.forEach(saved => {
+            let pNo = (saved.plate_no || "").toUpperCase().trim();
+            let tsMatch = validVehicles.find(v => v.plate_number === pNo);
+
+            if (tsMatch && (parseFloat(saved.nrate) === 0 || !saved.nrate)) {
+                saved.nrate = tsMatch.nrate;
+                saved.otrate = tsMatch.otrate;
+                saved.db_rate = tsMatch.rate;
+            }
+        });
+
         res.status(200).json({ success: true, data: validVehicles, saved_bills: savedResult.rows });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 });
 
-// 2. Save Billing Data
+// 2. Save Billing Data (WITH ZERO-ROW PROTECTION)
 router.post('/save', async (req, res) => {
     const client = await pool.connect();
     try {
@@ -159,14 +160,24 @@ router.post('/save', async (req, res) => {
         for (let row of items) {
             await client.query(`DELETE FROM billing_records WHERE billing_month = $1 AND plate_no = $2 AND site_name = $3`, [billing_period, row.plate, row.site_name]);
 
+            // 🟢 ZERO ROW PROTECTION
+            const nhr = parseFloat(row.nhr) || 0;
+            const othr = parseFloat(row.othr) || 0;
+            const rent = parseFloat(row.rent) || 0;
+            const adjAmt = parseFloat(row.adjusted_amount) || 0;
+
+            if (nhr === 0 && othr === 0 && rent === 0 && adjAmt === 0) {
+                continue; // Skip saving empty row
+            }
+
             const query = `INSERT INTO billing_records 
                 (billing_month, date, company, owner, site_name, db_rate, vtype, driver, plate_no, nhr, nrate, othr, otrate, rent, vat_percent, vat_amount, total, adjustment_desc, adjusted_amount, after_adjustment) 
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`;
 
             await client.query(query, [
                 billing_period, row.date, row.company, row.owner, row.site_name, row.db_rate, row.vtype, row.driver, row.plate,
-                row.nhr, row.nrate, row.othr, row.otrate, row.rent, row.vat_percent, row.vat_amount, row.total,
-                row.adjustment_desc, row.adjusted_amount, row.after_adjustment
+                nhr, row.nrate, othr, row.otrate, rent, row.vat_percent, row.vat_amount, row.total,
+                row.adjustment_desc, adjAmt, row.after_adjustment
             ]);
         }
         await client.query('COMMIT');
@@ -179,10 +190,10 @@ router.post('/save', async (req, res) => {
     }
 });
 
-// 3. Fetch Dashboard Data
+// 3. Fetch Dashboard Data (FILTER OUT ZERO ROWS)
 router.get('/dashboard-data', async (req, res) => {
     try {
-        const result = await pool.query(`SELECT * FROM billing_records ORDER BY TO_DATE(billing_month, 'Month YYYY') DESC, id ASC`);
+        const result = await pool.query(`SELECT * FROM billing_records WHERE rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0 ORDER BY TO_DATE(billing_month, 'Month YYYY') DESC, id ASC`);
 
         const tsRes = await pool.query('SELECT plate_no, site_name, owner_name FROM timesheet_vehicles');
         let tsMap = {};
@@ -190,7 +201,6 @@ router.get('/dashboard-data', async (req, res) => {
             if (r.plate_no) tsMap[r.plate_no.toUpperCase()] = r;
         });
 
-        // Ensure legacy blanks are overridden by Timesheet DB
         result.rows.forEach(row => {
             let pNo = (row.plate_no || "").toUpperCase();
             if (tsMap[pNo]) {
@@ -205,15 +215,15 @@ router.get('/dashboard-data', async (req, res) => {
     }
 });
 
-// 4. Export Excel
+// 4. Export Excel (FILTER OUT ZERO ROWS)
 router.get('/export-excel', async (req, res) => {
     try {
         const { month } = req.query;
-        let query = `SELECT * FROM billing_records ORDER BY TO_DATE(billing_month, 'Month YYYY') DESC, id ASC`;
+        let query = `SELECT * FROM billing_records WHERE rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0 ORDER BY TO_DATE(billing_month, 'Month YYYY') DESC, id ASC`;
         let params = [];
 
         if (month && month !== 'All') {
-            query = `SELECT * FROM billing_records WHERE billing_month = $1 ORDER BY id ASC`;
+            query = `SELECT * FROM billing_records WHERE billing_month = $1 AND (rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0) ORDER BY id ASC`;
             params = [month];
         }
 
