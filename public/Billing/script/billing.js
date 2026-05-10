@@ -319,6 +319,15 @@ function arrangeProperly() {
     } else {
       let groupCount = 0;
       Object.values(groups).forEach((group) => {
+        // 🟢 NEW: COMBINE ചെയ്യുമ്പോൾ Plate No A-Z ഓർഡറിൽ ആക്കാൻ
+        if (isCombinedView) {
+          group.items.sort((a, b) => {
+            let plateA = (a.plate_number || a.plate || "").toUpperCase();
+            let plateB = (b.plate_number || b.plate || "").toUpperCase();
+            return plateA.localeCompare(plateB);
+          });
+        }
+
         groupCount++;
         container.appendChild(createBillCard(group, `group_${groupCount}`));
       });
@@ -638,6 +647,15 @@ window.arrangeSingleCard = function (cardId) {
 
     let groupCount = 0;
     Object.values(groups).forEach((group) => {
+      // 🟢 NEW: COMBINE ചെയ്യുമ്പോൾ Plate No A-Z ഓർഡറിൽ ആക്കാൻ (മാന്വൽ എൻട്രി)
+      if (isCombinedView) {
+        group.items.sort((a, b) => {
+          let plateA = (a.plate_number || a.plate || "").toUpperCase();
+          let plateB = (b.plate_number || b.plate || "").toUpperCase();
+          return plateA.localeCompare(plateB);
+        });
+      }
+
       groupCount++;
       let newId = "manual_arr_" + Date.now() + "_" + groupCount;
       let newCard = createBillCard(group, newId);
