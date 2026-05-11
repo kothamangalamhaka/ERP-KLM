@@ -255,20 +255,10 @@ function getCompanyFromSite(siteName) {
   return "Haka";
 }
 
-window.toggleCombineView = function () {
-  isCombinedView = !isCombinedView;
-  let btn = document.getElementById("btnCombineToggle");
-  if (btn) {
-    if (isCombinedView) {
-      btn.innerHTML =
-        '<i class="material-icons" style="font-size:16px;">splitscreen</i> Split View';
-      btn.style.background = "#e83e8c";
-    } else {
-      btn.innerHTML =
-        '<i class="material-icons" style="font-size:16px;">call_merge</i> Combine All';
-      btn.style.background = "#007bff";
-    }
-  }
+let currentArrangeMode = "split"; // 'split', 'site', 'owner'
+
+window.setArrangeMode = function (mode) {
+  currentArrangeMode = mode;
   arrangeProperly();
 };
 
@@ -283,9 +273,7 @@ function arrangeProperly() {
     return showToast("Please select at least one Owner and one Site.");
 
   document.getElementById("loader").style.display = "flex";
-  document.getElementById("loaderText").innerText = isCombinedView
-    ? "Combining Bills by Site..."
-    : "Arranging Bills...";
+  document.getElementById("loaderText").innerText = "Arranging Bills...";
 
   setTimeout(() => {
     let groups = {};
@@ -299,12 +287,20 @@ function arrangeProperly() {
         return;
       let comp = getCompanyFromSite(site);
 
-      let key = isCombinedView ? comp + "|||" + site : comp + "|||" + owner;
+      // 🟢 NEW: 3 TYPES OF GROUPING LOGIC
+      let key = "";
+      if (currentArrangeMode === "site") {
+        key = comp + "|||" + site;
+      } else if (currentArrangeMode === "owner") {
+        key = comp + "|||" + owner;
+      } else {
+        key = comp + "|||" + owner + "|||" + site; // Default Split
+      }
 
       if (!groups[key]) {
         groups[key] = {
           company: comp,
-          owner: isCombinedView ? "VARIOUS OWNERS" : owner,
+          owner: currentArrangeMode === "site" ? "VARIOUS OWNERS" : owner,
           items: [],
         };
       }
@@ -319,8 +315,7 @@ function arrangeProperly() {
     } else {
       let groupCount = 0;
       Object.values(groups).forEach((group) => {
-        // 🟢 NEW: COMBINE ചെയ്യുമ്പോൾ Plate No A-Z ഓർഡറിൽ ആക്കാൻ
-        if (isCombinedView) {
+        if (currentArrangeMode === "site" || currentArrangeMode === "owner") {
           group.items.sort((a, b) => {
             let plateA = (a.plate_number || a.plate || "").toUpperCase();
             let plateB = (b.plate_number || b.plate || "").toUpperCase();
@@ -370,20 +365,20 @@ function createManualTable() {
 }
 
 function createBillCard(group, id) {
-    const card = document.createElement('div');
-    card.className = 'container bill-card';
-    card.id = `billCard_${id}`;
-    card.dataset.company = group.company;
-    card.dataset.owner = group.owner;
+  const card = document.createElement("div");
+  card.className = "container bill-card";
+  card.id = `billCard_${id}`;
+  card.dataset.company = group.company;
+  card.dataset.owner = group.owner;
 
-    const compConfig = companyData[group.company] || companyData["Haka"];
-    const shortDate = getShortDate();
-    
-    let requiresVat = group.items.some(item => item.vat_bill === "Yes");
-    if (id.toString().startsWith('manual_')) requiresVat = true; 
-    let vatDisplay = requiresVat ? "" : "none"; 
+  const compConfig = companyData[group.company] || companyData["Haka"];
+  const shortDate = getShortDate();
 
-    let html = `
+  let requiresVat = group.items.some((item) => item.vat_bill === "Yes");
+  if (id.toString().startsWith("manual_")) requiresVat = true;
+  let vatDisplay = requiresVat ? "" : "none";
+
+  let html = `
         <div class="no-export" style="display:flex; justify-content:space-between; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:5px; border:1px solid #ddd;">
             <div style="display:flex; gap:10px; align-items:center;">
                 <b style="color:#1a4d80; font-size:16px;">${group.company} - ${group.owner || "Manual Entry"}</b>
@@ -430,23 +425,38 @@ function createBillCard(group, id) {
                 <tbody class="tableBody">
     `;
 
-    group.items.forEach((item, index) => {
-        let saved = savedBillingData.find(s => s.plate_no === item.plate_number && s.site_name === item.site);
-        let nhr = saved ? saved.nhr : 0;
-        let othr = saved ? saved.othr : 0;
-        
-        // 🟢 FIXED: Removed .toFixed(2) here to load exact rates from DB
-        let nrate = parseFloat(saved ? saved.nrate : item.nrate || 0);
-        let otrate = parseFloat(saved ? saved.otrate : item.otrate || 0);
-        
-        let vatPerc = saved ? saved.vat_percent : (item.vat_bill === "Yes" ? 15 : 0);
-        let driverName = item.driver_name || item.driver || "";
-        if (saved && saved.driver) driverName = saved.driver;
+  group.items.forEach((item, index) => {
+    let saved = savedBillingData.find(
+      (s) => s.plate_no === item.plate_number && s.site_name === item.site,
+    );
+    let nhr = saved ? saved.nhr : 0;
+    let othr = saved ? saved.othr : 0;
 
-        html += generateRowHTML(index + 1, shortDate, item.vehicle_type, driverName, item.site, item.plate_number, nhr, nrate, othr, otrate, vatPerc, vatDisplay);
-    });
+    // 🟢 FIXED: Removed .toFixed(2) here to load exact rates from DB
+    let nrate = parseFloat(saved ? saved.nrate : item.nrate || 0);
+    let otrate = parseFloat(saved ? saved.otrate : item.otrate || 0);
 
-    html += `
+    let vatPerc = saved ? saved.vat_percent : item.vat_bill === "Yes" ? 15 : 0;
+    let driverName = item.driver_name || item.driver || "";
+    if (saved && saved.driver) driverName = saved.driver;
+
+    html += generateRowHTML(
+      index + 1,
+      shortDate,
+      item.vehicle_type,
+      driverName,
+      item.site,
+      item.plate_number,
+      nhr,
+      nrate,
+      othr,
+      otrate,
+      vatPerc,
+      vatDisplay,
+    );
+  });
+
+  html += `
                 </tbody>
                 <tfoot>
                     <tr class="total-row">
@@ -466,13 +476,17 @@ function createBillCard(group, id) {
                 </tfoot>
             </table>
 
-            ${id.toString().startsWith('manual_') ? `
+            ${
+              id.toString().startsWith("manual_")
+                ? `
             <div class="no-export" style="text-align: right; margin-top: 15px;">
                 <button type="button" class="btn" style="background:#ff9800; color:white; display:inline-flex; align-items:center; gap:5px; padding: 10px 15px;" onclick="arrangeSingleCard('${id}')">
                     <i class="material-icons" style="font-size:18px;">auto_awesome</i> Arrange Manual Data
                 </button>
             </div>
-            ` : ''}
+            `
+                : ""
+            }
 
             <div class="adjustmentsSection" style="display:none; margin-top: 20px;">
                 <h4 style="margin-bottom:5px; color:#1a4d80;">Adjustments</h4>
@@ -511,19 +525,32 @@ function createBillCard(group, id) {
         </div>
     `;
 
-    card.innerHTML = html;
-    return card;
+  card.innerHTML = html;
+  return card;
 }
 
-function generateRowHTML(index, date, vtype, driver, site, plate, nhr, nrate, othr, otrate, vatPerc, vatDisplay) {
-    return `
+function generateRowHTML(
+  index,
+  date,
+  vtype,
+  driver,
+  site,
+  plate,
+  nhr,
+  nrate,
+  othr,
+  otrate,
+  vatPerc,
+  vatDisplay,
+) {
+  return `
         <tr>
             <td class="row-num">${index}</td>
             <td class="date-cell">${date}</td>
-            <td><input type="text" class="vtype" value="${vtype || ''}"></td>
-            <td><input type="text" class="driver" value="${driver || ''}"></td>
-            <td class="site-col"><input type="text" class="site" value="${site || ''}"></td> <td class="autocomplete-wrapper">
-                <input type="text" class="plate" value="${plate || ''}" oninput="showSuggestions(this)" onkeydown="handleGlobalKeyDown(event, this)" onblur="handlePlateBlur(this)" autocomplete="off">
+            <td><input type="text" class="vtype" value="${vtype || ""}"></td>
+            <td><input type="text" class="driver" value="${driver || ""}"></td>
+            <td class="site-col"><input type="text" class="site" value="${site || ""}"></td> <td class="autocomplete-wrapper">
+                <input type="text" class="plate" value="${plate || ""}" oninput="showSuggestions(this)" onkeydown="handleGlobalKeyDown(event, this)" onblur="handlePlateBlur(this)" autocomplete="off">
                 <div class="suggestion-box"></div>
             </td>
             <td><input type="number" class="nhr" value="${nhr}" oninput="calculateRow(this)"></td>
@@ -533,8 +560,8 @@ function generateRowHTML(index, date, vtype, driver, site, plate, nhr, nrate, ot
             <td><input type="number" class="rent" value="0.00" oninput="calculateFromRent(this)"></td>
             <td class="vat-col" style="display:${vatDisplay};">
                 <select class="vat-rate table-select" onchange="calculateRow(this)">
-                    <option value="15" ${vatPerc == 15 ? 'selected' : ''}>15%</option>
-                    <option value="0" ${vatPerc == 0 ? 'selected' : ''}>0%</option>
+                    <option value="15" ${vatPerc == 15 ? "selected" : ""}>15%</option>
+                    <option value="0" ${vatPerc == 0 ? "selected" : ""}>0%</option>
                 </select>
             </td>
             <td class="vat vat-col" style="display:${vatDisplay};">0.00</td>
@@ -595,18 +622,30 @@ window.arrangeSingleCard = function (cardId) {
   document.getElementById("loader").style.display = "flex";
   document.getElementById("loaderText").innerText = "Arranging Manual Data...";
 
+  // (അതിലെ setTimeout നുള്ളിലെ ഗ്രൂപ്പിംഗ് ഭാഗം മാത്രം താഴെ കാണുന്നതുപോലെ മാറ്റുക)
+
   setTimeout(() => {
     let groups = {};
     itemsToGroup.forEach((item) => {
       let comp = getCompanyFromSite(item.site);
-      let key = isCombinedView
-        ? comp + "|||" + item.site
-        : comp + "|||" + item.owner.toUpperCase();
+
+      // 🟢 NEW MANUAL ARRANGE LOGIC
+      let key = "";
+      if (currentArrangeMode === "site") {
+        key = comp + "|||" + item.site;
+      } else if (currentArrangeMode === "owner") {
+        key = comp + "|||" + item.owner.toUpperCase();
+      } else {
+        key = comp + "|||" + item.owner.toUpperCase() + "|||" + item.site;
+      }
 
       if (!groups[key]) {
         groups[key] = {
           company: comp,
-          owner: isCombinedView ? "VARIOUS OWNERS" : item.owner.toUpperCase(),
+          owner:
+            currentArrangeMode === "site"
+              ? "VARIOUS OWNERS"
+              : item.owner.toUpperCase(),
           items: [],
         };
       }
@@ -652,7 +691,7 @@ function addDynamicRow(cardId) {
   let vatCol = card.querySelector(".vat-col");
   let vatDisplay = vatCol ? vatCol.style.display : "";
   const tr = document.createElement("tr");
-  
+
   // 🟢 FIXED: Changed rate strings to 0 for raw calculation
   tr.innerHTML = generateRowHTML(
     index,
@@ -717,17 +756,8 @@ function handlePlateBlur(input) {
   setTimeout(() => {
     let box = input.parentElement.querySelector(".suggestion-box");
     if (box) box.style.display = "none";
-    autoFill(input);
 
-    if (input.value.trim() !== "") {
-      const row = input.closest("tr");
-      const tbody = row.parentElement;
-      if (row === tbody.lastElementChild) {
-        const card = row.closest(".bill-card");
-        const cardId = card.id.replace("billCard_", "");
-        addDynamicRow(cardId);
-      }
-    }
+    autoFill(input);
   }, 200);
 }
 
@@ -775,67 +805,144 @@ function updateActiveSuggestion(items, index, box) {
   }
 }
 
+// 🟢 NEW: MULTIPLE SITES AUTOFILL POPUP LOGIC
+let currentAutoFillInput = null;
+let currentAutoFillMatches = [];
+
 function autoFill(input) {
+  if (document.getElementById("siteSelectionModal").style.display === "flex") {
+    return;
+  }
+
   const val = input.value.trim().toUpperCase();
   if (!val) return;
 
-  let match = masterData.find(
+  let matches = masterData.filter(
     (d) => (d.plate_number || d.plate || "").toUpperCase() === val,
   );
 
-  if (match) {
-    const row = input.closest("tr");
-    if (match.vehicle_type || match.vtype)
-      row.querySelector(".vtype").value = match.vehicle_type || match.vtype;
-    if (match.driver_name || match.driver)
-      row.querySelector(".driver").value = match.driver_name || match.driver;
-    if (match.site || match.site_name)
-      row.querySelector(".site").value = match.site || match.site_name;
-      
-    // 🟢 FIXED: Removed .toFixed(2) here for exact rate autofill
-    if (match.nrate)
-      row.querySelector(".nrate").value = parseFloat(match.nrate);
-    if (match.otrate)
-      row.querySelector(".otrate").value = parseFloat(match.otrate);
+  if (matches.length === 0) return;
 
-    let vatSelect = row.querySelector(".vat-rate");
-    if (vatSelect) vatSelect.value = match.vat_bill === "Yes" ? "15" : "0";
+  if (matches.length === 1) {
+    applyAutoFillData(input, matches[0]);
+  } else {
+    // SHOW POPUP IF 2 OR MORE SITES
+    currentAutoFillInput = input;
+    currentAutoFillMatches = matches;
 
-    calculateRow(input);
+    document.getElementById("modalPlateNo").innerText = val;
+    let listHtml = "";
+    matches.forEach((m, idx) => {
+      let siteName = m.site || m.site_name || "N/A";
+      listHtml += `<label><input type="checkbox" class="modal-site-checkbox" value="${idx}"> <b>${siteName}</b> (Rate: ${m.nrate ? (m.nrate * 260).toFixed(2) : 0})</label>`;
+    });
+    document.getElementById("modalSiteList").innerHTML = listHtml;
+    document.getElementById("modalSelectAll").checked = false;
+    document.getElementById("siteSelectionModal").style.display = "flex";
+  }
+}
+
+window.toggleModalSites = function (isChecked) {
+  document.querySelectorAll(".modal-site-checkbox").forEach((chk) => {
+    chk.checked = isChecked;
+  });
+};
+
+window.closeSiteModal = function () {
+  document.getElementById("siteSelectionModal").style.display = "none";
+  currentAutoFillInput = null;
+  currentAutoFillMatches = [];
+};
+
+window.applySiteSelection = function () {
+  let checked = document.querySelectorAll(".modal-site-checkbox:checked");
+  if (checked.length === 0)
+    return showToast("Please select at least one site!");
+
+  let selectedMatches = Array.from(checked).map(
+    (chk) => currentAutoFillMatches[parseInt(chk.value)],
+  );
+
+  // 🟢 FIXED: ഇവിടെ 'false' എന്ന് ചേർത്തതുകൊണ്ട് ഇനി ഇടയിൽ ബ്ലാങ്ക് വരി വരില്ല!
+  applyAutoFillData(currentAutoFillInput, selectedMatches[0], false);
+
+  const row = currentAutoFillInput.closest("tr");
+  const tbody = row.parentElement;
+  const cardId = currentAutoFillInput
+    .closest(".bill-card")
+    .id.replace("billCard_", "");
+
+  // ബാക്കിയുള്ളവയ്ക്ക് പുതിയ വരികൾ ഉണ്ടാക്കി ഫിൽ ചെയ്യുന്നു
+  for (let i = 1; i < selectedMatches.length; i++) {
+    addDynamicRow(cardId);
+    let newRow = tbody.lastElementChild;
+    let newInput = newRow.querySelector(".plate");
+    newInput.value = (
+      selectedMatches[i].plate_number ||
+      selectedMatches[i].plate ||
+      ""
+    ).toUpperCase();
+    applyAutoFillData(newInput, selectedMatches[i], false);
   }
 
-  const row = input.closest("tr");
-  const tbody = row.parentElement;
+  // 🟢 അവസാനം മാത്രം ഒരു ബ്ലാങ്ക് വരി കൊടുക്കാൻ
+  let lastRowInput = tbody.lastElementChild.querySelector(".plate").value;
+  if (lastRowInput !== "") addDynamicRow(cardId);
 
-  if (row === tbody.lastElementChild) {
-    const card = row.closest(".bill-card");
-    const cardId = card.id.replace("billCard_", "");
-    addDynamicRow(cardId);
+  closeSiteModal();
+};
+
+function applyAutoFillData(input, match, addBlankRow = true) {
+  const row = input.closest("tr");
+
+  if (match.vehicle_type || match.vtype)
+    row.querySelector(".vtype").value = match.vehicle_type || match.vtype;
+  if (match.driver_name || match.driver)
+    row.querySelector(".driver").value = match.driver_name || match.driver;
+  if (match.site || match.site_name)
+    row.querySelector(".site").value = match.site || match.site_name;
+
+  if (match.nrate) row.querySelector(".nrate").value = parseFloat(match.nrate);
+  if (match.otrate)
+    row.querySelector(".otrate").value = parseFloat(match.otrate);
+
+  let vatSelect = row.querySelector(".vat-rate");
+  if (vatSelect) vatSelect.value = match.vat_bill === "Yes" ? "15" : "0";
+
+  calculateRow(input);
+
+  if (addBlankRow) {
+    const tbody = row.parentElement;
+    if (row === tbody.lastElementChild) {
+      const card = row.closest(".bill-card");
+      const cardId = card.id.replace("billCard_", "");
+      addDynamicRow(cardId);
+    }
   }
 }
 
 function calculateRow(input) {
-    const row = input.closest('tr');
-    const card = input.closest('.bill-card');
-    
-    const nhr = parseFloat(row.querySelector('.nhr').value) || 0;
-    // 🟢 FIXED: Removed .toFixed(2) from calculation to keep EXACT rate
-    let nrate = parseFloat(row.querySelector('.nrate').value) || 0;
-    const othr = parseFloat(row.querySelector('.othr').value) || 0;
-    let otrate = parseFloat(row.querySelector('.otrate').value) || 0;
+  const row = input.closest("tr");
+  const card = input.closest(".bill-card");
 
-    // 🟢 FIXED: Exact calculation without early rounding
-    if (input && input.classList.contains('nrate')) {
-        otrate = nrate * 0.7;
-        row.querySelector('.otrate').value = otrate; // Keep exact value in input
-    }
+  const nhr = parseFloat(row.querySelector(".nhr").value) || 0;
+  // 🟢 FIXED: Removed .toFixed(2) from calculation to keep EXACT rate
+  let nrate = parseFloat(row.querySelector(".nrate").value) || 0;
+  const othr = parseFloat(row.querySelector(".othr").value) || 0;
+  let otrate = parseFloat(row.querySelector(".otrate").value) || 0;
 
-    // 🟢 Rent calculation uses the EXACT rates
-    const rent = (nhr * nrate) + (othr * otrate);
-    row.querySelector('.rent').value = rent.toFixed(2); // Only rent gets rounded to 2 decimals for display
+  // 🟢 FIXED: Exact calculation without early rounding
+  if (input && input.classList.contains("nrate")) {
+    otrate = nrate * 0.7;
+    row.querySelector(".otrate").value = otrate; // Keep exact value in input
+  }
 
-    updateRowVat(row, rent);
-    updateCardTotals(card);
+  // 🟢 Rent calculation uses the EXACT rates
+  const rent = nhr * nrate + othr * otrate;
+  row.querySelector(".rent").value = rent.toFixed(2); // Only rent gets rounded to 2 decimals for display
+
+  updateRowVat(row, rent);
+  updateCardTotals(card);
 }
 
 function calculateFromRent(input) {
@@ -954,66 +1061,78 @@ function getDynamicFileName(card) {
 }
 
 function convertInputsToText(card) {
-    // 🟢 NEW: ഇമേജ് എടുക്കുമ്പോൾ OWNER എന്ന വരി പൂർണ്ണമായും ഹൈഡ് ചെയ്യുന്നു
-    let ownerWrapper = card.querySelector('.owner-input')?.parentNode;
-    if (ownerWrapper) {
-        ownerWrapper.style.display = 'none';
+  // 🟢 NEW: ഇമേജ് എടുക്കുമ്പോൾ OWNER എന്ന വരി പൂർണ്ണമായും ഹൈഡ് ചെയ്യുന്നു
+  let ownerWrapper = card.querySelector(".owner-input")?.parentNode;
+  if (ownerWrapper) {
+    ownerWrapper.style.display = "none";
+  }
+
+  card.querySelectorAll("input").forEach((input) => {
+    // ഓണറുടെ ഇൻപുട്ട് അല്ലാത്ത ബാക്കി ഇൻപുട്ടുകൾ മാത്രം സ്പാൻ (span) ആക്കി മാറ്റുന്നു
+    if (input.type !== "hidden" && !input.classList.contains("owner-input")) {
+      const span = document.createElement("span");
+      span.className = "temp-export-span";
+      span.innerText =
+        input.type === "number" ? input.value || "0" : input.value;
+      span.style.cssText =
+        "display:block; width:100%; text-align:center; font-size:13px; padding:4px; font-weight:normal; color:#333;";
+
+      input.style.display = "none";
+      input.parentNode.appendChild(span);
     }
+  });
 
-    card.querySelectorAll('input').forEach(input => {
-        // ഓണറുടെ ഇൻപുട്ട് അല്ലാത്ത ബാക്കി ഇൻപുട്ടുകൾ മാത്രം സ്പാൻ (span) ആക്കി മാറ്റുന്നു
-        if (input.type !== 'hidden' && !input.classList.contains('owner-input')) {
-            const span = document.createElement('span');
-            span.className = 'temp-export-span';
-            span.innerText = input.type === 'number' ? (input.value || "0") : input.value;
-            span.style.cssText = 'display:block; width:100%; text-align:center; font-size:13px; padding:4px; font-weight:normal; color:#333;';
-            
-            input.style.display = 'none';
-            input.parentNode.appendChild(span);
-        }
-    });
-    
-    card.querySelectorAll('.no-export, .no-export-col').forEach(el => el.style.display = 'none');
-    card.querySelectorAll('.rate-col').forEach(el => el.style.display = 'none');
-    card.querySelectorAll('.site-col').forEach(el => el.style.display = 'none'); 
+  card
+    .querySelectorAll(".no-export, .no-export-col")
+    .forEach((el) => (el.style.display = "none"));
+  card
+    .querySelectorAll(".rate-col")
+    .forEach((el) => (el.style.display = "none"));
+  card
+    .querySelectorAll(".site-col")
+    .forEach((el) => (el.style.display = "none"));
 
-    let footerColspan = card.querySelector('.footer-colspan');
-    if (footerColspan) footerColspan.colSpan = 5;
+  let footerColspan = card.querySelector(".footer-colspan");
+  if (footerColspan) footerColspan.colSpan = 5;
 
-    let grandVat = parseFloat(card.querySelector('.grandVat')?.innerText || 0);
-    if (grandVat === 0) {
-        card.querySelectorAll('.vat-col').forEach(el => el.style.display = 'none');
-    } else {
-        card.querySelectorAll('.vat-col').forEach(el => el.style.display = '');
-    }
+  let grandVat = parseFloat(card.querySelector(".grandVat")?.innerText || 0);
+  if (grandVat === 0) {
+    card
+      .querySelectorAll(".vat-col")
+      .forEach((el) => (el.style.display = "none"));
+  } else {
+    card.querySelectorAll(".vat-col").forEach((el) => (el.style.display = ""));
+  }
 }
 
 function revertInputsFromText(card) {
-    // 🟢 NEW: എക്സ്പോർട്ട് കഴിഞ്ഞ ശേഷം OWNER വരി സ്ക്രീനിൽ തിരികെ കൊണ്ടുവരുന്നു
-    let ownerWrapper = card.querySelector('.owner-input')?.parentNode;
-    if (ownerWrapper) {
-        ownerWrapper.style.display = ''; 
-    }
+  // 🟢 NEW: എക്സ്പോർട്ട് കഴിഞ്ഞ ശേഷം OWNER വരി സ്ക്രീനിൽ തിരികെ കൊണ്ടുവരുന്നു
+  let ownerWrapper = card.querySelector(".owner-input")?.parentNode;
+  if (ownerWrapper) {
+    ownerWrapper.style.display = "";
+  }
 
-    card.querySelectorAll('.temp-export-span').forEach(el => el.remove());
-    card.querySelectorAll('input').forEach(input => input.style.display = '');
-    
-    card.querySelectorAll('.no-export, .no-export-col').forEach(el => el.style.display = '');
-    card.querySelectorAll('.rate-col').forEach(el => el.style.display = '');
-    card.querySelectorAll('.site-col').forEach(el => el.style.display = ''); 
+  card.querySelectorAll(".temp-export-span").forEach((el) => el.remove());
+  card.querySelectorAll("input").forEach((input) => (input.style.display = ""));
 
-    let footerColspan = card.querySelector('.footer-colspan');
-    if (footerColspan) footerColspan.colSpan = 6;
+  card
+    .querySelectorAll(".no-export, .no-export-col")
+    .forEach((el) => (el.style.display = ""));
+  card.querySelectorAll(".rate-col").forEach((el) => (el.style.display = ""));
+  card.querySelectorAll(".site-col").forEach((el) => (el.style.display = ""));
 
-    let hasVat = false;
-    card.querySelectorAll('.vat-rate').forEach(sel => {
-        if (parseFloat(sel.value) > 0) hasVat = true;
-    });
-    if (card.id.includes('manual_')) hasVat = true; 
+  let footerColspan = card.querySelector(".footer-colspan");
+  if (footerColspan) footerColspan.colSpan = 6;
 
-    card.querySelectorAll('.vat-col').forEach(el => {
-        el.style.display = hasVat ? '' : 'none';
-    });
+  let hasVat = false;
+  card.querySelectorAll(".vat-rate").forEach((sel) => {
+    if (parseFloat(sel.value) > 0) hasVat = true;
+  });
+  if (card.id.includes("manual_")) hasVat = true;
+
+  card.querySelectorAll(".vat-col").forEach((el) => {
+    el.style.display = hasVat ? "" : "none";
+  });
 }
 
 async function exportSingleImage(id) {
@@ -1091,99 +1210,116 @@ async function downloadAllAsZip() {
 }
 
 function submitBulkData() {
-    const fullMonth = document.getElementById('selectedMonthText').innerText.trim();
-    const token = localStorage.getItem('token');
-    const cards = document.querySelectorAll('.bill-card');
+  const fullMonth = document
+    .getElementById("selectedMonthText")
+    .innerText.trim();
+  const token = localStorage.getItem("token");
+  const cards = document.querySelectorAll(".bill-card");
 
-    if (!fullMonth || cards.length === 0) return showToast("No generated bills to save.");
+  if (!fullMonth || cards.length === 0)
+    return showToast("No generated bills to save.");
 
-    const dataToUpdate = [];
+  const dataToUpdate = [];
 
-    cards.forEach(card => {
-        let company = card.dataset.company || "Haka";
-        let ownerInput = card.querySelector('.owner-input');
-        let fallbackOwner = ownerInput ? ownerInput.value.trim() : card.dataset.owner;
+  cards.forEach((card) => {
+    let company = card.dataset.company || "Haka";
+    let ownerInput = card.querySelector(".owner-input");
+    let fallbackOwner = ownerInput
+      ? ownerInput.value.trim()
+      : card.dataset.owner;
 
-        let adjDescStr = "";
-        let adjAmtTotal = 0;
-        card.querySelectorAll('.adjBody tr').forEach(adjRow => {
-            let date = adjRow.querySelector('.adj-date').value.trim();
-            let plate = adjRow.querySelector('.adj-plate').value.trim();
-            let desc = adjRow.querySelector('.adj-desc').value.trim();
-            let fullDesc = `${date} ${plate} ${desc}`.trim();
-            
-            let amt = parseFloat(adjRow.querySelector('.adj-amt').value) || 0;
-            let type = adjRow.querySelector('.adj-type').value;
-            if (type === 'less') amt = -Math.abs(amt);
+    let adjDescStr = "";
+    let adjAmtTotal = 0;
+    card.querySelectorAll(".adjBody tr").forEach((adjRow) => {
+      let date = adjRow.querySelector(".adj-date").value.trim();
+      let plate = adjRow.querySelector(".adj-plate").value.trim();
+      let desc = adjRow.querySelector(".adj-desc").value.trim();
+      let fullDesc = `${date} ${plate} ${desc}`.trim();
 
-            if(fullDesc || amt !== 0) {
-                adjDescStr += (adjDescStr ? ", " : "") + fullDesc;
-                adjAmtTotal += amt;
-            }
-        });
+      let amt = parseFloat(adjRow.querySelector(".adj-amt").value) || 0;
+      let type = adjRow.querySelector(".adj-type").value;
+      if (type === "less") amt = -Math.abs(amt);
 
-        card.querySelectorAll('.tableBody tr').forEach(row => {
-            let plate = row.querySelector('.plate').value.trim();
-            if (plate) {
-                let rentVal = parseFloat(row.querySelector('.rent').value) || 0;
-                let vatAmt = parseFloat(row.querySelector('.vat')?.innerText || 0);
-                let totalVal = rentVal + vatAmt;
-
-                // 🟢 FIX 1: FIND REAL OWNER FOR EACH PLATE (VARIOUS OWNERS എന്ന് സേവ് ആവാതിരിക്കാൻ)
-                let realOwner = fallbackOwner;
-                let masterMatch = masterData.find(m => (m.plate_number || m.plate || "").toUpperCase() === plate.toUpperCase());
-                
-                if (masterMatch && masterMatch.owner && masterMatch.owner.trim() !== "") {
-                    realOwner = masterMatch.owner.trim(); // DB-ൽ നിന്നുള്ള ഒറിജിനൽ ഓണർ
-                } else if (realOwner === "VARIOUS OWNERS") {
-                    realOwner = "COMPANY VEHICLE"; // ഒരു കാരണവശാലും VARIOUS OWNERS എന്ന് സേവ് ആവാതിരിക്കാൻ
-                }
-
-                dataToUpdate.push({
-                    date: row.querySelector('.date-cell').innerText.trim(),
-                    owner: realOwner, // 🟢 ഒറിജിനൽ ഓണറെ മാത്രം സേവ് ചെയ്യുന്നു
-                    company: company,
-                    site_name: row.querySelector('.site').value,
-                    vtype: row.querySelector('.vtype').value,
-                    driver: row.querySelector('.driver').value,
-                    plate: plate,
-                    nhr: parseFloat(row.querySelector('.nhr').value) || 0,
-                    nrate: parseFloat(row.querySelector('.nrate').value) || 0,
-                    othr: parseFloat(row.querySelector('.othr').value) || 0,
-                    otrate: parseFloat(row.querySelector('.otrate').value) || 0,
-                    rent: rentVal,
-                    vat_percent: parseFloat(row.querySelector('.vat-rate')?.value || 0),
-                    vat_amount: vatAmt,
-                    total: totalVal,
-                    adjustment_desc: adjDescStr, 
-                    adjusted_amount: adjAmtTotal,
-                    after_adjustment: totalVal + adjAmtTotal
-                });
-            }
-        });
+      if (fullDesc || amt !== 0) {
+        adjDescStr += (adjDescStr ? ", " : "") + fullDesc;
+        adjAmtTotal += amt;
+      }
     });
 
-    document.getElementById('loader').style.display = 'flex';
-    document.getElementById('loaderText').innerText = "Saving to ERP...";
+    card.querySelectorAll(".tableBody tr").forEach((row) => {
+      let plate = row.querySelector(".plate").value.trim();
+      if (plate) {
+        let rentVal = parseFloat(row.querySelector(".rent").value) || 0;
+        let vatAmt = parseFloat(row.querySelector(".vat")?.innerText || 0);
+        let totalVal = rentVal + vatAmt;
 
-    fetch('/billing/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ billing_period: fullMonth, items: dataToUpdate })
-    })
-    .then(res => res.json())
-    .then(res => {
-        document.getElementById('loader').style.display = 'none';
-        if (res.success) {
-            showToast("All Bulk Bills Saved to ERP!");
-            // 🟢 FIX 2: മാന്വൽ ഡാറ്റ മായാതിരിക്കാൻ സേവ് ആയ ശേഷം തനിയെ ഒന്ന് ഫെച്ച് (Refresh) ചെയ്യുന്നു
-            setTimeout(() => fetchDataFromERP(), 1000);
-        } else {
-            showToast("Error: " + res.message);
+        // 🟢 FIX 1: FIND REAL OWNER FOR EACH PLATE (VARIOUS OWNERS എന്ന് സേവ് ആവാതിരിക്കാൻ)
+        let realOwner = fallbackOwner;
+        let masterMatch = masterData.find(
+          (m) =>
+            (m.plate_number || m.plate || "").toUpperCase() ===
+            plate.toUpperCase(),
+        );
+
+        if (
+          masterMatch &&
+          masterMatch.owner &&
+          masterMatch.owner.trim() !== ""
+        ) {
+          realOwner = masterMatch.owner.trim(); // DB-ൽ നിന്നുള്ള ഒറിജിനൽ ഓണർ
+        } else if (realOwner === "VARIOUS OWNERS") {
+          realOwner = "COMPANY VEHICLE"; // ഒരു കാരണവശാലും VARIOUS OWNERS എന്ന് സേവ് ആവാതിരിക്കാൻ
         }
-    }).catch(err => {
-        document.getElementById('loader').style.display = 'none';
-        showToast("Error saving data.");
+
+        dataToUpdate.push({
+          date: row.querySelector(".date-cell").innerText.trim(),
+          owner: realOwner, // 🟢 ഒറിജിനൽ ഓണറെ മാത്രം സേവ് ചെയ്യുന്നു
+          company: company,
+          site_name: row.querySelector(".site").value,
+          vtype: row.querySelector(".vtype").value,
+          driver: row.querySelector(".driver").value,
+          plate: plate,
+          nhr: parseFloat(row.querySelector(".nhr").value) || 0,
+          nrate: parseFloat(row.querySelector(".nrate").value) || 0,
+          othr: parseFloat(row.querySelector(".othr").value) || 0,
+          otrate: parseFloat(row.querySelector(".otrate").value) || 0,
+          rent: rentVal,
+          vat_percent: parseFloat(row.querySelector(".vat-rate")?.value || 0),
+          vat_amount: vatAmt,
+          total: totalVal,
+          adjustment_desc: adjDescStr,
+          adjusted_amount: adjAmtTotal,
+          after_adjustment: totalVal + adjAmtTotal,
+        });
+      }
+    });
+  });
+
+  document.getElementById("loader").style.display = "flex";
+  document.getElementById("loaderText").innerText = "Saving to ERP...";
+
+  fetch("/billing/save", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ billing_period: fullMonth, items: dataToUpdate }),
+  })
+    .then((res) => res.json())
+    .then((res) => {
+      document.getElementById("loader").style.display = "none";
+      if (res.success) {
+        showToast("All Bulk Bills Saved to ERP!");
+        // 🟢 FIX 2: മാന്വൽ ഡാറ്റ മായാതിരിക്കാൻ സേവ് ആയ ശേഷം തനിയെ ഒന്ന് ഫെച്ച് (Refresh) ചെയ്യുന്നു
+        setTimeout(() => fetchDataFromERP(), 1000);
+      } else {
+        showToast("Error: " + res.message);
+      }
+    })
+    .catch((err) => {
+      document.getElementById("loader").style.display = "none";
+      showToast("Error saving data.");
     });
 }
 
