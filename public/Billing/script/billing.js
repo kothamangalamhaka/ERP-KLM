@@ -287,19 +287,21 @@ function arrangeProperly() {
         return;
       let comp = getCompanyFromSite(site);
 
-      // 🟢 NEW: 3 TYPES OF GROUPING LOGIC
+      // 🟢 NEW: 4 TYPES OF GROUPING LOGIC
       let key = "";
       if (currentArrangeMode === "site") {
         key = comp + "|||" + site;
-      } else if (currentArrangeMode === "owner") {
-        key = comp + "|||" + owner;
+      } else if (currentArrangeMode === "owner_comp") {
+        key = comp + "|||" + owner; // 🟢 Same Company, Same Owner
+      } else if (currentArrangeMode === "owner_all") {
+        key = owner; // 🟢 Same Owner (Ignores company and site)
       } else {
         key = comp + "|||" + owner + "|||" + site; // Default Split
       }
 
       if (!groups[key]) {
         groups[key] = {
-          company: comp,
+          company: currentArrangeMode === "owner_all" ? "Haka" : comp,
           owner: currentArrangeMode === "site" ? "VARIOUS OWNERS" : owner,
           items: [],
         };
@@ -315,7 +317,8 @@ function arrangeProperly() {
     } else {
       let groupCount = 0;
       Object.values(groups).forEach((group) => {
-        if (currentArrangeMode === "site" || currentArrangeMode === "owner") {
+        // Sort plates alphabetically for combined views
+        if (currentArrangeMode !== "split") {
           group.items.sort((a, b) => {
             let plateA = (a.plate_number || a.plate || "").toUpperCase();
             let plateB = (b.plate_number || b.plate || "").toUpperCase();
@@ -633,15 +636,17 @@ window.arrangeSingleCard = function (cardId) {
       let key = "";
       if (currentArrangeMode === "site") {
         key = comp + "|||" + item.site;
-      } else if (currentArrangeMode === "owner") {
-        key = comp + "|||" + item.owner.toUpperCase();
+      } else if (currentArrangeMode === "owner_comp") {
+        key = comp + "|||" + item.owner.toUpperCase(); // 🟢 Same Company, Same Owner
+      } else if (currentArrangeMode === "owner_all") {
+        key = item.owner.toUpperCase(); // 🟢 Same Owner Only
       } else {
-        key = comp + "|||" + item.owner.toUpperCase() + "|||" + item.site;
+        key = comp + "|||" + item.owner.toUpperCase() + "|||" + item.site; // Default Split
       }
 
       if (!groups[key]) {
         groups[key] = {
-          company: comp,
+          company: currentArrangeMode === "owner_all" ? "Haka" : comp,
           owner:
             currentArrangeMode === "site"
               ? "VARIOUS OWNERS"

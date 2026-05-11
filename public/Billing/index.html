@@ -147,7 +147,7 @@
             type="button"
             class="btn"
             style="background: #6f42c1"
-            onclick="setArrangeMode('split')"
+            onclick="setArrangeMode('owner_comp')"
           >
             2. Arrange ✨
           </button>
@@ -162,15 +162,71 @@
             Site
           </button>
 
-          <button
-            type="button"
-            class="btn"
-            style="background: #e83e8c"
-            onclick="setArrangeMode('owner')"
-          >
-            <i class="material-icons" style="font-size: 16px">person</i> By
-            Owner
-          </button>
+          <div class="custom-dropdown" style="display: inline-block">
+            <button
+              type="button"
+              class="btn"
+              style="background: #e83e8c"
+              onclick="toggleDropdown('ownerArrangeDropdown')"
+            >
+              <i class="material-icons" style="font-size: 16px">person</i> By
+              Owner <span style="font-size: 10px; margin-left: 5px">▼</span>
+            </button>
+            <div
+              class="custom-dropdown-options"
+              id="ownerArrangeDropdown"
+              style="width: 190px; text-align: left; margin-top: 5px"
+            >
+              <div
+                class="custom-dropdown-item"
+                onclick="
+                  setArrangeMode('split');
+                  document
+                    .getElementById('ownerArrangeDropdown')
+                    .classList.remove('show');
+                "
+              >
+                <i
+                  class="material-icons"
+                  style="font-size: 16px; margin-right: 5px; color: #6f42c1"
+                  >business</i
+                >
+                Based on Site
+              </div>
+              <div
+                class="custom-dropdown-item"
+                onclick="
+                  setArrangeMode('owner_comp');
+                  document
+                    .getElementById('ownerArrangeDropdown')
+                    .classList.remove('show');
+                "
+              >
+                <i
+                  class="material-icons"
+                  style="font-size: 16px; margin-right: 5px; color: #ff9800"
+                  >domain</i
+                >
+                Based on Company
+              </div>
+              <div
+                class="custom-dropdown-item"
+                onclick="
+                  setArrangeMode('owner_all');
+                  document
+                    .getElementById('ownerArrangeDropdown')
+                    .classList.remove('show');
+                "
+              >
+                <i
+                  class="material-icons"
+                  style="font-size: 16px; margin-right: 5px; color: #007bff"
+                  >layers</i
+                >
+                All in One
+              </div>
+            </div>
+          </div>
 
           <button
             type="button"
