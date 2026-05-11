@@ -1,285 +1,605 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Master DB - Timesheet</title>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style/db.css" />
+  </head>
 
-    <link rel="stylesheet" href="style/db.css">
-</head>
-
-<body>
-
+  <body>
     <div id="headerContextMenu" class="context-menu">
-        <button onclick="openAdvancedFilter(event)">🔍 Filter Data</button>
-        <button onclick="hideCurrentColumn()">🚫 Hide Column</button>
-        <button id="hcm-add-l" onclick="addColumnRelative('left')">➕ Add Column Left</button>
-        <button id="hcm-add-r" onclick="addColumnRelative('right')">➕ Add Column Right</button>
-        <button id="hcm-delete" class="text-danger" onclick="headerDelete()">🗑️ Delete Column</button>
+      <button onclick="openAdvancedFilter(event)">🔍 Filter Data</button>
+      <button onclick="hideCurrentColumn()">🚫 Hide Column</button>
+      <button id="hcm-add-l" onclick="addColumnRelative('left')">
+        ➕ Add Column Left
+      </button>
+      <button id="hcm-add-r" onclick="addColumnRelative('right')">
+        ➕ Add Column Right
+      </button>
+      <button id="hcm-delete" class="text-danger" onclick="headerDelete()">
+        🗑️ Delete Column
+      </button>
     </div>
 
     <div id="rowContextMenu" class="context-menu">
-        <button onclick="rowAbout()">ℹ️ About Vehicle</button>
-        <button id="rcm-delete" class="text-danger" onclick="rowDelete()">🗑️ Delete Row</button>
+      <button onclick="rowAbout()">ℹ️ About Vehicle</button>
+      <button id="rcm-delete" class="text-danger" onclick="rowDelete()">
+        🗑️ Delete Row
+      </button>
     </div>
 
     <div id="filterPopup">
-        <input type="text" class="filter-search" id="filterSearchInput" placeholder="Search data..."
-            onkeyup="searchFilterList()">
-        <div class="filter-list" id="filterList"></div>
-        <div style="display: flex; justify-content: space-between; gap: 5px;">
-            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;"
-                onclick="clearFilter()">Clear</button>
-            <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px; flex:1;"
-                onclick="applyAdvancedFilter()">Apply Filter</button>
-        </div>
+      <input
+        type="text"
+        class="filter-search"
+        id="filterSearchInput"
+        placeholder="Search data..."
+        onkeyup="searchFilterList()"
+      />
+      <div class="filter-list" id="filterList"></div>
+      <div style="display: flex; justify-content: space-between; gap: 5px">
+        <button
+          class="btn btn-outline"
+          style="padding: 6px 12px; font-size: 12px"
+          onclick="clearFilter()"
+        >
+          Clear
+        </button>
+        <button
+          class="btn btn-primary"
+          style="padding: 6px 12px; font-size: 12px; flex: 1"
+          onclick="applyAdvancedFilter()"
+        >
+          Apply Filter
+        </button>
+      </div>
     </div>
 
     <div class="navbar">
-        <div style="display: flex; align-items: center;">
-            <a href="Timesheet.html"><img src="../icons/dd.png" class="dd"></a>
-            <a href="../Master_Data_Base/Database.html"> <span
-                    style="font-size: 16px; font-weight: 600; margin-left: 20px; letter-spacing: 0.5px;">Master
-                    Database</span></a>
-            <span id="saveStatus" class="save-indicator">✓ Saved</span>
-        </div>
+      <div style="display: flex; align-items: center">
+        <a href="Timesheet.html"
+          ><img src="../icons/dd.png" class="dd" alt="Menu"
+        /></a>
+        <a href="../Master_Data_Base/Database.html">
+          <span
+            style="
+              font-size: 16px;
+              font-weight: 600;
+              margin-left: 20px;
+              letter-spacing: 0.5px;
+            "
+            >Master Database</span
+          ></a
+        >
+        <span id="saveStatus" class="save-indicator">✓ Saved</span>
+      </div>
 
-        <div class="user-profile-container">
-            <div id="userInfo" class="user-info-btn" onclick="toggleUserMenu(event)">Loading...</div>
-            <div id="userDropdownMenu" class="user-context-menu">
-                <button onclick="openColumnAlter()">⚙️ Column Alter</button>
-                <div class="menu-divider"></div>
-                <button class="text-danger" onclick="executeLogout()">🚪 Logout</button>
-            </div>
+      <div class="user-profile-container">
+        <div
+          id="userInfo"
+          class="user-info-btn"
+          onclick="toggleUserMenu(event)"
+        >
+          Loading...
         </div>
+        <div id="userDropdownMenu" class="user-context-menu">
+          <button onclick="openColumnAlter()">⚙️ Column Alter</button>
+          <button onclick="openAuditLogModal()">📜 Log Data</button>
+          <div class="menu-divider"></div>
+          <button class="text-danger" onclick="executeLogout()">
+            🚪 Logout
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="main-wrapper">
-        <div id="errorBanner"></div>
-
-        <div class="card">
-            <div class="toolbar">
-                <div class="toolbar-group">
-                    <button class="btn btn-primary" onclick="exportExcel()">⬇ Export DB (Excel)</button>
-                    <input type="file" id="excelFile" accept=".xlsx, .xls"
-                        style="padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">
-                    <button class="btn btn-success" onclick="importExcel()">⬆ Import & Sync (Replace)</button>
-                </div>
-
-                <div class="toolbar-group">
-                    <div class="search-wrapper">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="searchInput" placeholder="Search any data globally..."
-                            onkeyup="applyGridFilters()">
-                    </div>
-                </div>
-
-                <div class="toolbar-group" id="adminTools" style="display: none;">
-                    <button class="btn btn-primary" onclick="openAddVehicleModal()">+ Add Vehicle</button>
-                </div>
+      <div id="errorBanner"></div>
+      <div class="card">
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <button class="btn btn-primary" onclick="exportExcel()">
+              ⬇ Export DB (Excel)
+            </button>
+            <input
+              type="file"
+              id="excelFile"
+              accept=".xlsx, .xls"
+              style="
+                padding: 5px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                font-size: 12px;
+              "
+            />
+            <button class="btn btn-success" onclick="importExcel()">
+              ⬆ Import & Sync (Replace)
+            </button>
+          </div>
+          <div class="toolbar-group">
+            <div class="search-wrapper">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Search any data globally..."
+                onkeyup="applyGridFilters()"
+              />
             </div>
+          </div>
+          <div class="toolbar-group" id="adminTools" style="display: none">
+            <button class="btn btn-primary" onclick="openAddVehicleModal()">
+              + Add Vehicle
+            </button>
+          </div>
         </div>
+      </div>
 
-        <div class="table-responsive">
-            <table id="dbTable">
-                <colgroup id="dbColGroup"></colgroup>
-                <thead id="dbHead"></thead>
-                <tbody id="dbBody">
-                    <tr>
-                        <td colspan="25" style="padding: 20px; text-align:center;" id="loadingMsg">Loading Database...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+      <div class="table-responsive">
+        <table id="dbTable">
+          <colgroup id="dbColGroup"></colgroup>
+          <thead id="dbHead"></thead>
+          <tbody id="dbBody">
+            <tr>
+              <td
+                colspan="25"
+                style="padding: 20px; text-align: center"
+                id="loadingMsg"
+              >
+                Loading Database...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
+    <!-- Modals -->
     <div id="columnAlterModal" class="modal-overlay">
-        <div class="modal-box" style="width: 700px;">
-            <h3>Column Visibility <button class="close-btn" onclick="closeModal('columnAlterModal')">✖</button></h3>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button class="btn btn-outline" style="flex:1; font-size: 11px;"
-                    onclick="bulkToggleColumns(true)">Select All</button>
-                <button class="btn btn-outline" style="flex:1; font-size: 11px;"
-                    onclick="bulkToggleColumns(false)">Uncheck All</button>
-            </div>
-            <div id="columnChecklist" class="column-list-wrapper"></div>
-            <div class="modal-actions">
-                <button class="btn btn-primary" style="width: 100%;" onclick="closeModal('columnAlterModal')">Apply &
-                    Close</button>
-            </div>
+      <div class="modal-box" style="width: 700px">
+        <h3>
+          Column Visibility
+          <button class="close-btn" onclick="closeModal('columnAlterModal')">
+            ✖
+          </button>
+        </h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px">
+          <button
+            class="btn btn-outline"
+            style="flex: 1; font-size: 11px"
+            onclick="bulkToggleColumns(true)"
+          >
+            Select All
+          </button>
+          <button
+            class="btn btn-outline"
+            style="flex: 1; font-size: 11px"
+            onclick="bulkToggleColumns(false)"
+          >
+            Uncheck All
+          </button>
         </div>
+        <div id="columnChecklist" class="column-list-wrapper"></div>
+        <div class="modal-actions">
+          <button
+            class="btn btn-primary"
+            style="width: 100%"
+            onclick="closeModal('columnAlterModal')"
+          >
+            Apply & Close
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div id="customAlertModal" class="modal-overlay" style="z-index: 4000;">
-        <div class="modal-box" style="text-align: center;">
-            <h3 id="alertTitle" style="justify-content: center; border:none; margin-bottom: 5px;">Alert</h3>
-            <p id="alertMessage" style="margin-bottom: 25px; color: #475569; font-size: 14px;">Message</p>
-            <button class="btn btn-primary" style="width: 100%;" onclick="resolveAlert()">OK</button>
+    <!-- Audit Log Modal -->
+    <div id="auditLogModal" class="modal-overlay">
+      <div class="modal-box modal-wide" style="max-width: 800px">
+        <h3>
+          System Log Data
+          <button class="close-btn" onclick="closeModal('auditLogModal')">
+            ✖
+          </button>
+        </h3>
+        <div
+          class="table-responsive"
+          style="max-height: 60vh; border: 1px solid #e2e8f0"
+        >
+          <table class="log-table" style="width: 100%">
+            <thead>
+              <tr>
+                <th style="width: 160px">Timestamp</th>
+                <th style="width: 150px">User</th>
+                <th style="width: 120px">Action</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="auditLogBody">
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 20px">
+                  Loading logs...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+        <div class="modal-actions">
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('auditLogModal')"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div id="customPromptModal" class="modal-overlay" style="z-index: 4000;">
-        <div class="modal-box">
-            <h3 id="promptTitle">Input</h3>
-            <p id="promptMessage" style="margin-bottom: 10px;">Enter value:</p>
-            <input type="text" id="promptInput" class="modal-input">
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="resolvePrompt(null)">Cancel</button>
-                <button class="btn btn-primary"
-                    onclick="resolvePrompt(document.getElementById('promptInput').value)">Confirm</button>
-            </div>
-        </div>
+    <div id="customAlertModal" class="modal-overlay" style="z-index: 4000">
+      <div class="modal-box" style="text-align: center">
+        <h3
+          id="alertTitle"
+          style="justify-content: center; border: none; margin-bottom: 5px"
+        >
+          Alert
+        </h3>
+        <p
+          id="alertMessage"
+          style="margin-bottom: 25px; color: #475569; font-size: 14px"
+        >
+          Message
+        </p>
+        <button
+          class="btn btn-primary"
+          style="width: 100%"
+          onclick="resolveAlert()"
+        >
+          OK
+        </button>
+      </div>
     </div>
 
-    <div id="customConfirmModal" class="modal-overlay" style="z-index: 4000;">
-        <div class="modal-box" style="width: 400px;">
-            <h3 style="color:#dc3545;">⚠️ Warning</h3>
-            <p id="confirmMessage" style="line-height: 1.5;">Are you sure?</p>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="resolveConfirm(false)">Cancel</button>
-                <button class="btn btn-danger" onclick="resolveConfirm(true)">Yes, Proceed</button>
-            </div>
+    <div id="customPromptModal" class="modal-overlay" style="z-index: 4000">
+      <div class="modal-box">
+        <h3 id="promptTitle">Input</h3>
+        <p id="promptMessage" style="margin-bottom: 10px">Enter value:</p>
+        <input type="text" id="promptInput" class="modal-input" />
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="resolvePrompt(null)">
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            onclick="
+              resolvePrompt(document.getElementById('promptInput').value)
+            "
+          >
+            Confirm
+          </button>
         </div>
+      </div>
+    </div>
+
+    <div id="customConfirmModal" class="modal-overlay" style="z-index: 4000">
+      <div class="modal-box" style="width: 400px">
+        <h3 style="color: #dc3545">⚠️ Warning</h3>
+        <p id="confirmMessage" style="line-height: 1.5">Are you sure?</p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="resolveConfirm(false)">
+            Cancel
+          </button>
+          <button class="btn btn-danger" onclick="resolveConfirm(true)">
+            Yes, Proceed
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="addVehicleModal" class="modal-overlay">
-        <div class="modal-box modal-wide" style="max-width: 600px;">
-            <h3>Add New Vehicle <button class="close-btn" style="color: #64748b;"
-                    onclick="closeModal('addVehicleModal')">✖</button></h3>
-            <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Fill in the details below. Site and Driver
-                details will automatically create their initial logs.</p>
-            <div id="addVehicleForm"
-                style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-height: 50vh; overflow-y: auto; padding-right: 10px;">
-            </div>
-            <div class="modal-actions" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 20px;">
-                <button class="btn btn-secondary" onclick="closeModal('addVehicleModal')">Cancel</button>
-                <button class="btn btn-success" id="saveNewVehicleBtn" onclick="submitNewVehicle()">Save Vehicle &
-                    Logs</button>
-            </div>
+      <div class="modal-box modal-wide" style="max-width: 600px">
+        <h3>
+          Add New Vehicle
+          <button
+            class="close-btn"
+            style="color: #64748b"
+            onclick="closeModal('addVehicleModal')"
+          >
+            ✖
+          </button>
+        </h3>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 20px">
+          Fill in the details below. Site and Driver details will automatically
+          create their initial logs.
+        </p>
+        <div
+          id="addVehicleForm"
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            max-height: 50vh;
+            overflow-y: auto;
+            padding-right: 10px;
+          "
+        ></div>
+        <div
+          class="modal-actions"
+          style="
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+            margin-top: 20px;
+          "
+        >
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('addVehicleModal')"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn btn-success"
+            id="saveNewVehicleBtn"
+            onclick="submitNewVehicle()"
+          >
+            Save Vehicle & Logs
+          </button>
         </div>
+      </div>
     </div>
 
     <div id="aboutModal" class="modal-overlay">
-        <div class="modal-box modal-wide">
-            <h3>Vehicle Intelligence: <span id="abtPlateNo" style="color:#0d6efd;"></span> <button class="close-btn"
-                    style="color: #64748b;" onclick="closeModal('aboutModal')">✖</button></h3>
-            <div class="modal-split">
-                <div class="modal-form-side" id="abtDetails"
-                    style="line-height: 2; font-size: 13px; max-height: 400px; overflow-y: auto;"></div>
-                <div class="modal-history-side" style="max-height: 400px;">
-                    <h4 style="margin-top:0; color:#0f2027; margin-bottom: 10px;">Driver Logs</h4>
-                    <table class="log-table">
-                        <tbody id="abtDriverLogs"></tbody>
-                    </table>
-                    <h4 style="margin-top:20px; color:#0f2027; margin-bottom: 10px;">Site Logs</h4>
-                    <table class="log-table">
-                        <tbody id="abtSiteLogs"></tbody>
-                    </table>
-                </div>
-            </div>
+      <div class="modal-box modal-wide">
+        <h3>
+          Vehicle Intelligence:
+          <span id="abtPlateNo" style="color: #0d6efd"></span>
+          <button
+            class="close-btn"
+            style="color: #64748b"
+            onclick="closeModal('aboutModal')"
+          >
+            ✖
+          </button>
+        </h3>
+        <div class="modal-split">
+          <div
+            class="modal-form-side"
+            id="abtDetails"
+            style="
+              line-height: 2;
+              font-size: 13px;
+              max-height: 400px;
+              overflow-y: auto;
+            "
+          ></div>
+          <div class="modal-history-side" style="max-height: 400px">
+            <h4 style="margin-top: 0; color: #0f2027; margin-bottom: 10px">
+              Driver Logs
+            </h4>
+            <table class="log-table">
+              <tbody id="abtDriverLogs"></tbody>
+            </table>
+            <h4 style="margin-top: 20px; color: #0f2027; margin-bottom: 10px">
+              Site Logs
+            </h4>
+            <table class="log-table">
+              <tbody id="abtSiteLogs"></tbody>
+            </table>
+          </div>
         </div>
+      </div>
     </div>
 
     <div id="driverLogModal" class="modal-overlay">
-        <div class="modal-box modal-wide">
-            <h3>Driver Assignment Log - <span id="dlPlate" style="color:#0d6efd;"></span></h3>
-            <div class="modal-split">
-                <div class="modal-form-side">
-                    <span class="edit-hint">Leave 'End Date' blank if driver is currently active. Filling it marks them
-                        as Released.</span>
-                    <div class="form-group"><label>Driver Name</label><input type="text" id="dlName"
-                            class="modal-input"></div>
-                    <div class="form-group"><label>Mobile</label><input type="text" id="dlMob" class="modal-input">
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div class="form-group"><label>Start Date</label><input type="date" id="dlStart"
-                                class="modal-input"></div>
-                        <div class="form-group"><label>End Date</label><input type="date" id="dlEnd"
-                                class="modal-input"></div>
-                    </div>
-                    <input type="hidden" id="dlId">
-                    <div class="modal-actions">
-                        <button class="btn btn-outline" onclick="clearDriverForm()">Clear / New</button>
-                        <button class="btn btn-secondary" onclick="closeLogModals()">Close</button>
-                        <button class="btn btn-success" id="dlSaveBtn" onclick="saveDriverLog()">Save Log</button>
-                    </div>
-                </div>
-                <div class="modal-history-side">
-                    <table class="log-table">
-                        <tbody id="dlHistory"></tbody>
-                    </table>
-                </div>
+      <div class="modal-box modal-wide">
+        <h3>
+          Driver Assignment Log -
+          <span id="dlPlate" style="color: #0d6efd"></span>
+        </h3>
+        <div class="modal-split">
+          <div class="modal-form-side">
+            <span class="edit-hint"
+              >Leave 'End Date' blank if driver is currently active. Filling it
+              marks them as Released.</span
+            >
+            <div class="form-group">
+              <label>Driver Name</label
+              ><input type="text" id="dlName" class="modal-input" />
             </div>
+            <div class="form-group">
+              <label>Mobile</label
+              ><input type="text" id="dlMob" class="modal-input" />
+            </div>
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            >
+              <div class="form-group">
+                <label>Start Date</label
+                ><input type="date" id="dlStart" class="modal-input" />
+              </div>
+              <div class="form-group">
+                <label>End Date</label
+                ><input type="date" id="dlEnd" class="modal-input" />
+              </div>
+            </div>
+            <input type="hidden" id="dlId" />
+            <div class="modal-actions">
+              <button class="btn btn-outline" onclick="clearDriverForm()">
+                Clear / New
+              </button>
+              <button class="btn btn-secondary" onclick="closeLogModals()">
+                Close
+              </button>
+              <button
+                class="btn btn-success"
+                id="dlSaveBtn"
+                onclick="saveDriverLog()"
+              >
+                Save Log
+              </button>
+            </div>
+          </div>
+          <div class="modal-history-side">
+            <table class="log-table">
+              <tbody id="dlHistory"></tbody>
+            </table>
+          </div>
         </div>
+      </div>
     </div>
 
     <div id="siteLogModal" class="modal-overlay">
-        <div class="modal-box modal-wide">
-            <h3>Site Allocation Log - <span id="slPlate" style="color:#0d6efd;"></span></h3>
-            <div class="modal-split">
-                <div class="modal-form-side">
-                    <span class="edit-hint">Click a row on the right to edit, or use 'Clear / New' to add.</span>
-
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
-                        <div class="form-group"><label>Site Name</label><input type="text" id="slName"
-                                class="modal-input"></div>
-                        <div class="form-group"><label style="color:#10b981;">Rate</label><input type="number"
-                                step="0.01" id="slRate" class="modal-input"></div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div class="form-group"><label>Asset Code</label><input type="text" id="slAsset"
-                                class="modal-input"></div>
-                        <div class="form-group"><label>Work Order No</label><input type="text" id="slWorkOrder"
-                                class="modal-input"></div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div class="form-group"><label>Start Date</label><input type="date" id="slStart"
-                                class="modal-input"></div>
-                        <div class="form-group"><label>Status</label>
-                            <select id="slStatus" class="modal-input" onchange="toggleSlEnd()">
-                                <option value="Running">Running</option>
-                                <option value="Released">Released</option>
-                                <option value="Replaced">Replaced</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group" id="slEndGroup" style="display:none;"><label>End Date</label><input
-                            type="date" id="slEnd" class="modal-input"></div>
-
-                    <div id="slReplaceGroup"
-                        style="display:none; border: 1px dashed #cbd5e1; padding: 10px; border-radius: 6px; background: #f8fafc; margin-bottom: 12px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <div class="form-group"><label>Old Vehicle No</label><input type="text" id="slOldVehicle"
-                                    class="modal-input uppercase-input"></div>
-                            <div class="form-group"><label>New Vehicle No</label><input type="text" id="slNewVehicle"
-                                    class="modal-input uppercase-input"></div>
-                        </div>
-                    </div>
-
-                    <input type="hidden" id="slId">
-                    <div class="modal-actions">
-                        <button class="btn btn-outline" onclick="clearSiteForm()">Clear / New</button>
-                        <button class="btn btn-secondary" onclick="closeLogModals()">Close</button>
-                        <button class="btn btn-success" id="slSaveBtn" onclick="saveSiteLog()">Save Log</button>
-                    </div>
-                </div>
-                <div class="modal-history-side">
-                    <table class="log-table">
-                        <tbody id="slHistory"></tbody>
-                    </table>
-                </div>
+      <div class="modal-box modal-wide">
+        <h3>
+          Site Allocation Log -
+          <span id="slPlate" style="color: #0d6efd"></span>
+        </h3>
+        <div class="modal-split">
+          <div class="modal-form-side">
+            <span class="edit-hint"
+              >Click a row on the right to edit, or use 'Clear / New' to
+              add.</span
+            >
+            <div
+              style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px"
+            >
+              <div class="form-group">
+                <label>Site Name</label
+                ><input type="text" id="slName" class="modal-input" />
+              </div>
+              <div class="form-group">
+                <label style="color: #10b981">Rate</label
+                ><input
+                  type="number"
+                  step="0.01"
+                  id="slRate"
+                  class="modal-input"
+                />
+              </div>
             </div>
+
+            <!-- NEW: Field CO and Site CO -->
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            >
+              <div class="form-group">
+                <label style="color: #8b5cf6">Field CO</label
+                ><input
+                  type="text"
+                  id="slFieldCo"
+                  class="modal-input titlecase-input"
+                />
+              </div>
+              <div class="form-group">
+                <label style="color: #8b5cf6">Site CO</label
+                ><input
+                  type="text"
+                  id="slSiteCo"
+                  class="modal-input titlecase-input"
+                />
+              </div>
+            </div>
+
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            >
+              <div class="form-group">
+                <label>Asset Code</label
+                ><input type="text" id="slAsset" class="modal-input" />
+              </div>
+              <div class="form-group">
+                <label>Work Order No</label
+                ><input type="text" id="slWorkOrder" class="modal-input" />
+              </div>
+            </div>
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            >
+              <div class="form-group">
+                <label>Start Date</label
+                ><input type="date" id="slStart" class="modal-input" />
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select
+                  id="slStatus"
+                  class="modal-input"
+                  onchange="toggleSlEnd()"
+                >
+                  <option value="Running">Running</option>
+                  <option value="Released">Released</option>
+                  <option value="Replaced">Replaced</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" id="slEndGroup" style="display: none">
+              <label>End Date</label
+              ><input type="date" id="slEnd" class="modal-input" />
+            </div>
+
+            <div
+              id="slReplaceGroup"
+              style="
+                display: none;
+                border: 1px dashed #cbd5e1;
+                padding: 10px;
+                border-radius: 6px;
+                background: #f8fafc;
+                margin-bottom: 12px;
+              "
+            >
+              <div
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+              >
+                <div class="form-group">
+                  <label>Old Vehicle No</label
+                  ><input
+                    type="text"
+                    id="slOldVehicle"
+                    class="modal-input uppercase-input"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>New Vehicle No</label
+                  ><input
+                    type="text"
+                    id="slNewVehicle"
+                    class="modal-input uppercase-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <input type="hidden" id="slId" />
+            <div class="modal-actions">
+              <button class="btn btn-outline" onclick="clearSiteForm()">
+                Clear / New
+              </button>
+              <button class="btn btn-secondary" onclick="closeLogModals()">
+                Close
+              </button>
+              <button
+                class="btn btn-success"
+                id="slSaveBtn"
+                onclick="saveSiteLog()"
+              >
+                Save Log
+              </button>
+            </div>
+          </div>
+          <div class="modal-history-side">
+            <table class="log-table">
+              <tbody id="slHistory"></tbody>
+            </table>
+          </div>
         </div>
+      </div>
     </div>
 
     <script src="scripts/db.js"></script>
-</body>
-
+  </body>
 </html>

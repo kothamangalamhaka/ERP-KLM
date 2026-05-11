@@ -1,1043 +1,1275 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timesheet Card Viewer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #e2e8f0;
+        margin: 0;
+        padding: 0;
+        color: #111;
+      }
+
+      /* 🟢 Control Panel */
+      .controls-wrapper {
+        background: #0f2027;
+        color: white;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .controls-inner {
+        max-width: 1300px;
+        margin: 0 auto;
+        display: flex;
+        gap: 15px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      .form-group label {
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #cbd5e1;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      input,
+      select,
+      textarea {
+        padding: 8px 12px;
+        border: 1px solid #334155;
+        border-radius: 4px;
+        font-family: "Inter";
+        font-size: 13px;
+        background: #1e293b;
+        color: white;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: #38bdf8;
+      }
+
+      .btn-generate,
+      .btn-pdf {
+        color: white;
+        border: none;
+        padding: 9px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: opacity 0.2s;
+      }
+
+      .btn-generate {
+        background-color: #2563eb;
+        padding: 9px 25px;
+      }
+
+      .btn-generate:hover:not(:disabled) {
+        background-color: #1d4ed8;
+      }
+
+      .btn-pdf {
+        background-color: #e11d48;
+      }
+
+      .btn-pdf:hover:not(:disabled) {
+        background-color: #be123c;
+      }
+
+      .btn-generate:disabled,
+      .btn-pdf:disabled {
+        opacity: 0.7;
+        cursor: wait;
+      }
+
+      .loader {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #fff;
+        border-bottom-color: transparent;
+        border-radius: 50%;
+        animation: rotation 1s linear infinite;
+        display: none;
+      }
+
+      @keyframes rotation {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* 🟢 Suggestions & Multi-select */
+      .suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #cbd5e1;
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 1000;
+        border-radius: 0 0 5px 5px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        color: #333;
+        display: none;
+      }
+
+      .suggestions div.suggest-item {
+        padding: 10px;
+        cursor: pointer;
+        font-weight: 500;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 13px;
+      }
+
+      .suggestions div.suggest-item:hover,
+      .suggestion-active {
+        background: #eff6ff !important;
+        color: #0d6efd !important;
+        font-weight: 600 !important;
+      }
+
+      .multi-select-box {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        font-size: 13px;
+        color: #000000 !important;
+        font-weight: 700 !important;
+        background: #fff;
+      }
+
+      .multi-select-box:hover {
+        background: #f8fafc;
+      }
+
+      .multi-select-box input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        cursor: pointer;
+      }
+
+      /* 🟢 Report Container & Cards */
+      .report-container {
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+        align-items: center;
+      }
+
+      .ts-card {
+        background: white;
+        width: 210mm;
+        min-height: 297mm;
+        padding: 12mm;
+        box-sizing: border-box;
+        border-radius: 4px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        position: relative;
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card-dl-btn {
+        position: absolute;
+        bottom: 10mm;
+        right: 12mm;
+        background: #e2e8f0;
+        color: #334155;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: background 0.2s;
+      }
+
+      .card-dl-btn:hover {
+        background: #cbd5e1;
+        color: #0f2027;
+      }
+
+      .invoice-box {
+        border: 2px dotted #333;
+        border-radius: 4px;
+        padding: 6px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 12px;
+        margin-bottom: 10px;
+        background-color: #f8fafc;
+      }
+
+      .red-border-box-bottom {
+        border: 1px dashed #b91c1c;
+        border-radius: 6px;
+        padding: 8px;
+        color: #b91c1c;
+        font-weight: 600;
+        font-size: 12px;
+        margin-top: auto;
+        margin-bottom: 5px;
+      }
+
+      .ts-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+      }
+
+      .ts-month-title {
+        font-size: 16px;
+        font-weight: 800;
+        margin-bottom: 8px;
+        color: #111;
+        text-align: right;
+      }
+
+      .info-col {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        width: 35%;
+      }
+
+      .info-row {
+        display: flex;
+        font-size: 12.5px;
+      }
+
+      .info-lbl {
+        width: 90px;
+        color: #333;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      .info-val {
+        color: #000;
+        font-weight: 600;
+        word-break: break-word;
+      }
+
+      .plate-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 30%;
+      }
+
+      .asset-code {
+        font-weight: 800;
+        font-size: 15px;
+        color: #000;
+        margin-bottom: 2px;
+        text-align: center;
+      }
+
+      .plate-pill {
+        background-color: #22c55e;
+        color: white;
+        padding: 4px 20px;
+        border-radius: 30px;
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        display: inline-block;
+      }
+
+      .ts-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 2px solid #000;
+        font-size: 11px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        table-layout: fixed;
+      }
+
+      .ts-table th,
+      .ts-table td {
+        border: 1px solid #000;
+        padding: 4px 2px;
+        text-align: center;
+        vertical-align: middle;
+        height: 19px;
+        word-wrap: break-word;
+      }
+
+      .ts-table th {
+        font-weight: 700;
+        background-color: #fff;
+        padding: 5px 2px;
+      }
+
+      .ts-table tr:nth-child(even) {
+        background-color: #fafafa;
+      }
+
+      .ts-table td.note-col {
+        text-align: left;
+        padding-left: 5px;
+        font-size: 10px;
+        line-height: 1.1;
+      }
+
+      .ts-footer {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .footer-left {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .footer-right {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        text-align: right;
+      }
+
+      .ts-owner-details {
+        margin-top: 15px;
+        font-size: 11.5px;
+        font-weight: 600;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .co-details {
+        display: flex;
+        gap: 30px;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+
+      @media print {
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #e2e8f0;
-            margin: 0;
-            padding: 0;
-            color: #111;
+          background-color: white;
+          margin: 0;
+          padding: 0;
         }
 
-        /* 🟢 Control Panel */
-        .controls-wrapper {
-            background: #0f2027;
-            color: white;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+        .controls-wrapper,
+        .card-dl-btn {
+          display: none !important;
         }
 
-        .controls-inner {
-            max-width: 1300px;
-            margin: 0 auto;
-            display: flex;
-            gap: 15px;
-            align-items: flex-end;
-            flex-wrap: wrap;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .form-group label {
-            font-size: 11px;
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #cbd5e1;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        input,
-        select,
-        textarea {
-            padding: 8px 12px;
-            border: 1px solid #334155;
-            border-radius: 4px;
-            font-family: 'Inter';
-            font-size: 13px;
-            background: #1e293b;
-            color: white;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            border-color: #38bdf8;
-        }
-
-        .btn-generate,
-        .btn-pdf {
-            color: white;
-            border: none;
-            padding: 9px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            height: 35px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: opacity 0.2s;
-        }
-
-        .btn-generate {
-            background-color: #2563eb;
-            padding: 9px 25px;
-        }
-
-        .btn-generate:hover:not(:disabled) {
-            background-color: #1d4ed8;
-        }
-
-        .btn-pdf {
-            background-color: #e11d48;
-        }
-
-        .btn-pdf:hover:not(:disabled) {
-            background-color: #be123c;
-        }
-
-        .btn-generate:disabled,
-        .btn-pdf:disabled {
-            opacity: 0.7;
-            cursor: wait;
-        }
-
-        .loader {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid #fff;
-            border-bottom-color: transparent;
-            border-radius: 50%;
-            animation: rotation 1s linear infinite;
-            display: none;
-        }
-
-        @keyframes rotation {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* 🟢 Suggestions & Multi-select */
-        .suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #cbd5e1;
-            max-height: 250px;
-            overflow-y: auto;
-            z-index: 1000;
-            border-radius: 0 0 5px 5px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            color: #333;
-            display: none;
-        }
-
-        .suggestions div.suggest-item {
-            padding: 10px;
-            cursor: pointer;
-            font-weight: 500;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 13px;
-        }
-
-        .suggestions div.suggest-item:hover,
-        .suggestion-active {
-            background: #eff6ff !important;
-            color: #0d6efd !important;
-            font-weight: 600 !important;
-        }
-
-        .multi-select-box {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            border-bottom: 1px solid #f1f5f9;
-            cursor: pointer;
-            font-size: 13px;
-            color: #000000 !important;
-            font-weight: 700 !important;
-            background: #fff;
-        }
-
-        .multi-select-box:hover {
-            background: #f8fafc;
-        }
-
-        .multi-select-box input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-            margin: 0;
-            cursor: pointer;
-        }
-
-        /* 🟢 Report Container & Cards */
         .report-container {
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-            align-items: center;
+          padding: 0;
+          gap: 0;
         }
 
         .ts-card {
-            background: white;
-            width: 210mm;
-            min-height: 297mm;
-            padding: 12mm;
-            box-sizing: border-box;
-            border-radius: 4px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-            position: relative;
-            margin-bottom: 10px;
-            display: flex;
-            flex-direction: column;
+          width: 210mm;
+          min-height: 297mm;
+          padding: 12mm;
+          box-shadow: none;
+          border: none;
+          border-radius: 0;
+          margin: 0;
+          page-break-after: always;
+          page-break-inside: avoid;
+          overflow: hidden;
         }
+      }
 
-        .card-dl-btn {
-            position: absolute;
-            bottom: 10mm;
-            right: 12mm;
-            background: #e2e8f0;
-            color: #334155;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: background 0.2s;
-        }
+      .hm {
+        background-color: #2563eb;
+        padding: 9px 15px;
+        border-radius: 4px;
+        border: none;
+        transition: background-color 0.2s;
+      }
 
-        .card-dl-btn:hover {
-            background: #cbd5e1;
-            color: #0f2027;
-        }
+      .hm a {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+      }
 
-        .invoice-box {
-            border: 2px dotted #333;
-            border-radius: 4px;
-            padding: 6px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 12px;
-            margin-bottom: 10px;
-            background-color: #f8fafc;
-        }
+      a {
+        text-decoration: none;
+      }
 
-        .red-border-box-bottom {
-            border: 1px dashed #b91c1c;
-            border-radius: 6px;
-            padding: 8px;
-            color: #b91c1c;
-            font-weight: 600;
-            font-size: 12px;
-            margin-top: auto;
-            margin-bottom: 5px;
-        }
+      .tsdb {
+        background-color: #2e0a4b;
+        padding: 9px 15px;
+        border-radius: 4px;
+        border: none;
+        transition: background-color 0.2s;
+      }
 
-        .ts-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 10px;
-        }
+      .tsdb a {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+      }
 
-        .ts-month-title {
-            font-size: 16px;
-            font-weight: 800;
-            margin-bottom: 8px;
-            color: #111;
-            text-align: right;
-        }
-
-        .info-col {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            width: 35%;
-        }
-
-        .info-row {
-            display: flex;
-            font-size: 12.5px;
-        }
-
-        .info-lbl {
-            width: 90px;
-            color: #333;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-
-        .info-val {
-            color: #000;
-            font-weight: 600;
-            word-break: break-word;
-        }
-
-        .plate-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 30%;
-        }
-
-        .asset-code {
-            font-weight: 800;
-            font-size: 15px;
-            color: #000;
-            margin-bottom: 2px;
-            text-align: center;
-        }
-
-        .plate-pill {
-            background-color: #22c55e;
-            color: white;
-            padding: 4px 20px;
-            border-radius: 30px;
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            display: inline-block;
-        }
-
-        .ts-table {
-            width: 100%;
-            border-collapse: collapse;
-            border: 2px solid #000;
-            font-size: 11px;
-            margin-top: 5px;
-            margin-bottom: 5px;
-            table-layout: fixed;
-        }
-
-        .ts-table th,
-        .ts-table td {
-            border: 1px solid #000;
-            padding: 4px 2px;
-            text-align: center;
-            vertical-align: middle;
-            height: 19px;
-            word-wrap: break-word;
-        }
-
-        .ts-table th {
-            font-weight: 700;
-            background-color: #fff;
-            padding: 5px 2px;
-        }
-
-        .ts-table tr:nth-child(even) {
-            background-color: #fafafa;
-        }
-
-        .ts-table td.note-col {
-            text-align: left;
-            padding-left: 5px;
-            font-size: 10px;
-            line-height: 1.1;
-        }
-
-        .ts-footer {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .footer-left {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-
-        .footer-right {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            text-align: right;
-        }
-
-        .ts-owner-details {
-            margin-top: 15px;
-            font-size: 11.5px;
-            font-weight: 600;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .co-details {
-            display: flex;
-            gap: 30px;
-        }
-
-        @page {
-            size: A4 portrait;
-            margin: 0;
-        }
-
-        @media print {
-            body {
-                background-color: white;
-                margin: 0;
-                padding: 0;
-            }
-
-            .controls-wrapper,
-            .card-dl-btn {
-                display: none !important;
-            }
-
-            .report-container {
-                padding: 0;
-                gap: 0;
-            }
-
-            .ts-card {
-                width: 210mm;
-                min-height: 297mm;
-                padding: 12mm;
-                box-shadow: none;
-                border: none;
-                border-radius: 0;
-                margin: 0;
-                page-break-after: always;
-                page-break-inside: avoid;
-                overflow: hidden;
-            }
-        }
-
-        .hm {
-            background-color: #2563eb;
-            padding: 9px 15px;
-            border-radius: 4px;
-            border: none;
-            transition: background-color 0.2s;
-        }
-
-        .hm a {
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        a {
-            text-decoration: none;
-        }
-
-        .tsdb {
-            background-color: #2e0a4b;
-            padding: 9px 15px;
-            border-radius: 4px;
-            border: none;
-            transition: background-color 0.2s;
-        }
-
-        .tsdb a {
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .tsdb:hover,
-        tsdb>a:hover {
-            background-color: #5b21b6;
-        }
+      .tsdb:hover,
+      tsdb > a:hover {
+        background-color: #5b21b6;
+      }
     </style>
-</head>
+  </head>
 
-<body>
-
+  <body>
     <div class="controls-wrapper">
-        <div class="controls-inner">
-            <div class="form-group" style="width: 110px;">
-                <label>Month</label>
-                <select id="selMonth">
-                    <option value="January">January</option>
-                    <option value="February">February</option>
-                    <option value="March">March</option>
-                    <option value="April">April</option>
-                    <option value="May">May</option>
-                    <option value="June">June</option>
-                    <option value="July">July</option>
-                    <option value="August">August</option>
-                    <option value="September">September</option>
-                    <option value="October">October</option>
-                    <option value="November">November</option>
-                    <option value="December">December</option>
-                </select>
-            </div>
-            <div class="form-group" style="width: 80px;">
-                <label>Year</label>
-                <input type="number" id="selYear" value="2026">
-            </div>
-            <div class="form-group" style="width: 140px;">
-                <label>Filter By</label>
-                <select id="filterType" onchange="setupFilterUI()">
-                    <option value="All">All Vehicles</option>
-                    <option value="Plate No">Plate No</option>
-                    <option value="Owner Name">Owner Name</option>
-                    <option value="Asset Code">Asset Code</option>
-                    <option value="Site Name">Site Name</option>
-                    <option value="Bulk Mode">Bulk Mode</option>
-                </select>
-            </div>
-
-            <div class="form-group" id="filterValGroup" style="display:none; width: 220px;">
-                <label id="filterLbl">Value</label>
-                <input type="text" id="filterVal" placeholder="Type here..." autocomplete="off"
-                    style="text-transform: uppercase;">
-                <div id="filterSuggestions" class="suggestions"></div>
-                <div id="multiSiteDropdown" class="suggestions" style="padding:5px;"></div>
-                <textarea id="filterBulk" placeholder="Plate1, Plate2..."
-                    style="display:none; height: 35px; resize:none;"></textarea>
-            </div>
-
-            <div class="form-group" id="secondarySiteGroup" style="display:none; width: 200px;">
-                <label>Site Filter (Optional)</label>
-                <input type="text" id="secondarySiteVal" placeholder="All Sites" readonly
-                    style="cursor: pointer; text-transform: uppercase;">
-                <div id="secondarySiteDropdown" class="suggestions" style="padding:5px;"></div>
-            </div>
-
-            <button class="btn-generate" onclick="generateReport()" id="btnGen">
-                <span class="loader" id="genLoader"></span> Generate Report
-            </button>
-
-            <div style="margin-left: auto; display: flex; gap: 10px;">
-                <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf">
-                    <span class="loader" id="pdfLoader"></span> 📄 PDF
-                </button>
-                <button class="hm"> <a href="index.html">Home</a></button>
-                <button class="tsdb"><a href="./entry.html">Data Entry</a></button>
-            </div>
+      <div class="controls-inner">
+        <div class="form-group" style="width: 110px">
+          <label>Month</label>
+          <select id="selMonth">
+            <option value="January">January</option>
+            <option value="February">February</option>
+            <option value="March">March</option>
+            <option value="April">April</option>
+            <option value="May">May</option>
+            <option value="June">June</option>
+            <option value="July">July</option>
+            <option value="August">August</option>
+            <option value="September">September</option>
+            <option value="October">October</option>
+            <option value="November">November</option>
+            <option value="December">December</option>
+          </select>
         </div>
+        <div class="form-group" style="width: 80px">
+          <label>Year</label>
+          <input type="number" id="selYear" value="2026" />
+        </div>
+        <div class="form-group" style="width: 140px">
+          <label>Filter By</label>
+          <select id="filterType" onchange="setupFilterUI()">
+            <option value="All">All Vehicles</option>
+            <option value="Plate No">Plate No</option>
+            <option value="Owner Name">Owner Name</option>
+            <option value="Asset Code">Asset Code</option>
+            <option value="Site Name">Site Name</option>
+            <option value="Bulk Mode">Bulk Mode</option>
+          </select>
+        </div>
+
+        <div
+          class="form-group"
+          id="filterValGroup"
+          style="display: none; width: 220px"
+        >
+          <label id="filterLbl">Value</label>
+          <input
+            type="text"
+            id="filterVal"
+            placeholder="Type here..."
+            autocomplete="off"
+            style="text-transform: uppercase"
+          />
+          <div id="filterSuggestions" class="suggestions"></div>
+          <div
+            id="multiSiteDropdown"
+            class="suggestions"
+            style="padding: 5px"
+          ></div>
+          <textarea
+            id="filterBulk"
+            placeholder="Plate1, Plate2..."
+            style="display: none; height: 35px; resize: none"
+          ></textarea>
+        </div>
+
+        <div
+          class="form-group"
+          id="secondarySiteGroup"
+          style="display: none; width: 200px"
+        >
+          <label>Site Filter (Optional)</label>
+          <input
+            type="text"
+            id="secondarySiteVal"
+            placeholder="All Sites"
+            readonly
+            style="cursor: pointer; text-transform: uppercase"
+          />
+          <div
+            id="secondarySiteDropdown"
+            class="suggestions"
+            style="padding: 5px"
+          ></div>
+        </div>
+
+        <button class="btn-generate" onclick="generateReport()" id="btnGen">
+          <span class="loader" id="genLoader"></span> Generate Report
+        </button>
+
+        <div style="margin-left: auto; display: flex; gap: 10px">
+          <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf">
+            <span class="loader" id="pdfLoader"></span> 📄 PDF
+          </button>
+          <button class="hm"><a href="index.html">Home</a></button>
+          <button class="tsdb"><a href="./entry.html">Data Entry</a></button>
+        </div>
+      </div>
     </div>
 
     <div class="report-container" id="reportArea">
-        <div style="color: #64748b; margin-top: 50px; font-weight: 500; font-size: 16px;">
-            Select filters and click "Generate Report"
-        </div>
+      <div
+        style="
+          color: #64748b;
+          margin-top: 50px;
+          font-weight: 500;
+          font-size: 16px;
+        "
+      >
+        Select filters and click "Generate Report"
+      </div>
     </div>
 
     <script>
-        let dbVehicles = [];
-        let currentFocus = -1;
-        let selectedSites = [];
-        let selectedSecondarySites = [];
+      let dbVehicles = [];
+      let currentFocus = -1;
+      let selectedSites = [];
+      let selectedSecondarySites = [];
 
-        const dDate = new Date();
-        document.getElementById('selYear').value = dDate.getFullYear();
-        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        document.getElementById('selMonth').value = months[dDate.getMonth()];
+      const dDate = new Date();
+      document.getElementById("selYear").value = dDate.getFullYear();
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      document.getElementById("selMonth").value = months[dDate.getMonth()];
 
-        async function loadMasterData() {
-            try {
-                const res = await fetch('/timesheet/api/db/data');
-                const data = await res.json();
-                if (data.success) dbVehicles = data.data;
-            } catch (e) { console.error("Failed to load master data", e); }
+      async function loadMasterData() {
+        try {
+          const res = await fetch("/timesheet/api/db/data");
+          const data = await res.json();
+          if (data.success) dbVehicles = data.data;
+        } catch (e) {
+          console.error("Failed to load master data", e);
         }
-        loadMasterData();
+      }
+      loadMasterData();
 
-        function setupFilterUI() {
-            const type = document.getElementById('filterType').value;
-            const group = document.getElementById('filterValGroup');
-            const secGroup = document.getElementById('secondarySiteGroup');
-            const inp = document.getElementById('filterVal');
-            const txtArea = document.getElementById('filterBulk');
-            const multiSite = document.getElementById('multiSiteDropdown');
-            const sugg = document.getElementById('filterSuggestions');
-            const lbl = document.getElementById('filterLbl');
+      function setupFilterUI() {
+        const type = document.getElementById("filterType").value;
+        const group = document.getElementById("filterValGroup");
+        const secGroup = document.getElementById("secondarySiteGroup");
+        const inp = document.getElementById("filterVal");
+        const txtArea = document.getElementById("filterBulk");
+        const multiSite = document.getElementById("multiSiteDropdown");
+        const sugg = document.getElementById("filterSuggestions");
+        const lbl = document.getElementById("filterLbl");
 
-            sugg.style.display = 'none';
-            multiSite.style.display = 'none';
-            secGroup.style.display = 'none';
-            inp.value = '';
-            selectedSites = [];
-            selectedSecondarySites = [];
-            document.getElementById('secondarySiteVal').value = '';
+        sugg.style.display = "none";
+        multiSite.style.display = "none";
+        secGroup.style.display = "none";
+        inp.value = "";
+        selectedSites = [];
+        selectedSecondarySites = [];
+        document.getElementById("secondarySiteVal").value = "";
 
-            if (type === 'All') {
-                group.style.display = 'none';
+        if (type === "All") {
+          group.style.display = "none";
+        } else {
+          group.style.display = "flex";
+          lbl.innerText = type;
+
+          if (type === "Bulk Mode") {
+            inp.style.display = "none";
+            txtArea.style.display = "block";
+          } else if (type === "Site Name") {
+            inp.style.display = "block";
+            txtArea.style.display = "none";
+            inp.placeholder = "Select sites...";
+            inp.readOnly = true;
+            populateMultiSites();
+          } else {
+            inp.style.display = "block";
+            txtArea.style.display = "none";
+            inp.readOnly = false;
+            inp.placeholder = `Type ${type}...`;
+            if (type === "Owner Name") {
+              secGroup.style.display = "flex";
+            }
+          }
+        }
+      }
+
+      document
+        .getElementById("filterVal")
+        .addEventListener("input", function () {
+          const type = document.getElementById("filterType").value;
+          if (type === "Site Name") return;
+
+          const val = this.value.toUpperCase();
+          const sugg = document.getElementById("filterSuggestions");
+          sugg.innerHTML = "";
+          currentFocus = -1;
+          if (!val) {
+            sugg.style.display = "none";
+            return;
+          }
+
+          let matches = [];
+          if (type === "Plate No")
+            matches = [...new Set(dbVehicles.map((v) => v.plate_no))];
+          else if (type === "Owner Name")
+            matches = [...new Set(dbVehicles.map((v) => v.owner_name))].filter(
+              Boolean,
+            );
+          else if (type === "Asset Code")
+            matches = [...new Set(dbVehicles.map((v) => v.asset_code))].filter(
+              Boolean,
+            );
+
+          matches = matches.filter((m) => m && m.toUpperCase().includes(val));
+
+          if (matches.length > 0) {
+            sugg.style.display = "block";
+            matches.forEach((m) => {
+              let div = document.createElement("div");
+              div.className = "suggest-item";
+              div.innerText = m;
+              div.onclick = () => {
+                document.getElementById("filterVal").value = m;
+                sugg.style.display = "none";
+                if (type === "Owner Name") populateSecondarySites(m);
+              };
+              sugg.appendChild(div);
+            });
+          } else {
+            sugg.style.display = "none";
+          }
+        });
+
+      document
+        .getElementById("filterVal")
+        .addEventListener("keydown", function (e) {
+          const type = document.getElementById("filterType").value;
+          if (type === "Site Name") return;
+
+          let sugg = document.getElementById("filterSuggestions");
+          if (sugg.style.display === "none" && e.key === "Enter") {
+            e.preventDefault();
+            if (type === "Owner Name")
+              populateSecondarySites(this.value.trim());
+            generateReport();
+            return;
+          }
+
+          let items = sugg.getElementsByClassName("suggest-item");
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            currentFocus++;
+            addActive(items);
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            currentFocus--;
+            addActive(items);
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            if (currentFocus > -1 && items[currentFocus]) {
+              items[currentFocus].click();
             } else {
-                group.style.display = 'flex';
-                lbl.innerText = type;
-
-                if (type === 'Bulk Mode') {
-                    inp.style.display = 'none';
-                    txtArea.style.display = 'block';
-                } else if (type === 'Site Name') {
-                    inp.style.display = 'block';
-                    txtArea.style.display = 'none';
-                    inp.placeholder = "Select sites...";
-                    inp.readOnly = true;
-                    populateMultiSites();
-                } else {
-                    inp.style.display = 'block';
-                    txtArea.style.display = 'none';
-                    inp.readOnly = false;
-                    inp.placeholder = `Type ${type}...`;
-                    if (type === 'Owner Name') {
-                        secGroup.style.display = 'flex';
-                    }
-                }
+              if (type === "Owner Name")
+                populateSecondarySites(this.value.trim());
+              generateReport();
             }
-        }
-
-        document.getElementById('filterVal').addEventListener('input', function () {
-            const type = document.getElementById('filterType').value;
-            if (type === 'Site Name') return;
-
-            const val = this.value.toUpperCase();
-            const sugg = document.getElementById('filterSuggestions');
-            sugg.innerHTML = ''; currentFocus = -1;
-            if (!val) { sugg.style.display = 'none'; return; }
-
-            let matches = [];
-            if (type === 'Plate No') matches = [...new Set(dbVehicles.map(v => v.plate_no))];
-            else if (type === 'Owner Name') matches = [...new Set(dbVehicles.map(v => v.owner_name))].filter(Boolean);
-            else if (type === 'Asset Code') matches = [...new Set(dbVehicles.map(v => v.asset_code))].filter(Boolean);
-
-            matches = matches.filter(m => m && m.toUpperCase().includes(val));
-
-            if (matches.length > 0) {
-                sugg.style.display = 'block';
-                matches.forEach(m => {
-                    let div = document.createElement('div');
-                    div.className = 'suggest-item';
-                    div.innerText = m;
-                    div.onclick = () => {
-                        document.getElementById('filterVal').value = m;
-                        sugg.style.display = 'none';
-                        if (type === 'Owner Name') populateSecondarySites(m);
-                    };
-                    sugg.appendChild(div);
-                });
-            } else { sugg.style.display = 'none'; }
+          }
         });
 
-        document.getElementById('filterVal').addEventListener('keydown', function (e) {
-            const type = document.getElementById('filterType').value;
-            if (type === 'Site Name') return;
+      function addActive(items) {
+        if (!items) return;
+        for (let i = 0; i < items.length; i++)
+          items[i].classList.remove("suggestion-active");
+        if (currentFocus >= items.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = items.length - 1;
+        items[currentFocus].classList.add("suggestion-active");
+        items[currentFocus].scrollIntoView({ block: "nearest" });
+      }
 
-            let sugg = document.getElementById('filterSuggestions');
-            if (sugg.style.display === 'none' && e.key === 'Enter') {
-                e.preventDefault();
-                if (type === 'Owner Name') populateSecondarySites(this.value.trim());
-                generateReport();
-                return;
-            }
-
-            let items = sugg.getElementsByClassName('suggest-item');
-            if (e.key === 'ArrowDown') { e.preventDefault(); currentFocus++; addActive(items); }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); currentFocus--; addActive(items); }
-            else if (e.key === 'Enter') {
-                e.preventDefault();
-                if (currentFocus > -1 && items[currentFocus]) {
-                    items[currentFocus].click();
-                } else {
-                    if (type === 'Owner Name') populateSecondarySites(this.value.trim());
-                    generateReport();
-                }
-            }
+      document
+        .getElementById("filterVal")
+        .addEventListener("click", function () {
+          if (document.getElementById("filterType").value === "Site Name") {
+            const ms = document.getElementById("multiSiteDropdown");
+            ms.style.display = ms.style.display === "block" ? "none" : "block";
+          }
         });
 
-        function addActive(items) {
-            if (!items) return;
-            for (let i = 0; i < items.length; i++) items[i].classList.remove("suggestion-active");
-            if (currentFocus >= items.length) currentFocus = 0;
-            if (currentFocus < 0) currentFocus = (items.length - 1);
-            items[currentFocus].classList.add("suggestion-active");
-            items[currentFocus].scrollIntoView({ block: "nearest" });
-        }
+      function populateMultiSites() {
+        const ms = document.getElementById("multiSiteDropdown");
+        ms.innerHTML = "";
+        let allSites = [...new Set(dbVehicles.map((v) => v.site_name))]
+          .filter(Boolean)
+          .sort();
 
-        document.getElementById('filterVal').addEventListener('click', function () {
-            if (document.getElementById('filterType').value === 'Site Name') {
-                const ms = document.getElementById('multiSiteDropdown');
-                ms.style.display = ms.style.display === 'block' ? 'none' : 'block';
-            }
+        allSites.forEach((site) => {
+          let div = document.createElement("label");
+          div.className = "multi-select-box";
+          let chk = document.createElement("input");
+          chk.type = "checkbox";
+          chk.value = site;
+          chk.onchange = updateSelectedSites;
+          div.appendChild(chk);
+
+          let span = document.createElement("span");
+          span.innerText = site;
+          div.appendChild(span);
+
+          ms.appendChild(div);
+        });
+      }
+
+      function updateSelectedSites() {
+        const checkboxes = document
+          .getElementById("multiSiteDropdown")
+          .querySelectorAll('input[type="checkbox"]:checked');
+        selectedSites = Array.from(checkboxes).map((c) => c.value);
+        document.getElementById("filterVal").value =
+          selectedSites.length > 0 ? selectedSites.join(", ") : "";
+      }
+
+      document
+        .getElementById("secondarySiteVal")
+        .addEventListener("click", function () {
+          const ms = document.getElementById("secondarySiteDropdown");
+          ms.style.display = ms.style.display === "block" ? "none" : "block";
         });
 
-        function populateMultiSites() {
-            const ms = document.getElementById('multiSiteDropdown');
-            ms.innerHTML = '';
-            let allSites = [...new Set(dbVehicles.map(v => v.site_name))].filter(Boolean).sort();
+      function populateSecondarySites(ownerName) {
+        const secDrop = document.getElementById("secondarySiteDropdown");
+        secDrop.innerHTML = "";
+        selectedSecondarySites = [];
+        document.getElementById("secondarySiteVal").value = "";
 
-            allSites.forEach(site => {
-                let div = document.createElement('label');
-                div.className = 'multi-select-box';
-                let chk = document.createElement('input');
-                chk.type = 'checkbox';
-                chk.value = site;
-                chk.onchange = updateSelectedSites;
-                div.appendChild(chk);
+        if (!ownerName) return;
 
-                let span = document.createElement('span');
-                span.innerText = site;
-                div.appendChild(span);
+        let ownerSites = [
+          ...new Set(
+            dbVehicles
+              .filter(
+                (v) =>
+                  v.owner_name &&
+                  v.owner_name.toUpperCase() === ownerName.toUpperCase(),
+              )
+              .map((v) => v.site_name),
+          ),
+        ]
+          .filter(Boolean)
+          .sort();
 
-                ms.appendChild(div);
-            });
+        if (ownerSites.length === 0) {
+          document.getElementById("secondarySiteVal").placeholder =
+            "No Sites Found";
+          return;
         }
 
-        function updateSelectedSites() {
-            const checkboxes = document.getElementById('multiSiteDropdown').querySelectorAll('input[type="checkbox"]:checked');
-            selectedSites = Array.from(checkboxes).map(c => c.value);
-            document.getElementById('filterVal').value = selectedSites.length > 0 ? selectedSites.join(', ') : '';
-        }
+        document.getElementById("secondarySiteVal").placeholder =
+          "Select Sites (All)";
 
-        document.getElementById('secondarySiteVal').addEventListener('click', function () {
-            const ms = document.getElementById('secondarySiteDropdown');
-            ms.style.display = ms.style.display === 'block' ? 'none' : 'block';
+        ownerSites.forEach((site) => {
+          let div = document.createElement("label");
+          div.className = "multi-select-box";
+          let chk = document.createElement("input");
+          chk.type = "checkbox";
+          chk.value = site;
+          chk.onchange = updateSecondarySites;
+          div.appendChild(chk);
+
+          let span = document.createElement("span");
+          span.innerText = site;
+          div.appendChild(span);
+
+          secDrop.appendChild(div);
         });
+      }
 
-        function populateSecondarySites(ownerName) {
-            const secDrop = document.getElementById('secondarySiteDropdown');
-            secDrop.innerHTML = '';
-            selectedSecondarySites = [];
-            document.getElementById('secondarySiteVal').value = '';
+      function updateSecondarySites() {
+        const checkboxes = document
+          .getElementById("secondarySiteDropdown")
+          .querySelectorAll('input[type="checkbox"]:checked');
+        selectedSecondarySites = Array.from(checkboxes).map((c) => c.value);
+        document.getElementById("secondarySiteVal").value =
+          selectedSecondarySites.length > 0
+            ? selectedSecondarySites.join(", ")
+            : "";
+      }
 
-            if (!ownerName) return;
+      document.addEventListener("click", function (e) {
+        if (!document.getElementById("filterValGroup").contains(e.target)) {
+          document.getElementById("filterSuggestions").style.display = "none";
+          document.getElementById("multiSiteDropdown").style.display = "none";
+        }
+        if (!document.getElementById("secondarySiteGroup").contains(e.target)) {
+          document.getElementById("secondarySiteDropdown").style.display =
+            "none";
+        }
+      });
 
-            let ownerSites = [...new Set(dbVehicles.filter(v => v.owner_name && v.owner_name.toUpperCase() === ownerName.toUpperCase()).map(v => v.site_name))].filter(Boolean).sort();
+      function getDaysInMonth(monthStr, year) {
+        return new Date(year, months.indexOf(monthStr) + 1, 0).getDate();
+      }
+      function getDayName(dayNum, monthStr, year) {
+        const dateObj = new Date(`${monthStr} ${dayNum}, ${year}`);
+        return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+          dateObj.getDay()
+        ];
+      }
+      function formatDate(dStr) {
+        if (!dStr) return "";
+        const parts = dStr.split("T")[0].split("-");
+        if (parts.length !== 3) return "";
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      function parseLogDate(dStr, defaultDate) {
+        if (!dStr) return defaultDate;
+        let parts = dStr.split("T")[0].split("-");
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+      }
 
-            if (ownerSites.length === 0) {
-                document.getElementById('secondarySiteVal').placeholder = "No Sites Found";
-                return;
+      function getGapStatus(d, sLogs, dLogs) {
+        let sActive = false,
+          sGap = false,
+          isReplaced = false;
+        let dActive = false,
+          dGap = false;
+
+        if (sLogs && sLogs.length > 0) {
+          let ascSLogs = [...sLogs].sort(
+            (a, b) =>
+              parseLogDate(a.work_start_date, new Date("2000-01-01")) -
+              parseLogDate(b.work_start_date, new Date("2000-01-01")),
+          );
+          for (let i = 0; i < ascSLogs.length; i++) {
+            let st = parseLogDate(
+              ascSLogs[i].work_start_date,
+              new Date("2000-01-01"),
+            );
+            let ed = parseLogDate(
+              ascSLogs[i].work_end_date,
+              new Date("2099-01-01"),
+            );
+            if (d >= st && d <= ed) {
+              sActive = true;
+              break;
             }
-
-            document.getElementById('secondarySiteVal').placeholder = "Select Sites (All)";
-
-            ownerSites.forEach(site => {
-                let div = document.createElement('label');
-                div.className = 'multi-select-box';
-                let chk = document.createElement('input');
-                chk.type = 'checkbox';
-                chk.value = site;
-                chk.onchange = updateSecondarySites;
-                div.appendChild(chk);
-
-                let span = document.createElement('span');
-                span.innerText = site;
-                div.appendChild(span);
-
-                secDrop.appendChild(div);
-            });
-        }
-
-        function updateSecondarySites() {
-            const checkboxes = document.getElementById('secondarySiteDropdown').querySelectorAll('input[type="checkbox"]:checked');
-            selectedSecondarySites = Array.from(checkboxes).map(c => c.value);
-            document.getElementById('secondarySiteVal').value = selectedSecondarySites.length > 0 ? selectedSecondarySites.join(', ') : '';
-        }
-
-        document.addEventListener("click", function (e) {
-            if (!document.getElementById('filterValGroup').contains(e.target)) {
-                document.getElementById('filterSuggestions').style.display = 'none';
-                document.getElementById('multiSiteDropdown').style.display = 'none';
+            if (d > ed) {
+              if (ascSLogs[i].status === "Replaced") isReplaced = true;
             }
-            if (!document.getElementById('secondarySiteGroup').contains(e.target)) {
-                document.getElementById('secondarySiteDropdown').style.display = 'none';
+          }
+          if (!sActive) {
+            let firstStart = parseLogDate(
+              ascSLogs[0].work_start_date,
+              new Date("2000-01-01"),
+            );
+            let lastEnd = parseLogDate(
+              ascSLogs[ascSLogs.length - 1].work_end_date,
+              new Date("2099-01-01"),
+            );
+            if (d >= firstStart && d <= lastEnd) sGap = true;
+          }
+        } else {
+          sActive = true;
+        }
+
+        if (!sActive) {
+          if (isReplaced) return "R";
+          return sGap ? "SC" : "AB";
+        }
+
+        if (dLogs && dLogs.length > 0) {
+          let ascDLogs = [...dLogs].sort(
+            (a, b) =>
+              parseLogDate(a.work_start_date, new Date("2000-01-01")) -
+              parseLogDate(b.work_start_date, new Date("2000-01-01")),
+          );
+          for (let i = 0; i < ascDLogs.length; i++) {
+            let st = parseLogDate(
+              ascDLogs[i].work_start_date,
+              new Date("2000-01-01"),
+            );
+            let ed = parseLogDate(
+              ascDLogs[i].work_end_date,
+              new Date("2099-01-01"),
+            );
+            if (d >= st && d <= ed) {
+              dActive = true;
+              break;
             }
-        });
-
-        function getDaysInMonth(monthStr, year) { return new Date(year, months.indexOf(monthStr) + 1, 0).getDate(); }
-        function getDayName(dayNum, monthStr, year) {
-            const dateObj = new Date(`${monthStr} ${dayNum}, ${year}`);
-            return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dateObj.getDay()];
-        }
-        function formatDate(dStr) {
-            if (!dStr) return "";
-            const parts = dStr.split('T')[0].split('-');
-            if (parts.length !== 3) return "";
-            return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
-        function parseLogDate(dStr, defaultDate) {
-            if (!dStr) return defaultDate;
-            let parts = dStr.split('T')[0].split('-');
-            return new Date(parts[0], parts[1] - 1, parts[2]);
+          }
+          if (!dActive) {
+            let firstStart = parseLogDate(
+              ascDLogs[0].work_start_date,
+              new Date("2000-01-01"),
+            );
+            let lastEnd = parseLogDate(
+              ascDLogs[ascDLogs.length - 1].work_end_date,
+              new Date("2099-01-01"),
+            );
+            if (d >= firstStart && d <= lastEnd) dGap = true;
+          }
+        } else {
+          dActive = true;
         }
 
-        function getGapStatus(d, sLogs, dLogs) {
-            let sActive = false, sGap = false, isReplaced = false;
-            let dActive = false, dGap = false;
+        if (!dActive) return dGap ? "DC" : "AB";
+        return "ACTIVE";
+      }
 
-            if (sLogs && sLogs.length > 0) {
-                let ascSLogs = [...sLogs].sort((a, b) => parseLogDate(a.work_start_date, new Date('2000-01-01')) - parseLogDate(b.work_start_date, new Date('2000-01-01')));
-                for (let i = 0; i < ascSLogs.length; i++) {
-                    let st = parseLogDate(ascSLogs[i].work_start_date, new Date('2000-01-01'));
-                    let ed = parseLogDate(ascSLogs[i].work_end_date, new Date('2099-01-01'));
-                    if (d >= st && d <= ed) {
-                        sActive = true; break;
-                    }
-                    if (d > ed) {
-                        if (ascSLogs[i].status === 'Replaced') isReplaced = true;
-                    }
-                }
-                if (!sActive) {
-                    let firstStart = parseLogDate(ascSLogs[0].work_start_date, new Date('2000-01-01'));
-                    let lastEnd = parseLogDate(ascSLogs[ascSLogs.length - 1].work_end_date, new Date('2099-01-01'));
-                    if (d >= firstStart && d <= lastEnd) sGap = true;
-                }
-            } else { sActive = true; }
+      async function generateReport() {
+        const m = document.getElementById("selMonth").value;
+        const y = document.getElementById("selYear").value;
+        const type = document.getElementById("filterType").value;
+        let val = "";
 
-            if (!sActive) {
-                if (isReplaced) return "R";
-                return sGap ? "SC" : "AB";
-            }
+        if (type === "Bulk Mode")
+          val = document.getElementById("filterBulk").value.trim();
+        else if (type === "Site Name") val = selectedSites.join(",");
+        else if (type !== "All")
+          val = document.getElementById("filterVal").value.trim();
 
-            if (dLogs && dLogs.length > 0) {
-                let ascDLogs = [...dLogs].sort((a, b) => parseLogDate(a.work_start_date, new Date('2000-01-01')) - parseLogDate(b.work_start_date, new Date('2000-01-01')));
-                for (let i = 0; i < ascDLogs.length; i++) {
-                    let st = parseLogDate(ascDLogs[i].work_start_date, new Date('2000-01-01'));
-                    let ed = parseLogDate(ascDLogs[i].work_end_date, new Date('2099-01-01'));
-                    if (d >= st && d <= ed) { dActive = true; break; }
-                }
-                if (!dActive) {
-                    let firstStart = parseLogDate(ascDLogs[0].work_start_date, new Date('2000-01-01'));
-                    let lastEnd = parseLogDate(ascDLogs[ascDLogs.length - 1].work_end_date, new Date('2099-01-01'));
-                    if (d >= firstStart && d <= lastEnd) dGap = true;
-                }
-            } else { dActive = true; }
+        if (type !== "All" && !val)
+          return alert(`Please enter or select a value for ${type}`);
 
-            if (!dActive) return dGap ? "DC" : "AB";
-            return "ACTIVE";
-        }
+        document.getElementById("filterSuggestions").style.display = "none";
+        document.getElementById("multiSiteDropdown").style.display = "none";
+        document.getElementById("secondarySiteDropdown").style.display = "none";
 
-        async function generateReport() {
-            const m = document.getElementById('selMonth').value;
-            const y = document.getElementById('selYear').value;
-            const type = document.getElementById('filterType').value;
-            let val = "";
+        const btn = document.getElementById("btnGen");
+        const loader = document.getElementById("genLoader");
+        const area = document.getElementById("reportArea");
 
-            if (type === 'Bulk Mode') val = document.getElementById('filterBulk').value.trim();
-            else if (type === 'Site Name') val = selectedSites.join(',');
-            else if (type !== 'All') val = document.getElementById('filterVal').value.trim();
+        btn.disabled = true;
+        loader.style.display = "inline-block";
+        area.innerHTML =
+          '<div style="color: #64748b; margin-top: 50px;">Generating data from server...</div>';
 
-            if (type !== 'All' && !val) return alert(`Please enter or select a value for ${type}`);
+        try {
+          const payload = {
+            month: m,
+            year: y,
+            filterType: type,
+            filterValue: val,
+          };
+          const res = await fetch("/timesheet/api/public/view-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
 
-            document.getElementById('filterSuggestions').style.display = 'none';
-            document.getElementById('multiSiteDropdown').style.display = 'none';
-            document.getElementById('secondarySiteDropdown').style.display = 'none';
+          if (!data.success) throw new Error(data.message);
+          if (data.vehicles.length === 0) {
+            area.innerHTML =
+              '<div style="color: #b91c1c; margin-top: 50px; font-weight:bold;">No vehicles found matching criteria.</div>';
+            return;
+          }
 
-            const btn = document.getElementById('btnGen');
-            const loader = document.getElementById('genLoader');
-            const area = document.getElementById('reportArea');
+          let mIdx = months.indexOf(m);
+          let monthStart = new Date(y, mIdx, 1);
+          let monthEnd = new Date(y, mIdx + 1, 0);
 
-            btn.disabled = true; loader.style.display = 'inline-block';
-            area.innerHTML = '<div style="color: #64748b; margin-top: 50px;">Generating data from server...</div>';
+          let filteredVehicles = data.vehicles;
 
-            try {
-                const payload = { month: m, year: y, filterType: type, filterValue: val };
-                const res = await fetch('/timesheet/api/public/view-report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                const data = await res.json();
-
-                if (!data.success) throw new Error(data.message);
-                if (data.vehicles.length === 0) {
-                    area.innerHTML = '<div style="color: #b91c1c; margin-top: 50px; font-weight:bold;">No vehicles found matching criteria.</div>';
-                    return;
-                }
-
-                let mIdx = months.indexOf(m);
-                let monthStart = new Date(y, mIdx, 1);
-                let monthEnd = new Date(y, mIdx + 1, 0);
-
-                let filteredVehicles = data.vehicles;
-
-                if (type === 'Owner Name' && selectedSecondarySites.length > 0) {
-                    filteredVehicles = filteredVehicles.filter(v => {
-                        const sLogs = data.logs.sites.filter(l => l.plate_no === v.plate_no);
-                        let activeSites = sLogs.filter(s => {
-                            let st = parseLogDate(s.work_start_date, new Date('2000-01-01'));
-                            let ed = parseLogDate(s.work_end_date, new Date('2099-01-01'));
-                            return st <= monthEnd && ed >= monthStart;
-                        });
-                        let currSite = activeSites[0] ? activeSites[0].site_name : (v.site_name || "N/A");
-                        return selectedSecondarySites.includes(currSite);
-                    });
-                }
-
-                if (filteredVehicles.length === 0) {
-                    area.innerHTML = '<div style="color: #b91c1c; margin-top: 50px; font-weight:bold;">No vehicles found for the selected site(s).</div>';
-                    return;
-                }
-
-                let allCardsHTML = '';
-                filteredVehicles.forEach(v => {
-                    const plate = v.plate_no;
-                    const vRecords = data.records.filter(r => r.plate_no === plate);
-                    const dLogs = data.logs.drivers.filter(l => l.plate_no === plate);
-                    const sLogs = data.logs.sites.filter(l => l.plate_no === plate);
-                    allCardsHTML += buildCardHTML(v, m, y, vRecords, dLogs, sLogs);
-                });
-
-                area.innerHTML = allCardsHTML;
-
-            } catch (error) {
-                area.innerHTML = `<div style="color: #b91c1c; margin-top: 50px; font-weight:bold;">Error: ${error.message}</div>`;
-            } finally {
-                btn.disabled = false; loader.style.display = 'none';
-            }
-        }
-
-        function buildCardHTML(vehicle, month, year, records, dLogs, sLogs) {
-            let mIdx = months.indexOf(month);
-            let monthStart = new Date(year, mIdx, 1);
-            let monthEnd = new Date(year, mIdx + 1, 0);
-
-            dLogs.sort((a, b) => new Date(b.work_start_date || '2000-01-01') - new Date(a.work_start_date || '2000-01-01'));
-            sLogs.sort((a, b) => new Date(b.work_start_date || '2000-01-01') - new Date(a.work_start_date || '2000-01-01'));
-
-            let activeDrivers = dLogs.filter(d => {
-                let st = parseLogDate(d.work_start_date, new Date('2000-01-01'));
-                let ed = parseLogDate(d.work_end_date, new Date('2099-01-01'));
+          if (type === "Owner Name" && selectedSecondarySites.length > 0) {
+            filteredVehicles = filteredVehicles.filter((v) => {
+              const sLogs = data.logs.sites.filter(
+                (l) => l.plate_no === v.plate_no,
+              );
+              let activeSites = sLogs.filter((s) => {
+                let st = parseLogDate(
+                  s.work_start_date,
+                  new Date("2000-01-01"),
+                );
+                let ed = parseLogDate(s.work_end_date, new Date("2099-01-01"));
                 return st <= monthEnd && ed >= monthStart;
+              });
+              let currSite = activeSites[0]
+                ? activeSites[0].site_name
+                : v.site_name || "N/A";
+              return selectedSecondarySites.includes(currSite);
             });
+          }
 
-            let activeSites = sLogs.filter(s => {
-                let st = parseLogDate(s.work_start_date, new Date('2000-01-01'));
-                let ed = parseLogDate(s.work_end_date, new Date('2099-01-01'));
-                return st <= monthEnd && ed >= monthStart;
-            });
+          if (filteredVehicles.length === 0) {
+            area.innerHTML =
+              '<div style="color: #b91c1c; margin-top: 50px; font-weight:bold;">No vehicles found for the selected site(s).</div>';
+            return;
+          }
 
-            let currDriver = activeDrivers[0] ? activeDrivers[0].driver_name : (vehicle.driver_name || "N/A");
-            let currMobile = activeDrivers[0] ? activeDrivers[0].driver_mobile : (vehicle.driver_mobile || "N/A");
-            let prevDriver = activeDrivers.length > 1 ? activeDrivers[1].driver_name : "";
+          let allCardsHTML = "";
+          filteredVehicles.forEach((v) => {
+            const plate = v.plate_no;
+            const vRecords = data.records.filter((r) => r.plate_no === plate);
+            const dLogs = data.logs.drivers.filter((l) => l.plate_no === plate);
+            const sLogs = data.logs.sites.filter((l) => l.plate_no === plate);
+            allCardsHTML += buildCardHTML(v, m, y, vRecords, dLogs, sLogs);
+          });
 
-            let currSite = activeSites[0] ? activeSites[0].site_name : (vehicle.site_name || "N/A");
-            let prevSite = activeSites.length > 1 ? activeSites[1].site_name : "";
+          area.innerHTML = allCardsHTML;
+        } catch (error) {
+          area.innerHTML = `<div style="color: #b91c1c; margin-top: 50px; font-weight:bold;">Error: ${error.message}</div>`;
+        } finally {
+          btn.disabled = false;
+          loader.style.display = "none";
+        }
+      }
 
-            let bottomBoxTextArr = [];
-            if (activeSites.length > 0) {
-                activeSites.forEach(s => {
-                    let startStr = s.work_start_date ? formatDate(s.work_start_date) : "";
-                    let endStr = s.work_end_date ? formatDate(s.work_end_date) : "";
-                    let replaceStr = s.replaced_by ? s.replaced_by : "";
-                    let siteStr = s.site_name || "Site";
+      function buildCardHTML(vehicle, month, year, records, dLogs, sLogs) {
+        let mIdx = months.indexOf(month);
+        let monthStart = new Date(year, mIdx, 1);
+        let monthEnd = new Date(year, mIdx + 1, 0);
 
-                    let line = `▶ <b style="color:#b91c1c;">${siteStr}</b> :: `;
-                    let details = [];
-                    if (startStr) details.push(`Work Start : ${startStr}`);
-                    if (endStr) details.push(`Work End : ${endStr}`);
-                    if (replaceStr && replaceStr !== "null") details.push(`Replaced By : ${replaceStr}`);
+        dLogs.sort(
+          (a, b) =>
+            new Date(b.work_start_date || "2000-01-01") -
+            new Date(a.work_start_date || "2000-01-01"),
+        );
+        sLogs.sort(
+          (a, b) =>
+            new Date(b.work_start_date || "2000-01-01") -
+            new Date(a.work_start_date || "2000-01-01"),
+        );
 
-                    if (details.length > 0) {
-                        line += details.join(' &nbsp;|&nbsp; ');
-                        bottomBoxTextArr.push(line);
-                    }
-                });
+        let activeDrivers = dLogs.filter((d) => {
+          let st = parseLogDate(d.work_start_date, new Date("2000-01-01"));
+          let ed = parseLogDate(d.work_end_date, new Date("2099-01-01"));
+          return st <= monthEnd && ed >= monthStart;
+        });
+
+        let activeSites = sLogs.filter((s) => {
+          let st = parseLogDate(s.work_start_date, new Date("2000-01-01"));
+          let ed = parseLogDate(s.work_end_date, new Date("2099-01-01"));
+          return st <= monthEnd && ed >= monthStart;
+        });
+
+        let currDriver = activeDrivers[0]
+          ? activeDrivers[0].driver_name
+          : vehicle.driver_name || "N/A";
+        let currMobile = activeDrivers[0]
+          ? activeDrivers[0].driver_mobile
+          : vehicle.driver_mobile || "N/A";
+        let prevDriver =
+          activeDrivers.length > 1 ? activeDrivers[1].driver_name : "";
+
+        let currSite = activeSites[0]
+          ? activeSites[0].site_name
+          : vehicle.site_name || "N/A";
+        let prevSite = activeSites.length > 1 ? activeSites[1].site_name : "";
+
+        let bottomBoxTextArr = [];
+        if (activeSites.length > 0) {
+          activeSites.forEach((s) => {
+            let startStr = s.work_start_date
+              ? formatDate(s.work_start_date)
+              : "";
+            let endStr = s.work_end_date ? formatDate(s.work_end_date) : "";
+            let replaceStr = s.replaced_by ? s.replaced_by : "";
+            let siteStr = s.site_name || "Site";
+
+            let line = `▶ <b style="color:#b91c1c;">${siteStr}</b> :: `;
+            let details = [];
+            if (startStr) details.push(`Work Start : ${startStr}`);
+            if (endStr) details.push(`Work End : ${endStr}`);
+            if (replaceStr && replaceStr !== "null")
+              details.push(`Replaced By : ${replaceStr}`);
+
+            if (details.length > 0) {
+              line += details.join(" &nbsp;|&nbsp; ");
+              bottomBoxTextArr.push(line);
             }
+          });
+        }
 
-            let bottomBoxTextHTML = bottomBoxTextArr.length > 0 ? bottomBoxTextArr.join('<br>') : '▶ Work Start: N/A';
+        let bottomBoxTextHTML =
+          bottomBoxTextArr.length > 0
+            ? bottomBoxTextArr.join("<br>")
+            : "▶ Work Start: N/A";
 
-            let dispVType = vehicle.vehicle_type || "N/A";
-            let dispOName = vehicle.owner_name || "N/A";
-            let dispOMob = vehicle.owner_mobile || "";
-            let dispFieldCo = vehicle.field_co || "N/A";
-            let dispSiteCo = vehicle.site_co || "N/A";
+        let dispVType = vehicle.vehicle_type || "N/A";
+        let dispOName = vehicle.owner_name || "N/A";
+        let dispOMob = vehicle.owner_mobile || "";
 
-            let assetCodeHtml = vehicle.asset_code ? `<div class="asset-code">${vehicle.asset_code}</div>` : '';
-            let invoiceInfoHtml = vehicle.invoice_info ? `<div class="invoice-box">${vehicle.invoice_info}</div>` : '';
+        let dispFieldCo =
+          activeSites.length > 0 && activeSites[0].field_co
+            ? activeSites[0].field_co
+            : vehicle.field_co || "N/A";
+        let dispSiteCo =
+          activeSites.length > 0 && activeSites[0].site_co
+            ? activeSites[0].site_co
+            : vehicle.site_co || "N/A";
 
-            const daysInMonth = getDaysInMonth(month, year);
-            let tableRowsHTML = '';
-            let sumDist = 0, sumFuel = 0, sumNormal = 0, sumOT = 0;
+        let assetCodeHtml = vehicle.asset_code
+          ? `<div class="asset-code">${vehicle.asset_code}</div>`
+          : "";
+        let invoiceInfoHtml = vehicle.invoice_info
+          ? `<div class="invoice-box">${vehicle.invoice_info}</div>`
+          : "";
 
-            for (let i = 1; i <= daysInMonth; i++) {
-                const rec = records.find(r => parseInt(r.record_date) === i) || {};
+        const daysInMonth = getDaysInMonth(month, year);
+        let tableRowsHTML = "";
+        let sumDist = 0,
+          sumFuel = 0,
+          sumNormal = 0,
+          sumOT = 0;
 
-                let dayName = getDayName(i, month, year);
-                let timeRaw = parseFloat(rec.calc_time) || 0;
-                let normalHr = 0, otHr = 0;
-                let dist = parseFloat(rec.calc_distance) || 0;
-                let fuel = parseFloat(rec.fuel) || 0;
-                let bdStr = String(rec.bd || "").trim().toUpperCase();
+        for (let i = 1; i <= daysInMonth; i++) {
+          const rec = records.find((r) => parseInt(r.record_date) === i) || {};
 
-                let checkDate = new Date(year, mIdx, i);
-                let statusCode = getGapStatus(checkDate, sLogs, dLogs);
-                let hasData = timeRaw > 0 || bdStr !== '' || rec.wrk_start || rec.hmr_start;
-                let noteStr = rec.remark || "";
-                let timeDisplay = timeRaw > 0 ? timeRaw : '';
+          let dayName = getDayName(i, month, year);
+          let timeRaw = parseFloat(rec.calc_time) || 0;
+          let normalHr = 0,
+            otHr = 0;
+          let dist = parseFloat(rec.calc_distance) || 0;
+          let fuel = parseFloat(rec.fuel) || 0;
+          let bdStr = String(rec.bd || "")
+            .trim()
+            .toUpperCase();
 
-                if (hasData) {
-                    if (statusCode === 'AB') noteStr = "Absent" + (noteStr ? ' - ' + noteStr : '');
-                    else if (statusCode === 'SC') noteStr = "Site Change" + (noteStr ? ' - ' + noteStr : '');
-                    else if (statusCode === 'DC') noteStr = "Driver Change" + (noteStr ? ' - ' + noteStr : '');
+          let checkDate = new Date(year, mIdx, i);
+          let statusCode = getGapStatus(checkDate, sLogs, dLogs);
+          let hasData =
+            timeRaw > 0 || bdStr !== "" || rec.wrk_start || rec.hmr_start;
+          let noteStr = rec.remark || "";
+          let timeDisplay = timeRaw > 0 ? timeRaw : "";
 
-                    if (['B', 'H', 'ID', 'NP'].includes(bdStr)) timeDisplay = bdStr;
+          if (hasData) {
+            if (statusCode === "AB")
+              noteStr = "Absent" + (noteStr ? " - " + noteStr : "");
+            else if (statusCode === "SC")
+              noteStr = "Site Change" + (noteStr ? " - " + noteStr : "");
+            else if (statusCode === "DC")
+              noteStr = "Driver Change" + (noteStr ? " - " + noteStr : "");
 
-                    let isFullOT = (dayName === 'Fri' || i === 31);
+            if (["B", "H", "ID", "NP"].includes(bdStr)) timeDisplay = bdStr;
 
-                    if (bdStr === 'B' || bdStr === 'H') {
-                        normalHr = 0; otHr = 0;
-                    } else if (bdStr === 'ID' || bdStr === 'NP') {
-                        if (isFullOT) { normalHr = 0; otHr = 10; }
-                        else { normalHr = 10; otHr = 0; }
-                    } else if (timeRaw > 0) {
-                        if (isFullOT) { otHr = timeRaw; }
-                        else {
-                            if (timeRaw > 10) { normalHr = 10; otHr = timeRaw - 10; }
-                            else { normalHr = timeRaw; }
-                        }
-                    }
+            let isFullOT = dayName === "Fri" || i === 31;
+
+            if (bdStr === "B" || bdStr === "H") {
+              normalHr = 0;
+              otHr = 0;
+            } else if (bdStr === "ID" || bdStr === "NP") {
+              if (isFullOT) {
+                normalHr = 0;
+                otHr = 10;
+              } else {
+                normalHr = 10;
+                otHr = 0;
+              }
+            } else if (timeRaw > 0) {
+              if (isFullOT) {
+                otHr = timeRaw;
+              } else {
+                if (timeRaw > 10) {
+                  normalHr = 10;
+                  otHr = timeRaw - 10;
                 } else {
-                    if (statusCode !== 'ACTIVE') {
-                        timeDisplay = statusCode;
-                        normalHr = 0; otHr = 0;
-                    }
+                  normalHr = timeRaw;
                 }
+              }
+            }
+          } else {
+            if (statusCode !== "ACTIVE") {
+              timeDisplay = statusCode;
+              normalHr = 0;
+              otHr = 0;
+            }
+          }
 
-                sumDist += dist; sumFuel += fuel; sumNormal += normalHr; sumOT += otHr;
+          sumDist += dist;
+          sumFuel += fuel;
+          sumNormal += normalHr;
+          sumOT += otHr;
 
-                let isGapCode = ['AB', 'SC', 'DC'].includes(timeDisplay);
-                let isRepCode = timeDisplay === 'R';
-                let isBdCode = ['B', 'H', 'ID', 'NP'].includes(timeDisplay);
+          let isGapCode = ["AB", "SC", "DC"].includes(timeDisplay);
+          let isRepCode = timeDisplay === "R";
+          let isBdCode = ["B", "H", "ID", "NP"].includes(timeDisplay);
 
-                let timeStyle = '';
-                if (isGapCode || isBdCode) timeStyle = 'font-weight:bold; color:#b91c1c;';
-                else if (isRepCode) timeStyle = 'font-weight:bold; color:#f97316;';
+          let timeStyle = "";
+          if (isGapCode || isBdCode)
+            timeStyle = "font-weight:bold; color:#b91c1c;";
+          else if (isRepCode) timeStyle = "font-weight:bold; color:#f97316;";
 
-                tableRowsHTML += `
+          tableRowsHTML += `
                 <tr>
                     <td>${i}</td><td>${dayName}</td>
-                    <td>${rec.wrk_start || ''}</td><td>${rec.wrk_end || ''}</td>
-                    <td>${rec.hmr_start || ''}</td><td>${rec.hmr_end || ''}</td>
-                    <td>${rec.fuel || ''}</td><td>${dist > 0 ? dist.toFixed(1) : ''}</td>
+                    <td>${rec.wrk_start || ""}</td><td>${rec.wrk_end || ""}</td>
+                    <td>${rec.hmr_start || ""}</td><td>${rec.hmr_end || ""}</td>
+                    <td>${rec.fuel || ""}</td><td>${dist > 0 ? dist.toFixed(1) : ""}</td>
                     <td style="${timeStyle}">${timeDisplay}</td>
-                    <td>${normalHr > 0 ? normalHr : ''}</td><td>${otHr > 0 ? otHr : ''}</td>
+                    <td>${normalHr > 0 ? normalHr : ""}</td><td>${otHr > 0 ? otHr : ""}</td>
                     <td class="note-col">${noteStr}</td>
                 </tr>`;
-            }
+        }
 
-            let totalHr = sumNormal + sumOT;
-            let mileage = sumFuel > 0 ? (sumDist / sumFuel).toFixed(2) : "0.00";
+        let totalHr = sumNormal + sumOT;
+        let mileage = sumFuel > 0 ? (sumDist / sumFuel).toFixed(2) : "0.00";
 
-            return `
+        return `
         <div class="ts-card" id="card_${vehicle.plate_no}">
             ${invoiceInfoHtml}
             
@@ -1046,7 +1278,7 @@
             <div class="ts-header">
                 <div class="info-col">
                     <div class="info-row"><div class="info-lbl">Driver</div><div class="info-val">: ${currDriver}</div></div>
-                    ${prevDriver ? `<div class="info-row"><div class="info-lbl" style="color:#64748b;">Old Driver</div><div class="info-val" style="color:#64748b;">: ${prevDriver}</div></div>` : ''}
+                    ${prevDriver ? `<div class="info-row"><div class="info-lbl" style="color:#64748b;">Old Driver</div><div class="info-val" style="color:#64748b;">: ${prevDriver}</div></div>` : ""}
                     <div class="info-row"><div class="info-lbl">Mobile</div><div class="info-val">: ${currMobile}</div></div>
                 </div>
                 
@@ -1057,7 +1289,7 @@
                 
                 <div class="info-col">
                     <div class="info-row"><div class="info-lbl">Site</div><div class="info-val">: ${currSite}</div></div>
-                    ${prevSite ? `<div class="info-row"><div class="info-lbl" style="color:#64748b;">Prev Site</div><div class="info-val" style="color:#64748b;">: ${prevSite}</div></div>` : ''}
+                    ${prevSite ? `<div class="info-row"><div class="info-lbl" style="color:#64748b;">Prev Site</div><div class="info-val" style="color:#64748b;">: ${prevSite}</div></div>` : ""}
                     <div class="info-row"><div class="info-lbl">Vehicle</div><div class="info-val">: ${dispVType}</div></div>
                 </div>
             </div>
@@ -1083,7 +1315,7 @@
             </div>
 
             <div class="ts-owner-details">
-                <div>Owner :: ${dispOName} ${dispOMob ? '(' + dispOMob + ')' : ''}</div>
+                <div>Owner :: ${dispOName} ${dispOMob ? "(" + dispOMob + ")" : ""}</div>
                 <div class="co-details"><span>Field Co :: ${dispFieldCo}</span><span>Site Co :: ${dispSiteCo}</span></div>
                 <div style="font-size:6px; color:transparent;">XXXXX</div>
             </div>
@@ -1092,81 +1324,89 @@
             
             <button class="card-dl-btn" onclick="downloadPNG(this, '${vehicle.plate_no}')">⬇️ PNG</button>
         </div>`;
+      }
+
+      async function downloadAllPDF() {
+        const area = document.getElementById("reportArea");
+        const cards = area.querySelectorAll(".ts-card");
+        if (cards.length === 0) return alert("No reports generated yet.");
+
+        const btn = document.getElementById("btnPdf");
+        const loader = document.getElementById("pdfLoader");
+        const btns = area.querySelectorAll(".card-dl-btn");
+
+        btns.forEach((b) => (b.style.display = "none"));
+        btn.disabled = true;
+        loader.style.display = "inline-block";
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF("p", "mm", "a4", true);
+
+        try {
+          for (let i = 0; i < cards.length; i++) {
+            const originalMargin = cards[i].style.margin;
+            const originalShadow = cards[i].style.boxShadow;
+            cards[i].style.width = "210mm";
+            cards[i].style.minHeight = "297mm";
+            cards[i].style.margin = "0";
+            cards[i].style.boxShadow = "none";
+
+            const canvas = await html2canvas(cards[i], {
+              scale: 2.0,
+              useCORS: true,
+              logging: false,
+            });
+            const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+            if (i > 0) pdf.addPage();
+            pdf.addImage(imgData, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+
+            cards[i].style.margin = originalMargin;
+            cards[i].style.boxShadow = originalShadow;
+          }
+
+          const m = document.getElementById("selMonth").value;
+          const y = document.getElementById("selYear").value;
+          pdf.save(`Timesheet_Reports_${m}_${y}.pdf`);
+        } catch (err) {
+          console.error(err);
+          alert("Error generating PDF.");
+        } finally {
+          btns.forEach((b) => (b.style.display = "flex"));
+          btn.disabled = false;
+          loader.style.display = "none";
         }
+      }
 
-        async function downloadAllPDF() {
-            const area = document.getElementById('reportArea');
-            const cards = area.querySelectorAll('.ts-card');
-            if (cards.length === 0) return alert("No reports generated yet.");
+      async function downloadPNG(btnElement, plateNo) {
+        const card = btnElement.closest(".ts-card");
+        const originalText = btnElement.innerHTML;
 
-            const btn = document.getElementById('btnPdf');
-            const loader = document.getElementById('pdfLoader');
-            const btns = area.querySelectorAll('.card-dl-btn');
+        btnElement.innerHTML = "⏳ Loading...";
+        btnElement.style.background = "#e2e8f0";
+        btnElement.disabled = true;
 
-            btns.forEach(b => b.style.display = 'none');
-            btn.disabled = true; loader.style.display = 'inline-block';
-
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4', true);
-
-            try {
-                for (let i = 0; i < cards.length; i++) {
-                    const originalMargin = cards[i].style.margin;
-                    const originalShadow = cards[i].style.boxShadow;
-                    cards[i].style.width = '210mm';
-                    cards[i].style.minHeight = '297mm';
-                    cards[i].style.margin = '0';
-                    cards[i].style.boxShadow = 'none';
-
-                    const canvas = await html2canvas(cards[i], { scale: 2.0, useCORS: true, logging: false });
-                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-
-                    if (i > 0) pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-
-                    cards[i].style.margin = originalMargin;
-                    cards[i].style.boxShadow = originalShadow;
-                }
-
-                const m = document.getElementById('selMonth').value;
-                const y = document.getElementById('selYear').value;
-                pdf.save(`Timesheet_Reports_${m}_${y}.pdf`);
-
-            } catch (err) {
-                console.error(err);
-                alert("Error generating PDF.");
-            } finally {
-                btns.forEach(b => b.style.display = 'flex');
-                btn.disabled = false; loader.style.display = 'none';
-            }
-        }
-
-        async function downloadPNG(btnElement, plateNo) {
-            const card = btnElement.closest('.ts-card');
-            const originalText = btnElement.innerHTML;
-
-            btnElement.innerHTML = '⏳ Loading...';
-            btnElement.style.background = '#e2e8f0';
-            btnElement.disabled = true;
-
-            setTimeout(async () => {
-                btnElement.style.display = 'none';
-                try {
-                    const canvas = await html2canvas(card, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-                    const link = document.createElement('a');
-                    link.download = `Timesheet_${plateNo}_${document.getElementById('selMonth').value}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                } catch (e) {
-                    alert("Error generating PNG.");
-                } finally {
-                    btnElement.innerHTML = originalText;
-                    btnElement.disabled = false;
-                    btnElement.style.display = 'flex';
-                }
-            }, 50);
-        }
+        setTimeout(async () => {
+          btnElement.style.display = "none";
+          try {
+            const canvas = await html2canvas(card, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: "#ffffff",
+            });
+            const link = document.createElement("a");
+            link.download = `Timesheet_${plateNo}_${document.getElementById("selMonth").value}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+          } catch (e) {
+            alert("Error generating PNG.");
+          } finally {
+            btnElement.innerHTML = originalText;
+            btnElement.disabled = false;
+            btnElement.style.display = "flex";
+          }
+        }, 50);
+      }
     </script>
-</body>
-
+  </body>
 </html>
