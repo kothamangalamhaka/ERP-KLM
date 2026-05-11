@@ -434,8 +434,11 @@ function createBillCard(group, id) {
         let saved = savedBillingData.find(s => s.plate_no === item.plate_number && s.site_name === item.site);
         let nhr = saved ? saved.nhr : 0;
         let othr = saved ? saved.othr : 0;
-        let nrate = parseFloat(saved ? saved.nrate : item.nrate || 0).toFixed(2);
-        let otrate = parseFloat(saved ? saved.otrate : item.otrate || 0).toFixed(2);
+        
+        // 🟢 FIXED: Removed .toFixed(2) here to load exact rates from DB
+        let nrate = parseFloat(saved ? saved.nrate : item.nrate || 0);
+        let otrate = parseFloat(saved ? saved.otrate : item.otrate || 0);
+        
         let vatPerc = saved ? saved.vat_percent : (item.vat_bill === "Yes" ? 15 : 0);
         let driverName = item.driver_name || item.driver || "";
         if (saved && saved.driver) driverName = saved.driver;
@@ -649,6 +652,8 @@ function addDynamicRow(cardId) {
   let vatCol = card.querySelector(".vat-col");
   let vatDisplay = vatCol ? vatCol.style.display : "";
   const tr = document.createElement("tr");
+  
+  // 🟢 FIXED: Changed rate strings to 0 for raw calculation
   tr.innerHTML = generateRowHTML(
     index,
     getShortDate(),
@@ -657,9 +662,9 @@ function addDynamicRow(cardId) {
     "",
     "",
     0,
-    "0.00",
     0,
-    "0.00",
+    0,
+    0,
     15,
     vatDisplay,
   );
@@ -786,10 +791,12 @@ function autoFill(input) {
       row.querySelector(".driver").value = match.driver_name || match.driver;
     if (match.site || match.site_name)
       row.querySelector(".site").value = match.site || match.site_name;
+      
+    // 🟢 FIXED: Removed .toFixed(2) here for exact rate autofill
     if (match.nrate)
-      row.querySelector(".nrate").value = parseFloat(match.nrate).toFixed(2);
+      row.querySelector(".nrate").value = parseFloat(match.nrate);
     if (match.otrate)
-      row.querySelector(".otrate").value = parseFloat(match.otrate).toFixed(2);
+      row.querySelector(".otrate").value = parseFloat(match.otrate);
 
     let vatSelect = row.querySelector(".vat-rate");
     if (vatSelect) vatSelect.value = match.vat_bill === "Yes" ? "15" : "0";
@@ -947,19 +954,20 @@ function getDynamicFileName(card) {
 }
 
 function convertInputsToText(card) {
+    // 🟢 NEW: ഇമേജ് എടുക്കുമ്പോൾ OWNER എന്ന വരി പൂർണ്ണമായും ഹൈഡ് ചെയ്യുന്നു
+    let ownerWrapper = card.querySelector('.owner-input')?.parentNode;
+    if (ownerWrapper) {
+        ownerWrapper.style.display = 'none';
+    }
+
     card.querySelectorAll('input').forEach(input => {
-        if (input.type !== 'hidden') {
+        // ഓണറുടെ ഇൻപുട്ട് അല്ലാത്ത ബാക്കി ഇൻപുട്ടുകൾ മാത്രം സ്പാൻ (span) ആക്കി മാറ്റുന്നു
+        if (input.type !== 'hidden' && !input.classList.contains('owner-input')) {
             const span = document.createElement('span');
             span.className = 'temp-export-span';
-            span.innerText = input.type === 'number' ? parseFloat(input.value || 0).toFixed(2) : input.value;
-            
+            span.innerText = input.type === 'number' ? (input.value || "0") : input.value;
             span.style.cssText = 'display:block; width:100%; text-align:center; font-size:13px; padding:4px; font-weight:normal; color:#333;';
             
-            if (input.classList.contains('owner-input')) {
-                span.style.textAlign = 'left';
-                span.style.fontSize = '16px';
-                span.style.fontWeight = 'bold';
-            }
             input.style.display = 'none';
             input.parentNode.appendChild(span);
         }
@@ -967,9 +975,8 @@ function convertInputsToText(card) {
     
     card.querySelectorAll('.no-export, .no-export-col').forEach(el => el.style.display = 'none');
     card.querySelectorAll('.rate-col').forEach(el => el.style.display = 'none');
-    card.querySelectorAll('.site-col').forEach(el => el.style.display = 'none'); // 🟢 Site കോളം ഹൈഡ് ചെയ്തു
+    card.querySelectorAll('.site-col').forEach(el => el.style.display = 'none'); 
 
-    // 🟢 Site കോളം പോകുമ്പോൾ Grand Total അലൈൻമെന്റ് ശരിയാക്കാൻ
     let footerColspan = card.querySelector('.footer-colspan');
     if (footerColspan) footerColspan.colSpan = 5;
 
@@ -982,14 +989,19 @@ function convertInputsToText(card) {
 }
 
 function revertInputsFromText(card) {
+    // 🟢 NEW: എക്സ്പോർട്ട് കഴിഞ്ഞ ശേഷം OWNER വരി സ്ക്രീനിൽ തിരികെ കൊണ്ടുവരുന്നു
+    let ownerWrapper = card.querySelector('.owner-input')?.parentNode;
+    if (ownerWrapper) {
+        ownerWrapper.style.display = ''; 
+    }
+
     card.querySelectorAll('.temp-export-span').forEach(el => el.remove());
     card.querySelectorAll('input').forEach(input => input.style.display = '');
     
     card.querySelectorAll('.no-export, .no-export-col').forEach(el => el.style.display = '');
     card.querySelectorAll('.rate-col').forEach(el => el.style.display = '');
-    card.querySelectorAll('.site-col').forEach(el => el.style.display = ''); // 🟢 Site കോളം തിരികെ കൊണ്ടുവന്നു
+    card.querySelectorAll('.site-col').forEach(el => el.style.display = ''); 
 
-    // 🟢 Grand Total അലൈൻമെന്റ് പഴയതുപോലെ ആക്കാൻ
     let footerColspan = card.querySelector('.footer-colspan');
     if (footerColspan) footerColspan.colSpan = 6;
 
@@ -1003,6 +1015,7 @@ function revertInputsFromText(card) {
         el.style.display = hasVat ? '' : 'none';
     });
 }
+
 async function exportSingleImage(id) {
   const card = document.getElementById(`billCard_${id}`);
   const printArea = document.getElementById(`printArea_${id}`);
