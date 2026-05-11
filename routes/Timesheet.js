@@ -1219,6 +1219,24 @@ router.post("/api/db/bulk-import", verifyEditor, async (req, res) => {
       "BULK_IMPORT_MASTER",
       `Master Database bulk imported`,
     );
+    await client.query(`
+        UPDATE vehicle_site_log vsl
+        SET rate = tv.rate
+        FROM timesheet_vehicles tv
+        WHERE UPPER(vsl.plate_no) = UPPER(tv.plate_no)
+        AND vsl.status = 'Running'
+        AND tv.rate IS NOT NULL
+        AND tv.rate != ''
+    `);
+
+    await logAudit(
+      req.user,
+      "BULK_IMPORT_MASTER",
+      `Master Database bulk imported`,
+    );
+    await client.query("COMMIT");
+    res.json({ success: true });
+
     await client.query("COMMIT");
     res.json({ success: true });
   } catch (error) {
