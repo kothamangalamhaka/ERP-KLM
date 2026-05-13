@@ -117,9 +117,11 @@ function initMonth() {
 function selectMonth(val) {
   document.getElementById("selectedMonthText").innerText = val;
   document.getElementById("monthOptions").classList.remove("show");
-  document
-    .querySelectorAll(".date-cell")
-    .forEach((cell) => (cell.innerText = getShortDate()));
+
+  masterData = [];
+  savedBillingData = [];
+
+  fetchDataFromERP();
 }
 
 function getShortDate() {
@@ -187,6 +189,15 @@ function fetchDataFromERP() {
   const token = localStorage.getItem("token");
   if (!fullMonth || fullMonth === "Loading...")
     return showToast("Select a month.");
+
+  // 🟢 FIXED: Fetch അടിക്കുമ്പോൾ തന്നെ പഴയ ടേബിളുകൾ എല്ലാം ക്ലിയർ ആക്കാൻ!
+  document.getElementById("dynamicBillsContainer").innerHTML = `
+    <div style="text-align: center; padding: 50px; color: #666; background: white; border-radius: 8px; border: 1px dashed #ccc;">
+      <h2>Data Fetched for ${fullMonth}</h2>
+      <p>Select filters and click "Arrange ✨" to view tables.</p>
+    </div>
+  `;
+  manualTableCount = 0; // പഴയ മാന്വൽ ടേബിളുകളുടെ കൗണ്ട് റീസെറ്റ് ചെയ്യാൻ
 
   document.getElementById("loader").style.display = "flex";
   fetch("/billing/vehicles?month=" + encodeURIComponent(fullMonth), {
@@ -910,6 +921,29 @@ function applyAutoFillData(input, match, addBlankRow = true) {
   if (match.nrate) row.querySelector(".nrate").value = parseFloat(match.nrate);
   if (match.otrate)
     row.querySelector(".otrate").value = parseFloat(match.otrate);
+
+  // 🟢 FIXED: Fetching already saved hours and exact rates from savedBillingData
+  let saved = savedBillingData.find(
+    (s) =>
+      (s.plate_no || "").toUpperCase() ===
+        (match.plate_number || match.plate || "").toUpperCase() &&
+      (s.site_name || "").trim() ===
+        (match.site || match.site_name || "").trim(),
+  );
+
+  if (saved) {
+    row.querySelector(".nhr").value = saved.nhr || 0;
+    row.querySelector(".othr").value = saved.othr || 0;
+    // Overwrite with DB rates if available to maintain exact saved data
+    if (saved.nrate)
+      row.querySelector(".nrate").value = parseFloat(saved.nrate);
+    if (saved.otrate)
+      row.querySelector(".otrate").value = parseFloat(saved.otrate);
+  } else {
+    // If no saved data, ensure hours remain 0
+    row.querySelector(".nhr").value = 0;
+    row.querySelector(".othr").value = 0;
+  }
 
   let vatSelect = row.querySelector(".vat-rate");
   if (vatSelect) vatSelect.value = match.vat_bill === "Yes" ? "15" : "0";
