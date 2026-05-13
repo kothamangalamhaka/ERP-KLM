@@ -1,145 +1,268 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KLM ERP - Advanced Ledger</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+
     <!-- 🟢 Link to External CSS -->
-    <link rel="stylesheet" href="style/monthly_expense.css">
-</head>
+    <link rel="stylesheet" href="style/monthly_expense.css" />
+  </head>
 
-<body>
-
+  <body>
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- 🟢 Secure Admin Login Screen -->
     <div id="loginScreen">
-        <div class="login-box">
-            <h2>KLM ERP Login</h2>
-            <input type="text" id="loginUserId" placeholder="User ID" onkeypress="if(event.key==='Enter') executeLogin()">
-            <input type="password" id="loginPass" placeholder="Password" onkeypress="if(event.key==='Enter') executeLogin()">
-            <button onclick="executeLogin()">Secure Login</button>
-        </div>
+      <div class="login-box">
+        <h2>KLM ERP Login</h2>
+        <input
+          type="text"
+          id="loginUserId"
+          placeholder="User ID"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <input
+          type="password"
+          id="loginPass"
+          placeholder="Password"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <button onclick="executeLogin()">Secure Login</button>
+      </div>
     </div>
 
     <!-- Main App Content -->
     <div class="app-content" id="appMain">
-        
-        <!-- Delete Confirmation Modal (Secured) -->
-        <div class="modal-overlay" id="deleteModal">
-            <div class="modal-box" style="width: 320px; text-align: center; border-top: 5px solid #ef4444;">
-                <h3>Confirm Delete</h3>
-                <p style="color: #64748b;">Enter the security key to delete this entry from the database:</p>
-                <input type="hidden" id="deleteTargetId">
-                <div class="form-group">
-                    <!-- 🟢 Password type input for security -->
-                    <input type="password" id="deleteConfirmKey" placeholder="Security Key" style="text-align: center; font-weight: bold;">
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-outline" style="flex:1" onclick="closeModal('deleteModal')">Cancel</button>
-                    <button class="btn btn-primary" style="flex:1; background: #ef4444;" id="deleteBtnAction" onclick="executeDelete()">Delete Now</button>
-                </div>
-            </div>
+      <!-- Delete Confirmation Modal (Secured) -->
+      <div class="modal-overlay" id="deleteModal">
+        <div
+          class="modal-box"
+          style="
+            width: 320px;
+            text-align: center;
+            border-top: 5px solid #ef4444;
+          "
+        >
+          <h3>Confirm Delete</h3>
+          <p style="color: #64748b">
+            Enter the security key to delete this entry from the database:
+          </p>
+          <input type="hidden" id="deleteTargetId" />
+          <div class="form-group">
+            <!-- 🟢 Password type input for security -->
+            <input
+              type="password"
+              id="deleteConfirmKey"
+              placeholder="Security Key"
+              style="text-align: center; font-weight: bold"
+            />
+          </div>
+          <div style="display: flex; gap: 10px">
+            <button
+              class="btn btn-outline"
+              style="flex: 1"
+              onclick="closeModal('deleteModal')"
+            >
+              Cancel
+            </button>
+            <button
+              class="btn btn-primary"
+              style="flex: 1; background: #ef4444"
+              id="deleteBtnAction"
+              onclick="executeDelete()"
+            >
+              Delete Now
+            </button>
+          </div>
         </div>
+      </div>
 
-        <!-- Add/Edit Entry Modal -->
-        <div class="modal-overlay" id="entryModal">
-            <div class="modal-box">
-                <h3 id="modalTitle">New Transaction</h3>
-                <input type="hidden" id="editId">
-                <div style="display: flex; gap: 15px;">
-                    <div class="form-group" style="flex: 1;"><label>Date</label><input type="date" id="popDate"></div>
-                    <div class="form-group" style="flex: 1;"><label>Amount (₹)</label><input type="number" id="popAmount" step="0.01"></div>
-                </div>
-                <div class="form-group">
-                    <label>Category</label>
-                    <select id="popCategory">
-                        <option value="Expense">General Expense</option>
-                        <option value="Purchase">Purchase</option>
-                        <option value="Office Rent">Office Rent</option>
-                        <option value="Office Electricity">Office Electricity</option>
-                        <option value="Office Account">Office Account</option>
-                        <option value="Settlement - Staff">Settlement - Pay to Staff</option>
-                        <option value="Settlement - Credit">Settlement - Pay Vendor</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Source / Paid By</label>
-                    <select id="popSource">
-                        <option value="Office Account">Office Account</option>
-                        <option value="Office Staff">Office Staff</option>
-                        <option value="Ajils Account">Ajils Account</option>
-                        <option value="Credit">Credit / Unpaid</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Particulars</label><input type="text" id="popParticulars"></div>
-                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px;">
-                    <button class="btn btn-outline" onclick="closeModal('entryModal')">Cancel</button>
-                    <button class="btn btn-primary" id="saveBtnAction" onclick="handleEntrySave()">Save to DB</button>
-                </div>
+      <!-- Add/Edit Entry Modal -->
+      <div class="modal-overlay" id="entryModal">
+        <div class="modal-box">
+          <h3 id="modalTitle">New Transaction</h3>
+          <input type="hidden" id="editId" />
+          <div style="display: flex; gap: 15px">
+            <div class="form-group" style="flex: 1">
+              <label>Date</label><input type="date" id="popDate" />
             </div>
-        </div>
-
-        <div class="container" id="ledgerContent">
-            <div class="card">
-                <div class="flex-header">
-                    <h2 class="main-title">KLM ERP Dashboard <button class="logout-btn" onclick="executeLogout()">Logout</button></h2>
-
-                    <div class="top-toolbar" id="toolbarArea">
-                        <div class="filter-group">
-                            <input type="date" id="filterFrom"><span style="color:#94a3b8; font-size:11px;">TO</span><input type="date" id="filterTo">
-                            <button class="btn btn-primary" style="padding: 6px 12px;" onclick="renderTable()">Filter</button>
-                        </div>
-                        <div class="action-group">
-                            <button class="btn btn-primary" onclick="openEntryModal()">+ Add New</button>
-                            <!-- 🟢 Excel Download Button added -->
-                            <button class="btn btn-excel" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Excel</button>
-                            <button class="btn btn-export" onclick="downloadImage()"><i class="fas fa-image"></i> Image</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 🟢 Dashboard 4 Compact Cards -->
-                <div class="dashboard" id="reportGrid"></div>
-                <!-- 🟢 Total Expense Single Line Strip -->
-                <div id="totalStrip"></div>
-                
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <!-- 🟢 Excel Filter Headers -->
-                            <tr>
-                                <th data-col="date" style="width: 110px;" onclick="openFilterMenu(event, 'date')">Date <span class="filter-icon">▼</span></th>
-                                <th data-col="particulars" onclick="openFilterMenu(event, 'particulars')">Particulars <span class="filter-icon">▼</span></th>
-                                <th data-col="category" style="width: 180px;" onclick="openFilterMenu(event, 'category')">Category <span class="filter-icon">▼</span></th>
-                                <th data-col="source" style="width: 180px;" onclick="openFilterMenu(event, 'source')">Source <span class="filter-icon">▼</span></th>
-                                <th data-col="amount" style="width: 130px; text-align: right;" onclick="openFilterMenu(event, 'amount')">Amount <span class="filter-icon">▼</span></th>
-                                <th style="width: 80px; text-align: center;" class="action-col no-export">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="gridBody"></tbody>
-                    </table>
-                </div>
+            <div class="form-group" style="flex: 1">
+              <label>Amount (₹)</label
+              ><input type="number" id="popAmount" step="0.01" />
             </div>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="popCategory">
+              <option value="Expense">General Expense</option>
+              <option value="Purchase">Purchase</option>
+              <!-- 🟢 Fixed Assets added here -->
+              <option value="Fixed Assets">Fixed Assets</option>
+              <option value="Office Rent">Office Rent</option>
+              <option value="Office Electricity">Office Electricity</option>
+              <option value="Office Account">Office Account</option>
+              <option value="Settlement - Staff">
+                Settlement - Pay to Staff
+              </option>
+              <option value="Settlement - Credit">
+                Settlement - Pay Vendor
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Source / Paid By</label>
+            <select id="popSource">
+              <option value="Office Account">Office Account</option>
+              <option value="Office Staff">Office Staff</option>
+              <option value="Ajils Account">Ajils Account</option>
+              <option value="Credit">Credit / Unpaid</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Particulars</label><input type="text" id="popParticulars" />
+          </div>
+          <div
+            style="
+              display: flex;
+              justify-content: flex-end;
+              gap: 10px;
+              margin-top: 25px;
+            "
+          >
+            <button class="btn btn-outline" onclick="closeModal('entryModal')">
+              Cancel
+            </button>
+            <button
+              class="btn btn-primary"
+              id="saveBtnAction"
+              onclick="handleEntrySave()"
+            >
+              Save to DB
+            </button>
+          </div>
         </div>
+      </div>
+
+      <div class="container" id="ledgerContent">
+        <div class="card">
+          <div class="flex-header">
+            <h2 class="main-title">
+              KLM ERP Dashboard
+              <button class="logout-btn" onclick="executeLogout()">
+                Logout
+              </button>
+            </h2>
+
+            <div class="top-toolbar" id="toolbarArea">
+              <div class="filter-group">
+                <input type="date" id="filterFrom" /><span
+                  style="color: #94a3b8; font-size: 11px"
+                  >TO</span
+                ><input type="date" id="filterTo" />
+                <button
+                  class="btn btn-primary"
+                  style="padding: 6px 12px"
+                  onclick="renderTable()"
+                >
+                  Filter
+                </button>
+              </div>
+              <div class="action-group">
+                <button class="btn btn-primary" onclick="openEntryModal()">
+                  + Add New
+                </button>
+                <!-- 🟢 Excel Download Button -->
+                <button class="btn btn-excel" onclick="exportToExcel()">
+                  <i class="fas fa-file-excel"></i> Excel
+                </button>
+                <button class="btn btn-export" onclick="downloadImage()">
+                  <i class="fas fa-image"></i> Image
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 🟢 Dashboard 4 Compact Cards -->
+          <div class="dashboard" id="reportGrid"></div>
+          <!-- 🟢 Total Expense Single Line Strip -->
+          <div id="totalStrip"></div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <!-- 🟢 Excel Filter Headers -->
+                <tr>
+                  <th
+                    data-col="date"
+                    style="width: 110px"
+                    onclick="openFilterMenu(event, 'date')"
+                  >
+                    Date <span class="filter-icon">▼</span>
+                  </th>
+                  <th
+                    data-col="particulars"
+                    onclick="openFilterMenu(event, 'particulars')"
+                  >
+                    Particulars <span class="filter-icon">▼</span>
+                  </th>
+                  <th
+                    data-col="category"
+                    style="width: 180px"
+                    onclick="openFilterMenu(event, 'category')"
+                  >
+                    Category <span class="filter-icon">▼</span>
+                  </th>
+                  <th
+                    data-col="source"
+                    style="width: 180px"
+                    onclick="openFilterMenu(event, 'source')"
+                  >
+                    Source <span class="filter-icon">▼</span>
+                  </th>
+                  <th
+                    data-col="amount"
+                    style="width: 130px; text-align: right"
+                    onclick="openFilterMenu(event, 'amount')"
+                  >
+                    Amount <span class="filter-icon">▼</span>
+                  </th>
+                  <th
+                    style="width: 80px; text-align: center"
+                    class="action-col no-export"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="gridBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 🟢 Excel Style Filter Menu -->
     <div id="filterMenu" class="filter-popup">
-        <input type="text" id="filterSearch" placeholder="Search..." onkeyup="filterCheckboxes()">
-        <div class="filter-options" id="filterOptions"></div>
-        <div class="filter-actions">
-            <button class="apply-btn" onclick="applyTableFilters()">Apply</button>
-            <button class="clear-btn" onclick="clearTableFilters()">Clear</button>
-        </div>
+      <input
+        type="text"
+        id="filterSearch"
+        placeholder="Search..."
+        onkeyup="filterCheckboxes()"
+      />
+      <div class="filter-options" id="filterOptions"></div>
+      <div class="filter-actions">
+        <button class="apply-btn" onclick="applyTableFilters()">Apply</button>
+        <button class="clear-btn" onclick="clearTableFilters()">Clear</button>
+      </div>
     </div>
 
     <!-- 🟢 Link to External JS -->
     <script src="script/monthly_expense.js"></script>
-</body>
-
+  </body>
 </html>
