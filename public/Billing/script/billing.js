@@ -194,7 +194,6 @@ function fetchDataFromERP() {
   document.getElementById("dynamicBillsContainer").innerHTML = `
     <div style="text-align: center; padding: 50px; color: #666; background: white; border-radius: 8px; border: 1px dashed #ccc;">
       <h2>Data Fetched for ${fullMonth}</h2>
-      <p>Select filters and click "Arrange ✨" to view tables.</p>
     </div>
   `;
   manualTableCount = 0; // പഴയ മാന്വൽ ടേബിളുകളുടെ കൗണ്ട് റീസെറ്റ് ചെയ്യാൻ
@@ -795,8 +794,9 @@ function handleGlobalKeyDown(e, input) {
       activeIndex = (activeIndex - 1 + items.length) % items.length;
       updateActiveSuggestion(items, activeIndex, box);
       return;
-    } else if (e.key === "Enter" || e.key === "Tab") {
+    } else if (e.key === "Enter" || e.key === "Tab" || e.key === "ArrowRight") {
       e.preventDefault();
+      e.stopPropagation();
       input.value =
         activeIndex > -1 ? items[activeIndex].innerText : items[0].innerText;
       box.style.display = "none";
@@ -940,9 +940,11 @@ function applyAutoFillData(input, match, addBlankRow = true) {
     if (saved.otrate)
       row.querySelector(".otrate").value = parseFloat(saved.otrate);
   } else {
-    // If no saved data, ensure hours remain 0
-    row.querySelector(".nhr").value = 0;
-    row.querySelector(".othr").value = 0;
+    // 🟢 FIXED: If no saved data, ONLY set to 0 if the user hasn't typed anything yet!
+    let currentNhr = parseFloat(row.querySelector(".nhr").value) || 0;
+    let currentOthr = parseFloat(row.querySelector(".othr").value) || 0;
+    if (currentNhr === 0) row.querySelector(".nhr").value = 0;
+    if (currentOthr === 0) row.querySelector(".othr").value = 0;
   }
 
   let vatSelect = row.querySelector(".vat-rate");
@@ -1350,8 +1352,7 @@ function submitBulkData() {
       document.getElementById("loader").style.display = "none";
       if (res.success) {
         showToast("All Bulk Bills Saved to ERP!");
-        // 🟢 FIX 2: മാന്വൽ ഡാറ്റ മായാതിരിക്കാൻ സേവ് ആയ ശേഷം തനിയെ ഒന്ന് ഫെച്ച് (Refresh) ചെയ്യുന്നു
-        setTimeout(() => fetchDataFromERP(), 1000);
+        fetchDataSilently();
       } else {
         showToast("Error: " + res.message);
       }
@@ -1449,4 +1450,25 @@ document.addEventListener("keydown", function (e) {
 
 function goToDashboard() {
   window.location.href = "/billing/dashboard";
+}
+
+// 🟢 NEW: Fetches data in the background without destroying the user's manual tables
+function fetchDataSilently() {
+  const fullMonth = document
+    .getElementById("selectedMonthText")
+    .innerText.trim();
+  const token = localStorage.getItem("token");
+  if (!fullMonth || fullMonth === "Loading...") return;
+
+  fetch("/billing/vehicles?month=" + encodeURIComponent(fullMonth), {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        masterData = data.data;
+        savedBillingData = data.saved_bills || [];
+      }
+    })
+    .catch((err) => console.log("Silent background fetch failed", err));
 }
