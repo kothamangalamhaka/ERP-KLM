@@ -148,7 +148,7 @@ module.exports = function (pool, middlewares, helpers) {
 
             // OPTIMIZATION: Filter out soft-deleted columns
             const headerResult = await pool.query(`
-                SELECT header_name, is_locked, alignment, col_type 
+                SELECT header_name, is_locked, alignment, col_type, col_width 
                 FROM erp_headers 
                 WHERE deleted_at IS NULL 
                 ORDER BY col_order ASC
@@ -158,6 +158,7 @@ module.exports = function (pool, middlewares, helpers) {
             let lockedCols = headerResult.rows.filter(h => h.is_locked).map(h => h.header_name);
             let alignments = headerResult.rows.map(h => ({ name: h.header_name, align: h.alignment }));
             let colTypes = headerResult.rows.map(h => ({ name: h.header_name, type: h.col_type || 'varchar' }));
+            let colWidths = headerResult.rows.map(h => ({ name: h.header_name, width: h.col_width || '100px' }));
 
             let query = `
                 SELECT * FROM erp_records 
@@ -208,12 +209,25 @@ module.exports = function (pool, middlewares, helpers) {
                 if (dbRow.sn > maxSN) maxSN = dbRow.sn;
             });
 
-            res.json({ success: true, headers, lockedCols, alignments, colTypes, rows, nextSN: maxSN + 1 });
+            res.json({ success: true, headers, lockedCols, alignments, colTypes, colWidths, rows, nextSN: maxSN + 1 });
         } catch (error) {
             handleError(res, error, req.user.role, "GET_MASTER_DATA");
         }
     });
 
+    /**
+     * SAVE COLUMN WIDTH
+     */
+    router.post('/update-col-width', verifyToken, async (req, res) => {
+        try {
+            const { colName, width } = req.body;
+            await pool.query('UPDATE erp_headers SET col_width = $1 WHERE header_name = $2', [width, colName]);
+            res.json({ success: true });
+        } catch (error) {
+            handleError(res, error, req.user.role, "UPDATE_COL_WIDTH");
+        }
+    });
+    
     /**
      * UPDATE SINGLE CELL
      * Uses JSONB Concatenation (||) to prevent Race Conditions.
