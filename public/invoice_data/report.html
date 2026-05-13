@@ -514,10 +514,139 @@
         background: #e2e8f0;
         color: #475569;
       }
+
+      /* 🟢 Custom Alert & Toast CSS */
+      .custom-alert-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(2px);
+      }
+      .custom-alert-box {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        width: 350px;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        animation: popIn 0.3s ease-out;
+      }
+      .custom-alert-box p {
+        margin: 0 0 20px 0;
+        font-size: 15px;
+        color: #1e293b;
+        font-weight: 500;
+      }
+      .custom-alert-btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 8px 25px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      @keyframes popIn {
+        from {
+          transform: scale(0.9);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      #toastMsg {
+        visibility: hidden;
+        min-width: 250px;
+        background-color: #10b981;
+        color: #fff;
+        text-align: center;
+        border-radius: 4px;
+        padding: 12px;
+        position: fixed;
+        z-index: 10001;
+        left: 50%;
+        bottom: 30px;
+        transform: translateX(-50%);
+        font-size: 14px;
+        font-weight: bold;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        transition:
+          opacity 0.3s,
+          bottom 0.3s;
+      }
+      #toastMsg.show {
+        visibility: visible;
+        opacity: 1;
+        bottom: 50px;
+      }
+      .plate-cell {
+        cursor: context-menu;
+        transition: color 0.2s;
+      }
+      .plate-cell:hover {
+        color: var(--primary);
+        text-decoration: underline;
+      }
     </style>
   </head>
 
   <body>
+    <!-- 🟢 Custom Alert Modal -->
+    <div id="customAlert" class="custom-alert-overlay">
+      <div class="custom-alert-box">
+        <p id="customAlertMessage">Message goes here</p>
+        <button class="custom-alert-btn" onclick="closeCustomAlert()">
+          OK
+        </button>
+      </div>
+    </div>
+
+    <!-- 🟢 Custom Prompt for Edit Mode Security Code -->
+    <div id="customPrompt" class="custom-alert-overlay">
+      <div class="custom-alert-box">
+        <p>Enter Security Code to enable Bulk Editing:</p>
+        <input
+          type="password"
+          id="editSecurityCode"
+          style="
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            font-size: 14px;
+            outline: none;
+          "
+          placeholder="Security Code"
+          onkeypress="if (event.key === 'Enter') submitCustomPrompt();"
+        />
+        <div style="display: flex; gap: 10px; justify-content: center">
+          <button
+            class="btn-clear-filter"
+            style="padding: 8px 20px"
+            onclick="closeCustomPrompt()"
+          >
+            Cancel
+          </button>
+          <button class="custom-alert-btn" onclick="submitCustomPrompt()">
+            Submit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🟢 Toast Message for Copy -->
+    <div id="toastMsg">Copied!</div>
+
     <div id="loginScreen">
       <div class="login-box">
         <h2>Haka ERP Login</h2>
@@ -621,7 +750,7 @@
             Single Excel
           </button>
 
-          <!-- 🟢 NEW: Edit Mode Buttons -->
+          <!-- 🟢 Edit Mode Buttons -->
           <button
             id="btnEditData"
             class="btn-primary"
@@ -671,6 +800,8 @@
                   class="th-vehicle"
                   style="width: 100px"
                   onclick="openExcelFilterMenu(event, 'plate', 2)"
+                  oncontextmenu="copyAllPlates(event)"
+                  title="Right click to copy all visible plates"
                 >
                   Plate No <span class="filter-icon">▼</span>
                 </th>
@@ -921,7 +1052,7 @@
         const username = document.getElementById("loginUserId").value;
         const password = document.getElementById("loginPass").value;
 
-        if (!username || !password) return alert("Enter credentials");
+        if (!username || !password) return window.alert("Enter credentials");
 
         try {
           const res = await fetch("/api/login", {
@@ -933,17 +1064,17 @@
 
           if (data.success) {
             if (data.user.role === "Viewer") {
-              alert("Access Denied: Viewers cannot access reports.");
+              window.alert("Access Denied: Viewers cannot access reports.");
               return;
             }
             localStorage.setItem("timesheetToken", data.token);
             loadApp();
           } else {
-            alert(data.message || "Invalid Credentials!");
+            window.alert(data.message || "Invalid Credentials!");
             document.getElementById("loginPass").value = "";
           }
         } catch (err) {
-          alert("Server Connection Error.");
+          window.alert("Server Connection Error.");
         }
       }
 
@@ -979,6 +1110,16 @@
       let headerFilters = { site: [], owner: [], plate: [] };
       let currentFilterColInfo = { key: "", index: -1 };
       let isEditMode = false;
+
+      // 🟢 Override native alert with custom alert
+      window.alert = function (message) {
+        document.getElementById("customAlertMessage").innerText = message;
+        document.getElementById("customAlert").style.display = "flex";
+      };
+
+      function closeCustomAlert() {
+        document.getElementById("customAlert").style.display = "none";
+      }
 
       async function fetchReportDataAPI(monthStr, yearStr) {
         const token = localStorage.getItem("timesheetToken");
@@ -1308,7 +1449,7 @@
           tr.innerHTML = `
                     <td style="font-weight: 600; white-space:nowrap; text-align: left; padding-left: 15px;">${row.site}</td>
                     <td class="col-owner">${row.owner}</td>
-                    <td style="font-weight: 700; white-space:nowrap;">${row.plate}</td>
+                    <td class="plate-cell" style="font-weight: 700; white-space:nowrap;" oncontextmenu="copySinglePlate(event, '${row.plate}')" title="Right click to copy">${row.plate}</td>
                     
                     <td class="col-ts">${row.ts_nr}</td><td class="col-ts">${row.ts_ot}</td>
                     
@@ -1332,8 +1473,8 @@
         });
       }
 
-      // 🟢 Inline Editing & Security Features
-      async function requestEditMode() {
+      // 🟢 Edit Mode Custom Prompt Logic
+      function requestEditMode() {
         if (isEditMode) {
           // Toggle OFF
           isEditMode = false;
@@ -1345,9 +1486,20 @@
           });
           return;
         }
+        // Show Custom Prompt
+        document.getElementById("editSecurityCode").value = "";
+        document.getElementById("customPrompt").style.display = "flex";
+        document.getElementById("editSecurityCode").focus();
+      }
 
-        const code = prompt("Enter Security Code to enable Bulk Editing:");
+      function closeCustomPrompt() {
+        document.getElementById("customPrompt").style.display = "none";
+      }
+
+      async function submitCustomPrompt() {
+        const code = document.getElementById("editSecurityCode").value;
         if (!code) return;
+        closeCustomPrompt();
 
         const token = localStorage.getItem("timesheetToken");
         try {
@@ -1367,14 +1519,14 @@
             document.getElementById("btnSaveChanges").style.display =
               "inline-block";
             activateEditModeCells();
-            alert(
+            window.alert(
               "Edit Mode Activated! You can now copy-paste Excel data directly into the highlighted cells.",
             );
           } else {
-            alert(data.message);
+            window.alert(data.message);
           }
         } catch (err) {
-          alert("Server Connection Error.");
+          window.alert("Server Connection Error.");
         }
       }
 
@@ -1400,14 +1552,13 @@
           let currentCell = target;
           let currentRow = currentCell.parentElement;
 
-          // Find which index among *editable* cells the current target is
           let editableCellsInRow = Array.from(
             currentRow.querySelectorAll(".editable-field"),
           );
           let startColIndex = editableCellsInRow.indexOf(currentCell);
 
           for (let i = 0; i < rows.length; i++) {
-            if (!rows[i].trim() && i === rows.length - 1) break; // skip last empty line
+            if (!rows[i].trim() && i === rows.length - 1) break;
             let cols = rows[i].split("\t");
 
             if (currentRow) {
@@ -1479,16 +1630,16 @@
           const data = await res.json();
 
           if (data.success) {
-            alert("Changes Saved Successfully!");
+            window.alert("Changes Saved Successfully!");
             isEditMode = false;
             document.getElementById("btnEditData").innerHTML = "✏️ Edit Data";
             document.getElementById("btnSaveChanges").style.display = "none";
             fetchAndRenderUI();
           } else {
-            alert("Error: " + data.message);
+            window.alert("Error: " + data.message);
           }
         } catch (err) {
-          alert("Server Connection Error.");
+          window.alert("Server Connection Error.");
         }
         document.getElementById("loader").style.display = "none";
       }
@@ -1694,7 +1845,7 @@
           return matchO && matchS && matchP && hMatchS && hMatchO && hMatchP;
         });
         if (filtered.length === 0) {
-          alert("No data.");
+          window.alert("No data.");
           return;
         }
         let wb = XLSX.utils.book_new();
@@ -1724,7 +1875,7 @@
         let start = new Date(fromY, months.indexOf(fromM), 1);
         let end = new Date(toY, months.indexOf(toM), 1);
         if (start > end) {
-          alert("Invalid range.");
+          window.alert("Invalid range.");
           return;
         }
         closeBatchModal();
@@ -1782,7 +1933,7 @@
         }
 
         if (start > end) {
-          alert("Invalid range.");
+          window.alert("Invalid range.");
           return;
         }
         closeSingleExcelModal();
@@ -1811,7 +1962,7 @@
         loader.innerText = "Processing Data... Please wait.";
 
         if (combinedData.length === 0) {
-          alert("No data found for the selected period.");
+          window.alert("No data found for the selected period.");
           return;
         }
 
@@ -2014,6 +2165,81 @@
           { wch: 30 },
         ];
         return ws;
+      }
+
+      // 🟢 HTTP Fallback System for Copying
+      function fallbackCopyTextToClipboard(text) {
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          var successful = document.execCommand("copy");
+          if (successful) showToast("Copied successfully!");
+          else window.alert("Failed to copy!");
+        } catch (err) {
+          window.alert("Oops, unable to copy");
+        }
+        document.body.removeChild(textArea);
+      }
+
+      function copyText(text) {
+        // Check if modern clipboard API is available (Usually disabled on HTTP)
+        if (!navigator.clipboard || window.isSecureContext === false) {
+          fallbackCopyTextToClipboard(text);
+          return;
+        }
+        navigator.clipboard.writeText(text).then(
+          function () {
+            showToast("Copied successfully!");
+          },
+          function (err) {
+            fallbackCopyTextToClipboard(text);
+          },
+        );
+      }
+
+      function showToast(msg) {
+        let toast = document.getElementById("toastMsg");
+        toast.innerText = msg;
+        toast.className = "show";
+        setTimeout(function () {
+          toast.className = toast.className.replace("show", "");
+        }, 3000);
+      }
+
+      function copySinglePlate(e, plate) {
+        e.preventDefault();
+        if (!plate) return;
+        copyText(plate);
+      }
+
+      function copyAllPlates(e) {
+        e.preventDefault();
+        const rows = document.querySelectorAll("#reportBody tr");
+        let plates = [];
+        rows.forEach((tr) => {
+          let plateTd = tr.querySelector(".plate-cell");
+          if (
+            plateTd &&
+            tr.style.display !== "none" &&
+            plateTd.innerText.trim() !== ""
+          ) {
+            plates.push(plateTd.innerText.trim());
+          }
+        });
+
+        let uniquePlates = [...new Set(plates)];
+        if (uniquePlates.length === 0) {
+          window.alert("No visible plates found to copy.");
+          return;
+        }
+
+        copyText(uniquePlates.join("\n"));
       }
     </script>
   </body>
