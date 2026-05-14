@@ -29,7 +29,7 @@ let rulesCache = [];
 let vehiclesCache = [];
 let currentFocus = -1;
 let isEditingInvoice = false;
-let currentInvoices = []; // 🟢 ഗ്ലോബൽ ആയി ഇൻവോയ്‌സുകൾ സൂക്ഷിക്കാൻ
+let currentInvoices = [];
 
 async function init() {
   const rRes = await fetch("/timesheet/api/rules", {
@@ -81,7 +81,8 @@ function searchPlate() {
     (v) =>
       (v.plate_no && v.plate_no.toUpperCase().includes(val)) ||
       (v.asset_code && v.asset_code.toUpperCase().includes(val)) ||
-      (v.wrk_order_no && v.wrk_order_no.toUpperCase().includes(val)),
+      (v.wrk_order_no && v.wrk_order_no.toUpperCase().includes(val)) ||
+      (v.driver_name && v.driver_name.toUpperCase().includes(val)),
   );
 
   if (matches.length > 0) {
@@ -89,10 +90,13 @@ function searchPlate() {
     matches.forEach((m) => {
       let div = document.createElement("div");
       let displayText = m.plate_no;
+
       if (m.asset_code && m.asset_code.toUpperCase().includes(val))
         displayText += ` (${m.asset_code})`;
       else if (m.wrk_order_no && m.wrk_order_no.toUpperCase().includes(val))
         displayText += ` [${m.wrk_order_no}]`;
+      else if (m.driver_name && m.driver_name.toUpperCase().includes(val))
+        displayText += ` - ${m.driver_name}`;
 
       div.innerText = displayText;
       div.onclick = () => selectPlate(m);
@@ -127,13 +131,16 @@ document.getElementById("selPlate").addEventListener("keydown", function (e) {
     e.preventDefault();
     currentFocus--;
     addActive(items);
-  } else if (e.key === "Enter") {
+  } else if (e.key === "Enter" || e.key === "Tab") {
     e.preventDefault();
     if (currentFocus > -1 && items[currentFocus]) {
       items[currentFocus].click();
+    } else if (items.length > 0) {
+      items[0].click();
+    }
+
+    if (e.key === "Enter") {
       setTimeout(() => triggerFetch(), 100);
-    } else {
-      triggerFetch();
     }
   }
 });
@@ -195,7 +202,9 @@ async function triggerFetch() {
   try {
     const res = await fetch(
       `/timesheet/api/grid-data?month=${m}&year=${y}&plate=${p}`,
-      { headers: { Authorization: "Bearer " + token } },
+      {
+        headers: { Authorization: "Bearer " + token },
+      },
     );
     const data = await res.json();
 
@@ -210,8 +219,8 @@ async function triggerFetch() {
 
     let dNameArr = [],
       dMobArr = [],
-      siteArr = [];
-    let activeSites = [];
+      siteArr = [],
+      activeSites = [];
 
     if (logs.success) {
       let activeDrivers = logs.drivers.filter((d) => {
@@ -229,12 +238,13 @@ async function triggerFetch() {
         logs.drivers &&
         logs.drivers.length > 0
       ) {
-        let sortedDrivers = [...logs.drivers].sort(
-          (a, b) =>
-            new Date(b.work_start_date || "2000-01-01") -
-            new Date(a.work_start_date || "2000-01-01"),
-        );
-        activeDrivers = [sortedDrivers[0]];
+        activeDrivers = [
+          [...logs.drivers].sort(
+            (a, b) =>
+              new Date(b.work_start_date || "2000-01-01") -
+              new Date(a.work_start_date || "2000-01-01"),
+          )[0],
+        ];
       }
 
       if (activeDrivers.length > 0) {
@@ -257,12 +267,13 @@ async function triggerFetch() {
       });
 
       if (activeSites.length === 0 && logs.sites && logs.sites.length > 0) {
-        let sortedSites = [...logs.sites].sort(
-          (a, b) =>
-            new Date(b.work_start_date || "2000-01-01") -
-            new Date(a.work_start_date || "2000-01-01"),
-        );
-        activeSites = [sortedSites[0]];
+        activeSites = [
+          [...logs.sites].sort(
+            (a, b) =>
+              new Date(b.work_start_date || "2000-01-01") -
+              new Date(a.work_start_date || "2000-01-01"),
+          )[0],
+        ];
       }
 
       if (activeSites.length > 0) {
@@ -296,26 +307,10 @@ async function triggerFetch() {
     document.getElementById("dispVType").innerText = vObjMaster
       ? vObjMaster.vehicle_type || "N/A"
       : "N/A";
-    // സൈറ്റ് ലോഗിൽ ലേറ്റസ്റ്റ് എൻട്രി ഉണ്ടെങ്കിൽ അതിൽ നിന്ന് എടുക്കുക, ഇല്ലെങ്കിൽ മാസ്റ്റർ ഡിബിയിൽ നിന്ന് എടുക്കുക
-    if (activeSites.length > 0) {
-      let latestSiteLog = activeSites[0];
 
-      // Field Co, Site Co എന്നിവ ലേറ്റസ്റ്റ് ലോഗിൽ നിന്ന് കാണിക്കുന്നു
-      document.getElementById("dispFieldCo").innerText =
-        latestSiteLog.field_co || (vObjMaster ? vObjMaster.field_co : "N/A");
-      document.getElementById("dispSiteCo").innerText =
-        latestSiteLog.site_co || (vObjMaster ? vObjMaster.site_co : "N/A");
+    let sStartVal = null;
+    let sEndVal = null;
 
-      // ... ബാക്കി പഴയതുപോലെ (Asset, Work Order etc.)
-    } else {
-      // ആക്ടീവ് സൈറ്റ് ലോഗ് ഇല്ലെങ്കിൽ മാസ്റ്റർ ഡിബിയിൽ നിന്ന് കാണിക്കുന്നു
-      document.getElementById("dispFieldCo").innerText = vObjMaster
-        ? vObjMaster.field_co || "N/A"
-        : "N/A";
-      document.getElementById("dispSiteCo").innerText = vObjMaster
-        ? vObjMaster.site_co || "N/A"
-        : "N/A";
-    }
     if (activeSites.length > 0) {
       activeSites.sort(
         (a, b) =>
@@ -323,18 +318,23 @@ async function triggerFetch() {
           new Date(a.work_start_date || "2000-01-01"),
       );
       let latestSiteLog = activeSites[0];
-      let sStart = latestSiteLog.work_start_date
+      sStartVal = latestSiteLog.work_start_date
         ? latestSiteLog.work_start_date.split("T")[0]
-        : "N/A";
-      let sEnd = latestSiteLog.work_end_date
+        : null;
+      sEndVal = latestSiteLog.work_end_date
         ? latestSiteLog.work_end_date.split("T")[0]
+        : null;
+
+      document.getElementById("dispFieldCo").innerText =
+        latestSiteLog.field_co || (vObjMaster ? vObjMaster.field_co : "N/A");
+      document.getElementById("dispSiteCo").innerText =
+        latestSiteLog.site_co || (vObjMaster ? vObjMaster.site_co : "N/A");
+      document.getElementById("dispSiteStart").innerText = formatDateUI(
+        sStartVal || "N/A",
+      );
+      document.getElementById("dispSiteEnd").innerText = sEndVal
+        ? formatDateUI(sEndVal)
         : "Running";
-
-      document.getElementById("dispSiteStart").innerText = formatDateUI(sStart);
-      document.getElementById("dispSiteEnd").innerText =
-        sEnd === "Running" ? "Running" : formatDateUI(sEnd);
-
-      // 🟢 Update Asset and Work Order from the Latest Site Log, fallback to Master DB
       document.getElementById("dispAsset").innerText =
         latestSiteLog.asset_code ||
         (vObjMaster ? vObjMaster.asset_code : null) ||
@@ -355,8 +355,12 @@ async function triggerFetch() {
       document.getElementById("dispSiteStart").innerText = "N/A";
       document.getElementById("dispSiteEnd").innerText = "N/A";
       document.getElementById("replaceRow").style.display = "none";
-
-      // Fallback to Master DB if no active site logs
+      document.getElementById("dispFieldCo").innerText = vObjMaster
+        ? vObjMaster.field_co || "N/A"
+        : "N/A";
+      document.getElementById("dispSiteCo").innerText = vObjMaster
+        ? vObjMaster.site_co || "N/A"
+        : "N/A";
       document.getElementById("dispAsset").innerText = vObjMaster
         ? vObjMaster.asset_code || "N/A"
         : "N/A";
@@ -365,17 +369,14 @@ async function triggerFetch() {
         : "N/A";
     }
 
-    // 🟢 Fetch Array of Invoices and Populate Dropdown
     try {
       const monthStr = m + " " + y;
       const invRes = await fetch(
         `/payment/get-invoice?plate_no=${p}&month=${monthStr}`,
       );
       const invData = await invRes.json();
-
       currentInvoices = invData.success && invData.data ? invData.data : [];
     } catch (e) {
-      console.error("Invoice Fetch Error:", e);
       currentInvoices = [];
     }
 
@@ -388,7 +389,7 @@ async function triggerFetch() {
         opt.text = siteName;
         invSiteSelect.appendChild(opt);
       });
-      loadInvoiceForSelectedSite(); // ആദ്യത്തെ സൈറ്റ് തനിയെ ലോഡ് ആകും
+      loadInvoiceForSelectedSite();
     } else {
       invSiteSelect.innerHTML = '<option value="">No Site Active</option>';
       clearInvoiceForm();
@@ -398,7 +399,7 @@ async function triggerFetch() {
     if (data.success) existingData = data.data;
 
     setTimeout(() => {
-      renderGrid(m, y, p, existingData);
+      renderGrid(m, y, p, existingData, sStartVal, sEndVal);
       btn.disabled = false;
       text.innerText = "Fetch Data";
       loader.style.display = "none";
@@ -412,17 +413,13 @@ async function triggerFetch() {
   }
 }
 
-// 🟢 ലോഡ് ചെയ്ത ഇൻവോയ്സ് ഡാറ്റ ഫിൽ ചെയ്യാൻ
 function loadInvoiceForSelectedSite() {
   const selectedSite = document.getElementById("invSiteSelect").value;
   if (!selectedSite) {
     clearInvoiceForm();
     return;
   }
-
-  // തിരഞ്ഞെടുത്ത സൈറ്റിലെ ഡാറ്റ ഉണ്ടോ എന്ന് നോക്കുന്നു
   const inv = currentInvoices.find((i) => i.site_name === selectedSite);
-
   if (inv) {
     isEditingInvoice = true;
     document.getElementById("invNo").value = inv.invoice_no || "";
@@ -436,7 +433,6 @@ function loadInvoiceForSelectedSite() {
   }
 }
 
-// 🟢 ബോക്സുകൾ ക്ലിയർ ചെയ്യാൻ
 function clearInvoiceForm() {
   document.getElementById("invNo").value = "";
   document.getElementById("invBillNo").value = "";
@@ -446,21 +442,41 @@ function clearInvoiceForm() {
   isEditingInvoice = false;
 }
 
-function renderGrid(month, year, plate, existingData) {
+function renderGrid(month, year, plate, existingData, siteStart, siteEnd) {
   const tbody = document.getElementById("gridBody");
   tbody.innerHTML = "";
   const days = getDaysInMonth(month, year);
+  const mIdx = months.indexOf(month);
+
+  let startDateObj = siteStart ? new Date(siteStart) : new Date(year, 0, 1);
+  let endDateObj = siteEnd ? new Date(siteEnd) : new Date(year, 11, 31);
+  startDateObj.setHours(0, 0, 0, 0);
+  endDateObj.setHours(0, 0, 0, 0);
+
+  const cleanVal = (val) =>
+    val === null || val === "null" || val === undefined ? "" : val;
 
   for (let i = 1; i <= days; i++) {
     const rowData =
       existingData.find((r) => parseInt(r.record_date) === i) || {};
-    let dbDist = rowData.calc_distance;
-    if (dbDist !== null && dbDist !== undefined && dbDist !== "")
-      dbDist = parseFloat(dbDist).toFixed(1);
-    else dbDist = "";
+
+    let dbDist = cleanVal(rowData.calc_distance);
+    if (dbDist !== "") dbDist = parseFloat(dbDist).toFixed(1);
 
     let dayName = getDayName(i, month, year);
     let rowClass = dayName === "Fri" ? "row-friday" : "";
+
+    let currentDateObj = new Date(year, mIdx, i);
+    currentDateObj.setHours(0, 0, 0, 0);
+
+    let displayBd = cleanVal(rowData.bd);
+    let ws = cleanVal(rowData.wrk_start);
+
+    if (displayBd === "" && ws === "") {
+      if (currentDateObj < startDateObj || currentDateObj > endDateObj) {
+        displayBd = "AB";
+      }
+    }
 
     let tr = document.createElement("tr");
     tr.className = rowClass;
@@ -468,16 +484,16 @@ function renderGrid(month, year, plate, existingData) {
                 <td><input type="text" class="grid-readonly" value="${plate}" tabindex="-1" readonly></td>
                 <td><input type="text" class="grid-readonly" value="${i}" tabindex="-1" readonly></td>
                 <td><input type="text" class="grid-readonly" value="${dayName}" tabindex="-1" readonly style="color:#64748b;"></td>
-                <td><input type="text" class="grid-input" data-col="wrk_start" data-row="${i}" value="${rowData.wrk_start || ""}"></td>
-                <td><input type="text" class="grid-input" data-col="wrk_end" data-row="${i}" value="${rowData.wrk_end || ""}"></td>
-                <td><input type="text" class="grid-input" data-col="hmr_start" data-row="${i}" value="${rowData.hmr_start || ""}"></td>
-                <td><input type="text" class="grid-input" data-col="hmr_end" data-row="${i}" value="${rowData.hmr_end || ""}"></td>
-                <td><input type="text" class="grid-input" data-col="fuel" data-row="${i}" value="${rowData.fuel || ""}"></td>
-                <td><input type="text" class="grid-input" data-col="bd" data-row="${i}" value="${rowData.bd || ""}"></td>
+                <td><input type="text" class="grid-input" data-col="wrk_start" data-row="${i}" value="${ws}"></td>
+                <td><input type="text" class="grid-input" data-col="wrk_end" data-row="${i}" value="${cleanVal(rowData.wrk_end)}"></td>
+                <td><input type="text" class="grid-input" data-col="hmr_start" data-row="${i}" value="${cleanVal(rowData.hmr_start)}"></td>
+                <td><input type="text" class="grid-input" data-col="hmr_end" data-row="${i}" value="${cleanVal(rowData.hmr_end)}"></td>
+                <td><input type="text" class="grid-input" data-col="fuel" data-row="${i}" value="${cleanVal(rowData.fuel)}"></td>
+                <td><input type="text" class="grid-input" data-col="bd" data-row="${i}" value="${displayBd}"></td>
                 <td><input type="checkbox" class="grid-input" data-col="nl_checked" data-row="${i}" ${rowData.nl_checked ? "checked" : ""}></td>
                 <td><input type="text" class="grid-readonly" id="dist_${i}" value="${dbDist}" tabindex="-1" readonly></td>
-                <td><input type="text" class="grid-readonly" id="time_${i}" value="${rowData.calc_time || ""}" tabindex="-1" readonly></td>
-                <td><textarea class="grid-input" data-col="remark" data-row="${i}">${rowData.remark || ""}</textarea></td>
+                <td><input type="text" class="grid-readonly" id="time_${i}" value="${cleanVal(rowData.calc_time)}" tabindex="-1" readonly></td>
+                <td><textarea class="grid-input" data-col="remark" data-row="${i}">${cleanVal(rowData.remark)}</textarea></td>
             `;
     tbody.appendChild(tr);
   }
@@ -509,7 +525,6 @@ function updateSummaryBox() {
         .querySelector(`.grid-input[data-row="${i}"][data-col="bd"]`)
         ?.value.trim()
         .toUpperCase() || "";
-
     let ws =
       document
         .querySelector(`.grid-input[data-row="${i}"][data-col="wrk_start"]`)
@@ -519,35 +534,19 @@ function updateSummaryBox() {
         .querySelector(`.grid-input[data-row="${i}"][data-col="wrk_end"]`)
         ?.value.trim() || "";
 
-    let hasLog = false;
-    if (bd !== "") {
-      if (!isNaN(parseFloat(bd))) {
-        hasLog = true;
-      } else {
-        hasLog = false;
-      }
-    } else if (ws !== "" && we !== "") {
-      hasLog = true;
-    }
-
-    if (hasLog) {
-      logCount++;
-    }
+    let hasLog =
+      (bd !== "" && !isNaN(parseFloat(bd))) || (ws !== "" && we !== "");
+    if (hasLog) logCount++;
 
     let dayName = getDayName(i, monthStr, year);
     let isFullOT = dayName === "Fri" || i === 31;
-
-    let normalHr = 0;
-    let otHr = 0;
+    let normalHr = 0,
+      otHr = 0;
 
     if (bd === "ID" || bd === "NP") {
-      if (isFullOT) {
-        otHr = 10;
-      } else {
-        normalHr = 10;
-      }
-    } else if (bd === "B" || bd === "H") {
-      // Zero hours
+      if (isFullOT) otHr = 10;
+      else normalHr = 10;
+    } else if (bd === "B" || bd === "H" || bd === "AB") {
     } else if (tm > 0) {
       if (isFullOT) {
         otHr = tm;
@@ -560,15 +559,12 @@ function updateSummaryBox() {
         }
       }
     }
-
     tNormal += normalHr;
     tOT += otHr;
     tDist += dt;
     tFuel += fl;
   }
-
   tTime = tNormal + tOT;
-
   document.getElementById("logSheetCount").innerText =
     logCount > 0 ? `( ${logCount} )` : "";
   document.getElementById("sumNormal").innerText = tNormal > 0 ? tNormal : "0";
@@ -697,16 +693,12 @@ function calculateRow(rowIdx) {
     let bdNum = parseFloat(bd);
     if (!isNaN(bdNum)) finalTime = bdNum;
     else if (["ID", "NP"].includes(bd)) finalTime = 10;
-    else if (["B", "H"].includes(bd)) finalTime = 0;
+    else if (["B", "H", "AB"].includes(bd)) finalTime = 0;
   } else if (ws && we) {
     let sHour = parseRailwayTime(ws);
     let eHour = parseRailwayTime(we);
     let diff = eHour - sHour;
-
-    if (diff < 0) {
-      diff += 24;
-    }
-
+    if (diff < 0) diff += 24;
     let endIsMorning = eHour >= 6 && eHour <= 12.5;
 
     if (nl || sHour >= 13 || endIsMorning) {
@@ -768,14 +760,11 @@ async function saveCellData(rowIdx, colName, colValue) {
   }
 }
 
-init();
-
 function customAlert(message, title = "Notice") {
   return new Promise((resolve) => {
     document.getElementById("customAlertTitle").innerText = title;
     document.getElementById("customAlertMessage").innerText = message;
     document.getElementById("customAlertModal").style.display = "flex";
-
     window.closeCustomAlert = function () {
       document.getElementById("customAlertModal").style.display = "none";
       resolve();
@@ -792,13 +781,11 @@ function customPrompt(message, isPassword = false, title = "Input Required") {
     inputEl.value = "";
     document.getElementById("customPromptModal").style.display = "flex";
     inputEl.focus();
-
     window.submitCustomPrompt = function () {
       const val = inputEl.value;
       document.getElementById("customPromptModal").style.display = "none";
       resolve(val);
     };
-
     window.closeCustomPrompt = function () {
       document.getElementById("customPromptModal").style.display = "none";
       resolve(null);
@@ -806,7 +793,6 @@ function customPrompt(message, isPassword = false, title = "Input Required") {
   });
 }
 
-// 🟢 Save Invoice Logic (with specific Site Name)
 async function saveInvoiceData() {
   const plate_no = document
     .getElementById("selPlate")
@@ -816,17 +802,14 @@ async function saveInvoiceData() {
     await customAlert("Please fetch a Plate Number first.", "Action Required");
     return;
   }
-
   const site_name = document.getElementById("invSiteSelect").value;
   if (!site_name) {
     await customAlert("Please select a Site before saving.", "Action Required");
     return;
   }
-
   const monthStr = document.getElementById("selMonth").value;
   const yearStr = document.getElementById("selYear").value;
   const month = monthStr + " " + yearStr;
-
   const invoice_no = document.getElementById("invNo").value.trim();
   const bill_no = document.getElementById("invBillNo").value.trim();
   const bill_nr = document.getElementById("invNr").value.trim();
@@ -842,7 +825,6 @@ async function saveInvoiceData() {
   }
 
   let edit_reason = "";
-
   if (isEditingInvoice) {
     let code = await customPrompt(
       "Enter Secret Code to edit existing record:",
@@ -878,7 +860,6 @@ async function saveInvoiceData() {
     invoice_amount,
     edit_reason,
   };
-
   try {
     const res = await fetch("/payment/save-invoice", {
       method: "POST",
@@ -886,20 +867,14 @@ async function saveInvoiceData() {
       body: JSON.stringify(payload),
     });
     const data = await res.json();
-
     if (data.success) {
       await customAlert(data.message, "Success");
       isEditingInvoice = true;
-
-      // 🟢 Update local array so we don't have to re-fetch from database immediately
       let existingIdx = currentInvoices.findIndex(
         (i) => i.site_name === site_name,
       );
-      if (existingIdx > -1) {
-        currentInvoices[existingIdx] = payload;
-      } else {
-        currentInvoices.push(payload);
-      }
+      if (existingIdx > -1) currentInvoices[existingIdx] = payload;
+      else currentInvoices.push(payload);
     } else {
       await customAlert("Error: " + data.message, "Error");
     }
@@ -910,3 +885,5 @@ async function saveInvoiceData() {
     );
   }
 }
+
+init();
