@@ -1755,3 +1755,109 @@ async function importExcel() {
 }
 
 initDB();
+
+// Function to handle Plate Number Editing inline without reloading the DB
+async function editPlateNo() {
+  const oldPlate = activeRowPlate;
+  document.getElementById("rowContextMenu").style.display = "none";
+
+  // Ask user for the new plate number
+  const newPlate = await customPrompt(
+    "Edit Plate No",
+    `Enter new Plate No for ${oldPlate}:`,
+  );
+
+  if (
+    !newPlate ||
+    newPlate.trim() === "" ||
+    newPlate.trim().toUpperCase() === oldPlate.toUpperCase()
+  ) {
+    return; // Do nothing if cancelled or unchanged
+  }
+
+  showStatus("Updating...", "saving");
+
+  try {
+    const res = await safeFetch("/timesheet/api/db/update-plate-no", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ old_plate_no: oldPlate, new_plate_no: newPlate }),
+    });
+
+    if (res.success) {
+      const finalNewPlate = res.new_plate_no;
+
+      // 1. Update the internal JS array
+      let rowData = tableData.find((x) => x.plate_no === oldPlate);
+      if (rowData) {
+        rowData.plate_no = finalNewPlate;
+      }
+
+      // 2. Update the DOM inline
+      const plateInput = document.querySelector(
+        `input.primary-col[value="${oldPlate}"]`,
+      );
+      if (plateInput) {
+        // Update the main Plate No input value and its attributes
+        plateInput.value = finalNewPlate;
+        plateInput.setAttribute("value", finalNewPlate);
+        plateInput.setAttribute(
+          "oncontextmenu",
+          `openRowMenu(event, '${finalNewPlate}')`,
+        );
+
+        // Find the parent row (tr)
+        const tr = plateInput.closest("tr");
+
+        // Update all data-plate attributes in this row (used by textboxes/selects)
+        const elementsWithDataPlate = tr.querySelectorAll("[data-plate]");
+        elementsWithDataPlate.forEach((el) => {
+          el.setAttribute("data-plate", finalNewPlate);
+        });
+
+        // Update the onclick functions for the Log Modal buttons (📝)
+        const logButtons = tr.querySelectorAll(".cell-log-btn");
+        logButtons.forEach((btn) => {
+          const currentOnclick = btn.getAttribute("onclick");
+          if (currentOnclick) {
+            const newOnclick = currentOnclick.replace(
+              `'${oldPlate}'`,
+              `'${finalNewPlate}'`,
+            );
+            btn.setAttribute("onclick", newOnclick);
+          }
+        });
+
+        // Update fastUpdateLog inline calls on date inputs
+        const inputsWithOnchange = tr.querySelectorAll(
+          '[onchange*="fastUpdateLog"]',
+        );
+        inputsWithOnchange.forEach((input) => {
+          const currentOnchange = input.getAttribute("onchange");
+          if (currentOnchange) {
+            const newOnchange = currentOnchange.replace(
+              `'${oldPlate}'`,
+              `'${finalNewPlate}'`,
+            );
+            input.setAttribute("onchange", newOnchange);
+          }
+        });
+      }
+
+      showStatus("✓ Saved", "saved");
+      customAlert(
+        "Success",
+        `Plate No successfully updated from ${oldPlate} to ${finalNewPlate} across all history logs.`,
+      );
+    } else {
+      customAlert("Error", res.message);
+      showStatus("Error", "error");
+    }
+  } catch (e) {
+    customAlert("Error", "Failed to update Plate No.");
+    showStatus("Error", "error");
+  }
+}

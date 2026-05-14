@@ -1365,4 +1365,69 @@ router.post("/api/public/view-report", async (req, res) => {
   }
 });
 
+// Add this route anywhere before module.exports = router;
+
+router.post("/api/db/update-plate-no", verifyEditor, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { old_plate_no, new_plate_no } = req.body;
+    if (!old_plate_no || !new_plate_no)
+      throw new Error("Missing plate numbers");
+
+    const oldPlate = old_plate_no.trim().toUpperCase();
+    const newPlate = new_plate_no.trim().toUpperCase();
+
+    if (oldPlate === newPlate)
+      return res.json({ success: true, new_plate_no: newPlate });
+
+    await client.query("BEGIN");
+
+    // 1. Update Master Table
+    await client.query(
+      `UPDATE timesheet_vehicles SET plate_no = $1 WHERE UPPER(plate_no) = $2`,
+      [newPlate, oldPlate],
+    );
+
+    // 2. Update Driver Logs
+    await client.query(
+      `UPDATE vehicle_driver_log SET plate_no = $1 WHERE UPPER(plate_no) = $2`,
+      [newPlate, oldPlate],
+    );
+
+    // 3. Update Site Logs
+    await client.query(
+      `UPDATE vehicle_site_log SET plate_no = $1 WHERE UPPER(plate_no) = $2`,
+      [newPlate, oldPlate],
+    );
+
+    // 4. Update Grid/Daily Records
+    await client.query(
+      `UPDATE timesheet_daily_records SET plate_no = $1 WHERE UPPER(plate_no) = $2`,
+      [newPlate, oldPlate],
+    );
+
+    await logAudit(
+      req.user,
+      "PLATE_NO_UPDATE",
+      `Changed plate no from ${oldPlate} to ${newPlate} across all logs`,
+    );
+    await client.query("COMMIT");
+
+    res.json({ success: true, new_plate_no: newPlate });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    // Handle unique constraint error if the new plate number already exists
+    if (error.code === "23505") {
+      res.json({
+        success: false,
+        message: "New Plate No already exists in the database.",
+      });
+    } else {
+      res.json({ success: false, message: error.message });
+    }
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
