@@ -32,20 +32,33 @@ let isEditingInvoice = false;
 let currentInvoices = [];
 
 async function init() {
-  const rRes = await fetch("/timesheet/api/rules", {
-    headers: { Authorization: "Bearer " + token },
+  const ts = new Date().getTime();
+  const rRes = await fetch(`/timesheet/api/rules?_t=${ts}`, {
+    headers: {
+      Authorization: "Bearer " + token,
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+    cache: "no-store",
   });
   const rData = await rRes.json();
   if (rData.success) rulesCache = rData.data;
 
-  const vRes = await fetch("/timesheet/api/vehicle-info", {
-    headers: { Authorization: "Bearer " + token },
+  const vRes = await fetch(`/timesheet/api/vehicle-info?_t=${ts}`, {
+    headers: {
+      Authorization: "Bearer " + token,
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+    cache: "no-store",
   });
   const vData = await vRes.json();
   if (vData.success) vehiclesCache = vData.data;
 }
 
 function searchPlate() {
+  document.getElementById("selPlate").addEventListener("focus", searchPlate);
+  document.getElementById("selPlate").addEventListener("click", searchPlate);
   const val = document.getElementById("selPlate").value.toUpperCase();
   const sug = document.getElementById("plateSuggestions");
   sug.innerHTML = "";
@@ -73,9 +86,34 @@ function searchPlate() {
   currentInvoices = [];
 
   if (!val) {
-    sug.style.display = "none";
+    let history = JSON.parse(
+      localStorage.getItem("plateSearchHistory") || "[]",
+    );
+    if (history.length > 0) {
+      sug.style.display = "block";
+
+      // --- NEW: Set fixed height and scrollbar for history ---
+      sug.style.maxHeight = "105px"; // 3 items visible
+      sug.style.overflowY = "auto";
+
+      history.forEach((hPlate) => {
+        let div = document.createElement("div");
+        div.innerHTML = `<b>${hPlate}</b>`;
+        let masterObj = vehiclesCache.find(
+          (v) => v.plate_no.toUpperCase() === hPlate,
+        ) || { plate_no: hPlate };
+        div.onclick = () => selectPlate(masterObj);
+        sug.appendChild(div);
+      });
+    } else {
+      sug.style.display = "none";
+    }
     return;
   }
+
+  // --- NEW: Reset height for regular search suggestions ---
+  sug.style.maxHeight = "250px";
+  sug.style.overflowY = "auto";
 
   const matches = vehiclesCache.filter(
     (v) =>
@@ -186,6 +224,8 @@ async function triggerFetch() {
     return;
   }
 
+  savePlateHistory(p);
+
   const m = document.getElementById("selMonth").value;
   const y = document.getElementById("selYear").value;
   const tbody = document.getElementById("gridBody");
@@ -200,17 +240,31 @@ async function triggerFetch() {
     '<tr class="loading-row"><td colspan="13">Fetching database records...</td></tr>';
 
   try {
+    const ts = new Date().getTime();
     const res = await fetch(
-      `/timesheet/api/grid-data?month=${m}&year=${y}&plate=${p}`,
+      `/timesheet/api/grid-data?month=${m}&year=${y}&plate=${p}&_t=${ts}`,
       {
-        headers: { Authorization: "Bearer " + token },
+        headers: {
+          Authorization: "Bearer " + token,
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+        cache: "no-store",
       },
     );
     const data = await res.json();
 
-    const logRes = await fetch(`/timesheet/api/vehicle-logs?plate=${p}`, {
-      headers: { Authorization: "Bearer " + token },
-    });
+    const logRes = await fetch(
+      `/timesheet/api/vehicle-logs?plate=${p}&_t=${ts}`,
+      {
+        headers: {
+          Authorization: "Bearer " + token,
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+        cache: "no-store",
+      },
+    );
     const logs = await logRes.json();
 
     let mIdx = months.indexOf(m);
@@ -372,7 +426,14 @@ async function triggerFetch() {
     try {
       const monthStr = m + " " + y;
       const invRes = await fetch(
-        `/payment/get-invoice?plate_no=${p}&month=${monthStr}`,
+        `/payment/get-invoice?plate_no=${p}&month=${monthStr}&_t=${ts}`,
+        {
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+          cache: "no-store",
+        },
       );
       const invData = await invRes.json();
       currentInvoices = invData.success && invData.data ? invData.data : [];
@@ -887,3 +948,22 @@ async function saveInvoiceData() {
 }
 
 init();
+
+// Function to save plate search history
+function savePlateHistory(plate) {
+  if (!plate) return;
+  // Get existing history from local storage, or empty array if none
+  let history = JSON.parse(localStorage.getItem("plateSearchHistory") || "[]");
+
+  // Remove the plate if it already exists (to prevent duplicates and move it to top)
+  history = history.filter((p) => p !== plate);
+
+  // Add the new plate to the beginning
+  history.unshift(plate);
+
+  // Keep only the last 30
+  if (history.length > 30) history = history.slice(0, 30);
+
+  // Save back to local storage
+  localStorage.setItem("plateSearchHistory", JSON.stringify(history));
+}
