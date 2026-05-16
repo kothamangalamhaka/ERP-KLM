@@ -77,7 +77,10 @@ function searchPlate() {
 
   document.getElementById("dispSiteStart").innerText = "N/A";
   document.getElementById("dispSiteEnd").innerText = "N/A";
-  document.getElementById("replaceRow").style.display = "none";
+  if (document.getElementById("oldVehRow"))
+    document.getElementById("oldVehRow").style.display = "none";
+  if (document.getElementById("newVehRow"))
+    document.getElementById("newVehRow").style.display = "none";
 
   document.getElementById("invSiteSelect").innerHTML =
     '<option value="">Waiting for data...</option>';
@@ -391,9 +394,18 @@ async function triggerFetch() {
       document.getElementById("dispSiteStart").innerText = formatDateUI(
         sStartVal || "N/A",
       );
-      document.getElementById("dispSiteEnd").innerText = sEndVal
-        ? formatDateUI(sEndVal)
-        : "Running";
+
+      // Determine End Date and Status (Released / Replaced)
+      if (sEndVal) {
+        let endStatusText = latestSiteLog.new_vehicle_no
+          ? " (Replaced)"
+          : " (Released)";
+        document.getElementById("dispSiteEnd").innerText =
+          formatDateUI(sEndVal) + endStatusText;
+      } else {
+        document.getElementById("dispSiteEnd").innerText = "Running";
+      }
+
       document.getElementById("dispAsset").innerText =
         latestSiteLog.asset_code ||
         (vObjMaster ? vObjMaster.asset_code : null) ||
@@ -403,17 +415,42 @@ async function triggerFetch() {
         (vObjMaster ? vObjMaster.wrk_order_no : null) ||
         "N/A";
 
-      if (latestSiteLog.status === "Replaced" && latestSiteLog.replaced_by) {
-        document.getElementById("replaceRow").style.display = "flex";
-        document.getElementById("dispSiteReplace").innerText =
-          latestSiteLog.replaced_by;
+      // Show Old Vehicle if data exists
+      if (
+        latestSiteLog.old_vehicle_no &&
+        latestSiteLog.old_vehicle_no.trim() !== ""
+      ) {
+        if (document.getElementById("oldVehRow")) {
+          document.getElementById("oldVehRow").style.display = "flex";
+          document.getElementById("dispOldVeh").innerText =
+            latestSiteLog.old_vehicle_no;
+        }
       } else {
-        document.getElementById("replaceRow").style.display = "none";
+        if (document.getElementById("oldVehRow"))
+          document.getElementById("oldVehRow").style.display = "none";
+      }
+
+      // Show New Vehicle (Replaced By) if data exists
+      if (
+        latestSiteLog.new_vehicle_no &&
+        latestSiteLog.new_vehicle_no.trim() !== ""
+      ) {
+        if (document.getElementById("newVehRow")) {
+          document.getElementById("newVehRow").style.display = "flex";
+          document.getElementById("dispNewVeh").innerText =
+            latestSiteLog.new_vehicle_no;
+        }
+      } else {
+        if (document.getElementById("newVehRow"))
+          document.getElementById("newVehRow").style.display = "none";
       }
     } else {
       document.getElementById("dispSiteStart").innerText = "N/A";
       document.getElementById("dispSiteEnd").innerText = "N/A";
-      document.getElementById("replaceRow").style.display = "none";
+      if (document.getElementById("oldVehRow"))
+        document.getElementById("oldVehRow").style.display = "none";
+      if (document.getElementById("newVehRow"))
+        document.getElementById("newVehRow").style.display = "none";
       document.getElementById("dispFieldCo").innerText = vObjMaster
         ? vObjMaster.field_co || "N/A"
         : "N/A";

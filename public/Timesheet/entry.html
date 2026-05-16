@@ -1,232 +1,434 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timesheet - Live Grid Entry</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="style/entry.css">
-</head>
+    <link rel="stylesheet" href="style/entry.css" />
+  </head>
 
-<body>
-
+  <body>
     <div class="navbar">
-        <div style="display: flex; align-items: center;">
-            <span style="font-size: 16px; font-weight: 600; margin-left: 20px; letter-spacing: 0.5px;"> <a
-                    href="Timesheet.html">Monthly Timesheet - Live Grid Entry</a></span>
-            <span id="saveStatus" class="save-indicator">✓ Saved</span>
-        </div>
-        <div id="userInfo" style="font-weight: 500;">Loading...</div>
+      <div style="display: flex; align-items: center">
+        <span
+          style="
+            font-size: 16px;
+            font-weight: 600;
+            margin-left: 20px;
+            letter-spacing: 0.5px;
+          "
+        >
+          <a href="Timesheet.html">Monthly Timesheet - Live Grid Entry</a></span
+        >
+        <span id="saveStatus" class="save-indicator">✓ Saved</span>
+      </div>
+      <div id="userInfo" style="font-weight: 500">Loading...</div>
     </div>
 
     <div class="container">
-        <div class="card">
-            <div class="top-form">
-                <div class="form-group" style="width: 150px;">
-                    <label>Month</label>
-                    <select id="selMonth">
-                        <option value="January">January</option>
-                        <option value="February">February</option>
-                        <option value="March">March</option>
-                        <option value="April">April</option>
-                        <option value="May">May</option>
-                        <option value="June">June</option>
-                        <option value="July">July</option>
-                        <option value="August">August</option>
-                        <option value="September">September</option>
-                        <option value="October">October</option>
-                        <option value="November">November</option>
-                        <option value="December">December</option>
-                    </select>
-                </div>
-                <div class="form-group" style="width: 100px;">
-                    <label>Year</label>
-                    <input type="number" id="selYear" value="2026">
-                </div>
-                <div class="form-group autocomplete-container">
-                    <div style="width: 100%;">
-                        <label>Plate No (Search & Fetch)</label>
-                        <input type="text" id="selPlate" class="uppercase-input" autocomplete="off"
-                            oninput="searchPlate()" placeholder="Type Plate, Asset, Work Order...">
-                        <div id="plateSuggestions" class="suggestions" style="display:none;"></div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <button id="fetchBtn" class="btn-fetch" onclick="triggerFetch()">
-                        <div id="fetchLoader" class="loader"></div>
-                        <span id="fetchText">Fetch Data</span>
-                    </button>
-                </div>
-                <button class="pendingl"><a href="blank.html"> Pending</a></button>
-                <button class="tsm"><a href="Dashboard.html">T S</a></button>
-                <button class="tsm"><a href="view.html">Card</a></button>
-                <button class="tsdb"><a href="./db.html">T S DB</a></button>
+      <div class="card">
+        <div class="top-form">
+          <div class="form-group" style="width: 150px">
+            <label>Month</label>
+            <select id="selMonth">
+              <option value="January">January</option>
+              <option value="February">February</option>
+              <option value="March">March</option>
+              <option value="April">April</option>
+              <option value="May">May</option>
+              <option value="June">June</option>
+              <option value="July">July</option>
+              <option value="August">August</option>
+              <option value="September">September</option>
+              <option value="October">October</option>
+              <option value="November">November</option>
+              <option value="December">December</option>
+            </select>
+          </div>
+          <div class="form-group" style="width: 100px">
+            <label>Year</label>
+            <input type="number" id="selYear" value="2026" />
+          </div>
+          <div class="form-group autocomplete-container">
+            <div style="width: 100%">
+              <label>Plate No (Search & Fetch)</label>
+              <input
+                type="text"
+                id="selPlate"
+                class="uppercase-input"
+                autocomplete="off"
+                oninput="searchPlate()"
+                placeholder="Type Plate, Asset, Work Order..."
+              />
+              <div
+                id="plateSuggestions"
+                class="suggestions"
+                style="display: none"
+              ></div>
             </div>
+          </div>
+          <div class="form-group">
+            <button id="fetchBtn" class="btn-fetch" onclick="triggerFetch()">
+              <div id="fetchLoader" class="loader"></div>
+              <span id="fetchText">Fetch Data</span>
+            </button>
+          </div>
+          <button class="pendingl"><a href="blank.html"> Pending</a></button>
+          <button class="tsm"><a href="Dashboard.html">T S</a></button>
+          <button class="tsm"><a href="view.html">Card</a></button>
+          <button class="tsdb"><a href="./db.html">T S DB</a></button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="table-center-wrapper">
+          <div class="table-responsive">
+            <table id="gridTable">
+              <thead>
+                <tr>
+                  <th style="width: 80px">Plate No</th>
+                  <th style="width: 40px">Date</th>
+                  <th style="width: 40px">Day</th>
+                  <th style="width: 70px">Wrk Start</th>
+                  <th style="width: 70px">Wrk end</th>
+                  <th style="width: 80px">HMR Start</th>
+                  <th style="width: 80px">HMR End</th>
+                  <th style="width: 60px">Fuel</th>
+                  <th style="width: 50px">BD</th>
+                  <th style="width: 40px">NL</th>
+                  <th style="width: 70px">Distance</th>
+                  <th style="width: 60px">Time</th>
+                  <th style="width: 250px">Remark</th>
+                </tr>
+              </thead>
+              <tbody id="gridBody">
+                <tr class="loading-row">
+                  <td colspan="13">
+                    Please enter a Plate No and click "Fetch Data" to begin.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div class="main-content">
-            <div class="table-center-wrapper">
-                <div class="table-responsive">
-                    <table id="gridTable">
-                        <thead>
-                            <tr>
-                                <th style="width: 80px;">Plate No</th>
-                                <th style="width: 40px;">Date</th>
-                                <th style="width: 40px;">Day</th>
-                                <th style="width: 70px;">Wrk Start</th>
-                                <th style="width: 70px;">Wrk end</th>
-                                <th style="width: 80px;">HMR Start</th>
-                                <th style="width: 80px;">HMR End</th>
-                                <th style="width: 60px;">Fuel</th>
-                                <th style="width: 50px;">BD</th>
-                                <th style="width: 40px;">NL</th>
-                                <th style="width: 70px;">Distance</th>
-                                <th style="width: 60px;">Time</th>
-                                <th style="width: 250px;">Remark</th>
-                            </tr>
-                        </thead>
-                        <tbody id="gridBody">
-                            <tr class="loading-row">
-                                <td colspan="13">Please enter a Plate No and click "Fetch Data" to begin.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="right-sidebar">
+          <div class="summary-card">
+            <div class="summary-title">VEHICLE DETAILS</div>
+            <div class="detail-row">
+              <span class="detail-lbl">Vehicle Type</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispVType">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Driver Name</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispDName">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Driver Mobile</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispDMob">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Owner Name</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispOName">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Owner Mobile</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispOMob">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Site Name</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispSite">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Field Co</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispFieldCo">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Site Co</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispSiteCo">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Asset Code</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispAsset">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Work Order</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispWorkOrder">N/A</span>
+            </div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-title">
+              MONTH SUMMARY
+              <span
+                id="logSheetCount"
+                style="color: #0d6efd; font-size: 14px"
+              ></span>
+            </div>
+            <div class="summary-item">
+              Normal Time:
+              <span class="summary-value val-normal" id="sumNormal">0</span>
+            </div>
+            <div class="summary-item">
+              OT Hours: <span class="summary-value val-ot" id="sumOT">0</span>
+            </div>
+            <div
+              class="summary-item"
+              style="
+                border-top: 1px dashed #cbd5e1;
+                padding-top: 8px;
+                margin-top: 8px;
+              "
+            >
+              Total Time: <span class="summary-value" id="sumTime">0</span>
+            </div>
+            <div class="summary-item">
+              Total Dist: <span class="summary-value" id="sumDist">0.0</span>
+            </div>
+            <div class="summary-item">
+              Total Fuel: <span class="summary-value" id="sumFuel">0.0</span>
+            </div>
+            <div class="summary-item">
+              Mileage: <span class="summary-value" id="sumMileage">0.00</span>
+            </div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-title" style="color: #c62828">
+              SITE LOG DETAILS
+            </div>
+            <div
+              id="dispSiteLogInfo"
+              style="
+                font-size: 12px;
+                font-weight: 500;
+                color: #333;
+                line-height: 1.6;
+              "
+            >
+              <div class="detail-row">
+                <span class="detail-lbl" style="width: 80px">Work Start</span
+                ><span class="detail-sep">::</span
+                ><span class="detail-val" id="dispSiteStart">N/A</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-lbl" style="width: 80px">Work End</span
+                ><span class="detail-sep">::</span
+                ><span class="detail-val" id="dispSiteEnd">N/A</span>
+              </div>
+              <div
+                class="detail-row"
+                id="oldVehRow"
+                style="display: none; margin-top: 5px"
+              >
+                <span class="detail-lbl" style="width: 80px; color: #8b5cf6"
+                  >Old Vehicle</span
+                >
+                <span class="detail-sep">::</span>
+                <span
+                  class="detail-val"
+                  id="dispOldVeh"
+                  style="color: #8b5cf6; font-weight: 700"
+                  >N/A</span
+                >
+              </div>
+              <div
+                class="detail-row"
+                id="newVehRow"
+                style="display: none; margin-top: 5px"
+              >
+                <span class="detail-lbl" style="width: 80px; color: #f97316"
+                  >Replaced By</span
+                >
+                <span class="detail-sep">::</span>
+                <span
+                  class="detail-val"
+                  id="dispNewVeh"
+                  style="color: #f97316; font-weight: 700"
+                  >N/A</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- 🟢 Invoice Entry Block Modified with Dropdown -->
+          <div class="summary-card">
+            <div class="summary-title" style="color: #8e44ad">
+              INVOICE ENTRY
             </div>
 
-            <div class="right-sidebar">
-                <div class="summary-card">
-                    <div class="summary-title">VEHICLE DETAILS</div>
-                    <div class="detail-row"><span class="detail-lbl">Vehicle Type</span><span
-                            class="detail-sep">::</span><span class="detail-val" id="dispVType">N/A</span></div>
-                    <div class="detail-row"><span class="detail-lbl">Driver Name</span><span
-                            class="detail-sep">::</span><span class="detail-val" id="dispDName">N/A</span></div>
-                    <div class="detail-row"><span class="detail-lbl">Driver Mobile</span><span
-                            class="detail-sep">::</span><span class="detail-val" id="dispDMob">N/A</span></div>
-                    <div class="detail-row"><span class="detail-lbl">Owner Name</span><span
-                            class="detail-sep">::</span><span class="detail-val" id="dispOName">N/A</span></div>
-                    <div class="detail-row"><span class="detail-lbl">Owner Mobile</span><span
-                            class="detail-sep">::</span><span class="detail-val" id="dispOMob">N/A</span></div>
-                    <div class="detail-row"><span class="detail-lbl">Site Name</span><span
-                            class="detail-sep">::</span><span class="detail-val" id="dispSite">N/A</span></div>
-                    <div class="detail-row"><span class="detail-lbl">Field Co</span><span
-                            class="detail-sep">::</span><span class="detail-val" id="dispFieldCo">N/A</span></div>
-                    <div class="detail-row"><span class="detail-lbl">Site Co</span><span
-                            class="detail-sep">::</span><span class="detail-val" id="dispSiteCo">N/A</span></div>
-                    <div class="detail-row"><span class="detail-lbl">Asset Code</span><span
-                            class="detail-sep">::</span><span class="detail-val" id="dispAsset">N/A</span></div>
-                    <div class="detail-row"><span class="detail-lbl">Work Order</span><span
-                            class="detail-sep">::</span><span class="detail-val" id="dispWorkOrder">N/A</span></div>
-                </div>
-
-                <div class="summary-card">
-                    <div class="summary-title">MONTH SUMMARY <span id="logSheetCount"
-                            style="color:#0d6efd; font-size: 14px;"></span></div>
-                    <div class="summary-item">Normal Time: <span class="summary-value val-normal"
-                            id="sumNormal">0</span></div>
-                    <div class="summary-item">OT Hours: <span class="summary-value val-ot" id="sumOT">0</span></div>
-                    <div class="summary-item"
-                        style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 8px;">Total Time: <span
-                            class="summary-value" id="sumTime">0</span></div>
-                    <div class="summary-item">Total Dist: <span class="summary-value" id="sumDist">0.0</span></div>
-                    <div class="summary-item">Total Fuel: <span class="summary-value" id="sumFuel">0.0</span></div>
-                    <div class="summary-item">Mileage: <span class="summary-value" id="sumMileage">0.00</span></div>
-                </div>
-
-                <div class="summary-card">
-                    <div class="summary-title" style="color: #c62828;">SITE LOG DETAILS</div>
-                    <div id="dispSiteLogInfo" style="font-size: 12px; font-weight: 500; color: #333; line-height: 1.6;">
-                        <div class="detail-row"><span class="detail-lbl" style="width: 80px;">Work Start</span><span
-                                class="detail-sep">::</span><span class="detail-val" id="dispSiteStart">N/A</span></div>
-                        <div class="detail-row"><span class="detail-lbl" style="width: 80px;">Work End</span><span
-                                class="detail-sep">::</span><span class="detail-val" id="dispSiteEnd">N/A</span></div>
-                        <div class="detail-row" id="replaceRow" style="display:none; margin-top: 5px;">
-                            <span class="detail-lbl" style="width: 80px; color:#f97316;">Replaced By</span>
-                            <span class="detail-sep">::</span>
-                            <span class="detail-val" id="dispSiteReplace"
-                                style="color:#f97316; font-weight:700;">N/A</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 🟢 Invoice Entry Block Modified with Dropdown -->
-                <div class="summary-card">
-                    <div class="summary-title" style="color: #8e44ad;">INVOICE ENTRY</div>
-
-                    <div class="form-group" style="margin-bottom: 8px;">
-                        <label style="color:#8e44ad;">Select Site <span style="color:#ef4444">*</span></label>
-                        <select id="invSiteSelect" onchange="loadInvoiceForSelectedSite()"
-                            style="height: 28px; font-size: 12px; padding: 4px 8px; border: 1px solid #8e44ad; font-weight: 600; color: #0f172a;">
-                            <option value="">Waiting for data...</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 8px;">
-                        <label style="color:#8e44ad;">Invoice Number <span style="color:#ef4444">*</span></label>
-                        <input type="text" id="invNo" placeholder="Enter Invoice No."
-                            style="height: 28px; font-size: 12px; padding: 4px 8px;">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 8px;">
-                        <label style="color:#8e44ad;">Bill Number</label>
-                        <input type="text" id="invBillNo" placeholder="Enter Bill No."
-                            style="height: 28px; font-size: 12px; padding: 4px 8px;">
-                    </div>
-                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                        <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                            <label style="color:#8e44ad;">Bill N.Hr <span style="color:#ef4444">*</span></label>
-                            <input type="number" id="invNr" placeholder="Normal Hr"
-                                style="height: 28px; font-size: 12px; padding: 4px 8px;">
-                        </div>
-                        <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                            <label style="color:#8e44ad;">Bill OT.Hr</label>
-                            <input type="number" id="invOt" placeholder="OT Hr"
-                                style="height: 28px; font-size: 12px; padding: 4px 8px;">
-                        </div>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label style="color:#8e44ad;">Invoice Amount</label>
-                        <input type="number" id="invAmt" placeholder="Total Amount"
-                            style="height: 28px; font-size: 12px; padding: 4px 8px;">
-                    </div>
-                    <button class="btn-inv-save" onclick="saveInvoiceData()"
-                        style="margin-top:0; padding: 8px; font-size: 12px;">Save Invoice Data</button>
-                </div>
-
+            <div class="form-group" style="margin-bottom: 8px">
+              <label style="color: #8e44ad"
+                >Select Site <span style="color: #ef4444">*</span></label
+              >
+              <select
+                id="invSiteSelect"
+                onchange="loadInvoiceForSelectedSite()"
+                style="
+                  height: 28px;
+                  font-size: 12px;
+                  padding: 4px 8px;
+                  border: 1px solid #8e44ad;
+                  font-weight: 600;
+                  color: #0f172a;
+                "
+              >
+                <option value="">Waiting for data...</option>
+              </select>
             </div>
+
+            <div class="form-group" style="margin-bottom: 8px">
+              <label style="color: #8e44ad"
+                >Invoice Number <span style="color: #ef4444">*</span></label
+              >
+              <input
+                type="text"
+                id="invNo"
+                placeholder="Enter Invoice No."
+                style="height: 28px; font-size: 12px; padding: 4px 8px"
+              />
+            </div>
+            <div class="form-group" style="margin-bottom: 8px">
+              <label style="color: #8e44ad">Bill Number</label>
+              <input
+                type="text"
+                id="invBillNo"
+                placeholder="Enter Bill No."
+                style="height: 28px; font-size: 12px; padding: 4px 8px"
+              />
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px">
+              <div class="form-group" style="flex: 1; margin-bottom: 0">
+                <label style="color: #8e44ad"
+                  >Bill N.Hr <span style="color: #ef4444">*</span></label
+                >
+                <input
+                  type="number"
+                  id="invNr"
+                  placeholder="Normal Hr"
+                  style="height: 28px; font-size: 12px; padding: 4px 8px"
+                />
+              </div>
+              <div class="form-group" style="flex: 1; margin-bottom: 0">
+                <label style="color: #8e44ad">Bill OT.Hr</label>
+                <input
+                  type="number"
+                  id="invOt"
+                  placeholder="OT Hr"
+                  style="height: 28px; font-size: 12px; padding: 4px 8px"
+                />
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 12px">
+              <label style="color: #8e44ad">Invoice Amount</label>
+              <input
+                type="number"
+                id="invAmt"
+                placeholder="Total Amount"
+                style="height: 28px; font-size: 12px; padding: 4px 8px"
+              />
+            </div>
+            <button
+              class="btn-inv-save"
+              onclick="saveInvoiceData()"
+              style="margin-top: 0; padding: 8px; font-size: 12px"
+            >
+              Save Invoice Data
+            </button>
+          </div>
         </div>
+      </div>
     </div>
 
     <!-- Modals -->
-    <div id="customAlertModal" class="modal-overlay" style="z-index: 3000;">
-        <div class="modal-light" style="width: 320px; text-align: center;">
-            <h3 id="customAlertTitle"
-                style="text-align: center; color: #ef4444; font-size: 16px; border:none; padding:0; margin-bottom:10px;">
-                Notice</h3>
-            <p id="customAlertMessage" style="margin: 15px 0 20px; color: #334155; font-size: 14px; line-height: 1.5;">
-            </p>
-            <button class="btn-inv-save" style="margin: 0;" onclick="closeCustomAlert()">OK</button>
-        </div>
+    <div id="customAlertModal" class="modal-overlay" style="z-index: 3000">
+      <div class="modal-light" style="width: 320px; text-align: center">
+        <h3
+          id="customAlertTitle"
+          style="
+            text-align: center;
+            color: #ef4444;
+            font-size: 16px;
+            border: none;
+            padding: 0;
+            margin-bottom: 10px;
+          "
+        >
+          Notice
+        </h3>
+        <p
+          id="customAlertMessage"
+          style="
+            margin: 15px 0 20px;
+            color: #334155;
+            font-size: 14px;
+            line-height: 1.5;
+          "
+        ></p>
+        <button
+          class="btn-inv-save"
+          style="margin: 0"
+          onclick="closeCustomAlert()"
+        >
+          OK
+        </button>
+      </div>
     </div>
 
-    <div id="customPromptModal" class="modal-overlay" style="z-index: 3000;">
-        <div class="modal-light" style="width: 320px;">
-            <h3 id="customPromptTitle"
-                style="color: #0ea5e9; font-size: 16px; border-bottom: 2px solid #f1f5f9; padding-bottom:10px; margin-bottom:10px;">
-                Input Required</h3>
-            <p id="customPromptMessage" style="margin: 10px 0 15px; color: #334155; font-size: 13px; font-weight: 500;">
-            </p>
-            <input type="text" id="customPromptInput" style="margin-bottom: 20px;">
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-inv-close" style="margin-top: 0; flex: 1;"
-                    onclick="closeCustomPrompt()">Cancel</button>
-                <button class="btn-inv-save" style="margin-top: 0; flex: 1;"
-                    onclick="submitCustomPrompt()">Submit</button>
-            </div>
+    <div id="customPromptModal" class="modal-overlay" style="z-index: 3000">
+      <div class="modal-light" style="width: 320px">
+        <h3
+          id="customPromptTitle"
+          style="
+            color: #0ea5e9;
+            font-size: 16px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+          "
+        >
+          Input Required
+        </h3>
+        <p
+          id="customPromptMessage"
+          style="
+            margin: 10px 0 15px;
+            color: #334155;
+            font-size: 13px;
+            font-weight: 500;
+          "
+        ></p>
+        <input type="text" id="customPromptInput" style="margin-bottom: 20px" />
+        <div style="display: flex; gap: 10px">
+          <button
+            class="btn-inv-close"
+            style="margin-top: 0; flex: 1"
+            onclick="closeCustomPrompt()"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn-inv-save"
+            style="margin-top: 0; flex: 1"
+            onclick="submitCustomPrompt()"
+          >
+            Submit
+          </button>
         </div>
+      </div>
     </div>
 
     <script src="scripts/entry.js"></script>
-</body>
-
+  </body>
 </html>
