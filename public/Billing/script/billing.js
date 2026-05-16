@@ -445,9 +445,21 @@ function createBillCard(group, id) {
     let nhr = saved ? saved.nhr : 0;
     let othr = saved ? saved.othr : 0;
 
-    // 🟢 FIXED: Removed .toFixed(2) here to load exact rates from DB
-    let nrate = parseFloat(saved ? saved.nrate : item.nrate || 0);
-    let otrate = parseFloat(saved ? saved.otrate : item.otrate || 0);
+    // 🟢 FIXED: ALWAYS take exact full decimal from master data.
+    // Only use saved DB rate if the user manually changed it to something completely different (like 50).
+    let nrate = item.nrate || 0;
+    let otrate = item.otrate || 0;
+
+    if (saved && parseFloat(saved.nrate) > 0) {
+      if (Math.abs(parseFloat(saved.nrate) - nrate) > 0.1) {
+        nrate = parseFloat(saved.nrate); // Keep manual override
+      }
+    }
+    if (saved && parseFloat(saved.otrate) > 0) {
+      if (Math.abs(parseFloat(saved.otrate) - otrate) > 0.1) {
+        otrate = parseFloat(saved.otrate); // Keep manual override
+      }
+    }
 
     let vatPerc = saved ? saved.vat_percent : item.vat_bill === "Yes" ? 15 : 0;
     let driverName = item.driver_name || item.driver || "";
@@ -566,11 +578,11 @@ function generateRowHTML(
                 <input type="text" class="plate" value="${plate || ""}" oninput="showSuggestions(this)" onkeydown="handleGlobalKeyDown(event, this)" onblur="handlePlateBlur(this)" autocomplete="off">
                 <div class="suggestion-box"></div>
             </td>
-            <td><input type="number" class="nhr" value="${nhr}" oninput="calculateRow(this)"></td>
-            <td class="rate-col"><input type="number" class="nrate" value="${nrate}" oninput="calculateRow(this)"></td> 
-            <td><input type="number" class="othr" value="${othr}" oninput="calculateRow(this)"></td>
-            <td class="rate-col"><input type="number" class="otrate" value="${otrate}" oninput="calculateRow(this)"></td> 
-            <td><input type="number" class="rent" value="0.00" oninput="calculateFromRent(this)"></td>
+            <td><input type="number" step="any" class="nhr" value="${nhr}" oninput="calculateRow(this)"></td>
+            <td class="rate-col"><input type="number" step="any" class="nrate" value="${nrate}" oninput="calculateRow(this)"></td> 
+            <td><input type="number" step="any" class="othr" value="${othr}" oninput="calculateRow(this)"></td>
+            <td class="rate-col"><input type="number" step="any" class="otrate" value="${otrate}" oninput="calculateRow(this)"></td> 
+            <td><input type="number" step="any" class="rent" value="0.00" oninput="calculateFromRent(this)"></td>
             <td class="vat-col" style="display:${vatDisplay};">
                 <select class="vat-rate table-select" onchange="calculateRow(this)">
                     <option value="15" ${vatPerc == 15 ? "selected" : ""}>15%</option>
@@ -934,11 +946,14 @@ function applyAutoFillData(input, match, addBlankRow = true) {
   if (saved) {
     row.querySelector(".nhr").value = saved.nhr || 0;
     row.querySelector(".othr").value = saved.othr || 0;
-    // Overwrite with DB rates if available to maintain exact saved data
-    if (saved.nrate)
+
+    // 🟢 DB-യിൽ സേവ് ചെയ്ത റേറ്റ് മാത്രം ഉപയോഗിക്കുന്നു!
+    if (saved.nrate !== null && saved.nrate !== undefined) {
       row.querySelector(".nrate").value = parseFloat(saved.nrate);
-    if (saved.otrate)
+    }
+    if (saved.otrate !== null && saved.otrate !== undefined) {
       row.querySelector(".otrate").value = parseFloat(saved.otrate);
+    }
   } else {
     // 🟢 FIXED: If no saved data, ONLY set to 0 if the user hasn't typed anything yet!
     let currentNhr = parseFloat(row.querySelector(".nhr").value) || 0;

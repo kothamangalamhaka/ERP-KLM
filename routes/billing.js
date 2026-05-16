@@ -192,21 +192,16 @@ router.get("/vehicles", async (req, res) => {
       }
     });
 
-    // 🟢 SMART RATE LOGIC
-    savedResult.rows.forEach((saved) => {
-      let pNo = (saved.plate_no || "").toUpperCase().trim();
-      let sName = (saved.site_name || "").trim();
-      // പ്ലേറ്റ് നമ്പറും സൈറ്റും വെച്ച് മാച്ച് ചെയ്യുന്നു (ഒരു വണ്ടി 2 സൈറ്റിൽ വന്നാൽ കൺഫ്യൂഷൻ ഒഴിവാക്കാൻ)
-      let tsMatch = validVehicles.find(
-        (v) => v.plate_number === pNo && v.site === sName,
-      );
+    // 🟢 CLEAN LOGIC: DB-യിൽ ഉണ്ടെങ്കിൽ അത് മാത്രം എടുക്കുക, അല്ലെങ്കിൽ മാസ്റ്റർ ഡാറ്റ.
+    let nrate = item.nrate || 0;
+    let otrate = item.otrate || 0;
 
-      if (tsMatch && (parseFloat(saved.nrate) === 0 || !saved.nrate)) {
-        saved.nrate = tsMatch.nrate;
-        saved.otrate = tsMatch.otrate;
-        saved.db_rate = tsMatch.rate;
-      }
-    });
+    if (saved && saved.nrate !== null && saved.nrate !== undefined) {
+      nrate = parseFloat(saved.nrate);
+    }
+    if (saved && saved.otrate !== null && saved.otrate !== undefined) {
+      otrate = parseFloat(saved.otrate);
+    }
 
     res.status(200).json({
       success: true,

@@ -303,11 +303,16 @@ async function triggerFetch() {
 
       if (activeDrivers.length > 0) {
         dNameArr = [...new Set(activeDrivers.map((d) => d.driver_name))].filter(
-          Boolean,
+          (val) =>
+            val && String(val).trim() !== "" && String(val).trim() !== "-",
         );
+
         dMobArr = [
-          ...new Set(activeDrivers.map((d) => d.driver_mobile || "-")),
-        ].filter(Boolean);
+          ...new Set(activeDrivers.map((d) => d.driver_mobile)),
+        ].filter(
+          (val) =>
+            val && String(val).trim() !== "" && String(val).trim() !== "-",
+        );
       }
 
       activeSites = logs.sites.filter((s) => {
