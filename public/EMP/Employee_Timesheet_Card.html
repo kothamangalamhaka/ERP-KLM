@@ -1,115 +1,196 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Log Report</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link rel="stylesheet" href="style/employee_timesheet_card.css">
-      
-</head>
+    <link rel="stylesheet" href="style/employee_timesheet_card.css" />
+  </head>
 
-<body>
-
+  <body>
     <div id="saveIndicator">Saving Data...</div>
 
-    <div id="pinModal" class="modal-overlay">
-        <div class="pin-box">
-            <h3>Security Lock</h3>
-            <p style="font-size: 13px; color: #666; margin-top: -10px;">Enter security code to access.</p>
-            <input type="password" id="pinInput" class="pin-input" placeholder="••••"
-                onkeypress="if(event.key==='Enter') verifyPin()">
-            <div class="modal-btns">
-                <button class="btn-cancel" onclick="closePinModal()">Cancel</button>
-                <button class="btn-verify" onclick="verifyPin()">Unlock</button>
-            </div>
+    <div
+      id="pinModal"
+      class="modal-overlay"
+      style="display: flex; background: rgba(15, 23, 42, 0.9)"
+    >
+      <div
+        class="pin-box"
+        style="background: #1e293b; border: 1px solid rgba(0, 206, 209, 0.3)"
+      >
+        <h3 style="color: #00ced1">🔒 Security Lock</h3>
+        <p style="font-size: 13px; color: #94a3b8; margin-top: -10px">
+          Enter EMP security code to access.
+        </p>
+        <input
+          type="password"
+          id="pinInput"
+          class="pin-input"
+          placeholder="••••"
+          style="background: #0f172a; color: white; border-color: #334155"
+          onkeypress="if (event.key === 'Enter') verifyPin();"
+        />
+        <div class="modal-btns">
+          <button
+            class="btn-cancel"
+            style="background: #64748b"
+            onclick="goBack()"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn-verify"
+            style="background: #00ced1; color: #0f172a"
+            onclick="verifyPin()"
+          >
+            Unlock
+          </button>
         </div>
+      </div>
     </div>
 
     <div class="controls-wrapper">
-        <div class="controls">
-            <select id="empSelect">
-                <option value="">Select Employee</option>
-            </select>
-            <input type="date" id="dateFrom">
-            <input type="date" id="dateTo">
-            <button class="btn fetch-btn" onclick="fetchData()">Fetch Data</button>
-        </div>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-            <button class="btn go-back" onclick="requestAccess('add_new')">Add New</button>
-            <button id="editBtn" class="btn edit-btn" onclick="handleEditClick()">Edit</button>
-            <button class="btn export-btn" onclick="exportToPNG()">Card</button>
-        </div>
+      <div class="controls">
+        <select id="empSelect">
+          <option value="">Select Employee</option>
+        </select>
+        <input type="date" id="dateFrom" />
+        <input type="date" id="dateTo" />
+        <button class="btn fetch-btn" onclick="fetchData()">Fetch Data</button>
+      </div>
+      <div
+        style="
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          justify-content: center;
+        "
+      >
+        <button
+          class="btn go-back"
+          onclick="window.location.href = './office_staff_data.html'"
+        >
+          Add New
+        </button>
+        <button
+          id="editBtn"
+          class="btn edit-btn"
+          onclick="executeToggleEditMode()"
+        >
+          Edit
+        </button>
+        <button class="btn export-btn" onclick="exportToPNG()">Card</button>
+      </div>
     </div>
 
     <div id="printArea" class="report-card">
-        <div class="card-header"
-            style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #5d140b; padding-bottom: 10px; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-            <div style="flex: 1; text-align: left; min-width: 150px;">
-                <p id="displayMobile" style="margin: 0; color: #555; font-size: 14px; font-weight: bold;">Mob: -</p>
-            </div>
-            <div class="employee-details" style="flex: 1; text-align: center; min-width: 200px;">
-                <h2 id="displayName" style="margin: 0; color: #2c3e50; font-size: 22px;">Select Employee</h2>
-            </div>
-            <div class="period-details"
-                style="flex: 1; text-align: right; color: #5d140b; font-weight: bold; font-size: 14px; min-width: 150px;">
-                Period: <span id="displayPeriod">-</span>
-            </div>
+      <div
+        class="card-header"
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          border-bottom: 2px solid #5d140b;
+          padding-bottom: 10px;
+          margin-bottom: 15px;
+          flex-wrap: wrap;
+          gap: 10px;
+        "
+      >
+        <div style="flex: 1; text-align: left; min-width: 150px">
+          <p
+            id="displayMobile"
+            style="margin: 0; color: #555; font-size: 14px; font-weight: bold"
+          >
+            Mob: -
+          </p>
         </div>
+        <div
+          class="employee-details"
+          style="flex: 1; text-align: center; min-width: 200px"
+        >
+          <h2
+            id="displayName"
+            style="margin: 0; color: #2c3e50; font-size: 22px"
+          >
+            Select Employee
+          </h2>
+        </div>
+        <div
+          class="period-details"
+          style="
+            flex: 1;
+            text-align: right;
+            color: #5d140b;
+            font-weight: bold;
+            font-size: 14px;
+            min-width: 150px;
+          "
+        >
+          Period: <span id="displayPeriod">-</span>
+        </div>
+      </div>
 
-        <div class="table-responsive">
-            <table id="dataTable">
-                <thead>
-                    <tr>
-                        <th rowspan="2">Date</th>
-                        <th rowspan="2">Day</th>
-                        <th colspan="2">Worked Period (Hrs)</th>
-                        <th rowspan="2">AB/ID</th>
-                        <th colspan="3">Break Down (Hrs)</th>
-                        <th colspan="3">Total Period</th>
-                        <th rowspan="2" class="normal-col">Normal Hr</th>
-                        <th rowspan="2" class="ot-col">OT</th>
-                    </tr>
-                    <tr>
-                        <th>Start</th>
-                        <th>End</th>
-                        <th>Start</th>
-                        <th>End</th>
-                        <th>Remarks</th>
-                        <th>Break</th>
-                        <th>Shift Hr</th>
-                        <th>Worked</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <tr>
-                        <td colspan="13" style="padding: 20px; color: #666;">Select an employee and fetch data.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+      <div class="table-responsive">
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th rowspan="2">Date</th>
+              <th rowspan="2">Day</th>
+              <th colspan="2">Worked Period (Hrs)</th>
+              <th rowspan="2">AB/ID</th>
+              <th colspan="3">Break Down (Hrs)</th>
+              <th colspan="3">Total Period</th>
+              <th rowspan="2" class="normal-col">Normal Hr</th>
+              <th rowspan="2" class="ot-col">OT</th>
+            </tr>
+            <tr>
+              <th>Start</th>
+              <th>End</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Remarks</th>
+              <th>Break</th>
+              <th>Shift Hr</th>
+              <th>Worked</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="13" style="padding: 20px; color: #666">
+                Select an employee and fetch data.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-        <div class="footer-summary">
-            <div>
-                Base Salary: <strong id="dispBaseSal">0</strong><br>
-                Shift Hrs / Day: <strong id="dispShiftHrs">0</strong><br>
-                Rate per Hr: <span id="rateHr" style="font-weight: bold;">0</span><br>
-                Total Days Worked: <span id="daysWorked" style="font-weight: bold;">0</span>
-            </div>
-            <div style="text-align: right;">
-                Normal Hr: <span id="totalNormal" style="font-weight: bold;">0</span><br>
-                Over Time: <span id="totalOT" style="font-weight: bold;">0</span><br>
-                Base Salary Earned: <span id="baseEarned" style="font-weight: bold;">0</span><br>
-                Over Time Earned: <span id="otEarned" style="font-weight: bold;">0</span><br>
-                <span class="total-amt">Total Amount: <span id="totalAmt">0</span></span>
-            </div>
+      <div class="footer-summary">
+        <div>
+          Base Salary: <strong id="dispBaseSal">0</strong><br />
+          Shift Hrs / Day: <strong id="dispShiftHrs">0</strong><br />
+          Rate per Hr: <span id="rateHr" style="font-weight: bold">0</span
+          ><br />
+          Total Days Worked:
+          <span id="daysWorked" style="font-weight: bold">0</span>
         </div>
+        <div style="text-align: right">
+          Normal Hr: <span id="totalNormal" style="font-weight: bold">0</span
+          ><br />
+          Over Time: <span id="totalOT" style="font-weight: bold">0</span><br />
+          Base Salary Earned:
+          <span id="baseEarned" style="font-weight: bold">0</span><br />
+          Over Time Earned:
+          <span id="otEarned" style="font-weight: bold">0</span><br />
+          <span class="total-amt"
+            >Total Amount: <span id="totalAmt">0</span></span
+          >
+        </div>
+      </div>
     </div>
 
-    <script src="script/employee_timesheet_card.js">
-       
-    </script>
-</body>
-
+    <script src="script/employee_timesheet_card.js"></script>
+  </body>
 </html>
