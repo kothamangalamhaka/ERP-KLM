@@ -1,81 +1,157 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timesheet Admin Panel</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; }
-        button { padding: 8px 15px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-        th { background-color: #007bff; color: white; }
-        select { padding: 5px; }
-        .btn-save { background-color: #28a745; margin-left: 10px; }
+      * {
+        font-family: Georgia, "Times New Roman", Times, serif;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #181a1b; /* Soft dark background */
+        color: #e8e6e3; /* Light gray text for readability */
+        padding: 20px;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #242526; /* Slightly lighter dark shade for cards */
+        padding: 15px 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+      }
+
+      .header h2 {
+        margin: 0;
+        color: #e8e6e3;
+      }
+
+      button {
+        padding: 8px 15px;
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: opacity 0.2s;
+      }
+
+      button:hover {
+        opacity: 0.8;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background: #242526;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        border: 1px solid #3a3b3c; /* Subtle dark borders */
+        text-align: left;
+      }
+
+      th {
+        background-color: #3a3b3c;
+        color: #ffffff;
+      }
+
+      select {
+        padding: 6px;
+        background-color: #181a1b;
+        color: #e8e6e3;
+        border: 1px solid #555;
+        border-radius: 4px;
+        outline: none;
+      }
+
+      select:focus {
+        border-color: #007bff;
+      }
+
+      .btn-save {
+        background-color: #28a745;
+        margin-left: 10px;
+      }
+
+      #errorMsg {
+        color: #ff6b6b !important; /* Brighter red for dark mode */
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <div class="header">
+      <h2>Timesheet Admin Panel (Super Admin)</h2>
+      <button onclick="logout()">Logout</button>
+    </div>
 
-<div class="header">
-    <h2>Timesheet Admin Panel (Super Admin)</h2>
-    <button onclick="logout()">Logout</button>
-</div>
+    <div
+      id="errorMsg"
+      style="color: red; margin-top: 20px; font-weight: bold"
+    ></div>
 
-<div id="errorMsg" style="color:red; margin-top:20px; font-weight:bold;"></div>
-
-<table id="usersTable">
-    <thead>
+    <table id="usersTable">
+      <thead>
         <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Action</th>
+          <th>ID</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Action</th>
         </tr>
-    </thead>
-    <tbody id="usersBody">
-        </tbody>
-</table>
+      </thead>
+      <tbody id="usersBody"></tbody>
+    </table>
 
-<script>
-    const token = localStorage.getItem('timesheetToken');
-    if(!token) {
-        window.location.href = '../index.html';
-    }
+    <script>
+      const token = localStorage.getItem("timesheetToken");
+      if (!token) {
+        window.location.href = "../index.html";
+      }
 
-    async function fetchUsers() {
+      async function fetchUsers() {
         try {
-            const res = await fetch('/timesheet/admin/users', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
-            const data = await res.json();
-            
-            if(!data.success) {
-                document.getElementById('errorMsg').innerText = data.message;
-                return;
-            }
+          const res = await fetch("/timesheet/admin/users", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await res.json();
 
-            const tbody = document.getElementById('usersBody');
-            tbody.innerHTML = '';
-            data.users.forEach(user => {
-                tbody.innerHTML += `
+          if (!data.success) {
+            document.getElementById("errorMsg").innerText = data.message;
+            return;
+          }
+
+          const tbody = document.getElementById("usersBody");
+          tbody.innerHTML = "";
+          data.users.forEach((user) => {
+            tbody.innerHTML += `
                     <tr>
                         <td>${user.id}</td>
                         <td>${user.username}</td>
                         <td>${user.email}</td>
                         <td>
                             <select id="role_${user.id}">
-                                <option value="Viewer" ${user.role==='Viewer'?'selected':''}>Viewer</option>
-                                <option value="Editor" ${user.role==='Editor'?'selected':''}>Editor</option>
-                                <option value="Super Admin" ${user.role==='Super Admin'?'selected':''}>Super Admin</option>
+                                <option value="Viewer" ${user.role === "Viewer" ? "selected" : ""}>Viewer</option>
+                                <option value="Editor" ${user.role === "Editor" ? "selected" : ""}>Editor</option>
+                                <option value="Super Admin" ${user.role === "Super Admin" ? "selected" : ""}>Super Admin</option>
                             </select>
                         </td>
                         <td>
                             <select id="status_${user.id}">
-                                <option value="Pending" ${user.status==='Pending'?'selected':''}>Pending</option>
-                                <option value="Active" ${user.status==='Active'?'selected':''}>Active</option>
+                                <option value="Pending" ${user.status === "Pending" ? "selected" : ""}>Pending</option>
+                                <option value="Active" ${user.status === "Active" ? "selected" : ""}>Active</option>
                             </select>
                         </td>
                         <td>
@@ -83,44 +159,46 @@
                         </td>
                     </tr>
                 `;
-            });
-        } catch(err) {
-            document.getElementById('errorMsg').innerText = "Failed to fetch data.";
+          });
+        } catch (err) {
+          document.getElementById("errorMsg").innerText =
+            "Failed to fetch data.";
         }
-    }
+      }
 
-    async function updateUser(id) {
+      async function updateUser(id) {
         const role = document.getElementById(`role_${id}`).value;
         const status = document.getElementById(`status_${id}`).value;
-        
+
         try {
-            const res = await fetch('/timesheet/admin/update-user', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify({ userId: id, role: role, status: status })
-            });
-            const data = await res.json();
-            if(data.success) {
-                alert("User Updated Successfully");
-                fetchUsers();
-            } else {
-                alert("Error: " + data.message);
-            }
-        } catch(err) { alert("Network Error"); }
-    }
+          const res = await fetch("/timesheet/admin/update-user", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ userId: id, role: role, status: status }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert("User Updated Successfully");
+            fetchUsers();
+          } else {
+            alert("Error: " + data.message);
+          }
+        } catch (err) {
+          alert("Network Error");
+        }
+      }
 
-    function logout() {
-        localStorage.removeItem('timesheetToken');
-        localStorage.removeItem('timesheetUser');
-        window.location.href = '../index.html';
-    }
+      function logout() {
+        localStorage.removeItem("timesheetToken");
+        localStorage.removeItem("timesheetUser");
+        window.location.href = "../index.html";
+      }
 
-    // Load data on start
-    fetchUsers();
-</script>
-
-</body>
+      // Load data on start
+      fetchUsers();
+    </script>
+  </body>
 </html>

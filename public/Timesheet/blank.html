@@ -1,9 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1600" />
     <title>Pending Log Sheets - Haka ERP</title>
 
     <!-- External Libraries -->
@@ -12,160 +11,310 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
 
     <!-- Custom Stylesheet -->
-    <link rel="stylesheet" href="style/blank.css">
-</head>
+    <link rel="stylesheet" href="style/blank.css" />
+  </head>
 
-<body>
-
+  <body>
     <div class="controls-wrapper">
-        <h2>Pending Logsheet</h2>
+      <h2>Pending Logsheet</h2>
 
-        <div class="control-group">
-            <label>Month</label>
-            <select id="selMonth" onchange="setDefaultDate()">
-                <option value="January">January</option>
-                <option value="February">February</option>
-                <option value="March">March</option>
-                <option value="April">April</option>
-                <option value="May">May</option>
-                <option value="June">June</option>
-                <option value="July">July</option>
-                <option value="August">August</option>
-                <option value="September">September</option>
-                <option value="October">October</option>
-                <option value="November">November</option>
-                <option value="December">December</option>
-            </select>
-        </div>
+      <div class="control-group">
+        <label>Month</label>
+        <select id="selMonth" onchange="setDefaultDate()">
+          <option value="January">January</option>
+          <option value="February">February</option>
+          <option value="March">March</option>
+          <option value="April">April</option>
+          <option value="May">May</option>
+          <option value="June">June</option>
+          <option value="July">July</option>
+          <option value="August">August</option>
+          <option value="September">September</option>
+          <option value="October">October</option>
+          <option value="November">November</option>
+          <option value="December">December</option>
+        </select>
+      </div>
 
-        <div class="control-group">
-            <label>Year</label>
-            <input type="number" id="selYear" value="2026" style="width: 70px;" onchange="setDefaultDate()">
-        </div>
+      <div class="control-group">
+        <label>Year</label>
+        <input
+          type="number"
+          id="selYear"
+          value="2026"
+          style="width: 70px"
+          onchange="setDefaultDate()"
+        />
+      </div>
 
-        <div class="control-group">
-            <label>Limit Date</label>
-            <input type="number" id="upToDate" min="1" max="31" style="width: 60px;">
-        </div>
+      <div class="control-group">
+        <label>Limit Date</label>
+        <input
+          type="number"
+          id="upToDate"
+          min="1"
+          max="31"
+          style="width: 60px"
+        />
+      </div>
 
-        <button class="btn btn-primary" onclick="generatePendingReport()" id="btnGen" style="margin-left: 5px;">
-            <span class="loader" id="genLoader"></span> Fetch Blanks
+      <button
+        class="btn btn-primary"
+        onclick="generatePendingReport()"
+        id="btnGen"
+        style="margin-left: 5px"
+      >
+        <span class="loader" id="genLoader"></span> Fetch Blanks
+      </button>
+
+      <div style="width: 10px"></div>
+      <a href="./Dashboard.html"
+        ><button class="btn btn-nav-entry">Time Sheet</button></a
+      >
+      <a href="./Timesheet.html"
+        ><button class="btn btn-nav-home">Home</button></a
+      >
+      <a href="./db.html"><button class="btn btn-nav-db">Data Base</button></a>
+      <a href="./entry.html"
+        ><button class="btn btn-nav-entry">Data Entry</button></a
+      >
+
+      <div class="right-actions">
+        <div id="recordCountDisplay" class="record-count">Count: 0</div>
+        <input
+          type="text"
+          id="globalSearch"
+          class="global-search"
+          placeholder="Search data..."
+          onkeyup="applyGridFilters()"
+        />
+        <button
+          class="btn-icon-circular"
+          onclick="toggleSearch()"
+          title="Search"
+        >
+          🔍
         </button>
 
-        <div style="width: 10px;"></div>
-        <a href="./Dashboard.html"><button class="btn btn-nav-entry">Time Sheet</button></a>
-        <a href="./Timesheet.html"><button class="btn btn-nav-home">Home</button></a>
-        <a href="./db.html"><button class="btn btn-nav-db">Data Base</button></a>
-        <a href="./entry.html"><button class="btn btn-nav-entry">Data Entry</button></a>
-
-        <div class="right-actions">
-            <div id="recordCountDisplay" class="record-count">Count: 0</div>
-            <input type="text" id="globalSearch" class="global-search" placeholder="Search data..."
-                onkeyup="applyGridFilters()">
-            <button class="btn-icon-circular" onclick="toggleSearch()" title="Search">🔍</button>
-
-            <div class="export-wrapper">
-                <button class="btn btn-success" onclick="toggleExportMenu()" id="btnExport">
-                    <span class="loader" id="exportLoader"></span> ⬇ Export
-                </button>
-                <div class="export-menu" id="exportMenu">
-                    <button onclick="exportToExcel()">📊 Excel File (Tabs)</button>
-                    <button onclick="exportToPDF()">📄 PDF File (A4)</button>
-                    <button onclick="exportToPNGZip('All')">🖼️ PNG Images (Zip/Single)</button>
-                    <button onclick="exportToPNGZip('OwnerSite')">🗂️ By Owner+Site (Zip)</button>
-                    <button onclick="exportToPNGZip('Site')">🗂️ By Site Name (Zip)</button>
-                </div>
-            </div>
-
-            <button class="btn-icon-circular btn-whatsapp" onclick="openWhatsAppModal()" title="WhatsApp Formatter">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M12.031 0C5.383 0 0 5.383 0 12.031c0 2.124.553 4.195 1.603 6.012L.17 23.414l5.52-1.448A11.966 11.966 0 0012.031 24c6.648 0 12.031-5.383 12.031-12.031C24.062 5.383 18.679 0 12.031 0zm0 22.016c-1.8 0-3.565-.485-5.111-1.4l-.366-.217-3.8.997 1.01-3.7-.238-.38A9.97 9.97 0 011.969 12.03c0-5.545 4.516-10.062 10.062-10.062 5.545 0 10.062 4.517 10.062 10.062 0 5.546-4.517 10.062-10.062 10.062zm5.518-7.535c-.302-.152-1.785-.883-2.063-.984-.277-.101-.48-.152-.683.152-.202.303-.781.984-.958 1.185-.176.202-.353.228-.655.076-2.091-1.049-3.418-2.613-3.826-3.32-.05-.088-.009-.234.068-.382.203-.385.454-.682.454-.682s.152-.278.051-.555c-.101-.278-.683-1.642-.935-2.248-.246-.593-.496-.514-.683-.523-.176-.009-.38-.009-.582-.009-.202 0-.53.076-.807.38-1.01 1.112-1.01 2.704 0 4.095 1.545 2.124 4.015 3.513 6.071 4.397.808.349 1.636.576 2.316.737.854.202 1.63.174 2.247.105.7-.08 1.785-.73 2.037-1.436.252-.706.252-1.312.176-1.437-.076-.126-.278-.202-.58-.354z" />
-                </svg>
+        <div class="export-wrapper">
+          <button
+            class="btn btn-success"
+            onclick="toggleExportMenu()"
+            id="btnExport"
+          >
+            <span class="loader" id="exportLoader"></span> ⬇ Export
+          </button>
+          <div class="export-menu" id="exportMenu">
+            <button onclick="exportToExcel()">📊 Excel File (Tabs)</button>
+            <button onclick="exportToPDF()">📄 PDF File (A4)</button>
+            <button onclick="exportToPNGZip('All')">
+              🖼️ PNG Images (Zip/Single)
             </button>
+            <button onclick="exportToPNGZip('OwnerSite')">
+              🗂️ By Owner+Site (Zip)
+            </button>
+            <button onclick="exportToPNGZip('Site')">
+              🗂️ By Site Name (Zip)
+            </button>
+          </div>
         </div>
+
+        <button
+          class="btn-icon-circular btn-whatsapp"
+          onclick="openWhatsAppModal()"
+          title="WhatsApp Formatter"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path
+              d="M12.031 0C5.383 0 0 5.383 0 12.031c0 2.124.553 4.195 1.603 6.012L.17 23.414l5.52-1.448A11.966 11.966 0 0012.031 24c6.648 0 12.031-5.383 12.031-12.031C24.062 5.383 18.679 0 12.031 0zm0 22.016c-1.8 0-3.565-.485-5.111-1.4l-.366-.217-3.8.997 1.01-3.7-.238-.38A9.97 9.97 0 011.969 12.03c0-5.545 4.516-10.062 10.062-10.062 5.545 0 10.062 4.517 10.062 10.062 0 5.546-4.517 10.062-10.062 10.062zm5.518-7.535c-.302-.152-1.785-.883-2.063-.984-.277-.101-.48-.152-.683.152-.202.303-.781.984-.958 1.185-.176.202-.353.228-.655.076-2.091-1.049-3.418-2.613-3.826-3.32-.05-.088-.009-.234.068-.382.203-.385.454-.682.454-.682s.152-.278.051-.555c-.101-.278-.683-1.642-.935-2.248-.246-.593-.496-.514-.683-.523-.176-.009-.38-.009-.582-.009-.202 0-.53.076-.807.38-1.01 1.112-1.01 2.704 0 4.095 1.545 2.124 4.015 3.513 6.071 4.397.808.349 1.636.576 2.316.737.854.202 1.63.174 2.247.105.7-.08 1.785-.73 2.037-1.436.252-.706.252-1.312.176-1.437-.076-.126-.278-.202-.58-.354z"
+            />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- 🟢 Excel Filter Popup Menu -->
-    <div id="excelFilterMenu" class="excel-filter-menu" onclick="event.stopPropagation()">
-        <div class="excel-filter-search">
-            <input type="text" id="filterSearchInput" placeholder="Search filters...">
-        </div>
-        <div class="filter-item"
-            style="border-bottom: 1px solid #e2e8f0; background: #f8fafc; position: sticky; top:0; z-index: 5;">
-            <input type="checkbox" id="filterSelectAll" checked>
-            <label for="filterSelectAll" style="font-weight:700;">(Select All)</label>
-        </div>
-        <div class="excel-filter-list" id="filterChecklist"></div>
-        <div class="excel-filter-actions">
-            <button class="btn-apply-filter" onclick="applyCustomFilter()">Apply</button>
-            <button class="btn-clear-filter" onclick="closeCustomFilter()">Cancel</button>
-        </div>
+    <div
+      id="excelFilterMenu"
+      class="excel-filter-menu"
+      onclick="event.stopPropagation()"
+    >
+      <div class="excel-filter-search">
+        <input
+          type="text"
+          id="filterSearchInput"
+          placeholder="Search filters..."
+        />
+      </div>
+      <div
+        class="filter-item"
+        style="
+          border-bottom: 1px solid #e2e8f0;
+          background: #f8fafc;
+          position: sticky;
+          top: 0;
+          z-index: 5;
+        "
+      >
+        <input type="checkbox" id="filterSelectAll" checked />
+        <label for="filterSelectAll" style="font-weight: 700"
+          >(Select All)</label
+        >
+      </div>
+      <div class="excel-filter-list" id="filterChecklist"></div>
+      <div class="excel-filter-actions">
+        <button class="btn-apply-filter" onclick="applyCustomFilter()">
+          Apply
+        </button>
+        <button class="btn-clear-filter" onclick="closeCustomFilter()">
+          Cancel
+        </button>
+      </div>
     </div>
 
     <div class="main-wrapper">
-        <div class="table-responsive" id="tableContainer">
-            <div style="color: #64748b; margin-top: 50px; font-weight: 500; font-size: 15px; text-align: center;">
-                Select Date Limit and click "Fetch Blanks"
-            </div>
+      <div class="table-responsive" id="tableContainer">
+        <div
+          style="
+            color: #64748b;
+            margin-top: 50px;
+            font-weight: 500;
+            font-size: 15px;
+            text-align: center;
+          "
+        >
+          Select Date Limit and click "Fetch Blanks"
         </div>
+      </div>
     </div>
 
     <!-- Alert Modal -->
     <div id="customAlertModal" class="modal-overlay">
-        <div class="modal-box" style="width: 350px; text-align: center; padding-top: 30px;">
-            <h3 id="alertTitle"
-                style="justify-content: center; border-bottom: none; margin-bottom: 5px; font-size: 20px;">Notice</h3>
-            <p id="alertMessage" style="font-size: 13px; color: #4b5563; margin-bottom: 25px; line-height: 1.5;">Message
-                goes here</p>
-            <button class="btn btn-primary" style="width: 100%; height: 35px;" onclick="resolveAlert()">OK</button>
-        </div>
+      <div
+        class="modal-box"
+        style="width: 350px; text-align: center; padding-top: 30px"
+      >
+        <h3
+          id="alertTitle"
+          style="
+            justify-content: center;
+            border-bottom: none;
+            margin-bottom: 5px;
+            font-size: 20px;
+          "
+        >
+          Notice
+        </h3>
+        <p
+          id="alertMessage"
+          style="
+            font-size: 13px;
+            color: #4b5563;
+            margin-bottom: 25px;
+            line-height: 1.5;
+          "
+        >
+          Message goes here
+        </p>
+        <button
+          class="btn btn-primary"
+          style="width: 100%; height: 35px"
+          onclick="resolveAlert()"
+        >
+          OK
+        </button>
+      </div>
     </div>
 
     <!-- WhatsApp Formatter Modal -->
     <div id="waModal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3 style="display: flex; align-items: center; gap: 8px;">
-                    <span style="color: #25D366; font-size: 22px;">📱</span> WhatsApp Formatter
-                </h3>
-                <button class="close-btn" onclick="closeWAModal()">✖</button>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label>Filter Type</label>
-                <select id="waFilterType" onchange="toggleWAFilter()">
-                    <option value="Site Name">By Site Name</option>
-                    <option value="Owner Name">By Owner Name</option>
-                </select>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label id="waFilterLabel">Select Site Name(s)</label>
-                <input type="text" id="waSearchInput" placeholder="Search name..." onkeyup="filterWAMultiSelect()"
-                    style="margin-bottom: 8px;">
-                <div id="waMultiSelectContainer" class="wa-multi-container"></div>
-            </div>
-
-            <div class="modal-body" id="waBody">
-                <div style="text-align: center; color: #64748b; font-size: 12px; margin-top: 10px;">Please fetch data
-                    and make a selection to view records.</div>
-            </div>
-
-            <div
-                style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
-                <button class="btn-icon" onclick="copyWAToClipboard()" title="Copy to Clipboard">📋</button>
-                <button class="btn-icon excel" onclick="exportWAToExcel()" title="Download as Excel">📊</button>
-            </div>
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 style="display: flex; align-items: center; gap: 8px">
+            <span style="color: #25d366; font-size: 22px">📱</span> WhatsApp
+            Formatter
+          </h3>
+          <button class="close-btn" onclick="closeWAModal()">✖</button>
         </div>
+
+        <div class="form-group" style="margin-bottom: 15px">
+          <label>Filter Type</label>
+          <select id="waFilterType" onchange="toggleWAFilter()">
+            <option value="Site Name">By Site Name</option>
+            <option value="Owner Name">By Owner Name</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px">
+          <label id="waFilterLabel">Select Site Name(s)</label>
+          <input
+            type="text"
+            id="waSearchInput"
+            placeholder="Search name..."
+            onkeyup="filterWAMultiSelect()"
+            style="margin-bottom: 8px"
+          />
+          <div id="waMultiSelectContainer" class="wa-multi-container"></div>
+        </div>
+
+        <div class="modal-body" id="waBody">
+          <div
+            style="
+              text-align: center;
+              color: #64748b;
+              font-size: 12px;
+              margin-top: 10px;
+            "
+          >
+            Please fetch data and make a selection to view records.
+          </div>
+        </div>
+
+        <div
+          style="
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+          "
+        >
+          <button
+            class="btn-icon"
+            onclick="copyWAToClipboard()"
+            title="Copy to Clipboard"
+          >
+            📋
+          </button>
+          <button
+            class="btn-icon excel"
+            onclick="exportWAToExcel()"
+            title="Download as Excel"
+          >
+            📊
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Custom Script -->
     <script src="scripts/blank.js"></script>
-</body>
-
+  </body>
 </html>

@@ -671,7 +671,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       "new_vehicle_no=$8",
       "field_co=$9",
       "site_co=$10",
-      "reason=$11"
+      "reason=$11",
     ];
     let updateVals = [
       site_name,
@@ -684,7 +684,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       new_vehicle_no || null,
       field_co || null,
       site_co || null,
-      reason || null
+      reason || null,
     ];
 
     let insertCols = [
@@ -699,7 +699,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       "new_vehicle_no",
       "field_co",
       "site_co",
-      "reason"
+      "reason",
     ];
     let insertVals = [
       plate_no,
@@ -713,7 +713,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       new_vehicle_no || null,
       field_co || null,
       site_co || null,
-      reason || null
+      reason || null,
     ];
 
     if (asset_code !== undefined) {
@@ -1457,6 +1457,24 @@ router.post("/api/db/update-plate-no", verifyEditor, async (req, res) => {
     }
   } finally {
     client.release();
+  }
+});
+
+// KLM Security Check Route
+router.post("/api/verify-klm", (req, res) => {
+  try {
+    const { code } = req.body;
+
+    // Fetch the security code from the .env file
+    const validCode = process.env.KLM_SECURITY_CODE;
+
+    if (code === validCode) {
+      res.json({ success: true, message: "Access Granted" });
+    } else {
+      res.json({ success: false, message: "Invalid Code" });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 });
 

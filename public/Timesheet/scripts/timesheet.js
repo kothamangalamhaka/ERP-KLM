@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("cardExcelSync").style.display = "flex";
     document.getElementById("cardRules").style.display = "flex";
     document.getElementById("cardAdmin").style.display = "flex";
-    document.getElementById("invoiceBulkEntry").style.display = "flex";
+
     fetchRules();
   }
 });
