@@ -1,15 +1,19 @@
 const token = localStorage.getItem("timesheetToken");
 if (!token) window.location.href = "index.html";
 
+// ... existing code
 let userRole = "";
 const userStr = localStorage.getItem("timesheetUser");
 if (userStr) {
   const u = JSON.parse(userStr);
   userRole = u.role;
-  document.getElementById("userInfo").innerText = `${u.username} (${u.role})`;
+  // UPDATE: Adjusted to support mobile icon and text structure
+  document.getElementById("userInfo").innerHTML =
+    `<span class="user-icon">👤</span><span class="user-text">${u.username} (${u.role})</span>`;
   if (userRole === "Super Admin" || userRole === "Editor")
-    document.getElementById("adminTools").style.display = "flex";
+    document.getElementById("adminTools").style.display = "inline-flex"; // Changed to inline-flex for mobile CSS layout
 }
+// ... existing code
 
 // XSS Protection Helper
 function escapeHTML(str) {
@@ -846,9 +850,9 @@ function renderTable() {
     let tr = document.createElement("tr");
     let rowHtml = `<td><div style="text-align:center; font-weight:bold; color:#64748b;">${index + 1}</div></td>`;
     const vDStyle =
-      "border:none; padding:4px 8px; font-family:Inter; font-size:12px; width:100%; text-align:center; box-sizing:border-box; background:transparent; color:#333; cursor:pointer;";
+      "border:none; padding:4px 8px; font-family:Inter; font-size:12px; width:100%; text-align:center; box-sizing:border-box; background:transparent; color: var(--text-main); cursor:pointer;";
     const vTStyle =
-      "border:none; padding:5px 10px; font-family:Inter; font-size:13px; width:100%; text-align:center; box-sizing:border-box; background:transparent; color:#333;";
+      "border:none; padding:5px 10px; font-family:Inter; font-size:13px; width:100%; text-align:center; box-sizing:border-box; background:transparent; color: var(--text-main);";
 
     const addCell = (colId, htmlContent) => {
       if (hiddenColumns.includes(colId)) return;
@@ -864,7 +868,7 @@ function renderTable() {
       } else if (colId === "site_rate") {
         addCell(
           colId,
-          `<input type="number" step="0.01" style="${vTStyle} font-weight:bold; color:#000000;" value="${row.site_rate === "null" || !row.site_rate ? "" : escapeHTML(row.site_rate)}" onchange="fastUpdateLog('${row.plate_no}', 'site', 'rate', this.value, ${row.latest_site_log_id})">`,
+          `<input type="number" step="0.01" style="${vTStyle} font-weight:bold;" value="${row.site_rate === "null" || !row.site_rate ? "" : escapeHTML(row.site_rate)}" onchange="fastUpdateLog('${row.plate_no}', 'site', 'rate', this.value, ${row.latest_site_log_id})">`,
         );
       } else if (colId === "plate_no") {
         addCell(
@@ -1440,7 +1444,7 @@ async function fetchLogs(plate, type) {
           activeS.rate,
           activeS.field_co,
           activeS.site_co,
-          activeS.reason
+          activeS.reason,
         );
       else if (masterRow && masterRow.site_name) {
         document.getElementById("slName").value = masterRow.site_name;
@@ -1593,7 +1597,9 @@ async function saveSiteLog() {
     status: document.getElementById("slStatus").value,
     old_vehicle_no: document.getElementById("slOldVehicle").value.toUpperCase(),
     new_vehicle_no: document.getElementById("slNewVehicle").value.toUpperCase(),
-    reason: document.getElementById("slReason") ? document.getElementById("slReason").value : ""
+    reason: document.getElementById("slReason")
+      ? document.getElementById("slReason").value
+      : "",
   };
   await safeFetch("/timesheet/api/update-site-log", {
     method: "POST",
@@ -1893,3 +1899,17 @@ async function editPlateNo() {
     showStatus("Error", "error");
   }
 }
+// --- Dark Mode Logic ---
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle("dark-mode");
+  localStorage.setItem("timesheetTheme", isDark ? "dark" : "light");
+  document.getElementById("userDropdownMenu").style.display = "none";
+}
+
+// Check saved theme on page load
+document.addEventListener("DOMContentLoaded", () => {
+  const savedTheme = localStorage.getItem("timesheetTheme");
+  if (savedTheme === "dark") {
+    document.body.classList.add("dark-mode");
+  }
+});

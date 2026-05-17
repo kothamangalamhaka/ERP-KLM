@@ -601,3 +601,259 @@ input[type="number"] {
 .titlecase-input {
   text-transform: capitalize;
 }
+/* =======================================================
+   DARK MODE SYSTEM & RESPONSIVE CSS OVERRIDES
+   ======================================================= */
+
+/* --- 1. Dark Mode Color Variables --- */
+:root {
+  --bg-main: #f4f7f6;
+  --bg-card: #ffffff;
+  --text-main: #333333;
+  --border-color: #cbd5e1;
+  --border-light: #e2e8f0;
+  --table-head-bg: #1e293b;
+  --table-head-text: #ffffff;
+  --row-hover: #f1f5f9;
+  --input-bg: transparent;
+  --input-focus: #eff6ff;
+  --modal-bg: #f8fafc;
+  --navbar-bg: #0f2027;
+  --btn-outline-bg: transparent;
+}
+
+body.dark-mode {
+  --bg-main: #0f172a; /* Deep dark blue background */
+  --bg-card: #1e293b; /* Slightly lighter dark card */
+  --text-main: #e2e8f0; /* Light text */
+  --border-color: #334155; /* Dark borders */
+  --border-light: #475569;
+  --table-head-bg: #020617; /* Very dark table head */
+  --table-head-text: #e2e8f0;
+  --row-hover: #334155; /* Dark hover effect */
+  --input-bg: #1e293b;
+  --input-focus: #0f172a;
+  --modal-bg: #1e293b;
+  --navbar-bg: #020617;
+  --btn-outline-bg: #1e293b;
+}
+
+/* --- 2. Applying Variables to Elements --- */
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+}
+
+.card,
+.table-responsive,
+.context-menu,
+#filterPopup,
+.column-item,
+.user-context-menu {
+  background-color: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+.navbar {
+  background-color: var(--navbar-bg);
+}
+
+th,
+td,
+.menu-divider,
+.filter-item,
+.log-table td,
+.log-table th {
+  border-color: var(--border-light);
+}
+
+th {
+  background-color: var(--table-head-bg);
+  color: var(--table-head-text);
+}
+
+.log-table th {
+  background-color: var(--border-color);
+  color: var(--text-main);
+}
+
+.log-table tr:hover {
+  background-color: var(--row-hover);
+}
+
+.btn-outline {
+  border-color: var(--border-color);
+  color: var(--text-main);
+  background-color: var(--btn-outline-bg);
+}
+
+.btn-outline:hover {
+  background-color: var(--row-hover);
+}
+
+/* Inputs & Textareas */
+td input,
+td textarea,
+td select,
+.modal-input,
+.search-wrapper input {
+  color: var(--text-main);
+  background-color: var(--input-bg);
+  border-color: var(--border-color);
+}
+
+td input:focus,
+td textarea:focus,
+td select:focus,
+.search-wrapper input:focus {
+  background-color: var(--input-focus);
+}
+
+.primary-col {
+  background-color: var(--bg-card) !important;
+}
+
+.cell-log-btn {
+  background-color: var(--bg-card);
+}
+
+/* Modals */
+.modal-box {
+  background-color: var(--modal-bg);
+  border: 1px solid var(--border-color);
+}
+
+.modal-box h3,
+.form-group label,
+.modal-box p,
+.edit-hint {
+  color: var(
+    --text-main
+  ) !important; /* Force text color override in dark mode */
+}
+
+.column-list-wrapper,
+#slReplaceGroup {
+  background-color: var(--bg-main);
+  border-color: var(--border-color);
+}
+
+/* Specific Context Menus Text Color Fixes */
+.context-menu button,
+.user-context-menu button {
+  color: var(--text-main);
+}
+.context-menu button:hover,
+.user-context-menu button:hover {
+  background-color: var(--row-hover);
+}
+
+/* --- 3. Mobile Responsive Adjustments --- */
+
+.user-icon {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Navbar Tweaks */
+  .navbar {
+    padding: 10px;
+  }
+  .navbar span {
+    font-size: 14px !important;
+    margin-left: 10px !important;
+    white-space: nowrap; /* Forces Master Database into single line */
+  }
+
+  /* User Profile - Hide text, show icon */
+  .user-text {
+    display: none;
+  }
+  .user-icon {
+    display: inline;
+    font-size: 16px;
+  }
+  .user-info-btn {
+    padding: 5px 10px;
+  }
+
+  /* Card and Toolbar layout changes */
+  .card {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px 0; /* 10px vertical gap, 0 horizontal gap */
+  }
+
+  /* Row 1: Export, File Choose, Import - Grid Layout */
+  .toolbar-group:nth-child(1) {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+    width: 100%;
+  }
+
+  .toolbar-group:nth-child(1) .btn {
+    font-size: 10px;
+    padding: 6px 4px;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  /* File Input styling for mobile to fit perfectly */
+  #excelFile {
+    width: 100%;
+    font-size: 9px !important;
+    padding: 4px !important;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  /* Row 2: Search Bar & Add Vehicle (Single Row Fix) */
+  .toolbar-group:nth-child(2) {
+    width: 65%;
+    display: flex;
+  }
+
+  .toolbar-group:nth-child(3) {
+    width: 32%;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .search-wrapper {
+    width: 100%;
+  }
+  .search-wrapper input {
+    width: 100%;
+    font-size: 11px;
+    padding: 6px 10px 6px 25px;
+  }
+  .search-icon {
+    font-size: 12px;
+    left: 8px;
+  }
+
+  #adminTools .btn {
+    width: 100%;
+    font-size: 11px;
+    padding: 7px 5px;
+    white-space: nowrap;
+  }
+
+  /* Hide save indicator text on mobile to save space, show only icon/color */
+  #saveStatus {
+    font-size: 10px;
+    padding: 3px 6px;
+    margin-left: 5px;
+  }
+}
