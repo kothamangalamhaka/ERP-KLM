@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Haka ERP - Secure Backup Gateway</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Montserrat:wght@700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg-primary: #1e293b;
+        --card-bg: rgba(255, 255, 255, 0.05);
+        --card-border: rgba(255, 255, 255, 0.1);
+        --accent-color: #00ced1;
+        --accent-hover: #00b4b4;
+        --text-main: #ffffff;
+        --text-muted: #94a3b8;
+        --error-color: #ef4444;
+        --success-color: #10b981;
+      }
+
+      body {
+        background-color: var(--bg-primary);
+        color: var(--text-main);
+        font-family: "Inter", sans-serif;
+        margin: 0;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        box-sizing: border-box;
+      }
+
+      .container {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 2.5rem;
+        max-width: 500px;
+        width: 100%;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+      }
+
+      h1 {
+        font-family: "Montserrat", sans-serif;
+        font-size: 1.8rem;
+        color: var(--accent-color);
+        margin-top: 0;
+        margin-bottom: 1rem;
+      }
+
+      p {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+      }
+
+      .btn {
+        border: none;
+        border-radius: 30px;
+        padding: 1rem 2.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+      }
+
+      .btn-primary {
+        background-color: var(--accent-color);
+        color: var(--bg-primary);
+        box-shadow: 0 4px 15px rgba(0, 206, 209, 0.3);
+      }
+
+      .btn-primary:hover {
+        background-color: var(--accent-hover);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 206, 209, 0.5);
+      }
+
+      .btn-primary:disabled {
+        background-color: #475569;
+        color: #94a3b8;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* Popup Modal Styles */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(5px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .modal-overlay.active {
+        display: flex;
+        opacity: 1;
+      }
+
+      .modal-content {
+        background: var(--bg-primary);
+        border: 1px solid var(--accent-color);
+        border-radius: 16px;
+        padding: 2rem;
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0, 206, 209, 0.2);
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+      }
+
+      .modal-overlay.active .modal-content {
+        transform: translateY(0);
+      }
+
+      .modal-content h3 {
+        color: var(--text-main);
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        font-family: "Montserrat", sans-serif;
+      }
+
+      input[type="password"] {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--card-border);
+        background: rgba(0, 0, 0, 0.3);
+        color: var(--text-main);
+        font-size: 1rem;
+        box-sizing: border-box;
+        outline: none;
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        letter-spacing: 2px;
+      }
+
+      input[type="password"]:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 10px rgba(0, 206, 209, 0.2);
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn-cancel {
+        background-color: transparent;
+        border: 1px solid var(--card-border);
+        color: var(--text-muted);
+      }
+
+      .btn-cancel:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--text-main);
+      }
+
+      .status-msg {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        display: none;
+        line-height: 1.4;
+      }
+
+      .status-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success-color);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+      .status-error {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--error-color);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+      .status-loading {
+        background: rgba(0, 206, 209, 0.1);
+        color: var(--accent-color);
+        border: 1px solid rgba(0, 206, 209, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Secure Backup Control</h1>
+      <p>
+        Dispatch an instantaneous database system synchronization snapshot to
+        the secure archive mail node.
+      </p>
+
+      <button id="openModalBtn" class="btn btn-primary">
+        ⚡ Trigger Manual Backup
+      </button>
+
+      <div id="mainStatusMsg" class="status-msg"></div>
+    </div>
+
+    <div id="passcodeModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>🔒 Admin Authorization</h3>
+        <input
+          type="password"
+          id="passcodeInput"
+          placeholder="Enter Master Passcode"
+          required
+          autocomplete="off"
+        />
+
+        <div class="modal-actions">
+          <button id="cancelBtn" class="btn btn-cancel">Cancel</button>
+          <button id="confirmBackupBtn" class="btn btn-primary">
+            Verify & Run
+          </button>
+        </div>
+
+        <div id="modalStatusMsg" class="status-msg"></div>
+      </div>
+    </div>
+
+    <script>
+      // Elements
+      const openModalBtn = document.getElementById("openModalBtn");
+      const modal = document.getElementById("passcodeModal");
+      const cancelBtn = document.getElementById("cancelBtn");
+      const confirmBackupBtn = document.getElementById("confirmBackupBtn");
+      const passcodeInput = document.getElementById("passcodeInput");
+      const mainStatus = document.getElementById("mainStatusMsg");
+      const modalStatus = document.getElementById("modalStatusMsg");
+
+      // Open Modal
+      openModalBtn.addEventListener("click", () => {
+        modal.classList.add("active");
+        passcodeInput.value = "";
+        passcodeInput.focus();
+        modalStatus.style.display = "none";
+        mainStatus.style.display = "none";
+      });
+
+      // Close Modal (Cancel)
+      cancelBtn.addEventListener("click", () => {
+        modal.classList.remove("active");
+      });
+
+      // Submit Passcode and Trigger Backup
+      confirmBackupBtn.addEventListener("click", async () => {
+        const passcode = passcodeInput.value.trim();
+
+        if (!passcode) {
+          showModalStatus("⚠️ Please enter the passcode.", "error");
+          return;
+        }
+
+        // Loading State
+        confirmBackupBtn.disabled = true;
+        cancelBtn.disabled = true;
+        showModalStatus(
+          "Verifying credentials & starting backup...",
+          "loading",
+        );
+
+        try {
+          const response = await fetch("/api/backup/run-backup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ passcode: passcode }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            // Success: Close modal and show message on main page
+            modal.classList.remove("active");
+            showMainStatus("🎉 " + data.message, "success");
+          } else {
+            // Error: Show inside modal so user can try again
+            showModalStatus(
+              "❌ Access Denied: " + (data.message || "Invalid Passcode."),
+              "error",
+            );
+          }
+        } catch (error) {
+          console.error("Network execution failure:", error);
+          showModalStatus(
+            "❌ Communication Failure: Backend server not reachable.",
+            "error",
+          );
+        } finally {
+          confirmBackupBtn.disabled = false;
+          cancelBtn.disabled = false;
+        }
+      });
+
+      // Helper functions for status messages
+      function showModalStatus(msg, type) {
+        modalStatus.className = `status-msg status-${type}`;
+        modalStatus.innerText = msg;
+        modalStatus.style.display = "block";
+      }
+
+      function showMainStatus(msg, type) {
+        mainStatus.className = `status-msg status-${type}`;
+        mainStatus.innerText = msg;
+        mainStatus.style.display = "block";
+      }
+    </script>
+  </body>
+</html>
