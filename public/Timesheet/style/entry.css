@@ -89,11 +89,24 @@ body {
   border: 1px solid #e2e8f0;
 }
 
+/* PC Layout for Top Form */
 .top-form {
   display: flex;
   gap: 15px;
   align-items: flex-end;
   flex-wrap: wrap;
+}
+
+.mobile-single-row {
+  display: flex;
+  gap: 15px;
+  align-items: flex-end;
+}
+
+.nav-buttons-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
 }
 
 .form-group {
@@ -175,8 +188,15 @@ textarea:focus {
   max-width: 100%;
   overflow-x: auto;
   border-radius: 6px;
-  border: 1px solid #cbd5e1;
+
+  border: 1px solid rgba(255, 255, 255, 0.18);
+
   background: white;
+}
+
+body.dark-mode .table-responsive {
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: none;
 }
 
 table {
@@ -338,30 +358,6 @@ td input[type="checkbox"] {
   color: #f59e0b !important;
 }
 
-@media (max-width: 1200px) {
-  .main-content {
-    flex-direction: column-reverse;
-    align-items: center;
-  }
-
-  .right-sidebar {
-    width: 100%;
-    max-width: 800px;
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .summary-card {
-    flex: 1;
-    min-width: 300px;
-  }
-
-  .table-center-wrapper {
-    width: 100%;
-  }
-}
-
 .autocomplete-container {
   position: relative;
   display: flex;
@@ -416,7 +412,6 @@ td input[type="checkbox"] {
   0% {
     transform: rotate(0deg);
   }
-
   100% {
     transform: rotate(360deg);
   }
@@ -457,12 +452,10 @@ td input[type="checkbox"] {
   color: #630000;
   text-decoration: none;
 }
-
 .pendingl:hover {
   background-color: #56739e;
   transition: color 0.6s;
 }
-
 .pendingl:hover > a {
   color: #fff;
   transition: color 0.5s;
@@ -477,12 +470,10 @@ td input[type="checkbox"] {
   color: #004d00;
   text-decoration: none;
 }
-
 .tsm:hover {
   background-color: #017e01;
   transition: color 0.6s;
 }
-
 .tsm:hover > a {
   color: #fff;
   transition: color 0.5s;
@@ -502,12 +493,11 @@ td input[type="checkbox"] {
 .tsdb:hover {
   background-color: #c62828;
 }
-
 .tsdb:hover > a {
   color: #ffffff;
 }
 
-/* --- Custom Modal Light Theme Styles --- */
+/* Custom Modal Light Theme Styles */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -572,7 +562,6 @@ td input[type="checkbox"] {
   margin-top: 10px;
   transition: background 0.2s;
 }
-
 .btn-inv-save:hover {
   background: #0284c7;
 }
@@ -589,16 +578,356 @@ td input[type="checkbox"] {
   margin-top: 10px;
   transition: all 0.2s;
 }
-
 .btn-inv-close:hover {
   background: #f1f5f9;
   color: #0f172a;
 }
 
 .detail-val {
-  text-transform: capitalize; /* ഓരോ വാക്കിന്റെയും ആദ്യ അക്ഷരം വലുതാക്കും */
+  text-transform: capitalize;
   color: #0f2027;
   font-weight: 600;
   flex: 1;
   word-break: break-word;
+}
+
+/* =======================================================
+   DARK MODE & RESPONSIVE CSS
+   ======================================================= */
+
+body.dark-mode {
+  --bg-color: #0f172a;
+  --card-bg: #1e293b;
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+}
+body.dark-mode .card,
+body.dark-mode .summary-card,
+body.dark-mode .suggestions,
+body.dark-mode .modal-light {
+  background-color: var(--card-bg);
+  border-color: #334155;
+  color: var(--text-main);
+}
+body.dark-mode .navbar {
+  background-color: #020617;
+}
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background-color: #0f172a;
+  color: var(--text-main);
+  border-color: #334155;
+}
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus {
+  background-color: #1e293b;
+  border-color: #0d6efd;
+}
+body.dark-mode td input:focus,
+body.dark-mode td textarea:focus {
+  background: #334155;
+}
+body.dark-mode .row-friday {
+  background-color: #334155;
+}
+body.dark-mode .summary-title {
+  color: #38bdf8 !important;
+  border-color: #334155;
+}
+body.dark-mode .detail-lbl {
+  color: var(--text-muted);
+}
+body.dark-mode .detail-val {
+  color: var(--text-main);
+}
+body.dark-mode .suggestions div:hover {
+  background: #334155;
+  color: #38bdf8;
+}
+body.dark-mode .suggestion-active {
+  background: #334155 !important;
+  color: #38bdf8 !important;
+}
+body.dark-mode .loading-row td {
+  background: #1e293b;
+  color: #94a3b8 !important;
+}
+
+/* User Dropdown Styles */
+.user-profile-container {
+  position: relative;
+}
+.user-info-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 15px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 500;
+  font-size: 14px;
+}
+.user-icon {
+  display: none;
+}
+.user-context-menu {
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: none;
+  flex-direction: column;
+  z-index: 5000;
+  min-width: 150px;
+  overflow: hidden;
+}
+body.dark-mode .user-context-menu {
+  background: #1e293b;
+  border-color: #334155;
+}
+.user-context-menu button {
+  background: none;
+  border: none;
+  padding: 12px 15px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+}
+body.dark-mode .user-context-menu button {
+  color: var(--text-main);
+}
+.user-context-menu button:hover {
+  background: #f1f5f9;
+}
+body.dark-mode .user-context-menu button:hover {
+  background: #334155;
+}
+.menu-divider {
+  height: 1px;
+  background: #e2e8f0;
+}
+body.dark-mode .menu-divider {
+  background: #334155;
+}
+
+/* --- Checkbox Styling (Black BG, Yellow Border) --- */
+body.dark-mode td input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  width: 18px;
+  height: 18px;
+
+  background: #000000 !important;
+  border: 2px solid #9c987a !important;
+  border-radius: 4px;
+
+  display: block;
+  margin: auto;
+
+  position: relative;
+  cursor: pointer;
+
+  box-shadow: none !important;
+  outline: none !important;
+}
+body.dark-mode td input[type="checkbox"]:checked {
+  background: #000000 !important;
+  border-color: #979159 !important;
+}
+body.dark-mode input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid #fef08a;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* --- Table Borders & Text (Full Black & White) --- */
+body.dark-mode table,
+body.dark-mode th,
+body.dark-mode td {
+  border-color: #000000 !important; /* Full Black Borders */
+  background-color: #000000 !important; /* Full Black Background */
+}
+
+body.dark-mode th {
+  background-color: #000000;
+  color: #ffffff !important;
+}
+
+body.dark-mode td,
+body.dark-mode td input,
+body.dark-mode td textarea,
+body.dark-mode .grid-readonly {
+  color: #ffffff !important; /* Pure White Text */
+}
+
+/* Button Fixes */
+body.dark-mode .pendingl {
+  border-color: #3b82f6;
+}
+body.dark-mode .pendingl > a {
+  color: #93c5fd;
+}
+body.dark-mode .pendingl:hover {
+  background-color: #1e3a8a;
+}
+body.dark-mode .tsm {
+  border-color: #84cc16;
+}
+body.dark-mode .tsm > a {
+  color: #d9f99d;
+}
+body.dark-mode .tsm:hover {
+  background-color: #3f6212;
+}
+body.dark-mode .tsdb {
+  border-color: #ef4444;
+}
+body.dark-mode .tsdb > a {
+  color: #fca5a5;
+}
+body.dark-mode .tsdb:hover {
+  background-color: #7f1d1d;
+}
+
+/* Mobile Overrides */
+@media (max-width: 1200px) {
+  .main-content {
+    flex-direction: column-reverse;
+    align-items: center;
+  }
+  .right-sidebar {
+    width: 100%;
+    max-width: 800px;
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .summary-card {
+    flex: 1;
+    min-width: 300px;
+  }
+  .table-center-wrapper {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .pc-title {
+    display: none;
+  }
+  .mobile-title {
+    display: inline !important;
+  }
+  .user-text {
+    display: none;
+  }
+  .user-icon {
+    display: inline;
+    font-size: 18px;
+  }
+  .user-info-btn {
+    padding: 5px 10px;
+  }
+
+  .top-form {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .pc-label {
+    display: none !important;
+  }
+
+  .mobile-single-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 5px;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .select-month {
+    width: 25% !important;
+  }
+  .select-year {
+    width: 20% !important;
+  }
+  .input-plate {
+    width: 40% !important;
+  }
+  .btn-fetch-wrapper {
+    width: 15% !important;
+  }
+  .autocomplete-container {
+    width: 100%;
+  }
+
+  input,
+  select {
+    padding: 6px 4px !important;
+    font-size: 11px !important;
+    height: 32px !important;
+  }
+
+  .fetch-text {
+    display: none;
+  }
+  .fetch-icon {
+    display: inline !important;
+    font-size: 16px;
+  }
+  .btn-fetch {
+    width: 100%;
+    padding: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-buttons-row {
+    justify-content: space-between;
+    margin-top: 5px;
+  }
+  .pendingl {
+    margin-left: 0;
+  }
+  .pendingl,
+  .tsm,
+  .tsdb {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .navbar {
+    padding: 10px 15px;
+  }
+  .navbar span {
+    font-size: 14px !important;
+    margin-left: 5px !important;
+  }
+  .save-indicator {
+    padding: 2px 6px;
+    font-size: 11px;
+    margin-left: 5px;
+  }
 }

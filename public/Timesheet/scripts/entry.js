@@ -22,7 +22,9 @@ document.getElementById("selMonth").value = months[dDate.getMonth()];
 const userStr = localStorage.getItem("timesheetUser");
 if (userStr) {
   const u = JSON.parse(userStr);
-  document.getElementById("userInfo").innerText = `${u.username} (${u.role})`;
+  // Updates only the text span, keeping the icon intact
+  const uiEl = document.getElementById("userInfo");
+  if (uiEl) uiEl.innerText = `${u.username} (${u.role})`;
 }
 
 let rulesCache = [];
@@ -1009,3 +1011,40 @@ function savePlateHistory(plate) {
   // Save back to local storage
   localStorage.setItem("plateSearchHistory", JSON.stringify(history));
 }
+
+// ==========================================
+// User Menu & Dark Mode Logic
+// ==========================================
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById("userDropdownMenu");
+  menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+}
+
+// Close menu if clicked outside
+document.addEventListener("click", function (e) {
+  if (!e.target.closest(".user-profile-container")) {
+    const menu = document.getElementById("userDropdownMenu");
+    if (menu) menu.style.display = "none";
+  }
+});
+
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle("dark-mode");
+  localStorage.setItem("timesheetTheme", isDark ? "dark" : "light");
+  document.getElementById("userDropdownMenu").style.display = "none";
+}
+
+function logout() {
+  localStorage.removeItem("timesheetToken");
+  localStorage.removeItem("timesheetUser");
+  window.location.href = "index.html";
+}
+
+// Initialize Theme on Page Load
+(function initTheme() {
+  const savedTheme = localStorage.getItem("timesheetTheme");
+  if (savedTheme === "dark") {
+    document.body.classList.add("dark-mode");
+  }
+})();

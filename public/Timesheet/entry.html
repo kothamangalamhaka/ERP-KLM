@@ -19,65 +19,95 @@
             letter-spacing: 0.5px;
           "
         >
-          <a href="Timesheet.html">Monthly Timesheet - Live Grid Entry</a></span
-        >
+          <a href="Timesheet.html">
+            <span class="pc-title">Monthly Timesheet - Live Grid Entry</span>
+            <span class="mobile-title" style="display: none"
+              >Live Grid Entry</span
+            >
+          </a>
+        </span>
         <span id="saveStatus" class="save-indicator">✓ Saved</span>
       </div>
-      <div id="userInfo" style="font-weight: 500">Loading...</div>
+
+      <div class="user-profile-container">
+        <div
+          id="userInfoBtn"
+          class="user-info-btn"
+          onclick="toggleUserMenu(event)"
+        >
+          <span class="user-icon">👤</span
+          ><span class="user-text" id="userInfo">Loading...</span>
+        </div>
+        <div id="userDropdownMenu" class="user-context-menu">
+          <button onclick="toggleDarkMode()">🌗 Theme</button>
+          <div class="menu-divider"></div>
+          <button class="text-danger" onclick="logout()">🚪 Logout</button>
+        </div>
+      </div>
     </div>
 
     <div class="container">
       <div class="card">
         <div class="top-form">
-          <div class="form-group" style="width: 150px">
-            <label>Month</label>
-            <select id="selMonth">
-              <option value="January">January</option>
-              <option value="February">February</option>
-              <option value="March">March</option>
-              <option value="April">April</option>
-              <option value="May">May</option>
-              <option value="June">June</option>
-              <option value="July">July</option>
-              <option value="August">August</option>
-              <option value="September">September</option>
-              <option value="October">October</option>
-              <option value="November">November</option>
-              <option value="December">December</option>
-            </select>
-          </div>
-          <div class="form-group" style="width: 100px">
-            <label>Year</label>
-            <input type="number" id="selYear" value="2026" />
-          </div>
-          <div class="form-group autocomplete-container">
-            <div style="width: 100%">
-              <label>Plate No (Search & Fetch)</label>
-              <input
-                type="text"
-                id="selPlate"
-                class="uppercase-input"
-                autocomplete="off"
-                oninput="searchPlate()"
-                placeholder="Type Plate, Asset, Work Order..."
-              />
-              <div
-                id="plateSuggestions"
-                class="suggestions"
-                style="display: none"
-              ></div>
+          <div class="mobile-single-row">
+            <div class="form-group select-month">
+              <label class="pc-label">Month</label>
+              <select id="selMonth">
+                <option value="January">Jan</option>
+                <option value="February">Feb</option>
+                <option value="March">Mar</option>
+                <option value="April">Apr</option>
+                <option value="May">May</option>
+                <option value="June">Jun</option>
+                <option value="July">Jul</option>
+                <option value="August">Aug</option>
+                <option value="September">Sep</option>
+                <option value="October">Oct</option>
+                <option value="November">Nov</option>
+                <option value="December">Dec</option>
+              </select>
+            </div>
+
+            <div class="form-group select-year">
+              <label class="pc-label">Year</label>
+              <input type="number" id="selYear" value="2026" />
+            </div>
+
+            <div class="form-group autocomplete-container input-plate">
+              <div style="width: 100%">
+                <label class="pc-label">Plate No (Search)</label>
+                <input
+                  type="text"
+                  id="selPlate"
+                  class="uppercase-input"
+                  autocomplete="off"
+                  oninput="searchPlate()"
+                  placeholder="Type Plate..."
+                />
+                <div
+                  id="plateSuggestions"
+                  class="suggestions"
+                  style="display: none"
+                ></div>
+              </div>
+            </div>
+
+            <div class="form-group btn-fetch-wrapper">
+              <label class="pc-label">&nbsp;</label>
+              <button id="fetchBtn" class="btn-fetch" onclick="triggerFetch()">
+                <div id="fetchLoader" class="loader"></div>
+                <span class="fetch-icon" style="display: none">🔍</span>
+                <span id="fetchText" class="fetch-text">Fetch Data</span>
+              </button>
             </div>
           </div>
-          <div class="form-group">
-            <button id="fetchBtn" class="btn-fetch" onclick="triggerFetch()">
-              <div id="fetchLoader" class="loader"></div>
-              <span id="fetchText">Fetch Data</span>
-            </button>
+
+          <div class="nav-buttons-row">
+            <button class="pendingl"><a href="blank.html">Pending</a></button>
+            <button class="tsm"><a href="Dashboard.html">Timesheet</a></button>
+            <button class="tsm"><a href="view.html">Ts Card</a></button>
+            <button class="tsdb"><a href="./db.html">T S DB</a></button>
           </div>
-          <button class="pendingl"><a href="blank.html"> Pending</a></button>
-          <button class="tsm"><a href="Dashboard.html">T S</a></button>
-          <button class="tsm"><a href="view.html">Card</a></button>
-          <button class="tsdb"><a href="./db.html">T S DB</a></button>
         </div>
       </div>
 
