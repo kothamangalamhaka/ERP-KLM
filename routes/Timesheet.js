@@ -1250,6 +1250,21 @@ router.post("/api/db/bulk-import", verifyEditor, async (req, res) => {
 // ==========================================
 // PUBLIC REPORT VIEW
 // ==========================================
+
+// ==========================================
+// PUBLIC VEHICLE DATA FOR SUGGESTIONS
+// ==========================================
+router.get("/api/public/vehicles", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT plate_no, owner_name, asset_code, site_name FROM timesheet_vehicles ORDER BY plate_no ASC",
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
 router.post("/api/public/view-report", async (req, res) => {
   try {
     const { month, year, filterType, filterValue } = req.body;
