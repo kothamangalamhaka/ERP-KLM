@@ -898,6 +898,7 @@
         let dActive = false,
           dGap = false;
 
+        // --- Site Logs Logic ---
         if (sLogs && sLogs.length > 0) {
           let ascSLogs = [...sLogs].sort(
             (a, b) =>
@@ -936,11 +937,13 @@
           sActive = true;
         }
 
+        // Vehicle is NOT at site
         if (!sActive) {
           if (isReplaced) return "R";
           return sGap ? "SC" : "AB";
         }
 
+        // --- Driver Logs Logic ---
         if (dLogs && dLogs.length > 0) {
           let ascDLogs = [...dLogs].sort(
             (a, b) =>
@@ -961,22 +964,16 @@
               break;
             }
           }
-          if (!dActive) {
-            let firstStart = parseLogDate(
-              ascDLogs[0].work_start_date,
-              new Date("2000-01-01"),
-            );
-            let lastEnd = parseLogDate(
-              ascDLogs[ascDLogs.length - 1].work_end_date,
-              new Date("2099-01-01"),
-            );
-            if (d >= firstStart && d <= lastEnd) dGap = true;
-          }
         } else {
           dActive = true;
         }
 
-        if (!dActive) return dGap ? "DC" : "AB";
+        // FIX: Vehicle is currently Running at Site (sActive is true).
+        // If there is no active driver, it MUST be Driver Change (DC).
+        if (!dActive) {
+          return "DC";
+        }
+
         return "ACTIVE";
       }
 
