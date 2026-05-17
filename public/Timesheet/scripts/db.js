@@ -643,6 +643,10 @@ async function rowAbout() {
       let start = d.work_start_date ? d.work_start_date.split("T")[0] : "-";
       let end = d.work_end_date ? d.work_end_date.split("T")[0] : "-";
       dlHtml += `<tr><td><b>${escapeHTML(d.driver_name)}</b><br><span style="font-size:10px;">${escapeHTML(d.driver_mobile || "")}</span></td><td>${start}</td><td>${end}</td><td>${badge}</td></tr>`;
+
+      if (d.reason && d.reason.trim() !== "") {
+        dlHtml += `<tr><td colspan="4" style="padding-top:0; border-top:none; font-size:11px; color:#64748b; font-style:italic;">Reason: ${escapeHTML(d.reason)}</td></tr>`;
+      }
     });
     document.getElementById("abtDriverLogs").innerHTML =
       res.drivers.length > 0
@@ -660,6 +664,10 @@ async function rowAbout() {
       let start = s.work_start_date ? s.work_start_date.split("T")[0] : "-";
       let end = s.work_end_date ? s.work_end_date.split("T")[0] : "-";
       slHtml += `<tr><td><b>${escapeHTML(s.site_name)}</b><br><span style="font-size:10px; color:#000;">Rate: ${escapeHTML(s.rate || "-")}</span></td><td>${start}</td><td>${end}</td><td>${badge}</td></tr>`;
+
+      if (s.reason && s.reason.trim() !== "") {
+        slHtml += `<tr><td colspan="4" style="padding-top:0; border-top:none; font-size:11px; color:#64748b; font-style:italic;">Reason: ${escapeHTML(s.reason)}</td></tr>`;
+      }
     });
     document.getElementById("abtSiteLogs").innerHTML =
       res.sites.length > 0
@@ -1274,12 +1282,16 @@ async function submitNewVehicle() {
 }
 
 function toggleDlEnd() {
-  document.getElementById("dlEndGroup").style.display =
-    document.getElementById("dlStatus").value === "Released" ? "block" : "none";
+  const val = document.getElementById("dlEnd").value;
+  document.getElementById("dlReasonGroup").style.display = val
+    ? "block"
+    : "none";
 }
 function toggleSlEnd() {
   const val = document.getElementById("slStatus").value;
   document.getElementById("slEndGroup").style.display =
+    val === "Released" || val === "Replaced" ? "block" : "none";
+  document.getElementById("slReasonGroup").style.display =
     val === "Released" || val === "Replaced" ? "block" : "none";
   document.getElementById("slReplaceGroup").style.display =
     val === "Replaced" ? "block" : "none";
@@ -1295,8 +1307,11 @@ function clearDriverForm() {
   document.getElementById("dlMob").value = "";
   document.getElementById("dlStart").value = "";
   document.getElementById("dlEnd").value = "";
+  if (document.getElementById("dlReason"))
+    document.getElementById("dlReason").value = "";
   document.getElementById("dlSaveBtn").innerText = "Save New Log";
   document.getElementById("dlSaveBtn").className = "btn btn-success";
+  toggleDlEnd();
   document.getElementById("dlName").focus();
 }
 function clearSiteForm() {
@@ -1312,6 +1327,8 @@ function clearSiteForm() {
   document.getElementById("slStart").value = "";
   document.getElementById("slEnd").value = "";
   document.getElementById("slStatus").value = "Running";
+  if (document.getElementById("slReason"))
+    document.getElementById("slReason").value = "";
   document.getElementById("slSaveBtn").innerText = "Save New Log";
   document.getElementById("slSaveBtn").className = "btn btn-success";
   toggleSlEnd();
@@ -1352,7 +1369,8 @@ async function fetchLogs(plate, type) {
           userRole === "Super Admin" || userRole === "Editor"
             ? `<button class="btn-delete-icon" onclick="deleteLogEntry(event, 'driver', ${d.id}, '${plate}')" title="Delete Log">🗑️</button>`
             : "";
-        dlHtml += `<tr style="cursor:pointer;" onclick="editDriverLog(${d.id}, '${escapeHTML(d.driver_name)}', '${escapeHTML(d.driver_mobile)}', '${start}', '${end}', '${d.status}')">
+        let escapedReasonD = escapeHTML(d.reason || "").replace(/'/g, "\\'");
+        dlHtml += `<tr style="cursor:pointer;" onclick="editDriverLog(${d.id}, '${escapeHTML(d.driver_name)}', '${escapeHTML(d.driver_mobile)}', '${start}', '${end}', '${escapedReasonD}')">
                 <td><span style="font-weight:600; color:#0d6efd;">${escapeHTML(d.driver_name)}</span><br><span style="font-size:10px; color:#888;">Tap to edit ✎</span></td>
                 <td><span style="font-weight:bold; color:#475569;">${escapeHTML(d.driver_mobile || "-")}</span></td><td>${start}</td><td>${end}</td><td>${badge}</td>
                 <td class="action-cell" onclick="event.stopPropagation()">${delBtnHtml}</td></tr>`;
@@ -1371,7 +1389,7 @@ async function fetchLogs(plate, type) {
           activeD.driver_mobile,
           activeD.work_start_date ? activeD.work_start_date.split("T")[0] : "",
           activeD.work_end_date ? activeD.work_end_date.split("T")[0] : "",
-          activeD.status,
+          activeD.reason,
         );
       else if (masterRow && masterRow.driver_name) {
         document.getElementById("dlName").value = masterRow.driver_name;
@@ -1394,7 +1412,8 @@ async function fetchLogs(plate, type) {
           userRole === "Super Admin" || userRole === "Editor"
             ? `<button class="btn-delete-icon" onclick="deleteLogEntry(event, 'site', ${s.id}, '${plate}')" title="Delete Log">🗑️</button>`
             : "";
-        slHtml += `<tr style="cursor:pointer;" onclick="editSiteLog(${s.id}, '${escapeHTML(s.site_name)}', '${start}', '${end}', '${s.status}', '${escapeHTML(s.old_vehicle_no)}', '${escapeHTML(s.new_vehicle_no)}', '${escapeHTML(s.asset_code)}', '${escapeHTML(s.work_order_no)}', '${escapeHTML(s.rate)}', '${escapeHTML(s.field_co)}', '${escapeHTML(s.site_co)}')">
+        let escapedReasonS = escapeHTML(s.reason || "").replace(/'/g, "\\'");
+        slHtml += `<tr style="cursor:pointer;" onclick="editSiteLog(${s.id}, '${escapeHTML(s.site_name)}', '${start}', '${end}', '${s.status}', '${escapeHTML(s.old_vehicle_no)}', '${escapeHTML(s.new_vehicle_no)}', '${escapeHTML(s.asset_code)}', '${escapeHTML(s.work_order_no)}', '${escapeHTML(s.rate)}', '${escapeHTML(s.field_co)}', '${escapeHTML(s.site_co)}', '${escapedReasonS}')">
                 <td><span style="font-weight:600; color:#0d6efd;">${escapeHTML(s.site_name)}</span><br><span style="font-size:10px; color:#888;">Tap to edit ✎</span></td>
                 <td><span style="font-weight:bold; color:#000000;">${escapeHTML(s.rate || "-")}</span></td>
                 <td><span style="font-weight:bold; color:#475569;">${escapeHTML(s.work_order_no || "-")}</span></td><td>${start}</td><td>${end}</td><td>${badge}</td>
@@ -1421,6 +1440,7 @@ async function fetchLogs(plate, type) {
           activeS.rate,
           activeS.field_co,
           activeS.site_co,
+          activeS.reason
         );
       else if (masterRow && masterRow.site_name) {
         document.getElementById("slName").value = masterRow.site_name;
@@ -1462,13 +1482,17 @@ async function deleteLogEntry(event, type, id, plate) {
   }
 }
 
-function editDriverLog(id, name, mob, start, end, status) {
+function editDriverLog(id, name, mob, start, end, reason) {
   document.getElementById("dlId").value = id;
   document.getElementById("dlName").value = name;
   document.getElementById("dlMob").value =
     mob !== "null" && mob !== "undefined" ? mob : "";
   document.getElementById("dlStart").value = start !== "-" ? start : "";
   document.getElementById("dlEnd").value = end !== "-" ? end : "";
+  if (document.getElementById("dlReason"))
+    document.getElementById("dlReason").value =
+      reason !== "null" && reason !== "undefined" ? reason : "";
+  toggleDlEnd();
   document.getElementById("dlSaveBtn").innerText = "Update Log";
   document.getElementById("dlSaveBtn").className = "btn btn-primary";
 }
@@ -1481,6 +1505,9 @@ async function saveDriverLog() {
     driver_mobile: document.getElementById("dlMob").value,
     work_start_date: document.getElementById("dlStart").value,
     work_end_date: document.getElementById("dlEnd").value,
+    reason: document.getElementById("dlReason")
+      ? document.getElementById("dlReason").value
+      : "",
   };
   await safeFetch("/timesheet/api/update-driver-log", {
     method: "POST",
@@ -1514,6 +1541,7 @@ function editSiteLog(
   rate,
   fieldCo,
   siteCo,
+  reason,
 ) {
   document.getElementById("slId").value = id;
   document.getElementById("slName").value = name;
@@ -1533,6 +1561,9 @@ function editSiteLog(
     oldVehicle && oldVehicle !== "null" ? oldVehicle : "";
   document.getElementById("slNewVehicle").value =
     newVehicle && newVehicle !== "null" ? newVehicle : "";
+  if (document.getElementById("slReason"))
+    document.getElementById("slReason").value =
+      reason && reason !== "null" && reason !== "undefined" ? reason : "";
   toggleSlEnd();
   document.getElementById("slSaveBtn").innerText = "Update Log";
   document.getElementById("slSaveBtn").className = "btn btn-primary";
@@ -1562,6 +1593,7 @@ async function saveSiteLog() {
     status: document.getElementById("slStatus").value,
     old_vehicle_no: document.getElementById("slOldVehicle").value.toUpperCase(),
     new_vehicle_no: document.getElementById("slNewVehicle").value.toUpperCase(),
+    reason: document.getElementById("slReason") ? document.getElementById("slReason").value : ""
   };
   await safeFetch("/timesheet/api/update-site-log", {
     method: "POST",

@@ -65,6 +65,13 @@ const JWT_SECRET = process.env.JWT_SECRET;
     await pool.query(
       `ALTER TABLE timesheet_vehicles ADD COLUMN IF NOT EXISTS site_co VARCHAR(255)`,
     );
+    // NEW: Reason columns for logs
+    await pool.query(
+      `ALTER TABLE vehicle_site_log ADD COLUMN IF NOT EXISTS reason TEXT`,
+    );
+    await pool.query(
+      `ALTER TABLE vehicle_driver_log ADD COLUMN IF NOT EXISTS reason TEXT`,
+    );
 
     await pool.query(`
             UPDATE vehicle_site_log vsl
@@ -415,9 +422,9 @@ router.get("/api/vehicle-logs", verifyToken, async (req, res) => {
 router.get("/api/all-logs", verifyToken, async (req, res) => {
   try {
     const driverLogs = await pool.query(`
-            SELECT id, plate_no, driver_name, driver_mobile, 
+            SELECT id, plate_no, driver_name, driver_mobile, reason,
             TO_CHAR(work_start_date, 'YYYY-MM-DD') as start_date, 
-            TO_CHAR(work_end_date, 'YYYY-MM-DD') as end_date, status 
+            TO_CHAR(work_end_date, 'YYYY-MM-DD') as end_date, status
             FROM vehicle_driver_log 
             ORDER BY plate_no ASC,
             CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC,
@@ -430,7 +437,7 @@ router.get("/api/all-logs", verifyToken, async (req, res) => {
     );
 
     let selectCols =
-      "id, plate_no, site_name, rate, old_vehicle_no, new_vehicle_no, field_co, site_co, TO_CHAR(work_start_date, 'YYYY-MM-DD') as start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') as end_date, status, replaced_by";
+      "id, plate_no, site_name, rate, old_vehicle_no, new_vehicle_no, field_co, site_co, reason, TO_CHAR(work_start_date, 'YYYY-MM-DD') as start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') as end_date, status, replaced_by";
     if (siteColCheck.rows.length > 0) {
       selectCols += ", asset_code, work_order_no";
     }
@@ -576,24 +583,26 @@ router.post("/api/update-driver-log", verifyEditor, async (req, res) => {
       driver_mobile,
       work_start_date,
       work_end_date,
+      reason,
     } = req.body;
     const status = work_end_date ? "Released" : "Running";
 
     if (id) {
       await client.query(
-        "UPDATE vehicle_driver_log SET driver_name=$1, driver_mobile=$2, work_start_date=$3, work_end_date=$4, status=$5 WHERE id=$6",
+        "UPDATE vehicle_driver_log SET driver_name=$1, driver_mobile=$2, work_start_date=$3, work_end_date=$4, status=$5, reason=$6 WHERE id=$7",
         [
           driver_name,
           driver_mobile,
           work_start_date || null,
           work_end_date || null,
           status,
+          reason || null,
           id,
         ],
       );
     } else {
       await client.query(
-        "INSERT INTO vehicle_driver_log (plate_no, driver_name, driver_mobile, work_start_date, work_end_date, status) VALUES ($1, $2, $3, $4, $5, $6)",
+        "INSERT INTO vehicle_driver_log (plate_no, driver_name, driver_mobile, work_start_date, work_end_date, status, reason) VALUES ($1, $2, $3, $4, $5, $6, $7)",
         [
           plate_no,
           driver_name,
@@ -601,6 +610,7 @@ router.post("/api/update-driver-log", verifyEditor, async (req, res) => {
           work_start_date || null,
           work_end_date || null,
           status,
+          reason || null,
         ],
       );
     }
@@ -647,6 +657,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       new_vehicle_no,
       field_co,
       site_co,
+      reason,
     } = req.body;
 
     let updateCols = [
@@ -660,6 +671,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       "new_vehicle_no=$8",
       "field_co=$9",
       "site_co=$10",
+      "reason=$11"
     ];
     let updateVals = [
       site_name,
@@ -672,6 +684,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       new_vehicle_no || null,
       field_co || null,
       site_co || null,
+      reason || null
     ];
 
     let insertCols = [
@@ -686,6 +699,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       "new_vehicle_no",
       "field_co",
       "site_co",
+      "reason"
     ];
     let insertVals = [
       plate_no,
@@ -699,6 +713,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       new_vehicle_no || null,
       field_co || null,
       site_co || null,
+      reason || null
     ];
 
     if (asset_code !== undefined) {
