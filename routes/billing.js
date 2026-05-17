@@ -192,17 +192,6 @@ router.get("/vehicles", async (req, res) => {
       }
     });
 
-    // 🟢 CLEAN LOGIC: DB-യിൽ ഉണ്ടെങ്കിൽ അത് മാത്രം എടുക്കുക, അല്ലെങ്കിൽ മാസ്റ്റർ ഡാറ്റ.
-    let nrate = item.nrate || 0;
-    let otrate = item.otrate || 0;
-
-    if (saved && saved.nrate !== null && saved.nrate !== undefined) {
-      nrate = parseFloat(saved.nrate);
-    }
-    if (saved && saved.otrate !== null && saved.otrate !== undefined) {
-      otrate = parseFloat(saved.otrate);
-    }
-
     res.status(200).json({
       success: true,
       data: validVehicles,
