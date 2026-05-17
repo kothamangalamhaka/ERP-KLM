@@ -1,148 +1,151 @@
- :root {
-     --bg-dark-blue: #0a1f44;
-     --bg-gradient-end: #1a3a6c;
-     --primary-accent: #00CED1;
-     --secondary-accent: #FFC300;
-     --text-white: #000000;
-     --font-inter: 'Inter', sans-serif;
-     --font-montserrat: 'Montserrat', sans-serif;
-     --transition-speed: 0.4s;
- }
+/* Base Styles & Variables */
+:root {
+  --bg-primary: #1e293b; /* Adjust to match your dark blue background */
+  --card-bg: rgba(255, 255, 255, 0.05); /* Glassmorphism effect */
+  --card-border: rgba(255, 255, 255, 0.1);
+  --card-hover: rgba(0, 206, 209, 0.1);
+  --accent-color: #00ced1; /* Cyan color from your original buttons */
+  --text-main: #ffffff;
+  --text-muted: #94a3b8;
+}
 
- * {
-     margin: 0;
-     padding: 0;
-     box-sizing: border-box;
- }
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  font-family: "Inter", sans-serif;
+  margin: 0;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
- body {
-     background-color: var(--bg-dark-blue);
-     background-image: radial-gradient(circle at top right, rgba(0, 206, 209, 0.05) 0%, rgba(0, 0, 0, 0) 60%),
-         radial-gradient(circle at bottom left, rgba(255, 195, 0, 0.05) 0%, rgba(0, 0, 0, 0) 60%),
-         linear-gradient(135deg, var(--bg-dark-blue), var(--bg-gradient-end));
-     color: var(--text-white);
-     font-family: var(--font-inter);
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: flex-start;
-     min-height: 100vh;
-     padding: 50px 20px;
-     background-attachment: fixed;
-     overflow-x: hidden;
- }
+/* Connect Button Wrapper */
+.connect-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 3rem;
+}
 
- /* Animations */
- .animate {
-     opacity: 0;
-     animation: fadeInUp var(--transition-speed) ease forwards;
- }
+/* Grid Layout */
+.action-grid-box {
+  display: grid;
+  /* Automatically creates columns based on screen width. Mobile = 1 col, PC = 3 or 4 cols */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
 
- .animate-title {
-     animation-delay: 0.2s;
- }
+/* Individual Card Styling */
+.action-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.2rem;
+  text-decoration: none;
+  color: inherit;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
 
- .animate-connect {
-     animation-delay: 0.4s;
- }
+.action-card:hover {
+  transform: translateY(-5px);
+  background: var(--card-hover);
+  border-color: var(--accent-color);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
 
- .animate-actions {
-     animation-delay: 0.6s;
- }
+/* Icon Styling */
+.card-icon {
+  font-size: 1.8rem;
+  background: var(--accent-color);
+  color: var(--bg-primary);
+  width: 55px;
+  height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
 
- @keyframes fadeInUp {
-     from {
-         opacity: 0;
-         transform: translateY(20px);
-     }
+/* Text Content Styling */
+.card-content {
+  display: flex;
+  flex-direction: column;
+}
 
-     to {
-         opacity: 1;
-         transform: translateY(0);
-     }
- }
+.card-content h3 {
+  margin: 0 0 0.5rem 0;
+  font-family: "Montserrat", sans-serif;
+  font-size: 1.1rem;
+  color: var(--accent-color);
+}
 
- h1 {
-     font-size: 3.2rem;
-     margin-bottom: 4rem;
-     text-align: center;
-     letter-spacing: 2px;
-     font-weight: 700;
-     font-family: var(--font-montserrat);
-     text-transform: uppercase;
-     background: linear-gradient(135deg, #ffffff 30%, #a0c4ff);
-     -webkit-background-clip: text;
-     background-clip: text;
-     -webkit-text-fill-color: transparent;
- }
+.card-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
 
- main {
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     width: 100%;
-     max-width: 850px;
- }
+/* Mobile specific adjustments */
+@media (max-width: 768px) {
+  body {
+    padding: 1rem;
+  }
+  .action-grid-box {
+    grid-template-columns: 1fr; /* Forces a single column on small screens */
+  }
+  .connect-btn {
+    padding: 8px 12px;
+    font-size: 1rem;
+  }
+}
 
- .connect-btn {
-     display: inline-block;
-     text-decoration: none;
-     background: var(--secondary-accent);
-     color: var(--bg-dark-blue);
-     padding: 16px 45px;
-     border-radius: 40px;
-     font-size: 1.15rem;
-     font-weight: 600;
-     margin-bottom: 4rem;
-     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
-     transition: all var(--transition-speed) ease;
- }
+a {
+  text-decoration: none;
+}
+.connect-btn {
+  color: rgb(0, 0, 0);
+  padding: 10px 15px;
+  border: 2px solid yellowgreen;
+  background: yellow;
+  border-radius: 50px;
+  font-weight: bold;
+}
 
- .connect-btn:hover {
-     background-color: #ffd700;
-     transform: translateY(-5px);
-     box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
- }
+@media (min-width: 1024px) {
+  .connect-btn {
+    padding: 12px 20px;
+    margin-top: 20px;
+    font-size: 1.5625rem;
+  }
 
- .action-btns-box {
-     background-color: rgba(255, 255, 255, 0.03);
-     border: 1px solid rgba(255, 255, 255, 0.05);
-     padding: 30px;
-     border-radius: 20px;
-     display: grid;
-     grid-template-columns: repeat(2, 1fr);
-     gap: 25px;
-     width: 100%;
-     max-width: 700px;
- }
+  body h1{
+    font-size: 3.5rem;
+  }
+}
 
- .action-btn {
-     display: block;
-     text-decoration: none;
-     background: var(--primary-accent);
-     color: var(--text-white);
-     padding: 18px 20px;
-     border-radius: 35px;
-     font-size: 1.25rem;
-     font-weight: 600;
-     text-align: center;
-     transition: all var(--transition-speed) ease;
-     border: none;
-     cursor: pointer;
- }
+*{
+    font-family: 'Courier New', Courier, monospace;
+}
 
- .action-btn:hover {
-     background-color: #00aaaa;
-     transform: translateY(-4px);
-     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
- }
+body h1{
+    font-family: 'Georgia', 'Times New Roman', Times, serif;
+}
 
- @media (max-width: 650px) {
-     h1 {
-         font-size: 2.5rem;
-     }
+.connect-wrapper a{
+    font-family: 'Georgia', 'Times New Roman', Times, serif;
+}
 
-     .action-btns-box {
-         grid-template-columns: 1fr;
-     }
- }
+.connect-btn:hover{
+    background: yellowgreen;
+    border-color: rgb(0, 0, 0);
+}
