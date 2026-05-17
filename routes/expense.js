@@ -9,27 +9,25 @@ const JWT_SECRET = process.env.JWT_SECRET || "expense_secure_secret_key";
 
 // 🟢 Secure Admin Login Route
 router.post("/login", (req, res) => {
-  const { userid, password } = req.body;
+  const { passcode } = req.body;
 
-  const validUserId = process.env.KLMUID;
-  const validPassword = process.env.KLMPSSD;
+  // 🟢 .env ൽ നിന്നും KLM_EXPENSE_CODE എടുക്കുന്നു
+  const validPasscode = process.env.KLM_EXPENSE_CODE;
 
-  if (!validUserId || !validPassword) {
+  if (!validPasscode) {
     return res.status(500).json({
       success: false,
-      message: "Server credentials not configured properly.",
+      message: "Passcode not configured on server.",
     });
   }
 
-  if (userid === validUserId && password === validPassword) {
+  if (passcode === validPasscode) {
     const token = jwt.sign({ role: "expense_admin" }, JWT_SECRET, {
-      expiresIn: "12h",
+      expiresIn: "30m", // പുതിയ കോഡ് (30 മിനിറ്റ്)
     });
     res.json({ success: true, token });
   } else {
-    res
-      .status(401)
-      .json({ success: false, message: "Invalid User ID or Password" });
+    res.status(401).json({ success: false, message: "Invalid Passcode" });
   }
 });
 

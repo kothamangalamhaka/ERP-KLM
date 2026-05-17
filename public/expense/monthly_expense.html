@@ -19,21 +19,18 @@
 
     <!-- 🟢 Secure Admin Login Screen -->
     <div id="loginScreen">
-      <div class="login-box">
-        <h2>KLM ERP Login</h2>
-        <input
-          type="text"
-          id="loginUserId"
-          placeholder="User ID"
-          onkeypress="if (event.key === 'Enter') executeLogin();"
-        />
+      <div class="login-box" style="background: #1e293b; border: 1px solid rgba(0, 206, 209, 0.3);">
+        <h3 style="color: #00ced1; margin-top: 0; font-family: 'Montserrat', sans-serif;">🔒 Monthly Expense Window</h3>
+        <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">Please enter the monthly expense window security code.</p>
         <input
           type="password"
-          id="loginPass"
-          placeholder="Password"
+          id="loginPasscode"
+          placeholder="Enter Passcode"
+          style="background: #0f172a; color: white; text-align: center; letter-spacing: 2px; border-color: #334155;"
           onkeypress="if (event.key === 'Enter') executeLogin();"
         />
-        <button onclick="executeLogin()">Secure Login</button>
+        <button style="background: #00ced1; color: #0f172a;" onclick="executeLogin()">Verify & Access</button>
+        <div id="login-error-msg" style="color: #ef4444; font-size: 13px; margin-top: 10px; display: none;">Incorrect Code. Redirecting...</div>
       </div>
     </div>
 

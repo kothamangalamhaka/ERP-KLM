@@ -98,8 +98,8 @@
   <body>
     <div id="authModal" class="modal-overlay">
       <div class="security-box">
-        <h3>🔒 Restricted Access</h3>
-        <p>Please enter the KLM security code to proceed.</p>
+        <h3>🔒 KLM Branch Office Window</h3>
+        <p>Please enter the KLM office security code.</p>
         <input
           type="password"
           id="securityCode"
@@ -163,6 +163,22 @@
     </div>
 
     <script>
+      let autoLogoutTimer;
+
+      // 1. Check session on page load
+      document.addEventListener("DOMContentLoaded", () => {
+        const expiry = sessionStorage.getItem("klm_auth_expiry");
+
+        if (expiry && Date.now() < parseInt(expiry)) {
+          // Valid session exists, calculate remaining time
+          const timeLeft = parseInt(expiry) - Date.now();
+          grantAccess(timeLeft);
+        } else {
+          // No valid session or expired, clear storage and show modal
+          sessionStorage.removeItem("klm_auth_expiry");
+        }
+      });
+
       function handleEnter(event) {
         if (event.key === "Enter") {
           verifyCode();
@@ -172,11 +188,15 @@
       async function verifyCode() {
         const codeInput = document.getElementById("securityCode").value;
         const errorMsg = document.getElementById("error-msg");
+        const btn = document.querySelector(".security-box button");
 
         if (!codeInput) return;
 
+        // Visual feedback during API call
+        btn.innerText = "Verifying...";
+        btn.disabled = true;
+
         try {
-          // URL മാറ്റിയത് ശ്രദ്ധിക്കുക (/timesheet/api/verify-klm)
           const response = await fetch("/timesheet/api/verify-klm", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -186,8 +206,13 @@
           const data = await response.json();
 
           if (data.success) {
-            document.getElementById("authModal").style.display = "none";
-            document.getElementById("main-content").style.display = "block";
+            // Set session for 30 minutes (30 * 60 * 1000 = 1,800,000 ms)
+            const sessionDuration = 1800000;
+            sessionStorage.setItem(
+              "klm_auth_expiry",
+              Date.now() + sessionDuration,
+            );
+            grantAccess(sessionDuration);
           } else {
             errorMsg.style.display = "block";
             setTimeout(() => {
@@ -196,10 +221,31 @@
           }
         } catch (error) {
           console.error("Authentication Error", error);
-          // എന്താണ് എറർ എന്ന് കൺസോളിൽ കാണാൻ ഈ ലൈൻ സഹായിക്കും
           alert("Network or Server Error! Check Console.");
           window.location.replace("../index.html");
+        } finally {
+          btn.innerText = "Verify & Access";
+          btn.disabled = false;
         }
+      }
+
+      // Function to handle successful login and timer setup
+      function grantAccess(timeLeft) {
+        document.getElementById("authModal").style.display = "none";
+        document.getElementById("main-content").style.display = "block";
+
+        // Setup auto logout timer
+        clearTimeout(autoLogoutTimer);
+        autoLogoutTimer = setTimeout(() => {
+          executeLogout();
+        }, timeLeft);
+      }
+
+      // Function to handle auto-logout
+      function executeLogout() {
+        sessionStorage.removeItem("klm_auth_expiry");
+        alert("Session Expired. Please login again.");
+        window.location.reload();
       }
     </script>
   </body>

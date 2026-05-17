@@ -23,21 +23,21 @@ document.addEventListener("DOMContentLoaded", () => {
   if (sessionStorage.getItem("expense_token")) {
     loadApp();
   } else {
-    document.getElementById("loginUserId").focus();
+    document.getElementById("loginPasscode").focus();
   }
 });
 
 async function executeLogin() {
-  const userid = document.getElementById("loginUserId").value;
-  const password = document.getElementById("loginPass").value;
+  const passcode = document.getElementById("loginPasscode").value;
+  const errorMsg = document.getElementById("login-error-msg");
 
-  if (!userid || !password) return showToast("Enter credentials", "#ef4444");
+  if (!passcode) return showToast("Enter passcode", "#ef4444");
 
   try {
     const res = await fetch("/expenses/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userid, password }),
+      body: JSON.stringify({ passcode }),
     });
     const data = await res.json();
 
@@ -45,11 +45,19 @@ async function executeLogin() {
       sessionStorage.setItem("expense_token", data.token);
       loadApp();
     } else {
-      showToast("Invalid Credentials!", "#ef4444");
-      document.getElementById("loginPass").value = "";
+      // 🟢 കോഡ് തെറ്റിയാൽ മെസ്സേജ് കാണിച്ച് വന്ന പേജിലേക്ക് തിരികെ പോകും
+      errorMsg.style.display = 'block';
+      setTimeout(() => {
+          if (document.referrer) {
+              window.location.href = document.referrer;
+          } else {
+              window.history.back();
+          }
+      }, 1500);
     }
   } catch (err) {
     showToast("Server Connection Error.", "#ef4444");
+    setTimeout(() => { window.history.back(); }, 1500);
   }
 }
 
@@ -58,10 +66,21 @@ function executeLogout() {
   window.location.reload();
 }
 
+let autoLogoutTimer; // ടൈമർ സൂക്ഷിക്കാൻ ഒരു വേരിയബിൾ
+
 async function loadApp() {
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("appMain").style.display = "block";
   await loadDataFromServer();
+
+  // 🟢 30 മിനിറ്റ് ടൈമർ സെറ്റ് ചെയ്യുന്നു (30 * 60 * 1000 = 1,800,000 milliseconds)
+  clearTimeout(autoLogoutTimer);
+  autoLogoutTimer = setTimeout(() => {
+      showToast("Session Expired. Auto logging out...", "#ef4444");
+      setTimeout(() => {
+          executeLogout();
+      }, 2000);
+  }, 1800000); 
 }
 
 // 🟢 API Logic
