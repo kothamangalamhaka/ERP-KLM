@@ -1103,6 +1103,10 @@ function openAddVehicleModal() {
   const uniqueVehicleTypes = [
     ...new Set(tableData.map((r) => r.vehicle_type).filter(Boolean)),
   ].sort();
+  // NEW: Owner Name suggestions
+  const uniqueOwnerNames = [
+    ...new Set(tableData.map((r) => r.owner_name).filter(Boolean)),
+  ].sort();
 
   // Handle flexible database column names safely
   const wrkOrderCol =
@@ -1124,8 +1128,9 @@ function openAddVehicleModal() {
     <datalist id="fieldCoList">${uniqueFieldCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
     <datalist id="siteCoList">${uniqueSiteCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
     <datalist id="vehicleTypeList">${uniqueVehicleTypes.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    <datalist id="ownerNameList">${uniqueOwnerNames.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
     
-    <div class="form-group" style="grid-column: 1 / -1;">
+    <div class="form-group">
         <label style="color:#0f2027;">Plate No (Required)</label>
         <input type="text" id="new_plate_no" class="modal-input uppercase-input" style="border-color: #0d6efd; font-weight:bold; margin-bottom:0;">
     </div>
@@ -1156,7 +1161,7 @@ function openAddVehicleModal() {
 
   // Row: Owner Name | Owner Mobile | Vehicle Type
   html += `
-    <div class="form-group"><label>Owner Name</label><input type="text" id="new_owner_name" class="modal-input" style="margin-bottom:0;"></div>
+    <div class="form-group"><label>Owner Name</label><input type="text" id="new_owner_name" list="ownerNameList" class="modal-input" style="margin-bottom:0;"></div>
     <div class="form-group"><label>Owner Mobile</label><input type="text" id="new_owner_mobile" class="modal-input" style="margin-bottom:0;"></div>
     <div class="form-group"><label>Vehicle Type</label><input type="text" id="new_vehicle_type" list="vehicleTypeList" class="modal-input" style="margin-bottom:0;"></div>
   `;
