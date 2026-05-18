@@ -1099,6 +1099,10 @@ function openAddVehicleModal() {
   const uniqueSiteCos = [
     ...new Set(tableData.map((r) => r.site_co).filter(Boolean)),
   ].sort();
+  // NEW: Vehicle Type suggestions
+  const uniqueVehicleTypes = [
+    ...new Set(tableData.map((r) => r.vehicle_type).filter(Boolean)),
+  ].sort();
 
   // Handle flexible database column names safely
   const wrkOrderCol =
@@ -1119,6 +1123,7 @@ function openAddVehicleModal() {
     <datalist id="siteNameList">${uniqueSites.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
     <datalist id="fieldCoList">${uniqueFieldCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
     <datalist id="siteCoList">${uniqueSiteCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    <datalist id="vehicleTypeList">${uniqueVehicleTypes.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
     
     <div class="form-group" style="grid-column: 1 / -1;">
         <label style="color:#0f2027;">Plate No (Required)</label>
@@ -1153,10 +1158,10 @@ function openAddVehicleModal() {
   html += `
     <div class="form-group"><label>Owner Name</label><input type="text" id="new_owner_name" class="modal-input" style="margin-bottom:0;"></div>
     <div class="form-group"><label>Owner Mobile</label><input type="text" id="new_owner_mobile" class="modal-input" style="margin-bottom:0;"></div>
-    <div class="form-group"><label>Vehicle Type</label><input type="text" id="new_vehicle_type" class="modal-input" style="margin-bottom:0;"></div>
+    <div class="form-group"><label>Vehicle Type</label><input type="text" id="new_vehicle_type" list="vehicleTypeList" class="modal-input" style="margin-bottom:0;"></div>
   `;
 
-  // Row: Asset Code | Wrk Order No | VAT (As per your request)
+  // Row: Asset Code | Wrk Order No | VAT
   html += `
     <div class="form-group"><label>Asset Code</label><input type="text" id="new_asset_code" class="modal-input" style="margin-bottom:0;"></div>
     <div class="form-group"><label>Wrk Order No</label><input type="text" id="new_${wrkOrderCol}" class="modal-input" style="margin-bottom:0;"></div>
