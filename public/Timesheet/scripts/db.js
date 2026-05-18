@@ -1085,28 +1085,96 @@ function manageColumn(colName) {
 function openAddVehicleModal() {
   const form = document.getElementById("addVehicleForm");
   form.style.display = "grid";
-  form.style.gridTemplateColumns = "repeat(3, 1fr)";
+  form.style.gridTemplateColumns = "repeat(3, 1fr)"; // 3 ഇൻപുട്ടുകൾ ഒരു വരിയിൽ
   form.style.gap = "15px";
   form.style.width = "100%";
-  let html = `<div class="form-group"><label style="color:#0f2027;">Plate No (Required)</label><input type="text" id="new_plate_no" class="modal-input uppercase-input" style="border-color: #0d6efd; font-weight:bold;"></div>`;
+
+  // Extract unique values for suggestions from tableData
+  const uniqueSites = [
+    ...new Set(tableData.map((r) => r.site_name).filter(Boolean)),
+  ].sort();
+  const uniqueFieldCos = [
+    ...new Set(tableData.map((r) => r.field_co).filter(Boolean)),
+  ].sort();
+  const uniqueSiteCos = [
+    ...new Set(tableData.map((r) => r.site_co).filter(Boolean)),
+  ].sort();
+
+  // Handle flexible database column names safely
+  const wrkOrderCol =
+    dynamicCols.find(
+      (c) =>
+        c.toLowerCase() === "wrk_order_no" ||
+        c.toLowerCase() === "work_order_no",
+    ) || "wrk_order_no";
+  const invoiceCol =
+    dynamicCols.find(
+      (c) =>
+        c.toLowerCase().includes("invoice_info") ||
+        c.toLowerCase() === "invoice info",
+    ) || "invoice_info";
+
+  // Build HTML with datalists for auto-suggestions
+  let html = `
+    <datalist id="siteNameList">${uniqueSites.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    <datalist id="fieldCoList">${uniqueFieldCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    <datalist id="siteCoList">${uniqueSiteCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    
+    <div class="form-group" style="grid-column: 1 / -1;">
+        <label style="color:#0f2027;">Plate No (Required)</label>
+        <input type="text" id="new_plate_no" class="modal-input uppercase-input" style="border-color: #0d6efd; font-weight:bold; margin-bottom:0;">
+    </div>
+  `;
+
   let hasDriver = dynamicCols.includes("driver_name");
   let hasSite = dynamicCols.includes("site_name");
 
   if (hasSite) {
-    html += `<div style="border: 1px dashed #cbd5e1; padding: 12px; border-radius: 6px; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; background: #f8fafc;">
-                    <div class="form-group"><label style="color:#000000;">Site Name</label><input type="text" id="new_site_name" class="modal-input"></div>
-                    <div class="form-group"><label style="color:#000000;">Rate</label><input type="number" step="0.01" id="new_site_rate" class="modal-input"></div>
-                    <div class="form-group"><label style="color:#000000;">Site Start Date</label><input type="date" id="new_site_start" class="modal-input"></div>
-                 </div>`;
-  }
-  if (hasDriver) {
-    html += `<div style="border: 1px dashed #cbd5e1; padding: 12px; border-radius: 6px; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; background: #f8fafc;">
-                    <div class="form-group"><label style="color:#2563eb;">Driver Name</label><input type="text" id="new_driver_name" class="modal-input"></div>
-                    <div class="form-group"><label style="color:#2563eb;">Driver Mobile</label><input type="text" id="new_driver_mobile" class="modal-input"></div>
-                    <div class="form-group"><label style="color:#2563eb;">Driver Start Date</label><input type="date" id="new_driver_start" class="modal-input"></div>
-                 </div>`;
+    html += `
+      <div style="border: 1px dashed #cbd5e1; padding: 12px; border-radius: 6px; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; background: #f8fafc;">
+        <div class="form-group"><label style="color:#000000;">Site Name</label><input type="text" id="new_site_name" list="siteNameList" class="modal-input" style="margin-bottom:0;"></div>
+        <div class="form-group"><label style="color:#000000;">Rate</label><input type="number" step="0.01" id="new_site_rate" class="modal-input" style="margin-bottom:0;"></div>
+        <div class="form-group"><label style="color:#000000;">Site Start Date</label><input type="date" id="new_site_start" class="modal-input" style="margin-bottom:0;"></div>
+      </div>
+    `;
   }
 
+  if (hasDriver) {
+    html += `
+      <div style="border: 1px dashed #cbd5e1; padding: 12px; border-radius: 6px; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; background: #f8fafc;">
+        <div class="form-group"><label style="color:#2563eb;">Driver Name</label><input type="text" id="new_driver_name" class="modal-input" style="margin-bottom:0;"></div>
+        <div class="form-group"><label style="color:#2563eb;">Driver Mobile</label><input type="text" id="new_driver_mobile" class="modal-input" style="margin-bottom:0;"></div>
+        <div class="form-group"><label style="color:#2563eb;">Driver Start Date</label><input type="date" id="new_driver_start" class="modal-input" style="margin-bottom:0;"></div>
+      </div>
+    `;
+  }
+
+  // Row: Owner Name | Owner Mobile | Vehicle Type
+  html += `
+    <div class="form-group"><label>Owner Name</label><input type="text" id="new_owner_name" class="modal-input" style="margin-bottom:0;"></div>
+    <div class="form-group"><label>Owner Mobile</label><input type="text" id="new_owner_mobile" class="modal-input" style="margin-bottom:0;"></div>
+    <div class="form-group"><label>Vehicle Type</label><input type="text" id="new_vehicle_type" class="modal-input" style="margin-bottom:0;"></div>
+  `;
+
+  // Row: Asset Code | Wrk Order No | VAT (As per your request)
+  html += `
+    <div class="form-group"><label>Asset Code</label><input type="text" id="new_asset_code" class="modal-input" style="margin-bottom:0;"></div>
+    <div class="form-group"><label>Wrk Order No</label><input type="text" id="new_${wrkOrderCol}" class="modal-input" style="margin-bottom:0;"></div>
+    <div class="form-group"><label>VAT</label><select id="new_vat" class="modal-input" style="font-weight:bold; color:#0d6efd; cursor:pointer; margin-bottom:0;"><option value="No">No</option><option value="Yes">Yes</option></select></div>
+  `;
+
+  // Row: Field CO | Site CO
+  html += `
+    <div class="form-group"><label style="color:#8b5cf6;">Field CO</label><input type="text" id="new_field_co" list="fieldCoList" class="modal-input titlecase-input" style="margin-bottom:0;"></div>
+    <div class="form-group"><label style="color:#8b5cf6;">Site CO</label><input type="text" id="new_site_co" list="siteCoList" class="modal-input titlecase-input" style="margin-bottom:0;"></div>
+    <div class="form-group"></div> `;
+
+  // Row: Invoice Info (Full Width Textarea)
+  html += `
+    <div class="form-group" style="grid-column: 1 / -1;"><label>Invoice Info</label><textarea id="new_${invoiceCol}" class="modal-input" style="height: 60px; margin-bottom:0;"></textarea></div>
+  `;
+
+  // Any other completely unexpected columns that might be added later dynamically
   dynamicCols.forEach((col) => {
     let safeColName = col.toLowerCase();
     if (
@@ -1116,14 +1184,23 @@ function openAddVehicleModal() {
         "site_name",
         "site_rate",
         "rate",
+        "field_co",
+        "site_co",
+        "owner_name",
+        "owner_mobile",
+        "vehicle_type",
+        "asset_code",
+        "work_order_no",
+        "wrk_order_no",
+        "vat",
+        "invoice_info",
+        "invoice info",
       ].includes(safeColName)
     )
       return;
+
     let dCol = col.replace(/_/g, " ").toUpperCase();
-    if (safeColName.includes("invoice_info") || safeColName === "invoice info")
-      html += `<div class="form-group" style="grid-column: 1 / -1;"><label>${escapeHTML(dCol)}</label><textarea id="new_${col}" class="modal-input" style="height: 60px;"></textarea></div>`;
-    else
-      html += `<div class="form-group"><label>${escapeHTML(dCol)}</label><input type="text" id="new_${col}" class="modal-input"></div>`;
+    html += `<div class="form-group"><label>${escapeHTML(dCol)}</label><input type="text" id="new_${col}" class="modal-input" style="margin-bottom:0;"></div>`;
   });
 
   form.innerHTML = html;
@@ -1297,8 +1374,7 @@ function toggleSlEnd() {
     val === "Released" || val === "Replaced" ? "block" : "none";
   document.getElementById("slReasonGroup").style.display =
     val === "Released" || val === "Replaced" ? "block" : "none";
-  document.getElementById("slReplaceGroup").style.display =
-    val === "Replaced" ? "block" : "none";
+  // The Old/New Vehicle group remains visible at all times now.
 }
 function closeLogModals() {
   document.getElementById("driverLogModal").style.display = "none";

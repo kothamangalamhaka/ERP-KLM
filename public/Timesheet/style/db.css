@@ -601,6 +601,7 @@ input[type="number"] {
 .titlecase-input {
   text-transform: capitalize;
 }
+
 /* =======================================================
    DARK MODE SYSTEM & RESPONSIVE CSS OVERRIDES
    ======================================================= */
@@ -623,14 +624,14 @@ input[type="number"] {
 }
 
 body.dark-mode {
-  --bg-main: #0f172a; /* Deep dark blue background */
-  --bg-card: #1e293b; /* Slightly lighter dark card */
-  --text-main: #e2e8f0; /* Light text */
-  --border-color: #334155; /* Dark borders */
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #e2e8f0;
+  --border-color: #334155;
   --border-light: #475569;
-  --table-head-bg: #020617; /* Very dark table head */
+  --table-head-bg: #020617;
   --table-head-text: #e2e8f0;
-  --row-hover: #334155; /* Dark hover effect */
+  --row-hover: #334155;
   --input-bg: #1e293b;
   --input-focus: #0f172a;
   --modal-bg: #1e293b;
@@ -731,9 +732,7 @@ td select:focus,
 .form-group label,
 .modal-box p,
 .edit-hint {
-  color: var(
-    --text-main
-  ) !important; /* Force text color override in dark mode */
+  color: var(--text-main) !important;
 }
 
 .column-list-wrapper,
@@ -766,7 +765,7 @@ td select:focus,
   .navbar span {
     font-size: 14px !important;
     margin-left: 10px !important;
-    white-space: nowrap; /* Forces Master Database into single line */
+    white-space: nowrap;
   }
 
   /* User Profile - Hide text, show icon */
@@ -791,7 +790,7 @@ td select:focus,
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: 10px 0; /* 10px vertical gap, 0 horizontal gap */
+    gap: 10px 0;
   }
 
   /* Row 1: Export, File Choose, Import - Grid Layout */
@@ -856,4 +855,37 @@ td select:focus,
     padding: 3px 6px;
     margin-left: 5px;
   }
+}
+
+/* =========================================
+   DATALIST & SELECT DROPDOWN ENHANCEMENTS
+   ========================================= */
+
+/* Force the dropdown arrow to be more visible on datalist inputs */
+input[list]::-webkit-calendar-picker-indicator {
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  padding: 2px;
+}
+
+input[list]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  color: #0d6efd;
+}
+
+/* Enhancements for select dropdowns inside modals */
+select.modal-input {
+  appearance: auto;
+  background-color: #ffffff;
+}
+
+/* Dark Mode fixes for datalist arrows and select */
+body.dark-mode input[list]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}
+
+body.dark-mode select.modal-input {
+  background-color: var(--input-bg);
+  color: var(--text-main);
 }
