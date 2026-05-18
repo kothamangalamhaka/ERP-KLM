@@ -1837,11 +1837,66 @@ function openAddEntryModal() {
   document.getElementById("userDropdownMenu").classList.remove("show");
   if (currentUser.role === "Viewer")
     return showToast("Access Denied.", "error");
+
   $("#dynamicFormFields").empty();
-  cachedHeaders.forEach((header) => {
+
+  // 1. Generate Datalists for Auto-Suggestions
+  let listsHtml = "";
+  const suggestionTargetCols = [
+    "PLATE NO",
+    "PLATE NUMBER",
+    "TYPE OF VEHICLE",
+    "VEHICLE TYPE",
+    "SITE",
+    "CUSTOMER",
+    "OWNER",
+    "FIELD COORDINATOR",
+    "FIELD CO",
+    "SITE COORDINATOR",
+    "SITE CO",
+  ];
+
+  cachedHeaders.forEach((header, index) => {
+    let colUpper = header.replace(/\s+/g, " ").trim().toUpperCase();
+    if (suggestionTargetCols.includes(colUpper)) {
+      let uniqueVals = new Set();
+      if (erpDataTable) {
+        erpDataTable
+          .column(index)
+          .data()
+          .each((val) => {
+            if (val && String(val).trim() !== "")
+              uniqueVals.add(String(val).trim());
+          });
+      }
+      let optionsHtml = Array.from(uniqueVals)
+        .sort()
+        .map((v) => `<option value="${String(v).replace(/"/g, "&quot;")}">`)
+        .join("");
+      listsHtml += `<datalist id="datalist_entry_${index}">${optionsHtml}</datalist>`;
+    }
+  });
+
+  $("#dynamicFormFields").append(listsHtml);
+
+  // 2. Generate Input Fields
+  cachedHeaders.forEach((header, index) => {
     let colTypeObj = cachedColTypes.find((c) => c.name === header),
       cType = colTypeObj ? colTypeObj.type : "varchar",
       colUpper = header.replace(/\s+/g, " ").trim().toUpperCase();
+
+    // --- NEW CODE: Exclude specific columns from Add Entry Form ---
+    const excludedCols = [
+      "DAYS WORKED",
+      "PAY FROM",
+      "MUBARAK REMARK",
+      "OFFICE REMARK",
+    ];
+    if (excludedCols.includes(colUpper)) {
+      return; // ഈ കോളങ്ങൾ ഫോമിൽ കാണിക്കില്ല
+    }
+    // --------------------------------------------------------------
+
     let isDateCol =
         cType === "date" ||
         colUpper.includes("DATE") ||
@@ -1850,7 +1905,12 @@ function openAddEntryModal() {
         colUpper === "LAST WORKING DAY" ||
         colUpper === "WORK START",
       isIntCol = cType === "int";
-    let inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}">`;
+
+    let isSuggestionCol = suggestionTargetCols.includes(colUpper);
+    let listAttr = isSuggestionCol ? `list="datalist_entry_${index}"` : "";
+
+    let inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}" ${listAttr}>`;
+
     if (isDateCol) {
       inputHtml = `<input type="date" class="modal-input entry-input" data-colname="${header}">`;
     } else if (isIntCol) {
@@ -1874,10 +1934,12 @@ function openAddEntryModal() {
     ) {
       inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}" value="${currentUser.site}" readonly style="background-color:#f8fafc; cursor:not-allowed;">`;
     }
+
     $("#dynamicFormFields").append(
       `<div class="form-group"><label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#334155; font-size:12px;">${header}</label>${inputHtml}</div>`,
     );
   });
+
   $("#entryModalOverlay").css("display", "flex");
 }
 
