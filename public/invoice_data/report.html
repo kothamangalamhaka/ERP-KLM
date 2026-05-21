@@ -426,7 +426,6 @@
         margin-bottom: 15px;
       }
 
-      /* Excel Filter CSS */
       .filter-icon {
         font-size: 10px;
         margin-left: 6px;
@@ -515,7 +514,6 @@
         color: #475569;
       }
 
-      /* 🟢 Custom Alert & Toast CSS */
       .custom-alert-overlay {
         display: none;
         position: fixed;
@@ -600,7 +598,6 @@
   </head>
 
   <body>
-    <!-- 🟢 Custom Alert Modal -->
     <div id="customAlert" class="custom-alert-overlay">
       <div class="custom-alert-box">
         <p id="customAlertMessage">Message goes here</p>
@@ -610,7 +607,6 @@
       </div>
     </div>
 
-    <!-- 🟢 Custom Prompt for Edit Mode Security Code -->
     <div id="customPrompt" class="custom-alert-overlay">
       <div class="custom-alert-box">
         <p>Enter Security Code to enable Bulk Editing:</p>
@@ -644,7 +640,6 @@
       </div>
     </div>
 
-    <!-- 🟢 Toast Message for Copy -->
     <div id="toastMsg">Copied!</div>
 
     <div id="loginScreen">
@@ -750,7 +745,6 @@
             Single Excel
           </button>
 
-          <!-- 🟢 Edit Mode Buttons -->
           <button
             id="btnEditData"
             class="btn-primary"
@@ -838,7 +832,6 @@
       </div>
     </div>
 
-    <!-- Excel Filter Menu -->
     <div
       id="excelFilterMenu"
       class="excel-filter-menu"
@@ -867,7 +860,6 @@
       </div>
     </div>
 
-    <!-- Batch Export Modal -->
     <div id="batchModal" class="modal-overlay">
       <div class="modal-content">
         <h3>Batch Excel Export</h3>
@@ -940,7 +932,6 @@
       </div>
     </div>
 
-    <!-- Single Excel Modal (Analysis) -->
     <div id="singleExcelModal" class="modal-overlay">
       <div class="modal-content" style="width: 500px">
         <h3>Single Excel Export (Analysis)</h3>
@@ -1039,7 +1030,6 @@
     </div>
 
     <script>
-      // Login System Logic
       document.addEventListener("DOMContentLoaded", () => {
         if (localStorage.getItem("timesheetToken")) {
           loadApp();
@@ -1051,7 +1041,6 @@
       async function executeLogin() {
         const username = document.getElementById("loginUserId").value;
         const password = document.getElementById("loginPass").value;
-
         if (!username || !password) return window.alert("Enter credentials");
 
         try {
@@ -1061,7 +1050,6 @@
             body: JSON.stringify({ username, password }),
           });
           const data = await res.json();
-
           if (data.success) {
             if (data.user.role === "Viewer") {
               window.alert("Access Denied: Viewers cannot access reports.");
@@ -1111,7 +1099,9 @@
       let currentFilterColInfo = { key: "", index: -1 };
       let isEditMode = false;
 
-      // 🟢 Override native alert with custom alert
+      // 🟢 NEW: Global Special Rules Cache
+      let specialRulesCache = [];
+
       window.alert = function (message) {
         document.getElementById("customAlertMessage").innerText = message;
         document.getElementById("customAlert").style.display = "flex";
@@ -1119,6 +1109,22 @@
 
       function closeCustomAlert() {
         document.getElementById("customAlert").style.display = "none";
+      }
+
+      // 🟢 NEW: Fetch Special Rules API
+      async function ensureSpecialRules() {
+        try {
+          let token = localStorage.getItem("timesheetToken") || "";
+          const srRes = await fetch("/timesheet/api/special-rules", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          if (srRes.ok) {
+            const srData = await srRes.json();
+            if (srData.success) specialRulesCache = srData.data;
+          }
+        } catch (err) {
+          console.warn("Could not fetch special rules", err);
+        }
       }
 
       async function fetchReportDataAPI(monthStr, yearStr) {
@@ -1221,18 +1227,71 @@
           if (!siteDataMap["N/A"]) siteDataMap["N/A"] = { ts_nr: 0, ts_ot: 0 };
 
           for (let i = 1; i <= daysInMonth; i++) {
+            let checkDate = new Date(yearStr, mIdx, i);
+            let currentSite = defaultSite;
+
+            for (let s of activeSites) {
+              if (s.site_name === "N/A" || s.site_name === defaultSite)
+                continue;
+              let st = safeDate(s.work_start_date, "2000-01-01");
+              let ed = safeDate(s.work_end_date, "2099-01-01");
+              st.setHours(0, 0, 0, 0);
+              ed.setHours(23, 59, 59, 999);
+
+              if (checkDate >= st && checkDate <= ed) {
+                currentSite = (s.site_name || "N/A").trim();
+                break;
+              }
+            }
+
+            // 🟢 INTEGARATING SPECIAL RULES IN REPORT CALCULATION
+            let formattedDate = checkDate
+              .toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+              .replace(/ /g, " ");
+            let siteForRule = currentSite.split("&")[0].trim().toUpperCase();
+            let specialRule = specialRulesCache.find(
+              (r) =>
+                r.is_active &&
+                (r.sites.includes("ALL") || r.sites.includes(siteForRule)) &&
+                r.dates.includes(formattedDate),
+            );
+
             let ts = vTimesheets.find((r) => parseInt(r.record_date) === i);
-            if (!ts) continue;
+
+            let tm = ts ? parseFloat(ts.calc_time) || 0 : 0;
+            let bd = ts
+              ? String(ts.bd || "")
+                  .trim()
+                  .toUpperCase()
+              : "";
+            let hasData = tm > 0 || bd !== "" || (ts && ts.wrk_start);
+
+            // Smart Override for Blank Cells based on Special Rules
+            if (
+              !hasData &&
+              specialRule &&
+              specialRule.rule_type !== "FULL_OT"
+            ) {
+              bd = specialRule.rule_type;
+              hasData = true;
+            }
+
+            if (!hasData) continue;
 
             let dayName = getDayName(i, monthStr, yearStr);
             let isFullOT = dayName === "Fri" || i === 31;
-            let tm = parseFloat(ts.calc_time) || 0;
-            let bd = String(ts.bd || "")
-              .trim()
-              .toUpperCase();
+
+            // FULL_OT Special Rule Override
+            if (specialRule && specialRule.rule_type === "FULL_OT")
+              isFullOT = true;
 
             let nHr = 0,
               otHr = 0;
+
             if (bd === "ID" || bd === "NP") {
               if (isFullOT) {
                 otHr = 10;
@@ -1252,23 +1311,6 @@
                 } else {
                   nHr = tm;
                 }
-              }
-            }
-
-            let checkDate = new Date(yearStr, mIdx, i);
-            let currentSite = defaultSite;
-
-            for (let s of activeSites) {
-              if (s.site_name === "N/A" || s.site_name === defaultSite)
-                continue;
-              let st = safeDate(s.work_start_date, "2000-01-01");
-              let ed = safeDate(s.work_end_date, "2099-01-01");
-              st.setHours(0, 0, 0, 0);
-              ed.setHours(23, 59, 59, 999);
-
-              if (checkDate >= st && checkDate <= ed) {
-                currentSite = (s.site_name || "N/A").trim();
-                break;
               }
             }
 
@@ -1380,6 +1422,8 @@
           .querySelectorAll(".filter-icon")
           .forEach((i) => i.classList.remove("filter-active"));
 
+        // 🟢 Fetch Special Rules Before Loading Data
+        await ensureSpecialRules();
         masterData = await fetchReportDataAPI(month, year);
 
         let uniqueOwners = new Set();
@@ -1473,10 +1517,8 @@
         });
       }
 
-      // 🟢 Edit Mode Custom Prompt Logic
       function requestEditMode() {
         if (isEditMode) {
-          // Toggle OFF
           isEditMode = false;
           document.getElementById("btnEditData").innerHTML = "✏️ Edit Data";
           document.getElementById("btnSaveChanges").style.display = "none";
@@ -1486,7 +1528,6 @@
           });
           return;
         }
-        // Show Custom Prompt
         document.getElementById("editSecurityCode").value = "";
         document.getElementById("customPrompt").style.display = "flex";
         document.getElementById("editSecurityCode").focus();
@@ -1537,7 +1578,6 @@
         });
       }
 
-      // 🟢 Robust Copy-Paste Listener for the Table
       document
         .getElementById("reportTable")
         .addEventListener("paste", function (e) {
@@ -1576,7 +1616,6 @@
           }
         });
 
-      // 🟢 Save Inline Edited Table Data
       async function saveInlineEdits() {
         let updates = [];
         const fullMonth = `${document.getElementById("selMonth").value} ${document.getElementById("selYear").value}`;
@@ -1733,12 +1772,10 @@
           let id = "flt_" + Math.random().toString(36).substr(2, 9);
           listContainer.insertAdjacentHTML(
             "beforeend",
-            `
-                    <div class="filter-item filter-row-item">
-                        <input type="checkbox" id="${id}" value="${val.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} class="col-filter-cb">
-                        <label for="${id}">${displayVal}</label>
-                    </div>
-                `,
+            `<div class="filter-item filter-row-item">
+                <input type="checkbox" id="${id}" value="${val.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} class="col-filter-cb">
+                <label for="${id}">${displayVal}</label>
+             </div>`,
           );
         });
 
@@ -1880,6 +1917,9 @@
         }
         closeBatchModal();
         document.getElementById("loader").style.display = "block";
+
+        await ensureSpecialRules(); // 🟢 Make sure rules are loaded
+
         let wb = XLSX.utils.book_new();
         let current = new Date(start);
         while (current <= end) {
@@ -1941,6 +1981,8 @@
         const loader = document.getElementById("loader");
         loader.innerText = "Extracting Analysis Data... Please wait.";
         loader.style.display = "block";
+
+        await ensureSpecialRules(); // 🟢 Make sure rules are loaded
 
         let combinedData = [];
         let current = new Date(start);
@@ -2167,7 +2209,6 @@
         return ws;
       }
 
-      // 🟢 HTTP Fallback System for Copying
       function fallbackCopyTextToClipboard(text) {
         var textArea = document.createElement("textarea");
         textArea.value = text;
@@ -2188,7 +2229,6 @@
       }
 
       function copyText(text) {
-        // Check if modern clipboard API is available (Usually disabled on HTTP)
         if (!navigator.clipboard || window.isSecureContext === false) {
           fallbackCopyTextToClipboard(text);
           return;
@@ -2238,7 +2278,6 @@
           window.alert("No visible plates found to copy.");
           return;
         }
-
         copyText(uniquePlates.join("\n"));
       }
     </script>

@@ -17,7 +17,6 @@
         color: #111;
       }
 
-      /* 🟢 Control Panel */
       .controls-wrapper {
         background: #0f2027;
         color: white;
@@ -126,13 +125,11 @@
         0% {
           transform: rotate(0deg);
         }
-
         100% {
           transform: rotate(360deg);
         }
       }
 
-      /* 🟢 Suggestions & Multi-select */
       .suggestions {
         position: absolute;
         top: 100%;
@@ -188,7 +185,6 @@
         cursor: pointer;
       }
 
-      /* 🟢 Report Container & Cards */
       .report-container {
         padding: 30px;
         display: flex;
@@ -463,7 +459,7 @@
       }
 
       .tsdb:hover,
-      tsdb > a:hover {
+      .tsdb > a:hover {
         background-color: #5b21b6;
       }
     </style>
@@ -584,6 +580,9 @@
       let selectedSites = [];
       let selectedSecondarySites = [];
 
+      // 🟢 NEW: Global Cache for Special Rules
+      let specialRulesCache = [];
+
       const dDate = new Date();
       document.getElementById("selYear").value = dDate.getFullYear();
       const months = [
@@ -604,7 +603,6 @@
 
       async function loadMasterData() {
         try {
-          // Changed API to the new public endpoint
           const res = await fetch("/timesheet/api/public/vehicles");
           const data = await res.json();
           if (data.success) dbVehicles = data.data;
@@ -613,6 +611,22 @@
         }
       }
       loadMasterData();
+
+      // 🟢 NEW: Fetch Special Rules API
+      async function ensureSpecialRules() {
+        try {
+          let token = localStorage.getItem("timesheetToken") || "";
+          const srRes = await fetch("/timesheet/api/special-rules", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          if (srRes.ok) {
+            const srData = await srRes.json();
+            if (srData.success) specialRulesCache = srData.data;
+          }
+        } catch (err) {
+          console.warn("Could not fetch special rules", err);
+        }
+      }
 
       function setupFilterUI() {
         const type = document.getElementById("filterType").value;
@@ -780,7 +794,6 @@
           let span = document.createElement("span");
           span.innerText = site;
           div.appendChild(span);
-
           ms.appendChild(div);
         });
       }
@@ -844,7 +857,6 @@
           let span = document.createElement("span");
           span.innerText = site;
           div.appendChild(span);
-
           secDrop.appendChild(div);
         });
       }
@@ -899,7 +911,6 @@
         let dActive = false,
           dGap = false;
 
-        // --- Site Logs Logic ---
         if (sLogs && sLogs.length > 0) {
           let ascSLogs = [...sLogs].sort(
             (a, b) =>
@@ -938,13 +949,11 @@
           sActive = true;
         }
 
-        // Vehicle is NOT at site
         if (!sActive) {
           if (isReplaced) return "R";
           return sGap ? "SC" : "AB";
         }
 
-        // --- Driver Logs Logic ---
         if (dLogs && dLogs.length > 0) {
           let ascDLogs = [...dLogs].sort(
             (a, b) =>
@@ -969,12 +978,7 @@
           dActive = true;
         }
 
-        // FIX: Vehicle is currently Running at Site (sActive is true).
-        // If there is no active driver, it MUST be Driver Change (DC).
-        if (!dActive) {
-          return "DC";
-        }
-
+        if (!dActive) return "DC";
         return "ACTIVE";
       }
 
@@ -1007,6 +1011,9 @@
           '<div style="color: #64748b; margin-top: 50px;">Generating data from server...</div>';
 
         try {
+          // 🟢 Fetch Special Rules Before Generating
+          await ensureSpecialRules();
+
           const payload = {
             month: m,
             year: y,
@@ -1175,10 +1182,33 @@
           sumNormal = 0,
           sumOT = 0;
 
+        // 🟢 SITE NAME USED FOR SPECIAL RULES FILTER
+        let siteForRule = currSite.split("&")[0].trim().toUpperCase();
+
         for (let i = 1; i <= daysInMonth; i++) {
           const rec = records.find((r) => parseInt(r.record_date) === i) || {};
 
           let dayName = getDayName(i, month, year);
+          let checkDate = new Date(year, mIdx, i);
+
+          let formattedDate = checkDate
+            .toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+            .replace(/ /g, " ");
+          let specialRule = specialRulesCache.find(
+            (r) =>
+              r.is_active &&
+              (r.sites.includes("ALL") || r.sites.includes(siteForRule)) &&
+              r.dates.includes(formattedDate),
+          );
+
+          let isFullOT = dayName === "Fri" || i === 31;
+          if (specialRule && specialRule.rule_type === "FULL_OT")
+            isFullOT = true;
+
           let timeRaw = parseFloat(rec.calc_time) || 0;
           let normalHr = 0,
             otHr = 0;
@@ -1188,11 +1218,18 @@
             .trim()
             .toUpperCase();
 
-          let checkDate = new Date(year, mIdx, i);
           let statusCode = getGapStatus(checkDate, sLogs, dLogs);
           let hasData =
             timeRaw > 0 || bdStr !== "" || rec.wrk_start || rec.hmr_start;
           let noteStr = rec.remark || "";
+
+          // 🟢 SMART OVERRIDE FOR BLANK CELLS
+          if (!hasData && specialRule && specialRule.rule_type !== "FULL_OT") {
+            bdStr = specialRule.rule_type;
+            hasData = true;
+            if (!noteStr) noteStr = specialRule.reason || "";
+          }
+
           let timeDisplay = timeRaw > 0 ? timeRaw : "";
 
           if (hasData) {
@@ -1204,8 +1241,6 @@
               noteStr = "Driver Change" + (noteStr ? " - " + noteStr : "");
 
             if (["B", "H", "ID", "NP"].includes(bdStr)) timeDisplay = bdStr;
-
-            let isFullOT = dayName === "Fri" || i === 31;
 
             if (bdStr === "B" || bdStr === "H") {
               normalHr = 0;

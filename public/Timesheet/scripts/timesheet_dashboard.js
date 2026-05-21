@@ -2,6 +2,9 @@ let cachedDashboardData = null;
 let activeFilters = { owner: [], type: [], site: [], plate: [] };
 let currentFilterColInfo = { key: "", index: -1 };
 
+// 🟢 NEW: Special Rules Cache
+let specialRulesCache = [];
+
 const dDate = new Date();
 document.getElementById("selYear").value = dDate.getFullYear();
 document.getElementById("batchToYear").value = dDate.getFullYear();
@@ -55,6 +58,22 @@ function stopProp(e) {
   e.stopPropagation();
 }
 
+// 🟢 Fetch Special Rules API
+async function ensureSpecialRules() {
+  try {
+    let token = localStorage.getItem("timesheetToken") || "";
+    const srRes = await fetch("/timesheet/api/special-rules", {
+      headers: { Authorization: "Bearer " + token },
+    });
+    if (srRes.ok) {
+      const srData = await srRes.json();
+      if (srData.success) specialRulesCache = srData.data;
+    }
+  } catch (err) {
+    console.warn("Could not fetch special rules", err);
+  }
+}
+
 // 🟢 Excel Checkbox Filters Logic
 function openFilterMenu(event, key, colIndex) {
   event.stopPropagation();
@@ -76,7 +95,7 @@ function openFilterMenu(event, key, colIndex) {
 
     let passesOtherFilters = true;
     for (let filterKey in activeFilters) {
-      if (filterKey === key) continue; // ignore current col filter logic to show all possibilities
+      if (filterKey === key) continue;
       let allowedValues = activeFilters[filterKey];
       if (allowedValues.length === 0) continue;
 
@@ -221,7 +240,6 @@ function getGapStatus(d, sLogs, dLogs) {
   let dActive = false,
     dGap = false;
 
-  // --- Site Logs Logic ---
   if (sLogs && sLogs.length > 0) {
     let ascSLogs = [...sLogs].sort(
       (a, b) =>
@@ -257,13 +275,11 @@ function getGapStatus(d, sLogs, dLogs) {
     sActive = true;
   }
 
-  // Vehicle is NOT at site
   if (!sActive) {
     if (isReplaced) return "R";
     return sGap ? "SC" : "AB";
   }
 
-  // --- Driver Logs Logic ---
   if (dLogs && dLogs.length > 0) {
     let ascDLogs = [...dLogs].sort(
       (a, b) =>
@@ -285,12 +301,7 @@ function getGapStatus(d, sLogs, dLogs) {
     dActive = true;
   }
 
-  // FIX: Vehicle is currently Running at Site (sActive is true).
-  // If there is no active driver, it MUST be Driver Change (DC).
-  if (!dActive) {
-    return "DC";
-  }
-
+  if (!dActive) return "DC";
   return "ACTIVE";
 }
 
@@ -306,7 +317,7 @@ function applyGridFilters(tableId = "dashboardTable") {
   if (!table) return;
   const trs = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
 
-  let visibleCount = 0; // 🟢 NEW: Visible row count
+  let visibleCount = 0;
 
   for (let i = 0; i < trs.length; i++) {
     let row = trs[i];
@@ -323,7 +334,6 @@ function applyGridFilters(tableId = "dashboardTable") {
     let matchesFilters = true;
     if (fDriver && !tDriver.includes(fDriver)) matchesFilters = false;
 
-    // Apply new Multi-Checkbox Filters
     if (activeFilters.owner.length > 0 && !activeFilters.owner.includes(tOwner))
       matchesFilters = false;
     if (activeFilters.type.length > 0 && !activeFilters.type.includes(tType))
@@ -337,13 +347,12 @@ function applyGridFilters(tableId = "dashboardTable") {
 
     if (matchesFilters && matchesGlobal) {
       row.style.display = "";
-      visibleCount++; // 🟢 NEW: Increment count
+      visibleCount++;
     } else {
       row.style.display = "none";
     }
   }
 
-  // 🟢 NEW: Update Plate Count Display
   const countDisplay = document.getElementById("plateCountDisplay");
   const countNumber = document.getElementById("plateCountNumber");
   if (countDisplay && countNumber) {
@@ -371,6 +380,7 @@ function recalculateRowOnEdit(cell) {
   const m = document.getElementById("selMonth").value;
   const y = document.getElementById("selYear").value;
   const daysInMonth = getDaysInMonth(m, y);
+  const site = row.cells[5].innerText.split("&")[0].trim().toUpperCase();
 
   let sumNormal = 0,
     sumOT = 0;
@@ -381,7 +391,23 @@ function recalculateRowOnEdit(cell) {
     targetCell.innerText = cellVal;
 
     let dayName = getDayName(i, m, y);
+    let formattedDate = new Date(y, months.indexOf(m), i)
+      .toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .replace(/ /g, " ");
+    let specialRule = specialRulesCache.find(
+      (r) =>
+        r.is_active &&
+        (r.sites.includes("ALL") || r.sites.includes(site)) &&
+        r.dates.includes(formattedDate),
+    );
+
     let isFullOT = dayName === "Fri" || i === 31;
+    if (specialRule && specialRule.rule_type === "FULL_OT") isFullOT = true;
+
     let normalHr = 0,
       otHr = 0;
     let timeRaw = parseFloat(cellVal);
@@ -437,7 +463,6 @@ function recalculateRowOnEdit(cell) {
   row.cells[totalCols - 3].innerText = totalHr > 0 ? totalHr : "";
 }
 
-// 🟢 KeyBoard Navigation Logic (Arrow Keys & Enter)
 document
   .getElementById("tableContainer")
   .addEventListener("keydown", function (e) {
@@ -467,7 +492,7 @@ document
       } else if (e.key === "ArrowDown" || e.key === "Enter") {
         let nextRow = currentRow.nextElementSibling;
         if (nextRow) targetCell = nextRow.children[cellIndex];
-        if (e.key === "Enter") currentCell.blur(); // Save current before moving
+        if (e.key === "Enter") currentCell.blur();
       } else if (e.key === "ArrowUp") {
         let prevRow = currentRow.previousElementSibling;
         if (prevRow) targetCell = prevRow.children[cellIndex];
@@ -503,7 +528,6 @@ async function fetchAndGenerateDashboard() {
   const loader = document.getElementById("genLoader");
   const container = document.getElementById("tableContainer");
 
-  // 🟢 Hide count display while loading
   const countDisplay = document.getElementById("plateCountDisplay");
   if (countDisplay) countDisplay.style.display = "none";
 
@@ -513,10 +537,12 @@ async function fetchAndGenerateDashboard() {
     '<div style="color: #64748b; margin-top: 50px; text-align:center;">Fetching and processing data...</div>';
 
   try {
-    // Reset filters on new fetch
+    // 🟢 Fetch Special Rules Before Loading Table
+    await ensureSpecialRules();
+
     activeFilters = { owner: [], type: [], site: [], plate: [] };
     document.getElementById("filterSearchInput").value = "";
-    document.getElementById("globalSearch").value = ""; // 🟢 Clear global search on fresh fetch
+    document.getElementById("globalSearch").value = "";
 
     const payload = { month: m, year: y, filterType: "All", filterValue: "" };
     const res = await fetch("/timesheet/api/public/view-report", {
@@ -540,7 +566,7 @@ async function fetchAndGenerateDashboard() {
 
     setTimeout(() => {
       adjustStickyHeaders("dashboardTable");
-      applyGridFilters("dashboardTable"); // 🟢 Initialize Plate Count immediately after loading
+      applyGridFilters("dashboardTable");
     }, 50);
   } catch (error) {
     container.innerHTML = `<div style="color: #b91c1c; margin-top: 50px; text-align:center; font-weight:bold;">Error: ${error.message}</div>`;
@@ -550,7 +576,6 @@ async function fetchAndGenerateDashboard() {
   }
 }
 
-// 🟢 Reusable HTML Generator (With A-Z Sorting for Site & Plate)
 function getTableHTMLString(
   data,
   m,
@@ -564,15 +589,12 @@ function getTableHTMLString(
     activeFilters.owner.length > 0 ? "filter-active" : "";
   const ownerFilterIcon =
     activeFilters.owner.length > 0 ? "filter_alt" : "filter_list";
-
   const typeFilterClass = activeFilters.type.length > 0 ? "filter-active" : "";
   const typeFilterIcon =
     activeFilters.type.length > 0 ? "filter_alt" : "filter_list";
-
   const siteFilterClass = activeFilters.site.length > 0 ? "filter-active" : "";
   const siteFilterIcon =
     activeFilters.site.length > 0 ? "filter_alt" : "filter_list";
-
   const plateFilterClass =
     activeFilters.plate.length > 0 ? "filter-active" : "";
   const plateFilterIcon =
@@ -652,7 +674,6 @@ function getTableHTMLString(
   let monthStart = new Date(y, mIdx, 1);
   let monthEnd = new Date(y, mIdx + 1, 0);
 
-  // 🟢 1. PRE-PROCESS DATA TO ATTACH DYNAMIC SITE NAME & DRIVER
   let processedVehicles = data.vehicles.map((v) => {
     const plate = v.plate_no;
     v.vRecords = data.records.filter((r) => r.plate_no === plate);
@@ -685,7 +706,6 @@ function getTableHTMLString(
     return v;
   });
 
-  // 🟢 2. SORTING LOGIC: Site Name (A-Z) -> Plate No (A-Z)
   processedVehicles.sort((a, b) => {
     let siteA = a.currSite.toUpperCase();
     let siteB = b.currSite.toUpperCase();
@@ -693,7 +713,6 @@ function getTableHTMLString(
     if (siteA < siteB) return -1;
     if (siteA > siteB) return 1;
 
-    // If Site Names are identical, sort by Plate No
     let plateA = a.plate_no.toUpperCase();
     let plateB = b.plate_no.toUpperCase();
 
@@ -705,7 +724,6 @@ function getTableHTMLString(
 
   let tbodyHTML = "";
 
-  // 🟢 3. LOOP THROUGH SORTED DATA
   processedVehicles.forEach((v, index) => {
     let trHTML = `
         <tr>
@@ -725,18 +743,43 @@ function getTableHTMLString(
     let editProps = isEditMode
       ? 'contenteditable="true" class="editable-cell" onblur="recalculateRowOnEdit(this)"'
       : "";
+    let siteStr = v.currSite.split("&")[0].trim().toUpperCase();
 
     for (let i = 1; i <= daysInMonth; i++) {
       const rec = v.vRecords.find((r) => parseInt(r.record_date) === i) || {};
       let dayName = getDayName(i, m, y);
+
+      let checkDate = new Date(y, mIdx, i);
+      let formattedDate = checkDate
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+        .replace(/ /g, " ");
+      let specialRule = specialRulesCache.find(
+        (r) =>
+          r.is_active &&
+          (r.sites.includes("ALL") || r.sites.includes(siteStr)) &&
+          r.dates.includes(formattedDate),
+      );
+
       let isFullOT = dayName === "Fri" || i === 31;
+      if (specialRule && specialRule.rule_type === "FULL_OT") isFullOT = true;
 
       let timeRaw = parseFloat(rec.calc_time) || 0;
       let bdStr = String(rec.bd || "")
         .trim()
         .toUpperCase();
-      let checkDate = new Date(y, mIdx, i);
       let statusCode = getGapStatus(checkDate, v.sLogs, v.dLogs);
+      let hasData =
+        timeRaw > 0 || bdStr !== "" || rec.wrk_start || rec.hmr_start;
+
+      // 🟢 Smart Auto-Fill Override
+      if (!hasData && specialRule && specialRule.rule_type !== "FULL_OT") {
+        bdStr = specialRule.rule_type;
+        hasData = true;
+      }
 
       let cellDisplay = "";
       let cellClass = isFullOT ? "cell-fri" : "";
@@ -745,9 +788,6 @@ function getTableHTMLString(
         otHr = 0;
       let dist = parseFloat(rec.calc_distance) || 0;
       let fuel = parseFloat(rec.fuel) || 0;
-
-      let hasData =
-        timeRaw > 0 || bdStr !== "" || rec.wrk_start || rec.hmr_start;
 
       if (hasData) {
         if (["B", "H", "ID", "NP"].includes(bdStr)) cellDisplay = bdStr;
@@ -822,7 +862,6 @@ function initColumnResizer(tableId) {
     const resizer = th.querySelector(".resizer");
     if (!resizer) return;
 
-    // Use column heading as unique key
     let colName = th.querySelector(".col-header-wrap").innerText.trim();
     if (savedWidths[colName]) {
       th.style.width = savedWidths[colName];
@@ -1009,7 +1048,6 @@ function buildWorksheetFromTable(table, m, y) {
         else if (C === totalCols - 1)
           cellStyle.fill = { fgColor: { rgb: "75b4d8" } };
         else if (C >= 7 && C < 7 + daysInMonth) {
-          let dayName = getDayName(C - 6, m, y);
           if (val === "B") {
             cellStyle.fill = { fgColor: { rgb: "ef4444" } };
             cellStyle.font = {
@@ -1074,7 +1112,7 @@ function buildWorksheetFromTable(table, m, y) {
               color: { rgb: "FFFFFF" },
               bold: true,
             };
-          } else if (dayName === "Fri") {
+          } else if (getDayName(C - 6, m, y) === "Fri") {
             cellStyle.fill = { fgColor: { rgb: "f1f5f9" } };
           }
         }
@@ -1170,6 +1208,9 @@ async function startBatchExport() {
   document.body.appendChild(hiddenDiv);
 
   try {
+    // 🟢 Ensure special rules are fetched for Batch Export too
+    await ensureSpecialRules();
+
     let hasData = false;
     while (current <= endDate) {
       let curM = months[current.getMonth()];
@@ -1202,7 +1243,6 @@ async function startBatchExport() {
         const ws = buildWorksheetFromTable(table, curM, curY);
         XLSX.utils.book_append_sheet(wb, ws, `${curM} ${curY}`);
       }
-
       current.setMonth(current.getMonth() + 1);
     }
 
