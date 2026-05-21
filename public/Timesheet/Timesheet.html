@@ -11,7 +11,8 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     />
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <!-- Link the external CSS -->
     <link rel="stylesheet" href="style/timesheet.css" />
 
@@ -178,6 +179,20 @@
           <div class="arrow-icon">➔</div>
         </div>
 
+        <div
+          class="module-card card-rules"
+          id="cardSpecialRules"
+          style="display: none"
+          onclick="openSpecialRulesModal()"
+        >
+          <div class="module-icon">📅</div>
+          <div class="module-title">Special Days Rules</div>
+          <div class="module-desc">
+            Manage specific date exceptions like Holidays, No Permit, Idle, and Full OT for selected sites.
+          </div>
+          <div class="arrow-icon">➔</div>
+        </div>
+
         <a
           href="admin/index.html"
           class="module-card card-admin"
@@ -213,6 +228,37 @@
         </button>
       </div>
     </div>
+
+
+<div id="customConfirmModal" class="modal-overlay" style="z-index: 3000">
+      <div class="modal-box alert">
+        <h3 id="confirmTitle" style="color: #ef4444; justify-content: center; border-bottom: none; margin-bottom: 5px;">Confirm Action</h3>
+        <p
+          id="confirmMessage"
+          style="font-size: 14px; color: #4b5563; margin-bottom: 25px"
+        >
+          Are you sure you want to delete this rule?
+        </p>
+        <div style="display: flex; gap: 10px;">
+          <button
+            class="btn-primary"
+            style="flex: 1; margin: 0; background-color: #e2e8f0; color: #334155;"
+            onclick="resolveConfirm(false)"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn-primary"
+            style="flex: 1; margin: 0; background-color: #ef4444; color: white;"
+            onclick="resolveConfirm(true)"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
+
 
     <!-- Excel Sync Modal -->
     <div id="excelModal" class="modal-overlay">
@@ -331,6 +377,91 @@
                 </td>
               </tr>
             </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="specialRulesModal" class="modal-overlay">
+      <div class="modal-box" style="width: 900px; min-height: 650px; display: flex; flex-direction: column;">
+        <h3>
+          Special Days / Exception Rules
+          <button class="close-btn" onclick="closeModal('specialRulesModal')">
+            ✖
+          </button>
+        </h3>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 15px;">
+          Define exceptions for specific dates. <b>Format:</b> DD MMM YYYY (e.g., 22 Mar 2026). <br>
+          Use "ALL" in sites to apply to every site, or separate multiple sites/dates with commas.
+        </p>
+        
+        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 15px;">
+          <input type="hidden" id="sr_id" value="" />
+          <div style="display: grid; grid-template-columns: minmax(120px, 1.2fr) minmax(160px, 2fr) minmax(100px, 1fr) minmax(140px, 1.5fr) 90px auto; gap: 10px; align-items: end;">
+            
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <label style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase;">Site</label>
+              <div style="position: relative;">
+                <input type="text" id="sr_sites_display" placeholder="Select..." readonly style="cursor: pointer; width: 90%; margin: 0; padding: 8px;" onclick="toggleSiteDropdown()" />
+                <input type="hidden" id="sr_sites" />
+                <div id="sr_sites_dropdown" class="suggestions" style="display: none; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #cbd5e1; z-index: 10; text-align: left; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <label style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase;">Dates</label>
+              <input type="text" id="sr_dates" placeholder="Select dates..." style="margin: 0; padding: 8px;" />
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <label style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase;">Rule Type</label>
+              <select id="sr_type" style="margin: 0; cursor: pointer; padding: 8px;">
+                <option value="FULL_OT">FULL OT</option>
+                <option value="H">Holiday (H)</option>
+                <option value="NP">No Permit (NP)</option>
+                <option value="ID">Idle (ID)</option>
+              </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <label style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase;">Reason</label>
+              <input type="text" id="sr_reason" placeholder="e.g., Strike" style="margin: 0; padding: 8px;" />
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <label style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase;">Status</label>
+              <select id="sr_status" style="margin: 0; cursor: pointer; padding: 8px;">
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 5px;">
+              <button id="sr_submit_btn" class="btn-primary" style="height: 35px; padding: 0 15px; margin: 0; white-space: nowrap;" onclick="saveSpecialRule()">
+                + Add
+              </button>
+              <button id="sr_cancel_btn" class="btn-warning" style="height: 35px; padding: 0 15px; margin: 0; white-space: nowrap; display: none;" onclick="cancelEditSpecialRule()">
+                ✖
+              </button>
+            </div>
+            
+          </div>
+        </div>
+
+        <div class="table-wrapper" style="flex: 1; min-height: 400px; overflow-y: auto; margin-top: 10px;">
+          <table id="specialRulesTable">
+            <thead>
+              <tr>
+                <th style="min-width: 120px;">Sites</th>
+                <th style="min-width: 150px;">Dates</th>
+                <th>Type</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="specialRulesBody">
+              </tbody>
           </table>
         </div>
       </div>

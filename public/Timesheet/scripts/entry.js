@@ -28,6 +28,7 @@ if (userStr) {
 }
 
 let rulesCache = [];
+let specialRulesCache = [];
 let vehiclesCache = [];
 let currentFocus = -1;
 let isEditingInvoice = false;
@@ -45,6 +46,17 @@ async function init() {
   });
   const rData = await rRes.json();
   if (rData.success) rulesCache = rData.data;
+
+  const srRes = await fetch(`/timesheet/api/special-rules?_t=${ts}`, {
+    headers: {
+      Authorization: "Bearer " + token,
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+    cache: "no-store",
+  });
+  const srData = await srRes.json();
+  if (srData.success) specialRulesCache = srData.data;
 
   const vRes = await fetch(`/timesheet/api/vehicle-info?_t=${ts}`, {
     headers: {
@@ -574,11 +586,25 @@ function renderGrid(month, year, plate, existingData, siteStart, siteEnd) {
     let currentDateObj = new Date(year, mIdx, i);
     currentDateObj.setHours(0, 0, 0, 0);
 
+    let currentSiteStr = document.getElementById("dispSite").innerText.split("&")[0].trim().toUpperCase();
+    let formattedDate = currentDateObj.toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).replace(/ /g, ' ');
+
+    let specialRule = specialRulesCache.find(r =>
+      r.is_active &&
+      (r.sites.includes("ALL") || r.sites.includes(currentSiteStr)) &&
+      r.dates.includes(formattedDate)
+    );
+
     let displayBd = cleanVal(rowData.bd);
     let ws = cleanVal(rowData.wrk_start);
+    let rowRemark = cleanVal(rowData.remark);
 
+    // 🟢 Smart Auto-Fill & Override Logic
     if (displayBd === "" && ws === "") {
-      if (currentDateObj < startDateObj || currentDateObj > endDateObj) {
+      if (specialRule && specialRule.rule_type !== "FULL_OT") {
+        displayBd = specialRule.rule_type;
+        rowRemark = specialRule.reason || "";
+      } else if (currentDateObj < startDateObj || currentDateObj > endDateObj) {
         displayBd = "AB";
       }
     }
@@ -598,7 +624,7 @@ function renderGrid(month, year, plate, existingData, siteStart, siteEnd) {
                 <td><input type="checkbox" class="grid-input" data-col="nl_checked" data-row="${i}" ${rowData.nl_checked ? "checked" : ""}></td>
                 <td><input type="text" class="grid-readonly" id="dist_${i}" value="${dbDist}" tabindex="-1" readonly></td>
                 <td><input type="text" class="grid-readonly" id="time_${i}" value="${cleanVal(rowData.calc_time)}" tabindex="-1" readonly></td>
-                <td><textarea class="grid-input" data-col="remark" data-row="${i}">${cleanVal(rowData.remark)}</textarea></td>
+                <td><textarea class="grid-input" data-col="remark" data-row="${i}">${rowRemark}</textarea></td>
             `;
     tbody.appendChild(tr);
   }
@@ -644,7 +670,17 @@ function updateSummaryBox() {
     if (hasLog) logCount++;
 
     let dayName = getDayName(i, monthStr, year);
-    let isFullOT = dayName === "Fri" || i === 31;
+    let siteForSum = document.getElementById("dispSite").innerText.split("&")[0].trim().toUpperCase();
+    let formattedDateForSum = new Date(year, months.indexOf(monthStr), i).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).replace(/ /g, ' ');
+    
+    let sumOtRule = specialRulesCache.find(r => 
+        r.is_active && 
+        r.rule_type === "FULL_OT" && 
+        (r.sites.includes("ALL") || r.sites.includes(siteForSum)) && 
+        r.dates.includes(formattedDateForSum)
+    );
+
+    let isFullOT = dayName === "Fri" || i === 31 || !!sumOtRule;
     let normalHr = 0,
       otHr = 0;
 
@@ -805,8 +841,20 @@ function calculateRow(rowIdx) {
     let diff = eHour - sHour;
     if (diff < 0) diff += 24;
     let endIsMorning = eHour >= 6 && eHour <= 12.5;
+    
+    // Check FULL_OT Special Rule
+    let monthStr = document.getElementById("selMonth").value;
+    let year = document.getElementById("selYear").value;
+    let formattedDateForOT = new Date(year, months.indexOf(monthStr), rowIdx).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).replace(/ /g, ' ');
+    
+    let otRule = specialRulesCache.find(r => 
+        r.is_active && 
+        r.rule_type === "FULL_OT" && 
+        (r.sites.includes("ALL") || r.sites.includes(site)) && 
+        r.dates.includes(formattedDateForOT)
+    );
 
-    if (nl || sHour >= 13 || endIsMorning) {
+    if (nl || sHour >= 13 || endIsMorning || !!otRule) {
       finalTime = customRound(diff);
     } else {
       let rule =

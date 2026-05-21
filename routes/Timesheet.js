@@ -368,6 +368,89 @@ router.post("/api/add-rule", verifySuperAdmin, async (req, res) => {
 });
 
 // ==========================================
+// SPECIAL DAYS & EXCEPTION RULES API
+// ==========================================
+
+// Fetch all special rules
+router.get("/api/special-rules", verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM special_days_rules ORDER BY created_at DESC"
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+// Add a new special rule
+router.post("/api/add-special-rule", verifySuperAdmin, async (req, res) => {
+  try {
+    const { sites, dates, rule_type, reason, is_active } = req.body;
+    await pool.query(
+      "INSERT INTO special_days_rules (sites, dates, rule_type, reason, is_active) VALUES ($1, $2, $3, $4, $5)",
+      [
+        JSON.stringify(sites), 
+        JSON.stringify(dates), 
+        rule_type, 
+        reason, 
+        is_active !== undefined ? is_active : true
+      ]
+    );
+    await logAudit(
+      req.user,
+      "SPECIAL_RULE_ADD",
+      `Added new special rule: ${rule_type}`
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+// Update an existing special rule
+router.post("/api/update-special-rule", verifySuperAdmin, async (req, res) => {
+  try {
+    const { id, sites, dates, rule_type, reason, is_active } = req.body;
+    await pool.query(
+      "UPDATE special_days_rules SET sites=$1, dates=$2, rule_type=$3, reason=$4, is_active=$5 WHERE id=$6",
+      [
+        JSON.stringify(sites), 
+        JSON.stringify(dates), 
+        rule_type, 
+        reason, 
+        is_active, 
+        id
+      ]
+    );
+    await logAudit(
+      req.user,
+      "SPECIAL_RULE_UPDATE",
+      `Updated special rule ID ${id}`
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+// Delete a special rule
+router.post("/api/delete-special-rule", verifySuperAdmin, async (req, res) => {
+  try {
+    const { id } = req.body;
+    await pool.query("DELETE FROM special_days_rules WHERE id=$1", [id]);
+    await logAudit(
+      req.user,
+      "SPECIAL_RULE_DELETE",
+      `Deleted special rule ID ${id}`
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+// ==========================================
 // VEHICLE DRIVER & SITE LOGS
 // ==========================================
 router.get("/api/vehicle-info", async (req, res) => {
