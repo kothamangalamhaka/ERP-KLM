@@ -995,7 +995,7 @@ function calculateRow(input) {
 
   // 🟢 Rent calculation uses the EXACT rates
   const rent = nhr * nrate + othr * otrate;
-  row.querySelector(".rent").value = rent.toFixed(2); // Only rent gets rounded to 2 decimals for display
+  row.querySelector(".rent").value = rent.toFixed(2); // Rent-ൽ മാത്രം 2 ഡെസിമൽ തിരികെ കൊണ്ടുവരുന്നു
 
   updateRowVat(row, rent);
   updateCardTotals(card);
