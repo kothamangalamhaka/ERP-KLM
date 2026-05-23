@@ -437,10 +437,63 @@ $.fn.dataTable.ext.search.push(
 );
 
 // 🟢 DRIVER LOG UI LOGIC
+let currentDriverModalMode = "handover";
+
+function setDriverMode(mode) {
+  currentDriverModalMode = mode;
+  if (mode === "handover") {
+    $("#tabHandover").css({
+      background: "white",
+      color: "#0f172a",
+      "box-shadow": "0 1px 3px rgba(0,0,0,0.1)",
+    });
+    $("#tabPastLog").css({
+      background: "transparent",
+      color: "#64748b",
+      "box-shadow": "none",
+    });
+
+    $("#formHandoverMode, #handoverStartDateBlock").show();
+    $("#formPastMode, #pastLogDates").hide();
+    $("#btnSaveDriverAction")
+      .text("Save & Change Driver")
+      .removeClass("btn-primary")
+      .addClass("btn-success");
+  } else {
+    $("#tabPastLog").css({
+      background: "white",
+      color: "#0f172a",
+      "box-shadow": "0 1px 3px rgba(0,0,0,0.1)",
+    });
+    $("#tabHandover").css({
+      background: "transparent",
+      color: "#64748b",
+      "box-shadow": "none",
+    });
+
+    $("#formHandoverMode, #handoverStartDateBlock").hide();
+    $("#formPastMode, #pastLogDates").show();
+    $("#btnSaveDriverAction")
+      .text("Add to History")
+      .removeClass("btn-success")
+      .addClass("btn-primary");
+  }
+}
+
+function reuseDriverDetails(name, mobile) {
+  $("#drvUpdateNewName").val(name);
+  $("#drvUpdateNewMob").val(mobile);
+  showToast("Details copied!", "info");
+}
+
 function handleDriverAction(action) {
   if (action === "update") {
     if (currentUser.role === "Viewer")
       return showToast("Super Admin / Admin Only", "error");
+
+    // Set initial mode to handover
+    setDriverMode("handover");
+
     $("#drvUpdatePlateDisplay").text("Plate: " + contextDriverPlate);
     $("#drvUpdateCurrentName").text(contextDriverName || "N/A");
     $("#drvUpdateCurrentMob").text(contextDriverMob || "N/A");
@@ -450,6 +503,12 @@ function handleDriverAction(action) {
     $("#drvUpdateNewName").val("");
     $("#drvUpdateNewMob").val("");
     $("#drvUpdateNewStart").val("");
+    $("#drvPastStart").val("");
+    $("#drvPastEnd").val("");
+
+    // Fetch logs for the side panel
+    fetchDriverLogsForSidePanel(contextDriverPlate);
+
     $("#driverUpdateModalOverlay").css("display", "flex");
   } else if (action === "view_log") {
     $("#drvLogPlateDisplay").text("Plate: " + contextDriverPlate);
@@ -461,45 +520,129 @@ function handleDriverAction(action) {
   }
 }
 
-async function submitDriverUpdate() {
-  let oldStartRaw = $("#drvUpdateOldStart").val();
-  let oldStart = oldStartRaw ? formatToDDMMMYYYY(oldStartRaw) : "IDK";
-
-  let end = $("#drvUpdateEnd").val(),
-    nName = $("#drvUpdateNewName").val().trim(),
-    nMob = $("#drvUpdateNewMob").val().trim(),
-    nStart = $("#drvUpdateNewStart").val();
-  if (!end || !nName || !nMob || !nStart)
-    return showToast("All fields required", "error");
-
-  $("#driverUpdateModalOverlay").hide();
-  showToast("Updating Driver Log...", "info");
+async function fetchDriverLogsForSidePanel(plate) {
+  $("#sidePanelDriverLogs").html(
+    '<tr><td colspan="5" style="text-align:center; padding: 20px;">Loading history...</td></tr>',
+  );
   try {
-    const res = await fetch("/api/update-driver", {
+    const res = await fetch("/api/get-driver-logs", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        dbId: contextDriverDbId,
-        plate_number: contextDriverPlate,
-        currentDriver: contextDriverName,
-        currentMob: contextDriverMob,
-        oldWorkStart: oldStart,
-        workEnd: formatToDDMMMYYYY(end),
-        newDriver: nName,
-        newMob: nMob,
-        newWorkStart: formatToDDMMMYYYY(nStart),
-      }),
+      body: JSON.stringify({ plate_number: plate }),
     });
     const data = await res.json();
     if (data.success) {
-      showToast("Driver updated!", "success");
-      fetchData(true);
-    } else showToast(data.message, "error");
+      let html = "";
+      data.logs.forEach((l) => {
+        let isCurrent = l.id === "current";
+        let rowStyle = isCurrent
+          ? "background:rgba(14, 165, 233, 0.05);"
+          : "transition-colors hover:bg-slate-50";
+        let badge = isCurrent
+          ? '<span style="background:#0ea5e9; color:white; padding:2px 4px; border-radius:4px; font-size:9px; margin-left:5px;">CURRENT</span>'
+          : "";
+
+        // Reuse Icon
+        let reuseBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:#10b981;" onclick="reuseDriverDetails('${(l.driver_name || "").replace(/'/g, "\\'")}', '${l.mobile || ""}')" title="Copy Details to Form">content_copy</i>`;
+
+        html += `<tr style="${rowStyle}">
+                            <td style="padding:8px; border-bottom:1px solid var(--border-color); font-weight:600;">${l.driver_name || "-"}${badge}</td>
+                            <td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mobile || "-"}</td>
+                            <td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_start || "-"}</td>
+                            <td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_end || "-"}</td>
+                            <td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">${reuseBtn}</td>
+                         </tr>`;
+      });
+      if (data.logs.length === 0)
+        html =
+          '<tr><td colspan="5" style="text-align:center; padding: 20px;">No history found.</td></tr>';
+      $("#sidePanelDriverLogs").html(html);
+    }
   } catch (e) {
-    showToast("Failed to update driver", "error");
+    $("#sidePanelDriverLogs").html(
+      '<tr><td colspan="5" style="text-align:center; color:red; padding: 20px;">Failed to load.</td></tr>',
+    );
+  }
+}
+
+async function submitDriverUpdate() {
+  let nName = $("#drvUpdateNewName").val().trim();
+  let nMob = $("#drvUpdateNewMob").val().trim();
+
+  if (currentDriverModalMode === "handover") {
+    let oldStartRaw = $("#drvUpdateOldStart").val();
+    let oldStart = oldStartRaw ? formatToDDMMMYYYY(oldStartRaw) : "IDK";
+    let end = $("#drvUpdateEnd").val();
+    let nStart = $("#drvUpdateNewStart").val();
+
+    if (!end || !nName || !nMob || !nStart)
+      return showToast("All fields required for handover", "error");
+
+    $("#driverUpdateModalOverlay").hide();
+    showToast("Updating Driver Log...", "info");
+    try {
+      const res = await fetch("/api/update-driver", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dbId: contextDriverDbId,
+          plate_number: contextDriverPlate,
+          currentDriver: contextDriverName,
+          currentMob: contextDriverMob,
+          oldWorkStart: oldStart,
+          workEnd: formatToDDMMMYYYY(end),
+          newDriver: nName,
+          newMob: nMob,
+          newWorkStart: formatToDDMMMYYYY(nStart),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("Driver updated!", "success");
+        fetchData(true);
+      } else showToast(data.message, "error");
+    } catch (e) {
+      showToast("Failed to update driver", "error");
+    }
+  } else {
+    // Past Log Mode
+    let pStart = $("#drvPastStart").val();
+    let pEnd = $("#drvPastEnd").val();
+
+    if (!nName || !pStart || !pEnd)
+      return showToast("Name, Start Date, and End Date are required", "error");
+
+    $("#driverUpdateModalOverlay").hide();
+    showToast("Adding to history...", "info");
+
+    try {
+      const res = await fetch("/api/add-past-driver-log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          plate_number: contextDriverPlate,
+          driverName: nName,
+          mobile: nMob,
+          workStart: formatToDDMMMYYYY(pStart),
+          workEnd: formatToDDMMMYYYY(pEnd),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("Added to history!", "success");
+      } else showToast(data.message, "error");
+    } catch (e) {
+      showToast("Failed to add past log", "error");
+    }
   }
 }
 
@@ -609,13 +752,40 @@ function openImportModal() {
   $("#importModalOverlay").css("display", "flex");
 }
 
+// Function to dynamically update the UI based on selected radio button
+function updateImportUI() {
+  const mode = document.querySelector('input[name="importMode"]:checked').value;
+  const warningText = document.getElementById("importWarningText");
+  const submitBtn = document.getElementById("btnImportSubmit");
+
+  if (mode === "rewrite") {
+    warningText.style.color = "var(--danger)";
+    warningText.innerText =
+      "WARNING: This will rewrite the entire database! A backup will be mailed to you automatically before wiping.";
+    submitBtn.className = "btn btn-warning";
+    submitBtn.innerText = "Import & Rewrite";
+  } else {
+    warningText.style.color = "var(--primary)";
+    warningText.innerText =
+      "Info: This will safely add new records below the existing data.";
+    submitBtn.className = "btn btn-primary";
+    submitBtn.innerText = "Import & Append";
+  }
+}
+
 function processBulkImport() {
   const fileInput = document.getElementById("importExcelFile");
   if (!fileInput.files.length)
     return showToast("Please select a file.", "error");
+
+  const importMode = document.querySelector(
+    'input[name="importMode"]:checked',
+  ).value;
   const file = fileInput.files[0],
     reader = new FileReader();
+
   $("#btnImportSubmit").prop("disabled", true).text("Processing...");
+
   reader.onload = async function (e) {
     const base64Data = e.target.result;
     try {
@@ -626,10 +796,17 @@ function processBulkImport() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ fileBase64: base64Data }),
+        body: JSON.stringify({
+          fileBase64: base64Data,
+          importMode: importMode,
+        }),
       });
       const data = await res.json();
-      $("#btnImportSubmit").prop("disabled", false).text("Import & Rewrite");
+
+      // Reset button text based on current selection
+      updateImportUI();
+      $("#btnImportSubmit").prop("disabled", false);
+
       if (data.success) {
         showToast(data.message, "success");
         $("#importModalOverlay").hide();
@@ -638,7 +815,8 @@ function processBulkImport() {
         showToast(data.message, "error");
       }
     } catch (error) {
-      $("#btnImportSubmit").prop("disabled", false).text("Import & Rewrite");
+      updateImportUI();
+      $("#btnImportSubmit").prop("disabled", false);
       showToast("Failed to upload.", "error");
     }
   };

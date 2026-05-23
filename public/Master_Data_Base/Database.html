@@ -1,22 +1,37 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+    />
     <title>Master Database | Haka ERP</title>
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@700&display=swap"
-        rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
 
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/colreorder/1.7.0/css/colReorder.dataTables.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.datatables.net/colreorder/1.7.0/css/colReorder.dataTables.min.css"
+    />
 
     <!-- Custom CSS (Modularized) -->
-    <link rel="stylesheet" href="style/mdb.css">
+    <link rel="stylesheet" href="style/mdb.css" />
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -26,369 +41,1141 @@
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
     <script src="https://cdn.datatables.net/colreorder/1.7.0/js/dataTables.colReorder.min.js"></script>
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="header-bar">
-        <div class="header-title">
-            <i class="material-icons dashboard-icon" onclick="window.location.href='./dashboard.html'"
-                title="Live Dashboard">dashboard</i>
-            <h2>ERP Master Data</h2>
+      <div class="header-title">
+        <i
+          class="material-icons dashboard-icon"
+          onclick="window.location.href = './dashboard.html'"
+          title="Live Dashboard"
+          >dashboard</i
+        >
+        <h2>ERP Master Data</h2>
+      </div>
+
+      <div class="header-actions">
+        <span
+          id="syncStatus"
+          class="sync-badge"
+          style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0"
+        >
+          <span class="material-icons" style="font-size: 14px">cloud_done</span>
+          Up to date
+        </span>
+        <div class="header-divider"></div>
+
+        <select
+          id="fontSelector"
+          onchange="changeFont(this.value)"
+          class="btn-icon"
+          style="
+            outline: none;
+            width: 100px;
+            padding: 6px;
+            cursor: pointer;
+            font-size: 12px;
+          "
+        >
+          <option value="'Inter', sans-serif">Inter</option>
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="'Times New Roman', serif">Times New</option>
+          <option value="Georgia, serif">Georgia</option>
+        </select>
+
+        <button
+          class="btn-icon"
+          onclick="toggleHighlights()"
+          title="Toggle Colors On/Off"
+        >
+          <span
+            class="material-icons"
+            style="font-size: 18px"
+            id="highlightIcon"
+            >format_color_fill</span
+          >
+        </button>
+
+        <button
+          class="btn-icon"
+          onclick="toggleTheme()"
+          title="Toggle Dark/Light Mode"
+        >
+          <span class="material-icons" style="font-size: 18px" id="themeIcon"
+            >dark_mode</span
+          >
+        </button>
+
+        <div class="header-divider desktop-only"></div>
+
+        <button
+          class="btn btn-warning desktop-action-btn"
+          onclick="triggerTelegramAlerts()"
+          id="btnAlerts"
+          style="display: none"
+        >
+          <span class="material-icons" style="font-size: 16px"
+            >notifications_active</span
+          >
+          Send Alerts
+        </button>
+        <button
+          class="btn btn-primary desktop-action-btn"
+          onclick="openAddColumnModal()"
+        >
+          <span class="material-icons" style="font-size: 16px"
+            >view_column</span
+          >
+          Add Column
+        </button>
+        <button
+          class="btn btn-success desktop-action-btn"
+          onclick="openAddEntryModal()"
+        >
+          <span class="material-icons" style="font-size: 16px">add</span> New
+          Entry
+        </button>
+      </div>
+
+      <div class="user-dropdown-container">
+        <div
+          class="user-badge"
+          id="userProfileBtn"
+          onclick="toggleUserMenu(event)"
+        >
+          <span class="material-icons" style="font-size: 18px"
+            >account_circle</span
+          >
+          <span id="userInfoDisplay"></span>
+          <span class="material-icons" style="font-size: 16px; color: #94a3b8"
+            >expand_more</span
+          >
         </div>
 
-        <div class="header-actions">
-            <span id="syncStatus" class="sync-badge"
-                style="background:#ecfdf5; color:#059669; border: 1px solid #a7f3d0;">
-                <span class="material-icons" style="font-size: 14px;">cloud_done</span> Up to date
-            </span>
-            <div class="header-divider"></div>
-
-            <select id="fontSelector" onchange="changeFont(this.value)" class="btn-icon"
-                style="outline:none; width:100px; padding:6px; cursor:pointer; font-size:12px;">
-                <option value="'Inter', sans-serif">Inter</option>
-                <option value="Arial, sans-serif">Arial</option>
-                <option value="'Times New Roman', serif">Times New</option>
-                <option value="Georgia, serif">Georgia</option>
-            </select>
-
-            <button class="btn-icon" onclick="toggleHighlights()" title="Toggle Colors On/Off">
-                <span class="material-icons" style="font-size:18px;" id="highlightIcon">format_color_fill</span>
-            </button>
-
-            <button class="btn-icon" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
-                <span class="material-icons" style="font-size:18px;" id="themeIcon">dark_mode</span>
-            </button>
-
-            <div class="header-divider desktop-only"></div>
-
-            <button class="btn btn-warning desktop-action-btn" onclick="triggerTelegramAlerts()" id="btnAlerts"
-                style="display:none;">
-                <span class="material-icons" style="font-size:16px;">notifications_active</span> Send Alerts
-            </button>
-            <button class="btn btn-primary desktop-action-btn" onclick="openAddColumnModal()">
-                <span class="material-icons" style="font-size:16px;">view_column</span> Add Column
-            </button>
-            <button class="btn btn-success desktop-action-btn" onclick="openAddEntryModal()">
-                <span class="material-icons" style="font-size:16px;">add</span> New Entry
-            </button>
+        <div class="user-dropdown-menu" id="userDropdownMenu">
+          <button
+            class="user-dropdown-item mobile-only"
+            onclick="openAddEntryModal()"
+            style="display: none"
+            id="mobileNewEntry"
+          >
+            <span
+              class="material-icons"
+              style="font-size: 16px; color: var(--success)"
+              >add_circle</span
+            >
+            New Entry
+          </button>
+          <button
+            class="user-dropdown-item mobile-only"
+            onclick="openAddColumnModal()"
+            style="display: none"
+            id="mobileAddCol"
+          >
+            <span
+              class="material-icons"
+              style="font-size: 16px; color: var(--primary)"
+              >view_column</span
+            >
+            Add Column
+          </button>
+          <button
+            class="user-dropdown-item mobile-only"
+            onclick="triggerTelegramAlerts()"
+            style="display: none"
+            id="mobileSendAlerts"
+          >
+            <span class="material-icons" style="font-size: 16px; color: #f59e0b"
+              >notifications_active</span
+            >
+            Send Alerts
+          </button>
+          <div
+            class="user-dropdown-divider mobile-divider"
+            style="display: none"
+          ></div>
         </div>
-
-        <div class="user-dropdown-container">
-            <div class="user-badge" id="userProfileBtn" onclick="toggleUserMenu(event)">
-                <span class="material-icons" style="font-size:18px;">account_circle</span>
-                <span id="userInfoDisplay"></span>
-                <span class="material-icons" style="font-size:16px; color:#94a3b8;">expand_more</span>
-            </div>
-
-            <div class="user-dropdown-menu" id="userDropdownMenu">
-                <button class="user-dropdown-item mobile-only" onclick="openAddEntryModal()" style="display: none;"
-                    id="mobileNewEntry">
-                    <span class="material-icons" style="font-size:16px; color:var(--success);">add_circle</span> New
-                    Entry
-                </button>
-                <button class="user-dropdown-item mobile-only" onclick="openAddColumnModal()" style="display: none;"
-                    id="mobileAddCol">
-                    <span class="material-icons" style="font-size:16px; color:var(--primary);">view_column</span> Add
-                    Column
-                </button>
-                <button class="user-dropdown-item mobile-only" onclick="triggerTelegramAlerts()" style="display: none;"
-                    id="mobileSendAlerts">
-                    <span class="material-icons" style="font-size:16px; color:#f59e0b;">notifications_active</span> Send
-                    Alerts
-                </button>
-                <div class="user-dropdown-divider mobile-divider" style="display: none;"></div>
-            </div>
-        </div>
+      </div>
     </div>
 
     <div class="main-wrapper">
-        <div id="loader"
-            style="text-align:center; padding:60px; color:#64748b; font-weight:600; font-size: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-            <span class="material-icons" style="font-size: 32px; animation: spin 2s linear infinite;">sync</span>
-            Syncing Secure Data...
-        </div>
-        <table id="erpTable" class="display" style="display:none; width:100%;">
-            <thead id="tableHead"></thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+      <div
+        id="loader"
+        style="
+          text-align: center;
+          padding: 60px;
+          color: #64748b;
+          font-weight: 600;
+          font-size: 16px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+        "
+      >
+        <span
+          class="material-icons"
+          style="font-size: 32px; animation: spin 2s linear infinite"
+          >sync</span
+        >
+        Syncing Secure Data...
+      </div>
+      <table id="erpTable" class="display" style="display: none; width: 100%">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
     </div>
 
     <div id="toastMsg" class="toast-mini"></div>
 
     <div id="headerContextMenu" class="custom-context-menu">
-        <div class="menu-item" onclick="handleMenuAction('add_left')"><i class="material-icons">arrow_back</i> Add
-            Column Left</div>
-        <div class="menu-item" onclick="handleMenuAction('add_right')"><i class="material-icons">arrow_forward</i> Add
-            Column Right</div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" onclick="handleMenuAction('align_left')"><i class="material-icons">format_align_left</i>
-            Align Left</div>
-        <div class="menu-item" onclick="handleMenuAction('align_center')"><i
-                class="material-icons">format_align_center</i> Align Center</div>
-        <div class="menu-item" onclick="handleMenuAction('align_right')"><i
-                class="material-icons">format_align_right</i> Align Right</div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" onclick="handleMenuAction('toggle_col_wrap')"><i class="material-icons">wrap_text</i>
-            <span id="contextWrapText">Wrap Text</span>
-        </div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" onclick="handleMenuAction('sort_asc')"><i class="material-icons">sort_by_alpha</i> Sort
-            A-Z / Low</div>
-        <div class="menu-item" onclick="handleMenuAction('sort_desc')"><i class="material-icons">sort</i> Sort Z-A /
-            High</div>
-        <div class="menu-item" onclick="handleMenuAction('hide_column')"><i class="material-icons">visibility_off</i>
-            Hide Column</div>
-        <div class="menu-divider admin-only-menu"></div>
-        <div class="menu-item admin-only-menu" onclick="handleMenuAction('delete_column')"
-            style="color: var(--danger);"><i class="material-icons">delete_forever</i> Delete Column</div>
+      <div class="menu-item" onclick="handleMenuAction('add_left')">
+        <i class="material-icons">arrow_back</i> Add Column Left
+      </div>
+      <div class="menu-item" onclick="handleMenuAction('add_right')">
+        <i class="material-icons">arrow_forward</i> Add Column Right
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" onclick="handleMenuAction('align_left')">
+        <i class="material-icons">format_align_left</i> Align Left
+      </div>
+      <div class="menu-item" onclick="handleMenuAction('align_center')">
+        <i class="material-icons">format_align_center</i> Align Center
+      </div>
+      <div class="menu-item" onclick="handleMenuAction('align_right')">
+        <i class="material-icons">format_align_right</i> Align Right
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" onclick="handleMenuAction('toggle_col_wrap')">
+        <i class="material-icons">wrap_text</i>
+        <span id="contextWrapText">Wrap Text</span>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" onclick="handleMenuAction('sort_asc')">
+        <i class="material-icons">sort_by_alpha</i> Sort A-Z / Low
+      </div>
+      <div class="menu-item" onclick="handleMenuAction('sort_desc')">
+        <i class="material-icons">sort</i> Sort Z-A / High
+      </div>
+      <div class="menu-item" onclick="handleMenuAction('hide_column')">
+        <i class="material-icons">visibility_off</i> Hide Column
+      </div>
+      <div class="menu-divider admin-only-menu"></div>
+      <div
+        class="menu-item admin-only-menu"
+        onclick="handleMenuAction('delete_column')"
+        style="color: var(--danger)"
+      >
+        <i class="material-icons">delete_forever</i> Delete Column
+      </div>
     </div>
 
     <div id="driverContextMenu" class="custom-context-menu">
-        <div class="menu-item" onclick="handleDriverAction('update')"><i class="material-icons"
-                style="color:var(--success);">manage_accounts</i> Update Driver</div>
-        <div class="menu-item" onclick="handleDriverAction('view_log')"><i class="material-icons"
-                style="color:var(--primary);">history</i> View Driver Log</div>
+      <div class="menu-item" onclick="handleDriverAction('update')">
+        <i class="material-icons" style="color: var(--success)"
+          >manage_accounts</i
+        >
+        Update Driver
+      </div>
+      <div class="menu-item" onclick="handleDriverAction('view_log')">
+        <i class="material-icons" style="color: var(--primary)">history</i> View
+        Driver Log
+      </div>
     </div>
 
-    <div id="excelFilterMenu" class="excel-filter-menu" style="display:none;" onclick="event.stopPropagation()">
-        <div class="excel-filter-search"><input type="text" id="filterSearchInput" placeholder="Search filters...">
-        </div>
-        <div class="filter-item"
-            style="border-bottom: 1px solid #e2e8f0; background: #f8fafc; position: sticky; top:0; z-index: 5;">
-            <input type="checkbox" id="filterSelectAll" checked><label for="filterSelectAll"
-                style="font-weight:700;">(Select All)</label>
-        </div>
-        <div class="excel-filter-list" id="filterChecklist"></div>
-        <div class="excel-filter-actions">
-            <button class="btn-apply-filter" onclick="applyCustomFilter()">Apply Filter</button>
-            <button class="btn-clear-filter" onclick="closeCustomFilter()">Cancel</button>
-        </div>
+    <div
+      id="excelFilterMenu"
+      class="excel-filter-menu"
+      style="display: none"
+      onclick="event.stopPropagation()"
+    >
+      <div class="excel-filter-search">
+        <input
+          type="text"
+          id="filterSearchInput"
+          placeholder="Search filters..."
+        />
+      </div>
+      <div
+        class="filter-item"
+        style="
+          border-bottom: 1px solid #e2e8f0;
+          background: #f8fafc;
+          position: sticky;
+          top: 0;
+          z-index: 5;
+        "
+      >
+        <input type="checkbox" id="filterSelectAll" checked /><label
+          for="filterSelectAll"
+          style="font-weight: 700"
+          >(Select All)</label
+        >
+      </div>
+      <div class="excel-filter-list" id="filterChecklist"></div>
+      <div class="excel-filter-actions">
+        <button class="btn-apply-filter" onclick="applyCustomFilter()">
+          Apply Filter
+        </button>
+        <button class="btn-clear-filter" onclick="closeCustomFilter()">
+          Cancel
+        </button>
+      </div>
     </div>
 
     <div id="colVisModalOverlay" class="modal-overlay">
-        <div class="modal-box" style="width: 750px; max-width: 95vw;">
-            <div
-                style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
-                <h3 style="margin:0; border:none; padding:0;">Show / Hide Columns</h3>
-                <div style="display:flex; gap: 8px;">
-                    <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;"
-                        onclick="toggleAllColumns(true)">Select All</button>
-                    <button class="btn btn-outline" style="padding: 4px 10px; font-size: 11px;"
-                        onclick="toggleAllColumns(false)">Unselect All</button>
-                </div>
-            </div>
-            <div id="colVisList" class="col-vis-grid"></div>
-            <div style="display:flex; justify-content:flex-end; margin-top:20px;">
-                <button class="btn btn-primary" onclick="$('#colVisModalOverlay').hide()">Done</button>
-            </div>
+      <div class="modal-box" style="width: 750px; max-width: 95vw">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 10px;
+          "
+        >
+          <h3 style="margin: 0; border: none; padding: 0">
+            Show / Hide Columns
+          </h3>
+          <div style="display: flex; gap: 8px">
+            <button
+              class="btn btn-outline"
+              style="padding: 4px 10px; font-size: 11px"
+              onclick="toggleAllColumns(true)"
+            >
+              Select All
+            </button>
+            <button
+              class="btn btn-outline"
+              style="padding: 4px 10px; font-size: 11px"
+              onclick="toggleAllColumns(false)"
+            >
+              Unselect All
+            </button>
+          </div>
         </div>
+        <div id="colVisList" class="col-vis-grid"></div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 20px">
+          <button
+            class="btn btn-primary"
+            onclick="$('#colVisModalOverlay').hide()"
+          >
+            Done
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="colModalOverlay" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Add New Column</h3>
-            <input type="text" id="newColName" class="modal-input" placeholder="Enter column name..."
-                onkeypress="if(event.key==='Enter') submitNewColumn()">
-            <div class="form-group" style="margin-top: -5px; margin-bottom: 15px;">
-                <label style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Data Type</label>
-                <select id="newColType" class="modal-input"
-                    style="margin-bottom: 0; margin-top: 4px; padding: 8px 12px;">
-                    <option value="varchar" selected>Text (Varchar)</option>
-                    <option value="int">Number (Int)</option>
-                    <option value="date">Date</option>
-                </select>
-            </div>
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn btn-outline" onclick="$('#colModalOverlay').hide()">Cancel</button>
-                <button class="btn btn-primary" onclick="submitNewColumn()">Save Column</button>
-            </div>
+      <div class="modal-box">
+        <h3>Add New Column</h3>
+        <input
+          type="text"
+          id="newColName"
+          class="modal-input"
+          placeholder="Enter column name..."
+          onkeypress="if (event.key === 'Enter') submitNewColumn();"
+        />
+        <div class="form-group" style="margin-top: -5px; margin-bottom: 15px">
+          <label
+            style="font-size: 12px; color: var(--text-muted); font-weight: 600"
+            >Data Type</label
+          >
+          <select
+            id="newColType"
+            class="modal-input"
+            style="margin-bottom: 0; margin-top: 4px; padding: 8px 12px"
+          >
+            <option value="varchar" selected>Text (Varchar)</option>
+            <option value="int">Number (Int)</option>
+            <option value="date">Date</option>
+          </select>
         </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            class="btn btn-outline"
+            onclick="$('#colModalOverlay').hide()"
+          >
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="submitNewColumn()">
+            Save Column
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="renameColModalOverlay" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Edit Column</h3>
-            <p style="font-size: 12px; color: var(--danger); margin-top: -10px; margin-bottom: 15px; font-weight: 600;">
-                Warning: Changing name affects the database JSON keys.</p>
-            <input type="text" id="renameColInput" class="modal-input" placeholder="Enter new name...">
-            <div class="form-group" style="margin-top: -5px; margin-bottom: 15px;">
-                <label style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Data Type</label>
-                <select id="renameColType" class="modal-input"
-                    style="margin-bottom: 0; margin-top: 4px; padding: 8px 12px;">
-                    <option value="varchar">Text (Varchar)</option>
-                    <option value="int">Number (Int)</option>
-                    <option value="date">Date</option>
-                </select>
-            </div>
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn btn-outline" onclick="$('#renameColModalOverlay').hide()">Cancel</button>
-                <button class="btn btn-primary" id="btnConfirmRename">Update Column</button>
-            </div>
+      <div class="modal-box">
+        <h3>Edit Column</h3>
+        <p
+          style="
+            font-size: 12px;
+            color: var(--danger);
+            margin-top: -10px;
+            margin-bottom: 15px;
+            font-weight: 600;
+          "
+        >
+          Warning: Changing name affects the database JSON keys.
+        </p>
+        <input
+          type="text"
+          id="renameColInput"
+          class="modal-input"
+          placeholder="Enter new name..."
+        />
+        <div class="form-group" style="margin-top: -5px; margin-bottom: 15px">
+          <label
+            style="font-size: 12px; color: var(--text-muted); font-weight: 600"
+            >Data Type</label
+          >
+          <select
+            id="renameColType"
+            class="modal-input"
+            style="margin-bottom: 0; margin-top: 4px; padding: 8px 12px"
+          >
+            <option value="varchar">Text (Varchar)</option>
+            <option value="int">Number (Int)</option>
+            <option value="date">Date</option>
+          </select>
         </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            class="btn btn-outline"
+            onclick="$('#renameColModalOverlay').hide()"
+          >
+            Cancel
+          </button>
+          <button class="btn btn-primary" id="btnConfirmRename">
+            Update Column
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="relativeColModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3 id="relativeColTitle">Add Column</h3>
-            <input type="hidden" id="relativeColPosition">
-            <input type="text" id="relativeColInput" class="modal-input" placeholder="Enter new column name..."
-                onkeypress="if(event.key==='Enter') submitRelativeColumn()">
-            <div class="form-group" style="margin-top: -5px; margin-bottom: 15px;">
-                <label style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Data Type</label>
-                <select id="relativeColType" class="modal-input"
-                    style="margin-bottom: 0; margin-top: 4px; padding: 8px 12px;">
-                    <option value="varchar" selected>Text (Varchar)</option>
-                    <option value="int">Number (Int)</option>
-                    <option value="date">Date</option>
-                </select>
-            </div>
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn btn-outline" onclick="$('#relativeColModal').hide()">Cancel</button>
-                <button class="btn btn-primary" onclick="submitRelativeColumn()">Save</button>
-            </div>
+      <div class="modal-box">
+        <h3 id="relativeColTitle">Add Column</h3>
+        <input type="hidden" id="relativeColPosition" />
+        <input
+          type="text"
+          id="relativeColInput"
+          class="modal-input"
+          placeholder="Enter new column name..."
+          onkeypress="if (event.key === 'Enter') submitRelativeColumn();"
+        />
+        <div class="form-group" style="margin-top: -5px; margin-bottom: 15px">
+          <label
+            style="font-size: 12px; color: var(--text-muted); font-weight: 600"
+            >Data Type</label
+          >
+          <select
+            id="relativeColType"
+            class="modal-input"
+            style="margin-bottom: 0; margin-top: 4px; padding: 8px 12px"
+          >
+            <option value="varchar" selected>Text (Varchar)</option>
+            <option value="int">Number (Int)</option>
+            <option value="date">Date</option>
+          </select>
         </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            class="btn btn-outline"
+            onclick="$('#relativeColModal').hide()"
+          >
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="submitRelativeColumn()">
+            Save
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="deleteColModalOverlay" class="modal-overlay">
-        <div class="modal-box">
-            <h3 style="color: var(--danger);">Delete Column</h3>
-            <p style="font-size: 13px; color: #64748b; margin-top: -10px; margin-bottom: 15px;">Are you sure you want to
-                delete column "<b id="deleteColNameDisplay" style="color: #0f172a;"></b>"? (It will be moved to Recycle
-                Bin for 30 days). Enter Super Admin password to confirm.</p>
-            <input type="password" id="deleteColPassword" class="modal-input" placeholder="Super Admin Password..."
-                onkeypress="if(event.key==='Enter') submitDeleteColumn()">
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn btn-outline" onclick="$('#deleteColModalOverlay').hide()">Cancel</button>
-                <button class="btn"
-                    style="padding: 8px 16px; border-radius: 8px; color: white; background: var(--danger); border: none; font-weight: 600;"
-                    onclick="submitDeleteColumn()">Move to Recycle Bin</button>
-            </div>
+      <div class="modal-box">
+        <h3 style="color: var(--danger)">Delete Column</h3>
+        <p
+          style="
+            font-size: 13px;
+            color: #64748b;
+            margin-top: -10px;
+            margin-bottom: 15px;
+          "
+        >
+          Are you sure you want to delete column "<b
+            id="deleteColNameDisplay"
+            style="color: #0f172a"
+          ></b
+          >"? (It will be moved to Recycle Bin for 30 days). Enter Super Admin
+          password to confirm.
+        </p>
+        <input
+          type="password"
+          id="deleteColPassword"
+          class="modal-input"
+          placeholder="Super Admin Password..."
+          onkeypress="if (event.key === 'Enter') submitDeleteColumn();"
+        />
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            class="btn btn-outline"
+            onclick="$('#deleteColModalOverlay').hide()"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn"
+            style="
+              padding: 8px 16px;
+              border-radius: 8px;
+              color: white;
+              background: var(--danger);
+              border: none;
+              font-weight: 600;
+            "
+            onclick="submitDeleteColumn()"
+          >
+            Move to Recycle Bin
+          </button>
         </div>
+      </div>
     </div>
 
     <div id="entryModalOverlay" class="modal-overlay">
-        <div class="modal-box"
-            style="width: 85vw; max-width: 1000px; max-height:85vh; display:flex; flex-direction:column; padding: 30px;">
-            <h3>Create New Entry</h3>
-            <div id="dynamicFormFields"
-                style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; overflow-y:auto; flex-grow:1; padding-right:10px; margin-bottom:20px;">
-            </div>
-            <div
-                style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid #e2e8f0; padding-top:16px;">
-                <button class="btn btn-outline" onclick="$('#entryModalOverlay').hide()">Cancel</button>
-                <button class="btn btn-success" onclick="submitNewEntry()">Save Entry</button>
-            </div>
+      <div
+        class="modal-box"
+        style="
+          width: 85vw;
+          max-width: 1000px;
+          max-height: 85vh;
+          display: flex;
+          flex-direction: column;
+          padding: 30px;
+        "
+      >
+        <h3>Create New Entry</h3>
+        <div
+          id="dynamicFormFields"
+          style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 10px;
+            margin-bottom: 20px;
+          "
+        ></div>
+        <div
+          style="
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+          "
+        >
+          <button
+            class="btn btn-outline"
+            onclick="$('#entryModalOverlay').hide()"
+          >
+            Cancel
+          </button>
+          <button class="btn btn-success" onclick="submitNewEntry()">
+            Save Entry
+          </button>
         </div>
+      </div>
     </div>
 
     <div id="emailBackupModalOverlay" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Download Backup</h3>
-            <p style="font-size: 13px; color: #64748b; margin-top: 0; margin-bottom: 16px;">Enter an email address to
-                receive the full Excel backup.</p>
-            <input type="email" id="tempBackupEmail" class="modal-input" placeholder="name@company.com"
-                onkeypress="if(event.key==='Enter') sendCustomBackup()">
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn btn-outline" onclick="$('#emailBackupModalOverlay').hide()">Cancel</button>
-                <button class="btn btn-primary" onclick="sendCustomBackup()">Send Email</button>
-            </div>
+      <div class="modal-box">
+        <h3>Download Backup</h3>
+        <p
+          style="
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 0;
+            margin-bottom: 16px;
+          "
+        >
+          Enter an email address to receive the full Excel backup.
+        </p>
+        <input
+          type="email"
+          id="tempBackupEmail"
+          class="modal-input"
+          placeholder="name@company.com"
+          onkeypress="if (event.key === 'Enter') sendCustomBackup();"
+        />
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            class="btn btn-outline"
+            onclick="$('#emailBackupModalOverlay').hide()"
+          >
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="sendCustomBackup()">
+            Send Email
+          </button>
         </div>
+      </div>
     </div>
 
     <div id="importModalOverlay" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Import Master Data</h3>
-            <p style="font-size: 12px; color: var(--danger); margin-top: 0; margin-bottom: 16px; font-weight: 600;">
-                WARNING: This will rewrite the entire database! A backup will be mailed to you automatically before
-                wiping.</p>
-            <input type="file" id="importExcelFile" class="modal-input" accept=".xlsx, .xls" style="padding: 5px;">
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn btn-outline" onclick="$('#importModalOverlay').hide()">Cancel</button>
-                <button class="btn btn-warning" onclick="processBulkImport()" id="btnImportSubmit">Import &
-                    Rewrite</button>
-            </div>
+      <div class="modal-box">
+        <h3>Import Master Data</h3>
+
+        <div
+          style="
+            background: #f8fafc;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 15px;
+            margin-top: 10px;
+          "
+        >
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 10px;
+              cursor: pointer;
+              font-size: 13px;
+              font-weight: 600;
+              color: #0f172a;
+            "
+          >
+            <input
+              type="radio"
+              name="importMode"
+              value="append"
+              checked
+              style="width: 16px; height: 16px"
+              onchange="updateImportUI()"
+            />
+            Append to Existing Data (Add New Rows)
+          </label>
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              cursor: pointer;
+              font-size: 13px;
+              font-weight: 600;
+              color: var(--danger);
+            "
+          >
+            <input
+              type="radio"
+              name="importMode"
+              value="rewrite"
+              style="width: 16px; height: 16px"
+              onchange="updateImportUI()"
+            />
+            Rewrite Entire Database (Wipe & Replace)
+          </label>
         </div>
+
+        <p
+          id="importWarningText"
+          style="
+            font-size: 12px;
+            color: var(--primary);
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-weight: 600;
+          "
+        >
+          Info: This will safely add new records below the existing data.
+        </p>
+
+        <input
+          type="file"
+          id="importExcelFile"
+          class="modal-input"
+          accept=".xlsx, .xls"
+          style="padding: 5px"
+        />
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            class="btn btn-outline"
+            onclick="$('#importModalOverlay').hide()"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            onclick="processBulkImport()"
+            id="btnImportSubmit"
+          >
+            Import & Append
+          </button>
+        </div>
+      </div>
     </div>
 
     <div id="driverUpdateModalOverlay" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Update Driver</h3>
-            <p id="drvUpdatePlateDisplay" style="font-weight:bold; color:var(--primary); margin-bottom: 10px;"></p>
+      <div
+        class="modal-box"
+        style="
+          width: 1000px;
+          max-width: 95vw;
+          display: grid;
+          grid-template-columns: 350px 1fr;
+          gap: 20px;
+          align-items: start;
+        "
+      >
+        <div
+          style="
+            border-right: 1px solid var(--border-color);
+            padding-right: 20px;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 10px;
+            "
+          >
+            <h3 style="margin: 0">Driver Management</h3>
+          </div>
+          <p
+            id="drvUpdatePlateDisplay"
+            style="
+              font-weight: bold;
+              font-size: 15px;
+              color: var(--primary);
+              margin-top: 0;
+              margin-bottom: 15px;
+            "
+          ></p>
+
+          <div
+            style="
+              display: flex;
+              gap: 5px;
+              margin-bottom: 15px;
+              background: #f1f5f9;
+              padding: 4px;
+              border-radius: 6px;
+            "
+          >
+            <button
+              id="tabHandover"
+              class="btn"
+              style="
+                flex: 1;
+                background: white;
+                color: #0f172a;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+              "
+              onclick="setDriverMode('handover')"
+            >
+              Change Driver
+            </button>
+            <button
+              id="tabPastLog"
+              class="btn"
+              style="flex: 1; background: transparent; color: #64748b"
+              onclick="setDriverMode('past')"
+            >
+              Add Past Log
+            </button>
+          </div>
+
+          <div id="formHandoverMode">
             <div
-                style="background:#f1f5f9; padding:10px; border-radius:8px; margin-bottom:15px; border: 1px solid var(--border-color);">
-                <label style="font-size:10px; font-weight:700; color:#64748b;">CURRENT DRIVER</label>
-                <div id="drvUpdateCurrentName"
-                    style="font-weight:600; font-size:13px; color:#0f172a; margin-bottom:5px;"></div>
-                <label style="font-size:10px; font-weight:700; color:#64748b;">CURRENT MOBILE</label>
-                <div id="drvUpdateCurrentMob"
-                    style="font-weight:600; font-size:13px; color:#0f172a; margin-bottom:5px;"></div>
-                <label style="font-size:12px; font-weight:600; margin-top:8px; display:block;">Old Driver Work Start
-                    Date</label>
-                <input type="date" id="drvUpdateOldStart" class="modal-input" style="margin-bottom:0; padding:8px;">
-                <label style="font-size:12px; font-weight:600; margin-top:8px; display:block;">Old Driver Work End
-                    Date</label>
-                <input type="date" id="drvUpdateEnd" class="modal-input" style="margin-bottom:0; padding:8px;" required>
+              style="
+                background: #f8fafc;
+                padding: 10px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                border: 1px dashed #cbd5e1;
+              "
+            >
+              <label style="font-size: 10px; font-weight: 700; color: #64748b"
+                >CURRENT DRIVER TO REMOVE</label
+              >
+              <div
+                id="drvUpdateCurrentName"
+                style="
+                  font-weight: 600;
+                  font-size: 13px;
+                  color: #dc2626;
+                  margin-bottom: 5px;
+                "
+              ></div>
+              <label style="font-size: 10px; font-weight: 700; color: #64748b"
+                >CURRENT MOBILE</label
+              >
+              <div
+                id="drvUpdateCurrentMob"
+                style="
+                  font-weight: 600;
+                  font-size: 13px;
+                  color: #0f172a;
+                  margin-bottom: 5px;
+                "
+              ></div>
+              <label
+                style="
+                  font-size: 11px;
+                  font-weight: 600;
+                  margin-top: 8px;
+                  display: block;
+                "
+                >Old Driver Start Date</label
+              >
+              <input
+                type="date"
+                id="drvUpdateOldStart"
+                class="modal-input"
+                style="margin-bottom: 0; padding: 6px; font-size: 12px"
+              />
+              <label
+                style="
+                  font-size: 11px;
+                  font-weight: 600;
+                  margin-top: 8px;
+                  display: block;
+                  color: var(--danger);
+                "
+                >Old Driver End Date (Required)</label
+              >
+              <input
+                type="date"
+                id="drvUpdateEnd"
+                class="modal-input"
+                style="margin-bottom: 0; padding: 6px; font-size: 12px"
+                required
+              />
             </div>
-            <label style="font-size:12px; font-weight:600;">New Driver Name</label>
-            <input type="text" id="drvUpdateNewName" class="modal-input" placeholder="Name..." required>
-            <label style="font-size:12px; font-weight:600;">New Mobile</label>
-            <input type="text" id="drvUpdateNewMob" class="modal-input" placeholder="Mobile..." required>
-            <label style="font-size:12px; font-weight:600;">New Work Start Date</label>
-            <input type="date" id="drvUpdateNewStart" class="modal-input" required>
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn btn-outline" onclick="$('#driverUpdateModalOverlay').hide()">Cancel</button>
-                <button class="btn btn-success" onclick="submitDriverUpdate()">Save Driver</button>
+          </div>
+
+          <div id="formPastMode" style="display: none; margin-bottom: 15px">
+            <div
+              style="
+                background: #fffbeb;
+                padding: 10px;
+                border-radius: 8px;
+                border: 1px solid #fde68a;
+              "
+            >
+              <p
+                style="
+                  font-size: 11px;
+                  color: #d97706;
+                  margin: 0;
+                  font-weight: 600;
+                "
+              >
+                <span
+                  class="material-icons"
+                  style="font-size: 12px; vertical-align: middle"
+                  >info</span
+                >
+                This will only add a record to history. It will NOT change the
+                active driver.
+              </p>
             </div>
+          </div>
+
+          <label
+            style="font-size: 12px; font-weight: 600; color: var(--primary)"
+            >Driver Name</label
+          >
+          <input
+            type="text"
+            id="drvUpdateNewName"
+            class="modal-input"
+            placeholder="Enter Name..."
+            required
+          />
+          <label
+            style="font-size: 12px; font-weight: 600; color: var(--primary)"
+            >Mobile Number</label
+          >
+          <input
+            type="text"
+            id="drvUpdateNewMob"
+            class="modal-input"
+            placeholder="Enter Mobile..."
+            required
+          />
+
+          <div id="pastLogDates" style="display: none; gap: 10px">
+            <div style="flex: 1">
+              <label style="font-size: 12px; font-weight: 600"
+                >Work Start Date</label
+              >
+              <input type="date" id="drvPastStart" class="modal-input" />
+            </div>
+            <div style="flex: 1">
+              <label style="font-size: 12px; font-weight: 600"
+                >Work End Date</label
+              >
+              <input type="date" id="drvPastEnd" class="modal-input" />
+            </div>
+          </div>
+
+          <div id="handoverStartDateBlock">
+            <label
+              style="font-size: 12px; font-weight: 600; color: var(--success)"
+              >New Driver Work Start Date</label
+            >
+            <input
+              type="date"
+              id="drvUpdateNewStart"
+              class="modal-input"
+              required
+            />
+          </div>
+
+          <div
+            style="
+              display: flex;
+              justify-content: flex-end;
+              gap: 8px;
+              margin-top: 10px;
+            "
+          >
+            <button
+              class="btn btn-outline"
+              onclick="$('#driverUpdateModalOverlay').hide()"
+            >
+              Cancel
+            </button>
+            <button
+              class="btn btn-success"
+              id="btnSaveDriverAction"
+              onclick="submitDriverUpdate()"
+            >
+              Save Changes
+            </button>
+          </div>
         </div>
+
+        <div style="display: flex; flex-direction: column; height: 100%">
+          <h4
+            style="
+              margin: 0 0 10px 0;
+              color: #334155;
+              display: flex;
+              align-items: center;
+              gap: 5px;
+            "
+          >
+            <span class="material-icons" style="font-size: 18px">history</span>
+            Driver History
+          </h4>
+          <div
+            style="
+              flex-grow: 1;
+              max-height: 500px;
+              overflow-y: auto;
+              border: 1px solid var(--border-color);
+              border-radius: 8px;
+            "
+          >
+            <table
+              class="w-full text-left"
+              style="width: 100%; border-collapse: collapse; font-size: 12px"
+            >
+              <thead
+                style="
+                  background: #f8fafc;
+                  position: sticky;
+                  top: 0;
+                  z-index: 10;
+                  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+                "
+              >
+                <tr>
+                  <th
+                    style="
+                      padding: 8px;
+                      border-bottom: 1px solid var(--border-color);
+                    "
+                  >
+                    Driver
+                  </th>
+                  <th
+                    style="
+                      padding: 8px;
+                      border-bottom: 1px solid var(--border-color);
+                    "
+                  >
+                    Mobile
+                  </th>
+                  <th
+                    style="
+                      padding: 8px;
+                      border-bottom: 1px solid var(--border-color);
+                    "
+                  >
+                    Start
+                  </th>
+                  <th
+                    style="
+                      padding: 8px;
+                      border-bottom: 1px solid var(--border-color);
+                    "
+                  >
+                    End
+                  </th>
+                  <th
+                    style="
+                      padding: 8px;
+                      border-bottom: 1px solid var(--border-color);
+                      text-align: center;
+                    "
+                  >
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="sidePanelDriverLogs">
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 20px">
+                    Loading history...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="editLogModalOverlay" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Edit Driver Log</h3>
-            <input type="hidden" id="editLogId">
-            <label style="font-size:12px; font-weight:600;">Driver Name</label>
-            <input type="text" id="editLogName" class="modal-input" required>
-            <label style="font-size:12px; font-weight:600;">Mobile</label>
-            <input type="text" id="editLogMob" class="modal-input" required>
-            <label style="font-size:12px; font-weight:600;">Work Start</label>
-            <input type="date" id="editLogStart" class="modal-input" required>
-            <label style="font-size:12px; font-weight:600;">Work End</label>
-            <input type="date" id="editLogEnd" class="modal-input" required>
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn btn-outline" onclick="$('#editLogModalOverlay').hide()">Cancel</button>
-                <button class="btn btn-primary" onclick="submitEditLog()">Update</button>
-            </div>
+      <div class="modal-box">
+        <h3>Edit Driver Log</h3>
+        <input type="hidden" id="editLogId" />
+        <label style="font-size: 12px; font-weight: 600">Driver Name</label>
+        <input type="text" id="editLogName" class="modal-input" required />
+        <label style="font-size: 12px; font-weight: 600">Mobile</label>
+        <input type="text" id="editLogMob" class="modal-input" required />
+        <label style="font-size: 12px; font-weight: 600">Work Start</label>
+        <input type="date" id="editLogStart" class="modal-input" required />
+        <label style="font-size: 12px; font-weight: 600">Work End</label>
+        <input type="date" id="editLogEnd" class="modal-input" required />
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            class="btn btn-outline"
+            onclick="$('#editLogModalOverlay').hide()"
+          >
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="submitEditLog()">
+            Update
+          </button>
         </div>
+      </div>
     </div>
 
     <div id="driverLogModalOverlay" class="modal-overlay">
-        <div class="modal-box" style="width:600px; max-width:95vw;">
-            <h3>Driver History</h3>
-            <p id="drvLogPlateDisplay" style="font-weight:bold; color:var(--primary);"></p>
-            <div style="max-height:400px; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px;">
-                <table class="w-full text-left" style="width:100%; border-collapse:collapse; font-size:12px;">
-                    <thead style="background:#f8fafc; position:sticky; top:0; z-index:10;">
-                        <tr>
-                            <th style="padding:8px; border-bottom:1px solid var(--border-color);">Driver</th>
-                            <th style="padding:8px; border-bottom:1px solid var(--border-color);">Mobile</th>
-                            <th style="padding:8px; border-bottom:1px solid var(--border-color);">Start</th>
-                            <th style="padding:8px; border-bottom:1px solid var(--border-color);">End</th>
-                            <th style="padding:8px; border-bottom:1px solid var(--border-color);">Updated By</th>
-                            <th style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">
-                                Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="driverLogTableBody"></tbody>
-                </table>
-            </div>
-            <div style="display:flex; justify-content:flex-end; margin-top:15px;">
-                <button class="btn btn-primary" onclick="$('#driverLogModalOverlay').hide()">Close</button>
-            </div>
+      <div class="modal-box" style="width: 600px; max-width: 95vw">
+        <h3>Driver History</h3>
+        <p
+          id="drvLogPlateDisplay"
+          style="font-weight: bold; color: var(--primary)"
+        ></p>
+        <div
+          style="
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+          "
+        >
+          <table
+            class="w-full text-left"
+            style="width: 100%; border-collapse: collapse; font-size: 12px"
+          >
+            <thead
+              style="background: #f8fafc; position: sticky; top: 0; z-index: 10"
+            >
+              <tr>
+                <th
+                  style="
+                    padding: 8px;
+                    border-bottom: 1px solid var(--border-color);
+                  "
+                >
+                  Driver
+                </th>
+                <th
+                  style="
+                    padding: 8px;
+                    border-bottom: 1px solid var(--border-color);
+                  "
+                >
+                  Mobile
+                </th>
+                <th
+                  style="
+                    padding: 8px;
+                    border-bottom: 1px solid var(--border-color);
+                  "
+                >
+                  Start
+                </th>
+                <th
+                  style="
+                    padding: 8px;
+                    border-bottom: 1px solid var(--border-color);
+                  "
+                >
+                  End
+                </th>
+                <th
+                  style="
+                    padding: 8px;
+                    border-bottom: 1px solid var(--border-color);
+                  "
+                >
+                  Updated By
+                </th>
+                <th
+                  style="
+                    padding: 8px;
+                    border-bottom: 1px solid var(--border-color);
+                    text-align: center;
+                  "
+                >
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody id="driverLogTableBody"></tbody>
+          </table>
         </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 15px">
+          <button
+            class="btn btn-primary"
+            onclick="$('#driverLogModalOverlay').hide()"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Custom Logic Script -->
     <script src="script/mdb.js"></script>
-</body>
-
+  </body>
 </html>
