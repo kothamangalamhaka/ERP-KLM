@@ -545,15 +545,25 @@ async function fetchDriverLogsForSidePanel(plate) {
           ? '<span style="background:#0ea5e9; color:white; padding:2px 4px; border-radius:4px; font-size:9px; margin-left:5px;">CURRENT</span>'
           : "";
 
-        // Reuse Icon
+        // Action Buttons
         let reuseBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:#10b981;" onclick="reuseDriverDetails('${(l.driver_name || "").replace(/'/g, "\\'")}', '${l.mobile || ""}')" title="Copy Details to Form">content_copy</i>`;
+        let editBtn = "";
+        let deleteBtn = "";
+
+        // Current Driver (Main Record) should not be edited or deleted from the history panel
+        if (!isCurrent && currentUser.role !== "Viewer") {
+          editBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:var(--primary);" onclick="openEditLogModal(${l.id}, '${(l.driver_name || "").replace(/'/g, "\\'")}', '${l.mobile || ""}', '${l.work_start || ""}', '${l.work_end || ""}')" title="Edit Log">edit</i>`;
+          deleteBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:var(--danger);" onclick="deleteDriverLog(${l.id})" title="Delete Log">delete</i>`;
+        }
+
+        let actionButtons = `<div style="display:flex; justify-content:center; gap:10px;">${reuseBtn}${editBtn}${deleteBtn}</div>`;
 
         html += `<tr style="${rowStyle}">
                             <td style="padding:8px; border-bottom:1px solid var(--border-color); font-weight:600;">${l.driver_name || "-"}${badge}</td>
                             <td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mobile || "-"}</td>
                             <td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_start || "-"}</td>
                             <td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_end || "-"}</td>
-                            <td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">${reuseBtn}</td>
+                            <td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">${actionButtons}</td>
                          </tr>`;
       });
       if (data.logs.length === 0)
@@ -565,6 +575,86 @@ async function fetchDriverLogsForSidePanel(plate) {
     $("#sidePanelDriverLogs").html(
       '<tr><td colspan="5" style="text-align:center; color:red; padding: 20px;">Failed to load.</td></tr>',
     );
+  }
+}
+
+// Function to delete a past driver log
+function deleteDriverLog(id) {
+  Swal.fire({
+    title: "Delete this log?",
+    text: "You won't be able to revert this!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "var(--danger)",
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "Yes, delete it!",
+    didOpen: () => {
+      // Fix: Bring SweetAlert to the front
+      document.querySelector(".swal2-container").style.zIndex = "99999";
+    },
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch("/api/delete-driver-log", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ logId: id }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast("Log deleted!", "success");
+          fetchDriverLogsForSidePanel(contextDriverPlate); // Refresh the table
+        } else {
+          showToast(data.message, "error");
+        }
+      } catch (e) {
+        showToast("Failed to delete log", "error");
+      }
+    }
+  });
+}
+
+// Update the existing submitEditLog function to refresh the side panel instead of the old modal
+async function submitEditLog() {
+  let id = $("#editLogId").val(),
+    name = $("#editLogName").val().trim(),
+    mob = $("#editLogMob").val().trim(),
+    startRaw = $("#editLogStart").val(),
+    end = $("#editLogEnd").val();
+
+  if (!name || !mob || !end)
+    return showToast("Name, Mobile, and End Date required", "error");
+  let start = startRaw ? formatToDDMMMYYYY(startRaw) : "IDK";
+
+  $("#editLogModalOverlay").hide();
+  showToast("Updating log...", "info");
+
+  try {
+    const res = await fetch("/api/edit-driver-log", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        logId: id,
+        driverName: name,
+        mobile: mob,
+        workStart: start,
+        workEnd: formatToDDMMMYYYY(end),
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message, "success");
+      // Refresh the side panel after editing
+      fetchDriverLogsForSidePanel(contextDriverPlate);
+    } else showToast(data.message, "error");
+  } catch (e) {
+    showToast("Error updating log", "error");
   }
 }
 
@@ -581,7 +671,6 @@ async function submitDriverUpdate() {
     if (!end || !nName || !nMob || !nStart)
       return showToast("All fields required for handover", "error");
 
-    $("#driverUpdateModalOverlay").hide();
     showToast("Updating Driver Log...", "info");
     try {
       const res = await fetch("/api/update-driver", {
@@ -605,7 +694,14 @@ async function submitDriverUpdate() {
       const data = await res.json();
       if (data.success) {
         showToast("Driver updated!", "success");
-        fetchData(true);
+        fetchData(true); // Update main database table in background
+        fetchDriverLogsForSidePanel(contextDriverPlate); // Refresh the right side history table
+
+        // Clear fields so it's ready if they want to add more
+        $("#drvUpdateEnd").val("");
+        $("#drvUpdateNewName").val("");
+        $("#drvUpdateNewMob").val("");
+        $("#drvUpdateNewStart").val("");
       } else showToast(data.message, "error");
     } catch (e) {
       showToast("Failed to update driver", "error");
@@ -618,7 +714,6 @@ async function submitDriverUpdate() {
     if (!nName || !pStart || !pEnd)
       return showToast("Name, Start Date, and End Date are required", "error");
 
-    $("#driverUpdateModalOverlay").hide();
     showToast("Adding to history...", "info");
 
     try {
@@ -639,6 +734,11 @@ async function submitDriverUpdate() {
       const data = await res.json();
       if (data.success) {
         showToast("Added to history!", "success");
+        fetchDriverLogsForSidePanel(contextDriverPlate); // Refresh the right side history table
+
+        // Clear past date fields so the user can quickly add another history record
+        $("#drvPastStart").val("");
+        $("#drvPastEnd").val("");
       } else showToast(data.message, "error");
     } catch (e) {
       showToast("Failed to add past log", "error");

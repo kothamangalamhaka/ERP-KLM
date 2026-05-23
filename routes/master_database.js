@@ -1248,5 +1248,31 @@ module.exports = function (pool, middlewares, helpers) {
     },
   );
 
+  /**
+   * DELETE DRIVER LOG
+   */
+  router.post("/delete-driver-log", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role === "Viewer")
+        throw new Error("Access Denied: Viewers cannot delete logs.");
+
+      const { logId } = req.body;
+      if (!logId) throw new Error("Log ID is required.");
+
+      // Delete from driver_logs table
+      await pool.query("DELETE FROM driver_logs WHERE id = $1", [logId]);
+
+      // Log activity
+      await pool.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'DELETE_DRIVER_LOG', $2)",
+        [req.user.username, JSON.stringify({ log_id: logId })],
+      );
+
+      res.json({ success: true, message: "Driver log deleted successfully!" });
+    } catch (error) {
+      handleError(res, error, req.user.role, "DELETE_DRIVER_LOG");
+    }
+  });
+
   return router;
 };
