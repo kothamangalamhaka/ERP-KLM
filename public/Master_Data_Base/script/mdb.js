@@ -1,4 +1,4 @@
-// 🟢 FONT & THEME LOGIC
+// ? FONT & THEME LOGIC
 function changeFont(fontName) {
   document.body.style.fontFamily = fontName;
   localStorage.setItem("erpFont", fontName);
@@ -52,7 +52,7 @@ function toggleTheme() {
 }
 initSettings();
 
-// 🟢 DATE FORMATTER
+// ? DATE FORMATTER
 const monthNames = [
   "Jan",
   "Feb",
@@ -67,6 +67,7 @@ const monthNames = [
   "Nov",
   "Dec",
 ];
+
 function formatToDDMMMYYYY(dateStr) {
   if (!dateStr) return "";
   let d = new Date(dateStr);
@@ -78,9 +79,7 @@ function formatToDDMMMYYYY(dateStr) {
       let dy = parseInt(p[0]),
         mo = parseInt(p[1]),
         yr = p[2].length === 2 ? 2000 + parseInt(p[2]) : parseInt(p[2]);
-      if (!isNaN(dy) && !isNaN(mo) && !isNaN(yr)) {
-        d = new Date(yr, mo - 1, dy);
-      }
+      if (!isNaN(dy) && !isNaN(mo) && !isNaN(yr)) d = new Date(yr, mo - 1, dy);
     }
   }
   if (isNaN(d.getTime())) return dateStr;
@@ -89,6 +88,7 @@ function formatToDDMMMYYYY(dateStr) {
     year = d.getFullYear();
   return `${day}-${month}-${year}`;
 }
+
 function convertToInputDate(val) {
   if (!val) return "";
   let p = String(val)
@@ -96,27 +96,28 @@ function convertToInputDate(val) {
     .split(/[\/\- \.]/);
   if (p.length === 3) {
     let dy = p[0].padStart(2, "0"),
-      moStr = p[1].substring(0, 3),
-      moMap = {
-        Jan: "01",
-        Feb: "02",
-        Mar: "03",
-        Apr: "04",
-        May: "05",
-        Jun: "06",
-        Jul: "07",
-        Aug: "08",
-        Sep: "09",
-        Oct: "10",
-        Nov: "11",
-        Dec: "12",
-      };
+      moStr = p[1].substring(0, 3);
+    let moMap = {
+      Jan: "01",
+      Feb: "02",
+      Mar: "03",
+      Apr: "04",
+      May: "05",
+      Jun: "06",
+      Jul: "07",
+      Aug: "08",
+      Sep: "09",
+      Oct: "10",
+      Nov: "11",
+      Dec: "12",
+    };
     let mo = moMap[moStr] || moStr.padStart(2, "0"),
       yr = p[2].length === 2 ? "20" + p[2] : p[2];
     return `${yr}-${mo}-${dy}`;
   }
   return "";
 }
+
 function parseDateStr(dStr) {
   if (!dStr) return null;
   const p = String(dStr)
@@ -145,7 +146,6 @@ function parseDateStr(dStr) {
   return null;
 }
 
-// 🟢 FIXED COLUMNS
 const FIXED_COLUMNS = [
   "EQUIPMENT REACHED AT SITE",
   "WORK START",
@@ -154,47 +154,33 @@ const FIXED_COLUMNS = [
   "REPLACED DATE",
   "OD WRK END",
   "OLD DRIVER NAME",
+  "OD MOB",
   "DAYS WORKED",
 ];
 
-// 🟢 INITIALIZATION & SECURITY
 let currentUser = JSON.parse(localStorage.getItem("erpUser"));
 let token = localStorage.getItem("erpToken");
-
-if (!token || !currentUser) {
-  window.location.href = "index.html";
-}
+if (!token || !currentUser) window.location.href = "index.html";
 
 document.getElementById("userInfoDisplay").innerText = currentUser.username;
-if (currentUser.role === "Super Admin") {
+if (currentUser.role === "Super Admin")
   document.getElementById("btnAlerts").style.display = "inline-flex";
-}
 
 function buildUserMenu() {
   const menu = document.getElementById("userDropdownMenu");
   if (currentUser.role === "Super Admin") {
     menu.insertAdjacentHTML(
       "beforeend",
-      `
-        <a href="./admin/index.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:var(--primary);">admin_panel_settings</span> Admin Console</a>
-        <a href="./log/index.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:#14b8a6;">history</span> View Logs</a>
-        <a href="./recycle_bin.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:var(--danger);">delete_sweep</span> Recycle Bin</a>
-        <div class="user-dropdown-divider"></div>
-    `,
+      `<a href="./admin/index.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:var(--primary);">admin_panel_settings</span> Admin Console</a><a href="./log/index.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:#14b8a6;">history</span> View Logs</a><a href="./recycle_bin.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:var(--danger);">delete_sweep</span> Recycle Bin</a><div class="user-dropdown-divider"></div>`,
     );
   }
   menu.insertAdjacentHTML(
     "beforeend",
-    `
-    <button class="user-dropdown-item danger" onclick="performLogout()">
-        <span class="material-icons" style="font-size:16px;">logout</span> Logout
-    </button>
-`,
+    `<button class="user-dropdown-item danger" onclick="performLogout()"><span class="material-icons" style="font-size:16px;">logout</span> Logout</button>`,
   );
 }
 buildUserMenu();
 
-// 🟢 SESSION MANAGEMENT
 function performLogout(isAuto = false) {
   if (isAuto) {
     Swal.fire({
@@ -202,12 +188,8 @@ function performLogout(isAuto = false) {
       text: "You have been logged out due to 30 minutes of inactivity.",
       icon: "warning",
       confirmButtonText: "Login Again",
-    }).then(() => {
-      clearSession();
-    });
-  } else {
-    clearSession();
-  }
+    }).then(() => clearSession());
+  } else clearSession();
 }
 
 function clearSession() {
@@ -219,12 +201,7 @@ function clearSession() {
 let inactivityTimeout;
 function resetInactivityTimer() {
   clearTimeout(inactivityTimeout);
-  inactivityTimeout = setTimeout(
-    () => {
-      performLogout(true);
-    },
-    30 * 60 * 1000,
-  );
+  inactivityTimeout = setTimeout(() => performLogout(true), 30 * 60 * 1000);
 }
 ["mousemove", "keydown", "scroll", "click", "touchstart"].forEach((evt) =>
   document.addEventListener(evt, resetInactivityTimer, true),
@@ -240,7 +217,6 @@ window.addEventListener("beforeunload", function (e) {
   }
 });
 
-// 🟢 UI INTERACTION HANDLERS
 function toggleUserMenu(event) {
   event.stopPropagation();
   document.getElementById("userDropdownMenu").classList.toggle("show");
@@ -255,28 +231,22 @@ document.addEventListener("click", function (event) {
   const userMenu = document.getElementById("userDropdownMenu");
   if (userMenu && !event.target.closest(".user-dropdown-container"))
     userMenu.classList.remove("show");
-
   const toolsMenu = document.querySelector(".dt-buttons");
   if (
     toolsMenu &&
     window.innerWidth <= 768 &&
     !event.target.closest(".ribbon-left")
-  ) {
+  )
     toolsMenu.classList.remove("show");
-  }
-
   $("#headerContextMenu").fadeOut(100);
   $("#driverContextMenu").fadeOut(100);
-
   if (
     !$(event.target).closest("#excelFilterMenu").length &&
     !$(event.target).hasClass("filter-icon")
-  ) {
+  )
     $("#excelFilterMenu").hide();
-  }
 });
 
-// 🟢 GLOBAL VARIABLES
 let erpDataTable = null,
   cachedHeaders = [],
   cachedAlignments = [],
@@ -306,17 +276,13 @@ function updateUndoRedoUI() {
 
 document.addEventListener("keydown", function (e) {
   let isInputActive = $(document.activeElement).is("input, textarea, select");
-  if (e.ctrlKey && e.key.toLowerCase() === "z") {
-    if (!isInputActive) {
-      e.preventDefault();
-      performUndo();
-    }
+  if (e.ctrlKey && e.key.toLowerCase() === "z" && !isInputActive) {
+    e.preventDefault();
+    performUndo();
   }
-  if (e.ctrlKey && e.key.toLowerCase() === "y") {
-    if (!isInputActive) {
-      e.preventDefault();
-      performRedo();
-    }
+  if (e.ctrlKey && e.key.toLowerCase() === "y" && !isInputActive) {
+    e.preventDefault();
+    performRedo();
   }
 });
 
@@ -360,7 +326,6 @@ function formatPlateNumber(val) {
   return p.replace(/\s+/g, " ");
 }
 
-// 🟢 FETCH & RENDER DATA
 async function fetchData(isSilent = false) {
   if (!isSilent) document.getElementById("loader").style.display = "flex";
   $("#excelFilterMenu").hide();
@@ -373,24 +338,16 @@ async function fetchData(isSilent = false) {
         Authorization: `Bearer ${token}`,
       },
     });
-
-    if (res.status === 401 || res.status === 403) {
-      performLogout(true);
-      return;
-    }
-
+    if (res.status === 401 || res.status === 403) return performLogout(true);
     const data = await res.json();
-
     if (
       !data.success &&
       data.message &&
       (data.message.includes("Access Denied") ||
         data.message.toLowerCase().includes("invalid") ||
         data.message.toLowerCase().includes("expired"))
-    ) {
-      performLogout(true);
-      return;
-    }
+    )
+      return performLogout(true);
 
     let currentHash =
       JSON.stringify(data.rows) +
@@ -398,11 +355,7 @@ async function fetchData(isSilent = false) {
       JSON.stringify(data.alignments) +
       JSON.stringify(data.colTypes) +
       JSON.stringify(data.colWidths);
-    if (isSilent && currentHash === lastDataHash) {
-      updateSyncUI("live");
-      return;
-    }
-
+    if (isSilent && currentHash === lastDataHash) return updateSyncUI("live");
     lastDataHash = currentHash;
     renderTable(data);
   } catch (e) {
@@ -436,9 +389,7 @@ $.fn.dataTable.ext.search.push(
   },
 );
 
-// 🟢 DRIVER LOG UI LOGIC
 let currentDriverModalMode = "handover";
-
 function setDriverMode(mode) {
   currentDriverModalMode = mode;
   if (mode === "handover") {
@@ -452,7 +403,6 @@ function setDriverMode(mode) {
       color: "#64748b",
       "box-shadow": "none",
     });
-
     $("#formHandoverMode, #handoverStartDateBlock").show();
     $("#formPastMode, #pastLogDates").hide();
     $("#btnSaveDriverAction")
@@ -470,7 +420,6 @@ function setDriverMode(mode) {
       color: "#64748b",
       "box-shadow": "none",
     });
-
     $("#formHandoverMode, #handoverStartDateBlock").hide();
     $("#formPastMode, #pastLogDates").show();
     $("#btnSaveDriverAction")
@@ -490,14 +439,10 @@ function handleDriverAction(action) {
   if (action === "update") {
     if (currentUser.role === "Viewer")
       return showToast("Super Admin / Admin Only", "error");
-
-    // Set initial mode to handover
     setDriverMode("handover");
-
     $("#drvUpdatePlateDisplay").text("Plate: " + contextDriverPlate);
     $("#drvUpdateCurrentName").text(contextDriverName || "N/A");
     $("#drvUpdateCurrentMob").text(contextDriverMob || "N/A");
-
     $("#drvUpdateOldStart").val(convertToInputDate(contextDriverStart));
     $("#drvUpdateEnd").val("");
     $("#drvUpdateNewName").val("");
@@ -505,10 +450,7 @@ function handleDriverAction(action) {
     $("#drvUpdateNewStart").val("");
     $("#drvPastStart").val("");
     $("#drvPastEnd").val("");
-
-    // Fetch logs for the side panel
-    fetchDriverLogsForSidePanel(contextDriverPlate);
-
+    fetchDriverLogsForSidePanel(contextDriverDbId);
     $("#driverUpdateModalOverlay").css("display", "flex");
   } else if (action === "view_log") {
     $("#drvLogPlateDisplay").text("Plate: " + contextDriverPlate);
@@ -516,11 +458,40 @@ function handleDriverAction(action) {
       '<tr><td colspan="6" style="text-align:center;">Loading logs...</td></tr>',
     );
     $("#driverLogModalOverlay").css("display", "flex");
-    fetchDriverLogs(contextDriverPlate);
+    fetchDriverLogsForModal(contextDriverDbId);
   }
 }
 
-async function fetchDriverLogsForSidePanel(plate) {
+async function fetchDriverLogsForModal(dbId) {
+  try {
+    const res = await fetch("/api/get-driver-logs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ dbId: dbId }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      let html = "";
+      data.logs.forEach((l) => {
+        let actionStr = l.id === "current" ? "Current" : l.updated_by;
+        html += `<tr><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.driver_name || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mobile || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_start || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_end || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${actionStr}</td><td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">-</td></tr>`;
+      });
+      if (data.logs.length === 0)
+        html =
+          '<tr><td colspan="6" style="text-align:center;">No history found.</td></tr>';
+      $("#driverLogTableBody").html(html);
+    }
+  } catch (e) {
+    $("#driverLogTableBody").html(
+      '<tr><td colspan="6" style="text-align:center; color:red;">Failed to load.</td></tr>',
+    );
+  }
+}
+
+async function fetchDriverLogsForSidePanel(dbId) {
   $("#sidePanelDriverLogs").html(
     '<tr><td colspan="5" style="text-align:center; padding: 20px;">Loading history...</td></tr>',
   );
@@ -531,7 +502,7 @@ async function fetchDriverLogsForSidePanel(plate) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ plate_number: plate, dbId: contextDriverDbId }),
+      body: JSON.stringify({ dbId: dbId }),
     });
     const data = await res.json();
     if (data.success) {
@@ -544,31 +515,18 @@ async function fetchDriverLogsForSidePanel(plate) {
         let badge = isCurrent
           ? '<span style="background:#0ea5e9; color:white; padding:2px 4px; border-radius:4px; font-size:9px; margin-left:5px;">CURRENT</span>'
           : "";
-
-        // Action Buttons
         let reuseBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:#10b981;" onclick="reuseDriverDetails('${(l.driver_name || "").replace(/'/g, "\\'")}', '${l.mobile || ""}')" title="Copy Details to Form">content_copy</i>`;
-        let editBtn = "";
-        let deleteBtn = "";
+        let editBtn = "",
+          deleteBtn = "";
 
         if (currentUser.role !== "Viewer") {
-          // എഡിറ്റ് ബട്ടൺ നിലവിലെ ഡ്രൈവർക്കും നൽകുന്നു
           editBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:var(--primary);" onclick="openEditLogModal('${l.id}', '${(l.driver_name || "").replace(/'/g, "\\'")}', '${l.mobile || ""}', '${l.work_start || ""}', '${l.work_end || ""}')" title="Edit Log">edit</i>`;
-
-          // ഡിലീറ്റ് ബട്ടൺ പഴയ ഹിസ്റ്ററിക്ക് മാത്രം
-          if (!isCurrent) {
-            deleteBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:var(--danger);" onclick="deleteDriverLog(${l.id})" title="Delete Log">delete</i>`;
-          }
+          if (!isCurrent)
+            deleteBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:var(--danger);" onclick="deleteDriverLog('${l.id}')" title="Delete Log">delete</i>`;
         }
 
         let actionButtons = `<div style="display:flex; justify-content:center; gap:10px;">${reuseBtn}${editBtn}${deleteBtn}</div>`;
-
-        html += `<tr style="${rowStyle}">
-                    <td style="padding:8px; border-bottom:1px solid var(--border-color); font-weight:600;">${l.driver_name || "-"}${badge}</td>
-                    <td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mobile || "-"}</td>
-                    <td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_start || "-"}</td>
-                    <td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_end || "-"}</td>
-                    <td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">${actionButtons}</td>
-                 </tr>`;
+        html += `<tr style="${rowStyle}"><td style="padding:8px; border-bottom:1px solid var(--border-color); font-weight:600;">${l.driver_name || "-"}${badge}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mobile || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_start || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_end || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">${actionButtons}</td></tr>`;
       });
       if (data.logs.length === 0)
         html =
@@ -586,17 +544,10 @@ function openEditLogModal(id, name, mob, start, end) {
   $("#editLogId").val(id);
   $("#editLogName").val(name);
   $("#editLogMob").val(mob);
-
   if (start === "IDK") $("#editLogStart").val("");
   else $("#editLogStart").val(convertToInputDate(start));
-
-  // 'CURRENT' ഡ്രൈവർക്ക് End Date ആവശ്യമില്ലാത്തതുകൊണ്ട് അത് Disable ചെയ്യുന്നു
-  if (id === "current") {
-    $("#editLogEnd").val("").prop("disabled", true);
-  } else {
-    $("#editLogEnd").val(convertToInputDate(end)).prop("disabled", false);
-  }
-
+  if (id === "current") $("#editLogEnd").val("").prop("disabled", true);
+  else $("#editLogEnd").val(convertToInputDate(end)).prop("disabled", false);
   $("#editLogModalOverlay").css("display", "flex");
 }
 
@@ -606,21 +557,15 @@ async function submitEditLog() {
     mob = $("#editLogMob").val().trim(),
     startRaw = $("#editLogStart").val(),
     end = $("#editLogEnd").val();
-
-  // മൊബൈൽ നമ്പർ നിർബന്ധമല്ല, പക്ഷെ പേര് നിർബന്ധമാണ്
   if (!name) return showToast("Name is required", "error");
-  // പഴയ ലോഗുകൾക്ക് End Date നിർബന്ധമാണ്
   if (id !== "current" && !end)
     return showToast("End Date required for past logs", "error");
-
   let start = startRaw ? formatToDDMMMYYYY(startRaw) : "IDK";
-
   $("#editLogModalOverlay").hide();
   showToast("Updating log...", "info");
 
   try {
     if (id === "current") {
-      // Main ഡാറ്റാബേസിൽ അപ്ഡേറ്റ് ചെയ്യാൻ ബാച്ച് API ഉപയോഗിക്കുന്നു
       let dNameCol =
         cachedHeaders.find((h) => h.toUpperCase() === "DRIVER NAME") ||
         "Driver Name";
@@ -629,13 +574,11 @@ async function submitEditLog() {
       let wsCol =
         cachedHeaders.find((h) => h.toUpperCase() === "WORK START") ||
         "Work Start";
-
       let edits = [
         { dbId: contextDriverDbId, colName: dNameCol, newValue: name },
         { dbId: contextDriverDbId, colName: mobCol, newValue: mob },
         { dbId: contextDriverDbId, colName: wsCol, newValue: start },
       ];
-
       const res = await fetch("/api/update-cells-batch", {
         method: "POST",
         headers: {
@@ -647,10 +590,8 @@ async function submitEditLog() {
       const data = await res.json();
       if (data.success) {
         showToast("Current driver updated!", "success");
-        fetchData(true); // Main table background update
-        fetchDriverLogsForSidePanel(contextDriverPlate); // Log update
-
-        // Left Panel ഫോമിലേക്കുള്ള ഡാറ്റയും ലൈവ് ആയി അപ്ഡേറ്റ് ചെയ്യുന്നു
+        fetchData(true);
+        fetchDriverLogsForSidePanel(contextDriverDbId);
         contextDriverName = name;
         contextDriverMob = mob;
         contextDriverStart = start;
@@ -659,7 +600,6 @@ async function submitEditLog() {
         $("#drvUpdateOldStart").val(convertToInputDate(start));
       } else showToast(data.message, "error");
     } else {
-      // പഴയ ലോഗ് എഡിറ്റ് ചെയ്യാൻ
       const res = await fetch("/api/edit-driver-log", {
         method: "POST",
         headers: {
@@ -667,6 +607,7 @@ async function submitEditLog() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          dbId: contextDriverDbId,
           logId: id,
           driverName: name,
           mobile: mob,
@@ -677,12 +618,169 @@ async function submitEditLog() {
       const data = await res.json();
       if (data.success) {
         showToast(data.message, "success");
-        // Refresh the side panel after editing
-        fetchDriverLogsForSidePanel(contextDriverPlate);
+        fetchData(true);
+        fetchDriverLogsForSidePanel(contextDriverDbId);
       } else showToast(data.message, "error");
     }
   } catch (e) {
     showToast("Error updating log", "error");
+  }
+}
+
+function deleteDriverLog(id) {
+  Swal.fire({
+    title: "Delete this log?",
+    text: "You won't be able to revert this!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "var(--danger)",
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "Yes, delete it!",
+    didOpen: () => {
+      document.querySelector(".swal2-container").style.zIndex = "99999";
+    },
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch("/api/delete-driver-log", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ dbId: contextDriverDbId, logId: id }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast("Log deleted!", "success");
+          fetchData(true);
+          fetchDriverLogsForSidePanel(contextDriverDbId);
+        } else showToast(data.message, "error");
+      } catch (e) {
+        showToast("Failed to delete log", "error");
+      }
+    }
+  });
+}
+
+// FIX: Driver Strict Date Validation and Release Handling
+async function submitDriverUpdate() {
+  let nName = $("#drvUpdateNewName").val().trim();
+  let nMob = $("#drvUpdateNewMob").val().trim();
+
+  if (currentDriverModalMode === "handover") {
+    let oldStartRaw = $("#drvUpdateOldStart").val();
+    let oldStart = oldStartRaw ? formatToDDMMMYYYY(oldStartRaw) : "IDK";
+    let endRaw = $("#drvUpdateEnd").val();
+    let nStartRaw = $("#drvUpdateNewStart").val();
+
+    if (!endRaw)
+      return showToast("Current Driver End Date is required", "error");
+
+    let oldStartObj = oldStartRaw ? new Date(oldStartRaw) : null;
+    let endObj = new Date(endRaw);
+    let newStartObj = nStartRaw ? new Date(nStartRaw) : null;
+
+    if (oldStartObj && endObj < oldStartObj) {
+      return showToast(
+        "Error: End Date cannot be before the Start Date",
+        "error",
+      );
+    }
+
+    if (nName) {
+      if (!nStartRaw)
+        return showToast(
+          "New Driver Start Date is required when assigning a new driver",
+          "error",
+        );
+      if (newStartObj < endObj) {
+        return showToast(
+          "Error: New Driver Start Date cannot be before Old Driver End Date",
+          "error",
+        );
+      }
+    }
+
+    let end = formatToDDMMMYYYY(endRaw);
+    let finalNewStart = nStartRaw ? formatToDDMMMYYYY(nStartRaw) : "";
+
+    showToast("Updating Driver Log...", "info");
+    try {
+      const res = await fetch("/api/update-driver", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dbId: contextDriverDbId,
+          plate_number: contextDriverPlate,
+          currentDriver: contextDriverName,
+          currentMob: contextDriverMob,
+          oldWorkStart: oldStart,
+          workEnd: end,
+          newDriver: nName,
+          newMob: nMob,
+          newWorkStart: finalNewStart,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(nName ? "Driver updated!" : "Vehicle Released!", "success");
+        fetchData(true);
+        fetchDriverLogsForSidePanel(contextDriverDbId);
+        $("#drvUpdateEnd").val("");
+        $("#drvUpdateNewName").val("");
+        $("#drvUpdateNewMob").val("");
+        $("#drvUpdateNewStart").val("");
+      } else showToast(data.message, "error");
+    } catch (e) {
+      showToast("Failed to update driver", "error");
+    }
+  } else {
+    // Past Log Mode
+    let pStartRaw = $("#drvPastStart").val();
+    let pEndRaw = $("#drvPastEnd").val();
+    if (!nName || !pStartRaw || !pEndRaw)
+      return showToast("Name, Start Date, and End Date are required", "error");
+
+    let pStartObj = new Date(pStartRaw);
+    let pEndObj = new Date(pEndRaw);
+    if (pEndObj < pStartObj) {
+      return showToast(
+        "Error: End Date cannot be before the Start Date",
+        "error",
+      );
+    }
+
+    showToast("Adding to history...", "info");
+    try {
+      const res = await fetch("/api/add-past-driver-log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dbId: contextDriverDbId,
+          driverName: nName,
+          mobile: nMob,
+          workStart: formatToDDMMMYYYY(pStartRaw),
+          workEnd: formatToDDMMMYYYY(pEndRaw),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("Added to history!", "success");
+        fetchData(true);
+        fetchDriverLogsForSidePanel(contextDriverDbId);
+        $("#drvPastStart").val("");
+        $("#drvPastEnd").val("");
+      } else showToast(data.message, "error");
+    } catch (e) {
+      showToast("Failed to add past log", "error");
+    }
   }
 }
 
@@ -694,12 +792,10 @@ function openImportModal() {
   $("#importModalOverlay").css("display", "flex");
 }
 
-// Function to dynamically update the UI based on selected radio button
 function updateImportUI() {
   const mode = document.querySelector('input[name="importMode"]:checked').value;
   const warningText = document.getElementById("importWarningText");
   const submitBtn = document.getElementById("btnImportSubmit");
-
   if (mode === "rewrite") {
     warningText.style.color = "var(--danger)";
     warningText.innerText =
@@ -719,7 +815,6 @@ function processBulkImport() {
   const fileInput = document.getElementById("importExcelFile");
   if (!fileInput.files.length)
     return showToast("Please select a file.", "error");
-
   const importMode = document.querySelector(
     'input[name="importMode"]:checked',
   ).value;
@@ -727,7 +822,6 @@ function processBulkImport() {
     reader = new FileReader();
 
   $("#btnImportSubmit").prop("disabled", true).text("Processing...");
-
   reader.onload = async function (e) {
     const base64Data = e.target.result;
     try {
@@ -744,11 +838,8 @@ function processBulkImport() {
         }),
       });
       const data = await res.json();
-
-      // Reset button text based on current selection
       updateImportUI();
       $("#btnImportSubmit").prop("disabled", false);
-
       if (data.success) {
         showToast(data.message, "success");
         $("#importModalOverlay").hide();
@@ -782,12 +873,9 @@ async function renameColumn(event, oldName) {
     const newName = input.val().trim(),
       newType = typeSelect.val();
     if (!newName) return showToast("Name cannot be empty", "error");
-
     const normOld = String(oldName).replace(/\s+/g, " ").trim().toUpperCase();
-    if (FIXED_COLUMNS.includes(normOld)) {
+    if (FIXED_COLUMNS.includes(normOld))
       return showToast("Cannot rename a core system column.", "error");
-    }
-
     modal.hide();
     showToast("Updating column...", "info");
     try {
@@ -832,7 +920,7 @@ async function toggleColumnLock(event, colName, newState) {
     });
     const data = await res.json();
     if (data.success) {
-      showToast(`Column ${newState ? "Locked 🔒" : "Unlocked 🔓"}`, "success");
+      showToast(`Column ${newState ? "Locked" : "Unlocked"}`, "success");
       fetchData(true);
     } else showToast(data.message, "error");
   } catch (e) {
@@ -859,7 +947,6 @@ async function triggerTelegramAlerts() {
   }
 }
 
-// 🟢 CONTEXT MENUS WITH WRAP/UNWRAP TOGGLE
 function attachContextMenus() {
   if (currentUser.role === "Super Admin") $(".admin-only-menu").show();
   else $(".admin-only-menu").hide();
@@ -870,7 +957,6 @@ function attachContextMenus() {
       e.preventDefault();
       contextColName = $(this).find(".col-title-text").text().trim();
       contextColIdx = erpDataTable.column(this).index();
-
       const normCol = String(contextColName)
         .replace(/\s+/g, " ")
         .trim()
@@ -880,13 +966,11 @@ function attachContextMenus() {
       } else {
         if (currentUser.role === "Super Admin") $(".admin-only-menu").show();
       }
-
       let colWraps = JSON.parse(localStorage.getItem("erpColWraps")) || {};
       let currentWrap = colWraps[contextColName] || "nowrap";
       $("#contextWrapText").text(
         currentWrap === "wrap" ? "Unwrap Text" : "Wrap Text",
       );
-
       $("#headerContextMenu")
         .css({ top: e.pageY + "px", left: e.pageX + "px" })
         .fadeIn(200);
@@ -904,7 +988,6 @@ function attachContextMenus() {
         let startIdx = cachedHeaders.findIndex(
           (h) => h.trim().toLowerCase() === "work start",
         );
-
         contextDriverDbId = $(this).closest("tr").data("sheetrow");
         contextDriverPlate = $(this)
           .closest("tr")
@@ -923,7 +1006,6 @@ function attachContextMenus() {
           .find("td")
           .eq(startIdx)
           .text();
-
         $("#driverContextMenu")
           .css({ top: e.pageY + "px", left: e.pageX + "px" })
           .fadeIn(200);
@@ -967,21 +1049,16 @@ async function handleMenuAction(action) {
       showToast("Alignment updated!", "success");
       fetchData(true);
     }
-  }
-  // FIX 3: INDIVIDUAL WRAP TEXT - Proper Draw method applied
-  else if (action === "toggle_col_wrap") {
+  } else if (action === "toggle_col_wrap") {
     let colWraps = JSON.parse(localStorage.getItem("erpColWraps")) || {};
     let currentWrap = colWraps[contextColName] || "nowrap";
     let newWrap = currentWrap === "wrap" ? "nowrap" : "wrap";
-
     colWraps[contextColName] = newWrap;
     localStorage.setItem("erpColWraps", JSON.stringify(colWraps));
-
     showToast(
       newWrap === "wrap" ? "Column Wrapped" : "Column Unwrapped",
       "info",
     );
-    // Force datatable to re-apply the rowCallback
     if (erpDataTable) erpDataTable.rows().invalidate().draw(false);
   } else if (action === "sort_asc") {
     erpDataTable.order([contextColIdx, "asc"]).draw();
@@ -1029,15 +1106,12 @@ async function submitRelativeColumn() {
 async function submitDeleteColumn() {
   const adminPass = $("#deleteColPassword").val();
   if (!adminPass) return showToast("Password is required.", "error");
-
   $("#deleteColModalOverlay").hide();
-
   Swal.fire({
     title: "Moving to Recycle Bin...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
   });
-
   try {
     const res = await fetch("/api/admin/delete-column", {
       method: "POST",
@@ -1051,7 +1125,6 @@ async function submitDeleteColumn() {
       }),
     });
     const data = await res.json();
-
     if (data.success) {
       Swal.fire("Moved!", "Column moved to Recycle Bin (30 Days).", "success");
       setTimeout(() => location.reload(), 1500);
@@ -1063,7 +1136,6 @@ async function submitDeleteColumn() {
   }
 }
 
-// 🟢 GLOBAL TEXT WRAP TOGGLE FUNCTION (For Data Cells)
 function toggleTextWrap() {
   const table = $("#erpTable");
   if (table.hasClass("truncate-text")) {
@@ -1078,7 +1150,6 @@ function toggleTextWrap() {
   if (erpDataTable) erpDataTable.columns.adjust().draw(false);
 }
 
-// 🟢 HEADER TEXT WRAP TOGGLE FUNCTION (For Column Headers)
 function toggleHeaderWrap() {
   const table = $("#erpTable");
   if (table.hasClass("header-wrap")) {
@@ -1093,7 +1164,6 @@ function toggleHeaderWrap() {
   if (erpDataTable) erpDataTable.columns.adjust().draw(false);
 }
 
-// 🟢 FULL RENDER TABLE (ALL FIXES INCLUDED)
 function renderTable(response) {
   if ($(".edit-input").length > 0 || saveQueue.length > 0) return;
   let scrollWrapper = document.querySelector(".table-scroll-wrapper"),
@@ -1101,7 +1171,6 @@ function renderTable(response) {
     preserveScrollLeft = scrollWrapper ? scrollWrapper.scrollLeft : 0;
   document.getElementById("loader").style.display = "none";
   if (response.success) updateSyncUI("live");
-
   const tableEl = document.getElementById("erpTable");
   tableEl.style.display = "table";
 
@@ -1109,34 +1178,25 @@ function renderTable(response) {
     $("#erpTable").DataTable().destroy();
     $("#erpTable").empty();
   }
-
   if (!response.success) {
     if (
       response.message &&
       (response.message.includes("Access Denied") ||
         response.message.toLowerCase().includes("invalid") ||
         response.message.toLowerCase().includes("expired"))
-    ) {
-      performLogout();
-      return;
-    }
+    )
+      return performLogout();
     return showToast(response.message, "error");
   }
 
-  // 'wrap' എന്നതിന് പകരം 'truncate' എന്ന് നൽകുന്നു
   let wrapPref = localStorage.getItem("erpTextWrap") || "truncate";
-  if (wrapPref === "wrap") {
+  if (wrapPref === "wrap")
     $(tableEl).addClass("wrap-text").removeClass("truncate-text");
-  } else {
-    $(tableEl).addClass("truncate-text").removeClass("wrap-text");
-  }
-  // (പുതിയതായി ചേർക്കേണ്ടത്)
+  else $(tableEl).addClass("truncate-text").removeClass("wrap-text");
+
   let headerWrapPref = localStorage.getItem("erpHeaderWrap") || "nowrap";
-  if (headerWrapPref === "wrap") {
-    $(tableEl).addClass("header-wrap");
-  } else {
-    $(tableEl).removeClass("header-wrap");
-  }
+  if (headerWrapPref === "wrap") $(tableEl).addClass("header-wrap");
+  else $(tableEl).removeClass("header-wrap");
 
   cachedHeaders = response.headers;
   cachedAlignments = response.alignments || [];
@@ -1146,7 +1206,6 @@ function renderTable(response) {
   globalLockedCols = response.lockedCols || [];
 
   let snCounter = 1;
-
   let plateIdx = cachedHeaders.findIndex((h) =>
       h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER"),
     ),
@@ -1159,9 +1218,9 @@ function renderTable(response) {
     lwdIdx = cachedHeaders.findIndex(
       (h) => h.replace(/\s+/g, "").toUpperCase() === "LASTWORKINGDAY",
     );
-
   let plateMap = {},
     conflictMap = {};
+
   response.rows.forEach((row) => {
     let sheetRow = row[row.length - 1],
       pRaw =
@@ -1245,39 +1304,32 @@ function renderTable(response) {
         : isRight
           ? "text-align: right;"
           : "text-align: left;";
-
-    let isSN = colHead === "SN";
-    let thClass = isSN ? "sn-column" : "";
-    let iconsContainerHTML = "";
-    let renameFn = "";
-
-    // FIX 4: SN COLUMN REMOVAL OF ICONS & WIDTH LOCK
+    let isSN = colHead === "SN",
+      thClass = isSN ? "sn-column" : "",
+      iconsContainerHTML = "",
+      renameFn = "";
     if (!isSN) {
-      let isLocked = globalLockedCols.includes(h);
-      let lockClass = isLocked ? "lock-icon is-locked" : "lock-icon";
-      let lockStyle = isLocked ? "color:#dc2626;" : "color:#cbd5e1;";
-
-      let lockIconHTML = "";
+      let isLocked = globalLockedCols.includes(h),
+        lockClass = isLocked ? "lock-icon is-locked" : "lock-icon",
+        lockStyle = isLocked ? "color:#dc2626;" : "color:#cbd5e1;",
+        lockIconHTML = "";
       if (currentUser.role === "Super Admin") {
         lockIconHTML = `<span class="material-icons ${lockClass}" style="${lockStyle}" onclick="toggleColumnLock(event, '${h}', ${!isLocked})" title="${isLocked ? "Unlock Column" : "Lock Column"}">${isLocked ? "lock" : "lock_open"}</span>`;
       } else if (isLocked) {
         lockIconHTML = `<span class="material-icons ${lockClass}" style="${lockStyle} cursor:not-allowed;" title="Locked by Admin">lock</span>`;
       }
-
       let filterIconHTML = `<span class="material-icons filter-icon" onclick="openFilterMenu(event, '${h}', this)">filter_list</span>`;
       iconsContainerHTML = `<div class="header-icons">${lockIconHTML}${filterIconHTML}</div>`;
-
       renameFn =
         currentUser.role === "Super Admin" && !FIXED_COLUMNS.includes(colHead)
           ? `ondblclick="renameColumn(event, '${h}')"`
           : "";
     }
-
     theadHtml += `<th class="${thClass}" data-colidx="${i}" title="${isSN ? "" : "Right click for Column Options"}"><div class="header-content" style="${alignStyle}"><span class="col-title-text" style="${textAlign}" ${renameFn}>${h}</span>${iconsContainerHTML}</div></th>`;
   });
-  theadHtml += "</tr></thead>";
+  theadHtml += "</tr></thead><tbody>";
 
-  let tbodyHtml = "<tbody>";
+  let tbodyHtml = "";
   response.rows.forEach((row) => {
     let dbId = row.pop(),
       cClass = conflictMap[dbId] || "";
@@ -1309,7 +1361,6 @@ function renderTable(response) {
           alignVal === "center",
         isRight = alignVal === "right",
         stylesArr = [];
-
       let isSN = colHead === "SN";
       if (isSN) {
         cell = snCounter++;
@@ -1320,19 +1371,27 @@ function renderTable(response) {
           "text-align: center",
         );
       }
-
       if (!isSN && isCenter) stylesArr.push("text-align: center");
       else if (!isSN && isRight) stylesArr.push("text-align: right");
 
       let tdClass = isSN ? 'class="sn-column"' : "";
       let styleAttr =
         stylesArr.length > 0 ? `style="${stylesArr.join("; ")}"` : "";
+
+      // FIX: Force line breaks to render in browser for array history
+      if (typeof cell === "string" && cell.includes("\n")) {
+        styleAttr = styleAttr.replace(
+          'style="',
+          'style="white-space: pre-line !important; ',
+        );
+        if (!styleAttr) styleAttr = 'style="white-space: pre-line !important;"';
+      }
+
       tbodyHtml += `<td data-colname="${colName}" ${tdClass} ${styleAttr}>${cell}</td>`;
     });
     tbodyHtml += "</tr>";
   });
   tbodyHtml += "</tbody>";
-
   tableEl.innerHTML = theadHtml + tbodyHtml;
 
   erpDataTable = $("#erpTable").DataTable({
@@ -1370,14 +1429,11 @@ function renderTable(response) {
       }
       let today = new Date();
       today.setHours(0, 0, 0, 0);
-
       let colWraps = JSON.parse(localStorage.getItem("erpColWraps")) || {};
 
       cachedHeaders.forEach((h, idx) => {
-        let $td = $("td", row).eq(idx);
-        let colHead = String(h).replace(/\s+/g, " ").trim().toUpperCase();
-
-        // Apply Individual Text Wrap (Fixed !important override issue)
+        let $td = $("td", row).eq(idx),
+          colHead = String(h).replace(/\s+/g, " ").trim().toUpperCase();
         if (colWraps[h] === "wrap") {
           $td[0].style.setProperty("white-space", "normal", "important");
           $td[0].style.setProperty("word-break", "break-word", "important");
@@ -1392,6 +1448,11 @@ function renderTable(response) {
             "text-overflow": "",
             overflow: "",
           });
+        }
+
+        // KEEP PRE-LINE FOR HISTORY NEWLINES OVERRIDING THE OTHERS
+        if (typeof data[idx] === "string" && data[idx].includes("\n")) {
+          $td[0].style.setProperty("white-space", "pre-line", "important");
         }
 
         if (
@@ -1536,8 +1597,6 @@ function renderTable(response) {
     ],
     initComplete: function () {
       $("#erpTable thead th").off("click.DT");
-
-      // ഒറിജിനൽ കോഡിലെ പോലെ ribbon-left ലേക്ക് ബട്ടൺ ചേർക്കുന്നു
       if ($(".mobile-tools-btn").length === 0) {
         $(".ribbon-left").prepend(
           '<button class="mobile-tools-btn" onclick="toggleMobileTools(event)"><span class="material-icons" style="font-size:16px;">settings</span> Tools</button>',
@@ -1545,7 +1604,6 @@ function renderTable(response) {
       }
       applyColumnResizing();
       attachContextMenus();
-
       for (let colName in activeFilters) {
         if (activeFilters[colName].length > 0) {
           let targetTh = $("#erpTable th").filter(function () {
@@ -1558,7 +1616,6 @@ function renderTable(response) {
               .text("filter_alt");
         }
       }
-
       let newScrollWrapper = document.querySelector(".table-scroll-wrapper");
       if (newScrollWrapper) {
         newScrollWrapper.style.scrollBehavior = "auto";
@@ -1582,7 +1639,6 @@ function renderTable(response) {
         });
     })
     .draw();
-
   attachEditListeners();
 }
 
@@ -1591,7 +1647,7 @@ function toggleTree(iconEl) {
     $children = $icon.closest(".tree-node").children(".tree-children");
   if ($children.is(":visible")) {
     $children.slideUp(150);
-    $icon.text("▶");
+    $icon.text("►");
     $icon.removeClass("text-blue-600");
   } else {
     $children.slideDown(150);
@@ -1635,12 +1691,10 @@ function openFilterMenu(event, colName, iconElement) {
     listContainer = $("#filterChecklist");
   listContainer.empty();
   let colIdx = erpDataTable.column($(iconElement).closest("th")).index();
-
   let allOptions = new Set();
   erpDataTable.rows().every(function () {
     let rowData = this.data();
     let passesOtherFilters = true;
-
     for (let filterCol in activeFilters) {
       if (filterCol === colName) continue;
       let allowedValues = activeFilters[filterCol];
@@ -1653,13 +1707,12 @@ function openFilterMenu(event, colName, iconElement) {
         break;
       }
     }
-    if (passesOtherFilters) {
+    if (passesOtherFilters)
       allOptions.add(String(rowData[colIdx] || "").trim());
-    }
   });
 
-  let allData = Array.from(allOptions).sort();
-  let isDateCol = false;
+  let allData = Array.from(allOptions).sort(),
+    isDateCol = false;
   if (allData.length > 0) {
     let sample = allData.find((v) => v && v.trim() !== "");
     if (sample && /^\d{2}-[a-zA-Z]{3}-\d{4}$/.test(sample.trim()))
@@ -1667,7 +1720,6 @@ function openFilterMenu(event, colName, iconElement) {
   }
   let previouslySelected = activeFilters[colName] || [],
     isAllSelected = previouslySelected.length === 0;
-
   $("#filterSelectAll").prop("checked", isAllSelected);
   $("#filterSelectAll")
     .off("change")
@@ -1717,6 +1769,7 @@ function openFilterMenu(event, colName, iconElement) {
         if (!dateTree[y][m].includes(d)) dateTree[y][m].push(d);
       } else hasBlank = true;
     });
+
     if (hasBlank) {
       let isChecked = isAllSelected || previouslySelected.includes("");
       listContainer.append(
@@ -1727,12 +1780,12 @@ function openFilterMenu(event, colName, iconElement) {
       .sort((a, b) => b - a)
       .forEach((year) => {
         let yId = `flt_y_${year}`,
-          yearHtml = `<div class="tree-node"><div class="filter-item tree-header" style="background:#f8fafc; border-top:1px solid #f1f5f9;"><span class="toggle-icon" onclick="toggleTree(this)">▶</span><input type="checkbox" id="${yId}" class="tree-cb year-cb" data-year="${year}"><label for="${yId}" style="font-weight:700;">${year}</label></div><div class="tree-children" style="display:none; padding-left: 20px;">`;
+          yearHtml = `<div class="tree-node"><div class="filter-item tree-header" style="background:#f8fafc; border-top:1px solid #f1f5f9;"><span class="toggle-icon" onclick="toggleTree(this)">►</span><input type="checkbox" id="${yId}" class="tree-cb year-cb" data-year="${year}"><label for="${yId}" style="font-weight:700;">${year}</label></div><div class="tree-children" style="display:none; padding-left: 20px;">`;
         Object.keys(dateTree[year])
           .sort((a, b) => monthOrder[a] - monthOrder[b])
           .forEach((month) => {
             let mId = `flt_m_${year}_${month}`;
-            yearHtml += `<div class="tree-node"><div class="filter-item tree-header"><span class="toggle-icon" onclick="toggleTree(this)">▶</span><input type="checkbox" id="${mId}" class="tree-cb month-cb" data-year="${year}" data-month="${month}"><label for="${mId}" style="font-weight:600; color:#475569;">${month}</label></div><div class="tree-children" style="display:none; padding-left: 20px;">`;
+            yearHtml += `<div class="tree-node"><div class="filter-item tree-header"><span class="toggle-icon" onclick="toggleTree(this)">►</span><input type="checkbox" id="${mId}" class="tree-cb month-cb" data-year="${year}" data-month="${month}"><label for="${mId}" style="font-weight:600; color:#475569;">${month}</label></div><div class="tree-children" style="display:none; padding-left: 20px;">`;
             dateTree[year][month]
               .sort((a, b) => parseInt(a) - parseInt(b))
               .forEach((day) => {
@@ -1884,7 +1937,6 @@ function applyCustomFilter() {
       $(this).find(".col-title-text").text().trim() === currentFilterColName
     );
   });
-
   if (targetTh.length > 0) {
     const icon = targetTh.find(".filter-icon");
     if (checkedCount === totalVisible || checkedCount === 0) {
@@ -1931,10 +1983,7 @@ async function submitNewColumn() {
 }
 
 function toggleAllColumns(show) {
-  // 1. ആദ്യം ചെക്ക്ബോക്സുകളിൽ മാറ്റം വരുത്തുന്നു (UI Update)
   $(".col-vis-cb").prop("checked", show);
-
-  // 2. അതിനുശേഷം DataTables-ലെ കോളങ്ങൾ Hide/Show ചെയ്യുന്നു
   if (erpDataTable) {
     erpDataTable.columns().visible(show, false);
     erpDataTable.columns.adjust().draw(false);
@@ -1957,10 +2006,7 @@ function openAddEntryModal() {
   document.getElementById("userDropdownMenu").classList.remove("show");
   if (currentUser.role === "Viewer")
     return showToast("Access Denied.", "error");
-
   $("#dynamicFormFields").empty();
-
-  // 1. Generate Datalists for Auto-Suggestions
   let listsHtml = "";
   const suggestionTargetCols = [
     "PLATE NO",
@@ -1975,7 +2021,6 @@ function openAddEntryModal() {
     "SITE COORDINATOR",
     "SITE CO",
   ];
-
   cachedHeaders.forEach((header, index) => {
     let colUpper = header.replace(/\s+/g, " ").trim().toUpperCase();
     if (suggestionTargetCols.includes(colUpper)) {
@@ -1996,27 +2041,19 @@ function openAddEntryModal() {
       listsHtml += `<datalist id="datalist_entry_${index}">${optionsHtml}</datalist>`;
     }
   });
-
   $("#dynamicFormFields").append(listsHtml);
 
-  // 2. Generate Input Fields
   cachedHeaders.forEach((header, index) => {
     let colTypeObj = cachedColTypes.find((c) => c.name === header),
       cType = colTypeObj ? colTypeObj.type : "varchar",
       colUpper = header.replace(/\s+/g, " ").trim().toUpperCase();
-
-    // --- NEW CODE: Exclude specific columns from Add Entry Form ---
     const excludedCols = [
       "DAYS WORKED",
       "PAY FROM",
       "MUBARAK REMARK",
       "OFFICE REMARK",
     ];
-    if (excludedCols.includes(colUpper)) {
-      return; // ഈ കോളങ്ങൾ ഫോമിൽ കാണിക്കില്ല
-    }
-    // --------------------------------------------------------------
-
+    if (excludedCols.includes(colUpper)) return;
     let isDateCol =
         cType === "date" ||
         colUpper.includes("DATE") ||
@@ -2025,10 +2062,8 @@ function openAddEntryModal() {
         colUpper === "LAST WORKING DAY" ||
         colUpper === "WORK START",
       isIntCol = cType === "int";
-
-    let isSuggestionCol = suggestionTargetCols.includes(colUpper);
-    let listAttr = isSuggestionCol ? `list="datalist_entry_${index}"` : "";
-
+    let isSuggestionCol = suggestionTargetCols.includes(colUpper),
+      listAttr = isSuggestionCol ? `list="datalist_entry_${index}"` : "";
     let inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}" ${listAttr}>`;
 
     if (isDateCol) {
@@ -2059,7 +2094,6 @@ function openAddEntryModal() {
       `<div class="form-group"><label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#334155; font-size:12px;">${header}</label>${inputHtml}</div>`,
     );
   });
-
   $("#entryModalOverlay").css("display", "flex");
 }
 
@@ -2116,7 +2150,7 @@ async function sendCustomBackup() {
       body: JSON.stringify({ targetEmail: targetEmail }),
     });
     const data = await res.json();
-    if (data.success) showToast(`✅ Backup sent!`, "success");
+    if (data.success) showToast(`Backup sent!`, "success");
     else showToast(data.message, "error");
   } catch (error) {
     showToast("Server connection failed.", "error");
@@ -2126,24 +2160,17 @@ async function sendCustomBackup() {
 function applyColumnResizing() {
   const table = document.getElementById("erpTable"),
     cols = table.querySelectorAll(".main-header th");
-
   cols.forEach((col, index) => {
     let colName = col.querySelector(".col-title-text").innerText.trim();
-
     if (colName.toUpperCase() === "SN") return;
-
-    // 🟢 Fetching from Database cache instead of localStorage
     let widthObj = cachedColWidths.find((w) => w.name === colName);
     let widthToApply = widthObj && widthObj.width ? widthObj.width : "100px";
-
     col.style.width = widthToApply;
     col.style.minWidth = widthToApply;
     col.style.maxWidth = widthToApply;
-
     const resizer = document.createElement("div");
     resizer.classList.add("col-resizer");
     col.appendChild(resizer);
-
     let startX,
       startWidth,
       isResizing = false;
@@ -2169,17 +2196,13 @@ function applyColumnResizing() {
         });
       }
     };
-
     const mouseUpHandler = function () {
       if (isResizing) {
         isResizing = false;
         resizer.classList.remove("resizing");
         document.removeEventListener("mousemove", mouseMoveHandler);
         document.removeEventListener("mouseup", mouseUpHandler);
-
         let finalWidth = col.style.width;
-
-        // 🟢 Saving to Database so it syncs across all devices
         fetch("/api/update-col-width", {
           method: "POST",
           headers: {
@@ -2193,19 +2216,15 @@ function applyColumnResizing() {
   });
 }
 
-// 🟢 BATCH PROCESSING QUEUE
 async function processQueue() {
   if (isProcessingQueue || saveQueue.length === 0) {
     if (saveQueue.length === 0) updateSyncUI("live");
     return;
   }
-
   isProcessingQueue = true;
   updateSyncUI("saving");
-
   let currentBatch = [...saveQueue];
   saveQueue = [];
-
   try {
     const res = await fetch("/api/update-cells-batch", {
       method: "POST",
@@ -2216,9 +2235,7 @@ async function processQueue() {
       body: JSON.stringify({ edits: currentBatch }),
     });
     const data = await res.json();
-
     isProcessingQueue = false;
-
     if (data.success) {
       if (saveQueue.length > 0) processQueue();
       else updateSyncUI("live");
@@ -2296,7 +2313,6 @@ function attachEditListeners() {
       sel.removeAllRanges();
       sel.addRange(range);
     });
-
   $("#erpTable tbody")
     .off("dblclick", "td")
     .on("dblclick", "td", function () {
@@ -2307,15 +2323,18 @@ function attachEditListeners() {
       let $cell = $(this),
         colName = $cell.data("colname"),
         colUpper = String(colName).replace(/\s+/g, " ").trim().toUpperCase();
-
       if (
         globalLockedCols.includes(colName) &&
         currentUser.role !== "Super Admin"
       )
-        return showToast("🔒 Column is locked by Super Admin.", "error");
+        return showToast("Column is locked by Super Admin.", "error");
       if (colUpper === "SN")
         return showToast("Access Denied: SN is auto-generated.", "error");
-      if (["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME"].includes(colUpper))
+      if (
+        ["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(
+          colUpper,
+        )
+      )
         return showToast("Auto calculated column.", "warning");
 
       let oldVal = $cell.text(),
@@ -2449,17 +2468,14 @@ function attachEditListeners() {
           }
         }
       });
-
       $input.on("blur", function () {
         if ($cell.find(".edit-input").length === 0) return;
         let newVal = $(this).val();
         if (isDateCol && newVal) newVal = formatToDDMMMYYYY(newVal);
         else if (colUpper === "PLATE NUMBER")
           newVal = formatPlateNumber(newVal);
-
         $cell.text(newVal);
         erpDataTable.cell($cell[0]).data(newVal);
-
         if (newVal !== oldVal) {
           undoStack.push({
             sheetRow: sheetRow,
