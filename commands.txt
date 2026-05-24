@@ -1,0 +1,12 @@
+Master DB Days worked calculation Manual run
+
+UPDATE erp_records
+SET record_data = record_data || jsonb_build_object(
+    'Days Worked', 
+    ( (record_data->>'Last Working Day')::DATE - (record_data->>'Work Start')::DATE + 1 )::text
+)
+WHERE deleted_at IS NULL
+  AND record_data->>'Work Start' ~ '\d{1,2}-[A-Za-z]{3}-\d{4}'
+  AND record_data->>'Last Working Day' ~ '\d{1,2}-[A-Za-z]{3}-\d{4}';
+
+  

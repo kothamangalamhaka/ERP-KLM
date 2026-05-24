@@ -105,6 +105,12 @@ module.exports = function (pool, middlewares, helpers) {
     if (wsVal && lwdVal && daysCol) {
       const parseDate = (dStr) => {
         if (!dStr) return null;
+
+        let parsedDate = new Date(dStr);
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate;
+        }
+
         const p = String(dStr)
           .trim()
           .split(/[\/\- \.]/);
@@ -122,19 +128,30 @@ module.exports = function (pool, middlewares, helpers) {
           "NOV",
           "DEC",
         ];
+
         if (p.length === 3) {
-          let d = parseInt(p[0]),
-            m = mNames.indexOf(p[1].toUpperCase().substring(0, 3)),
-            y = p[2].length === 2 ? 2000 + parseInt(p[2]) : parseInt(p[2]);
-          if (!isNaN(d) && m !== -1 && !isNaN(y)) return new Date(y, m, d);
+          let d = parseInt(p[0]);
+          let m = isNaN(parseInt(p[1]))
+            ? mNames.indexOf(p[1].toUpperCase().substring(0, 3))
+            : parseInt(p[1]) - 1;
+          let y = p[2].length === 2 ? 2000 + parseInt(p[2]) : parseInt(p[2]);
+
+          if (!isNaN(d) && m !== -1 && !isNaN(y)) {
+            return new Date(y, m, d);
+          }
         }
         return null;
       };
-      const d1 = parseDate(wsVal),
-        d2 = parseDate(lwdVal);
+
+      const d1 = parseDate(wsVal);
+      const d2 = parseDate(lwdVal);
+
       if (d1 && d2 && !isNaN(d1) && !isNaN(d2)) {
-        const diffDays = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
-        if (diffDays >= 0) updates[daysCol] = String(diffDays);
+        const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+
+        if (diffDays > 0) {
+          updates[daysCol] = String(diffDays);
+        }
       }
     }
 
