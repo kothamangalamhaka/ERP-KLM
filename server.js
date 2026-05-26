@@ -227,33 +227,6 @@ async function generateAndSendBackup(customEmail = null) {
     sheet1.addRow(rowArray);
   });
 
-  // 2. Driver Logs Sheet
-  const sheet2 = workbook.addWorksheet("Driver Logs");
-  sheet2.addRow([
-    "Plate Number",
-    "Driver Name",
-    "Mobile",
-    "Work Start",
-    "Work End",
-    "Updated By",
-    "Updated At",
-  ]);
-  const logRes = await pool.query(
-    "SELECT plate_number, driver_name, mobile, work_start, work_end, updated_by, created_at FROM driver_logs ORDER BY created_at DESC",
-  );
-  logRes.rows.forEach((r) => {
-    let dt = r.created_at ? new Date(r.created_at).toLocaleString("en-GB") : "";
-    sheet2.addRow([
-      r.plate_number,
-      r.driver_name,
-      r.mobile,
-      r.work_start,
-      r.work_end,
-      r.updated_by,
-      dt,
-    ]);
-  });
-
   const buffer = await workbook.xlsx.writeBuffer();
   let transporter = nodemailer.createTransport({
     service: "gmail",

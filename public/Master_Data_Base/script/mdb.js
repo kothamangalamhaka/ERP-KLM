@@ -1395,6 +1395,7 @@ function renderTable(response) {
   tableEl.innerHTML = theadHtml + tbodyHtml;
 
   erpDataTable = $("#erpTable").DataTable({
+    deferRender: true,
     dom: '<"top-ribbon"<"ribbon-left"B> f <"right-controls"l i p>><"table-scroll-wrapper"t>',
     ordering: true,
     order: [],
@@ -1490,8 +1491,10 @@ function renderTable(response) {
         text: '<span class="material-icons" style="font-size:16px;">download</span> Export',
         className: "dt-button btn-outline",
         extend: "excelHtml5",
+        title: "", // 🟢 Ithu add cheythaal first blank merged row varilla!
         exportOptions: {
           columns: ":visible",
+          stripNewlines: false,
           format: {
             header: function (data, columnIdx, node) {
               return $(node).find(".col-title-text").length > 0
@@ -1499,6 +1502,15 @@ function renderTable(response) {
                 : $(node).text().trim();
             },
           },
+        },
+        customize: function (xlsx) {
+          var sheet = xlsx.xl.worksheets["sheet1.xml"];
+          $("row c", sheet).each(function () {
+            var text = $("is t", this).text();
+            if (text.indexOf("\n") > -1 || text.indexOf("\r") > -1) {
+              $(this).attr("s", "55");
+            }
+          });
         },
       },
       {
