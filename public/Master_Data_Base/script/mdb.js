@@ -160,9 +160,19 @@ const FIXED_COLUMNS = [
 
 let currentUser = JSON.parse(localStorage.getItem("erpUser"));
 let token = localStorage.getItem("erpToken");
-if (!token || !currentUser) window.location.href = "index.html";
+if (!token || !currentUser) window.location.replace("index.html");
 
-document.getElementById("userInfoDisplay").innerText = currentUser.username;
+// 🟢 BACK BUTTON FIX (BFCache Protection)
+// Browser back button vazhiyo cache vazhiyo page vannal udan check cheyyum
+window.addEventListener("pageshow", function (event) {
+  if (event.persisted || !localStorage.getItem("erpToken")) {
+    window.location.replace("index.html");
+  }
+});
+
+document.getElementById("userInfoDisplay").innerText = currentUser
+  ? currentUser.username
+  : "";
 if (currentUser.role === "Super Admin")
   document.getElementById("btnAlerts").style.display = "inline-flex";
 
