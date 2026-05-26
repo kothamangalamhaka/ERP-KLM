@@ -472,7 +472,43 @@
         <div class="modal-resizer-left" id="modalResizer"></div>
         <div class="logsheet-header">
           <h3 id="logsheetTitle">Logsheet Viewer</h3>
-          <div style="display: flex; gap: 15px; align-items: center">
+          <div style="display: flex; gap: 10px; align-items: center">
+            <button
+              id="btnDownloadCurrent"
+              onclick="downloadCurrentImage()"
+              style="
+                background: #e0f2fe;
+                border: 1px solid #0284c7;
+                border-radius: 4px;
+                color: #0284c7;
+                font-size: 11px;
+                font-weight: bold;
+                padding: 4px 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+              "
+              title="Download Currently Viewing Image"
+            >
+              ⬇ Current
+            </button>
+            <button
+              id="btnDownloadSelected"
+              onclick="downloadSelectedAsPdf()"
+              style="
+                background: #fef3c7;
+                border: 1px solid #d97706;
+                border-radius: 4px;
+                color: #d97706;
+                font-size: 11px;
+                font-weight: bold;
+                padding: 4px 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+              "
+              title="Download Selected Images as PDF"
+            >
+              Selected
+            </button>
             <button
               id="btnDownloadPdf"
               onclick="downloadAllAsPdf()"

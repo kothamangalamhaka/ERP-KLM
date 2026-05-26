@@ -85,7 +85,7 @@ async function openLogsheetViewer(passedPlate = "") {
   }
 }
 
-// 2. Render Sidebar List (Updated with File Size & 0B check)
+// 2. Render Sidebar List (Updated with Checkboxes, File Size & 0B check)
 function renderFileList() {
   const sidebar = document.getElementById("logsheetFileList");
   sidebar.innerHTML = "";
@@ -97,7 +97,13 @@ function renderFileList() {
     // 0B check
     if (file.size === 0) div.classList.add("empty-file");
 
-    div.innerHTML = `<span>${file.basename}</span>`;
+    // Added inline styles to prevent word breaking and keep it in a single line
+    div.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px; overflow:hidden; width:100%;">
+        <input type="checkbox" class="ls-checkbox" id="ls-check-${index}" onclick="event.stopPropagation();" style="flex-shrink: 0; width: 15px; height: 15px; cursor: pointer; margin: 0;" />
+        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1;" title="${file.basename}">${file.basename}</span>
+      </div>
+    `;
 
     div.onclick = () => selectFileIndex(index);
     sidebar.appendChild(div);
@@ -318,80 +324,67 @@ function initResizers() {
   });
 }
 
-// ✅ PDF Export with SAME IMAGE SIZE as PDF Page
-async function downloadAllAsPdf() {
-  const btn = document.getElementById("btnDownloadPdf");
-  if (!btn) return;
-
-  const imageFiles = logsheetFiles.filter(
-    (f) => f.mime && f.mime.includes("image") && f.size > 0,
-  );
-
-  if (!imageFiles.length) {
-    customAlert("No valid images found.", "Notice");
+// ✅ Shared Core Function for PDF Generation (Stretching Fixed with Auto Orientation)
+async function generatePdfFromFiles(
+  filesArray,
+  pdfFilename,
+  btnElement,
+  originalBtnText,
+) {
+  if (!filesArray.length) {
+    customAlert("No valid images found for PDF.", "Notice");
     return;
   }
 
-  btn.disabled = true;
-  btn.innerHTML = `Processing...`;
+  btnElement.disabled = true;
+  btnElement.innerHTML = `Processing...`;
 
   try {
     const { jsPDF } = window.jspdf;
-
     let doc = null;
 
-    for (let i = 0; i < imageFiles.length; i++) {
-      const file = imageFiles[i];
+    for (let i = 0; i < filesArray.length; i++) {
+      const file = filesArray[i];
 
       const res = await fetch(
         `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
         {
-          headers: {
-            Authorization: "Bearer " + currentToken,
-          },
+          headers: { Authorization: "Bearer " + currentToken },
         },
       );
 
       if (!res.ok) continue;
-
       const blob = await res.blob();
 
-      // ✅ FIX EXIF ROTATION
       const bitmap = await createImageBitmap(blob, {
         imageOrientation: "from-image",
       });
-
-      // Canvas
       const canvas = document.createElement("canvas");
       canvas.width = bitmap.width;
       canvas.height = bitmap.height;
-
       const ctx = canvas.getContext("2d");
       ctx.drawImage(bitmap, 0, 0);
 
       const imgData = canvas.toDataURL("image/jpeg", 1.0);
 
-      // ✅ IMAGE SIZE AS PDF PAGE SIZE
-      const pdfWidth = bitmap.width * 0.264583; // px → mm
+      // Convert px to mm
+      const pdfWidth = bitmap.width * 0.264583;
       const pdfHeight = bitmap.height * 0.264583;
 
-      // Portrait / Landscape detect
+      // FIX: Dynamically check orientation to prevent jsPDF from auto-swapping dimensions!
       const orientation = pdfWidth > pdfHeight ? "l" : "p";
 
       if (i === 0) {
-        // First page
         doc = new jsPDF({
-          orientation,
+          orientation: orientation,
           unit: "mm",
           format: [pdfWidth, pdfHeight],
           compress: true,
         });
       } else {
-        // Additional pages
         doc.addPage([pdfWidth, pdfHeight], orientation);
       }
 
-      // Full page image
       doc.addImage(
         imgData,
         "JPEG",
@@ -409,18 +402,109 @@ async function downloadAllAsPdf() {
       return;
     }
 
-    const plate = document
-      .getElementById("logsheetTitle")
-      .innerText.replace("Logsheets - ", "")
-      .replace(/[^a-zA-Z0-9 ]/g, "")
-      .trim();
-
-    doc.save(`${plate}_Logsheets.pdf`);
+    doc.save(pdfFilename);
   } catch (e) {
     console.error("PDF Error:", e);
     customAlert("Failed to generate PDF.", "Error");
   } finally {
+    btnElement.disabled = false;
+    btnElement.innerHTML = originalBtnText;
+  }
+}
+
+// ✅ 1. Download ALL as PDF
+async function downloadAllAsPdf() {
+  const btn = document.getElementById("btnDownloadPdf");
+  const imageFiles = logsheetFiles.filter(
+    (f) => f.mime && f.mime.includes("image") && f.size > 0,
+  );
+
+  const plate = document
+    .getElementById("logsheetTitle")
+    .innerText.replace("Logsheets - ", "")
+    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .trim();
+  await generatePdfFromFiles(
+    imageFiles,
+    `${plate}_All_Logsheets.pdf`,
+    btn,
+    "PDF",
+  );
+}
+
+// ✅ 2. Download SELECTED as PDF
+async function downloadSelectedAsPdf() {
+  const btn = document.getElementById("btnDownloadSelected");
+  const checkboxes = document.querySelectorAll(".ls-checkbox");
+  const selectedFiles = [];
+
+  checkboxes.forEach((cb, index) => {
+    if (
+      cb.checked &&
+      logsheetFiles[index].mime &&
+      logsheetFiles[index].mime.includes("image") &&
+      logsheetFiles[index].size > 0
+    ) {
+      selectedFiles.push(logsheetFiles[index]);
+    }
+  });
+
+  if (selectedFiles.length === 0) {
+    customAlert("Please select at least one valid image file first.", "Notice");
+    return;
+  }
+
+  const plate = document
+    .getElementById("logsheetTitle")
+    .innerText.replace("Logsheets - ", "")
+    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .trim();
+  await generatePdfFromFiles(
+    selectedFiles,
+    `${plate}_Selected_Logsheets.pdf`,
+    btn,
+    "📑 Selected",
+  );
+}
+
+// ✅ 3. Download CURRENT Image directly
+async function downloadCurrentImage() {
+  if (currentFileIndex === -1 || !logsheetFiles[currentFileIndex]) {
+    customAlert("No image is currently being viewed.", "Notice");
+    return;
+  }
+
+  const file = logsheetFiles[currentFileIndex];
+  const btn = document.getElementById("btnDownloadCurrent");
+  btn.disabled = true;
+  btn.innerText = "Wait...";
+
+  try {
+    const res = await fetch(
+      `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
+      {
+        headers: { Authorization: "Bearer " + currentToken },
+      },
+    );
+
+    if (!res.ok) throw new Error("Fetch failed");
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.basename;
+    document.body.appendChild(a);
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+    a.remove();
+  } catch (error) {
+    console.error("Download Error:", error);
+    customAlert("Failed to download current image.", "Error");
+  } finally {
     btn.disabled = false;
-    btn.innerHTML = `Download All as PDF`;
+    btn.innerText = "⬇ Current";
   }
 }
