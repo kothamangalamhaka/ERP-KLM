@@ -215,6 +215,84 @@ function removeActive(items) {
   }
 }
 
+function parseLogDate(dStr, defaultDate) {
+  if (!dStr) return defaultDate;
+  let parts = dStr.split("T")[0].split("-");
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function getGapStatus(d, sLogs, dLogs) {
+  let sActive = false,
+    sGap = false,
+    isReplaced = false;
+  let dActive = false,
+    dGap = false;
+
+  if (sLogs && sLogs.length > 0) {
+    let ascSLogs = [...sLogs].sort(
+      (a, b) =>
+        parseLogDate(a.work_start_date, new Date("2000-01-01")) -
+        parseLogDate(b.work_start_date, new Date("2000-01-01")),
+    );
+    for (let i = 0; i < ascSLogs.length; i++) {
+      let st = parseLogDate(
+        ascSLogs[i].work_start_date,
+        new Date("2000-01-01"),
+      );
+      let ed = parseLogDate(ascSLogs[i].work_end_date, new Date("2099-01-01"));
+      if (d >= st && d <= ed) {
+        sActive = true;
+        break;
+      }
+      if (d > ed) {
+        if (ascSLogs[i].status === "Replaced") isReplaced = true;
+      }
+    }
+    if (!sActive) {
+      let firstStart = parseLogDate(
+        ascSLogs[0].work_start_date,
+        new Date("2000-01-01"),
+      );
+      let lastEnd = parseLogDate(
+        ascSLogs[ascSLogs.length - 1].work_end_date,
+        new Date("2099-01-01"),
+      );
+      if (d >= firstStart && d <= lastEnd) sGap = true;
+    }
+  } else {
+    sActive = true;
+  }
+
+  if (!sActive) {
+    if (isReplaced) return "R";
+    return sGap ? "SC" : "AB";
+  }
+
+  if (dLogs && dLogs.length > 0) {
+    let ascDLogs = [...dLogs].sort(
+      (a, b) =>
+        parseLogDate(a.work_start_date, new Date("2000-01-01")) -
+        parseLogDate(b.work_start_date, new Date("2000-01-01")),
+    );
+    for (let i = 0; i < ascDLogs.length; i++) {
+      let st = parseLogDate(
+        ascDLogs[i].work_start_date,
+        new Date("2000-01-01"),
+      );
+      let ed = parseLogDate(ascDLogs[i].work_end_date, new Date("2099-01-01"));
+      if (d >= st && d <= ed) {
+        dActive = true;
+        break;
+      }
+    }
+  } else {
+    dActive = true;
+  }
+
+  if (!dActive) return "DC";
+  return "ACTIVE";
+}
+
 function getDaysInMonth(monthStr, year) {
   return new Date(year, months.indexOf(monthStr) + 1, 0).getDate();
 }
@@ -516,7 +594,7 @@ async function triggerFetch() {
     if (data.success) existingData = data.data;
 
     setTimeout(() => {
-      renderGrid(m, y, p, existingData, sStartVal, sEndVal);
+      renderGrid(m, y, p, existingData, sStartVal, sEndVal, logs);
       btn.disabled = false;
       text.innerText = "Fetch Data";
       loader.style.display = "none";
@@ -559,9 +637,19 @@ function clearInvoiceForm() {
   isEditingInvoice = false;
 }
 
-function renderGrid(month, year, plate, existingData, siteStart, siteEnd) {
+function renderGrid(
+  month,
+  year,
+  plate,
+  existingData,
+  siteStart,
+  siteEnd,
+  logs = { drivers: [], sites: [] },
+) {
   const tbody = document.getElementById("gridBody");
   tbody.innerHTML = "";
+  const siteLogs = logs.sites || [];
+  const driverLogs = logs.drivers || [];
   const days = getDaysInMonth(month, year);
   const mIdx = months.indexOf(month);
 
@@ -586,26 +674,41 @@ function renderGrid(month, year, plate, existingData, siteStart, siteEnd) {
     let currentDateObj = new Date(year, mIdx, i);
     currentDateObj.setHours(0, 0, 0, 0);
 
-    let currentSiteStr = document.getElementById("dispSite").innerText.split("&")[0].trim().toUpperCase();
-    let formattedDate = currentDateObj.toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).replace(/ /g, ' ');
+    let currentSiteStr = document
+      .getElementById("dispSite")
+      .innerText.split("&")[0]
+      .trim()
+      .toUpperCase();
+    let formattedDate = currentDateObj
+      .toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .replace(/ /g, " ");
 
-    let specialRule = specialRulesCache.find(r =>
-      r.is_active &&
-      (r.sites.includes("ALL") || r.sites.includes(currentSiteStr)) &&
-      r.dates.includes(formattedDate)
+    let specialRule = specialRulesCache.find(
+      (r) =>
+        r.is_active &&
+        (r.sites.includes("ALL") || r.sites.includes(currentSiteStr)) &&
+        r.dates.includes(formattedDate),
     );
 
     let displayBd = cleanVal(rowData.bd);
     let ws = cleanVal(rowData.wrk_start);
+    let hmr = cleanVal(rowData.hmr_start);
     let rowRemark = cleanVal(rowData.remark);
 
     // 🟢 Smart Auto-Fill & Override Logic
-    if (displayBd === "" && ws === "") {
+    let statusCode = getGapStatus(currentDateObj, siteLogs, driverLogs);
+    let hasData = displayBd !== "" || ws !== "" || hmr !== "";
+
+    if (!hasData) {
       if (specialRule && specialRule.rule_type !== "FULL_OT") {
         displayBd = specialRule.rule_type;
         rowRemark = specialRule.reason || "";
-      } else if (currentDateObj < startDateObj || currentDateObj > endDateObj) {
-        displayBd = "AB";
+      } else if (statusCode !== "ACTIVE") {
+        displayBd = statusCode;
       }
     }
 
@@ -670,14 +773,25 @@ function updateSummaryBox() {
     if (hasLog) logCount++;
 
     let dayName = getDayName(i, monthStr, year);
-    let siteForSum = document.getElementById("dispSite").innerText.split("&")[0].trim().toUpperCase();
-    let formattedDateForSum = new Date(year, months.indexOf(monthStr), i).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).replace(/ /g, ' ');
-    
-    let sumOtRule = specialRulesCache.find(r => 
-        r.is_active && 
-        r.rule_type === "FULL_OT" && 
-        (r.sites.includes("ALL") || r.sites.includes(siteForSum)) && 
-        r.dates.includes(formattedDateForSum)
+    let siteForSum = document
+      .getElementById("dispSite")
+      .innerText.split("&")[0]
+      .trim()
+      .toUpperCase();
+    let formattedDateForSum = new Date(year, months.indexOf(monthStr), i)
+      .toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .replace(/ /g, " ");
+
+    let sumOtRule = specialRulesCache.find(
+      (r) =>
+        r.is_active &&
+        r.rule_type === "FULL_OT" &&
+        (r.sites.includes("ALL") || r.sites.includes(siteForSum)) &&
+        r.dates.includes(formattedDateForSum),
     );
 
     let isFullOT = dayName === "Fri" || i === 31 || !!sumOtRule;
@@ -687,7 +801,7 @@ function updateSummaryBox() {
     if (bd === "ID" || bd === "NP") {
       if (isFullOT) otHr = 10;
       else normalHr = 10;
-    } else if (bd === "B" || bd === "H" || bd === "AB") {
+    } else if (["B", "H", "AB", "DC", "SC", "R"].includes(bd)) {
     } else if (tm > 0) {
       if (isFullOT) {
         otHr = tm;
@@ -834,24 +948,31 @@ function calculateRow(rowIdx) {
     let bdNum = parseFloat(bd);
     if (!isNaN(bdNum)) finalTime = bdNum;
     else if (["ID", "NP"].includes(bd)) finalTime = 10;
-    else if (["B", "H", "AB"].includes(bd)) finalTime = 0;
+    else if (["B", "H", "AB", "DC", "SC", "R"].includes(bd)) finalTime = 0;
   } else if (ws && we) {
     let sHour = parseRailwayTime(ws);
     let eHour = parseRailwayTime(we);
     let diff = eHour - sHour;
     if (diff < 0) diff += 24;
     let endIsMorning = eHour >= 6 && eHour <= 12.5;
-    
+
     // Check FULL_OT Special Rule
     let monthStr = document.getElementById("selMonth").value;
     let year = document.getElementById("selYear").value;
-    let formattedDateForOT = new Date(year, months.indexOf(monthStr), rowIdx).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'}).replace(/ /g, ' ');
-    
-    let otRule = specialRulesCache.find(r => 
-        r.is_active && 
-        r.rule_type === "FULL_OT" && 
-        (r.sites.includes("ALL") || r.sites.includes(site)) && 
-        r.dates.includes(formattedDateForOT)
+    let formattedDateForOT = new Date(year, months.indexOf(monthStr), rowIdx)
+      .toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .replace(/ /g, " ");
+
+    let otRule = specialRulesCache.find(
+      (r) =>
+        r.is_active &&
+        r.rule_type === "FULL_OT" &&
+        (r.sites.includes("ALL") || r.sites.includes(site)) &&
+        r.dates.includes(formattedDateForOT),
     );
 
     if (nl || sHour >= 13 || endIsMorning || !!otRule) {
