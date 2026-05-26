@@ -1,5 +1,9 @@
 const token = localStorage.getItem("timesheetToken");
-if (!token) window.location.href = "index.html";
+if (!token) {
+  // User ippol ethu page-il aano ullathu, aa page-nte peru eduthu URL-il pass cheyyunnu
+  const currentPage = encodeURIComponent(window.location.pathname.split('/').pop() + window.location.search);
+  window.location.href = "index.html?redirect=" + currentPage;
+}
 
 const dDate = new Date();
 document.getElementById("selYear").value = dDate.getFullYear();
