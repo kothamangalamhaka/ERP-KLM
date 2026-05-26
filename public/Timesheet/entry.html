@@ -107,6 +107,9 @@
             <button class="tsm"><a href="Dashboard.html">Timesheet</a></button>
             <button class="tsm"><a href="view.html">Ts Card</a></button>
             <button class="tsdb"><a href="./db.html">T S DB</a></button>
+            <button class="logsheet-btn" onclick="openLogsheetViewer()">
+              📁 Logsheet
+            </button>
           </div>
         </div>
       </div>
@@ -459,6 +462,42 @@
       </div>
     </div>
 
+    <div
+      id="logsheetModal"
+      class="modal-overlay"
+      style="z-index: 4000; display: none"
+    >
+      <div class="logsheet-modal-content" id="logsheetModalContent">
+        <div class="modal-resizer-left" id="modalResizer"></div>
+        <div class="logsheet-header">
+          <h3 id="logsheetTitle">Logsheet Viewer</h3>
+          <button
+            class="close-btn"
+            style="
+              background: none;
+              border: none;
+              font-size: 20px;
+              cursor: pointer;
+              color: #ef4444;
+            "
+            onclick="closeLogsheetViewer()"
+          >
+            ✖
+          </button>
+        </div>
+        <div class="logsheet-body">
+          <div class="logsheet-sidebar" id="logsheetFileList"></div>
+          <div class="sidebar-resizer" id="sidebarResizer"></div>
+          <div class="logsheet-viewer" id="logsheetViewerContainer">
+            <div style="text-align: center; padding: 50px; color: #64748b">
+              Select a file from the list to view
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="scripts/entry.js"></script>
+    <script src="scripts/logsheet_viewer.js"></script>
   </body>
 </html>

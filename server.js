@@ -24,6 +24,7 @@ const paymentRoutes = require("./routes/paymentstatus");
 const employeeRoutes = require("./routes/employee");
 const expenseRoutes = require("./routes/expense");
 const masterDatabaseRoutes = require("./routes/master_database");
+const logsheetRoutes = require("./routes/logsheet_api");
 
 const app = express();
 app.use(compression());
@@ -38,6 +39,7 @@ app.use("/payment", paymentRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/expenses", expenseRoutes);
 app.use("/master", masterDatabaseRoutes);
+app.use("/timesheet/api/logsheets", logsheetRoutes);
 app.use("/api/backup", backupRoutes);
 
 const JWT_SECRET = process.env.JWT_SECRET;
