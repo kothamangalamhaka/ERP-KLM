@@ -44,12 +44,14 @@ async function openLogsheetViewer(passedPlate = "") {
 
   try {
     currentToken = localStorage.getItem("timesheetToken");
+
+    // 🟢 Dynamic headers based on token availability
+    const reqHeaders = { "Content-Type": "application/json" };
+    if (currentToken) reqHeaders["Authorization"] = "Bearer " + currentToken;
+
     const response = await fetch("/timesheet/api/logsheets/list", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + currentToken,
-      },
+      headers: reqHeaders,
       body: JSON.stringify({ month, year, plate_no: plate }),
     });
 
@@ -156,8 +158,11 @@ function loadViewerContent(filePath, mimeType, token) {
   posX = 0; // 🟢 Reset position X
   posY = 0; // 🟢 Reset position Y
 
+  const reqHeaders = {};
+  if (token) reqHeaders["Authorization"] = "Bearer " + token;
+
   fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(filePath)}`, {
-    headers: { Authorization: "Bearer " + token },
+    headers: reqHeaders,
   })
     .then((res) => {
       if (!res.ok) throw new Error("File fetch failed");
@@ -346,11 +351,12 @@ async function generatePdfFromFiles(
     for (let i = 0; i < filesArray.length; i++) {
       const file = filesArray[i];
 
+      const reqHeaders = {};
+      if (currentToken) reqHeaders["Authorization"] = "Bearer " + currentToken;
+
       const res = await fetch(
         `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
-        {
-          headers: { Authorization: "Bearer " + currentToken },
-        },
+        { headers: reqHeaders },
       );
 
       if (!res.ok) continue;
@@ -480,11 +486,12 @@ async function downloadCurrentImage() {
   btn.innerText = "Wait...";
 
   try {
+    const reqHeaders = {};
+    if (currentToken) reqHeaders["Authorization"] = "Bearer " + currentToken;
+
     const res = await fetch(
       `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
-      {
-        headers: { Authorization: "Bearer " + currentToken },
-      },
+      { headers: reqHeaders },
     );
 
     if (!res.ok) throw new Error("Fetch failed");

@@ -31,7 +31,7 @@ const monthMap = {
 };
 
 // 1. Get List of Files
-router.post("/list", verifyToken, async (req, res) => {
+router.post("/list", async (req, res) => {
   try {
     const { month, year, plate_no } = req.body;
     if (!month || !year || !plate_no) throw new Error("Missing parameters");
@@ -76,7 +76,7 @@ router.post("/list", verifyToken, async (req, res) => {
 });
 
 // 2. Fetch/Stream Specific File
-router.get("/file", verifyToken, async (req, res) => {
+router.get("/file", async (req, res) => {
   try {
     const filePath = req.query.path;
     if (!filePath) return res.status(400).send("No path provided");
