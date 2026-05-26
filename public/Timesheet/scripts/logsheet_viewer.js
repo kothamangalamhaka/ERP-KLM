@@ -9,9 +9,14 @@ let currentToken = "";
 let isDragging = false;
 let startX, startY;
 
-// 🟢 1. Open Viewer & Fetch Files
-async function openLogsheetViewer() {
-  const plate = document.getElementById("selPlate").value.trim().toUpperCase();
+// 1. Open Viewer & Fetch Files
+async function openLogsheetViewer(passedPlate = "") {
+  let plate = passedPlate;
+  const selPlateEl = document.getElementById("selPlate");
+  if (!plate && selPlateEl) {
+    plate = selPlateEl.value.trim().toUpperCase();
+  }
+
   const month = document.getElementById("selMonth").value;
   const year = document.getElementById("selYear").value;
 
@@ -80,18 +85,33 @@ async function openLogsheetViewer() {
   }
 }
 
-// 🟢 2. Render Sidebar List
+// 2. Render Sidebar List (Updated with File Size & 0B check)
 function renderFileList() {
   const sidebar = document.getElementById("logsheetFileList");
   sidebar.innerHTML = "";
   logsheetFiles.forEach((file, index) => {
     const div = document.createElement("div");
     div.className = "logsheet-file-item";
-    div.innerText = file.basename;
     div.id = `ls-file-${index}`;
+
+    // 0B check
+    if (file.size === 0) div.classList.add("empty-file");
+
+    div.innerHTML = `<span>${file.basename}</span>`;
+
     div.onclick = () => selectFileIndex(index);
     sidebar.appendChild(div);
   });
+}
+
+// 🟢 Helper to format file size
+function formatBytes(bytes, decimals = 1) {
+  if (!+bytes || bytes === 0) return "0 B";
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
 function selectFileIndex(index) {
@@ -296,4 +316,111 @@ function initResizers() {
       sidebarResizer.classList.remove("active");
     }
   });
+}
+
+// ✅ PDF Export with SAME IMAGE SIZE as PDF Page
+async function downloadAllAsPdf() {
+  const btn = document.getElementById("btnDownloadPdf");
+  if (!btn) return;
+
+  const imageFiles = logsheetFiles.filter(
+    (f) => f.mime && f.mime.includes("image") && f.size > 0,
+  );
+
+  if (!imageFiles.length) {
+    customAlert("No valid images found.", "Notice");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `Processing...`;
+
+  try {
+    const { jsPDF } = window.jspdf;
+
+    let doc = null;
+
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
+
+      const res = await fetch(
+        `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
+        {
+          headers: {
+            Authorization: "Bearer " + currentToken,
+          },
+        },
+      );
+
+      if (!res.ok) continue;
+
+      const blob = await res.blob();
+
+      // ✅ FIX EXIF ROTATION
+      const bitmap = await createImageBitmap(blob, {
+        imageOrientation: "from-image",
+      });
+
+      // Canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(bitmap, 0, 0);
+
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+
+      // ✅ IMAGE SIZE AS PDF PAGE SIZE
+      const pdfWidth = bitmap.width * 0.264583; // px → mm
+      const pdfHeight = bitmap.height * 0.264583;
+
+      // Portrait / Landscape detect
+      const orientation = pdfWidth > pdfHeight ? "l" : "p";
+
+      if (i === 0) {
+        // First page
+        doc = new jsPDF({
+          orientation,
+          unit: "mm",
+          format: [pdfWidth, pdfHeight],
+          compress: true,
+        });
+      } else {
+        // Additional pages
+        doc.addPage([pdfWidth, pdfHeight], orientation);
+      }
+
+      // Full page image
+      doc.addImage(
+        imgData,
+        "JPEG",
+        0,
+        0,
+        pdfWidth,
+        pdfHeight,
+        undefined,
+        "FAST",
+      );
+    }
+
+    if (!doc) {
+      customAlert("PDF generation failed.", "Error");
+      return;
+    }
+
+    const plate = document
+      .getElementById("logsheetTitle")
+      .innerText.replace("Logsheets - ", "")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .trim();
+
+    doc.save(`${plate}_Logsheets.pdf`);
+  } catch (e) {
+    console.error("PDF Error:", e);
+    customAlert("Failed to generate PDF.", "Error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `Download All as PDF`;
+  }
 }
