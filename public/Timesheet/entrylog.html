@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Timesheet Entry Logs</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"
+    />
+
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background: #0f172a;
+        color: #f8fafc;
+        padding: 20px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .table-card {
+        background: #1e293b;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #334155;
+      }
+      table.dataTable {
+        color: #f8fafc;
+      }
+      table.dataTable tbody tr {
+        background-color: transparent;
+      }
+      table.dataTable tbody tr:hover {
+        background-color: #334155;
+      }
+      .dataTables_wrapper .dataTables_length,
+      .dataTables_wrapper .dataTables_filter,
+      .dataTables_wrapper .dataTables_info,
+      .dataTables_wrapper .dataTables_paginate {
+        color: #94a3b8;
+      }
+      select,
+      input[type="search"] {
+        background: #0f172a;
+        color: white;
+        border: 1px solid #334155;
+        padding: 5px;
+        border-radius: 4px;
+      }
+      .badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+      }
+      .badge-entry {
+        background: rgba(59, 130, 246, 0.2);
+        color: #38bdf8;
+      }
+      .badge-update {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h2>
+        <span
+          class="material-icons"
+          style="vertical-align: middle; color: #38bdf8"
+          >history</span
+        >
+        Timesheet Entry Logs
+      </h2>
+      <button
+        onclick="window.history.back()"
+        style="
+          padding: 8px 15px;
+          background: #334155;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+        "
+      >
+        Back
+      </button>
+    </div>
+
+    <div class="table-card">
+      <table id="logTable" class="display" style="width: 100%">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>User</th>
+            <th>Plate Number</th>
+            <th>Timesheet Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.css"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <script>
+      $(document).ready(async function () {
+        const token = localStorage.getItem("timesheetToken");
+        if (!token) {
+          window.location.href = "index.html";
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/entrylog", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            let rows = "";
+            data.logs.forEach((log) => {
+              let dt = new Date(log.created_at).toLocaleString("en-IN");
+              let badgeClass =
+                log.action.toUpperCase() === "UPDATE"
+                  ? "badge-update"
+                  : "badge-entry";
+
+              rows += `<tr>
+                            <td>${dt}</td>
+                            <td style="font-weight:600;">@${log.username}</td>
+                            <td style="color:#38bdf8; font-weight:bold;">${log.plate_number}</td>
+                            <td>${log.entry_date}</td>
+                            <td><span class="badge ${badgeClass}">${log.action}</span></td>
+                        </tr>`;
+            });
+
+            $("#logTable tbody").html(rows);
+
+            // Initialize DataTable
+            $("#logTable").DataTable({
+              order: [[0, "desc"]], // Sort by timestamp descending
+              pageLength: 50,
+            });
+          } else {
+            alert("Failed to load logs: " + data.message);
+          }
+        } catch (err) {
+          console.error("Error fetching logs", err);
+        }
+      });
+    </script>
+  </body>
+</html>

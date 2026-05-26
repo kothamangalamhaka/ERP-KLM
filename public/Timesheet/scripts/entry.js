@@ -1,7 +1,9 @@
 const token = localStorage.getItem("timesheetToken");
 if (!token) {
   // User ippol ethu page-il aano ullathu, aa page-nte peru eduthu URL-il pass cheyyunnu
-  const currentPage = encodeURIComponent(window.location.pathname.split('/').pop() + window.location.search);
+  const currentPage = encodeURIComponent(
+    window.location.pathname.split("/").pop() + window.location.search,
+  );
   window.location.href = "index.html?redirect=" + currentPage;
 }
 
@@ -1032,6 +1034,37 @@ async function saveCellData(rowIdx, colName, colValue) {
     saveTimeout = setTimeout(() => {
       statusLabel.className = "save-indicator";
     }, 2000);
+
+    // ==========================================
+    // 🚀 NEW LOGGING TRIGGER ADDED HERE 🚀
+    // ==========================================
+    try {
+      const user = JSON.parse(localStorage.getItem("timesheetUser"));
+
+      // Month and Year format aakkunnu
+      const mIdx = months.indexOf(payload.month);
+      // Format date to YYYY-MM-DD
+      const formattedDate = new Date(payload.year, mIdx, parseInt(rowIdx))
+        .toISOString()
+        .split("T")[0];
+
+      fetch("/api/entrylog/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("timesheetToken")}`,
+        },
+        body: JSON.stringify({
+          username: user ? user.username : "Unknown",
+          plate_number: payload.plate_no,
+          entry_date: formattedDate,
+          action: "UPDATE", // Cell update aanu nadakkunnathu
+        }),
+      });
+    } catch (logErr) {
+      console.error("Failed to log entry", logErr);
+    }
+    // ==========================================
   } catch (e) {
     statusLabel.innerText = "Error";
     statusLabel.style.backgroundColor = "#dc3545";
