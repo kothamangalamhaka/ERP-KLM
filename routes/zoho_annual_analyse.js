@@ -12,7 +12,8 @@ router.get("/api/annual-report/master-data", verifyToken, async (req, res) => {
     const { year } = req.query;
     if (!year) throw new Error("Year is required");
 
-    // 1. Fetch Master Vehicles & Site Logs
+    // 1. Fetch Master Vehicles & Site Logs (Running Status preferred)
+    // Using distinct plates and their latest site logs
     const vehicleQuery = `
             SELECT 
                 tv.plate_no, 
@@ -31,23 +32,16 @@ router.get("/api/annual-report/master-data", verifyToken, async (req, res) => {
         `;
     const vehicles = await pool.query(vehicleQuery);
 
-    // 2. Fetch Timesheet Daily Records & SPLIT NR / OT
-    // Note: 'type' column aanu NR/OT thirichariyan upayogikkunnath ennu karuthunnu.
-    // Vere column (eg: is_ot) aanengil ithil cheriya mattam varuthanam.
+    // 2. Fetch Timesheet Daily Records for the entire year (To calculate NR & OT)
     const timesheetQuery = `
-            SELECT 
-                plate_no, 
-                month, 
-                SUM(CAST(calc_time AS NUMERIC)) as total_time,
-                SUM(CASE WHEN type = 'NR' THEN CAST(calc_time AS NUMERIC) ELSE 0 END) as nr_time,
-                SUM(CASE WHEN type = 'OT' THEN CAST(calc_time AS NUMERIC) ELSE 0 END) as ot_time
+            SELECT plate_no, month, SUM(CAST(calc_time AS NUMERIC)) as total_time
             FROM timesheet_daily_records 
             WHERE year = $1
             GROUP BY plate_no, month
         `;
     const timesheets = await pool.query(timesheetQuery, [year]);
 
-    // 3. Fetch Billing Records
+    // 3. Fetch Billing Records for the entire year
     const billingQuery = `
             SELECT plate_no, billing_month, nhr, nrate, othr, otrate, total 
             FROM billing_records 
@@ -55,7 +49,7 @@ router.get("/api/annual-report/master-data", verifyToken, async (req, res) => {
         `;
     const billings = await pool.query(billingQuery, [year]);
 
-    // 4. Fetch Zoho Mapping Rules
+    // 4. Fetch Zoho Mapping Rules to attach Project Names to Sites
     const mappingQuery = `
             SELECT pm.erp_site_keyword, pm.zoho_project_name 
             FROM zoho_project_mappings pm

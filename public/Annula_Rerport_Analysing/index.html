@@ -25,6 +25,8 @@
         margin-bottom: 15px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
+
+      /* Table Container for Horizontal Scrolling */
       .table-container {
         max-height: 80vh;
         overflow: auto;
@@ -33,11 +35,14 @@
         margin: 0 15px;
         box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
       }
+
       table {
         border-collapse: separate;
         border-spacing: 0;
         min-width: max-content;
       }
+
+      /* Sticky Headers */
       thead th {
         position: sticky;
         top: 0;
@@ -53,6 +58,8 @@
         font-size: 0.75rem;
         font-weight: normal;
       }
+
+      /* Sticky Left Fixed Columns (1 to 11) */
       .sticky-col {
         position: sticky;
         background-color: #f1f5f9;
@@ -69,6 +76,7 @@
         z-index: 20;
         background-color: #1e293b;
       }
+
       td {
         border: 1px solid #e2e8f0;
         padding: 5px 8px;
@@ -83,6 +91,8 @@
         border-radius: 3px;
         padding: 2px;
       }
+
+      /* Highlighting Groups */
       .col-ts {
         background-color: #f0fdf4;
       }
@@ -96,12 +106,6 @@
         background-color: #fffbeb;
         font-weight: bold;
       }
-
-      #syncLoader {
-        display: none;
-        font-weight: bold;
-        color: #10b981;
-      }
     </style>
   </head>
   <body>
@@ -110,11 +114,7 @@
         <i class="fa-solid fa-chart-line me-2"></i> Master Annual Report & Zoho
         Integration
       </h5>
-      <div class="d-flex gap-2 align-items-center">
-        <span id="syncLoader"
-          ><i class="fa-solid fa-spinner fa-spin me-1"></i> Syncing
-          Zoho...</span
-        >
+      <div class="d-flex gap-2">
         <select
           id="yearSelect"
           class="form-select form-select-sm"
@@ -129,8 +129,8 @@
         >
           <i class="fa-solid fa-cloud-arrow-down me-1"></i> Load ERP Data
         </button>
-        <button class="btn btn-success btn-sm fw-bold" onclick="syncZohoData()">
-          <i class="fa-solid fa-rotate me-1"></i> Auto Sync Zoho API
+        <button class="btn btn-success btn-sm fw-bold">
+          <i class="fa-solid fa-rotate me-1"></i> Sync Zoho API
         </button>
         <button class="btn btn-warning btn-sm fw-bold">
           <i class="fa-solid fa-file-excel me-1"></i> Export
@@ -147,22 +147,22 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-      // Full month names mapping fix
       const months = [
-        { short: "Jan", full: "January", num: "01" },
-        { short: "Feb", full: "February", num: "02" },
-        { short: "Mar", full: "March", num: "03" },
-        { short: "Apr", full: "April", num: "04" },
-        { short: "May", full: "May", num: "05" },
-        { short: "Jun", full: "June", num: "06" },
-        { short: "Jul", full: "July", num: "07" },
-        { short: "Aug", full: "August", num: "08" },
-        { short: "Sep", full: "September", num: "09" },
-        { short: "Oct", full: "October", num: "10" },
-        { short: "Nov", full: "November", num: "11" },
-        { short: "Dec", full: "December", num: "12" },
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
       ];
 
+      // Width definitions for sticky columns to stack them perfectly side-by-side
       const fixedCols = [
         { name: "SN", width: 40 },
         { name: "Start Date", width: 80 },
@@ -177,26 +177,30 @@
         { name: "Plate No", width: 90 },
       ];
 
-      let currentVehicles = []; // Store loaded vehicles for Zoho Sync
-
       document.addEventListener("DOMContentLoaded", generateTableStructure);
 
       function generateTableStructure() {
         const thead = document.getElementById("tableHead");
         let topRow = "<tr>";
         let subRow = "<tr>";
+
         let currentLeft = 0;
 
+        // Generate Fixed 11 Columns Headers
         fixedCols.forEach((col) => {
           topRow += `<th class="sticky-col" rowspan="2" style="left: ${currentLeft}px; min-width: ${col.width}px; max-width: ${col.width}px;">${col.name}</th>`;
           currentLeft += col.width;
         });
 
-        months.forEach((m) => {
-          topRow += `<th colspan="17">${m.short.toUpperCase()}</th>`;
+        // Generate 12 Months Columns
+        months.forEach((month) => {
+          // Top Row (Month Name spanning across all sub columns)
+          topRow += `<th colspan="17">${month.toUpperCase()}</th>`;
+
+          // Sub Row (a to j columns)
           subRow += `
-                <th>Vendor TS</th>
-                <th>Pwas & Oth</th>
+                <th>Vendor TS Status</th>
+                <th>Pwas & Others</th>
                 <th>ERP</th>
                 <th class="col-ts" title="Normal Time">TS NR</th>
                 <th class="col-ts" title="Over Time">TS OT</th>
@@ -213,10 +217,10 @@
                 <th class="col-bill text-danger">OT Rate</th>
                 <th class="col-bill text-danger">Amount</th>
                 
-                <th>Adjs</th>
+                <th>Adjustments</th>
                 <th class="col-rev text-success">Gain/Loss</th>
                 <th>Payment</th>
-                <th>Mubarak</th>
+                <th>Mubarak Rev</th>
             `;
         });
 
@@ -227,9 +231,8 @@
 
       async function loadMasterData() {
         const year = document.getElementById("yearSelect").value;
-        const token =
-          localStorage.getItem("token") ||
-          localStorage.getItem("timesheetToken"); // Support both tokens
+        const token = localStorage.getItem("token");
+        if (!token) return alert("Please Login via Admin screen first.");
 
         try {
           const res = await axios.get(
@@ -240,13 +243,7 @@
           );
 
           if (res.data.success) {
-            currentVehicles = res.data.vehicles; // Save for Zoho sync
-            renderTableBody(
-              res.data.vehicles,
-              res.data.mappings,
-              res.data.timesheets,
-              res.data.billings,
-            );
+            renderTableBody(res.data.vehicles, res.data.mappings);
           }
         } catch (e) {
           console.error(e);
@@ -254,20 +251,19 @@
         }
       }
 
-      function renderTableBody(vehicles, mappings, timesheets, billings) {
+      function renderTableBody(vehicles, mappings) {
         const tbody = document.getElementById("tableBody");
         tbody.innerHTML = "";
 
         vehicles.forEach((veh, index) => {
-          let row = `<tr id="row-${veh.plate_no.replace(/\s+/g, "-")}">`;
+          let row = "<tr>";
           let currentLeft = 0;
 
+          // Map Zoho Project Name based on site keyword
           let projectName = "-";
           if (veh.site_name) {
             const match = mappings.find((m) =>
-              veh.site_name
-                .toLowerCase()
-                .includes(m.erp_site_keyword.toLowerCase()),
+              veh.site_name.toLowerCase().includes(m.erp_site_keyword),
             );
             if (match) projectName = match.zoho_project_name;
           }
@@ -286,61 +282,32 @@
             veh.plate_no,
           ];
 
+          // Render Fixed Columns
           rowData.forEach((data, i) => {
             row += `<td class="sticky-col text-truncate" style="left: ${currentLeft}px; min-width: ${fixedCols[i].width}px; max-width: ${fixedCols[i].width}px;" title="${data}">${data}</td>`;
             currentLeft += fixedCols[i].width;
           });
 
-          // Map data for 12 months dynamically using bulletproof month checking
-          months.forEach((mObj) => {
-            // TS Matching: Check Num ("01"), Short ("Jan"), or Full ("January")
-            const tsMatch = timesheets.find(
-              (t) =>
-                t.plate_no === veh.plate_no &&
-                (t.month == mObj.num ||
-                  t.month === mObj.short ||
-                  t.month === mObj.full),
-            );
-
-            const tsNr =
-              tsMatch && tsMatch.nr_time
-                ? parseFloat(tsMatch.nr_time).toFixed(1)
-                : "-";
-            const tsOt =
-              tsMatch && tsMatch.ot_time
-                ? parseFloat(tsMatch.ot_time).toFixed(1)
-                : "-";
-
-            // Billing Matching: Check if billing_month string contains the full month name
-            const billMatch = billings.find(
-              (b) =>
-                b.plate_no === veh.plate_no &&
-                b.billing_month &&
-                b.billing_month.toLowerCase().includes(mObj.full.toLowerCase()),
-            );
-
-            // Create unique IDs for Zoho cells so we can inject data later
-            const safePlate = veh.plate_no.replace(/\s+/g, "-");
-            const zohoIdPrefix = `zoho-${safePlate}-${mObj.short}`;
-
+          // Render Empty Inputs/Cells for 12 months (Will map actual data next)
+          months.forEach((month) => {
             row += `
                     <td><input type="text"></td>
                     <td><input type="text"></td>
                     <td><input type="text"></td>
-                    <td class="col-ts fw-bold">${tsNr}</td>
-                    <td class="col-ts fw-bold">${tsOt}</td>
+                    <td class="col-ts">-</td>
+                    <td class="col-ts">-</td>
                     
-                    <td class="col-zoho" id="${zohoIdPrefix}-nr">-</td>
-                    <td class="col-zoho" id="${zohoIdPrefix}-nrate">-</td>
-                    <td class="col-zoho" id="${zohoIdPrefix}-ot">-</td>
-                    <td class="col-zoho" id="${zohoIdPrefix}-otrate">-</td>
-                    <td class="col-zoho fw-bold" id="${zohoIdPrefix}-total">-</td>
+                    <td class="col-zoho">-</td>
+                    <td class="col-zoho">-</td>
+                    <td class="col-zoho">-</td>
+                    <td class="col-zoho">-</td>
+                    <td class="col-zoho fw-bold">-</td>
                     
-                    <td class="col-bill">${billMatch ? billMatch.nhr || "-" : "-"}</td>
-                    <td class="col-bill">${billMatch ? billMatch.nrate || "-" : "-"}</td>
-                    <td class="col-bill">${billMatch ? billMatch.othr || "-" : "-"}</td>
-                    <td class="col-bill">${billMatch ? billMatch.otrate || "-" : "-"}</td>
-                    <td class="col-bill fw-bold">${billMatch ? billMatch.total || "-" : "-"}</td>
+                    <td class="col-bill">-</td>
+                    <td class="col-bill">-</td>
+                    <td class="col-bill">-</td>
+                    <td class="col-bill">-</td>
+                    <td class="col-bill fw-bold">-</td>
                     
                     <td><input type="number"></td>
                     <td class="col-rev">-</td>
@@ -352,109 +319,6 @@
           row += "</tr>";
           tbody.innerHTML += row;
         });
-      }
-
-      // ==========================================
-      // AUTOMATION: ZOHO API SYNC LOGIC
-      // ==========================================
-      async function syncZohoData() {
-        if (currentVehicles.length === 0)
-          return alert("Please Load ERP Data first!");
-
-        const token =
-          localStorage.getItem("token") ||
-          localStorage.getItem("timesheetToken");
-        document.getElementById("syncLoader").style.display = "inline-block";
-
-        // Loop through all loaded vehicles and call Zoho API
-        for (let veh of currentVehicles) {
-          try {
-            const res = await axios.post(
-              "/api/zoho/test-fetch",
-              {
-                plate_no: veh.plate_no,
-                full_site_name: veh.site_name || "Unknown",
-              },
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              },
-            );
-
-            if (res.data.success && res.data.data.length > 0) {
-              const invoices = res.data.data;
-
-              invoices.forEach((inv) => {
-                // 1. Get the month from invoice date (e.g., "2026-05-15" -> "05")
-                const invDate = new Date(inv.date);
-                const invMonthNum = String(invDate.getMonth() + 1).padStart(
-                  2,
-                  "0",
-                );
-                const mObj = months.find((m) => m.num === invMonthNum);
-
-                if (!mObj) return;
-
-                // 2. Parse NR and OT logic (Based on item description/name checking)
-                let nrHrs = 0,
-                  nrRate = 0;
-                let otHrs = 0,
-                  otRate = 0;
-                let totalAmt = inv.total || 0;
-
-                // Assuming Zoho returns line_items. If not, the backend API might need tweaking to fetch full invoice details.
-                if (inv.line_items) {
-                  inv.line_items.forEach((item) => {
-                    const desc = (
-                      item.name +
-                      " " +
-                      item.description
-                    ).toLowerCase();
-
-                    // Logic: If description contains "over time", it's OT. Else it's Normal Time.
-                    if (
-                      desc.includes("over time") ||
-                      desc.includes("miscellaneous")
-                    ) {
-                      otHrs += parseFloat(item.quantity || 0);
-                      otRate = parseFloat(item.rate || 0);
-                    } else {
-                      nrHrs += parseFloat(item.quantity || 0);
-                      nrRate = parseFloat(item.rate || 0);
-                    }
-                  });
-                } else {
-                  // Fallback if Zoho List API doesn't return line items
-                  // You can map total amounts or default to NR if line items are missing
-                  nrHrs = "Check Zoho";
-                }
-
-                // 3. Inject data into the correct table cells
-                const safePlate = veh.plate_no.replace(/\s+/g, "-");
-                const zohoIdPrefix = `zoho-${safePlate}-${mObj.short}`;
-
-                try {
-                  document.getElementById(`${zohoIdPrefix}-nr`).innerText =
-                    nrHrs || "-";
-                  document.getElementById(`${zohoIdPrefix}-nrate`).innerText =
-                    nrRate || "-";
-                  document.getElementById(`${zohoIdPrefix}-ot`).innerText =
-                    otHrs || "-";
-                  document.getElementById(`${zohoIdPrefix}-otrate`).innerText =
-                    otRate || "-";
-                  document.getElementById(`${zohoIdPrefix}-total`).innerText =
-                    totalAmt || "-";
-                } catch (err) {
-                  // Ignore if cell doesn't exist
-                }
-              });
-            }
-          } catch (e) {
-            console.log("Zoho Sync Error for plate:", veh.plate_no);
-          }
-        }
-
-        document.getElementById("syncLoader").style.display = "none";
-        alert("Zoho Sync Completed!");
       }
     </script>
   </body>

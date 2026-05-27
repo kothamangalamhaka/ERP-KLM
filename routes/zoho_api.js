@@ -1,36 +1,12 @@
 const express = require("express");
 const pool = require("../config/db");
 const axios = require("axios");
-const jwt = require("jsonwebtoken"); // Ithu puthiyathayi add cheythu
 const {
   verifyToken,
   verifyEditor,
   verifySuperAdmin,
 } = require("../middlewares/auth");
 const router = express.Router();
-
-// ==========================================
-// ADMIN LOGIN API FOR ZOHO HUB
-// ==========================================
-router.post("/api/zoho/admin-login", (req, res) => {
-  const { username, password } = req.body;
-
-  // .env file-il ninnu credentials edukkunnu
-  const validUser = process.env.ZOHO_ADMIN_USER;
-  const validPass = process.env.ZOHO_ADMIN_PASS;
-
-  if (username === validUser && password === validPass) {
-    // verifyEditor middleware pass aavan vendi 'Super Admin' role kodukkunnu
-    const token = jwt.sign(
-      { id: "zoho_admin", username: validUser, role: "Super Admin" },
-      process.env.JWT_SECRET,
-      { expiresIn: "24h" },
-    );
-    res.json({ success: true, token });
-  } else {
-    res.json({ success: false, message: "Invalid Username or Password!" });
-  }
-});
 
 // ==========================================
 // 1. ZOHO COMPANIES APIs
