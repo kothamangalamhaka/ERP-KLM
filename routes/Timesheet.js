@@ -375,7 +375,7 @@ router.post("/api/add-rule", verifySuperAdmin, async (req, res) => {
 router.get("/api/special-rules", verifyToken, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT * FROM special_days_rules ORDER BY created_at DESC"
+      "SELECT * FROM special_days_rules ORDER BY created_at DESC",
     );
     res.json({ success: true, data: result.rows });
   } catch (error) {
@@ -390,17 +390,17 @@ router.post("/api/add-special-rule", verifySuperAdmin, async (req, res) => {
     await pool.query(
       "INSERT INTO special_days_rules (sites, dates, rule_type, reason, is_active) VALUES ($1, $2, $3, $4, $5)",
       [
-        JSON.stringify(sites), 
-        JSON.stringify(dates), 
-        rule_type, 
-        reason, 
-        is_active !== undefined ? is_active : true
-      ]
+        JSON.stringify(sites),
+        JSON.stringify(dates),
+        rule_type,
+        reason,
+        is_active !== undefined ? is_active : true,
+      ],
     );
     await logAudit(
       req.user,
       "SPECIAL_RULE_ADD",
-      `Added new special rule: ${rule_type}`
+      `Added new special rule: ${rule_type}`,
     );
     res.json({ success: true });
   } catch (error) {
@@ -415,18 +415,18 @@ router.post("/api/update-special-rule", verifySuperAdmin, async (req, res) => {
     await pool.query(
       "UPDATE special_days_rules SET sites=$1, dates=$2, rule_type=$3, reason=$4, is_active=$5 WHERE id=$6",
       [
-        JSON.stringify(sites), 
-        JSON.stringify(dates), 
-        rule_type, 
-        reason, 
-        is_active, 
-        id
-      ]
+        JSON.stringify(sites),
+        JSON.stringify(dates),
+        rule_type,
+        reason,
+        is_active,
+        id,
+      ],
     );
     await logAudit(
       req.user,
       "SPECIAL_RULE_UPDATE",
-      `Updated special rule ID ${id}`
+      `Updated special rule ID ${id}`,
     );
     res.json({ success: true });
   } catch (error) {
@@ -442,7 +442,7 @@ router.post("/api/delete-special-rule", verifySuperAdmin, async (req, res) => {
     await logAudit(
       req.user,
       "SPECIAL_RULE_DELETE",
-      `Deleted special rule ID ${id}`
+      `Deleted special rule ID ${id}`,
     );
     res.json({ success: true });
   } catch (error) {
@@ -1560,5 +1560,29 @@ router.post("/api/verify-klm", (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 });
+
+// ==========================================
+// AUTO CLEANUP: Delete logs older than 100 days
+// ==========================================
+setInterval(
+  async () => {
+    try {
+      const cleanupQuery = `
+            DELETE FROM timesheet_entry_logs 
+            WHERE created_at < NOW() - INTERVAL '100 days'
+        `;
+      const result = await pool.query(cleanupQuery);
+
+      if (result.rowCount > 0) {
+        console.log(
+          `Auto Cleanup: Successfully deleted ${result.rowCount} old timesheet entry logs.`,
+        );
+      }
+    } catch (error) {
+      console.error("Auto Cleanup Error:", error.message);
+    }
+  },
+  24 * 60 * 60 * 1000,
+);
 
 module.exports = router;

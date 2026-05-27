@@ -39,6 +39,7 @@ let vehiclesCache = [];
 let currentFocus = -1;
 let isEditingInvoice = false;
 let currentInvoices = [];
+let loggedRowsTracker = new Set();
 
 async function init() {
   const ts = new Date().getTime();
@@ -324,6 +325,9 @@ async function triggerFetch() {
     await customAlert("Please enter a Plate No.", "Missing Information");
     return;
   }
+
+  // 🟢 1. Clear the tracker for new fetch so fresh edits get logged
+  loggedRowsTracker.clear();
 
   savePlateHistory(p);
 
@@ -702,8 +706,16 @@ function renderGrid(
 
     let displayBd = cleanVal(rowData.bd);
     let ws = cleanVal(rowData.wrk_start);
+    let we = cleanVal(rowData.wrk_end);
     let hmr = cleanVal(rowData.hmr_start);
     let rowRemark = cleanVal(rowData.remark);
+
+    // 🟢 PROTOCOL: Clear restricted BD statuses if time is entered
+    if (ws !== "" && we !== "") {
+      if (["H", "AB", "DC", "SC", "R", "B"].includes(displayBd)) {
+        displayBd = "";
+      }
+    }
 
     // 🟢 Smart Auto-Fill & Override Logic
     let statusCode = getGapStatus(currentDateObj, siteLogs, driverLogs);
@@ -936,10 +948,20 @@ function calculateRow(rowIdx) {
   const we = document.querySelector(
     `.grid-input[data-row="${rowIdx}"][data-col="wrk_end"]`,
   ).value;
-  const bd = document
-    .querySelector(`.grid-input[data-row="${rowIdx}"][data-col="bd"]`)
-    .value.trim()
-    .toUpperCase();
+
+  let bdInput = document.querySelector(
+    `.grid-input[data-row="${rowIdx}"][data-col="bd"]`,
+  );
+  let bd = bdInput.value.trim().toUpperCase();
+
+  // 🟢 PROTOCOL: Remove H, AB, DC, SC, R when Work Start & End are entered
+  if (ws !== "" && we !== "") {
+    if (["H", "AB", "DC", "SC", "R", "B"].includes(bd)) {
+      bd = "";
+      bdInput.value = ""; // Clear from UI
+      saveCellData(rowIdx, "bd", ""); // Save empty value to DB
+    }
+  }
   const nl = document.querySelector(
     `.grid-input[data-row="${rowIdx}"][data-col="nl_checked"]`,
   ).checked;
@@ -1036,33 +1058,47 @@ async function saveCellData(rowIdx, colName, colValue) {
     }, 2000);
 
     // ==========================================
-    // 🚀 NEW LOGGING TRIGGER ADDED HERE 🚀
+    // 🚀 SMART LOGGING SYSTEM (BUG FIXED) 🚀
     // ==========================================
     try {
       const user = JSON.parse(localStorage.getItem("timesheetUser"));
 
-      // Month and Year format aakkunnu
-      const mIdx = months.indexOf(payload.month);
-      // Format date to YYYY-MM-DD
-      const formattedDate = new Date(payload.year, mIdx, parseInt(rowIdx))
-        .toISOString()
-        .split("T")[0];
+      // 🟢 Safe Date Formatting (No Timezone Shift)
+      const mIdx = months.indexOf(payload.month) + 1;
+      const padMonth = String(mIdx).padStart(2, "0");
+      const padDay = String(rowIdx).padStart(2, "0");
+      const formattedDate = `${payload.year}-${padMonth}-${padDay}`;
 
-      fetch("/api/entrylog/add", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("timesheetToken")}`,
-        },
-        body: JSON.stringify({
-          username: user ? user.username : "Unknown",
-          plate_number: payload.plate_no,
-          entry_date: formattedDate,
-          action: "UPDATE", // Cell update aanu nadakkunnathu
-        }),
-      });
+      // 🟢 Unique Key for Tracking
+      const logKey = `${payload.plate_no}_${formattedDate}`;
+
+      // Only log if this row hasn't been logged in this session
+      if (!loggedRowsTracker.has(logKey)) {
+        // Mark immediately so fast typing doesn't trigger multiple calls
+        loggedRowsTracker.add(logKey);
+
+        const logRes = await fetch("/api/entrylog/add", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("timesheetToken")}`,
+          },
+          body: JSON.stringify({
+            username: user ? user.username : "Unknown",
+            plate_number: payload.plate_no,
+            entry_date: formattedDate,
+            action: "UPDATE",
+          }),
+        });
+
+        if (logRes.ok) {
+          console.log(`✅ Log saved successfully for: ${logKey}`);
+        } else {
+          console.error(`❌ Log failed for: ${logKey}`);
+        }
+      }
     } catch (logErr) {
-      console.error("Failed to log entry", logErr);
+      console.error("❌ Failed to log entry", logErr);
     }
     // ==========================================
   } catch (e) {

@@ -137,14 +137,18 @@
           if (data.success) {
             let rows = "";
             data.logs.forEach((log) => {
+              // കൃത്യമായ സോർട്ടിങ്ങിനായി സമയം മില്ലിസെക്കൻഡിലേക്ക് മാറ്റുന്നു
+              let rawTime = new Date(log.created_at).getTime();
               let dt = new Date(log.created_at).toLocaleString("en-IN");
+
               let badgeClass =
                 log.action.toUpperCase() === "UPDATE"
                   ? "badge-update"
                   : "badge-entry";
 
+              // 🟢 data-sort="${rawTime}" ചേർത്തിരിക്കുന്നു
               rows += `<tr>
-                            <td>${dt}</td>
+                            <td data-sort="${rawTime}">${dt}</td>
                             <td style="font-weight:600;">@${log.username}</td>
                             <td style="color:#38bdf8; font-weight:bold;">${log.plate_number}</td>
                             <td>${log.entry_date}</td>
@@ -154,7 +158,7 @@
 
             $("#logTable tbody").html(rows);
 
-            // Initialize DataTable
+            // Initialize DataTable with descending order on the first column
             $("#logTable").DataTable({
               order: [[0, "desc"]], // Sort by timestamp descending
               pageLength: 50,
