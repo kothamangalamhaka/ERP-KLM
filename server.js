@@ -43,8 +43,6 @@ app.use("/master", masterDatabaseRoutes);
 app.use("/timesheet/api/logsheets", logsheetRoutes);
 app.use("/api/backup", backupRoutes);
 app.use("/api/entrylog", entrylogRoutes);
-app.use("/", require("./routes/zoho_api"));
-app.use("/", require("./routes/zoho_annual_analyse"));
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
