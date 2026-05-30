@@ -537,7 +537,14 @@ module.exports = function (pool, middlewares, helpers) {
     try {
       const { fileBase64, importMode } = req.body;
       const buffer = Buffer.from(fileBase64.split(",")[1], "base64");
+      
+      // DEBUG - REMOVE AFTER TEST
+      const fs = require('fs');
+      fs.writeFileSync('/home/fefei/ERP_System/test_upload.xlsx', buffer);
+      console.log('FILE SAVED FOR DEBUG');
+      
       const workbook = new excelJS.Workbook();
+      workbook.date1904 = false;
       await workbook.xlsx.load(buffer);
 
       const sheet1 = workbook.worksheets[0];
@@ -622,15 +629,33 @@ module.exports = function (pool, middlewares, helpers) {
           let hName = headers[colNumber];
           if (hName) {
             let val = cell.value;
-            if (val && typeof val === "object" && val.text) val = val.text;
 
-            // STRICT DATE CONVERSION: Converts Excel Dates to String instantly
-            // `getUTCDate()` is used to prevent the local server timezone from causing off-by-one errors.
+            if (val && typeof val === "object" && val.result !== undefined) {
+              val = val.result;
+            }
+
+            // 2. STRICT EXCEL DATE CONVERSION (IST offset fix)
             if (val && val instanceof Date) {
-              const day = val.getUTCDate();
-              const month = val.getUTCMonth();
-              const year = val.getUTCFullYear();
-              val = `${String(day).padStart(2, "0")}-${months[month]}-${year}`;
+              const istOffset = 5.5 * 60 * 60 * 1000;
+              const corrected = new Date(val.getTime() + istOffset);
+              let day = String(corrected.getUTCDate()).padStart(2, "0");
+              let month = corrected.getUTCMonth();
+              let year = corrected.getUTCFullYear();
+              val = `${day}-${months[month]}-${year}`;
+            } else if (
+              typeof val === "string" &&
+              val.match(/^\d{4}-\d{2}-\d{2}T/)
+            ) {
+              const istOffset = 5.5 * 60 * 60 * 1000;
+              const corrected = new Date(new Date(val).getTime() + istOffset);
+              let day = String(corrected.getUTCDate()).padStart(2, "0");
+              let month = corrected.getUTCMonth();
+              let year = corrected.getUTCFullYear();
+              val = `${day}-${months[month]}-${year}`;
+            }
+            // 3. Fallback for Rich Text / Formatted objects
+            else if (val && typeof val === "object" && val.text) {
+              val = val.text;
             }
 
             val = val !== null && val !== undefined ? String(val).trim() : "";

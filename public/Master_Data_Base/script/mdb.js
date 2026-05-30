@@ -52,7 +52,7 @@ function toggleTheme() {
 }
 initSettings();
 
-// ? DATE FORMATTER
+// ? DATE FORMATTER (100% TIMEZONE SAFE)
 const monthNames = [
   "Jan",
   "Feb",
@@ -70,23 +70,55 @@ const monthNames = [
 
 function formatToDDMMMYYYY(dateStr) {
   if (!dateStr) return "";
-  let d = new Date(dateStr);
-  if (isNaN(d.getTime())) {
-    let p = String(dateStr)
-      .trim()
-      .split(/[\/\- \.]/);
-    if (p.length === 3) {
-      let dy = parseInt(p[0]),
-        mo = parseInt(p[1]),
-        yr = p[2].length === 2 ? 2000 + parseInt(p[2]) : parseInt(p[2]);
-      if (!isNaN(dy) && !isNaN(mo) && !isNaN(yr)) d = new Date(yr, mo - 1, dy);
+  dateStr = String(dateStr).trim();
+
+  // 1. If Already Formatted (e.g., 15-Sep-2025)
+  if (/^\d{2}-[A-Za-z]{3}-\d{4}$/i.test(dateStr)) return dateStr;
+
+  // 2. Direct from HTML <input type="date"> (Format: YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    let p = dateStr.split("-");
+    let m = parseInt(p[1], 10) - 1;
+    return `${p[2]}-${monthNames[m]}-${p[0]}`;
+  }
+
+  // 3. From Excel Paste or Other formats (DD-MM-YYYY, DD/MM/YYYY)
+  let p = dateStr.split(/[\/\- \.]/);
+  if (p.length === 3) {
+    let d, m, y;
+
+    if (p[0].length === 4) {
+      // Format: YYYY/MM/DD
+      y = p[0];
+      m = p[1];
+      d = p[2];
+    } else {
+      // Format: DD/MM/YYYY
+      d = p[0];
+      m = p[1];
+      y = p[2];
+    }
+
+    d = String(d).padStart(2, "0");
+    y = y.length === 2 ? "20" + y : y;
+
+    let mInt;
+    if (isNaN(m)) {
+      // If month is string like 'Sep'
+      mInt = monthNames.findIndex(
+        (mon) => mon.toLowerCase() === m.toLowerCase().substring(0, 3),
+      );
+    } else {
+      mInt = parseInt(m, 10) - 1;
+    }
+
+    if (mInt >= 0 && mInt <= 11) {
+      return `${d}-${monthNames[mInt]}-${y}`;
     }
   }
-  if (isNaN(d.getTime())) return dateStr;
-  let day = String(d.getDate()).padStart(2, "0"),
-    month = monthNames[d.getMonth()],
-    year = d.getFullYear();
-  return `${day}-${month}-${year}`;
+
+  // Fallback
+  return dateStr;
 }
 
 function convertToInputDate(val) {
@@ -95,8 +127,8 @@ function convertToInputDate(val) {
     .trim()
     .split(/[\/\- \.]/);
   if (p.length === 3) {
-    let dy = p[0].padStart(2, "0"),
-      moStr = p[1].substring(0, 3);
+    let dy = p[0].padStart(2, "0");
+    let moStr = p[1].substring(0, 3);
     let moMap = {
       Jan: "01",
       Feb: "02",
@@ -111,8 +143,8 @@ function convertToInputDate(val) {
       Nov: "11",
       Dec: "12",
     };
-    let mo = moMap[moStr] || moStr.padStart(2, "0"),
-      yr = p[2].length === 2 ? "20" + p[2] : p[2];
+    let mo = moMap[moStr] || String(p[1]).padStart(2, "0");
+    let yr = p[2].length === 2 ? "20" + p[2] : p[2];
     return `${yr}-${mo}-${dy}`;
   }
   return "";
@@ -141,11 +173,13 @@ function parseDateStr(dStr) {
     let d = parseInt(p[0]),
       m = mNames.indexOf(p[1].toUpperCase().substring(0, 3)),
       y = p[2].length === 2 ? 2000 + parseInt(p[2]) : parseInt(p[2]);
-    if (!isNaN(d) && m !== -1 && !isNaN(y)) return new Date(y, m, d);
+    if (!isNaN(d) && m !== -1 && !isNaN(y)) {
+      // UTC noon aayi edukkunnu, timezone backlottu povan chance illa
+      return new Date(Date.UTC(y, m, d, 12, 0, 0));
+    }
   }
   return null;
 }
-
 const FIXED_COLUMNS = [
   "EQUIPMENT REACHED AT SITE",
   "WORK START",
