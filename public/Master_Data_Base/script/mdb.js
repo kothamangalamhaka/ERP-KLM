@@ -1501,7 +1501,7 @@ function renderTable(response) {
         text: '<span class="material-icons" style="font-size:16px;">download</span> Export',
         className: "dt-button btn-outline",
         extend: "excelHtml5",
-        title: "", // 🟢 Ithu add cheythaal first blank merged row varilla!
+        title: "",
         exportOptions: {
           columns: ":visible",
           stripNewlines: false,
@@ -1515,10 +1515,48 @@ function renderTable(response) {
         },
         customize: function (xlsx) {
           var sheet = xlsx.xl.worksheets["sheet1.xml"];
+          var styles = xlsx.xl["styles.xml"];
+          
+          // 1. Create a custom Date Format (dd-mmm-yyyy) in Excel's backend styles
+          var numFmts = $("numFmts", styles);
+          if (numFmts.length === 0) {
+            $("styleSheet", styles).prepend('<numFmts count="1"><numFmt numFmtId="164" formatCode="dd-mmm-yyyy"/></numFmts>');
+          } else {
+            numFmts.attr("count", parseInt(numFmts.attr("count")) + 1);
+            numFmts.append('<numFmt numFmtId="164" formatCode="dd-mmm-yyyy"/>');
+          }
+          
+          var cellXfs = $("cellXfs", styles);
+          var xfCount = parseInt(cellXfs.attr("count"));
+          cellXfs.attr("count", xfCount + 1);
+          cellXfs.append('<xf numFmtId="164" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>');
+          
+          var dateStyleId = xfCount; // New style ID for our date format
+
+          // 2. Apply Serial Number and the new Date Style to cells
+          var dateRegex = /^\d{2}-[A-Za-z]{3}-\d{4}$/;
+          var monthMap = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+
           $("row c", sheet).each(function () {
-            var text = $("is t", this).text();
-            if (text.indexOf("\n") > -1 || text.indexOf("\r") > -1) {
-              $(this).attr("s", "55");
+            var $cell = $(this);
+            var $is = $cell.find("is t");
+            
+            if ($is.length) {
+              var text = $is.text();
+
+              if (text.indexOf("\n") > -1 || text.indexOf("\r") > -1) {
+                $cell.attr("s", "55"); // Keep wrap text for Driver Logs
+              }
+
+              if (dateRegex.test(text)) {
+                var parts = text.split("-");
+                var dateObj = new Date(Date.UTC(parts[2], monthMap[parts[1]], parts[0]));
+                var excelSerialDate = 25569.0 + (dateObj.getTime() / (1000 * 60 * 60 * 24));
+
+                $cell.attr("t", "n"); // Change type to Number
+                $cell.attr("s", dateStyleId); // Apply our injected Date Style
+                $cell.html("<v>" + excelSerialDate + "</v>"); // Set the serial value
+              }
             }
           });
         },
