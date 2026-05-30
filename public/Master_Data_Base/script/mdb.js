@@ -794,78 +794,6 @@ async function submitDriverUpdate() {
   }
 }
 
-function openImportModal() {
-  if (currentUser.role !== "Super Admin")
-    return showToast("Super Admin Only.", "error");
-  document.querySelector(".dt-buttons").classList.remove("show");
-  $("#importExcelFile").val("");
-  $("#importModalOverlay").css("display", "flex");
-}
-
-function updateImportUI() {
-  const mode = document.querySelector('input[name="importMode"]:checked').value;
-  const warningText = document.getElementById("importWarningText");
-  const submitBtn = document.getElementById("btnImportSubmit");
-  if (mode === "rewrite") {
-    warningText.style.color = "var(--danger)";
-    warningText.innerText =
-      "WARNING: This will rewrite the entire database! A backup will be mailed to you automatically before wiping.";
-    submitBtn.className = "btn btn-warning";
-    submitBtn.innerText = "Import & Rewrite";
-  } else {
-    warningText.style.color = "var(--primary)";
-    warningText.innerText =
-      "Info: This will safely add new records below the existing data.";
-    submitBtn.className = "btn btn-primary";
-    submitBtn.innerText = "Import & Append";
-  }
-}
-
-function processBulkImport() {
-  const fileInput = document.getElementById("importExcelFile");
-  if (!fileInput.files.length)
-    return showToast("Please select a file.", "error");
-  const importMode = document.querySelector(
-    'input[name="importMode"]:checked',
-  ).value;
-  const file = fileInput.files[0],
-    reader = new FileReader();
-
-  $("#btnImportSubmit").prop("disabled", true).text("Processing...");
-  reader.onload = async function (e) {
-    const base64Data = e.target.result;
-    try {
-      showToast("Validating & Processing...", "info");
-      const res = await fetch("/api/admin/import-excel", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fileBase64: base64Data,
-          importMode: importMode,
-        }),
-      });
-      const data = await res.json();
-      updateImportUI();
-      $("#btnImportSubmit").prop("disabled", false);
-      if (data.success) {
-        showToast(data.message, "success");
-        $("#importModalOverlay").hide();
-        setTimeout(() => location.reload(), 1500);
-      } else {
-        showToast(data.message, "error");
-      }
-    } catch (error) {
-      updateImportUI();
-      $("#btnImportSubmit").prop("disabled", false);
-      showToast("Failed to upload.", "error");
-    }
-  };
-  reader.readAsDataURL(file);
-}
-
 async function renameColumn(event, oldName) {
   event.stopPropagation();
   if (currentUser.role !== "Super Admin") return;
@@ -1516,31 +1444,48 @@ function renderTable(response) {
         customize: function (xlsx) {
           var sheet = xlsx.xl.worksheets["sheet1.xml"];
           var styles = xlsx.xl["styles.xml"];
-          
+
           // 1. Create a custom Date Format (dd-mmm-yyyy) in Excel's backend styles
           var numFmts = $("numFmts", styles);
           if (numFmts.length === 0) {
-            $("styleSheet", styles).prepend('<numFmts count="1"><numFmt numFmtId="164" formatCode="dd-mmm-yyyy"/></numFmts>');
+            $("styleSheet", styles).prepend(
+              '<numFmts count="1"><numFmt numFmtId="164" formatCode="dd-mmm-yyyy"/></numFmts>',
+            );
           } else {
             numFmts.attr("count", parseInt(numFmts.attr("count")) + 1);
             numFmts.append('<numFmt numFmtId="164" formatCode="dd-mmm-yyyy"/>');
           }
-          
+
           var cellXfs = $("cellXfs", styles);
           var xfCount = parseInt(cellXfs.attr("count"));
           cellXfs.attr("count", xfCount + 1);
-          cellXfs.append('<xf numFmtId="164" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>');
-          
+          cellXfs.append(
+            '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>',
+          );
+
           var dateStyleId = xfCount; // New style ID for our date format
 
           // 2. Apply Serial Number and the new Date Style to cells
           var dateRegex = /^\d{2}-[A-Za-z]{3}-\d{4}$/;
-          var monthMap = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+          var monthMap = {
+            Jan: 0,
+            Feb: 1,
+            Mar: 2,
+            Apr: 3,
+            May: 4,
+            Jun: 5,
+            Jul: 6,
+            Aug: 7,
+            Sep: 8,
+            Oct: 9,
+            Nov: 10,
+            Dec: 11,
+          };
 
           $("row c", sheet).each(function () {
             var $cell = $(this);
             var $is = $cell.find("is t");
-            
+
             if ($is.length) {
               var text = $is.text();
 
@@ -1550,8 +1495,11 @@ function renderTable(response) {
 
               if (dateRegex.test(text)) {
                 var parts = text.split("-");
-                var dateObj = new Date(Date.UTC(parts[2], monthMap[parts[1]], parts[0]));
-                var excelSerialDate = 25569.0 + (dateObj.getTime() / (1000 * 60 * 60 * 24));
+                var dateObj = new Date(
+                  Date.UTC(parts[2], monthMap[parts[1]], parts[0]),
+                );
+                var excelSerialDate =
+                  25569.0 + dateObj.getTime() / (1000 * 60 * 60 * 24);
 
                 $cell.attr("t", "n"); // Change type to Number
                 $cell.attr("s", dateStyleId); // Apply our injected Date Style
@@ -1562,10 +1510,11 @@ function renderTable(response) {
         },
       },
       {
-        text: '<span class="material-icons" style="font-size:16px;">upload_file</span> Import',
-        className: "dt-button btn-outline",
+        text: '<span class="material-icons" style="font-size:16px;">edit_note</span> Bulk Edit',
+        className: "dt-button btn-outline bulk-edit-toggle-btn",
         action: function () {
-          openImportModal();
+          document.querySelector(".dt-buttons").classList.remove("show");
+          toggleBulkEditMode();
         },
         init: function (api, node, config) {
           if (currentUser.role !== "Super Admin") $(node).hide();
@@ -2556,3 +2505,154 @@ function attachEditListeners() {
       });
     });
 }
+
+// ==========================================
+// ? BULK EDIT EXCEL COPY-PASTE ENGINE
+// ==========================================
+let isBulkEditModeActive = false;
+
+function toggleBulkEditMode() {
+  isBulkEditModeActive = !isBulkEditModeActive;
+  const btn = $(".bulk-edit-toggle-btn");
+
+  if (isBulkEditModeActive) {
+    $("#erpTable").addClass("bulk-edit-grid-active");
+    btn.css({
+      background: "var(--success)",
+      color: "white",
+      "border-color": "var(--success)",
+    });
+    showToast(
+      "Bulk Edit Enabled! Click a starting cell and press Ctrl+V to paste from Excel.",
+      "success",
+    );
+  } else {
+    $("#erpTable").removeClass("bulk-edit-grid-active");
+    btn.css({ background: "", color: "", "border-color": "" });
+    showToast("Bulk Edit Disabled", "info");
+  }
+}
+
+// Intercept Clipboard Paste Event on Table Cells
+$(document).on(
+  "paste",
+  "#erpTable.bulk-edit-grid-active tbody td",
+  function (e) {
+    if (currentUser.role !== "Super Admin") return;
+    e.preventDefault();
+
+    // Get raw text from clipboard
+    let clipboardData = (e.originalEvent || e).clipboardData.getData("text");
+    if (!clipboardData) return;
+
+    let rows = clipboardData.split(/\r?\n/);
+    let $startTd = $(this);
+    let $startTr = $startTd.closest("tr");
+    let startColIdx = $startTd.index();
+
+    let $currentTr = $startTr;
+    let bulkEditsBatch = [];
+
+    rows.forEach((rowText) => {
+      if (!rowText.trim() && rows.length > 1) return; // Skip empty trailing lines
+      let cols = rowText.split("\t");
+
+      if (!$currentTr.length) return;
+      let dbId = $currentTr.data("sheetrow");
+
+      cols.forEach((cellText, cIdx) => {
+        let targetColIdx = startColIdx + cIdx;
+        let $targetTd = $currentTr.find("td").eq(targetColIdx);
+        if (!$targetTd.length) return;
+
+        let colName = $targetTd.data("colname");
+        if (!colName) return;
+
+        let colUpper = String(colName).toUpperCase();
+
+        // Protect Auto-Generated & Calculated Columns
+        if (
+          colUpper === "SN" ||
+          ["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(
+            colUpper,
+          )
+        )
+          return;
+        if (
+          globalLockedCols.includes(colName) &&
+          currentUser.role !== "Super Admin"
+        )
+          return;
+
+        let newValue = cellText.trim();
+        let oldValue = $targetTd.text().trim();
+
+        // Strict Text Formatter (No Timezone Issues)
+        let colTypeObj = cachedColTypes.find((c) => c.name === colName);
+        let cType = colTypeObj ? colTypeObj.type : "varchar";
+        let isDateCol =
+          cType === "date" ||
+          colUpper.includes("DATE") ||
+          colUpper.includes("EXPIRE") ||
+          colUpper.includes("EQUIPMENT REACHED") ||
+          colUpper === "LAST WORKING DAY" ||
+          colUpper === "WORK START";
+
+        if (isDateCol && newValue) newValue = formatToDDMMMYYYY(newValue);
+        else if (colUpper === "PLATE NUMBER")
+          newValue = formatPlateNumber(newValue);
+
+        if (oldValue !== newValue) {
+          let rowIndex = erpDataTable.row($currentTr).index();
+          let colIdxInDataTable = cachedHeaders.indexOf(colName);
+
+          if (rowIndex !== undefined && colIdxInDataTable !== -1) {
+            // Live UI Update
+            $targetTd.text(newValue);
+            erpDataTable.cell(rowIndex, colIdxInDataTable).data(newValue);
+
+            // Highlight Animation
+            $targetTd.css("transition", "background-color 0.3s");
+            $targetTd.css("background-color", "#fef08a");
+            setTimeout(() => $targetTd.css("background-color", ""), 1500);
+
+            // Add to Batch Queue
+            bulkEditsBatch.push({
+              dbId: dbId,
+              colName: colName,
+              newValue: newValue,
+            });
+
+            // Add to Undo Stack
+            undoStack.push({
+              sheetRow: dbId,
+              colName: colName,
+              oldVal: oldValue,
+              newVal: newValue,
+            });
+          }
+        }
+      });
+
+      $currentTr = $currentTr.next("tr");
+    });
+
+    if (undoStack.length > 50) undoStack = undoStack.slice(-50);
+    updateUndoRedoUI();
+
+    if (bulkEditsBatch.length > 0) {
+      erpDataTable.draw(false);
+
+      // Save to database seamlessly
+      saveQueue.push(...bulkEditsBatch);
+      processQueue();
+
+      showToast(
+        `Pasted and queued ${bulkEditsBatch.length} updates! Syncing to database...`,
+        "success",
+      );
+    } else {
+      showToast("No valid changes detected in paste.", "info");
+    }
+  },
+);
