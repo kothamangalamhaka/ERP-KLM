@@ -1,11 +1,6 @@
 const express = require("express");
 const excelJS = require("exceljs");
 const bcrypt = require("bcrypt");
-const {
-  verifyToken,
-  verifySuperAdmin,
-  verifyEditor,
-} = require("../middlewares/auth");
 
 module.exports = function (pool, middlewares, helpers) {
   const router = express.Router();
@@ -105,11 +100,8 @@ module.exports = function (pool, middlewares, helpers) {
     if (wsVal && lwdVal && daysCol) {
       const parseDate = (dStr) => {
         if (!dStr) return null;
-
         let parsedDate = new Date(dStr);
-        if (!isNaN(parsedDate.getTime())) {
-          return parsedDate;
-        }
+        if (!isNaN(parsedDate.getTime())) return parsedDate;
 
         const p = String(dStr)
           .trim()
@@ -148,7 +140,6 @@ module.exports = function (pool, middlewares, helpers) {
 
       if (d1 && d2 && !isNaN(d1) && !isNaN(d2)) {
         const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-
         if (diffDays > 0) {
           updates[daysCol] = String(diffDays);
         }
@@ -271,7 +262,6 @@ module.exports = function (pool, middlewares, helpers) {
             prevData[pLwdCol] = autoLwdVal;
             if (pStatusCol) prevData[pStatusCol] = "Released";
 
-            // Auto append driver to history JSON array
             if (
               prevData[dNameCol] &&
               String(prevData[dNameCol]).trim() !== ""
@@ -343,17 +333,17 @@ module.exports = function (pool, middlewares, helpers) {
       }));
 
       let query = `
-                SELECT * FROM erp_records WHERE deleted_at IS NULL
-                ORDER BY COALESCE(record_data->>'Site', '') ASC, COALESCE(record_data->>'Company', '') ASC, COALESCE(record_data->>'If Sub', '') ASC, 
-                    CASE LOWER(TRIM(record_data->>'Status')) WHEN 'mobilizing' THEN 1 WHEN 'running' THEN 2 WHEN 'replaced' THEN 3 WHEN 'released' THEN 4 ELSE 5 END ASC, sn ASC
-            `;
+        SELECT * FROM erp_records WHERE deleted_at IS NULL
+        ORDER BY COALESCE(record_data->>'Site', '') ASC, COALESCE(record_data->>'Company', '') ASC, COALESCE(record_data->>'If Sub', '') ASC, 
+        CASE LOWER(TRIM(record_data->>'Status')) WHEN 'mobilizing' THEN 1 WHEN 'running' THEN 2 WHEN 'replaced' THEN 3 WHEN 'released' THEN 4 ELSE 5 END ASC, sn ASC
+      `;
       let params = [];
       if (role !== "Admin" && role !== "Super Admin" && role !== "Viewer") {
         query = `
-                    SELECT * FROM erp_records WHERE site = $1 AND deleted_at IS NULL
-                    ORDER BY COALESCE(record_data->>'Site', '') ASC, COALESCE(record_data->>'Company', '') ASC, COALESCE(record_data->>'If Sub', '') ASC, 
-                        CASE LOWER(TRIM(record_data->>'Status')) WHEN 'mobilizing' THEN 1 WHEN 'running' THEN 2 WHEN 'replaced' THEN 3 WHEN 'released' THEN 4 ELSE 5 END ASC, sn ASC
-                `;
+          SELECT * FROM erp_records WHERE site = $1 AND deleted_at IS NULL
+          ORDER BY COALESCE(record_data->>'Site', '') ASC, COALESCE(record_data->>'Company', '') ASC, COALESCE(record_data->>'If Sub', '') ASC, 
+          CASE LOWER(TRIM(record_data->>'Status')) WHEN 'mobilizing' THEN 1 WHEN 'running' THEN 2 WHEN 'replaced' THEN 3 WHEN 'released' THEN 4 ELSE 5 END ASC, sn ASC
+        `;
         params = [site];
       }
 
@@ -393,6 +383,59 @@ module.exports = function (pool, middlewares, helpers) {
       res.json({ success: true });
     } catch (error) {
       handleError(res, error, req.user.role, "UPDATE_COL_WIDTH");
+    }
+  });
+
+  // ? BACKEND API FOR BULK EDIT / BATCH UPDATE
+  router.post("/update-cells-batch", verifyToken, async (req, res) => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const { edits } = req.body;
+
+      if (req.user.role === "Viewer")
+        throw new Error("Access Denied: Viewers cannot edit data.");
+      if (!Array.isArray(edits) || edits.length === 0)
+        throw new Error("No edits provided.");
+
+      for (let edit of edits) {
+        let { dbId, colName, newValue } = edit;
+        if (String(colName).trim().toUpperCase() === COLUMNS.PLATE_NUMBER) {
+          newValue = formatPlateNumber(newValue);
+        }
+
+        const recordRes = await client.query(
+          "SELECT record_data FROM erp_records WHERE id = $1",
+          [dbId],
+        );
+        if (recordRes.rows.length === 0) continue;
+
+        let currentData = recordRes.rows[0].record_data;
+        let payload = { [colName]: newValue };
+        let simulatedRow = { ...currentData, ...payload };
+
+        let calculatedUpdates = calculateDependentFields(simulatedRow);
+        Object.assign(payload, calculatedUpdates);
+
+        // Single update query for each row dynamically mapping changes
+        await client.query(
+          `UPDATE erp_records SET record_data = record_data || $1::jsonb, plate_number = COALESCE(($1::jsonb->>'${COLUMNS.PLATE_NUMBER}'), plate_number), site = COALESCE(($1::jsonb->>'${COLUMNS.SITE}'), site), updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+          [JSON.stringify(payload), dbId],
+        );
+      }
+
+      await client.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BATCH_UPDATE', $2)",
+        [req.user.username, JSON.stringify({ count: edits.length })],
+      );
+
+      await client.query("COMMIT");
+      res.json({ success: true });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      handleError(res, error, req.user.role, "BATCH_UPDATE");
+    } finally {
+      client.release();
     }
   });
 
@@ -465,49 +508,6 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
-  router.post("/update-cells-batch", verifyToken, async (req, res) => {
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      const { edits } = req.body;
-      if (req.user.role === "Viewer")
-        throw new Error("Access Denied: Viewers cannot edit data.");
-      if (!Array.isArray(edits) || edits.length === 0)
-        throw new Error("No edits provided.");
-
-      for (let edit of edits) {
-        let { dbId, colName, newValue } = edit;
-        if (String(colName).trim().toUpperCase() === COLUMNS.PLATE_NUMBER)
-          newValue = formatPlateNumber(newValue);
-        const recordRes = await client.query(
-          "SELECT record_data FROM erp_records WHERE id = $1",
-          [dbId],
-        );
-        if (recordRes.rows.length === 0) continue;
-        let currentData = recordRes.rows[0].record_data;
-        let payload = { [colName]: newValue };
-        let simulatedRow = { ...currentData, ...payload };
-        let calculatedUpdates = calculateDependentFields(simulatedRow);
-        Object.assign(payload, calculatedUpdates);
-        await client.query(
-          `UPDATE erp_records SET record_data = record_data || $1::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-          [JSON.stringify(payload), dbId],
-        );
-      }
-      await client.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BATCH_UPDATE', $2)",
-        [req.user.username, JSON.stringify({ count: edits.length })],
-      );
-      await client.query("COMMIT");
-      res.json({ success: true });
-    } catch (error) {
-      await client.query("ROLLBACK");
-      handleError(res, error, req.user.role, "BATCH_UPDATE");
-    } finally {
-      client.release();
-    }
-  });
-
   async function triggerStatusAlert(
     rowData,
     plateNumber,
@@ -529,7 +529,191 @@ module.exports = function (pool, middlewares, helpers) {
     );
   }
 
-  // JSON BASED DRIVER UPDATE LOGIC
+  // ==========================================
+  // ? EXCEL BULK IMPORT (WITH STRING DATE FIX)
+  // ==========================================
+  router.post("/admin/import-excel", verifySuperAdmin, async (req, res) => {
+    const client = await pool.connect();
+    try {
+      const { fileBase64, importMode } = req.body;
+      const buffer = Buffer.from(fileBase64.split(",")[1], "base64");
+      const workbook = new excelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+
+      const sheet1 = workbook.worksheets[0];
+      let headers = [];
+      sheet1.getRow(1).eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        headers[colNumber] = cell.value
+          ? String(cell.value).trim()
+          : `Col${colNumber}`;
+      });
+
+      let hasPlate = headers.some(
+        (h) => h && h.toUpperCase().includes("PLATE"),
+      );
+      let hasSite = headers.some((h) => h && h.toUpperCase() === "SITE");
+
+      if (!hasPlate || !hasSite)
+        return res.json({
+          success: false,
+          message:
+            "Validation Failed: 'Plate Number' and 'Site' columns are mandatory. Import aborted.",
+        });
+
+      if (importMode === "rewrite") await generateAndSendBackup();
+
+      await client.query("BEGIN");
+      let snCounter = 1;
+
+      if (importMode === "rewrite") {
+        await client.query(
+          "TRUNCATE TABLE erp_records RESTART IDENTITY CASCADE",
+        );
+        await client.query(
+          "TRUNCATE TABLE erp_headers RESTART IDENTITY CASCADE",
+        );
+        let validHeadersCount = 1;
+        for (let i = 1; i < headers.length; i++) {
+          let hName = headers[i];
+          if (hName) {
+            let type = "varchar";
+            if (
+              hName.toUpperCase().includes("DATE") ||
+              hName.toUpperCase().includes("EXPIRE") ||
+              hName.toUpperCase().includes("EQUIPMENT REACHED")
+            ) {
+              type = "date";
+            }
+            await client.query(
+              "INSERT INTO erp_headers (header_name, col_order, col_type) VALUES ($1, $2, $3)",
+              [hName, validHeadersCount++, type],
+            );
+          }
+        }
+      } else {
+        const snRes = await client.query(
+          "SELECT COALESCE(MAX(sn), 0) as max_sn FROM erp_records",
+        );
+        snCounter = parseInt(snRes.rows[0].max_sn) + 1;
+      }
+
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+
+      sheet1.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        let rowData = {};
+        let plateVal = "",
+          siteVal = "";
+
+        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          let hName = headers[colNumber];
+          if (hName) {
+            let val = cell.value;
+            if (val && typeof val === "object" && val.text) val = val.text;
+
+            // STRICT DATE CONVERSION: Converts Excel Dates to String instantly
+            // `getUTCDate()` is used to prevent the local server timezone from causing off-by-one errors.
+            if (val && val instanceof Date) {
+              const day = val.getUTCDate();
+              const month = val.getUTCMonth();
+              const year = val.getUTCFullYear();
+              val = `${String(day).padStart(2, "0")}-${months[month]}-${year}`;
+            }
+
+            val = val !== null && val !== undefined ? String(val).trim() : "";
+            rowData[hName] = val;
+            if (hName.toUpperCase().includes("PLATE")) plateVal = val;
+            if (hName.toUpperCase() === "SITE") siteVal = val;
+          }
+        });
+
+        const getColName = (matchStr) =>
+          Object.keys(rowData).find((k) =>
+            k
+              .replace(/\s+/g, "")
+              .toUpperCase()
+              .includes(matchStr.replace(/\s+/g, "").toUpperCase()),
+          );
+
+        let oldNames = rowData[getColName(COLUMNS.OLD_DRIVER)]
+          ? String(rowData[getColName(COLUMNS.OLD_DRIVER)]).split("\n")
+          : [];
+        let oldMobs = rowData[getColName(COLUMNS.OD_MOB)]
+          ? String(rowData[getColName(COLUMNS.OD_MOB)]).split("\n")
+          : [];
+        let oldDates = rowData[getColName(COLUMNS.OD_WORK_END)]
+          ? String(rowData[getColName(COLUMNS.OD_WORK_END)]).split("\n")
+          : [];
+
+        if (oldNames.length > 0) {
+          rowData.driver_history = [];
+          for (let i = 0; i < oldNames.length; i++) {
+            if (oldNames[i].trim() !== "" || oldDates[i]) {
+              let parts = (oldDates[i] || "").split("to");
+              rowData.driver_history.push({
+                id:
+                  Date.now().toString(36) +
+                  Math.random().toString(36).substr(2, 5),
+                name: oldNames[i].trim(),
+                mob: oldMobs[i] ? oldMobs[i].trim() : "",
+                start: parts[0] ? parts[0].trim() : "IDK",
+                end: parts[1] ? parts[1].trim() : "IDK",
+                updated_by: "Excel Import",
+              });
+            }
+          }
+        }
+
+        let calculatedUpdates = calculateDependentFields(rowData);
+        Object.assign(rowData, calculatedUpdates);
+
+        let wsColNew = getColName(COLUMNS.WORK_START);
+        let wsValNew = wsColNew ? rowData[wsColNew] : null;
+        autoClosePreviousRecord(client, formatPlateNumber(plateVal), wsValNew);
+
+        client.query(
+          "INSERT INTO erp_records (sn, plate_number, site, record_data) VALUES ($1, $2, $3, $4)",
+          [snCounter++, formatPlateNumber(plateVal), siteVal, rowData],
+        );
+      });
+
+      const actionLabel =
+        importMode === "rewrite" ? "BULK_IMPORT_REWRITE" : "BULK_IMPORT_APPEND";
+      await client.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, $2, $3)",
+        [req.user.username, actionLabel, JSON.stringify({})],
+      );
+
+      await client.query("COMMIT");
+      const successMessage =
+        importMode === "rewrite"
+          ? "Database wiped and imported successfully!"
+          : "New data appended to the database successfully!";
+      res.json({ success: true, message: successMessage });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      handleError(res, error, req.user.role, "IMPORT_EXCEL");
+    } finally {
+      client.release();
+    }
+  });
+
+  // ==========================================
+  // ? OTHER ROUTES
+  // ==========================================
   router.post("/update-driver", verifyToken, async (req, res) => {
     const client = await pool.connect();
     try {
@@ -568,7 +752,6 @@ module.exports = function (pool, middlewares, helpers) {
             k.replace(/\s+/g, "").toUpperCase(),
         ) || k;
 
-      // Archive Old Driver into JSON Array
       if (currentDriver && currentDriver.trim() !== "") {
         data.driver_history.push({
           id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
@@ -639,7 +822,6 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
-  // JSON BASED HISTORY FETCH
   router.post("/get-driver-logs", verifyToken, async (req, res) => {
     try {
       const { dbId } = req.body;
@@ -685,7 +867,6 @@ module.exports = function (pool, middlewares, helpers) {
       let finalLogs = [];
       if (currentLog) finalLogs.push(currentLog);
 
-      // Reverse array to show newest past log first
       historyArray
         .slice()
         .reverse()

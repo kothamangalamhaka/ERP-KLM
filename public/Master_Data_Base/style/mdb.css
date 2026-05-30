@@ -796,6 +796,31 @@ body.dark-mode table.DTCR_clonedTable.dataTable {
 }
 
 /* -----------------------------
+   BULK EDIT MODE STYLES
+   ----------------------------- */
+table.dataTable.bulk-edit-grid-active tbody td {
+  cursor: cell !important;
+  border: 1px dashed var(--primary) !important;
+  transition: all 0.2s ease;
+}
+
+table.dataTable.bulk-edit-grid-active tbody td:focus,
+table.dataTable.bulk-edit-grid-active tbody td:hover {
+  background-color: rgba(14, 165, 233, 0.15) !important;
+  outline: 2px solid var(--primary) !important;
+}
+
+body.dark-mode table.dataTable.bulk-edit-grid-active tbody td {
+  border: 1px dashed #38bdf8 !important;
+}
+
+body.dark-mode table.dataTable.bulk-edit-grid-active tbody td:focus,
+body.dark-mode table.dataTable.bulk-edit-grid-active tbody td:hover {
+  background-color: rgba(56, 189, 248, 0.2) !important;
+  outline: 2px solid #38bdf8 !important;
+}
+
+/* -----------------------------
    RESPONSIVE DESIGN (MOBILE FIXES)
    ----------------------------- */
 @media (max-width: 768px) {
@@ -1031,15 +1056,4 @@ table.dataTable.header-wrap thead th .col-title-text {
   white-space: normal !important;
   word-break: break-word;
   overflow: visible;
-}
-
-/* -----------------------------
-   BULK EDIT MODE STYLES
-   ----------------------------- */
-.bulk-edit-grid-active tbody td {
-  cursor: cell !important;
-  border: 1px dashed var(--primary) !important;
-}
-.bulk-edit-grid-active tbody tr:hover {
-  background-color: rgba(16, 185, 129, 0.08) !important;
 }

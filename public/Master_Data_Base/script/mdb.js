@@ -794,6 +794,78 @@ async function submitDriverUpdate() {
   }
 }
 
+function openImportModal() {
+  if (currentUser.role !== "Super Admin")
+    return showToast("Super Admin Only.", "error");
+  document.querySelector(".dt-buttons").classList.remove("show");
+  $("#importExcelFile").val("");
+  $("#importModalOverlay").css("display", "flex");
+}
+
+function updateImportUI() {
+  const mode = document.querySelector('input[name="importMode"]:checked').value;
+  const warningText = document.getElementById("importWarningText");
+  const submitBtn = document.getElementById("btnImportSubmit");
+  if (mode === "rewrite") {
+    warningText.style.color = "var(--danger)";
+    warningText.innerText =
+      "WARNING: This will rewrite the entire database! A backup will be mailed to you automatically before wiping.";
+    submitBtn.className = "btn btn-warning";
+    submitBtn.innerText = "Import & Rewrite";
+  } else {
+    warningText.style.color = "var(--primary)";
+    warningText.innerText =
+      "Info: This will safely add new records below the existing data.";
+    submitBtn.className = "btn btn-primary";
+    submitBtn.innerText = "Import & Append";
+  }
+}
+
+function processBulkImport() {
+  const fileInput = document.getElementById("importExcelFile");
+  if (!fileInput.files.length)
+    return showToast("Please select a file.", "error");
+  const importMode = document.querySelector(
+    'input[name="importMode"]:checked',
+  ).value;
+  const file = fileInput.files[0],
+    reader = new FileReader();
+
+  $("#btnImportSubmit").prop("disabled", true).text("Processing...");
+  reader.onload = async function (e) {
+    const base64Data = e.target.result;
+    try {
+      showToast("Validating & Processing...", "info");
+      const res = await fetch("/api/admin/import-excel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fileBase64: base64Data,
+          importMode: importMode,
+        }),
+      });
+      const data = await res.json();
+      updateImportUI();
+      $("#btnImportSubmit").prop("disabled", false);
+      if (data.success) {
+        showToast(data.message, "success");
+        $("#importModalOverlay").hide();
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        showToast(data.message, "error");
+      }
+    } catch (error) {
+      updateImportUI();
+      $("#btnImportSubmit").prop("disabled", false);
+      showToast("Failed to upload.", "error");
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
 async function renameColumn(event, oldName) {
   event.stopPropagation();
   if (currentUser.role !== "Super Admin") return;
@@ -1515,6 +1587,16 @@ function renderTable(response) {
         action: function () {
           document.querySelector(".dt-buttons").classList.remove("show");
           toggleBulkEditMode();
+        },
+        init: function (api, node, config) {
+          if (currentUser.role !== "Super Admin") $(node).hide();
+        },
+      },
+      {
+        text: '<span class="material-icons" style="font-size:16px;">upload_file</span> Import',
+        className: "dt-button btn-outline",
+        action: function () {
+          openImportModal();
         },
         init: function (api, node, config) {
           if (currentUser.role !== "Super Admin") $(node).hide();
