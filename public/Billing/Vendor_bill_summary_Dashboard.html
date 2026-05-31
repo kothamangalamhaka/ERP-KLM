@@ -1,82 +1,158 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Billing Dashboard | Haka ERP</title>
-    <link rel="stylesheet" href="/Billing/style/dashboard_billing.css">
-</head>
+    <link rel="stylesheet" href="/Billing/style/dashboard_billing.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  </head>
 
-<body>
-
-    <!-- 🟢 Secure ERP Login Screen -->
+  <body>
     <div id="loginScreen">
-        <div class="login-box">
-            <h2>Haka ERP Login</h2>
-            <input type="text" id="loginUserId" placeholder="Username"
-                onkeypress="if(event.key==='Enter') executeLogin()">
-            <input type="password" id="loginPass" placeholder="Password"
-                onkeypress="if(event.key==='Enter') executeLogin()">
-            <button onclick="executeLogin()">Secure Login</button>
-        </div>
+      <div class="login-box">
+        <h2>Haka ERP Login</h2>
+        <input
+          type="text"
+          id="loginUserId"
+          placeholder="Username"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <input
+          type="password"
+          id="loginPass"
+          placeholder="Password"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <button onclick="executeLogin()">Secure Login</button>
+      </div>
     </div>
 
     <div class="container" id="mainAppContainer">
-        <div class="header-area">
-            <h2>Detailed Billing Dashboard</h2>
-            <div style="display:flex; gap:10px;">
-                <button class="btn-back"
-                    style="background:#dc3545; border:none; font-family:Georgia, 'Times New Roman', Times, serif;"
-                    onclick="executeLogout()">Logout</button>
-                    <a href="../Timesheet/Timesheet.html" class="btn-back">Home</a>
-                <a href="/Billing/index.html" class="btn-back">⬅ Back to Billing</a>
-            </div>
+      <div class="header-area">
+        <h2>Detailed Billing Dashboard</h2>
+        <div style="display: flex; gap: 10px">
+          <button
+            class="btn-back"
+            style="
+              background: #dc3545;
+              border: none;
+              font-family: Georgia, &quot;Times New Roman&quot;, Times, serif;
+            "
+            onclick="executeLogout()"
+          >
+            Logout
+          </button>
+          <a href="../Timesheet/Timesheet.html" class="btn-back">Home</a>
+          <a href="/Billing/index.html" class="btn-back">⬅ Back to Billing</a>
+        </div>
+      </div>
+
+      <div class="controls-area">
+        <div class="filter-group">
+          <p
+            style="
+              font-size: 18px;
+              font-weight: bold;
+              font-family: Georgia, &quot;Times New Roman&quot;, Times, serif;
+              color: #000000;
+              padding: 0;
+              margin: 0;
+            "
+          >
+            Monthly Vendor Bill Summary Report.
+          </p>
         </div>
 
-        <div class="controls-area">
-            <div class="filter-group">
-                <p
-                    style="font-size: 18px; font-weight: bold; font-family: Georgia, 'Times New Roman', Times, serif; color: #000000; padding: 0; margin: 0;">
-                    Monthly Vendor Bill Summary Report.</p>
-            </div>
-            <button class="btn-excel" onclick="exportToExcel()">
-                📊 Export to Excel
-            </button>
+        <div
+          class="pagination-controls"
+          style="
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: 20px;
+          "
+        >
+          <select
+            id="pageSizeSelect"
+            onchange="changePageSize()"
+            style="padding: 5px; border-radius: 4px; border: 1px solid #ccc"
+          >
+            <option value="50">50 Rows</option>
+            <option value="100">100 Rows</option>
+            <option value="150">150 Rows</option>
+            <option value="200">200 Rows</option>
+            <option value="500">500 Rows</option>
+            <option value="750">750 Rows</option>
+            <option value="1000">1000 Rows</option>
+          </select>
+
+          <div id="paginationButtons" style="display: flex; gap: 5px"></div>
         </div>
 
-        <div id="loader">Fetching records from Database...</div>
+        <button
+          class="btn-excel"
+          onclick="exportToExcelFrontend()"
+          style="margin-left: auto"
+        >
+          📊 Export to Excel
+        </button>
+      </div>
 
-        <table id="dashboardTable" style="display:none;">
-            <thead>
-                <tr id="headerRow">
-                    <th data-col="billing_month">Month <span class="filter-icon">▼</span></th>
-                    <th data-col="site_name">Site Name <span class="filter-icon">▼</span></th>
-                    <th data-col="owner">Owner <span class="filter-icon">▼</span></th>
-                    <th data-col="plate_no">Plate No <span class="filter-icon">▼</span></th>
-                    <th data-col="nhr">N.Hr <span class="filter-icon">▼</span></th>
-                    <th data-col="othr">OT Hr <span class="filter-icon">▼</span></th>
-                    <th data-col="rent">Total Rent <span class="filter-icon">▼</span></th>
-                    <th data-col="vat_amount">Total VAT <span class="filter-icon">▼</span></th>
-                    <th data-col="adjustment_desc">Adjustment Desc <span class="filter-icon">▼</span></th>
-                    <th data-col="adjusted_amount">Adj Amount <span class="filter-icon">▼</span></th>
-                    <th data-col="after_adjustment">After Adjustment <span class="filter-icon">▼</span></th>
-                </tr>
-            </thead>
-            <tbody id="dashboardBody"></tbody>
-        </table>
+      <div id="loader">Fetching records from Database...</div>
+
+      <table id="dashboardTable" style="display: none">
+        <thead>
+          <tr id="headerRow">
+            <th data-col="billing_month" style="width: 100px">
+              Month <span class="filter-icon">▼</span>
+            </th>
+            <th data-col="site_name">
+              Site Name <span class="filter-icon">▼</span>
+            </th>
+            <th data-col="owner">Owner <span class="filter-icon">▼</span></th>
+            <th data-col="plate_no">
+              Plate No <span class="filter-icon">▼</span>
+            </th>
+            <th data-col="nhr">N.Hr <span class="filter-icon">▼</span></th>
+            <th data-col="othr">OT Hr <span class="filter-icon">▼</span></th>
+            <th data-col="rent">
+              Total Rent <span class="filter-icon">▼</span>
+            </th>
+            <th data-col="vat_amount">
+              Total VAT <span class="filter-icon">▼</span>
+            </th>
+            <th data-col="adj_date">
+              Adj Date <span class="filter-icon">▼</span>
+            </th>
+            <th data-col="adjustment_desc">
+              Adjustment Desc <span class="filter-icon">▼</span>
+            </th>
+            <th data-col="adjusted_amount">
+              Adj Amount <span class="filter-icon">▼</span>
+            </th>
+            <th data-col="after_adjustment">
+              After Adjustment <span class="filter-icon">▼</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="dashboardBody"></tbody>
+      </table>
     </div>
 
-    <!-- 🟢 Excel Style Filter Menu -->
-    <div id="filterMenu" class="filter-popup" style="display:none;">
-        <input type="text" id="filterSearch" placeholder="Search..." onkeyup="filterCheckboxes()">
-        <div class="filter-options" id="filterOptions"></div>
-        <div class="filter-actions">
-            <button class="apply-btn" onclick="applyFilters()">Apply</button>
-            <button class="clear-btn" onclick="clearFilters()">Clear</button>
-        </div>
+    <div id="filterMenu" class="filter-popup" style="display: none">
+      <input
+        type="text"
+        id="filterSearch"
+        placeholder="Search..."
+        onkeyup="filterCheckboxes()"
+      />
+      <div class="filter-options" id="filterOptions"></div>
+      <div class="filter-actions">
+        <button class="apply-btn" onclick="applyFilters()">Apply</button>
+        <button class="clear-btn" onclick="clearFilters()">Clear</button>
+      </div>
     </div>
 
     <script src="/Billing/script/dashboard_billing.js"></script>
-</body>
-
+  </body>
 </html>
