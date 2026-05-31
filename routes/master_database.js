@@ -537,12 +537,7 @@ module.exports = function (pool, middlewares, helpers) {
     try {
       const { fileBase64, importMode } = req.body;
       const buffer = Buffer.from(fileBase64.split(",")[1], "base64");
-      
-      // DEBUG - REMOVE AFTER TEST
-      const fs = require('fs');
-      fs.writeFileSync('/home/fefei/ERP_System/test_upload.xlsx', buffer);
-      console.log('FILE SAVED FOR DEBUG');
-      
+
       const workbook = new excelJS.Workbook();
       workbook.date1904 = false;
       await workbook.xlsx.load(buffer);
