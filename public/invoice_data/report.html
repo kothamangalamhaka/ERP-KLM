@@ -243,10 +243,13 @@
         max-height: 75vh;
         position: relative;
       }
+
+      /* 🟢 STRICT TABLE WIDTH CONTROL */
       table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 1500px;
+        min-width: 1600px;
+        table-layout: fixed; /* Prevents columns from expanding beyond specified width */
       }
       th,
       td {
@@ -254,6 +257,8 @@
         padding: 10px 8px;
         text-align: center;
         vertical-align: middle;
+        word-wrap: break-word; /* Allows long text to wrap to the next line */
+        overflow-wrap: break-word;
       }
       th {
         font-weight: 600;
@@ -261,13 +266,13 @@
         position: sticky;
         top: 0;
         z-index: 10;
+        cursor: pointer;
+        user-select: none;
       }
 
       .th-vehicle {
         background-color: #1e293b;
         color: white;
-        cursor: pointer;
-        user-select: none;
       }
       .th-vehicle:hover {
         background-color: #334155;
@@ -276,25 +281,43 @@
         background-color: #166534;
         color: white;
       }
+      .th-ts:hover {
+        background-color: #15803d;
+      }
       .th-inv {
         background-color: #1e40af;
         color: white;
+      }
+      .th-inv:hover {
+        background-color: #1d4ed8;
       }
       .th-bill {
         background-color: #6b21a8;
         color: white;
       }
+      .th-bill:hover {
+        background-color: #7e22ce;
+      }
       .th-amt {
         background-color: #059669;
         color: white;
+      }
+      .th-amt:hover {
+        background-color: #047857;
       }
       .th-extra {
         background-color: #334155;
         color: white;
       }
+      .th-extra:hover {
+        background-color: #475569;
+      }
       .th-status {
         background-color: #0f172a;
         color: white;
+      }
+      .th-status:hover {
+        background-color: #1e293b;
       }
 
       .col-ts {
@@ -313,12 +336,14 @@
         background-color: rgba(5, 150, 105, 0.03);
         font-weight: 600;
       }
+
+      /* Removed white-space:nowrap to let it wrap properly within fixed width */
       .col-owner {
         padding-left: 3px !important;
         padding-right: 3px !important;
-        white-space: nowrap;
         font-size: 12px;
         color: #475569;
+        word-wrap: break-word;
       }
 
       a {
@@ -589,6 +614,7 @@
       .plate-cell {
         cursor: context-menu;
         transition: color 0.2s;
+        word-wrap: break-word; /* Replaced white-space:nowrap */
       }
       .plate-cell:hover {
         color: var(--primary);
@@ -767,6 +793,26 @@
 
         <div class="table-wrapper" id="tableContainer">
           <table id="reportTable">
+            <colgroup>
+              <col style="width: 200px" />
+              <col style="width: 180px" />
+              <col style="width: 100px" />
+              <col style="width: 70px" />
+              <col style="width: 70px" />
+              <col style="width: 70px" />
+              <col style="width: 70px" />
+              <col style="width: 70px" />
+              <col style="width: 70px" />
+              <col style="width: 70px" />
+              <col style="width: 70px" />
+              <col style="width: 90px" />
+              <col style="width: 100px" />
+              <col style="width: 100px" />
+              <col style="width: 120px" />
+              <col style="width: 120px" />
+              <col style="width: 150px" />
+            </colgroup>
+
             <thead>
               <tr>
                 <th colspan="3" class="th-vehicle">VEHICLE INFO</th>
@@ -776,48 +822,142 @@
                 <th colspan="4" class="th-amt">AMOUNT</th>
                 <th colspan="4" class="th-extra">EXTRA DETAILS</th>
               </tr>
+              <!-- 🟢 STRICT WIDTHS APPLIED TO EACH COLUMN HEADER -->
               <tr>
                 <th
                   class="th-vehicle"
-                  style="width: 130px"
-                  onclick="openExcelFilterMenu(event, 'site', 0)"
+                  style="width: 250px"
+                  onclick="openExcelFilterMenu(event, 'site')"
                 >
-                  Site <span class="filter-icon">▼</span>
+                  Site <span class="filter-icon" data-key="site">▼</span>
                 </th>
                 <th
                   class="th-vehicle"
-                  onclick="openExcelFilterMenu(event, 'owner', 1)"
+                  style="width: 250px"
+                  onclick="openExcelFilterMenu(event, 'owner')"
                 >
-                  Owner Name <span class="filter-icon">▼</span>
+                  Owner Name <span class="filter-icon" data-key="owner">▼</span>
                 </th>
                 <th
                   class="th-vehicle"
                   style="width: 100px"
-                  onclick="openExcelFilterMenu(event, 'plate', 2)"
+                  onclick="openExcelFilterMenu(event, 'plate')"
                   oncontextmenu="copyAllPlates(event)"
                   title="Right click to copy all visible plates"
                 >
-                  Plate No <span class="filter-icon">▼</span>
+                  Plate No <span class="filter-icon" data-key="plate">▼</span>
                 </th>
 
-                <th class="th-ts" style="width: 70px">TS N.Hr</th>
-                <th class="th-ts" style="width: 70px">TS OT</th>
+                <th
+                  class="th-ts"
+                  style="width: 50px"
+                  onclick="openExcelFilterMenu(event, 'ts_nr')"
+                >
+                  TS N.Hr <span class="filter-icon" data-key="ts_nr">▼</span>
+                </th>
+                <th
+                  class="th-ts"
+                  style="width: 50px"
+                  onclick="openExcelFilterMenu(event, 'ts_ot')"
+                >
+                  TS OT <span class="filter-icon" data-key="ts_ot">▼</span>
+                </th>
 
-                <th class="th-inv" style="width: 70px">Inv N.Hr</th>
-                <th class="th-inv" style="width: 70px">Inv OT</th>
+                <th
+                  class="th-inv"
+                  style="width: 50px"
+                  onclick="openExcelFilterMenu(event, 'inv_nr')"
+                >
+                  Inv N.Hr <span class="filter-icon" data-key="inv_nr">▼</span>
+                </th>
+                <th
+                  class="th-inv"
+                  style="width: 50px"
+                  onclick="openExcelFilterMenu(event, 'inv_ot')"
+                >
+                  Inv OT <span class="filter-icon" data-key="inv_ot">▼</span>
+                </th>
 
-                <th class="th-bill" style="width: 70px">Bill N.Hr</th>
-                <th class="th-bill" style="width: 70px">Bill OT</th>
+                <th
+                  class="th-bill"
+                  style="width: 50px"
+                  onclick="openExcelFilterMenu(event, 'bill_db_nr')"
+                >
+                  Bill N.Hr
+                  <span class="filter-icon" data-key="bill_db_nr">▼</span>
+                </th>
+                <th
+                  class="th-bill"
+                  style="width: 50px"
+                  onclick="openExcelFilterMenu(event, 'bill_db_ot')"
+                >
+                  Bill OT
+                  <span class="filter-icon" data-key="bill_db_ot">▼</span>
+                </th>
 
-                <th class="th-amt" style="width: 70px">NR Rate</th>
-                <th class="th-amt" style="width: 70px">OT Rate</th>
-                <th class="th-amt" style="width: 90px">Rent</th>
-                <th class="th-amt" style="width: 100px">Inv Amount</th>
+                <th
+                  class="th-amt"
+                  style="width: 50px"
+                  onclick="openExcelFilterMenu(event, 'bill_nrate')"
+                >
+                  NR Rate
+                  <span class="filter-icon" data-key="bill_nrate">▼</span>
+                </th>
+                <th
+                  class="th-amt"
+                  style="width: 50px"
+                  onclick="openExcelFilterMenu(event, 'bill_otrate')"
+                >
+                  OT Rate
+                  <span class="filter-icon" data-key="bill_otrate">▼</span>
+                </th>
+                <th
+                  class="th-amt"
+                  style="width: 90px"
+                  onclick="openExcelFilterMenu(event, 'bill_rent')"
+                >
+                  Rent <span class="filter-icon" data-key="bill_rent">▼</span>
+                </th>
+                <th
+                  class="th-amt"
+                  style="width: 100px"
+                  onclick="openExcelFilterMenu(event, 'inv_amount')"
+                >
+                  Inv Amount
+                  <span class="filter-icon" data-key="inv_amount">▼</span>
+                </th>
 
-                <th class="th-status" style="width: 150px">STATUS</th>
-                <th class="th-extra" style="width: 120px">Invoice No</th>
-                <th class="th-extra" style="width: 120px">Bill No</th>
-                <th class="th-extra" style="width: 200px">Accounts Note</th>
+                <th
+                  class="th-status"
+                  style="width: 100px"
+                  onclick="openExcelFilterMenu(event, 'statusPlain')"
+                >
+                  STATUS
+                  <span class="filter-icon" data-key="statusPlain">▼</span>
+                </th>
+                <th
+                  class="th-extra"
+                  style="width: 120px"
+                  onclick="openExcelFilterMenu(event, 'inv_no')"
+                >
+                  Invoice No
+                  <span class="filter-icon" data-key="inv_no">▼</span>
+                </th>
+                <th
+                  class="th-extra"
+                  style="width: 120px"
+                  onclick="openExcelFilterMenu(event, 'bill_no')"
+                >
+                  Bill No <span class="filter-icon" data-key="bill_no">▼</span>
+                </th>
+                <th
+                  class="th-extra"
+                  style="width: 150px"
+                  onclick="openExcelFilterMenu(event, 'accounts_note')"
+                >
+                  Accounts Note
+                  <span class="filter-icon" data-key="accounts_note">▼</span>
+                </th>
               </tr>
             </thead>
             <tbody id="reportBody">
@@ -860,6 +1000,7 @@
       </div>
     </div>
 
+    <!-- Batch Export & Single Export Modals (Retained unchanged HTML structures) -->
     <div id="batchModal" class="modal-overlay">
       <div class="modal-content">
         <h3>Batch Excel Export</h3>
@@ -1095,11 +1236,9 @@
         "December",
       ];
       let masterData = [];
-      let headerFilters = { site: [], owner: [], plate: [] };
-      let currentFilterColInfo = { key: "", index: -1 };
+      let headerFilters = {};
+      let currentFilterColInfo = { key: "" };
       let isEditMode = false;
-
-      // 🟢 NEW: Global Special Rules Cache
       let specialRulesCache = [];
 
       window.alert = function (message) {
@@ -1111,7 +1250,6 @@
         document.getElementById("customAlert").style.display = "none";
       }
 
-      // 🟢 NEW: Fetch Special Rules API
       async function ensureSpecialRules() {
         try {
           let token = localStorage.getItem("timesheetToken") || "";
@@ -1132,9 +1270,7 @@
         try {
           const res = await fetch(
             `/payment/master-report-data?month=${monthStr}&year=${yearStr}`,
-            {
-              headers: { Authorization: "Bearer " + token },
-            },
+            { headers: { Authorization: "Bearer " + token } },
           );
           const data = await res.json();
           if (data.success) {
@@ -1244,7 +1380,6 @@
               }
             }
 
-            // 🟢 INTEGARATING SPECIAL RULES IN REPORT CALCULATION
             let formattedDate = checkDate
               .toLocaleDateString("en-GB", {
                 day: "2-digit",
@@ -1270,7 +1405,6 @@
               : "";
             let hasData = tm > 0 || bd !== "" || (ts && ts.wrk_start);
 
-            // Smart Override for Blank Cells based on Special Rules
             if (
               !hasData &&
               specialRule &&
@@ -1285,7 +1419,6 @@
             let dayName = getDayName(i, monthStr, yearStr);
             let isFullOT = dayName === "Fri" || i === 31;
 
-            // FULL_OT Special Rule Override
             if (specialRule && specialRule.rule_type === "FULL_OT")
               isFullOT = true;
 
@@ -1293,18 +1426,14 @@
               otHr = 0;
 
             if (bd === "ID" || bd === "NP") {
-              if (isFullOT) {
-                otHr = 10;
-              } else {
-                nHr = 10;
-              }
+              if (isFullOT) otHr = 10;
+              else nHr = 10;
             } else if (bd === "B" || bd === "H") {
               nHr = 0;
               otHr = 0;
             } else if (tm > 0) {
-              if (isFullOT) {
-                otHr = tm;
-              } else {
+              if (isFullOT) otHr = tm;
+              else {
                 if (tm > 10) {
                   nHr = 10;
                   otHr = tm - 10;
@@ -1381,25 +1510,35 @@
                 parts.length > 0 ? `Loss (${parts.join(", ")})` : `Loss`;
             }
 
+            // 🟢 Formatted rates correctly to 2 decimals if > 0
             processedArray.push({
               plate: originalPlate,
               owner,
               site: sName,
-              ts_nr,
-              ts_ot,
-              inv_nr,
-              inv_ot,
-              bill_db_nr: index === 0 ? bill_db_nr : 0,
-              bill_db_ot: index === 0 ? bill_db_ot : 0,
-              bill_nrate: index === 0 ? bill_nrate : 0,
-              bill_otrate: index === 0 ? bill_otrate : 0,
-              bill_rent: index === 0 ? bill_rent : 0,
-              inv_amount,
+              ts_nr: ts_nr.toString(),
+              ts_ot: ts_ot.toString(),
+              inv_nr: inv_nr > 0 ? inv_nr.toString() : "",
+              inv_ot: inv_ot > 0 ? inv_ot.toString() : "",
+              bill_db_nr:
+                index === 0 && bill_db_nr > 0 ? bill_db_nr.toString() : "",
+              bill_db_ot:
+                index === 0 && bill_db_ot > 0 ? bill_db_ot.toString() : "",
+              bill_nrate:
+                index === 0 && bill_nrate > 0
+                  ? parseFloat(bill_nrate).toFixed(2)
+                  : "",
+              bill_otrate:
+                index === 0 && bill_otrate > 0
+                  ? parseFloat(bill_otrate).toFixed(2)
+                  : "",
+              bill_rent:
+                index === 0 && bill_rent > 0 ? bill_rent.toFixed(2) : "",
+              inv_amount: inv_amount > 0 ? inv_amount.toFixed(2) : "",
               statusClass,
               statusPlain,
               inv_no,
               bill_no,
-              accounts_note,
+              accounts_note: accounts_note || "-",
             });
           });
         });
@@ -1417,12 +1556,11 @@
         document.getElementById("loader").style.display = "block";
         document.getElementById("reportBody").innerHTML = "";
 
-        headerFilters = { site: [], owner: [], plate: [] };
+        headerFilters = {};
         document
           .querySelectorAll(".filter-icon")
           .forEach((i) => i.classList.remove("filter-active"));
 
-        // 🟢 Fetch Special Rules Before Loading Data
         await ensureSpecialRules();
         masterData = await fetchReportDataAPI(month, year);
 
@@ -1461,18 +1599,20 @@
           let matchS = fSite === "ALL" || d.site === fSite;
           let matchP = fPlate === "" || d.plate.includes(fPlate);
 
-          let hMatchS =
-            headerFilters.site.length === 0 ||
-            headerFilters.site.includes(d.site);
-          let hMatchO =
-            headerFilters.owner.length === 0 ||
-            headerFilters.owner.includes(d.owner);
-          let hMatchP =
-            headerFilters.plate.length === 0 ||
-            headerFilters.plate.includes(d.plate);
+          let passesHeaders = true;
+          for (const key in headerFilters) {
+            if (
+              headerFilters[key].length > 0 &&
+              !headerFilters[key].includes(String(d[key]))
+            ) {
+              passesHeaders = false;
+              break;
+            }
+          }
 
-          return matchO && matchS && matchP && hMatchS && hMatchO && hMatchP;
+          return matchO && matchS && matchP && passesHeaders;
         });
+
         renderTable(filtered);
 
         if (isEditMode) activateEditModeCells();
@@ -1490,29 +1630,30 @@
           const tr = document.createElement("tr");
           tr.dataset.site = row.site;
           tr.dataset.plate = row.plate;
+          // Removed 'white-space: nowrap;' from Site and Plate No to allow text wrap inside fixed columns
           tr.innerHTML = `
-                    <td style="font-weight: 600; white-space:nowrap; text-align: left; padding-left: 15px;">${row.site}</td>
-                    <td class="col-owner">${row.owner}</td>
-                    <td class="plate-cell" style="font-weight: 700; white-space:nowrap;" oncontextmenu="copySinglePlate(event, '${row.plate}')" title="Right click to copy">${row.plate}</td>
-                    
-                    <td class="col-ts">${row.ts_nr}</td><td class="col-ts">${row.ts_ot}</td>
-                    
-                    <td class="col-inv editable-field" data-field="inv_nr">${row.inv_nr || ""}</td>
-                    <td class="col-inv editable-field" data-field="inv_ot">${row.inv_ot || ""}</td>
-                    
-                    <td class="col-bill">${row.bill_db_nr || ""}</td>
-                    <td class="col-bill">${row.bill_db_ot || ""}</td>
-                    
-                    <td class="col-amt">${row.bill_nrate || ""}</td>
-                    <td class="col-amt">${row.bill_otrate || ""}</td>
-                    <td class="col-amt" style="font-weight: 700;">${row.bill_rent > 0 ? row.bill_rent.toFixed(2) : ""}</td>
-                    <td class="col-amt editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_amount > 0 ? row.inv_amount.toFixed(2) : ""}</td>
-                    
-                    <td class="status-cell ${row.statusClass}">${row.statusPlain}</td>
-                    <td class="editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; white-space: nowrap;">${row.inv_no}</td>
-                    <td class="editable-field" data-field="bill_no" style="white-space: nowrap;">${row.bill_no || ""}</td>
-                    <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editAccountsNote(this)">${row.accounts_note || "-"}</td>
-                `;
+            <td style="font-weight: 600; text-align: left; padding-left: 15px; word-wrap: break-word;">${row.site}</td>
+            <td class="col-owner" style="word-wrap: break-word;">${row.owner}</td>
+            <td class="plate-cell" style="font-weight: 700; word-wrap: break-word;" oncontextmenu="copySinglePlate(event, '${row.plate}')" title="Right click to copy">${row.plate}</td>
+            
+            <td class="col-ts">${row.ts_nr}</td><td class="col-ts">${row.ts_ot}</td>
+            
+            <td class="col-inv editable-field" data-field="inv_nr">${row.inv_nr}</td>
+            <td class="col-inv editable-field" data-field="inv_ot">${row.inv_ot}</td>
+            
+            <td class="col-bill">${row.bill_db_nr}</td>
+            <td class="col-bill">${row.bill_db_ot}</td>
+            
+            <td class="col-amt">${row.bill_nrate}</td>
+            <td class="col-amt">${row.bill_otrate}</td>
+            <td class="col-amt" style="font-weight: 700;">${row.bill_rent}</td>
+            <td class="col-amt editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_amount}</td>
+            
+            <td class="status-cell ${row.statusClass}">${row.statusPlain}</td>
+            <td class="editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
+            <td class="editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
+            <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editAccountsNote(this)">${row.accounts_note}</td>
+          `;
           tbody.appendChild(tr);
         });
       }
@@ -1701,7 +1842,7 @@
         let rowObj = masterData.find(
           (d) => d.plate === plate && d.site === site,
         );
-        if (rowObj) rowObj.accounts_note = newVal;
+        if (rowObj) rowObj.accounts_note = newVal || "-";
         const fullMonth = `${document.getElementById("selMonth").value} ${document.getElementById("selYear").value}`;
         const token = localStorage.getItem("timesheetToken");
         try {
@@ -1723,9 +1864,9 @@
         }
       }
 
-      function openExcelFilterMenu(event, key, colIndex) {
+      function openExcelFilterMenu(event, key) {
         event.stopPropagation();
-        currentFilterColInfo = { key, index: colIndex };
+        currentFilterColInfo = { key };
         const menu = document.getElementById("excelFilterMenu");
         const listContainer = document.getElementById("filterChecklist");
         listContainer.innerHTML = "";
@@ -1749,7 +1890,7 @@
             if (filterKey === key) continue;
             if (
               headerFilters[filterKey].length > 0 &&
-              !headerFilters[filterKey].includes(d[filterKey])
+              !headerFilters[filterKey].includes(String(d[filterKey]))
             ) {
               passesOtherHeaders = false;
               break;
@@ -1758,7 +1899,7 @@
           return matchO && matchS && matchP && passesOtherHeaders;
         });
 
-        tempFiltered.forEach((row) => allOptions.add(row[key]));
+        tempFiltered.forEach((row) => allOptions.add(String(row[key])));
 
         let allDataArr = Array.from(allOptions).sort();
         let previouslySelected = headerFilters[key] || [];
@@ -1826,21 +1967,14 @@
         });
 
         const key = currentFilterColInfo.key;
-        let thIndex = key === "site" ? 0 : key === "owner" ? 1 : 2;
-        const icon = document.querySelectorAll(".th-vehicle .filter-icon")[
-          thIndex
-        ];
+        const icon = document.querySelector(`.filter-icon[data-key="${key}"]`);
 
         if (checkedCount === totalVisible || checkedCount === 0) {
           headerFilters[key] = [];
-          if (icon) {
-            icon.classList.remove("filter-active");
-          }
+          if (icon) icon.classList.remove("filter-active");
         } else {
           headerFilters[key] = selectedValues;
-          if (icon) {
-            icon.classList.add("filter-active");
-          }
+          if (icon) icon.classList.add("filter-active");
         }
 
         closeExcelFilter();
@@ -1869,18 +2003,20 @@
           let matchS = fSite === "ALL" || d.site === fSite;
           let matchP = fPlate === "" || d.plate.includes(fPlate);
 
-          let hMatchS =
-            headerFilters.site.length === 0 ||
-            headerFilters.site.includes(d.site);
-          let hMatchO =
-            headerFilters.owner.length === 0 ||
-            headerFilters.owner.includes(d.owner);
-          let hMatchP =
-            headerFilters.plate.length === 0 ||
-            headerFilters.plate.includes(d.plate);
+          let passesHeaders = true;
+          for (const key in headerFilters) {
+            if (
+              headerFilters[key].length > 0 &&
+              !headerFilters[key].includes(String(d[key]))
+            ) {
+              passesHeaders = false;
+              break;
+            }
+          }
 
-          return matchO && matchS && matchP && hMatchS && hMatchO && hMatchP;
+          return matchO && matchS && matchP && passesHeaders;
         });
+
         if (filtered.length === 0) {
           window.alert("No data.");
           return;
@@ -1918,7 +2054,7 @@
         closeBatchModal();
         document.getElementById("loader").style.display = "block";
 
-        await ensureSpecialRules(); // 🟢 Make sure rules are loaded
+        await ensureSpecialRules();
 
         let wb = XLSX.utils.book_new();
         let current = new Date(start);
@@ -1982,7 +2118,7 @@
         loader.innerText = "Extracting Analysis Data... Please wait.";
         loader.style.display = "block";
 
-        await ensureSpecialRules(); // 🟢 Make sure rules are loaded
+        await ensureSpecialRules();
 
         let combinedData = [];
         let current = new Date(start);
@@ -2074,8 +2210,8 @@
             r.bill_db_ot || "",
             r.bill_nrate || "",
             r.bill_otrate || "",
-            r.bill_rent > 0 ? r.bill_rent.toFixed(2) : "",
-            r.inv_amount > 0 ? r.inv_amount.toFixed(2) : "",
+            r.bill_rent || "",
+            r.inv_amount || "",
             r.statusPlain,
             r.inv_no,
             r.bill_no,
@@ -2169,8 +2305,8 @@
             r.bill_db_ot || "",
             r.bill_nrate || "",
             r.bill_otrate || "",
-            r.bill_rent > 0 ? r.bill_rent.toFixed(2) : "",
-            r.inv_amount > 0 ? r.inv_amount.toFixed(2) : "",
+            r.bill_rent || "",
+            r.inv_amount || "",
             r.statusPlain,
             r.inv_no,
             r.bill_no,
