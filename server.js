@@ -43,7 +43,6 @@ app.use("/timesheet/api/logsheets", logsheetRoutes);
 app.use("/api/backup", backupRoutes);
 app.use("/api/entrylog", entrylogRoutes);
 
-
 const JWT_SECRET = process.env.JWT_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;

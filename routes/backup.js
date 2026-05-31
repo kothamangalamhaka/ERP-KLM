@@ -1,13 +1,25 @@
 const express = require("express");
 const router = express.Router();
+router.use(express.json());
 const cron = require("node-cron");
 const { exec } = require("child_process");
 const nodemailer = require("nodemailer");
 const fs = require("fs");
 const path = require("path");
 
+// Fallback logic to ensure environment variables are loaded
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+
 // Email destination for backup files
 const BACKUP_EMAILS = "kothamangalamhaka@gmail.com";
+
+// Check Node.js Version on startup
+const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
+if (nodeVersion < 18) {
+  console.warn(
+    `[WARNING] You are using Node.js v${process.versions.node}. Native 'fetch' and 'Blob' require Node v18+. Telegram backup might fail.`,
+  );
+}
 
 // 1. AUTOMATED CRON JOB: Runs daily at 2:00 AM IST
 cron.schedule(
@@ -115,6 +127,22 @@ async function sendBackupToTelegram(filePath, fileName, triggerType) {
  */
 function performBackupAndDispatch(triggerType) {
   return new Promise((resolve, reject) => {
+    // Environment Variables Validation Check
+    if (
+      !process.env.DB_USER ||
+      !process.env.DB_PASS ||
+      !process.env.EMAIL_PASS
+    ) {
+      console.error(
+        "[CRITICAL] Environment variables are missing! Ensure .env is properly loaded.",
+      );
+      return reject(
+        new Error(
+          "Server configuration error: Missing essential environment variables.",
+        ),
+      );
+    }
+
     const dateStr = new Date().toISOString().split("T")[0];
     const fileName = `Haka_ERP_Full_Backup_${dateStr}_${Date.now()}.sql`;
     const backupPath = path.join(__dirname, "..", "backups", fileName);
@@ -125,7 +153,16 @@ function performBackupAndDispatch(triggerType) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    // OPTIMIZED: PGPASSWORD passed safely via Node environment, not as a shell string
+    // Log loaded variables to ensure they exist (except passwords)
+    console.log("DB_USER:", process.env.DB_USER);
+    console.log("DB_HOST:", process.env.DB_HOST);
+    console.log("DB_PORT:", process.env.DB_PORT);
+    console.log("DB_NAME:", process.env.DB_NAME);
+    console.log(
+      "DB_PASS:",
+      process.env.DB_PASS ? "SET (Hidden for security)" : "NOT SET",
+    );
+
     const dumpCommand = `pg_dump -U ${process.env.DB_USER} -h ${process.env.DB_HOST} -p ${process.env.DB_PORT} -d ${process.env.DB_NAME} -F p -f "${backupPath}"`;
 
     const execOptions = {
@@ -161,7 +198,7 @@ function performBackupAndDispatch(triggerType) {
           service: "gmail",
           auth: {
             user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS, // Make sure this is a 16-char Gmail App Password!
+            pass: process.env.EMAIL_PASS, // Make sure this is a 16-char Gmail App Password
           },
         });
 
@@ -169,7 +206,7 @@ function performBackupAndDispatch(triggerType) {
           from: `"Haka Timesheet ERP" <${process.env.EMAIL_USER}>`,
           to: BACKUP_EMAILS,
           subject: `🔒 ${triggerType} - System DB Dump - ${dateStr}`,
-          text: `Hello Admin,\n\nDatabase backup is attached.\nTrigger: ${triggerType}\nTimestamp: ${new Date().toLocaleString()}\n\nBest Regards,\nHaka ERP Automation.`,
+          text: `Hello Admin,\n\nDatabase backup is attached.\nTrigger: ${triggerType}\nTimestamp: ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}\n\nBest Regards,\nHaka ERP Automation.`,
           attachments: [{ filename: fileName, path: backupPath }],
         };
 
@@ -189,15 +226,23 @@ function performBackupAndDispatch(triggerType) {
 
       // 3. SECURE HOUSEKEEPING
       try {
-        if (emailSent || telegramSent) {
+        if (emailSent && telegramSent) {
           if (fs.existsSync(backupPath)) {
             fs.unlinkSync(backupPath); // Sync delete to prevent race conditions
             console.log("🧹 Temporary local backup file purged cleanly.");
           }
           resolve();
+        } else if (emailSent || telegramSent) {
+          if (fs.existsSync(backupPath)) {
+            fs.unlinkSync(backupPath);
+            console.log(
+              "⚠️ Partial success (One dispatch failed). Temporary local backup file purged cleanly.",
+            );
+          }
+          resolve();
         } else {
           console.warn(
-            `[SAFEGUARD] Dispatches failed! Local file retained at: ${backupPath}`,
+            `[SAFEGUARD] Both dispatches failed! Local file retained at: ${backupPath}`,
           );
           reject(new Error("Multi-channel backup dispatch failed entirely."));
         }
