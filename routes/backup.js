@@ -96,13 +96,17 @@ async function sendBackupToTelegram(filePath, fileName, triggerType) {
       `🔒 System DB Dump | Trigger: ${triggerType} | Status: Success ✅\nSize: ${(fileBuffer.length / (1024 * 1024)).toFixed(2)} MB`,
     );
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
     const response = await fetch(
       `https://api.telegram.org/bot${botToken}/sendDocument`,
       {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       },
     );
+    clearTimeout(timeoutId);
 
     const result = await response.json();
 
