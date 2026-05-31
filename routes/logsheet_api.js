@@ -36,28 +36,40 @@ router.post("/list", async (req, res) => {
     const { month, year, plate_no } = req.body;
     if (!month || !year || !plate_no) throw new Error("Missing parameters");
 
-    const shortYear = year.toString().slice(-2); // e.g., 2026 -> 26
-    const folderName = `${monthMap[month]}.${month} ${shortYear}`; // e.g., 3.March 26
+    const shortYear = year.toString().slice(-2); // e.g., 26
+    const fullYear = year.toString(); // e.g., 2026
 
-    const plateNoClean = plate_no.replace(/\s+/g, ""); // Removes space (e.g., "4457 EXA" -> "4457EXA")
+    // 🟢 Generate multiple possible month folder names
+    const folderNameShort = `${monthMap[month]}.${month} ${shortYear}`;
+    const folderNameFull = `${monthMap[month]}.${month} ${fullYear}`;
 
-    // 1. Check with space inside 'Log Sheet' folder
-    const pathWithSpace = `/Log Sheet/${year}/${folderName}/${plate_no}`;
-    // 2. Check without space inside 'Log Sheet' folder
-    const pathWithoutSpace = `/Log Sheet/${year}/${folderName}/${plateNoClean}`;
+    const plateNoClean = plate_no.replace(/\s+/g, ""); // e.g., 7109VDA
+    const plateNoSpaced = plate_no; // e.g., 7109 VDA
 
-    let targetPath = pathWithSpace;
+    // 🟢 Check all possible combinations (Short year vs Full year & Spaced vs No Space)
+    const possiblePaths = [
+      `/Log Sheet/${year}/${folderNameShort}/${plateNoSpaced}`,
+      `/Log Sheet/${year}/${folderNameShort}/${plateNoClean}`,
+      `/Log Sheet/${year}/${folderNameFull}/${plateNoSpaced}`,
+      `/Log Sheet/${year}/${folderNameFull}/${plateNoClean}`,
+    ];
 
-    if ((await client.exists(pathWithSpace)) === false) {
-      if ((await client.exists(pathWithoutSpace)) === true) {
-        targetPath = pathWithoutSpace;
-      } else {
-        return res.json({
-          success: true,
-          files: [],
-          message: "No logsheets found for this vehicle in the selected month.",
-        });
+    let targetPath = null;
+
+    // Loop through combinations and find the exact matching folder
+    for (const p of possiblePaths) {
+      if (await client.exists(p)) {
+        targetPath = p;
+        break;
       }
+    }
+
+    if (!targetPath) {
+      return res.json({
+        success: true,
+        files: [],
+        message: "No files found. Folder path might be different in Nextcloud.",
+      });
     }
 
     const directoryItems = await client.getDirectoryContents(targetPath);

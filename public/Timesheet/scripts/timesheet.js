@@ -24,12 +24,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (userRole === "Editor" || userRole === "Super Admin") {
     document.getElementById("cardEntry").style.display = "flex";
     document.getElementById("cardDB").style.display = "flex";
+    document.getElementById("cardSpecialRules").style.display = "flex";
   }
 
   if (userRole === "Super Admin") {
     document.getElementById("cardExcelSync").style.display = "flex";
     document.getElementById("cardRules").style.display = "flex";
-    document.getElementById("cardSpecialRules").style.display = "flex";
     document.getElementById("cardAdmin").style.display = "flex";
 
     fetchRules();
@@ -475,12 +475,12 @@ function toggleDarkMode() {
 })();
 function openSpecialRulesModal() {
   document.getElementById("specialRulesModal").style.display = "flex";
-  
+
   // Initialize Professional Calendar for Multiple Dates
   flatpickr("#sr_dates", {
-      mode: "multiple",
-      dateFormat: "d M Y",
-      placeholder: "📅 Click to select dates..."
+    mode: "multiple",
+    dateFormat: "d M Y",
+    placeholder: "📅 Click to select dates...",
   });
 
   loadSitesForDropdown(); // Load sites from database
@@ -498,14 +498,16 @@ async function fetchSpecialRules() {
     const data = await res.json();
     const tbody = document.getElementById("specialRulesBody");
     tbody.innerHTML = "";
-    
+
     if (data.success && data.data) {
       globalSpecialRules = data.data; // Store globally
       data.data.forEach((r) => {
         let sitesStr = Array.isArray(r.sites) ? r.sites.join(", ") : r.sites;
         let datesStr = Array.isArray(r.dates) ? r.dates.join(", ") : r.dates;
-        let statusBadge = r.is_active ? '<span style="color:green;font-weight:bold;">Active</span>' : '<span style="color:gray;font-weight:bold;">Inactive</span>';
-        
+        let statusBadge = r.is_active
+          ? '<span style="color:green;font-weight:bold;">Active</span>'
+          : '<span style="color:gray;font-weight:bold;">Inactive</span>';
+
         tbody.innerHTML += `
           <tr>
             <td style="font-size:12px;">${sitesStr}</td>
@@ -527,19 +529,21 @@ async function fetchSpecialRules() {
 }
 
 function editSpecialRule(id) {
-  const rule = globalSpecialRules.find(r => r.id === id);
-  if(!rule) return;
+  const rule = globalSpecialRules.find((r) => r.id === id);
+  if (!rule) return;
 
   document.getElementById("sr_id").value = rule.id;
   document.getElementById("sr_sites_display").value = rule.sites.join(", ");
   document.getElementById("sr_sites").value = rule.sites.join(",");
   document.getElementById("sr_type").value = rule.rule_type;
   document.getElementById("sr_reason").value = rule.reason || "";
-  document.getElementById("sr_status").value = rule.is_active ? "true" : "false";
+  document.getElementById("sr_status").value = rule.is_active
+    ? "true"
+    : "false";
 
   // Set dates in Flatpickr calendar
   const dateInput = document.getElementById("sr_dates");
-  if(dateInput._flatpickr) {
+  if (dateInput._flatpickr) {
     dateInput._flatpickr.setDate(rule.dates);
   }
 
@@ -556,9 +560,9 @@ function cancelEditSpecialRule() {
   document.getElementById("sr_type").value = "FULL_OT";
   document.getElementById("sr_reason").value = "";
   document.getElementById("sr_status").value = "true";
-  
+
   const dateInput = document.getElementById("sr_dates");
-  if(dateInput._flatpickr) dateInput._flatpickr.clear();
+  if (dateInput._flatpickr) dateInput._flatpickr.clear();
 
   document.getElementById("sr_submit_btn").innerText = "+ Add";
   document.getElementById("sr_submit_btn").style.backgroundColor = "#2563eb"; // Back to blue
@@ -567,7 +571,10 @@ function cancelEditSpecialRule() {
 
 async function saveSpecialRule() {
   const id = document.getElementById("sr_id").value; // Empty means Add, Value means Edit
-  const sitesInput = document.getElementById("sr_sites").value.trim().toUpperCase();
+  const sitesInput = document
+    .getElementById("sr_sites")
+    .value.trim()
+    .toUpperCase();
   const datesInput = document.getElementById("sr_dates").value.trim();
   const ruleType = document.getElementById("sr_type").value;
   const reason = document.getElementById("sr_reason").value.trim();
@@ -578,8 +585,14 @@ async function saveSpecialRule() {
     return;
   }
 
-  const sitesArr = sitesInput.split(",").map(s => s.trim()).filter(Boolean);
-  const datesArr = datesInput.split(",").map(d => d.trim()).filter(Boolean);
+  const sitesArr = sitesInput
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const datesArr = datesInput
+    .split(",")
+    .map((d) => d.trim())
+    .filter(Boolean);
 
   const payload = {
     id: id ? parseInt(id) : null,
@@ -587,10 +600,12 @@ async function saveSpecialRule() {
     dates: datesArr,
     rule_type: ruleType,
     reason: reason,
-    is_active: isActive
+    is_active: isActive,
   };
 
-  const endpoint = id ? "/timesheet/api/update-special-rule" : "/timesheet/api/add-special-rule";
+  const endpoint = id
+    ? "/timesheet/api/update-special-rule"
+    : "/timesheet/api/add-special-rule";
 
   try {
     const token = localStorage.getItem("timesheetToken");
@@ -616,15 +631,21 @@ async function saveSpecialRule() {
 }
 
 async function deleteSpecialRule(id) {
-  const isConfirmed = await customConfirm("Delete Rule", "Are you sure you want to permanently delete this rule? This action cannot be undone.");
-  
+  const isConfirmed = await customConfirm(
+    "Delete Rule",
+    "Are you sure you want to permanently delete this rule? This action cannot be undone.",
+  );
+
   if (!isConfirmed) return; // User clicked Cancel
-  
+
   try {
     const token = localStorage.getItem("timesheetToken");
     await fetch("/timesheet/api/delete-special-rule", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
       body: JSON.stringify({ id: id }),
     });
     fetchSpecialRules();
@@ -632,7 +653,6 @@ async function deleteSpecialRule(id) {
     customAlert("Error", "Failed to delete rule.");
   }
 }
-
 
 // ==========================================
 // SITE DROPDOWN LOGIC FOR SPECIAL RULES
@@ -646,25 +666,25 @@ async function loadSitesForDropdown() {
       headers: { Authorization: "Bearer " + token },
     });
     const data = await res.json();
-    
+
     if (data.success) {
       // Get unique site names from the rules table (excluding 'DEFAULT')
       let sites = data.data
-        .map(r => r.site_keyword)
-        .filter(s => s && s !== 'DEFAULT')
+        .map((r) => r.site_keyword)
+        .filter((s) => s && s !== "DEFAULT")
         .sort();
-        
+
       const drop = document.getElementById("sr_sites_dropdown");
-      
+
       // Default ALL SITES Option
       drop.innerHTML = `
         <label style="display:flex; gap:8px; padding:10px; border-bottom:1px solid #eee; cursor:pointer; font-size:13px; font-weight:bold; color:#0ea5e9;">
           <input type="checkbox" value="ALL" id="sr_chk_all" onchange="updateSrSitesDisplay()" checked> ALL SITES
         </label>
       `;
-      
+
       // Add Each Site Option from Rules
-      sites.forEach(site => {
+      sites.forEach((site) => {
         drop.innerHTML += `
           <label style="display:flex; gap:8px; padding:10px; border-bottom:1px solid #eee; cursor:pointer; font-size:13px;">
             <input type="checkbox" class="sr_site_chk" value="${site}" onchange="updateSrSitesDisplay()"> ${site}
@@ -687,25 +707,29 @@ function updateSrSitesDisplay() {
   const allChk = document.getElementById("sr_chk_all");
   const siteChks = document.querySelectorAll(".sr_site_chk");
   let selected = [];
-  
+
   if (allChk && allChk.checked) {
     selected.push("ALL");
     // Uncheck other sites if ALL is checked
-    siteChks.forEach(c => c.checked = false); 
+    siteChks.forEach((c) => (c.checked = false));
   } else {
-    siteChks.forEach(c => {
+    siteChks.forEach((c) => {
       if (c.checked) selected.push(c.value);
     });
   }
 
   // Show selected values in UI, save actual comma-separated values in hidden input
-  document.getElementById("sr_sites_display").value = selected.length > 0 ? selected.join(", ") : "";
+  document.getElementById("sr_sites_display").value =
+    selected.length > 0 ? selected.join(", ") : "";
   document.getElementById("sr_sites").value = selected.join(",");
 }
 
 // Close the dropdown automatically when clicking outside of it
 document.addEventListener("click", function (e) {
-  if (!e.target.closest("#sr_sites_display") && !e.target.closest("#sr_sites_dropdown")) {
+  if (
+    !e.target.closest("#sr_sites_display") &&
+    !e.target.closest("#sr_sites_dropdown")
+  ) {
     const drop = document.getElementById("sr_sites_dropdown");
     if (drop) drop.style.display = "none";
   }

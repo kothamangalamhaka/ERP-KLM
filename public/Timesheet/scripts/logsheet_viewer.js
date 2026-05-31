@@ -45,9 +45,11 @@ async function openLogsheetViewer(passedPlate = "") {
   try {
     currentToken = localStorage.getItem("timesheetToken");
 
-    // 🟢 Dynamic headers based on token availability
-    const reqHeaders = { "Content-Type": "application/json" };
-    if (currentToken) reqHeaders["Authorization"] = "Bearer " + currentToken;
+    // 🟢 Fix: Ensure token is strictly passed to prevent 401
+    const reqHeaders = {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + currentToken,
+    };
 
     const response = await fetch("/timesheet/api/logsheets/list", {
       method: "POST",
@@ -158,8 +160,10 @@ function loadViewerContent(filePath, mimeType, token) {
   posX = 0; // 🟢 Reset position X
   posY = 0; // 🟢 Reset position Y
 
-  const reqHeaders = {};
-  if (token) reqHeaders["Authorization"] = "Bearer " + token;
+  const activeToken = localStorage.getItem("timesheetToken");
+  const reqHeaders = {
+    Authorization: "Bearer " + activeToken,
+  };
 
   fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(filePath)}`, {
     headers: reqHeaders,
@@ -351,8 +355,10 @@ async function generatePdfFromFiles(
     for (let i = 0; i < filesArray.length; i++) {
       const file = filesArray[i];
 
-      const reqHeaders = {};
-      if (currentToken) reqHeaders["Authorization"] = "Bearer " + currentToken;
+      const activeToken = localStorage.getItem("timesheetToken");
+      const reqHeaders = {
+        Authorization: "Bearer " + activeToken,
+      };
 
       const res = await fetch(
         `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
@@ -486,8 +492,10 @@ async function downloadCurrentImage() {
   btn.innerText = "Wait...";
 
   try {
-    const reqHeaders = {};
-    if (currentToken) reqHeaders["Authorization"] = "Bearer " + currentToken;
+    const activeToken = localStorage.getItem("timesheetToken");
+    const reqHeaders = {
+      Authorization: "Bearer " + activeToken,
+    };
 
     const res = await fetch(
       `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
