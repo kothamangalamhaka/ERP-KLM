@@ -2,25 +2,25 @@ const companyData = {
   Haka: {
     header: "https://i.ibb.co/Ld752yD5/hd.png",
     seal: "https://i.ibb.co/mrLFJdBy/sl.png",
-    text: "Prepared & Approved by Haka Accounts",
+    text: "",
     signature: "https://i.ibb.co/CK8X4YpV/Screenshot-2026-03-28-111438.png",
   },
   Aljoda: {
     header: "https://i.ibb.co/3yMwhgD5/Screenshot-2026-03-28-103621.png",
     seal: "https://i.ibb.co/4gRPdGXc/Screenshot-2026-03-28-103653.png",
-    text: "Prepared & Approved by Aljoda Sara Rentals Accounts",
+    text: "",
     signature: "https://i.ibb.co/Z1b8gCwT/Screenshot-2026-03-28-111323.png",
   },
   "Masar Wheels": {
     header: "https://i.ibb.co/gM7QnS59/Screenshot-2026-03-28-103016.png",
     seal: "https://i.ibb.co/Y63vHZ9/Screenshot-2026-03-28-103341.png",
-    text: "Prepared & Approved by Masar Wheels Accounts",
+    text: "",
     signature: "https://i.ibb.co/bMPNp3SJ/Screenshot-2026-03-28-111529.png",
   },
   "We1 Track": {
     header: "https://i.ibb.co/4w55CkbM/Screenshot-2026-03-28-103434.png",
     seal: "https://i.ibb.co/XfybvXzL/Screenshot-2026-03-28-103519.png",
-    text: "Prepared & Approved by We1 Track Accounts",
+    text: "",
     signature: "https://i.ibb.co/pBmhnB2j/Screenshot-2026-03-28-111612.png",
   },
 };
