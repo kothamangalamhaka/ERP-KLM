@@ -111,6 +111,10 @@ function executeToggleEditMode() {
   const btn = document.getElementById("editBtn");
   const editables = document.querySelectorAll(".editable");
 
+  // New Expense fields
+  const expDesc = document.getElementById("expenseDesc");
+  const expAmt = document.getElementById("expenseAmt");
+
   if (isEditMode) {
     btn.innerText = "Lock / View Mode";
     btn.classList.add("locked");
@@ -118,6 +122,16 @@ function executeToggleEditMode() {
       cell.setAttribute("contenteditable", "true");
       cell.classList.add("active");
     });
+
+    // Enable Expense fields
+    if (expDesc) {
+      expDesc.classList.add("edit-mode");
+      expDesc.setAttribute("contenteditable", "true");
+    }
+    if (expAmt) {
+      expAmt.classList.add("edit-mode");
+      expAmt.removeAttribute("readonly");
+    }
   } else {
     btn.innerText = "Enable Edit Mode";
     btn.classList.remove("locked");
@@ -125,6 +139,17 @@ function executeToggleEditMode() {
       cell.setAttribute("contenteditable", "false");
       cell.classList.remove("active");
     });
+
+    // Disable Expense fields
+    if (expDesc) {
+      expDesc.classList.remove("edit-mode");
+      expDesc.setAttribute("contenteditable", "false");
+    }
+    if (expAmt) {
+      expAmt.classList.remove("edit-mode");
+      expAmt.setAttribute("readonly", "true");
+    }
+
     document
       .querySelectorAll("#tableBody tr")
       .forEach((row) => calculateAndSaveRow(row, false));
@@ -170,6 +195,12 @@ function formatVal(val) {
 async function fetchData() {
   const empId = document.getElementById("empSelect").value;
   if (!empId) return alert("Please select Employee");
+
+  // 🟢 Clear Expense fields on new fetch
+  if (document.getElementById("expenseDesc"))
+    document.getElementById("expenseDesc").value = "";
+  if (document.getElementById("expenseAmt"))
+    document.getElementById("expenseAmt").value = "";
 
   const emp = empDataMap[empId];
   const dateFrom = document.getElementById("dateFrom").value;
@@ -502,9 +533,11 @@ function updateSummary() {
   const rateHr = baseSal / (empShiftHrPerDay * 26);
 
   let baseEarned = actualNormalForDeduction * rateHr;
-
   let otEarned = totOT * rateHr;
-  let totAmt = baseEarned + otEarned;
+
+  // 🟢 Fetch Extra Expense Amount and Add to Total
+  const expAmt = parseFloat(document.getElementById("expenseAmt")?.value) || 0;
+  let totAmt = baseEarned + otEarned + expAmt;
 
   document.getElementById("daysWorked").innerText = daysWrk;
   document.getElementById("rateHr").innerText = rateHr.toFixed(2);
