@@ -126,22 +126,26 @@ td {
   white-space: nowrap;
 }
 
-.editable {
+.editable,
+.editable-exp {
   transition: 0.2s;
   background-color: #fafafa;
 }
 
-.editable.active {
+.editable.active,
+.editable-exp.active {
   cursor: text;
   background-color: #fff;
 }
 
-.editable.active:hover {
+.editable.active:hover,
+.editable-exp.active:hover {
   background-color: #eef;
   outline: 1px dashed #007bff;
 }
 
-.editable.active:focus {
+.editable.active:focus,
+.editable-exp.active:focus {
   outline: 2px solid #007bff;
   background-color: #fff;
 }
@@ -162,21 +166,37 @@ td {
 
 .footer-summary {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* Adds clean space between the two tables */
+  align-items: flex-start; /* Fixes vertical stretching so items align top */
   margin-top: 25px;
   padding-top: 15px;
   border-top: 1px solid #aaa;
-  font-size: 14px;
-  line-height: 1.8;
   flex-wrap: wrap;
+  gap: 20px;
+}
+
+.summary-table {
+  width: auto; /* Hugs the text tightly */
+  min-width: 200px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.summary-table td {
+  padding: 4px 15px; /* Adjust spacing beautifully */
+  text-align: left;
+  border: none;
+}
+
+.summary-table td:last-child {
+  text-align: right;
+  font-weight: bold;
 }
 
 .total-amt {
   font-size: 18px;
   color: #5d140b;
   font-weight: bold;
-  display: block;
-  margin-top: 5px;
 }
 
 #saveIndicator {
@@ -277,15 +297,13 @@ td {
   .footer-summary {
     flex-direction: column;
     gap: 15px;
-    text-align: center;
   }
 
-  .footer-summary > div {
-    text-align: center !important;
+  .summary-table {
+    width: 100%;
   }
 }
 
-/* 🟢 ADD THIS TO YOUR CSS FILE 🟢 */
 .expense-field {
   font-family: inherit;
   box-sizing: border-box;
@@ -293,7 +311,7 @@ td {
   border: 1px solid transparent;
   color: #333;
   outline: none;
-  pointer-events: none; /* View mode-il click cheyyan pattilla */
+  pointer-events: none;
 }
 
 #expenseAmt {
@@ -304,13 +322,35 @@ td {
   padding: 4px;
   color: #5d140b;
   appearance: textfield;
-  -moz-appearance: textfield; /* Remove arrows */
+  -moz-appearance: textfield;
 }
 
-#expenseAmt::-webkit-outer-spin-button,
-#expenseAmt::-webkit-inner-spin-button {
+/* Removes spin buttons for ALL number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Custom Bottom-line Input Style for Add New Expense */
+.bottom-line-input {
+  border: none !important;
+  border-bottom: 2px solid #ccc !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 8px 5px !important;
+  font-size: 13px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: border-color 0.2s;
+}
+
+.bottom-line-input:focus {
+  border-bottom: 2px solid #5d140b !important;
 }
 
 #expenseDesc {
@@ -319,11 +359,10 @@ td {
   margin-top: 5px;
   padding: 4px 0;
   min-height: 20px;
-  white-space: pre-wrap; /* Keeps line breaks */
+  white-space: pre-wrap;
   word-wrap: break-word;
 }
 
-/* Hide placeholder in view mode */
 #expenseAmt::placeholder {
   color: transparent;
 }
@@ -332,7 +371,6 @@ td {
   color: transparent;
 }
 
-/* 🟢 When Edit Mode is Active 🟢 */
 .expense-field.edit-mode {
   border: 1px solid #bbb;
   border-radius: 4px;
@@ -350,4 +388,35 @@ td {
 #expenseDesc.edit-mode {
   min-height: 50px;
   padding: 8px;
+}
+
+.edit-only {
+  display: none !important;
+}
+.edit-mode-active .edit-only.table-cell {
+  display: table-cell !important;
+}
+.edit-mode-active .edit-only.flex-box {
+  display: flex !important;
+}
+
+.expense-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.expense-table th {
+  background: #f8f9fa;
+  border-bottom: 2px solid #5d140b;
+  padding: 6px;
+  text-align: left;
+  color: #5d140b;
+}
+.expense-table td {
+  padding: 6px;
+  border-bottom: 1px solid #ccc;
+  text-align: left;
+  border-left: none;
+  border-right: none;
 }

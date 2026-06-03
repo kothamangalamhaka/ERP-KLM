@@ -11,6 +11,44 @@
   <body>
     <div id="saveIndicator">Saving Data...</div>
 
+    <!-- Custom Alert/Confirm Modals -->
+    <div id="customAlertModal" class="modal-overlay" style="z-index: 10000">
+      <div class="pin-box" style="width: auto; min-width: 300px; padding: 20px">
+        <h3 id="customAlertTitle" style="color: #5d140b; margin-bottom: 15px">
+          Alert
+        </h3>
+        <p
+          id="customAlertMessage"
+          style="color: #333; margin-bottom: 20px; font-size: 14px"
+        ></p>
+        <div class="modal-btns" id="alertBtnContainer">
+          <button
+            class="btn-verify"
+            style="background: #5d140b"
+            onclick="closeCustomAlert()"
+          >
+            OK
+          </button>
+        </div>
+        <div class="modal-btns" id="confirmBtnContainer" style="display: none">
+          <button
+            class="btn-cancel"
+            style="background: #6c757d"
+            onclick="closeCustomAlert()"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn-verify"
+            id="customConfirmBtn"
+            style="background: #dc3545"
+          >
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div
       id="pinModal"
       class="modal-overlay"
@@ -168,42 +206,155 @@
       </div>
 
       <div class="footer-summary">
-        <div>
-          Base Salary: <strong id="dispBaseSal">0</strong><br />
-          Shift Hrs / Day: <strong id="dispShiftHrs">0</strong><br />
-          Rate per Hr: <span id="rateHr" style="font-weight: bold">0</span
-          ><br />
-          Total Days Worked:
-          <span id="daysWorked" style="font-weight: bold">0</span>
-        </div>
-        <div style="text-align: right">
-          Normal Hr: <span id="totalNormal" style="font-weight: bold">0</span
-          ><br />
-          Over Time: <span id="totalOT" style="font-weight: bold">0</span><br />
-          Base Salary Earned:
-          <span id="baseEarned" style="font-weight: bold">0</span><br />
-          Over Time Earned:
-          <span id="otEarned" style="font-weight: bold">0</span><br />
-          <span class="total-amt"
-            >Total Amount: <span id="totalAmt">0</span></span
-          >
-        </div>
+        <table class="summary-table">
+          <tbody>
+            <tr>
+              <td>Base Salary</td>
+              <td><strong id="dispBaseSal">0</strong></td>
+            </tr>
+            <tr>
+              <td>Shift Hrs / Day</td>
+              <td><strong id="dispShiftHrs">0</strong></td>
+            </tr>
+            <tr>
+              <td>Rate Per Hr</td>
+              <td><strong id="rateHr">0</strong></td>
+            </tr>
+            <tr>
+              <td>Total Days Worked</td>
+              <td><strong id="daysWorked">0</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table class="summary-table">
+          <tbody>
+            <tr>
+              <td>Normal Hr</td>
+              <td><strong id="totalNormal">0</strong></td>
+            </tr>
+            <tr>
+              <td>Over Time</td>
+              <td><strong id="totalOT">0</strong></td>
+            </tr>
+            <tr>
+              <td>Base Salary Earned</td>
+              <td><strong id="baseEarned">0</strong></td>
+            </tr>
+            <tr>
+              <td>Over Time Earned</td>
+              <td><strong id="otEarned">0</strong></td>
+            </tr>
+            <tr>
+              <td>Miscellaneous</td>
+              <td><strong id="miscEarned">0</strong></td>
+            </tr>
+            <tr>
+              <td></td>
+              <td style="color: transparent">-----</td>
+            </tr>
+            <tr>
+              <td class="total-amt">Total Amount:</td>
+              <td class="total-amt" id="totalAmt" style="text-align: right">
+                0
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div class="expense-section" style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #aaa; text-align: left;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
-          <div style="flex: 1;">
-            <h4 style="margin: 0 0 5px 0; color: #5d140b;">Additional Allowances & Expenses</h4>
-          </div>
-          <div style="width: 150px; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 5px;">
-            <span style="font-weight: bold; color: #5d140b;">Amount:</span>
-            <input type="number" id="expenseAmt" class="expense-field" placeholder="0.00" oninput="updateSummary()" readonly>
-          </div>
+      <div
+        class="expense-section"
+        id="expenseSection"
+        style="
+          display: none;
+          margin-top: 20px;
+          border-top: 2px dashed #aaa;
+          padding-top: 15px;
+        "
+      >
+        <h4 style="margin: 0 0 10px 0; color: #5d140b; text-align: left">
+          Additional Allowances & Expenses
+        </h4>
+        <table class="expense-table">
+          <thead>
+            <tr>
+              <th style="width: 80px">Date</th>
+              <th>Description</th>
+              <th style="width: 120px; text-align: right">Amount</th>
+              <th
+                class="edit-only table-cell no-export"
+                style="width: 40px; text-align: center"
+              >
+                Del
+              </th>
+            </tr>
+          </thead>
+          <tbody id="expenseBody"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2" style="text-align: right; font-weight: bold">
+                Total Allowances/Expenses:
+              </td>
+              <td
+                style="text-align: right; font-weight: bold; color: #5d140b"
+                id="totExpenseAmt"
+              >
+                0.00
+              </td>
+              <td class="edit-only table-cell no-export"></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div
+          class="edit-only flex-box no-export"
+          style="
+            gap: 15px;
+            margin-top: 15px;
+            align-items: flex-end;
+            padding: 10px 0;
+          "
+        >
+          <input
+            type="date"
+            id="newExpDate"
+            class="bottom-line-input"
+            style="width: 130px"
+          />
+          <input
+            type="text"
+            id="newExpDesc"
+            class="bottom-line-input"
+            placeholder="Description (e.g. Mobile Recharge)"
+            style="flex: 1"
+          />
+          <input
+            type="number"
+            id="newExpAmt"
+            class="bottom-line-input"
+            placeholder="Amount"
+            style="width: 100px; text-align: right"
+            onwheel="this.blur()"
+            onkeydown="
+              if (['ArrowUp', 'ArrowDown'].includes(event.key))
+                event.preventDefault();
+            "
+          />
+          <button
+            class="btn"
+            style="
+              background: #28a745;
+              color: white;
+              padding: 8px 15px;
+              height: auto;
+              border-radius: 4px;
+            "
+            onclick="saveNewExpense()"
+          >
+            + Add
+          </button>
         </div>
-        <div style="width: 100%;">
-          <div id="expenseDesc" class="expense-field" placeholder="Enter expense details here..." contenteditable="false"></div>
-        </div>
-      </div>
       </div>
     </div>
 

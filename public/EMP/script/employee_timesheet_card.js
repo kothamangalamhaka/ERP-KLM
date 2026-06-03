@@ -1,6 +1,37 @@
 let isEditMode = false;
 let empDataMap = {};
 let autoLogoutTimer;
+let expensesData = [];
+
+// Custom Alert & Confirm Logic (Replaces native browser popups)
+function showCustomAlert(message, isConfirm = false, onConfirm = null) {
+  document.getElementById("customAlertMessage").innerText = message;
+  document.getElementById("customAlertModal").style.display = "flex";
+
+  if (isConfirm) {
+    document.getElementById("alertBtnContainer").style.display = "none";
+    document.getElementById("confirmBtnContainer").style.display = "flex";
+    document.getElementById("customAlertTitle").innerText = "Confirm Action";
+
+    document.getElementById("customConfirmBtn").onclick = () => {
+      closeCustomAlert();
+      if (onConfirm) onConfirm();
+    };
+  } else {
+    document.getElementById("alertBtnContainer").style.display = "flex";
+    document.getElementById("confirmBtnContainer").style.display = "none";
+    document.getElementById("customAlertTitle").innerText = "Message";
+  }
+}
+
+function closeCustomAlert() {
+  document.getElementById("customAlertModal").style.display = "none";
+}
+
+// Override default window.alert globally across the script
+window.alert = function (message) {
+  showCustomAlert(message);
+};
 
 document.addEventListener("DOMContentLoaded", async () => {
   setDefaultDates();
@@ -34,7 +65,6 @@ function executeLogout() {
 async function loadDropdown() {
   const token = sessionStorage.getItem("emp_token");
 
-  // 🟢 ടോക്കൺ ഇല്ലെങ്കിൽ ഉടൻ ലോഗ്ഔട്ട് ആവാൻ
   if (!token) {
     executeLogout();
     return;
@@ -97,8 +127,9 @@ function setDefaultDates() {
   const year = today.getFullYear();
   const month = today.getMonth();
 
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
+  // Previous Month First & Last Day
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
 
   const fmt = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -110,49 +141,35 @@ function executeToggleEditMode() {
   isEditMode = !isEditMode;
   const btn = document.getElementById("editBtn");
   const editables = document.querySelectorAll(".editable");
-
-  // New Expense fields
-  const expDesc = document.getElementById("expenseDesc");
-  const expAmt = document.getElementById("expenseAmt");
+  const printArea = document.getElementById("printArea");
 
   if (isEditMode) {
     btn.innerText = "Lock / View Mode";
     btn.classList.add("locked");
+    printArea.classList.add("edit-mode-active");
+
     editables.forEach((cell) => {
       cell.setAttribute("contenteditable", "true");
       cell.classList.add("active");
     });
 
-    // Enable Expense fields
-    if (expDesc) {
-      expDesc.classList.add("edit-mode");
-      expDesc.setAttribute("contenteditable", "true");
-    }
-    if (expAmt) {
-      expAmt.classList.add("edit-mode");
-      expAmt.removeAttribute("readonly");
-    }
+    document.getElementById("expenseSection").style.display = "block";
+    renderExpenses();
   } else {
     btn.innerText = "Enable Edit Mode";
     btn.classList.remove("locked");
+    printArea.classList.remove("edit-mode-active");
+
     editables.forEach((cell) => {
       cell.setAttribute("contenteditable", "false");
       cell.classList.remove("active");
     });
 
-    // Disable Expense fields
-    if (expDesc) {
-      expDesc.classList.remove("edit-mode");
-      expDesc.setAttribute("contenteditable", "false");
-    }
-    if (expAmt) {
-      expAmt.classList.remove("edit-mode");
-      expAmt.setAttribute("readonly", "true");
-    }
-
     document
       .querySelectorAll("#tableBody tr")
       .forEach((row) => calculateAndSaveRow(row, false));
+
+    renderExpenses();
   }
 }
 
@@ -196,12 +213,6 @@ async function fetchData() {
   const empId = document.getElementById("empSelect").value;
   if (!empId) return alert("Please select Employee");
 
-  // 🟢 Clear Expense fields on new fetch
-  if (document.getElementById("expenseDesc"))
-    document.getElementById("expenseDesc").value = "";
-  if (document.getElementById("expenseAmt"))
-    document.getElementById("expenseAmt").value = "";
-
   const emp = empDataMap[empId];
   const dateFrom = document.getElementById("dateFrom").value;
   const dateTo = document.getElementById("dateTo").value;
@@ -223,12 +234,20 @@ async function fetchData() {
   try {
     const res = await fetch(
       `/api/employees/logs?empId=${empId}&from=${dateFrom}&to=${dateTo}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
+      { headers: { Authorization: `Bearer ${token}` } },
     );
     if (!res.ok) throw new Error("Fetch failed");
     const logs = await res.json();
+
+    const expRes = await fetch(
+      `/api/employees/expenses?empId=${empId}&from=${dateFrom}&to=${dateTo}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (expRes.ok) {
+      expensesData = await expRes.json();
+    } else {
+      expensesData = [];
+    }
 
     const logMap = {};
     logs.forEach((l) => {
@@ -248,9 +267,8 @@ async function fetchData() {
       "Friday",
       "Saturday",
     ];
-    const totalDaysInPeriod = dates.length;
 
-    dates.forEach((d, index) => {
+    dates.forEach((d) => {
       const dateStrDB = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       const logDateUI = d.toLocaleDateString("en-GB", {
         day: "2-digit",
@@ -262,7 +280,7 @@ async function fetchData() {
       const log = logMap[dateStrDB] || {};
 
       const isFriday = dayNameFull === "Friday";
-      const is31stDay = d.getDate() === 31; // 🟢 കൃത്യമായി 31-ാം തീയതി ആണോ എന്ന് നോക്കുന്നു
+      const is31stDay = d.getDate() === 31;
       const isAllOvertime = isFriday || is31stDay;
 
       const rowCls = isFriday ? 'class="friday-row"' : "";
@@ -291,11 +309,171 @@ async function fetchData() {
     document
       .querySelectorAll("#tableBody tr")
       .forEach((row) => calculateAndSaveRow(row, true));
+
+    renderExpenses();
   } catch (error) {
     alert("Fetch error. Please verify PIN again.");
     sessionStorage.removeItem("emp_token");
   }
 }
+
+// 🟢 ALL EXPENSE RELATED FUNCTIONS 🟢
+function renderExpenses() {
+  const tbody = document.getElementById("expenseBody");
+  tbody.innerHTML = "";
+  let totalExp = 0;
+
+  const editableAttr = isEditMode
+    ? 'contenteditable="true" class="editable-exp active"'
+    : 'contenteditable="false"';
+
+  expensesData.forEach((exp) => {
+    totalExp += parseFloat(exp.amount);
+    const dStr = new Date(exp.exp_date).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    tbody.innerHTML += `
+            <tr data-exp-id="${exp.id}">
+                <td>${dStr}</td>
+                <td ${editableAttr} data-field="description" style="white-space: pre-wrap; font-weight: normal;">${exp.description}</td>
+                <td ${editableAttr} data-field="amount" style="text-align: right; font-weight: bold;">${parseFloat(exp.amount).toFixed(2)}</td>
+                <td class="edit-only table-cell no-export" style="text-align: center;">
+                    <button style="background: #dc3545; color: white; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-weight:bold;" onclick="deleteExpense(${exp.id})">✖</button>
+                </td>
+            </tr>
+        `;
+  });
+
+  document.getElementById("totExpenseAmt").innerText = totalExp.toFixed(2);
+
+  const expSection = document.getElementById("expenseSection");
+  if (expensesData.length === 0 && !isEditMode) {
+    expSection.style.display = "none";
+  } else {
+    expSection.style.display = "block";
+  }
+
+  if (isEditMode) attachExpenseEditListeners();
+  updateSummary();
+}
+
+function attachExpenseEditListeners() {
+  document.querySelectorAll(".editable-exp").forEach((cell) => {
+    cell.addEventListener("blur", async function () {
+      const tr = this.closest("tr");
+      const id = tr.dataset.expId;
+      const desc = tr
+        .querySelector('[data-field="description"]')
+        .innerText.trim();
+      const amt = tr.querySelector('[data-field="amount"]').innerText.trim();
+
+      let exp = expensesData.find((e) => e.id == id);
+      if (exp && (exp.description !== desc || exp.amount != amt)) {
+        exp.description = desc;
+        exp.amount = amt || 0;
+
+        document.getElementById("totExpenseAmt").innerText = expensesData
+          .reduce((sum, item) => sum + parseFloat(item.amount), 0)
+          .toFixed(2);
+        updateSummary();
+        await updateExpenseAPI(id, desc, amt);
+      }
+    });
+  });
+}
+
+async function updateExpenseAPI(id, desc, amt) {
+  const token = sessionStorage.getItem("emp_token");
+  document.getElementById("saveIndicator").style.display = "block";
+  try {
+    await fetch(`/api/employees/expenses/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ description: desc, amount: amt }),
+    });
+    document.getElementById("saveIndicator").style.display = "none";
+  } catch (e) {
+    document.getElementById("saveIndicator").style.display = "none";
+    alert("Error updating expense");
+  }
+}
+
+async function saveNewExpense() {
+  const empId = document.getElementById("empSelect").value;
+  const date = document.getElementById("newExpDate").value;
+  const desc = document.getElementById("newExpDesc").value.trim();
+  const amt = document.getElementById("newExpAmt").value;
+
+  if (!empId || !date || !desc || !amt)
+    return alert("Please fill all expense fields!");
+
+  const token = sessionStorage.getItem("emp_token");
+  document.getElementById("saveIndicator").style.display = "block";
+
+  try {
+    const res = await fetch("/api/employees/expenses/save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        emp_id: empId,
+        exp_date: date,
+        description: desc,
+        amount: amt,
+      }),
+    });
+    const data = await res.json();
+
+    document.getElementById("saveIndicator").style.display = "none";
+    if (data.success) {
+      expensesData.push(data.expense);
+      document.getElementById("newExpDate").value = "";
+      document.getElementById("newExpDesc").value = "";
+      document.getElementById("newExpAmt").value = "";
+      renderExpenses();
+    } else {
+      alert("Failed to add expense");
+    }
+  } catch (e) {
+    document.getElementById("saveIndicator").style.display = "none";
+    alert("Server Error");
+  }
+}
+
+function deleteExpense(id) {
+  showCustomAlert(
+    "Are you sure you want to delete this record?",
+    true,
+    async () => {
+      const token = sessionStorage.getItem("emp_token");
+      document.getElementById("saveIndicator").style.display = "block";
+
+      try {
+        const res = await fetch(`/api/employees/expenses/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        document.getElementById("saveIndicator").style.display = "none";
+        if (res.ok) {
+          expensesData = expensesData.filter((e) => e.id !== id);
+          renderExpenses();
+        }
+      } catch (e) {
+        document.getElementById("saveIndicator").style.display = "none";
+        alert("Server Error");
+      }
+    },
+  );
+}
+// =========================================== //
 
 function attachEditListeners() {
   document.querySelectorAll(".editable").forEach((cell) => {
@@ -388,7 +566,6 @@ async function calculateAndSaveRow(row, isInitialLoad = false) {
     normalHr = 0,
     otHr = 0,
     displayWorked = "";
-
   let shiftHr = isAllOvertime ? 0 : empShiftHrPerDay;
 
   if (isAbsent) {
@@ -527,34 +704,38 @@ function updateSummary() {
 
   const empId = document.getElementById("empSelect").value;
   const emp = empDataMap[empId];
+  if (!emp) return;
+
   const baseSal = parseFloat(emp.base_salary) || 0;
   const empShiftHrPerDay = parseFloat(emp.shift_hours) || 10;
-
   const rateHr = baseSal / (empShiftHrPerDay * 26);
 
   let baseEarned = actualNormalForDeduction * rateHr;
   let otEarned = totOT * rateHr;
 
-  // 🟢 Fetch Extra Expense Amount and Add to Total
-  const expAmt = parseFloat(document.getElementById("expenseAmt")?.value) || 0;
-  let totAmt = baseEarned + otEarned + expAmt;
+  let expTot = expensesData.reduce(
+    (sum, item) => sum + parseFloat(item.amount),
+    0,
+  );
+  let totAmt = baseEarned + otEarned + expTot;
 
   document.getElementById("daysWorked").innerText = daysWrk;
   document.getElementById("rateHr").innerText = rateHr.toFixed(2);
-
   document.getElementById("totalNormal").innerText = Number.isInteger(totNormal)
     ? totNormal
     : totNormal.toFixed(2);
   document.getElementById("totalOT").innerText = Number.isInteger(totOT)
     ? totOT
     : totOT.toFixed(2);
-
   document.getElementById("baseEarned").innerText = Number.isInteger(baseEarned)
     ? baseEarned
     : baseEarned.toFixed(2);
   document.getElementById("otEarned").innerText = Number.isInteger(otEarned)
     ? otEarned
     : otEarned.toFixed(2);
+  document.getElementById("miscEarned").innerText = Number.isInteger(expTot)
+    ? expTot
+    : expTot.toFixed(2);
   document.getElementById("totalAmt").innerText = Number.isInteger(totAmt)
     ? totAmt
     : totAmt.toFixed(2);
@@ -562,12 +743,17 @@ function updateSummary() {
 
 function exportToPNG() {
   if (isEditMode) executeToggleEditMode();
-  html2canvas(document.getElementById("printArea"), { scale: 3 }).then(
-    (canvas) => {
+
+  setTimeout(() => {
+    html2canvas(document.getElementById("printArea"), {
+      scale: 5,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+    }).then((canvas) => {
       let link = document.createElement("a");
       link.download = `Log_Report_${document.getElementById("displayName").innerText}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = canvas.toDataURL("image/png", 1.0);
       link.click();
-    },
-  );
+    });
+  }, 100);
 }
