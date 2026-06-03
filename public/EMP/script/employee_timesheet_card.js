@@ -721,24 +721,21 @@ function updateSummary() {
 
   document.getElementById("daysWorked").innerText = daysWrk;
   document.getElementById("rateHr").innerText = rateHr.toFixed(2);
+  
+  // Hours (മണിക്കൂറുകൾ പൂർണ്ണ സംഖ്യയാണെങ്കിൽ .00 വേണ്ട)
   document.getElementById("totalNormal").innerText = Number.isInteger(totNormal)
     ? totNormal
     : totNormal.toFixed(2);
   document.getElementById("totalOT").innerText = Number.isInteger(totOT)
     ? totOT
     : totOT.toFixed(2);
-  document.getElementById("baseEarned").innerText = Number.isInteger(baseEarned)
-    ? baseEarned
-    : baseEarned.toFixed(2);
-  document.getElementById("otEarned").innerText = Number.isInteger(otEarned)
-    ? otEarned
-    : otEarned.toFixed(2);
-  document.getElementById("miscEarned").innerText = Number.isInteger(expTot)
-    ? expTot
-    : expTot.toFixed(2);
-  document.getElementById("totalAmt").innerText = Number.isInteger(totAmt)
-    ? totAmt
-    : totAmt.toFixed(2);
+
+  // Amounts (തുകകൾക്ക് നിർബന്ധമായും 2 ഡെസിമൽ വേണം)
+  document.getElementById("dispBaseSal").innerText = baseSal.toFixed(2);
+  document.getElementById("baseEarned").innerText = baseEarned.toFixed(2);
+  document.getElementById("otEarned").innerText = otEarned.toFixed(2);
+  document.getElementById("miscEarned").innerText = expTot.toFixed(2);
+  document.getElementById("totalAmt").innerText = totAmt.toFixed(2);
 }
 
 function exportToPNG() {
