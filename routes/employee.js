@@ -37,10 +37,12 @@ router.get("/", async (req, res) => {
   }
 });
 
-// 2. Add a new employee
+// 2. Add a new employee (Modified for Accounting Sync)
 router.post("/new", async (req, res) => {
   try {
     const { name, mobile, base_salary, shift_hours, start, end } = req.body;
+
+    // Insert Employee
     const newEmployee = await pool.query(
       "INSERT INTO employee_data (name, mobile, base_salary, shift_hours, start_date, end_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
       [
@@ -52,6 +54,15 @@ router.post("/new", async (req, res) => {
         end || null,
       ],
     );
+
+    const empId = newEmployee.rows[0].id;
+
+    // Auto-create Ledger in Accounting System
+    await pool.query(
+      "INSERT INTO oe_accounts (ledger_name, main_group, sub_group, is_employee, emp_id) VALUES ($1, 'Liabilities', 'Current Liabilities', TRUE, $2)",
+      [`${name} - Payable`, empId],
+    );
+
     res.status(201).json(newEmployee.rows[0]);
   } catch (err) {
     console.error(err.message);

@@ -28,6 +28,7 @@ const expenseRoutes = require("./routes/expense");
 const masterDatabaseRoutes = require("./routes/master_database");
 const logsheetRoutes = require("./routes/logsheet_api");
 const entrylogRoutes = require("./routes/entrylog");
+const oeledgerRoutes = require("./routes/oeledger");
 
 const app = express();
 app.use(compression());
@@ -44,6 +45,7 @@ app.use("/expenses", expenseRoutes);
 app.use("/timesheet/api/logsheets", logsheetRoutes);
 app.use("/api/backup", backupRoutes);
 app.use("/api/entrylog", entrylogRoutes);
+app.use("/api/oeledger", oeledgerRoutes);
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
