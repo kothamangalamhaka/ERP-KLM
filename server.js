@@ -1,5 +1,7 @@
 require("dotenv").config();
 require("./routes/backup");
+const https = require("https"); // Add this
+const fs = require("fs");
 const {
   verifyToken,
   verifySuperAdmin,
@@ -977,7 +979,16 @@ cron.schedule("* * * * *", async () => {
   }
 });
 
+// ==========================================
+// 🚀 SERVER INITIALIZATION (Secure HTTPS)
+// ==========================================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 ERP Server on http://localhost:${PORT}`);
+
+const sslOptions = {
+  key: fs.readFileSync('./erp-key.pem'), 
+  cert: fs.readFileSync('./erp-cert.pem')
+};
+
+https.createServer(sslOptions, app).listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Secure ERP Server running on Port ${PORT}`);
 });
