@@ -160,11 +160,11 @@
 
   // Sub-group options per main group (proper accounting taxonomy)
   const subGroups = {
-    Assets: ["Current Assets", "Fixed Assets", "Bank Accounts", "Cash in Hand", "Loans & Advances (Asset)", "Investments", "Sundry Debtors"],
-    Liabilities: ["Current Liabilities", "Long Term Liabilities", "Loans (Liability)", "Duties & Taxes", "Staff Payables", "Sundry Creditors"],
-    Equity: ["Capital Account", "Reserves & Surplus", "Retained Earnings"],
+    Assets: ["Current Assets", "Fixed Assets", "Bank Accounts", "Cash in Hand", "Loans & Advances (Asset)", "Investments", "Sundry Debtors", "Duties & Taxes (Input)"],
+    Liabilities: ["Current Liabilities", "Long Term Liabilities", "Loans (Liability)", "Duties & Taxes (Output)", "Staff Payables", "Sundry Creditors"],
+    Equity: ["Capital Account", "Drawings Account", "Reserves & Surplus", "Retained Earnings"],
     Revenue: ["Direct Income", "Indirect Income", "Service Income", "Other Income"],
-    Expenses: ["Direct Expenses", "Indirect Expenses", "Manufacturing Expenses", "Administrative Expenses", "Selling Expenses", "Salary & Wages"],
+    Expenses: ["Direct Expenses", "Indirect Expenses", "Manufacturing Expenses", "Administrative Expenses", "Selling Expenses", "Salary & Wages", "Depreciation"],
     Purchases: ["Local Purchases", "Inter-state Purchases", "Purchase Returns"],
     Sales: ["Local Sales", "Inter-state Sales", "Sales Returns"]
   };
@@ -216,9 +216,10 @@
         <td class="text-muted small">${l.sub_group || "—"}</td>
         <td class="text-center">${l.is_employee ? '<i class="bi bi-person-badge text-info" title="Staff Account"></i>' : ""}</td>
         <td class="text-center">
-          <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editLedger(${l.id}, '${l.ledger_name.replace(/'/g, "\\'")}', '${l.main_group}', '${l.sub_group || ''}')">
+          <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" title="Edit" onclick="editLedger(${l.id}, '${l.ledger_name.replace(/'/g, "\\'")}', '${l.main_group}', '${l.sub_group || ''}')">
             <i class="bi bi-pencil"></i>
           </button>
+          <!-- Delete Button -->
         </td>
       </tr>`).join("");
   }
@@ -277,6 +278,26 @@
       }
     } catch { alertBox.className = "alert alert-danger"; alertBox.innerText = "Server error."; alertBox.classList.remove("d-none"); }
   });
+
+  async function deleteLedger(id) {
+  if (!confirm("Are you sure you want to delete this ledger?")) return;
+  
+  try {
+    const res = await fetch(`/api/oeledger/ledgers/delete/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      loadLedgers();
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {
+    alert("Server Error");
+  }
+}
 
   loadLedgers();
 </script>

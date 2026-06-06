@@ -172,6 +172,12 @@ router.get("/ledgers", verifyToken, async (req, res) => {
 router.post("/ledgers/add", verifyToken, async (req, res) => {
   try {
     const { ledger_name, main_group, sub_group } = req.body;
+
+    // ഡ്യൂപ്ലിക്കേറ്റ് ചെക്ക്
+    const checkExist = await pool.query("SELECT id FROM oe_accounts WHERE LOWER(ledger_name) = LOWER($1)", [ledger_name]);
+    if (checkExist.rows.length > 0) {
+      return res.status(400).json({ success: false, message: "A ledger with this name already exists." });
+    }
     const newLedger = await pool.query(
       "INSERT INTO oe_accounts (ledger_name, main_group, sub_group) VALUES ($1, $2, $3) RETURNING *",
       [ledger_name, main_group, sub_group],
@@ -208,6 +214,38 @@ router.put("/ledgers/edit/:id", verifyToken, async (req, res) => {
     );
 
     res.json({ success: true, message: "Ledger updated successfully" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Delete Ledger (Only if no vouchers exist)
+router.delete("/ledgers/delete/:id", verifyToken, async (req, res) => {
+  try {
+    const ledgerId = req.params.id;
+    
+    // വൗച്ചറുകൾ ഉണ്ടോ എന്ന് ചെക്ക് ചെയ്യുക
+    const checkVouchers = await pool.query(
+      "SELECT id FROM oe_vouchers WHERE dr_account_id = $1 OR cr_account_id = $1 LIMIT 1",
+      [ledgerId]
+    );
+
+    if (checkVouchers.rows.length > 0) {
+      return res.status(400).json({ success: false, message: "Cannot delete this ledger as it has existing voucher entries." });
+    }
+
+    const ledgerRes = await pool.query("SELECT ledger_name FROM oe_accounts WHERE id = $1", [ledgerId]);
+    if (ledgerRes.rows.length === 0) return res.json({ success: false, message: "Ledger not found" });
+
+    await pool.query("DELETE FROM oe_accounts WHERE id = $1", [ledgerId]);
+
+    // Audit log
+    await pool.query(
+      "INSERT INTO oe_audit_log (username, action, details) VALUES ($1, 'DELETE_LEDGER', $2)",
+      [req.user.username, JSON.stringify({ deleted_ledger: ledgerRes.rows[0].ledger_name, warning: "Permanently deleted" })]
+    );
+
+    res.json({ success: true, message: "Ledger deleted successfully" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -295,7 +333,7 @@ router.get("/vouchers", verifyToken, async (req, res) => {
     const { fromDate, toDate } = req.query;
     let query = `
       SELECT 
-        v.id, v.voucher_date, v.voucher_type, v.amount, v.narration, v.created_by,
+        v.id, TO_CHAR(v.voucher_date, 'YYYY-MM-DD') AS voucher_date, v.voucher_type, v.amount, v.narration, v.created_by,
         dr.ledger_name AS dr_account_name,
         cr.ledger_name AS cr_account_name
       FROM oe_vouchers v
@@ -424,21 +462,40 @@ router.delete("/vouchers/delete/:id", verifyToken, async (req, res) => {
 // 📈 FINANCIAL REPORTS API (TB, P&L, BS, LEDGER)
 // ==========================================
 
-// 1. Trial Balance & Profit/Loss Base Data
+// 1. Trial Balance, P&L, Balance Sheet Base Data
 router.get('/reports/financials', verifyToken, async (req, res) => {
     try {
         const { fromDate, toDate } = req.query;
         
-        // Advanced SQL to calculate Net Balances for all active ledgers
+        // 🌟 FIXED LOGIC: 
+        // Expenses, Revenue, Purchases, Sales -> Filtered by From & To Date (For P&L)
+        // Assets, Liabilities, Equity -> Filtered ONLY by To Date (For Balance Sheet - Cumulative)
         const query = `
             WITH LedgerTotals AS (
                 SELECT 
                     a.id, a.ledger_name, a.main_group, a.sub_group,
-                    COALESCE(SUM(CASE WHEN v.dr_account_id = a.id THEN v.amount ELSE 0 END), 0) AS total_dr,
-                    COALESCE(SUM(CASE WHEN v.cr_account_id = a.id THEN v.amount ELSE 0 END), 0) AS total_cr
+                    COALESCE(SUM(CASE 
+                        WHEN v.dr_account_id = a.id THEN 
+                            CASE 
+                                WHEN a.main_group IN ('Revenue', 'Expenses', 'Purchases', 'Sales') THEN 
+                                    CASE WHEN v.voucher_date >= $1 AND v.voucher_date <= $2 THEN v.amount ELSE 0 END
+                                ELSE 
+                                    CASE WHEN v.voucher_date <= $2 THEN v.amount ELSE 0 END
+                            END
+                        ELSE 0 
+                    END), 0) AS total_dr,
+                    COALESCE(SUM(CASE 
+                        WHEN v.cr_account_id = a.id THEN 
+                            CASE 
+                                WHEN a.main_group IN ('Revenue', 'Expenses', 'Purchases', 'Sales') THEN 
+                                    CASE WHEN v.voucher_date >= $1 AND v.voucher_date <= $2 THEN v.amount ELSE 0 END
+                                ELSE 
+                                    CASE WHEN v.voucher_date <= $2 THEN v.amount ELSE 0 END
+                            END
+                        ELSE 0 
+                    END), 0) AS total_cr
                 FROM oe_accounts a
-                LEFT JOIN oe_vouchers v ON (a.id = v.dr_account_id OR a.id = v.cr_account_id) 
-                     AND v.voucher_date >= $1 AND v.voucher_date <= $2
+                LEFT JOIN oe_vouchers v ON (a.id = v.dr_account_id OR a.id = v.cr_account_id)
                 GROUP BY a.id, a.ledger_name, a.main_group, a.sub_group
             )
             SELECT *, 
@@ -452,14 +509,13 @@ router.get('/reports/financials', verifyToken, async (req, res) => {
         const result = await pool.query(query, [fromDate, toDate]);
         const ledgers = result.rows;
 
-        // --- Core Accounting Logic ---
-        let totalSales = 0, totalExpenses = 0;
+        let totalSales = 0, totalPurchases = 0, totalExpenses = 0, totalIncome = 0;
         let totalAssets = 0, totalLiabilities = 0;
 
         ledgers.forEach(l => {
             // P&L Logic
-            if (l.main_group === 'Revenue') totalSales += parseFloat(l.net_cr) - parseFloat(l.net_dr);
-            if (l.main_group === 'Expenses') totalExpenses += parseFloat(l.net_dr) - parseFloat(l.net_cr);
+            if (l.main_group === 'Revenue' || l.main_group === 'Sales') totalSales += parseFloat(l.net_cr) - parseFloat(l.net_dr);
+            if (l.main_group === 'Expenses' || l.main_group === 'Purchases') totalExpenses += parseFloat(l.net_dr) - parseFloat(l.net_cr);
             
             // Balance Sheet Logic
             if (l.main_group === 'Assets') totalAssets += parseFloat(l.net_dr) - parseFloat(l.net_cr);
@@ -482,6 +538,48 @@ router.get('/reports/financials', verifyToken, async (req, res) => {
     }
 });
 
+// 2. Individual Ledger Statement (With Opening Balance)
+router.get('/reports/ledger-statement/:id', verifyToken, async (req, res) => {
+    try {
+        const { fromDate, toDate } = req.query;
+        const accountId = req.params.id;
+
+        // 🌟 GET OPENING BALANCE (All transactions before fromDate)
+        const opQuery = `
+            SELECT 
+                COALESCE(SUM(CASE WHEN dr_account_id = $1 THEN amount ELSE 0 END), 0) AS op_dr,
+                COALESCE(SUM(CASE WHEN cr_account_id = $1 THEN amount ELSE 0 END), 0) AS op_cr
+            FROM oe_vouchers
+            WHERE (dr_account_id = $1 OR cr_account_id = $1) AND voucher_date < $2
+        `;
+        const opResult = await pool.query(opQuery, [accountId, fromDate]);
+        const opDr = parseFloat(opResult.rows[0].op_dr);
+        const opCr = parseFloat(opResult.rows[0].op_cr);
+        let openingBalance = opDr - opCr; // Positive means Dr, Negative means Cr
+
+        // GET PERIOD TRANSACTIONS
+        const query = `
+            SELECT 
+                TO_CHAR(v.voucher_date, 'YYYY-MM-DD') AS voucher_date, v.voucher_type, v.narration,
+                CASE WHEN v.dr_account_id = $1 THEN v.amount ELSE 0 END AS debit,
+                CASE WHEN v.cr_account_id = $1 THEN v.amount ELSE 0 END AS credit
+            FROM oe_vouchers v
+            WHERE (v.dr_account_id = $1 OR v.cr_account_id = $1)
+              AND v.voucher_date >= $2 AND v.voucher_date <= $3
+            ORDER BY v.voucher_date ASC, v.id ASC
+        `;
+        const result = await pool.query(query, [accountId, fromDate, toDate]);
+        
+        res.json({ 
+            success: true, 
+            opening_balance: openingBalance,
+            statement: result.rows 
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // 2. Individual Ledger Statement (Account Book)
 router.get('/reports/ledger-statement/:id', verifyToken, async (req, res) => {
     try {
@@ -490,7 +588,7 @@ router.get('/reports/ledger-statement/:id', verifyToken, async (req, res) => {
 
         const query = `
             SELECT 
-                v.voucher_date, v.voucher_type, v.narration,
+                TO_CHAR(v.voucher_date, 'YYYY-MM-DD') AS voucher_date, v.voucher_type, v.narration,
                 CASE WHEN v.dr_account_id = $1 THEN v.amount ELSE 0 END AS debit,
                 CASE WHEN v.cr_account_id = $1 THEN v.amount ELSE 0 END AS credit
             FROM oe_vouchers v

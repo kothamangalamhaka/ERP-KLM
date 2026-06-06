@@ -120,6 +120,8 @@
             <option value="Receipt">Receipt</option>
             <option value="Journal">Journal</option>
             <option value="Contra">Contra</option>
+            <option value="Sales">Sales</option>
+            <option value="Purchase">Purchase</option>
           </select>
         </div>
         <div class="mb-3">
@@ -152,10 +154,15 @@
     document.getElementById("adminLink").style.display = "";
   }
 
+  // Ensure local timezone date is used to prevent UTC shift
+  function getLocalDate(dateObj) {
+    return new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  }
+
   // Set default date range to current month
   const now = new Date();
-  document.getElementById("toDate").valueAsDate = now;
-  document.getElementById("fromDate").valueAsDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById("toDate").value = getLocalDate(now);
+  document.getElementById("fromDate").value = getLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
 
   function logout() {
     localStorage.removeItem("acc_token");
@@ -177,7 +184,9 @@
     if (type === "Receipt") return "bg-success";
     if (type === "Journal") return "bg-warning text-dark";
     if (type === "Contra") return "bg-info text-dark";
-    return "bg-secondary";
+    if (type === "Sales") return "bg-primary";
+    if (type === "Purchase") return "bg-secondary";
+    return "bg-dark";
   }
 
   // Store vouchers for edit

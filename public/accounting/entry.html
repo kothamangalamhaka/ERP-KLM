@@ -76,6 +76,8 @@
                 <option value="Receipt">Receipt (Cash/Bank In)</option>
                 <option value="Journal">Journal (Non-Cash Entry)</option>
                 <option value="Contra">Contra (Cash ↔ Bank)</option>
+                <option value="Sales">Sales (Credit/Cash Sales)</option>
+                <option value="Purchase">Purchase (Credit/Cash Purchases)</option>
               </select>
             </div>
           </div>
@@ -144,7 +146,12 @@
     document.getElementById("adminLink").style.display = "";
   }
 
-  document.getElementById("voucherDate").valueAsDate = new Date();
+  // Ensure local timezone date is used, preventing UTC shift
+  function getLocalDate() {
+    const today = new Date();
+    return new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  }
+  document.getElementById("voucherDate").value = getLocalDate();
 
   function logout() {
     localStorage.removeItem("acc_token");
@@ -161,10 +168,12 @@
 
   // Voucher type changes hint text
   const hints = {
-    Payment:  { dr: "Expense / Asset account", cr: "Cash / Bank account" },
-    Receipt:  { dr: "Cash / Bank account", cr: "Income / Revenue account" },
+    Payment:  { dr: "Expense / Asset / Creditor", cr: "Cash / Bank account" },
+    Receipt:  { dr: "Cash / Bank account", cr: "Income / Revenue / Debtor" },
     Journal:  { dr: "Account Debited", cr: "Account Credited" },
     Contra:   { dr: "Bank account (if receiving)", cr: "Cash account (if paying out)" },
+    Sales:    { dr: "Debtor / Cash / Bank", cr: "Sales Account" },
+    Purchase: { dr: "Purchase Account", cr: "Creditor / Cash / Bank" },
   };
   function onTypeChange() {
     const t = document.getElementById("voucherType").value;
@@ -208,7 +217,7 @@
 
   function resetForm() {
     document.getElementById("voucherForm").reset();
-    document.getElementById("voucherDate").valueAsDate = new Date();
+    document.getElementById("voucherDate").value = getLocalDate();
     onTypeChange();
   }
 
