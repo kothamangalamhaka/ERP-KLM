@@ -1,49 +1,46 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Chart of Accounts - ERP Accounting</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"/>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
-    .sidebar { min-height: 100vh; background-color: #212529; color: white; padding-top: 20px; width: 220px; flex-shrink: 0; }
-    .sidebar .brand { font-size: 1rem; font-weight: 700; color: #fff; text-align: center; padding: 0 15px 15px; border-bottom: 1px solid #444; margin-bottom: 10px; }
-    .sidebar a { color: #adb5bd; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 10px 20px; margin: 2px 8px; border-radius: 6px; font-size: 0.9rem; }
-    .sidebar a:hover, .sidebar a.active { background-color: #0d6efd; color: #fff; }
-    .sidebar .nav-section { color: #6c757d; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 20px 4px; margin-top: 6px; }
-    .main-content { padding: 24px; flex: 1; }
-    .group-badge { font-size: 0.72rem; padding: 3px 8px; border-radius: 20px; }
-    .group-Assets { background:#d1ecf1; color:#0c5460; }
-    .group-Liabilities { background:#f8d7da; color:#721c24; }
-    .group-Equity { background:#d4edda; color:#155724; }
-    .group-Revenue { background:#cce5ff; color:#004085; }
-    .group-Expenses { background:#fff3cd; color:#856404; }
+    body{font-family:'Segoe UI',sans-serif;background:#f8f9fa;}
+    .sidebar{min-height:100vh;background:#212529;width:220px;flex-shrink:0;padding-top:20px;}
+    .sidebar .brand{font-weight:700;color:#fff;text-align:center;padding:0 15px 15px;border-bottom:1px solid #444;margin-bottom:10px;}
+    .sidebar a{color:#adb5bd;text-decoration:none;display:flex;align-items:center;gap:8px;padding:10px 20px;margin:2px 8px;border-radius:6px;font-size:.9rem;}
+    .sidebar a:hover,.sidebar a.active{background:#0d6efd;color:#fff;}
+    .sidebar .nav-section{color:#6c757d;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;padding:10px 20px 4px;margin-top:6px;}
+    .main-content{padding:20px;flex:1;}
+    .grp-badge{font-size:.72rem;padding:2px 8px;border-radius:12px;}
+    .grp-Assets{background:#d1ecf1;color:#0c5460;}
+    .grp-Liabilities{background:#f8d7da;color:#721c24;}
+    .grp-Capital{background:#d4edda;color:#155724;}
+    .grp-Revenue{background:#cce5ff;color:#004085;}
+    .grp-Expenses{background:#fff3cd;color:#856404;}
+    .sys-badge{font-size:.68rem;background:#e9ecef;color:#6c757d;border-radius:10px;padding:1px 6px;}
   </style>
 </head>
 <body>
 <div class="d-flex">
-
-  <!-- Sidebar -->
   <div class="sidebar d-none d-md-flex flex-column">
     <div class="brand"><i class="bi bi-journal-richtext me-2"></i>ERP Accounts</div>
     <span class="nav-section">Main Menu</span>
-    <a href="index.html"><i class="bi bi-speedometer2"></i> Dashboard</a>
-    <a href="entry.html"><i class="bi bi-journal-plus"></i> Voucher Entry</a>
-    <a href="daybook.html"><i class="bi bi-journal-text"></i> Daybook</a>
+    <a href="index.html"><i class="bi bi-speedometer2"></i>Dashboard</a>
+    <a href="entry.html"><i class="bi bi-journal-plus"></i>Voucher Entry</a>
+    <a href="daybook.html"><i class="bi bi-journal-text"></i>Daybook</a>
     <span class="nav-section">Reports</span>
-    <a href="ledgers.html" class="active"><i class="bi bi-book"></i> Chart of Accounts</a>
-    <a href="reports.html"><i class="bi bi-file-earmark-bar-graph"></i> Financial Reports</a>
-    <a href="log.html"><i class="bi bi-shield-lock"></i> Audit Logs</a>
+    <a href="ledgers.html" class="active"><i class="bi bi-book"></i>Chart of Accounts</a>
+    <a href="reports.html"><i class="bi bi-file-earmark-bar-graph"></i>Financial Reports</a>
+    <a href="log.html"><i class="bi bi-shield-lock"></i>Audit Logs</a>
     <span class="nav-section" id="adminSection" style="display:none;">Admin</span>
-    <a href="admin.html" id="adminLink" style="display:none;"><i class="bi bi-people"></i> Manage Users</a>
+    <a href="admin.html" id="adminLink" style="display:none;"><i class="bi bi-people"></i>Manage Users</a>
   </div>
 
-  <!-- Main -->
   <div class="flex-grow-1 d-flex flex-column">
     <nav class="navbar bg-white border-bottom px-3 py-2">
-      <button class="btn btn-outline-secondary btn-sm d-md-none me-2"><i class="bi bi-list"></i></button>
       <span class="fw-bold text-muted small">Chart of Accounts</span>
       <div class="ms-auto d-flex align-items-center gap-3">
         <span class="fw-bold" id="userNameDisplay">User</span>
@@ -52,43 +49,42 @@
     </nav>
 
     <div class="main-content">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h4 class="mb-0 fw-bold">Chart of Accounts</h4>
-          <small class="text-muted">All ledger accounts in the system</small>
+          <small class="text-muted">All ledger accounts — system + custom</small>
         </div>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLedgerModal">
-          <i class="bi bi-plus-lg me-1"></i>Add New Ledger
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+          <i class="bi bi-plus-lg me-1"></i>Add Ledger
         </button>
       </div>
 
-      <div id="ledgerAlert" class="alert d-none mb-3"></div>
-
-      <!-- Group filter tabs -->
-      <ul class="nav nav-pills mb-3" id="groupFilter">
-        <li class="nav-item"><button class="nav-link active" onclick="filterGroup('')">All</button></li>
-        <li class="nav-item"><button class="nav-link" onclick="filterGroup('Assets')">Assets</button></li>
-        <li class="nav-item"><button class="nav-link" onclick="filterGroup('Liabilities')">Liabilities</button></li>
-        <li class="nav-item"><button class="nav-link" onclick="filterGroup('Equity')">Equity</button></li>
-        <li class="nav-item"><button class="nav-link" onclick="filterGroup('Revenue')">Revenue</button></li>
-        <li class="nav-item"><button class="nav-link" onclick="filterGroup('Expenses')">Expenses</button></li>
+      <!-- Filter Tabs -->
+      <ul class="nav nav-pills mb-3 flex-wrap gap-1" id="filterTabs">
+        <li><button class="btn btn-sm btn-dark active" onclick="filter('')">All</button></li>
+        <li><button class="btn btn-sm btn-outline-info" onclick="filter('Assets')">Assets</button></li>
+        <li><button class="btn btn-sm btn-outline-danger" onclick="filter('Liabilities')">Liabilities</button></li>
+        <li><button class="btn btn-sm btn-outline-success" onclick="filter('Capital & Reserves')">Capital</button></li>
+        <li><button class="btn btn-sm btn-outline-primary" onclick="filter('Revenue')">Revenue</button></li>
+        <li><button class="btn btn-sm btn-outline-warning" onclick="filter('Expenses')">Expenses</button></li>
       </ul>
 
       <div class="card shadow-sm">
         <div class="card-body p-0">
-          <table class="table table-hover mb-0">
+          <table class="table table-hover mb-0" id="ledgerTable">
             <thead class="table-dark">
               <tr>
                 <th class="ps-3" style="width:40px;">#</th>
                 <th>Ledger Name</th>
-                <th style="width:140px;">Main Group</th>
-                <th>Sub Group</th>
-                <th style="width:60px;" class="text-center">Staff</th>
-                <th style="width:60px;" class="text-center">Action</th>
+                <th style="width:160px;">Main Group</th>
+                <th style="width:180px;">Sub Group</th>
+                <th class="text-end" style="width:100px;">Opening Bal</th>
+                <th class="text-center" style="width:80px;">Flags</th>
+                <th class="text-center" style="width:60px;"></th>
               </tr>
             </thead>
-            <tbody id="ledgerTableBody">
-              <tr><td colspan="5" class="text-center py-4">Loading...</td></tr>
+            <tbody id="ledgerBody">
+              <tr><td colspan="7" class="text-center py-4">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -98,42 +94,73 @@
 </div>
 
 <!-- Add Ledger Modal -->
-<div class="modal fade" id="addLedgerModal" tabindex="-1">
-  <div class="modal-dialog">
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Create New Ledger</h5>
+        <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add New Ledger Account</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <form id="addLedgerForm" autocomplete="off">
-          <input type="hidden" id="ledgerId" value="">
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Ledger Name</label>
-            <input type="text" class="form-control" id="ledgerName" required placeholder="e.g. Cash in Hand, Sales Account" />
+        <form id="addForm" autocomplete="off">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Ledger Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="lName" required placeholder="e.g. John Antony - Debtor"/>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Main Group <span class="text-danger">*</span></label>
+              <select class="form-select" id="mGroup" required onchange="onGroupChange()">
+                <option value="">Select</option>
+                <option value="Assets">Assets</option>
+                <option value="Liabilities">Liabilities</option>
+                <option value="Capital & Reserves">Capital & Reserves</option>
+                <option value="Revenue">Revenue / Income</option>
+                <option value="Expenses">Expenses</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Sub Group <span class="text-danger">*</span></label>
+              <select class="form-select" id="sGroup" required>
+                <option value="">Select Main Group first</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Account Type</label>
+              <select class="form-select" id="accType">
+                <option value="general">General</option>
+                <option value="debtor">Debtor</option>
+                <option value="creditor">Creditor</option>
+                <option value="employee">Employee (Staff)</option>
+                <option value="cash">Cash Account</option>
+                <option value="bank">Bank Account</option>
+                <option value="gst">GST Account</option>
+                <option value="salary">Salary / Payroll</option>
+                <option value="capital">Capital Account</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Opening Balance (₹)</label>
+              <input type="number" class="form-control" id="obAmt" value="0" step="0.01" min="0"/>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Dr / Cr</label>
+              <select class="form-select" id="obType">
+                <option value="Dr">Dr (Debit)</option>
+                <option value="Cr">Cr (Credit)</option>
+              </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="isEmployee"/>
+                <label class="form-check-label" for="isEmployee">Mark as Staff / Employee</label>
+              </div>
+            </div>
           </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Main Group</label>
-            <select class="form-select" id="mainGroup" required onchange="updateSubGroupOptions()">
-              <option value="">Select Group</option>
-              <option value="Assets">Assets</option>
-              <option value="Liabilities">Liabilities</option>
-              <option value="Equity">Equity / Capital</option>
-              <option value="Revenue">Revenue / Income</option>
-              <option value="Expenses">Expenses</option>
-              <option value="Purchases">Purchases Accounts</option>
-              <option value="Sales">Sales Accounts</option>
-            </select>
-            <div class="form-text mt-1" id="groupHelp"></div>
+          <div id="addAlert" class="alert d-none mt-3"></div>
+          <div class="mt-3">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Save Ledger</button>
           </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Sub Group</label>
-            <select class="form-select" id="subGroup" required>
-              <option value="">Select Main Group first</option>
-            </select>
-          </div>
-          <div id="addLedgerAlert" class="alert d-none"></div>
-          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-lg me-1"></i>Save Ledger</button>
         </form>
       </div>
     </div>
@@ -142,164 +169,140 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  const token = localStorage.getItem("acc_token");
-  if (!token) window.location.href = "login.html";
+const token = localStorage.getItem("acc_token");
+if (!token) window.location.href = "login.html";
+const userData = JSON.parse(localStorage.getItem("acc_user") || "{}");
+document.getElementById("userNameDisplay").innerText = userData.username || "User";
+if (userData.role === "Admin") {
+  document.getElementById("adminSection").style.display = "";
+  document.getElementById("adminLink").style.display = "";
+}
+function logout() { localStorage.removeItem("acc_token"); localStorage.removeItem("acc_user"); window.location.href = "login.html"; }
 
-  const userData = JSON.parse(localStorage.getItem("acc_user") || "{}");
-  document.getElementById("userNameDisplay").innerText = userData.username || "User";
-  if (userData.role === "Admin") {
-    document.getElementById("adminSection").style.display = "";
-    document.getElementById("adminLink").style.display = "";
-  }
+const subGroupMap = {
+  "Assets": ["Cash & Bank", "Current Assets", "Fixed Assets", "Loans & Advances", "GST / Tax Receivables", "Debtors", "Inventory"],
+  "Liabilities": ["Current Liabilities", "Long Term Liabilities", "Creditors", "Duties & Taxes", "Loans", "Salary Outstanding"],
+  "Capital & Reserves": ["Capital Accounts", "Reserves", "Drawings"],
+  "Revenue": ["Direct Income", "Indirect Income", "Sales"],
+  "Expenses": ["Direct Expenses", "Indirect Expenses", "Office Expenses", "Employee Expenses", "Salary & Wages"],
+};
 
-  function logout() {
-    localStorage.removeItem("acc_token");
-    localStorage.removeItem("acc_user");
-    window.location.href = "login.html";
-  }
-
-  // Sub-group options per main group (proper accounting taxonomy)
-  const subGroups = {
-    Assets: ["Current Assets", "Fixed Assets", "Bank Accounts", "Cash in Hand", "Loans & Advances (Asset)", "Investments", "Sundry Debtors", "Duties & Taxes (Input)"],
-    Liabilities: ["Current Liabilities", "Long Term Liabilities", "Loans (Liability)", "Duties & Taxes (Output)", "Staff Payables", "Sundry Creditors"],
-    Equity: ["Capital Account", "Drawings Account", "Reserves & Surplus", "Retained Earnings"],
-    Revenue: ["Direct Income", "Indirect Income", "Service Income", "Other Income"],
-    Expenses: ["Direct Expenses", "Indirect Expenses", "Manufacturing Expenses", "Administrative Expenses", "Selling Expenses", "Salary & Wages", "Depreciation"],
-    Purchases: ["Local Purchases", "Inter-state Purchases", "Purchase Returns"],
-    Sales: ["Local Sales", "Inter-state Sales", "Sales Returns"]
-  };
-
-  const groupDesc = {
-    Assets: "Things owned by the business (Cash, Bank, Debtors...)",
-    Liabilities: "Amounts owed by the business (Loans, Creditors...)",
-    Equity: "Owner's stake in the business",
-    Revenue: "Income earned by the business",
-    Expenses: "Costs incurred to run the business",
-    Purchases: "All purchase related accounts",
-    Sales: "All sales related accounts"
-  };
-
-  function updateSubGroupOptions() {
-    const grp = document.getElementById("mainGroup").value;
-    const sel = document.getElementById("subGroup");
-    document.getElementById("groupHelp").innerText = groupDesc[grp] || "";
-    if (!grp) { sel.innerHTML = '<option value="">Select Main Group first</option>'; return; }
-    const options = (subGroups[grp] || []).map(sg => `<option value="${sg}">${sg}</option>`).join("");
-    sel.innerHTML = `<option value="">-- Select Sub Group --</option>${options}`;
-  }
-
-  let allLedgers = [];
-  let activeFilter = "";
-
-  function filterGroup(grp) {
-    activeFilter = grp;
-    document.querySelectorAll("#groupFilter .nav-link").forEach(btn => {
-      btn.classList.toggle("active", (btn.innerText === (grp || "All")));
-    });
-    renderLedgers();
-  }
-
-  function renderLedgers() {
-    const tbody = document.getElementById("ledgerTableBody");
-    const filtered = activeFilter ? allLedgers.filter(l => l.main_group === activeFilter) : allLedgers;
-
-    if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No ledgers found.</td></tr>';
-      return;
+function onGroupChange() {
+  const g = document.getElementById("mGroup").value;
+  const sgs = subGroupMap[g] || [];
+  let html = `<option value="">-- Select Sub Group --</option>`;
+  sgs.forEach(sg => html += `<option value="${sg}">${sg}</option>`);
+  // Custom option
+  html += `<option value="__custom__">+ Type custom...</option>`;
+  document.getElementById("sGroup").innerHTML = html;
+  document.getElementById("sGroup").onchange = function() {
+    if (this.value === "__custom__") {
+      const v = prompt("Enter custom sub-group name:");
+      if (v) { const o = new Option(v, v, true, true); this.add(o); }
+      else this.value = "";
     }
-
-    tbody.innerHTML = filtered.map((l, i) => `
-      <tr>
-        <td class="ps-3 text-muted">${i + 1}</td>
-        <td class="fw-semibold">${l.ledger_name}</td>
-        <td><span class="group-badge group-${l.main_group}">${l.main_group}</span></td>
-        <td class="text-muted small">${l.sub_group || "—"}</td>
-        <td class="text-center">${l.is_employee ? '<i class="bi bi-person-badge text-info" title="Staff Account"></i>' : ""}</td>
-        <td class="text-center">
-          <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" title="Edit" onclick="editLedger(${l.id}, '${l.ledger_name.replace(/'/g, "\\'")}', '${l.main_group}', '${l.sub_group || ''}')">
-            <i class="bi bi-pencil"></i>
-          </button>
-          <!-- Delete Button -->
-        </td>
-      </tr>`).join("");
-  }
-
-  async function loadLedgers() {
-    try {
-      const res = await fetch("/api/oeledger/ledgers", { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      if (data.success) { allLedgers = data.ledgers; renderLedgers(); }
-    } catch (err) { console.error(err); }
-  }
-
-  function editLedger(id, name, mainGrp, subGrp) {
-    document.getElementById("ledgerId").value = id;
-    document.getElementById("ledgerName").value = name;
-    document.getElementById("mainGroup").value = mainGrp;
-    updateSubGroupOptions();
-    document.getElementById("subGroup").value = subGrp;
-    document.querySelector("#addLedgerModal .modal-title").innerHTML = '<i class="bi bi-pencil-square me-2"></i>Edit Ledger';
-    new bootstrap.Modal(document.getElementById("addLedgerModal")).show();
-  }
-
-  document.querySelector('[data-bs-target="#addLedgerModal"]').addEventListener('click', () => {
-    document.getElementById("addLedgerForm").reset();
-    document.getElementById("ledgerId").value = "";
-    document.querySelector("#addLedgerModal .modal-title").innerHTML = '<i class="bi bi-plus-circle me-2"></i>Create New Ledger';
-  });
-
-  document.getElementById("addLedgerForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const alertBox = document.getElementById("addLedgerAlert");
-    const ledgerId = document.getElementById("ledgerId").value;
-    const payload = {
-      ledger_name: document.getElementById("ledgerName").value,
-      main_group: document.getElementById("mainGroup").value,
-      sub_group: document.getElementById("subGroup").value,
-    };
-
-    const url = ledgerId ? `/api/oeledger/ledgers/edit/${ledgerId}` : "/api/oeledger/ledgers/add";
-    const method = ledgerId ? "PUT" : "POST";
-
-    try {
-      const res = await fetch(url, {
-        method: method,
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (data.success) {
-        document.getElementById("addLedgerForm").reset();
-        updateSubGroupOptions();
-        bootstrap.Modal.getInstance(document.getElementById("addLedgerModal")).hide();
-        loadLedgers();
-      } else {
-        alertBox.className = "alert alert-danger"; alertBox.innerText = data.message; alertBox.classList.remove("d-none");
-      }
-    } catch { alertBox.className = "alert alert-danger"; alertBox.innerText = "Server error."; alertBox.classList.remove("d-none"); }
-  });
-
-  async function deleteLedger(id) {
-  if (!confirm("Are you sure you want to delete this ledger?")) return;
-  
-  try {
-    const res = await fetch(`/api/oeledger/ledgers/delete/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await res.json();
-    
-    if (data.success) {
-      loadLedgers();
-    } else {
-      alert(data.message);
-    }
-  } catch (err) {
-    alert("Server Error");
-  }
+  };
 }
 
-  loadLedgers();
+let allLedgers = [];
+let activeFilter = "";
+
+function filter(grp) {
+  activeFilter = grp;
+  document.querySelectorAll("#filterTabs button").forEach(b => {
+    b.className = b.innerText.trim() === (grp || "All")
+      ? b.className.replace("outline-", "").replace(" active", "") + " active"
+      : b.className.replace(" active", "");
+  });
+  renderLedgers();
+}
+
+function renderLedgers() {
+  const tbody = document.getElementById("ledgerBody");
+  const data = activeFilter
+    ? allLedgers.filter(l => l.main_group === activeFilter || l.main_group.startsWith(activeFilter))
+    : allLedgers;
+
+  if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No ledgers found.</td></tr>'; return; }
+
+  // Group by main_group + sub_group for display
+  let html = ""; let idx = 0;
+  let lastGrp = "";
+  data.forEach(l => {
+    const grp = l.main_group;
+    if (grp !== lastGrp) {
+      html += `<tr class="table-secondary"><td colspan="7" class="ps-3 fw-bold small text-uppercase py-1" style="letter-spacing:.08em;">${grp}</td></tr>`;
+      lastGrp = grp;
+    }
+    idx++;
+    const grpKey = grp.replace(" & Reserves","").replace(" / Income","");
+    const grpClass = `grp-${grpKey.split(" ")[0]}`;
+    const sysTag = l.is_system ? '<span class="sys-badge">system</span>' : "";
+    const empTag = l.is_employee ? '<i class="bi bi-person-badge text-info ms-1" title="Employee"></i>' : "";
+    const ob = parseFloat(l.opening_balance || 0);
+    const obText = ob > 0 ? `<span class="${l.opening_balance_type==='Dr'?'text-danger':'text-success'}">${ob.toFixed(2)} ${l.opening_balance_type}</span>` : '<span class="text-muted">—</span>';
+    const delBtn = !l.is_system && userData.role === "Admin"
+      ? `<button class="btn btn-outline-danger btn-sm p-1 lh-1" onclick="deleteLedger(${l.id},'${l.ledger_name.replace(/'/g,"\\'")}')"><i class="bi bi-trash" style="font-size:.7rem;"></i></button>` : "";
+
+    html += `<tr>
+      <td class="ps-4 text-muted small">${idx}</td>
+      <td class="fw-semibold">${l.ledger_name} ${sysTag}${empTag}</td>
+      <td><span class="grp-badge ${grpClass}">${l.main_group}</span></td>
+      <td class="text-muted small">${l.sub_group || "—"}</td>
+      <td class="text-end small">${obText}</td>
+      <td class="text-center">${l.is_employee ? '<span class="badge bg-info text-dark">Staff</span>' : ""}</td>
+      <td class="text-center">${delBtn}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+async function loadLedgers() {
+  const res = await fetch("/api/oeledger/ledgers", { headers: { Authorization: `Bearer ${token}` } });
+  const data = await res.json();
+  if (data.success) { allLedgers = data.ledgers; renderLedgers(); }
+}
+
+async function deleteLedger(id, name) {
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  const res = await fetch(`/api/oeledger/ledgers/delete/${id}`, {
+    method: "DELETE", headers: { Authorization: `Bearer ${token}` }
+  });
+  const data = await res.json();
+  alert(data.message);
+  if (data.success) loadLedgers();
+}
+
+document.getElementById("addForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const alertBox = document.getElementById("addAlert");
+  const payload = {
+    ledger_name: document.getElementById("lName").value,
+    main_group: document.getElementById("mGroup").value,
+    sub_group: document.getElementById("sGroup").value,
+    account_type: document.getElementById("accType").value,
+    is_employee: document.getElementById("isEmployee").checked,
+    opening_balance: parseFloat(document.getElementById("obAmt").value) || 0,
+    opening_balance_type: document.getElementById("obType").value,
+  };
+  try {
+    const res = await fetch("/api/oeledger/ledgers/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      bootstrap.Modal.getInstance(document.getElementById("addModal")).hide();
+      document.getElementById("addForm").reset();
+      loadLedgers();
+    } else {
+      alertBox.className = "alert alert-danger mt-3"; alertBox.innerText = data.message; alertBox.classList.remove("d-none");
+    }
+  } catch { alertBox.className = "alert alert-danger mt-3"; alertBox.innerText = "Server error."; alertBox.classList.remove("d-none"); }
+});
+
+loadLedgers();
 </script>
 </body>
 </html>

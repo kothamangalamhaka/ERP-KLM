@@ -203,9 +203,14 @@
     window.location.href = "login.html";
   }
 
+  // Ensure local timezone date is used to prevent UTC shift
+  function getLocalDate(dateObj) {
+    return new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  }
+
   const now = new Date();
-  document.getElementById("toDate").valueAsDate = now;
-  document.getElementById("fromDate").valueAsDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById("toDate").value = getLocalDate(now);
+  document.getElementById("fromDate").value = "2025-08-01";
 
   function fmt(n) { return parseFloat(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 }); }
 
@@ -272,7 +277,7 @@
     ledgers.forEach(l => {
       if (l.main_group === "Assets")
         astHtml += `<tr><td>${l.ledger_name}</td><td class="amount-col">${fmt(l.net_dr)}</td></tr>`;
-      if (l.main_group === "Liabilities" || l.main_group === "Equity")
+      if (l.main_group === "Liabilities" || l.main_group === "Capital & Reserves")
         liabHtml += `<tr><td>${l.ledger_name}</td><td class="amount-col">${fmt(l.net_cr)}</td></tr>`;
     });
     // Add Net Profit to Equity side
@@ -282,7 +287,7 @@
     document.getElementById("bsAssetsBody").innerHTML = astHtml || '<tr><td colspan="2" class="text-muted text-center">No asset accounts</td></tr>';
     document.getElementById("bsLiabilitiesBody").innerHTML = liabHtml || '<tr><td colspan="2" class="text-muted text-center">No liability accounts</td></tr>';
     document.getElementById("bsTotalAssets").innerText = fmt(bs.assets);
-    document.getElementById("bsTotalLiab").innerText = fmt(bs.liabilities + bs.net_profit);
+    document.getElementById("bsTotalLiab").innerText = fmt(bs.liabilities + bs.capital + bs.net_profit);
   }
 
   async function loadLedgerStatement() {
@@ -295,22 +300,38 @@
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      let html = ""; let balance = 0;
-      if (data.success && data.statement.length > 0) {
-        data.statement.forEach(s => {
-          const dr = parseFloat(s.debit); const cr = parseFloat(s.credit);
-          balance += dr - cr;
-          const balText = balance >= 0 ? `${fmt(balance)} Dr` : `${fmt(Math.abs(balance))} Cr`;
-          const balClass = balance >= 0 ? "text-danger" : "text-success";
-          html += `<tr>
-            <td>${new Date(s.voucher_date).toLocaleDateString("en-GB")}</td>
-            <td><span class="badge bg-secondary">${s.voucher_type}</span></td>
-            <td class="text-muted small">${s.narration}</td>
-            <td class="text-end">${dr > 0 ? fmt(dr) : ''}</td>
-            <td class="text-end">${cr > 0 ? fmt(cr) : ''}</td>
-            <td class="text-end fw-bold ${balClass}">${balText}</td>
-          </tr>`;
-        });
+      let html = "";
+      if (data.success) {
+        let balance = parseFloat(data.opening_balance || 0);
+        
+        // Render Opening Balance (B/F) Row
+        const opBalText = balance >= 0 ? `${fmt(balance)} Dr` : `${fmt(Math.abs(balance))} Cr`;
+        const opBalClass = balance >= 0 ? "text-danger" : "text-success";
+        html += `<tr class="table-info fw-semibold">
+          <td>${new Date(fromDate).toLocaleDateString("en-GB")}</td>
+          <td><span class="badge bg-info text-dark">Opening</span></td>
+          <td class="text-muted small">Brought Forward Balance (B/F)</td>
+          <td class="text-end">-</td>
+          <td class="text-end">-</td>
+          <td class="text-end ${opBalClass}">${opBalText}</td>
+        </tr>`;
+
+        if (data.statement.length > 0) {
+          data.statement.forEach(s => {
+            const dr = parseFloat(s.debit); const cr = parseFloat(s.credit);
+            balance += dr - cr;
+            const balText = balance >= 0 ? `${fmt(balance)} Dr` : `${fmt(Math.abs(balance))} Cr`;
+            const balClass = balance >= 0 ? "text-danger" : "text-success";
+            html += `<tr>
+              <td>${new Date(s.voucher_date).toLocaleDateString("en-GB")}</td>
+              <td><span class="badge bg-secondary">${s.voucher_type}</span></td>
+              <td class="text-muted small">${s.narration}</td>
+              <td class="text-end">${dr > 0 ? fmt(dr) : ''}</td>
+              <td class="text-end">${cr > 0 ? fmt(cr) : ''}</td>
+              <td class="text-end fw-bold ${balClass}">${balText}</td>
+            </tr>`;
+          });
+        }
       } else {
         html = '<tr><td colspan="6" class="text-center text-muted py-3">No transactions found for this period.</td></tr>';
       }

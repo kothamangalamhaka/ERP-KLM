@@ -82,9 +82,11 @@
                 <tr>
                   <th style="width:90px;">Date</th>
                   <th style="width:90px;">Type</th>
-                  <th>Particulars (Dr / Cr)</th>
+                  <th>Particulars</th>
+                  <th>Line Narration</th>
                   <th>Narration</th>
-                  <th class="text-end" style="width:120px;">Amount (₹)</th>
+                  <th class="text-end" style="width:110px;">Debit (₹)</th>
+                  <th class="text-end" style="width:110px;">Credit (₹)</th>
                   <th class="text-center" style="width:80px;">Action</th>
                 </tr>
               </thead>
@@ -159,10 +161,10 @@
     return new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
   }
 
-  // Set default date range to current month
+  // Set default date range to start from 1-Aug-2025
   const now = new Date();
   document.getElementById("toDate").value = getLocalDate(now);
-  document.getElementById("fromDate").value = getLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
+  document.getElementById("fromDate").value = "2025-08-01";
 
   function logout() {
     localStorage.removeItem("acc_token");
@@ -265,18 +267,39 @@
         data.vouchers.forEach(v => {
           voucherMap[v.id] = v;
           total += parseFloat(v.amount);
+          
+          // Tally Style Particulars Generation
+          let particularsHtml = '';
+          let lineNarrHtml = '';
+          let drAmtHtml = '';
+          let crAmtHtml = '';
+
+          if(v.lines && v.lines.length > 0) {
+            v.lines.forEach(line => {
+              if (line.entry_type === 'Dr') {
+                particularsHtml += `<div class="d-flex justify-content-between fw-bold text-dark mb-1"><span>${line.ledger_name}</span><span class="ms-3">Dr</span></div>`;
+                drAmtHtml += `<div class="mb-1 text-dark fw-bold">${parseFloat(line.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>`;
+                crAmtHtml += `<div class="mb-1">&nbsp;</div>`;
+              } else {
+                particularsHtml += `<div class="mb-1 text-muted" style="padding-left: 25px;">To ${line.ledger_name}</div>`;
+                drAmtHtml += `<div class="mb-1">&nbsp;</div>`;
+                crAmtHtml += `<div class="mb-1 text-dark">${parseFloat(line.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>`;
+              }
+              lineNarrHtml += `<div class="mb-1 text-muted small text-truncate" style="max-width:150px;">${line.line_narration || '&nbsp;'}</div>`;
+            });
+          }
+
           tbody.innerHTML += `
-            <tr>
-              <td class="small">${fmtDate(v.voucher_date)}</td>
+            <tr class="align-middle border-bottom">
+              <td class="small fw-semibold">${fmtDate(v.voucher_date)}</td>
               <td><span class="badge ${badgeClass(v.voucher_type)}">${v.voucher_type}</span></td>
-              <td>
-                <div class="dr-text small"><i class="bi bi-arrow-right-short"></i>Dr. ${v.dr_account_name}</div>
-                <div class="cr-text small ms-2"><i class="bi bi-arrow-left-short"></i>Cr. ${v.cr_account_name}</div>
-              </td>
-              <td class="text-muted small">${v.narration}</td>
-              <td class="amount-col">${parseFloat(v.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
-              <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary me-1" onclick="openEdit(${v.id})" title="Edit"><i class="bi bi-pencil"></i></button>
+              <td>${particularsHtml}</td>
+              <td>${lineNarrHtml}</td>
+              <td class="small text-muted fst-italic" style="max-width:200px;">${v.narration || ''}</td>
+              <td class="amount-col text-end border-start" style="background:#fafafa;">${drAmtHtml}</td>
+              <td class="amount-col text-end border-start" style="background:#fafafa;">${crAmtHtml}</td>
+              <td class="text-center border-start">
+                <a href="entry.html?edit=${v.id}" class="btn btn-sm btn-outline-primary me-1" title="Edit"><i class="bi bi-pencil"></i></a>
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteVoucher(${v.id})" title="Delete"><i class="bi bi-trash"></i></button>
               </td>
             </tr>`;
