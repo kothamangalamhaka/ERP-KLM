@@ -395,13 +395,6 @@ async function seedSystemAccounts() {
       is_system: true,
     },
     {
-      ledger_name: "Legal Charges",
-      main_group: "Expenses",
-      sub_group: "Indirect Expenses",
-      account_type: "expense",
-      is_system: true,
-    },
-    {
       ledger_name: "Commission Paid",
       main_group: "Expenses",
       sub_group: "Indirect Expenses",
@@ -945,67 +938,80 @@ router.get("/reports/financials", verifyToken, async (req, res) => {
     const { fromDate, toDate } = req.query;
 
     const query = `
-      WITH LedgerTotals AS (
-        SELECT
-          a.id, a.ledger_name, a.main_group, a.sub_group, a.account_type,
-          a.opening_balance, a.opening_balance_type,
-          COALESCE(SUM(CASE WHEN vl.entry_type = 'Dr' THEN vl.amount ELSE 0 END), 0) AS txn_dr,
-          COALESCE(SUM(CASE WHEN vl.entry_type = 'Cr' THEN vl.amount ELSE 0 END), 0) AS txn_cr
-        FROM oe_accounts a
-        LEFT JOIN oe_voucher_lines vl ON a.id = vl.account_id
-          AND vl.voucher_id IN (
-            SELECT id FROM oe_vouchers WHERE voucher_date >= $1 AND voucher_date <= $2
-          )
-        GROUP BY a.id, a.ledger_name, a.main_group, a.sub_group, a.account_type, a.opening_balance, a.opening_balance_type
-      )
-      SELECT *,
-        txn_dr + CASE WHEN opening_balance_type = 'Dr' THEN opening_balance ELSE 0 END AS total_dr,
-        txn_cr + CASE WHEN opening_balance_type = 'Cr' THEN opening_balance ELSE 0 END AS total_cr
-      FROM LedgerTotals
-      WHERE txn_dr > 0 OR txn_cr > 0 OR opening_balance > 0
-      ORDER BY main_group, sub_group, ledger_name
+      SELECT
+        a.id, a.ledger_name, a.main_group, a.sub_group, a.account_type,
+        a.opening_balance, a.opening_balance_type,
+        COALESCE(SUM(CASE WHEN v.voucher_date >= $1 AND v.voucher_date <= $2 AND vl.entry_type = 'Dr' THEN vl.amount ELSE 0 END), 0) AS period_dr,
+        COALESCE(SUM(CASE WHEN v.voucher_date >= $1 AND v.voucher_date <= $2 AND vl.entry_type = 'Cr' THEN vl.amount ELSE 0 END), 0) AS period_cr,
+        COALESCE(SUM(CASE WHEN v.voucher_date <= $2 AND vl.entry_type = 'Dr' THEN vl.amount ELSE 0 END), 0) AS cum_dr,
+        COALESCE(SUM(CASE WHEN v.voucher_date <= $2 AND vl.entry_type = 'Cr' THEN vl.amount ELSE 0 END), 0) AS cum_cr,
+        COALESCE(SUM(CASE WHEN v.voucher_date < $1 AND vl.entry_type = 'Dr' THEN vl.amount ELSE 0 END), 0) AS prev_dr,
+        COALESCE(SUM(CASE WHEN v.voucher_date < $1 AND vl.entry_type = 'Cr' THEN vl.amount ELSE 0 END), 0) AS prev_cr
+      FROM oe_accounts a
+      LEFT JOIN oe_voucher_lines vl ON a.id = vl.account_id
+      LEFT JOIN oe_vouchers v ON vl.voucher_id = v.id
+      GROUP BY a.id, a.ledger_name, a.main_group, a.sub_group, a.account_type, a.opening_balance, a.opening_balance_type
+      ORDER BY a.main_group, a.sub_group, a.ledger_name
     `;
 
     const result = await pool.query(query, [fromDate, toDate]);
-    const ledgers = result.rows;
 
-    // Net Dr/Cr per ledger
-    ledgers.forEach((l) => {
-      const dr = parseFloat(l.total_dr);
-      const cr = parseFloat(l.total_cr);
-      l.net_dr = dr > cr ? dr - cr : 0;
-      l.net_cr = cr > dr ? cr - dr : 0;
+    // Calculate previous periods' cumulative earnings to roll over to Balance Sheet
+    let prev_retained_earnings = 0;
+    result.rows.forEach(l => {
+      if (l.main_group === "Revenue") prev_retained_earnings += (parseFloat(l.prev_cr) - parseFloat(l.prev_dr));
+      if (l.main_group === "Expenses") prev_retained_earnings -= (parseFloat(l.prev_dr) - parseFloat(l.prev_cr));
     });
 
-    // P&L
-    let revenue = 0,
-      expenses = 0;
+    const ledgers = result.rows.map(l => {
+      const ob_dr = l.opening_balance_type === 'Dr' ? parseFloat(l.opening_balance || 0) : 0;
+      const ob_cr = l.opening_balance_type === 'Cr' ? parseFloat(l.opening_balance || 0) : 0;
+
+      // Pure Cumulative for Trial Balance (ALL accounts)
+      const cum_total_dr = parseFloat(l.cum_dr) + ob_dr;
+      const cum_total_cr = parseFloat(l.cum_cr) + ob_cr;
+      const tb_net_dr = cum_total_dr > cum_total_cr ? cum_total_dr - cum_total_cr : 0;
+      const tb_net_cr = cum_total_cr > cum_total_dr ? cum_total_cr - cum_total_dr : 0;
+
+      // Periodic for P&L, Cumulative for Balance Sheet
+      let bs_pl_dr = 0, bs_pl_cr = 0;
+      if (l.main_group === "Revenue" || l.main_group === "Expenses") {
+        bs_pl_dr = parseFloat(l.period_dr);
+        bs_pl_cr = parseFloat(l.period_cr);
+      } else {
+        bs_pl_dr = cum_total_dr;
+        bs_pl_cr = cum_total_cr;
+      }
+      const net_dr = bs_pl_dr > bs_pl_cr ? bs_pl_dr - bs_pl_cr : 0;
+      const net_cr = bs_pl_cr > bs_pl_dr ? bs_pl_cr - bs_pl_dr : 0;
+
+      return { ...l, tb_net_dr, tb_net_cr, net_dr, net_cr };
+    }).filter(l => l.tb_net_dr > 0 || l.tb_net_cr > 0 || l.net_dr > 0 || l.net_cr > 0);
+
+    // Current period P&L metrics
+    let revenue = 0, expenses = 0;
     ledgers.forEach((l) => {
-      if (l.main_group === "Revenue")
-        revenue += parseFloat(l.net_cr) - parseFloat(l.net_dr);
-      if (l.main_group === "Expenses")
-        expenses += parseFloat(l.net_dr) - parseFloat(l.net_cr);
+      if (l.main_group === "Revenue") revenue += (l.net_cr - l.net_dr);
+      if (l.main_group === "Expenses") expenses += (l.net_dr - l.net_cr);
     });
     const netProfit = revenue - expenses;
 
-    // Balance Sheet
-    let assets = 0,
-      liabilities = 0,
-      capital = 0;
+    // Balance Sheet structural metrics
+    let assets = 0, liabilities = 0, capital = 0;
     ledgers.forEach((l) => {
-      if (l.main_group === "Assets")
-        assets += parseFloat(l.net_dr) - parseFloat(l.net_cr);
-      if (l.main_group === "Liabilities")
-        liabilities += parseFloat(l.net_cr) - parseFloat(l.net_dr);
-      if (l.main_group === "Capital & Reserves")
-        capital += parseFloat(l.net_cr) - parseFloat(l.net_dr);
+      if (l.main_group === "Assets") assets += (l.net_dr - l.net_cr);
+      if (l.main_group === "Liabilities") liabilities += (l.net_cr - l.net_dr);
+      if (l.main_group === "Capital & Reserves") capital += (l.net_cr - l.net_dr);
     });
+
+    // The core equation balance point (Adding previous years profit to this year)
+    const totalCumulativeProfit = prev_retained_earnings + netProfit;
 
     res.json({
       success: true,
       trial_balance: ledgers,
       profit_loss: { revenue, expenses, net_profit: netProfit },
-      balance_sheet: { assets, liabilities, capital, net_profit: netProfit },
+      balance_sheet: { assets, liabilities, capital, net_profit: totalCumulativeProfit },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

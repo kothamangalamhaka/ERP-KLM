@@ -78,7 +78,7 @@
                 <th>Ledger Name</th>
                 <th style="width:160px;">Main Group</th>
                 <th style="width:180px;">Sub Group</th>
-                <th class="text-end" style="width:100px;">Opening Bal</th>
+                <th class="text-end" style="width:140px;">Current Bal</th>
                 <th class="text-center" style="width:80px;">Flags</th>
                 <th class="text-center" style="width:60px;"></th>
               </tr>
@@ -192,7 +192,6 @@ function onGroupChange() {
   const sgs = subGroupMap[g] || [];
   let html = `<option value="">-- Select Sub Group --</option>`;
   sgs.forEach(sg => html += `<option value="${sg}">${sg}</option>`);
-  // Custom option
   html += `<option value="__custom__">+ Type custom...</option>`;
   document.getElementById("sGroup").innerHTML = html;
   document.getElementById("sGroup").onchange = function() {
@@ -205,6 +204,7 @@ function onGroupChange() {
 }
 
 let allLedgers = [];
+let currentBalances = {};
 let activeFilter = "";
 
 function filter(grp) {
@@ -225,9 +225,9 @@ function renderLedgers() {
 
   if (data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No ledgers found.</td></tr>'; return; }
 
-  // Group by main_group + sub_group for display
   let html = ""; let idx = 0;
   let lastGrp = "";
+  
   data.forEach(l => {
     const grp = l.main_group;
     if (grp !== lastGrp) {
@@ -239,8 +239,17 @@ function renderLedgers() {
     const grpClass = `grp-${grpKey.split(" ")[0]}`;
     const sysTag = l.is_system ? '<span class="sys-badge">system</span>' : "";
     const empTag = l.is_employee ? '<i class="bi bi-person-badge text-info ms-1" title="Employee"></i>' : "";
-    const ob = parseFloat(l.opening_balance || 0);
-    const obText = ob > 0 ? `<span class="${l.opening_balance_type==='Dr'?'text-danger':'text-success'}">${ob.toFixed(2)} ${l.opening_balance_type}</span>` : '<span class="text-muted">—</span>';
+    
+    // CURRENT BALANCE LOGIC
+    const balInfo = currentBalances[l.id] || { dr: 0, cr: 0 };
+    let balText = '<span class="text-muted">0.00</span>';
+    
+    if (balInfo.dr > 0) {
+      balText = `<span class="text-danger fw-semibold">${balInfo.dr.toLocaleString("en-IN", {minimumFractionDigits:2})} Dr</span>`;
+    } else if (balInfo.cr > 0) {
+      balText = `<span class="text-success fw-semibold">${balInfo.cr.toLocaleString("en-IN", {minimumFractionDigits:2})} Cr</span>`;
+    }
+
     const delBtn = !l.is_system && userData.role === "Admin"
       ? `<button class="btn btn-outline-danger btn-sm p-1 lh-1" onclick="deleteLedger(${l.id},'${l.ledger_name.replace(/'/g,"\\'")}')"><i class="bi bi-trash" style="font-size:.7rem;"></i></button>` : "";
 
@@ -249,7 +258,7 @@ function renderLedgers() {
       <td class="fw-semibold">${l.ledger_name} ${sysTag}${empTag}</td>
       <td><span class="grp-badge ${grpClass}">${l.main_group}</span></td>
       <td class="text-muted small">${l.sub_group || "—"}</td>
-      <td class="text-end small">${obText}</td>
+      <td class="text-end small">${balText}</td>
       <td class="text-center">${l.is_employee ? '<span class="badge bg-info text-dark">Staff</span>' : ""}</td>
       <td class="text-center">${delBtn}</td>
     </tr>`;
@@ -258,9 +267,31 @@ function renderLedgers() {
 }
 
 async function loadLedgers() {
-  const res = await fetch("/api/oeledger/ledgers", { headers: { Authorization: `Bearer ${token}` } });
-  const data = await res.json();
-  if (data.success) { allLedgers = data.ledgers; renderLedgers(); }
+  try {
+    // 1. Fetch All Ledgers
+    const resL = await fetch("/api/oeledger/ledgers", { headers: { Authorization: `Bearer ${token}` } });
+    const dataL = await resL.json();
+    if (dataL.success) allLedgers = dataL.ledgers;
+
+    // 2. Fetch Current Balances (Wide range to get all cumulative amounts)
+    const resB = await fetch('/api/oeledger/reports/financials?fromDate=2000-01-01&toDate=2099-12-31', { 
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const dataB = await resB.json();
+    if (dataB.success) {
+      dataB.trial_balance.forEach(l => {
+        currentBalances[l.id] = {
+          dr: l.tb_net_dr || 0,
+          cr: l.tb_net_cr || 0
+        };
+      });
+    }
+
+    renderLedgers();
+  } catch (err) {
+    console.error("Error loading ledger data:", err);
+    document.getElementById("ledgerBody").innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load data.</td></tr>';
+  }
 }
 
 async function deleteLedger(id, name) {

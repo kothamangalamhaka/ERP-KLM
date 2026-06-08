@@ -25,7 +25,6 @@
 <body>
 <div class="d-flex">
 
-  <!-- Sidebar -->
   <div class="sidebar d-none d-md-flex flex-column">
     <div class="brand"><i class="bi bi-journal-richtext me-2"></i>ERP Accounts</div>
     <span class="nav-section">Main Menu</span>
@@ -40,7 +39,6 @@
     <a href="admin.html" id="adminLink" style="display:none;"><i class="bi bi-people"></i> Manage Users</a>
   </div>
 
-  <!-- Main -->
   <div class="flex-grow-1 d-flex flex-column min-vh-100">
     <nav class="navbar bg-white border-bottom px-3 py-2">
       <button class="btn btn-outline-secondary btn-sm d-md-none me-2" onclick="document.querySelector('.sidebar').classList.toggle('d-flex')"><i class="bi bi-list"></i></button>
@@ -52,9 +50,16 @@
     </nav>
 
     <div class="main-content">
-      <h4 class="mb-4 fw-bold">Financial Overview</h4>
+      
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <h4 class="mb-0 fw-bold" id="dashboardTitle">Financial Overview</h4>
+        <div class="d-flex align-items-center gap-2">
+          <label for="fySelect" class="text-muted small fw-bold text-nowrap"><i class="bi bi-calendar3 me-1"></i> Financial Year:</label>
+          <select id="fySelect" class="form-select form-select-sm shadow-sm" style="width: 140px; font-weight: bold; cursor: pointer;" onchange="loadDashboard()">
+            </select>
+        </div>
+      </div>
 
-      <!-- Stat Cards -->
       <div class="row g-3 mb-4">
         <div class="col-sm-6 col-lg-3">
           <div class="card stat-card bg-success text-white">
@@ -93,7 +98,7 @@
           <div class="card stat-card bg-warning text-white">
             <div class="card-body d-flex justify-content-between align-items-center">
               <div>
-                <div class="label">Total Vouchers (Count)</div>
+                <div class="label">Total Vouchers</div>
                 <h2 id="statVouchers">0</h2>
               </div>
               <i class="bi bi-receipt stat-icon"></i>
@@ -102,10 +107,9 @@
         </div>
       </div>
 
-      <!-- Recent Vouchers -->
       <div class="card shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-          <span class="fw-bold">Recent Vouchers (This Month)</span>
+          <span class="fw-bold" id="recentVouchersTitle">Recent Vouchers</span>
           <a href="daybook.html" class="btn btn-sm btn-outline-primary">View All</a>
         </div>
         <div class="card-body p-0">
@@ -113,16 +117,15 @@
             <table class="table table-hover mb-0 recent-table">
               <thead class="table-light">
                 <tr>
-                  <th class="ps-3">Date</th>
-                  <th>Type</th>
-                  <th>Dr Account</th>
-                  <th>Cr Account</th>
+                  <th class="ps-3" style="width: 100px;">Date</th>
+                  <th style="width: 110px;">Type</th>
+                  <th>Particulars</th>
                   <th>Narration</th>
-                  <th class="text-end pe-3">Amount (₹)</th>
+                  <th class="text-end pe-3" style="width: 150px;">Amount (₹)</th>
                 </tr>
               </thead>
               <tbody id="recentVouchers">
-                <tr><td colspan="6" class="text-center py-4 text-muted">Loading...</td></tr>
+                <tr><td colspan="5" class="text-center py-4 text-muted">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -159,16 +162,55 @@
     if (type === "Receipt") return "bg-success";
     if (type === "Journal") return "bg-warning text-dark";
     if (type === "Contra") return "bg-info text-dark";
-    return "bg-secondary";
+    if (type === "Sales") return "bg-primary";
+    if (type === "Purchase") return "bg-secondary";
+    return "bg-dark";
+  }
+
+  // Financial Year Initialization
+  function initializeFYDropdown() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+    
+    // In India, FY starts April 1st. 
+    // If current month is Jan-Mar (0-2), FY started previous year
+    let activeStartYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+    
+    const fySelect = document.getElementById("fySelect");
+    fySelect.innerHTML = "";
+    
+    // Generate dropdown options: 1 year past, current, 1 year future
+    for (let y = activeStartYear - 1; y <= activeStartYear + 1; y++) {
+      const option = document.createElement("option");
+      option.value = y;
+      option.text = `${y} - ${y + 1}`;
+      if (y === activeStartYear) option.selected = true;
+      fySelect.appendChild(option);
+    }
+  }
+
+  // Returns fromDate and toDate string based on selected Start Year
+  function getSelectedFYDates() {
+    const startYear = parseInt(document.getElementById("fySelect").value);
+    return {
+      fromDate: `${startYear}-04-01`,
+      toDate: `${startYear + 1}-03-31`
+    };
   }
 
   async function loadDashboard() {
-    const now = new Date();
-    const fromDate = "2025-08-01";
-    const toDate = now.toISOString().split("T")[0];
+    // Get Dates from the Financial Year Dropdown
+    const { fromDate, toDate } = getSelectedFYDates();
+    const startYear = parseInt(document.getElementById("fySelect").value);
+    const shortEndYear = (startYear + 1).toString().slice(-2);
+    
+    // Update Titles
+    document.getElementById("dashboardTitle").innerText = `Financial Overview (FY ${startYear}-${shortEndYear})`;
+    document.getElementById("recentVouchersTitle").innerText = `Recent Vouchers (FY ${startYear}-${shortEndYear})`;
 
     try {
-      // Financial summary
+      // Fetch Financial Summary
       const resF = await fetch(`/api/oeledger/reports/financials?fromDate=${fromDate}&toDate=${toDate}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -182,32 +224,50 @@
         else document.getElementById("profitCard").style.background = "#0d6efd";
       }
 
-      // Recent vouchers
+      // Fetch Recent Vouchers (within the selected FY)
       const resV = await fetch(`/api/oeledger/vouchers?fromDate=${fromDate}&toDate=${toDate}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const dataV = await resV.json();
       const tbody = document.getElementById("recentVouchers");
+      
       if (dataV.success && dataV.vouchers.length > 0) {
         document.getElementById("statVouchers").innerText = dataV.vouchers.length;
-        const recent = dataV.vouchers.slice(0, 10);
-        tbody.innerHTML = recent.map(v => `
-          <tr>
-            <td class="ps-3">${new Date(v.voucher_date).toLocaleDateString("en-GB")}</td>
-            <td><span class="badge ${badgeClass(v.voucher_type)}">${v.voucher_type}</span></td>
-            <td class="text-danger fw-semibold">${v.dr_accounts}</td>
-            <td class="text-success">${v.cr_accounts}</td>
-            <td class="text-muted small">${v.narration}</td>
-            <td class="text-end pe-3 fw-bold">${parseFloat(v.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
-          </tr>`).join("");
+        const recent = dataV.vouchers.slice(0, 10); // Display only top 10 recent
+        
+        tbody.innerHTML = recent.map(v => {
+          let particularsHtml = '';
+          if(v.lines && v.lines.length > 0) {
+            v.lines.forEach(line => {
+              if (line.entry_type === 'Dr') {
+                particularsHtml += `<div class="d-flex justify-content-between text-dark mb-1"><span>${line.ledger_name}</span><span class="ms-2 text-muted" style="font-size:0.75rem;">Dr</span></div>`;
+              } else {
+                particularsHtml += `<div class="mb-1 text-muted" style="padding-left: 20px;">To ${line.ledger_name}</div>`;
+              }
+            });
+          }
+
+          return `
+            <tr class="align-middle">
+              <td class="ps-3 small">${new Date(v.voucher_date).toLocaleDateString("en-GB")}</td>
+              <td><span class="badge ${badgeClass(v.voucher_type)}">${v.voucher_type}</span></td>
+              <td>${particularsHtml}</td>
+              <td class="text-muted small fst-italic" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${v.narration || ''}</td>
+              <td class="text-end pe-3 fw-bold font-monospace">${parseFloat(v.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+            </tr>`;
+        }).join("");
       } else {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No vouchers this month.</td></tr>';
+        document.getElementById("statVouchers").innerText = "0";
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No vouchers recorded in FY ${startYear}-${shortEndYear}.</td></tr>`;
       }
     } catch (err) {
       console.error(err);
+      document.getElementById("recentVouchers").innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Failed to load data.</td></tr>';
     }
   }
 
+  // Initialize dropdown then load data for the first time
+  initializeFYDropdown();
   loadDashboard();
 </script>
 </body>

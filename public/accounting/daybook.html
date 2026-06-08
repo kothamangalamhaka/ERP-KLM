@@ -14,15 +14,18 @@
     .sidebar a:hover, .sidebar a.active { background-color: #0d6efd; color: #fff; }
     .sidebar .nav-section { color: #6c757d; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 20px 4px; margin-top: 6px; }
     .main-content { padding: 24px; flex: 1; }
-    .amount-col { text-align: right; font-weight: bold; font-family: monospace; }
+    .amount-col { text-align: right; font-family: monospace; } 
     .dr-text { color: #dc3545; font-weight: 600; }
     .cr-text { color: #198754; }
+    
+    /* Styles for the Excel-like filter row */
+    .filter-row th { background-color: #343a40 !important; padding-top: 4px; padding-bottom: 8px; border-bottom: 2px solid #212529;}
+    .filter-row input, .filter-row select { font-size: 0.8rem; }
   </style>
 </head>
 <body>
 <div class="d-flex">
 
-  <!-- Sidebar -->
   <div class="sidebar d-none d-md-flex flex-column">
     <div class="brand"><i class="bi bi-journal-richtext me-2"></i>ERP Accounts</div>
     <span class="nav-section">Main Menu</span>
@@ -37,7 +40,6 @@
     <a href="admin.html" id="adminLink" style="display:none;"><i class="bi bi-people"></i> Manage Users</a>
   </div>
 
-  <!-- Main -->
   <div class="flex-grow-1 d-flex flex-column">
     <nav class="navbar bg-white border-bottom px-3 py-2">
       <button class="btn btn-outline-secondary btn-sm d-md-none me-2"><i class="bi bi-list"></i></button>
@@ -58,40 +60,61 @@
           <input type="date" id="fromDate" class="form-control form-control-sm" style="width:140px;" />
           <span class="text-muted small">to</span>
           <input type="date" id="toDate" class="form-control form-control-sm" style="width:140px;" />
-          <button class="btn btn-primary btn-sm" onclick="loadDaybook()"><i class="bi bi-filter me-1"></i>Filter</button>
+          <button class="btn btn-primary btn-sm" onclick="loadDaybook()"><i class="bi bi-arrow-clockwise me-1"></i>Fetch Data</button>
         </div>
       </div>
 
       <div id="daybookAlert" class="alert d-none"></div>
 
-      <!-- Summary row -->
-      <div class="row g-2 mb-3" id="summaryRow" style="display:none!important;">
-        <div class="col-auto">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2" id="summaryRow" style="display:none!important;">
           <div class="badge bg-dark fs-6 px-3 py-2">Total Vouchers: <span id="sumCount">0</span></div>
-        </div>
-        <div class="col-auto">
           <div class="badge bg-success fs-6 px-3 py-2">Total Amount: ₹<span id="sumAmount">0.00</span></div>
         </div>
+        
+        <button class="btn btn-sm btn-outline-secondary" onclick="toggleFilterRow()" title="Toggle Column Filters">
+          <i class="bi bi-funnel-fill"></i> Filter Columns
+        </button>
       </div>
 
       <div class="card shadow-sm">
         <div class="card-body p-0">
-          <div class="table-responsive">
+          <div class="table-responsive" style="min-height: 400px;">
             <table class="table table-hover table-striped mb-0">
               <thead class="table-dark">
                 <tr>
-                  <th style="width:90px;">Date</th>
-                  <th style="width:90px;">Type</th>
+                  <th style="width:100px;">Date</th>
+                  <th style="width:110px;">Type</th>
                   <th>Particulars</th>
                   <th>Line Narration</th>
                   <th>Narration</th>
                   <th class="text-end" style="width:110px;">Debit (₹)</th>
                   <th class="text-end" style="width:110px;">Credit (₹)</th>
-                  <th class="text-center" style="width:80px;">Action</th>
+                  <th class="text-center" style="width:90px;">Action</th>
+                </tr>
+                <tr class="filter-row d-none" id="columnFilterRow">
+                  <th><input type="text" class="form-control form-control-sm col-filter" data-col="0" placeholder="Filter Date..."></th>
+                  <th>
+                    <select class="form-select form-select-sm col-filter" data-col="1">
+                      <option value="">All</option>
+                      <option value="Payment">Payment</option>
+                      <option value="Receipt">Receipt</option>
+                      <option value="Journal">Journal</option>
+                      <option value="Contra">Contra</option>
+                      <option value="Sales">Sales</option>
+                      <option value="Purchase">Purchase</option>
+                    </select>
+                  </th>
+                  <th><input type="text" class="form-control form-control-sm col-filter" data-col="2" placeholder="Search Ledgers..."></th>
+                  <th><input type="text" class="form-control form-control-sm col-filter" data-col="3" placeholder="Search Line Narr..."></th>
+                  <th><input type="text" class="form-control form-control-sm col-filter" data-col="4" placeholder="Search Narration..."></th>
+                  <th></th>
+                  <th></th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody id="daybookBody">
-                <tr><td colspan="6" class="text-center py-4">Loading vouchers...</td></tr>
+                <tr><td colspan="8" class="text-center py-4">Loading vouchers...</td></tr>
               </tbody>
             </table>
           </div>
@@ -101,7 +124,6 @@
   </div>
 </div>
 
-<!-- Edit Voucher Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -191,6 +213,12 @@
     return "bg-dark";
   }
 
+  // Toggle Column Filter Row
+  function toggleFilterRow() {
+    const filterRow = document.getElementById('columnFilterRow');
+    filterRow.classList.toggle('d-none');
+  }
+
   // Store vouchers for edit
   let voucherMap = {};
 
@@ -250,7 +278,7 @@
 
   async function loadDaybook() {
     const tbody = document.getElementById("daybookBody");
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span> Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span> Loading...</td></tr>';
     const fromDate = document.getElementById("fromDate").value;
     const toDate = document.getElementById("toDate").value;
 
@@ -268,7 +296,6 @@
           voucherMap[v.id] = v;
           total += parseFloat(v.amount);
           
-          // Tally Style Particulars Generation
           let particularsHtml = '';
           let lineNarrHtml = '';
           let drAmtHtml = '';
@@ -277,8 +304,8 @@
           if(v.lines && v.lines.length > 0) {
             v.lines.forEach(line => {
               if (line.entry_type === 'Dr') {
-                particularsHtml += `<div class="d-flex justify-content-between fw-bold text-dark mb-1"><span>${line.ledger_name}</span><span class="ms-3">Dr</span></div>`;
-                drAmtHtml += `<div class="mb-1 text-dark fw-bold">${parseFloat(line.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>`;
+                particularsHtml += `<div class="d-flex justify-content-between text-dark mb-1"><span>${line.ledger_name}</span><span class="ms-3">Dr</span></div>`;
+                drAmtHtml += `<div class="mb-1 text-dark">${parseFloat(line.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>`;
                 crAmtHtml += `<div class="mb-1">&nbsp;</div>`;
               } else {
                 particularsHtml += `<div class="mb-1 text-muted" style="padding-left: 25px;">To ${line.ledger_name}</div>`;
@@ -290,8 +317,8 @@
           }
 
           tbody.innerHTML += `
-            <tr class="align-middle border-bottom">
-              <td class="small fw-semibold">${fmtDate(v.voucher_date)}</td>
+            <tr class="align-middle border-bottom data-row">
+              <td class="small">${fmtDate(v.voucher_date)}</td>
               <td><span class="badge ${badgeClass(v.voucher_type)}">${v.voucher_type}</span></td>
               <td>${particularsHtml}</td>
               <td>${lineNarrHtml}</td>
@@ -304,17 +331,47 @@
               </td>
             </tr>`;
         });
-        // Update summary
+        
         document.getElementById("sumCount").innerText = data.vouchers.length;
         document.getElementById("sumAmount").innerText = total.toLocaleString("en-IN", { minimumFractionDigits: 2 });
         document.getElementById("summaryRow").style.removeProperty("display");
+        
+        applyFilters();
       } else {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No vouchers found in this period.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No vouchers found in this period.</td></tr>';
         document.getElementById("summaryRow").style.display = "none";
       }
     } catch {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Error loading daybook.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Error loading daybook.</td></tr>';
     }
+  }
+
+  // EXCEL-LIKE FILTER LOGIC
+  document.addEventListener('input', function(e) {
+    if(e.target.classList.contains('col-filter')) {
+      applyFilters();
+    }
+  });
+
+  function applyFilters() {
+    const filters = document.querySelectorAll('.col-filter');
+    const rows = document.querySelectorAll('#daybookBody .data-row');
+
+    rows.forEach(row => {
+      let displayRow = true;
+      filters.forEach(filter => {
+        let colIndex = filter.getAttribute('data-col');
+        let filterValue = filter.value.toLowerCase().trim();
+        
+        if (filterValue) {
+          let cellText = row.cells[colIndex].textContent || row.cells[colIndex].innerText;
+          if (cellText.toLowerCase().indexOf(filterValue) === -1) {
+            displayRow = false;
+          }
+        }
+      });
+      row.style.display = displayRow ? '' : 'none';
+    });
   }
 
   loadDaybook();

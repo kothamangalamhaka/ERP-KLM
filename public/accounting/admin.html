@@ -40,7 +40,7 @@
       <button class="btn btn-outline-secondary btn-sm d-md-none me-2"><i class="bi bi-list"></i></button>
       <span class="fw-bold text-muted small">Manage Users</span>
       <div class="ms-auto d-flex align-items-center gap-3">
-        <span class="fw-bold" id="userNameDisplay">Admin</span>
+        <span class="fw-bold text-primary" id="userNameDisplay">Admin</span>
         <button class="btn btn-sm btn-danger" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
       </div>
     </nav>
@@ -100,7 +100,12 @@
                   <tr><td>Manage Users</td><td class="text-center text-danger"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
                 </tbody>
               </table>
-              <div class="row mt-4">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row mt-4">
         <div class="col-12">
           <div class="card shadow-sm">
             <div class="card-header bg-white fw-bold">
@@ -137,13 +142,13 @@
   const token = localStorage.getItem("acc_token");
   const userData = JSON.parse(localStorage.getItem("acc_user") || "{}");
 
-  // Admin only
-  if (!token || userData.role !== "Admin") {
+  // Admin OR Super Admin Check (FIXED)
+  if (!token || (userData.role !== "Admin" && userData.role !== "Super Admin")) {
     alert("Access Denied. Admins only.");
     window.location.href = "index.html";
   }
 
-  document.getElementById("userNameDisplay").innerText = userData.username;
+  document.getElementById("userNameDisplay").innerText = userData.username + " (" + userData.role + ")";
 
   function logout() {
     localStorage.removeItem("acc_token");
@@ -185,7 +190,10 @@
       alertBox.className = `alert mt-3 alert-${data.success ? "success" : "danger"}`;
       alertBox.innerHTML = `<i class="bi bi-${data.success ? 'check-circle' : 'exclamation-triangle'} me-2"></i>${data.message || "User created successfully!"}`;
       alertBox.classList.remove("d-none");
-      if (data.success) document.getElementById("addUserForm").reset();
+      if (data.success) {
+        document.getElementById("addUserForm").reset();
+        loadUsers(); // Refresh table
+      }
     } catch {
       alertBox.className = "alert mt-3 alert-danger";
       alertBox.innerText = "Error creating user.";
@@ -193,7 +201,6 @@
     }
   });
 
-  // യൂസർ ലിസ്റ്റ് ലോഡ് ചെയ്യാൻ
   async function loadUsers() {
     const tbody = document.getElementById("userTableBody");
     try {
@@ -208,11 +215,16 @@
           return;
         }
         
-        tbody.innerHTML = data.users.map(u => `
+        tbody.innerHTML = data.users.map(u => {
+          let roleBadge = 'bg-secondary';
+          if (u.role === 'Admin') roleBadge = 'bg-primary';
+          if (u.role === 'Super Admin') roleBadge = 'bg-danger';
+
+          return `
           <tr>
             <td class="ps-3 text-muted small">#${u.id}</td>
             <td class="fw-semibold">${u.username} ${u.username === userData.username ? '<span class="badge bg-info text-dark ms-1">You</span>' : ''}</td>
-            <td><span class="badge ${u.role === 'User' ? 'bg-secondary' : 'bg-success'}">${u.role}</span></td>
+            <td><span class="badge ${roleBadge}">${u.role}</span></td>
             <td><span class="text-success small"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem;"></i>${u.status}</span></td>
             <td class="small text-muted">${new Date(u.created_at).toLocaleDateString('en-GB')}</td>
             <td class="text-center">
@@ -223,7 +235,7 @@
                 '<span class="text-muted small">—</span>'}
             </td>
           </tr>
-        `).join("");
+        `}).join("");
       } else {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">${data.message}</td></tr>`;
       }
@@ -232,7 +244,6 @@
     }
   }
 
-  // യൂസറെ ഡിലീറ്റ് ചെയ്യാൻ
   async function deleteUser(id, username) {
     if (!confirm(`Are you sure you want to permanently delete the user "${username}"?`)) return;
     
@@ -245,7 +256,7 @@
       
       if (data.success) {
         alert(data.message);
-        loadUsers(); // ഡിലീറ്റ് ചെയ്ത ശേഷം ടേബിൾ റിഫ്രഷ് ചെയ്യുക
+        loadUsers(); 
       } else {
         alert("Error: " + data.message);
       }
@@ -254,7 +265,6 @@
     }
   }
 
-  // പേജ് ലോഡ് ആകുമ്പോൾ യൂസർമാരെ കാണിക്കുക
   loadUsers();
 </script>
 </body>

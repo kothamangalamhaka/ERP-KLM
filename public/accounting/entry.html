@@ -22,14 +22,14 @@
     /* Entry grid */
     .lines-table{width:100%;border-collapse:collapse;}
     .lines-table th{background:#212529;color:#fff;padding:8px 10px;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;}
-    .lines-table td{padding:4px 5px;vertical-align:middle;}
+    .lines-table td{padding:8px 5px;vertical-align:top;}
     .lines-table tr:nth-child(even) td{background:#f8f9fa;}
     .dr-row td{border-left:3px solid #dc3545;}
     .cr-row td{border-left:3px solid #198754;}
 
     input.amt-input{width:110px;text-align:right;padding:5px 8px;border:1px solid #dee2e6;border-radius:5px;font-size:.88rem;}
     input.narr-input{width:100%;padding:5px 8px;border:1px solid #dee2e6;border-radius:5px;font-size:.85rem;}
-    .type-badge{font-size:.75rem;padding:3px 8px;border-radius:12px;font-weight:700;}
+    .type-badge{font-size:.75rem;padding:3px 8px;border-radius:12px;font-weight:700;display:inline-block;margin-top:5px;}
     .dr-badge{background:#fff0f0;color:#dc3545;border:1px solid #f5c6cb;}
     .cr-badge{background:#f0fff4;color:#198754;border:1px solid #c3e6cb;}
 
@@ -37,45 +37,41 @@
     .balance-bar.balanced{background:#d1e7dd;border-color:#198754;color:#155724;}
     .balance-bar.unbalanced{background:#f8d7da;border-color:#dc3545;color:#721c24;}
 
-    .totals-row td{font-weight:700;background:#e9ecef!important;font-size:.9rem;padding:8px 10px;}
+    .totals-row td{font-weight:700;background:#e9ecef!important;font-size:.9rem;padding:8px 10px;vertical-align:middle;}
     .btn-addline{font-size:.82rem;}
 
     /* Voucher type selector */
     .vtype-btn{border:2px solid #dee2e6;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.82rem;font-weight:600;background:#fff;transition:all .15s;}
     .vtype-btn.active{background:#0d6efd;border-color:#0d6efd;color:#fff;}
     .vtype-btn:hover:not(.active){border-color:#0d6efd;color:#0d6efd;}
+    
     /* Hide up/down arrows in number input */
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { appearance: textfield; -moz-appearance: textfield; }
-    /* Select2 ഡ്രോപ്പ്‌ഡൗണിന്റെ വലിപ്പം ശരിയാക്കാൻ */
-.select2-container .select2-selection--single { 
-    height: 38px !important; 
-    padding: 3px !important; 
-}
-.select2-container--default .select2-selection--single .select2-selection__rendered { 
-    line-height: 30px !important; 
-}
-.select2-container--default .select2-selection--single .select2-selection__arrow { 
-    height: 36px !important; 
-}
-
-/* Select2 Compact & Searchable Style */
-.select2-container--default .select2-selection--single {
-    height: 38px !important;
-    padding: 5px !important;
-    border: 1px solid #dee2e6 !important;
-}
-.select2-results__group {
-    background-color: #f8f9fa;
-    font-weight: bold;
-    padding: 5px 10px;
-    border-bottom: 1px solid #e9ecef;
-}
-.select2-results__option {
-    padding-left: 20px !important;
-}
- </style>
+    
+    /* Select2 Compact & Searchable Style */
+    .select2-container .select2-selection--single { 
+        height: 38px !important; 
+        padding: 5px !important; 
+        border: 1px solid #dee2e6 !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered { 
+        line-height: 26px !important; 
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow { 
+        height: 36px !important; 
+    }
+    .select2-results__group {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        padding: 5px 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .select2-results__option {
+        padding-left: 20px !important;
+    }
+  </style>
 </head>
 <body>
 <div class="d-flex">
@@ -107,14 +103,13 @@
         <div class="d-flex justify-content-between align-items-start mb-3">
           <div>
             <h4 class="mb-1 text-primary fw-bold" id="pageTitle"><i class="bi bi-pencil-square me-2"></i>New Voucher Entry</h4>
-            <small class="text-muted" id="pageSubtitle">Multi-line entry — multiple Dr & Cr like Tally</small>
+            <small class="text-muted" id="pageSubtitle">Multi-line entry — Multiple Dr & Cr</small>
           </div>
           <div id="voucherNoDisplay" class="text-muted small text-end"></div>
         </div>
 
         <div id="alertBox" class="alert d-none mb-3"></div>
 
-        <!-- Row 1: Date + Voucher Type -->
         <div class="row g-3 mb-3">
           <div class="col-md-3">
             <label class="form-label fw-semibold small">Voucher Date</label>
@@ -133,13 +128,11 @@
           </div>
         </div>
 
-        <!-- Row 2: Narration -->
         <div class="mb-3">
           <label class="form-label fw-semibold small">Narration / Remarks</label>
           <input type="text" class="form-control" id="narration" placeholder="Being..."/>
         </div>
 
-        <!-- Entry Lines Table -->
         <div class="table-responsive mb-2">
           <table class="lines-table" id="linesTable">
             <thead>
@@ -152,8 +145,7 @@
               </tr>
             </thead>
             <tbody id="linesBody">
-              <!-- lines added dynamically -->
-            </tbody>
+              </tbody>
             <tfoot>
               <tr class="totals-row">
                 <td colspan="2" class="text-end pe-3">Totals:</td>
@@ -167,7 +159,6 @@
           </table>
         </div>
 
-        <!-- Add line buttons -->
         <div class="d-flex gap-2 mb-3">
           <button class="btn btn-outline-danger btn-sm btn-addline" onclick="addLine('Dr')">
             <i class="bi bi-plus-circle me-1"></i>Add Debit Line
@@ -177,13 +168,11 @@
           </button>
         </div>
 
-        <!-- Balance bar -->
         <div class="balance-bar unbalanced mb-3" id="balanceBar">
           <i class="bi bi-exclamation-triangle me-2"></i>
           Voucher not balanced — <span id="balanceDiff">Dr and Cr must be equal</span>
         </div>
 
-        <!-- Actions -->
         <div class="d-flex justify-content-between align-items-center">
           <small class="text-muted"><i class="bi bi-info-circle me-1"></i>All entries are audit-logged</small>
           <div>
@@ -191,36 +180,6 @@
             <button class="btn btn-primary px-4" id="submitBtn" onclick="submitVoucher()">
               <i class="bi bi-check-lg me-1"></i>Save Voucher
             </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Reference Box -->
-      <div class="card mt-3 border-0 shadow-sm">
-        <div class="card-header bg-light fw-semibold small"><i class="bi bi-lightbulb me-2 text-warning"></i>Common Voucher Examples</div>
-        <div class="card-body p-3">
-          <div class="row g-2 small text-muted">
-            <div class="col-md-4">
-              <strong class="text-dark">Salary Payment:</strong><br>
-              Dr: John Salary A/c<br>
-              Dr: John Reimbursement A/c<br>
-              Cr: Cash in Hand
-            </div>
-            <div class="col-md-4">
-              <strong class="text-dark">Purchase with GST:</strong><br>
-              Dr: Purchase A/c<br>
-              Dr: Input CGST<br>
-              Dr: Input SGST<br>
-              Cr: Cash / Bank / Creditor
-            </div>
-            <div class="col-md-4">
-              <strong class="text-dark">GST Payment:</strong><br>
-              Dr: Output CGST<br>
-              Dr: Output SGST<br>
-              Cr: Input CGST<br>
-              Cr: Input SGST<br>
-              Cr: Cash at Bank (net)
-            </div>
           </div>
         </div>
       </div>
@@ -242,22 +201,47 @@ function logout() { localStorage.removeItem("acc_token"); localStorage.removeIte
 
 document.getElementById("voucherDate").valueAsDate = new Date();
 
-// ── Ledger data ──────────────────────────────────────────
+// ── Ledger data & Balances ────────────────────────────────
 let allLedgers = [];
 let ledgerGroups = {};
+let accountBalances = {}; // Stores { id: "₹ 500.00 Dr" }
 let selectedType = "Payment";
+
+async function loadBalances() {
+  try {
+    // Fetch wide range to get accurate cumulative current balances
+    const res = await fetch('/api/oeledger/reports/financials?fromDate=2000-01-01&toDate=2099-12-31', { 
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if(data.success) {
+      data.trial_balance.forEach(l => {
+        let balText = '₹ 0.00';
+        if (l.tb_net_dr > 0) {
+            balText = `₹ ${parseFloat(l.tb_net_dr).toLocaleString("en-IN", {minimumFractionDigits:2})} <span class="text-danger">Dr</span>`;
+        } else if (l.tb_net_cr > 0) {
+            balText = `₹ ${parseFloat(l.tb_net_cr).toLocaleString("en-IN", {minimumFractionDigits:2})} <span class="text-success">Cr</span>`;
+        }
+        accountBalances[l.id] = balText;
+      });
+    }
+  } catch (e) {
+    console.error("Error loading balances:", e);
+  }
+}
 
 async function loadLedgers() {
   const res = await fetch("/api/oeledger/ledgers", { headers: { Authorization: `Bearer ${token}` } });
   const data = await res.json();
   allLedgers = data.ledgers || [];
-  // Build grouped options HTML
+  
   const groups = {};
   allLedgers.forEach(l => {
     const key = `${l.main_group} › ${l.sub_group || "General"}`;
     if (!groups[key]) groups[key] = [];
     groups[key].push(l);
   });
+  
   let html = '<option value="">-- Select Account --</option>';
   Object.keys(groups).sort().forEach(g => {
     html += `<optgroup label="${g}">`;
@@ -312,17 +296,18 @@ function addLine(type, hint = "") {
   row.innerHTML = `
     <td class="text-center">${badge}</td>
     <td>
-      <select class="acc-select form-control select2-enabled" id="acc-${id}" onchange="updateTotals()">
+      <select class="acc-select form-control select2-enabled" id="acc-${id}">
         ${ledgerGroups}
       </select>
+      <div id="bal-${id}" class="text-muted mt-1 fst-italic" style="font-size:0.75rem;"></div>
     </td>
     <td>
-      <input type="number" class="amt-input" id="amt-${id}" value="" placeholder="0.00" step="0.01" min="0" oninput="updateTotals()"/>
+      <input type="number" class="amt-input mt-1" id="amt-${id}" value="" placeholder="0.00" step="0.01" min="0" oninput="updateTotals()"/>
     </td>
     <td>
-      <input type="text" class="narr-input" id="narr-${id}" placeholder="optional..."/>
+      <input type="text" class="narr-input mt-1" id="narr-${id}" placeholder="optional..."/>
     </td>
-    <td class="text-center">
+    <td class="text-center pt-2">
       <button class="btn btn-sm btn-outline-danger p-1 lh-1" onclick="removeLine(${id})" title="Remove">
         <i class="bi bi-x-lg" style="font-size:.75rem;"></i>
       </button>
@@ -349,14 +334,22 @@ function addLine(type, hint = "") {
     }
   });
 
-  // Select2 initialization
+  // Select2 initialization with Current Balance Logic
   $(`#acc-${id}`).select2({ 
     width: '100%',
     placeholder: "-- Select Account --",
     allowClear: true
   }).on('select2:open', function() {
-    // ഡ്രോപ്പ്‌ഡൗൺ തുറക്കുമ്പോൾ തന്നെ സെർച്ച് ബോക്സിലേക്ക് ഫോക്കസ് നൽകുന്നു
     document.querySelector('.select2-search__field').focus();
+  }).on('change', function() {
+    updateTotals();
+    const val = $(this).val();
+    const balDiv = document.getElementById(`bal-${id}`);
+    if(val && accountBalances[val]) {
+      balDiv.innerHTML = `Cur Bal: <strong>${accountBalances[val]}</strong>`;
+    } else {
+      balDiv.innerHTML = '';
+    }
   });
   
   updateTotals();
@@ -449,8 +442,12 @@ async function submitVoucher() {
     const data = await res.json();
     if (data.success) {
       showAlert(`✅ ${data.message} ${data.voucher_no ? '('+data.voucher_no+')' : ''}`, "success");
+      
+      // Update Balances dynamically after save to keep it accurate for next entry
+      await loadBalances();
+      
       if (editVoucherId) {
-        setTimeout(() => window.location.href = "daybook.html", 1500); // Redirect back after edit
+        setTimeout(() => window.location.href = "daybook.html", 1500);
       } else {
         resetForm();
       }
@@ -486,19 +483,18 @@ async function checkEditMode() {
         document.getElementById("voucherDate").value = v.voucher_date.split('T')[0];
         document.getElementById("narration").value = v.narration || "";
         
-        // Set type button active
         document.querySelectorAll(".vtype-btn").forEach(b => b.classList.remove("active"));
         const typeBtn = document.querySelector(`.vtype-btn[data-type="${v.voucher_type}"]`);
         if (typeBtn) typeBtn.classList.add("active");
         selectedType = v.voucher_type;
         
-        // Clear default lines and add lines from DB
         document.getElementById("linesBody").innerHTML = "";
         lineCount = 0;
         
         data.lines.forEach(line => {
           addLine(line.entry_type);
-          document.getElementById(`acc-${lineCount}`).value = line.account_id;
+          // Set values and trigger change to show Current Balance
+          $(`#acc-${lineCount}`).val(line.account_id).trigger('change');
           document.getElementById(`amt-${lineCount}`).value = parseFloat(line.amount).toFixed(2);
           document.getElementById(`narr-${lineCount}`).value = line.line_narration || "";
         });
@@ -511,13 +507,13 @@ async function checkEditMode() {
       showAlert("Error loading voucher.", "danger");
     }
   } else {
-    // New Entry mode
     resetForm();
   }
 }
 
 async function initPage() {
   await loadLedgers();
+  await loadBalances(); // Fetch balances before rendering lines
   await checkEditMode();
 }
 
