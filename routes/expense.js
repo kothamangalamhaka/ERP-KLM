@@ -108,6 +108,7 @@ router.delete("/delete/:id", async (req, res) => {
 router.get("/export-excel", async (req, res) => {
   try {
     const { from, to } = req.query;
+    
     let query = "SELECT * FROM journal_entries";
     let params = [];
 
@@ -129,8 +130,9 @@ router.get("/export-excel", async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Expense Report");
 
+    // 🟢 പ്രധാന മാറ്റം: Date കോളത്തിന് എക്സൽ ഫോർമാറ്റ് (numFmt) നൽകുന്നു
     worksheet.columns = [
-      { header: "Date", key: "date", width: 15 },
+      { header: "Date", key: "date", width: 15, style: { numFmt: 'dd/mm/yyyy' } },
       { header: "Particulars", key: "particulars", width: 40 },
       { header: "Category", key: "category", width: 25 },
       { header: "Source", key: "source", width: 25 },
@@ -138,8 +140,15 @@ router.get("/export-excel", async (req, res) => {
     ];
 
     result.rows.forEach((row) => {
+      let excelDate = null;
+      if (row.entry_date) {
+        let d = new Date(row.entry_date);
+        // 🟢 ടൈംസോൺ പ്രശ്നം ഒഴിവാക്കാൻ കൃത്യമായ Year, Month, Date എടുത്ത് പുതിയ Date Object ഉണ്ടാക്കുന്നു
+        excelDate = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      }
+
       worksheet.addRow({
-        date: new Date(row.entry_date).toLocaleDateString("en-GB"),
+        date: excelDate, // 🟢 സ്ട്രിംഗിന് പകരം ഒറിജിനൽ Date Object തന്നെ നൽകുന്നു
         particulars: row.particulars,
         category: row.entry_type,
         source: row.ledger_head,
