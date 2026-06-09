@@ -268,8 +268,166 @@ let currentArrangeMode = "split";
 
 window.setArrangeMode = function (mode) {
   currentArrangeMode = mode;
-  arrangeProperly();
+  const cards = document.querySelectorAll(".bill-card");
+  
+  // സ്ക്രീനിൽ ഇതിനകം ടേബിളുകൾ ഉണ്ടെങ്കിൽ അവയെ മാത്രം അറേഞ്ച് ചെയ്യുക
+  if (cards.length > 0) {
+    rearrangeScreenData();
+  } else {
+    // സ്ക്രീനിൽ ടേബിളുകൾ ഇല്ലെങ്കിൽ (ഉദാഹരണത്തിന് Fetch Data ചെയ്തയുടനെ) മുഴുവൻ ഡാറ്റയും അറേഞ്ച് ചെയ്യുക
+    arrangeProperly();
+  }
 };
+
+// 🟢 NEW FUNCTION: സ്ക്രീനിലുള്ള ഡാറ്റ മാത്രം വെച്ച് റീ-അറേഞ്ച് ചെയ്യാൻ 
+function rearrangeScreenData() {
+  const cards = document.querySelectorAll(".bill-card");
+  let itemsToGroup = [];
+  let manualAdjs = [];
+
+  cards.forEach(card => {
+    let fallbackOwner = card.querySelector(".owner-input") ? card.querySelector(".owner-input").value.trim() : card.dataset.owner;
+
+    // സ്ക്രീനിലെ അഡ്ജസ്റ്റ്മെന്റ് ഡാറ്റകൾ ശേഖരിക്കുക
+    card.querySelectorAll(".adjBody tr").forEach(adjRow => {
+      let date = adjRow.querySelector(".adj-date").value.trim();
+      let plate = adjRow.querySelector(".adj-plate").value.trim().toUpperCase();
+      let desc = adjRow.querySelector(".adj-desc").value.trim();
+      let amt = parseFloat(adjRow.querySelector(".adj-amt").value) || 0;
+      let type = adjRow.querySelector(".adj-type").value;
+
+      if (date || plate || desc || amt !== 0) {
+        manualAdjs.push({ date, plate, desc, amt: Math.abs(amt), type });
+      }
+    });
+
+    // സ്ക്രീനിലെ വണ്ടികളുടെ ഡാറ്റകൾ ശേഖരിക്കുക
+    card.querySelectorAll(".tableBody tr").forEach(row => {
+      let plate = row.querySelector(".plate").value.trim().toUpperCase();
+      let site = row.querySelector(".site").value.trim();
+      let vtype = row.querySelector(".vtype").value.trim();
+      let driver = row.querySelector(".driver").value.trim();
+      let nhr = parseFloat(row.querySelector(".nhr").value) || 0;
+      let nrate = parseFloat(row.querySelector(".nrate").value) || 0;
+      let othr = parseFloat(row.querySelector(".othr").value) || 0;
+      let otrate = parseFloat(row.querySelector(".otrate").value) || 0;
+      let vatSelect = row.querySelector(".vat-rate");
+      let vatPerc = vatSelect ? (parseFloat(vatSelect.value) || 0) : 0;
+      let isVat = vatPerc > 0 ? "Yes" : "No";
+
+      if (!plate && !site && nhr === 0 && othr === 0) return;
+
+      let itemOwner = fallbackOwner;
+      if (plate) {
+        let masterMatch = masterData.find(m => (m.plate_number || m.plate || "").toUpperCase() === plate);
+        if (masterMatch && masterMatch.owner && masterMatch.owner.trim() !== "") {
+          itemOwner = masterMatch.owner.trim();
+        }
+      }
+      if (!itemOwner || itemOwner === "VARIOUS OWNERS") itemOwner = "COMPANY VEHICLE";
+
+      itemsToGroup.push({
+        plate_number: plate,
+        site: site,
+        vehicle_type: vtype,
+        driver_name: driver,
+        nrate: nrate,
+        otrate: otrate,
+        vat_bill: isVat,
+        owner: itemOwner,
+        temp_nhr: nhr,
+        temp_othr: othr
+      });
+    });
+  });
+
+  if (itemsToGroup.length === 0) return showToast("No data on screen to arrange!");
+
+  document.getElementById("loader").style.display = "flex";
+  document.getElementById("loaderText").innerText = "Re-arranging Screen Data...";
+
+  setTimeout(() => {
+    let groups = {};
+
+    itemsToGroup.forEach(item => {
+      let comp = getCompanyFromSite(item.site);
+      let key = "";
+      let groupOwner = item.owner.toUpperCase();
+      let groupSite = item.site || "N/A";
+
+      // നിങ്ങൾ തിരഞ്ഞെടുത്ത ഓപ്ഷൻ അനുസരിച്ച് സ്പ്ലിറ്റ് ചെയ്യാനുള്ള ലോജിക്
+      if (currentArrangeMode === "site") {
+        key = comp + "|||" + groupSite;
+      } else if (currentArrangeMode === "split") {
+        key = comp + "|||" + groupOwner + "|||" + groupSite;
+      } else if (currentArrangeMode === "owner_comp") {
+        key = comp + "|||" + groupOwner;
+      } else if (currentArrangeMode === "owner_all") {
+        key = groupOwner;
+      } else {
+        key = comp + "|||" + groupOwner;
+      }
+
+      if (!groups[key]) {
+        groups[key] = {
+          company: currentArrangeMode === "owner_all" ? "Haka" : comp,
+          owner: currentArrangeMode === "site" ? "VARIOUS OWNERS" : groupOwner,
+          items: [],
+          manual_adjustments: []
+        };
+      }
+      groups[key].items.push(item);
+    });
+
+    manualAdjs.forEach(adj => {
+      let targetKey = null;
+      for (let key in groups) {
+        if (groups[key].items.some(item => (item.plate_number || item.plate || "").toUpperCase() === adj.plate)) {
+          targetKey = key;
+          break;
+        }
+      }
+      if (!targetKey && Object.keys(groups).length > 0) {
+        targetKey = Object.keys(groups)[0];
+      }
+      if (targetKey) {
+        groups[targetKey].manual_adjustments.push(adj);
+      }
+    });
+
+    const container = document.getElementById("dynamicBillsContainer");
+    container.innerHTML = "";
+
+    let groupCount = 0;
+    Object.values(groups).forEach(group => {
+      group.items.sort((a, b) => {
+        let plateA = (a.plate_number || a.plate || "").toUpperCase();
+        let plateB = (b.plate_number || b.plate || "").toUpperCase();
+        return plateA.localeCompare(plateB);
+      });
+
+      groupCount++;
+      let newId = "screen_arr_" + Date.now() + "_" + groupCount;
+      let newCard = createBillCard(group, newId);
+
+      group.items.forEach((item, idx) => {
+        let row = newCard.querySelector(`.tableBody tr:nth-child(${idx + 1})`);
+        if (row) {
+          row.querySelector(".nhr").value = item.temp_nhr;
+          row.querySelector(".othr").value = item.temp_othr;
+          calculateRow(row.querySelector(".nhr"));
+        }
+      });
+
+      updateCardTotals(newCard);
+      container.appendChild(newCard);
+    });
+
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("loaderText").innerText = "Processing Data...";
+    showToast(`Re-arranged screen data into ${groupCount} table(s)!`);
+  }, 300);
+}
 
 function arrangeProperly() {
   if (masterData.length === 0 && savedBillingData.length === 0)
@@ -472,7 +630,7 @@ function createBillCard(group, id) {
   let html = `
         <div class="no-export" style="display:flex; justify-content:space-between; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:5px; border:1px solid #ddd;">
             <div style="display:flex; gap:10px; align-items:center;">
-                <b style="color:#1a4d80; font-size:16px;">${group.company} - ${group.owner || "Manual Entry"}</b>
+                <b class="card-title-text" style="color:#1a4d80; font-size:16px;">${group.company} - ${group.owner || "Manual Entry"}</b>
                 <button class="icon-btn" title="Toggle Images" style="background:#6f42c1;" onclick="toggleCardImages('${id}')"><i class="material-icons">visibility</i></button>
                 <button class="icon-btn" title="Adjustments" style="background:#6c757d;" onclick="toggleCardAdjustments('${id}')"><i class="material-icons">settings</i></button>
             </div>
@@ -490,7 +648,7 @@ function createBillCard(group, id) {
                 <div style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase; display: flex; align-items: center; gap: 5px;">
                 OWNER : 
                 <div class="autocomplete-wrapper" style="display:inline-block;">
-                    <input type="text" class="owner-input" value="${group.owner}" placeholder="Enter Owner Name" oninput="showOwnerSuggestions(this, '${id}')" onkeydown="handleOwnerKeyDown(event, this, '${id}')" onblur="handleOwnerBlur(this)" autocomplete="off" style="border:none; border-bottom:1px solid #ccc; font-weight:bold; font-size:16px; color:#1a4d80; width:300px; text-transform:uppercase; background:transparent;">
+                    <input type="text" class="owner-input" value="${group.owner}" placeholder="Enter Owner Name" oninput="showOwnerSuggestions(this, '${id}'); updateCardTotals(this.closest('.bill-card'));" onkeydown="handleOwnerKeyDown(event, this, '${id}')" onblur="handleOwnerBlur(this)" autocomplete="off" style="border:none; border-bottom:1px solid #ccc; font-weight:bold; font-size:16px; color:#1a4d80; width:300px; text-transform:uppercase; background:transparent;">
                     <div class="suggestion-box owner-suggestion-box" style="top: 100%; width: 100%; font-size: 14px; text-transform: none;"></div>
                 </div>
             </div>
@@ -746,24 +904,13 @@ window.arrangeSingleCard = function (cardId) {
     itemsToGroup.forEach((item) => {
       let comp = getCompanyFromSite(item.site);
 
-      let key = "";
-      if (currentArrangeMode === "site") {
-        key = comp + "|||" + item.site;
-      } else if (currentArrangeMode === "owner_comp") {
-        key = comp + "|||" + item.owner.toUpperCase();
-      } else if (currentArrangeMode === "owner_all") {
-        key = item.owner.toUpperCase();
-      } else {
-        key = comp + "|||" + item.owner.toUpperCase() + "|||" + item.site;
-      }
+      // 🟢 Force split only by Company & Owner for Manual Data
+      let key = comp + "|||" + item.owner.toUpperCase();
 
       if (!groups[key]) {
         groups[key] = {
-          company: currentArrangeMode === "owner_all" ? "Haka" : comp,
-          owner:
-            currentArrangeMode === "site"
-              ? "VARIOUS OWNERS"
-              : item.owner.toUpperCase(),
+          company: comp,
+          owner: item.owner.toUpperCase(),
           items: [],
           manual_adjustments: [],
         };
@@ -1173,9 +1320,40 @@ function updateCardTotals(card) {
     let type = row.querySelector(".adj-type").value;
     finalBal += type === "add" ? amt : -Math.abs(amt);
   });
-  card.querySelector(".finalBalance").innerText = Number.isInteger(finalBal)
-    ? finalBal
-    : finalBal.toFixed(2);
+  card.querySelector(".finalBalance").innerText = Number.isInteger(finalBal) ? finalBal : finalBal.toFixed(2);
+
+  // 🟢 Dynamic Header & Company Count Update
+  let companyCounts = {};
+  let totalValidRows = 0;
+  card.querySelectorAll(".tableBody tr").forEach((row) => {
+    let plate = row.querySelector(".plate").value.trim();
+    let site = row.querySelector(".site").value.trim();
+    if (plate || site) {
+      let comp = getCompanyFromSite(site);
+      companyCounts[comp] = (companyCounts[comp] || 0) + 1;
+      totalValidRows++;
+    }
+  });
+
+  let titleEl = card.querySelector(".card-title-text");
+  if (titleEl) {
+    let ownerInput = card.querySelector(".owner-input");
+    let ownerName = ownerInput ? ownerInput.value.trim() : card.dataset.owner;
+    if (!ownerName) ownerName = "Manual Entry";
+
+    if (totalValidRows > 0) {
+      const order = ["Haka", "Aljoda", "Masar Wheels", "We1 Track"];
+      let compStrings = [];
+      order.forEach((comp) => {
+        if (companyCounts[comp]) {
+          compStrings.push(`${comp} (${companyCounts[comp]})`);
+        }
+      });
+      titleEl.innerText = compStrings.join(" - ") + " | " + ownerName;
+    } else {
+      titleEl.innerText = (card.dataset.company || "Haka") + " - " + ownerName;
+    }
+  }
 }
 
 function toggleCardImages(id) {
@@ -1433,11 +1611,14 @@ function submitBulkData() {
           realOwner = "COMPANY VEHICLE";
         }
 
+        let siteVal = row.querySelector(".site").value.trim();
+        let rowCompany = getCompanyFromSite(siteVal);
+
         dataToUpdate.push({
           date: row.querySelector(".date-cell").innerText.trim(),
           owner: realOwner,
-          company: company,
-          site_name: row.querySelector(".site").value,
+          company: rowCompany,
+          site_name: siteVal,
           vtype: row.querySelector(".vtype").value,
           driver: row.querySelector(".driver").value,
           plate: plate,
@@ -1648,11 +1829,14 @@ function submitSingleCard(cardId) {
         realOwner = "COMPANY VEHICLE";
       }
 
+      let siteVal = row.querySelector(".site").value.trim();
+      let rowCompany = getCompanyFromSite(siteVal);
+
       dataToUpdate.push({
         date: row.querySelector(".date-cell").innerText.trim(),
         owner: realOwner,
-        company: company,
-        site_name: row.querySelector(".site").value,
+        company: rowCompany,
+        site_name: siteVal,
         vtype: row.querySelector(".vtype").value,
         driver: row.querySelector(".driver").value,
         plate: plate,
@@ -1780,14 +1964,19 @@ function autoFillOwnerData(cardId, ownerName) {
   const card = document.getElementById(`billCard_${cardId}`);
   if (!card) return;
 
-  let ownerVehicles = masterData.filter(
-    (v) => (v.owner || "").trim().toUpperCase() === ownerName.toUpperCase(),
-  );
-  if (ownerVehicles.length === 0)
-    return showToast("No vehicles found for " + ownerName);
+  let ownerVehicles = masterData.filter(v => (v.owner || "").trim().toUpperCase() === ownerName.toUpperCase());
+  if (ownerVehicles.length === 0) return showToast("No vehicles found for " + ownerName);
+
+  // 🟢 Sort by Company: Haka -> Aljoda -> Masar Wheels -> We1 Track
+  const compOrder = { "Haka": 1, "Aljoda": 2, "Masar Wheels": 3, "We1 Track": 4 };
+  ownerVehicles.sort((a, b) => {
+      let compA = getCompanyFromSite(a.site || a.site_name);
+      let compB = getCompanyFromSite(b.site || b.site_name);
+      return (compOrder[compA] || 99) - (compOrder[compB] || 99);
+  });
 
   const tbody = card.querySelector(".tableBody");
-  tbody.innerHTML = "";
+  tbody.innerHTML = '';
 
   ownerVehicles.forEach((match) => {
     addDynamicRow(cardId);
