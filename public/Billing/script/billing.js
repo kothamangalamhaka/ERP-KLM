@@ -2,25 +2,25 @@ const companyData = {
   Haka: {
     header: "https://i.ibb.co/Ld752yD5/hd.png",
     seal: "https://i.ibb.co/mrLFJdBy/sl.png",
-    text: "",
+    text: "Approved By Accounts Team",
     signature: "https://i.ibb.co/CK8X4YpV/Screenshot-2026-03-28-111438.png",
   },
   Aljoda: {
     header: "https://i.ibb.co/3yMwhgD5/Screenshot-2026-03-28-103621.png",
     seal: "https://i.ibb.co/4gRPdGXc/Screenshot-2026-03-28-103653.png",
-    text: "",
+    text: "Approved By Accounts Team",
     signature: "https://i.ibb.co/Z1b8gCwT/Screenshot-2026-03-28-111323.png",
   },
   "Masar Wheels": {
     header: "https://i.ibb.co/gM7QnS59/Screenshot-2026-03-28-103016.png",
     seal: "https://i.ibb.co/Y63vHZ9/Screenshot-2026-03-28-103341.png",
-    text: "",
+    text: "Approved By Accounts Team",
     signature: "https://i.ibb.co/bMPNp3SJ/Screenshot-2026-03-28-111529.png",
   },
   "We1 Track": {
     header: "https://i.ibb.co/4w55CkbM/Screenshot-2026-03-28-103434.png",
     seal: "https://i.ibb.co/XfybvXzL/Screenshot-2026-03-28-103519.png",
-    text: "",
+    text: "Approved By Accounts Team",
     signature: "https://i.ibb.co/pBmhnB2j/Screenshot-2026-03-28-111612.png",
   },
 };
@@ -487,9 +487,13 @@ function createBillCard(group, id) {
             <img src="${compConfig.header}" class="header-img hidden-image" alt="Header" crossorigin="anonymous">
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-                <div style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase;">
-                    OWNER : <input type="text" class="owner-input" value="${group.owner}" placeholder="Enter Owner Name" style="border:none; border-bottom:1px solid #ccc; font-weight:bold; font-size:16px; color:#1a4d80; width:300px; text-transform:uppercase; background:transparent;">
+                <div style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase; display: flex; align-items: center; gap: 5px;">
+                OWNER : 
+                <div class="autocomplete-wrapper" style="display:inline-block;">
+                    <input type="text" class="owner-input" value="${group.owner}" placeholder="Enter Owner Name" oninput="showOwnerSuggestions(this, '${id}')" onkeydown="handleOwnerKeyDown(event, this, '${id}')" onblur="handleOwnerBlur(this)" autocomplete="off" style="border:none; border-bottom:1px solid #ccc; font-weight:bold; font-size:16px; color:#1a4d80; width:300px; text-transform:uppercase; background:transparent;">
+                    <div class="suggestion-box owner-suggestion-box" style="top: 100%; width: 100%; font-size: 14px; text-transform: none;"></div>
                 </div>
+            </div>
             </div>
 
             <h3>Bill Summary for Each Month ملخص فاتورة الشهر</h3>
@@ -527,14 +531,10 @@ function createBillCard(group, id) {
     let otrate = item.otrate || 0;
 
     if (saved && parseFloat(saved.nrate) > 0) {
-      if (Math.abs(parseFloat(saved.nrate) - nrate) > 0.1) {
-        nrate = parseFloat(saved.nrate);
-      }
+      nrate = parseFloat(saved.nrate);
     }
     if (saved && parseFloat(saved.otrate) > 0) {
-      if (Math.abs(parseFloat(saved.otrate) - otrate) > 0.1) {
-        otrate = parseFloat(saved.otrate);
-      }
+      otrate = parseFloat(saved.otrate);
     }
 
     let vatPerc = saved ? saved.vat_percent : item.vat_bill === "Yes" ? 15 : 0;
@@ -566,10 +566,10 @@ function createBillCard(group, id) {
                         <td class="rate-col"></td>
                         <td class="grandOTHr">0</td>
                         <td class="rate-col"></td>
-                        <td class="grandRent">0.00</td>
+                        <td class="grandRent">0</td>
                         <td class="vat-col" style="display:${vatDisplay};"></td>
-                        <td class="grandVat vat-col" style="display:${vatDisplay};">0.00</td>
-                        <td class="grandTotal total-col" style="display:${vatDisplay};">0.00</td>
+                        <td class="grandVat vat-col" style="display:${vatDisplay};">0</td>
+                        <td class="grandTotal total-col" style="display:${vatDisplay};">0</td>
                         <td class="no-export" style="text-align: center;">
                             <button type="button" class="btn-add-circle" onclick="addDynamicRow('${id}')">+</button>
                         </td>
@@ -580,7 +580,10 @@ function createBillCard(group, id) {
             ${
               id.toString().startsWith("manual_")
                 ? `
-            <div class="no-export" style="text-align: right; margin-top: 15px;">
+            <div class="no-export" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button type="button" class="btn" style="background:#28a745; color:white; display:inline-flex; align-items:center; gap:5px; padding: 10px 15px;" onclick="submitSingleCard('${id}')">
+                    <i class="material-icons" style="font-size:18px;">save</i> Save to ERP
+                </button>
                 <button type="button" class="btn" style="background:#ff9800; color:white; display:inline-flex; align-items:center; gap:5px; padding: 10px 15px;" onclick="arrangeSingleCard('${id}')">
                     <i class="material-icons" style="font-size:18px;">auto_awesome</i> Arrange Manual Data
                 </button>
@@ -608,7 +611,7 @@ function createBillCard(group, id) {
                     <tfoot>
                         <tr class="balance-row">
                             <td colspan="3" style="text-align:right; padding-right:15px; border:none;">Final Balance After Adjustment:</td>
-                            <td class="finalBalance" style="width:130px; border: 1px solid #ccc; text-align:center;">0.00</td>
+                            <td class="finalBalance" style="width:130px; border: 1px solid #ccc; text-align:center;">0</td>
                             <td colspan="2" class="no-export" style="border:none;"></td>
                         </tr>
                     </tfoot>
@@ -618,7 +621,7 @@ function createBillCard(group, id) {
             <div class="footer" style="margin-top:40px; display:flex; justify-content:space-between; align-items:flex-end;">
                 <div style="text-align: left;">
                     <img src="${compConfig.signature}" class="signature-img hidden-image" alt="Signature" crossorigin="anonymous">
-                    <p style="margin-bottom: 5px;"><b>${compConfig.text}</b></p>
+                    <p class="company-text hidden-image" style="margin-bottom: 5px;"><b>${compConfig.text}</b></p>
                     <p style="border-top: 1px solid #333; width: 250px;"></p>
                 </div>
                 <div style="text-align: right;">
@@ -660,15 +663,15 @@ function generateRowHTML(
             <td class="rate-col"><input type="number" step="any" class="nrate" value="${nrate}" oninput="calculateRow(this)"></td> 
             <td><input type="number" step="any" class="othr" value="${othr}" oninput="calculateRow(this)"></td>
             <td class="rate-col"><input type="number" step="any" class="otrate" value="${otrate}" oninput="calculateRow(this)"></td> 
-            <td><input type="number" step="any" class="rent" value="0.00" oninput="calculateFromRent(this)"></td>
+            <td><input type="number" step="any" class="rent" value="0" oninput="calculateFromRent(this)"></td>
             <td class="vat-col" style="display:${vatDisplay};">
                 <select class="vat-rate table-select" onchange="calculateRow(this)">
                     <option value="15" ${vatPerc == 15 ? "selected" : ""}>15%</option>
                     <option value="0" ${vatPerc == 0 ? "selected" : ""}>0%</option>
                 </select>
             </td>
-            <td class="vat vat-col" style="display:${vatDisplay};">0.00</td>
-            <td class="total total-col" style="display:${vatDisplay};">0.00</td>
+            <td class="vat vat-col" style="display:${vatDisplay};">0</td>
+            <td class="total total-col" style="display:${vatDisplay};">0</td>
             <td class="no-export"><button type="button" class="btn-remove" onclick="removeDynamicRow(this)">✖</button></td>
         </tr>
     `;
@@ -1051,12 +1054,17 @@ function applyAutoFillData(input, match, addBlankRow = true) {
     row.querySelector(".nhr").value = saved.nhr || 0;
     row.querySelector(".othr").value = saved.othr || 0;
 
+    let fillNrate = match.nrate || 0;
     if (saved.nrate !== null && saved.nrate !== undefined) {
-      row.querySelector(".nrate").value = parseFloat(saved.nrate);
+      fillNrate = parseFloat(saved.nrate);
     }
+    row.querySelector(".nrate").value = fillNrate;
+
+    let fillOtrate = match.otrate || 0;
     if (saved.otrate !== null && saved.otrate !== undefined) {
-      row.querySelector(".otrate").value = parseFloat(saved.otrate);
+      fillOtrate = parseFloat(saved.otrate);
     }
+    row.querySelector(".otrate").value = fillOtrate;
   } else {
     let currentNhr = parseFloat(row.querySelector(".nhr").value) || 0;
     let currentOthr = parseFloat(row.querySelector(".othr").value) || 0;
@@ -1094,7 +1102,9 @@ function calculateRow(input) {
   }
 
   const rent = nhr * nrate + othr * otrate;
-  row.querySelector(".rent").value = rent.toFixed(2);
+  row.querySelector(".rent").value = Number.isInteger(rent)
+    ? rent
+    : rent.toFixed(2);
 
   updateRowVat(row, rent);
   updateCardTotals(card);
@@ -1119,8 +1129,11 @@ function updateRowVat(row, rent) {
   let vatCell = row.querySelector(".vat");
   let totalCell = row.querySelector(".total");
 
-  if (vatCell) vatCell.innerText = vat.toFixed(2);
-  if (totalCell) totalCell.innerText = (rent + vat).toFixed(2);
+  if (vatCell) vatCell.innerText = Number.isInteger(vat) ? vat : vat.toFixed(2);
+  if (totalCell)
+    totalCell.innerText = Number.isInteger(rent + vat)
+      ? rent + vat
+      : (rent + vat).toFixed(2);
 }
 
 function updateCardTotals(card) {
@@ -1143,12 +1156,16 @@ function updateCardTotals(card) {
 
   card.querySelector(".grandNHr").innerText = gNhr;
   card.querySelector(".grandOTHr").innerText = gOthr;
-  card.querySelector(".grandRent").innerText = gRent.toFixed(2);
+  card.querySelector(".grandRent").innerText = Number.isInteger(gRent)
+    ? gRent
+    : gRent.toFixed(2);
 
   let gVatEl = card.querySelector(".grandVat");
   let gTotalEl = card.querySelector(".grandTotal");
-  if (gVatEl) gVatEl.innerText = gVat.toFixed(2);
-  if (gTotalEl) gTotalEl.innerText = gTotal.toFixed(2);
+  if (gVatEl)
+    gVatEl.innerText = Number.isInteger(gVat) ? gVat : gVat.toFixed(2);
+  if (gTotalEl)
+    gTotalEl.innerText = Number.isInteger(gTotal) ? gTotal : gTotal.toFixed(2);
 
   let finalBal = gTotal;
   card.querySelectorAll(".adjBody tr").forEach((row) => {
@@ -1156,13 +1173,15 @@ function updateCardTotals(card) {
     let type = row.querySelector(".adj-type").value;
     finalBal += type === "add" ? amt : -Math.abs(amt);
   });
-  card.querySelector(".finalBalance").innerText = finalBal.toFixed(2);
+  card.querySelector(".finalBalance").innerText = Number.isInteger(finalBal)
+    ? finalBal
+    : finalBal.toFixed(2);
 }
 
 function toggleCardImages(id) {
   const card = document.getElementById(`billCard_${id}`);
   card
-    .querySelectorAll(".header-img, .seal, .signature-img")
+    .querySelectorAll(".header-img, .seal, .signature-img, .company-text")
     .forEach((img) => img.classList.toggle("hidden-image"));
 }
 
@@ -1572,4 +1591,212 @@ function fetchDataSilently() {
       }
     })
     .catch((err) => console.log("Silent background fetch failed", err));
+}
+
+/* ==============================================
+   NEW FUNCTIONS FOR SINGLE SAVE & OWNER AUTOFILL
+============================================== */
+
+function submitSingleCard(cardId) {
+  const fullMonth = document
+    .getElementById("selectedMonthText")
+    .innerText.trim();
+  const token = localStorage.getItem("token");
+  const card = document.getElementById(`billCard_${cardId}`);
+
+  if (!fullMonth || !card) return showToast("No generated bills to save.");
+
+  const dataToUpdate = [];
+  let company = card.dataset.company || "Haka";
+  let ownerInput = card.querySelector(".owner-input");
+  let fallbackOwner = ownerInput ? ownerInput.value.trim() : card.dataset.owner;
+
+  let adjDataArray = [];
+  let adjAmtTotal = 0;
+  card.querySelectorAll(".adjBody tr").forEach((adjRow) => {
+    let date = adjRow.querySelector(".adj-date").value.trim();
+    let plate = adjRow.querySelector(".adj-plate").value.trim();
+    let desc = adjRow.querySelector(".adj-desc").value.trim();
+    let amt = parseFloat(adjRow.querySelector(".adj-amt").value) || 0;
+    let type = adjRow.querySelector(".adj-type").value;
+
+    if (date || plate || desc || amt !== 0) {
+      let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
+      adjAmtTotal += actualAmt;
+      adjDataArray.push({ date, plate, desc, amt: Math.abs(amt), type });
+    }
+  });
+
+  let adjDescStr = adjDataArray.length > 0 ? JSON.stringify(adjDataArray) : "";
+
+  card.querySelectorAll(".tableBody tr").forEach((row) => {
+    let plate = row.querySelector(".plate").value.trim();
+    if (plate) {
+      let rentVal = parseFloat(row.querySelector(".rent").value) || 0;
+      let vatAmt = parseFloat(row.querySelector(".vat")?.innerText || 0);
+      let totalVal = rentVal + vatAmt;
+
+      let realOwner = fallbackOwner;
+      let masterMatch = masterData.find(
+        (m) =>
+          (m.plate_number || m.plate || "").toUpperCase() ===
+          plate.toUpperCase(),
+      );
+      if (masterMatch && masterMatch.owner && masterMatch.owner.trim() !== "") {
+        realOwner = masterMatch.owner.trim();
+      } else if (realOwner === "VARIOUS OWNERS") {
+        realOwner = "COMPANY VEHICLE";
+      }
+
+      dataToUpdate.push({
+        date: row.querySelector(".date-cell").innerText.trim(),
+        owner: realOwner,
+        company: company,
+        site_name: row.querySelector(".site").value,
+        vtype: row.querySelector(".vtype").value,
+        driver: row.querySelector(".driver").value,
+        plate: plate,
+        nhr: parseFloat(row.querySelector(".nhr").value) || 0,
+        nrate: parseFloat(row.querySelector(".nrate").value) || 0,
+        othr: parseFloat(row.querySelector(".othr").value) || 0,
+        otrate: parseFloat(row.querySelector(".otrate").value) || 0,
+        rent: rentVal,
+        vat_percent: parseFloat(row.querySelector(".vat-rate")?.value || 0),
+        vat_amount: vatAmt,
+        total: totalVal,
+        adjustment_desc: adjDescStr,
+        adjusted_amount: adjAmtTotal,
+        after_adjustment: totalVal + adjAmtTotal,
+      });
+    }
+  });
+
+  if (dataToUpdate.length === 0)
+    return showToast("No rows to save in this table!");
+
+  document.getElementById("loader").style.display = "flex";
+  document.getElementById("loaderText").innerText = "Saving Single Table...";
+
+  fetch("/billing/save", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ billing_period: fullMonth, items: dataToUpdate }),
+  })
+    .then((res) => res.json())
+    .then((res) => {
+      document.getElementById("loader").style.display = "none";
+      if (res.success) {
+        showToast("Table Saved to ERP!");
+        fetchDataSilently();
+      } else showToast("Error: " + res.message);
+    })
+    .catch((err) => {
+      document.getElementById("loader").style.display = "none";
+      showToast("Error saving data.");
+    });
+}
+
+function showOwnerSuggestions(input, cardId) {
+  const val = input.value.trim().toUpperCase();
+  const box = input.parentElement.querySelector(".owner-suggestion-box");
+  if (!val) {
+    box.style.display = "none";
+    return;
+  }
+
+  const owners = [
+    ...new Set(
+      masterData
+        .map((r) => (r.owner || "").trim().toUpperCase())
+        .filter((o) => o),
+    ),
+  ];
+  const matches = owners.filter((o) => o.includes(val));
+
+  if (matches.length > 0) {
+    box.innerHTML = "";
+    matches.forEach((match, index) => {
+      let div = document.createElement("div");
+      div.className = "suggestion-item";
+      if (index === 0) div.classList.add("active");
+      div.innerText = match;
+      div.onmousedown = function (e) {
+        e.preventDefault();
+        input.value = match;
+        box.style.display = "none";
+        autoFillOwnerData(cardId, match);
+      };
+      box.appendChild(div);
+    });
+    box.style.display = "block";
+  } else box.style.display = "none";
+}
+
+function handleOwnerBlur(input) {
+  setTimeout(() => {
+    let box = input.parentElement.querySelector(".owner-suggestion-box");
+    if (box) box.style.display = "none";
+  }, 200);
+}
+
+function handleOwnerKeyDown(e, input, cardId) {
+  const box = input.parentElement.querySelector(".owner-suggestion-box");
+  if (box && box.style.display === "block") {
+    let items = box.querySelectorAll(".suggestion-item");
+    let activeIndex = Array.from(items).findIndex((item) =>
+      item.classList.contains("active"),
+    );
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % items.length;
+      updateActiveSuggestion(items, activeIndex, box);
+      return;
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      activeIndex = (activeIndex - 1 + items.length) % items.length;
+      updateActiveSuggestion(items, activeIndex, box);
+      return;
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      e.stopPropagation();
+      let selectedOwner =
+        activeIndex > -1 ? items[activeIndex].innerText : items[0].innerText;
+      input.value = selectedOwner;
+      box.style.display = "none";
+      autoFillOwnerData(cardId, selectedOwner);
+      return;
+    }
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    autoFillOwnerData(cardId, input.value.trim());
+  }
+}
+
+function autoFillOwnerData(cardId, ownerName) {
+  const card = document.getElementById(`billCard_${cardId}`);
+  if (!card) return;
+
+  let ownerVehicles = masterData.filter(
+    (v) => (v.owner || "").trim().toUpperCase() === ownerName.toUpperCase(),
+  );
+  if (ownerVehicles.length === 0)
+    return showToast("No vehicles found for " + ownerName);
+
+  const tbody = card.querySelector(".tableBody");
+  tbody.innerHTML = "";
+
+  ownerVehicles.forEach((match) => {
+    addDynamicRow(cardId);
+    let newRow = tbody.lastElementChild;
+    let plateInput = newRow.querySelector(".plate");
+    plateInput.value = (match.plate_number || match.plate || "").toUpperCase();
+    applyAutoFillData(plateInput, match, false);
+  });
+
+  updateCardTotals(card);
+  showToast(`${ownerVehicles.length} vehicles auto-filled for ${ownerName}!`);
 }
