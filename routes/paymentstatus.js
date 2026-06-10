@@ -149,10 +149,13 @@ router.get("/master-report-data", async (req, res) => {
     const fullMonth = `${month} ${year}`;
 
     const vehicles = await pool.query(
-      "SELECT plate_no, owner_name, site_name FROM timesheet_vehicles",
+      "SELECT plate_no, owner_name, site_name, vehicle_type FROM timesheet_vehicles",
     );
     const sites = await pool.query(
-      "SELECT plate_no, site_name, work_start_date, work_end_date FROM vehicle_site_log",
+      "SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co FROM vehicle_site_log",
+    );
+    const drivers = await pool.query(
+      "SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log",
     );
     const timesheets = await pool.query(
       "SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month=$1 AND year=$2",
@@ -171,6 +174,7 @@ router.get("/master-report-data", async (req, res) => {
       success: true,
       vehicles: vehicles.rows,
       sites: sites.rows,
+      drivers: drivers.rows,
       timesheets: timesheets.rows,
       invoices: invoices.rows,
       billing: billing.rows,
@@ -198,6 +202,39 @@ router.post("/save-accounts-note", async (req, res) => {
       await pool.query(
         "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_nr, accounts_note) VALUES ($1, $2, $3, $4, $5, $6)",
         [plate_no, month, site_name, "", 0, accounts_note],
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+// 🟢 Save Generic Text Notes (PWAS, ERP, Payment Status, Accounts Note) via Double Click
+router.post("/save-text-note", async (req, res) => {
+  try {
+    const { plate_no, month, site_name, field, value } = req.body;
+    
+    // Security check: Only allow these specific fields to be updated
+    const allowedFields = ["accounts_note", "pwas", "erp", "payment_status"];
+    if (!allowedFields.includes(field)) {
+      return res.json({ success: false, message: "Invalid field name." });
+    }
+
+    const check = await pool.query(
+      "SELECT id FROM invoice_records WHERE plate_no = $1 AND month = $2 AND site_name = $3",
+      [plate_no, month, site_name],
+    );
+
+    if (check.rows.length > 0) {
+      await pool.query(
+        `UPDATE invoice_records SET ${field}=$1, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$2 AND month=$3 AND site_name=$4`,
+        [value, plate_no, month, site_name],
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_nr, ${field}) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [plate_no, month, site_name, "", 0, value],
       );
     }
     res.json({ success: true });

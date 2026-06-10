@@ -357,7 +357,7 @@
         font-size: 12px;
         color: #1e293b;
         min-width: 150px;
-        border: 1px solid transparent;
+        border: 1px solid var(--border-color);
       }
       .editable-cell:hover {
         background-color: #f8fafc;
@@ -794,7 +794,8 @@
         <div class="table-wrapper" id="tableContainer">
           <table id="reportTable">
             <colgroup>
-              <col style="width: 200px" />
+              <col style="width: 190px" />
+              <col style="width: 60px" />
               <col style="width: 180px" />
               <col style="width: 100px" />
               <col style="width: 70px" />
@@ -810,30 +811,45 @@
               <col style="width: 100px" />
               <col style="width: 120px" />
               <col style="width: 120px" />
+              <col style="width: 120px" />
+              <col style="width: 120px" />
               <col style="width: 150px" />
+              <col style="width: 150px" />
+              <col style="width: 150px" />
+              <col style="width: 150px" />
+              <col style="width: 120px" />
+              <col style="width: 120px" />
             </colgroup>
 
             <thead>
               <tr>
-                <th colspan="3" class="th-vehicle">VEHICLE INFO</th>
-                <th colspan="2" class="th-ts">TIMESHEET</th>
-                <th colspan="2" class="th-inv">INVOICE HR</th>
-                <th colspan="2" class="th-bill">BILLING DB</th>
+                <th colspan="4" class="th-vehicle">VEHICLE INFO</th>
+                <th colspan="2" class="th-ts">Logsheet Collected</th>
+                <th colspan="2" class="th-inv">Bill Summary</th>
+                <th colspan="2" class="th-bill">Supplier</th>
                 <th colspan="4" class="th-amt">AMOUNT</th>
-                <th colspan="4" class="th-extra">EXTRA DETAILS</th>
+                <th colspan="7" class="th-extra">EXTRA DETAILS</th>
+                <th colspan="4" class="th-vehicle">GENERAL VEHICLE INFO</th>
               </tr>
               <!-- 🟢 STRICT WIDTHS APPLIED TO EACH COLUMN HEADER -->
               <tr>
                 <th
                   class="th-vehicle"
-                  style="width: 250px"
+                  style="width: 200px"
                   onclick="openExcelFilterMenu(event, 'site')"
                 >
                   Site <span class="filter-icon" data-key="site">▼</span>
                 </th>
                 <th
                   class="th-vehicle"
-                  style="width: 250px"
+                  style="width: 90px"
+                  onclick="openExcelFilterMenu(event, 'rate')"
+                >
+                  Rate <span class="filter-icon" data-key="rate">▼</span>
+                </th>
+                <th
+                  class="th-vehicle"
+                  style="width: 180px"
                   onclick="openExcelFilterMenu(event, 'owner')"
                 >
                   Owner Name <span class="filter-icon" data-key="owner">▼</span>
@@ -952,12 +968,37 @@
                 </th>
                 <th
                   class="th-extra"
+                  style="width: 120px"
+                  onclick="openExcelFilterMenu(event, 'pwas')"
+                >
+                  PWAS <span class="filter-icon" data-key="pwas">▼</span>
+                </th>
+                <th
+                  class="th-extra"
+                  style="width: 120px"
+                  onclick="openExcelFilterMenu(event, 'erp')"
+                >
+                  ERP <span class="filter-icon" data-key="erp">▼</span>
+                </th>
+                <th
+                  class="th-extra"
+                  style="width: 150px"
+                  onclick="openExcelFilterMenu(event, 'payment_status')"
+                >
+                  Payment Status <span class="filter-icon" data-key="payment_status">▼</span>
+                </th>
+                <th
+                  class="th-extra"
                   style="width: 150px"
                   onclick="openExcelFilterMenu(event, 'accounts_note')"
                 >
                   Accounts Note
                   <span class="filter-icon" data-key="accounts_note">▼</span>
                 </th>
+                <th class="th-vehicle" style="width: 150px">Driver Name</th>
+                <th class="th-vehicle" style="width: 150px">Vehicle Type</th>
+                <th class="th-vehicle" style="width: 120px">Field Co</th>
+                <th class="th-vehicle" style="width: 120px">Site Co</th>
               </tr>
             </thead>
             <tbody id="reportBody">
@@ -1318,6 +1359,7 @@
           let pClean = cleanPlate(originalPlate);
           let owner = v.owner_name || "N/A";
           let defaultSite = (v.site_name || "N/A").trim();
+          let vehicle_type = v.vehicle_type || "-";
 
           if (!pClean) return;
 
@@ -1339,28 +1381,59 @@
           let vInvoices = data.invoices.filter(
             (i) => cleanPlate(i.plate_no) === pClean,
           );
+          let vDrivers = (data.drivers || []).filter(
+            (d) => cleanPlate(d.plate_no) === pClean,
+          );
 
-          if (
-            strictlyActiveSites.length === 0 &&
-            vTimesheets.length === 0 &&
-            !billData &&
-            vInvoices.length === 0
-          ) {
+          // Strict Validation: Only include the vehicle if it has an active site in the Site Log for this specific month.
+          if (strictlyActiveSites.length === 0) {
             return;
           }
 
-          let activeSites =
-            strictlyActiveSites.length > 0
-              ? strictlyActiveSites
-              : [{ site_name: defaultSite }];
+          let activeSites = strictlyActiveSites;
 
           let siteDataMap = {};
           activeSites.forEach((s) => {
             let sName = (s.site_name || "N/A").trim();
-            if (!siteDataMap[sName])
-              siteDataMap[sName] = { ts_nr: 0, ts_ot: 0 };
+
+            // --- Driver Identification Logic for this Month & Site ---
+            let siteStart = safeDate(s.work_start_date, "2000-01-01");
+            let siteEnd = safeDate(s.work_end_date, "2099-01-01");
+            let overlapStart = new Date(Math.max(monthStart, siteStart));
+            let overlapEnd = new Date(Math.min(monthEnd, siteEnd));
+            
+            let activeDrivers = [];
+            vDrivers.forEach((d) => {
+              let dStart = safeDate(d.work_start_date, "2000-01-01"); // Date illenkil past date aayiedukkum
+              let dEnd = safeDate(d.work_end_date, "2099-01-01");     // Date illenkil future date aayiedukkum
+              
+              // If driver was active during the time vehicle was in this site during this month
+              if (dStart <= overlapEnd && dEnd >= overlapStart) {
+                if (d.driver_name && d.driver_name.trim() !== "" && d.driver_name.trim() !== "-") {
+                  activeDrivers.push(d.driver_name.trim());
+                }
+              }
+            });
+            
+            // Remove duplicates and join with ' / '
+            let uniqueDrivers = [...new Set(activeDrivers)];
+            let driverString = uniqueDrivers.length > 0 ? uniqueDrivers.join(" / ") : "-";
+            // ---------------------------------------------------------
+
+            if (!siteDataMap[sName]) {
+              siteDataMap[sName] = { 
+                ts_nr: 0, 
+                ts_ot: 0, 
+                rate: s.rate || "-",
+                driver_name: driverString,
+                field_co: s.field_co || "-",
+                site_co: s.site_co || "-"
+              };
+            }
           });
-          if (!siteDataMap["N/A"]) siteDataMap["N/A"] = { ts_nr: 0, ts_ot: 0 };
+          if (!siteDataMap["N/A"]) {
+            siteDataMap["N/A"] = { ts_nr: 0, ts_ot: 0, rate: "-", driver_name: "-", field_co: "-", site_co: "-" };
+          }
 
           for (let i = 1; i <= daysInMonth; i++) {
             let checkDate = new Date(yearStr, mIdx, i);
@@ -1482,6 +1555,9 @@
             let inv_no = invData ? invData.invoice_no || "" : "";
             let bill_no = invData ? invData.bill_no || "" : "";
             let accounts_note = invData ? invData.accounts_note || "" : "";
+            let pwas = invData ? invData.pwas || "" : "";
+            let erp = invData ? invData.erp || "" : "";
+            let payment_status = invData ? invData.payment_status || "" : "";
             let inv_amount = invData
               ? parseFloat(invData.invoice_amount) || 0
               : 0;
@@ -1515,6 +1591,7 @@
               plate: originalPlate,
               owner,
               site: sName,
+              rate: siteDataMap[sName].rate,
               ts_nr: ts_nr.toString(),
               ts_ot: ts_ot.toString(),
               inv_nr: inv_nr > 0 ? inv_nr.toString() : "",
@@ -1538,7 +1615,14 @@
               statusPlain,
               inv_no,
               bill_no,
+              pwas: pwas || "-",
+              erp: erp || "-",
+              payment_status: payment_status || "-",
               accounts_note: accounts_note || "-",
+              driver_name: siteDataMap[sName].driver_name,
+              vehicle_type: vehicle_type,
+              field_co: siteDataMap[sName].field_co,
+              site_co: siteDataMap[sName].site_co,
             });
           });
         });
@@ -1633,6 +1717,7 @@
           // Removed 'white-space: nowrap;' from Site and Plate No to allow text wrap inside fixed columns
           tr.innerHTML = `
             <td style="font-weight: 600; text-align: left; padding-left: 15px; word-wrap: break-word;">${row.site}</td>
+            <td style="font-weight: 700; color: #0f172a;">${row.rate}</td>
             <td class="col-owner" style="word-wrap: break-word;">${row.owner}</td>
             <td class="plate-cell" style="font-weight: 700; word-wrap: break-word;" oncontextmenu="copySinglePlate(event, '${row.plate}')" title="Right click to copy">${row.plate}</td>
             
@@ -1652,7 +1737,14 @@
             <td class="status-cell ${row.statusClass}">${row.statusPlain}</td>
             <td class="editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
             <td class="editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
-            <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editAccountsNote(this)">${row.accounts_note}</td>
+            <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
+            <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'erp')">${row.erp}</td>
+            <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'payment_status')">${row.payment_status}</td>
+            <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'accounts_note')">${row.accounts_note}</td>
+            <td style="word-wrap: break-word;">${row.driver_name}</td>
+            <td style="word-wrap: break-word;">${row.vehicle_type}</td>
+            <td style="word-wrap: break-word;">${row.field_co}</td>
+            <td style="word-wrap: break-word;">${row.site_co}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -1824,29 +1916,30 @@
         document.getElementById("loader").style.display = "none";
       }
 
-      function editAccountsNote(td) {
+      function editTextNote(td, fieldName) {
         if (td.querySelector("textarea")) return;
         let currentVal = td.innerText === "-" ? "" : td.innerText;
         let plate = td.dataset.plate;
         let site = td.dataset.site;
-        td.innerHTML = `<textarea onblur="saveAccountsNote(this, '${plate}', '${site}')">${currentVal}</textarea>`;
+        td.innerHTML = `<textarea onblur="saveTextNote(this, '${plate}', '${site}', '${fieldName}')">${currentVal}</textarea>`;
         let ta = td.querySelector("textarea");
         ta.focus();
         ta.selectionStart = ta.selectionEnd = ta.value.length;
       }
 
-      async function saveAccountsNote(textarea, plate, site) {
+      async function saveTextNote(textarea, plate, site, fieldName) {
         let newVal = textarea.value.trim();
         let td = textarea.parentElement;
         td.innerText = newVal || "-";
         let rowObj = masterData.find(
           (d) => d.plate === plate && d.site === site,
         );
-        if (rowObj) rowObj.accounts_note = newVal || "-";
+        if (rowObj) rowObj[fieldName] = newVal || "-";
+        
         const fullMonth = `${document.getElementById("selMonth").value} ${document.getElementById("selYear").value}`;
         const token = localStorage.getItem("timesheetToken");
         try {
-          await fetch("/payment/save-accounts-note", {
+          await fetch("/payment/save-text-note", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1856,7 +1949,8 @@
               plate_no: plate,
               month: fullMonth,
               site_name: site,
-              accounts_note: newVal,
+              field: fieldName,
+              value: newVal,
             }),
           });
         } catch (e) {
@@ -2156,97 +2250,31 @@
       function createSingleSheetFromData(dataArray) {
         let aoa = [
           [
-            "REPORT MONTH",
-            "VEHICLE INFO",
-            "",
-            "",
-            "TIMESHEET",
-            "",
-            "INVOICE HR",
-            "",
-            "BILLING DB",
-            "",
-            "AMOUNT",
-            "",
-            "",
-            "",
-            "EXTRA DETAILS",
-            "",
-            "",
-            "",
+            "REPORT MONTH", "VEHICLE INFO", "", "", "", "TIMESHEET", "", "INVOICE HR", "", "BILLING DB", "", "AMOUNT", "", "", "", "EXTRA DETAILS", "", "", "", "", "", "", "GENERAL VEHICLE INFO", "", "", ""
           ],
           [
-            "Month",
-            "Site",
-            "Owner Name",
-            "Plate No",
-            "TS N.Hr",
-            "TS OT",
-            "Inv N.Hr",
-            "Inv OT",
-            "Bill N.Hr",
-            "Bill OT",
-            "NR Rate",
-            "OT Rate",
-            "Rent",
-            "Inv Amount",
-            "STATUS",
-            "Invoice No",
-            "Bill No",
-            "Accounts Note",
+            "Month", "Site", "Rate", "Owner Name", "Plate No", "TS N.Hr", "TS OT", "Inv N.Hr", "Inv OT", "Bill N.Hr", "Bill OT", "NR Rate", "OT Rate", "Rent", "Inv Amount", "STATUS", "Invoice No", "Bill No", "PWAS", "ERP", "Payment Status", "Accounts Note", "Driver Name", "Vehicle Type", "Field Co", "Site Co"
           ],
         ];
         dataArray.forEach((r) => {
           aoa.push([
-            r.report_month,
-            r.site,
-            r.owner,
-            r.plate,
-            r.ts_nr,
-            r.ts_ot,
-            r.inv_nr || "",
-            r.inv_ot || "",
-            r.bill_db_nr || "",
-            r.bill_db_ot || "",
-            r.bill_nrate || "",
-            r.bill_otrate || "",
-            r.bill_rent || "",
-            r.inv_amount || "",
-            r.statusPlain,
-            r.inv_no,
-            r.bill_no,
-            r.accounts_note || "-",
+            r.report_month, r.site, r.rate, r.owner, r.plate, r.ts_nr, r.ts_ot, r.inv_nr || "", r.inv_ot || "", r.bill_db_nr || "", r.bill_db_ot || "", r.bill_nrate || "", r.bill_otrate || "", r.bill_rent || "", r.inv_amount || "", r.statusPlain, r.inv_no, r.bill_no, r.pwas || "-", r.erp || "-", r.payment_status || "-", r.accounts_note || "-", r.driver_name, r.vehicle_type, r.field_co, r.site_co
           ]);
         });
         let ws = XLSX.utils.aoa_to_sheet(aoa);
 
         ws["!merges"] = [
-          { s: { r: 0, c: 1 }, e: { r: 0, c: 3 } },
-          { s: { r: 0, c: 4 }, e: { r: 0, c: 5 } },
-          { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },
-          { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },
-          { s: { r: 0, c: 10 }, e: { r: 0, c: 13 } },
-          { s: { r: 0, c: 14 }, e: { r: 0, c: 17 } },
+          { s: { r: 0, c: 1 }, e: { r: 0, c: 4 } },
+          { s: { r: 0, c: 5 }, e: { r: 0, c: 6 } },
+          { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },
+          { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } },
+          { s: { r: 0, c: 11 }, e: { r: 0, c: 14 } },
+          { s: { r: 0, c: 15 }, e: { r: 0, c: 21 } },
+          { s: { r: 0, c: 22 }, e: { r: 0, c: 25 } },
         ];
 
         ws["!cols"] = [
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 25 },
-          { wch: 12 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 30 },
+          { wch: 15 }, { wch: 20 }, { wch: 10 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }
         ];
         return ws;
       }
@@ -2254,93 +2282,31 @@
       function createSheetFromData(dataArray) {
         let aoa = [
           [
-            "VEHICLE INFO",
-            "",
-            "",
-            "TIMESHEET",
-            "",
-            "INVOICE HR",
-            "",
-            "BILLING DB",
-            "",
-            "AMOUNT",
-            "",
-            "",
-            "",
-            "EXTRA DETAILS",
-            "",
-            "",
-            "",
+            "VEHICLE INFO", "", "", "", "TIMESHEET", "", "INVOICE HR", "", "BILLING DB", "", "AMOUNT", "", "", "", "EXTRA DETAILS", "", "", "", "", "", "", "GENERAL VEHICLE INFO", "", "", ""
           ],
           [
-            "Site",
-            "Owner Name",
-            "Plate No",
-            "TS N.Hr",
-            "TS OT",
-            "Inv N.Hr",
-            "Inv OT",
-            "Bill N.Hr",
-            "Bill OT",
-            "NR Rate",
-            "OT Rate",
-            "Rent",
-            "Inv Amount",
-            "STATUS",
-            "Invoice No",
-            "Bill No",
-            "Accounts Note",
+            "Site", "Rate", "Owner Name", "Plate No", "TS N.Hr", "TS OT", "Inv N.Hr", "Inv OT", "Bill N.Hr", "Bill OT", "NR Rate", "OT Rate", "Rent", "Inv Amount", "STATUS", "Invoice No", "Bill No", "PWAS", "ERP", "Payment Status", "Accounts Note", "Driver Name", "Vehicle Type", "Field Co", "Site Co"
           ],
         ];
         dataArray.forEach((r) => {
           aoa.push([
-            r.site,
-            r.owner,
-            r.plate,
-            r.ts_nr,
-            r.ts_ot,
-            r.inv_nr || "",
-            r.inv_ot || "",
-            r.bill_db_nr || "",
-            r.bill_db_ot || "",
-            r.bill_nrate || "",
-            r.bill_otrate || "",
-            r.bill_rent || "",
-            r.inv_amount || "",
-            r.statusPlain,
-            r.inv_no,
-            r.bill_no,
-            r.accounts_note || "-",
+            r.site, r.rate, r.owner, r.plate, r.ts_nr, r.ts_ot, r.inv_nr || "", r.inv_ot || "", r.bill_db_nr || "", r.bill_db_ot || "", r.bill_nrate || "", r.bill_otrate || "", r.bill_rent || "", r.inv_amount || "", r.statusPlain, r.inv_no, r.bill_no, r.pwas || "-", r.erp || "-", r.payment_status || "-", r.accounts_note || "-", r.driver_name, r.vehicle_type, r.field_co, r.site_co
           ]);
         });
         let ws = XLSX.utils.aoa_to_sheet(aoa);
 
         ws["!merges"] = [
-          { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
-          { s: { r: 0, c: 3 }, e: { r: 0, c: 4 } },
-          { s: { r: 0, c: 5 }, e: { r: 0, c: 6 } },
-          { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },
-          { s: { r: 0, c: 9 }, e: { r: 0, c: 12 } },
-          { s: { r: 0, c: 13 }, e: { r: 0, c: 16 } },
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+          { s: { r: 0, c: 4 }, e: { r: 0, c: 5 } },
+          { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },
+          { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },
+          { s: { r: 0, c: 10 }, e: { r: 0, c: 13 } },
+          { s: { r: 0, c: 14 }, e: { r: 0, c: 20 } },
+          { s: { r: 0, c: 21 }, e: { r: 0, c: 24 } },
         ];
 
         ws["!cols"] = [
-          { wch: 20 },
-          { wch: 25 },
-          { wch: 12 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 30 },
+          { wch: 20 }, { wch: 10 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }
         ];
         return ws;
       }
