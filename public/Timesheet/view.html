@@ -1115,9 +1115,28 @@
         let currDriver = activeDrivers[0]
           ? activeDrivers[0].driver_name
           : vehicle.driver_name || "N/A";
-        let currMobile = activeDrivers[0]
-          ? activeDrivers[0].driver_mobile
-          : vehicle.driver_mobile || "N/A";
+        let currMobile = "";
+        
+        // 1. Aadhyam Driver Logs-il nokkuka
+        if (activeDrivers.length > 0) {
+            let logMob = activeDrivers[0].driver_mobile || activeDrivers[0].mobile_no || activeDrivers[0].mobile;
+            if (logMob && String(logMob).trim() !== "null" && String(logMob).trim() !== "") {
+                currMobile = String(logMob).trim();
+            }
+        }
+        
+        // 2. Log-il illengil Master DB-yil (vehicle object) nokkuka
+        if (!currMobile) {
+            let vehMob = vehicle.driver_mobile || vehicle.mobile_no || vehicle.mobile;
+            if (vehMob && String(vehMob).trim() !== "null" && String(vehMob).trim() !== "") {
+                currMobile = String(vehMob).trim();
+            }
+        }
+        
+        // 3. Randilum illengil maathram N/A aakkuka
+        if (!currMobile) {
+            currMobile = "N/A";
+        }
         let prevDriver =
           activeDrivers.length > 1 ? activeDrivers[1].driver_name : "";
 
@@ -1329,7 +1348,7 @@
 
             <table class="ts-table">
                 <thead>
-                    <tr><th style="width: 25px;">Date</th><th style="width: 30px;">Day</th><th style="width: 40px;">Start</th><th style="width: 40px;">End</th><th style="width: 50px;">HMR S</th><th style="width: 50px;">HMR E</th><th style="width: 40px;">Fuel</th><th style="width: 45px;">Dist</th><th style="width: 35px;">Time</th><th style="width: 40px;">Normal</th><th style="width: 30px;">OT</th><th>Note</th></tr>
+                    <tr><th style="width: 25px;">Date</th><th style="width: 30px;">Day</th><th style="width: 40px;">Start</th><th style="width: 40px;">End</th><th style="width: 60px;">HMR S</th><th style="width: 60px;">HMR E</th><th style="width: 40px;">Fuel</th><th style="width: 45px;">Dist</th><th style="width: 35px;">Time</th><th style="width: 40px;">Normal</th><th style="width: 30px;">OT</th><th>Note</th></tr>
                 </thead>
                 <tbody>${tableRowsHTML}</tbody>
             </table>
