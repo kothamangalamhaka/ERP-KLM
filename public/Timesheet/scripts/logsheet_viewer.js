@@ -152,34 +152,73 @@ function closeLogsheetViewer() {
 // 🟢 3. Load Viewer Content (With rotation support)
 function loadViewerContent(filePath, mimeType, token) {
   const viewer = document.getElementById("logsheetViewerContainer");
-  viewer.innerHTML =
-    '<div style="text-align:center; padding:20px; font-weight:bold; color:#8b5cf6;">Loading File...</div>';
+  viewer.innerHTML = '<div style="text-align:center; padding:20px; font-weight:bold; color:#8b5cf6;">Loading File...</div>';
 
   currentZoom = 1;
   currentRotation = 0;
-  posX = 0; // 🟢 Reset position X
-  posY = 0; // 🟢 Reset position Y
+  posX = 0;
+  posY = 0;
 
   const activeToken = localStorage.getItem("timesheetToken");
-  const reqHeaders = {
-    Authorization: "Bearer " + activeToken,
-  };
+  const reqHeaders = { Authorization: "Bearer " + activeToken };
 
-  fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(filePath)}`, {
-    headers: reqHeaders,
-  })
+  fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(filePath)}`, { headers: reqHeaders })
     .then((res) => {
       if (!res.ok) throw new Error("File fetch failed");
       return res.blob();
     })
-    .then((blob) => {
-      const fileURL = URL.createObjectURL(blob);
+    .then(async (blob) => {
       if (mimeType.includes("pdf")) {
-        viewer.innerHTML = `<iframe src="${fileURL}#toolbar=0" style="width:100%; height:100%; border:none;"></iframe>`;
+        try {
+          const arrayBuffer = await blob.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+          viewer.innerHTML = `
+            <div class="image-zoom-wrapper" id="imgWrapper" style="overflow: hidden;">
+              <div id="zoomContent" style="display: flex; flex-direction: column; gap: 20px; align-items: center; transition: transform 0.1s ease-out; padding: 20px;">
+              </div>
+            </div>
+            <div class="zoom-controls">
+              <button class="zoom-btn" onclick="adjustZoom(-0.2)" title="Zoom Out">➖</button>
+              <button class="zoom-btn" onclick="resetZoomRotate()" title="Reset">🔄</button>
+              <button class="zoom-btn" onclick="adjustZoom(0.2)" title="Zoom In">➕</button>
+              <button class="zoom-btn" onclick="rotateImage()" title="Rotate" style="color:#f59e0b;">⟳</button>
+            </div>
+          `;
+
+          const zoomContent = document.getElementById("zoomContent");
+
+          // Loop through all pages in the PDF
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 2.0 });
+
+            const canvas = document.createElement("canvas");
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            canvas.style.maxWidth = "100%";
+            canvas.style.height = "auto";
+            canvas.style.boxShadow = "0 4px 10px rgba(0,0,0,0.2)"; // Page separation shadow
+            canvas.style.backgroundColor = "#fff";
+
+            const ctx = canvas.getContext("2d");
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+            zoomContent.appendChild(canvas);
+          }
+
+          applyTransform();
+          attachMouseEvents();
+        } catch (pdfErr) {
+          viewer.innerHTML = `<div style="color:#ef4444; font-weight:bold; padding:20px; text-align:center;">Failed to render PDF preview.</div>`;
+        }
       } else {
+        const fileURL = URL.createObjectURL(blob);
         viewer.innerHTML = `
-          <div class="image-zoom-wrapper" id="imgWrapper">
-            <img src="${fileURL}" id="zoomImage" draggable="false" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logsheet" />
+          <div class="image-zoom-wrapper" id="imgWrapper" style="overflow: hidden;">
+            <div id="zoomContent" style="display: flex; justify-content: center; align-items: center; transition: transform 0.1s ease-out;">
+              <img src="${fileURL}" draggable="false" style="max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.2s ease-out;" alt="Logsheet" />
+            </div>
           </div>
           <div class="zoom-controls">
             <button class="zoom-btn" onclick="adjustZoom(-0.2)" title="Zoom Out">➖</button>
@@ -220,11 +259,25 @@ function resetZoomRotate() {
 }
 
 function applyTransform() {
-  const img = document.getElementById("zoomImage");
-  if (!img) return;
+  const content = document.getElementById("zoomContent");
+  if (!content) return;
 
-  // 🟢 Translate moves the image freely, Scale makes it bigger, Rotate spins it
-  img.style.transform = `translate(${posX}px, ${posY}px) scale(${currentZoom}) rotate(${currentRotation}deg)`;
+  // 1. Zoom (Scale) & Pan (Translate) കണ്ടെയ്നറിന് കൊടുക്കുന്നു
+  content.style.transform = `translate(${posX}px, ${posY}px) scale(${currentZoom})`;
+
+  // 2. Rotation ഓരോ പേജുകൾക്കും (Children) പ്രത്യേകം കൊടുക്കുന്നു
+  const children = content.children;
+  for (let i = 0; i < children.length; i++) {
+    children[i].style.transform = `rotate(${currentRotation}deg)`;
+    children[i].style.transition = "transform 0.2s ease-out";
+    
+    // 90 ദിവ്രിയോ 270 ഡിഗ്രിയോ റൊട്ടേറ്റ് ചെയ്യുമ്പോൾ പേജുകൾ തമ്മിൽ കൂട്ടിമുട്ടാതിരിക്കാൻ ചെറിയ ഗ്യാപ്പ് കൊടുക്കുന്നു
+    if (currentRotation % 180 !== 0) {
+      children[i].style.margin = "10% 0"; 
+    } else {
+      children[i].style.margin = "0";
+    }
+  }
 }
 // 🟢 5. Mouse Wheel & Drag-to-Pan Events
 function attachMouseEvents() {
@@ -333,7 +386,6 @@ function initResizers() {
   });
 }
 
-// ✅ Shared Core Function for PDF Generation (Stretching Fixed with Auto Orientation)
 async function generatePdfFromFiles(
   filesArray,
   pdfFilename,
@@ -341,7 +393,7 @@ async function generatePdfFromFiles(
   originalBtnText,
 ) {
   if (!filesArray.length) {
-    customAlert("No valid images found for PDF.", "Notice");
+    customAlert("No valid files selected for PDF.", "Notice");
     return;
   }
 
@@ -349,75 +401,61 @@ async function generatePdfFromFiles(
   btnElement.innerHTML = `Processing...`;
 
   try {
+    const { PDFDocument } = PDFLib;
     const { jsPDF } = window.jspdf;
-    let doc = null;
+    
+    // ഇമേജുകൾ ചേർക്കാൻ ഒരു താൽക്കാലിക മാസ്റ്റർ PDF ഉണ്ടാക്കുന്നു
+    const mergedPdf = await PDFDocument.create();
+    const activeToken = localStorage.getItem("timesheetToken");
+    const reqHeaders = { Authorization: "Bearer " + activeToken };
 
     for (let i = 0; i < filesArray.length; i++) {
       const file = filesArray[i];
-
-      const activeToken = localStorage.getItem("timesheetToken");
-      const reqHeaders = {
-        Authorization: "Bearer " + activeToken,
-      };
-
-      const res = await fetch(
-        `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
-        { headers: reqHeaders },
-      );
-
+      const res = await fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`, { headers: reqHeaders });
       if (!res.ok) continue;
+      
       const blob = await res.blob();
+      const arrayBuffer = await blob.arrayBuffer();
 
-      const bitmap = await createImageBitmap(blob, {
-        imageOrientation: "from-image",
-      });
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(bitmap, 0, 0);
-
-      const imgData = canvas.toDataURL("image/jpeg", 1.0);
-
-      // Convert px to mm
-      const pdfWidth = bitmap.width * 0.264583;
-      const pdfHeight = bitmap.height * 0.264583;
-
-      // FIX: Dynamically check orientation to prevent jsPDF from auto-swapping dimensions!
-      const orientation = pdfWidth > pdfHeight ? "l" : "p";
-
-      if (i === 0) {
-        doc = new jsPDF({
-          orientation: orientation,
-          unit: "mm",
-          format: [pdfWidth, pdfHeight],
-          compress: true,
-        });
+      if (file.mime && file.mime.includes("pdf")) {
+        // ഇതോരു PDF ആണെങ്കിൽ, നേരിട്ട് പേജുകൾ കോപ്പി ചെയ്ത് ലയിപ്പിക്കുന്നു
+        const existingPdf = await PDFDocument.load(arrayBuffer);
+        const copiedPages = await mergedPdf.copyPages(existingPdf, existingPdf.getPageIndices());
+        copiedPages.forEach((page) => mergedPdf.addPage(page));
       } else {
-        doc.addPage([pdfWidth, pdfHeight], orientation);
+        // ഇമേജ് ആണെങ്കിൽ അതിനെ ക്യാൻവാസ് വഴി റീഡ് ചെയ്ത് PDF പേജാക്കി മാറ്റുന്നു
+        const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
+        const canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(bitmap, 0, 0);
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.9);
+        const singleImgPdf = new jsPDF({
+          orientation: bitmap.width > bitmap.height ? "l" : "p",
+          unit: "mm",
+          format: [bitmap.width * 0.264583, bitmap.height * 0.264583]
+        });
+        singleImgPdf.addImage(imgData, "JPEG", 0, 0, bitmap.width * 0.264583, bitmap.height * 0.264583, undefined, "FAST");
+        
+        const singlePdfBytes = singleImgPdf.output("arraybuffer");
+        const tempPdf = await PDFDocument.load(singlePdfBytes);
+        const [copiedPage] = await mergedPdf.copyPages(tempPdf, [0]);
+        mergedPdf.addPage(copiedPage);
       }
-
-      doc.addImage(
-        imgData,
-        "JPEG",
-        0,
-        0,
-        pdfWidth,
-        pdfHeight,
-        undefined,
-        "FAST",
-      );
     }
 
-    if (!doc) {
-      customAlert("PDF generation failed.", "Error");
-      return;
-    }
+    const pdfBytes = await mergedPdf.save();
+    const blobOutput = new Blob([pdfBytes], { type: "application/pdf" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blobOutput);
+    link.download = pdfFilename;
+    link.click();
 
-    doc.save(pdfFilename);
   } catch (e) {
-    console.error("PDF Error:", e);
-    customAlert("Failed to generate PDF.", "Error");
+    console.error("PDF Merge Error:", e);
+    customAlert("Failed to generate combined PDF.", "Error");
   } finally {
     btnElement.disabled = false;
     btnElement.innerHTML = originalBtnText;
@@ -428,7 +466,7 @@ async function generatePdfFromFiles(
 async function downloadAllAsPdf() {
   const btn = document.getElementById("btnDownloadPdf");
   const imageFiles = logsheetFiles.filter(
-    (f) => f.mime && f.mime.includes("image") && f.size > 0,
+    (f) => f.mime && (f.mime.includes("image") || f.mime.includes("pdf")) && f.size > 0,
   );
 
   const plate = document
@@ -454,7 +492,7 @@ async function downloadSelectedAsPdf() {
     if (
       cb.checked &&
       logsheetFiles[index].mime &&
-      logsheetFiles[index].mime.includes("image") &&
+      (logsheetFiles[index].mime.includes("image") || logsheetFiles[index].mime.includes("pdf")) &&
       logsheetFiles[index].size > 0
     ) {
       selectedFiles.push(logsheetFiles[index]);
