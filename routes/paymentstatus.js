@@ -149,7 +149,7 @@ router.get("/master-report-data", async (req, res) => {
     const fullMonth = `${month} ${year}`;
 
     const vehicles = await pool.query(
-      "SELECT plate_no, owner_name, site_name, vehicle_type FROM timesheet_vehicles",
+      "SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles",
     );
     const sites = await pool.query(
       "SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co FROM vehicle_site_log",
