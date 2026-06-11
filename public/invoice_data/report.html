@@ -628,7 +628,7 @@
         bottom: -28px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(15,23,42,0.9);
+        background: rgba(15, 23, 42, 0.9);
         color: white;
         font-size: 10px;
         padding: 3px 7px;
@@ -711,7 +711,22 @@
 
     <div id="mainAppContainer">
       <div class="navbar">
-        <h2>Master Payment Report</h2>
+        <h2 style="display: flex; align-items: center">
+          Master Payment Report
+          <span
+            id="plateCountBadge"
+            style="
+              font-size: 13px;
+              background: #f59e0b;
+              color: white;
+              padding: 4px 10px;
+              border-radius: 12px;
+              margin-left: 15px;
+              font-family: &quot;Inter&quot;, sans-serif;
+            "
+            >0 Rows</span
+          >
+        </h2>
         <div class="navbar-links">
           <a href="../Timesheet/Timesheet.html">
             <div style="font-weight: 500; font-size: 14px; color: white">
@@ -856,84 +871,229 @@
               </tr>
               <tr>
                 <!-- 🆕 data-col-key added to each th for right-click copy; col index order matches tbody td order -->
-                <th class="th-vehicle" style="width: 200px" data-col-key="site" onclick="openExcelFilterMenu(event, 'site')">
+                <th
+                  class="th-vehicle"
+                  style="width: 200px"
+                  data-col-key="site"
+                  onclick="openExcelFilterMenu(event, 'site')"
+                >
                   Site <span class="filter-icon" data-key="site">▼</span>
                 </th>
-                <th class="th-vehicle" style="width: 90px" data-col-key="rate" onclick="openExcelFilterMenu(event, 'rate')">
+                <th
+                  class="th-vehicle"
+                  style="width: 90px"
+                  data-col-key="rate"
+                  onclick="openExcelFilterMenu(event, 'rate')"
+                >
                   Rate <span class="filter-icon" data-key="rate">▼</span>
                 </th>
-                <th class="th-vehicle" style="width: 80px" data-col-key="vat" onclick="openExcelFilterMenu(event, 'vat')">
+                <th
+                  class="th-vehicle"
+                  style="width: 80px"
+                  data-col-key="vat"
+                  onclick="openExcelFilterMenu(event, 'vat')"
+                >
                   VAT <span class="filter-icon" data-key="vat">▼</span>
                 </th>
-                <th class="th-vehicle" style="width: 180px" data-col-key="owner" onclick="openExcelFilterMenu(event, 'owner')">
+                <th
+                  class="th-vehicle"
+                  style="width: 180px"
+                  data-col-key="owner"
+                  onclick="openExcelFilterMenu(event, 'owner')"
+                >
                   Owner Name <span class="filter-icon" data-key="owner">▼</span>
                 </th>
-                <th class="th-vehicle" style="width: 100px" data-col-key="plate"
+                <th
+                  class="th-vehicle"
+                  style="width: 100px"
+                  data-col-key="plate"
                   onclick="openExcelFilterMenu(event, 'plate')"
                   oncontextmenu="copyAllPlates(event)"
-                  title="Right click to copy all visible plates">
+                  title="Right click to copy all visible plates"
+                >
                   Plate No <span class="filter-icon" data-key="plate">▼</span>
                 </th>
 
-                <th class="th-ts" style="width: 50px" data-col-key="ts_nr" onclick="openExcelFilterMenu(event, 'ts_nr')">
+                <th
+                  class="th-ts"
+                  style="width: 50px"
+                  data-col-key="ts_nr"
+                  onclick="openExcelFilterMenu(event, 'ts_nr')"
+                >
                   TS N.Hr <span class="filter-icon" data-key="ts_nr">▼</span>
                 </th>
-                <th class="th-ts" style="width: 50px" data-col-key="ts_ot" onclick="openExcelFilterMenu(event, 'ts_ot')">
+                <th
+                  class="th-ts"
+                  style="width: 50px"
+                  data-col-key="ts_ot"
+                  onclick="openExcelFilterMenu(event, 'ts_ot')"
+                >
                   TS OT <span class="filter-icon" data-key="ts_ot">▼</span>
                 </th>
 
-                <th class="th-inv" style="width: 50px" data-col-key="inv_nr" onclick="openExcelFilterMenu(event, 'inv_nr')">
+                <th
+                  class="th-inv"
+                  style="width: 50px"
+                  data-col-key="inv_nr"
+                  onclick="openExcelFilterMenu(event, 'inv_nr')"
+                >
                   Inv N.Hr <span class="filter-icon" data-key="inv_nr">▼</span>
                 </th>
-                <th class="th-inv" style="width: 50px" data-col-key="inv_ot" onclick="openExcelFilterMenu(event, 'inv_ot')">
+                <th
+                  class="th-inv"
+                  style="width: 50px"
+                  data-col-key="inv_ot"
+                  onclick="openExcelFilterMenu(event, 'inv_ot')"
+                >
                   Inv OT <span class="filter-icon" data-key="inv_ot">▼</span>
                 </th>
 
-                <th class="th-bill" style="width: 50px" data-col-key="bill_db_nr" onclick="openExcelFilterMenu(event, 'bill_db_nr')">
-                  Bill N.Hr <span class="filter-icon" data-key="bill_db_nr">▼</span>
+                <th
+                  class="th-bill"
+                  style="width: 50px"
+                  data-col-key="bill_db_nr"
+                  onclick="openExcelFilterMenu(event, 'bill_db_nr')"
+                >
+                  Bill N.Hr
+                  <span class="filter-icon" data-key="bill_db_nr">▼</span>
                 </th>
-                <th class="th-bill" style="width: 50px" data-col-key="bill_db_ot" onclick="openExcelFilterMenu(event, 'bill_db_ot')">
-                  Bill OT <span class="filter-icon" data-key="bill_db_ot">▼</span>
+                <th
+                  class="th-bill"
+                  style="width: 50px"
+                  data-col-key="bill_db_ot"
+                  onclick="openExcelFilterMenu(event, 'bill_db_ot')"
+                >
+                  Bill OT
+                  <span class="filter-icon" data-key="bill_db_ot">▼</span>
                 </th>
 
-                <th class="th-amt" style="width: 50px" data-col-key="bill_nrate" onclick="openExcelFilterMenu(event, 'bill_nrate')">
-                  NR Rate <span class="filter-icon" data-key="bill_nrate">▼</span>
+                <th
+                  class="th-amt"
+                  style="width: 50px"
+                  data-col-key="bill_nrate"
+                  onclick="openExcelFilterMenu(event, 'bill_nrate')"
+                >
+                  NR Rate
+                  <span class="filter-icon" data-key="bill_nrate">▼</span>
                 </th>
-                <th class="th-amt" style="width: 50px" data-col-key="bill_otrate" onclick="openExcelFilterMenu(event, 'bill_otrate')">
-                  OT Rate <span class="filter-icon" data-key="bill_otrate">▼</span>
+                <th
+                  class="th-amt"
+                  style="width: 50px"
+                  data-col-key="bill_otrate"
+                  onclick="openExcelFilterMenu(event, 'bill_otrate')"
+                >
+                  OT Rate
+                  <span class="filter-icon" data-key="bill_otrate">▼</span>
                 </th>
-                <th class="th-amt" style="width: 90px" data-col-key="bill_rent" onclick="openExcelFilterMenu(event, 'bill_rent')">
+                <th
+                  class="th-amt"
+                  style="width: 90px"
+                  data-col-key="bill_rent"
+                  onclick="openExcelFilterMenu(event, 'bill_rent')"
+                >
                   Rent <span class="filter-icon" data-key="bill_rent">▼</span>
                 </th>
-                <th class="th-amt" style="width: 100px" data-col-key="inv_amount" onclick="openExcelFilterMenu(event, 'inv_amount')">
-                  Inv Amount <span class="filter-icon" data-key="inv_amount">▼</span>
+                <th
+                  class="th-amt"
+                  style="width: 100px"
+                  data-col-key="inv_amount"
+                  onclick="openExcelFilterMenu(event, 'inv_amount')"
+                >
+                  Inv Amount
+                  <span class="filter-icon" data-key="inv_amount">▼</span>
                 </th>
 
-                <th class="th-status" style="width: 100px" data-col-key="statusPlain" onclick="openExcelFilterMenu(event, 'statusPlain')">
-                  <a style="font-size: 10px; color: white; text-decoration: none;">TS - INV</a><br>Status <span class="filter-icon" data-key="statusPlain">▼</span>
+                <th
+                  class="th-status"
+                  style="width: 100px"
+                  data-col-key="statusPlain"
+                  onclick="openExcelFilterMenu(event, 'statusPlain')"
+                >
+                  <a
+                    style="font-size: 10px; color: white; text-decoration: none"
+                    >TS - INV</a
+                  ><br />Status
+                  <span class="filter-icon" data-key="statusPlain">▼</span>
                 </th>
-                <th class="th-extra" style="width: 120px" data-col-key="inv_no" onclick="openExcelFilterMenu(event, 'inv_no')">
-                  Invoice No <span class="filter-icon" data-key="inv_no">▼</span>
+                <th
+                  class="th-extra"
+                  style="width: 120px"
+                  data-col-key="inv_no"
+                  onclick="openExcelFilterMenu(event, 'inv_no')"
+                >
+                  Invoice No
+                  <span class="filter-icon" data-key="inv_no">▼</span>
                 </th>
-                <th class="th-extra" style="width: 120px" data-col-key="bill_no" onclick="openExcelFilterMenu(event, 'bill_no')">
+                <th
+                  class="th-extra"
+                  style="width: 120px"
+                  data-col-key="bill_no"
+                  onclick="openExcelFilterMenu(event, 'bill_no')"
+                >
                   Bill No <span class="filter-icon" data-key="bill_no">▼</span>
                 </th>
-                <th class="th-extra" style="width: 120px" data-col-key="pwas" onclick="openExcelFilterMenu(event, 'pwas')">
+                <th
+                  class="th-extra"
+                  style="width: 120px"
+                  data-col-key="pwas"
+                  onclick="openExcelFilterMenu(event, 'pwas')"
+                >
                   PWAS <span class="filter-icon" data-key="pwas">▼</span>
                 </th>
-                <th class="th-extra" style="width: 120px" data-col-key="erp" onclick="openExcelFilterMenu(event, 'erp')">
+                <th
+                  class="th-extra"
+                  style="width: 120px"
+                  data-col-key="erp"
+                  onclick="openExcelFilterMenu(event, 'erp')"
+                >
                   ERP <span class="filter-icon" data-key="erp">▼</span>
                 </th>
-                <th class="th-extra" style="width: 150px" data-col-key="payment_status" onclick="openExcelFilterMenu(event, 'payment_status')">
-                  Payment Status <span class="filter-icon" data-key="payment_status">▼</span>
+                <th
+                  class="th-extra"
+                  style="width: 150px"
+                  data-col-key="payment_status"
+                  onclick="openExcelFilterMenu(event, 'payment_status')"
+                >
+                  Payment Status
+                  <span class="filter-icon" data-key="payment_status">▼</span>
                 </th>
-                <th class="th-extra" style="width: 150px" data-col-key="accounts_note" onclick="openExcelFilterMenu(event, 'accounts_note')">
-                  Accounts Note <span class="filter-icon" data-key="accounts_note">▼</span>
+                <th
+                  class="th-extra"
+                  style="width: 150px"
+                  data-col-key="accounts_note"
+                  onclick="openExcelFilterMenu(event, 'accounts_note')"
+                >
+                  Accounts Note
+                  <span class="filter-icon" data-key="accounts_note">▼</span>
                 </th>
-                <th class="th-vehicle" style="width: 150px" data-col-key="driver_name">Driver Name</th>
-                <th class="th-vehicle" style="width: 150px" data-col-key="vehicle_type">Vehicle Type</th>
-                <th class="th-vehicle" style="width: 120px" data-col-key="field_co">Field Co</th>
-                <th class="th-vehicle" style="width: 120px" data-col-key="site_co">Site Co</th>
+                <th
+                  class="th-vehicle"
+                  style="width: 150px"
+                  data-col-key="driver_name"
+                >
+                  Driver Name
+                </th>
+                <th
+                  class="th-vehicle"
+                  style="width: 150px"
+                  data-col-key="vehicle_type"
+                >
+                  Vehicle Type
+                </th>
+                <th
+                  class="th-vehicle"
+                  style="width: 120px"
+                  data-col-key="field_co"
+                >
+                  Field Co
+                </th>
+                <th
+                  class="th-vehicle"
+                  style="width: 120px"
+                  data-col-key="site_co"
+                >
+                  Site Co
+                </th>
               </tr>
             </thead>
             <tbody id="reportBody">
@@ -953,6 +1113,46 @@
       class="excel-filter-menu"
       onclick="event.stopPropagation()"
     >
+      <div
+        style="
+          padding: 10px;
+          border-bottom: 1px solid #e2e8f0;
+          display: flex;
+          gap: 5px;
+          background: #f8fafc;
+        "
+      >
+        <button
+          onclick="applySort('asc')"
+          style="
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 11px;
+          "
+        >
+          🔼 Sort A-Z
+        </button>
+        <button
+          onclick="applySort('desc')"
+          style="
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 11px;
+          "
+        >
+          🔽 Sort Z-A
+        </button>
+      </div>
       <div class="excel-filter-search">
         <input type="text" id="filterSearchInput" placeholder="Search..." />
       </div>
@@ -1197,13 +1397,24 @@
       }
 
       const months = [
-        "January","February","March","April","May","June",
-        "July","August","September","October","November","December",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
       ];
       let masterData = [];
       let headerFilters = {};
       let currentFilterColInfo = { key: "" };
       let isEditMode = false;
+      let sortConfig = null; // 🆕 Track active sorting
       let specialRulesCache = [];
 
       window.alert = function (message) {
@@ -1252,11 +1463,15 @@
 
       function getDayName(dayNum, monthStr, year) {
         const dateObj = new Date(`${monthStr} ${dayNum}, ${year}`);
-        return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dateObj.getDay()];
+        return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+          dateObj.getDay()
+        ];
       }
 
       function cleanPlate(p) {
-        return String(p || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        return String(p || "")
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, "");
       }
 
       function safeDate(dStr, fallback) {
@@ -1284,17 +1499,27 @@
 
           if (!pClean) return;
 
-          let vSites = data.sites.filter((s) => cleanPlate(s.plate_no) === pClean);
+          let vSites = data.sites.filter(
+            (s) => cleanPlate(s.plate_no) === pClean,
+          );
           let strictlyActiveSites = vSites.filter((s) => {
             let st = safeDate(s.work_start_date, "2000-01-01");
             let ed = safeDate(s.work_end_date, "2099-01-01");
             return st <= monthEnd && ed >= monthStart;
           });
 
-          let vTimesheets = data.timesheets.filter((ts) => cleanPlate(ts.plate_no) === pClean);
-          let billData = data.billing.find((b) => cleanPlate(b.plate_no) === pClean);
-          let vInvoices = data.invoices.filter((i) => cleanPlate(i.plate_no) === pClean);
-          let vDrivers = (data.drivers || []).filter((d) => cleanPlate(d.plate_no) === pClean);
+          let vTimesheets = data.timesheets.filter(
+            (ts) => cleanPlate(ts.plate_no) === pClean,
+          );
+          let billData = data.billing.find(
+            (b) => cleanPlate(b.plate_no) === pClean,
+          );
+          let vInvoices = data.invoices.filter(
+            (i) => cleanPlate(i.plate_no) === pClean,
+          );
+          let vDrivers = (data.drivers || []).filter(
+            (d) => cleanPlate(d.plate_no) === pClean,
+          );
 
           if (strictlyActiveSites.length === 0) return;
 
@@ -1314,14 +1539,19 @@
               let dStart = safeDate(d.work_start_date, "2000-01-01");
               let dEnd = safeDate(d.work_end_date, "2099-01-01");
               if (dStart <= overlapEnd && dEnd >= overlapStart) {
-                if (d.driver_name && d.driver_name.trim() !== "" && d.driver_name.trim() !== "-") {
+                if (
+                  d.driver_name &&
+                  d.driver_name.trim() !== "" &&
+                  d.driver_name.trim() !== "-"
+                ) {
                   activeDrivers.push(d.driver_name.trim());
                 }
               }
             });
 
             let uniqueDrivers = [...new Set(activeDrivers)];
-            let driverString = uniqueDrivers.length > 0 ? uniqueDrivers.join(" / ") : "-";
+            let driverString =
+              uniqueDrivers.length > 0 ? uniqueDrivers.join(" / ") : "-";
 
             if (!siteDataMap[sName]) {
               siteDataMap[sName] = {
@@ -1330,12 +1560,19 @@
                 rate: s.rate || "-",
                 driver_name: driverString,
                 field_co: s.field_co || "-",
-                site_co: s.site_co || "-"
+                site_co: s.site_co || "-",
               };
             }
           });
           if (!siteDataMap["N/A"]) {
-            siteDataMap["N/A"] = { ts_nr: 0, ts_ot: 0, rate: "-", driver_name: "-", field_co: "-", site_co: "-" };
+            siteDataMap["N/A"] = {
+              ts_nr: 0,
+              ts_ot: 0,
+              rate: "-",
+              driver_name: "-",
+              field_co: "-",
+              site_co: "-",
+            };
           }
 
           for (let i = 1; i <= daysInMonth; i++) {
@@ -1343,7 +1580,8 @@
             let currentSite = defaultSite;
 
             for (let s of activeSites) {
-              if (s.site_name === "N/A" || s.site_name === defaultSite) continue;
+              if (s.site_name === "N/A" || s.site_name === defaultSite)
+                continue;
               let st = safeDate(s.work_start_date, "2000-01-01");
               let ed = safeDate(s.work_end_date, "2099-01-01");
               st.setHours(0, 0, 0, 0);
@@ -1355,19 +1593,34 @@
             }
 
             let formattedDate = checkDate
-              .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+              .toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
               .replace(/ /g, " ");
             let siteForRule = currentSite.split("&")[0].trim().toUpperCase();
             let specialRule = specialRulesCache.find(
-              (r) => r.is_active && (r.sites.includes("ALL") || r.sites.includes(siteForRule)) && r.dates.includes(formattedDate),
+              (r) =>
+                r.is_active &&
+                (r.sites.includes("ALL") || r.sites.includes(siteForRule)) &&
+                r.dates.includes(formattedDate),
             );
 
             let ts = vTimesheets.find((r) => parseInt(r.record_date) === i);
             let tm = ts ? parseFloat(ts.calc_time) || 0 : 0;
-            let bd = ts ? String(ts.bd || "").trim().toUpperCase() : "";
+            let bd = ts
+              ? String(ts.bd || "")
+                  .trim()
+                  .toUpperCase()
+              : "";
             let hasData = tm > 0 || bd !== "" || (ts && ts.wrk_start);
 
-            if (!hasData && specialRule && specialRule.rule_type !== "FULL_OT") {
+            if (
+              !hasData &&
+              specialRule &&
+              specialRule.rule_type !== "FULL_OT"
+            ) {
               bd = specialRule.rule_type;
               hasData = true;
             }
@@ -1376,9 +1629,11 @@
 
             let dayName = getDayName(i, monthStr, yearStr);
             let isFullOT = dayName === "Fri" || i === 31;
-            if (specialRule && specialRule.rule_type === "FULL_OT") isFullOT = true;
+            if (specialRule && specialRule.rule_type === "FULL_OT")
+              isFullOT = true;
 
-            let nHr = 0, otHr = 0;
+            let nHr = 0,
+              otHr = 0;
 
             if (bd === "ID" || bd === "NP") {
               if (isFullOT) otHr = 10;
@@ -1389,12 +1644,17 @@
             } else if (tm > 0) {
               if (isFullOT) otHr = tm;
               else {
-                if (tm > 10) { nHr = 10; otHr = tm - 10; }
-                else { nHr = tm; }
+                if (tm > 10) {
+                  nHr = 10;
+                  otHr = tm - 10;
+                } else {
+                  nHr = tm;
+                }
               }
             }
 
-            if (!siteDataMap[currentSite]) siteDataMap[currentSite] = { ts_nr: 0, ts_ot: 0 };
+            if (!siteDataMap[currentSite])
+              siteDataMap[currentSite] = { ts_nr: 0, ts_ot: 0 };
             siteDataMap[currentSite].ts_nr += nHr;
             siteDataMap[currentSite].ts_ot += otHr;
           }
@@ -1409,11 +1669,21 @@
             let ts_nr = siteDataMap[sName].ts_nr;
             let ts_ot = siteDataMap[sName].ts_ot;
 
-            if (sName === "N/A" && ts_nr === 0 && ts_ot === 0 && Object.keys(siteDataMap).length > 1) return;
+            if (
+              sName === "N/A" &&
+              ts_nr === 0 &&
+              ts_ot === 0 &&
+              Object.keys(siteDataMap).length > 1
+            )
+              return;
 
-            let invData = vInvoices.find((i) => (i.site_name || "").trim() === sName);
+            let invData = vInvoices.find(
+              (i) => (i.site_name || "").trim() === sName,
+            );
             if (!invData && sName !== "N/A") {
-              invData = vInvoices.find((i) => !i.site_name || i.site_name === "N/A");
+              invData = vInvoices.find(
+                (i) => !i.site_name || i.site_name === "N/A",
+              );
             }
 
             let inv_nr = invData ? parseFloat(invData.bill_nr) || 0 : 0;
@@ -1424,7 +1694,9 @@
             let pwas = invData ? invData.pwas || "" : "";
             let erp = invData ? invData.erp || "" : "";
             let payment_status = invData ? invData.payment_status || "" : "";
-            let inv_amount = invData ? parseFloat(invData.invoice_amount) || 0 : 0;
+            let inv_amount = invData
+              ? parseFloat(invData.invoice_amount) || 0
+              : 0;
 
             let ts_tot = ts_nr + ts_ot;
             let inv_tot = inv_nr + inv_ot;
@@ -1446,7 +1718,8 @@
               if (ts_nr > inv_nr) parts.push(`NR: ${ts_nr - inv_nr}`);
               if (ts_ot > inv_ot) parts.push(`OT: ${ts_ot - inv_ot}`);
               statusClass = "bg-loss";
-              statusPlain = parts.length > 0 ? `Loss (${parts.join(", ")})` : `Loss`;
+              statusPlain =
+                parts.length > 0 ? `Loss (${parts.join(", ")})` : `Loss`;
             }
 
             processedArray.push({
@@ -1459,11 +1732,20 @@
               ts_ot: ts_ot.toString(),
               inv_nr: inv_nr > 0 ? inv_nr.toString() : "",
               inv_ot: inv_ot > 0 ? inv_ot.toString() : "",
-              bill_db_nr: index === 0 && bill_db_nr > 0 ? bill_db_nr.toString() : "",
-              bill_db_ot: index === 0 && bill_db_ot > 0 ? bill_db_ot.toString() : "",
-              bill_nrate: index === 0 && bill_nrate > 0 ? parseFloat(bill_nrate).toFixed(2) : "",
-              bill_otrate: index === 0 && bill_otrate > 0 ? parseFloat(bill_otrate).toFixed(2) : "",
-              bill_rent: index === 0 && bill_rent > 0 ? bill_rent.toFixed(2) : "",
+              bill_db_nr:
+                index === 0 && bill_db_nr > 0 ? bill_db_nr.toString() : "",
+              bill_db_ot:
+                index === 0 && bill_db_ot > 0 ? bill_db_ot.toString() : "",
+              bill_nrate:
+                index === 0 && bill_nrate > 0
+                  ? parseFloat(bill_nrate).toFixed(2)
+                  : "",
+              bill_otrate:
+                index === 0 && bill_otrate > 0
+                  ? parseFloat(bill_otrate).toFixed(2)
+                  : "",
+              bill_rent:
+                index === 0 && bill_rent > 0 ? bill_rent.toFixed(2) : "",
               inv_amount: inv_amount > 0 ? inv_amount.toFixed(2) : "",
               statusClass,
               statusPlain,
@@ -1481,7 +1763,10 @@
           });
         });
 
-        processedArray.sort((a, b) => a.site.localeCompare(b.site) || a.plate.localeCompare(b.plate));
+        processedArray.sort(
+          (a, b) =>
+            a.site.localeCompare(b.site) || a.plate.localeCompare(b.plate),
+        );
         return processedArray;
       }
 
@@ -1492,7 +1777,9 @@
         document.getElementById("reportBody").innerHTML = "";
 
         headerFilters = {};
-        document.querySelectorAll(".filter-icon").forEach((i) => i.classList.remove("filter-active"));
+        document
+          .querySelectorAll(".filter-icon")
+          .forEach((i) => i.classList.remove("filter-active"));
 
         await ensureSpecialRules();
         masterData = await fetchReportDataAPI(month, year);
@@ -1522,7 +1809,10 @@
       function applyFilters() {
         let fOwner = document.getElementById("filterOwner").value;
         let fSite = document.getElementById("filterSite").value;
-        let fPlate = document.getElementById("filterPlate").value.trim().toUpperCase();
+        let fPlate = document
+          .getElementById("filterPlate")
+          .value.trim()
+          .toUpperCase();
 
         let filtered = masterData.filter((d) => {
           let matchO = fOwner === "ALL" || d.owner === fOwner;
@@ -1531,7 +1821,10 @@
 
           let passesHeaders = true;
           for (const key in headerFilters) {
-            if (headerFilters[key].length > 0 && !headerFilters[key].includes(String(d[key]))) {
+            if (
+              headerFilters[key].length > 0 &&
+              !headerFilters[key].includes(String(d[key]))
+            ) {
               passesHeaders = false;
               break;
             }
@@ -1539,15 +1832,51 @@
           return matchO && matchS && matchP && passesHeaders;
         });
 
+        // 🆕 Apply Sorting Logic
+        if (sortConfig) {
+          filtered.sort((a, b) => {
+            let valA = String(a[sortConfig.key] || "").toLowerCase();
+            let valB = String(b[sortConfig.key] || "").toLowerCase();
+            let numA = parseFloat(valA);
+            let numB = parseFloat(valB);
+
+            // Numbers sorting
+            if (
+              !isNaN(numA) &&
+              !isNaN(numB) &&
+              valA.match(/^[\d.]+$/) &&
+              valB.match(/^[\d.]+$/)
+            ) {
+              return sortConfig.dir === "asc" ? numA - numB : numB - numA;
+            }
+            // Text sorting
+            if (valA < valB) return sortConfig.dir === "asc" ? -1 : 1;
+            if (valA > valB) return sortConfig.dir === "asc" ? 1 : -1;
+            return 0;
+          });
+        }
+
         renderTable(filtered);
         if (isEditMode) activateEditModeCells();
       }
 
+      // 🆕 Handle Click on Sort Buttons
+      function applySort(dir) {
+        sortConfig = { key: currentFilterColInfo.key, dir: dir };
+        closeExcelFilter();
+        applyFilters();
+      }
+
       function renderTable(data) {
+        // 🆕 Update Total Count Badge at the top
+        const countBadge = document.getElementById("plateCountBadge");
+        if (countBadge) countBadge.innerText = data.length + " Rows";
+
         const tbody = document.getElementById("reportBody");
         tbody.innerHTML = "";
         if (data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="17" style="padding: 20px;">No data found.</td></tr>';
+          tbody.innerHTML =
+            '<tr><td colspan="17" style="padding: 20px;">No data found.</td></tr>';
           return;
         }
         data.forEach((row) => {
@@ -1557,7 +1886,7 @@
           tr.innerHTML = `
             <td style="font-weight: 600; text-align: left; padding-left: 15px; word-wrap: break-word;">${row.site}</td>
             <td style="font-weight: 700; color: #0f172a;">${row.rate}</td>
-            <td style="font-weight: 700; background-color: ${row.vat.toLowerCase().includes('yes') ? '#fef08a' : 'transparent'}; color: #854d0e;">${row.vat.toLowerCase().includes('yes') ? 'Yes' : ''}</td>
+            <td style="font-weight: 700; background-color: ${row.vat.toLowerCase().includes("yes") ? "#fef08a" : "transparent"}; color: #854d0e;">${row.vat.toLowerCase().includes("yes") ? "Yes" : ""}</td>
             <td class="col-owner" style="word-wrap: break-word;">${row.owner}</td>
             <td class="plate-cell" style="font-weight: 700; word-wrap: break-word;" oncontextmenu="copySinglePlate(event, '${row.plate}')" title="Right click to copy">${row.plate}</td>
             
@@ -1630,9 +1959,12 @@
           if (data.success) {
             isEditMode = true;
             document.getElementById("btnEditData").innerHTML = "❌ Cancel Edit";
-            document.getElementById("btnSaveChanges").style.display = "inline-block";
+            document.getElementById("btnSaveChanges").style.display =
+              "inline-block";
             activateEditModeCells();
-            window.alert("Edit Mode Activated! You can now copy-paste Excel data directly into the highlighted cells.");
+            window.alert(
+              "Edit Mode Activated! You can now copy-paste Excel data directly into the highlighted cells.",
+            );
           } else {
             window.alert(data.message);
           }
@@ -1648,36 +1980,42 @@
         });
       }
 
-      document.getElementById("reportTable").addEventListener("paste", function (e) {
-        if (!isEditMode) return;
-        let target = e.target;
-        if (!target.classList.contains("editable-field")) return;
+      document
+        .getElementById("reportTable")
+        .addEventListener("paste", function (e) {
+          if (!isEditMode) return;
+          let target = e.target;
+          if (!target.classList.contains("editable-field")) return;
 
-        e.preventDefault();
-        let text = (e.originalEvent || e).clipboardData.getData("text/plain");
-        let rows = text.split(/\r\n|\n|\r/);
+          e.preventDefault();
+          let text = (e.originalEvent || e).clipboardData.getData("text/plain");
+          let rows = text.split(/\r\n|\n|\r/);
 
-        let currentCell = target;
-        let currentRow = currentCell.parentElement;
-        let editableCellsInRow = Array.from(currentRow.querySelectorAll(".editable-field"));
-        let startColIndex = editableCellsInRow.indexOf(currentCell);
+          let currentCell = target;
+          let currentRow = currentCell.parentElement;
+          let editableCellsInRow = Array.from(
+            currentRow.querySelectorAll(".editable-field"),
+          );
+          let startColIndex = editableCellsInRow.indexOf(currentCell);
 
-        for (let i = 0; i < rows.length; i++) {
-          if (!rows[i].trim() && i === rows.length - 1) break;
-          let cols = rows[i].split("\t");
+          for (let i = 0; i < rows.length; i++) {
+            if (!rows[i].trim() && i === rows.length - 1) break;
+            let cols = rows[i].split("\t");
 
-          if (currentRow) {
-            let editables = Array.from(currentRow.querySelectorAll(".editable-field"));
-            for (let j = 0; j < cols.length; j++) {
-              let targetCol = startColIndex + j;
-              if (targetCol < editables.length) {
-                editables[targetCol].innerText = cols[j].trim();
+            if (currentRow) {
+              let editables = Array.from(
+                currentRow.querySelectorAll(".editable-field"),
+              );
+              for (let j = 0; j < cols.length; j++) {
+                let targetCol = startColIndex + j;
+                if (targetCol < editables.length) {
+                  editables[targetCol].innerText = cols[j].trim();
+                }
               }
+              currentRow = currentRow.nextElementSibling;
             }
-            currentRow = currentRow.nextElementSibling;
           }
-        }
-      });
+        });
 
       async function saveInlineEdits() {
         let updates = [];
@@ -1689,13 +2027,33 @@
           let site = tr.dataset.site;
           let plate = tr.dataset.plate;
 
-          let inv_nr = parseFloat(tr.querySelector('[data-field="inv_nr"]').innerText) || 0;
-          let inv_ot = parseFloat(tr.querySelector('[data-field="inv_ot"]').innerText) || 0;
-          let inv_amount = parseFloat(tr.querySelector('[data-field="inv_amount"]').innerText) || 0;
-          let inv_no = tr.querySelector('[data-field="inv_no"]').innerText.trim();
-          let bill_no = tr.querySelector('[data-field="bill_no"]').innerText.trim();
+          let inv_nr =
+            parseFloat(tr.querySelector('[data-field="inv_nr"]').innerText) ||
+            0;
+          let inv_ot =
+            parseFloat(tr.querySelector('[data-field="inv_ot"]').innerText) ||
+            0;
+          let inv_amount =
+            parseFloat(
+              tr.querySelector('[data-field="inv_amount"]').innerText,
+            ) || 0;
+          let inv_no = tr
+            .querySelector('[data-field="inv_no"]')
+            .innerText.trim();
+          let bill_no = tr
+            .querySelector('[data-field="bill_no"]')
+            .innerText.trim();
 
-          updates.push({ month: fullMonth, site, plate, inv_nr, inv_ot, inv_amount, inv_no, bill_no });
+          updates.push({
+            month: fullMonth,
+            site,
+            plate,
+            inv_nr,
+            inv_ot,
+            inv_amount,
+            inv_no,
+            bill_no,
+          });
         });
 
         document.getElementById("loader").style.display = "block";
@@ -1741,7 +2099,9 @@
         let newVal = textarea.value.trim();
         let td = textarea.parentElement;
         td.innerText = newVal || "-";
-        let rowObj = masterData.find((d) => d.plate === plate && d.site === site);
+        let rowObj = masterData.find(
+          (d) => d.plate === plate && d.site === site,
+        );
         if (rowObj) rowObj[fieldName] = newVal || "-";
 
         const fullMonth = `${document.getElementById("selMonth").value} ${document.getElementById("selYear").value}`;
@@ -1778,7 +2138,10 @@
         let tempFiltered = masterData.filter((d) => {
           let fOwner = document.getElementById("filterOwner").value;
           let fSite = document.getElementById("filterSite").value;
-          let fPlate = document.getElementById("filterPlate").value.trim().toUpperCase();
+          let fPlate = document
+            .getElementById("filterPlate")
+            .value.trim()
+            .toUpperCase();
 
           let matchO = fOwner === "ALL" || d.owner === fOwner;
           let matchS = fSite === "ALL" || d.site === fSite;
@@ -1787,7 +2150,10 @@
           let passesOtherHeaders = true;
           for (let filterKey in headerFilters) {
             if (filterKey === key) continue;
-            if (headerFilters[filterKey].length > 0 && !headerFilters[filterKey].includes(String(d[filterKey]))) {
+            if (
+              headerFilters[filterKey].length > 0 &&
+              !headerFilters[filterKey].includes(String(d[filterKey]))
+            ) {
               passesOtherHeaders = false;
               break;
             }
@@ -1825,20 +2191,26 @@
         document.getElementById("filterSearchInput").focus();
       }
 
-      document.getElementById("filterSelectAll")?.addEventListener("change", function () {
-        let isChecked = this.checked;
-        document.querySelectorAll(".col-filter-cb").forEach((cb) => {
-          if (cb.parentElement.style.display !== "none") cb.checked = isChecked;
+      document
+        .getElementById("filterSelectAll")
+        ?.addEventListener("change", function () {
+          let isChecked = this.checked;
+          document.querySelectorAll(".col-filter-cb").forEach((cb) => {
+            if (cb.parentElement.style.display !== "none")
+              cb.checked = isChecked;
+          });
         });
-      });
 
-      document.getElementById("filterSearchInput")?.addEventListener("keyup", function () {
-        let keyword = this.value.toLowerCase();
-        document.querySelectorAll(".filter-row-item").forEach((item) => {
-          if (item.textContent.toLowerCase().includes(keyword)) item.style.display = "";
-          else item.style.display = "none";
+      document
+        .getElementById("filterSearchInput")
+        ?.addEventListener("keyup", function () {
+          let keyword = this.value.toLowerCase();
+          document.querySelectorAll(".filter-row-item").forEach((item) => {
+            if (item.textContent.toLowerCase().includes(keyword))
+              item.style.display = "";
+            else item.style.display = "none";
+          });
         });
-      });
 
       function closeExcelFilter() {
         document.getElementById("excelFilterMenu").style.display = "none";
@@ -1872,7 +2244,10 @@
       }
 
       document.addEventListener("click", function (e) {
-        if (!e.target.closest(".excel-filter-menu") && !e.target.classList.contains("filter-icon")) {
+        if (
+          !e.target.closest(".excel-filter-menu") &&
+          !e.target.classList.contains("filter-icon")
+        ) {
           closeExcelFilter();
         }
       });
@@ -1880,62 +2255,72 @@
       // ============================================================
       // 🆕 COLUMN HEADER RIGHT-CLICK → COPY VISIBLE COLUMN DATA
       // ============================================================
-      document.getElementById("reportTable").addEventListener("contextmenu", function (e) {
-        let th = e.target.closest("th");
+      document
+        .getElementById("reportTable")
+        .addEventListener("contextmenu", function (e) {
+          let th = e.target.closest("th");
 
-        // Only handle clicks in thead (header rows), not tbody
-        if (!th || !th.closest("thead")) return;
+          // Only handle clicks in thead (header rows), not tbody
+          if (!th || !th.closest("thead")) return;
 
-        // Plate No column has its own handler (copyAllPlates) - leave it alone
-        if (th.dataset.colKey === "plate") return;
+          // Plate No column has its own handler (copyAllPlates) - leave it alone
+          if (th.dataset.colKey === "plate") return;
 
-        e.preventDefault();
-        e.stopPropagation();
+          e.preventDefault();
+          e.stopPropagation();
 
-        // Find the column index of this th in the second header row (the detail row)
-        let theadRows = document.querySelectorAll("#reportTable thead tr");
-        let detailRow = theadRows[1]; // second row = individual column headers
-        let allThs = Array.from(detailRow.querySelectorAll("th"));
-        let colIndex = allThs.indexOf(th);
+          // Find the column index of this th in the second header row (the detail row)
+          let theadRows = document.querySelectorAll("#reportTable thead tr");
+          let detailRow = theadRows[1]; // second row = individual column headers
+          let allThs = Array.from(detailRow.querySelectorAll("th"));
+          let colIndex = allThs.indexOf(th);
 
-        // If clicked th is in the first (group) header row, find matching column by data-col-key
-        if (colIndex === -1) {
-          // Clicked on a group header - skip
-          showToast("Right-click on individual column headers to copy data");
-          return;
-        }
-
-        // Gather visible tbody rows
-        let rows = Array.from(document.querySelectorAll("#reportBody tr")).filter(
-          (tr) => tr.style.display !== "none" && tr.cells && tr.cells.length > colIndex
-        );
-
-        let values = [];
-        rows.forEach((tr) => {
-          let cell = tr.cells[colIndex];
-          if (cell) {
-            let val = cell.innerText.trim();
-            if (val && val !== "") values.push(val);
+          // If clicked th is in the first (group) header row, find matching column by data-col-key
+          if (colIndex === -1) {
+            // Clicked on a group header - skip
+            showToast("Right-click on individual column headers to copy data");
+            return;
           }
+
+          // Gather visible tbody rows
+          let rows = Array.from(
+            document.querySelectorAll("#reportBody tr"),
+          ).filter(
+            (tr) =>
+              tr.style.display !== "none" &&
+              tr.cells &&
+              tr.cells.length > colIndex,
+          );
+
+          let values = [];
+          rows.forEach((tr) => {
+            let cell = tr.cells[colIndex];
+            if (cell) {
+              let val = cell.innerText.trim();
+              if (val && val !== "") values.push(val);
+            }
+          });
+
+          if (values.length === 0) {
+            showToast("No data in this column");
+            return;
+          }
+
+          // Get column name for toast message
+          let colName = th.innerText.replace("▼", "").trim();
+
+          copyText(values.join("\n"));
+          showToast(`✓ Copied ${values.length} rows from "${colName}"`);
         });
-
-        if (values.length === 0) {
-          showToast("No data in this column");
-          return;
-        }
-
-        // Get column name for toast message
-        let colName = th.innerText.replace("▼", "").trim();
-
-        copyText(values.join("\n"));
-        showToast(`✓ Copied ${values.length} rows from "${colName}"`);
-      });
       // ============================================================
 
       function exportCurrentToExcel() {
         let fOwner = document.getElementById("filterOwner").value;
         let fSite = document.getElementById("filterSite").value;
-        let fPlate = document.getElementById("filterPlate").value.trim().toUpperCase();
+        let fPlate = document
+          .getElementById("filterPlate")
+          .value.trim()
+          .toUpperCase();
 
         let filtered = masterData.filter((d) => {
           let matchO = fOwner === "ALL" || d.owner === fOwner;
@@ -1944,7 +2329,10 @@
 
           let passesHeaders = true;
           for (const key in headerFilters) {
-            if (headerFilters[key].length > 0 && !headerFilters[key].includes(String(d[key]))) {
+            if (
+              headerFilters[key].length > 0 &&
+              !headerFilters[key].includes(String(d[key]))
+            ) {
               passesHeaders = false;
               break;
             }
@@ -1957,12 +2345,23 @@
           return;
         }
         let wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, createSheetFromData(filtered), "Report");
-        XLSX.writeFile(wb, `Payment_Report_${document.getElementById("selMonth").value}.xlsx`);
+        XLSX.utils.book_append_sheet(
+          wb,
+          createSheetFromData(filtered),
+          "Report",
+        );
+        XLSX.writeFile(
+          wb,
+          `Payment_Report_${document.getElementById("selMonth").value}.xlsx`,
+        );
       }
 
-      function openBatchModal() { document.getElementById("batchModal").style.display = "flex"; }
-      function closeBatchModal() { document.getElementById("batchModal").style.display = "none"; }
+      function openBatchModal() {
+        document.getElementById("batchModal").style.display = "flex";
+      }
+      function closeBatchModal() {
+        document.getElementById("batchModal").style.display = "none";
+      }
 
       async function executeBatchExport() {
         const fromM = document.getElementById("batchFromM").value;
@@ -1971,7 +2370,10 @@
         const toY = document.getElementById("batchToY").value;
         let start = new Date(fromY, months.indexOf(fromM), 1);
         let end = new Date(toY, months.indexOf(toM), 1);
-        if (start > end) { window.alert("Invalid range."); return; }
+        if (start > end) {
+          window.alert("Invalid range.");
+          return;
+        }
         closeBatchModal();
         document.getElementById("loader").style.display = "block";
 
@@ -1980,26 +2382,40 @@
         let wb = XLSX.utils.book_new();
         let current = new Date(start);
         while (current <= end) {
-          let m = months[current.getMonth()], y = current.getFullYear();
+          let m = months[current.getMonth()],
+            y = current.getFullYear();
           let data = await fetchReportDataAPI(m, y);
           if (data.length > 0)
-            XLSX.utils.book_append_sheet(wb, createSheetFromData(data), `${m} ${y}`.substring(0, 31));
+            XLSX.utils.book_append_sheet(
+              wb,
+              createSheetFromData(data),
+              `${m} ${y}`.substring(0, 31),
+            );
           current.setMonth(current.getMonth() + 1);
         }
         document.getElementById("loader").style.display = "none";
         XLSX.writeFile(wb, "Batch_Report.xlsx");
       }
 
-      function openSingleExcelModal() { document.getElementById("singleExcelModal").style.display = "flex"; }
-      function closeSingleExcelModal() { document.getElementById("singleExcelModal").style.display = "none"; }
+      function openSingleExcelModal() {
+        document.getElementById("singleExcelModal").style.display = "flex";
+      }
+      function closeSingleExcelModal() {
+        document.getElementById("singleExcelModal").style.display = "none";
+      }
 
       function toggleSingleExcelDates() {
-        const mode = document.querySelector('input[name="exportMode"]:checked').value;
-        document.getElementById("singleExcelDateSelectors").style.display = mode === "custom" ? "flex" : "none";
+        const mode = document.querySelector(
+          'input[name="exportMode"]:checked',
+        ).value;
+        document.getElementById("singleExcelDateSelectors").style.display =
+          mode === "custom" ? "flex" : "none";
       }
 
       async function executeSingleExcelExport() {
-        const mode = document.querySelector('input[name="exportMode"]:checked').value;
+        const mode = document.querySelector(
+          'input[name="exportMode"]:checked',
+        ).value;
         let start, end;
 
         if (mode === "custom") {
@@ -2015,7 +2431,10 @@
           end = new Date(currY + 1, 11, 1);
         }
 
-        if (start > end) { window.alert("Invalid range."); return; }
+        if (start > end) {
+          window.alert("Invalid range.");
+          return;
+        }
         closeSingleExcelModal();
 
         const loader = document.getElementById("loader");
@@ -2028,7 +2447,8 @@
         let current = new Date(start);
 
         while (current <= end) {
-          let m = months[current.getMonth()], y = current.getFullYear();
+          let m = months[current.getMonth()],
+            y = current.getFullYear();
           let data = await fetchReportDataAPI(m, y);
           if (data.length > 0) {
             data.forEach((row) => {
@@ -2048,7 +2468,11 @@
         }
 
         let wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, createSingleSheetFromData(combinedData), "Master_Analysis");
+        XLSX.utils.book_append_sheet(
+          wb,
+          createSingleSheetFromData(combinedData),
+          "Master_Analysis",
+        );
         XLSX.writeFile(wb, "Haka_Analysis_Report.xlsx");
       }
 
@@ -2057,13 +2481,29 @@
       // Applies background color + white bold text to header cells
       // colorMap: { colIndex: "RRGGBB_hex_no_hash" }
       // ============================================================
-      function applyExcelHeaderStyles(ws, rowCount, colCount, colorMapRow0, colorMapRow1) {
-        const centerBold = { alignment: { horizontal: "center", vertical: "center", wrapText: true }, font: { bold: true, color: { rgb: "FFFFFF" } } };
+      function applyExcelHeaderStyles(
+        ws,
+        rowCount,
+        colCount,
+        colorMapRow0,
+        colorMapRow1,
+      ) {
+        const centerBold = {
+          alignment: {
+            horizontal: "center",
+            vertical: "center",
+            wrapText: true,
+          },
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+        };
 
         function cellAddr(r, c) {
           let col = "";
           let n = c + 1;
-          while (n > 0) { col = String.fromCharCode(65 + ((n - 1) % 26)) + col; n = Math.floor((n - 1) / 26); }
+          while (n > 0) {
+            col = String.fromCharCode(65 + ((n - 1) % 26)) + col;
+            n = Math.floor((n - 1) / 26);
+          }
           return col + (r + 1);
         }
 
@@ -2072,7 +2512,10 @@
           let addr = cellAddr(0, c);
           if (!ws[addr]) ws[addr] = { t: "s", v: "" };
           let bg = colorMapRow0[c] || "1E293B";
-          ws[addr].s = { ...centerBold, fill: { patternType: "solid", fgColor: { rgb: bg } } };
+          ws[addr].s = {
+            ...centerBold,
+            fill: { patternType: "solid", fgColor: { rgb: bg } },
+          };
         }
 
         // Row 1 (column headers)
@@ -2080,7 +2523,10 @@
           let addr = cellAddr(1, c);
           if (!ws[addr]) ws[addr] = { t: "s", v: "" };
           let bg = colorMapRow1[c] || "1E293B";
-          ws[addr].s = { ...centerBold, fill: { patternType: "solid", fgColor: { rgb: bg } } };
+          ws[addr].s = {
+            ...centerBold,
+            fill: { patternType: "solid", fgColor: { rgb: bg } },
+          };
         }
 
         // Data rows: center alignment
@@ -2088,7 +2534,9 @@
           for (let c = 0; c < colCount; c++) {
             let addr = cellAddr(r, c);
             if (ws[addr]) {
-              ws[addr].s = { alignment: { vertical: "center", wrapText: true } };
+              ws[addr].s = {
+                alignment: { vertical: "center", wrapText: true },
+              };
             }
           }
         }
@@ -2098,21 +2546,21 @@
       // vehicle=1E293B, ts=166534, inv=1E40AF, bill=6B21A8, amt=059669, extra=334155, status=0F172A
       const COL_COLORS = {
         vehicle: "1E293B",
-        ts:      "166534",
-        inv:     "1E40AF",
-        bill:    "6B21A8",
-        amt:     "059669",
-        extra:   "334155",
-        status:  "0F172A",
+        ts: "166534",
+        inv: "1E40AF",
+        bill: "6B21A8",
+        amt: "059669",
+        extra: "334155",
+        status: "0F172A",
       };
 
       // Column index → color for standard sheet (26 columns, 0-indexed)
       // 0-4: vehicle, 5-6: ts, 7-8: inv, 9-10: bill, 11-14: amt, 15: status, 16-21: extra, 22-25: vehicle
       function getStdColorMap() {
         let m = {};
-        for (let i = 0; i <= 4;  i++) m[i] = COL_COLORS.vehicle;
-        for (let i = 5; i <= 6;  i++) m[i] = COL_COLORS.ts;
-        for (let i = 7; i <= 8;  i++) m[i] = COL_COLORS.inv;
+        for (let i = 0; i <= 4; i++) m[i] = COL_COLORS.vehicle;
+        for (let i = 5; i <= 6; i++) m[i] = COL_COLORS.ts;
+        for (let i = 7; i <= 8; i++) m[i] = COL_COLORS.inv;
         for (let i = 9; i <= 10; i++) m[i] = COL_COLORS.bill;
         for (let i = 11; i <= 14; i++) m[i] = COL_COLORS.amt;
         m[15] = COL_COLORS.status;
@@ -2125,9 +2573,9 @@
       function getSingleColorMap() {
         let m = {};
         m[0] = COL_COLORS.vehicle; // Month col
-        for (let i = 1; i <= 5;  i++) m[i] = COL_COLORS.vehicle;
-        for (let i = 6; i <= 7;  i++) m[i] = COL_COLORS.ts;
-        for (let i = 8; i <= 9;  i++) m[i] = COL_COLORS.inv;
+        for (let i = 1; i <= 5; i++) m[i] = COL_COLORS.vehicle;
+        for (let i = 6; i <= 7; i++) m[i] = COL_COLORS.ts;
+        for (let i = 8; i <= 9; i++) m[i] = COL_COLORS.inv;
         for (let i = 10; i <= 11; i++) m[i] = COL_COLORS.bill;
         for (let i = 12; i <= 15; i++) m[i] = COL_COLORS.amt;
         m[16] = COL_COLORS.status;
@@ -2139,60 +2587,132 @@
       function createSheetFromData(dataArray) {
         let aoa = [
           [
-            "VEHICLE INFO", "", "", "", "",
-            "TIMESHEET", "",
-            "INVOICE HR", "",
-            "BILLING DB", "",
-            "AMOUNT", "", "", "",
+            "VEHICLE INFO",
+            "",
+            "",
+            "",
+            "",
+            "TIMESHEET",
+            "",
+            "INVOICE HR",
+            "",
+            "BILLING DB",
+            "",
+            "AMOUNT",
+            "",
+            "",
+            "",
             "STATUS",
-            "EXTRA DETAILS", "", "", "", "", "",
-            "GENERAL VEHICLE INFO", "", "", ""
+            "EXTRA DETAILS",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "GENERAL VEHICLE INFO",
+            "",
+            "",
+            "",
           ],
           [
-            "Site", "Rate", "VAT", "Owner Name", "Plate No",
-            "TS N.Hr", "TS OT",
-            "Inv N.Hr", "Inv OT",
-            "Bill N.Hr", "Bill OT",
-            "NR Rate", "OT Rate", "Rent", "Inv Amount",
+            "Site",
+            "Rate",
+            "VAT",
+            "Owner Name",
+            "Plate No",
+            "TS N.Hr",
+            "TS OT",
+            "Inv N.Hr",
+            "Inv OT",
+            "Bill N.Hr",
+            "Bill OT",
+            "NR Rate",
+            "OT Rate",
+            "Rent",
+            "Inv Amount",
             "STATUS",
-            "Invoice No", "Bill No", "PWAS", "ERP", "Payment Status", "Accounts Note",
-            "Driver Name", "Vehicle Type", "Field Co", "Site Co"
+            "Invoice No",
+            "Bill No",
+            "PWAS",
+            "ERP",
+            "Payment Status",
+            "Accounts Note",
+            "Driver Name",
+            "Vehicle Type",
+            "Field Co",
+            "Site Co",
           ],
         ];
         dataArray.forEach((r) => {
           aoa.push([
-            r.site, r.rate, r.vat.toLowerCase().includes('yes') ? "Yes" : "", r.owner, r.plate,
-            r.ts_nr, r.ts_ot,
-            r.inv_nr || "", r.inv_ot || "",
-            r.bill_db_nr || "", r.bill_db_ot || "",
-            r.bill_nrate || "", r.bill_otrate || "", r.bill_rent || "", r.inv_amount || "",
+            r.site,
+            r.rate,
+            r.vat.toLowerCase().includes("yes") ? "Yes" : "",
+            r.owner,
+            r.plate,
+            r.ts_nr,
+            r.ts_ot,
+            r.inv_nr || "",
+            r.inv_ot || "",
+            r.bill_db_nr || "",
+            r.bill_db_ot || "",
+            r.bill_nrate || "",
+            r.bill_otrate || "",
+            r.bill_rent || "",
+            r.inv_amount || "",
             r.statusPlain,
-            r.inv_no, r.bill_no, r.pwas || "-", r.erp || "-", r.payment_status || "-", r.accounts_note || "-",
-            r.driver_name, r.vehicle_type, r.field_co, r.site_co
+            r.inv_no,
+            r.bill_no,
+            r.pwas || "-",
+            r.erp || "-",
+            r.payment_status || "-",
+            r.accounts_note || "-",
+            r.driver_name,
+            r.vehicle_type,
+            r.field_co,
+            r.site_co,
           ]);
         });
 
         let ws = XLSX.utils.aoa_to_sheet(aoa);
 
         ws["!merges"] = [
-          { s: { r: 0, c: 0 },  e: { r: 0, c: 4 } },
-          { s: { r: 0, c: 5 },  e: { r: 0, c: 6 } },
-          { s: { r: 0, c: 7 },  e: { r: 0, c: 8 } },
-          { s: { r: 0, c: 9 },  e: { r: 0, c: 10 } },
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+          { s: { r: 0, c: 5 }, e: { r: 0, c: 6 } },
+          { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },
+          { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } },
           { s: { r: 0, c: 11 }, e: { r: 0, c: 14 } },
           { s: { r: 0, c: 16 }, e: { r: 0, c: 21 } },
           { s: { r: 0, c: 22 }, e: { r: 0, c: 25 } },
         ];
 
         ws["!cols"] = [
-          { wch: 20 }, { wch: 10 }, { wch: 8 }, { wch: 25 }, { wch: 12 },
-          { wch: 10 }, { wch: 10 },
-          { wch: 10 }, { wch: 10 },
-          { wch: 10 }, { wch: 10 },
-          { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 15 },
+          { wch: 20 },
+          { wch: 10 },
+          { wch: 8 },
+          { wch: 25 },
+          { wch: 12 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 20 },
           { wch: 15 },
-          { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 25 },
-          { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }
+          { wch: 15 },
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 25 },
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 15 },
         ];
 
         // 🆕 Apply header colors matching the screen
@@ -2206,47 +2726,101 @@
         let aoa = [
           [
             "REPORT MONTH",
-            "VEHICLE INFO", "", "", "", "",
-            "TIMESHEET", "",
-            "INVOICE HR", "",
-            "BILLING DB", "",
-            "AMOUNT", "", "", "",
+            "VEHICLE INFO",
+            "",
+            "",
+            "",
+            "",
+            "TIMESHEET",
+            "",
+            "INVOICE HR",
+            "",
+            "BILLING DB",
+            "",
+            "AMOUNT",
+            "",
+            "",
+            "",
             "STATUS",
-            "EXTRA DETAILS", "", "", "", "", "",
-            "GENERAL VEHICLE INFO", "", "", ""
+            "EXTRA DETAILS",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "GENERAL VEHICLE INFO",
+            "",
+            "",
+            "",
           ],
           [
             "Month",
-            "Site", "Rate", "VAT", "Owner Name", "Plate No",
-            "TS N.Hr", "TS OT",
-            "Inv N.Hr", "Inv OT",
-            "Bill N.Hr", "Bill OT",
-            "NR Rate", "OT Rate", "Rent", "Inv Amount",
+            "Site",
+            "Rate",
+            "VAT",
+            "Owner Name",
+            "Plate No",
+            "TS N.Hr",
+            "TS OT",
+            "Inv N.Hr",
+            "Inv OT",
+            "Bill N.Hr",
+            "Bill OT",
+            "NR Rate",
+            "OT Rate",
+            "Rent",
+            "Inv Amount",
             "STATUS",
-            "Invoice No", "Bill No", "PWAS", "ERP", "Payment Status", "Accounts Note",
-            "Driver Name", "Vehicle Type", "Field Co", "Site Co"
+            "Invoice No",
+            "Bill No",
+            "PWAS",
+            "ERP",
+            "Payment Status",
+            "Accounts Note",
+            "Driver Name",
+            "Vehicle Type",
+            "Field Co",
+            "Site Co",
           ],
         ];
         dataArray.forEach((r) => {
           aoa.push([
             r.report_month,
-            r.site, r.rate, r.vat.toLowerCase().includes('yes') ? "Yes" : "", r.owner, r.plate,
-            r.ts_nr, r.ts_ot,
-            r.inv_nr || "", r.inv_ot || "",
-            r.bill_db_nr || "", r.bill_db_ot || "",
-            r.bill_nrate || "", r.bill_otrate || "", r.bill_rent || "", r.inv_amount || "",
+            r.site,
+            r.rate,
+            r.vat.toLowerCase().includes("yes") ? "Yes" : "",
+            r.owner,
+            r.plate,
+            r.ts_nr,
+            r.ts_ot,
+            r.inv_nr || "",
+            r.inv_ot || "",
+            r.bill_db_nr || "",
+            r.bill_db_ot || "",
+            r.bill_nrate || "",
+            r.bill_otrate || "",
+            r.bill_rent || "",
+            r.inv_amount || "",
             r.statusPlain,
-            r.inv_no, r.bill_no, r.pwas || "-", r.erp || "-", r.payment_status || "-", r.accounts_note || "-",
-            r.driver_name, r.vehicle_type, r.field_co, r.site_co
+            r.inv_no,
+            r.bill_no,
+            r.pwas || "-",
+            r.erp || "-",
+            r.payment_status || "-",
+            r.accounts_note || "-",
+            r.driver_name,
+            r.vehicle_type,
+            r.field_co,
+            r.site_co,
           ]);
         });
 
         let ws = XLSX.utils.aoa_to_sheet(aoa);
 
         ws["!merges"] = [
-          { s: { r: 0, c: 1 },  e: { r: 0, c: 5 } },
-          { s: { r: 0, c: 6 },  e: { r: 0, c: 7 } },
-          { s: { r: 0, c: 8 },  e: { r: 0, c: 9 } },
+          { s: { r: 0, c: 1 }, e: { r: 0, c: 5 } },
+          { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },
+          { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },
           { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } },
           { s: { r: 0, c: 12 }, e: { r: 0, c: 15 } },
           { s: { r: 0, c: 17 }, e: { r: 0, c: 22 } },
@@ -2255,14 +2829,32 @@
 
         ws["!cols"] = [
           { wch: 15 },
-          { wch: 20 }, { wch: 10 }, { wch: 8 }, { wch: 25 }, { wch: 12 },
-          { wch: 10 }, { wch: 10 },
-          { wch: 10 }, { wch: 10 },
-          { wch: 10 }, { wch: 10 },
-          { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 15 },
+          { wch: 20 },
+          { wch: 10 },
+          { wch: 8 },
+          { wch: 25 },
+          { wch: 12 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 20 },
           { wch: 15 },
-          { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 25 },
-          { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }
+          { wch: 15 },
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 25 },
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 15 },
         ];
 
         // 🆕 Apply header colors matching the screen
@@ -2297,8 +2889,12 @@
           return;
         }
         navigator.clipboard.writeText(text).then(
-          function () { showToast("Copied successfully!"); },
-          function (err) { fallbackCopyTextToClipboard(text); },
+          function () {
+            showToast("Copied successfully!");
+          },
+          function (err) {
+            fallbackCopyTextToClipboard(text);
+          },
         );
       }
 
@@ -2323,7 +2919,11 @@
         let plates = [];
         rows.forEach((tr) => {
           let plateTd = tr.querySelector(".plate-cell");
-          if (plateTd && tr.style.display !== "none" && plateTd.innerText.trim() !== "") {
+          if (
+            plateTd &&
+            tr.style.display !== "none" &&
+            plateTd.innerText.trim() !== ""
+          ) {
             plates.push(plateTd.innerText.trim());
           }
         });
@@ -2337,25 +2937,28 @@
       }
 
       // Individual cell right-click copy (plate-cell has its own handler above)
-      document.getElementById("reportTable").addEventListener("contextmenu", function (e) {
-        let td = e.target.closest("td");
+      document
+        .getElementById("reportTable")
+        .addEventListener("contextmenu", function (e) {
+          let td = e.target.closest("td");
 
-        // Only tbody cells, not thead
-        if (!td || e.target.closest("thead")) return;
+          // Only tbody cells, not thead
+          if (!td || e.target.closest("thead")) return;
 
-        // Allow native right-click inside textarea/input
-        if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+          // Allow native right-click inside textarea/input
+          if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")
+            return;
 
-        // Plate cells have their own handler
-        if (td.classList.contains("plate-cell")) return;
+          // Plate cells have their own handler
+          if (td.classList.contains("plate-cell")) return;
 
-        e.preventDefault();
+          e.preventDefault();
 
-        let textToCopy = td.innerText.trim();
-        if (textToCopy && textToCopy !== "-" && textToCopy !== "") {
-          copyText(textToCopy);
-        }
-      });
+          let textToCopy = td.innerText.trim();
+          if (textToCopy && textToCopy !== "-" && textToCopy !== "") {
+            copyText(textToCopy);
+          }
+        });
     </script>
   </body>
 </html>
