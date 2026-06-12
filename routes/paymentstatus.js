@@ -122,7 +122,7 @@ router.post("/save-inline-edits", async (req, res) => {
           [inv_no, bill_no, inv_nr, inv_ot, inv_amount, plate, month, site],
         );
       } else {
-        if (inv_no || inv_nr > 0 || bill_no || inv_amount > 0) {
+        if (inv_no !== "" || bill_no !== "" || inv_nr !== null || inv_ot !== null || inv_amount !== null) {
           await client.query(
             "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_no, bill_nr, bill_ot, invoice_amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
             [plate, month, site, inv_no, bill_no, inv_nr, inv_ot, inv_amount],

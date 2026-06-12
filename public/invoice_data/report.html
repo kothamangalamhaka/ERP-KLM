@@ -311,12 +311,12 @@
       .th-extra:hover {
         background-color: #475569;
       }
-      .th-status {
-        background-color: #0f172a;
+      .th-diff {
+        background-color: #be123c;
         color: white;
       }
-      .th-status:hover {
-        background-color: #1e293b;
+      .th-diff:hover {
+        background-color: #9f1239;
       }
 
       .col-ts {
@@ -334,6 +334,11 @@
       .col-amt {
         background-color: rgba(5, 150, 105, 0.03);
         font-weight: 600;
+      }
+      .col-diff {
+        background-color: rgba(190, 18, 60, 0.03);
+        font-weight: 700;
+        color: #be123c;
       }
 
       .col-owner {
@@ -619,6 +624,14 @@
         text-decoration: underline;
       }
 
+      /* Screenshot മോഡിൽ കോളങ്ങൾ ഹൈഡ് ചെയ്യാൻ */
+      .hide-for-screenshot .th-bill,
+      .hide-for-screenshot .col-bill,
+      .hide-for-screenshot .th-amt,
+      .hide-for-screenshot .col-amt {
+        display: none !important;
+      }
+
       /* 🆕 TH right-click hint tooltip */
       thead th {
         position: relative;
@@ -733,6 +746,14 @@
               Haka ERP System
             </div>
           </a>
+          <button 
+            id="btnToggleScreenshot" 
+            style="background-color: transparent; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; display: flex; align-items: center;" 
+            onclick="toggleScreenshotMode()" 
+            title="Hide Supplier & Amount Data"
+          >
+            <span style="font-size: 14px; margin-right: 4px;">👁️</span>
+          </button>
           <button class="btn-logout" onclick="executeLogout()">Logout</button>
         </div>
       </div>
@@ -843,9 +864,12 @@
               <col style="width: 70px" />
               <col style="width: 70px" />
               <col style="width: 70px" />
+              <col style="width: 60px" />
+              <col style="width: 60px" />
+              <col style="width: 80px" />
+              <col style="width: 70px" />
               <col style="width: 70px" />
               <col style="width: 90px" />
-              <col style="width: 100px" />
               <col style="width: 100px" />
               <col style="width: 120px" />
               <col style="width: 120px" />
@@ -865,8 +889,9 @@
                 <th colspan="2" class="th-ts">Logsheet Collected</th>
                 <th colspan="2" class="th-inv">Bill Summary</th>
                 <th colspan="2" class="th-bill">Supplier</th>
+                <th colspan="3" class="th-diff">DIFFERENCE</th>
                 <th colspan="4" class="th-amt">AMOUNT</th>
-                <th colspan="7" class="th-extra">EXTRA DETAILS</th>
+                <th colspan="6" class="th-extra">EXTRA DETAILS</th>
                 <th colspan="4" class="th-vehicle">GENERAL VEHICLE INFO</th>
               </tr>
               <tr>
@@ -968,6 +993,31 @@
                 </th>
 
                 <th
+                  class="th-diff"
+                  style="width: 60px"
+                  data-col-key="diff_nr"
+                  onclick="openExcelFilterMenu(event, 'diff_nr')"
+                >
+                  Diff N.Hr <span class="filter-icon" data-key="diff_nr">▼</span>
+                </th>
+                <th
+                  class="th-diff"
+                  style="width: 60px"
+                  data-col-key="diff_ot"
+                  onclick="openExcelFilterMenu(event, 'diff_ot')"
+                >
+                  Diff OT <span class="filter-icon" data-key="diff_ot">▼</span>
+                </th>
+                <th
+                  class="th-diff"
+                  style="width: 80px"
+                  data-col-key="diff_st"
+                  onclick="openExcelFilterMenu(event, 'diff_st')"
+                >
+                  Diff ST <span class="filter-icon" data-key="diff_st">▼</span>
+                </th>
+
+                <th
                   class="th-amt"
                   style="width: 50px"
                   data-col-key="bill_nrate"
@@ -1001,19 +1051,6 @@
                 >
                   Inv Amount
                   <span class="filter-icon" data-key="inv_amount">▼</span>
-                </th>
-
-                <th
-                  class="th-status"
-                  style="width: 100px"
-                  data-col-key="statusPlain"
-                  onclick="openExcelFilterMenu(event, 'statusPlain')"
-                >
-                  <a
-                    style="font-size: 10px; color: white; text-decoration: none"
-                    >TS - INV</a
-                  ><br />Status
-                  <span class="filter-icon" data-key="statusPlain">▼</span>
                 </th>
                 <th
                   class="th-extra"
@@ -1387,6 +1424,24 @@
         window.location.reload();
       }
 
+      let isScreenshotMode = false;
+      function toggleScreenshotMode() {
+        isScreenshotMode = !isScreenshotMode;
+        const table = document.getElementById("reportTable");
+        const btn = document.getElementById("btnToggleScreenshot");
+        
+        if (isScreenshotMode) {
+          table.classList.add("hide-for-screenshot");
+          btn.style.backgroundColor = "#ef4444"; // Red കളർ
+          // Slashed Eye SVG
+          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+        } else {
+          table.classList.remove("hide-for-screenshot");
+          btn.style.backgroundColor = "transparent"; // തിരികെ പഴയ കളർ 
+          btn.innerHTML = `<span style="font-size: 14px; margin-right: 4px;">👁️</span>`;
+        }
+      }
+
       function loadApp() {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("mainAppContainer").style.display = "block";
@@ -1686,8 +1741,16 @@
               );
             }
 
-            let inv_nr = invData ? parseFloat(invData.bill_nr) || 0 : 0;
-            let inv_ot = invData ? parseFloat(invData.bill_ot) || 0 : 0;
+            let inv_nr_raw = invData ? invData.bill_nr : null;
+            let inv_nr =
+              inv_nr_raw !== null && inv_nr_raw !== ""
+                ? parseFloat(inv_nr_raw)
+                : "";
+            let inv_ot_raw = invData ? invData.bill_ot : null;
+            let inv_ot =
+              inv_ot_raw !== null && inv_ot_raw !== ""
+                ? parseFloat(inv_ot_raw)
+                : "";
             let inv_no = invData ? invData.invoice_no || "" : "";
             let bill_no = invData ? invData.bill_no || "" : "";
             let accounts_note = invData ? invData.accounts_note || "" : "";
@@ -1698,28 +1761,28 @@
               ? parseFloat(invData.invoice_amount) || 0
               : 0;
 
-            let ts_tot = ts_nr + ts_ot;
-            let inv_tot = inv_nr + inv_ot;
+            let diff_nr = "";
+            let diff_ot = "";
 
-            let statusClass = "";
-            let statusPlain = "";
+            // Invoice N.Hr ൽ ഡാറ്റ ഉണ്ടെങ്കിൽ മാത്രം Difference കാൽക്കുലേറ്റ് ചെയ്യുക
+            if (inv_nr !== "") {
+              let diff_nr_val = ts_nr - parseFloat(inv_nr);
+              if (diff_nr_val > 0) diff_nr = diff_nr_val.toString();
+            }
 
-            if (inv_no === "") {
-              statusClass = "bg-warning";
-              statusPlain = "No Invoice";
-            } else if (ts_nr === inv_nr && ts_tot === inv_tot) {
-              statusClass = "bg-matched";
-              statusPlain = "Matched";
-            } else if (ts_nr <= inv_nr && ts_tot <= inv_tot) {
-              statusClass = "bg-gain";
-              statusPlain = "Gain";
-            } else {
-              let parts = [];
-              if (ts_nr > inv_nr) parts.push(`NR: ${ts_nr - inv_nr}`);
-              if (ts_ot > inv_ot) parts.push(`OT: ${ts_ot - inv_ot}`);
-              statusClass = "bg-loss";
-              statusPlain =
-                parts.length > 0 ? `Loss (${parts.join(", ")})` : `Loss`;
+            // Invoice OT ൽ ഡാറ്റ ഉണ്ടെങ്കിൽ മാത്രം Difference കാൽക്കുലേറ്റ് ചെയ്യുക
+            if (inv_ot !== "") {
+              let diff_ot_val = ts_ot - parseFloat(inv_ot);
+              if (diff_ot_val > 0) diff_ot = diff_ot_val.toString();
+            }
+
+            let diff_st = "";
+            if (diff_nr !== "" && diff_ot !== "") {
+              diff_st = "NR & OT";
+            } else if (diff_nr !== "") {
+              diff_st = "NR";
+            } else if (diff_ot !== "") {
+              diff_st = "OT";
             }
 
             processedArray.push({
@@ -1730,8 +1793,8 @@
               rate: siteDataMap[sName].rate,
               ts_nr: ts_nr.toString(),
               ts_ot: ts_ot.toString(),
-              inv_nr: inv_nr > 0 ? inv_nr.toString() : "",
-              inv_ot: inv_ot > 0 ? inv_ot.toString() : "",
+              inv_nr: inv_nr !== "" ? inv_nr.toString() : "",
+              inv_ot: inv_ot !== "" ? inv_ot.toString() : "",
               bill_db_nr:
                 index === 0 && bill_db_nr > 0 ? bill_db_nr.toString() : "",
               bill_db_ot:
@@ -1747,8 +1810,9 @@
               bill_rent:
                 index === 0 && bill_rent > 0 ? bill_rent.toFixed(2) : "",
               inv_amount: inv_amount > 0 ? inv_amount.toFixed(2) : "",
-              statusClass,
-              statusPlain,
+              diff_nr,
+              diff_ot,
+              diff_st,
               inv_no,
               bill_no,
               pwas: pwas || "-",
@@ -1898,12 +1962,14 @@
             <td class="col-bill">${row.bill_db_nr}</td>
             <td class="col-bill">${row.bill_db_ot}</td>
             
+            <td class="col-diff">${row.diff_nr}</td>
+            <td class="col-diff">${row.diff_ot}</td>
+            <td class="col-diff" style="font-weight: bold;">${row.diff_st}</td>
+            
             <td class="col-amt">${row.bill_nrate}</td>
             <td class="col-amt">${row.bill_otrate}</td>
             <td class="col-amt" style="font-weight: 700;">${row.bill_rent}</td>
             <td class="col-amt editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_amount}</td>
-            
-            <td class="status-cell ${row.statusClass}">${row.statusPlain}</td>
             <td class="editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
             <td class="editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
             <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
@@ -2027,16 +2093,35 @@
           let site = tr.dataset.site;
           let plate = tr.dataset.plate;
 
+          let inv_nr_text = tr
+            .querySelector('[data-field="inv_nr"]')
+            .innerText.trim();
           let inv_nr =
-            parseFloat(tr.querySelector('[data-field="inv_nr"]').innerText) ||
-            0;
+            inv_nr_text === ""
+              ? null
+              : isNaN(parseFloat(inv_nr_text))
+                ? 0
+                : parseFloat(inv_nr_text);
+
+          let inv_ot_text = tr
+            .querySelector('[data-field="inv_ot"]')
+            .innerText.trim();
           let inv_ot =
-            parseFloat(tr.querySelector('[data-field="inv_ot"]').innerText) ||
-            0;
+            inv_ot_text === ""
+              ? null
+              : isNaN(parseFloat(inv_ot_text))
+                ? 0
+                : parseFloat(inv_ot_text);
+
+          let inv_amt_text = tr
+            .querySelector('[data-field="inv_amount"]')
+            .innerText.trim();
           let inv_amount =
-            parseFloat(
-              tr.querySelector('[data-field="inv_amount"]').innerText,
-            ) || 0;
+            inv_amt_text === ""
+              ? null
+              : isNaN(parseFloat(inv_amt_text))
+                ? 0
+                : parseFloat(inv_amt_text);
           let inv_no = tr
             .querySelector('[data-field="inv_no"]')
             .innerText.trim();
@@ -2543,33 +2628,31 @@
       }
 
       // Color definitions matching the screen UI exactly
-      // vehicle=1E293B, ts=166534, inv=1E40AF, bill=6B21A8, amt=059669, extra=334155, status=0F172A
       const COL_COLORS = {
         vehicle: "1E293B",
         ts: "166534",
         inv: "1E40AF",
         bill: "6B21A8",
         amt: "059669",
+        diff: "BE123C",
         extra: "334155",
-        status: "0F172A",
       };
 
-      // Column index → color for standard sheet (26 columns, 0-indexed)
-      // 0-4: vehicle, 5-6: ts, 7-8: inv, 9-10: bill, 11-14: amt, 15: status, 16-21: extra, 22-25: vehicle
+      // Column index → color for standard sheet (28 columns, 0-indexed)
       function getStdColorMap() {
         let m = {};
         for (let i = 0; i <= 4; i++) m[i] = COL_COLORS.vehicle;
         for (let i = 5; i <= 6; i++) m[i] = COL_COLORS.ts;
         for (let i = 7; i <= 8; i++) m[i] = COL_COLORS.inv;
         for (let i = 9; i <= 10; i++) m[i] = COL_COLORS.bill;
-        for (let i = 11; i <= 14; i++) m[i] = COL_COLORS.amt;
-        m[15] = COL_COLORS.status;
-        for (let i = 16; i <= 21; i++) m[i] = COL_COLORS.extra;
-        for (let i = 22; i <= 25; i++) m[i] = COL_COLORS.vehicle;
+        for (let i = 11; i <= 13; i++) m[i] = COL_COLORS.diff;
+        for (let i = 14; i <= 17; i++) m[i] = COL_COLORS.amt;
+        for (let i = 18; i <= 23; i++) m[i] = COL_COLORS.extra;
+        for (let i = 24; i <= 27; i++) m[i] = COL_COLORS.vehicle;
         return m;
       }
 
-      // Column index → color for single/analysis sheet (27 columns, col 0 = Month extra)
+      // Column index → color for single/analysis sheet (29 columns, col 0 = Month extra)
       function getSingleColorMap() {
         let m = {};
         m[0] = COL_COLORS.vehicle; // Month col
@@ -2577,10 +2660,10 @@
         for (let i = 6; i <= 7; i++) m[i] = COL_COLORS.ts;
         for (let i = 8; i <= 9; i++) m[i] = COL_COLORS.inv;
         for (let i = 10; i <= 11; i++) m[i] = COL_COLORS.bill;
-        for (let i = 12; i <= 15; i++) m[i] = COL_COLORS.amt;
-        m[16] = COL_COLORS.status;
-        for (let i = 17; i <= 22; i++) m[i] = COL_COLORS.extra;
-        for (let i = 23; i <= 26; i++) m[i] = COL_COLORS.vehicle;
+        for (let i = 12; i <= 14; i++) m[i] = COL_COLORS.diff;
+        for (let i = 15; i <= 18; i++) m[i] = COL_COLORS.amt;
+        for (let i = 19; i <= 24; i++) m[i] = COL_COLORS.extra;
+        for (let i = 25; i <= 28; i++) m[i] = COL_COLORS.vehicle;
         return m;
       }
 
@@ -2592,17 +2675,19 @@
             "",
             "",
             "",
-            "TIMESHEET",
+            "Logsheet Collected",
             "",
-            "INVOICE HR",
+            "Bill Summary",
             "",
-            "BILLING DB",
+            "To Supplier",
+            "",
+            "DIFFERENCE",
+            "",
             "",
             "AMOUNT",
             "",
             "",
             "",
-            "STATUS",
             "EXTRA DETAILS",
             "",
             "",
@@ -2626,11 +2711,13 @@
             "Inv OT",
             "Bill N.Hr",
             "Bill OT",
+            "Diff N.Hr",
+            "Diff OT",
+            "Diff ST",
             "NR Rate",
             "OT Rate",
             "Rent",
             "Inv Amount",
-            "STATUS",
             "Invoice No",
             "Bill No",
             "PWAS",
@@ -2656,11 +2743,13 @@
             r.inv_ot || "",
             r.bill_db_nr || "",
             r.bill_db_ot || "",
+            r.diff_nr,
+            r.diff_ot,
+            r.diff_st,
             r.bill_nrate || "",
             r.bill_otrate || "",
             r.bill_rent || "",
             r.inv_amount || "",
-            r.statusPlain,
             r.inv_no,
             r.bill_no,
             r.pwas || "-",
@@ -2681,9 +2770,10 @@
           { s: { r: 0, c: 5 }, e: { r: 0, c: 6 } },
           { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },
           { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } },
-          { s: { r: 0, c: 11 }, e: { r: 0, c: 14 } },
-          { s: { r: 0, c: 16 }, e: { r: 0, c: 21 } },
-          { s: { r: 0, c: 22 }, e: { r: 0, c: 25 } },
+          { s: { r: 0, c: 11 }, e: { r: 0, c: 13 } },
+          { s: { r: 0, c: 14 }, e: { r: 0, c: 17 } },
+          { s: { r: 0, c: 18 }, e: { r: 0, c: 23 } },
+          { s: { r: 0, c: 24 }, e: { r: 0, c: 27 } },
         ];
 
         ws["!cols"] = [
@@ -2700,8 +2790,10 @@
           { wch: 10 },
           { wch: 12 },
           { wch: 12 },
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 12 },
           { wch: 20 },
-          { wch: 15 },
           { wch: 15 },
           { wch: 20 },
           { wch: 15 },
@@ -2717,7 +2809,7 @@
 
         // 🆕 Apply header colors matching the screen
         let colorMap = getStdColorMap();
-        applyExcelHeaderStyles(ws, aoa.length, 26, colorMap, colorMap);
+        applyExcelHeaderStyles(ws, aoa.length, 28, colorMap, colorMap);
 
         return ws;
       }
@@ -2731,17 +2823,18 @@
             "",
             "",
             "",
-            "TIMESHEET",
+            "Logsheet Collected",
             "",
-            "INVOICE HR",
+            "Bill Summary",
             "",
-            "BILLING DB",
+            "To Supplier",
             "",
             "AMOUNT",
             "",
             "",
             "",
-            "STATUS",
+            "DIFFERENCE",
+            "",
             "EXTRA DETAILS",
             "",
             "",
@@ -2770,7 +2863,9 @@
             "OT Rate",
             "Rent",
             "Inv Amount",
-            "STATUS",
+            "Diff N.Hr",
+            "Diff OT",
+            "Diff ST",
             "Invoice No",
             "Bill No",
             "PWAS",
@@ -2801,7 +2896,9 @@
             r.bill_otrate || "",
             r.bill_rent || "",
             r.inv_amount || "",
-            r.statusPlain,
+            r.diff_nr,
+            r.diff_ot,
+            r.diff_st,
             r.inv_no,
             r.bill_no,
             r.pwas || "-",
@@ -2822,9 +2919,10 @@
           { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },
           { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },
           { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } },
-          { s: { r: 0, c: 12 }, e: { r: 0, c: 15 } },
-          { s: { r: 0, c: 17 }, e: { r: 0, c: 22 } },
-          { s: { r: 0, c: 23 }, e: { r: 0, c: 26 } },
+          { s: { r: 0, c: 12 }, e: { r: 0, c: 14 } },
+          { s: { r: 0, c: 15 }, e: { r: 0, c: 18 } },
+          { s: { r: 0, c: 19 }, e: { r: 0, c: 24 } },
+          { s: { r: 0, c: 25 }, e: { r: 0, c: 28 } },
         ];
 
         ws["!cols"] = [
@@ -2842,8 +2940,10 @@
           { wch: 10 },
           { wch: 12 },
           { wch: 12 },
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 12 },
           { wch: 20 },
-          { wch: 15 },
           { wch: 15 },
           { wch: 20 },
           { wch: 15 },
@@ -2859,7 +2959,7 @@
 
         // 🆕 Apply header colors matching the screen
         let colorMap = getSingleColorMap();
-        applyExcelHeaderStyles(ws, aoa.length, 27, colorMap, colorMap);
+        applyExcelHeaderStyles(ws, aoa.length, 29, colorMap, colorMap);
 
         return ws;
       }
