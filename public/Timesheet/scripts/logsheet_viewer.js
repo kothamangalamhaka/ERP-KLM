@@ -476,7 +476,7 @@ async function downloadAllAsPdf() {
     .trim();
   await generatePdfFromFiles(
     imageFiles,
-    `${plate}_All_Logsheets.pdf`,
+    `${plate}.pdf`,
     btn,
     "PDF",
   );

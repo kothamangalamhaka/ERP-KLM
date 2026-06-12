@@ -868,9 +868,10 @@
               <col style="width: 60px" />
               <col style="width: 80px" />
               <col style="width: 70px" />
-              <col style="width: 70px" />
+              <col style="width: 80px" />
               <col style="width: 90px" />
               <col style="width: 100px" />
+              <col style="width: 130px" />
               <col style="width: 120px" />
               <col style="width: 120px" />
               <col style="width: 120px" />
@@ -890,7 +891,7 @@
                 <th colspan="2" class="th-inv">Bill Summary</th>
                 <th colspan="2" class="th-bill">Supplier</th>
                 <th colspan="3" class="th-diff">DIFFERENCE</th>
-                <th colspan="4" class="th-amt">AMOUNT</th>
+                <th colspan="5" class="th-amt">AMOUNT</th>
                 <th colspan="6" class="th-extra">EXTRA DETAILS</th>
                 <th colspan="4" class="th-vehicle">GENERAL VEHICLE INFO</th>
               </tr>
@@ -1049,8 +1050,17 @@
                   data-col-key="inv_amount"
                   onclick="openExcelFilterMenu(event, 'inv_amount')"
                 >
-                  Inv Amount
+                  Inv Subtotal
                   <span class="filter-icon" data-key="inv_amount">▼</span>
+                </th>
+                <th
+                  class="th-amt"
+                  style="width: 100px"
+                  data-col-key="inv_total"
+                  onclick="openExcelFilterMenu(event, 'inv_total')"
+                >
+                  Inv Total
+                  <span class="filter-icon" data-key="inv_total">▼</span>
                 </th>
                 <th
                   class="th-extra"
@@ -1810,6 +1820,7 @@
               bill_rent:
                 index === 0 && bill_rent > 0 ? bill_rent.toFixed(2) : "",
               inv_amount: inv_amount > 0 ? inv_amount.toFixed(2) : "",
+              inv_total: inv_amount > 0 ? (inv_amount * 1.15).toFixed(2) : "",
               diff_nr,
               diff_ot,
               diff_st,
@@ -1970,6 +1981,7 @@
             <td class="col-amt">${row.bill_otrate}</td>
             <td class="col-amt" style="font-weight: 700;">${row.bill_rent}</td>
             <td class="col-amt editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_amount}</td>
+            <td class="col-amt" style="font-weight: 700; color: #b91c1c;">${row.inv_total}</td>
             <td class="editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
             <td class="editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
             <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
@@ -2638,7 +2650,7 @@
         extra: "334155",
       };
 
-      // Column index → color for standard sheet (28 columns, 0-indexed)
+      // Column index → color for standard sheet (29 columns, 0-indexed)
       function getStdColorMap() {
         let m = {};
         for (let i = 0; i <= 4; i++) m[i] = COL_COLORS.vehicle;
@@ -2646,13 +2658,13 @@
         for (let i = 7; i <= 8; i++) m[i] = COL_COLORS.inv;
         for (let i = 9; i <= 10; i++) m[i] = COL_COLORS.bill;
         for (let i = 11; i <= 13; i++) m[i] = COL_COLORS.diff;
-        for (let i = 14; i <= 17; i++) m[i] = COL_COLORS.amt;
-        for (let i = 18; i <= 23; i++) m[i] = COL_COLORS.extra;
-        for (let i = 24; i <= 27; i++) m[i] = COL_COLORS.vehicle;
+        for (let i = 14; i <= 18; i++) m[i] = COL_COLORS.amt;
+        for (let i = 19; i <= 24; i++) m[i] = COL_COLORS.extra;
+        for (let i = 25; i <= 28; i++) m[i] = COL_COLORS.vehicle;
         return m;
       }
 
-      // Column index → color for single/analysis sheet (29 columns, col 0 = Month extra)
+      // Column index → color for single/analysis sheet (30 columns, col 0 = Month extra)
       function getSingleColorMap() {
         let m = {};
         m[0] = COL_COLORS.vehicle; // Month col
@@ -2661,9 +2673,9 @@
         for (let i = 8; i <= 9; i++) m[i] = COL_COLORS.inv;
         for (let i = 10; i <= 11; i++) m[i] = COL_COLORS.bill;
         for (let i = 12; i <= 14; i++) m[i] = COL_COLORS.diff;
-        for (let i = 15; i <= 18; i++) m[i] = COL_COLORS.amt;
-        for (let i = 19; i <= 24; i++) m[i] = COL_COLORS.extra;
-        for (let i = 25; i <= 28; i++) m[i] = COL_COLORS.vehicle;
+        for (let i = 15; i <= 19; i++) m[i] = COL_COLORS.amt;
+        for (let i = 20; i <= 25; i++) m[i] = COL_COLORS.extra;
+        for (let i = 26; i <= 29; i++) m[i] = COL_COLORS.vehicle;
         return m;
       }
 
@@ -2717,7 +2729,8 @@
             "NR Rate",
             "OT Rate",
             "Rent",
-            "Inv Amount",
+            "Inv Subtotal",
+            "Inv Total",
             "Invoice No",
             "Bill No",
             "PWAS",
@@ -2750,6 +2763,7 @@
             r.bill_otrate || "",
             r.bill_rent || "",
             r.inv_amount || "",
+            r.inv_total || "",
             r.inv_no,
             r.bill_no,
             r.pwas || "-",
@@ -2771,9 +2785,9 @@
           { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },
           { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } },
           { s: { r: 0, c: 11 }, e: { r: 0, c: 13 } },
-          { s: { r: 0, c: 14 }, e: { r: 0, c: 17 } },
-          { s: { r: 0, c: 18 }, e: { r: 0, c: 23 } },
-          { s: { r: 0, c: 24 }, e: { r: 0, c: 27 } },
+          { s: { r: 0, c: 14 }, e: { r: 0, c: 18 } },
+          { s: { r: 0, c: 19 }, e: { r: 0, c: 24 } },
+          { s: { r: 0, c: 25 }, e: { r: 0, c: 28 } },
         ];
 
         ws["!cols"] = [
@@ -2795,6 +2809,7 @@
           { wch: 12 },
           { wch: 20 },
           { wch: 15 },
+          { wch: 15 },
           { wch: 20 },
           { wch: 15 },
           { wch: 20 },
@@ -2809,7 +2824,7 @@
 
         // 🆕 Apply header colors matching the screen
         let colorMap = getStdColorMap();
-        applyExcelHeaderStyles(ws, aoa.length, 28, colorMap, colorMap);
+        applyExcelHeaderStyles(ws, aoa.length, 29, colorMap, colorMap);
 
         return ws;
       }
@@ -2920,9 +2935,9 @@
           { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },
           { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } },
           { s: { r: 0, c: 12 }, e: { r: 0, c: 14 } },
-          { s: { r: 0, c: 15 }, e: { r: 0, c: 18 } },
-          { s: { r: 0, c: 19 }, e: { r: 0, c: 24 } },
-          { s: { r: 0, c: 25 }, e: { r: 0, c: 28 } },
+          { s: { r: 0, c: 15 }, e: { r: 0, c: 19 } },
+          { s: { r: 0, c: 20 }, e: { r: 0, c: 25 } },
+          { s: { r: 0, c: 26 }, e: { r: 0, c: 29 } },
         ];
 
         ws["!cols"] = [
@@ -2945,6 +2960,7 @@
           { wch: 12 },
           { wch: 20 },
           { wch: 15 },
+          { wch: 15 },
           { wch: 20 },
           { wch: 15 },
           { wch: 20 },
@@ -2959,7 +2975,7 @@
 
         // 🆕 Apply header colors matching the screen
         let colorMap = getSingleColorMap();
-        applyExcelHeaderStyles(ws, aoa.length, 29, colorMap, colorMap);
+        applyExcelHeaderStyles(ws, aoa.length, 30, colorMap, colorMap);
 
         return ws;
       }
