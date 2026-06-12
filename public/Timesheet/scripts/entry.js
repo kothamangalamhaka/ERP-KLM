@@ -331,6 +331,12 @@ async function triggerFetch() {
 
   savePlateHistory(p);
 
+  // 🟢 1.1 Refresh Logsheet viewer automatically if it is already open
+  const logsheetModal = document.getElementById("logsheetModal");
+  if (logsheetModal && logsheetModal.style.display === "flex") {
+    openLogsheetViewer(p);
+  }
+
   const m = document.getElementById("selMonth").value;
   const y = document.getElementById("selYear").value;
   const tbody = document.getElementById("gridBody");
