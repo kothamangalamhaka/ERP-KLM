@@ -78,6 +78,15 @@ body {
   max-width: 1500px;
   margin: 0 auto;
   box-sizing: border-box;
+  transition: padding-right 0.3s ease, max-width 0.3s ease;
+}
+
+/* 🟢 3-Column Layout: Activated when Logsheet is open */
+body.logsheet-open .container {
+  max-width: 100%;
+}
+body.logsheet-open .right-sidebar {
+  order: -1; /* Moves sidebar to the left of the table */
 }
 
 .card {
@@ -966,12 +975,79 @@ body.dark-mode .logsheet-btn:hover {
   color: #fff;
 }
 
-/* 🟢 Making Logsheet Non-Blocking & Positioned Right (Blur Removed) */
-#logsheetModal.modal-overlay {
-  background: transparent !important;
-  backdrop-filter: none !important; /* Removes the blur */
-  -webkit-backdrop-filter: none !important;
-  pointer-events: none; /* Allows clicking on the grid behind */
+/* 🟢 Inline Logsheet Container Styles & 3-Column Fit */
+.inline-logsheet-container {
+  flex: 1; /* ബാക്കിയുള്ള സ്ഥലം മുഴുവൻ ലോഗ്ഷീറ്റ് എടുക്കും */
+  min-width: 350px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  height: calc(100vh - 120px);
+  order: 1;
+  margin-top: 0 !important;
+}
+
+body.dark-mode .inline-logsheet-container {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+/* 🟢 Adjust Layout to fit Table Completely */
+body.logsheet-open .main-content {
+  gap: 10px; /* കോളങ്ങൾ തമ്മിലുള്ള അകലം കുറക്കുന്നു */
+}
+
+body.logsheet-open .right-sidebar {
+  order: -1; /* Summary ബോക്സുകളെ ഇടത്തേക്ക് മാറ്റുന്നു */
+  width: 240px; /* Summary യുടെ വീതി പരമാവധി കുറക്കുന്നു */
+}
+
+body.logsheet-open .summary-card {
+  padding: 10px; /* ഉള്ളിലെ ഗ്യാപ്പ് കുറക്കുന്നു */
+}
+
+body.logsheet-open .detail-lbl {
+  width: 75px;
+  font-size: 9px; /* ടെക്സ്റ്റ് സൈസ് ചെറുതാക്കുന്നു */
+}
+
+body.logsheet-open .detail-val,
+body.logsheet-open .summary-item {
+  font-size: 11px;
+}
+
+body.logsheet-open #tableCenterWrapper {
+  flex: 1; /* ലോഗ്ഷീറ്റ് വലുതാകുമ്പോൾ ടേബിൾ ചെറുതാവാൻ ഇത് സഹായിക്കും */
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* 🟢 Shrink Remark Column when Logsheet is open */
+body.logsheet-open #gridTable col:last-child {
+  width: 50px !important;
+}
+body.logsheet-open #gridTable th:last-child {
+  width: 50px !important;
+}
+
+/* 🟢 Style for the new Logsheet width drag handle */
+.logsheet-main-resizer {
+  position: absolute;
+  left: -5px;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: ew-resize;
+  z-index: 10;
+  background: transparent;
+  transition: background 0.2s;
+}
+.logsheet-main-resizer:hover,
+.logsheet-main-resizer.active {
+  background: rgba(139, 92, 246, 0.4); /* Slight purple tint on hover */
 }
 
 .logsheet-modal-content {
@@ -1063,7 +1139,7 @@ body.dark-mode .sidebar-resizer.active {
 /* 🟢 Zoom Controls */
 .zoom-controls {
   position: absolute;
-  bottom: 20px;
+  bottom: 70px; /* 🟢 Moved up by 50px */
   left: 50%;
   transform: translateX(-50%);
   display: flex;

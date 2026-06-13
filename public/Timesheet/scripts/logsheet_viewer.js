@@ -28,7 +28,7 @@ async function openLogsheetViewer(passedPlate = "") {
     return;
   }
 
-  const modal = document.getElementById("logsheetModal");
+  const inlineLogsheet = document.getElementById("inlineLogsheet");
   const title = document.getElementById("logsheetTitle");
   const sidebar = document.getElementById("logsheetFileList");
   const viewer = document.getElementById("logsheetViewerContainer");
@@ -38,9 +38,71 @@ async function openLogsheetViewer(passedPlate = "") {
     '<div style="text-align:center; padding:20px;">Loading...</div>';
   viewer.innerHTML =
     '<div style="text-align:center; padding: 50px; color:#64748b;">Select a file from the list to view</div>';
-  modal.style.display = "flex";
+  inlineLogsheet.style.display = "flex";
 
-  initResizers(); // Initialize resizers once modal opens
+  // 🟢 Enable 3-Column Layout dynamically
+  document.body.classList.add("logsheet-open");
+  
+  // No need for padding hack anymore since it's inline
+  const container = document.querySelector(".container");
+  if (container) container.style.paddingRight = "15px"; 
+  if (container) container.style.maxWidth = "100%";
+
+  // initResizers(); // Removed modal left resizer since it's inline now
+  
+  // 🟢 Initialize Sidebar and Main Logsheet Resizers
+  const sidebarResizer = document.getElementById("sidebarResizer");
+  const mainResizer = document.getElementById("logsheetMainResizer");
+  
+  let isResizingSidebar = false;
+  let isResizingMain = false;
+
+  if (sidebarResizer) {
+    sidebarResizer.onmousedown = () => {
+      isResizingSidebar = true;
+      sidebarResizer.classList.add("active");
+    };
+  }
+
+  if (mainResizer) {
+    mainResizer.onmousedown = (e) => {
+      e.preventDefault();
+      isResizingMain = true;
+      mainResizer.classList.add("active");
+      document.body.style.userSelect = "none"; // Prevent text selection while dragging
+    };
+  }
+
+  document.onmousemove = (e) => {
+    if (isResizingSidebar) {
+      let inlineRect = inlineLogsheet.getBoundingClientRect();
+      let newWidth = e.clientX - inlineRect.left;
+      if (newWidth > 150 && newWidth < 400) {
+        sidebar.style.width = newWidth + "px";
+        sidebar.style.flex = "none";
+      }
+    }
+    if (isResizingMain) {
+      // Calculate new width from the right side of the screen
+      let newWidth = window.innerWidth - e.clientX - 15; // 15px is the container right padding
+      if (newWidth > 350 && newWidth < window.innerWidth - 300) {
+        inlineLogsheet.style.width = newWidth + "px";
+        inlineLogsheet.style.flex = "none"; // Disable flex-grow so fixed width works
+      }
+    }
+  };
+
+  document.onmouseup = () => {
+    if (isResizingSidebar) {
+      isResizingSidebar = false;
+      if(sidebarResizer) sidebarResizer.classList.remove("active");
+    }
+    if (isResizingMain) {
+      isResizingMain = false;
+      if(mainResizer) mainResizer.classList.remove("active");
+      document.body.style.userSelect = "auto";
+    }
+  };
 
   try {
     currentToken = localStorage.getItem("timesheetToken");
@@ -143,10 +205,18 @@ function selectFileIndex(index) {
 }
 
 function closeLogsheetViewer() {
-  document.getElementById("logsheetModal").style.display = "none";
+  const inlineLogsheet = document.getElementById("inlineLogsheet");
+  inlineLogsheet.style.display = "none";
+  inlineLogsheet.style.width = ""; // 🟢 Reset width
+  inlineLogsheet.style.flex = "1"; // 🟢 Reset flex
   document.getElementById("logsheetViewerContainer").innerHTML = "";
   logsheetFiles = [];
   currentFileIndex = -1;
+
+  // 🟢 Revert to Default 2-Column Layout
+  document.body.classList.remove("logsheet-open");
+  const container = document.querySelector(".container");
+  if (container) container.style.maxWidth = "1500px";
 }
 
 // 🟢 3. Load Viewer Content (With rotation support)
@@ -324,8 +394,8 @@ function attachMouseEvents() {
 
 // 🟢 6. Keyboard Navigation (Left/Right Arrows)
 document.addEventListener("keydown", (e) => {
-  const modal = document.getElementById("logsheetModal");
-  if (!modal || modal.style.display === "none") return;
+  const inlineLogsheet = document.getElementById("inlineLogsheet");
+  if (!inlineLogsheet || inlineLogsheet.style.display === "none") return;
 
   // Ignore if typing in input/textarea on the grid
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
@@ -338,53 +408,6 @@ document.addEventListener("keydown", (e) => {
     selectFileIndex(currentFileIndex - 1);
   }
 });
-
-// 🟢 7. Resizer Logic (Modal Width & Sidebar Width)
-function initResizers() {
-  const modalContent = document.getElementById("logsheetModalContent");
-  const modalResizer = document.getElementById("modalResizer");
-  const sidebar = document.getElementById("logsheetFileList");
-  const sidebarResizer = document.getElementById("sidebarResizer");
-
-  // Modal Left Edge Resize
-  let isResizingModal = false;
-  modalResizer.addEventListener("mousedown", () => {
-    isResizingModal = true;
-  });
-
-  // Sidebar Right Edge Resize
-  let isResizingSidebar = false;
-  sidebarResizer.addEventListener("mousedown", () => {
-    isResizingSidebar = true;
-    sidebarResizer.classList.add("active");
-  });
-
-  document.addEventListener("mousemove", (e) => {
-    if (isResizingModal) {
-      // Calculate width from right edge of screen to mouse pointer
-      let newWidth = window.innerWidth - e.clientX - 15; // 15px is the right margin
-      if (newWidth > 300 && newWidth < window.innerWidth - 100) {
-        modalContent.style.width = newWidth + "px";
-      }
-    }
-    if (isResizingSidebar) {
-      let modalRect = modalContent.getBoundingClientRect();
-      let newWidth = e.clientX - modalRect.left;
-      if (newWidth > 150 && newWidth < 500) {
-        sidebar.style.width = newWidth + "px";
-        sidebar.style.flex = "none"; // Override flex layout if any
-      }
-    }
-  });
-
-  document.addEventListener("mouseup", () => {
-    isResizingModal = false;
-    if (isResizingSidebar) {
-      isResizingSidebar = false;
-      sidebarResizer.classList.remove("active");
-    }
-  });
-}
 
 async function generatePdfFromFiles(
   filesArray,
