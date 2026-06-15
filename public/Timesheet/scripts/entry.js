@@ -332,8 +332,8 @@ async function triggerFetch() {
   savePlateHistory(p);
 
   // 🟢 1.1 Refresh Logsheet viewer automatically if it is already open
-  const logsheetModal = document.getElementById("logsheetModal");
-  if (logsheetModal && logsheetModal.style.display === "flex") {
+  const inlineLogsheet = document.getElementById("inlineLogsheet");
+  if (inlineLogsheet && inlineLogsheet.style.display !== "none") {
     openLogsheetViewer(p);
   }
 
