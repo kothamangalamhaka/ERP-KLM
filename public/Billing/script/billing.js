@@ -269,7 +269,7 @@ let currentArrangeMode = "split";
 window.setArrangeMode = function (mode) {
   currentArrangeMode = mode;
   const cards = document.querySelectorAll(".bill-card");
-  
+
   // സ്ക്രീനിൽ ഇതിനകം ടേബിളുകൾ ഉണ്ടെങ്കിൽ അവയെ മാത്രം അറേഞ്ച് ചെയ്യുക
   if (cards.length > 0) {
     rearrangeScreenData();
@@ -279,17 +279,19 @@ window.setArrangeMode = function (mode) {
   }
 };
 
-// 🟢 NEW FUNCTION: സ്ക്രീനിലുള്ള ഡാറ്റ മാത്രം വെച്ച് റീ-അറേഞ്ച് ചെയ്യാൻ 
+// 🟢 NEW FUNCTION: സ്ക്രീനിലുള്ള ഡാറ്റ മാത്രം വെച്ച് റീ-അറേഞ്ച് ചെയ്യാൻ
 function rearrangeScreenData() {
   const cards = document.querySelectorAll(".bill-card");
   let itemsToGroup = [];
   let manualAdjs = [];
 
-  cards.forEach(card => {
-    let fallbackOwner = card.querySelector(".owner-input") ? card.querySelector(".owner-input").value.trim() : card.dataset.owner;
+  cards.forEach((card) => {
+    let fallbackOwner = card.querySelector(".owner-input")
+      ? card.querySelector(".owner-input").value.trim()
+      : card.dataset.owner;
 
     // സ്ക്രീനിലെ അഡ്ജസ്റ്റ്മെന്റ് ഡാറ്റകൾ ശേഖരിക്കുക
-    card.querySelectorAll(".adjBody tr").forEach(adjRow => {
+    card.querySelectorAll(".adjBody tr").forEach((adjRow) => {
       let date = adjRow.querySelector(".adj-date").value.trim();
       let plate = adjRow.querySelector(".adj-plate").value.trim().toUpperCase();
       let desc = adjRow.querySelector(".adj-desc").value.trim();
@@ -302,7 +304,7 @@ function rearrangeScreenData() {
     });
 
     // സ്ക്രീനിലെ വണ്ടികളുടെ ഡാറ്റകൾ ശേഖരിക്കുക
-    card.querySelectorAll(".tableBody tr").forEach(row => {
+    card.querySelectorAll(".tableBody tr").forEach((row) => {
       let plate = row.querySelector(".plate").value.trim().toUpperCase();
       let site = row.querySelector(".site").value.trim();
       let vtype = row.querySelector(".vtype").value.trim();
@@ -312,19 +314,26 @@ function rearrangeScreenData() {
       let othr = parseFloat(row.querySelector(".othr").value) || 0;
       let otrate = parseFloat(row.querySelector(".otrate").value) || 0;
       let vatSelect = row.querySelector(".vat-rate");
-      let vatPerc = vatSelect ? (parseFloat(vatSelect.value) || 0) : 0;
+      let vatPerc = vatSelect ? parseFloat(vatSelect.value) || 0 : 0;
       let isVat = vatPerc > 0 ? "Yes" : "No";
 
       if (!plate && !site && nhr === 0 && othr === 0) return;
 
       let itemOwner = fallbackOwner;
       if (plate) {
-        let masterMatch = masterData.find(m => (m.plate_number || m.plate || "").toUpperCase() === plate);
-        if (masterMatch && masterMatch.owner && masterMatch.owner.trim() !== "") {
+        let masterMatch = masterData.find(
+          (m) => (m.plate_number || m.plate || "").toUpperCase() === plate,
+        );
+        if (
+          masterMatch &&
+          masterMatch.owner &&
+          masterMatch.owner.trim() !== ""
+        ) {
           itemOwner = masterMatch.owner.trim();
         }
       }
-      if (!itemOwner || itemOwner === "VARIOUS OWNERS") itemOwner = "COMPANY VEHICLE";
+      if (!itemOwner || itemOwner === "VARIOUS OWNERS")
+        itemOwner = "COMPANY VEHICLE";
 
       itemsToGroup.push({
         plate_number: plate,
@@ -336,20 +345,22 @@ function rearrangeScreenData() {
         vat_bill: isVat,
         owner: itemOwner,
         temp_nhr: nhr,
-        temp_othr: othr
+        temp_othr: othr,
       });
     });
   });
 
-  if (itemsToGroup.length === 0) return showToast("No data on screen to arrange!");
+  if (itemsToGroup.length === 0)
+    return showToast("No data on screen to arrange!");
 
   document.getElementById("loader").style.display = "flex";
-  document.getElementById("loaderText").innerText = "Re-arranging Screen Data...";
+  document.getElementById("loaderText").innerText =
+    "Re-arranging Screen Data...";
 
   setTimeout(() => {
     let groups = {};
 
-    itemsToGroup.forEach(item => {
+    itemsToGroup.forEach((item) => {
       let comp = getCompanyFromSite(item.site);
       let key = "";
       let groupOwner = item.owner.toUpperCase();
@@ -373,16 +384,22 @@ function rearrangeScreenData() {
           company: currentArrangeMode === "owner_all" ? "Haka" : comp,
           owner: currentArrangeMode === "site" ? "VARIOUS OWNERS" : groupOwner,
           items: [],
-          manual_adjustments: []
+          manual_adjustments: [],
         };
       }
       groups[key].items.push(item);
     });
 
-    manualAdjs.forEach(adj => {
+    manualAdjs.forEach((adj) => {
       let targetKey = null;
       for (let key in groups) {
-        if (groups[key].items.some(item => (item.plate_number || item.plate || "").toUpperCase() === adj.plate)) {
+        if (
+          groups[key].items.some(
+            (item) =>
+              (item.plate_number || item.plate || "").toUpperCase() ===
+              adj.plate,
+          )
+        ) {
           targetKey = key;
           break;
         }
@@ -399,7 +416,7 @@ function rearrangeScreenData() {
     container.innerHTML = "";
 
     let groupCount = 0;
-    Object.values(groups).forEach(group => {
+    Object.values(groups).forEach((group) => {
       group.items.sort((a, b) => {
         let plateA = (a.plate_number || a.plate || "").toUpperCase();
         let plateB = (b.plate_number || b.plate || "").toUpperCase();
@@ -568,11 +585,11 @@ function calculateAdjAmount(input) {
   const row = input.closest("tr");
   const qty = parseFloat(row.querySelector(".adj-qty").value) || 0;
   const rate = parseFloat(row.querySelector(".adj-rate").value) || 0;
-  
-  if(qty > 0 && rate > 0) {
-      row.querySelector(".adj-amt").value = (qty * rate).toFixed(2);
+
+  if (qty > 0 && rate > 0) {
+    row.querySelector(".adj-amt").value = (qty * rate).toFixed(2);
   }
-  updateCardTotals(row.closest('.bill-card'));
+  updateCardTotals(row.closest(".bill-card"));
 }
 
 function createBillCard(group, id) {
@@ -1254,9 +1271,9 @@ function applyAutoFillData(input, match, addBlankRow = true) {
       addDynamicRow(cardId);
     }
   }
-  
+
   // 🟢 പ്ലേറ്റ് നമ്പർ അടിക്കുമ്പോൾ അതിൻ്റെ അഡ്ജസ്റ്റ്മെൻ്റ് കൂടി ഫെച്ച് ചെയ്യുക
-  loadSavedAdjustmentsToCard(input.closest('.bill-card'));
+  loadSavedAdjustmentsToCard(input.closest(".bill-card"));
 }
 
 function calculateRow(input) {
@@ -1347,7 +1364,9 @@ function updateCardTotals(card) {
       finalBal += type === "add" ? amt : -Math.abs(amt);
     }
   });
-  card.querySelector(".finalBalance").innerText = Number.isInteger(finalBal) ? finalBal : finalBal.toFixed(2);
+  card.querySelector(".finalBalance").innerText = Number.isInteger(finalBal)
+    ? finalBal
+    : finalBal.toFixed(2);
 
   // 🟢 Dynamic Header & Company Count Update
   let companyCounts = {};
@@ -1607,11 +1626,19 @@ function submitBulkData() {
       let type = adjRow.querySelector(".adj-type").value;
 
       if (date || plate || desc || amt !== 0) {
-        if(type !== "none") {
-            let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
-            adjAmtTotal += actualAmt;
+        if (type !== "none") {
+          let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
+          adjAmtTotal += actualAmt;
         }
-        adjDataArray.push({ date, plate, desc, qty, rate, amt: Math.abs(amt), type });
+        adjDataArray.push({
+          date,
+          plate,
+          desc,
+          qty,
+          rate,
+          amt: Math.abs(amt),
+          type,
+        });
       }
     });
 
@@ -1835,11 +1862,19 @@ function submitSingleCard(cardId) {
     let type = adjRow.querySelector(".adj-type").value;
 
     if (date || plate || desc || amt !== 0) {
-      if(type !== "none") {
-          let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
-          adjAmtTotal += actualAmt;
+      if (type !== "none") {
+        let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
+        adjAmtTotal += actualAmt;
       }
-      adjDataArray.push({ date, plate, desc, qty, rate, amt: Math.abs(amt), type });
+      adjDataArray.push({
+        date,
+        plate,
+        desc,
+        qty,
+        rate,
+        amt: Math.abs(amt),
+        type,
+      });
     }
   });
 
@@ -1999,19 +2034,22 @@ function autoFillOwnerData(cardId, ownerName) {
   const card = document.getElementById(`billCard_${cardId}`);
   if (!card) return;
 
-  let ownerVehicles = masterData.filter(v => (v.owner || "").trim().toUpperCase() === ownerName.toUpperCase());
-  if (ownerVehicles.length === 0) return showToast("No vehicles found for " + ownerName);
+  let ownerVehicles = masterData.filter(
+    (v) => (v.owner || "").trim().toUpperCase() === ownerName.toUpperCase(),
+  );
+  if (ownerVehicles.length === 0)
+    return showToast("No vehicles found for " + ownerName);
 
   // 🟢 Sort by Company: Haka -> Aljoda -> Masar Wheels -> We1 Track
-  const compOrder = { "Haka": 1, "Aljoda": 2, "Masar Wheels": 3, "We1 Track": 4 };
+  const compOrder = { Haka: 1, Aljoda: 2, "Masar Wheels": 3, "We1 Track": 4 };
   ownerVehicles.sort((a, b) => {
-      let compA = getCompanyFromSite(a.site || a.site_name);
-      let compB = getCompanyFromSite(b.site || b.site_name);
-      return (compOrder[compA] || 99) - (compOrder[compB] || 99);
+    let compA = getCompanyFromSite(a.site || a.site_name);
+    let compB = getCompanyFromSite(b.site || b.site_name);
+    return (compOrder[compA] || 99) - (compOrder[compB] || 99);
   });
 
   const tbody = card.querySelector(".tableBody");
-  tbody.innerHTML = '';
+  tbody.innerHTML = "";
 
   ownerVehicles.forEach((match) => {
     addDynamicRow(cardId);
@@ -2023,7 +2061,7 @@ function autoFillOwnerData(cardId, ownerName) {
 
   updateCardTotals(card);
   showToast(`${ownerVehicles.length} vehicles auto-filled for ${ownerName}!`);
-  
+
   // 🟢 ഓണറെ അടിക്കുമ്പോൾ വണ്ടികളുടെ കൂടെ അഡ്ജസ്റ്റ്മെൻ്റ് കൂടി ഫെച്ച് ചെയ്യുക
   loadSavedAdjustmentsToCard(card);
 }
@@ -2034,144 +2072,165 @@ function autoFillOwnerData(cardId, ownerName) {
 let rightClickTarget = null;
 let isColumn = false;
 
-document.addEventListener("contextmenu", function(e) {
-    const th = e.target.closest("th");
-    const tr = e.target.closest("tr");
-    
-    // ടേബിളിനുള്ളിൽ ആണെങ്കിൽ മാത്രം മെനു കാണിക്കുക
-    if (e.target.closest(".billTable") || e.target.closest(".adjTable")) {
-        if (th || (tr && tr.parentNode.tagName === "TBODY")) {
-            e.preventDefault();
-            rightClickTarget = th || tr;
-            isColumn = !!th;
-            
-            const contextMenu = document.getElementById("contextMenu");
-            contextMenu.style.display = "block";
-            contextMenu.style.left = e.pageX + "px";
-            contextMenu.style.top = e.pageY + "px";
-        }
+document.addEventListener("contextmenu", function (e) {
+  const th = e.target.closest("th");
+  const tr = e.target.closest("tr");
+
+  // ടേബിളിനുള്ളിൽ ആണെങ്കിൽ മാത്രം മെനു കാണിക്കുക
+  if (e.target.closest(".billTable") || e.target.closest(".adjTable")) {
+    if (th || (tr && tr.parentNode.tagName === "TBODY")) {
+      e.preventDefault();
+      rightClickTarget = th || tr;
+      isColumn = !!th;
+
+      const contextMenu = document.getElementById("contextMenu");
+      contextMenu.style.display = "block";
+      contextMenu.style.left = e.pageX + "px";
+      contextMenu.style.top = e.pageY + "px";
     }
+  }
 });
 
-document.addEventListener("click", function(e) {
-    const contextMenu = document.getElementById("contextMenu");
-    if (contextMenu.style.display === "block") {
-        contextMenu.style.display = "none";
-    }
+document.addEventListener("click", function (e) {
+  const contextMenu = document.getElementById("contextMenu");
+  if (contextMenu.style.display === "block") {
+    contextMenu.style.display = "none";
+  }
 });
 
-document.getElementById("hideAction").addEventListener("click", function() {
-    if (!rightClickTarget) return;
+document.getElementById("hideAction").addEventListener("click", function () {
+  if (!rightClickTarget) return;
 
-    if (isColumn) {
-        // Hide Column
-        const table = rightClickTarget.closest("table");
-        const index = Array.from(rightClickTarget.parentNode.children).indexOf(rightClickTarget);
-        
-        // Hide Header
-        rightClickTarget.classList.add("temp-hidden");
-        rightClickTarget.style.display = "none";
-        
-        // Hide Cells in that column
-        table.querySelectorAll("tr").forEach(row => {
-            if(row.children[index]) {
-                row.children[index].classList.add("temp-hidden");
-                row.children[index].style.display = "none";
-            }
-        });
-    } else {
-        // Hide Row
-        rightClickTarget.classList.add("temp-hidden");
-        rightClickTarget.style.display = "none";
-    }
-    
-    rightClickTarget = null;
-    showToast("Hidden temporarily! Use 'Unhide All' to restore.");
+  if (isColumn) {
+    // Hide Column
+    const table = rightClickTarget.closest("table");
+    const index = Array.from(rightClickTarget.parentNode.children).indexOf(
+      rightClickTarget,
+    );
+
+    // Hide Header
+    rightClickTarget.classList.add("temp-hidden");
+    rightClickTarget.style.display = "none";
+
+    // Hide Cells in that column
+    table.querySelectorAll("tr").forEach((row) => {
+      if (row.children[index]) {
+        row.children[index].classList.add("temp-hidden");
+        row.children[index].style.display = "none";
+      }
+    });
+  } else {
+    // Hide Row
+    rightClickTarget.classList.add("temp-hidden");
+    rightClickTarget.style.display = "none";
+  }
+
+  rightClickTarget = null;
+  showToast("Hidden temporarily! Use 'Unhide All' to restore.");
 });
 
 function unhideAll() {
-    document.querySelectorAll(".temp-hidden").forEach(el => {
-        el.style.display = "";
-        el.classList.remove("temp-hidden");
-    });
-    showToast("All hidden rows/columns restored!");
+  document.querySelectorAll(".temp-hidden").forEach((el) => {
+    el.style.display = "";
+    el.classList.remove("temp-hidden");
+  });
+  showToast("All hidden rows/columns restored!");
 }
 
 /* =========================================
    🟢 LOAD SAVED ADJUSTMENTS FOR MANUAL TABLES
 ========================================= */
 function loadSavedAdjustmentsToCard(card) {
-    if (!card) return;
-    let existingAdjs = [];
-    
-    // നിലവിൽ ടേബിളിൽ ഉള്ള അഡ്ജസ്റ്റ്മെൻ്റുകൾ ശേഖരിക്കുക (ഡ്യൂപ്ലിക്കേറ്റ് ആവാതിരിക്കാൻ)
-    card.querySelectorAll(".adjBody tr").forEach(row => {
-        let date = row.querySelector(".adj-date").value;
-        let plate = row.querySelector(".adj-plate").value;
-        let desc = row.querySelector(".adj-desc").value;
-        let qty = row.querySelector(".adj-qty").value;
-        let rate = row.querySelector(".adj-rate").value;
-        let amt = parseFloat(row.querySelector(".adj-amt").value) || 0;
-        let type = row.querySelector(".adj-type").value;
-        
-        if (date || plate || desc || amt !== 0) {
-            existingAdjs.push({ date, plate, desc, qty, rate, amt, type });
-        }
-    });
+  if (!card) return;
+  let existingAdjs = [];
 
-    let foundNew = false;
+  // നിലവിൽ ടേബിളിൽ ഉള്ള അഡ്ജസ്റ്റ്മെൻ്റുകൾ ശേഖരിക്കുക (ഡ്യൂപ്ലിക്കേറ്റ് ആവാതിരിക്കാൻ)
+  card.querySelectorAll(".adjBody tr").forEach((row) => {
+    let date = row.querySelector(".adj-date").value;
+    let plate = row.querySelector(".adj-plate").value;
+    let desc = row.querySelector(".adj-desc").value;
+    let qty = row.querySelector(".adj-qty").value;
+    let rate = row.querySelector(".adj-rate").value;
+    let amt = parseFloat(row.querySelector(".adj-amt").value) || 0;
+    let type = row.querySelector(".adj-type").value;
 
-    // ടേബിളിലുള്ള എല്ലാ വണ്ടികൾക്കും അഡ്ജസ്റ്റ്മെൻ്റ് ഉണ്ടോ എന്ന് പരിശോധിക്കുക
-    card.querySelectorAll(".tableBody tr").forEach(row => {
-        let plate = row.querySelector(".plate").value.trim().toUpperCase();
-        let site = row.querySelector(".site").value.trim();
-        if(!plate) return;
-
-        let saved = savedBillingData.find(s =>
-            (s.plate_no || "").toUpperCase() === plate &&
-            (s.site_name || "").trim() === site
-        );
-
-        if (saved && saved.adjustment_desc) {
-            try {
-                let parsed = JSON.parse(saved.adjustment_desc);
-                parsed.forEach(p => {
-                    let isDup = existingAdjs.some(e => e.desc === p.desc && parseFloat(e.amt) === parseFloat(p.amt));
-                    if(!isDup) {
-                        existingAdjs.push(p);
-                        foundNew = true;
-                    }
-                });
-            } catch(e) {
-                // പഴയ പ്ലെയിൻ ടെക്സ്റ്റ് ഫോർമാറ്റിലുള്ള അഡ്ജസ്റ്റ്മെൻ്റ് ആണെങ്കിൽ
-                let isDup = existingAdjs.some(e => e.desc === saved.adjustment_desc && parseFloat(e.amt) === Math.abs(saved.adjusted_amount || 0));
-                if(!isDup) {
-                    existingAdjs.push({
-                        date: "", plate: "", desc: saved.adjustment_desc,
-                        qty: "", rate: "", amt: Math.abs(saved.adjusted_amount || 0),
-                        type: saved.adjusted_amount < 0 ? "less" : "add"
-                    });
-                    foundNew = true;
-                }
-            }
-        }
-    });
-
-    // പുതിയതായി എന്തെങ്കിലും കണ്ടെത്തിയാൽ അത് ടേബിളിൽ കാണിക്കുക
-    if (foundNew) {
-        const tbody = card.querySelector(".adjBody");
-        tbody.innerHTML = "";
-        card.querySelector(".adjustmentsSection").style.display = "block";
-        
-        existingAdjs.forEach(adj => {
-            tbody.insertAdjacentHTML("beforeend", generateAdjRowHTML(
-                adj.date || "", adj.plate || "", adj.desc || "",
-                adj.qty || "", adj.rate || "", adj.amt || 0, adj.type || "less"
-            ));
-        });
-        
-        // അവസാനം ഒരു ബ്ലാങ്ക് റോ കൂടി നൽകുക
-        tbody.insertAdjacentHTML("beforeend", generateAdjRowHTML());
-        updateCardTotals(card);
+    if (date || plate || desc || amt !== 0) {
+      existingAdjs.push({ date, plate, desc, qty, rate, amt, type });
     }
+  });
+
+  let foundNew = false;
+
+  // ടേബിളിലുള്ള എല്ലാ വണ്ടികൾക്കും അഡ്ജസ്റ്റ്മെൻ്റ് ഉണ്ടോ എന്ന് പരിശോധിക്കുക
+  card.querySelectorAll(".tableBody tr").forEach((row) => {
+    let plate = row.querySelector(".plate").value.trim().toUpperCase();
+    let site = row.querySelector(".site").value.trim();
+    if (!plate) return;
+
+    let saved = savedBillingData.find(
+      (s) =>
+        (s.plate_no || "").toUpperCase() === plate &&
+        (s.site_name || "").trim() === site,
+    );
+
+    if (saved && saved.adjustment_desc) {
+      try {
+        let parsed = JSON.parse(saved.adjustment_desc);
+        parsed.forEach((p) => {
+          let isDup = existingAdjs.some(
+            (e) => e.desc === p.desc && parseFloat(e.amt) === parseFloat(p.amt),
+          );
+          if (!isDup) {
+            existingAdjs.push(p);
+            foundNew = true;
+          }
+        });
+      } catch (e) {
+        // പഴയ പ്ലെയിൻ ടെക്സ്റ്റ് ഫോർമാറ്റിലുള്ള അഡ്ജസ്റ്റ്മെൻ്റ് ആണെങ്കിൽ
+        let isDup = existingAdjs.some(
+          (e) =>
+            e.desc === saved.adjustment_desc &&
+            parseFloat(e.amt) === Math.abs(saved.adjusted_amount || 0),
+        );
+        if (!isDup) {
+          existingAdjs.push({
+            date: "",
+            plate: "",
+            desc: saved.adjustment_desc,
+            qty: "",
+            rate: "",
+            amt: Math.abs(saved.adjusted_amount || 0),
+            type: saved.adjusted_amount < 0 ? "less" : "add",
+          });
+          foundNew = true;
+        }
+      }
+    }
+  });
+
+  // പുതിയതായി എന്തെങ്കിലും കണ്ടെത്തിയാൽ അത് ടേബിളിൽ കാണിക്കുക
+  if (foundNew) {
+    const tbody = card.querySelector(".adjBody");
+    tbody.innerHTML = "";
+    card.querySelector(".adjustmentsSection").style.display = "block";
+
+    existingAdjs.forEach((adj) => {
+      tbody.insertAdjacentHTML(
+        "beforeend",
+        generateAdjRowHTML(
+          adj.date || "",
+          adj.plate || "",
+          adj.desc || "",
+          adj.qty || "",
+          adj.rate || "",
+          adj.amt || 0,
+          adj.type || "less",
+        ),
+      );
+    });
+
+    // അവസാനം ഒരു ബ്ലാങ്ക് റോ കൂടി നൽകുക
+    tbody.insertAdjacentHTML("beforeend", generateAdjRowHTML());
+    updateCardTotals(card);
+  }
 }
