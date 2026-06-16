@@ -536,27 +536,43 @@ function generateAdjRowHTML(
   date = "",
   plate = "",
   desc = "",
+  qty = "",
+  rate = "",
   amt = 0,
   type = "less",
 ) {
   return `
     <tr>
-        <td><input type="text" class="adj-date" value="${date}" placeholder="May 26" style="width:100%; border:none; outline:none; text-align:center; background:transparent; font-family:inherit; font-size:13px;"></td>
+        <td><input type="month" class="adj-date" value="${date}" style="width:100%; border:none; outline:none; text-align:center; background:transparent; font-family:inherit; font-size:13px; cursor:pointer;"></td>
         <td class="autocomplete-wrapper">
             <input type="text" class="adj-plate" value="${plate}" oninput="showSuggestions(this)" onkeydown="handleGlobalKeyDown(event, this)" onblur="handlePlateBlur(this)" autocomplete="off">
             <div class="suggestion-box"></div>
         </td>
         <td><input type="text" class="adj-desc" value="${desc}"></td>
+        <td><input type="number" step="any" class="adj-qty" value="${qty}" oninput="calculateAdjAmount(this)"></td>
+        <td><input type="number" step="any" class="adj-rate" value="${rate}" oninput="calculateAdjAmount(this)"></td>
         <td><input type="number" step="any" class="adj-amt" value="${Math.abs(amt)}" oninput="updateCardTotals(this.closest('.bill-card'))"></td>
         <td class="no-export-col">
             <select class="adj-type table-select" onchange="updateCardTotals(this.closest('.bill-card'))">
                 <option value="add" ${type === "add" ? "selected" : ""}>Add</option>
                 <option value="less" ${type === "less" ? "selected" : ""}>Less</option>
+                <option value="none" ${type === "none" ? "selected" : ""}>None</option>
             </select>
         </td>
         <td class="no-export"><button class="btn-remove" onclick="this.closest('tr').remove(); updateCardTotals(this.closest('.bill-card'));">✖</button></td>
     </tr>
   `;
+}
+
+function calculateAdjAmount(input) {
+  const row = input.closest("tr");
+  const qty = parseFloat(row.querySelector(".adj-qty").value) || 0;
+  const rate = parseFloat(row.querySelector(".adj-rate").value) || 0;
+  
+  if(qty > 0 && rate > 0) {
+      row.querySelector(".adj-amt").value = (qty * rate).toFixed(2);
+  }
+  updateCardTotals(row.closest('.bill-card'));
 }
 
 function createBillCard(group, id) {
@@ -595,6 +611,8 @@ function createBillCard(group, id) {
               date: "",
               plate: "",
               desc: saved.adjustment_desc,
+              qty: "",
+              rate: "",
               amt: saved.adjusted_amount || 0,
               type: saved.adjusted_amount < 0 ? "less" : "add",
             },
@@ -619,6 +637,8 @@ function createBillCard(group, id) {
         adj.date,
         adj.plate,
         adj.desc,
+        adj.qty,
+        adj.rate,
         adj.amt,
         adj.type,
       );
@@ -645,7 +665,7 @@ function createBillCard(group, id) {
             <img src="${compConfig.header}" class="header-img hidden-image" alt="Header" crossorigin="anonymous">
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-                <div style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase; display: flex; align-items: center; gap: 5px;">
+                <div class="owner-text-wrapper" style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase; display: flex; align-items: center; gap: 5px;">
                 OWNER : 
                 <div class="autocomplete-wrapper" style="display:inline-block;">
                     <input type="text" class="owner-input" value="${group.owner}" placeholder="Enter Owner Name" oninput="showOwnerSuggestions(this, '${id}'); updateCardTotals(this.closest('.bill-card'));" onkeydown="handleOwnerKeyDown(event, this, '${id}')" onblur="handleOwnerBlur(this)" autocomplete="off" style="border:none; border-bottom:1px solid #ccc; font-weight:bold; font-size:16px; color:#1a4d80; width:300px; text-transform:uppercase; background:transparent;">
@@ -755,9 +775,11 @@ function createBillCard(group, id) {
                 <table class="adjTable">
                     <thead>
                         <tr>
-                            <th class="col-date">Date</th>
+                            <th class="col-date">Month</th>
                             <th class="col-plate">Plate No</th>
                             <th>Description</th>
+                            <th class="col-small">Qty</th>
+                            <th class="col-small">Rate</th>
                             <th class="col-money">Amount</th>
                             <th class="col-small no-export-col">Type</th>
                             <th class="col-action no-export"><button type="button" class="btn-add-circle" onclick="addAdjRowToCard('${id}')">+</button></th>
@@ -768,7 +790,7 @@ function createBillCard(group, id) {
                     </tbody>
                     <tfoot>
                         <tr class="balance-row">
-                            <td colspan="3" style="text-align:right; padding-right:15px; border:none;">Final Balance After Adjustment:</td>
+                            <td colspan="5" style="text-align:right; padding-right:15px; border:none;">Balance After Adjustment:</td>
                             <td class="finalBalance" style="width:130px; border: 1px solid #ccc; text-align:center;">0</td>
                             <td colspan="2" class="no-export" style="border:none;"></td>
                         </tr>
@@ -1232,6 +1254,9 @@ function applyAutoFillData(input, match, addBlankRow = true) {
       addDynamicRow(cardId);
     }
   }
+  
+  // 🟢 പ്ലേറ്റ് നമ്പർ അടിക്കുമ്പോൾ അതിൻ്റെ അഡ്ജസ്റ്റ്മെൻ്റ് കൂടി ഫെച്ച് ചെയ്യുക
+  loadSavedAdjustmentsToCard(input.closest('.bill-card'));
 }
 
 function calculateRow(input) {
@@ -1318,7 +1343,9 @@ function updateCardTotals(card) {
   card.querySelectorAll(".adjBody tr").forEach((row) => {
     let amt = parseFloat(row.querySelector(".adj-amt").value) || 0;
     let type = row.querySelector(".adj-type").value;
-    finalBal += type === "add" ? amt : -Math.abs(amt);
+    if (type !== "none") {
+      finalBal += type === "add" ? amt : -Math.abs(amt);
+    }
   });
   card.querySelector(".finalBalance").innerText = Number.isInteger(finalBal) ? finalBal : finalBal.toFixed(2);
 
@@ -1398,13 +1425,13 @@ function getDynamicFileName(card) {
   let filename = "";
   if (uniquePlates.length === 1)
     filename = `${uniquePlates[0]}_${shortDate}.png`;
-  else filename = `${ownerName}_${siteStr}_${shortDate}.png`;
+  else filename = `${ownerName}_${shortDate}.png`;
 
   return filename.replace(/[^a-zA-Z0-9_.-]/g, "_");
 }
 
 function convertInputsToText(card) {
-  let ownerWrapper = card.querySelector(".owner-input")?.parentNode;
+  let ownerWrapper = card.querySelector(".owner-text-wrapper");
   if (ownerWrapper) {
     ownerWrapper.style.display = "none";
   }
@@ -1447,7 +1474,7 @@ function convertInputsToText(card) {
 }
 
 function revertInputsFromText(card) {
-  let ownerWrapper = card.querySelector(".owner-input")?.parentNode;
+  let ownerWrapper = card.querySelector(".owner-text-wrapper");
   if (ownerWrapper) {
     ownerWrapper.style.display = "";
   }
@@ -1574,13 +1601,17 @@ function submitBulkData() {
       let date = adjRow.querySelector(".adj-date").value.trim();
       let plate = adjRow.querySelector(".adj-plate").value.trim();
       let desc = adjRow.querySelector(".adj-desc").value.trim();
+      let qty = adjRow.querySelector(".adj-qty").value.trim();
+      let rate = adjRow.querySelector(".adj-rate").value.trim();
       let amt = parseFloat(adjRow.querySelector(".adj-amt").value) || 0;
       let type = adjRow.querySelector(".adj-type").value;
 
       if (date || plate || desc || amt !== 0) {
-        let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
-        adjAmtTotal += actualAmt;
-        adjDataArray.push({ date, plate, desc, amt: Math.abs(amt), type });
+        if(type !== "none") {
+            let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
+            adjAmtTotal += actualAmt;
+        }
+        adjDataArray.push({ date, plate, desc, qty, rate, amt: Math.abs(amt), type });
       }
     });
 
@@ -1798,13 +1829,17 @@ function submitSingleCard(cardId) {
     let date = adjRow.querySelector(".adj-date").value.trim();
     let plate = adjRow.querySelector(".adj-plate").value.trim();
     let desc = adjRow.querySelector(".adj-desc").value.trim();
+    let qty = adjRow.querySelector(".adj-qty").value.trim();
+    let rate = adjRow.querySelector(".adj-rate").value.trim();
     let amt = parseFloat(adjRow.querySelector(".adj-amt").value) || 0;
     let type = adjRow.querySelector(".adj-type").value;
 
     if (date || plate || desc || amt !== 0) {
-      let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
-      adjAmtTotal += actualAmt;
-      adjDataArray.push({ date, plate, desc, amt: Math.abs(amt), type });
+      if(type !== "none") {
+          let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
+          adjAmtTotal += actualAmt;
+      }
+      adjDataArray.push({ date, plate, desc, qty, rate, amt: Math.abs(amt), type });
     }
   });
 
@@ -1988,4 +2023,155 @@ function autoFillOwnerData(cardId, ownerName) {
 
   updateCardTotals(card);
   showToast(`${ownerVehicles.length} vehicles auto-filled for ${ownerName}!`);
+  
+  // 🟢 ഓണറെ അടിക്കുമ്പോൾ വണ്ടികളുടെ കൂടെ അഡ്ജസ്റ്റ്മെൻ്റ് കൂടി ഫെച്ച് ചെയ്യുക
+  loadSavedAdjustmentsToCard(card);
+}
+
+/* =========================================
+   🟢 CONTEXT MENU (RIGHT CLICK TO HIDE)
+========================================= */
+let rightClickTarget = null;
+let isColumn = false;
+
+document.addEventListener("contextmenu", function(e) {
+    const th = e.target.closest("th");
+    const tr = e.target.closest("tr");
+    
+    // ടേബിളിനുള്ളിൽ ആണെങ്കിൽ മാത്രം മെനു കാണിക്കുക
+    if (e.target.closest(".billTable") || e.target.closest(".adjTable")) {
+        if (th || (tr && tr.parentNode.tagName === "TBODY")) {
+            e.preventDefault();
+            rightClickTarget = th || tr;
+            isColumn = !!th;
+            
+            const contextMenu = document.getElementById("contextMenu");
+            contextMenu.style.display = "block";
+            contextMenu.style.left = e.pageX + "px";
+            contextMenu.style.top = e.pageY + "px";
+        }
+    }
+});
+
+document.addEventListener("click", function(e) {
+    const contextMenu = document.getElementById("contextMenu");
+    if (contextMenu.style.display === "block") {
+        contextMenu.style.display = "none";
+    }
+});
+
+document.getElementById("hideAction").addEventListener("click", function() {
+    if (!rightClickTarget) return;
+
+    if (isColumn) {
+        // Hide Column
+        const table = rightClickTarget.closest("table");
+        const index = Array.from(rightClickTarget.parentNode.children).indexOf(rightClickTarget);
+        
+        // Hide Header
+        rightClickTarget.classList.add("temp-hidden");
+        rightClickTarget.style.display = "none";
+        
+        // Hide Cells in that column
+        table.querySelectorAll("tr").forEach(row => {
+            if(row.children[index]) {
+                row.children[index].classList.add("temp-hidden");
+                row.children[index].style.display = "none";
+            }
+        });
+    } else {
+        // Hide Row
+        rightClickTarget.classList.add("temp-hidden");
+        rightClickTarget.style.display = "none";
+    }
+    
+    rightClickTarget = null;
+    showToast("Hidden temporarily! Use 'Unhide All' to restore.");
+});
+
+function unhideAll() {
+    document.querySelectorAll(".temp-hidden").forEach(el => {
+        el.style.display = "";
+        el.classList.remove("temp-hidden");
+    });
+    showToast("All hidden rows/columns restored!");
+}
+
+/* =========================================
+   🟢 LOAD SAVED ADJUSTMENTS FOR MANUAL TABLES
+========================================= */
+function loadSavedAdjustmentsToCard(card) {
+    if (!card) return;
+    let existingAdjs = [];
+    
+    // നിലവിൽ ടേബിളിൽ ഉള്ള അഡ്ജസ്റ്റ്മെൻ്റുകൾ ശേഖരിക്കുക (ഡ്യൂപ്ലിക്കേറ്റ് ആവാതിരിക്കാൻ)
+    card.querySelectorAll(".adjBody tr").forEach(row => {
+        let date = row.querySelector(".adj-date").value;
+        let plate = row.querySelector(".adj-plate").value;
+        let desc = row.querySelector(".adj-desc").value;
+        let qty = row.querySelector(".adj-qty").value;
+        let rate = row.querySelector(".adj-rate").value;
+        let amt = parseFloat(row.querySelector(".adj-amt").value) || 0;
+        let type = row.querySelector(".adj-type").value;
+        
+        if (date || plate || desc || amt !== 0) {
+            existingAdjs.push({ date, plate, desc, qty, rate, amt, type });
+        }
+    });
+
+    let foundNew = false;
+
+    // ടേബിളിലുള്ള എല്ലാ വണ്ടികൾക്കും അഡ്ജസ്റ്റ്മെൻ്റ് ഉണ്ടോ എന്ന് പരിശോധിക്കുക
+    card.querySelectorAll(".tableBody tr").forEach(row => {
+        let plate = row.querySelector(".plate").value.trim().toUpperCase();
+        let site = row.querySelector(".site").value.trim();
+        if(!plate) return;
+
+        let saved = savedBillingData.find(s =>
+            (s.plate_no || "").toUpperCase() === plate &&
+            (s.site_name || "").trim() === site
+        );
+
+        if (saved && saved.adjustment_desc) {
+            try {
+                let parsed = JSON.parse(saved.adjustment_desc);
+                parsed.forEach(p => {
+                    let isDup = existingAdjs.some(e => e.desc === p.desc && parseFloat(e.amt) === parseFloat(p.amt));
+                    if(!isDup) {
+                        existingAdjs.push(p);
+                        foundNew = true;
+                    }
+                });
+            } catch(e) {
+                // പഴയ പ്ലെയിൻ ടെക്സ്റ്റ് ഫോർമാറ്റിലുള്ള അഡ്ജസ്റ്റ്മെൻ്റ് ആണെങ്കിൽ
+                let isDup = existingAdjs.some(e => e.desc === saved.adjustment_desc && parseFloat(e.amt) === Math.abs(saved.adjusted_amount || 0));
+                if(!isDup) {
+                    existingAdjs.push({
+                        date: "", plate: "", desc: saved.adjustment_desc,
+                        qty: "", rate: "", amt: Math.abs(saved.adjusted_amount || 0),
+                        type: saved.adjusted_amount < 0 ? "less" : "add"
+                    });
+                    foundNew = true;
+                }
+            }
+        }
+    });
+
+    // പുതിയതായി എന്തെങ്കിലും കണ്ടെത്തിയാൽ അത് ടേബിളിൽ കാണിക്കുക
+    if (foundNew) {
+        const tbody = card.querySelector(".adjBody");
+        tbody.innerHTML = "";
+        card.querySelector(".adjustmentsSection").style.display = "block";
+        
+        existingAdjs.forEach(adj => {
+            tbody.insertAdjacentHTML("beforeend", generateAdjRowHTML(
+                adj.date || "", adj.plate || "", adj.desc || "",
+                adj.qty || "", adj.rate || "", adj.amt || 0, adj.type || "less"
+            ));
+        });
+        
+        // അവസാനം ഒരു ബ്ലാങ്ക് റോ കൂടി നൽകുക
+        tbody.insertAdjacentHTML("beforeend", generateAdjRowHTML());
+        updateCardTotals(card);
+    }
 }
