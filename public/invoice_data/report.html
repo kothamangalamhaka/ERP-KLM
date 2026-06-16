@@ -304,6 +304,17 @@
       .th-amt:hover {
         background-color: #047857;
       }
+      .th-inv-red {
+        background-color: #b91c1c;
+        color: white;
+      }
+      .th-inv-red:hover {
+        background-color: #991b1b;
+      }
+      .col-inv-red {
+        background-color: rgba(185, 28, 28, 0.03);
+        font-weight: 600;
+      }
       .th-extra {
         background-color: #334155;
         color: white;
@@ -624,11 +635,53 @@
         text-decoration: underline;
       }
 
-      /* Screenshot മോഡിൽ കോളങ്ങൾ ഹൈഡ് ചെയ്യാൻ */
-      .hide-for-screenshot .th-bill,
-      .hide-for-screenshot .col-bill,
-      .hide-for-screenshot .th-amt,
-      .hide-for-screenshot .col-amt {
+      /* 🟢 Custom Column Toggler CSS */
+      .th-gen {
+        background-color: #1e293b;
+        color: white;
+      }
+      .th-gen:hover {
+        background-color: #334155;
+      }
+
+      .hide-ts .th-ts,
+      .hide-ts .col-ts,
+      .hide-ts col.col-grp-ts {
+        display: none !important;
+      }
+      .hide-inv .th-inv,
+      .hide-inv .col-inv,
+      .hide-inv col.col-grp-inv {
+        display: none !important;
+      }
+      .hide-bill .th-bill,
+      .hide-bill .col-bill,
+      .hide-bill col.col-grp-bill {
+        display: none !important;
+      }
+      .hide-diff .th-diff,
+      .hide-diff .col-diff,
+      .hide-diff col.col-grp-diff {
+        display: none !important;
+      }
+      .hide-amt .th-amt,
+      .hide-amt .col-amt,
+      .hide-amt col.col-grp-amt {
+        display: none !important;
+      }
+      .hide-inv-red .th-inv-red,
+      .hide-inv-red .col-inv-red,
+      .hide-inv-red col.col-grp-inv-red {
+        display: none !important;
+      }
+      .hide-extra .th-extra,
+      .hide-extra .col-extra,
+      .hide-extra col.col-grp-extra {
+        display: none !important;
+      }
+      .hide-gen .th-gen,
+      .hide-gen .col-gen,
+      .hide-gen col.col-grp-gen {
         display: none !important;
       }
 
@@ -746,13 +799,24 @@
               Haka ERP System
             </div>
           </a>
-          <button 
-            id="btnToggleScreenshot" 
-            style="background-color: transparent; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; display: flex; align-items: center;" 
-            onclick="toggleScreenshotMode()" 
-            title="Hide Supplier & Amount Data"
+          <button
+            id="btnToggleScreenshot"
+            style="
+              background-color: transparent;
+              color: white;
+              border: none;
+              padding: 6px 12px;
+              border-radius: 4px;
+              cursor: pointer;
+              font-weight: bold;
+              font-size: 12px;
+              display: flex;
+              align-items: center;
+            "
+            onclick="openColToggleModal()"
+            title="Choose columns to hide"
           >
-            <span style="font-size: 14px; margin-right: 4px;">👁️</span>
+            <span style="font-size: 14px; margin-right: 4px">👁️ Hide/Show</span>
           </button>
           <button class="btn-logout" onclick="executeLogout()">Logout</button>
         </div>
@@ -808,12 +872,12 @@
               <option value="ALL">All Sites</option>
             </select>
           </div>
-          <div class="form-group" style="width: 150px">
-            <label>Filter Plate No</label>
+          <div class="form-group" style="width: 200px">
+            <label>Search Plate / Owner</label>
             <input
               type="text"
               id="filterPlate"
-              placeholder="Type Plate..."
+              placeholder="Type Plate or Owner..."
               onkeyup="applyFilters()"
               style="text-transform: uppercase"
             />
@@ -852,36 +916,50 @@
         <div class="table-wrapper" id="tableContainer">
           <table id="reportTable">
             <colgroup>
+              <!-- Vehicle Info -->
               <col style="width: 190px" />
               <col style="width: 60px" />
               <col style="width: 50px" />
               <col style="width: 180px" />
               <col style="width: 100px" />
-              <col style="width: 70px" />
-              <col style="width: 70px" />
-              <col style="width: 70px" />
-              <col style="width: 70px" />
-              <col style="width: 70px" />
-              <col style="width: 70px" />
-              <col style="width: 70px" />
-              <col style="width: 60px" />
-              <col style="width: 60px" />
-              <col style="width: 80px" />
-              <col style="width: 70px" />
-              <col style="width: 80px" />
-              <col style="width: 90px" />
-              <col style="width: 100px" />
-              <col style="width: 130px" />
-              <col style="width: 120px" />
-              <col style="width: 120px" />
-              <col style="width: 120px" />
-              <col style="width: 120px" />
-              <col style="width: 150px" />
-              <col style="width: 150px" />
-              <col style="width: 150px" />
-              <col style="width: 150px" />
-              <col style="width: 120px" />
-              <col style="width: 120px" />
+
+              <!-- TS & INV & BILL -->
+              <col class="col-grp-ts" style="width: 60px" />
+              <col class="col-grp-ts" style="width: 60px" />
+              <col class="col-grp-inv" style="width: 60px" />
+              <col class="col-grp-inv" style="width: 60px" />
+              <col class="col-grp-bill" style="width: 60px" />
+              <col class="col-grp-bill" style="width: 60px" />
+
+              <!-- Diff -->
+              <col class="col-grp-diff" style="width: 60px" />
+              <col class="col-grp-diff" style="width: 60px" />
+              <col class="col-grp-diff" style="width: 70px" />
+
+              <!-- Amount -->
+              <col class="col-grp-amt" style="width: 70px" />
+              <col class="col-grp-amt" style="width: 70px" />
+              <col class="col-grp-amt" style="width: 90px" />
+              <col class="col-grp-amt" style="width: 80px" />
+              <col class="col-grp-amt" style="width: 90px" />
+
+              <!-- Invoice Red -->
+              <col class="col-grp-inv-red" style="width: 100px" />
+              <col class="col-grp-inv-red" style="width: 100px" />
+
+              <!-- Extra Details -->
+              <col class="col-grp-extra" style="width: 120px" />
+              <col class="col-grp-extra" style="width: 120px" />
+              <col class="col-grp-extra" style="width: 120px" />
+              <col class="col-grp-extra" style="width: 120px" />
+              <col class="col-grp-extra" style="width: 150px" />
+              <col class="col-grp-extra" style="width: 150px" />
+
+              <!-- General Info -->
+              <col class="col-grp-gen" style="width: 150px" />
+              <col class="col-grp-gen" style="width: 150px" />
+              <col class="col-grp-gen" style="width: 120px" />
+              <col class="col-grp-gen" style="width: 120px" />
             </colgroup>
 
             <thead>
@@ -892,8 +970,9 @@
                 <th colspan="2" class="th-bill">Supplier</th>
                 <th colspan="3" class="th-diff">DIFFERENCE</th>
                 <th colspan="5" class="th-amt">AMOUNT</th>
+                <th colspan="2" class="th-inv-red">INVOICE</th>
                 <th colspan="6" class="th-extra">EXTRA DETAILS</th>
-                <th colspan="4" class="th-vehicle">GENERAL VEHICLE INFO</th>
+                <th colspan="4" class="th-gen">GENERAL VEHICLE INFO</th>
               </tr>
               <tr>
                 <!-- 🆕 data-col-key added to each th for right-click copy; col index order matches tbody td order -->
@@ -942,85 +1021,75 @@
 
                 <th
                   class="th-ts"
-                  style="width: 50px"
                   data-col-key="ts_nr"
                   onclick="openExcelFilterMenu(event, 'ts_nr')"
                 >
-                  TS N.Hr <span class="filter-icon" data-key="ts_nr">▼</span>
+                  NR <span class="filter-icon" data-key="ts_nr">▼</span>
                 </th>
                 <th
                   class="th-ts"
-                  style="width: 50px"
                   data-col-key="ts_ot"
                   onclick="openExcelFilterMenu(event, 'ts_ot')"
                 >
-                  TS OT <span class="filter-icon" data-key="ts_ot">▼</span>
+                  OT <span class="filter-icon" data-key="ts_ot">▼</span>
                 </th>
 
                 <th
                   class="th-inv"
-                  style="width: 50px"
                   data-col-key="inv_nr"
                   onclick="openExcelFilterMenu(event, 'inv_nr')"
                 >
-                  Inv N.Hr <span class="filter-icon" data-key="inv_nr">▼</span>
+                  NR <span class="filter-icon" data-key="inv_nr">▼</span>
                 </th>
                 <th
                   class="th-inv"
-                  style="width: 50px"
                   data-col-key="inv_ot"
                   onclick="openExcelFilterMenu(event, 'inv_ot')"
                 >
-                  Inv OT <span class="filter-icon" data-key="inv_ot">▼</span>
+                  OT <span class="filter-icon" data-key="inv_ot">▼</span>
                 </th>
 
                 <th
                   class="th-bill"
-                  style="width: 50px"
                   data-col-key="bill_db_nr"
                   onclick="openExcelFilterMenu(event, 'bill_db_nr')"
                 >
-                  Bill N.Hr
+                  NR
                   <span class="filter-icon" data-key="bill_db_nr">▼</span>
                 </th>
                 <th
                   class="th-bill"
-                  style="width: 50px"
                   data-col-key="bill_db_ot"
                   onclick="openExcelFilterMenu(event, 'bill_db_ot')"
                 >
-                  Bill OT
+                  OT
                   <span class="filter-icon" data-key="bill_db_ot">▼</span>
                 </th>
 
                 <th
                   class="th-diff"
-                  style="width: 60px"
                   data-col-key="diff_nr"
                   onclick="openExcelFilterMenu(event, 'diff_nr')"
                 >
-                  Diff N.Hr <span class="filter-icon" data-key="diff_nr">▼</span>
+                  NR <span class="filter-icon" data-key="diff_nr">▼</span>
                 </th>
                 <th
                   class="th-diff"
-                  style="width: 60px"
                   data-col-key="diff_ot"
                   onclick="openExcelFilterMenu(event, 'diff_ot')"
                 >
-                  Diff OT <span class="filter-icon" data-key="diff_ot">▼</span>
+                  OT <span class="filter-icon" data-key="diff_ot">▼</span>
                 </th>
                 <th
                   class="th-diff"
-                  style="width: 80px"
                   data-col-key="diff_st"
                   onclick="openExcelFilterMenu(event, 'diff_st')"
                 >
-                  Diff ST <span class="filter-icon" data-key="diff_st">▼</span>
+                  IDN <span class="filter-icon" data-key="diff_st">▼</span>
                 </th>
 
                 <th
                   class="th-amt"
-                  style="width: 50px"
                   data-col-key="bill_nrate"
                   onclick="openExcelFilterMenu(event, 'bill_nrate')"
                 >
@@ -1029,7 +1098,6 @@
                 </th>
                 <th
                   class="th-amt"
-                  style="width: 50px"
                   data-col-key="bill_otrate"
                   onclick="openExcelFilterMenu(event, 'bill_otrate')"
                 >
@@ -1038,7 +1106,6 @@
                 </th>
                 <th
                   class="th-amt"
-                  style="width: 90px"
                   data-col-key="bill_rent"
                   onclick="openExcelFilterMenu(event, 'bill_rent')"
                 >
@@ -1046,20 +1113,33 @@
                 </th>
                 <th
                   class="th-amt"
-                  style="width: 100px"
-                  data-col-key="inv_amount"
-                  onclick="openExcelFilterMenu(event, 'inv_amount')"
+                  data-col-key="rent_vat"
+                  onclick="openExcelFilterMenu(event, 'rent_vat')"
                 >
-                  Inv Subtotal
-                  <span class="filter-icon" data-key="inv_amount">▼</span>
+                  VAT <span class="filter-icon" data-key="rent_vat">▼</span>
                 </th>
                 <th
                   class="th-amt"
-                  style="width: 100px"
+                  data-col-key="rent_total"
+                  onclick="openExcelFilterMenu(event, 'rent_total')"
+                >
+                  Total <span class="filter-icon" data-key="rent_total">▼</span>
+                </th>
+
+                <th
+                  class="th-inv-red"
+                  data-col-key="inv_subtotal"
+                  onclick="openExcelFilterMenu(event, 'inv_subtotal')"
+                >
+                  Subtotal
+                  <span class="filter-icon" data-key="inv_subtotal">▼</span>
+                </th>
+                <th
+                  class="th-inv-red"
                   data-col-key="inv_total"
                   onclick="openExcelFilterMenu(event, 'inv_total')"
                 >
-                  Inv Total
+                  Total
                   <span class="filter-icon" data-key="inv_total">▼</span>
                 </th>
                 <th
@@ -1114,31 +1194,23 @@
                   <span class="filter-icon" data-key="accounts_note">▼</span>
                 </th>
                 <th
-                  class="th-vehicle"
+                  class="th-gen"
                   style="width: 150px"
                   data-col-key="driver_name"
                 >
                   Driver Name
                 </th>
                 <th
-                  class="th-vehicle"
+                  class="th-gen"
                   style="width: 150px"
                   data-col-key="vehicle_type"
                 >
                   Vehicle Type
                 </th>
-                <th
-                  class="th-vehicle"
-                  style="width: 120px"
-                  data-col-key="field_co"
-                >
+                <th class="th-gen" style="width: 120px" data-col-key="field_co">
                   Field Co
                 </th>
-                <th
-                  class="th-vehicle"
-                  style="width: 120px"
-                  data-col-key="site_co"
-                >
+                <th class="th-gen" style="width: 120px" data-col-key="site_co">
                   Site Co
                 </th>
               </tr>
@@ -1434,24 +1506,6 @@
         window.location.reload();
       }
 
-      let isScreenshotMode = false;
-      function toggleScreenshotMode() {
-        isScreenshotMode = !isScreenshotMode;
-        const table = document.getElementById("reportTable");
-        const btn = document.getElementById("btnToggleScreenshot");
-        
-        if (isScreenshotMode) {
-          table.classList.add("hide-for-screenshot");
-          btn.style.backgroundColor = "#ef4444"; // Red കളർ
-          // Slashed Eye SVG
-          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
-        } else {
-          table.classList.remove("hide-for-screenshot");
-          btn.style.backgroundColor = "transparent"; // തിരികെ പഴയ കളർ 
-          btn.innerHTML = `<span style="font-size: 14px; margin-right: 4px;">👁️</span>`;
-        }
-      }
-
       function loadApp() {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("mainAppContainer").style.display = "block";
@@ -1479,6 +1533,7 @@
       let headerFilters = {};
       let currentFilterColInfo = { key: "" };
       let isEditMode = false;
+      let isSecurityVerified = false; // 🟢 Track if code is entered once per session
       let sortConfig = null; // 🆕 Track active sorting
       let specialRulesCache = [];
 
@@ -1729,6 +1784,8 @@
           let bill_nrate = billData ? parseFloat(billData.nrate) || 0 : 0;
           let bill_otrate = billData ? parseFloat(billData.otrate) || 0 : 0;
           let bill_rent = billData ? parseFloat(billData.rent) || 0 : 0;
+          let rent_vat = billData ? parseFloat(billData.vat_amount) || 0 : 0;
+          let rent_total = billData ? parseFloat(billData.total) || 0 : 0;
 
           Object.keys(siteDataMap).forEach((sName, index) => {
             let ts_nr = siteDataMap[sName].ts_nr;
@@ -1819,7 +1876,10 @@
                   : "",
               bill_rent:
                 index === 0 && bill_rent > 0 ? bill_rent.toFixed(2) : "",
-              inv_amount: inv_amount > 0 ? inv_amount.toFixed(2) : "",
+              rent_vat: index === 0 && rent_vat > 0 ? rent_vat.toFixed(2) : "",
+              rent_total:
+                index === 0 && rent_total > 0 ? rent_total.toFixed(2) : "",
+              inv_subtotal: inv_amount > 0 ? inv_amount.toFixed(2) : "",
               inv_total: inv_amount > 0 ? (inv_amount * 1.15).toFixed(2) : "",
               diff_nr,
               diff_ot,
@@ -1892,7 +1952,10 @@
         let filtered = masterData.filter((d) => {
           let matchO = fOwner === "ALL" || d.owner === fOwner;
           let matchS = fSite === "ALL" || d.site === fSite;
-          let matchP = fPlate === "" || d.plate.includes(fPlate);
+          let matchP =
+            fPlate === "" ||
+            d.plate.includes(fPlate) ||
+            d.owner.toUpperCase().includes(fPlate);
 
           let passesHeaders = true;
           for (const key in headerFilters) {
@@ -1979,19 +2042,21 @@
             
             <td class="col-amt">${row.bill_nrate}</td>
             <td class="col-amt">${row.bill_otrate}</td>
-            <td class="col-amt" style="font-weight: 700;">${row.bill_rent}</td>
-            <td class="col-amt editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_amount}</td>
-            <td class="col-amt" style="font-weight: 700; color: #b91c1c;">${row.inv_total}</td>
-            <td class="editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
-            <td class="editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
-            <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
-            <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'erp')">${row.erp}</td>
-            <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'payment_status')">${row.payment_status}</td>
-            <td class="editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'accounts_note')">${row.accounts_note}</td>
-            <td style="word-wrap: break-word;">${row.driver_name}</td>
-            <td style="word-wrap: break-word;">${row.vehicle_type}</td>
-            <td style="word-wrap: break-word;">${row.field_co}</td>
-            <td style="word-wrap: break-word;">${row.site_co}</td>
+            <td class="col-amt" style="font-weight: 700;">${row.bill_rent ? Number(row.bill_rent).toFixed(2) : ""}</td>
+            <td class="col-amt" style="font-weight: 700;">${row.rent_vat ? Number(row.rent_vat).toFixed(2) : ""}</td>
+            <td class="col-amt" style="font-weight: 700;">${row.rent_total ? Number(row.rent_total).toFixed(2) : ""}</td>
+            <td class="col-inv-red editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_subtotal ? Number(row.inv_subtotal).toFixed(2) : ""}</td>
+            <td class="col-inv-red" style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
+            <td class="col-extra editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
+            <td class="col-extra editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
+            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
+            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'erp')">${row.erp}</td>
+            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'payment_status')">${row.payment_status}</td>
+            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'accounts_note')">${row.accounts_note}</td>
+            <td class="col-gen" style="word-wrap: break-word;">${row.driver_name}</td>
+            <td class="col-gen" style="word-wrap: break-word;">${row.vehicle_type}</td>
+            <td class="col-gen" style="word-wrap: break-word;">${row.field_co}</td>
+            <td class="col-gen" style="word-wrap: break-word;">${row.site_co}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -2008,6 +2073,16 @@
           });
           return;
         }
+
+        // 🟢 If already verified in this session, skip the prompt
+        if (isSecurityVerified) {
+          isEditMode = true;
+          document.getElementById("btnEditData").innerHTML = "❌ Cancel Edit";
+          document.getElementById("btnSaveChanges").style.display = "inline-block";
+          activateEditModeCells();
+          return;
+        }
+
         document.getElementById("editSecurityCode").value = "";
         document.getElementById("customPrompt").style.display = "flex";
         document.getElementById("editSecurityCode").focus();
@@ -2035,6 +2110,7 @@
           const data = await res.json();
 
           if (data.success) {
+            isSecurityVerified = true; // 🟢 Mark as verified for this session
             isEditMode = true;
             document.getElementById("btnEditData").innerHTML = "❌ Cancel Edit";
             document.getElementById("btnSaveChanges").style.display =
@@ -2242,7 +2318,10 @@
 
           let matchO = fOwner === "ALL" || d.owner === fOwner;
           let matchS = fSite === "ALL" || d.site === fSite;
-          let matchP = fPlate === "" || d.plate.includes(fPlate);
+          let matchP =
+            fPlate === "" ||
+            d.plate.includes(fPlate) ||
+            d.owner.toUpperCase().includes(fPlate);
 
           let passesOtherHeaders = true;
           for (let filterKey in headerFilters) {
@@ -2422,7 +2501,10 @@
         let filtered = masterData.filter((d) => {
           let matchO = fOwner === "ALL" || d.owner === fOwner;
           let matchS = fSite === "ALL" || d.site === fSite;
-          let matchP = fPlate === "" || d.plate.includes(fPlate);
+          let matchP =
+            fPlate === "" ||
+            d.plate.includes(fPlate) ||
+            d.owner.toUpperCase().includes(fPlate);
 
           let passesHeaders = true;
           for (const key in headerFilters) {
@@ -2659,8 +2741,9 @@
         for (let i = 9; i <= 10; i++) m[i] = COL_COLORS.bill;
         for (let i = 11; i <= 13; i++) m[i] = COL_COLORS.diff;
         for (let i = 14; i <= 18; i++) m[i] = COL_COLORS.amt;
-        for (let i = 19; i <= 24; i++) m[i] = COL_COLORS.extra;
-        for (let i = 25; i <= 28; i++) m[i] = COL_COLORS.vehicle;
+        for (let i = 19; i <= 20; i++) m[i] = "B91C1C"; // Red for Invoice
+        for (let i = 21; i <= 26; i++) m[i] = COL_COLORS.extra;
+        for (let i = 27; i <= 30; i++) m[i] = COL_COLORS.vehicle;
         return m;
       }
 
@@ -2674,8 +2757,9 @@
         for (let i = 10; i <= 11; i++) m[i] = COL_COLORS.bill;
         for (let i = 12; i <= 14; i++) m[i] = COL_COLORS.diff;
         for (let i = 15; i <= 19; i++) m[i] = COL_COLORS.amt;
-        for (let i = 20; i <= 25; i++) m[i] = COL_COLORS.extra;
-        for (let i = 26; i <= 29; i++) m[i] = COL_COLORS.vehicle;
+        for (let i = 20; i <= 21; i++) m[i] = "B91C1C"; // Red for Invoice
+        for (let i = 22; i <= 27; i++) m[i] = COL_COLORS.extra;
+        for (let i = 28; i <= 31; i++) m[i] = COL_COLORS.vehicle;
         return m;
       }
 
@@ -2717,20 +2801,22 @@
             "VAT",
             "Owner Name",
             "Plate No",
-            "TS N.Hr",
-            "TS OT",
-            "Inv N.Hr",
-            "Inv OT",
-            "Bill N.Hr",
-            "Bill OT",
-            "Diff N.Hr",
-            "Diff OT",
-            "Diff ST",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "IDN",
             "NR Rate",
             "OT Rate",
             "Rent",
-            "Inv Subtotal",
-            "Inv Total",
+            "VAT",
+            "Total",
+            "Subtotal",
+            "Total",
             "Invoice No",
             "Bill No",
             "PWAS",
@@ -2762,7 +2848,9 @@
             r.bill_nrate || "",
             r.bill_otrate || "",
             r.bill_rent || "",
-            r.inv_amount || "",
+            r.rent_vat || "",
+            r.rent_total || "",
+            r.inv_subtotal || "",
             r.inv_total || "",
             r.inv_no,
             r.bill_no,
@@ -2786,8 +2874,9 @@
           { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } },
           { s: { r: 0, c: 11 }, e: { r: 0, c: 13 } },
           { s: { r: 0, c: 14 }, e: { r: 0, c: 18 } },
-          { s: { r: 0, c: 19 }, e: { r: 0, c: 24 } },
-          { s: { r: 0, c: 25 }, e: { r: 0, c: 28 } },
+          { s: { r: 0, c: 19 }, e: { r: 0, c: 20 } },
+          { s: { r: 0, c: 21 }, e: { r: 0, c: 26 } },
+          { s: { r: 0, c: 27 }, e: { r: 0, c: 30 } },
         ];
 
         ws["!cols"] = [
@@ -2844,11 +2933,15 @@
             "",
             "To Supplier",
             "",
+            "DIFFERENCE",
+            "",
+            "",
             "AMOUNT",
             "",
             "",
             "",
-            "DIFFERENCE",
+            "",
+            "INVOICE",
             "",
             "EXTRA DETAILS",
             "",
@@ -2868,19 +2961,22 @@
             "VAT",
             "Owner Name",
             "Plate No",
-            "TS N.Hr",
-            "TS OT",
-            "Inv N.Hr",
-            "Inv OT",
-            "Bill N.Hr",
-            "Bill OT",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "IDN",
             "NR Rate",
             "OT Rate",
             "Rent",
-            "Inv Amount",
-            "Diff N.Hr",
-            "Diff OT",
-            "Diff ST",
+            "VAT",
+            "Total",
+            "Subtotal",
+            "Total",
             "Invoice No",
             "Bill No",
             "PWAS",
@@ -2907,13 +3003,16 @@
             r.inv_ot || "",
             r.bill_db_nr || "",
             r.bill_db_ot || "",
-            r.bill_nrate || "",
-            r.bill_otrate || "",
-            r.bill_rent || "",
-            r.inv_amount || "",
             r.diff_nr,
             r.diff_ot,
             r.diff_st,
+            r.bill_nrate || "",
+            r.bill_otrate || "",
+            r.bill_rent || "",
+            r.rent_vat || "",
+            r.rent_total || "",
+            r.inv_subtotal || "",
+            r.inv_total || "",
             r.inv_no,
             r.bill_no,
             r.pwas || "-",
@@ -2936,46 +3035,48 @@
           { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } },
           { s: { r: 0, c: 12 }, e: { r: 0, c: 14 } },
           { s: { r: 0, c: 15 }, e: { r: 0, c: 19 } },
-          { s: { r: 0, c: 20 }, e: { r: 0, c: 25 } },
-          { s: { r: 0, c: 26 }, e: { r: 0, c: 29 } },
+          { s: { r: 0, c: 20 }, e: { r: 0, c: 21 } },
+          { s: { r: 0, c: 22 }, e: { r: 0, c: 27 } },
+          { s: { r: 0, c: 28 }, e: { r: 0, c: 31 } },
         ];
 
         ws["!cols"] = [
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 10 },
-          { wch: 8 },
-          { wch: 25 },
-          { wch: 12 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 25 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 15 },
+          { wch: 15 }, // Month
+          { wch: 20 }, // Site
+          { wch: 10 }, // Rate
+          { wch: 8 }, // VAT
+          { wch: 25 }, // Owner
+          { wch: 12 }, // Plate
+          { wch: 10 }, // TS NR
+          { wch: 10 }, // TS OT
+          { wch: 10 }, // Inv NR
+          { wch: 10 }, // Inv OT
+          { wch: 10 }, // Bill NR
+          { wch: 10 }, // Bill OT
+          { wch: 12 }, // Diff NR
+          { wch: 12 }, // Diff OT
+          { wch: 12 }, // Diff IDN
+          { wch: 12 }, // NR Rate
+          { wch: 12 }, // OT Rate
+          { wch: 15 }, // Rent
+          { wch: 15 }, // VAT Amt
+          { wch: 15 }, // Total Amt
+          { wch: 15 }, // Subtotal
+          { wch: 15 }, // Inv Total
+          { wch: 20 }, // Inv No
+          { wch: 15 }, // Bill No
+          { wch: 20 }, // PWAS
+          { wch: 20 }, // ERP
+          { wch: 20 }, // Payment Status
+          { wch: 25 }, // Accounts Note
+          { wch: 20 }, // Driver
+          { wch: 20 }, // VType
+          { wch: 15 }, // Field Co
+          { wch: 15 }, // Site Co
         ];
 
-        // 🆕 Apply header colors matching the screen
         let colorMap = getSingleColorMap();
-        applyExcelHeaderStyles(ws, aoa.length, 30, colorMap, colorMap);
+        applyExcelHeaderStyles(ws, aoa.length, 32, colorMap, colorMap);
 
         return ws;
       }
@@ -3075,6 +3176,124 @@
             copyText(textToCopy);
           }
         });
+
+      // 🟢 Column Toggler Logic
+      function openColToggleModal() {
+        document.getElementById("colToggleModal").style.display = "flex";
+      }
+      function closeColToggleModal() {
+        document.getElementById("colToggleModal").style.display = "none";
+      }
+      function toggleTableCol(groupKey) {
+        const table = document.getElementById("reportTable");
+        const isChecked = document.getElementById(
+          "chk-col-" + groupKey,
+        ).checked;
+        if (isChecked) {
+          table.classList.remove("hide-" + groupKey);
+        } else {
+          table.classList.add("hide-" + groupKey);
+        }
+      }
     </script>
+
+    <div id="colToggleModal" class="modal-overlay">
+      <div class="modal-content" style="width: 350px">
+        <h3>Choose Columns to Hide/Show</h3>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 15px">
+          Uncheck the boxes below to hide specific column groups from the
+          screen.
+        </p>
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+          "
+        >
+          <label
+            ><input
+              type="checkbox"
+              id="chk-col-ts"
+              checked
+              onchange="toggleTableCol('ts')"
+            />
+            Logsheet Collected (TS)</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              id="chk-col-inv"
+              checked
+              onchange="toggleTableCol('inv')"
+            />
+            Bill Summary (Inv)</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              id="chk-col-bill"
+              checked
+              onchange="toggleTableCol('bill')"
+            />
+            Supplier</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              id="chk-col-diff"
+              checked
+              onchange="toggleTableCol('diff')"
+            />
+            Difference</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              id="chk-col-amt"
+              checked
+              onchange="toggleTableCol('amt')"
+            />
+            Amount Details</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              id="chk-col-inv-red"
+              checked
+              onchange="toggleTableCol('inv-red')"
+            />
+            Invoice Totals (Red)</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              id="chk-col-extra"
+              checked
+              onchange="toggleTableCol('extra')"
+            />
+            Extra Details (PWAS, ERP, etc)</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              id="chk-col-gen"
+              checked
+              onchange="toggleTableCol('gen')"
+            />
+            General Vehicle Info</label
+          >
+        </div>
+        <button
+          class="btn-fetch"
+          style="width: 100%"
+          onclick="closeColToggleModal()"
+        >
+          Done
+        </button>
+      </div>
+    </div>
   </body>
 </html>
