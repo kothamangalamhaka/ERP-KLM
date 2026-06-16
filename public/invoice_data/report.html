@@ -240,6 +240,7 @@
         border-radius: 8px;
         border: 1px solid var(--border-color);
         overflow-x: auto;
+        min-height: 73.5vh;
         max-height: 80vh;
         position: relative;
       }
@@ -921,6 +922,7 @@
               <col style="width: 60px" />
               <col style="width: 50px" />
               <col style="width: 180px" />
+              <col style="width: 150px" />
               <col style="width: 100px" />
 
               <!-- TS & INV & BILL -->
@@ -957,14 +959,13 @@
 
               <!-- General Info -->
               <col class="col-grp-gen" style="width: 150px" />
-              <col class="col-grp-gen" style="width: 150px" />
               <col class="col-grp-gen" style="width: 120px" />
               <col class="col-grp-gen" style="width: 120px" />
             </colgroup>
 
             <thead>
               <tr>
-                <th colspan="5" class="th-vehicle">VEHICLE INFO</th>
+                <th colspan="6" class="th-vehicle">VEHICLE INFO</th>
                 <th colspan="2" class="th-ts">Logsheet Collected</th>
                 <th colspan="2" class="th-inv">Bill Summary</th>
                 <th colspan="2" class="th-bill">Supplier</th>
@@ -972,7 +973,7 @@
                 <th colspan="5" class="th-amt">AMOUNT</th>
                 <th colspan="2" class="th-inv-red">INVOICE</th>
                 <th colspan="6" class="th-extra">EXTRA DETAILS</th>
-                <th colspan="4" class="th-gen">GENERAL VEHICLE INFO</th>
+                <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
               </tr>
               <tr>
                 <!-- 🆕 data-col-key added to each th for right-click copy; col index order matches tbody td order -->
@@ -1007,6 +1008,14 @@
                   onclick="openExcelFilterMenu(event, 'owner')"
                 >
                   Owner Name <span class="filter-icon" data-key="owner">▼</span>
+                </th>
+                <th
+                  class="th-vehicle"
+                  style="width: 150px"
+                  data-col-key="vehicle_type"
+                  onclick="openExcelFilterMenu(event, 'vehicle_type')"
+                >
+                  Vehicle Type <span class="filter-icon" data-key="vehicle_type">▼</span>
                 </th>
                 <th
                   class="th-vehicle"
@@ -1200,13 +1209,7 @@
                 >
                   Driver Name
                 </th>
-                <th
-                  class="th-gen"
-                  style="width: 150px"
-                  data-col-key="vehicle_type"
-                >
-                  Vehicle Type
-                </th>
+                
                 <th class="th-gen" style="width: 120px" data-col-key="field_co">
                   Field Co
                 </th>
@@ -2026,6 +2029,7 @@
             <td style="font-weight: 700; color: #0f172a;">${row.rate}</td>
             <td style="font-weight: 700; background-color: ${row.vat.toLowerCase().includes("yes") ? "#fef08a" : "transparent"}; color: #854d0e;">${row.vat.toLowerCase().includes("yes") ? "Yes" : ""}</td>
             <td class="col-owner" style="word-wrap: break-word;">${row.owner}</td>
+            <td style="word-wrap: break-word;">${row.vehicle_type}</td>
             <td class="plate-cell" style="font-weight: 700; word-wrap: break-word;" oncontextmenu="copySinglePlate(event, '${row.plate}')" title="Right click to copy">${row.plate}</td>
             
             <td class="col-ts">${row.ts_nr}</td><td class="col-ts">${row.ts_ot}</td>
@@ -2054,7 +2058,6 @@
             <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'payment_status')">${row.payment_status}</td>
             <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'accounts_note')">${row.accounts_note}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.driver_name}</td>
-            <td class="col-gen" style="word-wrap: break-word;">${row.vehicle_type}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.field_co}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.site_co}</td>
           `;
@@ -2177,7 +2180,7 @@
         const rows = document.querySelectorAll("#reportBody tr");
 
         rows.forEach((tr) => {
-          if (!tr.cells || tr.cells.length < 5) return;
+          if (!tr.cells || tr.cells.length < 6) return;
           let site = tr.dataset.site;
           let plate = tr.dataset.plate;
 
