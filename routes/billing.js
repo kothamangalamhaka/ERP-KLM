@@ -177,6 +177,8 @@ router.get("/vehicles", async (req, res) => {
             ? "Yes"
             : "No";
         let ownerName = (pItem.owner_name || pItem.owner || "").trim();
+        // 🟢 Fetch Owner Mobile
+        let ownerMobile = (pItem.owner_mobile || "").trim();
 
         validVehicles.push({
           plate_number: pPlate,
@@ -185,6 +187,7 @@ router.get("/vehicles", async (req, res) => {
           nrate: pRate / 260,
           otrate: (pRate / 260) * 0.7,
           owner: ownerName,
+          owner_mobile: ownerMobile, // 🟢 Add to validVehicles
           site: pSite,
           driver_name: pDriver,
           vat_bill: isVatBill,

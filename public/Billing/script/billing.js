@@ -1387,6 +1387,10 @@ function updateCardTotals(card) {
     let ownerName = ownerInput ? ownerInput.value.trim() : card.dataset.owner;
     if (!ownerName) ownerName = "Manual Entry";
 
+    // 🟢 NEW: Make Owner Name Clickable for WhatsApp without changing style
+    let cardIdRaw = card.id.replace("billCard_", "");
+    let waSpan = `<span style="cursor:pointer;" title="Click to copy & WhatsApp" onclick="copyCardAndWhatsApp('${cardIdRaw}', '${ownerName}')">${ownerName}</span>`;
+
     if (totalValidRows > 0) {
       const order = ["Haka", "Aljoda", "Masar Wheels", "We1 Track"];
       let compStrings = [];
@@ -1395,9 +1399,9 @@ function updateCardTotals(card) {
           compStrings.push(`${comp} (${companyCounts[comp]})`);
         }
       });
-      titleEl.innerText = compStrings.join(" - ") + " | " + ownerName;
+      titleEl.innerHTML = compStrings.join(" - ") + " | " + waSpan;
     } else {
-      titleEl.innerText = (card.dataset.company || "Haka") + " - " + ownerName;
+      titleEl.innerHTML = (card.dataset.company || "Haka") + " - " + waSpan;
     }
   }
 }
@@ -2249,5 +2253,81 @@ function loadSavedAdjustmentsToCard(card) {
     // അവസാനം ഒരു ബ്ലാങ്ക് റോ കൂടി നൽകുക
     tbody.insertAdjacentHTML("beforeend", generateAdjRowHTML());
     updateCardTotals(card);
+  }
+}
+
+/* =========================================
+   🟢 COPY CARD & OPEN WHATSAPP DESKTOP
+========================================= */
+async function copyCardAndWhatsApp(cardId, ownerName) {
+  if (ownerName === "Manual Entry" || !ownerName) {
+    return showToast("Please select a valid Owner first!");
+  }
+
+  // Find mobile number from masterData (Improved matching to ignore spaces)
+  let mobile = "";
+  let safeOwnerName = ownerName.trim().toUpperCase();
+  
+  let match = masterData.find(v => {
+      let vOwner = (v.owner || "").trim().toUpperCase();
+      return vOwner === safeOwnerName && v.owner_mobile;
+  });
+  
+  if (match && match.owner_mobile) {
+    mobile = String(match.owner_mobile).replace(/[^0-9+]/g, ''); // Extract only numbers
+  }
+
+  if (!mobile) {
+    return showToast(`Mobile number not found for ${ownerName} in Database!`);
+  }
+
+  // Saudi Number Formatting Check (Change to 91 if it's India)
+  if (mobile.startsWith("05") && mobile.length === 10) {
+      mobile = "966" + mobile.substring(1);
+  }
+
+  document.getElementById("loader").style.display = "flex";
+  document.getElementById("loaderText").innerText = "Copying Card & Opening WhatsApp...";
+
+  const printArea = document.getElementById(`printArea_${cardId}`);
+  convertInputsToText(printArea);
+  
+  try {
+    const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+    revertInputsFromText(printArea);
+
+    canvas.toBlob(async (blob) => {
+      try {
+        // Try copying to clipboard (Works perfectly if HTTPS or localhost)
+        if (navigator.clipboard && window.isSecureContext) {
+            const item = new ClipboardItem({ "image/png": blob });
+            await navigator.clipboard.write([item]);
+            showToast("Card copied! Opening WhatsApp...");
+        } else {
+            // Fallback for non-HTTPS local IP - Downloads the file automatically instead
+            const link = document.createElement("a");
+            link.download = `${ownerName.replace(/\s+/g, "_")}_Bill.png`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            showToast("Image Downloaded. Opening WhatsApp...");
+        }
+        
+        document.getElementById("loader").style.display = "none";
+        
+        // Open WhatsApp Desktop / Web link
+        setTimeout(() => {
+          window.open(`whatsapp://send?phone=${mobile}`, '_self');
+        }, 1000);
+
+      } catch (err) {
+        document.getElementById("loader").style.display = "none";
+        showToast("Clipboard write failed. Please check browser permissions.");
+        console.error(err);
+      }
+    }, "image/png", 1.0);
+  } catch (err) {
+    revertInputsFromText(printArea);
+    document.getElementById("loader").style.display = "none";
+    showToast("Error generating image.");
   }
 }
