@@ -1615,7 +1615,6 @@ function submitBulkData() {
       : card.dataset.owner;
 
     let adjDataArray = [];
-    let adjAmtTotal = 0;
     card.querySelectorAll(".adjBody tr").forEach((adjRow) => {
       let date = adjRow.querySelector(".adj-date").value.trim();
       let plate = adjRow.querySelector(".adj-plate").value.trim();
@@ -1626,10 +1625,6 @@ function submitBulkData() {
       let type = adjRow.querySelector(".adj-type").value;
 
       if (date || plate || desc || amt !== 0) {
-        if (type !== "none") {
-          let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
-          adjAmtTotal += actualAmt;
-        }
         adjDataArray.push({
           date,
           plate,
@@ -1642,15 +1637,28 @@ function submitBulkData() {
       }
     });
 
-    let adjDescStr =
-      adjDataArray.length > 0 ? JSON.stringify(adjDataArray) : "";
-
     card.querySelectorAll(".tableBody tr").forEach((row) => {
       let plate = row.querySelector(".plate").value.trim();
       if (plate) {
         let rentVal = parseFloat(row.querySelector(".rent").value) || 0;
         let vatAmt = parseFloat(row.querySelector(".vat")?.innerText || 0);
         let totalVal = rentVal + vatAmt;
+
+        // 🟢 BUG FIX: Match Adjustment Plate dynamically
+        let rowAdjs = adjDataArray.filter((a) => {
+          let adjP = a.plate.toUpperCase().replace(/\s+/g, "");
+          let rowP = plate.toUpperCase().replace(/\s+/g, "");
+          return adjP !== "" && (rowP.includes(adjP) || adjP.includes(rowP));
+        });
+
+        let rowAdjAmtTotal = 0;
+        rowAdjs.forEach((a) => {
+          if (a.type !== "none") {
+            rowAdjAmtTotal +=
+              a.type === "less" ? -Math.abs(a.amt) : Math.abs(a.amt);
+          }
+        });
+        let rowAdjDescStr = rowAdjs.length > 0 ? JSON.stringify(rowAdjs) : "";
 
         let realOwner = fallbackOwner;
         let masterMatch = masterData.find(
@@ -1688,9 +1696,9 @@ function submitBulkData() {
           vat_percent: parseFloat(row.querySelector(".vat-rate")?.value || 0),
           vat_amount: vatAmt,
           total: totalVal,
-          adjustment_desc: adjDescStr,
-          adjusted_amount: adjAmtTotal,
-          after_adjustment: totalVal + adjAmtTotal,
+          adjustment_desc: rowAdjDescStr,
+          adjusted_amount: rowAdjAmtTotal,
+          after_adjustment: totalVal + rowAdjAmtTotal,
         });
       }
     });
@@ -1851,7 +1859,6 @@ function submitSingleCard(cardId) {
   let fallbackOwner = ownerInput ? ownerInput.value.trim() : card.dataset.owner;
 
   let adjDataArray = [];
-  let adjAmtTotal = 0;
   card.querySelectorAll(".adjBody tr").forEach((adjRow) => {
     let date = adjRow.querySelector(".adj-date").value.trim();
     let plate = adjRow.querySelector(".adj-plate").value.trim();
@@ -1862,10 +1869,6 @@ function submitSingleCard(cardId) {
     let type = adjRow.querySelector(".adj-type").value;
 
     if (date || plate || desc || amt !== 0) {
-      if (type !== "none") {
-        let actualAmt = type === "less" ? -Math.abs(amt) : Math.abs(amt);
-        adjAmtTotal += actualAmt;
-      }
       adjDataArray.push({
         date,
         plate,
@@ -1878,14 +1881,28 @@ function submitSingleCard(cardId) {
     }
   });
 
-  let adjDescStr = adjDataArray.length > 0 ? JSON.stringify(adjDataArray) : "";
-
   card.querySelectorAll(".tableBody tr").forEach((row) => {
     let plate = row.querySelector(".plate").value.trim();
     if (plate) {
       let rentVal = parseFloat(row.querySelector(".rent").value) || 0;
       let vatAmt = parseFloat(row.querySelector(".vat")?.innerText || 0);
       let totalVal = rentVal + vatAmt;
+
+      // 🟢 BUG FIX: Match Adjustment Plate dynamically for single card
+      let rowAdjs = adjDataArray.filter((a) => {
+        let adjP = a.plate.toUpperCase().replace(/\s+/g, "");
+        let rowP = plate.toUpperCase().replace(/\s+/g, "");
+        return adjP !== "" && (rowP.includes(adjP) || adjP.includes(rowP));
+      });
+
+      let rowAdjAmtTotal = 0;
+      rowAdjs.forEach((a) => {
+        if (a.type !== "none") {
+          rowAdjAmtTotal +=
+            a.type === "less" ? -Math.abs(a.amt) : Math.abs(a.amt);
+        }
+      });
+      let rowAdjDescStr = rowAdjs.length > 0 ? JSON.stringify(rowAdjs) : "";
 
       let realOwner = fallbackOwner;
       let masterMatch = masterData.find(
@@ -1918,9 +1935,9 @@ function submitSingleCard(cardId) {
         vat_percent: parseFloat(row.querySelector(".vat-rate")?.value || 0),
         vat_amount: vatAmt,
         total: totalVal,
-        adjustment_desc: adjDescStr,
-        adjusted_amount: adjAmtTotal,
-        after_adjustment: totalVal + adjAmtTotal,
+        adjustment_desc: rowAdjDescStr,
+        adjusted_amount: rowAdjAmtTotal,
+        after_adjustment: totalVal + rowAdjAmtTotal,
       });
     }
   });
