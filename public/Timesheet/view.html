@@ -3,9 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Timesheet Card Viewer</title>
+    <title>Timesheet Card Viewer - Haka ERP</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- 🟢 ADD THIS MISSING LINE FOR PDF MERGING -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+
+    <!-- Include PDF.js for Logsheet Viewer -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+    </script>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
@@ -15,16 +25,19 @@
         margin: 0;
         padding: 0;
         color: #111;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; /* Prevent full body scroll, handle inside containers */
       }
 
       .controls-wrapper {
         background: #0f2027;
         color: white;
-        padding: 20px;
+        padding: 15px 20px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        position: sticky;
-        top: 0;
         z-index: 100;
+        flex-shrink: 0;
       }
 
       .controls-inner {
@@ -91,19 +104,15 @@
         background-color: #2563eb;
         padding: 9px 25px;
       }
-
       .btn-generate:hover:not(:disabled) {
         background-color: #1d4ed8;
       }
-
       .btn-pdf {
         background-color: #e11d48;
       }
-
       .btn-pdf:hover:not(:disabled) {
         background-color: #be123c;
       }
-
       .btn-generate:disabled,
       .btn-pdf:disabled {
         opacity: 0.7;
@@ -120,7 +129,6 @@
         animation: rotation 1s linear infinite;
         display: none;
       }
-
       @keyframes rotation {
         0% {
           transform: rotate(0deg);
@@ -173,11 +181,9 @@
         font-weight: 700 !important;
         background: #fff;
       }
-
       .multi-select-box:hover {
         background: #f8fafc;
       }
-
       .multi-select-box input[type="checkbox"] {
         width: 16px;
         height: 16px;
@@ -185,12 +191,48 @@
         cursor: pointer;
       }
 
+      /* 🟢 SPLIT SCREEN LAYOUT */
+      #splitContainer {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+        width: 100%;
+      }
+
+      #leftCardsArea {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #e2e8f0;
+        padding-bottom: 50px;
+      }
+
+      #rightLogsheetArea {
+        width: 0;
+        display: none;
+        background: #fff;
+        border-left: 2px solid #cbd5e1;
+        flex-direction: column;
+        position: relative;
+        z-index: 50;
+      }
+
+      body.split-active #rightLogsheetArea {
+        width: 48%;
+        min-width: 450px;
+        display: flex;
+      }
+
       .report-container {
-        padding: 30px;
+        padding: 30px 15px;
         display: flex;
         flex-direction: column;
         gap: 30px;
         align-items: center;
+        width: max-content;
       }
 
       .ts-card {
@@ -202,9 +244,9 @@
         border-radius: 4px;
         box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
         position: relative;
-        margin-bottom: 10px;
         display: flex;
         flex-direction: column;
+        flex-shrink: 0;
       }
 
       .card-dl-btn {
@@ -230,6 +272,29 @@
         color: #0f2027;
       }
 
+      .btn-log-window {
+        position: absolute;
+        top: 10mm;
+        right: 12mm;
+        background: #8b5cf6;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 11px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: background 0.2s;
+        z-index: 10;
+      }
+      .btn-log-window:hover {
+        background: #7c3aed;
+      }
+      body.split-active .btn-log-window {
+        display: none;
+      } /* Hide button when already split */
+
       .invoice-box {
         border: 2px dotted #333;
         border-radius: 4px;
@@ -240,7 +305,6 @@
         margin-bottom: 10px;
         background-color: #f8fafc;
       }
-
       .red-border-box-bottom {
         border: 1px dashed #b91c1c;
         border-radius: 6px;
@@ -258,7 +322,6 @@
         align-items: flex-start;
         margin-bottom: 10px;
       }
-
       .ts-month-title {
         font-size: 16px;
         font-weight: 800;
@@ -266,39 +329,33 @@
         color: #111;
         text-align: right;
       }
-
       .info-col {
         display: flex;
         flex-direction: column;
         gap: 4px;
         width: 35%;
       }
-
       .info-row {
         display: flex;
         font-size: 12.5px;
       }
-
       .info-lbl {
         width: 90px;
         color: #333;
         font-weight: 700;
         flex-shrink: 0;
       }
-
       .info-val {
         color: #000;
         font-weight: 600;
         word-break: break-word;
       }
-
       .plate-wrapper {
         display: flex;
         flex-direction: column;
         align-items: center;
         width: 30%;
       }
-
       .asset-code {
         font-weight: 800;
         font-size: 15px;
@@ -306,7 +363,6 @@
         margin-bottom: 2px;
         text-align: center;
       }
-
       .plate-pill {
         background-color: #22c55e;
         color: white;
@@ -327,7 +383,6 @@
         margin-bottom: 5px;
         table-layout: fixed;
       }
-
       .ts-table th,
       .ts-table td {
         border: 1px solid #000;
@@ -337,17 +392,14 @@
         height: 19px;
         word-wrap: break-word;
       }
-
       .ts-table th {
         font-weight: 700;
         background-color: #fff;
         padding: 5px 2px;
       }
-
       .ts-table tr:nth-child(even) {
         background-color: #fafafa;
       }
-
       .ts-table td.note-col {
         text-align: left;
         padding-left: 5px;
@@ -362,20 +414,15 @@
         font-size: 12px;
         font-weight: 700;
       }
-
-      .footer-left {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-      }
-
+      .footer-left,
       .footer-right {
         display: flex;
         flex-direction: column;
         gap: 3px;
+      }
+      .footer-right {
         text-align: right;
       }
-
       .ts-owner-details {
         margin-top: 15px;
         font-size: 11.5px;
@@ -384,34 +431,196 @@
         flex-direction: column;
         gap: 5px;
       }
-
       .co-details {
         display: flex;
         gap: 30px;
       }
 
-      @page {
-        size: A4 portrait;
+      .hm,
+      .tsdb {
+        padding: 9px 15px;
+        border-radius: 4px;
+        border: none;
+        transition: 0.2s;
+      }
+      .hm {
+        background-color: #2563eb;
+      }
+      .tsdb {
+        background-color: #2e0a4b;
+      }
+      .hm a,
+      .tsdb a {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .tsdb:hover {
+        background-color: #5b21b6;
+      }
+
+      /* 🟢 MOBILE RESPONSIVE FIXES */
+      @media (max-width: 768px) {
+        .controls-inner {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .form-group,
+        select,
+        input,
+        .btn-generate {
+          width: 100% !important;
+          box-sizing: border-box;
+        }
+        .btn-pdf,
+        .hm,
+        .tsdb {
+          flex: 1;
+          text-align: center;
+          justify-content: center;
+        }
+
+        body.split-active #splitContainer {
+          flex-direction: column;
+        }
+        body.split-active #rightLogsheetArea {
+          width: 100%;
+          min-width: 100%;
+          height: 50vh;
+          border-left: none;
+          border-top: 2px solid #cbd5e1;
+        }
+
+        .report-container {
+          padding: 15px 5px;
+        }
+        /* Card wrapper scrolls horizontally, card stays 210mm */
+        #leftCardsArea {
+          padding-bottom: 20px;
+          align-items: flex-start;
+        }
+      }
+
+      /* Logsheet Inline Viewer specific CSS */
+      .logsheet-header-panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 15px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .logsheet-header-panel h3 {
         margin: 0;
+        color: #0f172a;
+        font-size: 14px;
+      }
+      .logsheet-body-panel {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+      .logsheet-sidebar-panel {
+        width: 200px;
+        border-right: 1px solid #e2e8f0;
+        background: #f8fafc;
+        overflow-y: auto;
+        padding: 10px;
+      }
+      .logsheet-viewer-panel {
+        flex: 1;
+        background: #e2e8f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .logsheet-file-item {
+        padding: 8px;
+        margin-bottom: 5px;
+        background: #fff;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      .logsheet-file-item:hover,
+      .logsheet-file-item.active {
+        border-color: #8b5cf6;
+        background: #f3e8ff;
+        color: #6d28d9;
+      }
+
+      .image-zoom-wrapper {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: grab;
+        position: relative;
+      }
+      .image-zoom-wrapper:active {
+        cursor: grabbing;
+      }
+      .image-zoom-wrapper img {
+        transform-origin: center center;
+        transition: transform 0.1s ease-out;
+        user-select: none;
+        pointer-events: none;
+      }
+      .zoom-controls {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 15px;
+        background: rgba(15, 23, 42, 0.85);
+        padding: 8px 25px;
+        border-radius: 30px;
+        z-index: 10;
+      }
+      .zoom-btn {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 16px;
+        transition: transform 0.1s;
+      }
+      .zoom-btn:hover {
+        color: #38bdf8;
+        transform: scale(1.1);
       }
 
       @media print {
         body {
           background-color: white;
-          margin: 0;
-          padding: 0;
+          overflow: visible;
+          height: auto;
+          display: block;
         }
-
         .controls-wrapper,
-        .card-dl-btn {
+        .card-dl-btn,
+        .btn-log-window,
+        #rightLogsheetArea {
           display: none !important;
         }
-
+        #splitContainer,
+        #leftCardsArea,
         .report-container {
+          display: block;
+          width: 100%;
+          height: auto;
+          overflow: visible;
           padding: 0;
-          gap: 0;
         }
-
         .ts-card {
           width: 210mm;
           min-height: 297mm;
@@ -422,45 +631,7 @@
           margin: 0;
           page-break-after: always;
           page-break-inside: avoid;
-          overflow: hidden;
         }
-      }
-
-      .hm {
-        background-color: #2563eb;
-        padding: 9px 15px;
-        border-radius: 4px;
-        border: none;
-        transition: background-color 0.2s;
-      }
-
-      .hm a {
-        color: white;
-        text-decoration: none;
-        font-weight: 600;
-      }
-
-      a {
-        text-decoration: none;
-      }
-
-      .tsdb {
-        background-color: #2e0a4b;
-        padding: 9px 15px;
-        border-radius: 4px;
-        border: none;
-        transition: background-color 0.2s;
-      }
-
-      .tsdb a {
-        color: white;
-        text-decoration: none;
-        font-weight: 600;
-      }
-
-      .tsdb:hover,
-      .tsdb > a:hover {
-        background-color: #5b21b6;
       }
     </style>
   </head>
@@ -551,7 +722,9 @@
           <span class="loader" id="genLoader"></span> Generate Report
         </button>
 
-        <div style="margin-left: auto; display: flex; gap: 10px">
+        <div
+          style="margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap"
+        >
           <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf">
             <span class="loader" id="pdfLoader"></span> 📄 PDF
           </button>
@@ -561,16 +734,100 @@
       </div>
     </div>
 
-    <div class="report-container" id="reportArea">
-      <div
-        style="
-          color: #64748b;
-          margin-top: 50px;
-          font-weight: 500;
-          font-size: 16px;
-        "
-      >
-        Select filters and click "Generate Report"
+    <div id="splitContainer">
+      <div id="leftCardsArea">
+        <div class="report-container" id="reportArea">
+          <div
+            style="
+              color: #64748b;
+              margin-top: 50px;
+              font-weight: 500;
+              font-size: 16px;
+              text-align: center;
+            "
+          >
+            Select filters and click "Generate Report"
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Logsheet Panel (Hidden by default) -->
+      <div id="rightLogsheetArea">
+        <div class="logsheet-header-panel">
+          <h3 id="logsheetTitlePanel">Logsheet Viewer</h3>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <button
+              id="btnPanelDownloadCurrent"
+              onclick="downloadPanelCurrentImage()"
+              style="
+                background: #e0f2fe;
+                border: 1px solid #0284c7;
+                border-radius: 4px;
+                color: #0284c7;
+                font-size: 11px;
+                font-weight: bold;
+                padding: 4px 8px;
+                cursor: pointer;
+              "
+            >
+              Current
+            </button>
+            <button
+              id="btnPanelDownloadSelected"
+              onclick="downloadPanelSelectedAsPdf()"
+              style="
+                background: #fef3c7;
+                border: 1px solid #d97706;
+                border-radius: 4px;
+                color: #d97706;
+                font-size: 11px;
+                font-weight: bold;
+                padding: 4px 8px;
+                cursor: pointer;
+              "
+            >
+              Selected
+            </button>
+            <button
+              id="btnPanelDownloadPdf"
+              onclick="downloadPanelAllAsPdf()"
+              style="
+                background: #fee2e2;
+                border: 1px solid #ef4444;
+                border-radius: 4px;
+                color: #ef4444;
+                font-size: 11px;
+                font-weight: bold;
+                padding: 4px 8px;
+                cursor: pointer;
+              "
+            >
+              PDF
+            </button>
+            <button
+              style="
+                background: none;
+                border: none;
+                font-size: 18px;
+                cursor: pointer;
+                color: #ef4444;
+                margin-left: 5px;
+              "
+              onclick="closeSplitLogsheet()"
+              title="Close Panel"
+            >
+              ✖
+            </button>
+          </div>
+        </div>
+        <div class="logsheet-body-panel">
+          <div class="logsheet-sidebar-panel" id="logsheetFileListPanel"></div>
+          <div class="logsheet-viewer-panel" id="logsheetViewerContainerPanel">
+            <div style="text-align: center; padding: 50px; color: #64748b">
+              Select a file from the list to view
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -579,8 +836,6 @@
       let currentFocus = -1;
       let selectedSites = [];
       let selectedSecondarySites = [];
-
-      // 🟢 NEW: Global Cache for Special Rules
       let specialRulesCache = [];
 
       const dDate = new Date();
@@ -612,7 +867,6 @@
       }
       loadMasterData();
 
-      // 🟢 NEW: Fetch Special Rules API
       async function ensureSpecialRules() {
         try {
           let token = localStorage.getItem("timesheetToken") || "";
@@ -651,7 +905,6 @@
         } else {
           group.style.display = "flex";
           lbl.innerText = type;
-
           if (type === "Bulk Mode") {
             inp.style.display = "none";
             txtArea.style.display = "block";
@@ -666,9 +919,7 @@
             txtArea.style.display = "none";
             inp.readOnly = false;
             inp.placeholder = `Type ${type}...`;
-            if (type === "Owner Name") {
-              secGroup.style.display = "flex";
-            }
+            if (type === "Owner Name") secGroup.style.display = "flex";
           }
         }
       }
@@ -678,7 +929,6 @@
         .addEventListener("input", function () {
           const type = document.getElementById("filterType").value;
           if (type === "Site Name") return;
-
           const val = this.value.toUpperCase();
           const sugg = document.getElementById("filterSuggestions");
           sugg.innerHTML = "";
@@ -725,7 +975,6 @@
         .addEventListener("keydown", function (e) {
           const type = document.getElementById("filterType").value;
           if (type === "Site Name") return;
-
           let sugg = document.getElementById("filterSuggestions");
           if (sugg.style.display === "none" && e.key === "Enter") {
             e.preventDefault();
@@ -734,7 +983,6 @@
             generateReport();
             return;
           }
-
           let items = sugg.getElementsByClassName("suggest-item");
           if (e.key === "ArrowDown") {
             e.preventDefault();
@@ -746,9 +994,9 @@
             addActive(items);
           } else if (e.key === "Enter") {
             e.preventDefault();
-            if (currentFocus > -1 && items[currentFocus]) {
+            if (currentFocus > -1 && items[currentFocus])
               items[currentFocus].click();
-            } else {
+            else {
               if (type === "Owner Name")
                 populateSecondarySites(this.value.trim());
               generateReport();
@@ -781,7 +1029,6 @@
         let allSites = [...new Set(dbVehicles.map((v) => v.site_name))]
           .filter(Boolean)
           .sort();
-
         allSites.forEach((site) => {
           let div = document.createElement("label");
           div.className = "multi-select-box";
@@ -790,7 +1037,6 @@
           chk.value = site;
           chk.onchange = updateSelectedSites;
           div.appendChild(chk);
-
           let span = document.createElement("span");
           span.innerText = site;
           div.appendChild(span);
@@ -819,9 +1065,7 @@
         secDrop.innerHTML = "";
         selectedSecondarySites = [];
         document.getElementById("secondarySiteVal").value = "";
-
         if (!ownerName) return;
-
         let ownerSites = [
           ...new Set(
             dbVehicles
@@ -835,16 +1079,13 @@
         ]
           .filter(Boolean)
           .sort();
-
         if (ownerSites.length === 0) {
           document.getElementById("secondarySiteVal").placeholder =
             "No Sites Found";
           return;
         }
-
         document.getElementById("secondarySiteVal").placeholder =
           "Select Sites (All)";
-
         ownerSites.forEach((site) => {
           let div = document.createElement("label");
           div.className = "multi-select-box";
@@ -853,7 +1094,6 @@
           chk.value = site;
           chk.onchange = updateSecondarySites;
           div.appendChild(chk);
-
           let span = document.createElement("span");
           span.innerText = site;
           div.appendChild(span);
@@ -887,9 +1127,8 @@
         return new Date(year, months.indexOf(monthStr) + 1, 0).getDate();
       }
       function getDayName(dayNum, monthStr, year) {
-        const dateObj = new Date(`${monthStr} ${dayNum}, ${year}`);
         return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-          dateObj.getDay()
+          new Date(`${monthStr} ${dayNum}, ${year}`).getDay()
         ];
       }
       function formatDate(dStr) {
@@ -907,10 +1146,9 @@
       function getGapStatus(d, sLogs, dLogs) {
         let sActive = false,
           sGap = false,
-          isReplaced = false;
-        let dActive = false,
+          isReplaced = false,
+          dActive = false,
           dGap = false;
-
         if (sLogs && sLogs.length > 0) {
           let ascSLogs = [...sLogs].sort(
             (a, b) =>
@@ -919,13 +1157,13 @@
           );
           for (let i = 0; i < ascSLogs.length; i++) {
             let st = parseLogDate(
-              ascSLogs[i].work_start_date,
-              new Date("2000-01-01"),
-            );
-            let ed = parseLogDate(
-              ascSLogs[i].work_end_date,
-              new Date("2099-01-01"),
-            );
+                ascSLogs[i].work_start_date,
+                new Date("2000-01-01"),
+              ),
+              ed = parseLogDate(
+                ascSLogs[i].work_end_date,
+                new Date("2099-01-01"),
+              );
             if (d >= st && d <= ed) {
               sActive = true;
               break;
@@ -936,13 +1174,13 @@
           }
           if (!sActive) {
             let firstStart = parseLogDate(
-              ascSLogs[0].work_start_date,
-              new Date("2000-01-01"),
-            );
-            let lastEnd = parseLogDate(
-              ascSLogs[ascSLogs.length - 1].work_end_date,
-              new Date("2099-01-01"),
-            );
+                ascSLogs[0].work_start_date,
+                new Date("2000-01-01"),
+              ),
+              lastEnd = parseLogDate(
+                ascSLogs[ascSLogs.length - 1].work_end_date,
+                new Date("2099-01-01"),
+              );
             if (d >= firstStart && d <= lastEnd) sGap = true;
           }
         } else {
@@ -962,13 +1200,13 @@
           );
           for (let i = 0; i < ascDLogs.length; i++) {
             let st = parseLogDate(
-              ascDLogs[i].work_start_date,
-              new Date("2000-01-01"),
-            );
-            let ed = parseLogDate(
-              ascDLogs[i].work_end_date,
-              new Date("2099-01-01"),
-            );
+                ascDLogs[i].work_start_date,
+                new Date("2000-01-01"),
+              ),
+              ed = parseLogDate(
+                ascDLogs[i].work_end_date,
+                new Date("2099-01-01"),
+              );
             if (d >= st && d <= ed) {
               dActive = true;
               break;
@@ -1010,8 +1248,11 @@
         area.innerHTML =
           '<div style="color: #64748b; margin-top: 50px;">Generating data from server...</div>';
 
+        // Close split mode if open when generating new report
+        if (document.body.classList.contains("split-active"))
+          closeSplitLogsheet();
+
         try {
-          // 🟢 Fetch Special Rules Before Generating
           await ensureSpecialRules();
 
           const payload = {
@@ -1039,7 +1280,6 @@
           let monthEnd = new Date(y, mIdx + 1, 0);
 
           let filteredVehicles = data.vehicles;
-
           if (type === "Owner Name" && selectedSecondarySites.length > 0) {
             filteredVehicles = filteredVehicles.filter((v) => {
               const sLogs = data.logs.sites.filter(
@@ -1047,10 +1287,10 @@
               );
               let activeSites = sLogs.filter((s) => {
                 let st = parseLogDate(
-                  s.work_start_date,
-                  new Date("2000-01-01"),
-                );
-                let ed = parseLogDate(s.work_end_date, new Date("2099-01-01"));
+                    s.work_start_date,
+                    new Date("2000-01-01"),
+                  ),
+                  ed = parseLogDate(s.work_end_date, new Date("2099-01-01"));
                 return st <= monthEnd && ed >= monthStart;
               });
               let currSite = activeSites[0]
@@ -1076,6 +1316,9 @@
           });
 
           area.innerHTML = allCardsHTML;
+
+          // 🟢 After rendering, setup the scroll tracker
+          setupScrollTracking();
         } catch (error) {
           area.innerHTML = `<div style="color: #b91c1c; margin-top: 50px; font-weight:bold;">Error: ${error.message}</div>`;
         } finally {
@@ -1088,7 +1331,6 @@
         let mIdx = months.indexOf(month);
         let monthStart = new Date(year, mIdx, 1);
         let monthEnd = new Date(year, mIdx + 1, 0);
-
         dLogs.sort(
           (a, b) =>
             new Date(b.work_start_date || "2000-01-01") -
@@ -1101,14 +1343,13 @@
         );
 
         let activeDrivers = dLogs.filter((d) => {
-          let st = parseLogDate(d.work_start_date, new Date("2000-01-01"));
-          let ed = parseLogDate(d.work_end_date, new Date("2099-01-01"));
+          let st = parseLogDate(d.work_start_date, new Date("2000-01-01")),
+            ed = parseLogDate(d.work_end_date, new Date("2099-01-01"));
           return st <= monthEnd && ed >= monthStart;
         });
-
         let activeSites = sLogs.filter((s) => {
-          let st = parseLogDate(s.work_start_date, new Date("2000-01-01"));
-          let ed = parseLogDate(s.work_end_date, new Date("2099-01-01"));
+          let st = parseLogDate(s.work_start_date, new Date("2000-01-01")),
+            ed = parseLogDate(s.work_end_date, new Date("2099-01-01"));
           return st <= monthEnd && ed >= monthStart;
         });
 
@@ -1116,27 +1357,30 @@
           ? activeDrivers[0].driver_name
           : vehicle.driver_name || "N/A";
         let currMobile = "";
-        
-        // 1. Aadhyam Driver Logs-il nokkuka
+
         if (activeDrivers.length > 0) {
-            let logMob = activeDrivers[0].driver_mobile || activeDrivers[0].mobile_no || activeDrivers[0].mobile;
-            if (logMob && String(logMob).trim() !== "null" && String(logMob).trim() !== "") {
-                currMobile = String(logMob).trim();
-            }
+          let logMob =
+            activeDrivers[0].driver_mobile ||
+            activeDrivers[0].mobile_no ||
+            activeDrivers[0].mobile;
+          if (
+            logMob &&
+            String(logMob).trim() !== "null" &&
+            String(logMob).trim() !== ""
+          )
+            currMobile = String(logMob).trim();
         }
-        
-        // 2. Log-il illengil Master DB-yil (vehicle object) nokkuka
         if (!currMobile) {
-            let vehMob = vehicle.driver_mobile || vehicle.mobile_no || vehicle.mobile;
-            if (vehMob && String(vehMob).trim() !== "null" && String(vehMob).trim() !== "") {
-                currMobile = String(vehMob).trim();
-            }
+          let vehMob =
+            vehicle.driver_mobile || vehicle.mobile_no || vehicle.mobile;
+          if (
+            vehMob &&
+            String(vehMob).trim() !== "null" &&
+            String(vehMob).trim() !== ""
+          )
+            currMobile = String(vehMob).trim();
         }
-        
-        // 3. Randilum illengil maathram N/A aakkuka
-        if (!currMobile) {
-            currMobile = "N/A";
-        }
+        if (!currMobile) currMobile = "N/A";
         let prevDriver =
           activeDrivers.length > 1 ? activeDrivers[1].driver_name : "";
 
@@ -1161,14 +1405,12 @@
             if (endStr) details.push(`Work End : ${endStr}`);
             if (replaceStr && replaceStr !== "null")
               details.push(`Replaced By : ${replaceStr}`);
-
             if (details.length > 0) {
               line += details.join(" &nbsp;|&nbsp; ");
               bottomBoxTextArr.push(line);
             }
           });
         }
-
         let bottomBoxTextHTML =
           bottomBoxTextArr.length > 0
             ? bottomBoxTextArr.join("<br>")
@@ -1177,7 +1419,6 @@
         let dispVType = vehicle.vehicle_type || "N/A";
         let dispOName = vehicle.owner_name || "N/A";
         let dispOMob = vehicle.owner_mobile || "";
-
         let dispFieldCo =
           activeSites.length > 0 && activeSites[0].field_co
             ? activeSites[0].field_co
@@ -1200,16 +1441,12 @@
           sumFuel = 0,
           sumNormal = 0,
           sumOT = 0;
-
-        // 🟢 SITE NAME USED FOR SPECIAL RULES FILTER
         let siteForRule = currSite.split("&")[0].trim().toUpperCase();
 
         for (let i = 1; i <= daysInMonth; i++) {
           const rec = records.find((r) => parseInt(r.record_date) === i) || {};
-
           let dayName = getDayName(i, month, year);
           let checkDate = new Date(year, mIdx, i);
-
           let formattedDate = checkDate
             .toLocaleDateString("en-GB", {
               day: "2-digit",
@@ -1242,7 +1479,6 @@
             timeRaw > 0 || bdStr !== "" || rec.wrk_start || rec.hmr_start;
           let noteStr = rec.remark || "";
 
-          // 🟢 SMART OVERRIDE FOR BLANK CELLS
           if (!hasData && specialRule && specialRule.rule_type !== "FULL_OT") {
             bdStr = specialRule.rule_type;
             hasData = true;
@@ -1321,10 +1557,11 @@
         let totalHr = sumNormal + sumOT;
         let mileage = sumFuel > 0 ? (sumDist / sumFuel).toFixed(2) : "0.00";
 
+        // 🟢 ADDED data-plate AND LOG WINDOW BUTTON
         return `
-        <div class="ts-card" id="card_${vehicle.plate_no}">
+        <div class="ts-card" id="card_${vehicle.plate_no}" data-plate="${vehicle.plate_no}">
+            <button class="btn-log-window" onclick="toggleSplitLogsheet('${vehicle.plate_no}')">📁 Log Window</button>
             ${invoiceInfoHtml}
-            
             <div class="ts-month-title">${month} - ${year}</div>
             
             <div class="ts-header">
@@ -1386,8 +1623,10 @@
         const btn = document.getElementById("btnPdf");
         const loader = document.getElementById("pdfLoader");
         const btns = area.querySelectorAll(".card-dl-btn");
+        const logBtns = area.querySelectorAll(".btn-log-window"); // 🟢 Hide log buttons
 
         btns.forEach((b) => (b.style.display = "none"));
+        logBtns.forEach((b) => (b.style.display = "none"));
         btn.disabled = true;
         loader.style.display = "inline-block";
 
@@ -1421,10 +1660,10 @@
           const y = document.getElementById("selYear").value;
           pdf.save(`Timesheet_Reports_${m}_${y}.pdf`);
         } catch (err) {
-          console.error(err);
           alert("Error generating PDF.");
         } finally {
           btns.forEach((b) => (b.style.display = "flex"));
+          logBtns.forEach((b) => (b.style.display = "block"));
           btn.disabled = false;
           loader.style.display = "none";
         }
@@ -1433,6 +1672,8 @@
       async function downloadPNG(btnElement, plateNo) {
         const card = btnElement.closest(".ts-card");
         const originalText = btnElement.innerHTML;
+        const logBtn = card.querySelector(".btn-log-window"); // 🟢 Hide log button for PNG
+        if (logBtn) logBtn.style.display = "none";
 
         btnElement.innerHTML = "⏳ Loading...";
         btnElement.style.background = "#e2e8f0";
@@ -1456,8 +1697,454 @@
             btnElement.innerHTML = originalText;
             btnElement.disabled = false;
             btnElement.style.display = "flex";
+            if (!document.body.classList.contains("split-active") && logBtn)
+              logBtn.style.display = "block";
           }
         }, 50);
+      }
+
+      // ==========================================
+      // 🟢 SPLIT SCREEN & AUTO-SYNC LOGIC
+      // ==========================================
+      let cardObserver;
+      let currentActivePlate = "";
+
+      function toggleSplitLogsheet(plateNo) {
+        // Only works well on larger screens, ignore on mobile
+        if (window.innerWidth < 768) {
+          alert("Log Window is available only on PC view.");
+          return;
+        }
+
+        document.body.classList.add("split-active");
+
+        // Scroll specifically to the card that opened it
+        const card = document.getElementById(`card_${plateNo}`);
+        if (card) {
+          card.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+
+        // Load the logsheet for this plate
+        loadLogsheetPanel(plateNo);
+      }
+
+      function closeSplitLogsheet() {
+        document.body.classList.remove("split-active");
+        document.getElementById("logsheetViewerContainerPanel").innerHTML =
+          '<div style="text-align: center; padding: 50px; color: #64748b">Select a file from the list to view</div>';
+        document.getElementById("logsheetFileListPanel").innerHTML = "";
+        currentActivePlate = "";
+      }
+
+      // Automatically updates right side when scrolling the left side
+      function setupScrollTracking() {
+        if (cardObserver) cardObserver.disconnect();
+
+        const options = {
+          root: document.getElementById("leftCardsArea"),
+          rootMargin: "0px",
+          threshold: 0.6, // Card must be 60% visible to become "active"
+        };
+
+        cardObserver = new IntersectionObserver((entries) => {
+          // Only sync if the split screen is actually active
+          if (!document.body.classList.contains("split-active")) return;
+
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const plate = entry.target.dataset.plate;
+              if (plate && currentActivePlate !== plate) {
+                currentActivePlate = plate;
+                loadLogsheetPanel(plate);
+              }
+            }
+          });
+        }, options);
+
+        // Observe all newly generated cards
+        document.querySelectorAll(".ts-card").forEach((card) => {
+          cardObserver.observe(card);
+        });
+      }
+
+      // ==========================================
+      // 🟢 LOGSHEET VIEWER LOGIC (Embedded for Split Panel)
+      // ==========================================
+      let panelFiles = [];
+      let currentZoom = 1;
+      let currentRotation = 0;
+      let posX = 0,
+        posY = 0;
+      let isDragging = false;
+      let startX, startY;
+
+      async function loadLogsheetPanel(plate) {
+        const title = document.getElementById("logsheetTitlePanel");
+        const sidebar = document.getElementById("logsheetFileListPanel");
+        const viewer = document.getElementById("logsheetViewerContainerPanel");
+
+        const month = document.getElementById("selMonth").value;
+        const year = document.getElementById("selYear").value;
+
+        title.innerText = `Logsheets - ${plate}`;
+        sidebar.innerHTML =
+          '<div style="text-align:center; padding:20px;">Loading...</div>';
+        viewer.innerHTML =
+          '<div style="text-align:center; padding: 50px; color:#64748b;">Select a file from the list to view</div>';
+
+        try {
+          const token = localStorage.getItem("timesheetToken");
+          const reqHeaders = {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          };
+
+          const response = await fetch("/timesheet/api/logsheets/list", {
+            method: "POST",
+            headers: reqHeaders,
+            body: JSON.stringify({ month, year, plate_no: plate }),
+          });
+
+          const data = await response.json();
+
+          if (!data.success) {
+            sidebar.innerHTML = `<div style="color:#ef4444; font-weight:bold; padding:10px;">${data.message}</div>`;
+            return;
+          }
+
+          if (data.files.length === 0) {
+            sidebar.innerHTML = `<div style="padding:10px; color:#64748b; text-align:center;">No files found.</div>`;
+            panelFiles = [];
+            return;
+          }
+
+          panelFiles = data.files.sort((a, b) =>
+            a.basename.localeCompare(b.basename, undefined, {
+              numeric: true,
+              sensitivity: "base",
+            }),
+          );
+
+          sidebar.innerHTML = "";
+          panelFiles.forEach((file, index) => {
+            const div = document.createElement("div");
+            div.className = "logsheet-file-item";
+            div.id = `panel-file-${index}`;
+
+            // Added checkbox for multi download support
+            div.innerHTML = `
+              <div style="display:flex; align-items:center; gap:6px; overflow:hidden; width:100%;">
+                <input type="checkbox" class="panel-ls-checkbox" id="panel-check-${index}" onclick="event.stopPropagation();" style="width: 14px; height: 14px; cursor: pointer; margin: 0;" />
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1;" title="${file.basename}">${file.basename}</span>
+              </div>
+            `;
+            div.onclick = () => selectPanelFile(index);
+            sidebar.appendChild(div);
+          });
+
+          if (panelFiles.length > 0) selectPanelFile(0);
+        } catch (error) {
+          sidebar.innerHTML = `<div style="color:#ef4444; font-weight:bold; padding:10px;">Connection failed.</div>`;
+        }
+      }
+
+      function selectPanelFile(index) {
+        document
+          .querySelectorAll("#logsheetFileListPanel .logsheet-file-item")
+          .forEach((el) => el.classList.remove("active"));
+        const activeEl = document.getElementById(`panel-file-${index}`);
+        if (activeEl) {
+          activeEl.classList.add("active");
+          activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+        renderPanelFile(panelFiles[index]);
+      }
+
+      function renderPanelFile(file) {
+        const viewer = document.getElementById("logsheetViewerContainerPanel");
+        viewer.innerHTML =
+          '<div style="text-align:center; padding:20px; font-weight:bold; color:#8b5cf6;">Loading File...</div>';
+        currentZoom = 1;
+        currentRotation = 0;
+        posX = 0;
+        posY = 0;
+
+        const token = localStorage.getItem("timesheetToken");
+        fetch(
+          `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
+          { headers: { Authorization: "Bearer " + token } },
+        )
+          .then((res) => res.blob())
+          .then(async (blob) => {
+            if (file.mime.includes("pdf")) {
+              try {
+                const arrayBuffer = await blob.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer })
+                  .promise;
+
+                viewer.innerHTML = `
+                  <div class="image-zoom-wrapper" id="panelImgWrapper">
+                    <div id="panelZoomContent" style="display: flex; flex-direction: column; gap: 20px; align-items: center; transition: transform 0.1s ease-out; padding: 20px;"></div>
+                  </div>
+                  <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="panelAdjustZoom(-0.2)">➖</button>
+                    <button class="zoom-btn" onclick="panelResetZoom()">🔄</button>
+                    <button class="zoom-btn" onclick="panelAdjustZoom(0.2)">➕</button>
+                    <button class="zoom-btn" onclick="panelRotate()" style="color:#f59e0b;">⟳</button>
+                  </div>
+                `;
+
+                const content = document.getElementById("panelZoomContent");
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                  const page = await pdf.getPage(pageNum);
+                  const viewport = page.getViewport({ scale: 1.5 });
+                  const canvas = document.createElement("canvas");
+                  canvas.width = viewport.width;
+                  canvas.height = viewport.height;
+                  canvas.style.maxWidth = "100%";
+                  canvas.style.height = "auto";
+                  canvas.style.boxShadow = "0 4px 10px rgba(0,0,0,0.2)";
+                  const ctx = canvas.getContext("2d");
+                  await page.render({ canvasContext: ctx, viewport: viewport })
+                    .promise;
+                  content.appendChild(canvas);
+                }
+                panelApplyTransform();
+                attachPanelEvents();
+              } catch (e) {
+                viewer.innerHTML = `<div style="color:#ef4444; font-weight:bold;">Failed to render PDF.</div>`;
+              }
+            } else {
+              const fileURL = URL.createObjectURL(blob);
+              viewer.innerHTML = `
+                <div class="image-zoom-wrapper" id="panelImgWrapper">
+                  <div id="panelZoomContent" style="display: flex; justify-content: center; align-items: center; transition: transform 0.1s ease-out;">
+                    <img src="${fileURL}" draggable="false" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                  </div>
+                </div>
+                <div class="zoom-controls">
+                  <button class="zoom-btn" onclick="panelAdjustZoom(-0.2)">➖</button>
+                  <button class="zoom-btn" onclick="panelResetZoom()">🔄</button>
+                  <button class="zoom-btn" onclick="panelAdjustZoom(0.2)">➕</button>
+                  <button class="zoom-btn" onclick="panelRotate()" style="color:#f59e0b;">⟳</button>
+                </div>
+              `;
+              panelApplyTransform();
+              attachPanelEvents();
+            }
+          })
+          .catch(() => {
+            viewer.innerHTML = `<div style="color:#ef4444; font-weight:bold;">Failed to load file.</div>`;
+          });
+      }
+
+      function panelAdjustZoom(amt) {
+        currentZoom += amt;
+        if (currentZoom < 0.2) currentZoom = 0.2;
+        if (currentZoom > 5) currentZoom = 5;
+        panelApplyTransform();
+      }
+      function panelRotate() {
+        currentRotation += 90;
+        if (currentRotation >= 360) currentRotation = 0;
+        panelApplyTransform();
+      }
+      function panelResetZoom() {
+        currentZoom = 1;
+        currentRotation = 0;
+        posX = 0;
+        posY = 0;
+        panelApplyTransform();
+      }
+
+      function panelApplyTransform() {
+        const content = document.getElementById("panelZoomContent");
+        if (!content) return;
+        content.style.transform = `translate(${posX}px, ${posY}px) scale(${currentZoom})`;
+        for (let i = 0; i < content.children.length; i++) {
+          content.children[i].style.transform = `rotate(${currentRotation}deg)`;
+          content.children[i].style.margin =
+            currentRotation % 180 !== 0 ? "10% 0" : "0";
+        }
+      }
+
+      function attachPanelEvents() {
+        const wrapper = document.getElementById("panelImgWrapper");
+        if (!wrapper) return;
+        wrapper.onwheel = (e) => {
+          e.preventDefault();
+          e.deltaY < 0 ? panelAdjustZoom(0.2) : panelAdjustZoom(-0.2);
+        };
+        wrapper.onmousedown = (e) => {
+          e.preventDefault();
+          isDragging = true;
+          startX = e.clientX - posX;
+          startY = e.clientY - posY;
+          wrapper.style.cursor = "grabbing";
+        };
+        wrapper.onmouseleave = () => {
+          isDragging = false;
+          wrapper.style.cursor = "grab";
+        };
+        wrapper.onmouseup = () => {
+          isDragging = false;
+          wrapper.style.cursor = "grab";
+        };
+        wrapper.onmousemove = (e) => {
+          if (!isDragging) return;
+          e.preventDefault();
+          posX = e.clientX - startX;
+          posY = e.clientY - startY;
+          panelApplyTransform();
+        };
+      }
+
+      // ==========================================
+      // 🟢 LOGSHEET PANEL DOWNLOAD FUNCTIONS
+      // ==========================================
+      async function generatePanelPdfFromFiles(
+        filesArray,
+        pdfFilename,
+        btnElement,
+        originalBtnText,
+      ) {
+        if (!filesArray.length) {
+          alert("No valid files selected.");
+          return;
+        }
+        btnElement.disabled = true;
+        btnElement.innerHTML = `Wait...`;
+
+        try {
+          const { PDFDocument } = PDFLib;
+          const { jsPDF } = window.jspdf;
+          const mergedPdf = await PDFDocument.create();
+          const token = localStorage.getItem("timesheetToken");
+
+          for (let i = 0; i < filesArray.length; i++) {
+            const file = filesArray[i];
+            const res = await fetch(
+              `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
+              { headers: { Authorization: "Bearer " + token } },
+            );
+            if (!res.ok) continue;
+
+            const blob = await res.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+
+            if (file.mime && file.mime.includes("pdf")) {
+              const existingPdf = await PDFDocument.load(arrayBuffer);
+              const copiedPages = await mergedPdf.copyPages(
+                existingPdf,
+                existingPdf.getPageIndices(),
+              );
+              copiedPages.forEach((page) => mergedPdf.addPage(page));
+            } else {
+              const bitmap = await createImageBitmap(blob, {
+                imageOrientation: "from-image",
+              });
+              const canvas = document.createElement("canvas");
+              canvas.width = bitmap.width;
+              canvas.height = bitmap.height;
+              canvas.getContext("2d").drawImage(bitmap, 0, 0);
+
+              const imgData = canvas.toDataURL("image/jpeg", 0.9);
+              const singleImgPdf = new jsPDF({
+                orientation: bitmap.width > bitmap.height ? "l" : "p",
+                unit: "mm",
+                format: [bitmap.width * 0.264583, bitmap.height * 0.264583],
+              });
+              singleImgPdf.addImage(
+                imgData,
+                "JPEG",
+                0,
+                0,
+                bitmap.width * 0.264583,
+                bitmap.height * 0.264583,
+                undefined,
+                "FAST",
+              );
+
+              const tempPdf = await PDFDocument.load(
+                singleImgPdf.output("arraybuffer"),
+              );
+              const [copiedPage] = await mergedPdf.copyPages(tempPdf, [0]);
+              mergedPdf.addPage(copiedPage);
+            }
+          }
+          const pdfBytes = await mergedPdf.save();
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(
+            new Blob([pdfBytes], { type: "application/pdf" }),
+          );
+          link.download = pdfFilename;
+          link.click();
+        } catch (e) {
+          alert("PDF generation failed.");
+        } finally {
+          btnElement.disabled = false;
+          btnElement.innerHTML = originalBtnText;
+        }
+      }
+
+      async function downloadPanelAllAsPdf() {
+        const btn = document.getElementById("btnPanelDownloadPdf");
+        const validFiles = panelFiles.filter((f) => f.size > 0);
+        await generatePanelPdfFromFiles(
+          validFiles,
+          `${currentActivePlate || "Logsheets"}.pdf`,
+          btn,
+          "PDF",
+        );
+      }
+
+      async function downloadPanelSelectedAsPdf() {
+        const btn = document.getElementById("btnPanelDownloadSelected");
+        const checkboxes = document.querySelectorAll(".panel-ls-checkbox");
+        const selected = [];
+        checkboxes.forEach((cb, idx) => {
+          if (cb.checked && panelFiles[idx].size > 0)
+            selected.push(panelFiles[idx]);
+        });
+        if (!selected.length) {
+          alert("Please select at least one file using checkboxes.");
+          return;
+        }
+        await generatePanelPdfFromFiles(
+          selected,
+          `${currentActivePlate || "Logsheets"}_Selected.pdf`,
+          btn,
+          "Selected",
+        );
+      }
+
+      async function downloadPanelCurrentImage() {
+        if (currentFileIndex === -1 || !panelFiles[currentFileIndex]) {
+          alert("No file selected.");
+          return;
+        }
+        const file = panelFiles[currentFileIndex];
+        const btn = document.getElementById("btnPanelDownloadCurrent");
+        btn.disabled = true;
+        btn.innerHTML = "...";
+
+        try {
+          const token = localStorage.getItem("timesheetToken");
+          const res = await fetch(
+            `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
+            { headers: { Authorization: "Bearer " + token } },
+          );
+          const blob = await res.blob();
+          const a = document.createElement("a");
+          a.href = window.URL.createObjectURL(blob);
+          a.download = file.basename;
+          a.click();
+        } catch (error) {
+          alert("Download failed.");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = "Current";
+        }
       }
     </script>
   </body>
