@@ -53,133 +53,26 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_LOG_CHAT_ID =
   process.env.TELEGRAM_LOG_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
 
-// 🟢 INITIALIZE DATABASE
-async function initializeSystem() {
+// 🟢 INITIALIZE SYSTEM ADMIN (Kept only for creating default admin securely)
+async function initializeSystemAdmin() {
   try {
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS system_settings (
-                id SERIAL PRIMARY KEY,
-                backup_emails TEXT DEFAULT '',
-                backup_time VARCHAR(10) DEFAULT '23:59',
-                timezone VARCHAR(50) DEFAULT 'Asia/Kolkata'
-            );
-        `);
-    try {
-      await pool.query(
-        "ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Kolkata';",
-      );
-    } catch (e) {}
-
-    const setCheck = await pool.query("SELECT * FROM system_settings");
-    if (setCheck.rows.length === 0)
-      await pool.query(
-        "INSERT INTO system_settings (backup_emails, backup_time, timezone) VALUES ('', '23:59', 'Asia/Kolkata')",
-      );
-
-    try {
-      await pool.query(
-        "ALTER TABLE erp_headers ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE;",
-      );
-    } catch (e) {}
-    try {
-      await pool.query(
-        "ALTER TABLE erp_headers ADD COLUMN IF NOT EXISTS alignment VARCHAR(20) DEFAULT 'left';",
-      );
-    } catch (e) {}
-    try {
-      await pool.query(
-        "ALTER TABLE erp_headers ADD COLUMN IF NOT EXISTS col_type VARCHAR(20) DEFAULT 'varchar';",
-      );
-    } catch (e) {}
-    try {
-      await pool.query(
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS main_id VARCHAR(255);",
-      );
-    } catch (e) {}
-
-    try {
-      // Migrating 'OD Name' to 'Old Driver Name'
-      await pool.query(
-        "UPDATE erp_headers SET header_name = 'Old Driver Name' WHERE header_name = 'OD Name'",
-      );
-      await pool.query(
-        "UPDATE erp_records SET record_data = (record_data - 'OD Name') || jsonb_build_object('Old Driver Name', record_data->'OD Name') WHERE record_data ? 'OD Name'",
-      );
-
-      // Migrating 'Mobilization Date' to 'Equipment Reached at Site'
-      await pool.query(
-        "UPDATE erp_headers SET header_name = 'Equipment Reached at Site' WHERE header_name = 'Mobilization Date'",
-      );
-      await pool.query(
-        "UPDATE erp_records SET record_data = (record_data - 'Mobilization Date') || jsonb_build_object('Equipment Reached at Site', record_data->'Mobilization Date') WHERE record_data ? 'Mobilization Date'",
-      );
-    } catch (e) {
-      console.error("Migration Error: ", e.message);
-    }
-
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS activity_logs (
-                id SERIAL PRIMARY KEY,
-                username VARCHAR(100),
-                action VARCHAR(100),
-                details JSONB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-
-    await pool.query(`
-            CREATE TABLE IF NOT EXISTS driver_logs (
-                id SERIAL PRIMARY KEY,
-                plate_number VARCHAR(100),
-                driver_name VARCHAR(255),
-                mobile VARCHAR(100),
-                work_start VARCHAR(50),
-                work_end VARCHAR(50),
-                updated_by VARCHAR(100),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-
-    const logCols = [
-      { name: "Old Driver Name", type: "varchar" },
-      { name: "OD Wrk End", type: "date" },
-      { name: "Days Worked", type: "int" },
-    ];
-    for (let c of logCols) {
-      const check = await pool.query(
-        "SELECT * FROM erp_headers WHERE header_name = $1",
-        [c.name],
-      );
-      if (check.rows.length === 0) {
-        const countRes = await pool.query("SELECT COUNT(*) FROM erp_headers");
-        await pool.query(
-          "INSERT INTO erp_headers (header_name, col_order, col_type) VALUES ($1, $2, $3)",
-          [c.name, parseInt(countRes.rows[0].count) + 1, c.type],
-        );
-      }
-    }
-
-    // 🟢 FIXED: Reading Credentials from .env
     const defaultAdminUser = process.env.DEFAULT_ADMIN_USER || "LMBpultd";
     const defaultAdminPass = process.env.DEFAULT_ADMIN_PASS || "00110011";
 
-    const adminCheck = await pool.query(
-      "SELECT * FROM users WHERE username = $1",
-      [defaultAdminUser],
-    );
+    const adminCheck = await pool.query("SELECT * FROM users WHERE username = $1", [defaultAdminUser]);
     if (adminCheck.rows.length === 0) {
       const hash = await bcrypt.hash(defaultAdminPass, 10);
       await pool.query(
         "INSERT INTO users (display_name, username, password_hash, role, status) VALUES ('System Admin', $1, $2, 'Super Admin', 'Active')",
-        [defaultAdminUser, hash],
+        [defaultAdminUser, hash]
       );
-      console.log(`✅ Default Super Admin Created: ${defaultAdminUser}`);
+      console.log(`✅ Default Super Admin Verified: ${defaultAdminUser}`);
     }
   } catch (err) {
-    console.error("Init Error:", err.message);
+    console.error("Admin Init Error:", err.message);
   }
 }
-initializeSystem();
+initializeSystemAdmin();
 
 // ==========================================
 // 🤖 SHARED HELPERS (Telegram & Backup)
@@ -375,14 +268,6 @@ app.post("/api/forgot-password/request", async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Auto-Heal for 'users' table
-    await pool.query(
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(10)`,
-    );
-    await pool.query(
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expiry TIMESTAMP`,
-    );
 
     await pool.query(
       "UPDATE users SET reset_otp = $1, otp_expiry = $2 WHERE username = $3",
