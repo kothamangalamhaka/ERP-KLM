@@ -2134,6 +2134,10 @@
         document.querySelectorAll(".editable-field").forEach((td) => {
           td.classList.add("edit-active");
           td.setAttribute("contenteditable", "true");
+          // 🟢 Track manual typing edits
+          td.addEventListener("input", function() {
+            this.closest("tr").classList.add("row-edited");
+          });
         });
       }
 
@@ -2160,6 +2164,9 @@
             let cols = rows[i].split("\t");
 
             if (currentRow) {
+              // 🟢 Track pasted rows
+              currentRow.classList.add("row-edited");
+              
               let editables = Array.from(
                 currentRow.querySelectorAll(".editable-field"),
               );
@@ -2177,7 +2184,14 @@
       async function saveInlineEdits() {
         let updates = [];
         const fullMonth = `${document.getElementById("selMonth").value} ${document.getElementById("selYear").value}`;
-        const rows = document.querySelectorAll("#reportBody tr");
+        
+        // 🟢 SELECT ONLY EDITED ROWS
+        const rows = document.querySelectorAll("#reportBody tr.row-edited");
+
+        if (rows.length === 0) {
+          window.alert("No changes detected to save!");
+          return;
+        }
 
         rows.forEach((tr) => {
           if (!tr.cells || tr.cells.length < 6) return;
