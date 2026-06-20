@@ -1600,14 +1600,25 @@
       function safeDate(dStr, fallback) {
         if (!dStr || String(dStr).trim() === "" || String(dStr).trim() === "-")
           return new Date(fallback);
+        
+        // ടൈംസോൺ മാറ്റം തടയാൻ തീയതി സ്ട്രിങ്ങിനെ നേരിട്ട് സ്പ്ലിറ്റ് ചെയ്യുന്നു
+        let parts = String(dStr).split('T')[0].split('-');
+        if (parts.length === 3) {
+          let yr = parseInt(parts[0], 10);
+          let mo = parseInt(parts[1], 10) - 1;
+          let dy = parseInt(parts[2], 10);
+          return new Date(yr, mo, dy, 0, 0, 0, 0);
+        }
+        
         let d = new Date(dStr);
-        return isNaN(d.getTime()) ? new Date(fallback) : d;
+        if (isNaN(d.getTime())) return new Date(fallback);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
       }
 
       function processDataLogic(data, monthStr, yearStr) {
         const mIdx = months.indexOf(monthStr);
-        const monthStart = new Date(yearStr, mIdx, 1);
-        const monthEnd = new Date(yearStr, mIdx + 1, 0);
+        const monthStart = new Date(yearStr, mIdx, 1, 0, 0, 0, 0);
+        const monthEnd = new Date(yearStr, mIdx + 1, 0, 23, 59, 59, 999);
         const daysInMonth = monthEnd.getDate();
 
         let processedArray = [];
@@ -1628,6 +1639,8 @@
           let strictlyActiveSites = vSites.filter((s) => {
             let st = safeDate(s.work_start_date, "2000-01-01");
             let ed = safeDate(s.work_end_date, "2099-01-01");
+            st.setHours(0, 0, 0, 0);
+            ed.setHours(23, 59, 59, 999);
             return st <= monthEnd && ed >= monthStart;
           });
 
