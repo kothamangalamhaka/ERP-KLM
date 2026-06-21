@@ -127,7 +127,7 @@ function openFilterMenu(event, key, colIndex) {
                 : filterKey === "plate"
                   ? 7
                   : 8;
-      let cellVal = tds[cIdx].textContent.trim();
+      let cellVal = tds[cIdx].textContent.replace('📁', '').trim();
 
       if (!allowedValues.includes(cellVal)) {
         passesOtherFilters = false;
@@ -136,7 +136,7 @@ function openFilterMenu(event, key, colIndex) {
     }
 
     if (passesOtherFilters) {
-      allOptions.add(tds[colIndex].textContent.trim());
+      allOptions.add(tds[colIndex].textContent.replace('📁', '').trim());
     }
   }
 
@@ -163,8 +163,16 @@ function openFilterMenu(event, key, colIndex) {
 
   let iconRect = event.target.getBoundingClientRect();
   menu.style.top = iconRect.bottom + window.scrollY + 5 + "px";
-  menu.style.left = iconRect.left + window.scrollX - 180 + "px";
-  menu.style.display = "flex";
+  
+  // 🟢 ആദ്യം display flex ആക്കുന്നു, എന്നാൽ മാത്രമേ ഇതിന്റെ യഥാർത്ഥ വീതി (offsetWidth) കിട്ടുകയുള്ളൂ
+  menu.style.display = "flex"; 
+
+  if (key === 'pendingDates') {
+    // 🟢 വീതി എത്രയുണ്ടെങ്കിലും അതിനനുസരിച്ച് കൃത്യമായി ഇടത്തോട്ട് മാറാൻ
+    menu.style.left = (iconRect.right + window.scrollX - menu.offsetWidth) + "px"; 
+  } else {
+    menu.style.left = iconRect.left + window.scrollX - 180 + "px";
+  }
 
   document.getElementById("filterSearchInput").value = "";
   document.getElementById("filterSearchInput").focus();
@@ -289,7 +297,7 @@ function applyGridFilters() {
     let tDriver = tds[3].textContent.trim();
     let tSite = tds[5].textContent.trim();
     let tVehicleType = tds[6].textContent.trim(); // Column 6
-    let tPlate = tds[7].textContent.trim(); // Column 7
+    let tPlate = tds[7].textContent.replace('📁', '').trim(); // Column 7
     let tPending = tds[8].textContent.trim();
     let rowText = row.textContent.toUpperCase();
 
@@ -973,7 +981,7 @@ function getFilteredDataForExport() {
         driverMob: trs[i].cells[4].innerText.trim(),
         site: trs[i].cells[5].innerText.trim(),
         vehicleType: trs[i].cells[6].innerText.trim(),
-        plate: trs[i].cells[7].innerText.trim(),
+        plate: trs[i].cells[7].innerText.replace('📁', '').trim(),
         pendingDates: trs[i].cells[8].innerText.trim(),
       });
     }
