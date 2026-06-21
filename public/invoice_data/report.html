@@ -796,10 +796,13 @@
         </h2>
         <div class="navbar-links">
           <a href="../Timesheet/Timesheet.html">
-            <div style="font-weight: 500; font-size: 14px; color: white">
+            <div style="font-weight: 500; font-size: 14px; color: white; margin-right: 15px;">
               Haka ERP System
             </div>
           </a>
+          <button class="btn-batch" style="padding: 6px 12px; font-size: 12px; margin-right: 10px;" onclick="openBatchViewModal()">
+            🗓️ Batch View
+          </button>
           <button
             id="btnToggleScreenshot"
             style="
@@ -918,7 +921,7 @@
           <table id="reportTable">
             <colgroup>
               <!-- Vehicle Info -->
-              <col style="width: 190px" />
+              <col style="width: 75px" /> <col style="width: 190px" />
               <col style="width: 60px" />
               <col style="width: 50px" />
               <col style="width: 180px" />
@@ -965,7 +968,7 @@
 
             <thead>
               <tr>
-                <th colspan="6" class="th-vehicle">VEHICLE INFO</th>
+                <th colspan="7" class="th-vehicle">VEHICLE INFO</th>
                 <th colspan="2" class="th-ts">Logsheet Collected</th>
                 <th colspan="2" class="th-inv">Bill Summary</th>
                 <th colspan="2" class="th-bill">Supplier</th>
@@ -977,6 +980,14 @@
               </tr>
               <tr>
                 <!-- 🆕 data-col-key added to each th for right-click copy; col index order matches tbody td order -->
+                <th
+                  class="th-vehicle"
+                  style="width: 80px"
+                  data-col-key="report_date"
+                  onclick="openExcelFilterMenu(event, 'report_date')"
+                >
+                  Date <span class="filter-icon" data-key="report_date">▼</span>
+                </th>
                 <th
                   class="th-vehicle"
                   style="width: 200px"
@@ -1617,6 +1628,8 @@
 
       function processDataLogic(data, monthStr, yearStr) {
         const mIdx = months.indexOf(monthStr);
+        // 🟢 Date Formatting (e.g., Feb 26)
+        const shortDate = monthStr.substring(0, 3) + " " + String(yearStr).substring(2, 4);
         const monthStart = new Date(yearStr, mIdx, 1, 0, 0, 0, 0);
         const monthEnd = new Date(yearStr, mIdx + 1, 0, 23, 59, 59, 999);
         const daysInMonth = monthEnd.getDate();
@@ -1869,6 +1882,9 @@
             }
 
             processedArray.push({
+              report_date: shortDate, // 🟢 New Field
+              raw_month: monthStr,    // 🟢 Keep track for inline edits
+              raw_year: yearStr,      // 🟢 Keep track for inline edits
               plate: originalPlate,
               owner,
               vat,
@@ -2037,7 +2053,10 @@
           const tr = document.createElement("tr");
           tr.dataset.site = row.site;
           tr.dataset.plate = row.plate;
+          tr.dataset.month = row.raw_month; // 🟢 Required for batch edit
+          tr.dataset.year = row.raw_year;   // 🟢 Required for batch edit
           tr.innerHTML = `
+            <td style="font-weight: 600; text-align: center; color: #b91c1c; font-size: 11px;">${row.report_date}</td>
             <td style="font-weight: 600; text-align: left; padding-left: 15px; word-wrap: break-word;">${row.site}</td>
             <td style="font-weight: 700; color: #0f172a;">${row.rate}</td>
             <td style="font-weight: 700; background-color: ${row.vat.toLowerCase().includes("yes") ? "#fef08a" : "transparent"}; color: #854d0e;">${row.vat.toLowerCase().includes("yes") ? "Yes" : ""}</td>
@@ -2066,10 +2085,10 @@
             <td class="col-inv-red" style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
             <td class="col-extra editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
             <td class="col-extra editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
-            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
-            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'erp')">${row.erp}</td>
-            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'payment_status')">${row.payment_status}</td>
-            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" ondblclick="editTextNote(this, 'accounts_note')">${row.accounts_note}</td>
+            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
+            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'erp')">${row.erp}</td>
+            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'payment_status')">${row.payment_status}</td>
+            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'accounts_note')">${row.accounts_note}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.driver_name}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.field_co}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.site_co}</td>
@@ -2196,8 +2215,6 @@
 
       async function saveInlineEdits() {
         let updates = [];
-        const fullMonth = `${document.getElementById("selMonth").value} ${document.getElementById("selYear").value}`;
-        
         // 🟢 SELECT ONLY EDITED ROWS
         const rows = document.querySelectorAll("#reportBody tr.row-edited");
 
@@ -2246,9 +2263,14 @@
           let bill_no = tr
             .querySelector('[data-field="bill_no"]')
             .innerText.trim();
+            
+          // 🟢 GET EXACT MONTH OF THIS ROW
+          let rowMonth = tr.dataset.month;
+          let rowYear = tr.dataset.year;
+          let preciseMonth = `${rowMonth} ${rowYear}`;
 
           updates.push({
-            month: fullMonth,
+            month: preciseMonth,
             site,
             plate,
             inv_nr,
@@ -2292,22 +2314,25 @@
         let currentVal = td.innerText === "-" ? "" : td.innerText;
         let plate = td.dataset.plate;
         let site = td.dataset.site;
-        td.innerHTML = `<textarea onblur="saveTextNote(this, '${plate}', '${site}', '${fieldName}')">${currentVal}</textarea>`;
+        let rMonth = td.dataset.month;
+        let rYear = td.dataset.year;
+        td.innerHTML = `<textarea onblur="saveTextNote(this, '${plate}', '${site}', '${rMonth}', '${rYear}', '${fieldName}')">${currentVal}</textarea>`;
         let ta = td.querySelector("textarea");
         ta.focus();
         ta.selectionStart = ta.selectionEnd = ta.value.length;
       }
 
-      async function saveTextNote(textarea, plate, site, fieldName) {
+      async function saveTextNote(textarea, plate, site, rMonth, rYear, fieldName) {
         let newVal = textarea.value.trim();
         let td = textarea.parentElement;
         td.innerText = newVal || "-";
+        
         let rowObj = masterData.find(
-          (d) => d.plate === plate && d.site === site,
+          (d) => d.plate === plate && d.site === site && d.raw_month === rMonth && d.raw_year === rYear
         );
         if (rowObj) rowObj[fieldName] = newVal || "-";
 
-        const fullMonth = `${document.getElementById("selMonth").value} ${document.getElementById("selYear").value}`;
+        const preciseMonth = `${rMonth} ${rYear}`;
         const token = localStorage.getItem("timesheetToken");
         try {
           await fetch("/payment/save-text-note", {
@@ -2318,7 +2343,7 @@
             },
             body: JSON.stringify({
               plate_no: plate,
-              month: fullMonth,
+              month: preciseMonth,
               site_name: site,
               field: fieldName,
               value: newVal,
@@ -3225,6 +3250,67 @@
           table.classList.add("hide-" + groupKey);
         }
       }
+
+      // ==========================================
+      // 🟢 BATCH VIEW SCREEN LOGIC
+      // ==========================================
+      function openBatchViewModal() {
+        document.getElementById("batchViewModal").style.display = "flex";
+      }
+      function closeBatchViewModal() {
+        document.getElementById("batchViewModal").style.display = "none";
+      }
+
+      async function executeBatchView() {
+        const fromM = document.getElementById("batchViewFromM").value;
+        const fromY = document.getElementById("batchViewFromY").value;
+        const toM = document.getElementById("batchViewToM").value;
+        const toY = document.getElementById("batchViewToY").value;
+        let start = new Date(fromY, months.indexOf(fromM), 1);
+        let end = new Date(toY, months.indexOf(toM), 1);
+        
+        if (start > end) {
+          window.alert("Invalid date range.");
+          return;
+        }
+        
+        closeBatchViewModal();
+        document.getElementById("loader").style.display = "block";
+        document.getElementById("reportBody").innerHTML = "";
+
+        headerFilters = {};
+        document.querySelectorAll(".filter-icon").forEach((i) => i.classList.remove("filter-active"));
+
+        await ensureSpecialRules();
+
+        let combinedData = [];
+        let current = new Date(start);
+
+        while (current <= end) {
+          let m = months[current.getMonth()], y = current.getFullYear();
+          let data = await fetchReportDataAPI(m, y);
+          if (data && data.length > 0) {
+            combinedData = combinedData.concat(data);
+          }
+          current.setMonth(current.getMonth() + 1);
+        }
+
+        masterData = combinedData;
+
+        let uniqueOwners = new Set();
+        let uniqueSites = new Set();
+        masterData.forEach((d) => {
+          uniqueOwners.add(d.owner);
+          uniqueSites.add(d.site);
+        });
+
+        populateSelect("filterOwner", uniqueOwners);
+        populateSelect("filterSite", uniqueSites);
+
+        applyFilters();
+        document.getElementById("loader").style.display = "none";
+      }
+
     </script>
 
     <div id="colToggleModal" class="modal-overlay">
@@ -3323,6 +3409,64 @@
         >
           Done
         </button>
+      </div>
+    </div>
+    <div id="batchViewModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Batch Report View</h3>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 15px">
+          Select the range to load multiple months directly into the screen.
+        </p>
+        <div class="flex-row">
+          <div class="form-group" style="flex: 1">
+            <label>From Month</label>
+            <select id="batchViewFromM">
+              <option value="January">January</option>
+              <option value="February">February</option>
+              <option value="March">March</option>
+              <option value="April">April</option>
+              <option value="May">May</option>
+              <option value="June">June</option>
+              <option value="July">July</option>
+              <option value="August">August</option>
+              <option value="September">September</option>
+              <option value="October">October</option>
+              <option value="November">November</option>
+              <option value="December">December</option>
+            </select>
+          </div>
+          <div class="form-group" style="width: 80px">
+            <label>Year</label>
+            <input type="number" id="batchViewFromY" value="2026" />
+          </div>
+        </div>
+        <div class="flex-row">
+          <div class="form-group" style="flex: 1">
+            <label>To Month</label>
+            <select id="batchViewToM">
+              <option value="January">January</option>
+              <option value="February">February</option>
+              <option value="March">March</option>
+              <option value="April">April</option>
+              <option value="May">May</option>
+              <option value="June">June</option>
+              <option value="July">July</option>
+              <option value="August">August</option>
+              <option value="September">September</option>
+              <option value="October">October</option>
+              <option value="November">November</option>
+              <option value="December">December</option>
+            </select>
+          </div>
+          <div class="form-group" style="width: 80px">
+            <label>Year</label>
+            <input type="number" id="batchViewToY" value="2026" />
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px">
+          <button class="btn-fetch" style="flex: 1; background: #64748b" onclick="closeBatchViewModal()">Cancel</button>
+          <button class="btn-primary" style="flex: 1; margin: 0" onclick="executeBatchView()">Load in Screen</button>
+        </div>
       </div>
     </div>
   </body>
