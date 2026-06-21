@@ -344,10 +344,11 @@ function rearrangeScreenData() {
         otrate: otrate,
         vat_bill: isVat,
         owner: itemOwner,
-        temp_nhr: nhr,
-        temp_othr: othr,
-      });
+      temp_nhr: nhr,
+      temp_othr: othr,
+      temp_remark: row.querySelector(".remark") ? row.querySelector(".remark").value : "",
     });
+  });
   });
 
   if (itemsToGroup.length === 0)
@@ -432,6 +433,9 @@ function rearrangeScreenData() {
         if (row) {
           row.querySelector(".nhr").value = item.temp_nhr;
           row.querySelector(".othr").value = item.temp_othr;
+          if (row.querySelector(".remark") && item.temp_remark !== undefined) {
+              row.querySelector(".remark").value = item.temp_remark;
+          }
           calculateRow(row.querySelector(".nhr"));
         }
       });
@@ -709,6 +713,7 @@ function createBillCard(group, id) {
                         <th class="col-vat-p vat-col" style="display:${vatDisplay};">VAT %</th>
                         <th class="col-money vat-col" style="display:${vatDisplay};">VAT Amt</th>
                         <th class="col-money total-col" style="display:${vatDisplay};">Total</th>
+                        <th class="col-remark no-export-col" style="width: 12%;">Remark</th>
                         <th class="col-action no-export">Act</th>
                     </tr>
                 </thead>
@@ -735,6 +740,7 @@ function createBillCard(group, id) {
     let vatPerc = saved ? saved.vat_percent : item.vat_bill === "Yes" ? 15 : 0;
     let driverName = item.driver_name || item.driver || "";
     if (saved && saved.driver) driverName = saved.driver;
+    let rowRemark = saved && saved.remark ? saved.remark : "";
 
     html += generateRowHTML(
       index + 1,
@@ -749,6 +755,7 @@ function createBillCard(group, id) {
       otrate,
       vatPerc,
       vatDisplay,
+      rowRemark
     );
   });
 
@@ -765,6 +772,7 @@ function createBillCard(group, id) {
                         <td class="vat-col" style="display:${vatDisplay};"></td>
                         <td class="grandVat vat-col" style="display:${vatDisplay};">0</td>
                         <td class="grandTotal total-col" style="display:${vatDisplay};">0</td>
+                        <td class="no-export-col"></td>
                         <td class="no-export" style="text-align: center;">
                             <button type="button" class="btn-add-circle" onclick="addDynamicRow('${id}')">+</button>
                         </td>
@@ -845,6 +853,7 @@ function generateRowHTML(
   otrate,
   vatPerc,
   vatDisplay,
+  remark = ""
 ) {
   return `
         <tr>
@@ -869,6 +878,7 @@ function generateRowHTML(
             </td>
             <td class="vat vat-col" style="display:${vatDisplay};">0</td>
             <td class="total total-col" style="display:${vatDisplay};">0</td>
+            <td class="no-export-col"><input type="text" class="remark" value="${remark}" placeholder=" " style="text-align: left; padding-left: 5px;"></td>
             <td class="no-export"><button type="button" class="btn-remove" onclick="removeDynamicRow(this)">✖</button></td>
         </tr>
     `;
@@ -927,11 +937,12 @@ window.arrangeSingleCard = function (cardId) {
       nrate: nrate,
       otrate: otrate,
       vat_bill: isVat,
-      owner: itemOwner,
-      temp_nhr: nhr,
-      temp_othr: othr,
-    });
+    owner: itemOwner,
+    temp_nhr: nhr,
+    temp_othr: othr,
+    temp_remark: row.querySelector(".remark") ? row.querySelector(".remark").value : "",
   });
+});
 
   if (itemsToGroup.length === 0) return showToast("No data to arrange!");
 
@@ -998,6 +1009,9 @@ window.arrangeSingleCard = function (cardId) {
         if (row) {
           row.querySelector(".nhr").value = item.temp_nhr;
           row.querySelector(".othr").value = item.temp_othr;
+          if (row.querySelector(".remark") && item.temp_remark !== undefined) {
+              row.querySelector(".remark").value = item.temp_remark;
+          }
           calculateRow(row.querySelector(".nhr"));
         }
       });
@@ -1033,6 +1047,7 @@ function addDynamicRow(cardId) {
     0,
     15,
     vatDisplay,
+    ""
   );
   tbody.appendChild(tr);
 }
@@ -1239,6 +1254,9 @@ function applyAutoFillData(input, match, addBlankRow = true) {
   if (saved) {
     row.querySelector(".nhr").value = saved.nhr || 0;
     row.querySelector(".othr").value = saved.othr || 0;
+    if (row.querySelector(".remark") && saved.remark) {
+      row.querySelector(".remark").value = saved.remark;
+    }
 
     let fillNrate = match.nrate || 0;
     if (saved.nrate !== null && saved.nrate !== undefined) {
@@ -1459,6 +1477,18 @@ function convertInputsToText(card) {
     ownerWrapper.style.display = "none";
   }
 
+  // 🟢 NEW: എക്സ്പോർട്ട് ചെയ്യുന്നതിന് മുൻപ് ബ്ലാങ്ക് വരികൾ ഹൈഡ് ചെയ്യുന്നു
+  card.querySelectorAll(".tableBody tr").forEach((row) => {
+    let plate = row.querySelector(".plate") ? row.querySelector(".plate").value.trim() : "";
+    let nhr = parseFloat(row.querySelector(".nhr") ? row.querySelector(".nhr").value : 0) || 0;
+    let othr = parseFloat(row.querySelector(".othr") ? row.querySelector(".othr").value : 0) || 0;
+    
+    if (plate === "" && nhr === 0 && othr === 0) {
+      row.style.display = "none";
+      row.classList.add("temp-hidden-export-row");
+    }
+  });
+
   card.querySelectorAll("input").forEach((input) => {
     if (input.type !== "hidden" && !input.classList.contains("owner-input")) {
       const span = document.createElement("span");
@@ -1502,6 +1532,12 @@ function revertInputsFromText(card) {
     ownerWrapper.style.display = "";
   }
 
+  // 🟢 NEW: എക്സ്പോർട്ട് കഴിഞ്ഞതിന് ശേഷം ബ്ലാങ്ക് വരികൾ തിരികെ കൊണ്ടുവരുന്നു
+  card.querySelectorAll(".temp-hidden-export-row").forEach((row) => {
+    row.style.display = "";
+    row.classList.remove("temp-hidden-export-row");
+  });
+
   card.querySelectorAll(".temp-export-span").forEach((el) => el.remove());
   card.querySelectorAll("input").forEach((input) => (input.style.display = ""));
 
@@ -1531,7 +1567,17 @@ async function exportSingleImage(id) {
   const filename = getDynamicFileName(card);
 
   convertInputsToText(printArea);
-  const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+  const canvas = await html2canvas(printArea, { 
+    scale: 3, 
+    useCORS: true,
+    onclone: function(clonedDoc) {
+      let clonedEl = clonedDoc.getElementById(printArea.id);
+      if (clonedEl) {
+        clonedEl.style.width = "1400px";     /* സ്ക്രീൻഷോട്ട് എടുക്കുമ്പോൾ മാത്രം വീതി കൂട്ടുന്നു */
+        clonedEl.style.minWidth = "1400px";
+      }
+    }
+  });
   revertInputsFromText(printArea);
 
   const link = document.createElement("a");
@@ -1942,6 +1988,7 @@ function submitSingleCard(cardId) {
         adjustment_desc: rowAdjDescStr,
         adjusted_amount: rowAdjAmtTotal,
         after_adjustment: totalVal + rowAdjAmtTotal,
+        remark: row.querySelector(".remark") ? row.querySelector(".remark").value.trim() : ""
       });
     }
   });

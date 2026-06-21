@@ -229,8 +229,8 @@ router.post("/save", async (req, res) => {
       }
 
       const query = `INSERT INTO billing_records 
-                (billing_month, date, company, owner, site_name, db_rate, vtype, driver, plate_no, nhr, nrate, othr, otrate, rent, vat_percent, vat_amount, total, adjustment_desc, adjusted_amount, after_adjustment) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`;
+                (billing_month, date, company, owner, site_name, db_rate, vtype, driver, plate_no, nhr, nrate, othr, otrate, rent, vat_percent, vat_amount, total, adjustment_desc, adjusted_amount, after_adjustment, remark) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`;
 
       await client.query(query, [
         billing_period,
@@ -253,6 +253,7 @@ router.post("/save", async (req, res) => {
         row.adjustment_desc,
         adjAmt,
         row.after_adjustment,
+        row.remark
       ]);
     }
     await client.query("COMMIT");
@@ -352,6 +353,7 @@ router.get("/export-excel", async (req, res) => {
       { header: "Adjustment", key: "adjustment_desc", width: 25 },
       { header: "Adj. Amt", key: "adjusted_amount", width: 15 },
       { header: "Grand Total", key: "after_adjustment", width: 15 },
+      { header: "Remark", key: "remark", width: 25 },
     ];
 
     result.rows.forEach((row) => {
