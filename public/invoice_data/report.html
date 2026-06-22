@@ -1660,9 +1660,6 @@
           let vTimesheets = data.timesheets.filter(
             (ts) => cleanPlate(ts.plate_no) === pClean,
           );
-          let billData = data.billing.find(
-            (b) => cleanPlate(b.plate_no) === pClean,
-          );
           let vInvoices = data.invoices.filter(
             (i) => cleanPlate(i.plate_no) === pClean,
           );
@@ -1808,17 +1805,27 @@
             siteDataMap[currentSite].ts_ot += otHr;
           }
 
-          let bill_db_nr = billData ? parseFloat(billData.nhr) || 0 : 0;
-          let bill_db_ot = billData ? parseFloat(billData.othr) || 0 : 0;
-          let bill_nrate = billData ? parseFloat(billData.nrate) || 0 : 0;
-          let bill_otrate = billData ? parseFloat(billData.otrate) || 0 : 0;
-          let bill_rent = billData ? parseFloat(billData.rent) || 0 : 0;
-          let rent_vat = billData ? parseFloat(billData.vat_amount) || 0 : 0;
-          let rent_total = billData ? parseFloat(billData.total) || 0 : 0;
-
           Object.keys(siteDataMap).forEach((sName, index) => {
             let ts_nr = siteDataMap[sName].ts_nr;
             let ts_ot = siteDataMap[sName].ts_ot;
+
+            // Fetch billing data matching BOTH Plate No and Site Name
+            let billData = data.billing.find(
+              (b) => cleanPlate(b.plate_no) === pClean && (b.site_name || "").trim() === sName
+            );
+            
+            // Fallback just in case site_name was saved as N/A in billing
+            if (!billData && sName !== "N/A") {
+              billData = data.billing.find((b) => cleanPlate(b.plate_no) === pClean && (!b.site_name || b.site_name === "N/A"));
+            }
+
+            let bill_db_nr = billData ? parseFloat(billData.nhr) || 0 : 0;
+            let bill_db_ot = billData ? parseFloat(billData.othr) || 0 : 0;
+            let bill_nrate = billData ? parseFloat(billData.nrate) || 0 : 0;
+            let bill_otrate = billData ? parseFloat(billData.otrate) || 0 : 0;
+            let bill_rent = billData ? parseFloat(billData.rent) || 0 : 0;
+            let rent_vat = billData ? parseFloat(billData.vat_amount) || 0 : 0;
+            let rent_total = billData ? parseFloat(billData.total) || 0 : 0;
 
             if (
               sName === "N/A" &&
@@ -1894,23 +1901,13 @@
               ts_ot: ts_ot.toString(),
               inv_nr: inv_nr !== "" ? inv_nr.toString() : "",
               inv_ot: inv_ot !== "" ? inv_ot.toString() : "",
-              bill_db_nr:
-                index === 0 && bill_db_nr > 0 ? bill_db_nr.toString() : "",
-              bill_db_ot:
-                index === 0 && bill_db_ot > 0 ? bill_db_ot.toString() : "",
-              bill_nrate:
-                index === 0 && bill_nrate > 0
-                  ? parseFloat(bill_nrate).toFixed(2)
-                  : "",
-              bill_otrate:
-                index === 0 && bill_otrate > 0
-                  ? parseFloat(bill_otrate).toFixed(2)
-                  : "",
-              bill_rent:
-                index === 0 && bill_rent > 0 ? bill_rent.toFixed(2) : "",
-              rent_vat: index === 0 && rent_vat > 0 ? rent_vat.toFixed(2) : "",
-              rent_total:
-                index === 0 && rent_total > 0 ? rent_total.toFixed(2) : "",
+              bill_db_nr: bill_db_nr > 0 ? bill_db_nr.toString() : "",
+              bill_db_ot: bill_db_ot > 0 ? bill_db_ot.toString() : "",
+              bill_nrate: bill_nrate > 0 ? parseFloat(bill_nrate).toFixed(2) : "",
+              bill_otrate: bill_otrate > 0 ? parseFloat(bill_otrate).toFixed(2) : "",
+              bill_rent: bill_rent > 0 ? bill_rent.toFixed(2) : "",
+              rent_vat: rent_vat > 0 ? rent_vat.toFixed(2) : "",
+              rent_total: rent_total > 0 ? rent_total.toFixed(2) : "",
               inv_subtotal: inv_amount > 0 ? inv_amount.toFixed(2) : "",
               inv_total: inv_amount > 0 ? (inv_amount * 1.15).toFixed(2) : "",
               diff_nr,
@@ -2524,15 +2521,18 @@
           );
 
           let values = [];
+          let hasData = false;
+
           rows.forEach((tr) => {
             let cell = tr.cells[colIndex];
             if (cell) {
               let val = cell.innerText.trim();
-              if (val && val !== "") values.push(val);
+              values.push(val); // Blank aayalum array-ilekku add aavan vendi
+              if (val !== "") hasData = true; // Column-il enthengilum data undo ennu check cheyyunnu
             }
           });
 
-          if (values.length === 0) {
+          if (!hasData) {
             showToast("No data in this column");
             return;
           }
