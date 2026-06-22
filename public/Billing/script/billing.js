@@ -824,13 +824,15 @@ function createBillCard(group, id) {
             </div>
 
             <div class="footer" style="margin-top:40px; display:flex; justify-content:space-between; align-items:flex-end;">
-                <div style="text-align: left;">
-                    <img src="${compConfig.signature}" class="signature-img hidden-image" alt="Signature" crossorigin="anonymous">
+                <!-- Left Side: Text and Line -->
+                <div style="text-align: left; padding-bottom: 10px;">
                     <p class="company-text hidden-image" style="margin-bottom: 5px;"><b>${compConfig.text}</b></p>
-                    <p style="border-top: 1px solid #333; width: 250px;"></p>
+                    <p style="border-top: 1px solid #333; width: 250px; margin: 0;"></p>
                 </div>
-                <div style="text-align: right;">
-                    <img src="${compConfig.seal}" class="seal hidden-image" alt="Company Seal" crossorigin="anonymous">
+                <!-- Right Side: Signature and Seal together -->
+                <div style="display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
+                    <img src="${compConfig.signature}" class="signature-img hidden-image" alt="Signature" crossorigin="anonymous" style="margin-bottom: 0; max-height: 80px;">
+                    <img src="${compConfig.seal}" class="seal hidden-image" alt="Company Seal" crossorigin="anonymous" style="margin-bottom: 0;">
                 </div>
             </div>
         </div>
