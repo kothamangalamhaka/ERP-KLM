@@ -148,27 +148,14 @@ router.get("/master-report-data", async (req, res) => {
     const { month, year } = req.query;
     const fullMonth = `${month} ${year}`;
 
-    const vehicles = await pool.query(
-      "SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles",
-    );
-    const sites = await pool.query(
-      "SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co FROM vehicle_site_log",
-    );
-    const drivers = await pool.query(
-      "SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log",
-    );
-    const timesheets = await pool.query(
-      "SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month=$1 AND year=$2",
-      [month, year],
-    );
-    const invoices = await pool.query(
-      "SELECT * FROM invoice_records WHERE month=$1",
-      [fullMonth],
-    );
-    const billing = await pool.query(
-      "SELECT * FROM billing_records WHERE billing_month=$1",
-      [fullMonth],
-    );
+    const [vehicles, sites, drivers, timesheets, invoices, billing] = await Promise.all([
+      pool.query("SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles"),
+      pool.query("SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co FROM vehicle_site_log"),
+      pool.query("SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log"),
+      pool.query("SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month=$1 AND year=$2", [month, year]),
+      pool.query("SELECT * FROM invoice_records WHERE month=$1", [fullMonth]),
+      pool.query("SELECT * FROM billing_records WHERE billing_month=$1", [fullMonth])
+    ]);
 
     res.json({
       success: true,
