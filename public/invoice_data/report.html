@@ -1550,6 +1550,7 @@
       let isSecurityVerified = false; // 🟢 Track if code is entered once per session
       let sortConfig = null; // 🆕 Track active sorting
       let specialRulesCache = [];
+      let isBatchViewActive = false; // 🟢 Track if Batch View is currently active
 
       window.alert = function (message) {
         document.getElementById("customAlertMessage").innerText = message;
@@ -1864,20 +1865,20 @@
               ? parseFloat(invData.invoice_amount) || 0
               : 0;
 
+            let calc_ts_nr = parseFloat(ts_nr) || 0;
+            let calc_ts_ot = parseFloat(ts_ot) || 0;
+            let calc_inv_nr = parseFloat(inv_nr) || 0;
+            let calc_inv_ot = parseFloat(inv_ot) || 0;
+
             let diff_nr = "";
             let diff_ot = "";
 
-            // Invoice N.Hr ൽ ഡാറ്റ ഉണ്ടെങ്കിൽ മാത്രം Difference കാൽക്കുലേറ്റ് ചെയ്യുക
-            if (inv_nr !== "") {
-              let diff_nr_val = ts_nr - parseFloat(inv_nr);
-              if (diff_nr_val > 0) diff_nr = diff_nr_val.toString();
-            }
+            // 🟢 Calculate difference properly even if Invoice is 0 / Blank
+            let diff_nr_val = calc_ts_nr - calc_inv_nr;
+            if (diff_nr_val > 0) diff_nr = diff_nr_val.toString();
 
-            // Invoice OT ൽ ഡാറ്റ ഉണ്ടെങ്കിൽ മാത്രം Difference കാൽക്കുലേറ്റ് ചെയ്യുക
-            if (inv_ot !== "") {
-              let diff_ot_val = ts_ot - parseFloat(inv_ot);
-              if (diff_ot_val > 0) diff_ot = diff_ot_val.toString();
-            }
+            let diff_ot_val = calc_ts_ot - calc_inv_ot;
+            if (diff_ot_val > 0) diff_ot = diff_ot_val.toString();
 
             let diff_st = "";
             if (diff_nr !== "" && diff_ot !== "") {
@@ -1897,12 +1898,12 @@
               vat,
               site: sName,
               rate: siteDataMap[sName].rate,
-              ts_nr: ts_nr.toString(),
-              ts_ot: ts_ot.toString(),
-              inv_nr: inv_nr !== "" ? inv_nr.toString() : "",
-              inv_ot: inv_ot !== "" ? inv_ot.toString() : "",
-              bill_db_nr: bill_db_nr > 0 ? bill_db_nr.toString() : "",
-              bill_db_ot: bill_db_ot > 0 ? bill_db_ot.toString() : "",
+              ts_nr: calc_ts_nr.toString(),                           
+              ts_ot: calc_ts_ot > 0 ? calc_ts_ot.toString() : "",     
+              inv_nr: inv_nr !== "" ? calc_inv_nr.toString() : "0",   
+              inv_ot: calc_inv_ot > 0 ? calc_inv_ot.toString() : "",  
+              bill_db_nr: bill_db_nr > 0 ? bill_db_nr.toString() : "", 
+              bill_db_ot: bill_db_ot > 0 ? bill_db_ot.toString() : "", 
               bill_nrate: bill_nrate > 0 ? parseFloat(bill_nrate).toFixed(2) : "",
               bill_otrate: bill_otrate > 0 ? parseFloat(bill_otrate).toFixed(2) : "",
               bill_rent: bill_rent > 0 ? bill_rent.toFixed(2) : "",
@@ -1934,16 +1935,25 @@
         return processedArray;
       }
 
-      async function fetchAndRenderUI() {
+      async function fetchAndRenderUI(preserveFilters = false) {
+        isBatchViewActive = false;
         const month = document.getElementById("selMonth").value;
         const year = document.getElementById("selYear").value;
         document.getElementById("loader").style.display = "block";
         document.getElementById("reportBody").innerHTML = "";
 
-        headerFilters = {};
-        document
-          .querySelectorAll(".filter-icon")
-          .forEach((i) => i.classList.remove("filter-active"));
+        let currentOwner = "ALL";
+        let currentSite = "ALL";
+        let currentPlate = "";
+
+        if (!preserveFilters) {
+          headerFilters = {};
+          document.querySelectorAll(".filter-icon").forEach((i) => i.classList.remove("filter-active"));
+        } else {
+          currentOwner = document.getElementById("filterOwner").value;
+          currentSite = document.getElementById("filterSite").value;
+          currentPlate = document.getElementById("filterPlate").value;
+        }
 
         await ensureSpecialRules();
         masterData = await fetchReportDataAPI(month, year);
@@ -1957,6 +1967,14 @@
 
         populateSelect("filterOwner", uniqueOwners);
         populateSelect("filterSite", uniqueSites);
+
+        if (preserveFilters) {
+          document.getElementById("filterOwner").value = currentOwner;
+          document.getElementById("filterSite").value = currentSite;
+          document.getElementById("filterPlate").value = currentPlate;
+        } else {
+          document.getElementById("filterPlate").value = "";
+        }
 
         applyFilters();
         document.getElementById("loader").style.display = "none";
@@ -2229,8 +2247,8 @@
             .querySelector('[data-field="inv_nr"]')
             .innerText.trim().replace(/,/g, "");
           let inv_nr =
-            inv_nr_text === ""
-              ? null
+            inv_nr_text === "" || inv_nr_text === "-"
+              ? 0 // 🟢 Send 0 to backend if cell is blank
               : isNaN(parseFloat(inv_nr_text))
                 ? 0
                 : parseFloat(inv_nr_text);
@@ -2239,8 +2257,8 @@
             .querySelector('[data-field="inv_ot"]')
             .innerText.trim().replace(/,/g, "");
           let inv_ot =
-            inv_ot_text === ""
-              ? null
+            inv_ot_text === "" || inv_ot_text === "-"
+              ? 0 // 🟢 Send 0 to backend if cell is blank
               : isNaN(parseFloat(inv_ot_text))
                 ? 0
                 : parseFloat(inv_ot_text);
@@ -2296,7 +2314,11 @@
             isEditMode = false;
             document.getElementById("btnEditData").innerHTML = "✏️ Edit Data";
             document.getElementById("btnSaveChanges").style.display = "none";
-            fetchAndRenderUI();
+            if (isBatchViewActive) {
+              executeBatchView(true);
+            } else {
+              fetchAndRenderUI(true);
+            }
           } else {
             window.alert("Error: " + data.message);
           }
@@ -2391,7 +2413,7 @@
 
         tempFiltered.forEach((row) => allOptions.add(String(row[key])));
 
-        let allDataArr = Array.from(allOptions).sort();
+        let allDataArr = Array.from(allOptions).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
         let previouslySelected = headerFilters[key] || [];
         let isAllSelected = previouslySelected.length === 0;
 
@@ -3261,7 +3283,8 @@
         document.getElementById("batchViewModal").style.display = "none";
       }
 
-      async function executeBatchView() {
+      async function executeBatchView(preserveFilters = false) {
+        isBatchViewActive = true;
         const fromM = document.getElementById("batchViewFromM").value;
         const fromY = document.getElementById("batchViewFromY").value;
         const toM = document.getElementById("batchViewToM").value;
@@ -3278,8 +3301,18 @@
         document.getElementById("loader").style.display = "block";
         document.getElementById("reportBody").innerHTML = "";
 
-        headerFilters = {};
-        document.querySelectorAll(".filter-icon").forEach((i) => i.classList.remove("filter-active"));
+        let currentOwner = "ALL";
+        let currentSite = "ALL";
+        let currentPlate = "";
+
+        if (!preserveFilters) {
+          headerFilters = {};
+          document.querySelectorAll(".filter-icon").forEach((i) => i.classList.remove("filter-active"));
+        } else {
+          currentOwner = document.getElementById("filterOwner").value;
+          currentSite = document.getElementById("filterSite").value;
+          currentPlate = document.getElementById("filterPlate").value;
+        }
 
         await ensureSpecialRules();
 
@@ -3306,6 +3339,14 @@
 
         populateSelect("filterOwner", uniqueOwners);
         populateSelect("filterSite", uniqueSites);
+
+        if (preserveFilters) {
+          document.getElementById("filterOwner").value = currentOwner;
+          document.getElementById("filterSite").value = currentSite;
+          document.getElementById("filterPlate").value = currentPlate;
+        } else {
+          document.getElementById("filterPlate").value = "";
+        }
 
         applyFilters();
         document.getElementById("loader").style.display = "none";
