@@ -760,12 +760,33 @@ async function initDB() {
         return 0;
       });
       renderTable();
+      updateGlobalDatalists(); // NEW: Generate auto-suggestions
     }
   } catch (err) {
     document.getElementById("errorBanner").style.display = "block";
     document.getElementById("errorBanner").innerText =
       "Notice: Database sync failed or refreshing.";
   }
+}
+
+// NEW: Function to update global datalists for all forms dynamically
+function updateGlobalDatalists() {
+  const uniqueSites = [...new Set(tableData.map(r => r.site_name).filter(Boolean))].sort();
+  const uniqueFieldCos = [...new Set(tableData.map(r => r.field_co).filter(Boolean))].sort();
+  const uniqueSiteCos = [...new Set(tableData.map(r => r.site_co).filter(Boolean))].sort();
+
+  let datalistContainer = document.getElementById("globalDatalists");
+  if (!datalistContainer) {
+    datalistContainer = document.createElement("div");
+    datalistContainer.id = "globalDatalists";
+    document.body.appendChild(datalistContainer);
+  }
+
+  datalistContainer.innerHTML = `
+    <datalist id="globalSiteNameList">${uniqueSites.map(v => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    <datalist id="globalFieldCoList">${uniqueFieldCos.map(v => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    <datalist id="globalSiteCoList">${uniqueSiteCos.map(v => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+  `;
 }
 
 async function fastUpdateLog(plate_no, type, field, value, logId) {
@@ -1605,23 +1626,32 @@ async function saveDriverLog() {
       ? document.getElementById("dlReason").value
       : "",
   };
-  await safeFetch("/timesheet/api/update-driver-log", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token,
-    },
-    body: JSON.stringify(payload),
-  });
-  let r = tableData.find((x) => x.plate_no === payload.plate_no);
-  if (r) {
-    r.driver_name = payload.driver_name;
-    r.driver_mobile = payload.driver_mobile;
-    r.current_driver_status = payload.work_end_date ? "Released" : "Running";
-    renderTable();
+
+  showStatus("Saving...", "saving");
+  try {
+    const res = await safeFetch("/timesheet/api/update-driver-log", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.success) {
+      showStatus("✓ Saved", "saved");
+      customAlert("Success", "Driver log saved successfully!");
+      await initDB(); 
+      fetchLogs(payload.plate_no, "driver"); 
+      clearDriverForm();
+    } else {
+      showStatus("Error", "error");
+      customAlert("Error", res.message || "Failed to save driver log.");
+    }
+  } catch (e) {
+    showStatus("Error", "error");
+    customAlert("Error", "Network error occurred.");
   }
-  fetchLogs(payload.plate_no, "driver");
-  clearDriverForm();
 }
 
 function editSiteLog(
@@ -1693,29 +1723,32 @@ async function saveSiteLog() {
       ? document.getElementById("slReason").value
       : "",
   };
-  await safeFetch("/timesheet/api/update-site-log", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token,
-    },
-    body: JSON.stringify(payload),
-  });
-  let r = tableData.find((x) => x.plate_no === payload.plate_no);
-  if (r) {
-    r.site_name = payload.site_name;
-    r.asset_code = payload.asset_code;
-    r.wrk_order_no = payload.work_order_no;
-    r.current_site_status = payload.status;
-    if (payload.status === "Running") {
-      r.site_rate = payload.rate;
-      r.field_co = payload.field_co;
-      r.site_co = payload.site_co;
+
+  showStatus("Saving...", "saving");
+  try {
+    const res = await safeFetch("/timesheet/api/update-site-log", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.success) {
+      showStatus("✓ Saved", "saved");
+      customAlert("Success", "Site log saved successfully!");
+      await initDB(); 
+      fetchLogs(payload.plate_no, "site"); 
+      clearSiteForm();
+    } else {
+      showStatus("Error", "error");
+      customAlert("Error", res.message || "Failed to save site log.");
     }
-    renderTable();
+  } catch (e) {
+    showStatus("Error", "error");
+    customAlert("Error", "Network error occurred.");
   }
-  fetchLogs(payload.plate_no, "site");
-  clearSiteForm();
 }
 
 function s2ab(s) {
