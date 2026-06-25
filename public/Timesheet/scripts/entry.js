@@ -405,7 +405,7 @@ function renderGrid(month, year, plate, existingData, siteStart, siteEnd, logs =
     let ws = cleanVal(rowData.wrk_start); let we = cleanVal(rowData.wrk_end);
     let hmr = cleanVal(rowData.hmr_start); let rowRemark = cleanVal(rowData.remark);
 
-    if (ws !== "" && we !== "") { if (["H", "AB", "DC", "SC", "R", "B"].includes(displayBd)) displayBd = ""; }
+    if (ws !== "" && we !== "") { if (["H", "AB", "DC", "SC", "R", "B", "NR"].includes(displayBd)) displayBd = ""; }
 
     let statusCode = getGapStatus(currentDateObj, siteLogs, driverLogs);
     let hasData = displayBd !== "" || ws !== "" || hmr !== "";
@@ -462,7 +462,7 @@ function updateSummaryBox() {
     let normalHr = 0, otHr = 0;
 
     if (bd === "ID" || bd === "NP") { if (isFullOT) otHr = 10; else normalHr = 10; } 
-    else if (["B", "H", "AB", "DC", "SC", "R"].includes(bd)) {} 
+    else if (["B", "H", "AB", "DC", "SC", "R", "NR"].includes(bd)) {} 
     else if (tm > 0) {
       if (isFullOT) { otHr = tm; } 
       else { if (tm > 10) { normalHr = 10; otHr = tm - 10; } else { normalHr = tm; } }
@@ -548,7 +548,7 @@ function calculateRow(rowIdx) {
   let bd = bdInput.value.trim().toUpperCase();
 
   if (ws !== "" && we !== "") {
-    if (["H", "AB", "DC", "SC", "R", "B"].includes(bd)) { bd = ""; bdInput.value = ""; saveCellData(rowIdx, "bd", ""); }
+    if (["H", "AB", "DC", "SC", "R", "B", "NR"].includes(bd)) { bd = ""; bdInput.value = ""; saveCellData(rowIdx, "bd", ""); }
   }
   const nl = document.querySelector(`.grid-input[data-row="${rowIdx}"][data-col="nl_checked"]`).checked;
   const site = document.getElementById("dispSite").innerText.split("&")[0].trim().toUpperCase();
@@ -558,7 +558,7 @@ function calculateRow(rowIdx) {
     let bdNum = parseFloat(bd);
     if (!isNaN(bdNum)) finalTime = bdNum;
     else if (["ID", "NP"].includes(bd)) finalTime = 10;
-    else if (["B", "H", "AB", "DC", "SC", "R"].includes(bd)) finalTime = 0;
+    else if (["B", "H", "AB", "DC", "SC", "R", "NR"].includes(bd)) finalTime = 0;
   } else if (ws && we) {
     let sHour = parseRailwayTime(ws); let eHour = parseRailwayTime(we); let diff = eHour - sHour;
     if (diff < 0) diff += 24;
@@ -772,7 +772,7 @@ async function importExcel() {
 
       if (bd) {
         let bdNum = parseFloat(bd);
-        if (!isNaN(bdNum)) finalTime = bdNum; else if (["ID", "NP"].includes(bd)) finalTime = 10; else if (["B", "H"].includes(bd)) finalTime = 0;
+        if (!isNaN(bdNum)) finalTime = bdNum; else if (["ID", "NP"].includes(bd)) finalTime = 10; else if (["B", "H", "NR"].includes(bd)) finalTime = 0;
       } else if (ws && we) {
         let parseRT = (val) => { let [hStr, mStr] = String(val).split("."); let h = parseInt(hStr) || 0; let m = 0; if (mStr) { mStr = mStr.length === 1 ? mStr + "0" : mStr.substring(0, 2); m = parseInt(mStr); } return h + m / 60; };
         let sHour = parseRT(ws); let eHour = parseRT(we); let diff = eHour - sHour; if (diff < 0) diff += 24;

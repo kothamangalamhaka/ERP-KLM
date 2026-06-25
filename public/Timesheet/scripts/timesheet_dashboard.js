@@ -430,6 +430,8 @@ function recalculateRowOnEdit(cell) {
         normalHr = 10;
         otHr = 0;
       }
+    } else if (cellVal === "NR") {
+      targetCell.classList.add("code-nr");
     } else if (["AB"].includes(cellVal)) {
       targetCell.classList.add("code-ab");
     } else if (["R"].includes(cellVal)) {
@@ -790,13 +792,15 @@ function getTableHTMLString(
       let fuel = parseFloat(rec.fuel) || 0;
 
       if (hasData) {
-        if (["B", "H", "ID", "NP"].includes(bdStr)) cellDisplay = bdStr;
+        if (["B", "H", "ID", "NP", "NR"].includes(bdStr)) cellDisplay = bdStr;
         else cellDisplay = timeRaw > 0 ? timeRaw : "";
 
         if (bdStr === "B") {
           cellClass += " code-b";
         } else if (bdStr === "H") {
           cellClass += " code-h";
+        } else if (bdStr === "NR") {
+          cellClass += " code-nr";
         } else if (bdStr === "ID" || bdStr === "NP") {
           if (isFullOT) {
             normalHr = 0;
@@ -1078,6 +1082,14 @@ function buildWorksheetFromTable(table, m, y) {
               name: "Arial",
               sz: 10,
               color: { rgb: "14532d" },
+              bold: true,
+            };
+          } else if (val === "NR") {
+            cellStyle.fill = { fgColor: { rgb: "e9a4a4" } };
+            cellStyle.font = {
+              name: "Arial",
+              sz: 10,
+              color: { rgb: "000000" },
               bold: true,
             };
           } else if (val === "AB") {
