@@ -1074,13 +1074,16 @@ window.arrangeSingleCard = function (cardId) {
 
     let groupCount = 0;
     Object.values(groups).forEach((group) => {
-      if (isCombinedView) {
-        group.items.sort((a, b) => {
-          let plateA = (a.plate_number || a.plate || "").toUpperCase();
-          let plateB = (b.plate_number || b.plate || "").toUpperCase();
-          return plateA.localeCompare(plateB);
-        });
-      }
+      // Sorting Alphabetically by Site, then by Plate Number
+      group.items.sort((a, b) => {
+        let siteA = (a.site || "").toUpperCase();
+        let siteB = (b.site || "").toUpperCase();
+        if (siteA !== siteB) return siteA.localeCompare(siteB);
+        
+        let plateA = (a.plate_number || a.plate || "").toUpperCase();
+        let plateB = (b.plate_number || b.plate || "").toUpperCase();
+        return plateA.localeCompare(plateB);
+      });
 
       groupCount++;
       let newId = "manual_arr_" + Date.now() + "_" + groupCount;
@@ -1151,7 +1154,9 @@ function showSuggestions(input) {
     return;
   }
 
-  const plates = [...new Set(masterData.map((r) => r.plate_number || r.plate))];
+  let selectedSites = getSelectedCheckboxes("siteList");
+  let filteredData = selectedSites.length > 0 ? masterData.filter(d => selectedSites.includes(d.site || "N/A")) : masterData;
+  const plates = [...new Set(filteredData.map((r) => r.plate_number || r.plate))];
   const matches = plates.filter(
     (p) => p && p.toUpperCase().replace(/\s+/g, "").includes(val),
   );
@@ -1239,8 +1244,9 @@ function autoFill(input) {
   const val = input.value.trim().toUpperCase();
   if (!val) return;
 
+  let selectedSites = getSelectedCheckboxes("siteList");
   let matches = masterData.filter(
-    (d) => (d.plate_number || d.plate || "").toUpperCase() === val,
+    (d) => (d.plate_number || d.plate || "").toUpperCase() === val && (selectedSites.length === 0 || selectedSites.includes(d.site || "N/A"))
   );
 
   if (matches.length === 0) return;
@@ -2255,18 +2261,34 @@ function autoFillOwnerData(cardId, ownerName) {
   const card = document.getElementById(`billCard_${cardId}`);
   if (!card) return;
 
+  // 1. ഫിൽറ്റർ ചെയ്ത സൈറ്റ് ഡാറ്റ മാത്രം എടുക്കാൻ
+  let selectedSites = getSelectedCheckboxes("siteList");
   let ownerVehicles = masterData.filter(
-    (v) => (v.owner || "").trim().toUpperCase() === ownerName.toUpperCase(),
+    (v) => (v.owner || "").trim().toUpperCase() === ownerName.toUpperCase() &&
+           (selectedSites.length === 0 || selectedSites.includes(v.site || v.site_name || "N/A"))
   );
+  
   if (ownerVehicles.length === 0)
-    return showToast("No vehicles found for " + ownerName);
+    return showToast("No vehicles found for " + ownerName + " in selected sites");
 
-  // 🟢 Sort by Company: Haka -> Aljoda -> Masar Wheels -> We1 Track
-  const compOrder = { Haka: 1, Aljoda: 2, "Masar Wheels": 3, "We1 Track": 4 };
+  // 2. സൈറ്റിന്റെ ആദ്യത്തെ വാക്ക് (First Name) മാത്രം നോക്കി Alphabetical ആയി അറേഞ്ച് ചെയ്യുന്നു
   ownerVehicles.sort((a, b) => {
-    let compA = getCompanyFromSite(a.site || a.site_name);
-    let compB = getCompanyFromSite(b.site || b.site_name);
-    return (compOrder[compA] || 99) - (compOrder[compB] || 99);
+    let siteA = (a.site || a.site_name || "").toUpperCase().trim();
+    let siteB = (b.site || b.site_name || "").toUpperCase().trim();
+    
+    // സൈറ്റിന്റെ ആദ്യത്തെ വാക്ക് മാത്രം എടുക്കുന്നു (ഉദാഹരണത്തിന് "BISHA L&T WE1" ൽ നിന്ന് "BISHA" മാത്രം)
+    let firstWordA = siteA.split(" ")[0];
+    let firstWordB = siteB.split(" ")[0];
+    
+    // ആദ്യത്തെ വാക്ക് വെച്ച് അറേഞ്ച് ചെയ്യുന്നു
+    if (firstWordA !== firstWordB) {
+      return firstWordA.localeCompare(firstWordB);
+    }
+    
+    // ആദ്യത്തെ വാക്ക് തുല്യമാണെങ്കിൽ പ്ലേറ്റ് നമ്പർ വെച്ച് അറേഞ്ച് ചെയ്യുന്നു
+    let plateA = (a.plate_number || a.plate || "").toUpperCase();
+    let plateB = (b.plate_number || b.plate || "").toUpperCase();
+    return plateA.localeCompare(plateB);
   });
 
   const tbody = card.querySelector(".tableBody");
