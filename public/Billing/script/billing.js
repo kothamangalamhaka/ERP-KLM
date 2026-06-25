@@ -118,10 +118,20 @@ function selectMonth(val) {
   document.getElementById("selectedMonthText").innerText = val;
   document.getElementById("monthOptions").classList.remove("show");
 
+  // സ്ക്രീനിൽ നിലവിൽ ഉള്ള owner names track ചെയ്യുക
+  let activeOwners = [];
+  document.querySelectorAll(".bill-card").forEach((card) => {
+    let ownerInput = card.querySelector(".owner-input");
+    let owner = ownerInput ? ownerInput.value.trim().toUpperCase() : "";
+    if (owner && owner !== "VARIOUS OWNERS" && !activeOwners.includes(owner)) {
+      activeOwners.push(owner);
+    }
+  });
+
   masterData = [];
   savedBillingData = [];
 
-  fetchDataFromERP();
+  fetchDataFromERP(activeOwners);
 }
 
 function getShortDate() {
@@ -182,7 +192,7 @@ function updateSelectTexts() {
     sites.length > 0 ? `${sites.length} Selected` : "None Selected";
 }
 
-function fetchDataFromERP() {
+function fetchDataFromERP(autoArrangeOwners = []) {
   const fullMonth = document
     .getElementById("selectedMonthText")
     .innerText.trim();
@@ -213,9 +223,15 @@ function fetchDataFromERP() {
         masterData = data.data;
         savedBillingData = data.saved_bills || [];
         populateCheckboxes();
-        showToast(
-          `Fetched ${masterData.length} vehicles! Select filters and click 'Arrange ✨'`,
-        );
+
+        // മുൻപ് screen-ൽ ഉണ്ടായിരുന്ന owners ഉണ്ടെങ്കിൽ auto re-arrange ചെയ്യുക
+        if (autoArrangeOwners.length > 0) {
+          autoArrangeForOwners(autoArrangeOwners);
+        } else {
+          showToast(
+            `Fetched ${masterData.length} vehicles! Select filters and click 'Arrange ✨'`,
+          );
+        }
       } else showToast("Backend Error: " + data.message);
       document.getElementById("loader").style.display = "none";
     })
@@ -224,6 +240,50 @@ function fetchDataFromERP() {
       if (err.message !== "Session Expired")
         showToast("Server Connection Failed!");
     });
+}
+
+function autoArrangeForOwners(ownerNames) {
+  const container = document.getElementById("dynamicBillsContainer");
+  container.innerHTML = "";
+
+  let groupCount = 0;
+
+  ownerNames.forEach((ownerName) => {
+    let ownerVehicles = masterData.filter(
+      (v) => (v.owner || "").trim().toUpperCase() === ownerName,
+    );
+    if (ownerVehicles.length === 0) return;
+
+    // Company അനുസരിച്ച് group ചെയ്യുക (owner_comp mode)
+    let groups = {};
+    ownerVehicles.forEach((item) => {
+      let comp = getCompanyFromSite(item.site);
+      let key = comp + "|||" + ownerName;
+      if (!groups[key]) {
+        groups[key] = { company: comp, owner: ownerName, items: [] };
+      }
+      groups[key].items.push(item);
+    });
+
+    Object.values(groups).forEach((group) => {
+      group.items.sort((a, b) =>
+        (a.plate_number || "").localeCompare(b.plate_number || ""),
+      );
+      groupCount++;
+      container.appendChild(createBillCard(group, `month_switch_${groupCount}`));
+    });
+  });
+
+  document
+    .querySelectorAll(".nhr, .othr, .nrate, .otrate, .rent")
+    .forEach((el) => calculateRow(el));
+
+  if (groupCount > 0) {
+    showToast(`Month changed! ${groupCount} table(s) re-loaded.`);
+  } else {
+    container.innerHTML = `<div style="text-align:center; padding:50px; background:white; border-radius:8px; border:1px dashed #ccc;"><h2>No data found for selected owners in this month</h2></div>`;
+    showToast(`No vehicles found for previous owners in this month.`);
+  }
 }
 
 function populateCheckboxes() {
