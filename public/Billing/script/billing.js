@@ -737,6 +737,7 @@ function createBillCard(group, id) {
             </div>
             <div style="display:flex; gap:10px;">
                 <button class="icon-btn" title="Download Image" style="background:#007bff;" onclick="exportSingleImage('${id}')"><i class="material-icons">download</i></button>
+<button class="icon-btn" title="Copy High Quality Image" style="background:#17a2b8;" onclick="copyHighQualityCard('${id}')"><i class="material-icons">content_copy</i></button>
                 <button class="icon-btn" title="Share WhatsApp" style="background:#25D366;" onclick="shareSingleWhatsApp('${id}')"><i class="material-icons">chat</i></button>
                 <button class="icon-btn" title="Remove Table" style="background:#dc3545; margin-left:15px;" onclick="this.closest('.bill-card').remove()"><i class="material-icons">delete</i></button>
             </div>
@@ -1689,18 +1690,28 @@ async function shareSingleWhatsApp(id) {
   const printArea = document.getElementById(`printArea_${id}`);
   const filename = getDynamicFileName(card);
 
+  document.getElementById("loader").style.display = "flex";
+  document.getElementById("loaderText").innerText = "Generating HD Image for WhatsApp...";
+
   convertInputsToText(printArea);
-  const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+  // High Quality (HD) ലഭിക്കാനായി scale 4 ആക്കി മാറ്റിയിരിക്കുന്നു
+  const canvas = await html2canvas(printArea, { 
+    scale: 4, 
+    useCORS: true,
+    logging: false,
+    imageTimeout: 0
+  });
   revertInputsFromText(printArea);
 
   canvas.toBlob(
     async (blob) => {
+      document.getElementById("loader").style.display = "none";
       try {
         const file = new File([blob], filename, { type: "image/png" });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file] });
         } else {
-          showToast("Direct Share not supported. Downloading instead.");
+          showToast("Direct Share not supported on this device. Downloading instead.");
           exportSingleImage(id);
         }
       } catch (error) {
@@ -1708,7 +1719,49 @@ async function shareSingleWhatsApp(id) {
       }
     },
     "image/png",
-    1.0,
+    1.0
+  );
+}
+
+// പുതിയതായി ചേർക്കുന്ന High Quality Copy ഫങ്ക്ഷൻ
+async function copyHighQualityCard(id) {
+  const card = document.getElementById(`billCard_${id}`);
+  const printArea = document.getElementById(`printArea_${id}`);
+
+  document.getElementById("loader").style.display = "flex";
+  document.getElementById("loaderText").innerText = "Copying Card in High Quality...";
+
+  convertInputsToText(printArea);
+  const canvas = await html2canvas(printArea, { 
+    scale: 4, 
+    useCORS: true,
+    logging: false,
+    imageTimeout: 0
+  });
+  revertInputsFromText(printArea);
+
+  canvas.toBlob(
+    async (blob) => {
+      document.getElementById("loader").style.display = "none";
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          const item = new ClipboardItem({ "image/png": blob });
+          await navigator.clipboard.write([item]);
+          showToast("High Quality Card Copied to Clipboard!");
+        } else {
+          showToast("Clipboard not supported. Downloading HD instead.");
+          const link = document.createElement("a");
+          link.download = getDynamicFileName(card);
+          link.href = URL.createObjectURL(blob);
+          link.click();
+        }
+      } catch (err) {
+        showToast("Failed to copy image. Check browser permissions.");
+        console.error(err);
+      }
+    },
+    "image/png",
+    1.0
   );
 }
 
