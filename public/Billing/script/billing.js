@@ -344,11 +344,13 @@ function rearrangeScreenData() {
         otrate: otrate,
         vat_bill: isVat,
         owner: itemOwner,
-      temp_nhr: nhr,
-      temp_othr: othr,
-      temp_remark: row.querySelector(".remark") ? row.querySelector(".remark").value : "",
+        temp_nhr: nhr,
+        temp_othr: othr,
+        temp_remark: row.querySelector(".remark")
+          ? row.querySelector(".remark").value
+          : "",
+      });
     });
-  });
   });
 
   if (itemsToGroup.length === 0)
@@ -434,7 +436,7 @@ function rearrangeScreenData() {
           row.querySelector(".nhr").value = item.temp_nhr;
           row.querySelector(".othr").value = item.temp_othr;
           if (row.querySelector(".remark") && item.temp_remark !== undefined) {
-              row.querySelector(".remark").value = item.temp_remark;
+            row.querySelector(".remark").value = item.temp_remark;
           }
           calculateRow(row.querySelector(".nhr"));
         }
@@ -606,9 +608,7 @@ function createBillCard(group, id) {
   const compConfig = companyData[group.company] || companyData["Haka"];
   const shortDate = getShortDate();
 
-  let requiresVat = group.items.some((item) => item.vat_bill === "Yes");
-  if (id.toString().startsWith("manual_")) requiresVat = true;
-  let vatDisplay = requiresVat ? "" : "none";
+  let vatDisplay = "";
 
   let adjHtml = "";
   let parsedAdjs = [];
@@ -721,9 +721,15 @@ function createBillCard(group, id) {
     `;
 
   group.items.forEach((item, index) => {
+    // 🟢 FIX: Improved matching logic for Plate No and Site Name (Ignores spaces & case)
     let saved = savedBillingData.find(
-      (s) => s.plate_no === item.plate_number && s.site_name === item.site,
+      (s) =>
+        (s.plate_no || "").trim().toUpperCase() ===
+          (item.plate_number || item.plate || "").trim().toUpperCase() &&
+        (s.site_name || "").trim().toUpperCase() ===
+          (item.site || "").trim().toUpperCase(),
     );
+
     let nhr = saved ? saved.nhr : 0;
     let othr = saved ? saved.othr : 0;
 
@@ -737,7 +743,18 @@ function createBillCard(group, id) {
       otrate = parseFloat(saved.otrate);
     }
 
-    let vatPerc = saved ? saved.vat_percent : item.vat_bill === "Yes" ? 15 : 0;
+    // 🟢 FIX: Strictly check if saved record has a vat_percent, otherwise default to master data
+    let vatPerc;
+if (saved) {
+    // saved record ഉണ്ടെങ്കിൽ — vat_percent null/undefined ആണെങ്കിൽ 0 treat ചെയ്യുക
+    // timesheet fallback വേണ്ട, user explicitly save ചെയ്തതാണ്
+    vatPerc = (saved.vat_percent !== null && saved.vat_percent !== undefined)
+        ? parseFloat(saved.vat_percent)
+        : 0;
+} else {
+    // saved record ഇല്ലെങ്കിൽ മാത്രം timesheet vat_bill നോക്കുക
+    vatPerc = item.vat_bill === "Yes" ? 15 : 0;
+}
     let driverName = item.driver_name || item.driver || "";
     if (saved && saved.driver) driverName = saved.driver;
     let rowRemark = saved && saved.remark ? saved.remark : "";
@@ -755,7 +772,7 @@ function createBillCard(group, id) {
       otrate,
       vatPerc,
       vatDisplay,
-      rowRemark
+      rowRemark,
     );
   });
 
@@ -855,7 +872,7 @@ function generateRowHTML(
   otrate,
   vatPerc,
   vatDisplay,
-  remark = ""
+  remark = "",
 ) {
   return `
         <tr>
@@ -939,12 +956,14 @@ window.arrangeSingleCard = function (cardId) {
       nrate: nrate,
       otrate: otrate,
       vat_bill: isVat,
-    owner: itemOwner,
-    temp_nhr: nhr,
-    temp_othr: othr,
-    temp_remark: row.querySelector(".remark") ? row.querySelector(".remark").value : "",
+      owner: itemOwner,
+      temp_nhr: nhr,
+      temp_othr: othr,
+      temp_remark: row.querySelector(".remark")
+        ? row.querySelector(".remark").value
+        : "",
+    });
   });
-});
 
   if (itemsToGroup.length === 0) return showToast("No data to arrange!");
 
@@ -1012,7 +1031,7 @@ window.arrangeSingleCard = function (cardId) {
           row.querySelector(".nhr").value = item.temp_nhr;
           row.querySelector(".othr").value = item.temp_othr;
           if (row.querySelector(".remark") && item.temp_remark !== undefined) {
-              row.querySelector(".remark").value = item.temp_remark;
+            row.querySelector(".remark").value = item.temp_remark;
           }
           calculateRow(row.querySelector(".nhr"));
         }
@@ -1032,8 +1051,7 @@ function addDynamicRow(cardId) {
   const card = document.getElementById(`billCard_${cardId}`);
   const tbody = card.querySelector(".tableBody");
   const index = tbody.rows.length + 1;
-  let vatCol = card.querySelector(".vat-col");
-  let vatDisplay = vatCol ? vatCol.style.display : "";
+  let vatDisplay = ""; // Always visible on UI
   const tr = document.createElement("tr");
 
   tr.innerHTML = generateRowHTML(
@@ -1049,7 +1067,7 @@ function addDynamicRow(cardId) {
     0,
     15,
     vatDisplay,
-    ""
+    "",
   );
   tbody.appendChild(tr);
 }
@@ -1279,7 +1297,22 @@ function applyAutoFillData(input, match, addBlankRow = true) {
   }
 
   let vatSelect = row.querySelector(".vat-rate");
-  if (vatSelect) vatSelect.value = match.vat_bill === "Yes" ? "15" : "0";
+if (vatSelect) {
+    let saved = savedBillingData.find(
+        (s) =>
+            (s.plate_no || "").trim().toUpperCase() ===
+                (match.plate_number || match.plate || "").trim().toUpperCase() &&
+            (s.site_name || "").trim().toUpperCase() ===
+                (match.site || match.site_name || "").trim().toUpperCase()
+    );
+    if (saved) {
+        vatSelect.value = (saved.vat_percent !== null && saved.vat_percent !== undefined)
+            ? String(parseFloat(saved.vat_percent))
+            : "0";
+    } else {
+        vatSelect.value = match.vat_bill === "Yes" ? "15" : "0";
+    }
+}
 
   calculateRow(input);
 
@@ -1481,10 +1514,18 @@ function convertInputsToText(card) {
 
   // 🟢 NEW: എക്സ്പോർട്ട് ചെയ്യുന്നതിന് മുൻപ് ബ്ലാങ്ക് വരികൾ ഹൈഡ് ചെയ്യുന്നു
   card.querySelectorAll(".tableBody tr").forEach((row) => {
-    let plate = row.querySelector(".plate") ? row.querySelector(".plate").value.trim() : "";
-    let nhr = parseFloat(row.querySelector(".nhr") ? row.querySelector(".nhr").value : 0) || 0;
-    let othr = parseFloat(row.querySelector(".othr") ? row.querySelector(".othr").value : 0) || 0;
-    
+    let plate = row.querySelector(".plate")
+      ? row.querySelector(".plate").value.trim()
+      : "";
+    let nhr =
+      parseFloat(
+        row.querySelector(".nhr") ? row.querySelector(".nhr").value : 0,
+      ) || 0;
+    let othr =
+      parseFloat(
+        row.querySelector(".othr") ? row.querySelector(".othr").value : 0,
+      ) || 0;
+
     if (plate === "" && nhr === 0 && othr === 0) {
       row.style.display = "none";
       row.classList.add("temp-hidden-export-row");
@@ -1552,14 +1593,8 @@ function revertInputsFromText(card) {
   let footerColspan = card.querySelector(".footer-colspan");
   if (footerColspan) footerColspan.colSpan = 6;
 
-  let hasVat = false;
-  card.querySelectorAll(".vat-rate").forEach((sel) => {
-    if (parseFloat(sel.value) > 0) hasVat = true;
-  });
-  if (card.id.includes("manual_")) hasVat = true;
-
   card.querySelectorAll(".vat-col").forEach((el) => {
-    el.style.display = hasVat ? "" : "none";
+    el.style.display = "";
   });
 }
 
@@ -1569,16 +1604,17 @@ async function exportSingleImage(id) {
   const filename = getDynamicFileName(card);
 
   convertInputsToText(printArea);
-  const canvas = await html2canvas(printArea, { 
-    scale: 3, 
+  const canvas = await html2canvas(printArea, {
+    scale: 3,
     useCORS: true,
-    onclone: function(clonedDoc) {
+    onclone: function (clonedDoc) {
       let clonedEl = clonedDoc.getElementById(printArea.id);
       if (clonedEl) {
-        clonedEl.style.width = "1400px";     /* സ്ക്രീൻഷോട്ട് എടുക്കുമ്പോൾ മാത്രം വീതി കൂട്ടുന്നു */
+        clonedEl.style.width =
+          "1400px"; /* സ്ക്രീൻഷോട്ട് എടുക്കുമ്പോൾ മാത്രം വീതി കൂട്ടുന്നു */
         clonedEl.style.minWidth = "1400px";
       }
-    }
+    },
   });
   revertInputsFromText(printArea);
 
@@ -1990,7 +2026,9 @@ function submitSingleCard(cardId) {
         adjustment_desc: rowAdjDescStr,
         adjusted_amount: rowAdjAmtTotal,
         after_adjustment: totalVal + rowAdjAmtTotal,
-        remark: row.querySelector(".remark") ? row.querySelector(".remark").value.trim() : ""
+        remark: row.querySelector(".remark")
+          ? row.querySelector(".remark").value.trim()
+          : "",
       });
     }
   });
@@ -2316,14 +2354,14 @@ async function copyCardAndWhatsApp(cardId, ownerName) {
   // Find mobile number from masterData (Improved matching to ignore spaces)
   let mobile = "";
   let safeOwnerName = ownerName.trim().toUpperCase();
-  
-  let match = masterData.find(v => {
-      let vOwner = (v.owner || "").trim().toUpperCase();
-      return vOwner === safeOwnerName && v.owner_mobile;
+
+  let match = masterData.find((v) => {
+    let vOwner = (v.owner || "").trim().toUpperCase();
+    return vOwner === safeOwnerName && v.owner_mobile;
   });
-  
+
   if (match && match.owner_mobile) {
-    mobile = String(match.owner_mobile).replace(/[^0-9+]/g, ''); // Extract only numbers
+    mobile = String(match.owner_mobile).replace(/[^0-9+]/g, ""); // Extract only numbers
   }
 
   if (!mobile) {
@@ -2332,48 +2370,54 @@ async function copyCardAndWhatsApp(cardId, ownerName) {
 
   // Saudi Number Formatting Check (Change to 91 if it's India)
   if (mobile.startsWith("05") && mobile.length === 10) {
-      mobile = "966" + mobile.substring(1);
+    mobile = "966" + mobile.substring(1);
   }
 
   document.getElementById("loader").style.display = "flex";
-  document.getElementById("loaderText").innerText = "Copying Card & Opening WhatsApp...";
+  document.getElementById("loaderText").innerText =
+    "Copying Card & Opening WhatsApp...";
 
   const printArea = document.getElementById(`printArea_${cardId}`);
   convertInputsToText(printArea);
-  
+
   try {
     const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
     revertInputsFromText(printArea);
 
-    canvas.toBlob(async (blob) => {
-      try {
-        // Try copying to clipboard (Works perfectly if HTTPS or localhost)
-        if (navigator.clipboard && window.isSecureContext) {
+    canvas.toBlob(
+      async (blob) => {
+        try {
+          // Try copying to clipboard (Works perfectly if HTTPS or localhost)
+          if (navigator.clipboard && window.isSecureContext) {
             const item = new ClipboardItem({ "image/png": blob });
             await navigator.clipboard.write([item]);
             showToast("Card copied! Opening WhatsApp...");
-        } else {
+          } else {
             // Fallback for non-HTTPS local IP - Downloads the file automatically instead
             const link = document.createElement("a");
             link.download = `${ownerName.replace(/\s+/g, "_")}_Bill.png`;
             link.href = URL.createObjectURL(blob);
             link.click();
             showToast("Image Downloaded. Opening WhatsApp...");
-        }
-        
-        document.getElementById("loader").style.display = "none";
-        
-        // Open WhatsApp Desktop / Web link
-        setTimeout(() => {
-          window.open(`whatsapp://send?phone=${mobile}`, '_self');
-        }, 1000);
+          }
 
-      } catch (err) {
-        document.getElementById("loader").style.display = "none";
-        showToast("Clipboard write failed. Please check browser permissions.");
-        console.error(err);
-      }
-    }, "image/png", 1.0);
+          document.getElementById("loader").style.display = "none";
+
+          // Open WhatsApp Desktop / Web link
+          setTimeout(() => {
+            window.open(`whatsapp://send?phone=${mobile}`, "_self");
+          }, 1000);
+        } catch (err) {
+          document.getElementById("loader").style.display = "none";
+          showToast(
+            "Clipboard write failed. Please check browser permissions.",
+          );
+          console.error(err);
+        }
+      },
+      "image/png",
+      1.0,
+    );
   } catch (err) {
     revertInputsFromText(printArea);
     document.getElementById("loader").style.display = "none";
