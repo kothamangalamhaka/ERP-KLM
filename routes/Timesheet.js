@@ -982,10 +982,29 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
   try {
     const { plate_no, col_name, value } = req.body;
     const cleanCol = col_name.replace(/[^a-zA-Z0-9_]/g, "");
+    
+    // 1. Update the Main Master Table
     await pool.query(
       `UPDATE timesheet_vehicles SET "${cleanCol}" = $1 WHERE plate_no = $2`,
       [value, plate_no],
     );
+
+    // 2. Auto-Sync to Active Driver Log (if applicable)
+    if (["driver_name", "driver_mobile"].includes(cleanCol)) {
+      await pool.query(
+        `UPDATE vehicle_driver_log SET ${cleanCol} = $1 WHERE UPPER(plate_no) = UPPER($2) AND status = 'Running'`,
+        [value, plate_no]
+      );
+    }
+
+    // 3. Auto-Sync to Active Site Log (if applicable)
+    if (["site_name", "rate", "field_co", "site_co", "asset_code", "work_order_no", "old_vehicle_no", "new_vehicle_no"].includes(cleanCol)) {
+      await pool.query(
+        `UPDATE vehicle_site_log SET ${cleanCol} = $1 WHERE UPPER(plate_no) = UPPER($2) AND status = 'Running'`,
+        [value, plate_no]
+      );
+    }
+
     res.json({ success: true });
   } catch (error) {
     res.json({ success: false, message: error.message });
