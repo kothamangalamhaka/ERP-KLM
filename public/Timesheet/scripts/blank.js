@@ -547,15 +547,28 @@ async function generatePendingReport() {
         ? "filter_alt"
         : "filter_list";
 
+    // വാട്സാപ്പ് വെബിലേക്ക് (WhatsApp Web) നേരിട്ട് പോകാനുള്ള ഫംഗ്ഷൻ
+    const createWaLink = (mobileStr) => {
+      if (!mobileStr) return "";
+      return mobileStr.split('&').map(m => {
+        let num = m.trim();
+        let cleanNum = num.replace(/\D/g, ''); // നമ്പറുകൾ മാത്രം എടുക്കാൻ
+        if (cleanNum) {
+          // wa.me യ്ക്ക് പകരം web.whatsapp.com/send?phone= ഉപയോഗിക്കുന്നു
+          return `<a href="https://web.whatsapp.com/send?phone=${cleanNum}" target="_blank" style="text-decoration: none; color: inherit; cursor: pointer;" title="Chat on WhatsApp Web">${num}</a>`;
+        }
+        return num;
+      }).join(" & ");
+    };
+
     let tbodyHTML = "";
     pendingList.forEach((row) => {
       tbodyHTML += `
             <tr>
-                <td class="sn-col"></td> <!-- SN Cell (Auto filled by script) -->
-                <td class="wrap-cell">${row.owner}</td>
-                <td class="col-hide-export">${row.ownerMob}</td>
+                <td class="sn-col"></td> <td class="wrap-cell">${row.owner}</td>
+                <td class="col-hide-export">${createWaLink(row.ownerMob)}</td>
                 <td class="wrap-cell col-hide-export">${row.driver}</td>
-                <td class="col-hide-export">${row.driverMob}</td>
+                <td class="col-hide-export">${createWaLink(row.driverMob)}</td>
                 <td class="wrap-cell">${row.site}</td>
                 <td>${row.vehicleType}</td>
                 <td class="plate-col">
