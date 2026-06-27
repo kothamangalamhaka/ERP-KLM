@@ -117,6 +117,7 @@ router.post("/save-inline-edits", async (req, res) => {
       );
 
       if (checkInv.rows.length > 0) {
+        // 🟢 ഇൻലൈൻ എഡിറ്റ് നടക്കുമ്പോൾ മറ്റ് ഫീൽഡുകൾക്കൊപ്പം 'zoho' നിലനിർത്തുകയോ അപ്ഡേറ്റ് ചെയ്യുകയോ ചെയ്യാം
         await client.query(
           "UPDATE invoice_records SET invoice_no=$1, bill_no=$2, bill_nr=$3, bill_ot=$4, invoice_amount=$5, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$6 AND month=$7 AND site_name=$8",
           [inv_no, bill_no, inv_nr, inv_ot, inv_amount, plate, month, site],
@@ -124,8 +125,8 @@ router.post("/save-inline-edits", async (req, res) => {
       } else {
         if (inv_no !== "" || bill_no !== "" || inv_nr !== null || inv_ot !== null || inv_amount !== null) {
           await client.query(
-            "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_no, bill_nr, bill_ot, invoice_amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-            [plate, month, site, inv_no, bill_no, inv_nr, inv_ot, inv_amount],
+            "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_no, bill_nr, bill_ot, invoice_amount, zoho) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+            [plate, month, site, inv_no, bill_no, inv_nr, inv_ot, inv_amount, 'No'],
           );
         }
       }
@@ -203,7 +204,8 @@ router.post("/save-text-note", async (req, res) => {
     const { plate_no, month, site_name, field, value } = req.body;
     
     // Security check: Only allow these specific fields to be updated
-    const allowedFields = ["accounts_note", "pwas", "erp", "payment_status"];
+    // 🟢 'zoho' ഫീൽഡ് ലിസ്റ്റിലേക്ക് ആഡ് ചെയ്തു
+    const allowedFields = ["accounts_note", "pwas", "erp", "payment_status", "zoho"];
     if (!allowedFields.includes(field)) {
       return res.json({ success: false, message: "Invalid field name." });
     }
