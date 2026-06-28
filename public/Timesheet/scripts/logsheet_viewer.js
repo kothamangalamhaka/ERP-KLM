@@ -42,18 +42,18 @@ async function openLogsheetViewer(passedPlate = "") {
 
   // 🟢 Enable 3-Column Layout dynamically
   document.body.classList.add("logsheet-open");
-  
+
   // No need for padding hack anymore since it's inline
   const container = document.querySelector(".container");
-  if (container) container.style.paddingRight = "15px"; 
+  if (container) container.style.paddingRight = "15px";
   if (container) container.style.maxWidth = "100%";
 
   // initResizers(); // Removed modal left resizer since it's inline now
-  
+
   // 🟢 Initialize Sidebar and Main Logsheet Resizers
   const sidebarResizer = document.getElementById("sidebarResizer");
   const mainResizer = document.getElementById("logsheetMainResizer");
-  
+
   let isResizingSidebar = false;
   let isResizingMain = false;
 
@@ -95,11 +95,11 @@ async function openLogsheetViewer(passedPlate = "") {
   document.onmouseup = () => {
     if (isResizingSidebar) {
       isResizingSidebar = false;
-      if(sidebarResizer) sidebarResizer.classList.remove("active");
+      if (sidebarResizer) sidebarResizer.classList.remove("active");
     }
     if (isResizingMain) {
       isResizingMain = false;
-      if(mainResizer) mainResizer.classList.remove("active");
+      if (mainResizer) mainResizer.classList.remove("active");
       document.body.style.userSelect = "auto";
     }
   };
@@ -139,6 +139,21 @@ async function openLogsheetViewer(passedPlate = "") {
         sensitivity: "base",
       }),
     );
+
+    // --- NEW ADDITION: Update Title with Count & Empty Files Info ---
+    const totalCount = logsheetFiles.length;
+    const emptyFiles = logsheetFiles.filter((f) => f.size === 0);
+    const emptyCount = emptyFiles.length;
+
+    let updatedTitle = `Logsheets - ${plate} (${month} ${year}) <span style="font-size: 14px; margin-left: 10px; color: #475569;">| Count :: <span style="color: #0ea5e9; font-weight: bold;">${totalCount}</span></span>`;
+
+    if (emptyCount > 0) {
+      const emptyNames = emptyFiles.map((f) => f.basename).join("\n");
+      updatedTitle += ` <span style="font-size: 14px; color: #475569;">| </span><span style="color: #ef4444; cursor: help; font-weight: bold; font-size: 14px;" title="Empty Files (0B):\n${emptyNames}">E :: ${emptyCount}</span>`;
+    }
+
+    title.innerHTML = updatedTitle;
+    // ----------------------------------------------------------------
 
     renderFileList();
 
@@ -222,7 +237,8 @@ function closeLogsheetViewer() {
 // 🟢 3. Load Viewer Content (With rotation support)
 function loadViewerContent(filePath, mimeType, token) {
   const viewer = document.getElementById("logsheetViewerContainer");
-  viewer.innerHTML = '<div style="text-align:center; padding:20px; font-weight:bold; color:#8b5cf6;">Loading File...</div>';
+  viewer.innerHTML =
+    '<div style="text-align:center; padding:20px; font-weight:bold; color:#8b5cf6;">Loading File...</div>';
 
   currentZoom = 1;
   currentRotation = 0;
@@ -232,7 +248,9 @@ function loadViewerContent(filePath, mimeType, token) {
   const activeToken = localStorage.getItem("timesheetToken");
   const reqHeaders = { Authorization: "Bearer " + activeToken };
 
-  fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(filePath)}`, { headers: reqHeaders })
+  fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(filePath)}`, {
+    headers: reqHeaders,
+  })
     .then((res) => {
       if (!res.ok) throw new Error("File fetch failed");
       return res.blob();
@@ -272,7 +290,8 @@ function loadViewerContent(filePath, mimeType, token) {
             canvas.style.backgroundColor = "#fff";
 
             const ctx = canvas.getContext("2d");
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            await page.render({ canvasContext: ctx, viewport: viewport })
+              .promise;
 
             zoomContent.appendChild(canvas);
           }
@@ -340,10 +359,10 @@ function applyTransform() {
   for (let i = 0; i < children.length; i++) {
     children[i].style.transform = `rotate(${currentRotation}deg)`;
     children[i].style.transition = "transform 0.2s ease-out";
-    
+
     // 90 ദിവ്രിയോ 270 ഡിഗ്രിയോ റൊട്ടേറ്റ് ചെയ്യുമ്പോൾ പേജുകൾ തമ്മിൽ കൂട്ടിമുട്ടാതിരിക്കാൻ ചെറിയ ഗ്യാപ്പ് കൊടുക്കുന്നു
     if (currentRotation % 180 !== 0) {
-      children[i].style.margin = "10% 0"; 
+      children[i].style.margin = "10% 0";
     } else {
       children[i].style.margin = "0";
     }
@@ -426,7 +445,7 @@ async function generatePdfFromFiles(
   try {
     const { PDFDocument } = PDFLib;
     const { jsPDF } = window.jspdf;
-    
+
     // ഇമേജുകൾ ചേർക്കാൻ ഒരു താൽക്കാലിക മാസ്റ്റർ PDF ഉണ്ടാക്കുന്നു
     const mergedPdf = await PDFDocument.create();
     const activeToken = localStorage.getItem("timesheetToken");
@@ -434,20 +453,28 @@ async function generatePdfFromFiles(
 
     for (let i = 0; i < filesArray.length; i++) {
       const file = filesArray[i];
-      const res = await fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`, { headers: reqHeaders });
+      const res = await fetch(
+        `/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}`,
+        { headers: reqHeaders },
+      );
       if (!res.ok) continue;
-      
+
       const blob = await res.blob();
       const arrayBuffer = await blob.arrayBuffer();
 
       if (file.mime && file.mime.includes("pdf")) {
         // ഇതോരു PDF ആണെങ്കിൽ, നേരിട്ട് പേജുകൾ കോപ്പി ചെയ്ത് ലയിപ്പിക്കുന്നു
         const existingPdf = await PDFDocument.load(arrayBuffer);
-        const copiedPages = await mergedPdf.copyPages(existingPdf, existingPdf.getPageIndices());
+        const copiedPages = await mergedPdf.copyPages(
+          existingPdf,
+          existingPdf.getPageIndices(),
+        );
         copiedPages.forEach((page) => mergedPdf.addPage(page));
       } else {
         // ഇമേജ് ആണെങ്കിൽ അതിനെ ക്യാൻവാസ് വഴി റീഡ് ചെയ്ത് PDF പേജാക്കി മാറ്റുന്നു
-        const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
+        const bitmap = await createImageBitmap(blob, {
+          imageOrientation: "from-image",
+        });
         const canvas = document.createElement("canvas");
         canvas.width = bitmap.width;
         canvas.height = bitmap.height;
@@ -458,10 +485,19 @@ async function generatePdfFromFiles(
         const singleImgPdf = new jsPDF({
           orientation: bitmap.width > bitmap.height ? "l" : "p",
           unit: "mm",
-          format: [bitmap.width * 0.264583, bitmap.height * 0.264583]
+          format: [bitmap.width * 0.264583, bitmap.height * 0.264583],
         });
-        singleImgPdf.addImage(imgData, "JPEG", 0, 0, bitmap.width * 0.264583, bitmap.height * 0.264583, undefined, "FAST");
-        
+        singleImgPdf.addImage(
+          imgData,
+          "JPEG",
+          0,
+          0,
+          bitmap.width * 0.264583,
+          bitmap.height * 0.264583,
+          undefined,
+          "FAST",
+        );
+
         const singlePdfBytes = singleImgPdf.output("arraybuffer");
         const tempPdf = await PDFDocument.load(singlePdfBytes);
         const [copiedPage] = await mergedPdf.copyPages(tempPdf, [0]);
@@ -475,7 +511,6 @@ async function generatePdfFromFiles(
     link.href = URL.createObjectURL(blobOutput);
     link.download = pdfFilename;
     link.click();
-
   } catch (e) {
     console.error("PDF Merge Error:", e);
     customAlert("Failed to generate combined PDF.", "Error");
@@ -489,7 +524,10 @@ async function generatePdfFromFiles(
 async function downloadAllAsPdf() {
   const btn = document.getElementById("btnDownloadPdf");
   const imageFiles = logsheetFiles.filter(
-    (f) => f.mime && (f.mime.includes("image") || f.mime.includes("pdf")) && f.size > 0,
+    (f) =>
+      f.mime &&
+      (f.mime.includes("image") || f.mime.includes("pdf")) &&
+      f.size > 0,
   );
 
   const plate = document
@@ -497,12 +535,7 @@ async function downloadAllAsPdf() {
     .innerText.replace("Logsheets - ", "")
     .replace(/[^a-zA-Z0-9 ]/g, "")
     .trim();
-  await generatePdfFromFiles(
-    imageFiles,
-    `${plate}.pdf`,
-    btn,
-    "PDF",
-  );
+  await generatePdfFromFiles(imageFiles, `${plate}.pdf`, btn, "PDF");
 }
 
 // ✅ 2. Download SELECTED as PDF
@@ -515,7 +548,8 @@ async function downloadSelectedAsPdf() {
     if (
       cb.checked &&
       logsheetFiles[index].mime &&
-      (logsheetFiles[index].mime.includes("image") || logsheetFiles[index].mime.includes("pdf")) &&
+      (logsheetFiles[index].mime.includes("image") ||
+        logsheetFiles[index].mime.includes("pdf")) &&
       logsheetFiles[index].size > 0
     ) {
       selectedFiles.push(logsheetFiles[index]);
