@@ -65,7 +65,6 @@ async function generatePendingData() {
   const m = monthNames[mIdx];
   
   // Checking pending data up to yesterday to give drivers time to fill today's data
-  // (If you want to check up to today, change this to now.getDate())
   const upToDay = now.getDate() === 1 ? 1 : now.getDate() - 1; 
   const monthStart = new Date(y, mIdx, 1);
   const monthEnd = new Date(y, mIdx + 1, 0);
@@ -101,6 +100,12 @@ async function generatePendingData() {
     });
 
     let currSite = activeSites.map((s) => s.site_name).join(" & ") || v.site_name || "N/A";
+    
+    // 🔴 മാറ്റിയിരിക്കുന്ന ഭാഗം: 'Z' ൽ തുടങ്ങുന്ന സൈറ്റുകൾ ഒഴിവാക്കുന്നു (case-insensitive)
+    if (currSite.trim().toUpperCase().startsWith("Z")) {
+      return; // ഇത് ഈ വണ്ടിയെ ഒഴിവാക്കി അടുത്തതിലേക്ക് പോകും
+    }
+
     let ownerName = v.owner_name || "N/A";
     let currDriver = activeDrivers.map((d) => d.driver_name).join(" & ") || v.driver_name || "N/A";
     
@@ -150,10 +155,10 @@ async function sendDailyPendingEmails() {
       auth: { user: EMAIL_USER, pass: EMAIL_PASS },
     });
 
-    const now = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+    const nowStr = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 
     // ==========================================
-    // EMAIL 1: All Vehicles -> Kothamangalamhaka
+    // EMAIL 1: All Vehicles -> Kothamangalamhaka (Everyday)
     // ==========================================
     if (pendingList.length > 0 && EMAIL_ALL) {
       let siteCounts = {};
@@ -161,8 +166,10 @@ async function sendDailyPendingEmails() {
         siteCounts[item.site] = (siteCounts[item.site] || 0) + 1;
       });
 
-      let siteHtml = Object.entries(siteCounts)
-        .map(([site, count]) => `<li><b>${site}:</b> ${count}</li>`)
+      // 🔴 മാറ്റിയിരിക്കുന്ന ഭാഗം: സൈറ്റ് കൗണ്ട് അക്ഷരമാലാക്രമത്തിൽ (Alphabetical sorting)
+      let siteHtml = Object.keys(siteCounts)
+        .sort()
+        .map(site => `<li><b>${site}:</b> ${siteCounts[site]}</li>`)
         .join("");
 
       let tableHtml = pendingList.map(row => `
@@ -177,7 +184,7 @@ async function sendDailyPendingEmails() {
       let mail1Html = `
         <div style="font-family: Arial, sans-serif; color: #333;">
           <h2 style="color: #2c3e50;">Daily Pending Log Sheets</h2>
-          <p>Generated on: ${now} (IST)</p>
+          <p>Generated on: ${nowStr} (IST)</p>
           <hr>
           <h3>Total Pending Vehicles: <span style="color: #d9534f;">${pendingList.length}</span></h3>
           <h4>Site-wise Count:</h4>
@@ -207,59 +214,79 @@ async function sendDailyPendingEmails() {
     }
 
     // ==========================================
-    // EMAIL 2: 'We1' Owners Only -> lmbpultd0705
+    // EMAIL 2: 'We1' Owners Only -> 3 ദിവസത്തിൽ ഒരിക്കൽ മാത്രം
     // ==========================================
-    const we1List = pendingList.filter(row => row.owner.toLowerCase().includes("we1"));
     
-    if (we1List.length > 0 && EMAIL_WE1) {
-      let we1SiteCounts = {};
-      we1List.forEach(item => {
-        we1SiteCounts[item.site] = (we1SiteCounts[item.site] || 0) + 1;
-      });
+    // 🔴 മാറ്റിയിരിക്കുന്ന ഭാഗം: 3 ദിവസത്തെ ഇടവേള കണ്ടെത്താനുള്ള ലോജിക്ക്
+    // നാളത്തെ തീയതി (June 29, 2026) ഒരു റെഫറൻസ് ആയി വെക്കുന്നു.
+    const refDate = new Date("2026-06-29T00:00:00+05:30"); 
+    const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+    today.setHours(0, 0, 0, 0);
+    refDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = today.getTime() - refDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // ജൂൺ 29, ജൂലൈ 2, ജൂലൈ 5 എന്നീ ദിവസങ്ങളിൽ വ്യത്യാസം 3-ന്റെ ഗുണിതമായിരിക്കും (0, 3, 6...)
+    const isWe1Day = Math.abs(diffDays) % 3 === 0;
 
-      let we1SiteHtml = Object.entries(we1SiteCounts)
-        .map(([site, count]) => `<li><b>${site}:</b> ${count}</li>`)
-        .join("");
+    if (isWe1Day) {
+      const we1List = pendingList.filter(row => row.owner.toLowerCase().includes("we1"));
+      
+      if (we1List.length > 0 && EMAIL_WE1) {
+        let we1SiteCounts = {};
+        we1List.forEach(item => {
+          we1SiteCounts[item.site] = (we1SiteCounts[item.site] || 0) + 1;
+        });
 
-      let we1TableHtml = we1List.map(row => `
-        <tr>
-          <td style="padding:8px; border:1px solid #ddd;">${row.site}</td>
-          <td style="padding:8px; border:1px solid #ddd;">${row.driver}</td>
-          <td style="padding:8px; border:1px solid #ddd; font-weight:bold;">${row.plate}</td>
-          <td style="padding:8px; border:1px solid #ddd; color:#d9534f;">${row.pendingDates}</td>
-        </tr>
-      `).join("");
+        // 🔴 മാറ്റിയിരിക്കുന്ന ഭാഗം: We1 സൈറ്റ് കൗണ്ട് അക്ഷരമാലാക്രമത്തിൽ
+        let we1SiteHtml = Object.keys(we1SiteCounts)
+          .sort()
+          .map(site => `<li><b>${site}:</b> ${we1SiteCounts[site]}</li>`)
+          .join("");
 
-      let mail2Html = `
-        <div style="font-family: Arial, sans-serif; color: #333;">
-          <h2 style="color: #2c3e50;">We1 - Daily Pending Log Sheets</h2>
-          <p>Generated on: ${now} (IST)</p>
-          <hr>
-          <h3>Total We1 Pending Vehicles: <span style="color: #d9534f;">${we1List.length}</span></h3>
-          <h4>Site-wise Count:</h4>
-          <ul>${we1SiteHtml}</ul>
-          <br>
-          <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead>
-              <tr style="background-color: #f4f4f4;">
-                <th style="padding:10px; border:1px solid #ddd;">Site Name</th>
-                <th style="padding:10px; border:1px solid #ddd;">Driver Name</th>
-                <th style="padding:10px; border:1px solid #ddd;">Plate No</th>
-                <th style="padding:10px; border:1px solid #ddd;">Pending Dates</th>
-              </tr>
-            </thead>
-            <tbody>${we1TableHtml}</tbody>
-          </table>
-        </div>
-      `;
+        let we1TableHtml = we1List.map(row => `
+          <tr>
+            <td style="padding:8px; border:1px solid #ddd;">${row.site}</td>
+            <td style="padding:8px; border:1px solid #ddd;">${row.driver}</td>
+            <td style="padding:8px; border:1px solid #ddd; font-weight:bold;">${row.plate}</td>
+            <td style="padding:8px; border:1px solid #ddd; color:#d9534f;">${row.pendingDates}</td>
+          </tr>
+        `).join("");
 
-      await transporter.sendMail({
-        from: `"Haka ERP" <${EMAIL_USER}>`,
-        to: EMAIL_WE1,
-        subject: `We1 Pending Logs Report - ${new Date().toLocaleDateString('en-IN')}`,
-        html: mail2Html,
-      });
-      console.log("Email 2 (We1) sent successfully.");
+        let mail2Html = `
+          <div style="font-family: Arial, sans-serif; color: #333;">
+            <h2 style="color: #2c3e50;">We1 - Pending Log Sheets</h2>
+            <p>Generated on: ${nowStr} (IST)</p>
+            <hr>
+            <h3>Total We1 Pending Vehicles: <span style="color: #d9534f;">${we1List.length}</span></h3>
+            <h4>Site-wise Count:</h4>
+            <ul>${we1SiteHtml}</ul>
+            <br>
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+              <thead>
+                <tr style="background-color: #f4f4f4;">
+                  <th style="padding:10px; border:1px solid #ddd;">Site Name</th>
+                  <th style="padding:10px; border:1px solid #ddd;">Driver Name</th>
+                  <th style="padding:10px; border:1px solid #ddd;">Plate No</th>
+                  <th style="padding:10px; border:1px solid #ddd;">Pending Dates</th>
+                </tr>
+              </thead>
+              <tbody>${we1TableHtml}</tbody>
+            </table>
+          </div>
+        `;
+
+        await transporter.sendMail({
+          from: `"Own Equipment Logsheet Pending" <${EMAIL_USER}>`,
+          to: EMAIL_WE1,
+          subject: `We1 Pending Logs Report - ${new Date().toLocaleDateString('en-IN')}`,
+          html: mail2Html,
+        });
+        console.log("Email 2 (We1) sent successfully.");
+      }
+    } else {
+      console.log("Skipped We1 email today. It is scheduled to run every 3 days.");
     }
 
   } catch (error) {
@@ -278,5 +305,7 @@ function startEmailCron() {
   });
   console.log("Pending Email Cron Job scheduled for 10:00 AM IST.");
 }
+
+
 
 module.exports = { startEmailCron };
