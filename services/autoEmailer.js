@@ -227,8 +227,8 @@ async function sendDailyPendingEmails() {
     const diffTime = today.getTime() - refDate.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
-    // ജൂൺ 29, ജൂലൈ 2, ജൂലൈ 5 എന്നീ ദിവസങ്ങളിൽ വ്യത്യാസം 3-ന്റെ ഗുണിതമായിരിക്കും (0, 3, 6...)
-    const isWe1Day = Math.abs(diffDays) % 3 === 0;
+
+    const isWe1Day = Math.abs(diffDays) % 5 === 0;
 
     if (isWe1Day) {
       const we1List = pendingList.filter(row => row.owner.toLowerCase().includes("we1"));
