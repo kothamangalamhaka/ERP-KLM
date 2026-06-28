@@ -2187,57 +2187,85 @@
       }
 
       function applyFilters() {
-        let fOwner = document.getElementById("filterOwner").value;
-        let fSite = document.getElementById("filterSite").value;
-        let fPlate = document
-          .getElementById("filterPlate")
-          .value.trim()
-          .toUpperCase();
+    let fOwner = document.getElementById("filterOwner").value;
+    let fSite = document.getElementById("filterSite").value;
+    let fPlate = document.getElementById("filterPlate").value.trim().toUpperCase();
 
-        let filtered = masterData.filter((d) => {
-          let matchO = fOwner === "ALL" || d.owner === fOwner;
-          let matchS = fSite === "ALL" || d.site === fSite;
-          // 🟢 Plate, Owner എന്നിവയ്ക്ക് പുറമെ Invoice No, Bill No എന്നിവയും സെർച്ച് ചെയ്യുന്നു
-          let matchP =
-            fPlate === "" ||
-            d.plate.includes(fPlate) ||
-            d.owner.toUpperCase().includes(fPlate) ||
-            (d.inv_no && d.inv_no.toUpperCase().includes(fPlate)) ||
-            (d.bill_no && d.bill_no.toUpperCase().includes(fPlate));
-          let passesHeaders = true;
-          for (const key in headerFilters) {
-            if (
-              headerFilters[key].length > 0 &&
-              !headerFilters[key].includes(String(d[key]))
-            ) {
-              passesHeaders = false;
-              break;
+    // 🟢 EDIT MODE-ൽ re-render ചെയ്യാതെ rows hide/show മാത്രം ചെയ്യുന്നു
+    if (isEditMode) {
+      const rows = document.querySelectorAll("#reportBody tr");
+      let visibleCount = 0;
+      rows.forEach((tr) => {
+        let plate = (tr.dataset.plate || "").toUpperCase();
+        let site = tr.dataset.site || "";
+        let owner = (tr.querySelector(".col-owner") ? tr.querySelector(".col-owner").innerText : "").toUpperCase();
+
+        // inv_no, bill_no cells - column index 22 = inv_no, 23 = bill_no
+        let inv_no = tr.cells[22] ? tr.cells[22].innerText.toUpperCase() : "";
+        let bill_no = tr.cells[23] ? tr.cells[23].innerText.toUpperCase() : "";
+
+        let matchO = fOwner === "ALL" || owner.includes(fOwner.toUpperCase());
+        let matchS = fSite === "ALL" || site === fSite;
+        let matchP = fPlate === "" || plate.includes(fPlate) || owner.includes(fPlate)
+          || inv_no.includes(fPlate) || bill_no.includes(fPlate);
+
+        let passesHeaders = true;
+        // headerFilters check using dataset
+        for (const key in headerFilters) {
+          if (headerFilters[key].length > 0 && tr.dataset[key] !== undefined) {
+            if (!headerFilters[key].includes(String(tr.dataset[key]))) {
+              passesHeaders = false; break;
             }
           }
-          return matchO && matchS && matchP && passesHeaders;
-        });
-
-        if (sortConfig) {
-          filtered.sort((a, b) => {
-            let valA = String(a[sortConfig.key] || "").toLowerCase(),
-              valB = String(b[sortConfig.key] || "").toLowerCase();
-            let numA = parseFloat(valA),
-              numB = parseFloat(valB);
-            if (
-              !isNaN(numA) &&
-              !isNaN(numB) &&
-              valA.match(/^[\d.]+$/) &&
-              valB.match(/^[\d.]+$/)
-            )
-              return sortConfig.dir === "asc" ? numA - numB : numB - numA;
-            if (valA < valB) return sortConfig.dir === "asc" ? -1 : 1;
-            if (valA > valB) return sortConfig.dir === "asc" ? 1 : -1;
-            return 0;
-          });
         }
-        renderTable(filtered);
-        if (isEditMode) activateEditModeCells();
+
+        let show = matchO && matchS && matchP && passesHeaders;
+        tr.style.display = show ? "" : "none";
+        if (show) visibleCount++;
+      });
+
+      const countBadge = document.getElementById("plateCountBadge");
+      if (countBadge) countBadge.innerText = visibleCount + " Rows";
+      return; // 🔴 re-render ചെയ്യാതെ return
+    }
+
+    // Normal mode: existing logic
+    let filtered = masterData.filter((d) => {
+      let matchO = fOwner === "ALL" || d.owner === fOwner;
+      let matchS = fSite === "ALL" || d.site === fSite;
+      let matchP =
+        fPlate === "" ||
+        d.plate.includes(fPlate) ||
+        d.owner.toUpperCase().includes(fPlate) ||
+        (d.inv_no && d.inv_no.toUpperCase().includes(fPlate)) ||
+        (d.bill_no && d.bill_no.toUpperCase().includes(fPlate));
+      let passesHeaders = true;
+      for (const key in headerFilters) {
+        if (
+          headerFilters[key].length > 0 &&
+          !headerFilters[key].includes(String(d[key]))
+        ) {
+          passesHeaders = false;
+          break;
+        }
       }
+      return matchO && matchS && matchP && passesHeaders;
+    });
+
+    if (sortConfig) {
+      filtered.sort((a, b) => {
+        let valA = String(a[sortConfig.key] || "").toLowerCase(),
+          valB = String(b[sortConfig.key] || "").toLowerCase();
+        let numA = parseFloat(valA), numB = parseFloat(valB);
+        if (!isNaN(numA) && !isNaN(numB) && valA.match(/^[\d.]+$/) && valB.match(/^[\d.]+$/))
+          return sortConfig.dir === "asc" ? numA - numB : numB - numA;
+        if (valA < valB) return sortConfig.dir === "asc" ? -1 : 1;
+        if (valA > valB) return sortConfig.dir === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    renderTable(filtered);
+  }
 
       function applySort(dir) {
         sortConfig = { key: currentFilterColInfo.key, dir: dir };
@@ -2416,27 +2444,18 @@
           let plate = tr.dataset.plate;
 
           // 🟢 Robust Number Parsing (prevents spaces breaking logic)
-          let inv_nr_text = tr
-            .querySelector('[data-field="inv_nr"]')
-            .innerText.trim()
-            .replace(/,/g, "");
-          let parsed_nr = parseFloat(inv_nr_text);
-          let inv_nr = isNaN(parsed_nr) ? 0 : parsed_nr;
+          let inv_nr_text = tr.querySelector('[data-field="inv_nr"]').innerText.trim().replace(/,/g, "");
+let parsed_nr = parseFloat(inv_nr_text);
+// 🟢 Blank/empty ആണെങ്കിൽ null, 0 ആണെങ്കിൽ 0, otherwise parsed value
+let inv_nr = inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
 
-          let inv_ot_text = tr
-            .querySelector('[data-field="inv_ot"]')
-            .innerText.trim()
-            .replace(/,/g, "");
-          let parsed_ot = parseFloat(inv_ot_text);
-          let inv_ot = isNaN(parsed_ot) ? 0 : parsed_ot;
+let inv_ot_text = tr.querySelector('[data-field="inv_ot"]').innerText.trim().replace(/,/g, "");
+let parsed_ot = parseFloat(inv_ot_text);
+let inv_ot = inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
 
-          let inv_amt_text = tr
-            .querySelector('[data-field="inv_amount"]')
-            .innerText.trim()
-            .replace(/,/g, "");
-          let parsed_amt = parseFloat(inv_amt_text);
-          let inv_amount =
-            inv_amt_text === "" ? null : isNaN(parsed_amt) ? 0 : parsed_amt;
+let inv_amt_text = tr.querySelector('[data-field="inv_amount"]').innerText.trim().replace(/,/g, "");
+let parsed_amt = parseFloat(inv_amt_text);
+let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_amt;
 
           let inv_no = tr
             .querySelector('[data-field="inv_no"]')

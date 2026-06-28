@@ -118,10 +118,11 @@ router.post("/save-inline-edits", async (req, res) => {
 
       if (checkInv.rows.length > 0) {
         // 🟢 ഇൻലൈൻ എഡിറ്റ് നടക്കുമ്പോൾ മറ്റ് ഫീൽഡുകൾക്കൊപ്പം 'zoho' നിലനിർത്തുകയോ അപ്ഡേറ്റ് ചെയ്യുകയോ ചെയ്യാം
-        await client.query(
-          "UPDATE invoice_records SET invoice_no=$1, bill_no=$2, bill_nr=$3, bill_ot=$4, invoice_amount=$5, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$6 AND month=$7 AND site_name=$8",
-          [inv_no, bill_no, inv_nr, inv_ot, inv_amount, plate, month, site],
-        );
+        // 🟢 null ആണെങ്കിൽ DB-യിൽ NULL save ആകും, 0 ആണെങ്കിൽ 0 save ആകും
+await client.query(
+  "UPDATE invoice_records SET invoice_no=$1, bill_no=$2, bill_nr=$3, bill_ot=$4, invoice_amount=$5, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$6 AND month=$7 AND site_name=$8",
+  [inv_no, bill_no, inv_nr ?? null, inv_ot ?? null, inv_amount ?? null, plate, month, site],
+);
       } else {
         if (inv_no !== "" || bill_no !== "" || inv_nr !== null || inv_ot !== null || inv_amount !== null) {
           await client.query(
