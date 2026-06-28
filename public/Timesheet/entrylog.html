@@ -161,7 +161,12 @@
             // Initialize DataTable with descending order on the first column
             $("#logTable").DataTable({
               order: [[0, "desc"]], // Sort by timestamp descending
-              pageLength: 50,
+              pageLength: 200,      // Initial load set to 200
+              lengthMenu: [
+                [200, 500, 1000, 1500, 2000, 2500, 5000], // Data limits
+                [200, 500, 1000, 1500, 2000, 2500, 5000]  // Dropdown labels
+              ],
+              deferRender: true,    // Enables lazy rendering of the DOM
             });
           } else {
             alert("Failed to load logs: " + data.message);
