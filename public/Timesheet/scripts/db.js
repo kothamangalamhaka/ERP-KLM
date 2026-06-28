@@ -349,6 +349,59 @@ function saveAndApplyHidden() {
   renderTable();
 }
 
+function copyColumnData() {
+  if (!activeHeaderCol) return;
+  const trs = document.getElementById("dbBody").getElementsByTagName("tr");
+  let copyString = "";
+  tableData.forEach((row, index) => {
+    if (trs[index] && trs[index].style.display !== "none") {
+      let val = row[activeHeaderCol];
+      if (val === null || val === undefined) val = "";
+      else val = String(val).replace(/\n/g, " "); // Removes newlines to prevent Excel breaking
+      copyString += val + "\n";
+    }
+  });
+  navigator.clipboard.writeText(copyString).then(() => {
+    showStatus("✓ Column Copied", "saved");
+    document.getElementById("headerContextMenu").style.display = "none";
+  }).catch(err => customAlert("Error", "Failed to copy data"));
+}
+
+function copyTableData() {
+  const trs = document.getElementById("dbBody").getElementsByTagName("tr");
+  let copyString = "";
+  let headerRow = [];
+  customColOrder.forEach((colId) => {
+    if (!hiddenColumns.includes(colId)) {
+      headerRow.push(colLabels[colId] || colId.replace(/_/g, " ").toUpperCase());
+    }
+  });
+  copyString += headerRow.join("\t") + "\n";
+  tableData.forEach((row, index) => {
+    if (trs[index] && trs[index].style.display !== "none") {
+      let rowValues = [];
+      customColOrder.forEach((colId) => {
+        if (!hiddenColumns.includes(colId)) {
+          let val = row[colId];
+          if (colId === "vat") {
+            let v = String(val || "").trim().toLowerCase();
+            val = (v === "yes" || v === "true" || v === "15") ? "Yes" : "No";
+          } else {
+            if (val === null || val === undefined) val = "";
+            else val = String(val).replace(/\n/g, " ");
+          }
+          rowValues.push(val);
+        }
+      });
+      copyString += rowValues.join("\t") + "\n";
+    }
+  });
+  navigator.clipboard.writeText(copyString).then(() => {
+    showStatus("✓ Table Copied", "saved");
+    document.getElementById("headerContextMenu").style.display = "none";
+  }).catch(err => customAlert("Error", "Failed to copy data"));
+}
+
 function openColumnAlter() {
   const list = document.getElementById("columnChecklist");
   list.innerHTML = "";
