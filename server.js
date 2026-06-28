@@ -2,6 +2,7 @@ require("dotenv").config();
 require("./routes/backup");
 const https = require("https"); // Add this
 const fs = require("fs");
+const { startEmailCron } = require('./services/autoEmailer');
 const {
   verifyToken,
   verifySuperAdmin,
@@ -37,7 +38,7 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static("public"));
-
+startEmailCron();
 app.use("/billing", billingRoutes);
 app.use("/timesheet", timesheetRoutes);
 app.use("/payment", paymentRoutes);
