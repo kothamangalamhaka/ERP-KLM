@@ -200,6 +200,11 @@ function fetchDataFromERP(autoArrangeOwners = []) {
   if (!fullMonth || fullMonth === "Loading...")
     return showToast("Select a month.");
 
+  // 🟢 NEW: ഡാറ്റ മായ്ക്കുന്നതിന് മുൻപ് നിലവിലെ ഫിൽറ്ററുകൾ സേവ് ചെയ്യുന്നു
+  let isFirstLoad = document.getElementById("siteList").querySelectorAll(".dynamic-item").length === 0;
+  let prevOwners = getSelectedCheckboxes("ownerList");
+  let prevSites = getSelectedCheckboxes("siteList");
+
   document.getElementById("dynamicBillsContainer").innerHTML = `
     <div style="text-align: center; padding: 50px; color: #666; background: white; border-radius: 8px; border: 1px dashed #ccc;">
       <h2>Data Fetched for ${fullMonth}</h2>
@@ -222,7 +227,9 @@ function fetchDataFromERP(autoArrangeOwners = []) {
       if (data.success) {
         masterData = data.data;
         savedBillingData = data.saved_bills || [];
-        populateCheckboxes();
+        
+        // 🟢 NEW: സേവ് ചെയ്ത ഫിൽറ്ററുകൾ populateCheckboxes-ലേക്ക് അയക്കുന്നു
+        populateCheckboxes(isFirstLoad, prevOwners, prevSites);
 
         // മുൻപ് screen-ൽ ഉണ്ടായിരുന്ന owners ഉണ്ടെങ്കിൽ auto re-arrange ചെയ്യുക
         if (autoArrangeOwners.length > 0) {
@@ -286,7 +293,7 @@ function autoArrangeForOwners(ownerNames) {
   }
 }
 
-function populateCheckboxes() {
+function populateCheckboxes(isFirstLoad = true, prevOwners = [], prevSites = []) {
   let owners = [
     ...new Set(
       masterData.map(
@@ -304,14 +311,18 @@ function populateCheckboxes() {
   oList.querySelectorAll(".dynamic-item").forEach((e) => e.remove());
   sList.querySelectorAll(".dynamic-item").forEach((e) => e.remove());
 
-  owners.forEach(
-    (o) =>
-      (oList.innerHTML += `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${o}" checked onchange="updateSelectTexts()"> ${o}</label>`),
-  );
-  sites.forEach(
-    (s) =>
-      (sList.innerHTML += `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${s}" checked onchange="updateSelectTexts()"> ${s}</label>`),
-  );
+  owners.forEach((o) => {
+    // 🟢 NEW: ആദ്യത്തെ ലോഡിങ്ങിൽ എല്ലാം ചെക്ക് ചെയ്യും. അല്ലെങ്കിൽ പഴയത് പോലെ നിലനിർത്തും.
+    let isChecked = isFirstLoad ? "checked" : (prevOwners.includes(o) ? "checked" : "");
+    oList.innerHTML += `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${o}" ${isChecked} onchange="updateSelectTexts()"> ${o}</label>`;
+  });
+
+  sites.forEach((s) => {
+    // 🟢 NEW: ആദ്യത്തെ ലോഡിങ്ങിൽ എല്ലാം ചെക്ക് ചെയ്യും. അല്ലെങ്കിൽ പഴയത് പോലെ നിലനിർത്തും.
+    let isChecked = isFirstLoad ? "checked" : (prevSites.includes(s) ? "checked" : "");
+    sList.innerHTML += `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${s}" ${isChecked} onchange="updateSelectTexts()"> ${s}</label>`;
+  });
+  
   updateSelectTexts();
 }
 
