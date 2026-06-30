@@ -12,7 +12,8 @@
         .table-responsive { width: 100%; overflow-x: auto; max-height: calc(100vh - 65px); }
         .nav-tools { display: flex; gap: 15px; align-items: center; font-size: 13px; }
         .nav-tools label { color: #cbd5e1; }
-        .btn-success { background: #10b981; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        .btn-success { background: #10b981; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        .btn-success:hover { filter: brightness(1.1); }
         .input-box, .select-box { padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Inter'; }
         
         table { border-collapse: collapse; width: max-content; background: white; }
@@ -55,6 +56,10 @@
         </div>
 
         <div class="nav-tools">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <button id="bulkEditBtn" class="btn-success" onclick="toggleBulkEdit()">Bulk Edit</button>
+            </div>
+
             <div style="display: flex; align-items: center; gap: 5px;">
                 <label><b>Year:</b></label>
                 <input type="number" id="yearFilter" class="input-box" style="width: 60px;" onchange="fetchData()">
@@ -119,6 +124,9 @@
         let activeCol = "";
         let sortConfig = { col: null, dir: null };
         let activeFilters = { company: [], supplier: [], vat_no: [], display_name: [], site_name: [], bill_no: [] };
+        
+        let isBulkMode = false;
+        let pendingChanges = [];
 
         async function fetchData() {
             currentYear = document.getElementById("yearFilter").value;
@@ -148,8 +156,6 @@
                 
                 group.sites = group.sites.filter(site => {
                     if (activeFilters.site_name.length && !activeFilters.site_name.includes(site.site_name)) return false;
-                    
-                    // Bill No Check from Checkboxes
                     if (activeFilters.bill_no.length > 0) {
                         let hasBill = false;
                         for (let i = 0; i < 12; i++) {
@@ -188,7 +194,6 @@
             else if (quarter === "Q3") { startMonth = 6; endMonth = 8; }
             else if (quarter === "Q4") { startMonth = 9; endMonth = 11; }
 
-            // Table Headers with Filter icon
             let head1 = `<tr>
                 <th rowspan="2">SN</th>
                 <th rowspan="2">Company <span class="filter-icon" onclick="openFilter(event, 'company')">▼</span></th>
@@ -210,7 +215,6 @@
             head2 += `</tr>`;
             document.getElementById("tableHead").innerHTML = head1 + head2;
 
-            // Table Body
             let tbody = "";
             if (displayData.length === 0) {
                 document.getElementById("tableBody").innerHTML = `<tr><td colspan="20">No matching data found.</td></tr>`;
@@ -227,26 +231,27 @@
                         tbody += `<td rowspan="${siteCount}" class="merged-cell">${sn++}</td>
                                   <td rowspan="${siteCount}" class="merged-cell">${escapeHTML(group.company)}</td>
                                   <td rowspan="${siteCount}" class="merged-cell" style="max-width: 150px;">${escapeHTML(group.supplier)}</td>
-                                  <td rowspan="${siteCount}" class="merged-cell">${escapeHTML(group.vat_no)}</td>
+                                  <td rowspan="${siteCount}" class="merged-cell" title="Right click to copy" oncontextmenu="copyVat(event, '${escapeQuotes(group.vat_no)}')" style="cursor: pointer;">${escapeHTML(group.vat_no)}</td>
                                   <td rowspan="${siteCount}" class="merged-cell" style="max-width: 150px; white-space: normal; word-break: break-word;">${escapeHTML(group.display_name)}</td>`;
                     }
 
                     tbody += `<td style="text-align: left; font-weight: 500;">${escapeHTML(siteData.site_name)}</td>`;
 
-                    // Columns Shading Logic
                     for (let i = startMonth; i <= endMonth; i++) {
                         let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "", erp_total: "" };
                         let isActive = siteData.active_months[i]; 
                         
                         let cellClass = isActive ? "" : "inactive-cell";
-                        let editAction = isActive ? `ondblclick="editCell(this, 'X', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i})"` : "";
+                        // Added Both Double Click and Single Click conditionally for Bulk Edit
+                        let baseArgs = `'X', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}`;
+                        let editAction = isActive ? `ondblclick="if(!isBulkMode) editCell(this, ${baseArgs})" onclick="if(isBulkMode) editCell(this, ${baseArgs})"` : "";
 
                         let erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
 
                         tbody += `
-                            <td class="${cellClass}" ${editAction.replace('X', 'bill_no')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_no)}</span></td>
-                            <td class="${cellClass}" ${editAction.replace('X', 'bill_date')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_date)}</span></td>
-                            <td class="${cellClass}" ${editAction.replace('X', 'amount')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.amount)}</span></td>
+                            <td class="${cellClass}" ${editAction.replace(/X/g, 'bill_no')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_no)}</span></td>
+                            <td class="${cellClass}" ${editAction.replace(/X/g, 'bill_date')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_date)}</span></td>
+                            <td class="${cellClass}" ${editAction.replace(/X/g, 'amount')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.amount)}</span></td>
                             <td class="${cellClass}" style="font-weight: 600; color: #0f766e;"><span>${erpVal}</span></td>
                         `;
                     }
@@ -254,6 +259,28 @@
                 });
             });
             document.getElementById("tableBody").innerHTML = tbody;
+        }
+
+        function copyVat(e, text) {
+            e.preventDefault();
+            if (text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showStatus("Vat No Copied!", "saved");
+                });
+            }
+        }
+
+        // Bulk Edit Logic
+        function toggleBulkEdit() {
+            isBulkMode = !isBulkMode;
+            const btn = document.getElementById("bulkEditBtn");
+            if (isBulkMode) {
+                btn.innerText = "💾 Save Changes";
+                btn.style.background = "#eab308";
+                showStatus("Bulk Edit ON (Single Click)", "saving");
+            } else {
+                saveBulkChanges();
+            }
         }
 
         /* Filter Menu Logic */
@@ -265,7 +292,6 @@
             menu.style.left = e.pageX + "px";
             menu.style.top = (e.pageY + 15) + "px";
 
-            // Hide Sort Options for VAT No and Bill No
             if (colName === 'vat_no' || colName === 'bill_no') {
                 document.getElementById("sortActionContainer").style.display = "none";
                 document.getElementById("sortDivider").style.display = "none";
@@ -290,36 +316,34 @@
             });
             
             let isAllChecked = activeFilters[colName].length === 0;
-        let listHtml = `<label style="display: block; font-weight: bold; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 5px; cursor: pointer;">
-                            <input type="checkbox" id="selectAllFilter" ${isAllChecked ? "checked" : ""} onchange="toggleAllFilters(this)"> 
-                            (Select All)
-                        </label>`;
-        
-        Array.from(uniqueVals).sort().forEach(val => {
-            if (val !== "") {
-                let isChecked = isAllChecked || activeFilters[colName].includes(val) ? "checked" : "";
-                // Added class 'filter-cb' and onchange event
-                listHtml += `<label class="f-item"><input type="checkbox" class="filter-cb" value="${escapeHTML(val)}" ${isChecked} onchange="checkIfAllSelected()"> ${escapeHTML(val)}</label>`;
-            }
-        });
-        document.getElementById("filterCheckboxList").innerHTML = listHtml;
-    }
+            let listHtml = `<label style="display: block; font-weight: bold; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 5px; cursor: pointer;">
+                                <input type="checkbox" id="selectAllFilter" ${isAllChecked ? "checked" : ""} onchange="toggleAllFilters(this)"> 
+                                (Select All)
+                            </label>`;
+            
+            Array.from(uniqueVals).sort().forEach(val => {
+                if (val !== "") {
+                    let isChecked = isAllChecked || activeFilters[colName].includes(val) ? "checked" : "";
+                    listHtml += `<label class="f-item"><input type="checkbox" class="filter-cb" value="${escapeHTML(val)}" ${isChecked} onchange="checkIfAllSelected()"> ${escapeHTML(val)}</label>`;
+                }
+            });
+            document.getElementById("filterCheckboxList").innerHTML = listHtml;
+        }
 
-    // Add these two helper functions right below openFilter
-    function toggleAllFilters(source) {
-        const checkboxes = document.querySelectorAll("#filterCheckboxList .filter-cb");
-        checkboxes.forEach(cb => {
-            if (cb.closest('.f-item').style.display !== "none") cb.checked = source.checked;
-        });
-    }
+        function toggleAllFilters(source) {
+            const checkboxes = document.querySelectorAll("#filterCheckboxList .filter-cb");
+            checkboxes.forEach(cb => {
+                if (cb.closest('.f-item').style.display !== "none") cb.checked = source.checked;
+            });
+        }
 
-    function checkIfAllSelected() {
-        const total = document.querySelectorAll("#filterCheckboxList .filter-cb").length;
-        const hidden = document.querySelectorAll("#filterCheckboxList .f-item[style*='display: none']").length;
-        const visibleTotal = total - hidden;
-        const checked = document.querySelectorAll("#filterCheckboxList .filter-cb:checked").length;
-        document.getElementById("selectAllFilter").checked = (visibleTotal > 0 && visibleTotal === checked);
-    }
+        function checkIfAllSelected() {
+            const total = document.querySelectorAll("#filterCheckboxList .filter-cb").length;
+            const hidden = document.querySelectorAll("#filterCheckboxList .f-item[style*='display: none']").length;
+            const visibleTotal = total - hidden;
+            const checked = document.querySelectorAll("#filterCheckboxList .filter-cb:checked").length;
+            document.getElementById("selectAllFilter").checked = (visibleTotal > 0 && visibleTotal === checked);
+        }
 
         function applySort(dir) {
             sortConfig = { col: activeCol, dir: dir };
@@ -328,14 +352,13 @@
         }
 
         function applyColumnFilter() {
-        // Select ONLY the actual filter checkboxes, exclude the "Select All" checkbox
-        const boxes = document.querySelectorAll("#filterCheckboxList .filter-cb");
-        let selected = [];
-        boxes.forEach(b => { if (b.checked) selected.push(b.value); });
-        activeFilters[activeCol] = selected.length === boxes.length ? [] : selected;
-        document.getElementById("filterMenu").style.display = "none";
-        renderTable();
-    }
+            const boxes = document.querySelectorAll("#filterCheckboxList .filter-cb");
+            let selected = [];
+            boxes.forEach(b => { if (b.checked) selected.push(b.value); });
+            activeFilters[activeCol] = selected.length === boxes.length ? [] : selected;
+            document.getElementById("filterMenu").style.display = "none";
+            renderTable();
+        }
 
         function clearColumnFilter() {
             activeFilters[activeCol] = [];
@@ -370,12 +393,25 @@
             input.onblur = async function() {
                 const newValue = this.value;
                 td.innerHTML = `<span class="editable">${escapeHTML(newValue)}</span>`;
+                
                 if (newValue !== currentValue) {
-                    await saveCell(company, supplier, vat_no, display_name, site_name, month_index, field, newValue);
                     const grp = rawData.find(g => g.company === company && g.supplier === supplier);
                     if(grp) {
                         const sit = grp.sites.find(s => s.site_name === site_name);
                         if(sit) sit.billing[month_index][field] = newValue;
+                    }
+                    
+                    if (isBulkMode) {
+                        td.style.backgroundColor = "#fef08a"; // Highlight edited cell
+                        const existingIdx = pendingChanges.findIndex(p => p.company === company && p.site_name === site_name && p.month_index === month_index && p.field === field);
+                        
+                        if (existingIdx > -1) {
+                            pendingChanges[existingIdx].value = newValue; // നിലവിൽ ഉണ്ടെങ്കിൽ വാല്യൂ മാത്രം അപ്ഡേറ്റ് ചെയ്യുന്നു
+                        } else {
+                            pendingChanges.push({ year: currentYear, company, supplier, vat_no, display_name, site_name, month_index, field, value: newValue });
+                        }
+                    } else {
+                        await saveCell(company, supplier, vat_no, display_name, site_name, month_index, field, newValue);
                     }
                 }
             };
@@ -393,6 +429,34 @@
                 if (json.success) showStatus("✓ Saved", "saved");
                 else showStatus("Error", "error");
             } catch (err) { showStatus("Error", "error"); }
+        }
+
+        async function saveBulkChanges() {
+            if (pendingChanges.length === 0) {
+                document.getElementById("bulkEditBtn").innerText = "Bulk Edit";
+                document.getElementById("bulkEditBtn").style.background = "#10b981";
+                showStatus("No changes to save", "saved");
+                return;
+            }
+
+            showStatus("Saving bulk changes...", "saving");
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/update-bulk`, {
+                    method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                    body: JSON.stringify({ changes: pendingChanges })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showStatus("✓ Bulk Saved", "saved");
+                    pendingChanges = []; // Reset Array
+                } else {
+                    showStatus("Error", "error");
+                }
+            } catch (err) { showStatus("Error", "error"); }
+
+            document.getElementById("bulkEditBtn").innerText = "Bulk Edit";
+            document.getElementById("bulkEditBtn").style.background = "#10b981";
+            renderTable(); // Remove yellow highlight by re-rendering table
         }
 
         function showStatus(msg, type) {
@@ -442,7 +506,7 @@
                         if (siteData.active_months[i]) {
                             rowData.push(bill.bill_no, bill.bill_date, bill.amount, bill.erp_total ? Number(bill.erp_total).toFixed(2) : "");
                         }
-                        else rowData.push("", "", "", ""); // Keep inactive cells blank in excel
+                        else rowData.push("", "", "", ""); 
                     }
                     ws_data.push(rowData); rowIndex++;
                 });

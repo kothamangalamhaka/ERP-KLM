@@ -65,7 +65,7 @@ router.get("/data", verifyToken, async (req, res) => {
         const billingResult = await pool.query(billingQuery, [currentYear]);
         const billingData = billingResult.rows;
 
-        // 🟢 Fetch aggregated ERP totals from billing_records for the selected year
+        // Fetch aggregated ERP totals from billing_records for the selected year
         const erpQuery = `
             SELECT owner, site_name, billing_month, SUM(after_adjustment) as erp_total 
             FROM billing_records 
@@ -80,7 +80,7 @@ router.get("/data", verifyToken, async (req, res) => {
         // 5. Process and Group Data
         const groupedData = {};
 
-        // PRE-PROCESS: ഒരു സപ്ലെയറുടെ ഏതെങ്കിലും വണ്ടിയിൽ display name ഉണ്ടെങ്കിൽ അത് മുഴുവൻ വണ്ടികൾക്കും നൽകാൻ (മുൻപ് ചെയ്ത ഫിക്സ്)
+        // PRE-PROCESS: ഒരു സപ്ലെയറുടെ ഏതെങ്കിലും വണ്ടിയിൽ display name ഉണ്ടെങ്കിൽ അത് മുഴുവൻ വണ്ടികൾക്കും നൽകാൻ
         const supplierInfo = {};
         vehicles.forEach(v => {
             const sup = v.supplier.trim();
@@ -105,8 +105,8 @@ router.get("/data", verifyToken, async (req, res) => {
                 groupedData[groupKey] = {
                     company: company,
                     supplier: supplier,
-                    vat_no: supplierInfo[supplier].vat_no, // Use pre-processed complete data
-                    display_name: supplierInfo[supplier].display_name, // Use pre-processed complete data
+                    vat_no: supplierInfo[supplier].vat_no,
+                    display_name: supplierInfo[supplier].display_name,
                     sites: {}
                 };
             }
@@ -114,7 +114,7 @@ router.get("/data", verifyToken, async (req, res) => {
             if (!groupedData[groupKey].sites[site]) {
                 groupedData[groupKey].sites[site] = {
                     site_name: site,
-                    active_months: Array(12).fill(false), // Check active months
+                    active_months: Array(12).fill(false),
                     billing: {}
                 };
             }
@@ -127,7 +127,6 @@ router.get("/data", verifyToken, async (req, res) => {
                 let mStart = new Date(currentYear, m, 1);
                 let mEnd = new Date(currentYear, m + 1, 0); 
                 
-                // Active if the site dates overlap with this month
                 if (sd <= mEnd && ed >= mStart) {
                     groupedData[groupKey].sites[site].active_months[m] = true;
                 }
@@ -136,14 +135,12 @@ router.get("/data", verifyToken, async (req, res) => {
 
         // Convert object to array and attach billing
         Object.values(groupedData).forEach(group => {
-            // Keep only sites that were active for at least one month in the selected year
             group.sites = Object.values(group.sites).filter(s => s.active_months.includes(true)); 
             
             group.sites.forEach(siteObj => {
                 for (let i = 0; i < 12; i++) {
                     const bill = billingData.find(b => b.company === group.company && b.supplier === group.supplier && b.site_name === siteObj.site_name && b.month_index === i);
                     
-                    // 🟢 Match ERP Total based on Site, Supplier(Owner), and Month
                     const monthString = `${monthNames[i]} ${currentYear}`;
                     const erpRecord = erpData.find(e => 
                         (e.site_name || "").trim() === siteObj.site_name && 
@@ -169,14 +166,15 @@ router.get("/data", verifyToken, async (req, res) => {
     }
 });
 
-// UPSERT Billing Cell
+
+// UPSERT Single Billing Cell
 router.post("/update-cell", verifyEditor, async (req, res) => {
     try {
         const { year, company, supplier, vat_no, display_name, site_name, month_index, field, value } = req.body;
         const validFields = ["bill_no", "bill_date", "amount"];
         if (!validFields.includes(field)) throw new Error("Invalid field update");
 
-        const valToSave = value.trim() === "" ? null : value.trim();
+        let valToSave = value.trim() === "" ? null : value.trim();
 
         const query = `
             INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, month_index, ${field})
@@ -190,6 +188,48 @@ router.post("/update-cell", verifyEditor, async (req, res) => {
         `;
 
         await pool.query(query, [year, company, supplier, vat_no, display_name, site_name, month_index, valToSave]);
+        res.json({ success: true });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+
+// NEW API FOR BULK SAVE
+router.post("/update-bulk", verifyEditor, async (req, res) => {
+    try {
+        const { changes } = req.body;
+        if (!changes || !Array.isArray(changes)) throw new Error("Invalid payload");
+
+        const client = await pool.connect();
+        try {
+            await client.query("BEGIN");
+            for (let change of changes) {
+                const { year, company, supplier, vat_no, display_name, site_name, month_index, field, value } = change;
+                const validFields = ["bill_no", "bill_date", "amount"];
+                if (!validFields.includes(field)) continue;
+
+                let valToSave = value.trim() === "" ? null : value.trim();
+
+                const query = `
+                    INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, month_index, ${field})
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    ON CONFLICT (year, company, supplier, site_name, month_index) 
+                    DO UPDATE SET 
+                        ${field} = EXCLUDED.${field},
+                        vat_no = EXCLUDED.vat_no,
+                        display_name = EXCLUDED.display_name,
+                        updated_at = CURRENT_TIMESTAMP
+                `;
+                await client.query(query, [year, company, supplier, vat_no, display_name, site_name, month_index, valToSave]);
+            }
+            await client.query("COMMIT");
+        } catch (err) {
+            await client.query("ROLLBACK");
+            throw err;
+        } finally {
+            client.release();
+        }
         res.json({ success: true });
     } catch (error) {
         res.json({ success: false, message: error.message });
