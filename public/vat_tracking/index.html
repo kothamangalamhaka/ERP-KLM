@@ -235,23 +235,27 @@
                                   <td rowspan="${siteCount}" class="merged-cell" style="max-width: 150px; white-space: normal; word-break: break-word;">${escapeHTML(group.display_name)}</td>`;
                     }
 
-                    tbody += `<td style="text-align: left; font-weight: 500;">${escapeHTML(siteData.site_name)}</td>`;
+                    tbody += `<td style="text-align: left; font-weight: 500; max-width:140px;">${escapeHTML(siteData.site_name)}</td>`;
 
                     for (let i = startMonth; i <= endMonth; i++) {
                         let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "", erp_total: "" };
                         let isActive = siteData.active_months[i]; 
                         
                         let cellClass = isActive ? "" : "inactive-cell";
-                        // Added Both Double Click and Single Click conditionally for Bulk Edit
-                        let baseArgs = `'X', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}`;
-                        let editAction = isActive ? `ondblclick="if(!isBulkMode) editCell(this, ${baseArgs})" onclick="if(isBulkMode) editCell(this, ${baseArgs})"` : "";
+                        
+                        // 100% Safe way to assign fields without causing String Replace bugs
+                        let baseArgsStr = `this, 'FIELD_PLACEHOLDER', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}`;
+                        
+                        let actionBillNo = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})"` : "";
+                        let actionDate = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_date')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_date')})"` : "";
+                        let actionAmount = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'amount')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'amount')})"` : "";
 
                         let erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
 
                         tbody += `
-                            <td class="${cellClass}" ${editAction.replace(/X/g, 'bill_no')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_no)}</span></td>
-                            <td class="${cellClass}" ${editAction.replace(/X/g, 'bill_date')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_date)}</span></td>
-                            <td class="${cellClass}" ${editAction.replace(/X/g, 'amount')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.amount)}</span></td>
+                            <td class="${cellClass}" ${actionBillNo}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_no)}</span></td>
+                            <td class="${cellClass}" ${actionDate}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_date)}</span></td>
+                            <td class="${cellClass}" ${actionAmount}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.amount)}</span></td>
                             <td class="${cellClass}" style="font-weight: 600; color: #0f766e;"><span>${erpVal}</span></td>
                         `;
                     }
@@ -272,6 +276,11 @@
 
         // Bulk Edit Logic
         function toggleBulkEdit() {
+            // സേവ് ചെയ്യുന്നതിന് മുൻപ് എഡിറ്റ് ചെയ്തുകൊണ്ടിരിക്കുന്ന സെല്ലിലെ വാല്യൂ അപ്ഡേറ്റ് ആക്കാൻ
+            if (document.activeElement && document.activeElement.classList.contains('edit-input')) {
+                document.activeElement.blur();
+            }
+
             isBulkMode = !isBulkMode;
             const btn = document.getElementById("bulkEditBtn");
             if (isBulkMode) {
@@ -384,14 +393,39 @@
         function editCell(td, field, company, supplier, vat_no, display_name, site_name, month_index) {
             if (td.querySelector("input") || td.classList.contains("inactive-cell")) return; 
             const span = td.querySelector("span");
-            const currentValue = span.innerText;
+const currentValue = span.innerText.trim();
             td.innerHTML = `<input type="text" class="edit-input" value="${escapeHTML(currentValue)}" placeholder="${field === 'bill_date' ? 'DD-MM-YY' : ''}">`;
             const input = td.querySelector("input");
             input.focus();
             input.selectionStart = input.selectionEnd = input.value.length;
 
             input.onblur = async function() {
-                const newValue = this.value;
+                let newValue = this.value.trim();
+
+                // 🟢 Excel-like Math Calculation (Amount കോളത്തിന് മാത്രം)
+                if (field === 'amount' && newValue !== "") {
+                    let mathExpr = newValue;
+                    // തുടക്കത്തിൽ '=' ഉണ്ടെങ്കിൽ അത് മാറ്റുന്നു
+                    if (mathExpr.startsWith('=')) {
+                        mathExpr = mathExpr.substring(1);
+                    }
+                    // കണക്കുകൂട്ടാൻ എളുപ്പത്തിനായി കോമ (,) ഒഴിവാക്കുന്നു
+                    mathExpr = mathExpr.replace(/,/g, ''); 
+
+                    // അക്കങ്ങളും പ്ലസ്, മൈനസ് പോലുള്ള ചിഹ്നങ്ങളും മാത്രമേ ഉള്ളൂ എന്ന് ഉറപ്പാക്കുന്നു
+                    if (/^[0-9+\-*/().\s]+$/.test(mathExpr)) {
+                        try {
+                            let calculated = new Function('return ' + mathExpr)();
+                            if (isFinite(calculated)) {
+                                // ലഭിച്ച ഉത്തരം newValue ലേക്ക് മാറ്റുന്നു (2 ഡെസിമൽ പോയിന്റ് വരെ)
+                                newValue = Number(calculated.toFixed(2)).toString(); 
+                            }
+                        } catch (e) { 
+                            console.log("Invalid math expression"); 
+                        }
+                    }
+                }
+
                 td.innerHTML = `<span class="editable">${escapeHTML(newValue)}</span>`;
                 
                 if (newValue !== currentValue) {
@@ -403,7 +437,7 @@
                     
                     if (isBulkMode) {
                         td.style.backgroundColor = "#fef08a"; // Highlight edited cell
-                        const existingIdx = pendingChanges.findIndex(p => p.company === company && p.site_name === site_name && p.month_index === month_index && p.field === field);
+                        const existingIdx = pendingChanges.findIndex(p => p.company === company && p.supplier === supplier && p.site_name === site_name && p.month_index === month_index && p.field === field);
                         
                         if (existingIdx > -1) {
                             pendingChanges[existingIdx].value = newValue; // നിലവിൽ ഉണ്ടെങ്കിൽ വാല്യൂ മാത്രം അപ്ഡേറ്റ് ചെയ്യുന്നു
