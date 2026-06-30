@@ -200,8 +200,11 @@
 
             for (let i = startMonth; i <= endMonth; i++) {
                 let mName = monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2);
-                head1 += `<th colspan="3">${mName}</th>`;
-                head2 += `<th class="sub-head">Bill No <span class="filter-icon" onclick="openFilter(event, 'bill_no')">▼</span></th><th class="sub-head">Date</th><th class="sub-head">Amount</th>`;
+                head1 += `<th colspan="4">${mName}</th>`;
+                head2 += `<th class="sub-head">Bill No <span class="filter-icon" onclick="openFilter(event, 'bill_no')">▼</span></th>
+                          <th class="sub-head">Date</th>
+                          <th class="sub-head">Amount</th>
+                          <th class="sub-head" style="background: #0f766e;">ERP Total</th>`;
             }
             head1 += `</tr>`;
             head2 += `</tr>`;
@@ -232,16 +235,19 @@
 
                     // Columns Shading Logic
                     for (let i = startMonth; i <= endMonth; i++) {
-                        let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "" };
+                        let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "", erp_total: "" };
                         let isActive = siteData.active_months[i]; 
                         
                         let cellClass = isActive ? "" : "inactive-cell";
                         let editAction = isActive ? `ondblclick="editCell(this, 'X', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i})"` : "";
 
+                        let erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
+
                         tbody += `
                             <td class="${cellClass}" ${editAction.replace('X', 'bill_no')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_no)}</span></td>
                             <td class="${cellClass}" ${editAction.replace('X', 'bill_date')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_date)}</span></td>
                             <td class="${cellClass}" ${editAction.replace('X', 'amount')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.amount)}</span></td>
+                            <td class="${cellClass}" style="font-weight: 600; color: #0f766e;"><span>${erpVal}</span></td>
                         `;
                     }
                     tbody += `</tr>`;
@@ -412,10 +418,10 @@
 
             let colIndex = 6;
             for (let i = startMonth; i <= endMonth; i++) {
-                row1.push(monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2), "", ""); 
-                merges.push({s:{r:0, c:colIndex}, e:{r:0, c:colIndex+2}});
-                row2.push("Bill No", "Date", "Amount");
-                colIndex += 3;
+                row1.push(monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2), "", "", ""); 
+                merges.push({s:{r:0, c:colIndex}, e:{r:0, c:colIndex+3}});
+                row2.push("Bill No", "Date", "Amount", "ERP Total");
+                colIndex += 4;
             }
             ws_data.push(row1, row2);
 
@@ -432,9 +438,11 @@
 
                     rowData.push(siteData.site_name);
                     for (let i = startMonth; i <= endMonth; i++) {
-                        let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "" };
-                        if (siteData.active_months[i]) rowData.push(bill.bill_no, bill.bill_date, bill.amount);
-                        else rowData.push("", "", ""); // Keep inactive cells blank in excel
+                        let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "", erp_total: "" };
+                        if (siteData.active_months[i]) {
+                            rowData.push(bill.bill_no, bill.bill_date, bill.amount, bill.erp_total ? Number(bill.erp_total).toFixed(2) : "");
+                        }
+                        else rowData.push("", "", "", ""); // Keep inactive cells blank in excel
                     }
                     ws_data.push(rowData); rowIndex++;
                 });

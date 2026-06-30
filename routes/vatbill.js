@@ -60,15 +60,27 @@ router.get("/data", verifyToken, async (req, res) => {
         `;
         const siteLogResult = await pool.query(siteLogQuery, [plates]);
 
-        // 4. Fetch billing records
+        // 4. Fetch billing records & ERP Totals
         const billingQuery = `SELECT * FROM vat_billing_records WHERE year = $1`;
         const billingResult = await pool.query(billingQuery, [currentYear]);
         const billingData = billingResult.rows;
 
+        // 🟢 Fetch aggregated ERP totals from billing_records for the selected year
+        const erpQuery = `
+            SELECT owner, site_name, billing_month, SUM(after_adjustment) as erp_total 
+            FROM billing_records 
+            WHERE billing_month LIKE $1 
+            GROUP BY owner, site_name, billing_month
+        `;
+        const erpResult = await pool.query(erpQuery, [`%${currentYear}`]);
+        const erpData = erpResult.rows;
+        
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
         // 5. Process and Group Data
         const groupedData = {};
 
-        // PRE-PROCESS: ഒരു സപ്ലെയറുടെ ഏതെങ്കിലും വണ്ടിയിൽ display name ഉണ്ടെങ്കിൽ അത് മുഴുവൻ വണ്ടികൾക്കും നൽകാൻ
+        // PRE-PROCESS: ഒരു സപ്ലെയറുടെ ഏതെങ്കിലും വണ്ടിയിൽ display name ഉണ്ടെങ്കിൽ അത് മുഴുവൻ വണ്ടികൾക്കും നൽകാൻ (മുൻപ് ചെയ്ത ഫിക്സ്)
         const supplierInfo = {};
         vehicles.forEach(v => {
             const sup = v.supplier.trim();
@@ -97,14 +109,6 @@ router.get("/data", verifyToken, async (req, res) => {
                     display_name: supplierInfo[supplier].display_name, // Use pre-processed complete data
                     sites: {}
                 };
-            } else {
-                // FIX: If the group's display name or vat no is empty, update it using the current vehicle's data
-                if (!groupedData[groupKey].display_name && vehicle.display_name) {
-                    groupedData[groupKey].display_name = vehicle.display_name;
-                }
-                if (!groupedData[groupKey].vat_no && vehicle.vat_no) {
-                    groupedData[groupKey].vat_no = vehicle.vat_no;
-                }
             }
 
             if (!groupedData[groupKey].sites[site]) {
@@ -138,7 +142,19 @@ router.get("/data", verifyToken, async (req, res) => {
             group.sites.forEach(siteObj => {
                 for (let i = 0; i < 12; i++) {
                     const bill = billingData.find(b => b.company === group.company && b.supplier === group.supplier && b.site_name === siteObj.site_name && b.month_index === i);
-                    siteObj.billing[i] = bill ? { bill_no: bill.bill_no, bill_date: bill.bill_date, amount: bill.amount } : { bill_no: "", bill_date: "", amount: "" };
+                    
+                    // 🟢 Match ERP Total based on Site, Supplier(Owner), and Month
+                    const monthString = `${monthNames[i]} ${currentYear}`;
+                    const erpRecord = erpData.find(e => 
+                        (e.site_name || "").trim() === siteObj.site_name && 
+                        (e.owner || "").trim() === group.supplier && 
+                        e.billing_month === monthString
+                    );
+                    const erpTotal = erpRecord ? erpRecord.erp_total : "";
+
+                    siteObj.billing[i] = bill 
+                        ? { bill_no: bill.bill_no, bill_date: bill.bill_date, amount: bill.amount, erp_total: erpTotal } 
+                        : { bill_no: "", bill_date: "", amount: "", erp_total: erpTotal };
                 }
             });
         });
