@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VAT Tracking - Timesheet ERP</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; font-size: 13px; }
@@ -50,7 +51,7 @@
 <body>
     <div class="navbar">
         <div style="display:flex; align-items:center;">
-            <a href="../Timesheet.html" style="color:white; text-decoration:none; margin-right: 15px; font-size: 20px;">🔙</a>
+            <a href="../Timesheet/Timesheet.html" style="color:white; text-decoration:none; margin-right: 15px; font-size: 20px;">🔙</a>
             <span style="font-size: 18px; font-weight: 600; white-space: nowrap;">VAT Billing & Tracking</span>
             <span id="saveStatus"></span>
         </div>
@@ -499,8 +500,9 @@ const currentValue = span.innerText.trim();
             if (type === "saved" || type === "error") setTimeout(() => s.innerText = "", 3000);
         }
 
-        /* EXPORT EXCEL */
-        function exportExcel() {
+        /* EXPORT EXCEL WITH STYLES (EXCELJS) - FIXED ROW HEIGHT & WRAP */
+        async function exportExcel() {
+            showStatus("Exporting...", "saving");
             const displayData = getFilteredData();
             const quarter = document.getElementById("quarterFilter").value;
             let startMonth = 0, endMonth = 11;
@@ -509,50 +511,159 @@ const currentValue = span.innerText.trim();
             else if (quarter === "Q3") { startMonth = 6; endMonth = 8; }
             else if (quarter === "Q4") { startMonth = 9; endMonth = 11; }
 
-            let ws_data = []; let merges = [];
-            let row1 = ["SN", "Company", "Supplier", "Vat No", "Display name", "Site"];
-            let row2 = ["", "", "", "", "", ""];
-            for(let c=0; c<=5; c++) merges.push({s:{r:0, c:c}, e:{r:1, c:c}});
+            const wb = new ExcelJS.Workbook();
+            const ws = wb.addWorksheet("VAT Tracking", { views: [{ state: 'frozen', ySplit: 2, xSplit: 6 }] });
 
-            let colIndex = 6;
+            // 1. Generate Headers Arrays First
+            let row1 = ["SN", "Company", "Supplier", "Vat No", "Display Name", "Site"];
+            let row2 = ["", "", "", "", "", ""];
+            
             for (let i = startMonth; i <= endMonth; i++) {
-                row1.push(monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2), "", "", ""); 
-                merges.push({s:{r:0, c:colIndex}, e:{r:0, c:colIndex+3}});
+                let mName = monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2);
+                row1.push(mName, "", "", "");
                 row2.push("Bill No", "Date", "Amount", "ERP Total");
+            }
+
+            // 2. Add Headers to Worksheet
+            ws.addRow(row1);
+            ws.addRow(row2);
+
+            // Increase Header Row Height
+            ws.getRow(1).height = 25;
+            ws.getRow(2).height = 25;
+
+            // 3. Apply Merges After Adding Rows
+            for (let c = 1; c <= 6; c++) {
+                ws.mergeCells(1, c, 2, c);
+            }
+            
+            let colIndex = 7;
+            for (let i = startMonth; i <= endMonth; i++) {
+                ws.mergeCells(1, colIndex, 1, colIndex + 3);
                 colIndex += 4;
             }
-            ws_data.push(row1, row2);
 
-            let rowIndex = 2; let sn = 1;
+            // 4. Style Headers
+            const borderStyle = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            
+            ws.getRow(1).eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+                cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = borderStyle;
+            });
+            
+            ws.getRow(2).eachCell((cell, colNumber) => {
+                if (colNumber > 6) {
+                    let isERP = ((colNumber - 6) % 4 === 0);
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isERP ? 'FF0F766E' : 'FF334155' } };
+                    cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 11 };
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    cell.border = borderStyle;
+                }
+            });
+
+            const safeNumber = (val) => {
+                if (val === null || val === undefined || val === "") return "";
+                let num = parseFloat(val.toString().replace(/,/g, ''));
+                return isNaN(num) ? val : num; 
+            };
+
+            // 5. Add Data
+            let rowIndex = 3; 
+            let sn = 1;
+
             displayData.forEach(group => {
+                let startRow = rowIndex;
                 group.sites.forEach((siteData, sIdx) => {
                     let rowData = [];
                     if (sIdx === 0) {
                         rowData.push(sn++, group.company, group.supplier, group.vat_no, group.display_name);
-                        if (group.sites.length > 1) {
-                            for(let c=0; c<=4; c++) merges.push({s:{r:rowIndex, c:c}, e:{r:rowIndex + group.sites.length - 1, c:c}});
-                        }
-                    } else rowData.push("", "", "", "", ""); 
-
+                    } else {
+                        rowData.push("", "", "", "", "");
+                    }
                     rowData.push(siteData.site_name);
+
+                    let inactiveColumns = [];
+                    let cIdx = 7;
+                    
                     for (let i = startMonth; i <= endMonth; i++) {
                         let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "", erp_total: "" };
                         if (siteData.active_months[i]) {
-                            rowData.push(bill.bill_no, bill.bill_date, bill.amount, bill.erp_total ? Number(bill.erp_total).toFixed(2) : "");
+                            rowData.push(
+                                bill.bill_no || "", 
+                                bill.bill_date || "", 
+                                safeNumber(bill.amount), 
+                                safeNumber(bill.erp_total)
+                            );
+                        } else {
+                            rowData.push("", "", "", "");
+                            inactiveColumns.push(cIdx, cIdx + 1, cIdx + 2, cIdx + 3);
                         }
-                        else rowData.push("", "", "", ""); 
+                        cIdx += 4;
                     }
-                    ws_data.push(rowData); rowIndex++;
+
+                    let row = ws.addRow(rowData);
+                    
+                    // Increase Data Row Height
+                    row.height = 25;
+                    
+                    // Format Data Row
+                    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                        // Apply wrapText ONLY for columns after the first 6
+                        cell.alignment = { 
+                            vertical: 'middle', 
+                            horizontal: 'center', 
+                            wrapText: colNumber > 6 
+                        };
+                        cell.border = borderStyle;
+                        
+                        // Highlight Inactive/Crossed out months
+                        if (inactiveColumns.includes(colNumber)) {
+                            cell.fill = { type: 'pattern', pattern: 'lightGray', fgColor: { argb: 'FFCBD5E1' }, bgColor: { argb: 'FFE2E8F0' } };
+                        }
+                        
+                        // Bold font for ERP Total
+                        if (colNumber > 6 && (colNumber - 6) % 4 === 0 && !inactiveColumns.includes(colNumber)) {
+                            cell.font = { bold: true, color: { argb: 'FF0F766E' } };
+                        }
+
+                        // Number formatting
+                        let isAmountCol = colNumber > 6 && (colNumber - 6) % 4 === 3;
+                        let isERPCol = colNumber > 6 && (colNumber - 6) % 4 === 0;
+                        if ((isAmountCol || isERPCol) && typeof cell.value === 'number') {
+                            cell.numFmt = '#,##0.00';
+                        }
+                    });
+                    rowIndex++;
                 });
+
+                if (group.sites.length > 1) {
+                    let endRow = rowIndex - 1;
+                    for (let c = 1; c <= 5; c++) {
+                        ws.mergeCells(startRow, c, endRow, c);
+                    }
+                }
             });
 
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(ws_data);
-            ws['!merges'] = merges; 
-            XLSX.utils.book_append_sheet(wb, ws, "VAT Tracking");
-            XLSX.writeFile(wb, `VAT_Tracking_${currentYear}_${quarter}.xlsx`);
-        }
+            ws.getColumn(1).width = 5;
+            ws.getColumn(2).width = 18;
+            ws.getColumn(3).width = 25;
+            ws.getColumn(4).width = 15;
+            ws.getColumn(5).width = 30;
+            ws.getColumn(6).width = 25;
+            
+            let totalCols = ws.columnCount;
+            for(let c = 7; c <= totalCols; c++) {
+                 ws.getColumn(c).width = 12;
+            }
 
+            const buffer = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            saveAs(blob, `VAT_Tracking_${currentYear}_${quarter}.xlsx`);
+            
+            showStatus("Export Success!", "saved");
+        }
         function escapeHTML(str) { return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; }
         function escapeQuotes(str) { return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; }
 
