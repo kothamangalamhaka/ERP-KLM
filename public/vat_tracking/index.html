@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VAT Tracking - Timesheet ERP</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; font-size: 13px; }
+        .navbar { background: #0f2027; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .table-responsive { width: 100%; overflow-x: auto; max-height: calc(100vh - 65px); }
+        .nav-tools { display: flex; gap: 15px; align-items: center; font-size: 13px; }
+        .nav-tools label { color: #cbd5e1; }
+        .btn-success { background: #10b981; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        .input-box, .select-box { padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Inter'; }
+        
+        table { border-collapse: collapse; width: max-content; background: white; }
+        th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: center; }
+        th { background: #1e293b; color: white; position: sticky; top: 0; z-index: 10; font-size: 12px; }
+        th.sub-head { top: 33px; background: #334155; }
+        
+        .merged-cell { vertical-align: middle; font-weight: 600; color: #334155; background: #f8fafc; }
+        .editable { cursor: pointer; min-width: 60px; height: 20px; display: inline-block; width: 100%; }
+        .editable:hover { background-color: #e2e8f0; }
+        .edit-input { width: 90%; padding: 4px; font-size: 12px; border: 1px solid #0d6efd; border-radius: 3px; text-align: center; outline: none; }
+        
+        /* Shaded Inactive Month Cells */
+        .inactive-cell { 
+            background: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 5px, #e2e8f0 5px, #e2e8f0 10px) !important; 
+            pointer-events: none; 
+            color: transparent;
+        }
+
+        /* Filter Styles */
+        .filter-icon { cursor: pointer; color: #94a3b8; font-size: 10px; margin-left: 5px; display: inline-block; }
+        .filter-icon:hover { color: #fff; }
+        .filter-menu { position: absolute; background: white; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; color: #0f2027; display: none; min-width: 150px; text-align: left; }
+        .filter-menu label { display: block; padding: 4px 0; font-size: 12px; cursor:pointer;}
+        .filter-action { font-size: 12px; padding: 5px; cursor: pointer; background: #f1f5f9; text-align: center; margin-bottom: 5px; border-radius: 3px; font-weight: 600; }
+        .filter-action:hover { background: #e2e8f0; }
+        
+        #saveStatus { margin-left: 15px; font-weight: bold; }
+        .status-saving { color: #f59e0b; }
+        .status-saved { color: #10b981; }
+        .status-error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div style="display:flex; align-items:center;">
+            <a href="../Timesheet.html" style="color:white; text-decoration:none; margin-right: 15px; font-size: 20px;">🔙</a>
+            <span style="font-size: 18px; font-weight: 600; white-space: nowrap;">VAT Billing & Tracking</span>
+            <span id="saveStatus"></span>
+        </div>
+
+        <div class="nav-tools">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label><b>Year:</b></label>
+                <input type="number" id="yearFilter" class="input-box" style="width: 60px;" onchange="fetchData()">
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label><b>Quarter:</b></label>
+                <select id="quarterFilter" class="select-box" onchange="renderTable()">
+                    <option value="All">All (Jan - Dec)</option>
+                    <option value="Q1">Q1 (Jan - Mar)</option>
+                    <option value="Q2">Q2 (Apr - Jun)</option>
+                    <option value="Q3">Q3 (Jul - Sep)</option>
+                    <option value="Q4">Q4 (Oct - Dec)</option>
+                </select>
+            </div>
+
+            <!-- Global Search -->
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label><b>Search:</b></label>
+                <input type="text" id="searchInput" class="input-box" placeholder="Global search..." onkeyup="renderTable()" style="width: 150px;">
+            </div>
+
+            <button class="btn-success" onclick="exportExcel()">⬇ Export Excel</button>
+        </div>
+    </div>
+
+    <!-- Dropdown Filter Menu -->
+    <div id="filterMenu" class="filter-menu">
+        <div id="sortActionContainer" style="display: flex; gap: 5px; margin-bottom: 5px;">
+            <div class="filter-action" style="flex: 1; margin-bottom: 0;" onclick="applySort('asc')">Sort A-Z</div>
+            <div class="filter-action" style="flex: 1; margin-bottom: 0;" onclick="applySort('desc')">Sort Z-A</div>
+        </div>
+        <hr id="sortDivider" style="border: 0; border-top: 1px solid #cbd5e1; margin: 8px 0;">
+        <input type="text" class="input-box" placeholder="Search..." onkeyup="searchFilterItems(this)" style="width: 100%; box-sizing:border-box; margin-bottom: 8px;">
+        <div id="filterCheckboxList" style="max-height: 850px; overflow-y: auto;"></div>
+        
+        <!-- Buttons container -->
+        <div style="display: flex; gap: 5px; margin-top: 8px;">
+            <button style="flex: 1; padding: 6px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;" onclick="clearColumnFilter()">Clear</button>
+            <button class="btn-success" style="flex: 1; padding: 6px; border-radius: 4px;" onclick="applyColumnFilter()">Apply</button>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table id="vatTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody">
+                <tr><td colspan="20">Loading data...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const token = localStorage.getItem("timesheetToken");
+        if (!token) window.location.href = "../index.html";
+
+        const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        let rawData = [];
+        let currentYear = new Date().getFullYear();
+        document.getElementById("yearFilter").value = currentYear;
+
+        let activeCol = "";
+        let sortConfig = { col: null, dir: null };
+        let activeFilters = { company: [], supplier: [], vat_no: [], display_name: [], site_name: [], bill_no: [] };
+
+        async function fetchData() {
+            currentYear = document.getElementById("yearFilter").value;
+            document.getElementById("tableBody").innerHTML = '<tr><td colspan="20">Loading...</td></tr>';
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/data?year=${currentYear}`, {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+                const json = await res.json();
+                if (json.success) {
+                    rawData = json.data;
+                    renderTable();
+                } else alert("Error fetching data: " + json.message);
+            } catch (err) { alert("Network error."); }
+        }
+
+        // Apply filters & sort logic
+        function getFilteredData() {
+            let result = JSON.parse(JSON.stringify(rawData)); 
+            const globalSearch = document.getElementById("searchInput").value.toLowerCase();
+
+            result = result.filter(group => {
+                if (activeFilters.company.length && !activeFilters.company.includes(group.company)) return false;
+                if (activeFilters.supplier.length && !activeFilters.supplier.includes(group.supplier)) return false;
+                if (activeFilters.vat_no.length && !activeFilters.vat_no.includes(group.vat_no)) return false;
+                if (activeFilters.display_name.length && !activeFilters.display_name.includes(group.display_name)) return false;
+                
+                group.sites = group.sites.filter(site => {
+                    if (activeFilters.site_name.length && !activeFilters.site_name.includes(site.site_name)) return false;
+                    
+                    // Bill No Check from Checkboxes
+                    if (activeFilters.bill_no.length > 0) {
+                        let hasBill = false;
+                        for (let i = 0; i < 12; i++) {
+                            if (activeFilters.bill_no.includes(site.billing[i].bill_no)) hasBill = true;
+                        }
+                        if (!hasBill) return false;
+                    }
+                    return true;
+                });
+
+                if (globalSearch && group.sites.length > 0) {
+                    const searchStr = `${group.company} ${group.supplier} ${group.vat_no} ${group.display_name} ${group.sites.map(s=>s.site_name).join(" ")}`.toLowerCase();
+                    if (!searchStr.includes(globalSearch)) return false;
+                }
+                
+                return group.sites.length > 0;
+            });
+
+            if (sortConfig.col) {
+                result.sort((a, b) => {
+                    let valA = sortConfig.col === 'site_name' ? (a.sites[0]?.site_name || "") : (a[sortConfig.col] || "");
+                    let valB = sortConfig.col === 'site_name' ? (b.sites[0]?.site_name || "") : (b[sortConfig.col] || "");
+                    return sortConfig.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                });
+            }
+            return result;
+        }
+
+        function renderTable() {
+            const displayData = getFilteredData();
+            const quarter = document.getElementById("quarterFilter").value;
+            let startMonth = 0, endMonth = 11;
+            
+            if (quarter === "Q1") { startMonth = 0; endMonth = 2; }
+            else if (quarter === "Q2") { startMonth = 3; endMonth = 5; }
+            else if (quarter === "Q3") { startMonth = 6; endMonth = 8; }
+            else if (quarter === "Q4") { startMonth = 9; endMonth = 11; }
+
+            // Table Headers with Filter icon
+            let head1 = `<tr>
+                <th rowspan="2">SN</th>
+                <th rowspan="2">Company <span class="filter-icon" onclick="openFilter(event, 'company')">▼</span></th>
+                <th rowspan="2">Supplier <span class="filter-icon" onclick="openFilter(event, 'supplier')">▼</span></th>
+                <th rowspan="2">Vat No <span class="filter-icon" onclick="openFilter(event, 'vat_no')">▼</span></th>
+                <th rowspan="2" style="min-width: 150px; max-width: 150px;">Display Name <span class="filter-icon" onclick="openFilter(event, 'display_name')">▼</span></th>
+                <th rowspan="2">Site <span class="filter-icon" onclick="openFilter(event, 'site_name')">▼</span></th>`;
+            let head2 = `<tr>`;
+
+            for (let i = startMonth; i <= endMonth; i++) {
+                let mName = monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2);
+                head1 += `<th colspan="3">${mName}</th>`;
+                head2 += `<th class="sub-head">Bill No <span class="filter-icon" onclick="openFilter(event, 'bill_no')">▼</span></th><th class="sub-head">Date</th><th class="sub-head">Amount</th>`;
+            }
+            head1 += `</tr>`;
+            head2 += `</tr>`;
+            document.getElementById("tableHead").innerHTML = head1 + head2;
+
+            // Table Body
+            let tbody = "";
+            if (displayData.length === 0) {
+                document.getElementById("tableBody").innerHTML = `<tr><td colspan="20">No matching data found.</td></tr>`;
+                return;
+            }
+
+            let sn = 1;
+            displayData.forEach(group => {
+                const siteCount = group.sites.length;
+                group.sites.forEach((siteData, sIdx) => {
+                    tbody += `<tr>`;
+                    
+                    if (sIdx === 0) {
+                        tbody += `<td rowspan="${siteCount}" class="merged-cell">${sn++}</td>
+                                  <td rowspan="${siteCount}" class="merged-cell">${escapeHTML(group.company)}</td>
+                                  <td rowspan="${siteCount}" class="merged-cell" style="max-width: 150px;">${escapeHTML(group.supplier)}</td>
+                                  <td rowspan="${siteCount}" class="merged-cell">${escapeHTML(group.vat_no)}</td>
+                                  <td rowspan="${siteCount}" class="merged-cell" style="max-width: 150px; white-space: normal; word-break: break-word;">${escapeHTML(group.display_name)}</td>`;
+                    }
+
+                    tbody += `<td style="text-align: left; font-weight: 500;">${escapeHTML(siteData.site_name)}</td>`;
+
+                    // Columns Shading Logic
+                    for (let i = startMonth; i <= endMonth; i++) {
+                        let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "" };
+                        let isActive = siteData.active_months[i]; 
+                        
+                        let cellClass = isActive ? "" : "inactive-cell";
+                        let editAction = isActive ? `ondblclick="editCell(this, 'X', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i})"` : "";
+
+                        tbody += `
+                            <td class="${cellClass}" ${editAction.replace('X', 'bill_no')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_no)}</span></td>
+                            <td class="${cellClass}" ${editAction.replace('X', 'bill_date')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_date)}</span></td>
+                            <td class="${cellClass}" ${editAction.replace('X', 'amount')}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.amount)}</span></td>
+                        `;
+                    }
+                    tbody += `</tr>`;
+                });
+            });
+            document.getElementById("tableBody").innerHTML = tbody;
+        }
+
+        /* Filter Menu Logic */
+        function openFilter(e, colName) {
+            e.stopPropagation();
+            activeCol = colName;
+            const menu = document.getElementById("filterMenu");
+            menu.style.display = "block";
+            menu.style.left = e.pageX + "px";
+            menu.style.top = (e.pageY + 15) + "px";
+
+            // Hide Sort Options for VAT No and Bill No
+            if (colName === 'vat_no' || colName === 'bill_no') {
+                document.getElementById("sortActionContainer").style.display = "none";
+                document.getElementById("sortDivider").style.display = "none";
+            } else {
+                document.getElementById("sortActionContainer").style.display = "flex";
+                document.getElementById("sortDivider").style.display = "block";
+            }
+
+            let uniqueVals = new Set();
+            rawData.forEach(g => {
+                if (colName === 'site_name') {
+                    g.sites.forEach(s => uniqueVals.add(s.site_name));
+                } else if (colName === 'bill_no') {
+                    g.sites.forEach(s => {
+                        for(let i = 0; i < 12; i++) {
+                            if (s.billing[i] && s.billing[i].bill_no) uniqueVals.add(s.billing[i].bill_no);
+                        }
+                    });
+                } else {
+                    uniqueVals.add(g[colName]);
+                }
+            });
+            
+            let isAllChecked = activeFilters[colName].length === 0;
+        let listHtml = `<label style="display: block; font-weight: bold; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 5px; cursor: pointer;">
+                            <input type="checkbox" id="selectAllFilter" ${isAllChecked ? "checked" : ""} onchange="toggleAllFilters(this)"> 
+                            (Select All)
+                        </label>`;
+        
+        Array.from(uniqueVals).sort().forEach(val => {
+            if (val !== "") {
+                let isChecked = isAllChecked || activeFilters[colName].includes(val) ? "checked" : "";
+                // Added class 'filter-cb' and onchange event
+                listHtml += `<label class="f-item"><input type="checkbox" class="filter-cb" value="${escapeHTML(val)}" ${isChecked} onchange="checkIfAllSelected()"> ${escapeHTML(val)}</label>`;
+            }
+        });
+        document.getElementById("filterCheckboxList").innerHTML = listHtml;
+    }
+
+    // Add these two helper functions right below openFilter
+    function toggleAllFilters(source) {
+        const checkboxes = document.querySelectorAll("#filterCheckboxList .filter-cb");
+        checkboxes.forEach(cb => {
+            if (cb.closest('.f-item').style.display !== "none") cb.checked = source.checked;
+        });
+    }
+
+    function checkIfAllSelected() {
+        const total = document.querySelectorAll("#filterCheckboxList .filter-cb").length;
+        const hidden = document.querySelectorAll("#filterCheckboxList .f-item[style*='display: none']").length;
+        const visibleTotal = total - hidden;
+        const checked = document.querySelectorAll("#filterCheckboxList .filter-cb:checked").length;
+        document.getElementById("selectAllFilter").checked = (visibleTotal > 0 && visibleTotal === checked);
+    }
+
+        function applySort(dir) {
+            sortConfig = { col: activeCol, dir: dir };
+            document.getElementById("filterMenu").style.display = "none";
+            renderTable();
+        }
+
+        function applyColumnFilter() {
+        // Select ONLY the actual filter checkboxes, exclude the "Select All" checkbox
+        const boxes = document.querySelectorAll("#filterCheckboxList .filter-cb");
+        let selected = [];
+        boxes.forEach(b => { if (b.checked) selected.push(b.value); });
+        activeFilters[activeCol] = selected.length === boxes.length ? [] : selected;
+        document.getElementById("filterMenu").style.display = "none";
+        renderTable();
+    }
+
+        function clearColumnFilter() {
+            activeFilters[activeCol] = [];
+            sortConfig = { col: null, dir: null };
+            document.getElementById("filterMenu").style.display = "none";
+            renderTable();
+        }
+
+        function searchFilterItems(input) {
+            const term = input.value.toLowerCase();
+            document.querySelectorAll(".f-item").forEach(lbl => {
+                lbl.style.display = lbl.innerText.toLowerCase().includes(term) ? "block" : "none";
+            });
+        }
+
+        document.addEventListener("click", function(e) {
+            if (!e.target.closest("#filterMenu") && !e.target.closest(".filter-icon")) {
+                document.getElementById("filterMenu").style.display = "none";
+            }
+        });
+
+        /* Edit and Save Logic */
+        function editCell(td, field, company, supplier, vat_no, display_name, site_name, month_index) {
+            if (td.querySelector("input") || td.classList.contains("inactive-cell")) return; 
+            const span = td.querySelector("span");
+            const currentValue = span.innerText;
+            td.innerHTML = `<input type="text" class="edit-input" value="${escapeHTML(currentValue)}" placeholder="${field === 'bill_date' ? 'DD-MM-YY' : ''}">`;
+            const input = td.querySelector("input");
+            input.focus();
+            input.selectionStart = input.selectionEnd = input.value.length;
+
+            input.onblur = async function() {
+                const newValue = this.value;
+                td.innerHTML = `<span class="editable">${escapeHTML(newValue)}</span>`;
+                if (newValue !== currentValue) {
+                    await saveCell(company, supplier, vat_no, display_name, site_name, month_index, field, newValue);
+                    const grp = rawData.find(g => g.company === company && g.supplier === supplier);
+                    if(grp) {
+                        const sit = grp.sites.find(s => s.site_name === site_name);
+                        if(sit) sit.billing[month_index][field] = newValue;
+                    }
+                }
+            };
+            input.onkeydown = function(e) { if (e.key === "Enter") this.blur(); }
+        }
+
+        async function saveCell(company, supplier, vat_no, display_name, site_name, month_index, field, value) {
+            showStatus("Saving...", "saving");
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/update-cell`, {
+                    method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                    body: JSON.stringify({ year: currentYear, company, supplier, vat_no, display_name, site_name, month_index, field, value })
+                });
+                const json = await res.json();
+                if (json.success) showStatus("✓ Saved", "saved");
+                else showStatus("Error", "error");
+            } catch (err) { showStatus("Error", "error"); }
+        }
+
+        function showStatus(msg, type) {
+            const s = document.getElementById("saveStatus");
+            s.innerText = msg; s.className = `status-${type}`;
+            if (type === "saved" || type === "error") setTimeout(() => s.innerText = "", 3000);
+        }
+
+        /* EXPORT EXCEL */
+        function exportExcel() {
+            const displayData = getFilteredData();
+            const quarter = document.getElementById("quarterFilter").value;
+            let startMonth = 0, endMonth = 11;
+            if (quarter === "Q1") { startMonth = 0; endMonth = 2; }
+            else if (quarter === "Q2") { startMonth = 3; endMonth = 5; }
+            else if (quarter === "Q3") { startMonth = 6; endMonth = 8; }
+            else if (quarter === "Q4") { startMonth = 9; endMonth = 11; }
+
+            let ws_data = []; let merges = [];
+            let row1 = ["SN", "Company", "Supplier", "Vat No", "Display name", "Site"];
+            let row2 = ["", "", "", "", "", ""];
+            for(let c=0; c<=5; c++) merges.push({s:{r:0, c:c}, e:{r:1, c:c}});
+
+            let colIndex = 6;
+            for (let i = startMonth; i <= endMonth; i++) {
+                row1.push(monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2), "", ""); 
+                merges.push({s:{r:0, c:colIndex}, e:{r:0, c:colIndex+2}});
+                row2.push("Bill No", "Date", "Amount");
+                colIndex += 3;
+            }
+            ws_data.push(row1, row2);
+
+            let rowIndex = 2; let sn = 1;
+            displayData.forEach(group => {
+                group.sites.forEach((siteData, sIdx) => {
+                    let rowData = [];
+                    if (sIdx === 0) {
+                        rowData.push(sn++, group.company, group.supplier, group.vat_no, group.display_name);
+                        if (group.sites.length > 1) {
+                            for(let c=0; c<=4; c++) merges.push({s:{r:rowIndex, c:c}, e:{r:rowIndex + group.sites.length - 1, c:c}});
+                        }
+                    } else rowData.push("", "", "", "", ""); 
+
+                    rowData.push(siteData.site_name);
+                    for (let i = startMonth; i <= endMonth; i++) {
+                        let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "" };
+                        if (siteData.active_months[i]) rowData.push(bill.bill_no, bill.bill_date, bill.amount);
+                        else rowData.push("", "", ""); // Keep inactive cells blank in excel
+                    }
+                    ws_data.push(rowData); rowIndex++;
+                });
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            ws['!merges'] = merges; 
+            XLSX.utils.book_append_sheet(wb, ws, "VAT Tracking");
+            XLSX.writeFile(wb, `VAT_Tracking_${currentYear}_${quarter}.xlsx`);
+        }
+
+        function escapeHTML(str) { return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; }
+        function escapeQuotes(str) { return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; }
+
+        fetchData();
+    </script>
+</body>
+</html>

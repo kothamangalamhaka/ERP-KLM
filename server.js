@@ -30,7 +30,9 @@ const masterDatabaseRoutes = require("./routes/master_database");
 const logsheetRoutes = require("./routes/logsheet_api");
 const entrylogRoutes = require("./routes/entrylog");
 const oeledgerRoutes = require("./routes/oeledger");
-const breakRulesRoutes = require("./routes/break_rules"); // 🟢 NEW
+const breakRulesRoutes = require("./routes/break_rules"); 
+const vatBillRoute = require('./routes/vatbill');
+
 
 const app = express();
 app.use(compression());
@@ -49,6 +51,8 @@ app.use("/api/backup", backupRoutes);
 app.use("/api/entrylog", entrylogRoutes);
 app.use("/api/oeledger", oeledgerRoutes);
 app.use("/timesheet", breakRulesRoutes);
+app.use('/timesheet/api/vat-tracking', vatBillRoute);
+
 const JWT_SECRET = process.env.JWT_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
