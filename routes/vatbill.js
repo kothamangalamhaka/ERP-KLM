@@ -174,7 +174,7 @@ router.post("/update-cell", verifyEditor, async (req, res) => {
         const validFields = ["bill_no", "bill_date", "amount"];
         if (!validFields.includes(field)) throw new Error("Invalid field update");
 
-        let valToSave = value.trim() === "" ? null : value.trim();
+        let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();
 
         const query = `
             INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, month_index, ${field})
@@ -209,7 +209,7 @@ router.post("/update-bulk", verifyEditor, async (req, res) => {
                 const validFields = ["bill_no", "bill_date", "amount"];
                 if (!validFields.includes(field)) continue;
 
-                let valToSave = value.trim() === "" ? null : value.trim();
+                let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();
 
                 const query = `
                     INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, month_index, ${field})
