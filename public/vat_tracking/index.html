@@ -76,13 +76,12 @@
                     <option value="Q4">Q4 (Oct - Dec)</option>
                 </select>
             </div>
-
-            <!-- Global Search -->
-            <div style="display: flex; align-items: center; gap: 5px;">
+<div style="display: flex; align-items: center; gap: 5px;">
                 <label><b>Search:</b></label>
                 <input type="text" id="searchInput" class="input-box" placeholder="Global search..." onkeyup="renderTable()" style="width: 150px;">
             </div>
 
+            <button class="btn-success" onclick="exportCompactExcel()" style="background: #0284c7;">⬇ Compact Excel</button>
             <button class="btn-success" onclick="exportExcel()">⬇ Export Excel</button>
         </div>
     </div>
@@ -664,6 +663,160 @@ const currentValue = span.innerText.trim();
             
             showStatus("Export Success!", "saved");
         }
+
+        /* COMPACT EXCEL EXPORT - ONLY AMOUNT & ERP TOTAL */
+        async function exportCompactExcel() {
+            showStatus("Exporting Compact...", "saving");
+            const displayData = getFilteredData();
+            const quarter = document.getElementById("quarterFilter").value;
+            let startMonth = 0, endMonth = 11;
+            if (quarter === "Q1") { startMonth = 0; endMonth = 2; }
+            else if (quarter === "Q2") { startMonth = 3; endMonth = 5; }
+            else if (quarter === "Q3") { startMonth = 6; endMonth = 8; }
+            else if (quarter === "Q4") { startMonth = 9; endMonth = 11; }
+
+            const wb = new ExcelJS.Workbook();
+            const ws = wb.addWorksheet("Compact VAT", { views: [{ state: 'frozen', ySplit: 2, xSplit: 6 }] });
+
+            // 1. Generate Headers Arrays First
+            let row1 = ["SN", "Company", "Supplier", "Vat No", "Display Name", "Site"];
+            let row2 = ["", "", "", "", "", ""];
+            
+            for (let i = startMonth; i <= endMonth; i++) {
+                let mName = monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2);
+                row1.push(mName, "");
+                row2.push("Amount", "ERP Total");
+            }
+
+            // 2. Add Headers to Worksheet
+            ws.addRow(row1);
+            ws.addRow(row2);
+
+            ws.getRow(1).height = 25;
+            ws.getRow(2).height = 25;
+
+            // 3. Apply Merges
+            for (let c = 1; c <= 6; c++) {
+                ws.mergeCells(1, c, 2, c);
+            }
+            
+            let colIndex = 7;
+            for (let i = startMonth; i <= endMonth; i++) {
+                ws.mergeCells(1, colIndex, 1, colIndex + 1); // Merge 2 columns for month
+                colIndex += 2;
+            }
+
+            // 4. Style Headers
+            const borderStyle = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            
+            ws.getRow(1).eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+                cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = borderStyle;
+            });
+            
+            ws.getRow(2).eachCell((cell, colNumber) => {
+                if (colNumber > 6) {
+                    let isERP = ((colNumber - 6) % 2 === 0);
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isERP ? 'FF0F766E' : 'FF334155' } };
+                    cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 11 };
+                    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    cell.border = borderStyle;
+                }
+            });
+
+            const safeNumber = (val) => {
+                if (val === null || val === undefined || val === "") return "";
+                let num = parseFloat(val.toString().replace(/,/g, ''));
+                return isNaN(num) ? val : num; 
+            };
+
+            // 5. Add Data
+            let rowIndex = 3; 
+            let sn = 1;
+
+            displayData.forEach(group => {
+                let startRow = rowIndex;
+                group.sites.forEach((siteData, sIdx) => {
+                    let rowData = [];
+                    if (sIdx === 0) {
+                        rowData.push(sn++, group.company, group.supplier, group.vat_no, group.display_name);
+                    } else {
+                        rowData.push("", "", "", "", "");
+                    }
+                    rowData.push(siteData.site_name);
+
+                    let inactiveColumns = [];
+                    let cIdx = 7;
+                    
+                    for (let i = startMonth; i <= endMonth; i++) {
+                        let bill = siteData.billing[i] || { amount: "", erp_total: "" };
+                        if (siteData.active_months[i]) {
+                            rowData.push(
+                                safeNumber(bill.amount), 
+                                safeNumber(bill.erp_total)
+                            );
+                        } else {
+                            rowData.push("", "");
+                            inactiveColumns.push(cIdx, cIdx + 1);
+                        }
+                        cIdx += 2;
+                    }
+
+                    let row = ws.addRow(rowData);
+                    row.height = 25;
+                    
+                    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                        cell.alignment = { 
+                            vertical: 'middle', 
+                            horizontal: 'center', 
+                            wrapText: colNumber > 6 
+                        };
+                        cell.border = borderStyle;
+                        
+                        if (inactiveColumns.includes(colNumber)) {
+                            cell.fill = { type: 'pattern', pattern: 'lightGray', fgColor: { argb: 'FFCBD5E1' }, bgColor: { argb: 'FFE2E8F0' } };
+                        }
+                        
+                        if (colNumber > 6 && (colNumber - 6) % 2 === 0 && !inactiveColumns.includes(colNumber)) {
+                            cell.font = { bold: true, color: { argb: 'FF0F766E' } };
+                        }
+
+                        if (colNumber > 6 && typeof cell.value === 'number') {
+                            cell.numFmt = '#,##0.00';
+                        }
+                    });
+                    rowIndex++;
+                });
+
+                if (group.sites.length > 1) {
+                    let endRow = rowIndex - 1;
+                    for (let c = 1; c <= 5; c++) {
+                        ws.mergeCells(startRow, c, endRow, c);
+                    }
+                }
+            });
+
+            ws.getColumn(1).width = 5;
+            ws.getColumn(2).width = 18;
+            ws.getColumn(3).width = 25;
+            ws.getColumn(4).width = 15;
+            ws.getColumn(5).width = 30;
+            ws.getColumn(6).width = 25;
+            
+            let totalCols = ws.columnCount;
+            for(let c = 7; c <= totalCols; c++) {
+                 ws.getColumn(c).width = 15;
+            }
+
+            const buffer = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            saveAs(blob, `Compact_VAT_${currentYear}_${quarter}.xlsx`);
+            
+            showStatus("Compact Export Success!", "saved");
+        }
+        
         function escapeHTML(str) { return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; }
         function escapeQuotes(str) { return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; }
 
