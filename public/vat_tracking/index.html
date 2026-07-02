@@ -207,7 +207,7 @@
                 let mName = monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2);
                 head1 += `<th colspan="4">${mName}</th>`;
                 head2 += `<th class="sub-head">Bill No <span class="filter-icon" onclick="openFilter(event, 'bill_no')">▼</span></th>
-                          <th class="sub-head">Date</th>
+                          <th class="sub-head">Status</th>
                           <th class="sub-head">Amount</th>
                           <th class="sub-head" style="background: #0f766e;">ERP Total</th>`;
             }
@@ -238,7 +238,7 @@
                     tbody += `<td style="text-align: left; font-weight: 500; max-width:140px;">${escapeHTML(siteData.site_name)}</td>`;
 
                     for (let i = startMonth; i <= endMonth; i++) {
-                        let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "", erp_total: "" };
+                        let bill = siteData.billing[i] || { bill_no: "", status: "", amount: "", erp_total: "" };
                         let isActive = siteData.active_months[i]; 
                         
                         let cellClass = isActive ? "" : "inactive-cell";
@@ -247,14 +247,14 @@
                         let baseArgsStr = `this, 'FIELD_PLACEHOLDER', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}`;
                         
                         let actionBillNo = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})"` : "";
-                        let actionDate = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_date')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_date')})"` : "";
+                        let actionStatus = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'status')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'status')})"` : "";
                         let actionAmount = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'amount')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'amount')})"` : "";
 
                         let erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
 
                         tbody += `
                             <td class="${cellClass}" ${actionBillNo}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_no)}</span></td>
-                            <td class="${cellClass}" ${actionDate}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_date)}</span></td>
+                            <td class="${cellClass}" ${actionStatus}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.status)}</span></td>
                             <td class="${cellClass}" ${actionAmount}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.amount)}</span></td>
                             <td class="${cellClass}" style="font-weight: 600; color: #0f766e;"><span>${erpVal}</span></td>
                         `;
@@ -276,7 +276,6 @@
 
         // Bulk Edit Logic
         function toggleBulkEdit() {
-            // സേവ് ചെയ്യുന്നതിന് മുൻപ് എഡിറ്റ് ചെയ്തുകൊണ്ടിരിക്കുന്ന സെല്ലിലെ വാല്യൂ അപ്ഡേറ്റ് ആക്കാൻ
             if (document.activeElement && document.activeElement.classList.contains('edit-input')) {
                 document.activeElement.blur();
             }
@@ -393,8 +392,8 @@
         function editCell(td, field, company, supplier, vat_no, display_name, site_name, month_index) {
             if (td.querySelector("input") || td.classList.contains("inactive-cell")) return; 
             const span = td.querySelector("span");
-const currentValue = span.innerText.trim();
-            td.innerHTML = `<input type="text" class="edit-input" value="${escapeHTML(currentValue)}" placeholder="${field === 'bill_date' ? 'DD-MM-YY' : ''}">`;
+            const currentValue = span.innerText.trim();
+            td.innerHTML = `<input type="text" class="edit-input" value="${escapeHTML(currentValue)}" placeholder="${field === 'status' ? 'Enter Status' : ''}">`;
             const input = td.querySelector("input");
             input.focus();
             input.selectionStart = input.selectionEnd = input.value.length;
@@ -405,19 +404,15 @@ const currentValue = span.innerText.trim();
                 // 🟢 Excel-like Math Calculation (Amount കോളത്തിന് മാത്രം)
                 if (field === 'amount' && newValue !== "") {
                     let mathExpr = newValue;
-                    // തുടക്കത്തിൽ '=' ഉണ്ടെങ്കിൽ അത് മാറ്റുന്നു
                     if (mathExpr.startsWith('=')) {
                         mathExpr = mathExpr.substring(1);
                     }
-                    // കണക്കുകൂട്ടാൻ എളുപ്പത്തിനായി കോമ (,) ഒഴിവാക്കുന്നു
                     mathExpr = mathExpr.replace(/,/g, ''); 
 
-                    // അക്കങ്ങളും പ്ലസ്, മൈനസ് പോലുള്ള ചിഹ്നങ്ങളും മാത്രമേ ഉള്ളൂ എന്ന് ഉറപ്പാക്കുന്നു
                     if (/^[0-9+\-*/().\s]+$/.test(mathExpr)) {
                         try {
                             let calculated = new Function('return ' + mathExpr)();
                             if (isFinite(calculated)) {
-                                // ലഭിച്ച ഉത്തരം newValue ലേക്ക് മാറ്റുന്നു (2 ഡെസിമൽ പോയിന്റ് വരെ)
                                 newValue = Number(calculated.toFixed(2)).toString(); 
                             }
                         } catch (e) { 
@@ -436,11 +431,11 @@ const currentValue = span.innerText.trim();
                     }
                     
                     if (isBulkMode) {
-                        td.style.backgroundColor = "#fef08a"; // Highlight edited cell
+                        td.style.backgroundColor = "#fef08a"; 
                         const existingIdx = pendingChanges.findIndex(p => p.company === company && p.supplier === supplier && p.site_name === site_name && p.month_index === month_index && p.field === field);
                         
                         if (existingIdx > -1) {
-                            pendingChanges[existingIdx].value = newValue; // നിലവിൽ ഉണ്ടെങ്കിൽ വാല്യൂ മാത്രം അപ്ഡേറ്റ് ചെയ്യുന്നു
+                            pendingChanges[existingIdx].value = newValue; 
                         } else {
                             pendingChanges.push({ year: currentYear, company, supplier, vat_no, display_name, site_name, month_index, field, value: newValue });
                         }
@@ -482,7 +477,7 @@ const currentValue = span.innerText.trim();
                 const json = await res.json();
                 if (json.success) {
                     showStatus("✓ Bulk Saved", "saved");
-                    pendingChanges = []; // Reset Array
+                    pendingChanges = []; 
                 } else {
                     showStatus("Error", "error");
                 }
@@ -490,7 +485,7 @@ const currentValue = span.innerText.trim();
 
             document.getElementById("bulkEditBtn").innerText = "Bulk Edit";
             document.getElementById("bulkEditBtn").style.background = "#10b981";
-            renderTable(); // Remove yellow highlight by re-rendering table
+            renderTable(); 
         }
 
         function showStatus(msg, type) {
@@ -520,18 +515,17 @@ const currentValue = span.innerText.trim();
             for (let i = startMonth; i <= endMonth; i++) {
                 let mName = monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2);
                 row1.push(mName, "", "", "");
-                row2.push("Bill No", "Date", "Amount", "ERP Total");
+                row2.push("Bill No", "Status", "Amount", "ERP Total");
             }
 
             // 2. Add Headers to Worksheet
             ws.addRow(row1);
             ws.addRow(row2);
 
-            // Increase Header Row Height
             ws.getRow(1).height = 25;
             ws.getRow(2).height = 25;
 
-            // 3. Apply Merges After Adding Rows
+            // 3. Apply Merges
             for (let c = 1; c <= 6; c++) {
                 ws.mergeCells(1, c, 2, c);
             }
@@ -587,11 +581,11 @@ const currentValue = span.innerText.trim();
                     let cIdx = 7;
                     
                     for (let i = startMonth; i <= endMonth; i++) {
-                        let bill = siteData.billing[i] || { bill_no: "", bill_date: "", amount: "", erp_total: "" };
+                        let bill = siteData.billing[i] || { bill_no: "", status: "", amount: "", erp_total: "" };
                         if (siteData.active_months[i]) {
                             rowData.push(
                                 bill.bill_no || "", 
-                                bill.bill_date || "", 
+                                bill.status || "", 
                                 safeNumber(bill.amount), 
                                 safeNumber(bill.erp_total)
                             );
@@ -603,13 +597,9 @@ const currentValue = span.innerText.trim();
                     }
 
                     let row = ws.addRow(rowData);
-                    
-                    // Increase Data Row Height
                     row.height = 25;
                     
-                    // Format Data Row
                     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                        // Apply wrapText ONLY for columns after the first 6
                         cell.alignment = { 
                             vertical: 'middle', 
                             horizontal: 'center', 
@@ -617,17 +607,14 @@ const currentValue = span.innerText.trim();
                         };
                         cell.border = borderStyle;
                         
-                        // Highlight Inactive/Crossed out months
                         if (inactiveColumns.includes(colNumber)) {
                             cell.fill = { type: 'pattern', pattern: 'lightGray', fgColor: { argb: 'FFCBD5E1' }, bgColor: { argb: 'FFE2E8F0' } };
                         }
                         
-                        // Bold font for ERP Total
                         if (colNumber > 6 && (colNumber - 6) % 4 === 0 && !inactiveColumns.includes(colNumber)) {
                             cell.font = { bold: true, color: { argb: 'FF0F766E' } };
                         }
 
-                        // Number formatting
                         let isAmountCol = colNumber > 6 && (colNumber - 6) % 4 === 3;
                         let isERPCol = colNumber > 6 && (colNumber - 6) % 4 === 0;
                         if ((isAmountCol || isERPCol) && typeof cell.value === 'number') {
@@ -702,7 +689,7 @@ const currentValue = span.innerText.trim();
             
             let colIndex = 7;
             for (let i = startMonth; i <= endMonth; i++) {
-                ws.mergeCells(1, colIndex, 1, colIndex + 1); // Merge 2 columns for month
+                ws.mergeCells(1, colIndex, 1, colIndex + 1); 
                 colIndex += 2;
             }
 

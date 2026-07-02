@@ -149,9 +149,10 @@ router.get("/data", verifyToken, async (req, res) => {
                     );
                     const erpTotal = erpRecord ? erpRecord.erp_total : "";
 
+                    // Changed bill_date to status
                     siteObj.billing[i] = bill 
-                        ? { bill_no: bill.bill_no, bill_date: bill.bill_date, amount: bill.amount, erp_total: erpTotal } 
-                        : { bill_no: "", bill_date: "", amount: "", erp_total: erpTotal };
+                        ? { bill_no: bill.bill_no, status: bill.status, amount: bill.amount, erp_total: erpTotal } 
+                        : { bill_no: "", status: "", amount: "", erp_total: erpTotal };
                 }
             });
         });
@@ -171,7 +172,9 @@ router.get("/data", verifyToken, async (req, res) => {
 router.post("/update-cell", verifyEditor, async (req, res) => {
     try {
         const { year, company, supplier, vat_no, display_name, site_name, month_index, field, value } = req.body;
-        const validFields = ["bill_no", "bill_date", "amount"];
+        
+        // Changed validFields to accept 'status' instead of 'bill_date'
+        const validFields = ["bill_no", "status", "amount"];
         if (!validFields.includes(field)) throw new Error("Invalid field update");
 
         let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();
@@ -206,7 +209,9 @@ router.post("/update-bulk", verifyEditor, async (req, res) => {
             await client.query("BEGIN");
             for (let change of changes) {
                 const { year, company, supplier, vat_no, display_name, site_name, month_index, field, value } = change;
-                const validFields = ["bill_no", "bill_date", "amount"];
+                
+                // Changed validFields to accept 'status' instead of 'bill_date'
+                const validFields = ["bill_no", "status", "amount"];
                 if (!validFields.includes(field)) continue;
 
                 let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();
