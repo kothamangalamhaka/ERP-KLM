@@ -532,7 +532,8 @@ async function downloadAllAsPdf() {
 
   const plate = document
     .getElementById("logsheetTitle")
-    .innerText.replace("Logsheets - ", "")
+    .innerText.split("|")[0] 
+    .replace("Logsheets - ", "")
     .replace(/[^a-zA-Z0-9 ]/g, "")
     .trim();
   await generatePdfFromFiles(imageFiles, `${plate}.pdf`, btn, "PDF");
