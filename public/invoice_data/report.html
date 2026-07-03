@@ -1862,6 +1862,7 @@
               siteDataMap[sName] = {
                 ts_nr: 0,
                 ts_ot: 0,
+                ts_31st_shift: 0,
                 rate: s.rate || "-",
                 driver_name: driverString,
                 field_co: s.field_co || "-",
@@ -1874,6 +1875,7 @@
             siteDataMap["N/A"] = {
               ts_nr: 0,
               ts_ot: 0,
+              ts_31st_shift: 0,
               rate: "-",
               driver_name: "-",
               field_co: "-",
@@ -1957,9 +1959,20 @@
             }
 
             if (!siteDataMap[currentSite])
-              siteDataMap[currentSite] = { ts_nr: 0, ts_ot: 0 };
+              siteDataMap[currentSite] = { ts_nr: 0, ts_ot: 0, ts_31st_shift: 0 };
             siteDataMap[currentSite].ts_nr += nHr;
             siteDataMap[currentSite].ts_ot += otHr;
+
+            // 31st day L&T logic: Calculate EXACTLY how much should be virtually shifted to NR
+            if (i === 31 && dayName !== "Fri") {
+              let shiftToNr = 0;
+              if (bd === "ID" || bd === "NP") {
+                shiftToNr = 10;
+              } else if (tm > 0) {
+                shiftToNr = tm > 10 ? 10 : tm;
+              }
+              siteDataMap[currentSite].ts_31st_shift += shiftToNr;
+            }
           }
 
           Object.keys(siteDataMap).forEach((sName) => {
@@ -2031,17 +2044,35 @@
             let diff_nr = "";
             let diff_ot = "";
             let diff_st = "";
+            
+            let sNameUpper = sName.toUpperCase();
+            
+            // Rule 1: Skip calculation if site name starts with 'Z'
+            if (!sNameUpper.startsWith("Z")) {
+              
+              let virtual_ts_nr = calc_ts_nr;
+              let virtual_ts_ot = calc_ts_ot;
+              
+              // Rule 2: Virtual adjustment for L&T 31st day
+              if (sNameUpper.includes("L&T") || sNameUpper.includes("L & T")) {
+                if (daysInMonth === 31) {
+                  let shift_amt = siteDataMap[sName].ts_31st_shift || 0;
+                  virtual_ts_nr += shift_amt;
+                  virtual_ts_ot -= shift_amt;
+                }
+              }
 
-            if (calc_inv_nr > 0 || calc_inv_ot > 0) {
-              let diff_nr_val = calc_ts_nr - calc_inv_nr;
-              if (diff_nr_val > 0) diff_nr = diff_nr_val.toString();
+              if (calc_inv_nr > 0 || calc_inv_ot > 0) {
+                let diff_nr_val = virtual_ts_nr - calc_inv_nr;
+                if (diff_nr_val > 0) diff_nr = diff_nr_val.toString();
 
-              let diff_ot_val = calc_ts_ot - calc_inv_ot;
-              if (diff_ot_val > 0) diff_ot = diff_ot_val.toString();
+                let diff_ot_val = virtual_ts_ot - calc_inv_ot;
+                if (diff_ot_val > 0) diff_ot = diff_ot_val.toString();
 
-              if (diff_nr !== "" && diff_ot !== "") diff_st = "NR & OT";
-              else if (diff_nr !== "") diff_st = "NR";
-              else if (diff_ot !== "") diff_st = "OT";
+                if (diff_nr !== "" && diff_ot !== "") diff_st = "NR & OT";
+                else if (diff_nr !== "") diff_st = "NR";
+                else if (diff_ot !== "") diff_st = "OT";
+              }
             }
 
             let display_inv_nr =
