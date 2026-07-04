@@ -597,7 +597,7 @@ async function triggerFetch() {
           });
           
           // പച്ച നിറത്തിൽ സ്ക്വയർ ബ്രാക്കറ്റ്
-          let htmlStr = `<span style="color: #000000; font-weight: 700;">[ ${validCount} ]</span>`;
+          let htmlStr = `<span style="font-weight: 700;">[ ${validCount} ]</span>`;
           
           // 0B ഫയൽ ഉണ്ടെങ്കിൽ മാത്രം ചുവന്ന നിറത്തിൽ പുറത്തു കാണിക്കുക 
           if (zeroCount > 0) {
