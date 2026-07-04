@@ -218,14 +218,15 @@ router.post("/save", async (req, res) => {
         [billing_period, row.plate, row.site_name],
       );
 
-      // 🟢 ZERO ROW PROTECTION
+      // 🟢 ZERO ROW PROTECTION (Updated to allow remarks)
       const nhr = parseFloat(row.nhr) || 0;
       const othr = parseFloat(row.othr) || 0;
       const rent = parseFloat(row.rent) || 0;
       const adjAmt = parseFloat(row.adjusted_amount) || 0;
+      const remark = (row.remark || "").trim();
 
-      if (nhr === 0 && othr === 0 && rent === 0 && adjAmt === 0) {
-        continue; // Skip saving empty row
+      if (nhr === 0 && othr === 0 && rent === 0 && adjAmt === 0 && remark === "") {
+        continue; // Skip saving empty row ONLY if remark is also empty
       }
 
       const query = `INSERT INTO billing_records 
@@ -266,11 +267,11 @@ router.post("/save", async (req, res) => {
   }
 });
 
-// 3. Fetch Dashboard Data (FILTER OUT ZERO ROWS)
+// 3. Fetch Dashboard Data (FILTER OUT ZERO ROWS BUT KEEP REMARKS)
 router.get("/dashboard-data", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT * FROM billing_records WHERE rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0 ORDER BY TO_DATE(billing_month, 'Month YYYY') DESC, id ASC`,
+      `SELECT * FROM billing_records WHERE rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0 OR (remark IS NOT NULL AND remark != '') ORDER BY TO_DATE(billing_month, 'Month YYYY') DESC, id ASC`,
     );
 
     const tsRes = await pool.query(
@@ -297,15 +298,15 @@ router.get("/dashboard-data", async (req, res) => {
   }
 });
 
-// 4. Export Excel (FILTER OUT ZERO ROWS)
+// 4. Export Excel (FILTER OUT ZERO ROWS BUT KEEP REMARKS)
 router.get("/export-excel", async (req, res) => {
   try {
     const { month } = req.query;
-    let query = `SELECT * FROM billing_records WHERE rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0 ORDER BY TO_DATE(billing_month, 'Month YYYY') DESC, id ASC`;
+    let query = `SELECT * FROM billing_records WHERE rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0 OR (remark IS NOT NULL AND remark != '') ORDER BY TO_DATE(billing_month, 'Month YYYY') DESC, id ASC`;
     let params = [];
 
     if (month && month !== "All") {
-      query = `SELECT * FROM billing_records WHERE billing_month = $1 AND (rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0) ORDER BY id ASC`;
+      query = `SELECT * FROM billing_records WHERE billing_month = $1 AND (rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0 OR (remark IS NOT NULL AND remark != '')) ORDER BY id ASC`;
       params = [month];
     }
 

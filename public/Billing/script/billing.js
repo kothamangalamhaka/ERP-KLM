@@ -1917,6 +1917,7 @@ function submitBulkData() {
           adjustment_desc: rowAdjDescStr,
           adjusted_amount: rowAdjAmtTotal,
           after_adjustment: totalVal + rowAdjAmtTotal,
+          remark: row.querySelector(".remark") ? row.querySelector(".remark").value.trim() : "",
         });
       }
     });

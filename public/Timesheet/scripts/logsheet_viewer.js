@@ -532,7 +532,7 @@ async function downloadAllAsPdf() {
 
   const plate = document
     .getElementById("logsheetTitle")
-    .innerText.split("|")[0] 
+    .innerText.split("|")[0]
     .replace("Logsheets - ", "")
     .replace(/[^a-zA-Z0-9 ]/g, "")
     .trim();

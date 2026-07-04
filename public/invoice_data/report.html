@@ -943,6 +943,8 @@
               <col class="col-grp-gen" style="width: 150px" />
               <col class="col-grp-gen" style="width: 120px" />
               <col class="col-grp-gen" style="width: 120px" />
+              <col class="col-grp-gen" style="width: 60px" />
+              <col class="col-grp-gen" style="width: 60px" />
             </colgroup>
             <thead>
               <tr>
@@ -955,6 +957,7 @@
                 <th colspan="2" class="th-inv-red">INVOICE</th>
                 <th colspan="7" class="th-extra">EXTRA DETAILS</th>
                 <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
+                <th colspan="2" class="th-gen">31 Considered as NR</th>
               </tr>
               <tr>
                 <th
@@ -1157,11 +1160,11 @@
                 </th>
                 <th
                   class="th-extra"
-                  style="width: 75px"
-                  data-col-key="zoho"
-                  onclick="openExcelFilterMenu(event, 'zoho')"
+                  style="width: 120px"
+                  data-col-key="vbill_notes"
+                  onclick="openExcelFilterMenu(event, 'vbill_notes')"
                 >
-                  Zoho <span class="filter-icon" data-key="zoho">▼</span>
+                  V.Bill Notes <span class="filter-icon" data-key="vbill_notes">▼</span>
                 </th>
                 <th
                   class="th-extra"
@@ -1210,6 +1213,12 @@
                 </th>
                 <th class="th-gen" style="width: 120px" data-col-key="site_co">
                   Site Co
+                </th>
+                <th class="th-gen" style="width: 60px" data-col-key="alt_nr">
+                  NR
+                </th>
+                <th class="th-gen" style="width: 60px" data-col-key="alt_ot">
+                  OT
                 </th>
               </tr>
             </thead>
@@ -2032,6 +2041,7 @@
             let pwas = invData ? invData.pwas || "" : "";
             let erp = invData ? invData.erp || "" : "";
             let payment_status = invData ? invData.payment_status || "" : "";
+            let vbill_notes = billData && billData.remark ? billData.remark : "";
             let inv_amount = invData
               ? parseFloat(invData.invoice_amount) || 0
               : 0;
@@ -2112,7 +2122,7 @@
               diff_st,
               inv_no,
               bill_no,
-              zoho: invData ? invData.zoho || "-" : "-",
+              vbill_notes: vbill_notes || "-",
               pwas: pwas || "-",
               erp: erp || "-",
               payment_status: payment_status || "-",
@@ -2121,6 +2131,8 @@
               vehicle_type: vehicle_type,
               field_co: siteDataMap[sName].field_co,
               site_co: siteDataMap[sName].site_co,
+              alt_nr: calc_ts_nr + (siteDataMap[sName].ts_31st_shift || 0),
+              alt_ot: calc_ts_ot >= (siteDataMap[sName].ts_31st_shift || 0) ? calc_ts_ot - (siteDataMap[sName].ts_31st_shift || 0) : 0,
             });
           });
         });
@@ -2342,7 +2354,7 @@
             <td class="col-inv-red" style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
             <td class="col-extra editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
             <td class="col-extra editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
-            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="toggleZohoStatus(this, '${row.plate}', '${row.site}', '${row.raw_month}', '${row.raw_year}')" style="user-select: none; text-align: center; font-weight: bold; cursor: pointer;" title="Double click to change">${row.zoho}</td>
+            <td class="col-extra" style="word-wrap: break-word; text-align: left;">${row.vbill_notes}</td>
             <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
             <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'erp')">${row.erp}</td>
             <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'payment_status')">${row.payment_status}</td>
@@ -2350,6 +2362,8 @@
             <td class="col-gen" style="word-wrap: break-word;">${row.driver_name}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.field_co}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.site_co}</td>
+            <td class="col-gen" style="font-weight: 600; color: #166534;">${row.alt_nr}</td>
+            <td class="col-gen" style="font-weight: 600; color: #166534;">${row.alt_ot > 0 ? row.alt_ot : ""}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -3044,6 +3058,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
         for (let i = 20; i <= 21; i++) m[i + offset] = "B91C1C";
         for (let i = 22; i <= 28; i++) m[i + offset] = COL.extra; // 🟢 7 Columns now
         for (let i = 29; i <= 32; i++) m[i + offset] = COL.vehicle; // 🟢 4 Columns now
+        for (let i = 33; i <= 34; i++) m[i + offset] = COL.ts; // 🟢 31st as NR (Green)
         return m;
       }
 
@@ -3109,7 +3124,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
             "Total",
             "Invoice No",
             "Bill No",
-            "Zoho",
+            "V.Bill Notes",
             "PWAS",
             "ERP",
             "Payment Status",
@@ -3118,6 +3133,8 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
             "Vehicle Type",
             "Field Co",
             "Site Co",
+            "Alt NR (31st as NR)",
+            "Alt OT",
           ],
         ];
         dataArray.forEach((r) => {
@@ -3146,7 +3163,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
             r.inv_total || "",
             r.inv_no,
             r.bill_no,
-            r.zoho || "-",
+            r.vbill_notes || "-",
             r.pwas || "-",
             r.erp || "-",
             r.payment_status || "-",
@@ -3155,6 +3172,8 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
             r.vehicle_type,
             r.field_co,
             r.site_co,
+            r.alt_nr,
+            r.alt_ot > 0 ? r.alt_ot : "",
           ]);
         });
         let ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -3170,8 +3189,9 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           { s: { r: 0, c: 20 }, e: { r: 0, c: 21 } }, // INV RED
           { s: { r: 0, c: 22 }, e: { r: 0, c: 28 } }, // EXTRA (Extended to 28)
           { s: { r: 0, c: 29 }, e: { r: 0, c: 32 } }, // GEN
+          { s: { r: 0, c: 33 }, e: { r: 0, c: 34 } }, // 31 Considered as NR
         ];
-        // 🟢 Column widths updated (Added one more for Zoho)
+        // 🟢 Column widths updated
         ws["!cols"] = [
           { wch: 12 },
           { wch: 20 },
@@ -3197,7 +3217,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           { wch: 15 },
           { wch: 20 },
           { wch: 20 },
-          { wch: 10 },
+          { wch: 15 },
           { wch: 20 },
           { wch: 20 },
           { wch: 20 },
@@ -3206,15 +3226,17 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           { wch: 15 },
           { wch: 15 },
           { wch: 15 },
+          { wch: 12 },
+          { wch: 12 },
         ];
 
         applyExcelHeaderStyles(
           ws,
           aoa.length,
-          33,
+          35,
           getColorMap(false),
           getColorMap(false),
-        ); // 🟢 33 Columns
+        ); // 🟢 35 Columns
         return ws;
       }
 
@@ -3281,7 +3303,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
             "Total",
             "Invoice No",
             "Bill No",
-            "Zoho",
+            "V.Bill Notes",
             "PWAS",
             "ERP",
             "Payment Status",
@@ -3290,10 +3312,11 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
             "Vehicle Type",
             "Field Co",
             "Site Co",
+            "Alt NR (31st as NR)",
+            "Alt OT",
           ],
         ];
         dataArray.forEach((r) => {
-          // 🟢 Added r.zoho for Analysis Sheet as well
           aoa.push([
             r.report_month,
             r.site,
@@ -3319,7 +3342,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
             r.inv_total || "",
             r.inv_no,
             r.bill_no,
-            r.zoho || "-",
+            r.vbill_notes || "-",
             r.pwas || "-",
             r.erp || "-",
             r.payment_status || "-",
@@ -3328,6 +3351,8 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
             r.vehicle_type,
             r.field_co,
             r.site_co,
+            r.alt_nr,
+            r.alt_ot > 0 ? r.alt_ot : "",
           ]);
         });
         let ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -3343,6 +3368,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           { s: { r: 0, c: 21 }, e: { r: 0, c: 22 } }, // INV RED
           { s: { r: 0, c: 23 }, e: { r: 0, c: 29 } }, // EXTRA
           { s: { r: 0, c: 30 }, e: { r: 0, c: 33 } }, // GEN
+          { s: { r: 0, c: 34 }, e: { r: 0, c: 35 } }, // 31 Considered as NR
         ];
         ws["!cols"] = [
           { wch: 15 },
@@ -3369,7 +3395,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           { wch: 15 },
           { wch: 20 },
           { wch: 20 },
-          { wch: 10 },
+          { wch: 15 },
           { wch: 20 },
           { wch: 20 },
           { wch: 20 },
@@ -3378,15 +3404,17 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           { wch: 15 },
           { wch: 15 },
           { wch: 15 },
+          { wch: 12 },
+          { wch: 12 },
         ];
 
         applyExcelHeaderStyles(
           ws,
           aoa.length,
-          34,
+          36,
           getColorMap(true),
           getColorMap(true),
-        ); // 🟢 34 Columns
+        ); // 🟢 36 Columns
         return ws;
       }
 
