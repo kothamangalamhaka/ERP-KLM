@@ -912,10 +912,14 @@ function toggleExportMenu() {
   menu.style.display = menu.style.display === "flex" ? "none" : "flex";
 }
 
-function buildWorksheetFromTable(table, m, y) {
+async function buildWorksheetFromTable(workbook, table, m, y) {
   const daysInMonth = getDaysInMonth(m, y);
   const totalCols = 7 + daysInMonth + 5;
-  let ws_data = [];
+  
+  // 1. Create Sheet with 80% Zoom and Freeze First 3 Rows (and 7 Cols)
+  const ws = workbook.addWorksheet(`${m} ${y}`, {
+    views: [{ state: 'frozen', xSplit: 7, ySplit: 3, zoomScale: 80 }]
+  });
 
   const trs = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
   let visibleTrs = [];
@@ -924,32 +928,18 @@ function buildWorksheetFromTable(table, m, y) {
   }
   const totalRows = 3 + visibleTrs.length;
 
+  // 2. Prepare Data Array FIRST
+  let ws_data = [];
   for (let r = 0; r < totalRows; r++) {
-    let row = [];
-    for (let c = 0; c < totalCols; c++) row.push(" ");
-    ws_data.push(row);
+    ws_data.push(new Array(totalCols).fill(" "));
   }
 
   ws_data[0][0] = `Haka Contracting - Monthly Time sheet - ${m} ${y}`;
   ws_data[0][7] = "Total No. of Hours Worked Daily";
 
-  let headers1 = [
-    "No",
-    "Owner Name",
-    "Vehicle Type",
-    "Driver Name",
-    "Mobile",
-    "Site Name",
-    "Plate No",
-  ];
+  let headers1 = ["No", "Owner Name", "Vehicle Type", "Driver Name", "Mobile", "Site Name", "Plate No"];
   for (let i = 1; i <= daysInMonth; i++) headers1.push(getDayName(i, m, y));
-  headers1.push(
-    "Normal Hours",
-    "OT Hours",
-    "Total Hours Worked",
-    "Total Dist.",
-    "Mileage (Km/L)",
-  );
+  headers1.push("Normal Hours", "OT Hours", "Total Hours Worked", "Total Dist.", "Mileage (Km/L)");
 
   let headers2 = ["", "", "", "", "", "", ""];
   for (let i = 1; i <= daysInMonth; i++) headers2.push(i);
@@ -965,197 +955,106 @@ function buildWorksheetFromTable(table, m, y) {
     for (let c = 0; c < totalCols; c++) {
       if (tds[c]) {
         let val = tds[c].innerText.trim();
-        ws_data[i + 3][c] = val === "" ? " " : val;
+        
+        if (val === "") {
+          ws_data[i + 3][c] = " ";
+        } else if (!isNaN(val) && c !== 4) { 
+          ws_data[i + 3][c] = Number(val); 
+        } else {
+          ws_data[i + 3][c] = val;
+        }
       }
     }
   }
 
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  // 3. Insert Data to Sheet BEFORE applying heights or filters
+  ws_data.forEach(rowData => ws.addRow(rowData));
 
-  ws["!merges"] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
-    { s: { r: 0, c: 7 }, e: { r: 0, c: 6 + daysInMonth } },
-    { s: { r: 1, c: 0 }, e: { r: 2, c: 0 } },
-    { s: { r: 1, c: 1 }, e: { r: 2, c: 1 } },
-    { s: { r: 1, c: 2 }, e: { r: 2, c: 2 } },
-    { s: { r: 1, c: 3 }, e: { r: 2, c: 3 } },
-    { s: { r: 1, c: 4 }, e: { r: 2, c: 4 } },
-    { s: { r: 1, c: 5 }, e: { r: 2, c: 5 } },
-    { s: { r: 1, c: 6 }, e: { r: 2, c: 6 } },
-    { s: { r: 1, c: totalCols - 5 }, e: { r: 2, c: totalCols - 5 } },
-    { s: { r: 1, c: totalCols - 4 }, e: { r: 2, c: totalCols - 4 } },
-    { s: { r: 1, c: totalCols - 3 }, e: { r: 2, c: totalCols - 3 } },
-    { s: { r: 1, c: totalCols - 2 }, e: { r: 2, c: totalCols - 2 } },
-    { s: { r: 1, c: totalCols - 1 }, e: { r: 2, c: totalCols - 1 } },
-  ];
+  // 4. Set AutoFilter on B3 to G(n)
+  ws.autoFilter = `B3:G${totalRows}`;
 
+  // 5. Set Row Heights (Now it will apply to existing rows)
+  ws.getRow(1).height = 30;
+  ws.getRow(2).height = 45;
+  ws.getRow(3).height = 20;
+  for (let i = 0; i < visibleTrs.length; i++) {
+    ws.getRow(i + 4).height = 26;
+  }
+
+  // 6. Set Column Widths
+  const colWidths = [5, 25, 15, 25, 14, 20, 12];
+  
+  // You can change '6.0' to any width you prefer (e.g., 5.0, 7.5, 8.0)
+  const dayColumnWidth = 5.0; 
+  
+  for (let i = 0; i < daysInMonth; i++) colWidths.push(dayColumnWidth);
+  colWidths.push(10, 10, 12, 10, 12);
+  
+  colWidths.forEach((w, index) => {
+    ws.getColumn(index + 1).width = w;
+  });
+
+  // 7. Merge Cells
+  ws.mergeCells(1, 1, 1, 7);
+  ws.mergeCells(1, 8, 1, 7 + daysInMonth);
+  
+  const merges23 = [1, 2, 3, 4, 5, 6, 7, totalCols - 4, totalCols - 3, totalCols - 2, totalCols - 1, totalCols];
+  merges23.forEach(col => {
+      ws.mergeCells(2, col, 3, col);
+  });
+
+  // 8. Apply Styling
   const solidBlackBorder = {
-    top: { style: "thin", color: { rgb: "000000" } },
-    bottom: { style: "thin", color: { rgb: "000000" } },
-    left: { style: "thin", color: { rgb: "000000" } },
-    right: { style: "thin", color: { rgb: "000000" } },
+    top: { style: 'thin', color: { argb: 'FF000000' } },
+    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+    left: { style: 'thin', color: { argb: 'FF000000' } },
+    right: { style: 'thin', color: { argb: 'FF000000' } }
   };
 
-  ws["!rows"] = [{ hpt: 30 }, { hpt: 45 }, { hpt: 20 }];
-  for (let i = 0; i < visibleTrs.length; i++) {
-    ws["!rows"].push({ hpt: 26 });
-  }
+  for (let R = 1; R <= totalRows; R++) {
+    for (let C = 1; C <= totalCols; C++) {
+      let cell = ws.getCell(R, C);
+      let val = String(cell.value).trim();
+      
+      cell.border = solidBlackBorder;
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
 
-  for (let R = 0; R < totalRows; ++R) {
-    for (let C = 0; C < totalCols; ++C) {
-      let cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-      if (!ws[cellRef]) ws[cellRef] = { t: "s", v: " " };
-      if (ws[cellRef].v === "") ws[cellRef].v = " ";
-
-      let cellStyle = {
-        font: { name: "Arial", sz: 10, color: { rgb: "000000" } },
-        border: solidBlackBorder,
-        alignment: { horizontal: "center", vertical: "center", wrapText: true },
-      };
-
-      if (R === 0) {
-        cellStyle.fill = { fgColor: { rgb: "1e3a5f" } };
-        cellStyle.font = {
-          name: "Arial",
-          sz: 14,
-          color: { rgb: "FFFFFF" },
-          bold: true,
-        };
-      } else if (R === 1 || R === 2) {
-        cellStyle.fill = { fgColor: { rgb: "1e3a5f" } };
-        cellStyle.font = {
-          name: "Arial",
-          sz: 10,
-          color: { rgb: "FFFFFF" },
-          bold: true,
-        };
-        if (R === 1 && C >= 7 && C < 7 + daysInMonth) {
-          cellStyle.alignment = {
-            horizontal: "center",
-            vertical: "center",
-            textRotation: 90,
-          };
+      if (R === 1) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1e3a5f' } };
+        cell.font = { name: 'Arial', size: 14, color: { argb: 'FFFFFFFF' }, bold: true };
+      } else if (R === 2 || R === 3) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1e3a5f' } };
+        cell.font = { name: 'Arial', size: 10, color: { argb: 'FFFFFFFF' }, bold: true };
+        if (R === 2 && C >= 8 && C < 8 + daysInMonth) {
+          cell.alignment = { horizontal: 'center', vertical: 'middle', textRotation: 90 };
         }
       } else {
-        let val = String(ws[cellRef].v).trim();
-        if (C === 1 || C === 3 || C === 5)
-          cellStyle.alignment.horizontal = "left";
+        if (C === 2 || C === 4 || C === 6) cell.alignment.horizontal = 'left';
 
-        if (C === totalCols - 5)
-          cellStyle.fill = { fgColor: { rgb: "78a664" } };
-        else if (C === totalCols - 4)
-          cellStyle.fill = { fgColor: { rgb: "9fc5e8" } };
-        else if (C === totalCols - 3)
-          cellStyle.fill = { fgColor: { rgb: "45818e" } };
-        else if (C === totalCols - 2)
-          cellStyle.fill = { fgColor: { rgb: "a4c2f4" } };
-        else if (C === totalCols - 1)
-          cellStyle.fill = { fgColor: { rgb: "75b4d8" } };
-        else if (C >= 7 && C < 7 + daysInMonth) {
-          if (val === "B") {
-            cellStyle.fill = { fgColor: { rgb: "ef4444" } };
-            cellStyle.font = {
-              name: "Arial",
-              sz: 10,
-              color: { rgb: "FFFFFF" },
-              bold: true,
-            };
-          } else if (val === "H") {
-            cellStyle.fill = { fgColor: { rgb: "f59e0b" } };
-            cellStyle.font = {
-              name: "Arial",
-              sz: 10,
-              color: { rgb: "FFFFFF" },
-              bold: true,
-            };
-          } else if (val === "ID") {
-            cellStyle.fill = { fgColor: { rgb: "fde047" } };
-            cellStyle.font = {
-              name: "Arial",
-              sz: 10,
-              color: { rgb: "854d0e" },
-              bold: true,
-            };
-          } else if (val === "NP") {
-            cellStyle.fill = { fgColor: { rgb: "86efac" } };
-            cellStyle.font = {
-              name: "Arial",
-              sz: 10,
-              color: { rgb: "14532d" },
-              bold: true,
-            };
-          } else if (val === "NR") {
-            cellStyle.fill = { fgColor: { rgb: "e9a4a4" } };
-            cellStyle.font = {
-              name: "Arial",
-              sz: 10,
-              color: { rgb: "000000" },
-              bold: true,
-            };
-          } else if (val === "AB") {
-            cellStyle.fill = { fgColor: { rgb: "10b981" } };
-            cellStyle.font = {
-              name: "Arial",
-              sz: 10,
-              color: { rgb: "FFFFFF" },
-              bold: true,
-            };
-          } else if (val === "DC") {
-            cellStyle.fill = { fgColor: { rgb: "0ea5e9" } };
-            cellStyle.font = {
-              name: "Arial",
-              sz: 10,
-              color: { rgb: "FFFFFF" },
-              bold: true,
-            };
-          } else if (val === "SC") {
-            cellStyle.fill = { fgColor: { rgb: "8b5cf6" } };
-            cellStyle.font = {
-              name: "Arial",
-              sz: 10,
-              color: { rgb: "FFFFFF" },
-              bold: true,
-            };
-          } else if (val === "R") {
-            cellStyle.fill = { fgColor: { rgb: "f97316" } };
-            cellStyle.font = {
-              name: "Arial",
-              sz: 10,
-              color: { rgb: "FFFFFF" },
-              bold: true,
-            };
-          } else if (getDayName(C - 6, m, y) === "Fri") {
-            cellStyle.fill = { fgColor: { rgb: "f1f5f9" } };
-          }
+        if (C === totalCols - 4) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF78a664' } };
+        else if (C === totalCols - 3) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9fc5e8' } };
+        else if (C === totalCols - 2) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF45818e' } };
+        else if (C === totalCols - 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFa4c2f4' } };
+        else if (C === totalCols) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF75b4d8' } };
+        else if (C >= 8 && C < 8 + daysInMonth) {
+          if (val === 'B') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFef4444' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
+          else if (val === 'H') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf59e0b' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
+          else if (val === 'ID') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFfde047' } }; cell.font.color = { argb: 'FF854d0e' }; cell.font.bold = true; }
+          else if (val === 'NP') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF86efac' } }; cell.font.color = { argb: 'FF14532d' }; cell.font.bold = true; }
+          else if (val === 'NR') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFe9a4a4' } }; cell.font.color = { argb: 'FF000000' }; cell.font.bold = true; }
+          else if (val === 'AB') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10b981' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
+          else if (val === 'DC') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0ea5e9' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
+          else if (val === 'SC') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8b5cf6' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
+          else if (val === 'R') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf97316' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
+          else if (getDayName(C - 7, m, y) === 'Fri') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf1f5f9' } }; }
         }
       }
-      ws[cellRef].s = cellStyle;
     }
   }
-
-  let colWidths = [
-    { wch: 5 },
-    { wch: 25 },
-    { wch: 15 },
-    { wch: 25 },
-    { wch: 14 },
-    { wch: 20 },
-    { wch: 12 },
-  ];
-  for (let i = 0; i < daysInMonth; i++) colWidths.push({ wch: 4.2 });
-  colWidths.push(
-    { wch: 10 },
-    { wch: 10 },
-    { wch: 12 },
-    { wch: 10 },
-    { wch: 12 },
-  );
-  ws["!cols"] = colWidths;
-
-  return ws;
 }
 
-function exportCurrentExcel() {
+async function exportCurrentExcel() {
   const table = document.getElementById("dashboardTable");
   if (!table) {
     alert("Please fetch data first.");
@@ -1168,21 +1067,21 @@ function exportCurrentExcel() {
   loader.style.display = "inline-block";
   document.getElementById("exportMenu").style.display = "none";
 
-  setTimeout(() => {
-    try {
-      const m = document.getElementById("selMonth").value;
-      const y = document.getElementById("selYear").value;
-      const ws = buildWorksheetFromTable(table, m, y);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, `${m} ${y}`);
-      XLSX.writeFile(wb, `Haka_Timesheet_${m}_${y}.xlsx`);
-    } catch (err) {
-      alert("Export failed: " + err.message);
-    } finally {
-      btn.disabled = false;
-      loader.style.display = "none";
-    }
-  }, 50);
+  try {
+    const m = document.getElementById("selMonth").value;
+    const y = document.getElementById("selYear").value;
+    
+    const wb = new ExcelJS.Workbook();
+    await buildWorksheetFromTable(wb, table, m, y);
+    
+    const buffer = await wb.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), `Haka_Timesheet_${m}_${y}.xlsx`);
+  } catch (err) {
+    alert("Export failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+    loader.style.display = "none";
+  }
 }
 
 function openBatchModal() {
@@ -1210,20 +1109,18 @@ async function startBatchExport() {
 
   const btn = document.getElementById("btnStartBatch");
   btn.disabled = true;
-  btn.innerHTML =
-    '<span class="loader" id="batchLoader" style="display:inline-block;"></span> Generating...';
+  btn.innerHTML = '<span class="loader" id="batchLoader" style="display:inline-block;"></span> Generating...';
 
-  const wb = XLSX.utils.book_new();
+  const wb = new ExcelJS.Workbook();
   let current = new Date(startDate);
   let hiddenDiv = document.createElement("div");
   hiddenDiv.style.display = "none";
   document.body.appendChild(hiddenDiv);
 
   try {
-    // 🟢 Ensure special rules are fetched for Batch Export too
     await ensureSpecialRules();
-
     let hasData = false;
+
     while (current <= endDate) {
       let curM = months[current.getMonth()];
       let curY = current.getFullYear();
@@ -1244,22 +1141,16 @@ async function startBatchExport() {
 
       if (data.success && data.vehicles.length > 0) {
         hasData = true;
-        hiddenDiv.innerHTML = getTableHTMLString(
-          data,
-          curM,
-          curY,
-          false,
-          "hiddenExportTable",
-        );
+        hiddenDiv.innerHTML = getTableHTMLString(data, curM, curY, false, "hiddenExportTable");
         const table = hiddenDiv.querySelector("table");
-        const ws = buildWorksheetFromTable(table, curM, curY);
-        XLSX.utils.book_append_sheet(wb, ws, `${curM} ${curY}`);
+        await buildWorksheetFromTable(wb, table, curM, curY);
       }
       current.setMonth(current.getMonth() + 1);
     }
 
     if (hasData) {
-      XLSX.writeFile(wb, `Haka_Timesheet_Batch_${fM}${fY}_to_${tM}${tY}.xlsx`);
+      const buffer = await wb.xlsx.writeBuffer();
+      saveAs(new Blob([buffer]), `Haka_Timesheet_Batch_${fM}${fY}_to_${tM}${tY}.xlsx`);
       closeBatchModal();
     } else {
       alert("No records found in the selected date range.");
