@@ -1894,18 +1894,22 @@
 
           for (let i = 1; i <= daysInMonth; i++) {
             let checkDate = new Date(yearStr, mIdx, i);
-            let currentSite = defaultSite;
+            let currentSite = "N/A"; // Default to N/A for unallocated days
 
-            for (let s of activeSites) {
-              if (s.site_name === "N/A" || s.site_name === defaultSite)
-                continue;
-              let st = safeDate(s.work_start_date, "2000-01-01");
-              let ed = safeDate(s.work_end_date, "2099-01-01");
-              st.setHours(0, 0, 0, 0);
-              ed.setHours(23, 59, 59, 999);
-              if (checkDate >= st && checkDate <= ed) {
-                currentSite = (s.site_name || "N/A").trim();
-                break;
+            // Only use the master default site if there are absolutely no site allocation logs
+            if (vSites.length === 0) {
+              currentSite = defaultSite;
+            } else {
+              for (let s of activeSites) {
+                // Removed the buggy continue condition so all sites get date-checked
+                let st = safeDate(s.work_start_date, "2000-01-01");
+                let ed = safeDate(s.work_end_date, "2099-01-01");
+                st.setHours(0, 0, 0, 0);
+                ed.setHours(23, 59, 59, 999);
+                if (checkDate >= st && checkDate <= ed) {
+                  currentSite = (s.site_name || "N/A").trim();
+                  break;
+                }
               }
             }
 
