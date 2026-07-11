@@ -127,7 +127,7 @@ function openFilterMenu(event, key, colIndex) {
                 : filterKey === "plate"
                   ? 7
                   : 8;
-      let cellVal = tds[cIdx].textContent.replace('📁', '').trim();
+      let cellVal = tds[cIdx].textContent.replace("📁", "").trim();
 
       if (!allowedValues.includes(cellVal)) {
         passesOtherFilters = false;
@@ -136,7 +136,7 @@ function openFilterMenu(event, key, colIndex) {
     }
 
     if (passesOtherFilters) {
-      allOptions.add(tds[colIndex].textContent.replace('📁', '').trim());
+      allOptions.add(tds[colIndex].textContent.replace("📁", "").trim());
     }
   }
 
@@ -163,13 +163,13 @@ function openFilterMenu(event, key, colIndex) {
 
   let iconRect = event.target.getBoundingClientRect();
   menu.style.top = iconRect.bottom + window.scrollY + 5 + "px";
-  
-  // 🟢 ആദ്യം display flex ആക്കുന്നു, എന്നാൽ മാത്രമേ ഇതിന്റെ യഥാർത്ഥ വീതി (offsetWidth) കിട്ടുകയുള്ളൂ
-  menu.style.display = "flex"; 
 
-  if (key === 'pendingDates') {
+  // 🟢 ആദ്യം display flex ആക്കുന്നു, എന്നാൽ മാത്രമേ ഇതിന്റെ യഥാർത്ഥ വീതി (offsetWidth) കിട്ടുകയുള്ളൂ
+  menu.style.display = "flex";
+
+  if (key === "pendingDates") {
     // 🟢 വീതി എത്രയുണ്ടെങ്കിലും അതിനനുസരിച്ച് കൃത്യമായി ഇടത്തോട്ട് മാറാൻ
-    menu.style.left = (iconRect.right + window.scrollX - menu.offsetWidth) + "px"; 
+    menu.style.left = iconRect.right + window.scrollX - menu.offsetWidth + "px";
   } else {
     menu.style.left = iconRect.left + window.scrollX - 180 + "px";
   }
@@ -297,7 +297,7 @@ function applyGridFilters() {
     let tDriver = tds[3].textContent.trim();
     let tSite = tds[5].textContent.trim();
     let tVehicleType = tds[6].textContent.trim(); // Column 6
-    let tPlate = tds[7].textContent.replace('📁', '').trim(); // Column 7
+    let tPlate = tds[7].textContent.replace("📁", "").trim(); // Column 7
     let tPending = tds[8].textContent.trim();
     let rowText = row.textContent.toUpperCase();
 
@@ -550,15 +550,18 @@ async function generatePendingReport() {
     // വാട്സാപ്പ് വെബിലേക്ക് (WhatsApp Web) നേരിട്ട് പോകാനുള്ള ഫംഗ്ഷൻ
     const createWaLink = (mobileStr) => {
       if (!mobileStr) return "";
-      return mobileStr.split('&').map(m => {
-        let num = m.trim();
-        let cleanNum = num.replace(/\D/g, ''); // നമ്പറുകൾ മാത്രം എടുക്കാൻ
-        if (cleanNum) {
-          // wa.me യ്ക്ക് പകരം web.whatsapp.com/send?phone= ഉപയോഗിക്കുന്നു
-          return `<a href="https://web.whatsapp.com/send?phone=${cleanNum}" target="_blank" style="text-decoration: none; color: inherit; cursor: pointer;" title="Chat on WhatsApp Web">${num}</a>`;
-        }
-        return num;
-      }).join(" & ");
+      return mobileStr
+        .split("&")
+        .map((m) => {
+          let num = m.trim();
+          let cleanNum = num.replace(/\D/g, ""); // നമ്പറുകൾ മാത്രം എടുക്കാൻ
+          if (cleanNum) {
+            // wa.me യ്ക്ക് പകരം web.whatsapp.com/send?phone= ഉപയോഗിക്കുന്നു
+            return `<a href="https://web.whatsapp.com/send?phone=${cleanNum}" target="_blank" style="text-decoration: none; color: inherit; cursor: pointer;" title="Chat on WhatsApp Web">${num}</a>`;
+          }
+          return num;
+        })
+        .join(" & ");
     };
 
     let tbodyHTML = "";
@@ -994,7 +997,7 @@ function getFilteredDataForExport() {
         driverMob: trs[i].cells[4].innerText.trim(),
         site: trs[i].cells[5].innerText.trim(),
         vehicleType: trs[i].cells[6].innerText.trim(),
-        plate: trs[i].cells[7].innerText.replace('📁', '').trim(),
+        plate: trs[i].cells[7].innerText.replace("📁", "").trim(),
         pendingDates: trs[i].cells[8].innerText.trim(),
       });
     }
@@ -1238,6 +1241,18 @@ async function exportToPNGZip(mode) {
       const groups = {};
       data.forEach((row) => {
         const key = row.site.replace(/[^a-zA-Z0-9_ ]/g, "").trim() || "Unknown";
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(row);
+      });
+      for (const [gName, subset] of Object.entries(groups)) {
+        let imgs = await createA4Images(gName, subset, m, y);
+        allImages.push(...imgs);
+      }
+    } else if (mode === "Owner") {
+      const groups = {};
+      data.forEach((row) => {
+        const key =
+          row.owner.replace(/[^a-zA-Z0-9_ ]/g, "").trim() || "Unknown";
         if (!groups[key]) groups[key] = [];
         groups[key].push(row);
       });
