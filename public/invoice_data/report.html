@@ -3483,12 +3483,12 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           )
             plates.push(plateTd.innerText.trim());
         });
-        let uniquePlates = [...new Set(plates)];
-        if (uniquePlates.length === 0) {
+        
+        if (plates.length === 0) {
           window.alert("No visible plates found to copy.");
           return;
         }
-        copyText(uniquePlates.join("\n"));
+        copyText(plates.join("\n")); 
       }
 
       document

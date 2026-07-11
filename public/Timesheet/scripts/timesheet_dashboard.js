@@ -792,7 +792,8 @@ function getTableHTMLString(
       let fuel = parseFloat(rec.fuel) || 0;
 
       if (hasData) {
-        if (["B", "H", "ID", "NP", "NR"].includes(bdStr)) cellDisplay = bdStr;
+        // 🟢 FIX 1: Added AB, DC, SC, R to the allowed list
+        if (["B", "H", "ID", "NP", "NR", "AB", "DC", "SC", "R"].includes(bdStr)) cellDisplay = bdStr;
         else cellDisplay = timeRaw > 0 ? timeRaw : "";
 
         if (bdStr === "B") {
@@ -801,6 +802,15 @@ function getTableHTMLString(
           cellClass += " code-h";
         } else if (bdStr === "NR") {
           cellClass += " code-nr";
+        // 🟢 FIX 2: Added specific color classes for AB, DC, SC, R
+        } else if (bdStr === "AB") {
+          cellClass += " code-ab";
+        } else if (bdStr === "DC") {
+          cellClass += " code-dc";
+        } else if (bdStr === "SC") {
+          cellClass += " code-sc";
+        } else if (bdStr === "R") {
+          cellClass += " code-r";
         } else if (bdStr === "ID" || bdStr === "NP") {
           if (isFullOT) {
             normalHr = 0;
@@ -823,6 +833,7 @@ function getTableHTMLString(
           }
         }
       } else {
+        // (Existing logic for gap status)
         if (statusCode !== "ACTIVE") {
           cellDisplay = statusCode;
           if (statusCode === "AB") cellClass += " code-ab";
