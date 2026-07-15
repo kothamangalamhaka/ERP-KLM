@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=850" />
+    <title>We1 track co. Water Bill</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+      :root {
+        --primary-color: #2c3e50;
+        --border-color: #000000;
+        --bg-color: #f2f6f8;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        color: #000000;
+        margin: 0;
+        padding: 20px;
+        background-color: #525659;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .controls {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 15px;
+      }
+      .btn {
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      .btn-add {
+        background-color: #27ae60;
+      }
+      .btn-add:hover {
+        background-color: #219150;
+      }
+      .btn-download {
+        background-color: #2980b9;
+      }
+      .btn-download:hover {
+        background-color: #2471a3;
+      }
+
+      #invoice-container {
+        width: 210mm;
+        min-height: 297mm;
+        background-color: #ffffff;
+        padding: 15mm 15mm;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        box-sizing: border-box;
+        position: relative;
+      }
+
+      .header {
+        text-align: center;
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+      }
+      .company-name-ar {
+        font-size: 26px;
+        font-weight: bold;
+        color: var(--primary-color);
+        margin: 5px 0 10px 0;
+      }
+      .company-name-en {
+        font-size: 22px;
+        font-weight: bold;
+        color: var(--primary-color);
+        margin: 0;
+      }
+      .bill-title {
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        margin: 10px auto 20px auto;
+        background-color: #ecf0f1;
+        padding: 8px;
+        border-radius: 5px;
+        width: 50%;
+        border: 1px solid #bdc3c7;
+      }
+
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        border: 1px solid transparent;
+        padding: 5px;
+        font-size: 14.5px;
+        font-family: inherit;
+        background: transparent;
+        box-sizing: border-box;
+      }
+      input[type="text"]:focus,
+      input[type="number"]:focus {
+        outline: none;
+        border-bottom: 1px solid #3498db;
+      }
+      input.text-center {
+        text-align: center;
+      }
+
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        font-size: 15px;
+        font-weight: bold;
+      }
+      .info-row div {
+        display: flex;
+        align-items: center;
+      }
+      .info-row input {
+        border-bottom: 1px dashed #333;
+        width: 200px;
+        margin-left: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+        table-layout: fixed;
+      }
+      th,
+      td {
+        border: 1px solid var(--border-color);
+        padding: 8px 2px;
+        text-align: center;
+        font-size: 15x;
+        word-wrap: break-word;
+      }
+
+      tr {
+        page-break-inside: avoid !important;
+      }
+      th {
+        background-color: var(--bg-color);
+        font-weight: bold;
+        color: var(--primary-color);
+        font-size: 14px;
+      }
+
+      .delete-col {
+        width: 30px;
+        border: none !important;
+        background: transparent !important;
+      }
+      .btn-delete {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        padding: 4px 8px;
+        font-weight: bold;
+      }
+
+      .footer-info {
+        margin-top: 20px;
+        border-top: 2px solid var(--primary-color);
+        padding-top: 15px;
+      }
+
+      .html2pdf__container .no-print,
+      .html2pdf__container .delete-col {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="controls no-print">
+      <button class="btn btn-add" onclick="addRow()">+ Add Item</button>
+      <button class="btn btn-download" onclick="generatePDF()">
+        Download High-Quality PDF
+      </button>
+    </div>
+
+    <div id="invoice-container">
+      <div class="header">
+        <div class="company-name-ar">شركة دبليو إي 1 تراك</div>
+        <div class="company-name-en">WE1 TRACK COMPANY</div>
+        <div style="width: 100%; display: flex; margin-top: 20px">
+          <div style="width: 50%">
+            <strong>VAT No. / الرقم الضريبي :</strong> 314244077600003
+          </div>
+          <div style="width: 50%">
+            <strong>CR No. / رقم السجل التجاري :</strong> 7051729619
+          </div>
+        </div>
+      </div>
+
+      <div class="bill-title">WATER BILL / فاتورة مياه</div>
+      <br />
+      <div class="info-row" style="margin-bottom: 35px; margin-top: 2px">
+        <div>Date / التاريخ : <input type="text" id="bill-date" /></div>
+        <div>No / الرقم : <input type="text" id="bill-no" /></div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40%">Item / الصنف</th>
+            <th style="width: 10%">Qty / الكمية</th>
+            <th style="width: 12%">Price / السعر</th>
+            <th style="width: 13%">Sub Total<br />المجموع الفرعي</th>
+            <th style="width: 9%">VAT %</th>
+            <th style="width: 13%">VAT / الضريبة</th>
+            <th style="width: 15%">Total / الإجمالي</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+        <tfoot>
+          <tr>
+            <td
+              colspan="6"
+              style="
+                text-align: right;
+                font-weight: bold;
+                background-color: var(--bg-color);
+              "
+            >
+              Grand Total / الإجمالي الكلي :
+            </td>
+            <td
+              style="font-weight: bold; font-size: 20px; height: 50px"
+              id="grand-total"
+            ></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="footer-info"></div>
+    </div>
+
+    <script>
+      // Modified function to handle dynamic manual overrides
+      function calculateRow(element, triggerSource) {
+        const row = element.closest("tr");
+
+        const qty = parseFloat(row.querySelector(".qty").value) || 0;
+        const price = parseFloat(row.querySelector(".price").value) || 0;
+        const subtotalField = row.querySelector(".subtotal");
+        const vatPercentField = row.querySelector(".vat-percent");
+        const vatAmountField = row.querySelector(".vat-amount");
+        const totalField = row.querySelector(".total");
+
+        // If Qty or Price changed, recalculate Sub Total
+        if (triggerSource === "qty-price") {
+          const calcSubtotal = qty * price;
+          subtotalField.value = calcSubtotal > 0 ? calcSubtotal.toFixed(2) : "";
+        }
+
+        // Read Sub Total (either newly calculated or manually entered by user)
+        const subtotal = parseFloat(subtotalField.value) || 0;
+        const vatPercent = parseFloat(vatPercentField.value) || 0;
+
+        // If Qty, Price, Subtotal, or VAT% changed, recalculate VAT amount
+        if (triggerSource !== "total" && triggerSource !== "vat-amount") {
+          const calcVat = subtotal * (vatPercent / 100);
+          vatAmountField.value = calcVat > 0 ? calcVat.toFixed(2) : "";
+        }
+
+        const vatAmount = parseFloat(vatAmountField.value) || 0;
+
+        // Recalculate Row Total
+        if (triggerSource !== "total") {
+          const total = subtotal + vatAmount;
+          totalField.value = total > 0 ? total.toFixed(2) : "";
+        }
+
+        calculateGrandTotal();
+      }
+
+      function calculateGrandTotal() {
+        const totalFields = document.querySelectorAll(".total");
+        let grandTotal = 0;
+
+        totalFields.forEach((field) => {
+          grandTotal += parseFloat(field.value) || 0;
+        });
+
+        document.getElementById("grand-total").innerText =
+          grandTotal > 0 ? grandTotal.toFixed(2) : "";
+      }
+
+      function addRow() {
+        const tbody = document.getElementById("table-body");
+        const tr = document.createElement("tr");
+        // Adding triggers specifically for each input so user can edit any cell directly
+        tr.innerHTML = `
+                <td><input type="text" class="item-name" placeholder=""></td>
+                <td><input type="number" class="qty text-center" oninput="calculateRow(this, 'qty-price')" placeholder=""></td>
+                <td><input type="number" class="price text-center" oninput="calculateRow(this, 'qty-price')" placeholder=""></td>
+                <td><input type="number" class="subtotal text-center" oninput="calculateRow(this, 'subtotal')" placeholder=""></td>
+                <td><input type="number" class="vat-percent text-center" oninput="calculateRow(this, 'vat-percent')" placeholder=""></td>
+                <td><input type="number" class="vat-amount text-center" oninput="calculateRow(this, 'vat-amount')" placeholder=""></td>
+                <td><input type="number" class="total text-center" oninput="calculateRow(this, 'total')" placeholder=""></td>
+                <td class="delete-col no-print"><button class="btn-delete" onclick="deleteRow(this)">X</button></td>
+            `;
+        tbody.appendChild(tr);
+      }
+
+      function deleteRow(btn) {
+        const row = btn.closest("tr");
+        row.remove();
+        calculateGrandTotal();
+      }
+
+      function generatePDF() {
+        const element = document.getElementById("invoice-container");
+
+        const opt = {
+          margin: [15, 0, 15, 0],
+          filename: "Water_Bill.pdf",
+          image: { type: "jpeg", quality: 1 },
+          html2canvas: { scale: 3, useCORS: true, scrollY: 0 },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+          pagebreak: { mode: ["css", "legacy"] },
+        };
+
+        html2pdf().set(opt).from(element).save();
+      }
+
+      // Add one empty row by default on page load
+      window.onload = function () {
+        addRow();
+      };
+
+      // Arrow keys ഉപയോഗിക്കുമ്പോൾ Value മാറാതിരിക്കാനും അടുത്ത സെല്ലിലേക്ക് മാറാനും
+      document.addEventListener("keydown", function (event) {
+        if (
+          event.target.tagName === "INPUT" &&
+          (event.key === "ArrowUp" || event.key === "ArrowDown")
+        ) {
+          // Number input ആണെങ്കിൽ value മാറുന്നത് തടയാൻ
+          if (event.target.type === "number") {
+            event.preventDefault();
+          }
+
+          // അടുത്ത വരിയിലെ (Row) അതേ കോളത്തിലേക്ക് (Cell) മാറാൻ
+          const currentCell = event.target.closest("td");
+          const currentRow = currentCell.closest("tr");
+          const cellIndex = Array.from(currentRow.children).indexOf(
+            currentCell,
+          );
+
+          let targetRow =
+            event.key === "ArrowUp"
+              ? currentRow.previousElementSibling
+              : currentRow.nextElementSibling;
+
+          if (targetRow) {
+            const targetInput =
+              targetRow.children[cellIndex].querySelector("input");
+            if (targetInput) {
+              targetInput.focus();
+            }
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
