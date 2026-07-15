@@ -52,6 +52,13 @@ async function init() {
     cache: "no-store",
   });
   const rData = await rRes.json();
+
+  // Token Validation Check
+  if (!rData.success && rData.message && (rData.message.toLowerCase().includes("token") || rData.message.toLowerCase().includes("unauthorized"))) {
+    logout();
+    return;
+  }
+
   if (rData.success) rulesCache = rData.data;
 
   const srRes = await fetch(`/timesheet/api/special-rules?_t=${ts}`, {
@@ -356,6 +363,13 @@ async function triggerFetch() {
       { headers, cache: "no-store" },
     );
     const data = await res.json();
+
+    // Token Validation Check
+    if (!data.success && data.message && (data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized"))) {
+      await customAlert("Session expired. Please login again.", "Session Timeout");
+      logout();
+      return;
+    }
 
     const logRes = await fetch(
       `/timesheet/api/vehicle-logs?plate=${p}&_t=${ts}`,
@@ -1279,7 +1293,14 @@ function toggleDarkMode() {
 function logout() {
   localStorage.removeItem("timesheetToken");
   localStorage.removeItem("timesheetUser");
-  window.location.href = "index.html";
+  
+  // നിലവിൽ നിൽക്കുന്ന പേജ് ഏതാണെന്ന് കണ്ടെത്തുക
+  const currentPage = encodeURIComponent(
+    window.location.pathname.split("/").pop() + window.location.search
+  );
+  
+  // ലോഗിൻ പേജിലേക്ക് പോകുമ്പോൾ ആ പേജിന്റെ പേര് കൂടെ കൊണ്ടുപോകുക
+  window.location.href = "index.html?redirect=" + currentPage;
 }
 
 (function initTheme() {
