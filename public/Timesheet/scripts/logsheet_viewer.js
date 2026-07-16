@@ -564,12 +564,13 @@ async function downloadSelectedAsPdf() {
 
   const plate = document
     .getElementById("logsheetTitle")
-    .innerText.replace("Logsheets - ", "")
+    .innerText.split("|")[0]
+    .replace("Logsheets - ", "")
     .replace(/[^a-zA-Z0-9 ]/g, "")
     .trim();
   await generatePdfFromFiles(
     selectedFiles,
-    `${plate}_Selected_Logsheets.pdf`,
+    `${plate}.pdf`,
     btn,
     "📑 Selected",
   );
