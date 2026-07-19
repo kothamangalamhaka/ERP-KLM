@@ -740,14 +740,18 @@ function renderGrid(
         r.dates.includes(formattedDate),
     );
 
-    let displayBd = cleanVal(rowData.bd);
+    let displayBd = cleanVal(rowData.bd).toUpperCase();
+    if (displayBd === "B") displayBd = "BD";
+    else if (displayBd === "N") displayBd = "NW";
+    else if (displayBd === "S") displayBd = "NS";
+
     let ws = cleanVal(rowData.wrk_start);
     let we = cleanVal(rowData.wrk_end);
     let hmr = cleanVal(rowData.hmr_start);
     let rowRemark = cleanVal(rowData.remark);
 
     if (ws !== "" && we !== "") {
-      if (["H", "AB", "DC", "SC", "R", "B", "NR"].includes(displayBd))
+      if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R"].includes(displayBd))
         displayBd = "";
     }
 
@@ -851,7 +855,7 @@ function updateSummaryBox() {
     if (bd === "ID" || bd === "NP") {
       if (isFullOT) otHr = 10;
       else normalHr = 10;
-    } else if (["B", "H", "AB", "DC", "SC", "R", "NR"].includes(bd)) {
+    } else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R"].includes(bd)) {
     } else if (tm > 0) {
       if (isFullOT) {
         otHr = tm;
@@ -922,8 +926,8 @@ function attachGridEvents() {
     input.addEventListener("blur", function () {
       const row = this.getAttribute("data-row");
       const col = this.getAttribute("data-col");
-      const val = this.type === "checkbox" ? this.checked : this.value;
-      calculateRow(row);
+      calculateRow(row); 
+      const val = this.type === "checkbox" ? this.checked : this.value; 
       saveCellData(row, col, val);
       updateSummaryBox();
     });
@@ -985,8 +989,16 @@ function calculateRow(rowIdx) {
   );
   let bd = bdInput.value.trim().toUpperCase();
 
+  // 🟢 Auto-map Shorthands to Professional Codes
+  if (bd === "B") bd = "BD";
+  else if (bd === "N") bd = "NW";
+  else if (bd === "S") bd = "NS";
+  else if (bd === "NR") bd = "NR";
+  
+  bdInput.value = bd; // Update the UI instantly
+
   if (ws !== "" && we !== "") {
-    if (["H", "AB", "DC", "SC", "R", "B", "NR"].includes(bd)) {
+    if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R"].includes(bd)) {
       bd = "";
       bdInput.value = "";
       saveCellData(rowIdx, "bd", "");
@@ -1006,9 +1018,9 @@ function calculateRow(rowIdx) {
     let bdNum = parseFloat(bd);
     if (!isNaN(bdNum)) finalTime = bdNum;
     else if (["ID", "NP"].includes(bd)) finalTime = 10;
-    else if (["B", "H", "AB", "DC", "SC", "R", "NR"].includes(bd))
-      finalTime = 0;
-  } else if (ws && we) {
+      else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R"].includes(bd))
+        finalTime = 0;
+    } else if (ws && we) {
     let sHour = parseRailwayTime(ws);
     let eHour = parseRailwayTime(we);
     let diff = eHour - sHour;
@@ -1486,6 +1498,13 @@ async function importExcel() {
       let bd = String(row["BD"] || "")
         .trim()
         .toUpperCase();
+      
+      // 🟢 Excel Import Auto-map
+      if (bd === "B") bd = "BD";
+      else if (bd === "N") bd = "NW";
+      else if (bd === "S") bd = "NS";
+      else if (bd === "NR") bd = "NR";
+
       let nlRaw = String(row["NL"]).trim().toUpperCase();
       let nl = nlRaw === "TRUE" || nlRaw === "Y" || nlRaw === "1";
 
@@ -1493,7 +1512,7 @@ async function importExcel() {
         let bdNum = parseFloat(bd);
         if (!isNaN(bdNum)) finalTime = bdNum;
         else if (["ID", "NP"].includes(bd)) finalTime = 10;
-        else if (["B", "H", "NR"].includes(bd)) finalTime = 0;
+        else if (["BD", "NW", "NS", "NR", "H"].includes(bd)) finalTime = 0;
       } else if (ws && we) {
         let parseRT = (val) => {
           let [hStr, mStr] = String(val).split(".");

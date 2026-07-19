@@ -388,6 +388,13 @@ function recalculateRowOnEdit(cell) {
   for (let i = 1; i <= daysInMonth; i++) {
     let targetCell = row.cells[6 + i];
     let cellVal = targetCell.innerText.trim().toUpperCase();
+    
+    // 🟢 Auto-map on dashboard edit
+    if (cellVal === "B") cellVal = "BD";
+    else if (cellVal === "N") cellVal = "NW";
+    else if (cellVal === "S") cellVal = "NS";
+    else if (cellVal === "NR") cellVal = "NR";
+    
     targetCell.innerText = cellVal;
 
     let dayName = getDayName(i, m, y);
@@ -417,7 +424,7 @@ function recalculateRowOnEdit(cell) {
       .trim();
     if (isFullOT) targetCell.classList.add("cell-fri");
 
-    if (cellVal === "B") {
+    if (cellVal === "BD" || cellVal === "B") {
       targetCell.classList.add("code-b");
     } else if (cellVal === "H") {
       targetCell.classList.add("code-h");
@@ -430,7 +437,7 @@ function recalculateRowOnEdit(cell) {
         normalHr = 10;
         otHr = 0;
       }
-    } else if (cellVal === "NR") {
+    } else if (["NR", "NW", "NS"].includes(cellVal)) {
       targetCell.classList.add("code-nr");
     } else if (["AB"].includes(cellVal)) {
       targetCell.classList.add("code-ab");
@@ -770,9 +777,12 @@ function getTableHTMLString(
       if (specialRule && specialRule.rule_type === "FULL_OT") isFullOT = true;
 
       let timeRaw = parseFloat(rec.calc_time) || 0;
-      let bdStr = String(rec.bd || "")
-        .trim()
-        .toUpperCase();
+      let bdStr = String(rec.bd || "").trim().toUpperCase();
+      
+      if (bdStr === "B") bdStr = "BD";
+      else if (bdStr === "N") bdStr = "NW";
+      else if (bdStr === "S") bdStr = "NS";
+
       let statusCode = getGapStatus(checkDate, v.sLogs, v.dLogs);
       let hasData =
         timeRaw > 0 || bdStr !== "" || rec.wrk_start || rec.hmr_start;
@@ -792,15 +802,15 @@ function getTableHTMLString(
       let fuel = parseFloat(rec.fuel) || 0;
 
       if (hasData) {
-        // 🟢 FIX 1: Added AB, DC, SC, R to the allowed list
-        if (["B", "H", "ID", "NP", "NR", "AB", "DC", "SC", "R"].includes(bdStr)) cellDisplay = bdStr;
+        // 🟢 Allowed list updated for BD, NW, NS, NR
+        if (["BD", "NW", "NS", "NR", "H", "ID", "NP", "AB", "DC", "SC", "R"].includes(bdStr)) cellDisplay = bdStr;
         else cellDisplay = timeRaw > 0 ? timeRaw : "";
 
-        if (bdStr === "B") {
+        if (bdStr === "BD" || bdStr === "B") {
           cellClass += " code-b";
         } else if (bdStr === "H") {
           cellClass += " code-h";
-        } else if (bdStr === "NR") {
+        } else if (["NR", "NW", "NS"].includes(bdStr)) {
           cellClass += " code-nr";
         // 🟢 FIX 2: Added specific color classes for AB, DC, SC, R
         } else if (bdStr === "AB") {
@@ -1049,11 +1059,11 @@ async function buildWorksheetFromTable(workbook, table, m, y) {
         else if (C === totalCols - 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFa4c2f4' } };
         else if (C === totalCols) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF75b4d8' } };
         else if (C >= 8 && C < 8 + daysInMonth) {
-          if (val === 'B') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFef4444' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
+          if (val === 'BD' || val === 'B') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFef4444' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
           else if (val === 'H') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf59e0b' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
           else if (val === 'ID') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFfde047' } }; cell.font.color = { argb: 'FF854d0e' }; cell.font.bold = true; }
           else if (val === 'NP') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF86efac' } }; cell.font.color = { argb: 'FF14532d' }; cell.font.bold = true; }
-          else if (val === 'NR') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFe9a4a4' } }; cell.font.color = { argb: 'FF000000' }; cell.font.bold = true; }
+          else if (['NR', 'NW', 'NS'].includes(val)) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFe9a4a4' } }; cell.font.color = { argb: 'FF000000' }; cell.font.bold = true; }
           else if (val === 'AB') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10b981' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
           else if (val === 'DC') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0ea5e9' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
           else if (val === 'SC') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8b5cf6' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }

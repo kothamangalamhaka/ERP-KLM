@@ -1470,9 +1470,11 @@
             otHr = 0;
           let dist = parseFloat(rec.calc_distance) || 0;
           let fuel = parseFloat(rec.fuel) || 0;
-          let bdStr = String(rec.bd || "")
-            .trim()
-            .toUpperCase();
+          let bdStr = String(rec.bd || "").trim().toUpperCase();
+          
+          if (bdStr === "B") bdStr = "BD";
+          else if (bdStr === "N") bdStr = "NW";
+          else if (bdStr === "S") bdStr = "NS";
 
           let statusCode = getGapStatus(checkDate, sLogs, dLogs);
           let hasData =
@@ -1495,9 +1497,9 @@
             else if (statusCode === "DC")
               noteStr = "Driver Change" + (noteStr ? " - " + noteStr : "");
 
-            if (["B", "H", "ID", "NP", "NR"].includes(bdStr)) timeDisplay = bdStr;
+            if (["BD", "NW", "NS", "NR", "H", "ID", "NP"].includes(bdStr)) timeDisplay = bdStr;
 
-            if (bdStr === "B" || bdStr === "H" || bdStr === "NR") {
+            if (["BD", "NW", "NS", "NR", "H"].includes(bdStr)) {
               normalHr = 0;
               otHr = 0;
             } else if (bdStr === "ID" || bdStr === "NP") {
@@ -1535,7 +1537,7 @@
 
           let isGapCode = ["AB", "SC", "DC"].includes(timeDisplay);
           let isRepCode = timeDisplay === "R";
-          let isBdCode = ["B", "H", "ID", "NP", "NR"].includes(timeDisplay);
+          let isBdCode = ["BD", "NW", "NS", "NR", "H", "ID", "NP"].includes(timeDisplay);
 
           let timeStyle = "";
           if (isGapCode || isBdCode)
