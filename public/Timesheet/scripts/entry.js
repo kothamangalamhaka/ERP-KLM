@@ -51,10 +51,16 @@ async function init() {
     },
     cache: "no-store",
   });
-  const rData = await rRes.json();
+  
+  if (rRes.status === 401 || rRes.status === 403) {
+    logout();
+    return;
+  }
+  
+  const rData = await rRes.json().catch(() => ({}));
 
   // Token Validation Check
-  if (!rData.success && rData.message && (rData.message.toLowerCase().includes("token") || rData.message.toLowerCase().includes("unauthorized"))) {
+  if (!rRes.ok || (rData.success === false && rData.message && (rData.message.toLowerCase().includes("token") || rData.message.toLowerCase().includes("unauthorized")))) {
     logout();
     return;
   }
@@ -362,10 +368,17 @@ async function triggerFetch() {
       `/timesheet/api/grid-data?month=${m}&year=${y}&plate=${p}&_t=${ts}`,
       { headers, cache: "no-store" },
     );
-    const data = await res.json();
+
+    if (res.status === 401 || res.status === 403) {
+      await customAlert("Session expired. Please login again.", "Session Timeout");
+      logout();
+      return;
+    }
+
+    const data = await res.json().catch(() => ({}));
 
     // Token Validation Check
-    if (!data.success && data.message && (data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized"))) {
+    if (!res.ok || (data.success === false && data.message && (data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized")))) {
       await customAlert("Session expired. Please login again.", "Session Timeout");
       logout();
       return;
@@ -375,7 +388,14 @@ async function triggerFetch() {
       `/timesheet/api/vehicle-logs?plate=${p}&_t=${ts}`,
       { headers, cache: "no-store" },
     );
-    const logs = await logRes.json();
+
+    if (logRes.status === 401 || logRes.status === 403) {
+      await customAlert("Session expired. Please login again.", "Session Timeout");
+      logout();
+      return;
+    }
+    
+    const logs = await logRes.json().catch(() => ({}));
 
     let mIdx = months.indexOf(m);
     let monthStart = new Date(y, mIdx, 1);
@@ -1091,7 +1111,7 @@ async function saveCellData(rowIdx, colName, colValue) {
   };
 
   try {
-    await fetch("/timesheet/api/upsert-grid-cell", {
+    const response = await fetch("/timesheet/api/upsert-grid-cell", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1099,6 +1119,20 @@ async function saveCellData(rowIdx, colName, colValue) {
       },
       body: JSON.stringify(payload),
     });
+
+    if (response.status === 401 || response.status === 403) {
+      await customAlert("Session expired. Please login again.", "Session Timeout");
+      logout();
+      return;
+    }
+
+    const data = await response.json().catch(() => ({}));
+    
+    if (!response.ok || (data.success === false && data.message && (data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized")))) {
+      await customAlert("Session expired. Please login again.", "Session Timeout");
+      logout();
+      return;
+    }
 
     clearTimeout(saveTimeout);
     statusLabel.innerText = "✓ Saved";
