@@ -436,7 +436,6 @@ async function generatePendingReport() {
 
       for (let i = 1; i <= upToDay; i++) {
         let dayName = getDayName(i, m, y);
-        if (dayName === "Fri") continue;
 
         let checkDate = new Date(y, mIdx, i);
 
