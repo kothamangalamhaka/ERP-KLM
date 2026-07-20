@@ -30,18 +30,6 @@
         flex-direction: column;
         overflow: hidden; /* Prevent full body scroll, handle inside containers */
       }
-      
-      .lt a{
-        text-decoration: none;
-        color: white;
-      }
-
-      .lt{
-        padding-left: 10px;
-        padding-right: 10px;
-        border-radius: 4px;
-        border: none;
-      }
 
       .controls-wrapper {
         background: #0f2027;
@@ -455,16 +443,14 @@
         border: none;
         transition: 0.2s;
       }
-
-      .lt {
-        background-color: #8b5cf6;
-      }
-      
       .hm {
         background-color: #2563eb;
       }
       .tsdb {
         background-color: #2e0a4b;
+      }
+      .lt {
+        background-color: #8b5cf6;
       }
       .hm a,
       .tsdb a {
@@ -745,7 +731,6 @@
           <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf">
             <span class="loader" id="pdfLoader"></span> 📄 PDF
           </button>
-          <button class="lt"><a href="LTview.html">LT View</a></button>
           <button class="hm"><a href="index.html">Home</a></button>
           <button class="tsdb"><a href="./entry.html">Data Entry</a></button>
         </div>
@@ -1479,7 +1464,7 @@
               r.dates.includes(formattedDate),
           );
 
-          let isFullOT = dayName === "Fri" || i === 31;
+          let isFullOT = dayName === "Fri";
           if (specialRule && specialRule.rule_type === "FULL_OT")
             isFullOT = true;
 
@@ -1624,7 +1609,6 @@
             </div>
 
             <div class="ts-owner-details">
-                <div>Owner :: ${dispOName} ${dispOMob ? "(" + dispOMob + ")" : ""}</div>
                 <div class="co-details"><span>Field Co :: ${dispFieldCo}</span><span>Site Co :: ${dispSiteCo}</span></div>
                 <div style="font-size:6px; color:transparent;">XXXXX</div>
             </div>
