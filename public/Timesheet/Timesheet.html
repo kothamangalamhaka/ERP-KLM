@@ -208,6 +208,21 @@
           <div class="arrow-icon">➔</div>
         </div>
 
+        <!-- 🟢 NEW: Entry Lock Card -->
+        <div
+          class="module-card card-rules"
+          id="cardEntryLock"
+          style="display: none; border-color: #ef4444;"
+          onclick="openLockModal()"
+        >
+          <div class="module-icon" style="color: #ef4444;">🔒</div>
+          <div class="module-title" style="color: #ef4444;">Entry Lock Period</div>
+          <div class="module-desc">
+            Lock timesheet entries up to a specific month to prevent modifications. Unlocking requires Admin OTP.
+          </div>
+          <div class="arrow-icon">➔</div>
+        </div>
+
         <a
           href="../vat_tracking/index.html"
           class="module-card card-vat"
@@ -494,6 +509,53 @@
         </div>
       </div>
     </div>
+
+
+    <!-- Entry Lock Modal -->
+    <div id="entryLockModal" class="modal-overlay" style="z-index: 2500">
+      <div class="modal-box small">
+        <h3 style="color: #ef4444;">🔒 Manage Entry Lock Period
+          <button class="close-btn" onclick="closeModal('entryLockModal')">✖</button>
+        </h3>
+        <div id="currentLockStatus" style="margin-bottom: 20px; padding: 10px; background: #fee2e2; border: 1px solid #fca5a5; border-radius: 6px; font-weight: bold; color: #b91c1c;">
+          Checking lock status...
+        </div>
+
+        <div id="lockConfigSection" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 20px;">
+            <p style="font-size: 13px; color: #475569;">Select the month and year up to which data should be locked.</p>
+            <div style="display: flex; gap: 10px;">
+                <select id="lockMonth" class="modal-input" style="flex: 1;">
+                    <option value="January">January</option>
+                    <option value="February">February</option>
+                    <option value="March">March</option>
+                    <option value="April">April</option>
+                    <option value="May">May</option>
+                    <option value="June">June</option>
+                    <option value="July">July</option>
+                    <option value="August">August</option>
+                    <option value="September">September</option>
+                    <option value="October">October</option>
+                    <option value="November">November</option>
+                    <option value="December">December</option>
+                </select>
+                <input type="number" id="lockYear" class="modal-input" value="2026" style="width: 100px;">
+                <button class="btn-primary" style="background-color: #ef4444;" onclick="setLockPeriod()">Lock System</button>
+            </div>
+        </div>
+
+        <div id="unlockConfigSection">
+            <h4 style="margin: 0 0 10px 0; color: #0f172a;">Unlock System</h4>
+            <p style="font-size: 12px; color: #64748b; margin-bottom: 10px;">To unlock, request an OTP (sent to admin email) or use the Master Code.</p>
+            <button class="btn-warning" id="reqOtpBtn" style="margin-bottom: 10px; width: 100%;" onclick="requestUnlockOtp()">📩 Request OTP</button>
+            
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="unlockCode" class="modal-input" placeholder="Enter OTP or Master Code" style="flex: 1;">
+                <button class="btn-success" onclick="verifyUnlockCode()">Unlock</button>
+            </div>
+        </div>
+      </div>
+    </div>
+
 
     <div id="breakRulesModal" class="modal-overlay">
       <div class="modal-box" style="width: 900px; min-height: 650px; display: flex; flex-direction: column;">

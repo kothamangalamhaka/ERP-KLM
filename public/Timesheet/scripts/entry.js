@@ -33,9 +33,11 @@ if (userStr) {
 
 let rulesCache = [];
 let specialRulesCache = [];
-let breakRulesCache = []; // 🟢 NEW
+let breakRulesCache = []; 
 let vehiclesCache = [];
 let currentFocus = -1;
+
+let systemLockData = { month: null, year: null }; 
 let isEditingInvoice = false;
 let currentInvoices = [];
 let loggedRowsTracker = new Set();
@@ -100,6 +102,13 @@ async function init() {
   });
   const vData = await vRes.json();
   if (vData.success) vehiclesCache = vData.data;
+
+  // 🟢 NEW: Fetch Lock Status
+  const lRes = await fetch(`/api/lock/status?_t=${ts}`, { headers: { Authorization: "Bearer " + token }});
+  const lData = await lRes.json().catch(()=>({}));
+  if(lData.success && lData.data) {
+      systemLockData = { month: lData.data.lock_month, year: lData.data.lock_year };
+  }
 }
 
 function searchPlate() {
@@ -649,6 +658,10 @@ async function triggerFetch() {
     let existingData = data.success ? data.data : [];
     setTimeout(() => {
       renderGrid(m, y, p, existingData, sStartVal, sEndVal, logs);
+      
+      // 🟢 NEW: Apply Lock verification after render
+      applyLockStatus(m, y);
+
       btn.disabled = false;
       text.innerText = "Fetch Data";
       loader.style.display = "none";
@@ -1692,3 +1705,40 @@ async function importExcel() {
 }
 
 init();
+
+// ==========================================
+// 🔒 LOCK PERIOD CHECKER
+// ==========================================
+function applyLockStatus(selectedMonthStr, selectedYearStr) {
+    if (!systemLockData.month || !systemLockData.year) return; // Not locked
+
+    const sYear = parseInt(selectedYearStr);
+    const sMonthIdx = months.indexOf(selectedMonthStr);
+    const lockYear = parseInt(systemLockData.year);
+    const lockMonthIdx = months.indexOf(systemLockData.month);
+
+    // Calculate absolute months for comparison (Year * 12 + MonthIndex)
+    const selectedAbsolute = (sYear * 12) + sMonthIdx;
+    const lockAbsolute = (lockYear * 12) + lockMonthIdx;
+
+    if (selectedAbsolute <= lockAbsolute) {
+        // IT IS LOCKED! Disable grid.
+        document.querySelectorAll(".grid-input").forEach(el => {
+            el.disabled = true;
+            el.style.backgroundColor = "transparent"; // 🟢 Changed to transparent
+            el.style.cursor = "not-allowed";
+            el.style.color = "inherit";
+            el.style.opacity = "0.6"; // 🟢 Added opacity to look disabled nicely in both modes
+        });
+        
+        // Disable Invoice Edit buttons if needed
+        const invBtn = document.querySelector(".btn-inv-save");
+        if(invBtn) {
+            invBtn.disabled = true;
+            invBtn.style.opacity = "0.5";
+            invBtn.innerText = "🔒 Locked Period";
+        }
+        
+        customAlert(`The period up to ${systemLockData.month} ${systemLockData.year} is locked. You cannot edit this data.`, "Period Locked");
+    }
+}

@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("cardExcelSync").style.display = "flex";
     document.getElementById("cardRules").style.display = "flex";
     document.getElementById("cardAdmin").style.display = "flex";
+    document.getElementById("cardEntryLock").style.display = "flex";
     fetchRules();
   }
 });
@@ -711,6 +712,19 @@ function customConfirm(title, msg) {
     confirmResolver = resolve;
     document.getElementById("confirmTitle").innerText = title;
     document.getElementById("confirmMessage").innerText = msg;
+    
+    const actionBtns = document.querySelectorAll("#customConfirmModal .btn-primary");
+    if (actionBtns && actionBtns.length > 1) {
+        const confirmBtn = actionBtns[1];
+        if (title.includes("Lock")) {
+            confirmBtn.innerText = "Lock System";
+            confirmBtn.style.backgroundColor = "#2563eb"; // Blue for Lock
+        } else {
+            confirmBtn.innerText = "Delete";
+            confirmBtn.style.backgroundColor = "#ef4444"; // Red for Delete
+        }
+    }
+
     document.getElementById("customConfirmModal").style.display = "flex";
   });
 }
@@ -950,3 +964,106 @@ document.addEventListener("click", function (e) {
     if (drop) drop.style.display = "none";
   }
 });
+
+// ==========================================
+// 🔒 LOCK PERIOD MANAGEMENT
+// ==========================================
+function openLockModal() {
+    document.getElementById("entryLockModal").style.display = "flex";
+    fetchLockStatus();
+}
+
+async function fetchLockStatus() {
+    try {
+        const token = localStorage.getItem("timesheetToken");
+        const res = await fetch("/api/lock/status", { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+        const statusDiv = document.getElementById("currentLockStatus");
+        
+        if (data.success && data.data.lock_month && data.data.lock_year) {
+            statusDiv.innerHTML = `System is LOCKED up to: <span style="font-size:18px;">${data.data.lock_month} ${data.data.lock_year}</span>`;
+            statusDiv.style.background = "#fee2e2";
+            statusDiv.style.color = "#b91c1c";
+        } else {
+            statusDiv.innerHTML = "System is currently UNLOCKED.";
+            statusDiv.style.background = "#d1e7dd";
+            statusDiv.style.color = "#0f5132";
+        }
+    } catch (e) {
+        console.error("Lock status check failed.");
+    }
+}
+
+async function setLockPeriod() {
+    const month = document.getElementById("lockMonth").value;
+    const year = document.getElementById("lockYear").value;
+    
+    const sure = await customConfirm("Confirm Lock", `Are you sure you want to LOCK all entries up to ${month} ${year}? Users will not be able to edit past data.`);
+    if(!sure) return;
+
+    try {
+        const token = localStorage.getItem("timesheetToken");
+        const res = await fetch("/api/lock/set", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            body: JSON.stringify({ month, year })
+        });
+        const data = await res.json();
+        if (data.success) {
+            customAlert("Success", data.message);
+            fetchLockStatus();
+        } else {
+            customAlert("Error", data.message);
+        }
+    } catch (e) {
+        customAlert("Error", "Failed to set lock.");
+    }
+}
+
+async function requestUnlockOtp() {
+    const btn = document.getElementById("reqOtpBtn");
+    btn.disabled = true;
+    btn.innerText = "Sending...";
+    try {
+        const token = localStorage.getItem("timesheetToken");
+        const res = await fetch("/api/lock/request-unlock", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token }
+        });
+        const data = await res.json();
+        if(data.success) {
+            customAlert("OTP Sent", data.message);
+        } else {
+            customAlert("Error", data.message);
+        }
+    } catch(e) {
+        customAlert("Error", "Network issue");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "📩 Request OTP";
+    }
+}
+
+async function verifyUnlockCode() {
+    const code = document.getElementById("unlockCode").value.trim();
+    if(!code) return customAlert("Warning", "Enter OTP or Master Code");
+
+    try {
+        const token = localStorage.getItem("timesheetToken");
+        const res = await fetch("/api/lock/verify-unlock", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (data.success) {
+            customAlert("Unlocked!", data.message);
+            document.getElementById("unlockCode").value = "";
+            fetchLockStatus();
+        } else {
+            customAlert("Error", data.message);
+        }
+    } catch (e) {
+        customAlert("Error", "Verification failed.");
+    }
+}

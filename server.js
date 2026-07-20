@@ -32,6 +32,7 @@ const entrylogRoutes = require("./routes/entrylog");
 const oeledgerRoutes = require("./routes/oeledger");
 const breakRulesRoutes = require("./routes/break_rules"); 
 const vatBillRoute = require('./routes/vatbill');
+const lockEntryRoute = require("./routes/Lock-entry");
 
 
 const app = express();
@@ -52,6 +53,7 @@ app.use("/api/entrylog", entrylogRoutes);
 app.use("/api/oeledger", oeledgerRoutes);
 app.use("/timesheet", breakRulesRoutes);
 app.use('/timesheet/api/vat-tracking', vatBillRoute);
+app.use("/api/lock", lockEntryRoute);
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
