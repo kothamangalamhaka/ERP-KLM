@@ -515,9 +515,14 @@ function openAdvancedFilter(e) {
   popup.style.top = top + "px";
   document.getElementById("filterSearchInput").value = "";
 
+  // 🟢 NEW: Get the current global search value
+  const globalSearch = document.getElementById("searchInput").value.toUpperCase();
+
   const uniqueValues = new Set();
   tableData.forEach((row) => {
     let passesOtherFilters = true;
+    
+    // 1. Check existing column filters
     for (const colName in activeFilters) {
       if (colName === activeHeaderCol) continue;
       const selectedVals = activeFilters[colName];
@@ -528,6 +533,18 @@ function openAdvancedFilter(e) {
         break;
       }
     }
+
+    // 2. 🟢 NEW: Check global search filter
+    if (passesOtherFilters && globalSearch !== "") {
+      let rowText = Object.values(row)
+        .map((v) => (v ? String(v).toUpperCase() : ""))
+        .join(" ");
+      if (!rowText.includes(globalSearch)) {
+        passesOtherFilters = false;
+      }
+    }
+
+    // 3. Add to list only if it passes all filters
     if (passesOtherFilters) {
       let val = row[activeHeaderCol];
       if (val === null || val === undefined || String(val).trim() === "")
