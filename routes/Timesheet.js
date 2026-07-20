@@ -1504,27 +1504,61 @@ router.post("/api/verify-klm", (req, res) => {
 });
 
 // ==========================================
-// AUTO CLEANUP: Delete logs older than 100 days
+// AUTO CLEANUP & AUTO LOCK PROCESSES
 // ==========================================
-setInterval(
-  async () => {
-    try {
-      const cleanupQuery = `
-            DELETE FROM timesheet_entry_logs 
-            WHERE created_at < NOW() - INTERVAL '100 days'
-        `;
-      const result = await pool.query(cleanupQuery);
 
-      if (result.rowCount > 0) {
-        console.log(
-          `Auto Cleanup: Successfully deleted ${result.rowCount} old timesheet entry logs.`,
-        );
-      }
-    } catch (error) {
-      console.error("Auto Cleanup Error:", error.message);
+// 1. Auto Cleanup (Runs every 24 hours)
+setInterval(async () => {
+  try {
+    const cleanupQuery = `
+          DELETE FROM timesheet_entry_logs 
+          WHERE created_at < NOW() - INTERVAL '100 days'
+      `;
+    const result = await pool.query(cleanupQuery);
+    if (result.rowCount > 0) {
+      console.log(`Auto Cleanup: Successfully deleted ${result.rowCount} old entry logs.`);
     }
-  },
-  24 * 60 * 60 * 1000,
-);
+  } catch (error) {
+    console.error("Auto Cleanup Error:", error.message);
+  }
+}, 24 * 60 * 60 * 1000);
+
+// 2. Auto Lock Process (2 Months Gap)
+async function runAutoLock() {
+  try {
+    const now = new Date();
+    
+    const lockTargetDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const targetMonthStr = monthNames[lockTargetDate.getMonth()];
+    const targetYear = lockTargetDate.getFullYear();
+
+    const res = await pool.query("SELECT lock_month, lock_year FROM timesheet_lock_period WHERE id = 1");
+    
+    if (res.rows.length > 0) {
+        const current = res.rows[0];
+        let currentLockDate = new Date(1970, 0, 1); 
+        
+        if (current.lock_month && current.lock_year) {
+            currentLockDate = new Date(current.lock_year, monthNames.indexOf(current.lock_month), 1);
+        }
+
+        if (lockTargetDate > currentLockDate) {
+            await pool.query(
+                "UPDATE timesheet_lock_period SET lock_month = $1, lock_year = $2 WHERE id = 1",
+                [targetMonthStr, targetYear]
+            );
+            console.log(`Auto-Lock Applied: System automatically locked up to ${targetMonthStr} ${targetYear}`);
+        }
+    }
+  } catch (error) {
+    console.error("Auto Lock Error:", error.message);
+  }
+}
+
+runAutoLock();
+
+setInterval(runAutoLock, 12 * 60 * 60 * 1000);
 
 module.exports = router;
