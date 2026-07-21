@@ -34,6 +34,7 @@ const breakRulesRoutes = require("./routes/break_rules");
 const vatBillRoute = require('./routes/vatbill');
 const lockEntryRoute = require("./routes/Lock-entry");
 const ownEquipmentAuthRoutes = require("./routes/ownEquipmentAuthRoutes");
+const ownEquipmentTrackerRoutes = require("./routes/ownEquipmentTrackerRoutes");
 
 
 
@@ -57,6 +58,7 @@ app.use("/timesheet", breakRulesRoutes);
 app.use('/timesheet/api/vat-tracking', vatBillRoute);
 app.use("/api/lock", lockEntryRoute);
 app.use("/api/own-equipment/auth", ownEquipmentAuthRoutes);
+app.use("/api/own-equipment/tracker", ownEquipmentTrackerRoutes);
 
 
 

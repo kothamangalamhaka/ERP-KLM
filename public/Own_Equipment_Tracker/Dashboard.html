@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Own Equipment Tracker - Dashboard</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; padding: 15px; background-color: #f4f7f6; }
+        
+        .top-bar { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .btn-primary { background: #27ae60; color: white; }
+        .btn-blue { background: #2980b9; color: white; }
+        .btn-excel { background: #1e7e34; color: white; }
+        select, input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+
+        /* Table Matrix Style */
+        .table-container { overflow-x: auto; max-height: calc(100vh - 120px); background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        table { border-collapse: collapse; width: 100%; font-size: 12px; white-space: nowrap; }
+        th, td { border: 1px solid #c0c0c0; padding: 6px 8px; text-align: center; }
+        
+        /* Excel Table Colors */
+        th.master-head { background: #d9e1f2; color: #000; }
+        th.month-head { background: #d9ebd3; color: #000; font-size: 14px; }
+        th.sub-head { background: #f2f2f2; font-size: 11px; }
+        
+        .bg-opc { background: #fff2cc; }
+        .bg-total-cost { background: #fce4d6; }
+        .bg-revenue { background: #e2efda; }
+        .bg-gl { background: #edd9ff; }
+        .bg-net { background: #f8cbad; font-weight: bold; }
+
+        /* Modal / Popup Box */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 450px; max-height: 90vh; overflow-y: auto; }
+        .modal-content h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .form-group { margin-bottom: 12px; text-align: left; }
+        .form-group label { display: block; font-size: 12px; margin-bottom: 4px; font-weight: 600; }
+        .form-group input, .form-group select { width: 100%; }
+        .form-row { display: flex; gap: 10px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="controls">
+        <label><b>Year:</b></label>
+        <select id="filterYear" onchange="loadDashboardData()"></select>
+
+        <label><b>Month:</b></label>
+        <select id="filterMonth" onchange="renderTable()"></select>
+    </div>
+    
+    <div class="controls">
+        <button class="btn btn-primary" onclick="openEquipmentModal()">+ Add New Equipment</button>
+        <button class="btn btn-blue" onclick="openDataModal()">+ Input Data</button>
+        <button class="btn btn-excel" onclick="exportToExcel()">Export Excel</button>
+    </div>
+</div>
+
+<div class="table-container">
+    <table id="trackerTable">
+        <thead id="tableHeader"></thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+<!-- 1. Add Equipment Modal -->
+<div id="equipmentModal" class="modal">
+    <div class="modal-content">
+        <h3>Add New Equipment</h3>
+        <div class="form-group">
+            <label>Plate No</label>
+            <input type="text" id="eqPlateNo" required placeholder="e.g. 5645 JAA">
+        </div>
+        <div class="form-group">
+            <label>Purchase Date</label>
+            <input type="date" id="eqPurchaseDate">
+        </div>
+        <div class="form-group">
+            <label>Purchase Cost</label>
+            <input type="number" id="eqPurchaseCost" value="0">
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal('equipmentModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveEquipment()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Input Monthly Data Modal -->
+<div id="dataModal" class="modal">
+    <div class="modal-content">
+        <h3>Input Monthly Data</h3>
+        <div class="form-group">
+            <label>Select Equipment</label>
+            <select id="inputEquipmentId"></select>
+        </div>
+        <div class="form-row">
+            <div class="form-group" style="flex:1;">
+                <label>Year</label>
+                <select id="inputYear"></select>
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Month</label>
+                <select id="inputMonth">
+                    <option value="1">Jan</option><option value="2">Feb</option>
+                    <option value="3">Mar</option><option value="4">Apr</option>
+                    <option value="5">May</option><option value="6">Jun</option>
+                    <option value="7">Jul</option><option value="8">Aug</option>
+                    <option value="9">Sep</option><option value="10">Oct</option>
+                    <option value="11">Nov</option><option value="12">Dec</option>
+                </select>
+            </div>
+        </div>
+        <hr>
+        <div class="form-group">
+            <label>Maintenance Cost</label>
+            <input type="number" id="inputMaint" value="0">
+        </div>
+        <h4>Operating Expenses</h4>
+        <div class="form-row">
+            <div class="form-group" style="flex:1;">
+                <label>Basic Salary</label>
+                <input type="number" id="inputBasicSalary" value="0">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label>Over Time</label>
+                <input type="number" id="inputOT" value="0">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Santook Rent</label>
+            <input type="number" id="inputSantook" value="0">
+        </div>
+        <div class="form-row">
+            <div class="form-group" style="flex:1;"><label>Kafil Comm</label><input type="number" id="inputKafil" value="0"></div>
+            <div class="form-group" style="flex:1;"><label>Owner Comm</label><input type="number" id="inputOwner" value="0"></div>
+            <div class="form-group" style="flex:1;"><label>Investor Comm</label><input type="number" id="inputInvestor" value="0"></div>
+        </div>
+        <hr>
+        <div class="form-group">
+            <label>OP Revenue</label>
+            <input type="number" id="inputRevenue" value="0">
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal('dataModal')">Cancel</button>
+            <button class="btn btn-blue" onclick="saveMonthlyData()">Save Monthly Log</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/dashboard.js"></script>
+</body>
+</html>
