@@ -9,6 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDashboardData();
 });
 
+function fmt(val, isDecimal = false) {
+    const num = Number(val);
+    if (num === 0) return '';
+    return isDecimal ? num.toFixed(2) : num;
+}
+
 function initYearMonthDropdowns() {
     const yearSelect = document.getElementById('filterYear');
     const inputYear = document.getElementById('inputYear');
@@ -22,11 +28,21 @@ function initYearMonthDropdowns() {
         inputYear.innerHTML += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
     }
 
-    const monthSelect = document.getElementById('filterMonth');
-    monthSelect.innerHTML = `<option value="all">All Months (Full Year)</option>`;
+    const monthUl = document.getElementById('monthCheckboxes');
+    let liHTML = `<li><label><input type="checkbox" id="chkAllMonths" checked onchange="toggleAllMonths(this)"> All Months</label></li>`;
     monthNames.forEach((m, idx) => {
-        monthSelect.innerHTML += `<option value="${idx + 1}">${m}</option>`;
+        liHTML += `<li><label><input type="checkbox" class="month-chk" value="${idx + 1}" checked onchange="uncheckAll(this)"> ${m}</label></li>`;
     });
+    monthUl.innerHTML = liHTML;
+}
+
+function toggleAllMonths(source) {
+    const checkboxes = document.querySelectorAll('.month-chk');
+    checkboxes.forEach(chk => chk.checked = source.checked);
+}
+
+function uncheckAll(source) {
+    if (!source.checked) document.getElementById('chkAllMonths').checked = false;
 }
 
 async function loadDashboardData() {
@@ -46,19 +62,17 @@ async function loadDashboardData() {
 }
 
 function renderTable() {
-    const filterMonth = document.getElementById('filterMonth').value;
     const selectedYear = document.getElementById('filterYear').value;
     const header = document.getElementById('tableHeader');
     const body = document.getElementById('tableBody');
 
-    let visibleMonths = [];
-    if (filterMonth === "all") {
+    const checkedBoxes = Array.from(document.querySelectorAll('.month-chk:checked'));
+    let visibleMonths = checkedBoxes.map(box => parseInt(box.value));
+
+    if (visibleMonths.length === 0) {
         visibleMonths = Array.from({length: 12}, (_, i) => i + 1);
-    } else {
-        visibleMonths = [parseInt(filterMonth)];
     }
 
-    // Render Dynamic Header
     let row1 = `<tr>
         <th rowspan="4" class="master-head">SN</th>
         <th rowspan="4" class="master-head">Plate No</th>
@@ -90,23 +104,18 @@ function renderTable() {
         row4 += `<th class="sub-head bg-opc">Investor</th>`;
     });
 
-    row1 += `</tr>`;
-    row2 += `</tr>`;
-    row3 += `</tr>`;
-    row4 += `</tr>`;
-    
+    row1 += `</tr>`; row2 += `</tr>`; row3 += `</tr>`; row4 += `</tr>`;
     header.innerHTML = row1 + row2 + row3 + row4;
 
-    // Render Table Rows with Automatic Calculation
     body.innerHTML = '';
     rawEquipments.forEach((eq, index) => {
         let tr = `<tr>
             <td><b>${index + 1}</b></td>
             <td><b>${eq.plate_no}</b></td>
             <td>${formatPurchaseDate(eq.purchase_date)}</td>
-            <td>${Number(eq.purchase_cost).toLocaleString()}</td>`;
+            <td>${fmt(eq.purchase_cost)}</td>`;
 
-        let carryForwardGL = 0; // Previous Month Balance Track ചെയ്യാൻ
+        let carryForwardGL = 0;
 
         for (let m = 1; m <= 12; m++) {
             const log = rawMonthlyLogs.find(l => l.equipment_id === eq.id && l.month === m) || {};
@@ -115,34 +124,47 @@ function renderTable() {
             const basic = Number(log.basic_salary || 0);
             const ot = Number(log.overtime || 0);
             const santook = Number(log.santook_rent || 0);
-            const kafil = Number(log.kafil_comm || 0);
-            const owner = Number(log.owner_comm || 0);
-            const investor = Number(log.investor_comm || 0);
+            
+            const revenue = Number(log.op_revenue || 0);
+
+            const kafilPct = Number(log.kafil_comm || 0);
+            const ownerPct = Number(log.owner_comm || 0);
+            const investorPct = Number(log.investor_comm || 0);
+
+            const kafil = revenue * (kafilPct / 100);
+            const owner = revenue * (ownerPct / 100);
+            const investor = revenue * (investorPct / 100);
 
             const totalOPC = basic + ot + santook + kafil + owner + investor;
             const totalCost = maint + totalOPC;
-            const revenue = Number(log.op_revenue || 0);
-            const gainLoss = revenue - totalCost;
+            
+            let gainLoss = 0;
+            if (totalCost > 0 || revenue > 0) {
+                gainLoss = revenue - totalCost;
+            }
             
             const prvMonthGL = carryForwardGL;
-            const netGL = gainLoss + prvMonthGL;
+            let netGL = 0;
+            if (gainLoss !== 0 || prvMonthGL !== 0) {
+                netGL = gainLoss + prvMonthGL;
+            }
             
-            carryForwardGL = netGL; // അടുത്ത മാസത്തേക്ക് ബാലൻസ് പാസ് ചെയ്യുന്നു
+            carryForwardGL = netGL;
 
             if (visibleMonths.includes(m)) {
                 tr += `
-                    <td>${maint || 0}</td>
-                    <td class="bg-opc">${basic || 0}</td>
-                    <td class="bg-opc">${ot || 0}</td>
-                    <td class="bg-opc">${santook || 0}</td>
-                    <td class="bg-opc">${kafil || 0}</td>
-                    <td class="bg-opc">${owner || 0}</td>
-                    <td class="bg-opc">${investor || 0}</td>
-                    <td class="bg-total-cost"><b>${totalCost}</b></td>
-                    <td class="bg-revenue"><b>${revenue}</b></td>
-                    <td class="bg-gl" style="color: ${gainLoss < 0 ? 'red' : 'green'};"><b>${gainLoss}</b></td>
-                    <td>${prvMonthGL}</td>
-                    <td class="bg-net" style="color: ${netGL < 0 ? 'red' : 'black'};">${netGL}</td>
+                    <td>${fmt(maint)}</td>
+                    <td class="bg-opc">${fmt(basic)}</td>
+                    <td class="bg-opc">${fmt(ot)}</td>
+                    <td class="bg-opc">${fmt(santook)}</td>
+                    <td class="bg-opc">${fmt(kafil, true)}</td>
+                    <td class="bg-opc">${fmt(owner, true)}</td>
+                    <td class="bg-opc">${fmt(investor, true)}</td>
+                    <td class="bg-total-cost"><b>${fmt(totalCost, true)}</b></td>
+                    <td class="bg-revenue"><b>${fmt(revenue)}</b></td>
+                    <td class="bg-gl" style="color: ${gainLoss < 0 ? 'red' : 'green'};"><b>${fmt(gainLoss, true)}</b></td>
+                    <td>${fmt(prvMonthGL, true)}</td>
+                    <td class="bg-net" style="color: ${netGL < 0 ? 'red' : 'black'};">${fmt(netGL, true)}</td>
                 `;
             }
         }
@@ -160,7 +182,6 @@ function populateEquipmentDropdown() {
     });
 }
 
-// Modal Handlers
 function openEquipmentModal() { document.getElementById('equipmentModal').style.display = 'flex'; }
 function openDataModal() { document.getElementById('dataModal').style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -213,15 +234,37 @@ async function saveMonthlyData() {
     }
 }
 
-// Helper Function to format YYYY-MM-DD into "MMM YY" (e.g., May 26)
 function formatPurchaseDate(dateStr) {
     if (!dateStr) return '';
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return dateStr;
-
-    const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const month = shortMonths[date.getMonth()];
+    const month = monthNames[date.getMonth()];
     const year = date.getFullYear().toString().slice(-2);
-
     return `${month} ${year}`;
+}
+
+async function exportToExcel() {
+    const year = document.getElementById('filterYear').value;
+    
+    const checkedBoxes = Array.from(document.querySelectorAll('.month-chk:checked'));
+    let visibleMonths = checkedBoxes.map(box => parseInt(box.value));
+    if (visibleMonths.length === 0) {
+        visibleMonths = Array.from({length: 12}, (_, i) => i + 1);
+    }
+    
+    const visibleMonthsStr = visibleMonths.join(',');
+
+    window.location.href = `/api/own-equipment/tracker/export-excel?year=${year}&months=${visibleMonthsStr}`;
+}
+
+window.onclick = function(event) {
+    if (!event.target.matches('.anchor') && !event.target.closest('.dropdown-check-list')) {
+        document.querySelectorAll('.dropdown-check-list.visible').forEach(el => el.classList.remove('visible'));
+    }
+}
+
+// Logout Function
+function logout() {
+    localStorage.removeItem('eq_user');
+    window.location.href = 'index.html';
 }
