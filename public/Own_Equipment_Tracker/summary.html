@@ -50,6 +50,11 @@
 <div class="summary-container" id="summaryWrapper"></div>
 
 <script>
+
+    if (!localStorage.getItem('eq_user')) {
+    window.location.replace('index.html');
+}
+
     let globalData = [];
 
     async function fetchSummaryData() {
