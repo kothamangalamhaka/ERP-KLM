@@ -283,7 +283,7 @@ function getGapStatus(d, sLogs, dLogs) {
   if (!sActive) {
     if (isReplaced) return "R";
     if (sGap) return "SC";
-    if (isBeforeStart) return "NWS";
+    if (isBeforeStart) return "WS";
     if (isAfterEnd) return "Re";
     return "AB";
   }
@@ -449,8 +449,10 @@ function recalculateRowOnEdit(cell) {
       }
     } else if (["NR", "NW", "NS"].includes(cellCheck)) {
       targetCell.classList.add("code-nr");
-    } else if (["AB", "RE", "NWS", "FRI"].includes(cellCheck)) {
-      targetCell.classList.add("code-ab"); // Re, NWS & Fri will share code-ab's dark red styling
+    } else if (cellCheck === "RE") {
+      targetCell.classList.add("code-re"); 
+    } else if (["AB", "WS", "FRI"].includes(cellCheck)) {
+      targetCell.classList.add("code-ab");
     } else if (["R"].includes(cellCheck)) {
       targetCell.classList.add("code-r");
     } else if (["DC"].includes(cellCheck)) {
@@ -815,7 +817,7 @@ function getTableHTMLString(
 
       if (hasData) {
         // 🟢 Allowed list updated for BD, NW, NS, NR, FRI, NWS, RE
-        if (["BD", "NW", "NS", "NR", "H", "ID", "NP", "AB", "DC", "SC", "R", "NWS", "RE", "FRI"].includes(bdCheck)) {
+        if (["BD", "NW", "NS", "NR", "H", "ID", "NP", "AB", "DC", "SC", "R", "WS", "RE", "FRI"].includes(bdCheck)) {
           cellDisplay = bdCheck === "FRI" ? "Fri" : (bdCheck === "RE" ? "Re" : bdStr);
         } else {
           cellDisplay = timeRaw > 0 ? timeRaw : "";
@@ -828,8 +830,10 @@ function getTableHTMLString(
         } else if (["NR", "NW", "NS"].includes(bdCheck)) {
           cellClass += " code-nr";
         // 🟢 FIX 2: Added specific color classes for AB, DC, SC, R, NWS, Re, Fri
-        } else if (["AB", "RE", "NWS", "FRI"].includes(bdCheck)) {
-          cellClass += " code-ab"; // Use code-ab to apply dark red background
+        } else if (bdCheck === "RE") {
+          cellClass += " code-re"; // Light Red for Re
+        } else if (["AB", "WS", "FRI"].includes(bdCheck)) {
+          cellClass += " code-ab";
         } else if (bdCheck === "DC") {
           cellClass += " code-dc";
         } else if (bdCheck === "SC") {
@@ -861,7 +865,8 @@ function getTableHTMLString(
         // (Existing logic for gap status)
         if (statusCode !== "ACTIVE") {
           cellDisplay = statusCode;
-          if (["AB", "Re", "NWS"].includes(statusCode)) cellClass += " code-ab";
+          if (statusCode === "Re") cellClass += " code-re";
+          else if (["AB", "WS"].includes(statusCode)) cellClass += " code-ab";
           else if (statusCode === "R") cellClass += " code-r";
           else if (statusCode === "DC") cellClass += " code-dc";
           else if (statusCode === "SC") cellClass += " code-sc";
@@ -1080,7 +1085,8 @@ async function buildWorksheetFromTable(workbook, table, m, y) {
           else if (val === 'NP') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF86efac' } }; cell.font.color = { argb: 'FF14532d' }; cell.font.bold = true; }
           else if (['NR', 'NW', 'NS'].includes(val)) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFe9a4a4' } }; cell.font.color = { argb: 'FF000000' }; cell.font.bold = true; }
           else if (val === 'AB') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10b981' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
-          else if (['Re', 'NWS', 'Fri', 'FRI'].includes(val)) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFb91c1c' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; } // Dark Red for Re, NWS & Fri
+          else if (val === 'Re' || val === 'RE') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFECACA' } }; cell.font.color = { argb: 'FF991B1B' }; cell.font.bold = true; } // Light Red for Re
+          else if (['NWS', 'Fri', 'FRI'].includes(val)) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFb91c1c' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
           else if (val === 'DC') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0ea5e9' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
           else if (val === 'SC') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8b5cf6' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
           else if (val === 'R') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf97316' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }

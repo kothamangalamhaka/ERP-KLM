@@ -302,7 +302,7 @@ function getGapStatus(d, sLogs, dLogs) {
   if (!sActive) {
     if (isReplaced) return "R";
     if (sGap) return "SC";
-    if (isBeforeStart) return "NWS";
+    if (isBeforeStart) return "WS";  
     if (isAfterEnd) return "Re";
     return "AB";
   }
@@ -774,7 +774,7 @@ function renderGrid(
     let rowRemark = cleanVal(rowData.remark);
 
     if (ws !== "" && we !== "") {
-      if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "NWS", "Re", "Fri", "FRI"].includes(displayBd))
+      if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "Re", "Fri", "FRI"].includes(displayBd))
         displayBd = "";
     }
 
@@ -878,7 +878,7 @@ function updateSummaryBox() {
     if (bd === "ID" || bd === "NP") {
       if (isFullOT) otHr = 10;
       else normalHr = 10;
-    } else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "NWS", "RE", "FRI", "Fri"].includes(bd)) {
+    } else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "RE", "FRI", "Fri"].includes(bd)) {
     } else if (tm > 0) {
       if (isFullOT) {
         otHr = tm;
@@ -1023,7 +1023,7 @@ function calculateRow(rowIdx) {
   let bdCheck = bd.toUpperCase();
 
   if (ws !== "" && we !== "") {
-    if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "NWS", "RE", "FRI"].includes(bdCheck)) {
+    if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "RE", "FRI"].includes(bdCheck)) {
       bd = "";
       bdInput.value = "";
       saveCellData(rowIdx, "bd", "");
@@ -1044,7 +1044,7 @@ function calculateRow(rowIdx) {
     let bdNum = parseFloat(bd);
     if (!isNaN(bdNum)) finalTime = bdNum;
     else if (["ID", "NP"].includes(bdCheck)) finalTime = 10;
-      else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "NWS", "RE", "FRI"].includes(bdCheck))
+      else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "RE", "FRI"].includes(bdCheck))
         finalTime = 0;
     } else if (ws && we) {
     let sHour = parseRailwayTime(ws);

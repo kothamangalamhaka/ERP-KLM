@@ -1213,7 +1213,7 @@
         if (!sActive) {
           if (isReplaced) return "R";
           if (sGap) return "SC";
-          if (isBeforeStart) return "NWS";
+          if (isBeforeStart) return "WS";  
           if (isAfterEnd) return "Re";
           return "AB";
         }
@@ -1523,7 +1523,7 @@
               noteStr = "Site Change" + (noteStr ? " - " + noteStr : "");
             else if (statusCode === "DC")
               noteStr = "Driver Change" + (noteStr ? " - " + noteStr : "");
-            else if (statusCode === "NWS")
+            else if (statusCode === "WS")
               noteStr = "No Work Started" + (noteStr ? " - " + noteStr : "");
             else if (statusCode === "Re")
               noteStr = "Released" + (noteStr ? " - " + noteStr : "");
@@ -1568,7 +1568,7 @@
           sumNormal += normalHr;
           sumOT += otHr;
 
-          let isGapCode = ["AB", "SC", "DC", "NWS", "Re"].includes(timeDisplay);
+          let isGapCode = ["AB", "SC", "DC", "WS", "Re"].includes(timeDisplay);
           let isRepCode = timeDisplay === "R";
           let isBdCode = ["BD", "NW", "NS", "NR", "H", "ID", "NP", "Fri", "FRI"].includes(timeDisplay);
 
