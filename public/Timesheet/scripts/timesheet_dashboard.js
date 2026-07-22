@@ -236,7 +236,9 @@ function parseLogDate(dStr, defaultDate) {
 function getGapStatus(d, sLogs, dLogs) {
   let sActive = false,
     sGap = false,
-    isReplaced = false;
+    isReplaced = false,
+    isBeforeStart = false,
+    isAfterEnd = false;
   let dActive = false,
     dGap = false;
 
@@ -258,6 +260,7 @@ function getGapStatus(d, sLogs, dLogs) {
       }
       if (d > ed) {
         if (ascSLogs[i].status === "Replaced") isReplaced = true;
+        else isReplaced = false;
       }
     }
     if (!sActive) {
@@ -270,6 +273,8 @@ function getGapStatus(d, sLogs, dLogs) {
         new Date("2099-01-01"),
       );
       if (d >= firstStart && d <= lastEnd) sGap = true;
+      else if (d < firstStart) isBeforeStart = true;
+      else if (d > lastEnd) isAfterEnd = true;
     }
   } else {
     sActive = true;
@@ -277,7 +282,10 @@ function getGapStatus(d, sLogs, dLogs) {
 
   if (!sActive) {
     if (isReplaced) return "R";
-    return sGap ? "SC" : "AB";
+    if (sGap) return "SC";
+    if (isBeforeStart) return "NWS";
+    if (isAfterEnd) return "Re";
+    return "AB";
   }
 
   if (dLogs && dLogs.length > 0) {
@@ -394,8 +402,10 @@ function recalculateRowOnEdit(cell) {
     else if (cellVal === "N") cellVal = "NW";
     else if (cellVal === "S") cellVal = "NS";
     else if (cellVal === "NR") cellVal = "NR";
+    else if (cellVal === "F") cellVal = "Fri";
     
     targetCell.innerText = cellVal;
+    let cellCheck = cellVal.toUpperCase();
 
     let dayName = getDayName(i, m, y);
     let formattedDate = new Date(y, months.indexOf(m), i)
@@ -424,12 +434,12 @@ function recalculateRowOnEdit(cell) {
       .trim();
     if (isFullOT) targetCell.classList.add("cell-fri");
 
-    if (cellVal === "BD" || cellVal === "B") {
+    if (cellCheck === "BD" || cellCheck === "B") {
       targetCell.classList.add("code-b");
-    } else if (cellVal === "H") {
+    } else if (cellCheck === "H") {
       targetCell.classList.add("code-h");
-    } else if (["ID", "NP"].includes(cellVal)) {
-      targetCell.classList.add(cellVal === "ID" ? "code-id" : "code-np");
+    } else if (["ID", "NP"].includes(cellCheck)) {
+      targetCell.classList.add(cellCheck === "ID" ? "code-id" : "code-np");
       if (isFullOT) {
         normalHr = 0;
         otHr = 10;
@@ -437,15 +447,15 @@ function recalculateRowOnEdit(cell) {
         normalHr = 10;
         otHr = 0;
       }
-    } else if (["NR", "NW", "NS"].includes(cellVal)) {
+    } else if (["NR", "NW", "NS"].includes(cellCheck)) {
       targetCell.classList.add("code-nr");
-    } else if (["AB"].includes(cellVal)) {
-      targetCell.classList.add("code-ab");
-    } else if (["R"].includes(cellVal)) {
+    } else if (["AB", "RE", "NWS", "FRI"].includes(cellCheck)) {
+      targetCell.classList.add("code-ab"); // Re, NWS & Fri will share code-ab's dark red styling
+    } else if (["R"].includes(cellCheck)) {
       targetCell.classList.add("code-r");
-    } else if (["DC"].includes(cellVal)) {
+    } else if (["DC"].includes(cellCheck)) {
       targetCell.classList.add("code-dc");
-    } else if (["SC"].includes(cellVal)) {
+    } else if (["SC"].includes(cellCheck)) {
       targetCell.classList.add("code-sc");
     } else if (!isNaN(timeRaw) && timeRaw > 0) {
       if (isFullOT) {
@@ -782,6 +792,7 @@ function getTableHTMLString(
       if (bdStr === "B") bdStr = "BD";
       else if (bdStr === "N") bdStr = "NW";
       else if (bdStr === "S") bdStr = "NS";
+      else if (bdStr === "F") bdStr = "Fri";
 
       let statusCode = getGapStatus(checkDate, v.sLogs, v.dLogs);
       let hasData =
@@ -793,6 +804,7 @@ function getTableHTMLString(
         hasData = true;
       }
 
+      let bdCheck = bdStr.toUpperCase();
       let cellDisplay = "";
       let cellClass = isFullOT ? "cell-fri" : "";
 
@@ -802,26 +814,29 @@ function getTableHTMLString(
       let fuel = parseFloat(rec.fuel) || 0;
 
       if (hasData) {
-        // 🟢 Allowed list updated for BD, NW, NS, NR
-        if (["BD", "NW", "NS", "NR", "H", "ID", "NP", "AB", "DC", "SC", "R"].includes(bdStr)) cellDisplay = bdStr;
-        else cellDisplay = timeRaw > 0 ? timeRaw : "";
+        // 🟢 Allowed list updated for BD, NW, NS, NR, FRI, NWS, RE
+        if (["BD", "NW", "NS", "NR", "H", "ID", "NP", "AB", "DC", "SC", "R", "NWS", "RE", "FRI"].includes(bdCheck)) {
+          cellDisplay = bdCheck === "FRI" ? "Fri" : (bdCheck === "RE" ? "Re" : bdStr);
+        } else {
+          cellDisplay = timeRaw > 0 ? timeRaw : "";
+        }
 
-        if (bdStr === "BD" || bdStr === "B") {
+        if (bdCheck === "BD" || bdCheck === "B") {
           cellClass += " code-b";
-        } else if (bdStr === "H") {
+        } else if (bdCheck === "H") {
           cellClass += " code-h";
-        } else if (["NR", "NW", "NS"].includes(bdStr)) {
+        } else if (["NR", "NW", "NS"].includes(bdCheck)) {
           cellClass += " code-nr";
-        // 🟢 FIX 2: Added specific color classes for AB, DC, SC, R
-        } else if (bdStr === "AB") {
-          cellClass += " code-ab";
-        } else if (bdStr === "DC") {
+        // 🟢 FIX 2: Added specific color classes for AB, DC, SC, R, NWS, Re, Fri
+        } else if (["AB", "RE", "NWS", "FRI"].includes(bdCheck)) {
+          cellClass += " code-ab"; // Use code-ab to apply dark red background
+        } else if (bdCheck === "DC") {
           cellClass += " code-dc";
-        } else if (bdStr === "SC") {
+        } else if (bdCheck === "SC") {
           cellClass += " code-sc";
-        } else if (bdStr === "R") {
+        } else if (bdCheck === "R") {
           cellClass += " code-r";
-        } else if (bdStr === "ID" || bdStr === "NP") {
+        } else if (bdCheck === "ID" || bdCheck === "NP") {
           if (isFullOT) {
             normalHr = 0;
             otHr = 10;
@@ -829,7 +844,7 @@ function getTableHTMLString(
             normalHr = 10;
             otHr = 0;
           }
-          cellClass += bdStr === "ID" ? " code-id" : " code-np";
+          cellClass += bdCheck === "ID" ? " code-id" : " code-np";
         } else if (timeRaw > 0) {
           if (isFullOT) {
             otHr = timeRaw;
@@ -846,7 +861,7 @@ function getTableHTMLString(
         // (Existing logic for gap status)
         if (statusCode !== "ACTIVE") {
           cellDisplay = statusCode;
-          if (statusCode === "AB") cellClass += " code-ab";
+          if (["AB", "Re", "NWS"].includes(statusCode)) cellClass += " code-ab";
           else if (statusCode === "R") cellClass += " code-r";
           else if (statusCode === "DC") cellClass += " code-dc";
           else if (statusCode === "SC") cellClass += " code-sc";
@@ -1065,6 +1080,7 @@ async function buildWorksheetFromTable(workbook, table, m, y) {
           else if (val === 'NP') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF86efac' } }; cell.font.color = { argb: 'FF14532d' }; cell.font.bold = true; }
           else if (['NR', 'NW', 'NS'].includes(val)) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFe9a4a4' } }; cell.font.color = { argb: 'FF000000' }; cell.font.bold = true; }
           else if (val === 'AB') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10b981' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
+          else if (['Re', 'NWS', 'Fri', 'FRI'].includes(val)) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFb91c1c' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; } // Dark Red for Re, NWS & Fri
           else if (val === 'DC') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0ea5e9' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
           else if (val === 'SC') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8b5cf6' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
           else if (val === 'R') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf97316' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }

@@ -255,7 +255,9 @@ function parseLogDate(dStr, defaultDate) {
 function getGapStatus(d, sLogs, dLogs) {
   let sActive = false,
     sGap = false,
-    isReplaced = false;
+    isReplaced = false,
+    isBeforeStart = false,
+    isAfterEnd = false;
   let dActive = false,
     dGap = false;
 
@@ -275,7 +277,10 @@ function getGapStatus(d, sLogs, dLogs) {
         sActive = true;
         break;
       }
-      if (d > ed && ascSLogs[i].status === "Replaced") isReplaced = true;
+      if (d > ed) {
+        if (ascSLogs[i].status === "Replaced") isReplaced = true;
+        else isReplaced = false; 
+      }
     }
     if (!sActive) {
       let firstStart = parseLogDate(
@@ -287,6 +292,8 @@ function getGapStatus(d, sLogs, dLogs) {
         new Date("2099-01-01"),
       );
       if (d >= firstStart && d <= lastEnd) sGap = true;
+      else if (d < firstStart) isBeforeStart = true;
+      else if (d > lastEnd) isAfterEnd = true;
     }
   } else {
     sActive = true;
@@ -294,7 +301,10 @@ function getGapStatus(d, sLogs, dLogs) {
 
   if (!sActive) {
     if (isReplaced) return "R";
-    return sGap ? "SC" : "AB";
+    if (sGap) return "SC";
+    if (isBeforeStart) return "NWS";
+    if (isAfterEnd) return "Re";
+    return "AB";
   }
 
   if (dLogs && dLogs.length > 0) {
@@ -764,7 +774,7 @@ function renderGrid(
     let rowRemark = cleanVal(rowData.remark);
 
     if (ws !== "" && we !== "") {
-      if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R"].includes(displayBd))
+      if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "NWS", "Re", "Fri", "FRI"].includes(displayBd))
         displayBd = "";
     }
 
@@ -868,7 +878,7 @@ function updateSummaryBox() {
     if (bd === "ID" || bd === "NP") {
       if (isFullOT) otHr = 10;
       else normalHr = 10;
-    } else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R"].includes(bd)) {
+    } else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "NWS", "RE", "FRI", "Fri"].includes(bd)) {
     } else if (tm > 0) {
       if (isFullOT) {
         otHr = tm;
@@ -1007,16 +1017,19 @@ function calculateRow(rowIdx) {
   else if (bd === "N") bd = "NW";
   else if (bd === "S") bd = "NS";
   else if (bd === "NR") bd = "NR";
+  else if (bd === "F") bd = "Fri";
   
   bdInput.value = bd; // Update the UI instantly
+  let bdCheck = bd.toUpperCase();
 
   if (ws !== "" && we !== "") {
-    if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R"].includes(bd)) {
+    if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "NWS", "RE", "FRI"].includes(bdCheck)) {
       bd = "";
       bdInput.value = "";
       saveCellData(rowIdx, "bd", "");
     }
   }
+
   const nl = document.querySelector(
     `.grid-input[data-row="${rowIdx}"][data-col="nl_checked"]`,
   ).checked;
@@ -1030,8 +1043,8 @@ function calculateRow(rowIdx) {
   if (bd) {
     let bdNum = parseFloat(bd);
     if (!isNaN(bdNum)) finalTime = bdNum;
-    else if (["ID", "NP"].includes(bd)) finalTime = 10;
-      else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R"].includes(bd))
+    else if (["ID", "NP"].includes(bdCheck)) finalTime = 10;
+      else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "NWS", "RE", "FRI"].includes(bdCheck))
         finalTime = 0;
     } else if (ws && we) {
     let sHour = parseRailwayTime(ws);
@@ -1517,6 +1530,7 @@ async function importExcel() {
       else if (bd === "N") bd = "NW";
       else if (bd === "S") bd = "NS";
       else if (bd === "NR") bd = "NR";
+      else if (bd === "F") bd = "FRI";
 
       let nlRaw = String(row["NL"]).trim().toUpperCase();
       let nl = nlRaw === "TRUE" || nlRaw === "Y" || nlRaw === "1";
@@ -1525,7 +1539,7 @@ async function importExcel() {
         let bdNum = parseFloat(bd);
         if (!isNaN(bdNum)) finalTime = bdNum;
         else if (["ID", "NP"].includes(bd)) finalTime = 10;
-        else if (["BD", "NW", "NS", "NR", "H"].includes(bd)) finalTime = 0;
+        else if (["BD", "NW", "NS", "NR", "H", "FRI"].includes(bd)) finalTime = 0;
       } else if (ws && we) {
         let parseRT = (val) => {
           let [hStr, mStr] = String(val).split(".");

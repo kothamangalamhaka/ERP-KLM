@@ -1165,6 +1165,8 @@
         let sActive = false,
           sGap = false,
           isReplaced = false,
+          isBeforeStart = false,
+          isAfterEnd = false,
           dActive = false,
           dGap = false;
         if (sLogs && sLogs.length > 0) {
@@ -1188,6 +1190,7 @@
             }
             if (d > ed) {
               if (ascSLogs[i].status === "Replaced") isReplaced = true;
+              else isReplaced = false;
             }
           }
           if (!sActive) {
@@ -1200,6 +1203,8 @@
                 new Date("2099-01-01"),
               );
             if (d >= firstStart && d <= lastEnd) sGap = true;
+            else if (d < firstStart) isBeforeStart = true;
+            else if (d > lastEnd) isAfterEnd = true;
           }
         } else {
           sActive = true;
@@ -1207,7 +1212,10 @@
 
         if (!sActive) {
           if (isReplaced) return "R";
-          return sGap ? "SC" : "AB";
+          if (sGap) return "SC";
+          if (isBeforeStart) return "NWS";
+          if (isAfterEnd) return "Re";
+          return "AB";
         }
 
         if (dLogs && dLogs.length > 0) {
@@ -1493,6 +1501,7 @@
           if (bdStr === "B") bdStr = "BD";
           else if (bdStr === "N") bdStr = "NW";
           else if (bdStr === "S") bdStr = "NS";
+          else if (bdStr === "F") bdStr = "Fri";
 
           let statusCode = getGapStatus(checkDate, sLogs, dLogs);
           let hasData =
@@ -1514,10 +1523,16 @@
               noteStr = "Site Change" + (noteStr ? " - " + noteStr : "");
             else if (statusCode === "DC")
               noteStr = "Driver Change" + (noteStr ? " - " + noteStr : "");
+            else if (statusCode === "NWS")
+              noteStr = "No Work Started" + (noteStr ? " - " + noteStr : "");
+            else if (statusCode === "Re")
+              noteStr = "Released" + (noteStr ? " - " + noteStr : "");
 
-            if (["BD", "NW", "NS", "NR", "H", "ID", "NP"].includes(bdStr)) timeDisplay = bdStr;
+            if (["BD", "NW", "NS", "NR", "H", "ID", "NP", "Fri", "FRI"].includes(bdStr)) {
+              timeDisplay = bdStr === "FRI" ? "Fri" : bdStr;
+            }
 
-            if (["BD", "NW", "NS", "NR", "H"].includes(bdStr)) {
+            if (["BD", "NW", "NS", "NR", "H", "Fri", "FRI"].includes(bdStr)) {
               normalHr = 0;
               otHr = 0;
             } else if (bdStr === "ID" || bdStr === "NP") {
@@ -1553,9 +1568,9 @@
           sumNormal += normalHr;
           sumOT += otHr;
 
-          let isGapCode = ["AB", "SC", "DC"].includes(timeDisplay);
+          let isGapCode = ["AB", "SC", "DC", "NWS", "Re"].includes(timeDisplay);
           let isRepCode = timeDisplay === "R";
-          let isBdCode = ["BD", "NW", "NS", "NR", "H", "ID", "NP"].includes(timeDisplay);
+          let isBdCode = ["BD", "NW", "NS", "NR", "H", "ID", "NP", "Fri", "FRI"].includes(timeDisplay);
 
           let timeStyle = "";
           if (isGapCode || isBdCode)
