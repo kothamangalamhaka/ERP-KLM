@@ -396,14 +396,14 @@ function recalculateRowOnEdit(cell) {
   for (let i = 1; i <= daysInMonth; i++) {
     let targetCell = row.cells[6 + i];
     let cellVal = targetCell.innerText.trim().toUpperCase();
-    
+
     // 🟢 Auto-map on dashboard edit
     if (cellVal === "B") cellVal = "BD";
     else if (cellVal === "N") cellVal = "NW";
     else if (cellVal === "S") cellVal = "NS";
     else if (cellVal === "NR") cellVal = "NR";
     else if (cellVal === "F") cellVal = "Fri";
-    
+
     targetCell.innerText = cellVal;
     let cellCheck = cellVal.toUpperCase();
 
@@ -450,7 +450,7 @@ function recalculateRowOnEdit(cell) {
     } else if (["NR", "NW", "NS"].includes(cellCheck)) {
       targetCell.classList.add("code-nr");
     } else if (cellCheck === "RE") {
-      targetCell.classList.add("code-re"); 
+      targetCell.classList.add("code-re");
     } else if (["AB", "WS", "FRI"].includes(cellCheck)) {
       targetCell.classList.add("code-ab");
     } else if (["R"].includes(cellCheck)) {
@@ -789,8 +789,10 @@ function getTableHTMLString(
       if (specialRule && specialRule.rule_type === "FULL_OT") isFullOT = true;
 
       let timeRaw = parseFloat(rec.calc_time) || 0;
-      let bdStr = String(rec.bd || "").trim().toUpperCase();
-      
+      let bdStr = String(rec.bd || "")
+        .trim()
+        .toUpperCase();
+
       if (bdStr === "B") bdStr = "BD";
       else if (bdStr === "N") bdStr = "NW";
       else if (bdStr === "S") bdStr = "NS";
@@ -817,8 +819,26 @@ function getTableHTMLString(
 
       if (hasData) {
         // 🟢 Allowed list updated for BD, NW, NS, NR, FRI, NWS, RE
-        if (["BD", "NW", "NS", "NR", "H", "ID", "NP", "AB", "DC", "SC", "R", "WS", "RE", "FRI"].includes(bdCheck)) {
-          cellDisplay = bdCheck === "FRI" ? "Fri" : (bdCheck === "RE" ? "Re" : bdStr);
+        if (
+          [
+            "BD",
+            "NW",
+            "NS",
+            "NR",
+            "H",
+            "ID",
+            "NP",
+            "AB",
+            "DC",
+            "SC",
+            "R",
+            "WS",
+            "RE",
+            "FRI",
+          ].includes(bdCheck)
+        ) {
+          cellDisplay =
+            bdCheck === "FRI" ? "Fri" : bdCheck === "RE" ? "Re" : bdStr;
         } else {
           cellDisplay = timeRaw > 0 ? timeRaw : "";
         }
@@ -829,7 +849,7 @@ function getTableHTMLString(
           cellClass += " code-h";
         } else if (["NR", "NW", "NS"].includes(bdCheck)) {
           cellClass += " code-nr";
-        // 🟢 FIX 2: Added specific color classes for AB, DC, SC, R, NWS, Re, Fri
+          // 🟢 FIX 2: Added specific color classes for AB, DC, SC, R, NWS, Re, Fri
         } else if (bdCheck === "RE") {
           cellClass += " code-re"; // Light Red for Re
         } else if (["AB", "WS", "FRI"].includes(bdCheck)) {
@@ -956,10 +976,10 @@ function toggleExportMenu() {
 async function buildWorksheetFromTable(workbook, table, m, y) {
   const daysInMonth = getDaysInMonth(m, y);
   const totalCols = 7 + daysInMonth + 5;
-  
+
   // 1. Create Sheet with 80% Zoom and Freeze First 3 Rows (and 7 Cols)
   const ws = workbook.addWorksheet(`${m} ${y}`, {
-    views: [{ state: 'frozen', xSplit: 7, ySplit: 3, zoomScale: 80 }]
+    views: [{ state: "frozen", xSplit: 7, ySplit: 3, zoomScale: 80 }],
   });
 
   const trs = table.getElementsByTagName("tbody")[0].getElementsByTagName("tr");
@@ -978,9 +998,23 @@ async function buildWorksheetFromTable(workbook, table, m, y) {
   ws_data[0][0] = `Haka Contracting - Monthly Time sheet - ${m} ${y}`;
   ws_data[0][7] = "Total No. of Hours Worked Daily";
 
-  let headers1 = ["No", "Owner Name", "Vehicle Type", "Driver Name", "Mobile", "Site Name", "Plate No"];
+  let headers1 = [
+    "No",
+    "Owner Name",
+    "Vehicle Type",
+    "Driver Name",
+    "Mobile",
+    "Site Name",
+    "Plate No",
+  ];
   for (let i = 1; i <= daysInMonth; i++) headers1.push(getDayName(i, m, y));
-  headers1.push("Normal Hours", "OT Hours", "Total Hours Worked", "Total Dist.", "Mileage (Km/L)");
+  headers1.push(
+    "Normal Hours",
+    "OT Hours",
+    "Total Hours Worked",
+    "Total Dist.",
+    "Mileage (Km/L)",
+  );
 
   let headers2 = ["", "", "", "", "", "", ""];
   for (let i = 1; i <= daysInMonth; i++) headers2.push(i);
@@ -996,11 +1030,11 @@ async function buildWorksheetFromTable(workbook, table, m, y) {
     for (let c = 0; c < totalCols; c++) {
       if (tds[c]) {
         let val = tds[c].innerText.trim();
-        
+
         if (val === "") {
           ws_data[i + 3][c] = " ";
-        } else if (!isNaN(val) && c !== 4) { 
-          ws_data[i + 3][c] = Number(val); 
+        } else if (!isNaN(val) && c !== 4) {
+          ws_data[i + 3][c] = Number(val);
         } else {
           ws_data[i + 3][c] = val;
         }
@@ -1009,7 +1043,7 @@ async function buildWorksheetFromTable(workbook, table, m, y) {
   }
 
   // 3. Insert Data to Sheet BEFORE applying heights or filters
-  ws_data.forEach(rowData => ws.addRow(rowData));
+  ws_data.forEach((rowData) => ws.addRow(rowData));
 
   // 4. Set AutoFilter on B3 to G(n)
   ws.autoFilter = `B3:G${totalRows}`;
@@ -1024,13 +1058,13 @@ async function buildWorksheetFromTable(workbook, table, m, y) {
 
   // 6. Set Column Widths
   const colWidths = [5, 25, 15, 25, 14, 20, 12];
-  
+
   // You can change '6.0' to any width you prefer (e.g., 5.0, 7.5, 8.0)
-  const dayColumnWidth = 5.0; 
-  
+  const dayColumnWidth = 5.0;
+
   for (let i = 0; i < daysInMonth; i++) colWidths.push(dayColumnWidth);
   colWidths.push(10, 10, 12, 10, 12);
-  
+
   colWidths.forEach((w, index) => {
     ws.getColumn(index + 1).width = w;
   });
@@ -1038,59 +1072,207 @@ async function buildWorksheetFromTable(workbook, table, m, y) {
   // 7. Merge Cells
   ws.mergeCells(1, 1, 1, 7);
   ws.mergeCells(1, 8, 1, 7 + daysInMonth);
-  
-  const merges23 = [1, 2, 3, 4, 5, 6, 7, totalCols - 4, totalCols - 3, totalCols - 2, totalCols - 1, totalCols];
-  merges23.forEach(col => {
-      ws.mergeCells(2, col, 3, col);
+
+  const merges23 = [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    totalCols - 4,
+    totalCols - 3,
+    totalCols - 2,
+    totalCols - 1,
+    totalCols,
+  ];
+  merges23.forEach((col) => {
+    ws.mergeCells(2, col, 3, col);
   });
 
   // 8. Apply Styling
   const solidBlackBorder = {
-    top: { style: 'thin', color: { argb: 'FF000000' } },
-    bottom: { style: 'thin', color: { argb: 'FF000000' } },
-    left: { style: 'thin', color: { argb: 'FF000000' } },
-    right: { style: 'thin', color: { argb: 'FF000000' } }
+    top: { style: "thin", color: { argb: "FF000000" } },
+    bottom: { style: "thin", color: { argb: "FF000000" } },
+    left: { style: "thin", color: { argb: "FF000000" } },
+    right: { style: "thin", color: { argb: "FF000000" } },
   };
 
   for (let R = 1; R <= totalRows; R++) {
     for (let C = 1; C <= totalCols; C++) {
       let cell = ws.getCell(R, C);
       let val = String(cell.value).trim();
-      
+
       cell.border = solidBlackBorder;
-      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-      cell.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } };
+      cell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+      cell.font = { name: "Arial", size: 10, color: { argb: "FF000000" } };
 
       if (R === 1) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1e3a5f' } };
-        cell.font = { name: 'Arial', size: 14, color: { argb: 'FFFFFFFF' }, bold: true };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF1e3a5f" },
+        };
+        cell.font = {
+          name: "Arial",
+          size: 14,
+          color: { argb: "FFFFFFFF" },
+          bold: true,
+        };
       } else if (R === 2 || R === 3) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1e3a5f' } };
-        cell.font = { name: 'Arial', size: 10, color: { argb: 'FFFFFFFF' }, bold: true };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF1e3a5f" },
+        };
+        cell.font = {
+          name: "Arial",
+          size: 10,
+          color: { argb: "FFFFFFFF" },
+          bold: true,
+        };
         if (R === 2 && C >= 8 && C < 8 + daysInMonth) {
-          cell.alignment = { horizontal: 'center', vertical: 'middle', textRotation: 90 };
+          cell.alignment = {
+            horizontal: "center",
+            vertical: "middle",
+            textRotation: 90,
+          };
         }
       } else {
-        if (C === 2 || C === 4 || C === 6) cell.alignment.horizontal = 'left';
+        if (C === 2 || C === 4 || C === 6) cell.alignment.horizontal = "left";
 
-        if (C === totalCols - 4) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF78a664' } };
-        else if (C === totalCols - 3) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9fc5e8' } };
-        else if (C === totalCols - 2) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF45818e' } };
-        else if (C === totalCols - 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFa4c2f4' } };
-        else if (C === totalCols) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF75b4d8' } };
+        if (C === totalCols - 4)
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF78a664" },
+          };
+        else if (C === totalCols - 3)
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF9fc5e8" },
+          };
+        else if (C === totalCols - 2)
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF45818e" },
+          };
+        else if (C === totalCols - 1)
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFa4c2f4" },
+          };
+        else if (C === totalCols)
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF75b4d8" },
+          };
         else if (C >= 8 && C < 8 + daysInMonth) {
-          if (val === 'BD' || val === 'B') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFef4444' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
-          else if (val === 'H') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf59e0b' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
-          else if (val === 'ID') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFfde047' } }; cell.font.color = { argb: 'FF854d0e' }; cell.font.bold = true; }
-          else if (val === 'NP') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF86efac' } }; cell.font.color = { argb: 'FF14532d' }; cell.font.bold = true; }
-          else if (['NR', 'NW', 'NS'].includes(val)) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFe9a4a4' } }; cell.font.color = { argb: 'FF000000' }; cell.font.bold = true; }
-          else if (val === 'AB') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10b981' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
-          else if (val === 'Re' || val === 'RE') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFECACA' } }; cell.font.color = { argb: 'FF991B1B' }; cell.font.bold = true; } // Light Red for Re
-          else if (['NWS', 'Fri', 'FRI'].includes(val)) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFb91c1c' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
-          else if (val === 'DC') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0ea5e9' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
-          else if (val === 'SC') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8b5cf6' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
-          else if (val === 'R') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf97316' } }; cell.font.color = { argb: 'FFFFFFFF' }; cell.font.bold = true; }
-          else if (getDayName(C - 7, m, y) === 'Fri') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFf1f5f9' } }; }
+          if (val === "BD" || val === "B") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFef4444" },
+            };
+            cell.font.color = { argb: "FFFFFFFF" };
+            cell.font.bold = true;
+          } else if (val === "H") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFf59e0b" },
+            };
+            cell.font.color = { argb: "FFFFFFFF" };
+            cell.font.bold = true;
+          } else if (val === "ID") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFfde047" },
+            };
+            cell.font.color = { argb: "FF854d0e" };
+            cell.font.bold = true;
+          } else if (val === "NP") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FF86efac" },
+            };
+            cell.font.color = { argb: "FF14532d" };
+            cell.font.bold = true;
+          } else if (["NR", "NW", "NS"].includes(val)) {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFe9a4a4" },
+            };
+            cell.font.color = { argb: "FF000000" };
+            cell.font.bold = true;
+          } else if (val === "AB") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FF10b981" },
+            };
+            cell.font.color = { argb: "FFFFFFFF" };
+            cell.font.bold = true;
+          } else if (val === "Re" || val === "RE") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFECACA" },
+            };
+            cell.font.color = { argb: "FF991B1B" };
+            cell.font.bold = true;
+          } // Light Red for Re
+          else if (["NWS", "Fri", "FRI"].includes(val)) {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFb91c1c" },
+            };
+            cell.font.color = { argb: "FFFFFFFF" };
+            cell.font.bold = true;
+          } else if (val === "DC") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FF0ea5e9" },
+            };
+            cell.font.color = { argb: "FFFFFFFF" };
+            cell.font.bold = true;
+          } else if (val === "SC") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FF8b5cf6" },
+            };
+            cell.font.color = { argb: "FFFFFFFF" };
+            cell.font.bold = true;
+          } else if (val === "R") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFf97316" },
+            };
+            cell.font.color = { argb: "FFFFFFFF" };
+            cell.font.bold = true;
+          } else if (getDayName(C - 7, m, y) === "Fri") {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFf1f5f9" },
+            };
+          }
         }
       }
     }
@@ -1113,10 +1295,10 @@ async function exportCurrentExcel() {
   try {
     const m = document.getElementById("selMonth").value;
     const y = document.getElementById("selYear").value;
-    
+
     const wb = new ExcelJS.Workbook();
     await buildWorksheetFromTable(wb, table, m, y);
-    
+
     const buffer = await wb.xlsx.writeBuffer();
     saveAs(new Blob([buffer]), `Haka_Timesheet_${m}_${y}.xlsx`);
   } catch (err) {
@@ -1152,7 +1334,8 @@ async function startBatchExport() {
 
   const btn = document.getElementById("btnStartBatch");
   btn.disabled = true;
-  btn.innerHTML = '<span class="loader" id="batchLoader" style="display:inline-block;"></span> Generating...';
+  btn.innerHTML =
+    '<span class="loader" id="batchLoader" style="display:inline-block;"></span> Generating...';
 
   const wb = new ExcelJS.Workbook();
   let current = new Date(startDate);
@@ -1184,7 +1367,13 @@ async function startBatchExport() {
 
       if (data.success && data.vehicles.length > 0) {
         hasData = true;
-        hiddenDiv.innerHTML = getTableHTMLString(data, curM, curY, false, "hiddenExportTable");
+        hiddenDiv.innerHTML = getTableHTMLString(
+          data,
+          curM,
+          curY,
+          false,
+          "hiddenExportTable",
+        );
         const table = hiddenDiv.querySelector("table");
         await buildWorksheetFromTable(wb, table, curM, curY);
       }
@@ -1193,7 +1382,10 @@ async function startBatchExport() {
 
     if (hasData) {
       const buffer = await wb.xlsx.writeBuffer();
-      saveAs(new Blob([buffer]), `Haka_Timesheet_Batch_${fM}${fY}_to_${tM}${tY}.xlsx`);
+      saveAs(
+        new Blob([buffer]),
+        `Haka_Timesheet_Batch_${fM}${fY}_to_${tM}${tY}.xlsx`,
+      );
       closeBatchModal();
     } else {
       alert("No records found in the selected date range.");
