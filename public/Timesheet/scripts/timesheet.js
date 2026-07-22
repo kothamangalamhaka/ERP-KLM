@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let userRole = "";
 
   if (!token || !userStr) {
-    window.location.replace("index.html");
+    window.location.replace("./");
     return;
   }
 
@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function logout() {
   localStorage.removeItem("timesheetToken");
   localStorage.removeItem("timesheetUser");
-  window.location.replace("index.html");
+  window.location.replace("./");
 }
 
 let alertResolver;

@@ -32,9 +32,30 @@ const fullMonthNames = [
 document.addEventListener("DOMContentLoaded", () => {
   if (!localStorage.getItem('eq_user')) {
     window.location.replace('index.html');
-}
+  }
   initYearMonthDropdowns();
   loadDashboardData();
+
+  const modalInputs = document.querySelectorAll("#dataModal input[type='number']");
+  modalInputs.forEach((input, index) => {
+    input.addEventListener("keydown", (e) => {
+      if (["ArrowUp", "ArrowDown", "ArrowRight", "ArrowLeft"].includes(e.key)) {
+        e.preventDefault();
+        
+        let nextInput;
+        if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+          nextInput = modalInputs[index + 1];
+        } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+          nextInput = modalInputs[index - 1];
+        }
+        
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      }
+    });
+  });
 });
 function fmt(val, isDec = false) {
   const num = Number(val);
@@ -116,9 +137,9 @@ function renderTable() {
         rev = Number(l.op_revenue || 0);
       const netSal = basic + ot - penalty;
       const kafil = rev * (Number(l.kafil_comm || 0) / 100),
-        owner = rev * (Number(l.owner_comm || 0) / 100),
-        inv = rev * (Number(l.investor_comm || 0) / 100);
-      const opc = basic + ot + santook + kafil + owner + inv; // Penalty doesn't affect company OPC based on rule
+        owner = Number(l.owner_comm || 0),
+        inv = Number(l.investor_comm || 0);
+      const opc = basic + ot + santook + kafil + owner + inv;
       const tCost = maint + opc;
       let gl = 0;
       if (tCost > 0 || rev > 0) gl = rev - tCost;
@@ -133,15 +154,19 @@ function renderTable() {
   });
 }
 function populateEquipmentDropdown() {
-  document.getElementById("inputEquipmentId").innerHTML = rawEquipments
+  const select = document.getElementById("inputEquipmentId");
+  const currentVal = select.value; 
+  select.innerHTML = rawEquipments
     .map((e) => `<option value="${e.id}">${e.plate_no}</option>`)
     .join("");
+  if (currentVal) select.value = currentVal; 
 }
 function openEquipmentModal() {
   document.getElementById("equipmentModal").style.display = "flex";
 }
 function openDataModal() {
   document.getElementById("dataModal").style.display = "flex";
+  populateModalFields(); 
 }
 function closeModal(id) {
   document.getElementById(id).style.display = "none";
@@ -162,7 +187,9 @@ async function saveEquipment() {
     loadDashboardData();
   } else alert("Failed.");
 }
-async function saveMonthlyData() {
+
+// സേവ് ചെയ്യാൻ മാത്രമുള്ള ഒരു കോമൺ ഫംഗ്ഷൻ
+async function postLogData() {
   const d = {
     equipment_id: document.getElementById("inputEquipmentId").value,
     year: document.getElementById("inputYear").value,
@@ -182,11 +209,44 @@ async function saveMonthlyData() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(d),
   });
-  if (res.ok) {
+  return res.ok;
+}
+
+// 1. Save & Close Button Logic
+async function saveMonthlyData() {
+  const success = await postLogData();
+  if (success) {
     closeModal("dataModal");
     loadDashboardData();
-  } else alert("Failed.");
+  } else {
+    alert("Failed to save.");
+  }
 }
+
+// 2. Save & Next Button Logic (പുതിയ വണ്ടിയിലേക്ക് തനിയെ പോകും)
+async function saveAndAddNew() {
+  const success = await postLogData();
+  if (success) {
+    const eqSelect = document.getElementById("inputEquipmentId");
+    const currIndex = eqSelect.selectedIndex;
+    let nextVal = eqSelect.value;
+    
+    if (currIndex < eqSelect.options.length - 1) {
+      nextVal = eqSelect.options[currIndex + 1].value;
+    } else {
+      alert("Saved! This was the last equipment in the list.");
+    }
+    
+    await loadDashboardData(); 
+    
+    eqSelect.value = nextVal;
+    populateModalFields();
+    
+  } else {
+    alert("Failed to save.");
+  }
+}
+
 function formatPurchaseDate(d) {
   if (!d) return "";
   const x = new Date(d);
@@ -219,4 +279,22 @@ window.onclick = (e) => {
 function logout() {
     localStorage.removeItem('eq_user');
     window.location.replace('index.html');
+}
+
+function populateModalFields() {
+  const eqId = document.getElementById("inputEquipmentId").value;
+  const y = document.getElementById("inputYear").value;
+  const m = document.getElementById("inputMonth").value;
+
+  const log = rawMonthlyLogs.find(x => x.equipment_id == eqId && x.year == y && x.month == m);
+
+  document.getElementById("inputMaint").value = (log && Number(log.maintenance_cost) !== 0) ? log.maintenance_cost : "";
+  document.getElementById("inputBasicSalary").value = (log && Number(log.basic_salary) !== 0) ? log.basic_salary : "";
+  document.getElementById("inputOT").value = (log && Number(log.overtime) !== 0) ? log.overtime : "";
+  document.getElementById("inputPenalty").value = (log && Number(log.penalty) !== 0) ? log.penalty : "";
+  document.getElementById("inputSantook").value = (log && Number(log.santook_rent) !== 0) ? log.santook_rent : "";
+  document.getElementById("inputKafil").value = (log && Number(log.kafil_comm) !== 0) ? log.kafil_comm : "";
+  document.getElementById("inputOwner").value = (log && Number(log.owner_comm) !== 0) ? log.owner_comm : "";
+  document.getElementById("inputInvestor").value = (log && Number(log.investor_comm) !== 0) ? log.investor_comm : "";
+  document.getElementById("inputRevenue").value = (log && Number(log.op_revenue) !== 0) ? log.op_revenue : "";
 }

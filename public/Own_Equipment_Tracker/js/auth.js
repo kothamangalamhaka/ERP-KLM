@@ -31,13 +31,13 @@ const res = await fetch('/api/own-equipment/auth/login', {
         const data = await res.json();
 
         if (res.ok) {
-            localStorage.setItem('eq_user', JSON.stringify(data.user));
-            // Role നോക്കി റീഡയറക്റ്റ് ചെയ്യുന്നു
-            if (data.user.role === 'super_admin') {
-                window.location.href = 'Dashboard.html';
-            } else {
-                window.location.href = 'Dashboard.html';
+            // Equipment Tracker നായി സ്വന്തമായി ടോക്കണും യൂസറും സേവ് ചെയ്യുന്നു
+            if (data.token) {
+                localStorage.setItem('eq_token', data.token);
             }
+            localStorage.setItem('eq_user', JSON.stringify(data.user));
+
+            window.location.href = 'Dashboard.html';
         } else {
             showAlert(data.message, 'error');
         }

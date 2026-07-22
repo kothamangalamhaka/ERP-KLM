@@ -1,17 +1,41 @@
+const token = localStorage.getItem("eq_token");
+const eqUser = localStorage.getItem("eq_user");
+
+if (!token && !eqUser) {
+    window.location.href = "../";
+}
+
+function getAuthHeaders() {
+    return {
+        'Authorization': token ? ('Bearer ' + token) : '',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+    };
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadAllUsers();
 });
 
 async function loadAllUsers() {
     try {
-        const res = await fetch('/api/own-equipment/admin/all-users');
+        const res = await fetch('/api/own-equipment/admin/all-users', {
+            headers: getAuthHeaders()
+        });
+
+        if (res.status === 401 || res.status === 403) {
+            logout();
+            return;
+        }
+
         const users = await res.json();
         const tbody = document.getElementById('userTable');
         
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        if (users.length === 0) {
+        if (!users || users.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No users found.</td></tr>`;
             return;
         }
@@ -19,15 +43,12 @@ async function loadAllUsers() {
         users.forEach(u => {
             let actions = '';
             
-            // Primary Admin (ID 1) നെ തൊടാൻ പാടില്ല
             if (u.id === 1) {
                 actions = '<span style="color:gray; font-weight:bold;">Primary Admin (No Actions)</span>';
             } else {
                 if (u.role === 'super_admin') {
-                    // Super Admin ആണെങ്കിൽ താഴേക്ക് മാറ്റാനുള്ള ഓപ്ഷൻ
                     actions += `<button style="background:#f39c12; color:white; border:none; padding:6px 12px; cursor:pointer; border-radius:4px; margin-right:5px;" onclick="demoteUser(${u.id})">Remove Admin</button>`;
                 } else {
-                    // Normal User ഓപ്ഷനുകൾ
                     if (u.status === 'pending') {
                         actions += `<button class="btn-approve" onclick="updateStatus(${u.id}, 'approved')">Approve</button>`;
                         actions += `<button class="btn-reject" onclick="updateStatus(${u.id}, 'rejected')">Reject</button>`;
@@ -37,15 +58,12 @@ async function loadAllUsers() {
                         actions += `<button class="btn-approve" onclick="updateStatus(${u.id}, 'approved')">Approve</button>`;
                     }
 
-                    // Make Super Admin Button
                     actions += `<button style="background:#2980b9; color:white; border:none; padding:6px 12px; cursor:pointer; border-radius:4px; margin-right:5px;" onclick="makeSuperAdmin(${u.id})">Make Admin</button>`;
                 }
                 
-                // ഡിലീറ്റ് ബട്ടൺ (ID 1 ഒഴികെ എല്ലാവർക്കും)
                 actions += `<button class="btn-delete" onclick="deleteUser(${u.id})">Delete</button>`;
             }
 
-            // സ്റ്റാറ്റസ് അനുസരിച്ച് കളർ കൊടുക്കുന്നു
             let statusColor = 'black';
             if (u.status === 'approved') statusColor = 'green';
             if (u.status === 'pending') statusColor = 'orange';
@@ -55,7 +73,7 @@ async function loadAllUsers() {
                 <tr>
                     <td>${u.id}</td>
                     <td><b>${u.username}</b></td>
-                    <td style="text-transform: capitalize;">${u.role.replace('_', ' ')}</td>
+                    <td style="text-transform: capitalize;">${u.role ? u.role.replace('_', ' ') : 'N/A'}</td>
                     <td><span style="color:${statusColor}; font-weight:bold; text-transform:capitalize;">${u.status}</span></td>
                     <td>${actions}</td>
                 </tr>
@@ -70,9 +88,14 @@ async function updateStatus(id, status) {
     try {
         const res = await fetch('/api/own-equipment/admin/update-status', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ id, status })
         });
+
+        if (res.status === 401 || res.status === 403) {
+            logout();
+            return;
+        }
 
         if (res.ok) {
             loadAllUsers();
@@ -90,9 +113,14 @@ async function makeSuperAdmin(id) {
     try {
         const res = await fetch('/api/own-equipment/admin/make-super-admin', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ id })
         });
+
+        if (res.status === 401 || res.status === 403) {
+            logout();
+            return;
+        }
 
         if (res.ok) {
             loadAllUsers();
@@ -110,9 +138,14 @@ async function demoteUser(id) {
     try {
         const res = await fetch('/api/own-equipment/admin/demote-user', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ id })
         });
+
+        if (res.status === 401 || res.status === 403) {
+            logout();
+            return;
+        }
 
         if (res.ok) {
             loadAllUsers();
@@ -129,8 +162,14 @@ async function deleteUser(id) {
     
     try {
         const res = await fetch(`/api/own-equipment/admin/delete-user/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getAuthHeaders()
         });
+
+        if (res.status === 401 || res.status === 403) {
+            logout();
+            return;
+        }
 
         if (res.ok) {
             loadAllUsers();
@@ -140,4 +179,10 @@ async function deleteUser(id) {
     } catch (err) {
         console.error('Error deleting user:', err);
     }
+}
+
+function logout() {
+    localStorage.removeItem("eq_token");
+    localStorage.removeItem("eq_user");
+    window.location.href = "../";
 }
