@@ -59,9 +59,14 @@ async function init() {
     return;
   }
   
-  const rData = await rRes.json().catch(() => ({}));
+  let rData;
+  try {
+    rData = await rRes.json();
+  } catch (e) {
+    logout();
+    return;
+  }
 
-  // Token Validation Check
   if (!rRes.ok || (rData.success === false && rData.message && (rData.message.toLowerCase().includes("token") || rData.message.toLowerCase().includes("unauthorized")))) {
     logout();
     return;
@@ -394,9 +399,15 @@ async function triggerFetch() {
       return;
     }
 
-    const data = await res.json().catch(() => ({}));
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      await customAlert("Session expired or invalid response. Please login again.", "Session Timeout");
+      logout();
+      return;
+    }
 
-    // Token Validation Check
     if (!res.ok || (data.success === false && data.message && (data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized")))) {
       await customAlert("Session expired. Please login again.", "Session Timeout");
       logout();
@@ -414,7 +425,14 @@ async function triggerFetch() {
       return;
     }
     
-    const logs = await logRes.json().catch(() => ({}));
+    let logs;
+    try {
+      logs = await logRes.json();
+    } catch (e) {
+      await customAlert("Session expired. Please login again.", "Session Timeout");
+      logout();
+      return;
+    }
 
     let mIdx = months.indexOf(m);
     let monthStart = new Date(y, mIdx, 1);
