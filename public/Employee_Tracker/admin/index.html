@@ -31,16 +31,28 @@
         <tbody id="userTable"></tbody>
     </table>
     <br>
-    <button onclick="window.location.href='../Dashboard/index.html'" style="padding:10px 15px;">Go to Dashboard</button>
+    <button onclick="window.location.href='../Dashboard/'" style="padding:10px 15px;">Go to Dashboard</button>
     <button onclick="logout()" style="padding:10px 15px; background: red; color: white; border: none; float: right;">Logout</button>
 </div>
 
 <script>
+
+    window.addEventListener('pageshow', function(event) {
+    if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+        const token = localStorage.getItem("emp_token");
+        const empUser = localStorage.getItem("emp_user");
+        if (!token || !empUser) {
+            window.location.href = "../";
+        }
+    }
+});
+
+// Login Required Check
 const token = localStorage.getItem("emp_token");
 const empUser = localStorage.getItem("emp_user");
 
 if (!token && !empUser) {
-    window.location.href = "../index.html";
+    window.location.href = "../";
 }
 
 document.addEventListener('DOMContentLoaded', loadAllUsers);
@@ -57,13 +69,18 @@ async function loadAllUsers() {
             return;
         }
 
+        // Parse logged-in user to check permissions safely
+        let currentUser = null;
+        try { currentUser = JSON.parse(empUser); } catch(e) {}
+
         users.forEach(u => {
             let actions = '';
             
-            if (u.id === 1) {
+            // Protect Primary Admin (ID 1 OR Super Admin role protection if needed)
+            if (u.id === 1 || u.username === 'fefei') {
                 actions = '<span style="color:gray; font-weight:bold;">Primary Admin</span>';
             } else {
-                if (u.role === 'super_admin') {
+                if (u.role === 'super_admin' || u.role === 'superadmin') {
                     actions += `<button style="background:#f39c12; color:white; border:none; padding:6px 12px; cursor:pointer; border-radius:4px; margin-right:5px;" onclick="demoteUser(${u.id})">Remove Admin</button>`;
                 } else {
                     if (u.status === 'pending') {
@@ -80,7 +97,7 @@ async function loadAllUsers() {
             }
 
             let statusColor = 'black';
-            if (u.status === 'approved') statusColor = 'green';
+            if (u.status === 'approved' || u.status === 'active') statusColor = 'green';
             if (u.status === 'pending') statusColor = 'orange';
             if (u.status === 'suspended' || u.status === 'rejected') statusColor = 'red';
 
@@ -137,7 +154,7 @@ async function deleteUser(id) {
 function logout() {
     localStorage.removeItem("emp_token");
     localStorage.removeItem("emp_user");
-    window.location.href = "../index.html";
+    window.location.href = "../";
 }
 </script>
 </body>
