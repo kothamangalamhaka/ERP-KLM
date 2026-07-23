@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Tracker - User Management</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #34495e; color: white; }
+        .btn-approve { background: #2ecc71; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; margin-right: 5px; }
+        .btn-reject { background: #e67e22; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; margin-right: 5px; }
+        .btn-delete { background: #e74c3c; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>User Management (Employee Tracker)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="userTable"></tbody>
+    </table>
+    <br>
+    <button onclick="window.location.href='../Dashboard/index.html'" style="padding:10px 15px;">Go to Dashboard</button>
+    <button onclick="logout()" style="padding:10px 15px; background: red; color: white; border: none; float: right;">Logout</button>
+</div>
+
+<script>
+const token = localStorage.getItem("emp_token");
+const empUser = localStorage.getItem("emp_user");
+
+if (!token && !empUser) {
+    window.location.href = "../index.html";
+}
+
+document.addEventListener('DOMContentLoaded', loadAllUsers);
+
+async function loadAllUsers() {
+    try {
+        const res = await fetch('/api/employee-tracker/admin/all-users');
+        const users = await res.json();
+        const tbody = document.getElementById('userTable');
+        tbody.innerHTML = '';
+
+        if (!users || users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No users found.</td></tr>`;
+            return;
+        }
+
+        users.forEach(u => {
+            let actions = '';
+            
+            if (u.id === 1) {
+                actions = '<span style="color:gray; font-weight:bold;">Primary Admin</span>';
+            } else {
+                if (u.role === 'super_admin') {
+                    actions += `<button style="background:#f39c12; color:white; border:none; padding:6px 12px; cursor:pointer; border-radius:4px; margin-right:5px;" onclick="demoteUser(${u.id})">Remove Admin</button>`;
+                } else {
+                    if (u.status === 'pending') {
+                        actions += `<button class="btn-approve" onclick="updateStatus(${u.id}, 'approved')">Approve</button>`;
+                        actions += `<button class="btn-reject" onclick="updateStatus(${u.id}, 'rejected')">Reject</button>`;
+                    } else if (u.status === 'approved') {
+                        actions += `<button class="btn-reject" onclick="updateStatus(${u.id}, 'suspended')">Suspend</button>`;
+                    } else {
+                        actions += `<button class="btn-approve" onclick="updateStatus(${u.id}, 'approved')">Approve</button>`;
+                    }
+                    actions += `<button style="background:#2980b9; color:white; border:none; padding:6px 12px; cursor:pointer; border-radius:4px; margin-right:5px;" onclick="makeSuperAdmin(${u.id})">Make Admin</button>`;
+                }
+                actions += `<button class="btn-delete" onclick="deleteUser(${u.id})">Delete</button>`;
+            }
+
+            let statusColor = 'black';
+            if (u.status === 'approved') statusColor = 'green';
+            if (u.status === 'pending') statusColor = 'orange';
+            if (u.status === 'suspended' || u.status === 'rejected') statusColor = 'red';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${u.id}</td>
+                    <td><b>${u.username}</b></td>
+                    <td style="text-transform: capitalize;">${u.role ? u.role.replace('_', ' ') : 'N/A'}</td>
+                    <td><span style="color:${statusColor}; font-weight:bold; text-transform:capitalize;">${u.status}</span></td>
+                    <td>${actions}</td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        console.error('Error:', err);
+    }
+}
+
+async function updateStatus(id, status) {
+    await fetch('/api/employee-tracker/admin/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status })
+    });
+    loadAllUsers();
+}
+
+async function makeSuperAdmin(id) {
+    if (!confirm("Promote to Super Admin?")) return;
+    await fetch('/api/employee-tracker/admin/make-super-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+    });
+    loadAllUsers();
+}
+
+async function demoteUser(id) {
+    if (!confirm("Remove Admin rights?")) return;
+    await fetch('/api/employee-tracker/admin/demote-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+    });
+    loadAllUsers();
+}
+
+async function deleteUser(id) {
+    if (!confirm("Delete this user?")) return;
+    await fetch(`/api/employee-tracker/admin/delete-user/${id}`, { method: 'DELETE' });
+    loadAllUsers();
+}
+
+function logout() {
+    localStorage.removeItem("emp_token");
+    localStorage.removeItem("emp_user");
+    window.location.href = "../index.html";
+}
+</script>
+</body>
+</html>

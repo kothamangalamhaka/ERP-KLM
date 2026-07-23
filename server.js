@@ -36,6 +36,9 @@ const lockEntryRoute = require("./routes/Lock-entry");
 const ownEquipmentAuthRoutes = require("./routes/ownEquipmentAuthRoutes");
 const ownEquipmentTrackerRoutes = require("./routes/ownEquipmentTrackerRoutes");
 const ownEquipmentAdminRoutes = require("./routes/ownEquipmentAdminRoutes");
+const employeeTrackerAuthRoutes = require('./routes/employeeTrackerAuthRoutes');
+const employeeTrackerAdminRoutes = require('./routes/employeeTrackerAdminRoutes');
+
 
 
 
@@ -61,6 +64,11 @@ app.use("/api/lock", lockEntryRoute);
 app.use("/api/own-equipment/auth", ownEquipmentAuthRoutes);
 app.use("/api/own-equipment/tracker", ownEquipmentTrackerRoutes);
 app.use("/api/own-equipment/admin", ownEquipmentAdminRoutes);
+app.use('/api/employee-tracker/auth', employeeTrackerAuthRoutes);
+app.use('/api/employee-tracker/admin', employeeTrackerAdminRoutes);
+
+
+
 
 
 
