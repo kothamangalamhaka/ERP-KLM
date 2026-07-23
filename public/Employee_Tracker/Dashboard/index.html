@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Tracker Dashboard</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: #f4f7f6; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .filters { margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; }
+        .filters button { padding: 8px 15px; border: none; background: #ddd; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .filters button.active { background: #007bff; color: white; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+        .card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s; }
+        .card:hover { transform: translateY(-3px); }
+        .card img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #007bff; }
+        .card h3 { margin: 5px 0; font-size: 16px; color: #333; }
+        .card p { margin: 3px 0; font-size: 13px; color: #666; }
+        
+        /* Modal Popup */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 550px; max-height: 90vh; overflow-y: auto; position: relative; }
+        .close { position: absolute; right: 15px; top: 10px; font-size: 22px; cursor: pointer; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #333; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .btn { padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #007bff; }
+        .btn-danger { background: #dc3545; }
+        .btn-warning { background: #ffc107; color: #333; }
+
+        /* Custom Notification Toast */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px; position: fixed; z-index: 2000; right: 30px; bottom: 30px; font-size: 14px; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>Employee Directory</h2>
+    <div>
+        <button class="btn" onclick="openAddModal()">+ Add New Staff</button>
+        <button class="btn btn-primary" onclick="window.location.href='../admin/index.html'">Admin Panel</button>
+    </div>
+</div>
+
+<div class="filters">
+    <button class="active" onclick="filterStaff('All', this)">All</button>
+    <button onclick="filterStaff('Director', this)">Directors</button>
+    <button onclick="filterStaff('Site Co', this)">Site Co</button>
+    <button onclick="filterStaff('Field Co', this)">Field Co</button>
+    <button onclick="filterStaff('Office Admin', this)">Office Admin</button>
+    <button onclick="filterStaff('Office Accounts', this)">Office Accounts</button>
+</div>
+
+<div class="grid" id="staffGrid"></div>
+
+<!-- CUSTOM MODAL -->
+<div id="staffModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<!-- TOAST NOTIFICATION -->
+<div id="toast"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => loadStaff('All'));
+
+function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.className = "show";
+    toast.innerText = message;
+    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+}
+
+// Date Formatter (eg: 2026 May 26)
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${d.getFullYear()} ${months[d.getMonth()]} ${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Ensure proper date input format (YYYY-MM-DD)
+function toInputDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+async function loadStaff(category) {
+    const res = await fetch(`/api/employee-tracker/all?category=${category}`);
+    const data = await res.json();
+    const grid = document.getElementById('staffGrid');
+    grid.innerHTML = '';
+
+    if (!data.success || data.employees.length === 0) {
+        grid.innerHTML = '<p>No staff found.</p>';
+        return;
+    }
+
+    data.employees.forEach(emp => {
+        grid.innerHTML += `
+            <div class="card" onclick="viewDetails(${emp.id})">
+                <img src="${emp.image_path || 'https://via.placeholder.com/80'}" alt="Staff">
+                <h3>${emp.name}</h3>
+                <p><b>${emp.unique_id}</b></p>
+                <p>${emp.designation || emp.category}</p>
+                <p>📞 ${emp.mobile || 'N/A'}</p>
+            </div>
+        `;
+    });
+}
+
+function filterStaff(cat, btn) {
+    document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadStaff(cat);
+}
+
+// Open Add Staff Modal
+function openAddModal() {
+    document.getElementById('modalBody').innerHTML = `
+        <h2>Add New Staff</h2>
+        <form id="addStaffForm" onsubmit="submitStaff(event)">
+            <div class="form-group"><label>Full Name</label><input type="text" name="name" required></div>
+            <div class="form-group"><label>Division / Category</label>
+                <select name="category" required>
+                    <option value="Director">Director</option>
+                    <option value="Site Co">Site Co</option>
+                    <option value="Field Co">Field Co</option>
+                    <option value="Office Admin">Office Admin</option>
+                    <option value="Office Accounts">Office Accounts</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Designation</label><input type="text" name="designation"></div>
+            <div class="form-group"><label>Joining Date</label><input type="date" name="joining_date" required></div>
+            <div class="form-group"><label>Mobile No</label><input type="text" name="mobile"></div>
+            <div class="form-group"><label>Alternative Mobile No</label><input type="text" name="alt_mobile"></div>
+            <div class="form-group"><label>Address</label><textarea name="address" rows="2"></textarea></div>
+            <div class="form-group"><label>Passport No</label><input type="text" name="passport_no"></div>
+            <div class="form-group"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
+            
+            <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact Details</h4>
+            <div class="form-group"><label>Contact Person Name</label><input type="text" name="emergency_name"></div>
+            <div class="form-group"><label>Emergency Mobile</label><input type="text" name="emergency_mobile"></div>
+            <div class="form-group"><label>Emergency Alt Mobile</label><input type="text" name="emergency_alt"></div>
+            <div class="form-group"><label>Relationship</label><input type="text" name="emergency_relation"></div>
+
+            <div class="form-group"><label>Staff Photo</label><input type="file" name="image" accept="image/*"></div>
+            <div class="form-group"><label>Attach Document</label><input type="file" name="document"></div>
+            <button type="submit" class="btn" style="width:100%; margin-top:10px;">Save Staff</button>
+        </form>
+    `;
+    document.getElementById('staffModal').style.display = 'flex';
+}
+
+async function submitStaff(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch('/api/employee-tracker/add', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+        showToast("Staff added successfully!");
+        closeModal();
+        loadStaff('All');
+    } else {
+        showToast("Error: " + data.message);
+    }
+}
+
+// View Details Modal with Timeline History
+async function viewDetails(id) {
+    const res = await fetch(`/api/employee-tracker/details/${id}`);
+    const data = await res.json();
+    if (!data.success) return;
+
+    const emp = data.employee;
+    const history = data.history;
+    const docs = data.documents;
+
+    let docHtml = docs.map(d => `<li><a href="${d.file_path}" target="_blank">${d.doc_name}</a></li>`).join('');
+    
+    // Timeline Generation
+    let timelineHtml = '';
+    if (history && history.length > 0) {
+        history.forEach(h => {
+            timelineHtml += `<li style="margin-bottom:8px;"><b>${formatDate(h.start_date)} - ${formatDate(h.end_date)}</b> : ${h.previous_category} ${h.previous_designation ? `(${h.previous_designation})` : ''}</li>`;
+        });
+    }
+    // Append Current Role
+    timelineHtml += `<li style="margin-bottom:8px; color:green;"><b>${formatDate(emp.joining_date)} - Present</b> : ${emp.category} ${emp.designation ? `(${emp.designation})` : ''}</li>`;
+
+    document.getElementById('modalBody').innerHTML = `
+        <div style="text-align:center;">
+            <img src="${emp.image_path || 'https://via.placeholder.com/80'}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;">
+            <h2>${emp.name}</h2>
+            <p style="color:#007bff; font-weight:bold;">${emp.unique_id} - ${emp.designation || emp.category}</p>
+        </div>
+        <hr>
+        <p><b>Mobile:</b> ${emp.mobile || 'N/A'} | <b>Alt Mobile:</b> ${emp.alt_mobile || 'N/A'}</p>
+        <p><b>Address:</b> ${emp.address || 'N/A'}</p>
+        <p><b>Passport No:</b> ${emp.passport_no || 'N/A'}</p>
+        <p><b>Notes:</b> ${emp.notes || 'N/A'}</p>
+        
+        <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact</h4>
+        <p><b>Name:</b> ${emp.emergency_name || 'N/A'} (${emp.emergency_relation || 'N/A'})</p>
+        <p><b>Mobile:</b> ${emp.emergency_mobile || 'N/A'} | <b>Alt:</b> ${emp.emergency_alt || 'N/A'}</p>
+        
+        <h4 style="margin:10px 0 5px 0; color:#007bff;">Attached Documents</h4>
+        <ul>${docHtml || '<li>No documents attached</li>'}</ul>
+
+        <h4 style="margin:10px 0 5px 0; color:#007bff;">Position History Log</h4>
+        <ul style="list-style-type: none; padding-left: 0;">${timelineHtml}</ul>
+
+        <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+            <button class="btn btn-warning" onclick="openEditModal(${emp.id})">✏️ Edit Staff</button>
+            <button class="btn btn-danger" onclick="deleteStaff(${emp.id})">🗑️ Delete Staff</button>
+        </div>
+    `;
+    document.getElementById('staffModal').style.display = 'flex';
+}
+
+// Open Edit Staff Modal (With Dynamic Category Box)
+async function openEditModal(id) {
+    const res = await fetch(`/api/employee-tracker/details/${id}`);
+    const data = await res.json();
+    if (!data.success) return;
+    const emp = data.employee;
+
+    // Store original category globally for comparison
+    window.currentEmpCategory = emp.category;
+
+    document.getElementById('modalBody').innerHTML = `
+        <h2>Edit Staff (${emp.unique_id})</h2>
+        <form id="editStaffForm" onsubmit="updateStaff(event, ${emp.id})">
+            <div class="form-group"><label>Full Name</label><input type="text" name="name" value="${emp.name || ''}" required></div>
+            
+            <div class="form-group"><label>Division / Category</label>
+                <select name="category" onchange="checkCategoryChange(this)" required>
+                    <option value="Director" ${emp.category === 'Director' ? 'selected' : ''}>Director</option>
+                    <option value="Site Co" ${emp.category === 'Site Co' ? 'selected' : ''}>Site Co</option>
+                    <option value="Field Co" ${emp.category === 'Field Co' ? 'selected' : ''}>Field Co</option>
+                    <option value="Office Admin" ${emp.category === 'Office Admin' ? 'selected' : ''}>Office Admin</option>
+                    <option value="Office Accounts" ${emp.category === 'Office Accounts' ? 'selected' : ''}>Office Accounts</option>
+                </select>
+            </div>
+
+            <!-- HIDDEN BOX: Appears only when Category changes -->
+            <div id="roleChangeBox" style="display:none; background:#fff3cd; padding:10px; border-radius:5px; margin-bottom:12px; border:1px solid #ffeeba;">
+                <p style="margin:0 0 8px 0; font-size:13px; color:#856404; font-weight:bold;">Role Change Detected! Please provide dates to update History.</p>
+                <div class="form-group">
+                    <label>Previous Role End Date</label>
+                    <input type="date" name="prev_end_date" id="prev_end_date">
+                </div>
+                <div class="form-group">
+                    <label>New Role Start Date</label>
+                    <input type="date" name="new_start_date" id="new_start_date">
+                </div>
+            </div>
+
+            <div class="form-group"><label>Designation</label><input type="text" name="designation" value="${emp.designation || ''}"></div>
+            <div class="form-group"><label>Joining Date (Current Role)</label><input type="date" name="joining_date" value="${toInputDate(emp.joining_date)}" required></div>
+            <div class="form-group"><label>Mobile No</label><input type="text" name="mobile" value="${emp.mobile || ''}"></div>
+            <div class="form-group"><label>Alternative Mobile No</label><input type="text" name="alt_mobile" value="${emp.alt_mobile || ''}"></div>
+            <div class="form-group"><label>Address</label><textarea name="address" rows="2">${emp.address || ''}</textarea></div>
+            <div class="form-group"><label>Passport No</label><input type="text" name="passport_no" value="${emp.passport_no || ''}"></div>
+            <div class="form-group"><label>Notes</label><textarea name="notes" rows="2">${emp.notes || ''}</textarea></div>
+            
+            <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact Details</h4>
+            <div class="form-group"><label>Contact Person Name</label><input type="text" name="emergency_name" value="${emp.emergency_name || ''}"></div>
+            <div class="form-group"><label>Emergency Mobile</label><input type="text" name="emergency_mobile" value="${emp.emergency_mobile || ''}"></div>
+            <div class="form-group"><label>Emergency Alt Mobile</label><input type="text" name="emergency_alt" value="${emp.emergency_alt || ''}"></div>
+            <div class="form-group"><label>Relationship</label><input type="text" name="emergency_relation" value="${emp.emergency_relation || ''}"></div>
+
+            <div class="form-group"><label>New Staff Photo (Optional)</label><input type="file" name="image" accept="image/*"></div>
+            <button type="submit" class="btn btn-warning" style="width:100%; margin-top:10px;">Update Staff</button>
+        </form>
+    `;
+}
+
+// Detect if category is changed
+function checkCategoryChange(selectElem) {
+    const changeBox = document.getElementById('roleChangeBox');
+    if (selectElem.value !== window.currentEmpCategory) {
+        changeBox.style.display = 'block';
+        document.getElementById('prev_end_date').required = true;
+        document.getElementById('new_start_date').required = true;
+    } else {
+        changeBox.style.display = 'none';
+        document.getElementById('prev_end_date').required = false;
+        document.getElementById('new_start_date').required = false;
+    }
+}
+
+async function updateStaff(e, id) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch(`/api/employee-tracker/edit/${id}`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+        showToast("Staff updated successfully!");
+        closeModal();
+        loadStaff('All');
+    } else {
+        showToast("Error: " + data.message);
+    }
+}
+
+function deleteStaff(id) {
+    document.getElementById('modalBody').innerHTML = `
+        <div style="text-align:center; padding: 20px;">
+            <h3 style="color: #dc3545; margin-bottom: 10px;">Security Verification</h3>
+            <p style="font-size: 14px; color: #555;">Enter Admin Delete Security Key to proceed:</p>
+            <div class="form-group" style="margin: 15px 0;">
+                <input type="password" id="deleteSecretInput" placeholder="Enter Security Key" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 16px;">
+            </div>
+            <button class="btn btn-danger" onclick="confirmDelete(${id})">Confirm Delete</button>
+            <button class="btn" onclick="viewDetails(${id})" style="background: #6c757d; margin-left: 10px;">Cancel</button>
+        </div>
+    `;
+}
+
+async function confirmDelete(id) {
+    const deleteSecret = document.getElementById('deleteSecretInput').value;
+    if (!deleteSecret) {
+        showToast("Please enter the security key!");
+        return;
+    }
+
+    const res = await fetch(`/api/employee-tracker/delete/${id}`, { 
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleteSecret })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+        showToast("Staff deleted successfully!");
+        closeModal();
+        loadStaff('All');
+    } else {
+        showToast("Error: " + (data.message || "Deletion failed!"));
+    }
+}
+
+function closeModal() {
+    document.getElementById('staffModal').style.display = 'none';
+}
+</script>
+</body>
+</html>

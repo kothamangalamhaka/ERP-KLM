@@ -63,15 +63,25 @@ router.post('/demote-user', async (req, res) => {
 });
 
 // Delete a user
-router.delete('/delete-user/:id', async (req, res) => {
-    if (parseInt(req.params.id) === 1) return res.status(403).json({ message: "Cannot delete the primary Super Admin." });
+const verifySuperAdmin = require('../middlewares/auth').verifySuperAdmin; // അഥവാ മിഡിൽവെയർ ഇമ്പോർട്ട് ചെയ്തിട്ടുണ്ടെങ്കിൽ
+
+router.delete('/delete-user/:id', verifySuperAdmin, async (req, res) => {
+    const { deleteSecret } = req.body;
+
+    if (deleteSecret !== process.env.DELETE_SECRET) {
+        return res.status(403).json({ success: false, message: "Access Denied: Invalid Delete Security Key." });
+    }
+
+    if (parseInt(req.params.id) === 1) {
+        return res.status(403).json({ success: false, message: "Cannot delete the primary Super Admin." });
+    }
 
     try {
-        await pool.query(`DELETE FROM employloguser WHERE id = $1`, [req.params.id]);
+        await pool.query(`DELETE FROM equipment_users WHERE id = $1`, [req.params.id]);
         res.json({ success: true, message: "User deleted successfully" });
     } catch (err) {
         console.error("Error deleting user:", err);
-        res.status(500).json({ message: "Server error deleting user." });
+        res.status(500).json({ success: false, message: "Server error deleting user." });
     }
 });
 
