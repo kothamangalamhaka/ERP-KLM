@@ -79,26 +79,6 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_LOG_CHAT_ID =
   process.env.TELEGRAM_LOG_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
 
-// 🟢 INITIALIZE SYSTEM ADMIN (Kept only for creating default admin securely)
-async function initializeSystemAdmin() {
-  try {
-    const defaultAdminUser = process.env.DEFAULT_ADMIN_USER || "LMBpultd";
-    const defaultAdminPass = process.env.DEFAULT_ADMIN_PASS || "00110011";
-
-    const adminCheck = await pool.query("SELECT * FROM users WHERE username = $1", [defaultAdminUser]);
-    if (adminCheck.rows.length === 0) {
-      const hash = await bcrypt.hash(defaultAdminPass, 10);
-      await pool.query(
-        "INSERT INTO users (display_name, username, password_hash, role, status) VALUES ('System Admin', $1, $2, 'Super Admin', 'Active')",
-        [defaultAdminUser, hash]
-      );
-      console.log(`✅ Default Super Admin Verified: ${defaultAdminUser}`);
-    }
-  } catch (err) {
-    console.error("Admin Init Error:", err.message);
-  }
-}
-initializeSystemAdmin();
 
 // ==========================================
 // 🤖 SHARED HELPERS (Telegram & Backup)
