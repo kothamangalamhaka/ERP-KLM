@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   initYearMonthDropdowns();
   loadDashboardData();
+  startActiveUserTracking();
 
   const modalInputs = document.querySelectorAll("#dataModal input[type='number']");
   modalInputs.forEach((input, index) => {
@@ -297,4 +298,61 @@ function populateModalFields() {
   document.getElementById("inputOwner").value = (log && Number(log.owner_comm) !== 0) ? log.owner_comm : "";
   document.getElementById("inputInvestor").value = (log && Number(log.investor_comm) !== 0) ? log.investor_comm : "";
   document.getElementById("inputRevenue").value = (log && Number(log.op_revenue) !== 0) ? log.op_revenue : "";
+}
+
+// === Real-time Active Users Tracking Logic ===
+
+let currentActiveUsers = [];
+
+function startActiveUserTracking() {
+  const userStr = localStorage.getItem('eq_user');
+  let username = "Unknown User";
+  
+  // Extracting username securely
+  if (userStr) {
+    try {
+      const userObj = JSON.parse(userStr);
+      username = userObj.name || userObj.username || userStr;
+    } catch (e) {
+      username = userStr;
+    }
+  }
+
+  // Ping server every 5 seconds
+  setInterval(async () => {
+    try {
+      const res = await fetch('/api/own-equipment/tracker/active-users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: username })
+      });
+      const data = await res.json();
+      currentActiveUsers = data.active;
+      updateActiveUserBadge();
+    } catch (err) {
+      console.error("Active user tracking error:", err);
+    }
+  }, 5000);
+}
+
+function updateActiveUserBadge() {
+  const badge = document.getElementById('activeUserBadge');
+  if (currentActiveUsers.length === 0) {
+    badge.style.display = 'none';
+  } else if (currentActiveUsers.length === 1) {
+    badge.style.display = 'flex';
+    badge.innerText = `🟢 Active: ${currentActiveUsers[0]}`;
+  } else {
+    badge.style.display = 'flex';
+    badge.innerText = `🟢 Active Users: ${currentActiveUsers.length}`;
+  }
+}
+
+function showActiveUsersModal() {
+  if (currentActiveUsers.length <= 1) return; // Open modal only if more than 1 user is active
+  const list = document.getElementById('activeUsersList');
+  list.innerHTML = currentActiveUsers
+    .map(u => `<li style="padding: 10px; border-bottom: 1px solid #eee; color: #2c3e50; font-weight: 500;"><span style="color: #2ecc71;">●</span> ${u}</li>`)
+    .join('');
+  document.getElementById('activeUsersModal').style.display = 'flex';
 }

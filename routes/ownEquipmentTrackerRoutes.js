@@ -3,6 +3,26 @@ const router = express.Router();
 const pool = require("../config/db");
 const excelJS = require("exceljs");
 
+// Active users tracking memory store
+const activeUsers = new Map();
+
+router.post("/active-users", (req, res) => {
+  const { user } = req.body;
+  if (user) {
+    activeUsers.set(user, Date.now());
+  }
+  
+  // Clean up inactive users (no ping for last 15 seconds)
+  const now = Date.now();
+  activeUsers.forEach((lastSeen, username) => {
+    if (now - lastSeen > 15000) {
+      activeUsers.delete(username);
+    }
+  });
+
+  res.json({ active: Array.from(activeUsers.keys()) });
+});
+
 router.get("/data", async (req, res) => {
   const year = req.query.year || new Date().getFullYear();
   try {
