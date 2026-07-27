@@ -417,7 +417,6 @@ module.exports = function (pool, middlewares, helpers) {
         let calculatedUpdates = calculateDependentFields(simulatedRow);
         Object.assign(payload, calculatedUpdates);
 
-        // Single update query for each row dynamically mapping changes
         await client.query(
           `UPDATE erp_records SET record_data = record_data || $1::jsonb, plate_number = COALESCE(($1::jsonb->>'${COLUMNS.PLATE_NUMBER}'), plate_number), site = COALESCE(($1::jsonb->>'${COLUMNS.SITE}'), site), updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
           [JSON.stringify(payload), dbId],
@@ -434,6 +433,74 @@ module.exports = function (pool, middlewares, helpers) {
     } catch (error) {
       await client.query("ROLLBACK");
       handleError(res, error, req.user.role, "BATCH_UPDATE");
+    } finally {
+      client.release();
+    }
+  });
+
+  // 🆕 NEW COMBINED BULK SAVE ENGINE (For Paste Operations)
+  router.post("/bulk-save-mixed", verifyToken, async (req, res) => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const { updates, inserts } = req.body;
+
+      if (req.user.role === "Viewer") throw new Error("Access Denied.");
+      
+      let updateCount = 0;
+      let insertCount = 0;
+
+      // 1. Process Updates
+      if (Array.isArray(updates) && updates.length > 0) {
+        for (let edit of updates) {
+          let { dbId, colName, newValue } = edit;
+          const recordRes = await client.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
+          if (recordRes.rows.length === 0) continue;
+
+          let payload = { [colName]: newValue };
+          let simulatedRow = { ...recordRes.rows[0].record_data, ...payload };
+          Object.assign(payload, calculateDependentFields(simulatedRow));
+
+          await client.query(
+            `UPDATE erp_records SET record_data = record_data || $1::jsonb, plate_number = COALESCE(($1::jsonb->>'${COLUMNS.PLATE_NUMBER}'), plate_number), site = COALESCE(($1::jsonb->>'${COLUMNS.SITE}'), site), updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+            [JSON.stringify(payload), dbId]
+          );
+          updateCount++;
+        }
+      }
+
+      // 2. Process Inserts (New Rows)
+      if (Array.isArray(inserts) && inserts.length > 0) {
+        for (let rowDataObj of inserts) {
+          let sn = parseInt(rowDataObj[COLUMNS.SN] || 1);
+          let plate = formatPlateNumber(rowDataObj[COLUMNS.PLATE_NUMBER] || "");
+          let site = rowDataObj[COLUMNS.SITE] || "";
+
+          // Security check for Site Co
+          if (req.user.role !== 'Admin' && req.user.role !== 'Super Admin') {
+            site = req.user.site;
+            rowDataObj[COLUMNS.SITE] = site;
+          }
+
+          Object.assign(rowDataObj, calculateDependentFields(rowDataObj));
+          await client.query(
+            "INSERT INTO erp_records (sn, plate_number, site, record_data) VALUES ($1, $2, $3, $4)",
+            [sn, plate, site, rowDataObj]
+          );
+          insertCount++;
+        }
+      }
+
+      await client.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BULK_EDIT_SAVE', $2)",
+        [req.user.username, JSON.stringify({ updated: updateCount, inserted: insertCount })]
+      );
+
+      await client.query("COMMIT");
+      res.json({ success: true, message: `Successfully updated ${updateCount} and added ${insertCount} new rows.` });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      handleError(res, error, req.user.role, "BULK_SAVE_MIXED");
     } finally {
       client.release();
     }

@@ -1623,7 +1623,7 @@ function renderTable(response) {
           toggleBulkEditMode();
         },
         init: function (api, node, config) {
-          if (currentUser.role !== "Super Admin") $(node).hide();
+          if (currentUser.role === "Viewer") $(node).hide();
         },
       },
       {
@@ -2432,16 +2432,6 @@ function attachEditListeners() {
     .off("click", "td")
     .on("click", "td", function () {
       if ($(this).find(".edit-input").length > 0) return;
-      const range = document.createRange(),
-        sel = window.getSelection();
-      range.selectNodeContents(this);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    });
-  $("#erpTable tbody")
-    .off("dblclick", "td")
-    .on("dblclick", "td", function () {
-      if ($(this).find(".edit-input").length > 0) return;
       if (currentUser.role === "Viewer")
         return showToast("Access Denied.", "error");
 
@@ -2588,7 +2578,7 @@ function attachEditListeners() {
                 $nextCell = getValidHorizontalCell($cell, "LEFT");
               $(this).blur();
               if ($nextCell && $nextCell.length)
-                setTimeout(() => $nextCell.dblclick(), 50);
+                setTimeout(() => $nextCell.click(), 50);
             }
           }
         }
@@ -2602,30 +2592,32 @@ function attachEditListeners() {
         $cell.text(newVal);
         erpDataTable.cell($cell[0]).data(newVal);
         if (newVal !== oldVal) {
-          undoStack.push({
-            sheetRow: sheetRow,
-            colName: colName,
-            oldVal: oldVal,
-            newVal: newVal,
-          });
+          undoStack.push({ sheetRow, colName, oldVal, newVal });
           if (undoStack.length > 50) undoStack.shift();
           redoStack = [];
           updateUndoRedoUI();
-          saveQueue.push({
-            dbId: sheetRow,
-            colName: colName,
-            newValue: newVal,
-          });
-          processQueue();
+
+          if (isBulkEditModeActive) {
+            // Bulk മോഡിൽ ആണെങ്കിൽ അപ്പപ്പോൾ സേവ് ചെയ്യരുത്. Queue വിൽ വെക്കുക.
+            let existingIdx = window.bulkPendingUpdates.findIndex(u => u.dbId === sheetRow && u.colName === colName);
+            if (existingIdx >= 0) window.bulkPendingUpdates[existingIdx].newValue = newVal;
+            else window.bulkPendingUpdates.push({ dbId: sheetRow, colName: colName, newValue: newVal });
+          } else {
+            // സാധാരണ മോഡിൽ ആണെങ്കിൽ ഉടനെ സേവ് ചെയ്യുക
+            saveQueue.push({ dbId: sheetRow, colName: colName, newValue: newVal });
+            processQueue();
+          }
         }
       });
     });
 }
 
 // ==========================================
-// ? BULK EDIT EXCEL COPY-PASTE ENGINE
+// ? HIGH-PERFORMANCE BULK EDIT & EXCEL PASTE ENGINE
 // ==========================================
 let isBulkEditModeActive = false;
+window.bulkPendingUpdates = [];
+window.bulkPendingInserts = [];
 
 function toggleBulkEditMode() {
   isBulkEditModeActive = !isBulkEditModeActive;
@@ -2633,142 +2625,190 @@ function toggleBulkEditMode() {
 
   if (isBulkEditModeActive) {
     $("#erpTable").addClass("bulk-edit-grid-active");
-    btn.css({
-      background: "var(--success)",
-      color: "white",
-      "border-color": "var(--success)",
-    });
-    showToast(
-      "Bulk Edit Enabled! Click a starting cell and press Ctrl+V to paste from Excel.",
-      "success",
-    );
+    btn.css({ background: "var(--success)", color: "white", "border-color": "var(--success)" });
+    $("#bulkEditControls").css("display", "flex");
+    $(".desktop-action-btn").hide(); 
+    showToast("Bulk Edit ON: Background save paused. Paste Excel data and click 'Save All Changes'.", "info");
   } else {
-    $("#erpTable").removeClass("bulk-edit-grid-active");
-    btn.css({ background: "", color: "", "border-color": "" });
-    showToast("Bulk Edit Disabled", "info");
+    cancelBulkEdits();
   }
 }
 
-// Intercept Clipboard Paste Event on Table Cells
-$(document).on(
-  "paste",
-  "#erpTable.bulk-edit-grid-active tbody td",
-  function (e) {
-    if (currentUser.role !== "Super Admin") return;
-    e.preventDefault();
+function cancelBulkEdits() {
+  isBulkEditModeActive = false;
+  window.bulkPendingUpdates = [];
+  window.bulkPendingInserts = [];
+  $("#erpTable").removeClass("bulk-edit-grid-active");
+  $(".bulk-edit-toggle-btn").css({ background: "", color: "", "border-color": "" });
+  $("#bulkEditControls").hide();
+  $(".desktop-action-btn").show();
+  fetchData(true); // Reset table to original state
+  showToast("Bulk Edit Cancelled", "info");
+}
 
-    // Get raw text from clipboard
-    let clipboardData = (e.originalEvent || e).clipboardData.getData("text");
-    if (!clipboardData) return;
+async function saveBulkEdits() {
+  if (window.bulkPendingUpdates.length === 0 && window.bulkPendingInserts.length === 0) {
+    return showToast("No changes detected to save.", "info");
+  }
 
-    let rows = clipboardData.split(/\r?\n/);
-    let $startTd = $(this);
-    let $startTr = $startTd.closest("tr");
-    let startColIdx = $startTd.index();
+  $("#bulkEditControls button").prop("disabled", true);
+  showToast("Saving bulk changes to database... Please wait.", "info");
+  updateSyncUI("saving");
 
-    let $currentTr = $startTr;
-    let bulkEditsBatch = [];
+  try {
+    const res = await fetch("/api/bulk-save-mixed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ 
+        updates: window.bulkPendingUpdates, 
+        inserts: window.bulkPendingInserts 
+      })
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast(data.message || "Successfully saved all changes!", "success");
+      isBulkEditModeActive = false;
+      window.bulkPendingUpdates = [];
+      window.bulkPendingInserts = [];
+      $("#erpTable").removeClass("bulk-edit-grid-active");
+      $(".bulk-edit-toggle-btn").css({ background: "", color: "", "border-color": "" });
+      $("#bulkEditControls").hide();
+      $(".desktop-action-btn").show();
+      setTimeout(() => fetchData(), 500);
+    } else {
+      updateSyncUI("error");
+      Swal.fire("Save Error", data.message, "error");
+    }
+  } catch (e) {
+    updateSyncUI("error");
+    Swal.fire("Connection Error", "Failed to reach the server.", "error");
+  } finally {
+    $("#bulkEditControls button").prop("disabled", false);
+  }
+}
 
-    rows.forEach((rowText) => {
-      if (!rowText.trim() && rows.length > 1) return; // Skip empty trailing lines
-      let cols = rowText.split("\t");
+$(document).on("paste", function (e) {
+  if (!isBulkEditModeActive || currentUser.role === "Viewer") return;
 
-      if (!$currentTr.length) return;
-      let dbId = $currentTr.data("sheetrow");
+  let clipboardData = (e.originalEvent || e).clipboardData.getData("text");
+  if (!clipboardData || !clipboardData.includes("\t")) return; 
 
-      cols.forEach((cellText, cIdx) => {
-        let targetColIdx = startColIdx + cIdx;
-        let $targetTd = $currentTr.find("td").eq(targetColIdx);
-        if (!$targetTd.length) return;
+  e.preventDefault();
 
-        let colName = $targetTd.data("colname");
-        if (!colName) return;
+  let activeInput = $(document.activeElement);
+  let $startTd;
 
+  // സിംഗിൾ ക്ലിക്കിൽ എഡിറ്റ് മോഡിൽ ആണെങ്കിൽ സെല്ല് കൃത്യമായി കണ്ടെത്തുക
+  if (activeInput.hasClass("edit-input")) {
+     $startTd = activeInput.closest("td");
+     activeInput.blur(); 
+  } else {
+     $startTd = $(e.target).closest("td");
+  }
+
+  if (!$startTd.length) return;
+
+  let rows = clipboardData.split(/\r?\n/);
+  if(rows[rows.length-1] === "") rows.pop(); 
+
+  let $startTr = $startTd.closest("tr");
+  let startRowIdx = erpDataTable.row($startTr).index();
+  let startCell = erpDataTable.cell($startTd);
+  
+  if(!startCell || startCell.index() === undefined) return;
+  let startColIdx = startCell.index().column;
+
+  let totalRows = erpDataTable.rows().count();
+
+  // പെർഫോമൻസ് കൂട്ടാനും എറർ ഒഴിവാക്കാനും ലൂപ്പ് ഉപയോഗിച്ച് ഡാറ്റാബേസ് ഐഡി കൃത്യമായി എടുക്കുന്നു
+  rows.forEach((rowText, i) => {
+    let cells = rowText.split("\t"); 
+    let currentRowIdx = startRowIdx + i;
+    let isNewRow = currentRowIdx >= totalRows;
+
+    if (isNewRow) {
+      if (currentUser.role !== "Super Admin" && currentUser.role !== "Admin" && !currentUser.site) return; 
+      let rowData = new Array(cachedHeaders.length).fill("");
+      let tempId = "temp_" + Date.now() + "_" + i;
+
+      let snIdx = cachedHeaders.findIndex(h => h.toUpperCase() === 'SN');
+      if(snIdx !== -1) rowData[snIdx] = globalNextSN++;
+
+      let siteIdx = cachedHeaders.findIndex(h => h.toUpperCase() === 'SITE');
+      if(siteIdx !== -1 && currentUser.role !== 'Admin' && currentUser.role !== 'Super Admin') {
+        rowData[siteIdx] = currentUser.site;
+      }
+
+      cells.forEach((cellText, j) => {
+        let targetColIdx = startColIdx + j;
+        if (targetColIdx >= cachedHeaders.length) return;
+
+        let colName = cachedHeaders[targetColIdx];
         let colUpper = String(colName).toUpperCase();
 
-        // Protect Auto-Generated & Calculated Columns
-        if (
-          colUpper === "SN" ||
-          ["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(
-            colUpper,
-          )
-        )
-          return;
-        if (
-          globalLockedCols.includes(colName) &&
-          currentUser.role !== "Super Admin"
-        )
-          return;
+        if (colUpper === "SN" || ["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(colUpper)) return;
+        if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin") return;
 
         let newValue = cellText.trim();
-        let oldValue = $targetTd.text().trim();
-
-        // Strict Text Formatter (No Timezone Issues)
         let colTypeObj = cachedColTypes.find((c) => c.name === colName);
         let cType = colTypeObj ? colTypeObj.type : "varchar";
-        let isDateCol =
-          cType === "date" ||
-          colUpper.includes("DATE") ||
-          colUpper.includes("EXPIRE") ||
-          colUpper.includes("EQUIPMENT REACHED") ||
-          colUpper === "LAST WORKING DAY" ||
-          colUpper === "WORK START";
+        let isDateCol = cType === "date" || colUpper.includes("DATE") || colUpper.includes("EXPIRE") || colUpper.includes("EQUIPMENT REACHED") || colUpper === "LAST WORKING DAY" || colUpper === "WORK START";
 
         if (isDateCol && newValue) newValue = formatToDDMMMYYYY(newValue);
-        else if (colUpper === "PLATE NUMBER")
-          newValue = formatPlateNumber(newValue);
+        else if (colUpper === "PLATE NUMBER") newValue = formatPlateNumber(newValue);
 
-        if (oldValue !== newValue) {
-          let rowIndex = erpDataTable.row($currentTr).index();
-          let colIdxInDataTable = cachedHeaders.indexOf(colName);
-
-          if (rowIndex !== undefined && colIdxInDataTable !== -1) {
-            // Live UI Update
-            $targetTd.text(newValue);
-            erpDataTable.cell(rowIndex, colIdxInDataTable).data(newValue);
-
-            // Highlight Animation
-            $targetTd.css("transition", "background-color 0.3s");
-            $targetTd.css("background-color", "#fef08a");
-            setTimeout(() => $targetTd.css("background-color", ""), 1500);
-
-            // Add to Batch Queue
-            bulkEditsBatch.push({
-              dbId: dbId,
-              colName: colName,
-              newValue: newValue,
-            });
-
-            // Add to Undo Stack
-            undoStack.push({
-              sheetRow: dbId,
-              colName: colName,
-              oldVal: oldValue,
-              newVal: newValue,
-            });
-          }
-        }
+        rowData[targetColIdx] = newValue;
       });
 
-      $currentTr = $currentTr.next("tr");
-    });
+      // പുതിയ റോ ടേബിളിൽ ആഡ് ചെയ്യുകയും അതിന് താൽക്കാലിക ഐഡി നൽകുകയും ചെയ്യുന്നു
+      let addedNode = erpDataTable.row.add(rowData).node();
+      $(addedNode).attr('data-sheetrow', tempId);
+      totalRows++; 
 
-    if (undoStack.length > 50) undoStack = undoStack.slice(-50);
-    updateUndoRedoUI();
+      let rowObj = {};
+      cachedHeaders.forEach((h, idx) => rowObj[h] = rowData[idx]);
+      window.bulkPendingInserts.push(rowObj);
 
-    if (bulkEditsBatch.length > 0) {
-      erpDataTable.draw(false);
-
-      // Save to database seamlessly
-      saveQueue.push(...bulkEditsBatch);
-      processQueue();
-
-      showToast(
-        `Pasted and queued ${bulkEditsBatch.length} updates! Syncing to database...`,
-        "success",
-      );
     } else {
-      showToast("No valid changes detected in paste.", "info");
+      // നിലവിലുള്ള റോ ആണെങ്കിൽ അതിൻ്റെ ഐഡി എച്ച്.ടി.എം.എൽ നോഡിൽ നിന്നും നേരിട്ട് എടുക്കുന്നു (ഇതാണ് എറർ ഫിക്സ്)
+      let rowNode = erpDataTable.row(currentRowIdx).node();
+      let dbId = $(rowNode).data("sheetrow");
+      let rowData = erpDataTable.row(currentRowIdx).data();
+
+      cells.forEach((cellText, j) => {
+        let targetColIdx = startColIdx + j;
+        if (targetColIdx >= cachedHeaders.length) return;
+
+        let colName = cachedHeaders[targetColIdx];
+        let colUpper = String(colName).toUpperCase();
+
+        if (colUpper === "SN" || ["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(colUpper)) return;
+        if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin") return;
+
+        let newValue = cellText.trim();
+        let oldValue = String(rowData[targetColIdx] || "").trim();
+
+        let colTypeObj = cachedColTypes.find((c) => c.name === colName);
+        let cType = colTypeObj ? colTypeObj.type : "varchar";
+        let isDateCol = cType === "date" || colUpper.includes("DATE") || colUpper.includes("EXPIRE") || colUpper.includes("EQUIPMENT REACHED") || colUpper === "LAST WORKING DAY" || colUpper === "WORK START";
+
+        if (isDateCol && newValue) newValue = formatToDDMMMYYYY(newValue);
+        else if (colUpper === "PLATE NUMBER") newValue = formatPlateNumber(newValue);
+
+        if (oldValue !== newValue) {
+          // ഡാറ്റാടേബിളിൽ മാറ്റം വരുത്തുന്നു
+          erpDataTable.cell(currentRowIdx, targetColIdx).data(newValue);
+          
+          let existingIdx = window.bulkPendingUpdates.findIndex(u => u.dbId === dbId && u.colName === colName);
+          if (existingIdx >= 0) window.bulkPendingUpdates[existingIdx].newValue = newValue;
+          else window.bulkPendingUpdates.push({ dbId, colName, newValue });
+        }
+      });
     }
-  },
-);
+  });
+
+  // ടേബിൾ ഒരൊറ്റത്തവണ മാത്രം ഡ്രോ ചെയ്യുന്നു, വേഗത ഉറപ്പാക്കാൻ
+  erpDataTable.draw(false);
+  showToast(`Processed ${rows.length} rows. Please click 'Save All Changes'.`, "success");
+});
