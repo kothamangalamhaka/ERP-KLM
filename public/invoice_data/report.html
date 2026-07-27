@@ -388,13 +388,13 @@
         font-size: 12px;
         padding: 4px;
       }
-      .editable-field.edit-active {
+      .edit-active {
         background-color: #fef9c3 !important;
         border: 1px dashed #eab308;
         cursor: text;
         outline: none;
       }
-      .editable-field.edit-active:focus {
+      .edit-active:focus {
         background-color: #fef08a !important;
         border: 1px solid #ca8a04;
       }
@@ -2423,7 +2423,8 @@
             <td class="col-ts">${row.ts_nr}</td><td class="col-ts">${row.ts_ot}</td>
             <td class="col-inv editable-field" data-field="inv_nr">${row.inv_nr}</td>
             <td class="col-inv editable-field" data-field="inv_ot">${row.inv_ot}</td>
-            <td class="col-bill">${row.bill_db_nr}</td><td class="col-bill">${row.bill_db_ot}</td>
+            <td class="col-bill bill-nr-cell" style="color:#6b21a8; font-weight:500;">${row.bill_db_nr}</td>
+            <td class="col-bill bill-ot-cell" style="color:#6b21a8; font-weight:500;">${row.bill_db_ot}</td>
             <td class="col-diff">${row.diff_nr}</td><td class="col-diff">${row.diff_ot}</td><td class="col-diff" style="font-weight: bold;">${row.diff_st}</td>
             <td class="col-diff" style="text-align: center;">
               <input type="checkbox" class="clear-checkbox" ${row.diff_clear === 'Yes' ? 'checked' : ''} ${isSpecialEditMode ? '' : 'disabled'} onchange="toggleDiffClear(this, '${row.plate}', '${row.site}', '${row.raw_month}', '${row.raw_year}')" style="cursor:pointer;" />
@@ -3769,7 +3770,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
         document.getElementById("btnSpecialEditMode").innerHTML = "💾";
         document.querySelectorAll('.clear-checkbox').forEach(cb => cb.disabled = false);
         
-        document.querySelectorAll('.vbill-cell').forEach(td => {
+        document.querySelectorAll('.vbill-cell, .bill-nr-cell, .bill-ot-cell').forEach(td => {
           td.setAttribute("contenteditable", "true");
           td.classList.add("edit-active");
           td.oninput = function() {
@@ -3807,7 +3808,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
         isSpecialEditMode = false;
         document.getElementById("btnSpecialEditMode").innerHTML = "✏️";
         document.querySelectorAll('.clear-checkbox').forEach(cb => cb.disabled = true);
-        document.querySelectorAll('.vbill-cell').forEach(td => {
+        document.querySelectorAll('.vbill-cell, .bill-nr-cell, .bill-ot-cell').forEach(td => {
           td.removeAttribute("contenteditable");
           td.classList.remove("edit-active");
         });
@@ -3828,13 +3829,25 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
         
         rows.forEach(tr => {
           let vbillTd = tr.querySelector('.vbill-cell');
+          let billNrTd = tr.querySelector('.bill-nr-cell');
+          let billOtTd = tr.querySelector('.bill-ot-cell');
+
           let newNote = vbillTd.innerText.trim();
           if(newNote === "") newNote = "-";
+
+          // NR, OT നമ്പറുകൾ കറക്റ്റ് ആയി എടുക്കാൻ 
+          let nrVal = billNrTd.innerText.trim().replace(/,/g, "");
+          let otVal = billOtTd.innerText.trim().replace(/,/g, "");
+          nrVal = nrVal === "" ? null : parseFloat(nrVal);
+          otVal = otVal === "" ? null : parseFloat(otVal);
+
           updates.push({
             plate_no: vbillTd.dataset.plate,
             site_name: vbillTd.dataset.site,
             month: `${vbillTd.dataset.month} ${vbillTd.dataset.year}`,
-            remark: newNote
+            remark: newNote,
+            bill_nr: isNaN(nrVal) ? null : nrVal,
+            bill_ot: isNaN(otVal) ? null : otVal
           });
         });
 

@@ -211,7 +211,7 @@ router.post("/save-accounts-note", async (req, res) => {
   }
 });
 
-// 🟢 Save Bulk V.Bill Notes (from Special Edit Mode)
+// 🟢 Save Bulk Special Edits (V.Bill Notes, Supplier NR & OT)
 router.post("/save-bulk-vbill-notes", async (req, res) => {
   let client;
   try {
@@ -223,7 +223,7 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
     await client.query("BEGIN");
 
     for (let row of records) {
-      // 🟢 റെക്കോർഡ് നിലവിലുണ്ടോ എന്ന് നോക്കുന്നു. ഇല്ലെങ്കിൽ ഇൻസേർട്ട് ചെയ്യും (Data Save Issue പരിഹരിക്കാൻ)
+      // 🟢 റെക്കോർഡ് നിലവിലുണ്ടോ എന്ന് നോക്കുന്നു. ഇല്ലെങ്കിൽ ഇൻസേർട്ട് ചെയ്യും
       const checkBill = await client.query(
         "SELECT id FROM billing_records WHERE plate_no=$1 AND billing_month=$2 AND site_name=$3",
         [row.plate_no, row.month, row.site_name]
@@ -231,13 +231,13 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
 
       if (checkBill.rows.length > 0) {
         await client.query(
-          "UPDATE billing_records SET remark=$1 WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4",
-          [row.remark, row.plate_no, row.month, row.site_name]
+          "UPDATE billing_records SET remark=$1, nhr=$5, othr=$6 WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4",
+          [row.remark, row.plate_no, row.month, row.site_name, row.bill_nr, row.bill_ot]
         );
       } else {
         await client.query(
-          "INSERT INTO billing_records (plate_no, billing_month, site_name, remark) VALUES ($1, $2, $3, $4)",
-          [row.plate_no, row.month, row.site_name, row.remark]
+          "INSERT INTO billing_records (plate_no, billing_month, site_name, remark, nhr, othr) VALUES ($1, $2, $3, $4, $5, $6)",
+          [row.plate_no, row.month, row.site_name, row.remark, row.bill_nr, row.bill_ot]
         );
       }
     }
