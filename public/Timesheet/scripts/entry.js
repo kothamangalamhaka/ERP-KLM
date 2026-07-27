@@ -1759,8 +1759,8 @@ function applyLockStatus(selectedMonthStr, selectedYearStr) {
             el.disabled = true;
             el.style.backgroundColor = "transparent"; // 🟢 Changed to transparent
             el.style.cursor = "not-allowed";
-            el.style.color = "inherit";
-            el.style.opacity = "0.6"; // 🟢 Added opacity to look disabled nicely in both modes
+            el.style.color = "Black";
+            el.style.opacity = "0.9"; 
         });
         
         // Disable Invoice Edit buttons if needed
