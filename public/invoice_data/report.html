@@ -758,8 +758,16 @@
           onkeypress="if (event.key === 'Enter') submitSpecialPrompt();"
         />
         <div style="display: flex; gap: 10px; justify-content: center">
-          <button class="btn-clear-filter" style="padding: 8px 20px" onclick="closeSpecialPrompt()">Cancel</button>
-          <button class="custom-alert-btn" onclick="submitSpecialPrompt()">Submit</button>
+          <button
+            class="btn-clear-filter"
+            style="padding: 8px 20px"
+            onclick="closeSpecialPrompt()"
+          >
+            Cancel
+          </button>
+          <button class="custom-alert-btn" onclick="submitSpecialPrompt()">
+            Submit
+          </button>
         </div>
       </div>
     </div>
@@ -825,7 +833,14 @@
           </button>
           <button
             id="btnSpecialEditMode"
-            style="background: transparent; color: white; border: none; font-size: 16px; cursor: pointer; margin-right: 10px;"
+            style="
+              background: transparent;
+              color: white;
+              border: none;
+              font-size: 16px;
+              cursor: pointer;
+              margin-right: 10px;
+            "
             onclick="toggleSpecialEditMode()"
             title="Special Edit (Clear & V.Bill)"
           >
@@ -935,7 +950,17 @@
           <button
             id="btnCancelEdit"
             class="btn-danger"
-            style="display: none; padding: 9px 20px; border-radius: 5px; cursor: pointer; font-weight: 600; border: none; margin-left: 10px; color: white; background-color: #ef4444;"
+            style="
+              display: none;
+              padding: 9px 20px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-weight: 600;
+              border: none;
+              margin-left: 10px;
+              color: white;
+              background-color: #ef4444;
+            "
             onclick="cancelEditMode()"
           >
             ❌ Cancel
@@ -994,7 +1019,9 @@
                 <th colspan="2" class="th-inv-red">INVOICE</th>
                 <th colspan="6" class="th-extra">EXTRA DETAILS</th>
                 <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
-                <th colspan="2" class="th-gen-nr th-gen">31 Considered as NR</th>
+                <th colspan="2" class="th-gen-nr th-gen">
+                  31 Considered as NR
+                </th>
               </tr>
               <tr>
                 <th
@@ -1123,15 +1150,14 @@
                 >
                   IDN <span class="filter-icon" data-key="diff_st">▼</span>
                 </th>
-                <th class="th-diff" data-col-key="diff_clear">
-                  Clear
-                </th>
+                <th class="th-diff" data-col-key="diff_clear">Clear</th>
                 <th
                   class="th-diff"
                   data-col-key="vbill_notes"
                   onclick="openExcelFilterMenu(event, 'vbill_notes')"
                 >
-                  V.Bill Notes <span class="filter-icon" data-key="vbill_notes">▼</span>
+                  V.Bill Notes
+                  <span class="filter-icon" data-key="vbill_notes">▼</span>
                 </th>
 
                 <th
@@ -2030,7 +2056,11 @@
             }
 
             if (!siteDataMap[currentSite])
-              siteDataMap[currentSite] = { ts_nr: 0, ts_ot: 0, ts_31st_shift: 0 };
+              siteDataMap[currentSite] = {
+                ts_nr: 0,
+                ts_ot: 0,
+                ts_31st_shift: 0,
+              };
             siteDataMap[currentSite].ts_nr += nHr;
             siteDataMap[currentSite].ts_ot += otHr;
 
@@ -2104,7 +2134,8 @@
             let erp = invData ? invData.erp || "" : "";
             let payment_status = invData ? invData.payment_status || "" : "";
             let diff_clear = invData ? invData.diff_clear || "No" : "No";
-            let vbill_notes = billData && billData.remark ? billData.remark : "";
+            let vbill_notes =
+              billData && billData.remark ? billData.remark : "";
             let inv_amount = invData
               ? parseFloat(invData.invoice_amount) || 0
               : 0;
@@ -2119,14 +2150,13 @@
             let diff_st = "";
 
             let sNameUpper = sName.toUpperCase();
-            
+
             // Rule 1: Skip calculation if site name starts with 'Z'
 
             if (!sNameUpper.startsWith("Z")) {
-              
               let virtual_ts_nr = calc_ts_nr;
               let virtual_ts_ot = calc_ts_ot;
-              
+
               // Rule 2: Virtual adjustment for L&T 31st day
               if (sNameUpper.includes("L&T") || sNameUpper.includes("L & T")) {
                 if (daysInMonth === 31) {
@@ -2211,7 +2241,10 @@
               field_co: siteDataMap[sName].field_co,
               site_co: siteDataMap[sName].site_co,
               alt_nr: calc_ts_nr + (siteDataMap[sName].ts_31st_shift || 0),
-              alt_ot: calc_ts_ot >= (siteDataMap[sName].ts_31st_shift || 0) ? calc_ts_ot - (siteDataMap[sName].ts_31st_shift || 0) : 0,
+              alt_ot:
+                calc_ts_ot >= (siteDataMap[sName].ts_31st_shift || 0)
+                  ? calc_ts_ot - (siteDataMap[sName].ts_31st_shift || 0)
+                  : 0,
             });
           });
         });
@@ -2309,85 +2342,111 @@
       }
 
       function applyFilters() {
-    let fOwner = document.getElementById("filterOwner").value;
-    let fSite = document.getElementById("filterSite").value;
-    let fPlate = document.getElementById("filterPlate").value.trim().toUpperCase();
+        let fOwner = document.getElementById("filterOwner").value;
+        let fSite = document.getElementById("filterSite").value;
+        let fPlate = document
+          .getElementById("filterPlate")
+          .value.trim()
+          .toUpperCase();
 
-    // 🟢 EDIT MODE-ൽ re-render ചെയ്യാതെ rows hide/show മാത്രം ചെയ്യുന്നു
-    if (isEditMode) {
-      const rows = document.querySelectorAll("#reportBody tr");
-      let visibleCount = 0;
-      rows.forEach((tr) => {
-        let plate = (tr.dataset.plate || "").toUpperCase();
-        let site = tr.dataset.site || "";
-        let owner = (tr.querySelector(".col-owner") ? tr.querySelector(".col-owner").innerText : "").toUpperCase();
+        // 🟢 EDIT MODE-ൽ re-render ചെയ്യാതെ rows hide/show മാത്രം ചെയ്യുന്നു
+        if (isEditMode) {
+          const rows = document.querySelectorAll("#reportBody tr");
+          let visibleCount = 0;
+          rows.forEach((tr) => {
+            let plate = (tr.dataset.plate || "").toUpperCase();
+            let site = tr.dataset.site || "";
+            let owner = (
+              tr.querySelector(".col-owner")
+                ? tr.querySelector(".col-owner").innerText
+                : ""
+            ).toUpperCase();
 
-        // inv_no, bill_no cells - column index 22 = inv_no, 23 = bill_no
-        let inv_no = tr.cells[22] ? tr.cells[22].innerText.toUpperCase() : "";
-        let bill_no = tr.cells[23] ? tr.cells[23].innerText.toUpperCase() : "";
+            // inv_no, bill_no cells - column index 22 = inv_no, 23 = bill_no
+            let inv_no = tr.cells[22]
+              ? tr.cells[22].innerText.toUpperCase()
+              : "";
+            let bill_no = tr.cells[23]
+              ? tr.cells[23].innerText.toUpperCase()
+              : "";
 
-        let matchO = fOwner === "ALL" || owner.includes(fOwner.toUpperCase());
-        let matchS = fSite === "ALL" || site === fSite;
-        let matchP = fPlate === "" || plate.includes(fPlate) || owner.includes(fPlate)
-          || inv_no.includes(fPlate) || bill_no.includes(fPlate);
+            let matchO =
+              fOwner === "ALL" || owner.includes(fOwner.toUpperCase());
+            let matchS = fSite === "ALL" || site === fSite;
+            let matchP =
+              fPlate === "" ||
+              plate.includes(fPlate) ||
+              owner.includes(fPlate) ||
+              inv_no.includes(fPlate) ||
+              bill_no.includes(fPlate);
 
-        let passesHeaders = true;
-        // headerFilters check using dataset
-        for (const key in headerFilters) {
-          if (headerFilters[key].length > 0 && tr.dataset[key] !== undefined) {
-            if (!headerFilters[key].includes(String(tr.dataset[key]))) {
-              passesHeaders = false; break;
+            let passesHeaders = true;
+            // headerFilters check using dataset
+            for (const key in headerFilters) {
+              if (
+                headerFilters[key].length > 0 &&
+                tr.dataset[key] !== undefined
+              ) {
+                if (!headerFilters[key].includes(String(tr.dataset[key]))) {
+                  passesHeaders = false;
+                  break;
+                }
+              }
+            }
+
+            let show = matchO && matchS && matchP && passesHeaders;
+            tr.style.display = show ? "" : "none";
+            if (show) visibleCount++;
+          });
+
+          const countBadge = document.getElementById("plateCountBadge");
+          if (countBadge) countBadge.innerText = visibleCount + " Rows";
+          return; // 🔴 re-render ചെയ്യാതെ return
+        }
+
+        // Normal mode: existing logic
+        let filtered = masterData.filter((d) => {
+          let matchO = fOwner === "ALL" || d.owner === fOwner;
+          let matchS = fSite === "ALL" || d.site === fSite;
+          let matchP =
+            fPlate === "" ||
+            d.plate.includes(fPlate) ||
+            d.owner.toUpperCase().includes(fPlate) ||
+            (d.inv_no && d.inv_no.toUpperCase().includes(fPlate)) ||
+            (d.bill_no && d.bill_no.toUpperCase().includes(fPlate));
+          let passesHeaders = true;
+          for (const key in headerFilters) {
+            if (
+              headerFilters[key].length > 0 &&
+              !headerFilters[key].includes(String(d[key]))
+            ) {
+              passesHeaders = false;
+              break;
             }
           }
+          return matchO && matchS && matchP && passesHeaders;
+        });
+
+        if (sortConfig) {
+          filtered.sort((a, b) => {
+            let valA = String(a[sortConfig.key] || "").toLowerCase(),
+              valB = String(b[sortConfig.key] || "").toLowerCase();
+            let numA = parseFloat(valA),
+              numB = parseFloat(valB);
+            if (
+              !isNaN(numA) &&
+              !isNaN(numB) &&
+              valA.match(/^[\d.]+$/) &&
+              valB.match(/^[\d.]+$/)
+            )
+              return sortConfig.dir === "asc" ? numA - numB : numB - numA;
+            if (valA < valB) return sortConfig.dir === "asc" ? -1 : 1;
+            if (valA > valB) return sortConfig.dir === "asc" ? 1 : -1;
+            return 0;
+          });
         }
-
-        let show = matchO && matchS && matchP && passesHeaders;
-        tr.style.display = show ? "" : "none";
-        if (show) visibleCount++;
-      });
-
-      const countBadge = document.getElementById("plateCountBadge");
-      if (countBadge) countBadge.innerText = visibleCount + " Rows";
-      return; // 🔴 re-render ചെയ്യാതെ return
-    }
-
-    // Normal mode: existing logic
-    let filtered = masterData.filter((d) => {
-      let matchO = fOwner === "ALL" || d.owner === fOwner;
-      let matchS = fSite === "ALL" || d.site === fSite;
-      let matchP =
-        fPlate === "" ||
-        d.plate.includes(fPlate) ||
-        d.owner.toUpperCase().includes(fPlate) ||
-        (d.inv_no && d.inv_no.toUpperCase().includes(fPlate)) ||
-        (d.bill_no && d.bill_no.toUpperCase().includes(fPlate));
-      let passesHeaders = true;
-      for (const key in headerFilters) {
-        if (
-          headerFilters[key].length > 0 &&
-          !headerFilters[key].includes(String(d[key]))
-        ) {
-          passesHeaders = false;
-          break;
-        }
+        renderTable(filtered);
       }
-      return matchO && matchS && matchP && passesHeaders;
-    });
-
-    if (sortConfig) {
-      filtered.sort((a, b) => {
-        let valA = String(a[sortConfig.key] || "").toLowerCase(),
-          valB = String(b[sortConfig.key] || "").toLowerCase();
-        let numA = parseFloat(valA), numB = parseFloat(valB);
-        if (!isNaN(numA) && !isNaN(numB) && valA.match(/^[\d.]+$/) && valB.match(/^[\d.]+$/))
-          return sortConfig.dir === "asc" ? numA - numB : numB - numA;
-        if (valA < valB) return sortConfig.dir === "asc" ? -1 : 1;
-        if (valA > valB) return sortConfig.dir === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-    renderTable(filtered);
-  }
 
       function applySort(dir) {
         sortConfig = { key: currentFilterColInfo.key, dir: dir };
@@ -2427,7 +2486,7 @@
             <td class="col-bill bill-ot-cell" style="color:#6b21a8; font-weight:500;">${row.bill_db_ot}</td>
             <td class="col-diff">${row.diff_nr}</td><td class="col-diff">${row.diff_ot}</td><td class="col-diff" style="font-weight: bold;">${row.diff_st}</td>
             <td class="col-diff" style="text-align: center;">
-              <input type="checkbox" class="clear-checkbox" ${row.diff_clear === 'Yes' ? 'checked' : ''} ${isSpecialEditMode ? '' : 'disabled'} onchange="toggleDiffClear(this, '${row.plate}', '${row.site}', '${row.raw_month}', '${row.raw_year}')" style="cursor:pointer;" />
+              <input type="checkbox" class="clear-checkbox" ${row.diff_clear === "Yes" ? "checked" : ""} ${isSpecialEditMode ? "" : "disabled"} onchange="toggleDiffClear(this, '${row.plate}', '${row.site}', '${row.raw_month}', '${row.raw_year}')" style="cursor:pointer;" />
             </td>
             <td class="col-diff vbill-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" style="word-wrap: break-word; text-align: left; color:#1e40af; font-weight:500;">${row.vbill_notes}</td>
             <td class="col-amt">${row.bill_nrate}</td><td class="col-amt">${row.bill_otrate}</td>
@@ -2462,7 +2521,8 @@
           let btn = document.getElementById("btnEditData");
           btn.innerHTML = "💾 Save Data";
           btn.style.backgroundColor = "#10b981";
-          document.getElementById("btnCancelEdit").style.display = "inline-block";
+          document.getElementById("btnCancelEdit").style.display =
+            "inline-block";
           activateEditModeCells();
           return;
         }
@@ -2508,7 +2568,8 @@
             let btn = document.getElementById("btnEditData");
             btn.innerHTML = "💾 Save Data";
             btn.style.backgroundColor = "#10b981";
-            document.getElementById("btnCancelEdit").style.display = "inline-block";
+            document.getElementById("btnCancelEdit").style.display =
+              "inline-block";
             activateEditModeCells();
             window.alert(
               "Edit Mode Activated! You can now copy-paste Excel data directly into the highlighted cells.",
@@ -2579,18 +2640,30 @@
           let plate = tr.dataset.plate;
 
           // 🟢 Robust Number Parsing (prevents spaces breaking logic)
-          let inv_nr_text = tr.querySelector('[data-field="inv_nr"]').innerText.trim().replace(/,/g, "");
-let parsed_nr = parseFloat(inv_nr_text);
-// 🟢 Blank/empty ആണെങ്കിൽ null, 0 ആണെങ്കിൽ 0, otherwise parsed value
-let inv_nr = inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
+          let inv_nr_text = tr
+            .querySelector('[data-field="inv_nr"]')
+            .innerText.trim()
+            .replace(/,/g, "");
+          let parsed_nr = parseFloat(inv_nr_text);
+          // 🟢 Blank/empty ആണെങ്കിൽ null, 0 ആണെങ്കിൽ 0, otherwise parsed value
+          let inv_nr =
+            inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
 
-let inv_ot_text = tr.querySelector('[data-field="inv_ot"]').innerText.trim().replace(/,/g, "");
-let parsed_ot = parseFloat(inv_ot_text);
-let inv_ot = inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
+          let inv_ot_text = tr
+            .querySelector('[data-field="inv_ot"]')
+            .innerText.trim()
+            .replace(/,/g, "");
+          let parsed_ot = parseFloat(inv_ot_text);
+          let inv_ot =
+            inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
 
-let inv_amt_text = tr.querySelector('[data-field="inv_amount"]').innerText.trim().replace(/,/g, "");
-let parsed_amt = parseFloat(inv_amt_text);
-let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_amt;
+          let inv_amt_text = tr
+            .querySelector('[data-field="inv_amount"]')
+            .innerText.trim()
+            .replace(/,/g, "");
+          let parsed_amt = parseFloat(inv_amt_text);
+          let inv_amount =
+            inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_amt;
 
           let inv_no = tr
             .querySelector('[data-field="inv_no"]')
@@ -3277,10 +3350,10 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
         let ws = XLSX.utils.aoa_to_sheet(aoa);
 
         ws["!merges"] = [
-          { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }, 
-          { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } }, 
-          { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } }, 
-          { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, 
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+          { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },
+          { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },
+          { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } },
           { s: { r: 0, c: 12 }, e: { r: 0, c: 16 } }, // DIFF
           { s: { r: 0, c: 17 }, e: { r: 0, c: 21 } }, // AMT
           { s: { r: 0, c: 22 }, e: { r: 0, c: 23 } }, // INV RED
@@ -3576,12 +3649,12 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           )
             plates.push(plateTd.innerText.trim());
         });
-        
+
         if (plates.length === 0) {
           window.alert("No visible plates found to copy.");
           return;
         }
-        copyText(plates.join("\n")); 
+        copyText(plates.join("\n"));
       }
 
       document
@@ -3752,7 +3825,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           saveSpecialEdits();
           return;
         }
-        
+
         // 🟢 പാസ്‌വേഡ് മുൻപ് കൊടുത്തിട്ടുണ്ടെങ്കിൽ വീണ്ടും ചോദിക്കാതെ നേരിട്ട് എഡിറ്റ് മോഡ് ഓൺ ആക്കുന്നു
         if (isSpecialSecurityVerified) {
           activateSpecialEditMode();
@@ -3768,15 +3841,19 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
       function activateSpecialEditMode() {
         isSpecialEditMode = true;
         document.getElementById("btnSpecialEditMode").innerHTML = "💾";
-        document.querySelectorAll('.clear-checkbox').forEach(cb => cb.disabled = false);
-        
-        document.querySelectorAll('.vbill-cell, .bill-nr-cell, .bill-ot-cell').forEach(td => {
-          td.setAttribute("contenteditable", "true");
-          td.classList.add("edit-active");
-          td.oninput = function() {
-            this.closest("tr").classList.add("special-row-edited");
-          };
-        });
+        document
+          .querySelectorAll(".clear-checkbox")
+          .forEach((cb) => (cb.disabled = false));
+
+        document
+          .querySelectorAll(".vbill-cell, .bill-nr-cell, .bill-ot-cell")
+          .forEach((td) => {
+            td.setAttribute("contenteditable", "true");
+            td.classList.add("edit-active");
+            td.oninput = function () {
+              this.closest("tr").classList.add("special-row-edited");
+            };
+          });
         showToast("Special Edit Mode Unlocked!");
       }
 
@@ -3789,7 +3866,10 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
         try {
           const res = await fetch("/payment/verify-special-security", {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
             body: JSON.stringify({ code }),
           });
           const data = await res.json();
@@ -3807,18 +3887,26 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
       function lockSpecialEditMode() {
         isSpecialEditMode = false;
         document.getElementById("btnSpecialEditMode").innerHTML = "✏️";
-        document.querySelectorAll('.clear-checkbox').forEach(cb => cb.disabled = true);
-        document.querySelectorAll('.vbill-cell, .bill-nr-cell, .bill-ot-cell').forEach(td => {
-          td.removeAttribute("contenteditable");
-          td.classList.remove("edit-active");
-        });
-        document.querySelectorAll('.special-row-edited').forEach(tr => tr.classList.remove('special-row-edited'));
+        document
+          .querySelectorAll(".clear-checkbox")
+          .forEach((cb) => (cb.disabled = true));
+        document
+          .querySelectorAll(".vbill-cell, .bill-nr-cell, .bill-ot-cell")
+          .forEach((td) => {
+            td.removeAttribute("contenteditable");
+            td.classList.remove("edit-active");
+          });
+        document
+          .querySelectorAll(".special-row-edited")
+          .forEach((tr) => tr.classList.remove("special-row-edited"));
       }
 
       async function saveSpecialEdits() {
         let updates = [];
-        const rows = document.querySelectorAll("#reportBody tr.special-row-edited");
-        
+        const rows = document.querySelectorAll(
+          "#reportBody tr.special-row-edited",
+        );
+
         // മാറ്റങ്ങൾ ഒന്നുമില്ലെങ്കിൽ വെറുതെ ലോക്ക് ചെയ്യുക
         if (rows.length === 0) {
           lockSpecialEditMode();
@@ -3826,16 +3914,16 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
         }
 
         document.getElementById("loader").style.display = "block";
-        
-        rows.forEach(tr => {
-          let vbillTd = tr.querySelector('.vbill-cell');
-          let billNrTd = tr.querySelector('.bill-nr-cell');
-          let billOtTd = tr.querySelector('.bill-ot-cell');
+
+        rows.forEach((tr) => {
+          let vbillTd = tr.querySelector(".vbill-cell");
+          let billNrTd = tr.querySelector(".bill-nr-cell");
+          let billOtTd = tr.querySelector(".bill-ot-cell");
 
           let newNote = vbillTd.innerText.trim();
-          if(newNote === "") newNote = "-";
+          if (newNote === "") newNote = "-";
 
-          // NR, OT നമ്പറുകൾ കറക്റ്റ് ആയി എടുക്കാൻ 
+          // NR, OT നമ്പറുകൾ കറക്റ്റ് ആയി എടുക്കാൻ
           let nrVal = billNrTd.innerText.trim().replace(/,/g, "");
           let otVal = billOtTd.innerText.trim().replace(/,/g, "");
           nrVal = nrVal === "" ? null : parseFloat(nrVal);
@@ -3847,7 +3935,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
             month: `${vbillTd.dataset.month} ${vbillTd.dataset.year}`,
             remark: newNote,
             bill_nr: isNaN(nrVal) ? null : nrVal,
-            bill_ot: isNaN(otVal) ? null : otVal
+            bill_ot: isNaN(otVal) ? null : otVal,
           });
         });
 
@@ -3855,8 +3943,11 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
         try {
           const res = await fetch("/payment/save-bulk-vbill-notes", {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-            body: JSON.stringify({ records: updates })
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ records: updates }),
           });
           const data = await res.json();
           if (data.success) {
@@ -3867,7 +3958,7 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           } else {
             window.alert("Error: " + data.message);
           }
-        } catch(err) {
+        } catch (err) {
           window.alert("Server Connection Error.");
         }
         document.getElementById("loader").style.display = "none";
@@ -3877,27 +3968,34 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
         let newVal = cb.checked ? "Yes" : "No";
         let rowObj = masterData.find(
           (d) =>
-            d.plate === plate && d.site === site &&
-            d.raw_month === rMonth && d.raw_year === rYear
+            d.plate === plate &&
+            d.site === site &&
+            d.raw_month === rMonth &&
+            d.raw_year === rYear,
         );
-        
+
         if (rowObj) {
           rowObj.diff_clear = newVal;
           if (newVal === "Yes") {
-            rowObj.diff_nr = ""; rowObj.diff_ot = ""; rowObj.diff_st = "";
+            rowObj.diff_nr = "";
+            rowObj.diff_ot = "";
+            rowObj.diff_st = "";
           } else {
             rowObj.diff_nr = rowObj.orig_diff_nr;
             rowObj.diff_ot = rowObj.orig_diff_ot;
             rowObj.diff_st = rowObj.orig_diff_st;
           }
         }
-        
+
         let tr = cb.closest("tr");
         if (tr) {
           // 🟢 റീലോഡ് ഒഴിവാക്കി, സെല്ലുകൾ നേരിട്ട് അപ്ഡേറ്റ് ചെയ്യുന്നു
-          tr.cells[13].innerText = newVal === "Yes" ? "" : (rowObj ? rowObj.orig_diff_nr : "");
-          tr.cells[14].innerText = newVal === "Yes" ? "" : (rowObj ? rowObj.orig_diff_ot : "");
-          tr.cells[15].innerText = newVal === "Yes" ? "" : (rowObj ? rowObj.orig_diff_st : "");
+          tr.cells[13].innerText =
+            newVal === "Yes" ? "" : rowObj ? rowObj.orig_diff_nr : "";
+          tr.cells[14].innerText =
+            newVal === "Yes" ? "" : rowObj ? rowObj.orig_diff_ot : "";
+          tr.cells[15].innerText =
+            newVal === "Yes" ? "" : rowObj ? rowObj.orig_diff_st : "";
         }
 
         const preciseMonth = `${rMonth} ${rYear}`;
@@ -3906,8 +4004,17 @@ let inv_amount = inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_
           // API ബാക്ക്ഗ്രൗണ്ടിൽ വിളിക്കുന്നു. ഡാറ്റ നഷ്ടപ്പെടില്ല.
           await fetch("/payment/save-text-note", {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-            body: JSON.stringify({ plate_no: plate, month: preciseMonth, site_name: site, field: "diff_clear", value: newVal }),
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({
+              plate_no: plate,
+              month: preciseMonth,
+              site_name: site,
+              field: "diff_clear",
+              value: newVal,
+            }),
           });
         } catch (e) {
           console.error(e);

@@ -1377,6 +1377,12 @@ function renderTable(response) {
   response.rows.forEach((row) => {
     let dbId = row.pop(),
       cClass = conflictMap[dbId] || "";
+    // ⚡ Status ഒരൊറ്റ തവണ മാത്രം എടുക്കുന്നു - rowCallback-ൽ repeat ഇല്ല
+    let statusIdx_outer = cachedHeaders.findIndex(h => h.toUpperCase() === "STATUS");
+    let statusVal_outer = statusIdx_outer !== -1 ? String(row[statusIdx_outer] || "").trim().toLowerCase() : "";
+    if (statusVal_outer === "released") cClass += " status-released";
+    else if (statusVal_outer === "replaced") cClass += " status-replaced";
+    else if (statusVal_outer === "mobilizing") cClass += " status-mobilizing";
     tbodyHtml += `<tr data-sheetrow="${dbId}" class="${cClass}">`;
     row.forEach((cell, index) => {
       let colName = response.headers[index],
@@ -1431,7 +1437,28 @@ function renderTable(response) {
         if (!styleAttr) styleAttr = 'style="white-space: pre-line !important;"';
       }
 
-      tbodyHtml += `<td data-colname="${colName}" ${tdClass} ${styleAttr}>${cell}</td>`;
+      // ⚡ Expiry highlight: render time-ൽ ഒരൊറ്റ തവണ, hover-ൽ ഒന്നും ഇല്ല
+      let expClass = "";
+      if (statusVal_outer === "running") {
+        let colHeadCheck = String(colName).replace(/\s+/g, " ").trim().toUpperCase();
+        if (colHeadCheck.includes("IQAMA EXPIRE") || colHeadCheck.includes("LICENSE EXPIRE") ||
+            colHeadCheck.includes("LICENCE EXPIRE") || colHeadCheck.includes("EQ INSURAN") ||
+            colHeadCheck.includes("FAHS MVPI")) {
+          if (cell && String(cell).trim() !== "") {
+            let parsedDateStr = convertToInputDate(cell);
+            if (parsedDateStr) {
+              let expDate = new Date(`${parsedDateStr}T00:00:00`);
+              if (!isNaN(expDate.getTime())) {
+                let today = new Date(); today.setHours(0,0,0,0);
+                let diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                if (diffDays < 0) expClass = "expired-date";
+                else if (diffDays <= 30) expClass = "expiring-date";
+              }
+            }
+          }
+        }
+      }
+      tbodyHtml += `<td data-colname="${colName}" ${tdClass} ${styleAttr} ${expClass ? `class="${expClass}"` : ""}>${cell}</td>`;
     });
     tbodyHtml += "</tr>";
   });
@@ -1460,75 +1487,13 @@ function renderTable(response) {
     autoWidth: false,
     stateSave: true,
     rowCallback: function (row, data) {
-      let sIdx = cachedHeaders.findIndex(
-          (h) => h.trim().toLowerCase() === "status",
-        ),
-        statusVal = "";
-      if (sIdx !== -1) {
-        statusVal = String(data[sIdx]).trim().toLowerCase();
-        $(row).removeClass("status-released status-replaced status-mobilizing");
-        if (statusVal === "released") $(row).addClass("status-released");
-        else if (statusVal === "replaced") $(row).addClass("status-replaced");
-        else if (statusVal === "mobilizing")
-          $(row).addClass("status-mobilizing");
-      }
-      let today = new Date();
-      today.setHours(0, 0, 0, 0);
-      let colWraps = JSON.parse(localStorage.getItem("erpColWraps")) || {};
+      let sIdx = cachedHeaders.findIndex(h => h.trim().toLowerCase() === "status");
+      let statusVal = sIdx !== -1 ? String(data[sIdx]).trim().toLowerCase() : "";
 
-      cachedHeaders.forEach((h, idx) => {
-        let $td = $("td", row).eq(idx),
-          colHead = String(h).replace(/\s+/g, " ").trim().toUpperCase();
-        if (colWraps[h] === "wrap") {
-          $td[0].style.setProperty("white-space", "normal", "important");
-          $td[0].style.setProperty("word-break", "break-word", "important");
-        } else if (colWraps[h] === "nowrap") {
-          $td[0].style.setProperty("white-space", "nowrap", "important");
-          $td[0].style.setProperty("text-overflow", "ellipsis", "important");
-          $td[0].style.setProperty("overflow", "hidden", "important");
-        } else {
-          $td.css({
-            "white-space": "",
-            "word-break": "",
-            "text-overflow": "",
-            overflow: "",
-          });
-        }
-
-        // KEEP PRE-LINE FOR HISTORY NEWLINES OVERRIDING THE OTHERS
-        if (typeof data[idx] === "string" && data[idx].includes("\n")) {
-          $td[0].style.setProperty("white-space", "pre-line", "important");
-        }
-
-        if (
-          colHead.includes("IQAMA EXPIRE") ||
-          colHead.includes("LICENSE EXPIRE") ||
-          colHead.includes("LICENCE EXPIRE") ||
-          colHead.includes("EQ INSURAN") ||
-          colHead.includes("FAHS MVPI")
-        ) {
-          $td.removeClass("expired-date expiring-date");
-          if (statusVal === "running") {
-            let dateStr = data[idx];
-            if (dateStr && String(dateStr).trim() !== "") {
-              let parsedDateStr = convertToInputDate(dateStr);
-              if (parsedDateStr) {
-                let expDate = new Date(`${parsedDateStr}T00:00:00`);
-                if (!isNaN(expDate.getTime())) {
-                  expDate.setHours(0, 0, 0, 0);
-                  let diffDays = Math.ceil(
-                    (expDate.getTime() - today.getTime()) /
-                      (1000 * 60 * 60 * 24),
-                  );
-                  if (diffDays < 0) $td.addClass("expired-date");
-                  else if (diffDays >= 0 && diffDays <= 30)
-                    $td.addClass("expiring-date");
-                }
-              }
-            }
-          }
-        }
-      });
+      $(row).removeClass("status-released status-replaced status-mobilizing");
+      if (statusVal === "released") $(row).addClass("status-released");
+      else if (statusVal === "replaced") $(row).addClass("status-replaced");
+      else if (statusVal === "mobilizing") $(row).addClass("status-mobilizing");
     },
     buttons: [
       {
@@ -2435,182 +2400,159 @@ function attachEditListeners() {
       if (currentUser.role === "Viewer")
         return showToast("Access Denied.", "error");
 
-      let $cell = $(this),
-        colName = $cell.data("colname"),
-        colUpper = String(colName).replace(/\s+/g, " ").trim().toUpperCase();
-      if (
-        globalLockedCols.includes(colName) &&
-        currentUser.role !== "Super Admin"
-      )
+      let $cell = $(this);
+      let colName = $cell.data("colname");
+      let colUpper = String(colName).replace(/\s+/g, " ").trim().toUpperCase();
+
+      if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin")
         return showToast("Column is locked by Super Admin.", "error");
       if (colUpper === "SN")
         return showToast("Access Denied: SN is auto-generated.", "error");
-      if (
-        ["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(
-          colUpper,
-        )
-      )
+      if (["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(colUpper))
         return showToast("Auto calculated column.", "warning");
 
-      let oldVal = $cell.text(),
-        sheetRow = $cell.closest("tr").data("sheetrow");
-      let colTypeObj = cachedColTypes.find((c) => c.name === colName),
-        cType = colTypeObj ? colTypeObj.type : "varchar";
-      let inputHtml = "",
-        isSelect = false,
-        isDateCol =
-          cType === "date" ||
-          colUpper.includes("DATE") ||
-          colUpper.includes("EXPIRE") ||
-          colUpper.includes("EQUIPMENT REACHED") ||
-          colUpper === "LAST WORKING DAY" ||
-          colUpper === "WORK START",
-        isIntCol = cType === "int";
+      let oldVal = $cell.text();
+      let sheetRow = $cell.closest("tr").data("sheetrow");
+      let colTypeObj = cachedColTypes.find((c) => c.name === colName);
+      let cType = colTypeObj ? colTypeObj.type : "varchar";
 
-      if (isDateCol) {
-        inputHtml = `<input type="date" class="edit-input" value="${convertToInputDate(oldVal)}">`;
-      } else if (isIntCol) {
-        inputHtml = `<input type="number" class="edit-input" value="${oldVal.replace(/"/g, "&quot;")}">`;
-      } else if (["REMARK", "REMARKS", "DRIVER LOG"].includes(colUpper)) {
-        inputHtml = `<textarea class="edit-input">${oldVal}</textarea>`;
-      } else if (colUpper === "STATUS") {
-        let optsStatus = ["Running", "Released", "Replaced", "Mobilizing"],
-          optionsStatusHtml = optsStatus
-            .map(function (o) {
-              return `<option value="${o}" ${oldVal.toLowerCase() === o.toLowerCase() ? "selected" : ""}>${o}</option>`;
-            })
-            .join("");
-        inputHtml = `<select class="edit-input"><option value=""></option>${optionsStatusHtml}</select>`;
+      let isDateCol = cType === "date" || colUpper.includes("DATE") || colUpper.includes("EXPIRE") ||
+        colUpper.includes("EQUIPMENT REACHED") || colUpper === "LAST WORKING DAY" || colUpper === "WORK START";
+      let isIntCol = cType === "int";
+      let isSelect = false;
+
+      // ⚡ Payment Report style - contenteditable approach
+      // Select / Date columns → input overlay (unavoidable)
+      // Text columns → contenteditable directly on TD (no re-render)
+
+      if (colUpper === "STATUS" || colUpper === "IF SUB" || colUpper === "COMPANY" || colUpper === "VAT BILL OR NOT") {
+        // Select fields: input overlay use ചെയ്യണം
         isSelect = true;
-      } else if (colUpper === "IF SUB") {
-        let optsSub = ["Sub"],
-          optionsSubHtml = optsSub
-            .map(function (o) {
-              return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
-            })
-            .join("");
-        inputHtml = `<select class="edit-input"><option value=""></option>${optionsSubHtml}</select>`;
-        isSelect = true;
-      } else if (colUpper === "COMPANY") {
-        let optsComp = ["Haka", "Aljoda", "Masar Wheels", "We1"],
-          optionsCompHtml = optsComp
-            .map(function (o) {
-              return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
-            })
-            .join("");
-        inputHtml = `<select class="edit-input"><option value=""></option>${optionsCompHtml}</select>`;
-        isSelect = true;
-      } else if (colUpper === "VAT BILL OR NOT") {
-        let optsVat = ["Yes", "No"],
-          optionsVatHtml = optsVat
-            .map(function (o) {
-              return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
-            })
-            .join("");
-        inputHtml = `<select class="edit-input"><option value=""></option>${optionsVatHtml}</select>`;
-        isSelect = true;
+        let options = "";
+        if (colUpper === "STATUS") options = `<option value=""></option><option value="Running">Running</option><option value="Released">Released</option><option value="Replaced">Replaced</option><option value="Mobilizing">Mobilizing</option>`;
+        else if (colUpper === "IF SUB") options = `<option value=""></option><option value="Sub">Sub</option>`;
+        else if (colUpper === "COMPANY") options = `<option value=""></option><option value="Haka">Haka</option><option value="Aljoda">Aljoda</option><option value="Masar Wheels">Masar Wheels</option><option value="We1">We1</option>`;
+        else if (colUpper === "VAT BILL OR NOT") options = `<option value=""></option><option value="Yes">Yes</option><option value="No">No</option>`;
+
+        // Current value select ചെയ്യുക
+        options = options.replace(`value="${oldVal}"`, `value="${oldVal}" selected`);
+        let $sel = $(`<select class="edit-input">${options}</select>`);
+        $cell.html($sel);
+        $sel.focus();
+
+        $sel.on("change blur", function (e) {
+          if (e.type === "blur" && $cell.find("select:focus").length > 0) return;
+          let newVal = $(this).val();
+          // ⚡ DOM direct update
+          $cell[0].textContent = newVal;
+          _saveEdit(sheetRow, colName, colUpper, oldVal, newVal, $cell);
+        });
+
+      } else if (isDateCol) {
+        // Date input overlay
+        let $inp = $(`<input type="date" class="edit-input" value="${convertToInputDate(oldVal)}">`);
+        $cell.html($inp);
+        $inp.focus();
+
+        $inp.on("blur", function () {
+          let newVal = $(this).val() ? formatToDDMMMYYYY($(this).val()) : oldVal;
+          $cell[0].textContent = newVal;
+          _saveEdit(sheetRow, colName, colUpper, oldVal, newVal, $cell);
+        });
+
+        $inp.on("keydown", function (e) {
+          if (e.key === "Escape") { $cell[0].textContent = oldVal; return; }
+          if (e.key === "Enter") $(this).blur();
+        });
+
       } else {
-        inputHtml = `<input type="text" class="edit-input" value="${oldVal.replace(/"/g, "&quot;")}">`;
-      }
+        // ⚡ TEXT / NUMBER columns: Payment Report style contenteditable
+        // DataTables re-render ഇല്ല, DOM direct edit
+        $cell.attr("contenteditable", "true");
+        $cell.addClass("edit-active-ct");
+        $cell.focus();
 
-      let $input = $(inputHtml);
-      $cell.html($input);
-      $input.focus();
-      if (!isSelect && !isDateCol) {
-        let v = $input.val();
-        $input.val("");
-        $input.val(v);
-        if ($input.is("textarea"))
-          $input.css("height", $input[0].scrollHeight + "px");
-      }
+        // Cursor text ന്റെ end-ൽ വെക്കുക
+        let range = document.createRange();
+        let sel = window.getSelection();
+        range.selectNodeContents($cell[0]);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
 
-      $input.on("keydown", function (e) {
-        if (e.key === "Escape") {
-          $cell.text(oldVal);
-          erpDataTable.cell($cell[0]).data(oldVal);
-          return;
-        }
-        if (e.key === "Enter" && e.altKey && $(this).is("textarea")) {
-          e.preventDefault();
-          let start = this.selectionStart,
-            end = this.selectionEnd,
-            val = $(this).val();
-          $(this).val(val.substring(0, start) + "\n" + val.substring(end));
-          this.selectionStart = this.selectionEnd = start + 1;
-          $(this).css("height", "auto");
-          $(this).css("height", this.scrollHeight + "px");
-          return;
-        }
-        if (["Enter", "Tab", "ArrowUp", "ArrowDown"].includes(e.key)) {
-          if (!isSelect || ["Enter", "Tab"].includes(e.key)) {
-            if (e.key === "Enter") e.preventDefault();
-            let direction = "";
-            if (e.key === "Enter") direction = e.shiftKey ? "UP" : "DOWN";
-            else if (e.key === "Tab") {
-              direction = e.shiftKey ? "LEFT" : "RIGHT";
-              e.preventDefault();
-            } else if (e.key === "ArrowUp" && !isDateCol) direction = "UP";
-            else if (e.key === "ArrowDown" && !isDateCol) direction = "DOWN";
-            if (direction) {
-              let $currentRow = $cell.closest("tr"),
-                colIndex = $cell.index(),
-                $nextCell = null;
-              function getValidHorizontalCell($td, dir) {
-                let $nxt = dir === "RIGHT" ? $td.next("td") : $td.prev("td");
-                if ($nxt.length) {
-                  if (
-                    String($nxt.data("colname")).trim().toUpperCase() ===
-                      "SN" ||
-                    $nxt.css("display") === "none"
-                  )
-                    return getValidHorizontalCell($nxt, dir);
-                  return $nxt;
-                }
-                return null;
-              }
-              if (direction === "DOWN")
-                $nextCell = $currentRow.next("tr").find("td").eq(colIndex);
-              else if (direction === "UP")
-                $nextCell = $currentRow.prev("tr").find("td").eq(colIndex);
-              else if (direction === "RIGHT")
-                $nextCell = getValidHorizontalCell($cell, "RIGHT");
-              else if (direction === "LEFT")
-                $nextCell = getValidHorizontalCell($cell, "LEFT");
-              $(this).blur();
-              if ($nextCell && $nextCell.length)
-                setTimeout(() => $nextCell.click(), 50);
+        $cell.one("blur", function () {
+          $cell.removeAttr("contenteditable");
+          $cell.removeClass("edit-active-ct");
+          let newVal = $cell.text().trim();
+          if (isIntCol) newVal = newVal.replace(/[^0-9.-]/g, "");
+          if (colUpper === "PLATE NUMBER") newVal = formatPlateNumber(newVal);
+          if (newVal === oldVal) return;
+          _saveEdit(sheetRow, colName, colUpper, oldVal, newVal, $cell);
+        });
+
+        $cell.on("keydown.editct", function (e) {
+          if (e.key === "Escape") {
+            $cell[0].textContent = oldVal;
+            $cell.removeAttr("contenteditable");
+            $cell.removeClass("edit-active-ct");
+            $cell.off("keydown.editct");
+            return;
+          }
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            $cell.blur();
+            // Arrow down: next row same column
+            let $nextRow = $cell.closest("tr").next("tr");
+            if ($nextRow.length) {
+              setTimeout(() => $nextRow.find(`td[data-colname="${colName}"]`).click(), 30);
             }
           }
-        }
-      });
-      $input.on("blur", function () {
-        if ($cell.find(".edit-input").length === 0) return;
-        let newVal = $(this).val();
-        if (isDateCol && newVal) newVal = formatToDDMMMYYYY(newVal);
-        else if (colUpper === "PLATE NUMBER")
-          newVal = formatPlateNumber(newVal);
-        $cell.text(newVal);
-        erpDataTable.cell($cell[0]).data(newVal);
-        if (newVal !== oldVal) {
-          undoStack.push({ sheetRow, colName, oldVal, newVal });
-          if (undoStack.length > 50) undoStack.shift();
-          redoStack = [];
-          updateUndoRedoUI();
-
-          if (isBulkEditModeActive) {
-            // Bulk മോഡിൽ ആണെങ്കിൽ അപ്പപ്പോൾ സേവ് ചെയ്യരുത്. Queue വിൽ വെക്കുക.
-            let existingIdx = window.bulkPendingUpdates.findIndex(u => u.dbId === sheetRow && u.colName === colName);
-            if (existingIdx >= 0) window.bulkPendingUpdates[existingIdx].newValue = newVal;
-            else window.bulkPendingUpdates.push({ dbId: sheetRow, colName: colName, newValue: newVal });
-          } else {
-            // സാധാരണ മോഡിൽ ആണെങ്കിൽ ഉടനെ സേവ് ചെയ്യുക
-            saveQueue.push({ dbId: sheetRow, colName: colName, newValue: newVal });
-            processQueue();
+          if (e.key === "Tab") {
+            e.preventDefault();
+            $cell.blur();
+            // Tab: next editable cell in same row
+            let $cells = $cell.closest("tr").find("td[data-colname]");
+            let idx = $cells.index($cell);
+            let $next = e.shiftKey ? $cells.eq(idx - 1) : $cells.eq(idx + 1);
+            if ($next.length) setTimeout(() => $next.click(), 30);
           }
-        }
-      });
+        });
+      }
     });
 }
+
+// ⚡ Shared save logic - Payment Report pattern
+function _saveEdit(sheetRow, colName, colUpper, oldVal, newVal, $cell) {
+  if (newVal === oldVal) return;
+
+  // ⚡ Cache update skip - DOM already correct, server sync handles the rest
+
+  // Status row color update
+  if (colUpper === "STATUS") {
+    let $row = $cell.closest("tr");
+    $row.removeClass("status-released status-replaced status-mobilizing");
+    let sVal = newVal.trim().toLowerCase();
+    if (sVal === "released") $row.addClass("status-released");
+    else if (sVal === "replaced") $row.addClass("status-replaced");
+    else if (sVal === "mobilizing") $row.addClass("status-mobilizing");
+  }
+
+  // Undo stack
+  undoStack.push({ sheetRow, colName, oldVal, newVal });
+  if (undoStack.length > 50) undoStack.shift();
+  redoStack = [];
+  updateUndoRedoUI();
+
+  if (isBulkEditModeActive) {
+    let existingIdx = window.bulkPendingUpdates.findIndex(u => u.dbId === sheetRow && u.colName === colName);
+    if (existingIdx >= 0) window.bulkPendingUpdates[existingIdx].newValue = newVal;
+    else window.bulkPendingUpdates.push({ dbId: sheetRow, colName: colName, newValue: newVal });
+  } else {
+    saveQueue.push({ dbId: sheetRow, colName: colName, newValue: newVal });
+    processQueue();
+  }
+}
+
 
 // ==========================================
 // ? HIGH-PERFORMANCE BULK EDIT & EXCEL PASTE ENGINE
@@ -2692,66 +2634,63 @@ $(document).on("paste", function (e) {
   if (!isBulkEditModeActive || currentUser.role === "Viewer") return;
 
   let clipboardData = (e.originalEvent || e).clipboardData.getData("text");
-  if (!clipboardData || !clipboardData.includes("\t")) return; 
+  if (!clipboardData || !clipboardData.includes("\t")) return;
 
   e.preventDefault();
 
   let activeInput = $(document.activeElement);
   let $startTd;
 
-  // സിംഗിൾ ക്ലിക്കിൽ എഡിറ്റ് മോഡിൽ ആണെങ്കിൽ സെല്ല് കൃത്യമായി കണ്ടെത്തുക
   if (activeInput.hasClass("edit-input")) {
-     $startTd = activeInput.closest("td");
-     activeInput.blur(); 
+    $startTd = activeInput.closest("td");
+    activeInput.blur();
   } else {
-     $startTd = $(e.target).closest("td");
+    $startTd = $(e.target).closest("td");
   }
 
   if (!$startTd.length) return;
 
   let rows = clipboardData.split(/\r?\n/);
-  if(rows[rows.length-1] === "") rows.pop(); 
+  if (rows[rows.length - 1] === "") rows.pop();
 
   let $startTr = $startTd.closest("tr");
   let startRowIdx = erpDataTable.row($startTr).index();
   let startCell = erpDataTable.cell($startTd);
-  
-  if(!startCell || startCell.index() === undefined) return;
+
+  if (!startCell || startCell.index() === undefined) return;
   let startColIdx = startCell.index().column;
 
   let totalRows = erpDataTable.rows().count();
+  let domChanges = []; // DOM batch update list
 
-  // പെർഫോമൻസ് കൂട്ടാനും എറർ ഒഴിവാക്കാനും ലൂപ്പ് ഉപയോഗിച്ച് ഡാറ്റാബേസ് ഐഡി കൃത്യമായി എടുക്കുന്നു
   rows.forEach((rowText, i) => {
-    let cells = rowText.split("\t"); 
+    let cells = rowText.split("\t");
     let currentRowIdx = startRowIdx + i;
     let isNewRow = currentRowIdx >= totalRows;
 
     if (isNewRow) {
-      if (currentUser.role !== "Super Admin" && currentUser.role !== "Admin" && !currentUser.site) return; 
+      if (currentUser.role !== "Super Admin" && currentUser.role !== "Admin" && !currentUser.site) return;
       let rowData = new Array(cachedHeaders.length).fill("");
       let tempId = "temp_" + Date.now() + "_" + i;
 
-      let snIdx = cachedHeaders.findIndex(h => h.toUpperCase() === 'SN');
-      if(snIdx !== -1) rowData[snIdx] = globalNextSN++;
+      let snIdx = cachedHeaders.findIndex(h => h.toUpperCase() === "SN");
+      if (snIdx !== -1) rowData[snIdx] = globalNextSN++;
 
-      let siteIdx = cachedHeaders.findIndex(h => h.toUpperCase() === 'SITE');
-      if(siteIdx !== -1 && currentUser.role !== 'Admin' && currentUser.role !== 'Super Admin') {
+      let siteIdx = cachedHeaders.findIndex(h => h.toUpperCase() === "SITE");
+      if (siteIdx !== -1 && currentUser.role !== "Admin" && currentUser.role !== "Super Admin") {
         rowData[siteIdx] = currentUser.site;
       }
 
       cells.forEach((cellText, j) => {
         let targetColIdx = startColIdx + j;
         if (targetColIdx >= cachedHeaders.length) return;
-
         let colName = cachedHeaders[targetColIdx];
         let colUpper = String(colName).toUpperCase();
-
         if (colUpper === "SN" || ["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(colUpper)) return;
         if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin") return;
 
         let newValue = cellText.trim();
-        let colTypeObj = cachedColTypes.find((c) => c.name === colName);
+        let colTypeObj = cachedColTypes.find(c => c.name === colName);
         let cType = colTypeObj ? colTypeObj.type : "varchar";
         let isDateCol = cType === "date" || colUpper.includes("DATE") || colUpper.includes("EXPIRE") || colUpper.includes("EQUIPMENT REACHED") || colUpper === "LAST WORKING DAY" || colUpper === "WORK START";
 
@@ -2761,35 +2700,33 @@ $(document).on("paste", function (e) {
         rowData[targetColIdx] = newValue;
       });
 
-      // പുതിയ റോ ടേബിളിൽ ആഡ് ചെയ്യുകയും അതിന് താൽക്കാലിക ഐഡി നൽകുകയും ചെയ്യുന്നു
+      // ⚡ DOM-ൽ row add ചെയ്യുക, draw() വിളിക്കേണ്ട
       let addedNode = erpDataTable.row.add(rowData).node();
-      $(addedNode).attr('data-sheetrow', tempId);
-      totalRows++; 
+      $(addedNode).attr("data-sheetrow", tempId);
+      totalRows++;
 
       let rowObj = {};
       cachedHeaders.forEach((h, idx) => rowObj[h] = rowData[idx]);
       window.bulkPendingInserts.push(rowObj);
 
     } else {
-      // നിലവിലുള്ള റോ ആണെങ്കിൽ അതിൻ്റെ ഐഡി എച്ച്.ടി.എം.എൽ നോഡിൽ നിന്നും നേരിട്ട് എടുക്കുന്നു (ഇതാണ് എറർ ഫിക്സ്)
       let rowNode = erpDataTable.row(currentRowIdx).node();
+      if (!rowNode) return;
       let dbId = $(rowNode).data("sheetrow");
       let rowData = erpDataTable.row(currentRowIdx).data();
 
       cells.forEach((cellText, j) => {
         let targetColIdx = startColIdx + j;
         if (targetColIdx >= cachedHeaders.length) return;
-
         let colName = cachedHeaders[targetColIdx];
         let colUpper = String(colName).toUpperCase();
-
         if (colUpper === "SN" || ["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(colUpper)) return;
         if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin") return;
 
         let newValue = cellText.trim();
         let oldValue = String(rowData[targetColIdx] || "").trim();
 
-        let colTypeObj = cachedColTypes.find((c) => c.name === colName);
+        let colTypeObj = cachedColTypes.find(c => c.name === colName);
         let cType = colTypeObj ? colTypeObj.type : "varchar";
         let isDateCol = cType === "date" || colUpper.includes("DATE") || colUpper.includes("EXPIRE") || colUpper.includes("EQUIPMENT REACHED") || colUpper === "LAST WORKING DAY" || colUpper === "WORK START";
 
@@ -2797,9 +2734,12 @@ $(document).on("paste", function (e) {
         else if (colUpper === "PLATE NUMBER") newValue = formatPlateNumber(newValue);
 
         if (oldValue !== newValue) {
-          // ഡാറ്റാടേബിളിൽ മാറ്റം വരുത്തുന്നു
+          // ⚡ DataTables internal data update (DOM touch ഇല്ല)
           erpDataTable.cell(currentRowIdx, targetColIdx).data(newValue);
-          
+
+          // ⚡ DOM directly update - table re-render ഒഴിവാക്കുന്നു
+          domChanges.push({ node: rowNode, colIdx: targetColIdx, newValue });
+
           let existingIdx = window.bulkPendingUpdates.findIndex(u => u.dbId === dbId && u.colName === colName);
           if (existingIdx >= 0) window.bulkPendingUpdates[existingIdx].newValue = newValue;
           else window.bulkPendingUpdates.push({ dbId, colName, newValue });
@@ -2808,7 +2748,18 @@ $(document).on("paste", function (e) {
     }
   });
 
-  // ടേബിൾ ഒരൊറ്റത്തവണ മാത്രം ഡ്രോ ചെയ്യുന്നു, വേഗത ഉറപ്പാക്കാൻ
-  erpDataTable.draw(false);
-  showToast(`Processed ${rows.length} rows. Please click 'Save All Changes'.`, "success");
+  // ⚡ ഒരൊറ്റ RAF-ൽ DOM update - browser hang ഇല്ല
+  requestAnimationFrame(() => {
+    domChanges.forEach(({ node, colIdx, newValue }) => {
+      let td = node.cells[colIdx];
+      if (td) td.textContent = newValue;
+    });
+
+    // New rows മാത്രം draw ചെയ്യണം (existing rows തൊടേണ്ട)
+    if (window.bulkPendingInserts.length > 0) {
+      erpDataTable.draw(false);
+    }
+
+    showToast(`✅ ${rows.length} rows processed. Click 'Save All Changes' to save.`, "success");
+  });
 });
