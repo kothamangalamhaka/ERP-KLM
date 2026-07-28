@@ -251,13 +251,11 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
   }
 });
 
-// 🟢 Save Generic Text Notes (PWAS, ERP, Payment Status, Accounts Note) via Double Click
+// 🟢 Save Generic Text Notes (PWAS, ERP, Payment Status, Accounts Note, diff_clear) via Double Click / Checkbox
 router.post("/save-text-note", async (req, res) => {
   try {
     const { plate_no, month, site_name, field, value } = req.body;
     
-    // Security check: Only allow these specific fields to be updated
-    // 🟢 'diff_clear' ഫീൽഡ് കൂടി ലിസ്റ്റിലേക്ക് ആഡ് ചെയ്തു
     const allowedFields = ["accounts_note", "pwas", "erp", "payment_status", "zoho", "diff_clear"];
     if (!allowedFields.includes(field)) {
       return res.json({ success: false, message: "Invalid field name." });
@@ -274,13 +272,15 @@ router.post("/save-text-note", async (req, res) => {
         [value, plate_no, month, site_name],
       );
     } else {
+      // Made INSERT safer to prevent silent errors
       await pool.query(
-        `INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_nr, ${field}) VALUES ($1, $2, $3, $4, $5, $6)`,
-        [plate_no, month, site_name, "", 0, value],
+        `INSERT INTO invoice_records (plate_no, month, site_name, ${field}) VALUES ($1, $2, $3, $4)`,
+        [plate_no, month, site_name, value],
       );
     }
     res.json({ success: true });
   } catch (err) {
+    console.error(`Error saving text note (${field}):`, err); 
     res.json({ success: false, message: err.message });
   }
 });

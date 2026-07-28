@@ -306,6 +306,29 @@ module.exports = function (pool, middlewares, helpers) {
   }
 
   // ==========================================
+  // ? ACTIVE USERS (HEARTBEAT SYSTEM)
+  // ==========================================
+  const activeUsers = new Map();
+
+  router.post("/heartbeat", verifyToken, (req, res) => {
+    activeUsers.set(req.user.username, Date.now());
+    res.json({ success: true });
+  });
+
+  router.get("/active-users", verifyToken, (req, res) => {
+    const now = Date.now();
+    const active = [];
+    for (let [username, lastSeen] of activeUsers.entries()) {
+      if (now - lastSeen < 60000) { // 1 Minute Timeout
+        active.push(username);
+      } else {
+        activeUsers.delete(username);
+      }
+    }
+    res.json({ success: true, count: active.length, users: active });
+  });
+  
+  // ==========================================
   // ? MASTER DATA ROUTES
   // ==========================================
 

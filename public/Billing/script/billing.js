@@ -815,18 +815,14 @@ function createBillCard(group, id) {
       otrate = parseFloat(saved.otrate);
     }
 
-    // 🟢 FIX: Strictly check if saved record has a vat_percent, otherwise default to master data
-    let vatPerc;
-if (saved) {
-    // saved record ഉണ്ടെങ്കിൽ — vat_percent null/undefined ആണെങ്കിൽ 0 treat ചെയ്യുക
-    // timesheet fallback വേണ്ട, user explicitly save ചെയ്തതാണ്
-    vatPerc = (saved.vat_percent !== null && saved.vat_percent !== undefined)
-        ? parseFloat(saved.vat_percent)
-        : 0;
-} else {
-    // saved record ഇല്ലെങ്കിൽ മാത്രം timesheet vat_bill നോക്കുക
-    vatPerc = item.vat_bill === "Yes" ? 15 : 0;
-}
+    // 🟢 FIX: Payment Report വഴി സേവ് ചെയ്ത ഡാറ്റയാണെങ്കിൽ (nrate = 0/null), Master Data-യിലെ VAT ഫ്രഷ് ആയി എടുക്കും.
+    let vatPerc = item.vat_bill === "Yes" ? 15 : 0; 
+    if (saved && saved.vat_percent !== null && saved.vat_percent !== undefined) {
+        // Billing Screen വഴി സേവ് ചെയ്തതാണോ എന്ന് നോക്കാൻ nrate > 0 അല്ലെങ്കിൽ rent > 0 ആണോ എന്ന് നോക്കുന്നു.
+        if (parseFloat(saved.nrate) > 0 || parseFloat(saved.rent) > 0) {
+            vatPerc = parseFloat(saved.vat_percent);
+        }
+    }
     let driverName = item.driver_name || item.driver || "";
     if (saved && saved.driver) driverName = saved.driver;
     let rowRemark = saved && saved.remark ? saved.remark : "";
@@ -1383,13 +1379,14 @@ if (vatSelect) {
             (s.site_name || "").trim().toUpperCase() ===
                 (match.site || match.site_name || "").trim().toUpperCase()
     );
-    if (saved) {
-        vatSelect.value = (saved.vat_percent !== null && saved.vat_percent !== undefined)
-            ? String(parseFloat(saved.vat_percent))
-            : "0";
-    } else {
-        vatSelect.value = match.vat_bill === "Yes" ? "15" : "0";
+    let vatVal = match.vat_bill === "Yes" ? "15" : "0"; // Default from Master
+    if (saved && saved.vat_percent !== null && saved.vat_percent !== undefined) {
+        // Billing Screen വഴി സേവ് ചെയ്തതാണോ എന്ന് നോക്കുന്നു (nrate > 0 or rent > 0)
+        if (parseFloat(saved.nrate) > 0 || parseFloat(saved.rent) > 0) {
+            vatVal = String(parseFloat(saved.vat_percent));
+        }
     }
+    vatSelect.value = vatVal;
 }
 
   calculateRow(input);

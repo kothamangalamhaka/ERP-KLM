@@ -4,6 +4,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let userRole = "";
 
   if (!token || !userStr) {
+    localStorage.removeItem("timesheetToken");
+    localStorage.removeItem("timesheetUser");
     window.location.replace("index.html"); 
     return;
   }

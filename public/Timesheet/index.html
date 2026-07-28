@@ -223,8 +223,12 @@
 
       // 🟢 AUTO REDIRECT TO INTENDED PAGE IF ALREADY LOGGED IN
       window.onload = () => {
-        if (localStorage.getItem("timesheetToken")) {
+        if (localStorage.getItem("timesheetToken") && localStorage.getItem("timesheetUser")) {
           window.location.href = redirectUrl;
+        } else {
+          // Clear incomplete data to prevent redirect loops
+          localStorage.removeItem("timesheetToken");
+          localStorage.removeItem("timesheetUser");
         }
       };
 
