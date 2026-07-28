@@ -1264,14 +1264,37 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
+  // New Route: Verify MDB_Lock PIN from .env
+  router.post("/verify-mdb-lock", verifyToken, (req, res) => {
+    const { pin } = req.body;
+    // Fallback to "123456" if not set in .env
+    const validPin = process.env.MDB_Lock || "123456"; 
+    
+    if (pin === validPin) {
+      res.json({ success: true, message: "Security PIN Verified" });
+    } else {
+      res.json({ success: false, message: "Invalid Security PIN!" });
+    }
+  });
+
+  // Updated Route: toggle-lock with PIN verification for unlocking
   router.post("/admin/toggle-lock", verifySuperAdmin, async (req, res) => {
     try {
-      const { colName, isLocked } = req.body;
+      const { colName, isLocked, pin } = req.body;
+      
+      // If the user is trying to unlock (isLocked = false), verify the PIN first
+      if (!isLocked) {
+         const validPin = process.env.MDB_Lock || "123456";
+         if (pin !== validPin) {
+             return res.json({ success: false, message: "Invalid Security PIN!" });
+         }
+      }
+
       await pool.query(
         "UPDATE erp_headers SET is_locked = $1 WHERE header_name = $2",
         [isLocked, colName],
       );
-      res.json({ success: true });
+      res.json({ success: true, message: isLocked ? "Column Locked" : "Column Unlocked" });
     } catch (error) {
       handleError(res, error, req.user.role, "TOGGLE_LOCK");
     }
