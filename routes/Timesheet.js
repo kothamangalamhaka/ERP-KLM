@@ -852,7 +852,7 @@ router.post("/api/upsert-grid-cell", verifyEditor, async (req, res) => {
     if (!allowedCols.includes(col_name))
       return res.json({ success: false, message: "Invalid column parameter" });
 
-    const query = `
+const query = `
             INSERT INTO timesheet_daily_records (month, year, plate_no, record_date, "${col_name}", calc_distance, calc_time) 
             VALUES ($1, $2, $3, $4, $5, $6, $7) 
             ON CONFLICT (month, year, plate_no, record_date) 
@@ -860,6 +860,10 @@ router.post("/api/upsert-grid-cell", verifyEditor, async (req, res) => {
                 "${col_name}" = EXCLUDED."${col_name}", 
                 calc_distance = EXCLUDED.calc_distance, 
                 calc_time = EXCLUDED.calc_time, 
+                bd = CASE 
+                       WHEN EXCLUDED.wrk_start IS NOT NULL AND EXCLUDED.wrk_end IS NOT NULL AND EXCLUDED.wrk_start != '' AND EXCLUDED.wrk_end != '' THEN NULL 
+                       ELSE timesheet_daily_records.bd 
+                     END,
                 updated_at = CURRENT_TIMESTAMP
         `;
     await pool.query(query, [

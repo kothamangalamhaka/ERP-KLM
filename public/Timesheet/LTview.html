@@ -1489,6 +1489,12 @@
           else if (bdStr === "F") bdStr = "Fri";
 
           let statusCode = getGapStatus(checkDate, sLogs, dLogs);
+          if (rec.wrk_start && rec.wrk_end && String(rec.wrk_start).trim() !== "" && String(rec.wrk_end).trim() !== "") {
+            if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "RE", "FRI", "Fri"].includes(bdStr)) {
+              bdStr = "";
+            }
+          }
+
           let hasData =
             timeRaw > 0 || bdStr !== "" || rec.wrk_start || rec.hmr_start;
           let noteStr = rec.remark || "";
