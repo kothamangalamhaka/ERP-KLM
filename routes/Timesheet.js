@@ -860,10 +860,6 @@ const query = `
                 "${col_name}" = EXCLUDED."${col_name}", 
                 calc_distance = EXCLUDED.calc_distance, 
                 calc_time = EXCLUDED.calc_time, 
-                bd = CASE 
-                       WHEN EXCLUDED.wrk_start IS NOT NULL AND EXCLUDED.wrk_end IS NOT NULL AND EXCLUDED.wrk_start != '' AND EXCLUDED.wrk_end != '' THEN NULL 
-                       ELSE timesheet_daily_records.bd 
-                     END,
                 updated_at = CURRENT_TIMESTAMP
         `;
     await pool.query(query, [
@@ -1153,6 +1149,10 @@ router.post("/api/db/bulk-import", verifyEditor, async (req, res) => {
         row["Plate No"] ||
         row["PLATE NO"];
       if (!pNo) continue;
+
+      if (row.wrk_start && row.wrk_end && isNaN(parseFloat(row.bd))) {
+        row.bd = null;
+      }
 
       pNo = String(pNo).trim().toUpperCase();
       let keys = ["plate_no"];

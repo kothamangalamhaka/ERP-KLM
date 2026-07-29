@@ -792,8 +792,9 @@ function renderGrid(
     let rowRemark = cleanVal(rowData.remark);
 
     if (ws !== "" && we !== "") {
-      if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "Re", "Fri", "FRI"].includes(displayBd))
+      if (isNaN(parseFloat(displayBd))) {
         displayBd = "";
+      }
     }
 
     let statusCode = getGapStatus(currentDateObj, siteLogs, driverLogs);
@@ -1041,7 +1042,7 @@ function calculateRow(rowIdx) {
   let bdCheck = bd.toUpperCase();
 
   if (ws !== "" && we !== "") {
-    if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "RE", "FRI"].includes(bdCheck)) {
+    if (isNaN(parseFloat(bdCheck)) && bdCheck !== "") {
       bd = "";
       bdInput.value = "";
       saveCellData(rowIdx, "bd", "");
@@ -1552,6 +1553,10 @@ async function importExcel() {
 
       let nlRaw = String(row["NL"]).trim().toUpperCase();
       let nl = nlRaw === "TRUE" || nlRaw === "Y" || nlRaw === "1";
+
+      if (ws && we && isNaN(parseFloat(bd))) {
+        bd = "";
+      }
 
       if (bd) {
         let bdNum = parseFloat(bd);
