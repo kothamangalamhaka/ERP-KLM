@@ -8,7 +8,7 @@ module.exports = function (pool, middlewares, helpers) {
   const { sendActivityTelegramMessage, generateAndSendBackup } = helpers;
 
   // ==========================================
-  // ? GLOBAL CONFIGURATIONS & CONSTANTS
+  // 📌 GLOBAL CONFIGURATIONS & CONSTANTS
   // ==========================================
   const COLUMNS = {
     SN: "SN",
@@ -51,9 +51,8 @@ module.exports = function (pool, middlewares, helpers) {
   };
 
   // ==========================================
-  // ? SHARED UTILITY FUNCTIONS
+  // 🛠️ SHARED UTILITY FUNCTIONS (Leak-Free)
   // ==========================================
-
   function formatPlateNumber(val) {
     if (!val) return "";
     let p = String(val).toUpperCase().trim();
@@ -107,26 +106,16 @@ module.exports = function (pool, middlewares, helpers) {
           .trim()
           .split(/[\/\- \.]/);
         const mNames = [
-          "JAN",
-          "FEB",
-          "MAR",
-          "APR",
-          "MAY",
-          "JUN",
-          "JUL",
-          "AUG",
-          "SEP",
-          "OCT",
-          "NOV",
-          "DEC",
+          "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+          "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
         ];
 
         if (p.length === 3) {
-          let d = parseInt(p[0]);
-          let m = isNaN(parseInt(p[1]))
+          let d = parseInt(p[0], 10);
+          let m = isNaN(parseInt(p[1], 10))
             ? mNames.indexOf(p[1].toUpperCase().substring(0, 3))
-            : parseInt(p[1]) - 1;
-          let y = p[2].length === 2 ? 2000 + parseInt(p[2]) : parseInt(p[2]);
+            : parseInt(p[1], 10) - 1;
+          let y = p[2].length === 2 ? 2000 + parseInt(p[2], 10) : parseInt(p[2], 10);
 
           if (!isNaN(d) && m !== -1 && !isNaN(y)) {
             return new Date(y, m, d);
@@ -153,6 +142,7 @@ module.exports = function (pool, middlewares, helpers) {
       (!rowData[relCol] || String(rowData[relCol]).trim() === "")
     )
       updates[relCol] = lwdVal;
+    
     if (
       statusVal === STATUS_ENUM.REPLACED &&
       lwdVal &&
@@ -161,7 +151,6 @@ module.exports = function (pool, middlewares, helpers) {
     )
       updates[repCol] = lwdVal;
 
-    // JSON Array to Multi-line String Logic for Excel & UI
     if (rowData.driver_history && Array.isArray(rowData.driver_history)) {
       let names = [],
         mobs = [],
@@ -179,11 +168,7 @@ module.exports = function (pool, middlewares, helpers) {
     return updates;
   }
 
-  async function autoClosePreviousRecord(
-    dbClient,
-    plateNumber,
-    newWorkStartStr,
-  ) {
+  async function autoClosePreviousRecord(dbClient, plateNumber, newWorkStartStr) {
     if (!plateNumber) return;
     try {
       const prevRecordRes = await dbClient.query(
@@ -219,39 +204,19 @@ module.exports = function (pool, middlewares, helpers) {
               .trim()
               .split(/[\/\- \.]/);
             const mNames = [
-              "JAN",
-              "FEB",
-              "MAR",
-              "APR",
-              "MAY",
-              "JUN",
-              "JUL",
-              "AUG",
-              "SEP",
-              "OCT",
-              "NOV",
-              "DEC",
+              "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+              "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
             ];
             if (p.length === 3) {
-              let d = parseInt(p[0]),
+              let d = parseInt(p[0], 10),
                 m = mNames.indexOf(p[1].toUpperCase().substring(0, 3)),
-                y = p[2].length === 2 ? 2000 + parseInt(p[2]) : parseInt(p[2]);
+                y = p[2].length === 2 ? 2000 + parseInt(p[2], 10) : parseInt(p[2], 10);
               if (!isNaN(d) && m !== -1 && !isNaN(y)) {
                 let dObj = new Date(y, m, d);
                 dObj.setDate(dObj.getDate() - 1);
                 const months = [
-                  "Jan",
-                  "Feb",
-                  "Mar",
-                  "Apr",
-                  "May",
-                  "Jun",
-                  "Jul",
-                  "Aug",
-                  "Sep",
-                  "Oct",
-                  "Nov",
-                  "Dec",
+                  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
                 ];
                 autoLwdVal = `${String(dObj.getDate()).padStart(2, "0")}-${months[dObj.getMonth()]}-${dObj.getFullYear()}`;
               }
@@ -268,9 +233,7 @@ module.exports = function (pool, middlewares, helpers) {
             ) {
               if (!prevData.driver_history) prevData.driver_history = [];
               prevData.driver_history.push({
-                id:
-                  Date.now().toString(36) +
-                  Math.random().toString(36).substr(2, 5),
+                id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
                 name: prevData[dNameCol],
                 mob: prevData[dMobCol] || "",
                 start: prevData[dStartCol] || "IDK",
@@ -306,7 +269,7 @@ module.exports = function (pool, middlewares, helpers) {
   }
 
   // ==========================================
-  // ? MASTER DATA ROUTES
+  // 🚀 API ROUTES (Memory-Optimized)
   // ==========================================
 
   router.post("/get-master-data", verifyToken, async (req, res) => {
@@ -386,7 +349,6 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
-  // ? BACKEND API FOR BULK EDIT / BATCH UPDATE
   router.post("/update-cells-batch", verifyToken, async (req, res) => {
     const client = await pool.connect();
     try {
@@ -417,7 +379,6 @@ module.exports = function (pool, middlewares, helpers) {
         let calculatedUpdates = calculateDependentFields(simulatedRow);
         Object.assign(payload, calculatedUpdates);
 
-        // Single update query for each row dynamically mapping changes
         await client.query(
           `UPDATE erp_records SET record_data = record_data || $1::jsonb, plate_number = COALESCE(($1::jsonb->>'${COLUMNS.PLATE_NUMBER}'), plate_number), site = COALESCE(($1::jsonb->>'${COLUMNS.SITE}'), site), updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
           [JSON.stringify(payload), dbId],
@@ -439,595 +400,12 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
-  router.post("/update-cell", verifyToken, async (req, res) => {
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      let { dbId, colName, newValue } = req.body;
-      if (req.user.role === "Viewer")
-        throw new Error("Access Denied: Viewers cannot edit data.");
-      if (!colName || dbId === undefined)
-        throw new Error("Invalid payload data.");
-      if (String(colName).trim().toUpperCase() === COLUMNS.PLATE_NUMBER)
-        newValue = formatPlateNumber(newValue);
-
-      const recordRes = await client.query(
-        "SELECT record_data FROM erp_records WHERE id = $1 AND deleted_at IS NULL",
-        [dbId],
-      );
-      if (recordRes.rows.length === 0)
-        throw new Error("Record not found or has been deleted.");
-
-      let currentData = recordRes.rows[0].record_data;
-      let oldValue = currentData[colName] || "";
-      let plateNumber =
-        currentData[COLUMNS.PLATE_NUMBER] ||
-        currentData["Plate No"] ||
-        "Unknown Plate";
-
-      if (oldValue !== newValue) {
-        let payload = { [colName]: newValue };
-        let simulatedRow = { ...currentData, ...payload };
-        let calculatedUpdates = calculateDependentFields(simulatedRow);
-        Object.assign(payload, calculatedUpdates);
-
-        await client.query(
-          `UPDATE erp_records SET record_data = record_data || $1::jsonb, plate_number = COALESCE(($1::jsonb->>'${COLUMNS.PLATE_NUMBER}'), plate_number), site = COALESCE(($1::jsonb->>'${COLUMNS.SITE}'), site), updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-          [JSON.stringify(payload), dbId],
-        );
-        await client.query(
-          "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'UPDATE_CELL', $2)",
-          [
-            req.user.username,
-            JSON.stringify({
-              plate: plateNumber,
-              column: colName,
-              old_value: oldValue,
-              new_value: newValue,
-            }),
-          ],
-        );
-
-        if (String(colName).toUpperCase() === COLUMNS.STATUS) {
-          await triggerStatusAlert(
-            simulatedRow,
-            plateNumber,
-            oldValue,
-            newValue,
-            req.user.username,
-          );
-        }
-      }
-      await client.query("COMMIT");
-      res.json({ success: true });
-    } catch (error) {
-      await client.query("ROLLBACK");
-      handleError(res, error, req.user.role, "UPDATE_CELL");
-    } finally {
-      client.release();
-    }
-  });
-
-  async function triggerStatusAlert(
-    rowData,
-    plateNumber,
-    oldStatus,
-    newStatus,
-    username,
-  ) {
-    const getVal = (k) => {
-      const fk = Object.keys(rowData).find((key) =>
-        key
-          .replace(/\s+/g, "")
-          .toLowerCase()
-          .includes(k.replace(/\s+/g, "").toLowerCase()),
-      );
-      return fk ? rowData[fk] : null;
-    };
-    await sendActivityTelegramMessage(
-      `🔔 <b>STATUS UPDATED</b>\n\n<b>Plate:</b> ${plateNumber}\n<b>Old Status:</b> ${oldStatus || "Blank"}\n<b>New Status:</b> ${newStatus}\n\n<b>Site:</b> ${getVal(COLUMNS.SITE) || "N/A"}\n<b>Company:</b> ${getVal(COLUMNS.COMPANY) || "N/A"}\n<b>Customer:</b> ${getVal(COLUMNS.CUSTOMER) || "N/A"}\n\n<b>Work Start:</b> ${getVal(COLUMNS.WORK_START) || "N/A"}\n<b>Last Working Day:</b> ${getVal(COLUMNS.LAST_WORKING_DAY) || "N/A"}\n<b>Days Worked:</b> ${getVal(COLUMNS.DAYS_WORKED) || "N/A"}\n\n<b>Updated by:</b> @${username}`,
-    );
-  }
-
-  // ==========================================
-  // ? EXCEL BULK IMPORT (WITH STRING DATE FIX)
-  // ==========================================
-  router.post("/admin/import-excel", verifySuperAdmin, async (req, res) => {
-    const client = await pool.connect();
-    try {
-      const { fileBase64, importMode } = req.body;
-      const buffer = Buffer.from(fileBase64.split(",")[1], "base64");
-
-      const workbook = new excelJS.Workbook();
-      workbook.date1904 = false;
-      await workbook.xlsx.load(buffer);
-
-      const sheet1 = workbook.worksheets[0];
-      let headers = [];
-      sheet1.getRow(1).eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        headers[colNumber] = cell.value
-          ? String(cell.value).trim()
-          : `Col${colNumber}`;
-      });
-
-      let hasPlate = headers.some(
-        (h) => h && h.toUpperCase().includes("PLATE"),
-      );
-      let hasSite = headers.some((h) => h && h.toUpperCase() === "SITE");
-
-      if (!hasPlate || !hasSite)
-        return res.json({
-          success: false,
-          message:
-            "Validation Failed: 'Plate Number' and 'Site' columns are mandatory. Import aborted.",
-        });
-
-      if (importMode === "rewrite") await generateAndSendBackup();
-
-      await client.query("BEGIN");
-      let snCounter = 1;
-
-      if (importMode === "rewrite") {
-        await client.query(
-          "TRUNCATE TABLE erp_records RESTART IDENTITY CASCADE",
-        );
-        await client.query(
-          "TRUNCATE TABLE erp_headers RESTART IDENTITY CASCADE",
-        );
-        let validHeadersCount = 1;
-        for (let i = 1; i < headers.length; i++) {
-          let hName = headers[i];
-          if (hName) {
-            let type = "varchar";
-            if (
-              hName.toUpperCase().includes("DATE") ||
-              hName.toUpperCase().includes("EXPIRE") ||
-              hName.toUpperCase().includes("EQUIPMENT REACHED")
-            ) {
-              type = "date";
-            }
-            await client.query(
-              "INSERT INTO erp_headers (header_name, col_order, col_type) VALUES ($1, $2, $3)",
-              [hName, validHeadersCount++, type],
-            );
-          }
-        }
-      } else {
-        const snRes = await client.query(
-          "SELECT COALESCE(MAX(sn), 0) as max_sn FROM erp_records",
-        );
-        snCounter = parseInt(snRes.rows[0].max_sn) + 1;
-      }
-
-      const months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
-
-      sheet1.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return;
-        let rowData = {};
-        let plateVal = "",
-          siteVal = "";
-
-        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-          let hName = headers[colNumber];
-          if (hName) {
-            let val = cell.value;
-
-            if (val && typeof val === "object" && val.result !== undefined) {
-              val = val.result;
-            }
-
-            // 2. STRICT EXCEL DATE CONVERSION (IST offset fix)
-            if (val && val instanceof Date) {
-              const istOffset = 5.5 * 60 * 60 * 1000;
-              const corrected = new Date(val.getTime() + istOffset);
-              let day = String(corrected.getUTCDate()).padStart(2, "0");
-              let month = corrected.getUTCMonth();
-              let year = corrected.getUTCFullYear();
-              val = `${day}-${months[month]}-${year}`;
-            } else if (
-              typeof val === "string" &&
-              val.match(/^\d{4}-\d{2}-\d{2}T/)
-            ) {
-              const istOffset = 5.5 * 60 * 60 * 1000;
-              const corrected = new Date(new Date(val).getTime() + istOffset);
-              let day = String(corrected.getUTCDate()).padStart(2, "0");
-              let month = corrected.getUTCMonth();
-              let year = corrected.getUTCFullYear();
-              val = `${day}-${months[month]}-${year}`;
-            }
-            // 3. Fallback for Rich Text / Formatted objects
-            else if (val && typeof val === "object" && val.text) {
-              val = val.text;
-            }
-
-            val = val !== null && val !== undefined ? String(val).trim() : "";
-            rowData[hName] = val;
-            if (hName.toUpperCase().includes("PLATE")) plateVal = val;
-            if (hName.toUpperCase() === "SITE") siteVal = val;
-          }
-        });
-
-        const getColName = (matchStr) =>
-          Object.keys(rowData).find((k) =>
-            k
-              .replace(/\s+/g, "")
-              .toUpperCase()
-              .includes(matchStr.replace(/\s+/g, "").toUpperCase()),
-          );
-
-        let oldNames = rowData[getColName(COLUMNS.OLD_DRIVER)]
-          ? String(rowData[getColName(COLUMNS.OLD_DRIVER)]).split("\n")
-          : [];
-        let oldMobs = rowData[getColName(COLUMNS.OD_MOB)]
-          ? String(rowData[getColName(COLUMNS.OD_MOB)]).split("\n")
-          : [];
-        let oldDates = rowData[getColName(COLUMNS.OD_WORK_END)]
-          ? String(rowData[getColName(COLUMNS.OD_WORK_END)]).split("\n")
-          : [];
-
-        if (oldNames.length > 0) {
-          rowData.driver_history = [];
-          for (let i = 0; i < oldNames.length; i++) {
-            if (oldNames[i].trim() !== "" || oldDates[i]) {
-              let parts = (oldDates[i] || "").split("to");
-              rowData.driver_history.push({
-                id:
-                  Date.now().toString(36) +
-                  Math.random().toString(36).substr(2, 5),
-                name: oldNames[i].trim(),
-                mob: oldMobs[i] ? oldMobs[i].trim() : "",
-                start: parts[0] ? parts[0].trim() : "IDK",
-                end: parts[1] ? parts[1].trim() : "IDK",
-                updated_by: "Excel Import",
-              });
-            }
-          }
-        }
-
-        let calculatedUpdates = calculateDependentFields(rowData);
-        Object.assign(rowData, calculatedUpdates);
-
-        let wsColNew = getColName(COLUMNS.WORK_START);
-        let wsValNew = wsColNew ? rowData[wsColNew] : null;
-        autoClosePreviousRecord(client, formatPlateNumber(plateVal), wsValNew);
-
-        client.query(
-          "INSERT INTO erp_records (sn, plate_number, site, record_data) VALUES ($1, $2, $3, $4)",
-          [snCounter++, formatPlateNumber(plateVal), siteVal, rowData],
-        );
-      });
-
-      const actionLabel =
-        importMode === "rewrite" ? "BULK_IMPORT_REWRITE" : "BULK_IMPORT_APPEND";
-      await client.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, $2, $3)",
-        [req.user.username, actionLabel, JSON.stringify({})],
-      );
-
-      await client.query("COMMIT");
-      const successMessage =
-        importMode === "rewrite"
-          ? "Database wiped and imported successfully!"
-          : "New data appended to the database successfully!";
-      res.json({ success: true, message: successMessage });
-    } catch (error) {
-      await client.query("ROLLBACK");
-      handleError(res, error, req.user.role, "IMPORT_EXCEL");
-    } finally {
-      client.release();
-    }
-  });
-
-  // ==========================================
-  // ? OTHER ROUTES
-  // ==========================================
-  router.post("/update-driver", verifyToken, async (req, res) => {
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      if (req.user.role === "Viewer")
-        throw new Error("Access Denied: Viewers cannot edit data.");
-
-      const {
-        dbId,
-        plate_number,
-        currentDriver,
-        currentMob,
-        oldWorkStart,
-        workEnd,
-        newDriver,
-        newMob,
-        newWorkStart,
-      } = req.body;
-      if (!dbId || !plate_number || !workEnd)
-        throw new Error(
-          "Missing required driver details (End Date is mandatory).",
-        );
-
-      const recordRes = await client.query(
-        "SELECT record_data FROM erp_records WHERE id = $1",
-        [dbId],
-      );
-      if (recordRes.rows.length === 0) throw new Error("Record not found.");
-
-      let data = recordRes.rows[0].record_data;
-      if (!data.driver_history) data.driver_history = [];
-      const getCol = (k) =>
-        Object.keys(data).find(
-          (key) =>
-            key.replace(/\s+/g, "").toUpperCase() ===
-            k.replace(/\s+/g, "").toUpperCase(),
-        ) || k;
-
-      if (currentDriver && currentDriver.trim() !== "") {
-        data.driver_history.push({
-          id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-          name: currentDriver,
-          mob: currentMob,
-          start: oldWorkStart,
-          end: workEnd,
-          updated_by: req.user.username,
-        });
-      }
-
-      let payload = {};
-      if (newDriver && newDriver.trim() !== "") {
-        payload = {
-          [getCol(COLUMNS.DRIVER_NAME)]: newDriver,
-          [getCol(COLUMNS.MOBILE)]: newMob,
-          [getCol(COLUMNS.WORK_START)]: newWorkStart,
-          [getCol(COLUMNS.STATUS)]: "Running",
-          driver_history: data.driver_history,
-        };
-      } else {
-        payload = {
-          [getCol(COLUMNS.DRIVER_NAME)]: "",
-          [getCol(COLUMNS.MOBILE)]: "",
-          [getCol(COLUMNS.WORK_START)]: "",
-          [getCol(COLUMNS.LAST_WORKING_DAY)]: workEnd,
-          [getCol(COLUMNS.STATUS)]: "Released",
-          driver_history: data.driver_history,
-        };
-      }
-
-      let simulatedRow = { ...data, ...payload };
-      let calculatedUpdates = calculateDependentFields(simulatedRow);
-      Object.assign(payload, calculatedUpdates);
-
-      await client.query(
-        "UPDATE erp_records SET record_data = record_data || $1::jsonb WHERE id = $2",
-        [JSON.stringify(payload), dbId],
-      );
-
-      let newDName = newDriver ? newDriver : "None (Released)";
-      let newDStart = newWorkStart ? newWorkStart : "N/A";
-
-      await client.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'UPDATE_DRIVER', $2)",
-        [
-          req.user.username,
-          JSON.stringify({
-            plate: plate_number,
-            old_driver: currentDriver,
-            new_driver: newDName,
-          }),
-        ],
-      );
-      await sendActivityTelegramMessage(
-        `🔄 <b>DRIVER UPDATED</b>\n\n<b>Plate:</b> ${plate_number}\n\n<b>[ OLD DRIVER ]</b>\n<b>Name:</b> ${currentDriver || "None"}\n<b>Work Start:</b> ${oldWorkStart || "N/A"}\n<b>Work End:</b> ${workEnd}\n\n<b>[ NEW DRIVER ]</b>\n<b>Name:</b> ${newDName}\n<b>Work Start:</b> ${newDStart}\n\n<b>Updated by:</b> @${req.user.username}`,
-      );
-      await client.query("COMMIT");
-      res.json({
-        success: true,
-        message: "Driver updated and logged successfully!",
-      });
-    } catch (error) {
-      await client.query("ROLLBACK");
-      handleError(res, error, req.user.role, "UPDATE_DRIVER");
-    } finally {
-      client.release();
-    }
-  });
-
-  router.post("/get-driver-logs", verifyToken, async (req, res) => {
-    try {
-      const { dbId } = req.body;
-      if (!dbId) throw new Error("Record ID required.");
-
-      let curRes = await pool.query(
-        "SELECT record_data FROM erp_records WHERE id = $1 AND deleted_at IS NULL",
-        [dbId],
-      );
-      if (curRes.rows.length === 0)
-        return res.json({ success: true, logs: [] });
-
-      const data = curRes.rows[0].record_data;
-      const getCol = (k) =>
-        Object.keys(data).find(
-          (key) =>
-            key.replace(/\s+/g, "").toUpperCase() ===
-            k.replace(/\s+/g, "").toUpperCase(),
-        ) || k;
-
-      let currentLog = null;
-      const dName = data[getCol(COLUMNS.DRIVER_NAME)];
-      const statusVal = String(
-        data[getCol(COLUMNS.STATUS)] || "",
-      ).toLowerCase();
-
-      if (
-        dName &&
-        dName.trim() !== "" &&
-        (statusVal === "running" || statusVal === "mobilizing")
-      ) {
-        currentLog = {
-          id: "current",
-          driver_name: dName,
-          mobile: data[getCol(COLUMNS.MOBILE)] || "",
-          work_start: data[getCol(COLUMNS.WORK_START)] || "IDK",
-          work_end: "Present",
-          updated_by: "System",
-        };
-      }
-
-      let historyArray = data.driver_history || [];
-      let finalLogs = [];
-      if (currentLog) finalLogs.push(currentLog);
-
-      historyArray
-        .slice()
-        .reverse()
-        .forEach((h) => {
-          finalLogs.push({
-            id: h.id,
-            driver_name: h.name,
-            mobile: h.mob,
-            work_start: h.start,
-            work_end: h.end,
-            updated_by: h.updated_by,
-          });
-        });
-
-      res.json({ success: true, logs: finalLogs });
-    } catch (error) {
-      handleError(res, error, req.user.role, "GET_DRIVER_LOGS");
-    }
-  });
-
-  router.post("/add-past-driver-log", verifyToken, async (req, res) => {
-    try {
-      if (req.user.role === "Viewer")
-        throw new Error("Access Denied: Viewers cannot edit data.");
-      const { dbId, driverName, mobile, workStart, workEnd } = req.body;
-      if (!dbId || !driverName || !workStart || !workEnd)
-        throw new Error("Missing required fields for past log.");
-
-      let curRes = await pool.query(
-        "SELECT record_data FROM erp_records WHERE id = $1",
-        [dbId],
-      );
-      let data = curRes.rows[0].record_data;
-      if (!data.driver_history) data.driver_history = [];
-
-      data.driver_history.push({
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-        name: driverName,
-        mob: mobile,
-        start: workStart,
-        end: workEnd,
-        updated_by: req.user.username,
-      });
-
-      let calcUpdates = calculateDependentFields(data);
-      Object.assign(data, calcUpdates);
-
-      await pool.query(
-        "UPDATE erp_records SET record_data = $1 WHERE id = $2",
-        [data, dbId],
-      );
-      await pool.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'ADD_PAST_LOG', $2)",
-        [req.user.username, JSON.stringify({ driver_name: driverName })],
-      );
-      res.json({
-        success: true,
-        message: "Past driver log added successfully!",
-      });
-    } catch (error) {
-      handleError(res, error, req.user.role, "ADD_PAST_LOG");
-    }
-  });
-
-  router.post("/edit-driver-log", verifyToken, async (req, res) => {
-    try {
-      if (req.user.role === "Viewer")
-        throw new Error("Viewer cannot edit logs.");
-      const { dbId, logId, driverName, mobile, workStart, workEnd } = req.body;
-
-      let curRes = await pool.query(
-        "SELECT record_data FROM erp_records WHERE id = $1",
-        [dbId],
-      );
-      let data = curRes.rows[0].record_data;
-      let history = data.driver_history || [];
-      let logIndex = history.findIndex((h) => h.id === logId);
-
-      if (logIndex !== -1) {
-        history[logIndex].name = driverName;
-        history[logIndex].mob = mobile;
-        history[logIndex].start = workStart;
-        history[logIndex].end = workEnd;
-        history[logIndex].updated_by = req.user.username;
-
-        let calcUpdates = calculateDependentFields(data);
-        Object.assign(data, calcUpdates);
-        await pool.query(
-          "UPDATE erp_records SET record_data = $1 WHERE id = $2",
-          [data, dbId],
-        );
-      }
-
-      await pool.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'EDIT_DRIVER_LOG', $2)",
-        [req.user.username, JSON.stringify({ driver_name: driverName })],
-      );
-      res.json({ success: true, message: "Driver log updated successfully!" });
-    } catch (error) {
-      handleError(res, error, req.user.role, "EDIT_DRIVER_LOG");
-    }
-  });
-
-  router.post("/delete-driver-log", verifyToken, async (req, res) => {
-    try {
-      if (req.user.role === "Viewer")
-        throw new Error("Access Denied: Viewers cannot delete logs.");
-      const { dbId, logId } = req.body;
-      if (!dbId || !logId) throw new Error("Log ID and DB ID are required.");
-
-      let curRes = await pool.query(
-        "SELECT record_data FROM erp_records WHERE id = $1",
-        [dbId],
-      );
-      let data = curRes.rows[0].record_data;
-      if (data.driver_history) {
-        data.driver_history = data.driver_history.filter((h) => h.id !== logId);
-        let calcUpdates = calculateDependentFields(data);
-        Object.assign(data, calcUpdates);
-        await pool.query(
-          "UPDATE erp_records SET record_data = $1 WHERE id = $2",
-          [data, dbId],
-        );
-      }
-
-      await pool.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'DELETE_DRIVER_LOG', $2)",
-        [req.user.username, JSON.stringify({ log_id: logId })],
-      );
-      res.json({ success: true, message: "Driver log deleted successfully!" });
-    } catch (error) {
-      handleError(res, error, req.user.role, "DELETE_DRIVER_LOG");
-    }
-  });
-
   router.post("/add-row", verifyToken, async (req, res) => {
     try {
       if (req.user.role === "Viewer")
         throw new Error("Viewers cannot add rows.");
       let { rowDataObj } = req.body;
-      let sn = parseInt(rowDataObj[COLUMNS.SN] || 1);
+      let sn = parseInt(rowDataObj[COLUMNS.SN] || 1, 10);
       let plate = formatPlateNumber(rowDataObj[COLUMNS.PLATE_NUMBER] || "");
       let site = rowDataObj[COLUMNS.SITE] || "";
 
@@ -1061,233 +439,6 @@ module.exports = function (pool, middlewares, helpers) {
       handleError(res, error, req.user.role, "ADD_ROW");
     }
   });
-
-  router.post("/add-column-relative", verifyEditor, async (req, res) => {
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      const { colName, relativeTo, position, colType } = req.body;
-      const headersRes = await client.query(
-        "SELECT header_name, col_order FROM erp_headers WHERE deleted_at IS NULL ORDER BY col_order ASC",
-      );
-      const currentHeaders = headersRes.rows;
-      const relativeIdx = currentHeaders.findIndex(
-        (h) => h.header_name === relativeTo,
-      );
-      if (relativeIdx === -1) throw new Error("Relative column not found.");
-      const newOrder =
-        position === "left"
-          ? currentHeaders[relativeIdx].col_order
-          : currentHeaders[relativeIdx].col_order + 1;
-      await client.query(
-        "UPDATE erp_headers SET col_order = col_order + 1 WHERE col_order >= $1 AND deleted_at IS NULL",
-        [newOrder],
-      );
-      await client.query(
-        "INSERT INTO erp_headers (header_name, col_order, col_type) VALUES ($1, $2, $3)",
-        [colName, newOrder, colType || "varchar"],
-      );
-      await client.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'ADD_COLUMN', $2)",
-        [req.user.username, JSON.stringify({ column: colName, type: colType })],
-      );
-      await client.query("COMMIT");
-      res.json({ success: true });
-    } catch (error) {
-      await client.query("ROLLBACK");
-      handleError(res, error, req.user.role, "ADD_COLUMN_RELATIVE");
-    } finally {
-      client.release();
-    }
-  });
-
-  router.post("/admin/delete-column", verifySuperAdmin, async (req, res) => {
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      const { colName, adminPassword } = req.body;
-      const normCol = String(colName).replace(/\s+/g, " ").trim().toUpperCase();
-      if (FIXED_COLUMNS.includes(normCol))
-        throw new Error("This is a core system column and cannot be deleted.");
-      const adminRes = await client.query(
-        "SELECT password_hash FROM users WHERE id = $1",
-        [req.user.id],
-      );
-      const isValid = await bcrypt.compare(
-        adminPassword,
-        adminRes.rows[0].password_hash,
-      );
-      if (!isValid)
-        throw new Error("Incorrect Super Admin Password. Action Denied.");
-      await client.query(
-        "UPDATE erp_headers SET deleted_at = CURRENT_TIMESTAMP WHERE header_name = $1",
-        [colName],
-      );
-      await client.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'DELETE_COLUMN', $2)",
-        [req.user.username, JSON.stringify({ column: colName })],
-      );
-      await client.query("COMMIT");
-      res.json({
-        success: true,
-        message: "Column moved to recycle bin (Soft Delete)!",
-      });
-    } catch (error) {
-      await client.query("ROLLBACK");
-      handleError(res, error, req.user.role, "DELETE_COLUMN");
-    } finally {
-      client.release();
-    }
-  });
-
-  router.post("/admin/set-alignment", verifySuperAdmin, async (req, res) => {
-    try {
-      const { colName, alignment } = req.body;
-      await pool.query(
-        "UPDATE erp_headers SET alignment = $1 WHERE header_name = $2",
-        [alignment, colName],
-      );
-      res.json({ success: true });
-    } catch (error) {
-      handleError(res, error, req.user.role, "SET_ALIGNMENT");
-    }
-  });
-
-  router.post("/add-column", verifyToken, async (req, res) => {
-    try {
-      if (req.user.role === "Viewer") throw new Error("Access Denied");
-      const { colName, colType } = req.body;
-      const countRes = await pool.query(
-        "SELECT COUNT(*) FROM erp_headers WHERE deleted_at IS NULL",
-      );
-      await pool.query(
-        "INSERT INTO erp_headers (header_name, col_order, col_type) VALUES ($1, $2, $3)",
-        [colName, parseInt(countRes.rows[0].count) + 1, colType || "varchar"],
-      );
-      await pool.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'ADD_COLUMN', $2)",
-        [req.user.username, JSON.stringify({ column: colName, type: colType })],
-      );
-      res.json({ success: true });
-    } catch (error) {
-      handleError(res, error, req.user.role, "ADD_COLUMN");
-    }
-  });
-
-  router.post("/admin/toggle-lock", verifySuperAdmin, async (req, res) => {
-    try {
-      const { colName, isLocked } = req.body;
-      await pool.query(
-        "UPDATE erp_headers SET is_locked = $1 WHERE header_name = $2",
-        [isLocked, colName],
-      );
-      res.json({ success: true });
-    } catch (error) {
-      handleError(res, error, req.user.role, "TOGGLE_LOCK");
-    }
-  });
-
-  router.post("/admin/rename-column", verifySuperAdmin, async (req, res) => {
-    try {
-      const { oldName, newName, colType } = req.body;
-      if (!oldName || !newName) throw new Error("Invalid names.");
-      let finalNewName = newName.trim();
-      let finalType = colType || "varchar";
-      const normOld = String(oldName).replace(/\s+/g, " ").trim().toUpperCase();
-      if (FIXED_COLUMNS.includes(normOld))
-        throw new Error("This is a core system column and cannot be renamed.");
-
-      if (oldName !== finalNewName) {
-        const check = await pool.query(
-          "SELECT * FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL",
-          [finalNewName],
-        );
-        if (check.rows.length > 0)
-          throw new Error("Column name already exists.");
-        await pool.query(
-          "UPDATE erp_headers SET header_name = $1, col_type = $3 WHERE header_name = $2",
-          [finalNewName, oldName, finalType],
-        );
-        await pool.query(
-          `UPDATE erp_records SET record_data = (record_data - $2) || jsonb_build_object($1::text, record_data->$2) WHERE record_data ? $2`,
-          [finalNewName, oldName],
-        );
-      } else {
-        await pool.query(
-          "UPDATE erp_headers SET col_type = $1 WHERE header_name = $2",
-          [finalType, oldName],
-        );
-      }
-      res.json({ success: true, message: "Column updated successfully!" });
-    } catch (error) {
-      handleError(res, error, req.user.role, "RENAME_COLUMN");
-    }
-  });
-
-  router.post(
-    "/admin/update-owner-name",
-    verifySuperAdmin,
-    async (req, res) => {
-      try {
-        const { oldName, newName } = req.body;
-        if (!oldName || !newName || oldName.trim() === newName.trim())
-          throw new Error("Invalid names.");
-        await pool.query(
-          `UPDATE erp_records SET record_data = jsonb_set(record_data, '{Owner}', $1::jsonb) WHERE record_data->>'Owner' = $2`,
-          [`"${newName.trim()}"`, oldName],
-        );
-        res.json({
-          success: true,
-          message: "Owner name updated successfully!",
-        });
-      } catch (error) {
-        handleError(res, error, req.user.role, "UPDATE_OWNER_NAME");
-      }
-    },
-  );
-
-  router.get(
-    "/admin/recycle-bin/columns",
-    verifySuperAdmin,
-    async (req, res) => {
-      try {
-        const result = await pool.query(
-          `SELECT header_name, deleted_at FROM erp_headers WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC`,
-        );
-        res.json({ success: true, columns: result.rows });
-      } catch (error) {
-        handleError(res, error, req.user.role, "GET_RECYCLE_BIN");
-      }
-    },
-  );
-
-  router.post(
-    "/admin/recycle-bin/restore-column",
-    verifySuperAdmin,
-    async (req, res) => {
-      const client = await pool.connect();
-      try {
-        await client.query("BEGIN");
-        const { colName } = req.body;
-        if (!colName) throw new Error("Column name is required.");
-        await client.query(
-          "UPDATE erp_headers SET deleted_at = NULL WHERE header_name = $1",
-          [colName],
-        );
-        await client.query(
-          "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'RESTORE_COLUMN', $2)",
-          [req.user.username, JSON.stringify({ column: colName })],
-        );
-        await client.query("COMMIT");
-        res.json({ success: true, message: "Column restored successfully!" });
-      } catch (error) {
-        await client.query("ROLLBACK");
-        handleError(res, error, req.user.role, "RESTORE_COLUMN");
-      } finally {
-        client.release();
-      }
-    },
-  );
 
   return router;
 };
