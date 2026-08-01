@@ -1208,13 +1208,25 @@ function toggleHeaderWrap() {
   if (erpDataTable) erpDataTable.columns.adjust().draw(false);
 }
 
+function updateActiveUsersUI(users) {
+  const count = users.length;
+  document.getElementById("activeCountDisplay").innerText = `${count} active`;
+  const tooltipText = "Currently Active Users:\n• " + users.join("\n• ");
+  document.getElementById("activeUsersBadge").setAttribute("title", tooltipText);
+}
+
 function renderTable(response) {
   if ($(".edit-input").length > 0 || saveQueue.length > 0) return;
   let scrollWrapper = document.querySelector(".table-scroll-wrapper"),
     preserveScrollTop = scrollWrapper ? scrollWrapper.scrollTop : 0,
     preserveScrollLeft = scrollWrapper ? scrollWrapper.scrollLeft : 0;
   document.getElementById("loader").style.display = "none";
-  if (response.success) updateSyncUI("live");
+  if (response.success) {
+    updateSyncUI("live");
+    if (response.activeUsers) {
+      updateActiveUsersUI(response.activeUsers);
+    }
+  }
   const tableEl = document.getElementById("erpTable");
   tableEl.style.display = "table";
 
@@ -2455,11 +2467,7 @@ function attachEditListeners() {
         return showToast("Column is locked by Super Admin.", "error");
       if (colUpper === "SN")
         return showToast("Access Denied: SN is auto-generated.", "error");
-      if (
-        ["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(
-          colUpper,
-        )
-      )
+      if (colUpper === "DAYS WORKED")
         return showToast("Auto calculated column.", "warning");
 
       let oldVal = $cell.text(),
@@ -2686,14 +2694,7 @@ $(document).on(
 
         let colUpper = String(colName).toUpperCase();
 
-        // Protect Auto-Generated & Calculated Columns
-        if (
-          colUpper === "SN" ||
-          ["OD WRK END", "DAYS WORKED", "OLD DRIVER NAME", "OD MOB"].includes(
-            colUpper,
-          )
-        )
-          return;
+        if (colUpper === "SN" || colUpper === "DAYS WORKED") return;
         if (
           globalLockedCols.includes(colName) &&
           currentUser.role !== "Super Admin"

@@ -106,8 +106,18 @@ module.exports = function (pool, middlewares, helpers) {
           .trim()
           .split(/[\/\- \.]/);
         const mNames = [
-          "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-          "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL",
+          "AUG",
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
         ];
 
         if (p.length === 3) {
@@ -115,7 +125,8 @@ module.exports = function (pool, middlewares, helpers) {
           let m = isNaN(parseInt(p[1], 10))
             ? mNames.indexOf(p[1].toUpperCase().substring(0, 3))
             : parseInt(p[1], 10) - 1;
-          let y = p[2].length === 2 ? 2000 + parseInt(p[2], 10) : parseInt(p[2], 10);
+          let y =
+            p[2].length === 2 ? 2000 + parseInt(p[2], 10) : parseInt(p[2], 10);
 
           if (!isNaN(d) && m !== -1 && !isNaN(y)) {
             return new Date(y, m, d);
@@ -142,7 +153,7 @@ module.exports = function (pool, middlewares, helpers) {
       (!rowData[relCol] || String(rowData[relCol]).trim() === "")
     )
       updates[relCol] = lwdVal;
-    
+
     if (
       statusVal === STATUS_ENUM.REPLACED &&
       lwdVal &&
@@ -151,24 +162,14 @@ module.exports = function (pool, middlewares, helpers) {
     )
       updates[repCol] = lwdVal;
 
-    if (rowData.driver_history && Array.isArray(rowData.driver_history)) {
-      let names = [],
-        mobs = [],
-        dates = [];
-      rowData.driver_history.forEach((log) => {
-        names.push(log.name || "-");
-        mobs.push(log.mob || "-");
-        dates.push(`${log.start || "?"} to ${log.end || "?"}`);
-      });
-      updates[getCol(COLUMNS.OLD_DRIVER)] = names.join("\n");
-      updates[getCol(COLUMNS.OD_MOB)] = mobs.join("\n");
-      updates[getCol(COLUMNS.OD_WORK_END)] = dates.join("\n");
-    }
-
     return updates;
   }
 
-  async function autoClosePreviousRecord(dbClient, plateNumber, newWorkStartStr) {
+  async function autoClosePreviousRecord(
+    dbClient,
+    plateNumber,
+    newWorkStartStr,
+  ) {
     if (!plateNumber) return;
     try {
       const prevRecordRes = await dbClient.query(
@@ -204,19 +205,42 @@ module.exports = function (pool, middlewares, helpers) {
               .trim()
               .split(/[\/\- \.]/);
             const mNames = [
-              "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-              "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+              "JAN",
+              "FEB",
+              "MAR",
+              "APR",
+              "MAY",
+              "JUN",
+              "JUL",
+              "AUG",
+              "SEP",
+              "OCT",
+              "NOV",
+              "DEC",
             ];
             if (p.length === 3) {
               let d = parseInt(p[0], 10),
                 m = mNames.indexOf(p[1].toUpperCase().substring(0, 3)),
-                y = p[2].length === 2 ? 2000 + parseInt(p[2], 10) : parseInt(p[2], 10);
+                y =
+                  p[2].length === 2
+                    ? 2000 + parseInt(p[2], 10)
+                    : parseInt(p[2], 10);
               if (!isNaN(d) && m !== -1 && !isNaN(y)) {
                 let dObj = new Date(y, m, d);
                 dObj.setDate(dObj.getDate() - 1);
                 const months = [
-                  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+                  "Jan",
+                  "Feb",
+                  "Mar",
+                  "Apr",
+                  "May",
+                  "Jun",
+                  "Jul",
+                  "Aug",
+                  "Sep",
+                  "Oct",
+                  "Nov",
+                  "Dec",
                 ];
                 autoLwdVal = `${String(dObj.getDate()).padStart(2, "0")}-${months[dObj.getMonth()]}-${dObj.getFullYear()}`;
               }
@@ -233,7 +257,9 @@ module.exports = function (pool, middlewares, helpers) {
             ) {
               if (!prevData.driver_history) prevData.driver_history = [];
               prevData.driver_history.push({
-                id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+                id:
+                  Date.now().toString(36) +
+                  Math.random().toString(36).substr(2, 5),
                 name: prevData[dNameCol],
                 mob: prevData[dMobCol] || "",
                 start: prevData[dStartCol] || "IDK",
@@ -272,9 +298,29 @@ module.exports = function (pool, middlewares, helpers) {
   // 🚀 API ROUTES (Memory-Optimized)
   // ==========================================
 
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS active_users (
+      username VARCHAR PRIMARY KEY,
+      last_seen TIMESTAMP
+    )
+  `).catch(err => console.error("Failed to create active_users table:", err));
+
   router.post("/get-master-data", verifyToken, async (req, res) => {
     try {
-      const { role, site } = req.user;
+      const { username, role, site } = req.user;
+
+      await pool.query(
+        `INSERT INTO active_users (username, last_seen) VALUES ($1, CURRENT_TIMESTAMP) 
+         ON CONFLICT (username) DO UPDATE SET last_seen = CURRENT_TIMESTAMP`,
+        [username]
+      );
+      
+      // Fetch users active in the last 45 seconds
+      const activeRes = await pool.query(
+        `SELECT username FROM active_users WHERE last_seen > NOW() - INTERVAL '45 seconds'`
+      );
+      const activeUsersList = activeRes.rows.map(r => r.username);
+
       const headerResult = await pool.query(
         `SELECT header_name, is_locked, alignment, col_type, col_width FROM erp_headers WHERE deleted_at IS NULL ORDER BY col_order ASC`,
       );
@@ -330,6 +376,7 @@ module.exports = function (pool, middlewares, helpers) {
         colWidths,
         rows,
         nextSN: maxSN + 1,
+        activeUsers: activeUsersList,
       });
     } catch (error) {
       handleError(res, error, req.user.role, "GET_MASTER_DATA");
