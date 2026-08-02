@@ -424,9 +424,11 @@ module.exports = function (pool, middlewares, helpers) {
         let currentData = recordRes.rows[0].record_data;
         let oldValue = currentData[colName] || "(Blank)";
         let displayNewValue = newValue || "(Blank)";
+        let plateNo = currentData[COLUMNS.PLATE_NUMBER] || currentData["PLATE NUMBER"] || currentData["Plate Number"] || "N/A";
 
         if (String(oldValue).trim() !== String(displayNewValue).trim()) {
           changeLogs.push({
+            plate: plateNo,
             colName: colName,
             oldVal: oldValue,
             newVal: displayNewValue,
@@ -452,12 +454,12 @@ module.exports = function (pool, middlewares, helpers) {
 
       await client.query("COMMIT");
 
-      // Telegram Activity Alert with Old vs New Value
+      // Telegram Activity Alert with Old vs New Value (With Plate Number)
       if (changeLogs.length > 0) {
         try {
           let changeSummary = changeLogs
             .slice(0, 5)
-            .map((c) => `• <b>${c.colName}:</b> <del>${c.oldVal}</del> ➔ <b>${c.newVal}</b>`)
+            .map((c) => `• [<b>${c.plate}</b>] <b>${c.colName}:</b> <del>${c.oldVal}</del> ➔ <b>${c.newVal}</b>`)
             .join("\n");
           if (changeLogs.length > 5) {
             changeSummary += `\n...and ${changeLogs.length - 5} more changes.`;
