@@ -533,7 +533,7 @@ app.get("/api/dashboard-summary", verifyToken, async (req, res) => {
     let params = [];
 
     if (role !== "Admin" && role !== "Super Admin" && role !== "Viewer") {
-      scopeCondition = "site = $1";
+      scopeCondition = "TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($1))";
       params = [site];
     }
 

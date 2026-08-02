@@ -349,7 +349,7 @@ module.exports = function (pool, middlewares, helpers) {
       let params = [];
       if (role !== "Admin" && role !== "Super Admin" && role !== "Viewer") {
         query = `
-          SELECT * FROM erp_records WHERE site = $1 AND deleted_at IS NULL
+          SELECT * FROM erp_records WHERE TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($1)) AND deleted_at IS NULL
           ORDER BY COALESCE(record_data->>'Site', '') ASC, COALESCE(record_data->>'Company', '') ASC, COALESCE(record_data->>'If Sub', '') ASC, 
           CASE LOWER(TRIM(record_data->>'Status')) WHEN 'mobilizing' THEN 1 WHEN 'running' THEN 2 WHEN 'replaced' THEN 3 WHEN 'released' THEN 4 ELSE 5 END ASC, sn ASC
         `;
@@ -427,7 +427,7 @@ module.exports = function (pool, middlewares, helpers) {
         Object.assign(payload, calculatedUpdates);
 
         await client.query(
-          `UPDATE erp_records SET record_data = record_data || $1::jsonb, plate_number = COALESCE(($1::jsonb->>'${COLUMNS.PLATE_NUMBER}'), plate_number), site = COALESCE(($1::jsonb->>'${COLUMNS.SITE}'), site), updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+          `UPDATE erp_records SET record_data = record_data || $1::jsonb, plate_number = COALESCE(($1::jsonb->>'${COLUMNS.PLATE_NUMBER}'), plate_number), site = COALESCE(($1::jsonb->>'${COLUMNS.SITE}'), ($1::jsonb->>'Site'), site), updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
           [JSON.stringify(payload), dbId],
         );
       }
