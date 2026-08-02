@@ -407,6 +407,8 @@ module.exports = function (pool, middlewares, helpers) {
       if (!Array.isArray(edits) || edits.length === 0)
         throw new Error("No edits provided.");
 
+      let changeLogs = [];
+
       for (let edit of edits) {
         let { dbId, colName, newValue } = edit;
         if (String(colName).trim().toUpperCase() === COLUMNS.PLATE_NUMBER) {
@@ -420,6 +422,17 @@ module.exports = function (pool, middlewares, helpers) {
         if (recordRes.rows.length === 0) continue;
 
         let currentData = recordRes.rows[0].record_data;
+        let oldValue = currentData[colName] || "(Blank)";
+        let displayNewValue = newValue || "(Blank)";
+
+        if (String(oldValue).trim() !== String(displayNewValue).trim()) {
+          changeLogs.push({
+            colName: colName,
+            oldVal: oldValue,
+            newVal: displayNewValue,
+          });
+        }
+
         let payload = { [colName]: newValue };
         let simulatedRow = { ...currentData, ...payload };
 
@@ -434,25 +447,27 @@ module.exports = function (pool, middlewares, helpers) {
 
       await client.query(
         "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BATCH_UPDATE', $2)",
-        [req.user.username, JSON.stringify({ count: edits.length })],
+        [req.user.username, JSON.stringify({ count: edits.length, changes: changeLogs })],
       );
 
       await client.query("COMMIT");
 
-      // Telegram Activity Alert for Data Updates
-      try {
-        let changeSummary = edits
-          .slice(0, 5)
-          .map((e) => `• <b>${e.colName}</b> ➔ <i>${e.newValue || "(Blank)"}</i>`)
-          .join("\n");
-        if (edits.length > 5) {
-          changeSummary += `\n...and ${edits.length - 5} more changes.`;
+      // Telegram Activity Alert with Old vs New Value
+      if (changeLogs.length > 0) {
+        try {
+          let changeSummary = changeLogs
+            .slice(0, 5)
+            .map((c) => `• <b>${c.colName}:</b> <del>${c.oldVal}</del> ➔ <b>${c.newVal}</b>`)
+            .join("\n");
+          if (changeLogs.length > 5) {
+            changeSummary += `\n...and ${changeLogs.length - 5} more changes.`;
+          }
+          await sendActivityTelegramMessage(
+            `📝 <b>DATA UPDATED</b>\n\n<b>User:</b> @${req.user.username}\n<b>Total Changes:</b> ${changeLogs.length}\n\n${changeSummary}`,
+          );
+        } catch (err) {
+          console.error("Telegram Alert Error:", err.message);
         }
-        await sendActivityTelegramMessage(
-          `📝 <b>DATA UPDATED</b>\n\n<b>User:</b> @${req.user.username}\n<b>Changes (${edits.length}):</b>\n${changeSummary}`,
-        );
-      } catch (err) {
-        console.error("Telegram Alert Error:", err.message);
       }
 
       res.json({ success: true });
