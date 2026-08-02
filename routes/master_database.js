@@ -438,6 +438,23 @@ module.exports = function (pool, middlewares, helpers) {
       );
 
       await client.query("COMMIT");
+
+      // Telegram Activity Alert for Data Updates
+      try {
+        let changeSummary = edits
+          .slice(0, 5)
+          .map((e) => `• <b>${e.colName}</b> ➔ <i>${e.newValue || "(Blank)"}</i>`)
+          .join("\n");
+        if (edits.length > 5) {
+          changeSummary += `\n...and ${edits.length - 5} more changes.`;
+        }
+        await sendActivityTelegramMessage(
+          `📝 <b>DATA UPDATED</b>\n\n<b>User:</b> @${req.user.username}\n<b>Changes (${edits.length}):</b>\n${changeSummary}`,
+        );
+      } catch (err) {
+        console.error("Telegram Alert Error:", err.message);
+      }
+
       res.json({ success: true });
     } catch (error) {
       await client.query("ROLLBACK");
