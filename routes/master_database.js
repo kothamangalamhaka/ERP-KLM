@@ -53,6 +53,52 @@ module.exports = function (pool, middlewares, helpers) {
   // ==========================================
   // 🛠️ SHARED UTILITY FUNCTIONS (Leak-Free)
   // ==========================================
+  let telegramAlertBuffer = [];
+  let telegramAlertTimer = null;
+
+  function scheduleTelegramAlert(username, changeLogs) {
+    if (!changeLogs || changeLogs.length === 0) return;
+
+    changeLogs.forEach((log) => {
+      telegramAlertBuffer.push({ ...log, username });
+    });
+
+    if (!telegramAlertTimer) {
+      telegramAlertTimer = setTimeout(async () => {
+        const changesToSend = [...telegramAlertBuffer];
+        telegramAlertBuffer = [];
+        telegramAlertTimer = null;
+
+        if (changesToSend.length === 0) return;
+
+        try {
+          const users = [...new Set(changesToSend.map((c) => `@${c.username}`))].join(", ");
+
+          const groupedByPlate = {};
+          changesToSend.forEach((item) => {
+            const plate = item.plate || "N/A";
+            if (!groupedByPlate[plate]) groupedByPlate[plate] = [];
+            groupedByPlate[plate].push(item);
+          });
+
+          let bodySections = [];
+          for (const [plate, items] of Object.entries(groupedByPlate)) {
+            let lines = items.map(
+              (i) => `    <b>${i.colName}:</b> <del>${i.oldVal}</del> ➔ <b>${i.newVal}</b>`
+            );
+            bodySections.push(`• [<b>${plate}</b>]\n${lines.join("\n\n")}`);
+          }
+
+          const finalMessage = `📝 <b>DATA UPDATED</b>\n\n<b>User:</b> ${users}\n<b>Total Changes:</b> ${changesToSend.length}\n\n${bodySections.join("\n\n\n")}`;
+
+          await sendActivityTelegramMessage(finalMessage);
+        } catch (err) {
+          console.error("Telegram Alert Error:", err.message);
+        }
+      }, 30000); // 30 seconds batch window
+    }
+  }
+
   function formatPlateNumber(val) {
     if (!val) return "";
     let p = String(val).toUpperCase().trim();
@@ -454,22 +500,9 @@ module.exports = function (pool, middlewares, helpers) {
 
       await client.query("COMMIT");
 
-      // Telegram Activity Alert with Old vs New Value (With Plate Number)
+      // Send changes to 30-second Batching Buffer
       if (changeLogs.length > 0) {
-        try {
-          let changeSummary = changeLogs
-            .slice(0, 5)
-            .map((c) => `• [<b>${c.plate}</b>] <b>${c.colName}:</b> <del>${c.oldVal}</del> ➔ <b>${c.newVal}</b>`)
-            .join("\n");
-          if (changeLogs.length > 5) {
-            changeSummary += `\n...and ${changeLogs.length - 5} more changes.`;
-          }
-          await sendActivityTelegramMessage(
-            `📝 <b>DATA UPDATED</b>\n\n<b>User:</b> @${req.user.username}\n<b>Total Changes:</b> ${changeLogs.length}\n\n${changeSummary}`,
-          );
-        } catch (err) {
-          console.error("Telegram Alert Error:", err.message);
-        }
+        scheduleTelegramAlert(req.user.username, changeLogs);
       }
 
       res.json({ success: true });
