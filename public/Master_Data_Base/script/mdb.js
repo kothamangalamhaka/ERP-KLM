@@ -433,6 +433,21 @@ $.fn.dataTable.ext.search.push(
   },
 );
 
+let isQuickEditMode = false;
+
+function toggleQuickEditMode() {
+  isQuickEditMode = !isQuickEditMode;
+  const btn = $(".quick-edit-btn");
+  
+  if (isQuickEditMode) {
+    btn.addClass("active-green");
+    showToast("Quick Edit Mode ON (Single tap to edit)", "success");
+  } else {
+    btn.removeClass("active-green");
+    showToast("Quick Edit Mode OFF (Double click to edit)", "info");
+  }
+}
+
 let currentDriverModalMode = "handover";
 function setDriverMode(mode) {
   currentDriverModalMode = mode;
@@ -1700,6 +1715,14 @@ function renderTable(response) {
         },
       },
       {
+        text: '<span class="material-icons" style="font-size:16px;">edit</span> Edit Data',
+        className: "dt-button btn-outline quick-edit-btn",
+        action: function () {
+          document.querySelector(".dt-buttons").classList.remove("show");
+          toggleQuickEditMode();
+        },
+      },
+      {
         text: '<span class="material-icons" style="font-size:16px;">restart_alt</span> Reset',
         className: "dt-button btn-outline",
         action: function () {
@@ -2453,8 +2476,16 @@ function applyHistoricalState(dbId, colName, value) {
 function attachEditListeners() {
   $("#erpTable tbody")
     .off("click", "td")
-    .on("click", "td", function () {
+    .on("click", "td", function (e) {
       if ($(this).find(".edit-input").length > 0) return;
+      if (isQuickEditMode) {
+        let $openInputs = $(".edit-input");
+        if ($openInputs.length > 0) {
+          $openInputs.blur();
+        }
+        $(this).trigger("dblclick");
+        return;
+      }
       const range = document.createRange(),
         sel = window.getSelection();
       range.selectNodeContents(this);
@@ -2619,7 +2650,7 @@ function attachEditListeners() {
         else if (colUpper === "PLATE NUMBER")
           newVal = formatPlateNumber(newVal);
         $cell.text(newVal);
-        erpDataTable.cell($cell[0]).data(newVal).draw(false);
+        erpDataTable.cell($cell[0]).data(newVal);
         if (newVal !== oldVal) {
           undoStack.push({
             sheetRow: sheetRow,
