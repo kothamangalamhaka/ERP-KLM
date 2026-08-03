@@ -65,14 +65,16 @@ router.post("/save-log", async (req, res) => {
     kafil_comm,
     owner_comm,
     investor_comm,
+    debit,
+    other_expense,
     op_revenue,
   } = req.body;
   try {
     const query = `
-            INSERT INTO equipment_monthly_logs (equipment_id, year, month, maintenance_cost, basic_salary, overtime, penalty, santook_rent, kafil_comm, owner_comm, investor_comm, op_revenue)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            INSERT INTO equipment_monthly_logs (equipment_id, year, month, maintenance_cost, basic_salary, overtime, penalty, santook_rent, kafil_comm, owner_comm, investor_comm, debit, other_expense, op_revenue)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             ON CONFLICT (equipment_id, year, month)
-            DO UPDATE SET maintenance_cost = EXCLUDED.maintenance_cost, basic_salary = EXCLUDED.basic_salary, overtime = EXCLUDED.overtime, penalty = EXCLUDED.penalty, santook_rent = EXCLUDED.santook_rent, kafil_comm = EXCLUDED.kafil_comm, owner_comm = EXCLUDED.owner_comm, investor_comm = EXCLUDED.investor_comm, op_revenue = EXCLUDED.op_revenue;
+            DO UPDATE SET maintenance_cost = EXCLUDED.maintenance_cost, basic_salary = EXCLUDED.basic_salary, overtime = EXCLUDED.overtime, penalty = EXCLUDED.penalty, santook_rent = EXCLUDED.santook_rent, kafil_comm = EXCLUDED.kafil_comm, owner_comm = EXCLUDED.owner_comm, investor_comm = EXCLUDED.investor_comm, debit = EXCLUDED.debit, other_expense = EXCLUDED.other_expense, op_revenue = EXCLUDED.op_revenue;
         `;
     await pool.query(query, [
       equipment_id,
@@ -86,6 +88,8 @@ router.post("/save-log", async (req, res) => {
       kafil_comm || 0,
       owner_comm || 0,
       investor_comm || 0,
+      debit || 0,
+      other_expense || 0,
       op_revenue || 0,
     ]);
     res.json({ success: true });
@@ -112,25 +116,31 @@ router.get("/summary-data", async (req, res) => {
         yearsData[log.year] = {
           year: log.year,
           maint: 0,
-          basic_ot: 0,
+          basic: 0,
+          ot: 0,
           penalty: 0,
           santook: 0,
           kafil: 0,
           owner: 0,
           inv: 0,
+          debit: 0,
+          other_exp: 0,
           revenue: 0,
         };
       }
       let y = yearsData[log.year];
-      y.maint += Number(log.maintenance_cost);
-      y.basic_ot += Number(log.basic_salary) + Number(log.overtime);
-      y.penalty += Number(log.penalty);
-      y.santook += Number(log.santook_rent);
-      const rev = Number(log.op_revenue);
+      y.maint += Number(log.maintenance_cost || 0);
+      y.basic += Number(log.basic_salary || 0);
+      y.ot += Number(log.overtime || 0);
+      y.penalty += Number(log.penalty || 0);
+      y.santook += Number(log.santook_rent || 0);
+      y.debit += Number(log.debit || 0);
+      y.other_exp += Number(log.other_expense || 0);
+      const rev = Number(log.op_revenue || 0);
       y.revenue += rev;
-      y.kafil += rev * (Number(log.kafil_comm) / 100);
-      y.owner += rev * (Number(log.owner_comm) / 100);
-      y.inv += rev * (Number(log.investor_comm) / 100);
+      y.kafil += rev * (Number(log.kafil_comm || 0) / 100);
+      y.owner += rev * (Number(log.owner_comm || 0) / 100);
+      y.inv += rev * (Number(log.investor_comm || 0) / 100);
     });
 
     let summaryList = [];
@@ -140,7 +150,9 @@ router.get("/summary-data", async (req, res) => {
       .sort()
       .forEach((yr) => {
         let d = yearsData[yr];
-        let opCost = d.basic_ot + d.santook + d.kafil + d.owner + d.inv;
+        let grossSal = d.basic + d.ot;
+        let netSal = grossSal - d.penalty;
+        let opCost = netSal + d.santook + d.kafil + d.owner + d.inv + d.debit + d.other_exp;
         let currentOpProfitLoss = d.revenue - (d.maint + opCost);
 
         let expenseSide = totalPurchaseCost + d.maint + opCost;
@@ -157,12 +169,17 @@ router.get("/summary-data", async (req, res) => {
           purchaseCost: totalPurchaseCost,
           maint: d.maint,
           opCost: opCost,
-          driverNet: d.basic_ot - d.penalty,
+          basic: d.basic,
+          ot: d.ot,
+          grossSal: grossSal,
+          driverNet: netSal,
           driverPenalty: d.penalty,
           santook: d.santook,
           kafil: d.kafil,
           owner: d.owner,
           inv: d.inv,
+          debit: d.debit,
+          other_exp: d.other_exp,
           revenue: d.revenue,
           prevBalance: prevOpBalance,
           isNetLoss: isNetLoss,
@@ -224,24 +241,26 @@ router.get('/export-excel', async (req, res) => {
         const totalPurchaseCost = eqRes.rows.reduce((sum, eq) => sum + Number(eq.purchase_cost || 0), 0);
         
         logsRes.rows.forEach(log => {
-            if (!yearsData[log.year]) yearsData[log.year] = { maint: 0, basic_ot: 0, penalty: 0, santook: 0, kafil: 0, owner: 0, inv: 0, revenue: 0 };
+            if (!yearsData[log.year]) yearsData[log.year] = { maint: 0, basic_ot: 0, penalty: 0, santook: 0, kafil: 0, owner: 0, inv: 0, debit: 0, other_exp: 0, revenue: 0 };
             let y = yearsData[log.year];
-            y.maint += Number(log.maintenance_cost);
-            y.basic_ot += (Number(log.basic_salary) + Number(log.overtime));
-            y.penalty += Number(log.penalty);
-            y.santook += Number(log.santook_rent);
-            const rev = Number(log.op_revenue);
+            y.maint += Number(log.maintenance_cost || 0);
+            y.basic_ot += (Number(log.basic_salary || 0) + Number(log.overtime || 0));
+            y.penalty += Number(log.penalty || 0);
+            y.santook += Number(log.santook_rent || 0);
+            y.debit += Number(log.debit || 0);
+            y.other_exp += Number(log.other_expense || 0);
+            const rev = Number(log.op_revenue || 0);
             y.revenue += rev;
-            y.kafil += rev * (Number(log.kafil_comm)/100);
-            y.owner += rev * (Number(log.owner_comm)/100);
-            y.inv += rev * (Number(log.investor_comm)/100);
+            y.kafil += rev * (Number(log.kafil_comm || 0)/100);
+            y.owner += rev * (Number(log.owner_comm || 0)/100);
+            y.inv += rev * (Number(log.investor_comm || 0)/100);
         });
 
         let prevOpBalance = 0;
         
         Object.keys(yearsData).sort().forEach(yr => {
             let d = yearsData[yr];
-            let opCost = d.basic_ot + d.santook + d.kafil + d.owner + d.inv;
+            let opCost = (d.basic_ot - d.penalty) + d.santook + d.kafil + d.owner + d.inv + d.debit + d.other_exp;
             let currentOpProfitLoss = d.revenue - (d.maint + opCost);
             
             let expenseSide = totalPurchaseCost + d.maint + opCost;
@@ -297,12 +316,17 @@ router.get('/export-excel', async (req, res) => {
                 
                 // 4. Operating Expenses breakdown
                 addStyledRow([yr, 'Total Operating Expenses', v(opCost), '', '', '']);
-                addStyledRow(['', '   Driver Net Basic + OT', v(d.basic_ot - d.penalty), '', '', '']);
-                addStyledRow(['', '   Penalty', v(d.penalty), '', '', '']);
+                addStyledRow(['', '   Basic Salary', v(d.basic), '', '', '']);
+                addStyledRow(['', '   Over Time', v(d.ot), '', '', '']);
+                addStyledRow(['', '   Gross Salary', v(d.basic + d.ot), '', '', ''], true);
+                addStyledRow(['', '   less:: Penalty', v(d.penalty), '', '', '']);
+                addStyledRow(['', '   Net Salary ::', v((d.basic + d.ot) - d.penalty), '', '', ''], true);
                 addStyledRow(['', '   Santook Rent', v(d.santook), '', '', '']);
                 addStyledRow(['', '   Commission Kafil', v(d.kafil), '', '', '']);
                 addStyledRow(['', '   Commission Owner', v(d.owner), '', '', '']);
                 addStyledRow(['', '   Commission Investor', v(d.inv), '', '', '']);
+                addStyledRow(['', '   Debit', v(d.debit), '', '', '']);
+                addStyledRow(['', '   Other Expense', v(d.other_exp), '', '', '']);
                 
                 // 5. Net Loss / Profit
                 if (isNetLoss) {
@@ -356,22 +380,23 @@ router.get('/export-excel', async (req, res) => {
             let monthsToRender = type === 'batch' ? [1,2,3,4,5,6,7,8,9,10,11,12] : visibleMonths;
 
             monthsToRender.forEach((m, idx) => {
-                let sC = 5 + (idx * 14);
-                for(let i=0; i<14; i++) ws.getColumn(sC + i).width = 12;
+                let sC = 5 + (idx * 16);
+                for(let i=0; i<16; i++) ws.getColumn(sC + i).width = 12;
 
-                setMergedCell(ws, 1, sC, 1, sC + 13, `${fullMonthNames[m-1]} ${yr}`, colors.month);
+                setMergedCell(ws, 1, sC, 1, sC + 15, `${fullMonthNames[m-1]} ${yr}`, colors.month);
                 
                 setMergedCell(ws, 2, sC, 4, sC, 'Maint. Cost', colors.sub);
-                setMergedCell(ws, 2, sC + 1, 2, sC + 8, 'Operating Expenses', colors.opc);
-                setMergedCell(ws, 2, sC + 9, 4, sC + 9, 'Total Cost', colors.total);
-                setMergedCell(ws, 2, sC + 10, 4, sC + 10, 'OP Revenue', colors.rev);
-                setMergedCell(ws, 2, sC + 11, 4, sC + 11, 'Gain / Loss', colors.gl);
-                setMergedCell(ws, 2, sC + 12, 4, sC + 12, 'Prv Month', colors.sub);
-                setMergedCell(ws, 2, sC + 13, 4, sC + 13, 'Net OP G/L', colors.net);
+                setMergedCell(ws, 2, sC + 1, 2, sC + 10, 'Operating Expenses', colors.opc);
+                setMergedCell(ws, 2, sC + 11, 4, sC + 11, 'Total Cost', colors.total);
+                setMergedCell(ws, 2, sC + 12, 4, sC + 12, 'OP Revenue', colors.rev);
+                setMergedCell(ws, 2, sC + 13, 4, sC + 13, 'Gain / Loss', colors.gl);
+                setMergedCell(ws, 2, sC + 14, 4, sC + 14, 'Prv Month', colors.sub);
+                setMergedCell(ws, 2, sC + 15, 4, sC + 15, 'Net OP G/L', colors.net);
 
                 setMergedCell(ws, 3, sC + 1, 3, sC + 4, 'For Driver', colors.opc);
                 setMergedCell(ws, 3, sC + 5, 4, sC + 5, 'Santook Rent', colors.opc);
                 setMergedCell(ws, 3, sC + 6, 3, sC + 8, 'Commission Paid', colors.opc);
+                setMergedCell(ws, 3, sC + 9, 3, sC + 10, 'Other Expense', colors.opc);
 
                 setMergedCell(ws, 4, sC + 1, 4, sC + 1, 'Basic Sal', colors.opc);
                 setMergedCell(ws, 4, sC + 2, 4, sC + 2, 'OT', colors.opc);
@@ -381,10 +406,12 @@ router.get('/export-excel', async (req, res) => {
                 setMergedCell(ws, 4, sC + 6, 4, sC + 6, 'Kafil', colors.opc);
                 setMergedCell(ws, 4, sC + 7, 4, sC + 7, 'Owner', colors.opc);
                 setMergedCell(ws, 4, sC + 8, 4, sC + 8, 'Investor', colors.opc);
+                setMergedCell(ws, 4, sC + 9, 4, sC + 9, 'Debit', colors.opc);
+                setMergedCell(ws, 4, sC + 10, 4, sC + 10, 'Other', colors.opc);
             });
 
             for (let r = 1; r <= 4; r++) {
-                for (let c = 1; c <= 4 + (monthsToRender.length * 14); c++) {
+                for (let c = 1; c <= 4 + (monthsToRender.length * 16); c++) {
                     ws.getCell(r, c).border = borderStyle;
                 }
             }
@@ -405,30 +432,31 @@ router.get('/export-excel', async (req, res) => {
                     const l = logsRes.rows.find(x => x.equipment_id === eq.id && x.year === yr && x.month === m) || {};
                     const maint = Number(l.maintenance_cost||0), basic = Number(l.basic_salary||0), ot = Number(l.overtime||0), pen = Number(l.penalty||0), rent = Number(l.santook_rent||0), rev = Number(l.op_revenue||0);
                     const kaf = rev*(Number(l.kafil_comm||0)/100), own = rev*(Number(l.owner_comm||0)/100), inv = rev*(Number(l.investor_comm||0)/100);
+                    const deb = Number(l.debit||0), oth = Number(l.other_expense||0);
                     const netSal = (basic + ot) - pen;
-                    const opc = basic + ot + rent + kaf + own + inv;
+                    const opc = netSal + rent + kaf + own + inv + deb + oth;
                     const tc = maint + opc;
                     let gl = (tc>0||rev>0) ? rev - tc : 0;
                     let net = (gl!==0||carryGL!==0) ? gl + carryGL : 0;
                     carryGL = net;
                     
-                    rowData.push(v(maint), v(basic), v(ot), v(pen), v(netSal), v(rent), v(kaf), v(own), v(inv), v(tc), v(rev), v(gl), v(carryGL), v(net));
+                    rowData.push(v(maint), v(basic), v(ot), v(pen), v(netSal), v(rent), v(kaf), v(own), v(inv), v(deb), v(oth), v(tc), v(rev), v(gl), v(carryGL), v(net));
                 });
 
                 let rowObj = ws.addRow(rowData);
                 rowObj.height = 33;
                 rowObj.alignment = centerAlign;
 
-                for (let c = 1; c <= 4 + (monthsToRender.length * 14); c++) {
+                for (let c = 1; c <= 4 + (monthsToRender.length * 16); c++) {
                     let cell = rowObj.getCell(c);
                     cell.border = borderStyle;
                     if (c > 4) {
-                        let colIdx = (c - 5) % 14; 
-                        if (colIdx >= 1 && colIdx <= 8) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.opc } };
-                        else if (colIdx === 9) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.total } }; cell.font = { bold: true }; }
-                        else if (colIdx === 10) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.rev } }; cell.font = { bold: true }; }
-                        else if (colIdx === 11) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.gl } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF008000' } }; }
-                        else if (colIdx === 13) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.net } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF000000' } }; }
+                        let colIdx = (c - 5) % 16; 
+                        if (colIdx >= 1 && colIdx <= 10) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.opc } };
+                        else if (colIdx === 11) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.total } }; cell.font = { bold: true }; }
+                        else if (colIdx === 12) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.rev } }; cell.font = { bold: true }; }
+                        else if (colIdx === 13) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.gl } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF008000' } }; }
+                        else if (colIdx === 15) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.net } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF000000' } }; }
                         
                         if (colIdx === 3 && cell.value !== '') cell.font = { color: { argb: 'FFFF0000' } };
                     }

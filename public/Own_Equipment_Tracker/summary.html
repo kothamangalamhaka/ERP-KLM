@@ -136,14 +136,20 @@
                                 <td>Total Operating Expenses
                                     <table class="inner-table">
                                         <tr><td colspan="2"><b>Driver Salary</b></td></tr>
-                                        <tr><td>Net Salary (Basic Salary + Overtime)</td><td class="text-right">${d.driverNet.toFixed(2)}</td></tr>
-                                        <tr><td>Penalty</td><td class="text-right">${d.driverPenalty.toFixed(2)}</td></tr>
+                                        <tr><td>Basic Salary</td><td class="text-right">${(d.basic || 0).toFixed(2)}</td></tr>
+                                        <tr><td>Over Time</td><td class="text-right">${(d.ot || 0).toFixed(2)}</td></tr>
+                                        <tr><td><b>Gross Salary</b></td><td class="text-right"><b>${(d.grossSal || 0).toFixed(2)}</b></td></tr>
+                                        <tr><td style="color:red;">less:: Penalty</td><td class="text-right" style="color:red;">${(d.driverPenalty || 0).toFixed(2)}</td></tr>
+                                        <tr><td><b>Net Salary ::</b></td><td class="text-right"><b>${(d.driverNet || 0).toFixed(2)}</b></td></tr>
                                         <tr><td colspan="2"><b>Santook Rent</b></td></tr>
-                                        <tr><td>Total Rent</td><td class="text-right">${d.santook.toFixed(2)}</td></tr>
+                                        <tr><td>Total Rent</td><td class="text-right">${(d.santook || 0).toFixed(2)}</td></tr>
                                         <tr><td colspan="2"><b>Commission</b></td></tr>
-                                        <tr><td>Kafil</td><td class="text-right">${d.kafil.toFixed(2)}</td></tr>
-                                        <tr><td>Owner</td><td class="text-right">${d.owner.toFixed(2)}</td></tr>
-                                        <tr><td>Investor</td><td class="text-right">${d.inv.toFixed(2)}</td></tr>
+                                        <tr><td>Kafil</td><td class="text-right">${(d.kafil || 0).toFixed(2)}</td></tr>
+                                        <tr><td>Owner</td><td class="text-right">${(d.owner || 0).toFixed(2)}</td></tr>
+                                        <tr><td>Investor</td><td class="text-right">${(d.inv || 0).toFixed(2)}</td></tr>
+                                        <tr><td colspan="2"><b>Other Expenses</b></td></tr>
+                                        <tr><td>Debit</td><td class="text-right">${(d.debit || 0).toFixed(2)}</td></tr>
+                                        <tr><td>Other</td><td class="text-right">${(d.other_exp || 0).toFixed(2)}</td></tr>
                                     </table>
                                 </td>
                                 <td class="text-right" style="vertical-align:bottom;">${d.opCost.toFixed(2)}</td>
