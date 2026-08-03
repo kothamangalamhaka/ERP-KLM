@@ -1361,7 +1361,8 @@ function renderTable(response) {
           ? "text-align: right;"
           : "text-align: left;";
     let isSN = colHead === "SN",
-      thClass = isSN ? "sn-column" : "",
+      isPlate = colHead === "PLATE NUMBER" || colHead === "PLATE NO",
+      thClass = isSN ? "sn-column" : isPlate ? "plate-column" : "",
       iconsContainerHTML = "",
       renameFn = "";
     if (!isSN) {
@@ -1430,7 +1431,8 @@ function renderTable(response) {
       if (!isSN && isCenter) stylesArr.push("text-align: center");
       else if (!isSN && isRight) stylesArr.push("text-align: right");
 
-      let tdClass = isSN ? 'class="sn-column"' : "";
+      let isPlate = colHead === "PLATE NUMBER" || colHead === "PLATE NO";
+      let tdClass = isSN ? 'class="sn-column"' : isPlate ? 'class="plate-column"' : "";
       let styleAttr =
         stylesArr.length > 0 ? `style="${stylesArr.join("; ")}"` : "";
 

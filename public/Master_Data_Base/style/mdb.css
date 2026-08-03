@@ -1057,3 +1057,99 @@ table.dataTable.header-wrap thead th .col-title-text {
   word-break: break-word;
   overflow: visible;
 }
+
+/* ----------------------------------------------------
+   SN & PLATE NUMBER STICKY FREEZE (Horizontal Scroll)
+---------------------------------------------------- */
+
+/* 1. SN Column Freeze (Left: 0px) */
+table.dataTable thead th.sn-column,
+table.dataTable tbody td.sn-column {
+  position: sticky !important;
+  left: 0 !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  text-align: center !important;
+  z-index: 16 !important;
+}
+
+/* 2. Plate Number Column Freeze (Left: 40px after SN) */
+table.dataTable thead th.plate-column,
+table.dataTable tbody td.plate-column {
+  position: sticky !important;
+  left: 40px !important;
+  z-index: 15 !important;
+  box-shadow: 3px 0 5px -2px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 3. Header z-index & Backgrounds (Light Theme) */
+table.dataTable thead th.sn-column {
+  z-index: 31 !important;
+  background-color: #f8fafc !important;
+}
+
+table.dataTable thead th.plate-column {
+  z-index: 30 !important;
+  background-color: #f8fafc !important;
+}
+
+/* 4. Body Cell Backgrounds (Light Theme) */
+table.dataTable tbody td.sn-column,
+table.dataTable tbody td.plate-column {
+  background-color: #ffffff !important;
+}
+
+/* 5. Dark Mode Backgrounds */
+body.dark-mode table.dataTable thead th.sn-column,
+body.dark-mode table.dataTable thead th.plate-column {
+  background-color: #1e293b !important;
+}
+
+body.dark-mode table.dataTable tbody td.sn-column,
+body.dark-mode table.dataTable tbody td.plate-column {
+  background-color: #0f172a !important;
+}
+
+/* 6. Row Hover Colors */
+table.dataTable tbody tr:hover td.sn-column,
+table.dataTable tbody tr:hover td.plate-column {
+  background-color: #f1f5f9 !important;
+}
+
+body.dark-mode table.dataTable tbody tr:hover td.sn-column,
+body.dark-mode table.dataTable tbody tr:hover td.plate-column {
+  background-color: #334155 !important;
+}
+
+/* 7. Status Row Highlight Backgrounds (Light Theme) */
+table.dataTable tbody tr.status-released td.sn-column,
+table.dataTable tbody tr.status-released td.plate-column {
+  background-color: #fee2e2 !important;
+}
+
+table.dataTable tbody tr.status-replaced td.sn-column,
+table.dataTable tbody tr.status-replaced td.plate-column {
+  background-color: #ffedd5 !important;
+}
+
+table.dataTable tbody tr.status-mobilizing td.sn-column,
+table.dataTable tbody tr.status-mobilizing td.plate-column {
+  background-color: #e0f2fe !important;
+}
+
+/* 8. Status Row Highlight Backgrounds (Dark Mode) */
+body.dark-mode table.dataTable tbody tr.status-released td.sn-column,
+body.dark-mode table.dataTable tbody tr.status-released td.plate-column {
+  background-color: #3f1a1a !important;
+}
+
+body.dark-mode table.dataTable tbody tr.status-replaced td.sn-column,
+body.dark-mode table.dataTable tbody tr.status-replaced td.plate-column {
+  background-color: #3f2c10 !important;
+}
+
+body.dark-mode table.dataTable tbody tr.status-mobilizing td.sn-column,
+body.dark-mode table.dataTable tbody tr.status-mobilizing td.plate-column {
+  background-color: #0c2a40 !important;
+}
