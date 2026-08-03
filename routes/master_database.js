@@ -95,7 +95,7 @@ module.exports = function (pool, middlewares, helpers) {
         } catch (err) {
           console.error("Telegram Alert Error:", err.message);
         }
-      }, 60000); // 60 seconds batch window
+      }, 30000); // 30 seconds batch window
     }
   }
 

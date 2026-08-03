@@ -1091,23 +1091,12 @@ async function handleMenuAction(action) {
     $("#deleteColModalOverlay").css("display", "flex");
     $("#deleteColPassword").focus();
   } else if (action.startsWith("align_")) {
-    if (currentUser.role !== "Super Admin")
-      return showToast("Super Admin only.", "error");
     const align = action.split("_")[1];
-    showToast("Setting alignment...", "info");
-    const res = await fetch("/api/admin/set-alignment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ colName: contextColName, alignment: align }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast("Alignment updated!", "success");
-      fetchData(true);
-    }
+    let userAligns = JSON.parse(localStorage.getItem("erpColAligns_" + currentUser.username)) || {};
+    userAligns[contextColName] = align;
+    localStorage.setItem("erpColAligns_" + currentUser.username, JSON.stringify(userAligns));
+    showToast("Alignment updated for your view!", "success");
+    fetchData(true);
   } else if (action === "toggle_col_wrap") {
     let colWraps = JSON.parse(localStorage.getItem("erpColWraps")) || {};
     let currentWrap = colWraps[contextColName] || "nowrap";
@@ -1277,6 +1266,19 @@ function renderTable(response) {
   cachedAlignments = response.alignments || [];
   cachedColTypes = response.colTypes || [];
   cachedColWidths = response.colWidths || [];
+
+  // Merge per-user alignments and column widths from localStorage
+  let userAligns = JSON.parse(localStorage.getItem("erpColAligns_" + currentUser.username)) || {};
+  cachedAlignments = cachedHeaders.map(h => ({
+    name: h,
+    align: userAligns[h] || (cachedAlignments.find(a => a.name === h)?.align || "left")
+  }));
+
+  let userWidths = JSON.parse(localStorage.getItem("erpColWidths_" + currentUser.username)) || {};
+  cachedColWidths = cachedHeaders.map(h => ({
+    name: h,
+    width: userWidths[h] || (cachedColWidths.find(w => w.name === h)?.width || "100px")
+  }));
   globalNextSN = response.nextSN || 1;
   globalLockedCols = response.lockedCols || [];
 
@@ -1656,7 +1658,9 @@ function renderTable(response) {
           toggleBulkEditMode();
         },
         init: function (api, node, config) {
-          if (currentUser.role !== "Super Admin") $(node).hide();
+          if (currentUser.role !== "Super Admin") {
+            $(node).css("display", "none").remove();
+          }
         },
       },
       {
@@ -1666,7 +1670,9 @@ function renderTable(response) {
           openImportModal();
         },
         init: function (api, node, config) {
-          if (currentUser.role !== "Super Admin") $(node).hide();
+          if (currentUser.role !== "Super Admin") {
+            $(node).css("display", "none").remove();
+          }
         },
       },
       {
@@ -1733,7 +1739,8 @@ function renderTable(response) {
           activeFilters = {};
           $(".filter-icon").removeClass("filter-active").text("filter_list");
           erpDataTable.draw();
-          localStorage.removeItem("erpColWidths");
+          localStorage.removeItem("erpColWidths_" + currentUser.username);
+          localStorage.removeItem("erpColAligns_" + currentUser.username);
           showToast("Reloading...", "info");
           setTimeout(() => location.reload(), 1000);
         },
@@ -1767,6 +1774,12 @@ function renderTable(response) {
         $(".ribbon-left").prepend(
           '<button class="mobile-tools-btn" onclick="toggleMobileTools(event)"><span class="material-icons" style="font-size:16px;">settings</span> Tools</button>',
         );
+      }
+      if (currentUser.role !== "Super Admin") {
+        $(".bulk-edit-toggle-btn").remove();
+        $(".dt-button").filter(function () {
+          return $(this).text().includes("Import") || $(this).text().includes("Bulk Edit");
+        }).remove();
       }
       applyColumnResizing();
       attachContextMenus();
@@ -2374,14 +2387,10 @@ function applyColumnResizing() {
         document.removeEventListener("mousemove", mouseMoveHandler);
         document.removeEventListener("mouseup", mouseUpHandler);
         let finalWidth = col.style.width;
-        fetch("/api/update-col-width", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ colName: colName, width: finalWidth }),
-        }).catch((e) => console.error("Width save failed", e));
+        let userWidths = JSON.parse(localStorage.getItem("erpColWidths_" + currentUser.username)) || {};
+        userWidths[colName] = finalWidth;
+        localStorage.setItem("erpColWidths_" + currentUser.username, JSON.stringify(userWidths));
+        showToast("Column width saved locally", "info");
       }
     };
   });
