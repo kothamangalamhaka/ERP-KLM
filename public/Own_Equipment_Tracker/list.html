@@ -50,6 +50,11 @@
                 <th>Driver (Basic + OT)</th>
                 <th>Penalty</th>
                 <th>Santook Rent</th>
+                <th>Kafil Commission</th>
+                <th>Owner Commission</th>
+                <th>Investor Commission</th>
+                <th>Debit Note</th>
+                <th>Other Expenses</th>
                 <th>Operational Revenue</th>
                 <th>Gain / Loss</th>
             </tr>
@@ -146,12 +151,16 @@
         const eqLogs = allLogs.filter(l => l.equipment_id === eq.id);
 
         if (eqLogs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="color:gray;">No monthly records found for this equipment.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="13" style="color:gray;">No monthly records found for this equipment.</td></tr>`;
             return;
         }
 
         eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
         const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+        let totMaint = 0, totBasicOt = 0, totPenalty = 0, totRent = 0;
+        let totKafil = 0, totOwner = 0, totInv = 0, totDebit = 0, totOther = 0;
+        let totRev = 0, totGl = 0;
 
         eqLogs.forEach(l => {
             const maint = Number(l.maintenance_cost || 0);
@@ -159,14 +168,29 @@
             const penalty = Number(l.penalty || 0);
             const rent = Number(l.santook_rent || 0);
             const rev = Number(l.op_revenue || 0);
+            const debit = Number(l.debit || 0);
+            const other = Number(l.other_expense || 0);
 
             const kafil = rev * (Number(l.kafil_comm || 0) / 100);
             const owner = rev * (Number(l.owner_comm || 0) / 100);
             const inv = rev * (Number(l.investor_comm || 0) / 100);
 
-            const totalCost = maint + basicOt + rent + kafil + owner + inv;
+            const netSal = basicOt - penalty;
+            const totalCost = maint + netSal + rent + kafil + owner + inv + debit + other;
             const gl = rev - totalCost;
             const monthName = shortMonths[l.month - 1] || l.month;
+
+            totMaint += maint;
+            totBasicOt += basicOt;
+            totPenalty += penalty;
+            totRent += rent;
+            totKafil += kafil;
+            totOwner += owner;
+            totInv += inv;
+            totDebit += debit;
+            totOther += other;
+            totRev += rev;
+            totGl += gl;
 
             tbody.innerHTML += `
                 <tr>
@@ -176,11 +200,33 @@
                     <td>${basicOt.toFixed(2)}</td>
                     <td style="color:red;">${penalty.toFixed(2)}</td>
                     <td>${rent.toFixed(2)}</td>
+                    <td>${kafil.toFixed(2)}</td>
+                    <td>${owner.toFixed(2)}</td>
+                    <td>${inv.toFixed(2)}</td>
+                    <td>${debit.toFixed(2)}</td>
+                    <td>${other.toFixed(2)}</td>
                     <td>${rev.toFixed(2)}</td>
                     <td style="color:${gl < 0 ? 'red' : 'green'}; font-weight:bold;">${gl.toFixed(2)}</td>
                 </tr>
             `;
         });
+
+        tbody.innerHTML += `
+            <tr style="background-color: #eaeff8; font-weight: bold; border-top: 2px solid #333;">
+                <td colspan="2">TOTAL</td>
+                <td>${totMaint.toFixed(2)}</td>
+                <td>${totBasicOt.toFixed(2)}</td>
+                <td style="color:red;">${totPenalty.toFixed(2)}</td>
+                <td>${totRent.toFixed(2)}</td>
+                <td>${totKafil.toFixed(2)}</td>
+                <td>${totOwner.toFixed(2)}</td>
+                <td>${totInv.toFixed(2)}</td>
+                <td>${totDebit.toFixed(2)}</td>
+                <td>${totOther.toFixed(2)}</td>
+                <td>${totRev.toFixed(2)}</td>
+                <td style="color:${totGl < 0 ? 'red' : 'green'}; font-weight:bold;">${totGl.toFixed(2)}</td>
+            </tr>
+        `;
     }
 
     window.onload = loadData;
