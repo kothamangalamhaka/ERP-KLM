@@ -1220,6 +1220,10 @@ function renderTable(response) {
   let scrollWrapper = document.querySelector(".table-scroll-wrapper"),
     preserveScrollTop = scrollWrapper ? scrollWrapper.scrollTop : 0,
     preserveScrollLeft = scrollWrapper ? scrollWrapper.scrollLeft : 0;
+  let currentPage = 0;
+  if ($.fn.DataTable.isDataTable("#erpTable")) {
+    currentPage = $("#erpTable").DataTable().page();
+  }
   document.getElementById("loader").style.display = "none";
   if (response.success) {
     updateSyncUI("live");
@@ -1776,8 +1780,13 @@ function renderTable(response) {
         .every(function (cell) {
           this.data(i++);
         });
-    })
-    .draw();
+    });
+
+  if (currentPage > 0) {
+    erpDataTable.page(currentPage).draw(false);
+  } else {
+    erpDataTable.draw(false);
+  }
   attachEditListeners();
 }
 
@@ -2610,7 +2619,7 @@ function attachEditListeners() {
         else if (colUpper === "PLATE NUMBER")
           newVal = formatPlateNumber(newVal);
         $cell.text(newVal);
-        erpDataTable.cell($cell[0]).data(newVal);
+        erpDataTable.cell($cell[0]).data(newVal).draw(false);
         if (newVal !== oldVal) {
           undoStack.push({
             sheetRow: sheetRow,
