@@ -66,15 +66,16 @@ router.post("/save-log", async (req, res) => {
     owner_comm,
     investor_comm,
     debit,
+    pwas,
     other_expense,
     op_revenue,
   } = req.body;
   try {
     const query = `
-            INSERT INTO equipment_monthly_logs (equipment_id, year, month, maintenance_cost, basic_salary, overtime, penalty, santook_rent, kafil_comm, owner_comm, investor_comm, debit, other_expense, op_revenue)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            INSERT INTO equipment_monthly_logs (equipment_id, year, month, maintenance_cost, basic_salary, overtime, penalty, santook_rent, kafil_comm, owner_comm, investor_comm, debit, pwas, other_expense, op_revenue)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             ON CONFLICT (equipment_id, year, month)
-            DO UPDATE SET maintenance_cost = EXCLUDED.maintenance_cost, basic_salary = EXCLUDED.basic_salary, overtime = EXCLUDED.overtime, penalty = EXCLUDED.penalty, santook_rent = EXCLUDED.santook_rent, kafil_comm = EXCLUDED.kafil_comm, owner_comm = EXCLUDED.owner_comm, investor_comm = EXCLUDED.investor_comm, debit = EXCLUDED.debit, other_expense = EXCLUDED.other_expense, op_revenue = EXCLUDED.op_revenue;
+            DO UPDATE SET maintenance_cost = EXCLUDED.maintenance_cost, basic_salary = EXCLUDED.basic_salary, overtime = EXCLUDED.overtime, penalty = EXCLUDED.penalty, santook_rent = EXCLUDED.santook_rent, kafil_comm = EXCLUDED.kafil_comm, owner_comm = EXCLUDED.owner_comm, investor_comm = EXCLUDED.investor_comm, debit = EXCLUDED.debit, pwas = EXCLUDED.pwas, other_expense = EXCLUDED.other_expense, op_revenue = EXCLUDED.op_revenue;
         `;
     await pool.query(query, [
       equipment_id,
@@ -89,6 +90,7 @@ router.post("/save-log", async (req, res) => {
       owner_comm || 0,
       investor_comm || 0,
       debit || 0,
+      pwas || 0,
       other_expense || 0,
       op_revenue || 0,
     ]);
@@ -135,6 +137,7 @@ router.get("/summary-data", async (req, res) => {
       y.penalty += Number(log.penalty || 0);
       y.santook += Number(log.santook_rent || 0);
       y.debit += Number(log.debit || 0);
+      y.pwas = (y.pwas || 0) + Number(log.pwas || 0);
       y.other_exp += Number(log.other_expense || 0);
       const rev = Number(log.op_revenue || 0);
       y.revenue += rev;
@@ -152,7 +155,7 @@ router.get("/summary-data", async (req, res) => {
         let d = yearsData[yr];
         let grossSal = d.basic + d.ot;
         let netSal = grossSal - d.penalty;
-        let opCost = netSal + d.santook + d.kafil + d.owner + d.inv + d.debit + d.other_exp;
+        let opCost = netSal + d.santook + d.kafil + d.owner + d.inv + d.debit + (d.pwas || 0) + d.other_exp;
         let currentOpProfitLoss = d.revenue - (d.maint + opCost);
 
         let expenseSide = totalPurchaseCost + d.maint + opCost;
@@ -179,6 +182,7 @@ router.get("/summary-data", async (req, res) => {
           owner: d.owner,
           inv: d.inv,
           debit: d.debit,
+          pwas: d.pwas || 0,
           other_exp: d.other_exp,
           revenue: d.revenue,
           prevBalance: prevOpBalance,
@@ -326,6 +330,7 @@ router.get('/export-excel', async (req, res) => {
                 addStyledRow(['', '   Commission Owner', v(d.owner), '', '', '']);
                 addStyledRow(['', '   Commission Investor', v(d.inv), '', '', '']);
                 addStyledRow(['', '   Debit', v(d.debit), '', '', '']);
+                addStyledRow(['', '   PWAS', v(d.pwas), '', '', '']);
                 addStyledRow(['', '   Other Expense', v(d.other_exp), '', '', '']);
                 
                 // 5. Net Loss / Profit
@@ -380,23 +385,23 @@ router.get('/export-excel', async (req, res) => {
             let monthsToRender = type === 'batch' ? [1,2,3,4,5,6,7,8,9,10,11,12] : visibleMonths;
 
             monthsToRender.forEach((m, idx) => {
-                let sC = 5 + (idx * 16);
-                for(let i=0; i<16; i++) ws.getColumn(sC + i).width = 12;
+                let sC = 5 + (idx * 17);
+                for(let i=0; i<17; i++) ws.getColumn(sC + i).width = 12;
 
-                setMergedCell(ws, 1, sC, 1, sC + 15, `${fullMonthNames[m-1]} ${yr}`, colors.month);
+                setMergedCell(ws, 1, sC, 1, sC + 16, `${fullMonthNames[m-1]} ${yr}`, colors.month);
                 
                 setMergedCell(ws, 2, sC, 4, sC, 'Maint. Cost', colors.sub);
-                setMergedCell(ws, 2, sC + 1, 2, sC + 10, 'Operating Expenses', colors.opc);
-                setMergedCell(ws, 2, sC + 11, 4, sC + 11, 'Total Cost', colors.total);
-                setMergedCell(ws, 2, sC + 12, 4, sC + 12, 'OP Revenue', colors.rev);
-                setMergedCell(ws, 2, sC + 13, 4, sC + 13, 'Gain / Loss', colors.gl);
-                setMergedCell(ws, 2, sC + 14, 4, sC + 14, 'Prv Month', colors.sub);
-                setMergedCell(ws, 2, sC + 15, 4, sC + 15, 'Net OP G/L', colors.net);
+                setMergedCell(ws, 2, sC + 1, 2, sC + 11, 'Operating Expenses', colors.opc);
+                setMergedCell(ws, 2, sC + 12, 4, sC + 12, 'Total Cost', colors.total);
+                setMergedCell(ws, 2, sC + 13, 4, sC + 13, 'OP Revenue', colors.rev);
+                setMergedCell(ws, 2, sC + 14, 4, sC + 14, 'Gain / Loss', colors.gl);
+                setMergedCell(ws, 2, sC + 15, 4, sC + 15, 'Prv Month', colors.sub);
+                setMergedCell(ws, 2, sC + 16, 4, sC + 16, 'Net OP G/L', colors.net);
 
                 setMergedCell(ws, 3, sC + 1, 3, sC + 4, 'For Driver', colors.opc);
                 setMergedCell(ws, 3, sC + 5, 4, sC + 5, 'Santook Rent', colors.opc);
                 setMergedCell(ws, 3, sC + 6, 3, sC + 8, 'Commission Paid', colors.opc);
-                setMergedCell(ws, 3, sC + 9, 3, sC + 10, 'Other Expense', colors.opc);
+                setMergedCell(ws, 3, sC + 9, 3, sC + 11, 'Other Expense', colors.opc);
 
                 setMergedCell(ws, 4, sC + 1, 4, sC + 1, 'Basic Sal', colors.opc);
                 setMergedCell(ws, 4, sC + 2, 4, sC + 2, 'OT', colors.opc);
@@ -407,11 +412,12 @@ router.get('/export-excel', async (req, res) => {
                 setMergedCell(ws, 4, sC + 7, 4, sC + 7, 'Owner', colors.opc);
                 setMergedCell(ws, 4, sC + 8, 4, sC + 8, 'Investor', colors.opc);
                 setMergedCell(ws, 4, sC + 9, 4, sC + 9, 'Debit', colors.opc);
-                setMergedCell(ws, 4, sC + 10, 4, sC + 10, 'Other', colors.opc);
+                setMergedCell(ws, 4, sC + 10, 4, sC + 10, 'PWAS', colors.opc);
+                setMergedCell(ws, 4, sC + 11, 4, sC + 11, 'Other', colors.opc);
             });
 
             for (let r = 1; r <= 4; r++) {
-                for (let c = 1; c <= 4 + (monthsToRender.length * 16); c++) {
+                for (let c = 1; c <= 4 + (monthsToRender.length * 17); c++) {
                     ws.getCell(r, c).border = borderStyle;
                 }
             }
@@ -432,31 +438,31 @@ router.get('/export-excel', async (req, res) => {
                     const l = logsRes.rows.find(x => x.equipment_id === eq.id && x.year === yr && x.month === m) || {};
                     const maint = Number(l.maintenance_cost||0), basic = Number(l.basic_salary||0), ot = Number(l.overtime||0), pen = Number(l.penalty||0), rent = Number(l.santook_rent||0), rev = Number(l.op_revenue||0);
                     const kaf = rev*(Number(l.kafil_comm||0)/100), own = rev*(Number(l.owner_comm||0)/100), inv = rev*(Number(l.investor_comm||0)/100);
-                    const deb = Number(l.debit||0), oth = Number(l.other_expense||0);
+                    const deb = Number(l.debit||0), pwas = Number(l.pwas||0), oth = Number(l.other_expense||0);
                     const netSal = (basic + ot) - pen;
-                    const opc = netSal + rent + kaf + own + inv + deb + oth;
+                    const opc = netSal + rent + kaf + own + inv + deb + pwas + oth;
                     const tc = maint + opc;
                     let gl = (tc>0||rev>0) ? rev - tc : 0;
                     let net = (gl!==0||carryGL!==0) ? gl + carryGL : 0;
                     carryGL = net;
                     
-                    rowData.push(v(maint), v(basic), v(ot), v(pen), v(netSal), v(rent), v(kaf), v(own), v(inv), v(deb), v(oth), v(tc), v(rev), v(gl), v(carryGL), v(net));
+                    rowData.push(v(maint), v(basic), v(ot), v(pen), v(netSal), v(rent), v(kaf), v(own), v(inv), v(deb), v(pwas), v(oth), v(tc), v(rev), v(gl), v(carryGL), v(net));
                 });
 
                 let rowObj = ws.addRow(rowData);
                 rowObj.height = 33;
                 rowObj.alignment = centerAlign;
 
-                for (let c = 1; c <= 4 + (monthsToRender.length * 16); c++) {
+                for (let c = 1; c <= 4 + (monthsToRender.length * 17); c++) {
                     let cell = rowObj.getCell(c);
                     cell.border = borderStyle;
                     if (c > 4) {
-                        let colIdx = (c - 5) % 16; 
-                        if (colIdx >= 1 && colIdx <= 10) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.opc } };
-                        else if (colIdx === 11) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.total } }; cell.font = { bold: true }; }
-                        else if (colIdx === 12) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.rev } }; cell.font = { bold: true }; }
-                        else if (colIdx === 13) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.gl } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF008000' } }; }
-                        else if (colIdx === 15) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.net } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF000000' } }; }
+                        let colIdx = (c - 5) % 17; 
+                        if (colIdx >= 1 && colIdx <= 11) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.opc } };
+                        else if (colIdx === 12) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.total } }; cell.font = { bold: true }; }
+                        else if (colIdx === 13) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.rev } }; cell.font = { bold: true }; }
+                        else if (colIdx === 14) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.gl } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF008000' } }; }
+                        else if (colIdx === 16) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.net } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF000000' } }; }
                         
                         if (colIdx === 3 && cell.value !== '') cell.font = { color: { argb: 'FFFF0000' } };
                     }

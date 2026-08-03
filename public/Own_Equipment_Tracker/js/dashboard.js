@@ -115,10 +115,10 @@ function renderTable() {
     r4 = `<tr>`;
 
   vM.forEach((m) => {
-    r1 += `<th colspan="16" class="month-head">${fullMonthNames[m - 1]} ${y}</th>`;
-    r2 += `<th rowspan="3" class="sub-head">Equipment <br> Maintanance <br> Cost</th><th colspan="10" class="sub-head bg-opc">Operating Expenses</th><th rowspan="3" class="sub-head bg-total-cost">Total Cost</th><th rowspan="3" class="sub-head bg-revenue">OPerational <br> Revenue</th><th rowspan="3" class="sub-head bg-gl"> This Month <br> Gain / Loss</th><th rowspan="3" class="sub-head">Prv Month <br> Balance</th><th rowspan="3" class="sub-head bg-net">Net OP <br> Gain/Loss</th>`;
-    r3 += `<th colspan="4" class="sub-head bg-opc">Driver Side Expenses</th><th rowspan="2" class="sub-head bg-opc">Santook <br> Rent</th><th colspan="3" class="sub-head bg-opc">Commission Paid</th><th colspan="2" class="sub-head bg-opc">Other Expense</th>`;
-    r4 += `<th class="sub-head bg-opc">Basic</th><th class="sub-head bg-opc">OT</th><th class="sub-head bg-opc" style="color:red;">Penalty</th><th class="sub-head bg-opc" style="font-weight:bold;">Net Salary</th><th class="sub-head bg-opc">Kafil</th><th class="sub-head bg-opc">Owner</th><th class="sub-head bg-opc">Investor</th><th class="sub-head bg-opc">Debit</th><th class="sub-head bg-opc">Other</th>`;
+    r1 += `<th colspan="17" class="month-head">${fullMonthNames[m - 1]} ${y}</th>`;
+    r2 += `<th rowspan="3" class="sub-head">Equipment <br> Maintanance <br> Cost</th><th colspan="11" class="sub-head bg-opc">Operating Expenses</th><th rowspan="3" class="sub-head bg-total-cost">Total Cost</th><th rowspan="3" class="sub-head bg-revenue">OPerational <br> Revenue</th><th rowspan="3" class="sub-head bg-gl"> This Month <br> Gain / Loss</th><th rowspan="3" class="sub-head">Prv Month <br> Balance</th><th rowspan="3" class="sub-head bg-net">Net OP <br> Gain/Loss</th>`;
+    r3 += `<th colspan="4" class="sub-head bg-opc">Driver Side Expenses</th><th rowspan="2" class="sub-head bg-opc">Santook <br> Rent</th><th colspan="3" class="sub-head bg-opc">Commission Paid</th><th colspan="3" class="sub-head bg-opc">Other Expense</th>`;
+    r4 += `<th class="sub-head bg-opc">Basic</th><th class="sub-head bg-opc">OT</th><th class="sub-head bg-opc" style="color:red;">Penalty</th><th class="sub-head bg-opc" style="font-weight:bold;">Net Salary</th><th class="sub-head bg-opc">Kafil</th><th class="sub-head bg-opc">Owner</th><th class="sub-head bg-opc">Investor</th><th class="sub-head bg-opc">Debit</th><th class="sub-head bg-opc">PWAS</th><th class="sub-head bg-opc">Other</th>`;
   });
   header.innerHTML = r1 + `</tr>` + r2 + `</tr>` + r3 + `</tr>` + r4 + `</tr>`;
 
@@ -137,19 +137,20 @@ function renderTable() {
         santook = Number(l.santook_rent || 0),
         rev = Number(l.op_revenue || 0),
         debit = Number(l.debit || 0),
+        pwas = Number(l.pwas || 0),
         other_exp = Number(l.other_expense || 0);
       const netSal = basic + ot - penalty;
       const kafil = rev * (Number(l.kafil_comm || 0) / 100),
         owner = Number(l.owner_comm || 0),
         inv = Number(l.investor_comm || 0);
-      const opc = netSal + santook + kafil + owner + inv + debit + other_exp;
+      const opc = netSal + santook + kafil + owner + inv + debit + pwas + other_exp;
       const tCost = maint + opc;
       let gl = 0;
       if (tCost > 0 || rev > 0) gl = rev - tCost;
       let net = 0;
       if (gl !== 0 || carryGL !== 0) net = gl + carryGL;
       if (vM.includes(m)) {
-        tr += `<td>${fmt(maint)}</td><td class="bg-opc">${fmt(basic)}</td><td class="bg-opc">${fmt(ot)}</td><td class="bg-opc" style="color:red;">${fmt(penalty)}</td><td class="bg-opc"><b>${fmt(netSal)}</b></td><td class="bg-opc">${fmt(santook)}</td><td class="bg-opc">${fmt(kafil, 1)}</td><td class="bg-opc">${fmt(owner, 1)}</td><td class="bg-opc">${fmt(inv, 1)}</td><td class="bg-opc">${fmt(debit)}</td><td class="bg-opc">${fmt(other_exp)}</td><td class="bg-total-cost"><b>${fmt(tCost, 1)}</b></td><td class="bg-revenue"><b>${fmt(rev)}</b></td><td class="bg-gl" style="color:${gl < 0 ? "red" : "green"};"><b>${fmt(gl, 1)}</b></td><td>${fmt(carryGL, 1)}</td><td class="bg-net" style="color:${net < 0 ? "red" : "black"};">${fmt(net, 1)}</td>`;
+        tr += `<td>${fmt(maint)}</td><td class="bg-opc">${fmt(basic)}</td><td class="bg-opc">${fmt(ot)}</td><td class="bg-opc" style="color:red;">${fmt(penalty)}</td><td class="bg-opc"><b>${fmt(netSal)}</b></td><td class="bg-opc">${fmt(santook)}</td><td class="bg-opc">${fmt(kafil, 1)}</td><td class="bg-opc">${fmt(owner, 1)}</td><td class="bg-opc">${fmt(inv, 1)}</td><td class="bg-opc">${fmt(debit)}</td><td class="bg-opc">${fmt(pwas)}</td><td class="bg-opc">${fmt(other_exp)}</td><td class="bg-total-cost"><b>${fmt(tCost, 1)}</b></td><td class="bg-revenue"><b>${fmt(rev)}</b></td><td class="bg-gl" style="color:${gl < 0 ? "red" : "green"};"><b>${fmt(gl, 1)}</b></td><td>${fmt(carryGL, 1)}</td><td class="bg-net" style="color:${net < 0 ? "red" : "black"};">${fmt(net, 1)}</td>`;
       }
       carryGL = net;
     }
@@ -206,6 +207,7 @@ async function postLogData() {
     owner_comm: document.getElementById("inputOwner").value,
     investor_comm: document.getElementById("inputInvestor").value,
     debit: document.getElementById("inputDebit").value,
+    pwas: document.getElementById("inputPwas").value,
     other_expense: document.getElementById("inputOtherExpense").value,
     op_revenue: document.getElementById("inputRevenue").value,
   };
@@ -302,6 +304,7 @@ function populateModalFields() {
   document.getElementById("inputOwner").value = (log && Number(log.owner_comm) !== 0) ? log.owner_comm : "";
   document.getElementById("inputInvestor").value = (log && Number(log.investor_comm) !== 0) ? log.investor_comm : "";
   document.getElementById("inputDebit").value = (log && Number(log.debit) !== 0) ? log.debit : "";
+  document.getElementById("inputPwas").value = (log && Number(log.pwas) !== 0) ? log.pwas : "";
   document.getElementById("inputOtherExpense").value = (log && Number(log.other_expense) !== 0) ? log.other_expense : "";
   document.getElementById("inputRevenue").value = (log && Number(log.op_revenue) !== 0) ? log.op_revenue : "";
 }

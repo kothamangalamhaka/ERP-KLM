@@ -54,6 +54,7 @@
                 <th>Owner Commission</th>
                 <th>Investor Commission</th>
                 <th>Debit Note</th>
+                <th>PWAS</th>
                 <th>Other Expenses</th>
                 <th>Operational Revenue</th>
                 <th>Gain / Loss</th>
@@ -159,7 +160,7 @@
         const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
         let totMaint = 0, totBasicOt = 0, totPenalty = 0, totRent = 0;
-        let totKafil = 0, totOwner = 0, totInv = 0, totDebit = 0, totOther = 0;
+        let totKafil = 0, totOwner = 0, totInv = 0, totDebit = 0, totPwas = 0, totOther = 0;
         let totRev = 0, totGl = 0;
 
         eqLogs.forEach(l => {
@@ -169,6 +170,7 @@
             const rent = Number(l.santook_rent || 0);
             const rev = Number(l.op_revenue || 0);
             const debit = Number(l.debit || 0);
+            const pwas = Number(l.pwas || 0);
             const other = Number(l.other_expense || 0);
 
             const kafil = rev * (Number(l.kafil_comm || 0) / 100);
@@ -176,7 +178,7 @@
             const inv = rev * (Number(l.investor_comm || 0) / 100);
 
             const netSal = basicOt - penalty;
-            const totalCost = maint + netSal + rent + kafil + owner + inv + debit + other;
+            const totalCost = maint + netSal + rent + kafil + owner + inv + debit + pwas + other;
             const gl = rev - totalCost;
             const monthName = shortMonths[l.month - 1] || l.month;
 
@@ -188,6 +190,7 @@
             totOwner += owner;
             totInv += inv;
             totDebit += debit;
+            totPwas += pwas;
             totOther += other;
             totRev += rev;
             totGl += gl;
@@ -204,6 +207,7 @@
                     <td>${owner.toFixed(2)}</td>
                     <td>${inv.toFixed(2)}</td>
                     <td>${debit.toFixed(2)}</td>
+                    <td>${pwas.toFixed(2)}</td>
                     <td>${other.toFixed(2)}</td>
                     <td>${rev.toFixed(2)}</td>
                     <td style="color:${gl < 0 ? 'red' : 'green'}; font-weight:bold;">${gl.toFixed(2)}</td>
@@ -222,6 +226,7 @@
                 <td>${totOwner.toFixed(2)}</td>
                 <td>${totInv.toFixed(2)}</td>
                 <td>${totDebit.toFixed(2)}</td>
+                <td>${totPwas.toFixed(2)}</td>
                 <td>${totOther.toFixed(2)}</td>
                 <td>${totRev.toFixed(2)}</td>
                 <td style="color:${totGl < 0 ? 'red' : 'green'}; font-weight:bold;">${totGl.toFixed(2)}</td>
