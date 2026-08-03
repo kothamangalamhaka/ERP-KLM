@@ -880,12 +880,12 @@ function processBulkImport() {
   const file = fileInput.files[0],
     reader = new FileReader();
 
-  $("#btnImportSubmit").prop("disabled", true).text("Processing...");
+  $("#btnImportSubmit").prop("disabled", true).text("Processing via Python...");
   reader.onload = async function (e) {
     const base64Data = e.target.result;
     try {
-      showToast("Validating & Processing...", "info");
-      const res = await fetch("/api/admin/import-excel", {
+      showToast("Validating & Processing with Python Engine...", "info");
+      const res = await fetch("/api/admin/import-excel-py", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -909,7 +909,7 @@ function processBulkImport() {
     } catch (error) {
       updateImportUI();
       $("#btnImportSubmit").prop("disabled", false);
-      showToast("Failed to upload.", "error");
+      showToast("Failed to upload to Python engine.", "error");
     }
   };
   reader.readAsDataURL(file);
@@ -1569,85 +1569,59 @@ function renderTable(response) {
       {
         text: '<span class="material-icons" style="font-size:16px;">download</span> Export',
         className: "dt-button btn-outline",
-        extend: "excelHtml5",
-        title: "",
-        exportOptions: {
-          columns: ":visible",
-          stripNewlines: false,
-          format: {
-            header: function (data, columnIdx, node) {
-              return $(node).find(".col-title-text").length > 0
-                ? $(node).find(".col-title-text").text().trim()
-                : $(node).text().trim();
-            },
-          },
-        },
-        customize: function (xlsx) {
-          var sheet = xlsx.xl.worksheets["sheet1.xml"];
-          var styles = xlsx.xl["styles.xml"];
+        action: async function (e, dt, node, config) {
+          document.querySelector(".dt-buttons").classList.remove("show");
+          showToast("Generating Premium Excel via Python Engine...", "info");
+          
+          const $btn = $(node);
+          const originalText = $btn.html();
+          $btn.prop("disabled", true).html('<span class="material-icons" style="font-size:16px; animation: spin 1s linear infinite;">sync</span> Exporting...');
+          
+          try {
+            let visibleHeaders = [];
+            erpDataTable.columns({ visible: true }).every(function () {
+              let title = $(this.header()).find(".col-title-text").text().trim() || $(this.header()).text().trim();
+              visibleHeaders.push(title);
+            });
 
-          // 1. Create a custom Date Format (dd-mmm-yyyy) in Excel's backend styles
-          var numFmts = $("numFmts", styles);
-          if (numFmts.length === 0) {
-            $("styleSheet", styles).prepend(
-              '<numFmts count="1"><numFmt numFmtId="164" formatCode="dd-mmm-yyyy"/></numFmts>',
-            );
-          } else {
-            numFmts.attr("count", parseInt(numFmts.attr("count")) + 1);
-            numFmts.append('<numFmt numFmtId="164" formatCode="dd-mmm-yyyy"/>');
+            let visibleRows = [];
+            erpDataTable.rows({ search: "applied" }).every(function () {
+              let rowData = this.data();
+              let rowObj = [];
+              erpDataTable.columns({ visible: true }).every(function (index) {
+                rowObj.push(rowData[index] || "");
+              });
+              visibleRows.push(rowObj);
+            });
+
+            const res = await fetch("/api/export-excel-py", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ headers: visibleHeaders, rows: visibleRows }),
+            });
+
+            if (!res.ok) throw new Error("Export failed");
+            
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Haka_ERP_Master_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            showToast("Excel Downloaded Successfully!", "success");
+          } catch (e) {
+            console.error("Export Error:", e);
+            showToast("Failed to export Excel", "error");
+          } finally {
+            $btn.prop("disabled", false).html(originalText);
           }
-
-          var cellXfs = $("cellXfs", styles);
-          var xfCount = parseInt(cellXfs.attr("count"));
-          cellXfs.attr("count", xfCount + 1);
-          cellXfs.append(
-            '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>',
-          );
-
-          var dateStyleId = xfCount; // New style ID for our date format
-
-          // 2. Apply Serial Number and the new Date Style to cells
-          var dateRegex = /^\d{2}-[A-Za-z]{3}-\d{4}$/;
-          var monthMap = {
-            Jan: 0,
-            Feb: 1,
-            Mar: 2,
-            Apr: 3,
-            May: 4,
-            Jun: 5,
-            Jul: 6,
-            Aug: 7,
-            Sep: 8,
-            Oct: 9,
-            Nov: 10,
-            Dec: 11,
-          };
-
-          $("row c", sheet).each(function () {
-            var $cell = $(this);
-            var $is = $cell.find("is t");
-
-            if ($is.length) {
-              var text = $is.text();
-
-              if (text.indexOf("\n") > -1 || text.indexOf("\r") > -1) {
-                $cell.attr("s", "55"); // Keep wrap text for Driver Logs
-              }
-
-              if (dateRegex.test(text)) {
-                var parts = text.split("-");
-                var dateObj = new Date(
-                  Date.UTC(parts[2], monthMap[parts[1]], parts[0]),
-                );
-                var excelSerialDate =
-                  25569.0 + dateObj.getTime() / (1000 * 60 * 60 * 24);
-
-                $cell.attr("t", "n"); // Change type to Number
-                $cell.attr("s", dateStyleId); // Apply our injected Date Style
-                $cell.html("<v>" + excelSerialDate + "</v>"); // Set the serial value
-              }
-            }
-          });
         },
       },
       {
@@ -2406,7 +2380,8 @@ async function processQueue() {
   let currentBatch = [...saveQueue];
   saveQueue = [];
   try {
-    const res = await fetch("/api/update-cells-batch", {
+    // Routed to High-Speed Python Engine Proxy
+    const res = await fetch("/api/update-cells-batch-py", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2708,7 +2683,7 @@ function toggleBulkEditMode() {
   }
 }
 
-// Intercept Clipboard Paste Event on Table Cells
+// Intercept Clipboard Paste Event on Table Cells (High-Performance Zero-Lag Mode)
 $(document).on(
   "paste",
   "#erpTable.bulk-edit-grid-active tbody td",
@@ -2716,7 +2691,6 @@ $(document).on(
     if (currentUser.role !== "Super Admin") return;
     e.preventDefault();
 
-    // Get raw text from clipboard
     let clipboardData = (e.originalEvent || e).clipboardData.getData("text");
     if (!clipboardData) return;
 
@@ -2727,13 +2701,16 @@ $(document).on(
 
     let $currentTr = $startTr;
     let bulkEditsBatch = [];
+    let updatedRowIndexes = new Set();
+    let isSmallBatch = (rows.length * (rows[0] ? rows[0].split("\t").length : 1)) <= 40;
 
     rows.forEach((rowText) => {
-      if (!rowText.trim() && rows.length > 1) return; // Skip empty trailing lines
+      if (!rowText.trim() && rows.length > 1) return;
       let cols = rowText.split("\t");
 
       if (!$currentTr.length) return;
       let dbId = $currentTr.data("sheetrow");
+      let dtRowIndex = erpDataTable.row($currentTr).index();
 
       cols.forEach((cellText, cIdx) => {
         let targetColIdx = startColIdx + cIdx;
@@ -2744,18 +2721,12 @@ $(document).on(
         if (!colName) return;
 
         let colUpper = String(colName).toUpperCase();
-
         if (colUpper === "SN" || colUpper === "DAYS WORKED") return;
-        if (
-          globalLockedCols.includes(colName) &&
-          currentUser.role !== "Super Admin"
-        )
-          return;
+        if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin") return;
 
         let newValue = cellText.trim();
         let oldValue = $targetTd.text().trim();
 
-        // Strict Text Formatter (No Timezone Issues)
         let colTypeObj = cachedColTypes.find((c) => c.name === colName);
         let cType = colTypeObj ? colTypeObj.type : "varchar";
         let isDateCol =
@@ -2767,31 +2738,34 @@ $(document).on(
           colUpper === "WORK START";
 
         if (isDateCol && newValue) newValue = formatToDDMMMYYYY(newValue);
-        else if (colUpper === "PLATE NUMBER")
-          newValue = formatPlateNumber(newValue);
+        else if (colUpper === "PLATE NUMBER") newValue = formatPlateNumber(newValue);
 
         if (oldValue !== newValue) {
-          let rowIndex = erpDataTable.row($currentTr).index();
           let colIdxInDataTable = cachedHeaders.indexOf(colName);
-
-          if (rowIndex !== undefined && colIdxInDataTable !== -1) {
-            // Live UI Update
+          if (dtRowIndex !== undefined && colIdxInDataTable !== -1) {
+            // Update UI Text directly without triggering DataTables internal indexing loop
             $targetTd.text(newValue);
-            erpDataTable.cell(rowIndex, colIdxInDataTable).data(newValue);
 
-            // Highlight Animation
-            $targetTd.css("transition", "background-color 0.3s");
-            $targetTd.css("background-color", "#fef08a");
-            setTimeout(() => $targetTd.css("background-color", ""), 1500);
+            // Update underlying DataTables array reference silently
+            let rowDataArray = erpDataTable.row(dtRowIndex).data();
+            if (rowDataArray) {
+              rowDataArray[colIdxInDataTable] = newValue;
+              updatedRowIndexes.add(dtRowIndex);
+            }
 
-            // Add to Batch Queue
+            // Apply animation ONLY for small pastes to prevent browser GPU/RAM overload
+            if (isSmallBatch) {
+              $targetTd.css("transition", "background-color 0.3s");
+              $targetTd.css("background-color", "#fef08a");
+              setTimeout(() => $targetTd.css("background-color", ""), 1500);
+            }
+
             bulkEditsBatch.push({
               dbId: dbId,
               colName: colName,
               newValue: newValue,
             });
 
-            // Add to Undo Stack
             undoStack.push({
               sheetRow: dbId,
               colName: colName,
@@ -2809,14 +2783,17 @@ $(document).on(
     updateUndoRedoUI();
 
     if (bulkEditsBatch.length > 0) {
+      // Invalidate and redraw ONLY the modified rows in a single batch
+      updatedRowIndexes.forEach((rIdx) => {
+        erpDataTable.row(rIdx).invalidate("data");
+      });
       erpDataTable.draw(false);
 
-      // Save to database seamlessly
       saveQueue.push(...bulkEditsBatch);
       processQueue();
 
       showToast(
-        `Pasted and queued ${bulkEditsBatch.length} updates! Syncing to database...`,
+        `Pasted ${bulkEditsBatch.length} cells instantly! Syncing to DB...`,
         "success",
       );
     } else {

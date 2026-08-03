@@ -554,5 +554,98 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
+
+  // ==========================================
+  // 🐍 PYTHON ENGINE CONNECTED EXCEL EXPORT
+  // ==========================================
+  const axios = require("axios"); // NPM-ലൂടെ axios ഇൻസ്റ്റാൾ ചെയ്തിരിക്കണം
+
+  router.post("/export-excel-py", verifyToken, async (req, res) => {
+    try {
+      const { headers, rows } = req.body;
+      
+      // Python FastAPI സർവീസിലേക്ക് ഡാറ്റ നൽകുന്നു
+      const pyResponse = await axios.post("http://127.0.0.1:8001/py/export-excel", {
+        headers: headers,
+        rows: rows,
+        sheet_name: "Haka Master Database"
+      }, {
+        responseType: "arraybuffer" // എക്സൽ ബൈനറി ഡാറ്റ കൈപ്പറ്റാൻ
+      });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=Master_Database_Export.xlsx");
+      res.send(pyResponse.data);
+    } catch (error) {
+      handleError(res, error, req.user.role, "PYTHON_EXCEL_EXPORT");
+    }
+  });
+
+  // ==========================================
+  // 🐍 HIGH-SPEED PYTHON BULK UPDATE PROXY
+  // ==========================================
+  router.post("/update-cells-batch-py", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role === "Viewer") {
+        return res.json({ success: false, message: "Access Denied: Viewers cannot edit data." });
+      }
+
+      const { edits } = req.body;
+      if (!Array.isArray(edits) || edits.length === 0) {
+        return res.json({ success: false, message: "No edits provided." });
+      }
+
+      // Forwarding batch edits to Python Engine (Port 8001)
+      const pyResponse = await axios.post("http://127.0.0.1:8001/py/bulk-update-cells", {
+        edits: edits,
+        username: req.user.username
+      });
+
+      // Log activity in background
+      pool.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BATCH_UPDATE_PY', $2)",
+        [req.user.username, JSON.stringify({ count: edits.length })]
+      ).catch(err => console.error("Log error:", err.message));
+
+      res.json(pyResponse.data);
+    } catch (error) {
+      handleError(res, error, req.user.role, "PYTHON_BATCH_UPDATE");
+    }
+  });
+
+  // ==========================================
+  // 🐍 HIGH-SPEED PYTHON BULK IMPORT PROXY
+  // ==========================================
+  router.post("/admin/import-excel-py", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") {
+        return res.json({ success: false, message: "Super Admin Access Required." });
+      }
+
+      const { fileBase64, importMode } = req.body;
+      if (!fileBase64) {
+        return res.json({ success: false, message: "No file data received." });
+      }
+
+      // Forwarding Import request to Python Engine (Port 8001)
+      const pyResponse = await axios.post("http://127.0.0.1:8001/py/import-excel", {
+        fileBase64: fileBase64,
+        importMode: importMode,
+        username: req.user.username
+      });
+
+      // Log import activity
+      pool.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BULK_IMPORT_PY', $2)",
+        [req.user.username, JSON.stringify({ mode: importMode })]
+      ).catch(err => console.error("Log error:", err.message));
+
+      res.json(pyResponse.data);
+    } catch (error) {
+      handleError(res, error, req.user.role, "PYTHON_BULK_IMPORT");
+    }
+  });
+
   return router;
 };
+
