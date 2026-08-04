@@ -24,6 +24,9 @@ app = FastAPI(title="Haka ERP Python Engine")
 from routers.own_equipment_py import router as own_equipment_router
 app.include_router(own_equipment_router)
 
+from routers.payment_py import router as payment_router
+app.include_router(payment_router)
+
 class ExportRequest(BaseModel):
     headers: list
     rows: list

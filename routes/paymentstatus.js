@@ -211,7 +211,7 @@ router.post("/save-accounts-note", async (req, res) => {
   }
 });
 
-// 🟢 Save Bulk Special Edits (V.Bill Notes, Supplier NR & OT)
+// 🟢 Save Bulk Special Edits (V.Bill Notes, Supplier NR & OT) - Optimized
 router.post("/save-bulk-vbill-notes", async (req, res) => {
   let client;
   try {
@@ -223,23 +223,17 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
     await client.query("BEGIN");
 
     for (let row of records) {
-      // 🟢 റെക്കോർഡ് നിലവിലുണ്ടോ എന്ന് നോക്കുന്നു. ഇല്ലെങ്കിൽ ഇൻസേർട്ട് ചെയ്യും
-      const checkBill = await client.query(
-        "SELECT id FROM billing_records WHERE plate_no=$1 AND billing_month=$2 AND site_name=$3",
-        [row.plate_no, row.month, row.site_name]
+      // 🟢 UPSERT ഉപയോഗിച്ച് ലൂപ്പ് സമയം പകുതിയാക്കുന്നു
+      await client.query(
+        `INSERT INTO billing_records (plate_no, billing_month, site_name, remark, nhr, othr)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (plate_no, billing_month, site_name)
+         DO UPDATE SET 
+           remark = EXCLUDED.remark,
+           nhr = EXCLUDED.nhr,
+           othr = EXCLUDED.othr;`,
+        [row.plate_no, row.month, row.site_name, row.remark, row.bill_nr, row.bill_ot]
       );
-
-      if (checkBill.rows.length > 0) {
-        await client.query(
-          "UPDATE billing_records SET remark=$1, nhr=$5, othr=$6 WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4",
-          [row.remark, row.plate_no, row.month, row.site_name, row.bill_nr, row.bill_ot]
-        );
-      } else {
-        await client.query(
-          "INSERT INTO billing_records (plate_no, billing_month, site_name, remark, nhr, othr) VALUES ($1, $2, $3, $4, $5, $6)",
-          [row.plate_no, row.month, row.site_name, row.remark, row.bill_nr, row.bill_ot]
-        );
-      }
     }
     await client.query("COMMIT");
     res.json({ success: true });
@@ -266,18 +260,16 @@ router.post("/save-text-note", async (req, res) => {
       [plate_no, month, site_name],
     );
 
-    if (check.rows.length > 0) {
-      await pool.query(
-        `UPDATE invoice_records SET ${field}=$1, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$2 AND month=$3 AND site_name=$4`,
-        [value, plate_no, month, site_name],
-      );
-    } else {
-      // Made INSERT safer to prevent silent errors
-      await pool.query(
-        `INSERT INTO invoice_records (plate_no, month, site_name, ${field}) VALUES ($1, $2, $3, $4)`,
-        [plate_no, month, site_name, value],
-      );
-    }
+    // 🟢 സുരക്ഷിതമായി ഡാറ്റ ഇൻസേർട്ട് / അപ്ഡേറ്റ് ചെയ്യുന്നു
+    await pool.query(
+      `INSERT INTO invoice_records (plate_no, month, site_name, ${field})
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (plate_no, month, site_name)
+       DO UPDATE SET 
+         ${field} = EXCLUDED.${field},
+         updated_at = CURRENT_TIMESTAMP;`,
+      [plate_no, month, site_name, value]
+    );
     res.json({ success: true });
   } catch (err) {
     console.error(`Error saving text note (${field}):`, err); 

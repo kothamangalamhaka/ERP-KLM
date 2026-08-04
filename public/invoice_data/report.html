@@ -925,7 +925,7 @@
               type="text"
               id="filterPlate"
               placeholder="Plate, Owner, Inv, Bill..."
-              onkeyup="applyFilters()"
+              onkeyup="debouncedApplyFilters()"
               style="text-transform: uppercase"
             />
           </div>
@@ -2334,6 +2334,14 @@
         });
       }
 
+      let filterTimeout = null;
+      function debouncedApplyFilters() {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(() => {
+          applyFilters();
+        }, 150);
+      }
+
       function applyFilters() {
         let fOwner = document.getElementById("filterOwner").value;
         let fSite = document.getElementById("filterSite").value;
@@ -2681,7 +2689,8 @@
         document.getElementById("loader").style.display = "block";
         const token = localStorage.getItem("timesheetToken");
         try {
-          const res = await fetch("/payment/save-inline-edits", {
+          // 🟢 വേഗതയേറിയ Python API-ലേക്ക് അഭ്യർത്ഥന അയക്കുന്നു
+          const res = await fetch("/py/payment/bulk-save-invoices", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -2691,15 +2700,18 @@
           });
           const data = await res.json();
           if (data.success) {
-            window.alert("Changes Saved Successfully!");
+            showToast("✓ Changes Saved Successfully!");
             isEditMode = false;
             let btn = document.getElementById("btnEditData");
             btn.innerHTML = "✏️ Edit Data";
             btn.style.backgroundColor = "#2563eb";
             document.getElementById("btnCancelEdit").style.display = "none";
+            
             if (isBatchViewActive) executeBatchView(true);
             else fetchAndRenderUI(true);
-          } else window.alert("Error: " + data.message);
+          } else {
+            window.alert("Error: " + (data.detail || data.message || "Unknown error"));
+          }
         } catch (err) {
           window.alert("Server Connection Error.");
         }
@@ -2997,19 +3009,24 @@
         document.getElementById("loader").style.display = "block";
         await ensureSpecialRules();
         let wb = XLSX.utils.book_new();
+        
+        let monthQueries = [];
         let current = new Date(start);
         while (current <= end) {
-          let m = months[current.getMonth()],
-            y = current.getFullYear();
-          let data = await fetchReportDataAPI(m, y);
-          if (data.length > 0)
-            XLSX.utils.book_append_sheet(
-              wb,
-              createSheetFromData(data),
-              `${m} ${y}`.substring(0, 31),
-            );
+          monthQueries.push({ m: months[current.getMonth()], y: current.getFullYear() });
           current.setMonth(current.getMonth() + 1);
         }
+
+        let results = await Promise.all(
+          monthQueries.map(q => fetchReportDataAPI(q.m, q.y))
+        );
+
+        results.forEach((data, idx) => {
+          if (data && data.length > 0) {
+            let label = `${monthQueries[idx].m} ${monthQueries[idx].y}`.substring(0, 31);
+            XLSX.utils.book_append_sheet(wb, createSheetFromData(data), label);
+          }
+        });
         document.getElementById("loader").style.display = "none";
         XLSX.writeFile(wb, "Batch_Report.xlsx");
       }
@@ -3039,25 +3056,32 @@
         loader.style.display = "block";
         await ensureSpecialRules();
 
-        let combinedData = [];
+        let monthQueries = [];
         let current = new Date(start);
         while (current <= end) {
-          let m = months[current.getMonth()],
-            y = current.getFullYear();
-          let currentMonthIndex = current.getMonth();
-          let data = await fetchReportDataAPI(m, y);
-          if (data.length > 0) {
-            data.forEach((row) => {
-              // മാസം 'Mar 26', 'Feb 26' എന്ന ഫോർമാറ്റിലേക്ക് മാറ്റുന്നു
-              row.report_month = `${m.substring(0, 3)} ${String(y).substring(2, 4)}`;
+          monthQueries.push({ 
+            m: months[current.getMonth()], 
+            y: current.getFullYear(),
+            monthIndex: current.getMonth()
+          });
+          current.setMonth(current.getMonth() + 1);
+        }
 
-              // കൃത്യമായി ഓർഡർ ചെയ്യാൻ വേണ്ടി ടൈംസ്റ്റാമ്പ് സെറ്റ് ചെയ്യുന്നു
-              row.sort_date = new Date(y, currentMonthIndex, 1).getTime();
+        let results = await Promise.all(
+          monthQueries.map(q => fetchReportDataAPI(q.m, q.y))
+        );
+
+        let combinedData = [];
+        results.forEach((data, idx) => {
+          if (data && data.length > 0) {
+            let { m, y, monthIndex } = monthQueries[idx];
+            data.forEach((row) => {
+              row.report_month = `${m.substring(0, 3)} ${String(y).substring(2, 4)}`;
+              row.sort_date = new Date(y, monthIndex, 1).getTime();
               combinedData.push(row);
             });
           }
-          current.setMonth(current.getMonth() + 1);
-        }
+        });
         loader.style.display = "none";
         loader.innerText = "Processing Data... Please wait.";
         if (combinedData.length === 0) {
@@ -3721,15 +3745,18 @@
         }
 
         await ensureSpecialRules();
-        let combinedData = [];
+        
+        let fetchPromises = [];
         let current = new Date(start);
         while (current <= end) {
           let m = months[current.getMonth()],
             y = current.getFullYear();
-          let data = await fetchReportDataAPI(m, y);
-          if (data && data.length > 0) combinedData = combinedData.concat(data);
+          fetchPromises.push(fetchReportDataAPI(m, y));
           current.setMonth(current.getMonth() + 1);
         }
+
+        let resultsArray = await Promise.all(fetchPromises);
+        let combinedData = resultsArray.flat().filter(Boolean);
 
         masterData = combinedData;
         let uniqueOwners = new Set(),
