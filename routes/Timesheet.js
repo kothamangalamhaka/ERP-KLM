@@ -1280,9 +1280,6 @@ router.post("/api/db/bulk-import", verifyEditor, async (req, res) => {
     );
     await client.query("COMMIT");
     res.json({ success: true });
-
-    await client.query("COMMIT");
-    res.json({ success: true });
   } catch (error) {
     await client.query("ROLLBACK");
     res.json({ success: false, message: error.message });

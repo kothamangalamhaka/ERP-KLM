@@ -9,13 +9,15 @@ from typing import List, Optional
 
 router = APIRouter(prefix="/py/payment", tags=["Payment Report"])
 
+from typing import List, Optional, Any
+
 class InvoiceEditRecord(BaseModel):
     month: str
     plate: str
     site: str
-    inv_nr: Optional[float] = None
-    inv_ot: Optional[float] = None
-    inv_amount: Optional[float] = None
+    inv_nr: Optional[Any] = None
+    inv_ot: Optional[Any] = None
+    inv_amount: Optional[Any] = None
     inv_no: Optional[str] = ""
     bill_no: Optional[str] = ""
 

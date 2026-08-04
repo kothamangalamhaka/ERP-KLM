@@ -1,6 +1,7 @@
 const express = require("express");
 const excelJS = require("exceljs");
 const bcrypt = require("bcrypt");
+const axios = require("axios");
 
 module.exports = function (pool, middlewares, helpers) {
   const router = express.Router();
@@ -558,7 +559,6 @@ module.exports = function (pool, middlewares, helpers) {
   // ==========================================
   // 🐍 PYTHON ENGINE CONNECTED EXCEL EXPORT
   // ==========================================
-  const axios = require("axios"); // NPM-ലൂടെ axios ഇൻസ്റ്റാൾ ചെയ്തിരിക്കണം
 
   router.post("/export-excel-py", verifyToken, async (req, res) => {
     try {
