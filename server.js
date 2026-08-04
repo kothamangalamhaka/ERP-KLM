@@ -69,11 +69,30 @@ app.use('/api/employee-tracker/auth', employeeTrackerAuthRoutes);
 app.use('/api/employee-tracker/admin', employeeTrackerAdminRoutes);
 app.use('/api/employee-tracker', employeeTrackerRoutes);
 
-
-
-
-
-
+// ==========================================
+// 🐍 PYTHON ENGINE PROXY (Port 8001 Forwarder)
+// ==========================================
+app.use("/py", async (req, res) => {
+  try {
+    const url = `http://127.0.0.1:8001/py${req.url}`;
+    const options = {
+      method: req.method,
+      headers: { "Content-Type": "application/json" },
+    };
+    if (["POST", "PUT", "PATCH"].includes(req.method) && Object.keys(req.body || {}).length > 0) {
+      options.body = JSON.stringify(req.body);
+    }
+    const pyRes = await fetch(url, options);
+    const data = await pyRes.json();
+    res.status(pyRes.status).json(data);
+  } catch (err) {
+    console.error("Python Server Proxy Error:", err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: "Python Server Offline or Unreachable on Port 8001. Please check if main.py is running." 
+    });
+  }
+});
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;

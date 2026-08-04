@@ -144,12 +144,20 @@
         font-size: 14px;
         padding: 8px 10px;
       }
+      /* ==========================================
+         ❄️ FULL HEADER FREEZE (All Top Rows)
+         ========================================== */
+      thead {
+        position: sticky;
+        top: 0;
+        z-index: 4;
+      }
       th.master-head {
         background: #d9e1f2;
         color: #000;
         position: sticky;
         top: 0;
-        z-index: 2;
+        z-index: 5;
       }
       th.month-head {
         background: #d9ebd3;
@@ -157,11 +165,48 @@
         font-size: 14px;
         position: sticky;
         top: 0;
-        z-index: 1;
+        z-index: 4;
       }
       th.sub-head {
         background: #f2f2f2;
         font-size: 11px;
+        position: sticky;
+        top: 0;
+        z-index: 4;
+      }
+
+      /* ==========================================
+         ❄️ FREEZE SN & PLATE NO COLUMNS (Sticky)
+         ========================================== */
+      /* Freeze SN Column (Column 1) */
+      thead tr:first-child th:nth-child(1),
+      tbody td:nth-child(1) {
+        position: sticky;
+        left: 0;
+        z-index: 3;
+        background: #fff;
+        width: 50px;
+        min-width: 50px;
+        max-width: 50px;
+      }
+      thead tr:first-child th:nth-child(1) {
+        z-index: 6;
+        background: #d9e1f2;
+      }
+
+      /* Freeze Plate No Column (Column 2) */
+      thead tr:first-child th:nth-child(2),
+      tbody td:nth-child(2) {
+        position: sticky;
+        left: 50px;
+        z-index: 3;
+        background: #fff;
+        min-width: 110px;
+        box-shadow: 3px 0 5px rgba(0, 0, 0, 0.08);
+      }
+      thead tr:first-child th:nth-child(2) {
+        z-index: 6;
+        background: #d9e1f2;
       }
       .bg-opc {
         background: #fff2cc;
@@ -251,7 +296,7 @@
         </div>
         <button class="btn btn-blue" onclick="renderTable()">Apply</button>
       </div>
-      <div class="controls">
+ <div class="controls">
         <button
           class="btn btn-dark"
           onclick="window.location.href = 'summary.html'"
@@ -263,6 +308,9 @@
         </button>
         <button class="btn btn-blue" onclick="openDataModal()">
           + Input Data
+        </button>
+        <button id="btnEditInline" class="btn btn-primary" style="background: #8e44ad;" onclick="toggleEditMode()">
+          ✏️ Edit Data
         </button>
         <button class="btn btn-excel" onclick="exportToExcel()">
           Export Excel

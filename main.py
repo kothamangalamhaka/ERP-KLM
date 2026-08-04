@@ -13,9 +13,16 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
+
 load_dotenv()
 
 app = FastAPI(title="Haka ERP Python Engine")
+
+# ==========================================
+# 🚀 REGISTER MODULAR PYTHON ROUTERS
+# ==========================================
+from routers.own_equipment_py import router as own_equipment_router
+app.include_router(own_equipment_router)
 
 class ExportRequest(BaseModel):
     headers: list

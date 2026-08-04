@@ -150,12 +150,109 @@ function renderTable() {
       let net = 0;
       if (gl !== 0 || carryGL !== 0) net = gl + carryGL;
       if (vM.includes(m)) {
-        tr += `<td>${fmt(maint)}</td><td class="bg-opc">${fmt(basic)}</td><td class="bg-opc">${fmt(ot)}</td><td class="bg-opc" style="color:red;">${fmt(penalty)}</td><td class="bg-opc"><b>${fmt(netSal)}</b></td><td class="bg-opc">${fmt(santook)}</td><td class="bg-opc">${fmt(kafil, 1)}</td><td class="bg-opc">${fmt(owner, 1)}</td><td class="bg-opc">${fmt(inv, 1)}</td><td class="bg-opc">${fmt(debit)}</td><td class="bg-opc">${fmt(pwas)}</td><td class="bg-opc">${fmt(other_exp)}</td><td class="bg-total-cost"><b>${fmt(tCost, 1)}</b></td><td class="bg-revenue"><b>${fmt(rev)}</b></td><td class="bg-gl" style="color:${gl < 0 ? "red" : "green"};"><b>${fmt(gl, 1)}</b></td><td>${fmt(carryGL, 1)}</td><td class="bg-net" style="color:${net < 0 ? "red" : "black"};">${fmt(net, 1)}</td>`;
+        tr += `
+          <td class="editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="maintenance_cost">${fmt(maint)}</td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="basic_salary">${fmt(basic)}</td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="overtime">${fmt(ot)}</td>
+          <td class="bg-opc editable-cell" style="color:red;" data-eq="${eq.id}" data-month="${m}" data-field="penalty">${fmt(penalty)}</td>
+          <td class="bg-opc"><b>${fmt(netSal)}</b></td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="santook_rent">${fmt(santook)}</td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="kafil_comm">${fmt(kafil, 1)}</td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="owner_comm">${fmt(owner, 1)}</td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="investor_comm">${fmt(inv, 1)}</td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="debit">${fmt(debit)}</td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="pwas">${fmt(pwas)}</td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="other_expense">${fmt(other_exp)}</td>
+          <td class="bg-total-cost"><b>${fmt(tCost, 1)}</b></td>
+          <td class="bg-revenue editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="op_revenue"><b>${fmt(rev)}</b></td>
+          <td class="bg-gl" style="color:${gl < 0 ? "red" : "green"};"><b>${fmt(gl, 1)}</b></td>
+          <td>${fmt(carryGL, 1)}</td>
+          <td class="bg-net" style="color:${net < 0 ? "red" : "black"};">${fmt(net, 1)}</td>`;
       }
       carryGL = net;
     }
     body.innerHTML += tr + `</tr>`;
   });
+}
+
+let isEditMode = false;
+
+function toggleEditMode() {
+  const btn = document.getElementById("btnEditInline");
+  const cells = document.querySelectorAll(".editable-cell");
+
+  if (!isEditMode) {
+    isEditMode = true;
+    btn.innerHTML = "💾 Save Data";
+    btn.style.background = "#27ae60";
+    cells.forEach(cell => {
+      cell.setAttribute("contenteditable", "true");
+      cell.style.backgroundColor = "#fffbcc";
+      cell.style.outline = "1px solid #f39c12";
+    });
+  } else {
+    saveInlineData();
+  }
+}
+
+async function saveInlineData() {
+  const y = Number(document.getElementById("filterYear").value);
+  const cells = document.querySelectorAll(".editable-cell");
+  let groupedLogs = {};
+
+  cells.forEach(cell => {
+    const eqId = Number(cell.getAttribute("data-eq"));
+    const month = Number(cell.getAttribute("data-month"));
+    const field = cell.getAttribute("data-field");
+    const val = parseFloat(cell.innerText.trim()) || 0;
+
+    const key = `${eqId}_${month}`;
+    if (!groupedLogs[key]) {
+      groupedLogs[key] = {
+        equipment_id: eqId,
+        year: y,
+        month: month,
+        maintenance_cost: 0, basic_salary: 0, overtime: 0, penalty: 0,
+        santook_rent: 0, kafil_comm: 0, owner_comm: 0, investor_comm: 0,
+        debit: 0, pwas: 0, other_expense: 0, op_revenue: 0
+      };
+    }
+    groupedLogs[key][field] = val;
+  });
+
+  const payload = {
+    logs: Object.values(groupedLogs)
+  };
+
+  try {
+    const res = await fetch("/py/own-equipment/bulk-save-logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+    if (res.ok && result.success) {
+      isEditMode = false;
+      const btn = document.getElementById("btnEditInline");
+      btn.innerHTML = "✏️ Edit Data";
+      btn.style.background = "#8e44ad";
+      
+      cells.forEach(cell => {
+        cell.removeAttribute("contenteditable");
+        cell.style.backgroundColor = "";
+        cell.style.outline = "";
+      });
+
+      await loadDashboardData();
+      alert("All changes successfully updated via Python Engine!");
+    } else {
+      alert("Save failed: " + (result.detail || result.message || "Unknown error"));
+    }
+  } catch (err) {
+    console.error("Inline Save Error:", err);
+    alert("Error communicating with Python Server.");
+  }
 }
 function populateEquipmentDropdown() {
   const select = document.getElementById("inputEquipmentId");
