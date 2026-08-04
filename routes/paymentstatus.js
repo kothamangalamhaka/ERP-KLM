@@ -211,7 +211,7 @@ router.post("/save-accounts-note", async (req, res) => {
   }
 });
 
-// 🟢 Save Bulk Special Edits (V.Bill Notes, Supplier NR & OT) - Optimized
+// 🟢 Save Bulk Special Edits (V.Bill Notes, Supplier NR & OT) - Safe Logic
 router.post("/save-bulk-vbill-notes", async (req, res) => {
   let client;
   try {
@@ -223,17 +223,22 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
     await client.query("BEGIN");
 
     for (let row of records) {
-      // 🟢 UPSERT ഉപയോഗിച്ച് ലൂപ്പ് സമയം പകുതിയാക്കുന്നു
-      await client.query(
-        `INSERT INTO billing_records (plate_no, billing_month, site_name, remark, nhr, othr)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (plate_no, billing_month, site_name)
-         DO UPDATE SET 
-           remark = EXCLUDED.remark,
-           nhr = EXCLUDED.nhr,
-           othr = EXCLUDED.othr;`,
-        [row.plate_no, row.month, row.site_name, row.remark, row.bill_nr, row.bill_ot]
+      const checkBill = await client.query(
+        "SELECT id FROM billing_records WHERE plate_no=$1 AND billing_month=$2 AND site_name=$3",
+        [row.plate_no, row.month, row.site_name]
       );
+
+      if (checkBill.rows.length > 0) {
+        await client.query(
+          "UPDATE billing_records SET remark=$1, nhr=$5, othr=$6 WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4",
+          [row.remark, row.plate_no, row.month, row.site_name, row.bill_nr, row.bill_ot]
+        );
+      } else {
+        await client.query(
+          "INSERT INTO billing_records (plate_no, billing_month, site_name, remark, nhr, othr) VALUES ($1, $2, $3, $4, $5, $6)",
+          [row.plate_no, row.month, row.site_name, row.remark, row.bill_nr, row.bill_ot]
+        );
+      }
     }
     await client.query("COMMIT");
     res.json({ success: true });
@@ -252,27 +257,31 @@ router.post("/save-text-note", async (req, res) => {
     
     const allowedFields = ["accounts_note", "pwas", "erp", "payment_status", "zoho", "diff_clear"];
     if (!allowedFields.includes(field)) {
-      return res.json({ success: false, message: "Invalid field name." });
+      return res.json({ success: false, message: "Invalid field name: " + field });
     }
 
+    // 🟢 ഡാറ്റ കൃത്യമായി ഉണ്ടോ എന്ന് നോക്കി Update അല്ലെങ്കിൽ Insert ചെയ്യുന്നു
     const check = await pool.query(
       "SELECT id FROM invoice_records WHERE plate_no = $1 AND month = $2 AND site_name = $3",
-      [plate_no, month, site_name],
+      [plate_no, month, site_name]
     );
 
-    // 🟢 സുരക്ഷിതമായി ഡാറ്റ ഇൻസേർട്ട് / അപ്ഡേറ്റ് ചെയ്യുന്നു
-    await pool.query(
-      `INSERT INTO invoice_records (plate_no, month, site_name, ${field})
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (plate_no, month, site_name)
-       DO UPDATE SET 
-         ${field} = EXCLUDED.${field},
-         updated_at = CURRENT_TIMESTAMP;`,
-      [plate_no, month, site_name, value]
-    );
+    if (check.rows.length > 0) {
+      await pool.query(
+        `UPDATE invoice_records SET ${field} = $1, updated_at = CURRENT_TIMESTAMP WHERE plate_no = $2 AND month = $3 AND site_name = $4`,
+        [value, plate_no, month, site_name]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO invoice_records (plate_no, month, site_name, ${field}, invoice_no, bill_nr, bill_ot) 
+         VALUES ($1, $2, $3, $4, '', 0, 0)`,
+        [plate_no, month, site_name, value]
+      );
+    }
+    
     res.json({ success: true });
   } catch (err) {
-    console.error(`Error saving text note (${field}):`, err); 
+    console.error(`Error saving text note (${field}):`, err.message); 
     res.json({ success: false, message: err.message });
   }
 });

@@ -260,12 +260,20 @@
         word-wrap: break-word;
         overflow-wrap: break-word;
       }
+      /* 🟢 രണ്ട് ഹെഡ്ഡർ വരികളും ഒന്നിച്ച് ഫ്രീസ് ചെയ്തു നിർത്താൻ */
+      thead tr:first-child th {
+        position: sticky;
+        top: 0;
+        z-index: 12;
+      }
+      thead tr:nth-child(2) th {
+        position: sticky;
+        top: 36px; 
+        z-index: 11;
+      }
       th {
         font-weight: 600;
         font-size: 12px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
         cursor: pointer;
         user-select: none;
       }
@@ -2938,6 +2946,33 @@
           showToast(`✓ Copied ${values.length} rows from "${colName}"`);
         });
 
+      // 🟢 Python വഴി അതിവേഗം Excel ഡൗൺലോഡ് ചെയ്യാനുള്ള പുതിയ കോമൺ ഫംഗ്ഷൻ
+      async function downloadExcelViaPython(fileName, sheetsData) {
+        document.getElementById("loader").style.display = "block";
+        try {
+          const res = await fetch("/py/payment-export/generate-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file_name: fileName, sheets: sheetsData })
+          });
+          if (!res.ok) throw new Error("Python Server Export Error");
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+          showToast("✓ Excel generated & downloaded via Python!");
+        } catch (err) {
+          console.error("Export Error:", err);
+          window.alert("Export failed. Please ensure Python server (Port 8001) is running.");
+        }
+        document.getElementById("loader").style.display = "none";
+      }
+
       function exportCurrentToExcel() {
         let fOwner = document.getElementById("filterOwner").value;
         let fSite = document.getElementById("filterSite").value;
@@ -2949,8 +2984,6 @@
         let filtered = masterData.filter((d) => {
           let matchO = fOwner === "ALL" || d.owner === fOwner;
           let matchS = fSite === "ALL" || d.site === fSite;
-
-          // 🟢 Excel Export-ലും Invoice, Bill എന്നിവ സെർച്ച് ചെയ്യാനുള്ള മാറ്റം
           let matchP =
             fPlate === "" ||
             d.plate.includes(fPlate) ||
@@ -2975,16 +3008,10 @@
           window.alert("No data.");
           return;
         }
-        let wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(
-          wb,
-          createSheetFromData(filtered),
-          "Report",
-        );
-        XLSX.writeFile(
-          wb,
-          `Invoice_Report_${document.getElementById("selMonth").value}.xlsx`,
-        );
+        
+        let sheetObj = createSheetFromData(filtered);
+        let fileName = `Invoice_Report_${document.getElementById("selMonth").value}.xlsx`;
+        downloadExcelViaPython(fileName, [sheetObj]);
       }
 
       function openBatchModal() {
@@ -3008,8 +3035,7 @@
         closeBatchModal();
         document.getElementById("loader").style.display = "block";
         await ensureSpecialRules();
-        let wb = XLSX.utils.book_new();
-        
+
         let monthQueries = [];
         let current = new Date(start);
         while (current <= end) {
@@ -3021,14 +3047,23 @@
           monthQueries.map(q => fetchReportDataAPI(q.m, q.y))
         );
 
+        let sheetsArray = [];
         results.forEach((data, idx) => {
           if (data && data.length > 0) {
             let label = `${monthQueries[idx].m} ${monthQueries[idx].y}`.substring(0, 31);
-            XLSX.utils.book_append_sheet(wb, createSheetFromData(data), label);
+            let sheetObj = createSheetFromData(data);
+            sheetObj.sheet_name = label;
+            sheetsArray.push(sheetObj);
           }
         });
-        document.getElementById("loader").style.display = "none";
-        XLSX.writeFile(wb, "Batch_Report.xlsx");
+
+        if (sheetsArray.length === 0) {
+          window.alert("No data found in selected batch period.");
+          document.getElementById("loader").style.display = "none";
+          return;
+        }
+
+        downloadExcelViaPython("Batch_Report.xlsx", sheetsArray);
       }
 
       function openSingleExcelModal() {
@@ -3103,13 +3138,10 @@
           return a.sort_date - b.sort_date;
         });
 
-        let wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(
-          wb,
-          createSingleSheetFromData(combinedData),
-          "Master_Analysis",
-        );
-        XLSX.writeFile(wb, "Haka_Analysis_Report.xlsx");
+        let sheetObj = createSingleSheetFromData(combinedData);
+        sheetObj.sheet_name = "Master_Analysis";
+        sheetObj.is_analysis = true;
+        downloadExcelViaPython("Haka_Analysis_Report.xlsx", [sheetObj]);
       }
 
       function applyExcelHeaderStyles(
@@ -3235,374 +3267,138 @@
         for (let i = 6; i <= 7; i++) m[i + offset] = COL.ts;
         for (let i = 8; i <= 9; i++) m[i + offset] = COL.inv;
         for (let i = 10; i <= 11; i++) m[i + offset] = COL.bill;
-        for (let i = 12; i <= 16; i++) m[i + offset] = COL.diff; // Diff is now 5 columns
+        for (let i = 12; i <= 16; i++) m[i + offset] = COL.diff;
         for (let i = 17; i <= 21; i++) m[i + offset] = COL.amt;
         for (let i = 22; i <= 23; i++) m[i + offset] = "B91C1C";
-        for (let i = 24; i <= 29; i++) m[i + offset] = COL.extra; // Extra is now 6 columns
-        for (let i = 30; i <= 33; i++) m[i + offset] = COL.vehicle;
-        for (let i = 34; i <= 35; i++) m[i + offset] = COL.ts;
+        for (let i = 24; i <= 30; i++) m[i + offset] = COL.extra; // 🟢 7 Extra Columns (24..30)
+        for (let i = 31; i <= 34; i++) m[i + offset] = COL.vehicle; // 🟢 4 Gen Columns (31..34)
+        for (let i = 35; i <= 36; i++) m[i + offset] = COL.ts; // 🟢 2 '31st as NR' Columns (35..36)
         return m;
       }
 
-      function createSheetFromData(dataArray) {
+     function createSheetFromData(dataArray) {
         let aoa = [
           [
-            "VEHICLE INFO",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "Logsheet Collected",
-            "",
-            "Bill Summary",
-            "",
-            "To Supplier",
-            "",
-            "DIFFERENCE",
-            "",
-            "",
-            "",
-            "",
-            "AMOUNT",
-            "",
-            "",
-            "",
-            "",
-            "INVOICE",
-            "",
-            "EXTRA DETAILS",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "GENERAL VEHICLE INFO",
-            "",
-            "",
-            "",
+            "VEHICLE INFO", "", "", "", "", "",
+            "Logsheet Collected", "",
+            "Bill Summary", "",
+            "To Supplier", "",
+            "DIFFERENCE", "", "", "", "",
+            "AMOUNT", "", "", "", "",
+            "INVOICE", "",
+            "EXTRA DETAILS", "", "", "", "", "", "",
+            "GENERAL VEHICLE INFO", "", "", "",
+            "31 Considered as NR", "" // 🟢 കൃത്യമായ ഹെഡ്ഡർ പേര്
           ],
           [
-            "Date",
-            "Site",
-            "Rate",
-            "VAT",
-            "Owner Name",
-            "Plate No",
-            "NR",
-            "OT",
-            "NR",
-            "OT",
-            "NR",
-            "OT",
-            "NR",
-            "OT",
-            "IDN",
-            "Clear",
-            "V.Bill Notes",
-            "NR Rate",
-            "OT Rate",
-            "Rent",
-            "VAT",
-            "Total",
-            "Subtotal",
-            "Total",
-            "Invoice No",
-            "Bill No",
-            "V.Bill Notes",
-            "PWAS",
-            "ERP",
-            "Payment Status",
-            "Accounts Note",
-            "Driver Name",
-            "Vehicle Type",
-            "Field Co",
-            "Site Co",
-            "Alt NR (31st as NR)",
-            "Alt OT",
+            "Date", "Site", "Rate", "VAT", "Owner Name", "Plate No",
+            "NR", "OT", "NR", "OT", "NR", "OT",
+            "NR", "OT", "IDN", "Clear", "V.Bill Notes",
+            "NR Rate", "OT Rate", "Rent", "VAT", "Total",
+            "Subtotal", "Total",
+            "Invoice No", "Bill No", "V.Bill Notes", "PWAS", "ERP", "Payment Status", "Accounts Note",
+            "Driver Name", "Vehicle Type", "Field Co", "Site Co",
+            "NR", "OT" // 🟢 ALT ഒഴിവാക്കി കൃത്യമായി NR, OT എന്ന് നൽകി
           ],
         ];
+
         dataArray.forEach((r) => {
           aoa.push([
-            r.report_date,
-            r.site,
-            r.rate,
+            r.report_date, r.site, r.rate,
             r.vat.toLowerCase().includes("yes") ? "Yes" : "",
-            r.owner,
-            r.plate,
-            r.ts_nr,
-            r.ts_ot,
-            r.inv_nr || "",
-            r.inv_ot || "",
-            r.bill_db_nr || "",
-            r.bill_db_ot || "",
-            r.diff_nr,
-            r.diff_ot,
-            r.diff_st,
-            r.diff_clear,
-            r.vbill_notes || "-",
-            r.bill_nrate || "",
-            r.bill_otrate || "",
-            r.bill_rent || "",
-            r.rent_vat || "",
-            r.rent_total || "",
-            r.inv_subtotal || "",
-            r.inv_total || "",
-            r.inv_no,
-            r.bill_no,
-            r.vbill_notes || "-",
-            r.pwas || "-",
-            r.erp || "-",
-            r.payment_status || "-",
-            r.accounts_note || "-",
-            r.driver_name,
-            r.vehicle_type,
-            r.field_co,
-            r.site_co,
-            r.alt_nr,
-            r.alt_ot > 0 ? r.alt_ot : "",
+            r.owner, r.plate, r.ts_nr, r.ts_ot,
+            r.inv_nr || "", r.inv_ot || "",
+            r.bill_db_nr || "", r.bill_db_ot || "",
+            r.diff_nr, r.diff_ot, r.diff_st, r.diff_clear, r.vbill_notes || "-",
+            r.bill_nrate || "", r.bill_otrate || "", r.bill_rent || "",
+            r.rent_vat || "", r.rent_total || "",
+            r.inv_subtotal || "", r.inv_total || "",
+            r.inv_no, r.bill_no, r.vbill_notes || "-", r.pwas || "-", r.erp || "-",
+            r.payment_status || "-", r.accounts_note || "-",
+            r.driver_name, r.vehicle_type, r.field_co, r.site_co,
+            r.alt_nr, r.alt_ot > 0 ? r.alt_ot : "",
           ]);
         });
-        let ws = XLSX.utils.aoa_to_sheet(aoa);
 
-        ws["!merges"] = [
-          { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
-          { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },
-          { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },
-          { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } },
-          { s: { r: 0, c: 12 }, e: { r: 0, c: 16 } }, // DIFF
-          { s: { r: 0, c: 17 }, e: { r: 0, c: 21 } }, // AMT
-          { s: { r: 0, c: 22 }, e: { r: 0, c: 23 } }, // INV RED
-          { s: { r: 0, c: 24 }, e: { r: 0, c: 29 } }, // EXTRA
-          { s: { r: 0, c: 30 }, e: { r: 0, c: 33 } }, // GEN
-          { s: { r: 0, c: 34 }, e: { r: 0, c: 35 } }, // 31 Considered as NR
-        ];
-        // 🟢 Column widths updated
-        ws["!cols"] = [
-          { wch: 12 },
-          { wch: 20 },
-          { wch: 10 },
-          { wch: 8 },
-          { wch: 25 },
-          { wch: 12 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 25 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 12 },
-          { wch: 12 },
+        // 🟢 കൃത്യമായ Merges (Total 37 columns: 0 to 36)
+        let merges = [
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },   // VEHICLE INFO (0..5)
+          { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },   // TS (6..7)
+          { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },   // INV (8..9)
+          { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, // BILL (10..11)
+          { s: { r: 0, c: 12 }, e: { r: 0, c: 16 } }, // DIFF (12..16)
+          { s: { r: 0, c: 17 }, e: { r: 0, c: 21 } }, // AMT (17..21)
+          { s: { r: 0, c: 22 }, e: { r: 0, c: 23 } }, // INV RED (22..23)
+          { s: { r: 0, c: 24 }, e: { r: 0, c: 30 } }, // EXTRA DETAILS (24..30)
+          { s: { r: 0, c: 31 }, e: { r: 0, c: 34 } }, // GENERAL VEHICLE INFO (31..34)
+          { s: { r: 0, c: 35 }, e: { r: 0, c: 36 } }, // 31 Considered as NR (35..36)
         ];
 
-        applyExcelHeaderStyles(
-          ws,
-          aoa.length,
-          35,
-          getColorMap(false),
-          getColorMap(false),
-        ); // 🟢 35 Columns
-        return ws;
+        return { sheet_name: "Report", aoa: aoa, merges: merges, is_analysis: false };
       }
 
       function createSingleSheetFromData(dataArray) {
         let aoa = [
           [
             "REPORT MONTH",
-            "VEHICLE INFO",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "Logsheet Collected",
-            "",
-            "Bill Summary",
-            "",
-            "To Supplier",
-            "",
-            "DIFFERENCE",
-            "",
-            "",
-            "AMOUNT",
-            "",
-            "",
-            "",
-            "",
-            "INVOICE",
-            "",
-            "EXTRA DETAILS",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "GENERAL VEHICLE INFO",
-            "",
-            "",
-            "",
+            "VEHICLE INFO", "", "", "", "", "",
+            "Logsheet Collected", "",
+            "Bill Summary", "",
+            "To Supplier", "",
+            "DIFFERENCE", "", "", "", "",
+            "AMOUNT", "", "", "", "",
+            "INVOICE", "",
+            "EXTRA DETAILS", "", "", "", "", "", "",
+            "GENERAL VEHICLE INFO", "", "", "",
+            "31 Considered as NR", "" // 🟢 കൃത്യമായ ഹെഡ്ഡർ പേര്
           ],
           [
             "Month",
-            "Site",
-            "Rate",
-            "VAT",
-            "Owner Name",
-            "Plate No",
-            "NR",
-            "OT",
-            "NR",
-            "OT",
-            "NR",
-            "OT",
-            "NR",
-            "OT",
-            "IDN",
-            "NR Rate",
-            "OT Rate",
-            "Rent",
-            "VAT",
-            "Total",
-            "Subtotal",
-            "Total",
-            "Invoice No",
-            "Bill No",
-            "V.Bill Notes",
-            "PWAS",
-            "ERP",
-            "Payment Status",
-            "Accounts Note",
-            "Driver Name",
-            "Vehicle Type",
-            "Field Co",
-            "Site Co",
-            "Alt NR (31st as NR)",
-            "Alt OT",
+            "Site", "Rate", "VAT", "Owner Name", "Plate No",
+            "NR", "OT", "NR", "OT", "NR", "OT",
+            "NR", "OT", "IDN", "Clear", "V.Bill Notes",
+            "NR Rate", "OT Rate", "Rent", "VAT", "Total",
+            "Subtotal", "Total",
+            "Invoice No", "Bill No", "V.Bill Notes", "PWAS", "ERP", "Payment Status", "Accounts Note",
+            "Driver Name", "Vehicle Type", "Field Co", "Site Co",
+            "NR", "OT" // 🟢 ALT ഒഴിവാക്കി കൃത്യമായി NR, OT എന്ന് നൽകി
           ],
         ];
+
         dataArray.forEach((r) => {
           aoa.push([
             r.report_month,
-            r.site,
-            r.rate,
+            r.site, r.rate,
             r.vat.toLowerCase().includes("yes") ? "Yes" : "",
-            r.owner,
-            r.plate,
-            r.ts_nr,
-            r.ts_ot,
-            r.inv_nr || "",
-            r.inv_ot || "",
-            r.bill_db_nr || "",
-            r.bill_db_ot || "",
-            r.diff_nr,
-            r.diff_ot,
-            r.diff_st,
-            r.bill_nrate || "",
-            r.bill_otrate || "",
-            r.bill_rent || "",
-            r.rent_vat || "",
-            r.rent_total || "",
-            r.inv_subtotal || "",
-            r.inv_total || "",
-            r.inv_no,
-            r.bill_no,
-            r.vbill_notes || "-",
-            r.pwas || "-",
-            r.erp || "-",
-            r.payment_status || "-",
-            r.accounts_note || "-",
-            r.driver_name,
-            r.vehicle_type,
-            r.field_co,
-            r.site_co,
-            r.alt_nr,
-            r.alt_ot > 0 ? r.alt_ot : "",
+            r.owner, r.plate, r.ts_nr, r.ts_ot,
+            r.inv_nr || "", r.inv_ot || "",
+            r.bill_db_nr || "", r.bill_db_ot || "",
+            r.diff_nr, r.diff_ot, r.diff_st, r.diff_clear, r.vbill_notes || "-",
+            r.bill_nrate || "", r.bill_otrate || "", r.bill_rent || "",
+            r.rent_vat || "", r.rent_total || "",
+            r.inv_subtotal || "", r.inv_total || "",
+            r.inv_no, r.bill_no, r.vbill_notes || "-", r.pwas || "-", r.erp || "-",
+            r.payment_status || "-", r.accounts_note || "-",
+            r.driver_name, r.vehicle_type, r.field_co, r.site_co,
+            r.alt_nr, r.alt_ot > 0 ? r.alt_ot : "",
           ]);
         });
-        let ws = XLSX.utils.aoa_to_sheet(aoa);
 
-        // 🟢 Merges shifted by +1 because of "REPORT MONTH" column
-        ws["!merges"] = [
-          { s: { r: 0, c: 1 }, e: { r: 0, c: 6 } }, // Vehicle Info
-          { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } }, // TS
-          { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } }, // INV
-          { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // BILL
-          { s: { r: 0, c: 13 }, e: { r: 0, c: 15 } }, // DIFF
-          { s: { r: 0, c: 16 }, e: { r: 0, c: 20 } }, // AMT
-          { s: { r: 0, c: 21 }, e: { r: 0, c: 22 } }, // INV RED
-          { s: { r: 0, c: 23 }, e: { r: 0, c: 29 } }, // EXTRA
-          { s: { r: 0, c: 30 }, e: { r: 0, c: 33 } }, // GEN
-          { s: { r: 0, c: 34 }, e: { r: 0, c: 35 } }, // 31 Considered as NR
-        ];
-        ws["!cols"] = [
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 10 },
-          { wch: 8 },
-          { wch: 25 },
-          { wch: 12 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 10 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 25 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 12 },
-          { wch: 12 },
+        // 🟢 Merges shifted by +1 because of "REPORT MONTH" column (Total 38 columns: 0 to 37)
+        let merges = [
+          { s: { r: 0, c: 1 }, e: { r: 0, c: 6 } },   // Vehicle Info (1..6)
+          { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },   // TS (7..8)
+          { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } },  // INV (9..10)
+          { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // BILL (11..12)
+          { s: { r: 0, c: 13 }, e: { r: 0, c: 17 } }, // DIFF (13..17)
+          { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // AMT (18..22)
+          { s: { r: 0, c: 23 }, e: { r: 0, c: 24 } }, // INV RED (23..24)
+          { s: { r: 0, c: 25 }, e: { r: 0, c: 31 } }, // EXTRA (25..31)
+          { s: { r: 0, c: 32 }, e: { r: 0, c: 35 } }, // GEN (32..35)
+          { s: { r: 0, c: 36 }, e: { r: 0, c: 37 } }, // 31 Considered as NR (36..37)
         ];
 
-        applyExcelHeaderStyles(
-          ws,
-          aoa.length,
-          36,
-          getColorMap(true),
-          getColorMap(true),
-        ); // 🟢 36 Columns
-        return ws;
+        return { sheet_name: "Master_Analysis", aoa: aoa, merges: merges, is_analysis: true };
       }
 
       function fallbackCopyTextToClipboard(text) {
@@ -4021,8 +3817,7 @@
         const preciseMonth = `${rMonth} ${rYear}`;
         const token = localStorage.getItem("timesheetToken");
         try {
-          // API ബാക്ക്ഗ്രൗണ്ടിൽ വിളിക്കുന്നു. ഡാറ്റ നഷ്ടപ്പെടില്ല.
-          await fetch("/payment/save-text-note", {
+          const res = await fetch("/payment/save-text-note", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -4036,8 +3831,17 @@
               value: newVal,
             }),
           });
+          const data = await res.json();
+          if (!data.success) {
+            window.alert("Save failed: " + data.message);
+            cb.checked = !cb.checked; // സേവ് ആയില്ലെങ്കിൽ ചെക്ക്ബോക്സ് പഴയതുപോലെ ആക്കും
+          } else {
+            showToast("✓ Clear status saved!");
+          }
         } catch (e) {
           console.error(e);
+          window.alert("Server connection error while saving Clear status.");
+          cb.checked = !cb.checked; // എറർ വന്നാൽ ചെക്ക്ബോക്സ് പഴയതുപോലെ ആക്കും
         }
       }
     </script>

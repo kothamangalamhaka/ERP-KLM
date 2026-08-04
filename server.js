@@ -83,8 +83,22 @@ app.use("/py", async (req, res) => {
       options.body = JSON.stringify(req.body);
     }
     const pyRes = await fetch(url, options);
-    const data = await pyRes.json();
-    res.status(pyRes.status).json(data);
+    const contentType = pyRes.headers.get("content-type") || "";
+
+    // 🟢 തിരികെ വരുന്നത് JSON ഡാറ്റ ആണെങ്കിൽ
+    if (contentType.includes("application/json")) {
+      const data = await pyRes.json();
+      return res.status(pyRes.status).json(data);
+    }
+
+    // 🟢 തിരികെ വരുന്നത് Excel (.xlsx) ഫയൽ പോലുള്ള Binary Data ആണെങ്കിൽ
+    const buffer = await pyRes.buffer();
+    res.setHeader("Content-Type", contentType);
+    const disposition = pyRes.headers.get("content-disposition");
+    if (disposition) {
+      res.setHeader("Content-Disposition", disposition);
+    }
+    return res.status(pyRes.status).send(buffer);
   } catch (err) {
     console.error("Python Server Proxy Error:", err.message);
     res.status(500).json({ 

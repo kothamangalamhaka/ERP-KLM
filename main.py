@@ -21,11 +21,16 @@ app = FastAPI(title="Haka ERP Python Engine")
 # ==========================================
 # 🚀 REGISTER MODULAR PYTHON ROUTERS
 # ==========================================
+# new code - main.py
 from routers.own_equipment_py import router as own_equipment_router
 app.include_router(own_equipment_router)
 
 from routers.payment_py import router as payment_router
 app.include_router(payment_router)
+
+# 🟢 അതിവേഗ Excel Export-നായി പുതിയ Python Router ചേർക്കുന്നു
+from routers.payment_export_py import router as payment_export_router
+app.include_router(payment_export_router)
 
 class ExportRequest(BaseModel):
     headers: list
