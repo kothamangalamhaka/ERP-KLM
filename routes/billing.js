@@ -375,4 +375,163 @@ router.get("/export-excel", async (req, res) => {
   }
 });
 
+// 🟢 5. Combined Multi-Month Bill Generator API for a Specific Vehicle
+router.get("/combined-bill", async (req, res) => {
+  try {
+    const { plate_no, from_month, from_year, to_month, to_year } = req.query;
+
+    if (!plate_no || !from_month || !from_year || !to_month || !to_year) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required parameters: plate_no, from_month, from_year, to_month, to_year",
+      });
+    }
+
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    const fromMIdx = monthNames.indexOf(from_month.trim());
+    const toMIdx = monthNames.indexOf(to_month.trim());
+    const startYr = parseInt(from_year, 10);
+    const endYr = parseInt(to_year, 10);
+
+    if (fromMIdx === -1 || toMIdx === -1 || isNaN(startYr) || isNaN(endYr)) {
+      return res.status(400).json({ success: false, message: "Invalid month or year selection." });
+    }
+
+    // Build ordered list of target months
+    let targetMonths = [];
+    let curDate = new Date(startYr, fromMIdx, 1);
+    let endDate = new Date(endYr, toMIdx, 1);
+
+    while (curDate <= endDate) {
+      let mName = monthNames[curDate.getMonth()];
+      let yNum = curDate.getFullYear();
+      targetMonths.push(`${mName} ${yNum}`);
+      curDate.setMonth(curDate.getMonth() + 1);
+    }
+
+    const cleanPlate = plate_no.trim().toUpperCase();
+
+    // Query saved billing records
+    const savedResult = await pool.query(
+      `SELECT * FROM billing_records 
+       WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) 
+         AND billing_month = ANY($2::text[])
+       ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id ASC`,
+      [cleanPlate, targetMonths]
+    );
+
+    // Also fetch vehicle master info
+    const tsVehicleRes = await pool.query(
+      `SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`,
+      [cleanPlate]
+    );
+
+    const vehicleInfo = tsVehicleRes.rows[0] || {};
+
+    let combinedRows = [];
+    let totals = { nhr: 0, othr: 0, rent: 0, vat_amount: 0, total: 0, adjusted_amount: 0, after_adjustment: 0 };
+
+    targetMonths.forEach((mStr) => {
+      let savedRow = savedResult.rows.find((r) => r.billing_month === mStr);
+
+      const [mName, yStr] = mStr.split(" ");
+      const shortDate = mName.substring(0, 3) + " " + (yStr ? yStr.substring(2, 4) : "");
+
+      if (savedRow) {
+        let nhr = parseFloat(savedRow.nhr) || 0;
+        let othr = parseFloat(savedRow.othr) || 0;
+        let rent = parseFloat(savedRow.rent) || 0;
+        let vatAmt = parseFloat(savedRow.vat_amount) || 0;
+        let total = parseFloat(savedRow.total) || (rent + vatAmt);
+        let adjAmt = parseFloat(savedRow.adjusted_amount) || 0;
+        let afterAdj = parseFloat(savedRow.after_adjustment) || (total + adjAmt);
+
+        totals.nhr += nhr;
+        totals.othr += othr;
+        totals.rent += rent;
+        totals.vat_amount += vatAmt;
+        totals.total += total;
+        totals.adjusted_amount += adjAmt;
+        totals.after_adjustment += afterAdj;
+
+        combinedRows.push({
+          billing_month: mStr,
+          date: savedRow.date || shortDate,
+          company: savedRow.company || vehicleInfo.company || "Haka",
+          owner: savedRow.owner || vehicleInfo.owner_name || "COMPANY VEHICLE",
+          site_name: savedRow.site_name || vehicleInfo.site_name || "N/A",
+          vtype: savedRow.vtype || vehicleInfo.vehicle_type || "N/A",
+          driver: savedRow.driver || vehicleInfo.driver_name || "N/A",
+          plate_no: cleanPlate,
+          nhr: nhr,
+          nrate: parseFloat(savedRow.nrate) || 0,
+          othr: othr,
+          otrate: parseFloat(savedRow.otrate) || 0,
+          rent: rent,
+          vat_percent: parseFloat(savedRow.vat_percent) || 0,
+          vat_amount: vatAmt,
+          total: total,
+          adjustment_desc: savedRow.adjustment_desc || "",
+          adjusted_amount: adjAmt,
+          after_adjustment: afterAdj,
+          remark: savedRow.remark || ""
+        });
+      } else {
+        combinedRows.push({
+          billing_month: mStr,
+          date: shortDate,
+          company: vehicleInfo.company || "Haka",
+          owner: vehicleInfo.owner_name || "COMPANY VEHICLE",
+          site_name: vehicleInfo.site_name || "N/A",
+          vtype: vehicleInfo.vehicle_type || "N/A",
+          driver: vehicleInfo.driver_name || "N/A",
+          plate_no: cleanPlate,
+          nhr: 0,
+          nrate: parseFloat(vehicleInfo.rate) || 0,
+          othr: 0,
+          otrate: (parseFloat(vehicleInfo.rate) || 0) * 0.7,
+          rent: 0,
+          vat_percent: 0,
+          vat_amount: 0,
+          total: 0,
+          adjustment_desc: "",
+          adjusted_amount: 0,
+          after_adjustment: 0,
+          remark: ""
+        });
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      plate_no: cleanPlate,
+      vehicle_info: vehicleInfo,
+      rows: combinedRows,
+      totals: totals
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 🟢 6. Security Code Verification for Combined Bill Generator Images
+router.post("/verify-combined-security", (req, res) => {
+  try {
+    const { code } = req.body;
+    const validCode = process.env.COMBINED_GENERATOR_CODE || "12345";
+
+    if (code === validCode) {
+      res.json({ success: true, message: "Security Code Verified!" });
+    } else {
+      res.json({ success: false, message: "Invalid Security Code!" });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;
