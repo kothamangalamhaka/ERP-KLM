@@ -109,7 +109,7 @@ function renderTable() {
   );
   if (vM.length === 0) vM = Array.from({ length: 12 }, (_, i) => i + 1);
 
-  let r1 = `<tr><th rowspan="4" class="master-head">SN</th><th rowspan="4" class="master-head">Plate No</th><th rowspan="4" class="master-head">Date of Purchase</th><th rowspan="4" class="master-head">Purchase Cost</th>`;
+  let r1 = `<tr><th rowspan="4" class="master-head">SN</th><th rowspan="4" class="master-head">Plate No</th><th rowspan="4" class="master-head">Date of Purchase</th><th rowspan="4" class="master-head">Purchase Cost Paid</th><th rowspan="4" class="master-head">Remaining Purchase Cost</th>`;
   let r2 = `<tr>`,
     r3 = `<tr>`,
     r4 = `<tr>`;
@@ -124,7 +124,12 @@ function renderTable() {
 
   body.innerHTML = "";
   rawEquipments.forEach((eq, idx) => {
-    let tr = `<tr><td><b>${idx + 1}</b></td><td><b>${eq.plate_no}</b></td><td>${formatPurchaseDate(eq.purchase_date)}</td><td>${fmt(eq.purchase_cost)}</td>`;
+    let tr = `<tr>
+      <td><b>${idx + 1}</b></td>
+      <td><b>${eq.plate_no}</b></td>
+      <td>${formatPurchaseDate(eq.purchase_date)}</td>
+      <td>${fmt(eq.purchase_cost)}</td>
+      <td style="color: #b91c1c; font-weight: bold;">${fmt(eq.remaining_purchase_cost)}</td>`;
     let carryGL = 0;
     for (let m = 1; m <= 12; m++) {
       const l =
@@ -277,6 +282,7 @@ async function saveEquipment() {
     plate_no: document.getElementById("eqPlateNo").value,
     purchase_date: document.getElementById("eqPurchaseDate").value,
     purchase_cost: document.getElementById("eqPurchaseCost").value,
+    remaining_purchase_cost: document.getElementById("eqRemainingCost").value || 0,
   };
   const res = await fetch("/api/own-equipment/tracker/add-equipment", {
     method: "POST",
@@ -287,6 +293,77 @@ async function saveEquipment() {
     closeModal("equipmentModal");
     loadDashboardData();
   } else alert("Failed.");
+}
+
+// 🟢 OPEN EDIT COST MODAL
+function openEditCostModal() {
+  const select = document.getElementById("editCostEqId");
+  select.innerHTML = rawEquipments
+    .map((e) => `<option value="${e.id}">${e.plate_no}</option>`)
+    .join("");
+  populateEditCostFields();
+  document.getElementById("editCostModal").style.display = "flex";
+}
+
+// 🟢 POPULATE SELECTED EQUIPMENT VALUES
+function populateEditCostFields() {
+  const eqId = Number(document.getElementById("editCostEqId").value);
+  const eq = rawEquipments.find((x) => x.id === eqId);
+  if (eq) {
+    document.getElementById("editCostPaid").value = eq.purchase_cost || 0;
+    document.getElementById("editCostRemaining").value = eq.remaining_purchase_cost || 0;
+  }
+}
+
+// 🟢 TOAST NOTIFICATION HELPER FUNCTION
+function showToast(message, type = "success") {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${type === "success" ? "✅ " : "❌ "} ${message}</span>`;
+
+  container.appendChild(toast);
+
+  // Trigger animation
+  setTimeout(() => toast.classList.add("show"), 10);
+
+  // Remove toast after 3 seconds
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// 🟢 SAVE EDITED PURCHASE COST TO DATABASE (WITH TOAST)
+async function saveEditedCost() {
+  const eqId = Number(document.getElementById("editCostEqId").value);
+  const paid = parseFloat(document.getElementById("editCostPaid").value) || 0;
+  const remaining = parseFloat(document.getElementById("editCostRemaining").value) || 0;
+
+  try {
+    const res = await fetch("/api/own-equipment/tracker/edit-equipment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: eqId,
+        purchase_cost: paid,
+        remaining_purchase_cost: remaining
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      closeModal("editCostModal");
+      await loadDashboardData();
+      showToast("Purchase Cost updated successfully!", "success");
+    } else {
+      showToast("Failed to update: " + (data.message || "Unknown error"), "error");
+    }
+  } catch (err) {
+    console.error("Edit Cost Error:", err);
+    showToast("Error updating equipment cost.", "error");
+  }
 }
 
 // സേവ് ചെയ്യാൻ മാത്രമുള്ള ഒരു കോമൺ ഫംഗ്ഷൻ

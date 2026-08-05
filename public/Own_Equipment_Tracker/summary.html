@@ -27,7 +27,7 @@
         .text-center { text-align: center; }
         .text-right { text-align: right; font-weight: bold; }
         .inner-table { width: 100%; border-collapse: collapse; margin-top: 2px; }
-        .inner-table td { border: 1px solid #ccc; padding: 2px 4px; font-size: 11px; }
+        .inner-table td { border: 1px solid #e6e1e1; padding: 2px 4px; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -120,45 +120,83 @@
 
             wrapper.innerHTML += `
                 <div class="summary-card">
-                    <h3 style="text-align:center; margin: 5px 0 10px 0; color:#34495e;">Summary - ${d.year}</h3>
+                    <h3 style="text-align:center; margin: 5px 0 10px 0; color:#34495e;">Annual Summary - ${d.year}</h3>
                     <table>
                         <thead>
-                            <tr><th style="width:12%;">Date</th><th style="width:40%;">Expense</th><th style="width:18%;">Amount</th><th style="width:12%;">Date</th><th style="width:40%;">Income</th><th style="width:18%;">Amount</th></tr>
+                            <tr><th style="width:8%;">Date</th><th style="width:44%;">Expense</th><th style="width:10%;">Amount</th><th style="width:8%;">Date</th><th style="width:44%;">Income</th><th style="width:18%;">Amount</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td class="text-center">${d.year}</td><td>Total Purchase Cost</td><td class="text-right">${d.purchaseCost.toFixed(2)}</td><td></td><td></td><td></td></tr>
-                            ${prevHtml}
-                            <tr><td class="text-center">${d.year}</td><td>Total Maintenance Cost</td><td class="text-right">${d.maint.toFixed(2)}</td>
-                                <td class="text-center">${d.year}</td><td>Total Operational Revenue</td><td class="text-right">${d.revenue.toFixed(2)}</td>
+                            <!-- 🟢 1. PURCHASE COST: INNER TABLE WITH ACTUAL & REMAINING, TOTAL IN OUTER COLUMN -->
+                            <tr>
+                                <td class="text-center">${d.year}</td>
+                                <td>Total Purchase Cost
+                                    <table class="inner-table">
+                                        <tr><td style="padding-left: 15px;">Actual Purchase Cost Paid</td><td class="text-right">${Number(d.purchaseCost || 0).toFixed(2)}</td></tr>
+                                        <tr><td style="padding-left: 15px;">Remaining Purchase Cost</td><td class="text-right">${Number(d.remainingPurchaseCost || 0).toFixed(2)}</td></tr>
+                                        <tr style="background-color: #f1f5f9;"><td style="font-weight: bold;"><br>Total Asset Value ::</td><td class="text-right" style="font-weight: bold; color: #1e40af;"><br>${(Number(d.purchaseCost || 0) + Number(d.remainingPurchaseCost || 0)).toFixed(2)}</td></tr>
+                                    </table>
+                                </td>
+                                <td class="text-right" style="vertical-align:bottom; font-weight: bold; color: #1e40af;">${(Number(d.purchaseCost || 0) + Number(d.remainingPurchaseCost || 0)).toFixed(2)}</td>
+                                <td class="text-center">${d.year}</td>
+                                <td>Total Operational Revenue</td>
+                                <td class="text-right" style="color: #166534; font-weight: bold;">${Number(d.revenue || 0).toFixed(2)}</td>
                             </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td class="text-center">${d.year}</td>
+                                <td style="padding-left: 15px; font-weight: 600; color: #b91c1c;">Remaining Purchase Cost</td>
+                                <td class="text-right" style="color: #b91c1c; font-weight: 600;">${Number(d.remainingPurchaseCost || 0).toFixed(2)}</td>
+                            </tr>
+                            ${prevHtml}
+                            <tr>
+                                <td class="text-center">${d.year}</td>
+                                <td>Total Maintenance Cost</td>
+                                <td class="text-right">${Number(d.maint || 0).toFixed(2)}</td>
+                                <td></td><td></td><td></td>
+                            </tr>
+                            <!-- 🟢 2. OPERATING EXPENSES (WITHOUT COMMISSION) + TOTAL OTHER EXPENSES -->
                             <tr>
                                 <td class="text-center">${d.year}</td>
                                 <td>Total Operating Expenses
                                     <table class="inner-table">
                                         <tr><td colspan="2"><b>Driver Salary</b></td></tr>
-                                        <tr><td>Basic Salary</td><td class="text-right">${(d.basic || 0).toFixed(2)}</td></tr>
-                                        <tr><td>Over Time</td><td class="text-right">${(d.ot || 0).toFixed(2)}</td></tr>
-                                        <tr><td><b>Gross Salary</b></td><td class="text-right"><b>${(d.grossSal || 0).toFixed(2)}</b></td></tr>
-                                        <tr><td style="color:red;">less:: Penalty</td><td class="text-right" style="color:red;">${(d.driverPenalty || 0).toFixed(2)}</td></tr>
-                                        <tr><td><b>Net Salary ::</b></td><td class="text-right"><b>${(d.driverNet || 0).toFixed(2)}</b></td></tr>
+                                        <tr><td style="padding-left: 15px;">Basic Salary</td><td class="text-right">${Number(d.basic || 0).toFixed(2)}</td></tr>
+                                        <tr><td style="padding-left: 15px;">Over Time</td><td class="text-right">${Number(d.ot || 0).toFixed(2)}</td></tr>
+                                        <tr><td><b>Gross Salary</b></td><td class="text-right"><b>${Number(d.grossSal || 0).toFixed(2)}</b></td></tr>
+                                        <tr><td style="color:red; padding-left: 15px;">less:: Penalty</td><td class="text-right" style="color:red;">${Number(d.driverPenalty || 0).toFixed(2)}</td></tr>
+                                        <tr><td><b>Net Salary ::</b></td><td class="text-right"><b>${Number(d.driverNet || 0).toFixed(2)}</b></td></tr>
                                         <tr><td colspan="2"><b>Santook Rent</b></td></tr>
-                                        <tr><td>Total Rent</td><td class="text-right">${(d.santook || 0).toFixed(2)}</td></tr>
-                                        <tr><td colspan="2"><b>Commission</b></td></tr>
-                                        <tr><td>Kafil</td><td class="text-right">${(d.kafil || 0).toFixed(2)}</td></tr>
-                                        <tr><td>Owner</td><td class="text-right">${(d.owner || 0).toFixed(2)}</td></tr>
-                                        <tr><td>Investor</td><td class="text-right">${(d.inv || 0).toFixed(2)}</td></tr>
+                                        <tr><td style="padding-left: 15px;">Total Rent</td><td class="text-right">${Number(d.santook || 0).toFixed(2)}</td></tr>
                                         <tr><td colspan="2"><b>Other Expenses</b></td></tr>
-                                        <tr><td>Debit</td><td class="text-right">${(d.debit || 0).toFixed(2)}</td></tr>
-                                        <tr><td>PWAS</td><td class="text-right">${(d.pwas || 0).toFixed(2)}</td></tr>
-                                        <tr><td>Other</td><td class="text-right">${(d.other_exp || 0).toFixed(2)}</td></tr>
+                                        <tr><td style="padding-left: 15px;">Debit</td><td class="text-right">${Number(d.debit || 0).toFixed(2)}</td></tr>
+                                        <tr><td style="padding-left: 15px;">PWAS</td><td class="text-right">${Number(d.pwas || 0).toFixed(2)}</td></tr>
+                                        <tr><td style="padding-left: 15px;">Other</td><td class="text-right">${Number(d.other_exp || 0).toFixed(2)}</td></tr>
+                                        <tr style="background-color: #f1f5f9;"><td style="font-weight: bold;">Total Other Expenses ::</td><td class="text-right" style="font-weight: bold; color: #7c3aed;">${(Number(d.debit || 0) + Number(d.pwas || 0) + Number(d.other_exp || 0)).toFixed(2)}</td></tr>
                                     </table>
                                 </td>
-                                <td class="text-right" style="vertical-align:bottom;">${d.opCost.toFixed(2)}</td>
+                                <td class="text-right" style="vertical-align:bottom; font-weight: bold;">${(Number(d.driverNet || 0) + Number(d.santook || 0) + Number(d.debit || 0) + Number(d.pwas || 0) + Number(d.other_exp || 0)).toFixed(2)}</td>
+                                <td></td><td></td><td></td>
+                            </tr>
+                            <!-- 🟢 3. SEPARATE MAIN SECTION FOR COMMISSIONS -->
+                            <tr>
+                                <td class="text-center">${d.year}</td>
+                                <td>Total Commissions Paid
+                                    <table class="inner-table">
+                                        <tr><td colspan="2"><b>Commission Breakdown</b></td></tr>
+                                        <tr><td style="padding-left: 15px;">Kafil</td><td class="text-right">${Number(d.kafil || 0).toFixed(2)}</td></tr>
+                                        <tr><td style="padding-left: 15px;">Owner</td><td class="text-right">${Number(d.owner || 0).toFixed(2)}</td></tr>
+                                        <tr><td style="padding-left: 15px;">Investor</td><td class="text-right">${Number(d.inv || 0).toFixed(2)}</td></tr>
+                                        <tr style="background-color: #f1f5f9;"><td style="font-weight: bold;">Total Commissions ::</td><td class="text-right" style="font-weight: bold; color: #b45309;">${(Number(d.kafil || 0) + Number(d.owner || 0) + Number(d.inv || 0)).toFixed(2)}</td></tr>
+                                    </table>
+                                </td>
+                                <td class="text-right" style="vertical-align:bottom; font-weight: bold;">${(Number(d.kafil || 0) + Number(d.owner || 0) + Number(d.inv || 0)).toFixed(2)}</td>
                                 <td></td><td></td><td></td>
                             </tr>
                             ${resultHtml}
-                            <tr><td colspan="2" style="text-align:center; font-weight:bold;">Total</td><td class="text-right"><b>${d.totalBal.toFixed(2)}</b></td>
-                                <td colspan="2" style="text-align:center; font-weight:bold;">Total</td><td class="text-right"><b>${d.totalBal.toFixed(2)}</b></td>
+                            <tr><td colspan="2" style="text-align:center; font-weight:bold;">Total</td><td class="text-right"><b>${Number(d.totalBal || 0).toFixed(2)}</b></td>
+                                <td colspan="2" style="text-align:center; font-weight:bold;">Total</td><td class="text-right"><b>${Number(d.totalBal || 0).toFixed(2)}</b></td>
                             </tr>
                         </tbody>
                     </table>

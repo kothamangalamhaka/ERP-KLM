@@ -3,31 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <title>Equipment Wise Details</title>
+    <!-- 🟢 Include Libraries for PDF & High Quality Image Copy -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
         .top-bar { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
         .btn-blue { background: #2980b9; color: white; }
+        .btn-excel { background: #1e7e34; color: white; }
         
         /* Plate Number Buttons Container */
         .plate-container { display: flex; flex-wrap: wrap; gap: 15px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .plate-btn { background: #27ae60; color: white; padding: 12px 22px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .plate-btn:hover { background: #219653; transform: translateY(-2px); }
-        .plate-btn.active { background: #c0392b; } /* Active ആയപ്പോൾ റെഡ് കളർ (Close ചെയ്യാൻ എളുപ്പത്തിന്) */
+        .plate-btn.active { background: #c0392b; }
         
         /* Details Table Box */
         .details-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .details-box h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .title-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .details-box h3 { margin: 0; color: #2c3e50; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
         th { background: #d9e1f2; color: #000; }
+
+        /* 🟢 Convert Dropdown Styles */
+        .convert-dropdown { position: relative; display: inline-block; }
+        .convert-btn { background: #8e44ad; color: white; padding: 8px 16px; border: none; border-radius: 4px; font-weight: bold; font-size: 13px; cursor: pointer; }
+        .convert-content { display: none; position: absolute; right: 0; background-color: white; min-width: 130px; box-shadow: 0px 8px 16px rgba(0,0,0,0.2); z-index: 10; border-radius: 4px; border: 1px solid #ccc; }
+        .convert-content a { color: #333; padding: 10px 14px; text-decoration: none; display: block; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .convert-content a:hover { background-color: #f1f1f1; }
+        .convert-dropdown:hover .convert-content { display: block; }
+
+        /* ==========================================
+           🍞 TOAST NOTIFICATION STYLES
+           ========================================== */
+        #toast-container {
+          position: fixed;
+          bottom: 25px;
+          right: 25px;
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .toast {
+          min-width: 260px;
+          background-color: #2c3e50;
+          color: #fff;
+          padding: 14px 20px;
+          border-radius: 6px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          font-size: 14px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .toast.show {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .toast.success {
+          background-color: #27ae60;
+          border-left: 5px solid #1e8449;
+        }
+        .toast.error {
+          background-color: #e74c3c;
+          border-left: 5px solid #c0392b;
+        }
     </style>
 </head>
 <body>
 
 <div class="top-bar">
     <h2 style="margin:0; color: #2c3e50;">Detailed Review of Each Equipment</h2>
-    <div>
+    <div style="display: flex; gap: 10px;">
+        <!-- 🟢 Export All as Excel Button -->
+        <button class="btn btn-excel" onclick="exportAllEquipmentsExcel()">Export All as Excel</button>
         <button class="btn btn-blue" onclick="window.location.href='summary.html'">Back to Summary</button>
         <button class="btn btn-blue" onclick="window.location.href='Dashboard.html'">Back to Dashboard</button>
     </div>
@@ -40,7 +96,18 @@
 
 <!-- Selected Equipment History Table -->
 <div class="details-box" id="detailsWrapper" style="display:none;">
-    <h3 id="selectedPlateTitle">Equipment Details</h3>
+    <div class="title-row">
+        <h3 id="selectedPlateTitle">Equipment Details</h3>
+        <!-- 🟢 Convert Dropdown Button -->
+        <div class="convert-dropdown" data-html2canvas-ignore="true">
+            <button class="convert-btn">Convert ▼</button>
+            <div class="convert-content">
+                <a onclick="exportSinglePDF()">1. PDF</a>
+                <a onclick="exportSingleExcel()">2. Excel</a>
+                <a onclick="copyAsImage()">3. Copy (Image Card)</a>
+            </div>
+        </div>
+    </div>
     <table>
         <thead>
             <tr>
@@ -64,14 +131,16 @@
     </table>
 </div>
 
-<script>
+<!-- Toast Notification Container -->
+<div id="toast-container"></div>
 
+<script>
     if (!localStorage.getItem('eq_user')) {
-    window.location.replace('index.html');
-}
+        window.location.replace('index.html');
+    }
     let allEquipments = [];
     let allLogs = [];
-    let activeEquipmentId = null; // നിലവിൽ ഓപ്പൺ ചെയ്തിരിക്കുന്ന ഐഡി ട്രാക്ക് ചെയ്യാൻ
+    let activeEquipmentId = null;
 
     async function loadData() {
         loadEquipmentsAndLogs();
@@ -128,7 +197,6 @@
         const title = document.getElementById('selectedPlateTitle');
         const tbody = document.getElementById('equipmentBody');
 
-        // വീണ്ടും അതേ ബട്ടൺ ഞെക്കിയാൽ ക്ലോസ് ആവുന്നുണ്ടോ എന്ന് പരിശോധിക്കുന്നു
         if (activeEquipmentId === eq.id) {
             detailsBox.style.display = 'none';
             document.getElementById(`btn-plate-${eq.id}`).classList.remove('active');
@@ -136,7 +204,6 @@
             return;
         }
 
-        // മറ്റ് ബട്ടണുകളുടെ ആക്റ്റീവ് സ്റ്റാറ്റസ് മാറ്റുന്നു
         document.querySelectorAll('.plate-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(`btn-plate-${eq.id}`).classList.add('active');
 
@@ -146,13 +213,21 @@
         const formattedDate = formatPurchaseDate(eq.purchase_date);
         const formattedCost = Number(eq.purchase_cost || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         
-        title.innerText = `Plate No: ${eq.plate_no} :: Purchase Date: ${formattedDate}, Cost of Purchase : ${formattedCost} SAR`;
+        // 🟢 Remaining Purchase Cost Logic (Only show if > 0)
+        let remCostVal = parseFloat(eq.remaining_purchase_cost || 0);
+        let remText = "";
+        if (remCostVal > 0) {
+            const formattedRem = remCostVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            remText = ` | <span style="color: #c0392b;">Remaining Cost: ${formattedRem} SAR</span>`;
+        }
+        
+        title.innerHTML = `Plate No: ${eq.plate_no} | Purchase Date: ${formattedDate} | Purchase Cost: ${formattedCost} SAR${remText}`;
         
         tbody.innerHTML = '';
         const eqLogs = allLogs.filter(l => l.equipment_id === eq.id);
 
         if (eqLogs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="13" style="color:gray;">No monthly records found for this equipment.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="14" style="color:gray;">No monthly records found for this equipment.</td></tr>`;
             return;
         }
 
@@ -173,9 +248,10 @@
             const pwas = Number(l.pwas || 0);
             const other = Number(l.other_expense || 0);
 
+            // 🟢 Kafil is % of Revenue, Owner and Investor are Direct SAR Amounts
             const kafil = rev * (Number(l.kafil_comm || 0) / 100);
-            const owner = rev * (Number(l.owner_comm || 0) / 100);
-            const inv = rev * (Number(l.investor_comm || 0) / 100);
+            const owner = Number(l.owner_comm || 0);
+            const inv = Number(l.investor_comm || 0);
 
             const netSal = basicOt - penalty;
             const totalCost = maint + netSal + rent + kafil + owner + inv + debit + pwas + other;
@@ -232,6 +308,194 @@
                 <td style="color:${totGl < 0 ? 'red' : 'green'}; font-weight:bold;">${totGl.toFixed(2)}</td>
             </tr>
         `;
+    }
+
+    // 🟢 HELPER: Prepare structured data of an equipment for Python Export
+    function prepareEquipmentExportData(eq) {
+        const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const eqLogs = allLogs.filter(l => l.equipment_id === eq.id);
+        eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
+
+        let totMaint = 0, totBasicOt = 0, totPenalty = 0, totRent = 0;
+        let totKafil = 0, totOwner = 0, totInv = 0, totDebit = 0, totPwas = 0, totOther = 0;
+        let totRev = 0, totGl = 0;
+        let rows = [];
+
+        eqLogs.forEach(l => {
+            const maint = Number(l.maintenance_cost || 0);
+            const basicOt = Number(l.basic_salary || 0) + Number(l.overtime || 0);
+            const penalty = Number(l.penalty || 0);
+            const rent = Number(l.santook_rent || 0);
+            const rev = Number(l.op_revenue || 0);
+            const debit = Number(l.debit || 0);
+            const pwas = Number(l.pwas || 0);
+            const other = Number(l.other_expense || 0);
+
+            // 🟢 Kafil is % of Revenue, Owner and Investor are Direct SAR Amounts
+            const kafil = rev * (Number(l.kafil_comm || 0) / 100);
+            const owner = Number(l.owner_comm || 0);
+            const inv = Number(l.investor_comm || 0);
+
+            const netSal = basicOt - penalty;
+            const totalCost = maint + netSal + rent + kafil + owner + inv + debit + pwas + other;
+            const gl = rev - totalCost;
+            const monthName = shortMonths[l.month - 1] || l.month;
+
+            totMaint += maint; totBasicOt += basicOt; totPenalty += penalty; totRent += rent;
+            totKafil += kafil; totOwner += owner; totInv += inv; totDebit += debit;
+            totPwas += pwas; totOther += other; totRev += rev; totGl += gl;
+
+            rows.push([
+                l.year, monthName, round2(maint), round2(basicOt), round2(penalty), round2(rent),
+                round2(kafil), round2(owner), round2(inv), round2(debit), round2(pwas), round2(other),
+                round2(rev), round2(gl)
+            ]);
+        });
+
+        let totals = rows.length > 0 ? [
+            "TOTAL", "", round2(totMaint), round2(totBasicOt), round2(totPenalty), round2(totRent),
+            round2(totKafil), round2(totOwner), round2(totInv), round2(totDebit), round2(totPwas), round2(totOther),
+            round2(totRev), round2(totGl)
+        ] : [];
+
+        return {
+            plate_no: eq.plate_no,
+            purchase_date: formatPurchaseDate(eq.purchase_date),
+            purchase_cost: Number(eq.purchase_cost || 0),
+            remaining_purchase_cost: Number(eq.remaining_purchase_cost || 0),
+            rows: rows,
+            totals: totals
+        };
+    }
+
+    function round2(num) {
+        return Number(Number(num || 0).toFixed(2));
+    }
+
+    // 🟢 TOAST NOTIFICATION HELPER FUNCTION
+    function showToast(message, type = "success") {
+        const container = document.getElementById("toast-container");
+        if (!container) return;
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${type === "success" ? "✅ " : "❌ "} ${message}</span>`;
+
+        container.appendChild(toast);
+
+        setTimeout(() => toast.classList.add("show"), 10);
+
+        setTimeout(() => {
+            toast.classList.remove("show");
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // 🟢 1. EXPORT ALL EQUIPMENTS AS EXCEL (TABS/SHEETS) VIA PYTHON
+    async function exportAllEquipmentsExcel() {
+        if (allEquipments.length === 0) {
+            showToast("No equipments to export.", "error");
+            return;
+        }
+        
+        let equipmentsPayload = allEquipments.map(eq => prepareEquipmentExportData(eq));
+
+        try {
+            const res = await fetch("/py/own-equipment/export-multi-sheet-excel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    file_name: "All_Equipment_Wise_Details.xlsx",
+                    equipments: equipmentsPayload
+                })
+            });
+
+            if (!res.ok) throw new Error("Export failed");
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "All_Equipment_Wise_Details.xlsx";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showToast("All equipments exported successfully!", "success");
+        } catch (err) {
+            console.error("Export Error:", err);
+            showToast("Error exporting excel via Python Engine.", "error");
+        }
+    }
+
+    // 🟢 2. EXPORT SINGLE EQUIPMENT EXCEL
+    async function exportSingleExcel() {
+        if (!activeEquipmentId) return;
+        const eq = allEquipments.find(e => e.id === activeEquipmentId);
+        if (!eq) return;
+
+        let payload = [prepareEquipmentExportData(eq)];
+
+        try {
+            const res = await fetch("/py/own-equipment/export-multi-sheet-excel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    file_name: `Equipment_${eq.plate_no}.xlsx`,
+                    equipments: payload
+                })
+            });
+
+            if (!res.ok) throw new Error("Export failed");
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Equipment_${eq.plate_no}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showToast(`Equipment ${eq.plate_no} exported successfully!`, "success");
+        } catch (err) {
+            console.error("Export Error:", err);
+            showToast("Error exporting excel.", "error");
+        }
+    }
+
+    // 🟢 4. COPY OPENED DATA AS HIGH QUALITY IMAGE CARD
+    function copyAsImage() {
+        const element = document.getElementById("detailsWrapper");
+        if (!element || element.style.display === 'none') return;
+
+        html2canvas(element, {
+            scale: 3,
+            backgroundColor: "#ffffff",
+            useCORS: true
+        }).then(canvas => {
+            canvas.toBlob(blob => {
+                if (!blob) {
+                    showToast("Failed to generate image.", "error");
+                    return;
+                }
+                try {
+                    const item = new ClipboardItem({ "image/png": blob });
+                    navigator.clipboard.write([item]).then(() => {
+                        showToast("Image copied to clipboard! You can paste it anywhere.", "success");
+                    }).catch(err => {
+                        console.error("Clipboard Error:", err);
+                        showToast("Clipboard not permitted. Downloading image instead...", "error");
+                        downloadCanvasImage(canvas, "Equipment_Card.png");
+                    });
+                } catch (e) {
+                    downloadCanvasImage(canvas, "Equipment_Card.png");
+                }
+            }, "image/png");
+        });
+    }
+
+    function downloadCanvasImage(canvas, fileName) {
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = fileName;
+        a.click();
     }
 
     window.onload = loadData;
