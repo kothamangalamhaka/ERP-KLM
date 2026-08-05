@@ -39,6 +39,7 @@ const ownEquipmentAdminRoutes = require("./routes/ownEquipmentAdminRoutes");
 const employeeTrackerAuthRoutes = require('./routes/employeeTrackerAuthRoutes');
 const employeeTrackerAdminRoutes = require('./routes/employeeTrackerAdminRoutes');
 const employeeTrackerRoutes = require('./routes/employeeTracker');
+const viewBillRoutes = require("./routes/view_bill");
 
 
 
@@ -68,6 +69,8 @@ app.use("/api/own-equipment/admin", ownEquipmentAdminRoutes);
 app.use('/api/employee-tracker/auth', employeeTrackerAuthRoutes);
 app.use('/api/employee-tracker/admin', employeeTrackerAdminRoutes);
 app.use('/api/employee-tracker', employeeTrackerRoutes);
+app.use("/api/view-bill", viewBillRoutes);
+
 
 // ==========================================
 // 🐍 PYTHON ENGINE PROXY (Port 8001 Forwarder)

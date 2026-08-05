@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>View Bill Admin | Site Access Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #0f172a;
+        color: #f8fafc;
+        margin: 0;
+        padding: 20px;
+      }
+      .admin-card {
+        background: #1e293b;
+        border-radius: 12px;
+        padding: 25px;
+        border: 1px solid #334155;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        border-bottom: 1px solid #334155;
+        padding-bottom: 15px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th, td {
+        padding: 12px;
+        border-bottom: 1px solid #334155;
+        text-align: left;
+      }
+      th {
+        background: #0f172a;
+        color: #94a3b8;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+      select, input[type="text"] {
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: white;
+        font-size: 12px;
+        outline: none;
+      }
+      .btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+      }
+      .btn-primary { background: #2563eb; color: white; }
+      .btn-success { background: #10b981; color: white; }
+      .btn-danger { background: #ef4444; color: white; }
+      .site-badge {
+        display: inline-block;
+        background: #334155;
+        color: #38bdf8;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        margin: 2px;
+      }
+      
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.85);
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        backdrop-filter: blur(4px);
+      }
+      .modal-box {
+        background: #1e293b;
+        padding: 25px;
+        border-radius: 12px;
+        width: 450px;
+        max-width: 90vw;
+        border: 1px solid #334155;
+      }
+      .site-checklist {
+        max-height: 250px;
+        overflow-y: auto;
+        border: 1px solid #334155;
+        padding: 10px;
+        border-radius: 6px;
+        margin: 15px 0;
+        background: #0f172a;
+      }
+      .site-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        border-bottom: 1px solid #1e293b;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Super Admin Login Overlay for Admin Page -->
+    <div id="adminLoginModal" class="modal-overlay" style="display: flex;">
+      <div class="modal-box" style="width: 340px; text-align: center;">
+        <h3 style="margin-top: 0; color: #38bdf8; font-size: 20px;">Super Admin Login</h3>
+        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">Enter credentials to manage sites & users</p>
+        <input type="text" id="adminLoginUser" placeholder="Username" style="width:100%; padding:10px; margin-bottom:12px; box-sizing:border-box;" />
+        <input type="password" id="adminLoginPass" placeholder="Password" style="width:100%; padding:10px; margin-bottom:20px; box-sizing:border-box;" onkeypress="if (event.key === 'Enter') executeAdminLogin();" />
+        <button class="btn btn-primary" style="width:100%; padding:10px; font-size:14px;" onclick="executeAdminLogin()">Login to Admin Panel</button>
+      </div>
+    </div>
+
+    <!-- Main Admin Dashboard -->
+    <div class="admin-card">
+      <div class="header">
+        <h2>🔒 View Bill Admin (Site Access Management)</h2>
+        <div>
+          <a href="../View_bill.html" class="btn btn-primary" style="text-decoration:none;">⬅ Back to View Bill</a>
+          <button class="btn btn-danger" onclick="adminLogout()">Logout</button>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Assigned Sites</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          <tr><td colspan="5">Loading users...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Multi-Site Assignment Modal -->
+    <div id="siteModal" class="modal-overlay">
+      <div class="modal-box">
+        <h3 id="siteModalUserTitle" style="margin-top:0; color:#38bdf8;">Assign Sites</h3>
+        <input type="text" id="siteSearchInput" placeholder="Search site..." onkeyup="filterSiteChecklist()" style="width:100%; box-sizing:border-box;" />
+        
+        <div style="display:flex; justify-content:space-between; margin-top:10px;">
+          <button class="btn btn-primary" onclick="toggleAllSites(true)">Select All</button>
+          <button class="btn btn-primary" style="background:#64748b;" onclick="toggleAllSites(false)">Clear All</button>
+        </div>
+
+        <div class="site-checklist" id="siteChecklist"></div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button class="btn" style="background:#64748b; color:white;" onclick="closeSiteModal()">Cancel</button>
+          <button class="btn btn-success" onclick="saveAssignedSites()">Save Sites</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let token = localStorage.getItem("view_bill_token");
+      let allSystemSites = [];
+      let currentEditingUserId = null;
+      let usersListCache = [];
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        if (token) {
+          verifyAdminSession(token);
+        } else {
+          document.getElementById("adminLoginModal").style.display = "flex";
+        }
+      });
+
+      async function executeAdminLogin() {
+        const username = document.getElementById("adminLoginUser").value.trim();
+        const password = document.getElementById("adminLoginPass").value;
+        if (!username || !password) return alert("Enter credentials");
+
+        try {
+          const res = await fetch("/api/view-bill/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            if (data.user.role !== "Super Admin") {
+              alert("Access Denied: Only Super Admin can access this page.");
+              return;
+            }
+            localStorage.setItem("view_bill_token", data.token);
+            token = data.token;
+            verifyAdminSession(token);
+          } else {
+            alert(data.message || "Login failed");
+          }
+        } catch (e) { alert("Server Connection Error"); }
+      }
+
+      async function verifyAdminSession(authToken) {
+        try {
+          const res = await fetch("/api/view-bill/admin/users", {
+            headers: { Authorization: "Bearer " + authToken },
+          });
+          const data = await res.json();
+          if (data.success) {
+            document.getElementById("adminLoginModal").style.display = "none";
+            usersListCache = data.users || [];
+            renderUsersTable(usersListCache);
+            await loadSitesList();
+          } else {
+            localStorage.removeItem("view_bill_token");
+            document.getElementById("adminLoginModal").style.display = "flex";
+          }
+        } catch (e) {
+          document.getElementById("adminLoginModal").style.display = "flex";
+        }
+      }
+
+      function adminLogout() {
+        localStorage.removeItem("view_bill_token");
+        document.getElementById("adminLoginModal").style.display = "flex";
+        document.getElementById("adminLoginUser").value = "";
+        document.getElementById("adminLoginPass").value = "";
+      }
+
+      async function loadSitesList() {
+        try {
+          const res = await fetch("/api/view-bill/admin/sites-list", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await res.json();
+          if (data.success) allSystemSites = data.sites || [];
+        } catch (e) {}
+      }
+
+      async function loadUsers() {
+        try {
+          const res = await fetch("/api/view-bill/admin/users", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await res.json();
+          if (data.success) {
+            usersListCache = data.users || [];
+            renderUsersTable(usersListCache);
+          }
+        } catch (e) {}
+      }
+
+      function renderUsersTable(users) {
+        const tbody = document.getElementById("userTableBody");
+        tbody.innerHTML = "";
+
+        users.forEach((u) => {
+          let sitesArr = u.assigned_sites || [];
+          if (typeof sitesArr === "string") {
+            try { sitesArr = JSON.parse(sitesArr); } catch(e) { sitesArr = []; }
+          }
+          let sitesBadges = sitesArr.length > 0
+            ? sitesArr.map(s => `<span class="site-badge">${s}</span>`).join(" ")
+            : '<span style="color:#64748b;">(No Sites Assigned)</span>';
+
+          tbody.innerHTML += `
+            <tr id="userRow_${u.id}">
+              <td>
+                <b>${u.display_name || u.username}</b><br>
+                <span style="font-size:11px; color:#94a3b8;">@${u.username}</span>
+              </td>
+              <td>
+                <select class="role-select">
+                  <option value="Site Co" ${u.role === "Site Co" ? "selected" : ""}>Site Co</option>
+                  <option value="Admin" ${u.role === "Admin" ? "selected" : ""}>Admin</option>
+                  <option value="Super Admin" ${u.role === "Super Admin" ? "selected" : ""}>Super Admin</option>
+                </select>
+              </td>
+              <td>
+                <select class="status-select">
+                  <option value="approved" ${u.status === "approved" || u.status === "Active" ? "selected" : ""}>Approved</option>
+                  <option value="pending" ${u.status === "pending" ? "selected" : ""}>Pending</option>
+                  <option value="rejected" ${u.status === "rejected" ? "selected" : ""}>Rejected</option>
+                </select>
+              </td>
+              <td>${sitesBadges}</td>
+              <td style="display:flex; gap:6px;">
+                <button class="btn btn-primary" onclick="openSiteModal(${u.id})">Manage Sites</button>
+                <button class="btn btn-success" onclick="saveUserChanges(${u.id})">Save</button>
+                <button class="btn btn-danger" onclick="deleteUser(${u.id})">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      function openSiteModal(userId) {
+        currentEditingUserId = userId;
+        const user = usersListCache.find(u => u.id === userId);
+        if (!user) return;
+
+        document.getElementById("siteModalUserTitle").innerText = `Assign Sites for @${user.username}`;
+        let assigned = user.assigned_sites || [];
+        if (typeof assigned === "string") {
+          try { assigned = JSON.parse(assigned); } catch(e) { assigned = []; }
+        }
+
+        const checklist = document.getElementById("siteChecklist");
+        checklist.innerHTML = "";
+
+        allSystemSites.forEach(s => {
+          let isChecked = assigned.includes(s) ? "checked" : "";
+          checklist.innerHTML += `
+            <div class="site-item">
+              <input type="checkbox" class="site-cb" value="${s}" ${isChecked} />
+              <label>${s}</label>
+            </div>
+          `;
+        });
+
+        document.getElementById("siteModal").style.display = "flex";
+      }
+
+      function closeSiteModal() {
+        document.getElementById("siteModal").style.display = "none";
+        currentEditingUserId = null;
+      }
+
+      function filterSiteChecklist() {
+        const val = document.getElementById("siteSearchInput").value.toLowerCase();
+        document.querySelectorAll("#siteChecklist .site-item").forEach(item => {
+          item.style.display = item.innerText.toLowerCase().includes(val) ? "flex" : "none";
+        });
+      }
+
+      function toggleAllSites(check) {
+        document.querySelectorAll("#siteChecklist .site-cb").forEach(cb => {
+          if (cb.closest('.site-item').style.display !== "none") cb.checked = check;
+        });
+      }
+
+      async function saveAssignedSites() {
+        const selected = Array.from(document.querySelectorAll("#siteChecklist .site-cb:checked")).map(cb => cb.value);
+        const user = usersListCache.find(u => u.id === currentEditingUserId);
+        if (!user) return;
+
+        user.assigned_sites = selected;
+        closeSiteModal();
+
+        await saveUserChanges(user.id);
+      }
+
+      async function saveUserChanges(userId) {
+        const row = document.getElementById(`userRow_${userId}`);
+        const role = row.querySelector(".role-select").value;
+        const status = row.querySelector(".status-select").value;
+        const user = usersListCache.find(u => u.id === userId);
+
+        try {
+          const res = await fetch("/api/view-bill/admin/update-user", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({
+              userId,
+              role,
+              status,
+              assigned_sites: user ? user.assigned_sites : [],
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert("User updated successfully!");
+            loadUsers();
+          } else alert(data.message);
+        } catch (e) { alert("Error saving changes"); }
+      }
+
+      async function deleteUser(userId) {
+        if (!confirm("Are you sure you want to delete this user?")) return;
+        try {
+          const res = await fetch(`/billing/view-bill/admin/delete-user/${userId}`, {
+            method: "DELETE",
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert("User deleted!");
+            loadUsers();
+          } else alert(data.message);
+        } catch (e) { alert("Error deleting user"); }
+      }
+    </script>
+  </body>
+</html>

@@ -10,11 +10,34 @@
     <link rel="stylesheet" href="style/billing.css" />
   </head>
   <body>
-    <div class="top-controls-wrapper">
-      <div class="top-controls">
-        <a href="index.html" class="btn btn-dash" title="Back to Billing">
-          <i class="material-icons" style="font-size: 20px; color: #007bff">arrow_back</i>
-        </a>
+    
+    <!-- 🟢 Login Screen Overlay -->
+    <div id="loginScreen">
+      <div class="login-box">
+        <h2>Haka ERP Login</h2>
+        <input
+          type="text"
+          id="loginUserId"
+          placeholder="Username"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <input
+          type="password"
+          id="loginPass"
+          placeholder="Password"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <button onclick="executeLogin()">Secure Login</button>
+      </div>
+    </div>
+
+    <!-- 🟢 Main App Container (Hidden until logged in) -->
+    <div id="mainAppContainer" style="display: none">
+      <div class="top-controls-wrapper">
+        <div class="top-controls">
+          <a href="index.html" class="btn btn-dash" title="Back to Billing" style="text-decoration: none;">
+            <i class="material-icons" style="font-size: 20px; color: #007bff">arrow_back</i>
+          </a>
 
         <!-- 🟢 Plate No Auto-search (Fixed Label on Single Line) -->
         <div class="selector-wrapper autocomplete-wrapper" style="width: 260px; display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;">
@@ -181,17 +204,76 @@
       let currentFocus = -1;
       let isImagesVerified = false;
 
-      document.addEventListener("DOMContentLoaded", () => {
+      document.addEventListener("DOMContentLoaded", async () => {
+        const token = localStorage.getItem("token");
+        if (token) {
+          verifyToken(token);
+        } else {
+          document.getElementById("loginUserId").focus();
+        }
+      });
+
+      async function verifyToken(token) {
+        try {
+          const res = await fetch("/billing/verify-session", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) loadApp();
+            else executeLogout();
+          } else executeLogout();
+        } catch (err) {
+          executeLogout();
+        }
+      }
+
+      async function executeLogin() {
+        const username = document.getElementById("loginUserId").value;
+        const password = document.getElementById("loginPass").value;
+        if (!username || !password) return showToast("Enter credentials");
+
+        try {
+          const res = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            localStorage.setItem("token", data.token);
+            loadApp();
+          } else {
+            showToast(data.message || "Invalid Credentials!");
+          }
+        } catch (err) {
+          showToast("Server Error.");
+        }
+      }
+
+      function executeLogout() {
+        localStorage.removeItem("token");
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("mainAppContainer").style.display = "none";
+      }
+
+      function loadApp() {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("mainAppContainer").style.display = "block";
         loadVehiclesList();
         attachKeyboardEvents();
-      });
+      }
 
       async function loadVehiclesList() {
         try {
           const token = localStorage.getItem("token");
           const res = await fetch("/billing/vehicles", {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           });
+          if (res.status === 401 || res.status === 403) {
+            executeLogout();
+            return;
+          }
           const data = await res.json();
           if (data.success) {
             vehiclesMaster = data.data || [];
@@ -288,6 +370,10 @@
           const res = await fetch(url, {
             headers: { Authorization: `Bearer ${token}` }
           });
+          if (res.status === 401 || res.status === 403) {
+            executeLogout();
+            return;
+          }
           const data = await res.json();
 
           if (data.success) {

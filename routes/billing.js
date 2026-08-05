@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require("../config/db");
 const ExcelJS = require("exceljs");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
