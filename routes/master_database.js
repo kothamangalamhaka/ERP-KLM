@@ -73,7 +73,9 @@ module.exports = function (pool, middlewares, helpers) {
         if (changesToSend.length === 0) return;
 
         try {
-          const users = [...new Set(changesToSend.map((c) => `@${c.username}`))].join(", ");
+          const users = [
+            ...new Set(changesToSend.map((c) => `@${c.username}`)),
+          ].join(", ");
 
           const groupedByPlate = {};
           changesToSend.forEach((item) => {
@@ -85,7 +87,8 @@ module.exports = function (pool, middlewares, helpers) {
           let bodySections = [];
           for (const [plate, items] of Object.entries(groupedByPlate)) {
             let lines = items.map(
-              (i) => `    <b>${i.colName}:</b> <del>${i.oldVal}</del> ➔ <b>${i.newVal}</b>`
+              (i) =>
+                `    <b>${i.colName}:</b> <del>${i.oldVal}</del> ➔ <b>${i.newVal}</b>`,
             );
             bodySections.push(`• [<b>${plate}</b>]\n${lines.join("\n\n")}`);
           }
@@ -345,12 +348,16 @@ module.exports = function (pool, middlewares, helpers) {
   // 🚀 API ROUTES (Memory-Optimized)
   // ==========================================
 
-  pool.query(`
+  pool
+    .query(
+      `
     CREATE TABLE IF NOT EXISTS active_users (
       username VARCHAR PRIMARY KEY,
       last_seen TIMESTAMP
     )
-  `).catch(err => console.error("Failed to create active_users table:", err));
+  `,
+    )
+    .catch((err) => console.error("Failed to create active_users table:", err));
 
   router.post("/get-master-data", verifyToken, async (req, res) => {
     try {
@@ -359,14 +366,14 @@ module.exports = function (pool, middlewares, helpers) {
       await pool.query(
         `INSERT INTO active_users (username, last_seen) VALUES ($1, CURRENT_TIMESTAMP) 
          ON CONFLICT (username) DO UPDATE SET last_seen = CURRENT_TIMESTAMP`,
-        [username]
+        [username],
       );
-      
+
       // Fetch users active in the last 45 seconds
       const activeRes = await pool.query(
-        `SELECT username FROM active_users WHERE last_seen > NOW() - INTERVAL '45 seconds'`
+        `SELECT username FROM active_users WHERE last_seen > NOW() - INTERVAL '45 seconds'`,
       );
-      const activeUsersList = activeRes.rows.map(r => r.username);
+      const activeUsersList = activeRes.rows.map((r) => r.username);
 
       const headerResult = await pool.query(
         `SELECT header_name, is_locked, alignment, col_type, col_width FROM erp_headers WHERE deleted_at IS NULL ORDER BY col_order ASC`,
@@ -471,7 +478,11 @@ module.exports = function (pool, middlewares, helpers) {
         let currentData = recordRes.rows[0].record_data;
         let oldValue = currentData[colName] || "(Blank)";
         let displayNewValue = newValue || "(Blank)";
-        let plateNo = currentData[COLUMNS.PLATE_NUMBER] || currentData["PLATE NUMBER"] || currentData["Plate Number"] || "N/A";
+        let plateNo =
+          currentData[COLUMNS.PLATE_NUMBER] ||
+          currentData["PLATE NUMBER"] ||
+          currentData["Plate Number"] ||
+          "N/A";
 
         if (String(oldValue).trim() !== String(displayNewValue).trim()) {
           changeLogs.push({
@@ -496,7 +507,10 @@ module.exports = function (pool, middlewares, helpers) {
 
       await client.query(
         "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BATCH_UPDATE', $2)",
-        [req.user.username, JSON.stringify({ count: edits.length, changes: changeLogs })],
+        [
+          req.user.username,
+          JSON.stringify({ count: edits.length, changes: changeLogs }),
+        ],
       );
 
       await client.query("COMMIT");
@@ -555,6 +569,50 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
+  // 🟢 NEW CODE: BATCH ADD ROWS ON EXCEL PASTE OVERFLOW
+  router.post("/add-rows-batch", verifyToken, async (req, res) => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      if (req.user.role === "Viewer") {
+        throw new Error("Viewers cannot add rows.");
+      }
+      let { newRows } = req.body;
+      if (!Array.isArray(newRows) || newRows.length === 0) {
+        throw new Error("No rows provided.");
+      }
+
+      for (let rowObj of newRows) {
+        let sn = parseInt(rowObj[COLUMNS.SN] || 1, 10);
+        let plate = formatPlateNumber(rowObj[COLUMNS.PLATE_NUMBER] || "");
+        let site = rowObj[COLUMNS.SITE] || "";
+
+        let calculatedUpdates = calculateDependentFields(rowObj);
+        Object.assign(rowObj, calculatedUpdates);
+
+        await client.query(
+          "INSERT INTO erp_records (sn, plate_number, site, record_data) VALUES ($1, $2, $3, $4)",
+          [sn, plate, site, rowObj],
+        );
+      }
+
+      await client.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BATCH_ADD_ROWS', $2)",
+        [req.user.username, JSON.stringify({ count: newRows.length })],
+      );
+      await client.query("COMMIT");
+
+      await sendActivityTelegramMessage(
+        `➕ <b>EXCEL PASTE: ${newRows.length} NEW ROWS ADDED</b>\n<b>Added by:</b> @${req.user.username}`,
+      );
+      res.json({ success: true });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      handleError(res, error, req.user.role, "BATCH_ADD_ROWS");
+    } finally {
+      client.release();
+    }
+  });
 
   // ==========================================
   // 🐍 PYTHON ENGINE CONNECTED EXCEL EXPORT
@@ -563,18 +621,28 @@ module.exports = function (pool, middlewares, helpers) {
   router.post("/export-excel-py", verifyToken, async (req, res) => {
     try {
       const { headers, rows } = req.body;
-      
-      // Python FastAPI സർവീസിലേക്ക് ഡാറ്റ നൽകുന്നു
-      const pyResponse = await axios.post("http://127.0.0.1:8001/py/export-excel", {
-        headers: headers,
-        rows: rows,
-        sheet_name: "Haka Master Database"
-      }, {
-        responseType: "arraybuffer" // എക്സൽ ബൈനറി ഡാറ്റ കൈപ്പറ്റാൻ
-      });
 
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=Master_Database_Export.xlsx");
+      // Python FastAPI സർവീസിലേക്ക് ഡാറ്റ നൽകുന്നു
+      const pyResponse = await axios.post(
+        "http://127.0.0.1:8001/py/export-excel",
+        {
+          headers: headers,
+          rows: rows,
+          sheet_name: "Haka Master Database",
+        },
+        {
+          responseType: "arraybuffer", // എക്സൽ ബൈനറി ഡാറ്റ കൈപ്പറ്റാൻ
+        },
+      );
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=Master_Database_Export.xlsx",
+      );
       res.send(pyResponse.data);
     } catch (error) {
       handleError(res, error, req.user.role, "PYTHON_EXCEL_EXPORT");
@@ -587,7 +655,10 @@ module.exports = function (pool, middlewares, helpers) {
   router.post("/update-cells-batch-py", verifyToken, async (req, res) => {
     try {
       if (req.user.role === "Viewer") {
-        return res.json({ success: false, message: "Access Denied: Viewers cannot edit data." });
+        return res.json({
+          success: false,
+          message: "Access Denied: Viewers cannot edit data.",
+        });
       }
 
       const { edits } = req.body;
@@ -596,16 +667,21 @@ module.exports = function (pool, middlewares, helpers) {
       }
 
       // Forwarding batch edits to Python Engine (Port 8001)
-      const pyResponse = await axios.post("http://127.0.0.1:8001/py/bulk-update-cells", {
-        edits: edits,
-        username: req.user.username
-      });
+      const pyResponse = await axios.post(
+        "http://127.0.0.1:8001/py/bulk-update-cells",
+        {
+          edits: edits,
+          username: req.user.username,
+        },
+      );
 
       // Log activity in background
-      pool.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BATCH_UPDATE_PY', $2)",
-        [req.user.username, JSON.stringify({ count: edits.length })]
-      ).catch(err => console.error("Log error:", err.message));
+      pool
+        .query(
+          "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BATCH_UPDATE_PY', $2)",
+          [req.user.username, JSON.stringify({ count: edits.length })],
+        )
+        .catch((err) => console.error("Log error:", err.message));
 
       res.json(pyResponse.data);
     } catch (error) {
@@ -619,7 +695,10 @@ module.exports = function (pool, middlewares, helpers) {
   router.post("/admin/import-excel-py", verifyToken, async (req, res) => {
     try {
       if (req.user.role !== "Super Admin") {
-        return res.json({ success: false, message: "Super Admin Access Required." });
+        return res.json({
+          success: false,
+          message: "Super Admin Access Required.",
+        });
       }
 
       const { fileBase64, importMode } = req.body;
@@ -628,17 +707,22 @@ module.exports = function (pool, middlewares, helpers) {
       }
 
       // Forwarding Import request to Python Engine (Port 8001)
-      const pyResponse = await axios.post("http://127.0.0.1:8001/py/import-excel", {
-        fileBase64: fileBase64,
-        importMode: importMode,
-        username: req.user.username
-      });
+      const pyResponse = await axios.post(
+        "http://127.0.0.1:8001/py/import-excel",
+        {
+          fileBase64: fileBase64,
+          importMode: importMode,
+          username: req.user.username,
+        },
+      );
 
       // Log import activity
-      pool.query(
-        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BULK_IMPORT_PY', $2)",
-        [req.user.username, JSON.stringify({ mode: importMode })]
-      ).catch(err => console.error("Log error:", err.message));
+      pool
+        .query(
+          "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BULK_IMPORT_PY', $2)",
+          [req.user.username, JSON.stringify({ mode: importMode })],
+        )
+        .catch((err) => console.error("Log error:", err.message));
 
       res.json(pyResponse.data);
     } catch (error) {

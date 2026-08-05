@@ -2704,80 +2704,146 @@ $(document).on(
     let updatedRowIndexes = new Set();
     let isSmallBatch = (rows.length * (rows[0] ? rows[0].split("\t").length : 1)) <= 40;
 
+    // 🟢 NEW CODE: AUTO-CREATE ROWS WHEN PASTING FROM EXCEL
+    let newRowsToCreate = [];
+
     rows.forEach((rowText) => {
       if (!rowText.trim() && rows.length > 1) return;
       let cols = rowText.split("\t");
 
-      if (!$currentTr.length) return;
-      let dbId = $currentTr.data("sheetrow");
-      let dtRowIndex = erpDataTable.row($currentTr).index();
+      // 1. നിലവിൽ വരി ഉണ്ടെങ്കിൽ അതിലെ സെല്ലുകൾ അപ്ഡേറ്റ് ചെയ്യുന്നു
+      if ($currentTr.length) {
+        let dbId = $currentTr.data("sheetrow");
+        let dtRowIndex = erpDataTable.row($currentTr).index();
 
-      cols.forEach((cellText, cIdx) => {
-        let targetColIdx = startColIdx + cIdx;
-        let $targetTd = $currentTr.find("td").eq(targetColIdx);
-        if (!$targetTd.length) return;
+        cols.forEach((cellText, cIdx) => {
+          let targetColIdx = startColIdx + cIdx;
+          let $targetTd = $currentTr.find("td").eq(targetColIdx);
+          if (!$targetTd.length) return;
 
-        let colName = $targetTd.data("colname");
-        if (!colName) return;
+          let colName = $targetTd.data("colname");
+          if (!colName) return;
 
-        let colUpper = String(colName).toUpperCase();
-        if (colUpper === "SN" || colUpper === "DAYS WORKED") return;
-        if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin") return;
+          let colUpper = String(colName).toUpperCase();
+          if (colUpper === "SN" || colUpper === "DAYS WORKED") return;
+          if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin") return;
 
-        let newValue = cellText.trim();
-        let oldValue = $targetTd.text().trim();
+          let newValue = cellText.trim();
+          let oldValue = $targetTd.text().trim();
 
-        let colTypeObj = cachedColTypes.find((c) => c.name === colName);
-        let cType = colTypeObj ? colTypeObj.type : "varchar";
-        let isDateCol =
-          cType === "date" ||
-          colUpper.includes("DATE") ||
-          colUpper.includes("EXPIRE") ||
-          colUpper.includes("EQUIPMENT REACHED") ||
-          colUpper === "LAST WORKING DAY" ||
-          colUpper === "WORK START";
+          let colTypeObj = cachedColTypes.find((c) => c.name === colName);
+          let cType = colTypeObj ? colTypeObj.type : "varchar";
+          let isDateCol =
+            cType === "date" ||
+            colUpper.includes("DATE") ||
+            colUpper.includes("EXPIRE") ||
+            colUpper.includes("EQUIPMENT REACHED") ||
+            colUpper === "LAST WORKING DAY" ||
+            colUpper === "WORK START";
 
-        if (isDateCol && newValue) newValue = formatToDDMMMYYYY(newValue);
-        else if (colUpper === "PLATE NUMBER") newValue = formatPlateNumber(newValue);
+          if (isDateCol && newValue) newValue = formatToDDMMMYYYY(newValue);
+          else if (colUpper === "PLATE NUMBER") newValue = formatPlateNumber(newValue);
 
-        if (oldValue !== newValue) {
-          let colIdxInDataTable = cachedHeaders.indexOf(colName);
-          if (dtRowIndex !== undefined && colIdxInDataTable !== -1) {
-            // Update UI Text directly without triggering DataTables internal indexing loop
-            $targetTd.text(newValue);
+          if (oldValue !== newValue) {
+            let colIdxInDataTable = cachedHeaders.indexOf(colName);
+            if (dtRowIndex !== undefined && colIdxInDataTable !== -1) {
+              $targetTd.text(newValue);
 
-            // Update underlying DataTables array reference silently
-            let rowDataArray = erpDataTable.row(dtRowIndex).data();
-            if (rowDataArray) {
-              rowDataArray[colIdxInDataTable] = newValue;
-              updatedRowIndexes.add(dtRowIndex);
+              let rowDataArray = erpDataTable.row(dtRowIndex).data();
+              if (rowDataArray) {
+                rowDataArray[colIdxInDataTable] = newValue;
+                updatedRowIndexes.add(dtRowIndex);
+              }
+
+              if (isSmallBatch) {
+                $targetTd.css("transition", "background-color 0.3s");
+                $targetTd.css("background-color", "#fef08a");
+                setTimeout(() => $targetTd.css("background-color", ""), 1500);
+              }
+
+              bulkEditsBatch.push({
+                dbId: dbId,
+                colName: colName,
+                newValue: newValue,
+              });
+
+              undoStack.push({
+                sheetRow: dbId,
+                colName: colName,
+                oldVal: oldValue,
+                newVal: newValue,
+              });
             }
-
-            // Apply animation ONLY for small pastes to prevent browser GPU/RAM overload
-            if (isSmallBatch) {
-              $targetTd.css("transition", "background-color 0.3s");
-              $targetTd.css("background-color", "#fef08a");
-              setTimeout(() => $targetTd.css("background-color", ""), 1500);
-            }
-
-            bulkEditsBatch.push({
-              dbId: dbId,
-              colName: colName,
-              newValue: newValue,
-            });
-
-            undoStack.push({
-              sheetRow: dbId,
-              colName: colName,
-              oldVal: oldValue,
-              newVal: newValue,
-            });
           }
-        }
-      });
+        });
 
-      $currentTr = $currentTr.next("tr");
+        $currentTr = $currentTr.next("tr");
+      } 
+      // 2. 🟢 അധികമായി വരുന്ന വരികളെ പുതിയ റെക്കോർഡുകളായി മാറ്റുന്നു
+      else {
+        let newRowData = {};
+        cols.forEach((cellText, cIdx) => {
+          let targetColIdx = startColIdx + cIdx;
+          let colName = cachedHeaders[targetColIdx];
+          if (colName) {
+            let colUpper = String(colName).toUpperCase();
+            if (colUpper !== "SN" && colUpper !== "DAYS WORKED") {
+              let val = cellText.trim();
+              if (colUpper === "PLATE NUMBER") val = formatPlateNumber(val);
+              newRowData[colName] = val;
+            }
+          }
+        });
+
+        if (Object.keys(newRowData).length > 0) {
+          newRowData["SN"] = globalNextSN++;
+          newRowsToCreate.push(newRowData);
+        }
+      }
     });
+
+    if (undoStack.length > 50) undoStack = undoStack.slice(-50);
+    updateUndoRedoUI();
+
+    // അപ്ഡേറ്റുകൾ ഉണ്ടെങ്കിൽ അവ സേവ് ചെയ്യുന്നു
+    if (bulkEditsBatch.length > 0) {
+      updatedRowIndexes.forEach((rIdx) => {
+        erpDataTable.row(rIdx).invalidate("data");
+      });
+      erpDataTable.draw(false);
+
+      saveQueue.push(...bulkEditsBatch);
+      processQueue();
+    }
+
+    // 🟢 പുതിയ വരികൾ ഉണ്ടെങ്കിൽ ബാക്കെൻഡിലേക്ക് അയച്ചു ചേർക്കുന്നു
+    if (newRowsToCreate.length > 0) {
+      showToast(`Creating ${newRowsToCreate.length} new rows...`, "info");
+      fetch("/api/add-rows-batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ newRows: newRowsToCreate }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) {
+            showToast(`Added ${newRowsToCreate.length} new rows!`, "success");
+            setTimeout(() => fetchData(true), 1000);
+          } else {
+            showToast("Error creating new rows", "error");
+          }
+        });
+    } else if (bulkEditsBatch.length > 0) {
+      showToast(
+        `Pasted ${bulkEditsBatch.length} cells instantly! Syncing to DB...`,
+        "success",
+      );
+    } else {
+      showToast("No valid changes detected in paste.", "info");
+    }
 
     if (undoStack.length > 50) undoStack = undoStack.slice(-50);
     updateUndoRedoUI();

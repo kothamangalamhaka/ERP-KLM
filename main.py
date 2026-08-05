@@ -3,6 +3,8 @@ import json
 import io
 import html
 import base64
+import re
+from datetime import datetime
 import psycopg2
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, UploadFile, File
@@ -78,7 +80,12 @@ async def generate_styled_excel(data: ExportRequest):
                 status_col_idx = idx
                 break
         
-        # 4. ഡാറ്റാ റോകൾ എഴുതുന്നു (Color ഉൾപ്പെടെ, Text Wrap ഒഴിവാക്കി)
+        # 4. ഡാറ്റാ റോകൾ എഴുതുന്നു (Color ഉൾപ്പെടെ, Text Wrap ഒഴിവാക്കി + Date Parsing for Excel Tree Filter)
+        month_map = {
+            "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
+            "JUL": 7, "AUG": 8, "SEP": 9, "OCT": 10, "NOV": 11, "DEC": 12
+        }
+
         for row_idx, row_data in enumerate(data.rows, 2):
             row_status = ""
             if status_col_idx != -1 and len(row_data) > status_col_idx:
@@ -91,23 +98,47 @@ async def generate_styled_excel(data: ExportRequest):
                 current_row_fill = released_fill
 
             for col_idx, value in enumerate(row_data, 1):
-                val_str = ""
-                if value is not None:
-                    val_str = str(value)
+                header_name = str(data.headers[col_idx-1]).upper()
+                is_date_col = any(k in header_name for k in ["DATE", "EXPIRE", "WORK START", "LAST WORKING DAY", "REACHED"])
+                
+                final_val = ""
+                is_parsed_date = False
+
+                if value is not None and str(value).strip() != "":
+                    val_str = str(value).strip()
                     val_str = val_str.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
                     val_str = html.unescape(val_str)
+                    final_val = val_str
+
+                    # 🟢 ഡേറ്റ് കോളം ആണെങ്കിൽ അതിനെ യഥാർത്ഥ Python Date Object ആക്കി മാറ്റുന്നു
+                    if is_date_col:
+                        parts = re.split(r'[\/\- \.]', val_str)
+                        if len(parts) == 3:
+                            try:
+                                d = int(parts[0])
+                                m_str = parts[1].upper()[:3]
+                                m = month_map.get(m_str) or int(parts[1])
+                                y = int("20" + parts[2] if len(parts[2]) == 2 else parts[2])
+                                if 1 <= d <= 31 and 1 <= m <= 12 and 1900 <= y <= 2100:
+                                    final_val = datetime(y, m, d).date()
+                                    is_parsed_date = True
+                            except Exception:
+                                pass
                     
-                cell = ws.cell(row=row_idx, column=col_idx, value=val_str)
+                cell = ws.cell(row=row_idx, column=col_idx, value=final_val)
                 cell.font = data_font
                 cell.border = thin_border
+                
+                # യഥാർത്ഥ Date ആണെങ്കിൽ എക്സലിന് DD-MMM-YYYY എന്ന ഫോർമാറ്റ് നൽകുന്നു
+                if is_parsed_date:
+                    cell.number_format = "dd-mmm-yyyy"
                 
                 # സ്റ്റാറ്റസ് അനുസരിച്ച് റോ മുഴുവൻ കളർ ഫിൽ ചെയ്യുന്നു
                 if current_row_fill:
                     cell.fill = current_row_fill
                 
                 # അലൈൻമെന്റും wrap_text=False ഉം നൽകുന്നു
-                header_name = str(data.headers[col_idx-1]).upper()
-                if any(k in header_name for k in ["DATE", "EXPIRE", "WORK START", "LAST WORKING DAY", "SN"]):
+                if is_date_col or "SN" in header_name:
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=False)
                 elif "DAYS WORKED" in header_name or "NUMBER" in header_name:
                     cell.alignment = Alignment(horizontal="right", vertical="center", wrap_text=False)
