@@ -52,54 +52,46 @@ module.exports = function (pool, middlewares, helpers) {
   };
 
   // ==========================================
-  // 🛠️ SHARED UTILITY FUNCTIONS (Leak-Free)
+  // 🛠️ SHARED UTILITY FUNCTIONS (Leak-Free & LIVE)
   // ==========================================
-  let telegramAlertBuffer = [];
-  let telegramAlertTimer = null;
 
-  function scheduleTelegramAlert(username, changeLogs) {
+  // 🟢 NEW CODE: Live Telegram Alert function (Guaranteed Trigger)
+  async function sendLiveTelegramAlert(username, changeLogs) {
     if (!changeLogs || changeLogs.length === 0) return;
 
-    changeLogs.forEach((log) => {
-      telegramAlertBuffer.push({ ...log, username });
-    });
+    try {
+      const timeStr = new Date().toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
 
-    if (!telegramAlertTimer) {
-      telegramAlertTimer = setTimeout(async () => {
-        const changesToSend = [...telegramAlertBuffer];
-        telegramAlertBuffer = [];
-        telegramAlertTimer = null;
+      let alertBlocks = [];
+      changeLogs.forEach((item) => {
+        const plate = item.plate || "N/A";
+        const colHeader = item.colName || "N/A";
+        const oldVal = item.oldVal !== undefined && item.oldVal !== "" ? item.oldVal : "(Blank)";
+        const newVal = item.newVal !== undefined && item.newVal !== "" ? item.newVal : "(Blank)";
 
-        if (changesToSend.length === 0) return;
+        alertBlocks.push(
+          `🚚 <b>PLATE NO:</b> [ <code>${plate}</code> ]\n` +
+          `📌 <b>COLUMN:</b> <b>${colHeader}</b>\n` +
+          `🔄 <b>CHANGE:</b> <del>${oldVal}</del> ➔ <b>${newVal}</b>`
+        );
+      });
 
-        try {
-          const users = [
-            ...new Set(changesToSend.map((c) => `@${c.username}`)),
-          ].join(", ");
+      const finalMessage =
+        `🔔 <b>LIVE MASTER DB UPDATE</b>\n\n` +
+        `👤 <b>Modified By:</b> @${username}\n` +
+        `⏰ <b>Time:</b> ${timeStr}\n` +
+        `-----------------------------------\n\n` +
+        alertBlocks.join("\n\n-----------------------------------\n\n");
 
-          const groupedByPlate = {};
-          changesToSend.forEach((item) => {
-            const plate = item.plate || "N/A";
-            if (!groupedByPlate[plate]) groupedByPlate[plate] = [];
-            groupedByPlate[plate].push(item);
-          });
-
-          let bodySections = [];
-          for (const [plate, items] of Object.entries(groupedByPlate)) {
-            let lines = items.map(
-              (i) =>
-                `    <b>${i.colName}:</b> <del>${i.oldVal}</del> ➔ <b>${i.newVal}</b>`,
-            );
-            bodySections.push(`• [<b>${plate}</b>]\n${lines.join("\n\n")}`);
-          }
-
-          const finalMessage = `📝 <b>DATA UPDATED</b>\n\n<b>User:</b> ${users}\n<b>Total Changes:</b> ${changesToSend.length}\n\n${bodySections.join("\n\n\n")}`;
-
-          await sendActivityTelegramMessage(finalMessage);
-        } catch (err) {
-          console.error("Telegram Alert Error:", err.message);
-        }
-      }, 30000); // 30 seconds batch window
+      await sendActivityTelegramMessage(finalMessage);
+    } catch (err) {
+      console.error("Live Telegram Alert Error:", err.message);
     }
   }
 
@@ -437,6 +429,33 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
+  // ==========================================
+  // 🟢 NEW CODE: DYNAMIC COMPANIES LIST API
+  // ==========================================
+  router.get("/companies-list", verifyToken, async (req, res) => {
+    try {
+      // erp_records-ലെ record_data-യിൽ നിന്നും നിലവിലുള്ള എല്ലാ കമ്പനികളുടെയും ലിസ്റ്റ് ഡ്യൂപ്ലിക്കേറ്റ് ഇല്ലാതെ എടുക്കുന്നു
+      const companyRes = await pool.query(
+        `SELECT DISTINCT TRIM(record_data->>'Company') AS company_name 
+         FROM erp_records 
+         WHERE deleted_at IS NULL 
+           AND record_data->>'Company' IS NOT NULL 
+           AND TRIM(record_data->>'Company') != '' 
+         ORDER BY company_name ASC`
+      );
+
+      let companies = companyRes.rows.map((r) => r.company_name);
+
+      // ഡാറ്റാബേസിൽ റെക്കോർഡുകൾ ഒന്നും ഇല്ലെങ്കിൽ പോലും ഡിഫോൾട്ട് 4 കമ്പനികൾ എപ്പോഴും ലിസ്റ്റിൽ ഉണ്ടാകും
+      const defaultCompanies = ["Haka", "Aljoda", "Masar Wheels", "We1"];
+      let combinedCompanies = [...new Set([...defaultCompanies, ...companies])];
+
+      res.json({ success: true, companies: combinedCompanies });
+    } catch (error) {
+      handleError(res, error, req.user.role, "GET_COMPANIES_LIST");
+    }
+  });
+
   router.post("/update-col-width", verifyToken, async (req, res) => {
     try {
       const { colName, width } = req.body;
@@ -470,26 +489,33 @@ module.exports = function (pool, middlewares, helpers) {
         }
 
         const recordRes = await client.query(
-          "SELECT record_data FROM erp_records WHERE id = $1",
+          "SELECT plate_number, record_data FROM erp_records WHERE id = $1",
           [dbId],
         );
         if (recordRes.rows.length === 0) continue;
 
-        let currentData = recordRes.rows[0].record_data;
-        let oldValue = currentData[colName] || "(Blank)";
-        let displayNewValue = newValue || "(Blank)";
+        let currentData = recordRes.rows[0].record_data || {};
+        
+        // 🟢 FIX 1: Null/Undefined സുരക്ഷിതമായി സ്ട്രിങ്ങിലേക്ക് മാറ്റുന്നു
+        let rawOldVal = currentData[colName] !== undefined && currentData[colName] !== null ? String(currentData[colName]).trim() : "";
+        let rawNewVal = newValue !== undefined && newValue !== null ? String(newValue).trim() : "";
+
+        // 🟢 FIX 2: പ്ലേറ്റ് നമ്പർ കൃത്യമായി കിട്ടാൻ DB കോളവും ഒപ്പം ഫ്രണ്ട്-എൻഡിൽ നിന്ന് വരുന്ന പ്ലേറ്റ് നമ്പറും ചെക്ക് ചെയ്യുന്നു
         let plateNo =
+          edit.plate ||
+          recordRes.rows[0].plate_number ||
           currentData[COLUMNS.PLATE_NUMBER] ||
           currentData["PLATE NUMBER"] ||
           currentData["Plate Number"] ||
           "N/A";
 
-        if (String(oldValue).trim() !== String(displayNewValue).trim()) {
+        // 🟢 FIX 3: കൃത്യമായ മാറ്റം ഉണ്ടെങ്കിൽ മാത്രം ലോഗിൽ ചേർക്കുന്നു
+        if (rawOldVal !== rawNewVal) {
           changeLogs.push({
             plate: plateNo,
             colName: colName,
-            oldVal: oldValue,
-            newVal: displayNewValue,
+            oldVal: rawOldVal !== "" ? rawOldVal : "(Blank)",
+            newVal: rawNewVal !== "" ? rawNewVal : "(Blank)",
           });
         }
 
@@ -515,9 +541,9 @@ module.exports = function (pool, middlewares, helpers) {
 
       await client.query("COMMIT");
 
-      // Send changes to 30-second Batching Buffer
+      // 🟢 NEW CODE: Live Telegram Alert Trigger (Instant - 0 Delay)
       if (changeLogs.length > 0) {
-        scheduleTelegramAlert(req.user.username, changeLogs);
+        await sendLiveTelegramAlert(req.user.username, changeLogs);
       }
 
       res.json({ success: true });
@@ -653,6 +679,7 @@ module.exports = function (pool, middlewares, helpers) {
   // 🐍 HIGH-SPEED PYTHON BULK UPDATE PROXY
   // ==========================================
   router.post("/update-cells-batch-py", verifyToken, async (req, res) => {
+    const client = await pool.connect();
     try {
       if (req.user.role === "Viewer") {
         return res.json({
@@ -664,6 +691,31 @@ module.exports = function (pool, middlewares, helpers) {
       const { edits } = req.body;
       if (!Array.isArray(edits) || edits.length === 0) {
         return res.json({ success: false, message: "No edits provided." });
+      }
+
+      // 🟢 NEW CODE: ടെലഗ്രാം അലേർട്ടിനായി പഴയ വാല്യൂവും പ്ലേറ്റ് നമ്പറും വേഗത്തിൽ എടുക്കുന്നു
+      let changeLogs = [];
+      for (let edit of edits) {
+        let { dbId, colName, newValue, plate } = edit;
+        const recordRes = await client.query(
+          "SELECT plate_number, record_data FROM erp_records WHERE id = $1",
+          [dbId],
+        );
+        if (recordRes.rows.length > 0) {
+          let currentData = recordRes.rows[0].record_data || {};
+          let rawOldVal = currentData[colName] !== undefined && currentData[colName] !== null ? String(currentData[colName]).trim() : "";
+          let rawNewVal = newValue !== undefined && newValue !== null ? String(newValue).trim() : "";
+          let plateNo = plate || recordRes.rows[0].plate_number || currentData["PLATE NUMBER"] || currentData["Plate Number"] || "N/A";
+
+          if (rawOldVal !== rawNewVal) {
+            changeLogs.push({
+              plate: plateNo,
+              colName: colName,
+              oldVal: rawOldVal !== "" ? rawOldVal : "(Blank)",
+              newVal: rawNewVal !== "" ? rawNewVal : "(Blank)",
+            });
+          }
+        }
       }
 
       // Forwarding batch edits to Python Engine (Port 8001)
@@ -683,9 +735,16 @@ module.exports = function (pool, middlewares, helpers) {
         )
         .catch((err) => console.error("Log error:", err.message));
 
+      // 🟢 FIX: നിലവിലുള്ള sendLiveTelegramAlert ഫങ്ഷൻ കൃത്യമായി വിളിക്കുന്നു
+      if (changeLogs.length > 0) {
+        await sendLiveTelegramAlert(req.user.username, changeLogs);
+      }
+
       res.json(pyResponse.data);
     } catch (error) {
       handleError(res, error, req.user.role, "PYTHON_BATCH_UPDATE");
+    } finally {
+      client.release();
     }
   });
 

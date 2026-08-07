@@ -296,6 +296,8 @@ let erpDataTable = null,
   cachedAlignments = [],
   cachedColTypes = [],
   cachedColWidths = [];
+
+let DYNAMIC_COMPANIES = ["Haka", "Aljoda", "Masar Wheels", "We1"];
 let globalNextSN = 1,
   saveQueue = [],
   isProcessingQueue = false,
@@ -1267,6 +1269,21 @@ function renderTable(response) {
   cachedColTypes = response.colTypes || [];
   cachedColWidths = response.colWidths || [];
 
+  // 🟢 Extract all unique companies from DB rows dynamically
+  let compIdx = cachedHeaders.findIndex(
+    (h) => h.replace(/\s+/g, "").toUpperCase() === "COMPANY",
+  );
+  let dbCompanies = [];
+  if (compIdx !== -1 && response.rows) {
+    response.rows.forEach((r) => {
+      let val = String(r[compIdx] || "").trim();
+      if (val && !dbCompanies.includes(val)) dbCompanies.push(val);
+    });
+  }
+  DYNAMIC_COMPANIES = [
+    ...new Set(["Haka", "Aljoda", "Masar Wheels", "We1", ...dbCompanies]),
+  ].sort();
+
   // Merge per-user alignments and column widths from localStorage
   let userAligns = JSON.parse(localStorage.getItem("erpColAligns_" + currentUser.username)) || {};
   cachedAlignments = cachedHeaders.map(h => ({
@@ -2235,7 +2252,11 @@ function openAddEntryModal() {
     } else if (colUpper === "STATUS") {
       inputHtml = `<select class="modal-input entry-input" data-colname="${header}"><option value="">Select Status</option><option value="Running">Running</option><option value="Released">Released</option><option value="Replaced">Replaced</option><option value="Mobilizing">Mobilizing</option></select>`;
     } else if (colUpper === "COMPANY") {
-      inputHtml = `<select class="modal-input entry-input" data-colname="${header}"><option value="">Select Company</option><option value="Haka">Haka</option><option value="Aljoda">Aljoda</option><option value="Masar Wheels">Masar Wheels</option><option value="We1">We1</option></select>`;
+      let optionsCompHtml = DYNAMIC_COMPANIES.map(function (o) {
+        return `<option value="${o.replace(/"/g, "&quot;")}">${o}</option>`;
+      }).join("");
+      optionsCompHtml += `<option value="ADD_NEW_COMPANY" style="font-weight:bold; color:#2563eb;">+ Add New Company</option>`;
+      inputHtml = `<select class="modal-input entry-input company-modal-select" data-colname="${header}" onchange="handleModalCompanyChange(this)"><option value="">Select Company</option>${optionsCompHtml}</select>`;
     } else if (colUpper === "VAT BILL OR NOT") {
       inputHtml = `<select class="modal-input entry-input" data-colname="${header}"><option value="">Select Option</option><option value="Yes">Yes</option><option value="No">No</option></select>`;
     } else if (colUpper === "SN") {
@@ -2536,12 +2557,10 @@ function attachEditListeners() {
         inputHtml = `<select class="edit-input"><option value=""></option>${optionsSubHtml}</select>`;
         isSelect = true;
       } else if (colUpper === "COMPANY") {
-        let optsComp = ["Haka", "Aljoda", "Masar Wheels", "We1"],
-          optionsCompHtml = optsComp
-            .map(function (o) {
-              return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
-            })
-            .join("");
+        let optionsCompHtml = DYNAMIC_COMPANIES.map(function (o) {
+          return `<option value="${o.replace(/"/g, "&quot;")}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
+        }).join("");
+        optionsCompHtml += `<option value="ADD_NEW_COMPANY" style="font-weight:bold; color:#2563eb;">+ Add New</option>`;
         inputHtml = `<select class="edit-input"><option value=""></option>${optionsCompHtml}</select>`;
         isSelect = true;
       } else if (colUpper === "VAT BILL OR NOT") {
@@ -2560,6 +2579,28 @@ function attachEditListeners() {
       let $input = $(inputHtml);
       $cell.html($input);
       $input.focus();
+
+      // 🟢 Intercept "+ Add New Company" selection inside inline cell editor
+      if (colUpper === "COMPANY") {
+        $input.on("change", function () {
+          if ($(this).val() === "ADD_NEW_COMPANY") {
+            let newComp = prompt("Enter New Company Name:")?.trim();
+            if (newComp) {
+              if (!DYNAMIC_COMPANIES.includes(newComp)) {
+                DYNAMIC_COMPANIES.push(newComp);
+                DYNAMIC_COMPANIES.sort();
+              }
+              $(this).append(
+                `<option value="${newComp.replace(/"/g, "&quot;")}" selected>${newComp}</option>`,
+              );
+              $(this).val(newComp);
+            } else {
+              $(this).val(oldVal);
+            }
+          }
+        });
+      }
+
       if (!isSelect && !isDateCol) {
         let v = $input.val();
         $input.val("");
@@ -2645,10 +2686,20 @@ function attachEditListeners() {
           if (undoStack.length > 50) undoStack.shift();
           redoStack = [];
           updateUndoRedoUI();
+
+          // 🟢 NEW CODE: Extract Plate Number from the row so Telegram always gets it
+          let plateIdxInTable = cachedHeaders.findIndex(
+            (h) => h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER")
+          );
+          let rowPlateNo = plateIdxInTable !== -1 
+            ? $cell.closest("tr").find("td").eq(plateIdxInTable).text().trim() 
+            : "N/A";
+
           saveQueue.push({
             dbId: sheetRow,
             colName: colName,
             newValue: newVal,
+            plate: rowPlateNo // 🟢 Passing Plate Number explicitly
           });
           processQueue();
         }
@@ -2867,3 +2918,22 @@ $(document).on(
     }
   },
 );
+
+// 🟢 Helper for Add New Company in Modal
+function handleModalCompanyChange(selectEl) {
+  if (selectEl.value === "ADD_NEW_COMPANY") {
+    let newComp = prompt("Enter New Company Name:")?.trim();
+    if (newComp) {
+      if (!DYNAMIC_COMPANIES.includes(newComp)) {
+        DYNAMIC_COMPANIES.push(newComp);
+        DYNAMIC_COMPANIES.sort();
+      }
+      $(selectEl).append(
+        `<option value="${newComp.replace(/"/g, "&quot;")}" selected>${newComp}</option>`,
+      );
+      selectEl.value = newComp;
+    } else {
+      selectEl.value = "";
+    }
+  }
+}
