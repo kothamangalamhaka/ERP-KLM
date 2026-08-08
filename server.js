@@ -591,19 +591,37 @@ app.get("/api/dashboard-summary", verifyToken, async (req, res) => {
     );
 
     const vehicleDetailsRes = await pool.query(
-      `
-            SELECT 
-                plate_number, 
-                site, 
-                record_data->>'Company' as company, 
-                record_data->>'Status' as status, 
-                record_data->>'Owner' as owner 
-            FROM erp_records 
-            WHERE ${scopeCondition} 
-            ORDER BY plate_number ASC
-        `,
-      params,
-    );
+  `
+        SELECT 
+            COALESCE(
+                NULLIF(TRIM(plate_number), ''),
+                NULLIF(TRIM(record_data->>'PLATE NUMBER'), ''),
+                NULLIF(TRIM(record_data->>'Plate Number'), ''),
+                NULLIF(TRIM(record_data->>'Plate No'), '')
+            ) as plate_number,
+            COALESCE(
+                NULLIF(TRIM(site), ''),
+                NULLIF(TRIM(record_data->>'Site'), ''),
+                NULLIF(TRIM(record_data->>'SITE'), '')
+            ) as site,
+            COALESCE(
+                NULLIF(TRIM(record_data->>'Company'), ''),
+                NULLIF(TRIM(record_data->>'COMPANY'), '')
+            ) as company,
+            COALESCE(
+                NULLIF(TRIM(record_data->>'Status'), ''),
+                NULLIF(TRIM(record_data->>'STATUS'), '')
+            ) as status,
+            COALESCE(
+                NULLIF(TRIM(record_data->>'Owner'), ''),
+                NULLIF(TRIM(record_data->>'OWNER'), '')
+            ) as owner
+        FROM erp_records 
+        WHERE ${scopeCondition} 
+        ORDER BY plate_number ASC
+    `,
+  params,
+);
 
     res.json({
       success: true,

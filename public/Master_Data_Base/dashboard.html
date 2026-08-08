@@ -7,353 +7,67 @@
     <title>Haka ERP | Live Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
+        tailwind.config = { darkMode: 'class' }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-            overflow-x: hidden;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e2e8f0;
-            padding: 20px;
-            transition: background-color 0.3s, border-color 0.3s;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(4px);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            padding: 1rem;
-        }
-
-        .modal-overlay.show {
-            display: flex;
-            opacity: 1;
-        }
-
-        .modal-box {
-            background: white;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 600px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transform: scale(0.95);
-            transition: transform 0.3s ease, background-color 0.3s;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            max-height: 85vh;
-        }
-
-        .modal-overlay.show .modal-box {
-            transform: scale(1);
-        }
-
-        .clickable-text {
-            color: #0284c7;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            display: inline-block;
-            font-weight: 700;
-        }
-
-        .clickable-text:hover {
-            color: #0369a1;
-            text-decoration: underline;
-        }
-
-        /* Toast Styles */
-        #toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            border-radius: 8px;
-            padding: 12px 16px;
-            position: fixed;
-            z-index: 1000;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.3s, bottom 0.3s;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        #toast.show {
-            visibility: visible;
-            opacity: 1;
-            bottom: 50px;
-        }
-
-        #toast.success {
-            background-color: #10b981;
-        }
-
-        #toast.error {
-            background-color: #ef4444;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-
-        /* Sticky Header Fix for Tables */
-        table {
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-
-        th {
-            position: sticky;
-            top: 0;
-            z-index: 20;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Expandable Search Box */
-        .search-box {
-            width: 28px;
-            transition: width 0.3s ease-in-out;
-        }
-
-        .search-box:focus-within,
-        .search-box:hover {
-            width: 140px;
-        }
-
-        /* 🟢 Mobile Sidebar Menu Styles */
-        .mobile-menu-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(2px);
-            z-index: 40;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .mobile-menu-overlay.show {
-            display: block;
-            opacity: 1;
-        }
-
-        .mobile-sidebar {
-            position: fixed;
-            top: 0;
-            right: -280px;
-            /* Hidden off-screen by default */
-            width: 260px;
-            height: 100vh;
-            background: rgb(0, 0, 0);
-            z-index: 50;
-            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
-            transition: right 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-        }
-
-        .mobile-sidebar.show {
-            right: 0;
-        }
-
-        .mobile-menu-btn {
-            display: none;
-            /* Hidden on desktop */
-            background: transparent;
-            border: none;
-            color: #475569;
-            cursor: pointer;
-            padding: 5px;
-        }
-
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; overflow-x: hidden; transition: background-color 0.3s, color 0.3s; }
+        .stat-card { background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; padding: 20px; transition: background-color 0.3s, border-color 0.3s; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; padding: 1rem; }
+        .modal-overlay.show { display: flex; opacity: 1; }
+        .modal-box { background: white; border-radius: 12px; width: 100%; max-width: 600px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); transform: scale(0.95); transition: transform 0.3s ease, background-color 0.3s; display: flex; flex-direction: column; overflow: hidden; max-height: 85vh; }
+        .modal-overlay.show .modal-box { transform: scale(1); }
+        .clickable-text { color: #0284c7; cursor: pointer; transition: all 0.2s; position: relative; display: inline-block; font-weight: 700; }
+        .clickable-text:hover { color: #0369a1; text-decoration: underline; }
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 12px 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s, bottom 0.3s; font-size: 14px; font-weight: 500; }
+        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+        #toast.success { background-color: #10b981; }
+        #toast.error { background-color: #ef4444; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        table { border-collapse: separate; border-spacing: 0; }
+        th { position: sticky; top: 0; z-index: 20; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .search-box { width: 28px; transition: width 0.3s ease-in-out; }
+        .search-box:focus-within, .search-box:hover { width: 140px; }
+        .mobile-menu-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 40; opacity: 0; transition: opacity 0.3s ease; }
+        .mobile-menu-overlay.show { display: block; opacity: 1; }
+        .mobile-sidebar { position: fixed; top: 0; right: -280px; width: 260px; height: 100vh; background: rgb(0,0,0); z-index: 50; box-shadow: -5px 0 25px rgba(0,0,0,0.1); transition: right 0.3s ease; display: flex; flex-direction: column; padding: 20px; }
+        .mobile-sidebar.show { right: 0; }
+        .mobile-menu-btn { display: none; background: transparent; border: none; color: #475569; cursor: pointer; padding: 5px; }
         @media (max-width: 768px) {
-            .mobile-menu-btn {
-                display: block;
-            }
-
-            .desktop-nav {
-                display: none !important;
-            }
-
-            .search-box:focus-within,
-            .search-box:hover {
-                width: 110px;
-                /* slightly smaller expansion on mobile */
-            }
-
-            .stat-card {
-                padding: 15px;
-                /* less padding on mobile */
-            }
-
-            .stat-card .text-4xl {
-                font-size: 1.75rem;
-                /* smaller numbers */
-                line-height: 2rem;
-            }
+            .mobile-menu-btn { display: block; }
+            .desktop-nav { display: none !important; }
+            .search-box:focus-within, .search-box:hover { width: 110px; }
+            .stat-card { padding: 15px; }
+            .stat-card .text-4xl { font-size: 1.75rem; line-height: 2rem; }
         }
-
-        /* 🟢 Dark Mode Overrides */
-        .dark body {
-            background-color: #0f172a;
-            color: #f1f5f9;
-        }
-
-        .dark .stat-card {
-            background-color: #1e293b;
-            border-color: #334155;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-        }
-
-        .dark header {
-            background-color: #1e293b !important;
-            border-color: #334155 !important;
-        }
-
-        .dark .bg-white {
-            background-color: #1e293b !important;
-        }
-
-        .dark .bg-slate-50 {
-            background-color: #0f172a !important;
-        }
-
-        .dark .bg-slate-100 {
-            background-color: #334155 !important;
-        }
-
-        .dark .text-slate-900 {
-            color: #f8fafc !important;
-        }
-
-        .dark .text-slate-800 {
-            color: #f1f5f9 !important;
-        }
-
-        .dark .text-slate-700 {
-            color: #cbd5e1 !important;
-        }
-
-        .dark .text-slate-600 {
-            color: #94a3b8 !important;
-        }
-
-        .dark .text-slate-500 {
-            color: #64748b !important;
-        }
-
-        .dark .border-slate-200,
-        .dark .border-slate-300 {
-            border-color: #334155 !important;
-        }
-
-        .dark .modal-box {
-            background: #1e293b;
-        }
-
-        .dark th {
-            background-color: #0f172a !important;
-            color: #cbd5e1 !important;
-            border-color: #334155 !important;
-        }
-
-        .dark input,
-        .dark select {
-            background-color: #0f172a !important;
-            color: #f1f5f9 !important;
-            border-color: #334155 !important;
-        }
-
-        .dark .hover\:bg-slate-50:hover {
-            background-color: #334155 !important;
-        }
-
-        .dark .search-box {
-            background-color: #0f172a !important;
-            border-color: #334155 !important;
-        }
-
-        .dark ::-webkit-scrollbar-thumb {
-            background: #475569;
-        }
-
-        .dark .bg-blue-50 {
-            background-color: rgba(59, 130, 246, 0.2) !important;
-            color: #60a5fa !important;
-        }
-
-        .dark .bg-emerald-50 {
-            background-color: rgba(16, 185, 129, 0.2) !important;
-            color: #34d399 !important;
-            border-color: rgba(16, 185, 129, 0.3) !important;
-        }
-
-        .dark .bg-red-50 {
-            background-color: rgba(239, 68, 68, 0.2) !important;
-            color: #f87171 !important;
-            border-color: rgba(239, 68, 68, 0.3) !important;
-        }
-
-        .dark .bg-amber-50 {
-            background-color: rgba(245, 158, 11, 0.2) !important;
-            color: #fbbf24 !important;
-            border-color: rgba(245, 158, 11, 0.3) !important;
-        }
-
-        .dark .bg-emerald-100 {
-            background-color: rgba(16, 185, 129, 0.2) !important;
-            color: #34d399 !important;
-        }
-
-        .dark .bg-red-100 {
-            background-color: rgba(239, 68, 68, 0.2) !important;
-            color: #f87171 !important;
-        }
-
-        .dark .bg-amber-100 {
-            background-color: rgba(245, 158, 11, 0.2) !important;
-            color: #fbbf24 !important;
-        }
+        /* Dark Mode */
+        .dark body { background-color: #0f172a; color: #f1f5f9; }
+        .dark .stat-card { background-color: #1e293b; border-color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+        .dark header { background-color: #1e293b !important; border-color: #334155 !important; }
+        .dark .bg-white { background-color: #1e293b !important; }
+        .dark .bg-slate-50 { background-color: #0f172a !important; }
+        .dark .bg-slate-100 { background-color: #334155 !important; }
+        .dark .text-slate-900 { color: #f8fafc !important; }
+        .dark .text-slate-800 { color: #f1f5f9 !important; }
+        .dark .text-slate-700 { color: #cbd5e1 !important; }
+        .dark .text-slate-600 { color: #94a3b8 !important; }
+        .dark .text-slate-500 { color: #64748b !important; }
+        .dark .border-slate-200, .dark .border-slate-300 { border-color: #334155 !important; }
+        .dark .modal-box { background: #1e293b; }
+        .dark th { background-color: #0f172a !important; color: #cbd5e1 !important; border-color: #334155 !important; }
+        .dark input, .dark select { background-color: #0f172a !important; color: #f1f5f9 !important; border-color: #334155 !important; }
+        .dark .hover\:bg-slate-50:hover { background-color: #334155 !important; }
+        .dark .search-box { background-color: #0f172a !important; border-color: #334155 !important; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        .dark .bg-blue-50 { background-color: rgba(59,130,246,0.2) !important; color: #60a5fa !important; }
+        .dark .bg-emerald-50 { background-color: rgba(16,185,129,0.2) !important; color: #34d399 !important; border-color: rgba(16,185,129,0.3) !important; }
+        .dark .bg-red-50 { background-color: rgba(239,68,68,0.2) !important; color: #f87171 !important; border-color: rgba(239,68,68,0.3) !important; }
+        .dark .bg-amber-50 { background-color: rgba(245,158,11,0.2) !important; color: #fbbf24 !important; border-color: rgba(245,158,11,0.3) !important; }
+        .dark .bg-emerald-100 { background-color: rgba(16,185,129,0.2) !important; color: #34d399 !important; }
+        .dark .bg-red-100 { background-color: rgba(239,68,68,0.2) !important; color: #f87171 !important; }
+        .dark .bg-amber-100 { background-color: rgba(245,158,11,0.2) !important; color: #fbbf24 !important; }
     </style>
 </head>
 
@@ -362,8 +76,7 @@
     <div id="toast"></div>
 
     <div class="max-w-7xl mx-auto">
-        <header
-            class="flex flex-row justify-between items-center mb-6 bg-white p-4 md:p-5 rounded-xl shadow-sm border border-slate-200 gap-4">
+        <header class="flex flex-row justify-between items-center mb-6 bg-white p-4 md:p-5 rounded-xl shadow-sm border border-slate-200 gap-4">
             <div>
                 <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
                     <span class="p-1.5 bg-blue-50 text-blue-600 rounded-lg">📊</span>
@@ -373,294 +86,177 @@
             </div>
 
             <div class="hidden md:flex flex-wrap items-center gap-3 desktop-nav">
-
-                <button onclick="toggleTheme()"
-                    class="bg-slate-100 text-slate-600 px-3 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-200 transition flex items-center gap-2 shadow-sm"
-                    title="Toggle Theme" id="themeBtnDesktop">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
-                        </path>
-                    </svg>
+                <button onclick="toggleTheme()" class="bg-slate-100 text-slate-600 px-3 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-200 transition flex items-center gap-2 shadow-sm" title="Toggle Theme" id="themeBtnDesktop">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                 </button>
-
-                <a href="./log/index.html" id="logBtn"
-                    class="hidden bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-900 transition items-center gap-2 shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                        </path>
-                    </svg>
+                <a href="./log/index.html" id="logBtn" class="hidden bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-900 transition items-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Log
                 </a>
-
-                <a href="./admin/index.html" id="adminBtn"
-                    class="hidden bg-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-purple-700 transition items-center gap-2 shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
-                        </path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
+                <a href="./admin/index.html" id="adminBtn" class="hidden bg-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-purple-700 transition items-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     Admin Panel
                 </a>
-
-                <a href="./Database.html"
-                    class="bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                    </svg>
+                <a href="./Database.html" class="bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
                     Master Data
                 </a>
-                <button onclick="logout()"
-                    class="bg-slate-100 text-slate-600 hover:text-red-600 hover:bg-red-50 px-4 py-2.5 rounded-lg transition font-bold text-sm">Logout</button>
+                <button onclick="logout()" class="bg-slate-100 text-slate-600 hover:text-red-600 hover:bg-red-50 px-4 py-2.5 rounded-lg transition font-bold text-sm">Logout</button>
             </div>
 
             <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
-                    </path>
-                </svg>
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
         </header>
 
+        <!-- Mobile Sidebar -->
         <div class="mobile-menu-overlay" id="mobileOverlay" onclick="toggleMobileSidebar()"></div>
         <div class="mobile-sidebar" id="mobileSidebar">
-            <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-200">
-                <span class="font-bold text-slate-800 text-lg" style="color: wheat;">Menu</span>
-                <button onclick="toggleMobileSidebar()" class="text-slate-500 hover:text-red-500">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
-                        </path>
-                    </svg>
+            <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
+                <span class="font-bold text-lg" style="color: wheat;">Menu</span>
+                <button onclick="toggleMobileSidebar()" class="text-slate-400 hover:text-red-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-
             <div class="flex flex-col gap-3">
-
-                <button onclick="toggleTheme()"
-                    class="bg-slate-800 text-white px-4 py-3 rounded-lg text-sm font-bold flex items-center gap-3"
-                    id="themeBtnMobile">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
-                        </path>
-                    </svg>
+                <button onclick="toggleTheme()" class="bg-slate-800 text-white px-4 py-3 rounded-lg text-sm font-bold flex items-center gap-3" id="themeBtnMobile">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                     Toggle Theme
                 </button>
-
-                <a href="./Database.html"
-                    class="bg-blue-600 text-white px-4 py-3 rounded-lg text-sm font-bold flex items-center gap-3">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                    </svg>
+                <a href="./Database.html" class="bg-blue-600 text-white px-4 py-3 rounded-lg text-sm font-bold flex items-center gap-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
                     Master Data
                 </a>
-
-                <a href="./log/index.html" id="mobileLogBtn"
-                    class="hidden bg-slate-800 text-white px-4 py-3 rounded-lg text-sm font-bold items-center gap-3">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                        </path>
-                    </svg>
+                <a href="./log/index.html" id="mobileLogBtn" class="hidden bg-slate-800 text-white px-4 py-3 rounded-lg text-sm font-bold items-center gap-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     View Logs
                 </a>
-
-                <a href="./admin/index.html" id="mobileAdminBtn"
-                    class="hidden bg-purple-600 text-white px-4 py-3 rounded-lg text-sm font-bold items-center gap-3">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2。
-                        <path stroke-linecap=" round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
+                <a href="./admin/index.html" id="mobileAdminBtn" class="hidden bg-purple-600 text-white px-4 py-3 rounded-lg text-sm font-bold items-center gap-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     Admin Panel
                 </a>
-
-                <div class="mt-auto pt-4 border-t border-slate-200">
-                    <button onclick="logout()"
-                        class="w-full bg-red-50 text-red-600 px-4 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
-                            </path>
-                        </svg>
+                <div class="mt-auto pt-4 border-t border-slate-700">
+                    <button onclick="logout()" class="w-full bg-red-900 text-red-300 px-4 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                         Logout
                     </button>
                 </div>
             </div>
         </div>
 
+        <!-- Stats Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
             <div class="stat-card flex flex-col justify-between">
-                <div class="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest">Total Vehicles
-                </div>
+                <div class="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest">Total Vehicles</div>
                 <div class="text-3xl md:text-4xl font-extrabold text-slate-900 mt-2 md:mt-3" id="totalVehicles">0</div>
             </div>
             <div class="stat-card border-l-4 border-l-emerald-500 flex flex-col justify-between">
-                <div
-                    class="flex items-center text-[10px] md:text-xs font-bold text-emerald-600 uppercase tracking-widest">
+                <div class="flex items-center text-[10px] md:text-xs font-bold text-emerald-600 uppercase tracking-widest">
                     <span class="status-dot bg-emerald-500"></span> Running
                 </div>
-                <div class="text-3xl md:text-4xl font-extrabold text-slate-900 mt-2 md:mt-3" id="runningVehicles">0
-                </div>
+                <div class="text-3xl md:text-4xl font-extrabold text-slate-900 mt-2 md:mt-3" id="runningVehicles">0</div>
             </div>
             <div class="stat-card border-l-4 border-l-red-500 flex flex-col justify-between">
                 <div class="flex items-center text-[10px] md:text-xs font-bold text-red-600 uppercase tracking-widest">
                     <span class="status-dot bg-red-500"></span> Released
                 </div>
-                <div class="text-3xl md:text-4xl font-extrabold text-slate-900 mt-2 md:mt-3" id="releasedVehicles">0
-                </div>
+                <div class="text-3xl md:text-4xl font-extrabold text-slate-900 mt-2 md:mt-3" id="releasedVehicles">0</div>
             </div>
             <div class="stat-card border-l-4 border-l-amber-500 flex flex-col justify-between">
-                <div
-                    class="flex items-center text-[10px] md:text-xs font-bold text-amber-600 uppercase tracking-widest">
+                <div class="flex items-center text-[10px] md:text-xs font-bold text-amber-600 uppercase tracking-widest">
                     <span class="status-dot bg-amber-500"></span> Replaced
                 </div>
-                <div class="text-3xl md:text-4xl font-extrabold text-slate-900 mt-2 md:mt-3" id="replacedVehicles">0
-                </div>
+                <div class="text-3xl md:text-4xl font-extrabold text-slate-900 mt-2 md:mt-3" id="replacedVehicles">0</div>
             </div>
         </div>
 
+        <!-- Main Cards -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
+            <!-- Site Fleet -->
             <div class="stat-card overflow-hidden p-0 flex flex-col h-[450px]">
-                <div
-                    class="px-5 py-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0 z-30 relative">
+                <div class="px-5 py-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0 z-30 relative">
                     <h2 class="text-base font-bold text-slate-800">Site Fleet</h2>
-                    <span
-                        class="text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-1 rounded border border-slate-200"
-                        id="lastUpdatedSite">...</span>
+                    <span class="text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-1 rounded border border-slate-200" id="lastUpdatedSite">...</span>
                 </div>
                 <div class="overflow-y-auto grow">
                     <table class="w-full text-left">
                         <thead class="text-[10px] uppercase font-extrabold tracking-wider bg-white">
                             <tr>
-                                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-600">
-                                    Site</th>
-                                <th
-                                    class="px-2 md:px-3 py-3 text-center border-b-2 border-r border-slate-300 bg-emerald-100 text-emerald-800">
-                                    Run</th>
-                                <th
-                                    class="px-2 md:px-3 py-3 text-center border-b-2 border-r border-slate-300 bg-red-100 text-red-800">
-                                    Rel</th>
-                                <th
-                                    class="px-2 md:px-3 py-3 text-center border-b-2 border-slate-300 bg-amber-100 text-amber-800">
-                                    Rep</th>
+                                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-600">Site</th>
+                                <th class="px-2 md:px-3 py-3 text-center border-b-2 border-r border-slate-300 bg-emerald-100 text-emerald-800">Run</th>
+                                <th class="px-2 md:px-3 py-3 text-center border-b-2 border-r border-slate-300 bg-red-100 text-red-800">Rel</th>
+                                <th class="px-2 md:px-3 py-3 text-center border-b-2 border-slate-300 bg-amber-100 text-amber-800">Rep</th>
                             </tr>
                         </thead>
-                        <tbody id="siteTableBody" class="text-sm bg-white">
-                        </tbody>
+                        <tbody id="siteTableBody" class="text-sm bg-white"></tbody>
                     </table>
                 </div>
             </div>
 
+            <!-- Company Fleet -->
             <div class="stat-card overflow-hidden p-0 flex flex-col h-[450px]">
                 <div class="px-5 py-4 border-b border-slate-200 bg-white shrink-0 z-30 relative">
                     <h2 class="text-base font-bold text-slate-800">Company Fleet</h2>
                 </div>
-                <div class="p-5 space-y-4 overflow-y-auto grow" id="companyList">
-                </div>
+                <div class="p-5 space-y-4 overflow-y-auto grow" id="companyList"></div>
             </div>
 
+            <!-- Owners Fleet -->
             <div class="stat-card overflow-hidden p-0 flex flex-col h-[450px]">
-                <div
-                    class="px-5 py-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0 z-30 relative gap-2">
+                <div class="px-5 py-4 border-b border-slate-200 bg-white flex justify-between items-center shrink-0 z-30 relative gap-2">
                     <h2 class="text-base font-bold text-slate-800 whitespace-nowrap">Owners Fleet</h2>
                     <div class="flex items-center gap-1.5 justify-end w-full">
-                        <div class="search-box flex items-center bg-slate-50 border border-slate-200 rounded-full px-1.5 py-1 overflow-hidden cursor-pointer"
-                            onclick="document.getElementById('ownerSearch').focus()">
-                            <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                            <input type="text" id="ownerSearch" placeholder="Search..." onkeyup="renderOwnerList()"
-                                class="bg-transparent border-none outline-none text-[10px] w-full ml-1 text-slate-600 placeholder-slate-400">
+                        <div class="search-box flex items-center bg-slate-50 border border-slate-200 rounded-full px-1.5 py-1 overflow-hidden cursor-pointer" onclick="document.getElementById('ownerSearch').focus()">
+                            <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <input type="text" id="ownerSearch" placeholder="Search..." onkeyup="renderOwnerList()" class="bg-transparent border-none outline-none text-[10px] w-full ml-1 text-slate-600 placeholder-slate-400">
                         </div>
-                        <select id="ownerFilter" onchange="renderOwnerList()"
-                            class="text-[10px] text-slate-600 font-bold bg-slate-50 border border-slate-200 rounded-full px-1.5 py-1 outline-none cursor-pointer">
+                        <select id="ownerFilter" onchange="renderOwnerList()" class="text-[10px] text-slate-600 font-bold bg-slate-50 border border-slate-200 rounded-full px-1.5 py-1 outline-none cursor-pointer">
                             <option value="All">All</option>
                             <option value="Running" selected>Running</option>
                         </select>
-                        <span
-                            class="hidden md:inline-block text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-1 rounded-full border border-slate-200 whitespace-nowrap shadow-sm"
-                            id="totalOwnersCount">0 Owners</span>
+                        <span class="hidden md:inline-block text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-1 rounded-full border border-slate-200 whitespace-nowrap shadow-sm" id="totalOwnersCount">0 Owners</span>
                     </div>
                 </div>
-                <div class="p-4 md:p-5 space-y-4 overflow-y-auto grow" id="ownerList">
-                </div>
+                <div class="p-4 md:p-5 space-y-4 overflow-y-auto grow" id="ownerList"></div>
             </div>
-
         </div>
     </div>
 
+    <!-- Details Modal -->
     <div id="detailsModal" class="modal-overlay" onclick="closeModal(event)">
         <div class="modal-box" onclick="event.stopPropagation()">
-
-            <div
-                class="px-4 md:px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-start justify-between shrink-0 z-30 relative">
+            <div class="px-4 md:px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-start justify-between shrink-0 z-30 relative">
                 <div class="w-full pr-2 md:pr-4 flex flex-col gap-1.5">
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="modalType">Breakdown
-                    </h3>
-
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="modalType">Breakdown</h3>
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 w-full">
-                        <h2 class="text-lg md:text-xl font-extrabold text-blue-600 leading-tight flex items-center gap-2"
-                            id="modalTitle">Name</h2>
-
+                        <h2 class="text-lg md:text-xl font-extrabold text-blue-600 leading-tight flex items-center gap-2" id="modalTitle">Name</h2>
                         <div id="modalControls" class="hidden items-center gap-2">
-                            <div class="search-box flex items-center bg-white border border-slate-300 rounded-full px-1.5 py-1 overflow-hidden cursor-pointer shadow-sm"
-                                onclick="document.getElementById('modalSearch').focus()">
-                                <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                                <input type="text" id="modalSearch" placeholder="Search..." onkeyup="renderModalList()"
-                                    class="bg-transparent border-none outline-none text-[10px] w-full ml-1 text-slate-600 placeholder-slate-400">
+                            <div class="search-box flex items-center bg-white border border-slate-300 rounded-full px-1.5 py-1 overflow-hidden cursor-pointer shadow-sm" onclick="document.getElementById('modalSearch').focus()">
+                                <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                <input type="text" id="modalSearch" placeholder="Search..." onkeyup="renderModalList()" class="bg-transparent border-none outline-none text-[10px] w-full ml-1 text-slate-600 placeholder-slate-400">
                             </div>
-                            <select id="modalFilter" onchange="renderModalList()"
-                                class="text-[10px] text-slate-600 font-bold bg-white border border-slate-300 rounded-full px-1.5 py-1 outline-none cursor-pointer shadow-sm">
+                            <select id="modalFilter" onchange="renderModalList()" class="text-[10px] text-slate-600 font-bold bg-white border border-slate-300 rounded-full px-1.5 py-1 outline-none cursor-pointer shadow-sm">
                                 <option value="All">All</option>
                                 <option value="Running">Running</option>
                             </select>
                         </div>
                     </div>
                 </div>
-
-                <button onclick="closeModal(true)"
-                    class="p-1.5 bg-white border border-slate-300 hover:bg-red-50 hover:text-red-500 rounded transition text-slate-500 shadow-sm shrink-0">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
-                        </path>
-                    </svg>
+                <button onclick="closeModal(true)" class="p-1.5 bg-white border border-slate-300 hover:bg-red-50 hover:text-red-500 rounded transition text-slate-500 shadow-sm shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-
             <div class="p-0 overflow-y-auto bg-white flex-grow">
                 <table class="w-full text-left border-collapse">
-                    <thead class="text-[10px] md:text-[11px] uppercase font-bold tracking-widest bg-white"
-                        id="modalThead">
-                    </thead>
-                    <tbody id="modalListBody" class="text-[13px] md:text-sm bg-white">
-                    </tbody>
+                    <thead class="text-[10px] md:text-[11px] uppercase font-bold tracking-widest bg-white" id="modalThead"></thead>
+                    <tbody id="modalListBody" class="text-[13px] md:text-sm bg-white"></tbody>
                 </table>
             </div>
-
-            <div
-                class="px-4 md:px-5 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center shrink-0 z-30 relative">
+            <div class="px-4 md:px-5 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center shrink-0 z-30 relative">
                 <div class="flex items-center gap-2">
-                    <button onclick="copyModalData()" id="copyBtn"
-                        class="px-3 py-2 bg-white border border-slate-300 hover:bg-blue-50 text-slate-600 hover:text-blue-600 font-bold text-xs uppercase tracking-wider rounded transition flex items-center gap-2 shadow-sm"
-                        title="Copy Data">
-                        <svg class="w-4 h-4 hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
-                            </path>
-                        </svg>
+                    <button onclick="copyModalData()" id="copyBtn" class="px-3 py-2 bg-white border border-slate-300 hover:bg-blue-50 text-slate-600 hover:text-blue-600 font-bold text-xs uppercase tracking-wider rounded transition flex items-center gap-2 shadow-sm" title="Copy Data">
+                        <svg class="w-4 h-4 hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                         Copy
                     </button>
                 </div>
@@ -669,422 +265,595 @@
                     <span class="text-2xl md:text-3xl font-black text-emerald-600" id="modalTotalCount">0</span>
                 </div>
             </div>
-
         </div>
     </div>
 
     <script>
-        // 🟢 Dark Mode Logic Starts
-        function initTheme() {
-            const savedTheme = localStorage.getItem('erpTheme');
-            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-                document.documentElement.classList.add('dark');
-                updateThemeIcons('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-                updateThemeIcons('light');
-            }
+    // ==========================================
+    // 🟢 THEME
+    // ==========================================
+    function initTheme() {
+        const savedTheme = localStorage.getItem('erpTheme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+            document.documentElement.classList.add('dark');
+            updateThemeIcons('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            updateThemeIcons('light');
         }
+    }
+    function toggleTheme() {
+        const html = document.documentElement;
+        const isDark = html.classList.contains('dark');
+        if (isDark) { html.classList.remove('dark'); localStorage.setItem('erpTheme','light'); updateThemeIcons('light'); }
+        else { html.classList.add('dark'); localStorage.setItem('erpTheme','dark'); updateThemeIcons('dark'); }
+    }
+    function updateThemeIcons(theme) {
+        const moonIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>`;
+        const sunIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>`;
+        const db = document.getElementById('themeBtnDesktop');
+        const mb = document.getElementById('themeBtnMobile');
+        if (db) db.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
+        if (mb) mb.innerHTML = theme === 'dark' ? `${sunIcon} Light Mode` : `${moonIcon} Dark Mode`;
+    }
+    initTheme();
 
-        function toggleTheme() {
-            const html = document.documentElement;
-            const isDark = html.classList.contains('dark');
+    // ==========================================
+    // 🟢 AUTH CHECK
+    // ==========================================
+    const token = localStorage.getItem('erpToken');
+    const currentUser = JSON.parse(localStorage.getItem('erpUser'));
+    if (!token || !currentUser) window.location.href = '/';
 
-            if (isDark) {
-                html.classList.remove('dark');
-                localStorage.setItem('erpTheme', 'light');
-                updateThemeIcons('light');
-            } else {
-                html.classList.add('dark');
-                localStorage.setItem('erpTheme', 'dark');
-                updateThemeIcons('dark');
-            }
-        }
+    if (currentUser && currentUser.role === 'Super Admin') {
+        ['logBtn','adminBtn','mobileLogBtn','mobileAdminBtn'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.classList.remove('hidden'); el.classList.add('flex'); }
+        });
+    }
 
-        function updateThemeIcons(theme) {
-            const moonIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>`;
-            const sunIcon = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>`;
+    // ==========================================
+    // 🟢 MOBILE SIDEBAR
+    // ==========================================
+    function toggleMobileSidebar() {
+        document.getElementById('mobileSidebar').classList.toggle('show');
+        document.getElementById('mobileOverlay').classList.toggle('show');
+    }
 
-            const desktopBtn = document.getElementById('themeBtnDesktop');
-            const mobileBtn = document.getElementById('themeBtnMobile');
+    // ==========================================
+    // 🟢 GLOBAL STATE
+    // ==========================================
+    let globalVehicleDetails = [];   // Normalized vehicle list
+    let globalSiteCompanyData = [];  // Aggregated site+company combos
+    let currentCopyData = [];
+    let modalState = { type: '', name: '', data: [], site: '', company: '' };
 
-            if (desktopBtn) desktopBtn.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
-            if (mobileBtn) mobileBtn.innerHTML = theme === 'dark' ? `${sunIcon} Light Mode` : `${moonIcon} Dark Mode`;
-        }
-
-        // Initialize theme on load
-        initTheme();
-        // 🟢 Dark Mode Logic Ends
-
-        const token = localStorage.getItem('erpToken');
-        const currentUser = JSON.parse(localStorage.getItem('erpUser'));
-        if (!token || !currentUser) window.location.href = '/';
-
-        // Reveal Admin and Log buttons if user is Super Admin
-        if (currentUser.role === 'Super Admin') {
-            const logBtn = document.getElementById('logBtn');
-            const adminBtn = document.getElementById('adminBtn');
-            const mobileLogBtn = document.getElementById('mobileLogBtn');
-            const mobileAdminBtn = document.getElementById('mobileAdminBtn');
-
-            if (logBtn) { logBtn.classList.remove('hidden'); logBtn.classList.add('flex'); }
-            if (adminBtn) { adminBtn.classList.remove('hidden'); adminBtn.classList.add('flex'); }
-            if (mobileLogBtn) { mobileLogBtn.classList.remove('hidden'); mobileLogBtn.classList.add('flex'); }
-            if (mobileAdminBtn) { mobileAdminBtn.classList.remove('hidden'); mobileAdminBtn.classList.add('flex'); }
-        }
-
-        // 🟢 Handle Mobile Sidebar Toggle
-        function toggleMobileSidebar() {
-            const sidebar = document.getElementById('mobileSidebar');
-            const overlay = document.getElementById('mobileOverlay');
-
-            if (sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-                overlay.classList.remove('show');
-            } else {
-                sidebar.classList.add('show');
-                overlay.classList.add('show');
-            }
-        }
-
-        let globalSiteCompanyData = [];
-        let globalVehicleDetails = [];
-        let currentCopyData = [];
-
-        let modalState = {
-            type: '',
-            name: '',
-            data: [],
-            site: '',
-            company: ''
+    // ==========================================
+    // 🟢 CORE FIX: ROBUST VALUE EXTRACTOR
+    // Server sends vehicleDetails with these TOP-LEVEL keys:
+    //   plate_number, site, company, status, owner
+    // record_data is NOT included in vehicleDetails query.
+    // Old code was trying to search inside record_data which was undefined.
+    // ==========================================
+    function normalizeVehicle(v) {
+        // Helper: safely get a string value, return '' if empty/null/undefined
+        const safe = (val) => {
+            if (val === undefined || val === null) return '';
+            const s = String(val).trim();
+            return (s === '' || s === '-' || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined') ? '' : s;
         };
 
-        function showToast(msg, type = 'success') {
-            const t = document.getElementById("toast");
-            t.innerText = msg;
-            t.className = type === 'success' ? 'success' : 'error';
-            t.classList.add("show");
-            setTimeout(() => { t.classList.remove("show"); t.className = ''; }, 3000);
+        // 🟢 FIX 1: Read top-level DB columns DIRECTLY (plate_number, site, etc.)
+        // These are what the server sends for vehicleDetails.
+        let plate   = safe(v.plate_number);
+        let site    = safe(v.site);
+        let company = safe(v.company);
+        let status  = safe(v.status);
+        let owner   = safe(v.owner);
+
+        // 🟢 FIX 2: If top-level is empty, fallback to record_data (for edge cases)
+        // record_data may or may not be present depending on which API called.
+        const rec = (v.record_data && typeof v.record_data === 'object') ? v.record_data : {};
+
+        if (!plate) {
+            // Search record_data for plate — strip spaces AND underscores for comparison
+            const plateKey = Object.keys(rec).find(k =>
+                k.replace(/[\s_]+/g,'').toUpperCase() === 'PLATENUMBER' ||
+                k.replace(/[\s_]+/g,'').toUpperCase() === 'PLATENO'
+            );
+            if (plateKey) plate = safe(rec[plateKey]);
         }
 
-        async function loadSummary() {
-            try {
-                const res = await fetch('/api/dashboard-summary', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (!data.success) throw new Error(data.message);
-
-                globalSiteCompanyData = data.siteCompany;
-                globalVehicleDetails = data.vehicleDetails || [];
-
-                document.getElementById('totalVehicles').innerText = data.overall.total || 0;
-                document.getElementById('runningVehicles').innerText = data.overall.running || 0;
-                document.getElementById('releasedVehicles').innerText = data.overall.released || 0;
-                document.getElementById('replacedVehicles').innerText = data.overall.replaced || 0;
-
-                let siteHtml = '';
-                data.sites.forEach(s => {
-                    siteHtml += `
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-4 py-3 border-b border-r border-slate-300">
-                                <span class="clickable-text truncate block max-w-[80px] md:max-w-full" onclick="showModal('SITE', '${s.site.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" title="${s.site}">${s.site}</span>
-                            </td>
-                            <td class="px-2 md:px-3 py-3 border-b border-r border-slate-300 text-center font-mono font-extrabold text-emerald-700 bg-emerald-50/20">${s.running}</td>
-                            <td class="px-2 md:px-3 py-3 border-b border-r border-slate-300 text-center font-mono font-bold text-red-500">${s.released}</td>
-                            <td class="px-2 md:px-3 py-3 border-b border-slate-300 text-center font-mono font-bold text-amber-500">${s.replaced}</td>
-                        </tr>
-                    `;
-                });
-                document.getElementById('siteTableBody').innerHTML = siteHtml;
-
-                let time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                document.getElementById('lastUpdatedSite').innerText = time;
-
-                let companyHtml = '';
-                const maxCompCount = data.companies.length > 0 ? Math.max(...data.companies.map(c => c.count)) : 1;
-                data.companies.forEach(c => {
-                    const percentage = (c.count / maxCompCount) * 100;
-                    companyHtml += `
-                        <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-200 last:border-0 last:pb-0">
-                            <div class="flex-1 min-w-0">
-                                <div class="clickable-text text-sm truncate block" onclick="showModal('COMPANY', '${c.company.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" title="${c.company}">${c.company}</div>
-                                <div class="w-full bg-slate-200 rounded-full h-2 mt-2 overflow-hidden">
-                                    <div class="bg-blue-500 h-2 rounded-full" style="width: ${percentage}%"></div>
-                                </div>
-                            </div>
-                            <div class="text-base font-black text-slate-800 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-300 shrink-0">${c.count}</div>
-                        </div>
-                    `;
-                });
-                document.getElementById('companyList').innerHTML = companyHtml;
-
-                renderOwnerList();
-
-            } catch (error) {
-                console.error(error);
-                const errMsg = error.message ? error.message.toLowerCase() : "";
-                if (errMsg.includes("invalid token") || errMsg.includes("invalid session") || errMsg.includes("no token") || errMsg.includes("access denied")) {
-                    logout();
-                } else {
-                    showToast(error.message, "error");
-                }
-            }
+        if (!site) {
+            const siteKey = Object.keys(rec).find(k => k.trim().toUpperCase() === 'SITE');
+            if (siteKey) site = safe(rec[siteKey]);
         }
 
-        function renderOwnerList() {
-            const filter = document.getElementById('ownerFilter').value;
-            const search = document.getElementById('ownerSearch').value.toLowerCase();
+        if (!company) {
+            const compKey = Object.keys(rec).find(k => k.trim().toUpperCase() === 'COMPANY');
+            if (compKey) company = safe(rec[compKey]);
+        }
 
-            let filteredDetails = globalVehicleDetails.filter(d => d.owner && d.owner.trim() !== '');
+        if (!status) {
+            const statKey = Object.keys(rec).find(k => k.trim().toUpperCase() === 'STATUS');
+            if (statKey) status = safe(rec[statKey]);
+        }
 
-            if (filter === 'Running') {
-                filteredDetails = filteredDetails.filter(d => d.status && d.status.toLowerCase() === 'running');
-            }
+        if (!owner) {
+            const ownerKey = Object.keys(rec).find(k => k.trim().toUpperCase() === 'OWNER');
+            if (ownerKey) owner = safe(rec[ownerKey]);
+        }
 
-            let ownerCounts = {};
-            filteredDetails.forEach(d => {
-                if (!ownerCounts[d.owner]) ownerCounts[d.owner] = 0;
-                ownerCounts[d.owner]++;
+        return {
+            ...v,
+            plate_number : plate   || '(No Plate)',
+            site         : site    || '(No Site)',
+            company      : company || '(No Company)',
+            status       : status  || '',
+            owner        : owner   || ''
+        };
+    }
+
+    // ==========================================
+    // 🟢 TOAST
+    // ==========================================
+    function showToast(msg, type = 'success') {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.className = type === 'success' ? 'success' : 'error';
+        t.classList.add('show');
+        setTimeout(() => { t.classList.remove('show'); t.className = ''; }, 3000);
+    }
+
+    // ==========================================
+    // 🟢 STATUS COLOR HELPER
+    // ==========================================
+    function getStatusColor(statusText) {
+        if (!statusText || statusText === '-') return 'text-slate-500';
+        const s = statusText.toLowerCase();
+        if (s === 'running')    return 'text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100';
+        if (s === 'released')   return 'text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100';
+        if (s === 'replaced')   return 'text-amber-500 bg-amber-50 px-2 py-1 rounded border border-amber-100';
+        if (s === 'mobilizing') return 'text-blue-500 bg-blue-50 px-2 py-1 rounded border border-blue-100';
+        return 'text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-200';
+    }
+
+    // ==========================================
+    // 🟢 MAIN DATA LOAD
+    // ==========================================
+    async function loadSummary() {
+        try {
+            const res = await fetch('/api/dashboard-summary', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+
+            // ── STEP 1: Normalize all vehicle records ──────────────────────────
+            globalVehicleDetails = (data.vehicleDetails || []).map(normalizeVehicle);
+
+            // ── STEP 2: Overview counts ────────────────────────────────────────
+            // Use server-provided overall if available, else calculate from normalized data
+            const overall = data.overall || {};
+            document.getElementById('totalVehicles').innerText =
+                overall.total || globalVehicleDetails.length || 0;
+            document.getElementById('runningVehicles').innerText =
+                overall.running || globalVehicleDetails.filter(v => v.status.toLowerCase() === 'running').length || 0;
+            document.getElementById('releasedVehicles').innerText =
+                overall.released || globalVehicleDetails.filter(v => v.status.toLowerCase() === 'released').length || 0;
+            document.getElementById('replacedVehicles').innerText =
+                overall.replaced || globalVehicleDetails.filter(v => v.status.toLowerCase() === 'replaced').length || 0;
+
+            // ── STEP 3: Build Site table from normalized data ──────────────────
+            const siteMap = {};
+            globalVehicleDetails.forEach(v => {
+                const s = v.site;
+                if (!siteMap[s]) siteMap[s] = { site: s, running: 0, released: 0, replaced: 0, mobilizing: 0 };
+                const st = v.status.toLowerCase();
+                if (st === 'running')    siteMap[s].running++;
+                else if (st === 'released')   siteMap[s].released++;
+                else if (st === 'replaced')   siteMap[s].replaced++;
+                else if (st === 'mobilizing') siteMap[s].mobilizing++;
             });
 
-            let ownerArray = Object.keys(ownerCounts).map(k => ({ owner: k, count: ownerCounts[k] }));
-            ownerArray.sort((a, b) => a.owner.localeCompare(b.owner, undefined, { sensitivity: 'base' }));
+            const sitesList = Object.values(siteMap).sort((a, b) => b.running - a.running);
 
-            if (search) {
-                ownerArray = ownerArray.filter(o => o.owner.toLowerCase().includes(search));
+            let siteHtml = '';
+            sitesList.forEach(s => {
+                const safeSite = s.site.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+                siteHtml += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-4 py-3 border-b border-r border-slate-300">
+                            <span class="clickable-text truncate block max-w-[80px] md:max-w-full"
+                                  onclick="showModal('SITE','${safeSite}')" title="${s.site}">${s.site}</span>
+                        </td>
+                        <td class="px-2 md:px-3 py-3 border-b border-r border-slate-300 text-center font-mono font-extrabold text-emerald-700 bg-emerald-50/20">${s.running || 0}</td>
+                        <td class="px-2 md:px-3 py-3 border-b border-r border-slate-300 text-center font-mono font-bold text-red-500">${s.released || 0}</td>
+                        <td class="px-2 md:px-3 py-3 border-b border-slate-300 text-center font-mono font-bold text-amber-500">${s.replaced || 0}</td>
+                    </tr>`;
+            });
+            if (!sitesList.length) {
+                siteHtml = `<tr><td colspan="4" class="px-4 py-8 text-center text-slate-400 font-medium">No site data available.</td></tr>`;
             }
+            document.getElementById('siteTableBody').innerHTML = siteHtml;
+            document.getElementById('lastUpdatedSite').innerText =
+                new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            document.getElementById('totalOwnersCount').innerText = `${ownerArray.length} Owners`;
+            // ── STEP 4: Build Company list ─────────────────────────────────────
+            const compMap = {};
+            globalVehicleDetails.forEach(v => {
+                const c = v.company;
+                if (!compMap[c]) compMap[c] = 0;
+                compMap[c]++;
+            });
+            const compList = Object.entries(compMap)
+                .map(([company, count]) => ({ company, count }))
+                .sort((a, b) => b.count - a.count);
 
-            let ownerHtml = '';
-            const maxOwnerCount = ownerArray.length > 0 ? Math.max(...ownerArray.map(o => o.count)) : 1;
-            ownerArray.forEach(o => {
-                const percentage = (o.count / maxOwnerCount) * 100;
-                ownerHtml += `
+            const maxComp = compList.length ? Math.max(...compList.map(c => c.count)) : 1;
+            let companyHtml = '';
+            compList.forEach(c => {
+                const safeComp = c.company.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+                const pct = (c.count / maxComp) * 100;
+                companyHtml += `
                     <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-200 last:border-0 last:pb-0">
-                        <div class="flex-1 truncate pr-2">
-                            <div class="clickable-text text-sm truncate w-full block" onclick="showModal('OWNER', '${o.owner.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" title="${o.owner}">${o.owner}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="clickable-text text-sm truncate block"
+                                 onclick="showModal('COMPANY','${safeComp}')" title="${c.company}">${c.company}</div>
                             <div class="w-full bg-slate-200 rounded-full h-2 mt-2 overflow-hidden">
-                                <div class="bg-emerald-500 h-2 rounded-full" style="width: ${percentage}%"></div>
+                                <div class="bg-blue-500 h-2 rounded-full" style="width:${pct}%"></div>
                             </div>
                         </div>
-                        <div class="text-base font-black text-slate-800 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-300 shadow-sm shrink-0">${o.count}</div>
+                        <div class="text-base font-black text-slate-800 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-300 shrink-0">${c.count}</div>
+                    </div>`;
+            });
+            document.getElementById('companyList').innerHTML = companyHtml || `<div class="text-center text-slate-400 text-sm mt-8">No company data.</div>`;
+
+            // ── STEP 5: Build Site+Company aggregation for modal drill-downs ───
+            const scMap = {};
+            globalVehicleDetails.forEach(v => {
+                const key = v.site + '|||' + v.company;
+                if (!scMap[key]) scMap[key] = { site: v.site, company: v.company, count: 0 };
+                scMap[key].count++;
+            });
+            globalSiteCompanyData = Object.values(scMap);
+
+            // ── STEP 6: Render owner list ──────────────────────────────────────
+            renderOwnerList();
+
+        } catch (error) {
+            console.error('Dashboard load error:', error);
+            const msg = (error.message || '').toLowerCase();
+            if (msg.includes('invalid token') || msg.includes('invalid session') ||
+                msg.includes('no token') || msg.includes('access denied')) {
+                logout();
+            } else {
+                showToast(error.message || 'Failed to load data', 'error');
+            }
+        }
+    }
+
+    // ==========================================
+    // 🟢 OWNER LIST RENDERER
+    // ==========================================
+    function renderOwnerList() {
+        const filter = document.getElementById('ownerFilter').value;
+        const search = document.getElementById('ownerSearch').value.toLowerCase();
+
+        let filtered = globalVehicleDetails.filter(d => d.owner && d.owner.trim() !== '' && d.owner !== '(No Owner)');
+        if (filter === 'Running') filtered = filtered.filter(d => d.status.toLowerCase() === 'running');
+
+        // Count per owner
+        const ownerMap = {};
+        filtered.forEach(d => {
+            if (!ownerMap[d.owner]) ownerMap[d.owner] = 0;
+            ownerMap[d.owner]++;
+        });
+
+        let ownerArr = Object.entries(ownerMap)
+            .map(([owner, count]) => ({ owner, count }))
+            .sort((a, b) => a.owner.localeCompare(b.owner, undefined, { sensitivity: 'base' }));
+
+        if (search) ownerArr = ownerArr.filter(o => o.owner.toLowerCase().includes(search));
+
+        document.getElementById('totalOwnersCount').innerText = `${ownerArr.length} Owners`;
+
+        const maxOwner = ownerArr.length ? Math.max(...ownerArr.map(o => o.count)) : 1;
+        let html = '';
+        ownerArr.forEach(o => {
+            const pct = (o.count / maxOwner) * 100;
+            const safe = o.owner.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+            html += `
+                <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-200 last:border-0 last:pb-0">
+                    <div class="flex-1 truncate pr-2">
+                        <div class="clickable-text text-sm truncate w-full block"
+                             onclick="showModal('OWNER','${safe}')" title="${o.owner}">${o.owner}</div>
+                        <div class="w-full bg-slate-200 rounded-full h-2 mt-2 overflow-hidden">
+                            <div class="bg-emerald-500 h-2 rounded-full" style="width:${pct}%"></div>
+                        </div>
                     </div>
-                `;
+                    <div class="text-base font-black text-slate-800 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-300 shadow-sm shrink-0">${o.count}</div>
+                </div>`;
+        });
+        document.getElementById('ownerList').innerHTML = html ||
+            `<div class="text-center text-slate-400 text-sm mt-8 font-medium">No owners found.</div>`;
+    }
+
+    // ==========================================
+    // 🟢 EDIT OWNER NAME (Super Admin)
+    // ==========================================
+    async function editOwnerName(oldName) {
+        const newName = prompt(`Edit Owner Name:\n(Updates all vehicles of "${oldName}")`, oldName);
+        if (!newName || newName.trim() === '' || newName === oldName) return;
+        try {
+            const res = await fetch('/api/admin/update-owner-name', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ oldName, newName: newName.trim() })
+            });
+            const data = await res.json();
+            if (data.success) { showToast(data.message, 'success'); closeModal(true); loadSummary(); }
+            else showToast(data.message, 'error');
+        } catch (e) { showToast('Error updating owner name.', 'error'); }
+    }
+
+    // ==========================================
+    // 🟢 MODAL: SHOW
+    // ==========================================
+    function showModal(type, name) {
+        modalState.type = type;
+        modalState.name = name;
+
+        document.getElementById('modalSearch').value = '';
+        document.getElementById('modalFilter').value = 'All';
+
+        if (type === 'SITE') {
+            // Show companies within this site
+            modalState.data = globalSiteCompanyData
+                .filter(d => d.site === name)
+                .sort((a, b) => a.company.localeCompare(b.company));
+            document.getElementById('modalType').innerText = 'Site Breakdown';
+            document.getElementById('modalTitle').innerHTML = name;
+            document.getElementById('modalControls').classList.add('hidden');
+
+        } else if (type === 'COMPANY') {
+            // Show sites within this company
+            modalState.data = globalSiteCompanyData
+                .filter(d => d.company === name)
+                .sort((a, b) => a.site.localeCompare(b.site));
+            document.getElementById('modalType').innerText = 'Company Breakdown';
+            document.getElementById('modalTitle').innerHTML = name;
+            document.getElementById('modalControls').classList.add('hidden');
+
+        } else if (type === 'OWNER') {
+            // Show all vehicles of this owner
+            modalState.data = globalVehicleDetails
+                .filter(d => d.owner === name)
+                .sort((a, b) => a.plate_number.localeCompare(b.plate_number));
+            document.getElementById('modalType').innerText = 'Owner Vehicles';
+            let titleHtml = name;
+            if (currentUser && currentUser.role === 'Super Admin') {
+                const safe = name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+                titleHtml += ` <button onclick="editOwnerName('${safe}')"
+                    class="text-slate-400 hover:text-blue-600 transition ml-2 align-middle bg-white border border-slate-300 rounded p-1.5 shadow-sm" title="Edit Owner Name">
+                    <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>`;
+            }
+            document.getElementById('modalTitle').innerHTML = titleHtml;
+            document.getElementById('modalControls').classList.remove('hidden');
+            document.getElementById('modalControls').classList.add('flex');
+
+        } else if (type === 'SITE_COMPANY') {
+            // Drill: Site → Company → vehicles
+            const [siteName, compName] = name.split('|||');
+            modalState.site = siteName;
+            modalState.company = compName;
+            modalState.data = globalVehicleDetails
+                .filter(d => d.site === siteName && d.company === compName)
+                .sort((a, b) => (a.owner || '').localeCompare(b.owner || ''));
+            const safeSite = siteName.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+            document.getElementById('modalType').innerHTML =
+                `<span class="clickable-text" onclick="showModal('SITE','${safeSite}')">← Back to ${siteName}</span>`;
+            document.getElementById('modalTitle').innerHTML = compName;
+            document.getElementById('modalControls').classList.remove('hidden');
+            document.getElementById('modalControls').classList.add('flex');
+
+        } else if (type === 'COMPANY_SITE') {
+            // Drill: Company → Site → vehicles
+            const [compName, siteName] = name.split('|||');
+            modalState.site = siteName;
+            modalState.company = compName;
+            modalState.data = globalVehicleDetails
+                .filter(d => d.company === compName && d.site === siteName)
+                .sort((a, b) => (a.owner || '').localeCompare(b.owner || ''));
+            const safeComp = compName.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+            document.getElementById('modalType').innerHTML =
+                `<span class="clickable-text" onclick="showModal('COMPANY','${safeComp}')">← Back to ${compName}</span>`;
+            document.getElementById('modalTitle').innerHTML = siteName;
+            document.getElementById('modalControls').classList.remove('hidden');
+            document.getElementById('modalControls').classList.add('flex');
+        }
+
+        renderModalList();
+
+        const modal = document.getElementById('detailsModal');
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show'), 10);
+    }
+
+    // ==========================================
+    // 🟢 MODAL: RENDER LIST
+    // ==========================================
+    function renderModalList() {
+        const type = modalState.type;
+        let filtered = [...modalState.data];
+        let theadHtml = '';
+        let listHtml = '';
+        let total = 0;
+
+        // Apply search + filter for vehicle-level modals
+        if (['OWNER','SITE_COMPANY','COMPANY_SITE'].includes(type)) {
+            const filterVal = document.getElementById('modalFilter').value;
+            const searchVal = document.getElementById('modalSearch').value.toLowerCase();
+            if (filterVal === 'Running') filtered = filtered.filter(d => d.status.toLowerCase() === 'running');
+            if (searchVal) {
+                filtered = filtered.filter(d =>
+                    d.plate_number.toLowerCase().includes(searchVal) ||
+                    d.owner.toLowerCase().includes(searchVal) ||
+                    d.site.toLowerCase().includes(searchVal)
+                );
+            }
+        }
+
+        if (type === 'SITE') {
+            theadHtml = `<tr>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Company Name</th>
+                <th class="px-4 py-3 border-b-2 border-slate-300 bg-emerald-100 text-emerald-800 text-center">Count</th>
+            </tr>`;
+            filtered.forEach(d => {
+                // 🟢 FIX: Use ||| separator (not | which can appear in names)
+                const key = `${d.site}|||${d.company}`;
+                const safeKey = key.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+                listHtml += `<tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 border-b border-r border-slate-300 font-bold text-slate-700">
+                        <span class="clickable-text truncate block max-w-[150px] md:max-w-full"
+                              onclick="showModal('SITE_COMPANY','${safeKey}')">${d.company}</span>
+                    </td>
+                    <td class="px-4 py-3 border-b border-slate-300 text-center font-mono font-bold text-emerald-600 text-lg">${d.count}</td>
+                </tr>`;
+                total += Number(d.count);
             });
 
-            if (ownerArray.length === 0) {
-                ownerHtml = `<div class="text-center text-slate-400 text-sm mt-8 font-medium">No owners found.</div>`;
-            }
-
-            document.getElementById('ownerList').innerHTML = ownerHtml;
-        }
-
-        async function editOwnerName(oldName) {
-            const newName = prompt(`Edit Owner Name:\n(This will update all vehicles belonging to "${oldName}")`, oldName);
-            if (newName && newName.trim() !== "" && newName !== oldName) {
-                try {
-                    const res = await fetch('/api/admin/update-owner-name', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ oldName: oldName, newName: newName.trim() })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        showToast(data.message, 'success');
-                        closeModal();
-                        loadSummary();
-                    } else {
-                        showToast(data.message, 'error');
-                    }
-                } catch (e) {
-                    showToast("Error updating owner name.", 'error');
-                }
-            }
-        }
-
-        function getStatusColor(statusText) {
-            if (!statusText) return 'text-slate-500';
-            let s = statusText.toLowerCase();
-            if (s === 'running') return 'text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100';
-            if (s === 'released') return 'text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100';
-            if (s === 'replaced') return 'text-amber-500 bg-amber-50 px-2 py-1 rounded border border-amber-100';
-            return 'text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-200';
-        }
-
-        function showModal(type, name) {
-            modalState.type = type;
-            modalState.name = name;
-
-            document.getElementById('modalSearch').value = '';
-            document.getElementById('modalFilter').value = 'All';
-
-            if (type === 'SITE') {
-                modalState.data = globalSiteCompanyData.filter(d => d.site === name).sort((a, b) => a.company.localeCompare(b.company));
-                document.getElementById('modalType').innerText = 'Site Breakdown';
-                document.getElementById('modalTitle').innerHTML = name;
-                document.getElementById('modalControls').classList.add('hidden');
-            }
-            else if (type === 'COMPANY') {
-                modalState.data = globalSiteCompanyData.filter(d => d.company === name).sort((a, b) => a.site.localeCompare(b.site));
-                document.getElementById('modalType').innerText = 'Company Breakdown';
-                document.getElementById('modalTitle').innerHTML = name;
-                document.getElementById('modalControls').classList.add('hidden');
-            }
-            else if (type === 'OWNER') {
-                modalState.data = globalVehicleDetails.filter(d => d.owner === name).sort((a, b) => a.plate_number.localeCompare(b.plate_number));
-                document.getElementById('modalType').innerText = 'Owner Vehicles';
-                let titleHtml = name;
-                if (currentUser && currentUser.role === 'Super Admin') {
-                    titleHtml = `${name} <button onclick="editOwnerName('${name.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" class="text-slate-400 hover:text-blue-600 transition ml-2 align-middle bg-white border border-slate-300 rounded p-1.5 shadow-sm" title="Edit Owner Name"><svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>`;
-                }
-                document.getElementById('modalTitle').innerHTML = titleHtml;
-                document.getElementById('modalControls').classList.remove('hidden');
-                document.getElementById('modalControls').classList.add('flex');
-            }
-            else if (type === 'SITE_COMPANY' || type === 'COMPANY_SITE') {
-                const parts = name.split('|');
-                // 🟢 FIX: Ensure parts match properly depending on the origin link
-                if (type === 'SITE_COMPANY') {
-                    modalState.site = parts[0];
-                    modalState.company = parts[1];
-                } else {
-                    modalState.company = parts[0];
-                    modalState.site = parts[1];
-                }
-
-                modalState.data = globalVehicleDetails.filter(d =>
-                    (d.site || "").trim() === modalState.site.trim() &&
-                    (d.company || "").trim() === modalState.company.trim()
-                ).sort((a, b) => (a.owner || "").localeCompare(b.owner || ""));
-
-                const backTarget = type === 'SITE_COMPANY' ? modalState.site : modalState.company;
-                const backType = type === 'SITE_COMPANY' ? 'SITE' : 'COMPANY';
-                document.getElementById('modalType').innerHTML = `<span class="clickable-text" onclick="showModal('${backType}', '${backTarget.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')">← Back to ${backTarget}</span>`;
-                document.getElementById('modalTitle').innerHTML = (type === 'SITE_COMPANY' ? modalState.company : modalState.site);
-                document.getElementById('modalControls').classList.remove('hidden');
-                document.getElementById('modalControls').classList.add('flex');
-            }
-
-            renderModalList();
-
-            const modal = document.getElementById('detailsModal');
-            modal.style.display = 'flex';
-            setTimeout(() => modal.classList.add('show'), 10);
-        }
-
-        function renderModalList() {
-            let listHtml = '';
-            let theadHtml = '';
-            let total = 0;
-
-            let filteredData = modalState.data;
-            const type = modalState.type;
-
-            if (type === 'OWNER' || type === 'SITE_COMPANY' || type === 'COMPANY_SITE') {
-                const filterVal = document.getElementById('modalFilter').value;
-                const searchVal = document.getElementById('modalSearch').value.toLowerCase();
-
-                if (filterVal === 'Running') filteredData = filteredData.filter(d => d.status && d.status.toLowerCase() === 'running');
-                if (searchVal) {
-                    filteredData = filteredData.filter(d =>
-                        (d.plate_number && d.plate_number.toLowerCase().includes(searchVal)) ||
-                        (d.owner && d.owner.toLowerCase().includes(searchVal))
-                    );
-                }
-            }
-
-            if (type === 'SITE') {
-                theadHtml = `<tr><th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Company Name</th><th class="px-4 py-3 border-b-2 border-slate-300 bg-emerald-100 text-emerald-800 text-center">Count</th></tr>`;
-                filteredData.forEach(d => {
-                    listHtml += `<tr class="hover:bg-slate-50"><td class="px-4 py-3 border-b border-r border-slate-300 font-bold text-slate-700"><span class="clickable-text truncate block max-w-[150px] md:max-w-full" onclick="showModal('SITE_COMPANY', '${d.site.replace(/'/g, "\\'").replace(/"/g, "&quot;")}|${d.company.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')">${d.company}</span></td><td class="px-4 py-3 border-b border-slate-300 text-center font-mono font-bold text-emerald-600 text-lg">${d.count}</td></tr>`;
-                    total += parseInt(d.count);
-                });
-            } else if (type === 'COMPANY') {
-                theadHtml = `<tr><th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Site Name</th><th class="px-4 py-3 border-b-2 border-slate-300 bg-emerald-100 text-emerald-800 text-center">Count</th></tr>`;
-                filteredData.forEach(d => {
-                    listHtml += `<tr class="hover:bg-slate-50"><td class="px-4 py-3 border-b border-r border-slate-300 font-bold text-slate-700"><span class="clickable-text truncate block max-w-[150px] md:max-w-full" onclick="showModal('COMPANY_SITE', '${d.company.replace(/'/g, "\\'").replace(/"/g, "&quot;")}|${d.site.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')">${d.site}</span></td><td class="px-4 py-3 border-b border-slate-300 text-center font-mono font-bold text-emerald-600 text-lg">${d.count}</td></tr>`;
-                    total += parseInt(d.count);
-                });
-            } else if (type === 'OWNER') {
-                theadHtml = `<tr><th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Plate No</th><th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700 hidden md:table-cell">Site</th><th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Company</th><th class="px-4 py-3 border-b-2 border-slate-300 bg-slate-100 text-slate-700">Status</th></tr>`;
-                filteredData.forEach(d => {
-                    listHtml += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-4 py-3 border-b border-r border-slate-300 font-mono font-bold text-blue-600 whitespace-nowrap">${d.plate_number || '-'}</td><td class="px-4 py-3 border-b border-r border-slate-300 font-semibold text-slate-700 hidden md:table-cell">${d.site || '-'}</td><td class="px-4 py-3 border-b border-r border-slate-300 font-semibold text-slate-500 truncate max-w-[100px]">${d.company || '-'}</td><td class="px-4 py-3 border-b border-slate-300 font-bold text-[10px] uppercase tracking-wider"><span class="${getStatusColor(d.status)}">${d.status || '-'}</span></td></tr>`;
-                    total++;
-                });
-            } else if (type === 'SITE_COMPANY' || type === 'COMPANY_SITE') {
-                theadHtml = `<tr><th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Plate No</th><th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Owner</th><th class="px-4 py-3 border-b-2 border-slate-300 bg-slate-100 text-slate-700">Status</th></tr>`;
-                filteredData.forEach(d => {
-                    listHtml += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-4 py-3 border-b border-r border-slate-300 font-mono font-bold text-blue-600 whitespace-nowrap">${d.plate_number || '-'}</td><td class="px-4 py-3 border-b border-r border-slate-300 font-semibold text-slate-700 truncate max-w-[120px]">${d.owner || '-'}</td><td class="px-4 py-3 border-b border-slate-300 font-bold text-[10px] uppercase tracking-wider"><span class="${getStatusColor(d.status)}">${d.status || '-'}</span></td></tr>`;
-                    total++;
-                });
-            }
-
-            if (filteredData.length === 0) {
-                listHtml = `<tr><td colspan="4" class="px-5 py-8 text-center text-slate-400 font-medium border-b border-slate-300">No records found.</td></tr>`;
-            }
-
-            currentCopyData = filteredData;
-            document.getElementById('modalThead').innerHTML = theadHtml;
-            document.getElementById('modalListBody').innerHTML = listHtml;
-            document.getElementById('modalTotalCount').innerText = total;
-        }
-
-        function copyModalData() {
-            if (currentCopyData.length === 0) return;
-            let textToCopy = "";
-            const type = modalState.type;
-
-            currentCopyData.forEach(d => {
-                if (type === 'OWNER') textToCopy += `${d.plate_number || '-'}\t${d.site || '-'}\t${d.company || '-'}\t${d.status || '-'}\n`;
-                else if (type === 'SITE') textToCopy += `${d.company}\t${d.count}\n`;
-                else if (type === 'COMPANY') textToCopy += `${d.site}\t${d.count}\n`;
-                else if (type === 'SITE_COMPANY' || type === 'COMPANY_SITE') textToCopy += `${d.plate_number || '-'}\t${d.owner || '-'}\t${d.status || '-'}\n`;
+        } else if (type === 'COMPANY') {
+            theadHtml = `<tr>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Site Name</th>
+                <th class="px-4 py-3 border-b-2 border-slate-300 bg-emerald-100 text-emerald-800 text-center">Count</th>
+            </tr>`;
+            filtered.forEach(d => {
+                const key = `${d.company}|||${d.site}`;
+                const safeKey = key.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+                listHtml += `<tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 border-b border-r border-slate-300 font-bold text-slate-700">
+                        <span class="clickable-text truncate block max-w-[150px] md:max-w-full"
+                              onclick="showModal('COMPANY_SITE','${safeKey}')">${d.site}</span>
+                    </td>
+                    <td class="px-4 py-3 border-b border-slate-300 text-center font-mono font-bold text-emerald-600 text-lg">${d.count}</td>
+                </tr>`;
+                total += Number(d.count);
             });
 
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const btn = document.getElementById('copyBtn');
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = `<svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span class="hidden md:inline">Copied</span>`;
-                btn.classList.add('border-emerald-300', 'bg-emerald-50', 'text-emerald-700');
-                showToast("Data copied to clipboard!", "success");
-                setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.remove('border-emerald-300', 'bg-emerald-50', 'text-emerald-700'); }, 2000);
+        } else if (type === 'OWNER') {
+            theadHtml = `<tr>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Plate No</th>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700 hidden md:table-cell">Site</th>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Company</th>
+                <th class="px-4 py-3 border-b-2 border-slate-300 bg-slate-100 text-slate-700">Status</th>
+            </tr>`;
+            filtered.forEach(d => {
+                listHtml += `<tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-4 py-3 border-b border-r border-slate-300 font-mono font-bold text-blue-600 whitespace-nowrap">${d.plate_number}</td>
+                    <td class="px-4 py-3 border-b border-r border-slate-300 font-semibold text-slate-700 hidden md:table-cell">${d.site}</td>
+                    <td class="px-4 py-3 border-b border-r border-slate-300 font-semibold text-slate-500 truncate max-w-[100px]">${d.company}</td>
+                    <td class="px-4 py-3 border-b border-slate-300 font-bold text-[10px] uppercase tracking-wider">
+                        <span class="${getStatusColor(d.status)}">${d.status || '-'}</span>
+                    </td>
+                </tr>`;
+                total++;
+            });
+
+        } else if (type === 'SITE_COMPANY' || type === 'COMPANY_SITE') {
+            theadHtml = `<tr>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Plate No</th>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Owner</th>
+                <th class="px-4 py-3 border-b-2 border-slate-300 bg-slate-100 text-slate-700">Status</th>
+            </tr>`;
+            filtered.forEach(d => {
+                listHtml += `<tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-4 py-3 border-b border-r border-slate-300 font-mono font-bold text-blue-600 whitespace-nowrap">${d.plate_number}</td>
+                    <td class="px-4 py-3 border-b border-r border-slate-300 font-semibold text-slate-700 truncate max-w-[120px]">${d.owner || '-'}</td>
+                    <td class="px-4 py-3 border-b border-slate-300 font-bold text-[10px] uppercase tracking-wider">
+                        <span class="${getStatusColor(d.status)}">${d.status || '-'}</span>
+                    </td>
+                </tr>`;
+                total++;
             });
         }
 
-        function closeModal(force = false) {
-            const modal = document.getElementById('detailsModal');
-            modal.classList.remove('show');
-            setTimeout(() => { if (!modal.classList.contains('show')) modal.style.display = 'none'; }, 300);
+        if (filtered.length === 0) {
+            listHtml = `<tr><td colspan="4" class="px-5 py-8 text-center text-slate-400 font-medium border-b border-slate-300">No records found.</td></tr>`;
         }
 
-        function logout() {
-            localStorage.removeItem('erpToken');
-            localStorage.removeItem('erpUser');
-            window.location.href = 'index.html';
-        }
+        currentCopyData = filtered;
+        document.getElementById('modalThead').innerHTML = theadHtml;
+        document.getElementById('modalListBody').innerHTML = listHtml;
+        document.getElementById('modalTotalCount').innerText = total;
+    }
 
-        // 🟢 INACTIVITY AUTO-LOGOUT (30 Minutes)
-        let inactivityTimeout;
-        function resetInactivityTimer() {
-            clearTimeout(inactivityTimeout);
-            inactivityTimeout = setTimeout(() => {
-                showToast("Session expired due to inactivity.", "error");
-                setTimeout(logout, 1500);
-            }, 30 * 60 * 1000); // 30 minutes
-        }
+    // ==========================================
+    // 🟢 MODAL: COPY DATA
+    // ==========================================
+    function copyModalData() {
+        if (!currentCopyData.length) return;
+        const type = modalState.type;
+        let text = '';
+        currentCopyData.forEach(d => {
+            if (type === 'OWNER')                            text += `${d.plate_number}\t${d.site}\t${d.company}\t${d.status}\n`;
+            else if (type === 'SITE')                        text += `${d.company}\t${d.count}\n`;
+            else if (type === 'COMPANY')                     text += `${d.site}\t${d.count}\n`;
+            else if (type === 'SITE_COMPANY' || type === 'COMPANY_SITE') text += `${d.plate_number}\t${d.owner}\t${d.status}\n`;
+        });
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.getElementById('copyBtn');
+            const orig = btn.innerHTML;
+            btn.innerHTML = `<svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span class="hidden md:inline">Copied</span>`;
+            btn.classList.add('border-emerald-300','bg-emerald-50','text-emerald-700');
+            showToast('Data copied!', 'success');
+            setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('border-emerald-300','bg-emerald-50','text-emerald-700'); }, 2000);
+        });
+    }
 
-        ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'].forEach(evt =>
-            document.addEventListener(evt, resetInactivityTimer, true)
-        );
-        resetInactivityTimer();
+    // ==========================================
+    // 🟢 MODAL: CLOSE
+    // ==========================================
+    function closeModal(force = false) {
+        const modal = document.getElementById('detailsModal');
+        modal.classList.remove('show');
+        setTimeout(() => { if (!modal.classList.contains('show')) modal.style.display = 'none'; }, 300);
+    }
 
-        loadSummary();
-        setInterval(loadSummary, 30000);
+    // ==========================================
+    // 🟢 AUTH: LOGOUT
+    // ==========================================
+    function logout() {
+        localStorage.removeItem('erpToken');
+        localStorage.removeItem('erpUser');
+        window.location.href = 'index.html';
+    }
+
+    // ==========================================
+    // 🟢 INACTIVITY AUTO-LOGOUT (30 min)
+    // ==========================================
+    let inactivityTimeout;
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimeout);
+        inactivityTimeout = setTimeout(() => {
+            showToast('Session expired due to inactivity.', 'error');
+            setTimeout(logout, 1500);
+        }, 30 * 60 * 1000);
+    }
+    ['mousemove','keydown','scroll','click','touchstart'].forEach(evt =>
+        document.addEventListener(evt, resetInactivityTimer, true)
+    );
+    resetInactivityTimer();
+
+    // ==========================================
+    // 🟢 INIT: Load data + auto-refresh every 30s
+    // ==========================================
+    loadSummary();
+    setInterval(loadSummary, 30000);
     </script>
 </body>
-
 </html>
