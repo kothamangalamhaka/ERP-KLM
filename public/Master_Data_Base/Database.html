@@ -32,6 +32,30 @@
 
     <link rel="stylesheet" href="style/mdb.css" />
 
+    <style>
+      /* Table Header Black Fill & White Text */
+      #erpTable thead th {
+          background-color: #000000 !important;
+          color: #ffffff !important;
+          border-bottom: 1px solid #333333 !important;
+      }
+      
+      /* Filter & Lock Icons Default White */
+      #erpTable thead th .material-icons {
+          color: #ffffff !important; 
+      }
+      
+      /* Keep the locked icon red for visibility */
+      #erpTable thead th .material-icons.is-locked {
+          color: #ef4444 !important; 
+      }
+
+      /* Subtle border for column resizer on black background */
+      #erpTable thead th .col-resizer {
+          border-right: 2px solid #444444 !important;
+      }
+    </style>
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -243,6 +267,10 @@
       </div>
       <div class="menu-item" onclick="handleMenuAction('add_right')">
         <i class="material-icons">arrow_forward</i> Add Column Right
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" onclick="handleMenuAction('copy_col_data')">
+        <i class="material-icons" style="color: var(--primary);">content_copy</i> Copy Data
       </div>
       <div class="menu-divider"></div>
       <div class="menu-item" onclick="handleMenuAction('align_left')">

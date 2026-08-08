@@ -1094,11 +1094,30 @@ async function handleMenuAction(action) {
     $("#deleteColPassword").focus();
   } else if (action.startsWith("align_")) {
     const align = action.split("_")[1];
+    
+    // 1. Local Storage-ൽ സേവ് ചെയ്യുന്നു
     let userAligns = JSON.parse(localStorage.getItem("erpColAligns_" + currentUser.username)) || {};
     userAligns[contextColName] = align;
     localStorage.setItem("erpColAligns_" + currentUser.username, JSON.stringify(userAligns));
-    showToast("Alignment updated for your view!", "success");
-    fetchData(true);
+    
+    // 2. Cache-ൽ അപ്‌ഡേറ്റ് ചെയ്യുന്നു (പിന്നീട് ടേബിൾ വരയ്ക്കുമ്പോൾ നഷ്ടപ്പെടാതിരിക്കാൻ)
+    let existingAlign = cachedAlignments.find(a => a.name === contextColName);
+    if (existingAlign) {
+      existingAlign.align = align;
+    } else {
+      cachedAlignments.push({name: contextColName, align: align});
+    }
+
+    // 3. Header-ന്റെ Alignment അപ്പോൾ തന്നെ മാറ്റുന്നു (Live DOM Update)
+    let $header = $(erpDataTable.column(contextColIdx).header());
+    let justify = align === "center" ? "center" : align === "right" ? "flex-end" : "space-between";
+    $header.find(".header-content").css("justify-content", justify);
+    $header.find(".col-title-text").css("text-align", align);
+
+    // 4. ആ കോളത്തിലെ എല്ലാ സെല്ലുകളുടെയും Alignment അപ്പോൾ തന്നെ മാറ്റുന്നു (Live DOM Update)
+    erpDataTable.column(contextColIdx).nodes().to$().css("text-align", align);
+
+    showToast("Alignment applied!", "success");
   } else if (action === "toggle_col_wrap") {
     let colWraps = JSON.parse(localStorage.getItem("erpColWraps")) || {};
     let currentWrap = colWraps[contextColName] || "nowrap";
@@ -1119,6 +1138,17 @@ async function handleMenuAction(action) {
   } else if (action === "hide_column") {
     erpDataTable.column(contextColIdx).visible(false);
     showToast("Column Hidden", "info");
+  } else if (action === "copy_col_data") {
+    if (erpDataTable) {
+      let colData = erpDataTable.column(contextColIdx, { search: 'applied', order: 'applied' }).data().toArray();
+      let textToCopy = colData.join("\n");
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        showToast("Column data copied to clipboard!", "success");
+      }).catch(err => {
+        showToast("Failed to copy data", "error");
+        console.error("Clipboard Error:", err);
+      });
+    }
   }
 }
 
