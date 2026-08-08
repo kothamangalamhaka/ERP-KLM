@@ -55,6 +55,13 @@ async def generate_styled_excel(data: ExportRequest):
         # Replaced = Light Orange, Released = Light Red
         replaced_fill = PatternFill(start_color="FFE5CC", end_color="FFE5CC", fill_type="solid")
         released_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
+        
+        # 🟢 Expiry Colors
+        expired_fill = PatternFill(start_color="800000", end_color="800000", fill_type="solid")
+        days15_fill = PatternFill(start_color="FF9999", end_color="FF9999", fill_type="solid")
+        days30_fill = PatternFill(start_color="FFFF71", end_color="FFFF71", fill_type="solid")
+        white_font = Font(name="Calibri", size=11, color="FFFFFF")
+        black_font = Font(name="Calibri", size=11, color="000000")
 
         thin_border = Border(
             left=Side(style='thin', color='CBD5E1'),
@@ -103,12 +110,24 @@ async def generate_styled_excel(data: ExportRequest):
                 
                 final_val = ""
                 is_parsed_date = False
+                parsed_date_obj = None
 
                 if value is not None and str(value).strip() != "":
                     val_str = str(value).strip()
                     val_str = val_str.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
                     val_str = html.unescape(val_str)
                     final_val = val_str
+
+                    # 🟢 SN, RATE, IQAMA NO എന്നീ കോളങ്ങൾ ആണെങ്കിൽ അക്കമാക്കി (Number) മാറ്റുന്നു
+                    if header_name == "SN" or "RATE" in header_name or "IQAMA NO" in header_name:
+                        try:
+                            # ദശാംശം (Decimal) ഉണ്ടെങ്കിൽ float ആയും അല്ലാത്തവ int ആയും മാറ്റുന്നു
+                            if "." in val_str:
+                                final_val = float(val_str)
+                            else:
+                                final_val = int(val_str)
+                        except Exception:
+                            pass
 
                     # 🟢 ഡേറ്റ് കോളം ആണെങ്കിൽ അതിനെ യഥാർത്ഥ Python Date Object ആക്കി മാറ്റുന്നു
                     if is_date_col:
@@ -120,7 +139,8 @@ async def generate_styled_excel(data: ExportRequest):
                                 m = month_map.get(m_str) or int(parts[1])
                                 y = int("20" + parts[2] if len(parts[2]) == 2 else parts[2])
                                 if 1 <= d <= 31 and 1 <= m <= 12 and 1900 <= y <= 2100:
-                                    final_val = datetime(y, m, d).date()
+                                    parsed_date_obj = datetime(y, m, d).date()
+                                    final_val = parsed_date_obj
                                     is_parsed_date = True
                             except Exception:
                                 pass
@@ -133,12 +153,31 @@ async def generate_styled_excel(data: ExportRequest):
                 if is_parsed_date:
                     cell.number_format = "dd-mmm-yyyy"
                 
-                # സ്റ്റാറ്റസ് അനുസരിച്ച് റോ മുഴുവൻ കളർ ഫിൽ ചെയ്യുന്നു
-                if current_row_fill:
-                    cell.fill = current_row_fill
+                # 🟢 Expiry Alert കളർ കണക്കാക്കുന്നു
+                cell_fill = current_row_fill # ഡീഫോൾട്ട് റോ കളർ ഉണ്ടെങ്കിൽ അത് നൽകുക
+                cell_font = data_font
+
+                if row_status == "running" and is_parsed_date and any(k in header_name for k in ["IQAMA EXPIRE", "LICENSE EXPIRE", "LICENCE EXPIRE", "EQ INSURAN", "FAHS MVPI"]):
+                    today = datetime.now().date()
+                    diff_days = (parsed_date_obj - today).days
+                    
+                    if diff_days < 0:
+                        cell_fill = expired_fill
+                        cell_font = white_font
+                    elif 0 <= diff_days <= 15:
+                        cell_fill = days15_fill
+                        cell_font = black_font
+                    elif 15 < diff_days <= 30:
+                        cell_fill = days30_fill
+                        cell_font = black_font
+
+                # സെല്ലിൽ കളറും ഫോണ്ടും നൽകുന്നു
+                if cell_fill:
+                    cell.fill = cell_fill
+                cell.font = cell_font
                 
                 # അലൈൻമെന്റും wrap_text=False ഉം നൽകുന്നു
-                if is_date_col or "SN" in header_name:
+                if is_date_col or "SN" == header_name:
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=False)
                 elif "DAYS WORKED" in header_name or "NUMBER" in header_name:
                     cell.alignment = Alignment(horizontal="right", vertical="center", wrap_text=False)

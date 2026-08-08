@@ -229,7 +229,7 @@ function performLogout(isAuto = false) {
   if (isAuto) {
     Swal.fire({
       title: "Session Expired",
-      text: "You have been logged out due to 30 minutes of inactivity.",
+      text: "You have been logged out due to 60 minutes of inactivity.",
       icon: "warning",
       confirmButtonText: "Login Again",
     }).then(() => clearSession());
@@ -245,7 +245,7 @@ function clearSession() {
 let inactivityTimeout;
 function resetInactivityTimer() {
   clearTimeout(inactivityTimeout);
-  inactivityTimeout = setTimeout(() => performLogout(true), 30 * 60 * 1000);
+  inactivityTimeout = setTimeout(() => performLogout(true), 60 * 60 * 1000);
 }
 ["mousemove", "keydown", "scroll", "click", "touchstart"].forEach((evt) =>
   document.addEventListener(evt, resetInactivityTimer, true),
@@ -384,7 +384,7 @@ async function fetchData(isSilent = false) {
         Authorization: `Bearer ${token}`,
       },
     });
-    if (res.status === 401 || res.status === 403) return performLogout(true);
+    if (res.status === 401 || res.status === 403) return performLogout();
     const data = await res.json();
     if (
       !data.success &&
@@ -393,7 +393,7 @@ async function fetchData(isSilent = false) {
         data.message.toLowerCase().includes("invalid") ||
         data.message.toLowerCase().includes("expired"))
     )
-      return performLogout(true);
+      return performLogout();
 
     let currentHash =
       JSON.stringify(data.rows) +
@@ -428,11 +428,43 @@ $.fn.dataTable.ext.search.push(
       if (!allowedValues || allowedValues.length === 0) continue;
       let cIdx = cachedHeaders.indexOf(colName);
       if (cIdx === -1) continue;
+
+      // --- COLOR FILTER LOGIC ---
+      let colorFilterVal = allowedValues.find(v => String(v).startsWith("__COLOR_"));
+      if (colorFilterVal) {
+          let statusIdx = cachedHeaders.findIndex(h => String(h).toUpperCase().trim() === "STATUS");
+          let statusVal = statusIdx !== -1 ? String(rowData[statusIdx]).trim().toLowerCase() : "";
+          let cellColor = "__COLOR_NONE__";
+
+          if (statusVal === "running") {
+              let dateStr = rowData[cIdx];
+              if (dateStr && String(dateStr).trim() !== "") {
+                  let parsedDateStr = convertToInputDate(dateStr);
+                  if (parsedDateStr) {
+                      let expDate = new Date(`${parsedDateStr}T00:00:00`);
+                      if (!isNaN(expDate.getTime())) {
+                          let today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          expDate.setHours(0, 0, 0, 0);
+                          let diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                          
+                          if (diffDays < 0) cellColor = "__COLOR_EXPIRED__";
+                          else if (diffDays >= 0 && diffDays <= 15) cellColor = "__COLOR_15_DAYS__";
+                          else if (diffDays > 15 && diffDays <= 30) cellColor = "__COLOR_30_DAYS__";
+                      }
+                  }
+              }
+          }
+          if (colorFilterVal !== cellColor) return false;
+          continue;
+      }
+      // --- END COLOR FILTER LOGIC ---
+
       let cellVal = String(searchData[cIdx] || "").trim();
       if (!allowedValues.includes(cellVal)) return false;
     }
     return true;
-  },
+  }
 );
 
 let isQuickEditMode = false;
@@ -1832,10 +1864,10 @@ function renderTable(response) {
   });
 
   erpDataTable
-    .on("order.dt search.dt", function () {
+    .on("order.dt", function () {
       let i = 1;
       erpDataTable
-        .cells(null, 0, { search: "applied", order: "applied" })
+        .cells(null, 0, { search: "none", order: "applied" })
         .every(function (cell) {
           this.data(i++);
         });
@@ -1898,6 +1930,53 @@ function openFilterMenu(event, colName, iconElement) {
     listContainer = $("#filterChecklist");
   listContainer.empty();
   let colIdx = erpDataTable.column($(iconElement).closest("th")).index();
+
+  // --- COLOR FILTER UI INJECTION ---
+  $("#colorFilterContainer").remove();
+  let colUpperForColor = String(colName).toUpperCase();
+  let isDateAlertCol = colUpperForColor.includes("IQAMA EXPIRE") || colUpperForColor.includes("LICENSE EXPIRE") || colUpperForColor.includes("LICENCE EXPIRE") || colUpperForColor.includes("EQ INSURAN") || colUpperForColor.includes("FAHS MVPI");
+  
+  let prevSelectedColorData = activeFilters[colName] || [];
+  let selectedColor = prevSelectedColorData.find(v => String(v).startsWith('__COLOR_'));
+
+  if (isDateAlertCol) {
+    let getBorder = (val) => selectedColor === val ? "3px solid #0f172a" : (val === "__COLOR_NONE__" && selectedColor !== val ? "1px solid #cbd5e1" : "2px solid transparent");
+    
+    let colorFilterHtml = `
+      <div id="colorFilterContainer" style="border-bottom: 1px solid #e2e8f0; background: #fff; padding: 12px 15px;">
+        <div style="font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 10px;">Filter by Color:</div>
+        <div style="display:flex; gap: 12px; align-items:center;">
+          <div class="color-filter-btn" data-color="__COLOR_EXPIRED__" style="width: 26px; height: 26px; background: #800000; border-radius: 4px; cursor: pointer; border: ${getBorder('__COLOR_EXPIRED__')}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="Expired (Red)"></div>
+          <div class="color-filter-btn" data-color="__COLOR_15_DAYS__" style="width: 26px; height: 26px; background: #FF9999; border-radius: 4px; cursor: pointer; border: ${getBorder('__COLOR_15_DAYS__')}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="15 Days Gap (Light Red)"></div>
+          <div class="color-filter-btn" data-color="__COLOR_30_DAYS__" style="width: 26px; height: 26px; background: #FFFF71; border-radius: 4px; cursor: pointer; border: ${getBorder('__COLOR_30_DAYS__')}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="30 Days Gap (Yellow)"></div>
+          <div class="color-filter-btn" data-color="__COLOR_NONE__" style="width: 26px; height: 26px; background: #ffffff; border-radius: 4px; cursor: pointer; border: ${getBorder('__COLOR_NONE__')}; display:flex; align-items:center; justify-content:center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="Clear Color Filter">
+             <span class="material-icons" style="font-size: 14px; color: #94a3b8;">format_color_reset</span>
+          </div>
+        </div>
+      </div>
+    `;
+    $(colorFilterHtml).insertBefore($(".excel-filter-menu .filter-item").first());
+    
+    $("#colorFilterContainer").off('click', '.color-filter-btn').on('click', '.color-filter-btn', function() {
+        let colorVal = $(this).data('color');
+        if (selectedColor === colorVal || colorVal === "__COLOR_NONE__") {
+            activeFilters[currentFilterColName] = []; // Deselect or Clear
+        } else {
+            activeFilters[currentFilterColName] = [colorVal]; // Select Color
+        }
+        closeCustomFilter();
+        erpDataTable.draw();
+        
+        let targetTh = $("#erpTable th").filter(function () { return $(this).find(".col-title-text").text().trim() === currentFilterColName; });
+        if (activeFilters[currentFilterColName].length > 0) {
+            targetTh.find(".filter-icon").addClass("filter-active").text("filter_alt");
+        } else {
+            targetTh.find(".filter-icon").removeClass("filter-active").text("filter_list");
+        }
+    });
+  }
+  // --- END COLOR FILTER UI INJECTION ---
+
   let allOptions = new Set();
   erpDataTable.rows().every(function () {
     let rowData = this.data();
@@ -1926,7 +2005,7 @@ function openFilterMenu(event, colName, iconElement) {
       isDateCol = true;
   }
   let previouslySelected = activeFilters[colName] || [],
-    isAllSelected = previouslySelected.length === 0;
+    isAllSelected = previouslySelected.length === 0 && !selectedColor;
   $("#filterSelectAll").prop("checked", isAllSelected);
   $("#filterSelectAll")
     .off("change")

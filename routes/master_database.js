@@ -351,6 +351,102 @@ module.exports = function (pool, middlewares, helpers) {
     )
     .catch((err) => console.error("Failed to create active_users table:", err));
 
+// 🟢 NEW CODE: Add Column 
+  router.post("/add-column", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") {
+         return res.json({ success: false, message: "Super Admin Access Required." });
+      }
+      const { colName, colType } = req.body;
+      if (!colName) return res.json({ success: false, message: "Column name required." });
+
+      // നിലവിൽ ആ പേരിൽ ഒരു കോളം ഉണ്ടോയെന്ന് നോക്കുക
+      const checkRes = await pool.query(
+        "SELECT id FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL", 
+        [colName]
+      );
+      if (checkRes.rows.length > 0) {
+        return res.json({ success: false, message: "Column already exists." });
+      }
+
+      // ഏറ്റവും വലിയ col_order കണ്ടുപിടിക്കുക
+      const orderRes = await pool.query("SELECT MAX(col_order) as max_order FROM erp_headers");
+      let nextOrder = (orderRes.rows[0].max_order || 0) + 1;
+
+      // പുതിയ കോളം ടേബിളിൽ ചേർക്കുക
+      await pool.query(
+        "INSERT INTO erp_headers (header_name, col_type, col_order) VALUES ($1, $2, $3)",
+        [colName, colType || "varchar", nextOrder]
+      );
+
+      // ആക്ടിവിറ്റി ലോഗ് ചെയ്യുക
+      await pool.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'ADD_COLUMN', $2)",
+        [req.user.username, JSON.stringify({ colName: colName })]
+      );
+
+      res.json({ success: true, message: "Column added successfully." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "ADD_COLUMN");
+    }
+  });
+
+  // 🟢 NEW CODE: Add Column Relative (Right/Left)
+  router.post("/add-column-relative", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") {
+         return res.json({ success: false, message: "Super Admin Access Required." });
+      }
+      const { colName, relativeTo, position, colType } = req.body;
+      if (!colName || !relativeTo) return res.json({ success: false, message: "Missing data." });
+
+      // നിലവിൽ ആ പേരിൽ ഒരു കോളം ഉണ്ടോയെന്ന് നോക്കുക
+      const checkRes = await pool.query(
+        "SELECT id FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL", 
+        [colName]
+      );
+      if (checkRes.rows.length > 0) {
+        return res.json({ success: false, message: "Column already exists." });
+      }
+
+      // relativeTo കോളത്തിന്റെ ഓർഡർ കണ്ടുപിടിക്കുക
+      const targetRes = await pool.query(
+        "SELECT col_order FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL",
+        [relativeTo]
+      );
+      
+      if (targetRes.rows.length === 0) {
+        return res.json({ success: false, message: "Target column not found." });
+      }
+
+      let targetOrder = targetRes.rows[0].col_order;
+      let newOrder = position === "left" ? targetOrder : targetOrder + 1;
+
+      // ബാക്കിയുള്ള കോളങ്ങളുടെ ഓർഡർ അഡ്ജസ്റ്റ് ചെയ്യുക
+      await pool.query(
+        "UPDATE erp_headers SET col_order = col_order + 1 WHERE col_order >= $1 AND deleted_at IS NULL",
+        [newOrder]
+      );
+
+      // പുതിയ കോളം ടേബിളിൽ ചേർക്കുക
+      await pool.query(
+        "INSERT INTO erp_headers (header_name, col_type, col_order) VALUES ($1, $2, $3)",
+        [colName, colType || "varchar", newOrder]
+      );
+
+      // ആക്ടിവിറ്റി ലോഗ് ചെയ്യുക
+      await pool.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'ADD_COLUMN_RELATIVE', $2)",
+        [req.user.username, JSON.stringify({ colName: colName, relativeTo: relativeTo, position: position })]
+      );
+
+      res.json({ success: true, message: "Column added successfully." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "ADD_COLUMN_RELATIVE");
+    }
+  });
+
+
   router.post("/get-master-data", verifyToken, async (req, res) => {
     try {
       const { username, role, site } = req.user;
@@ -403,15 +499,17 @@ module.exports = function (pool, middlewares, helpers) {
       }
 
       const dataResult = await pool.query(query, params);
-      let rows = [],
-        maxSN = 0;
+      let rows = [];
       dataResult.rows.forEach((dbRow) => {
         let rowArray = [];
         headers.forEach((h) => rowArray.push(dbRow.record_data[h] || ""));
         rowArray.push(dbRow.id);
         rows.push(rowArray);
-        if (dbRow.sn > maxSN) maxSN = dbRow.sn;
       });
+
+      // 🟢 FIX: Get global max SN regardless of user role or site filter
+      const snResult = await pool.query("SELECT MAX(sn) as max_sn FROM erp_records");
+      let globalNextSN = (snResult.rows[0].max_sn || 0) + 1;
 
       res.json({
         success: true,
@@ -421,7 +519,7 @@ module.exports = function (pool, middlewares, helpers) {
         colTypes,
         colWidths,
         rows,
-        nextSN: maxSN + 1,
+        nextSN: globalNextSN,
         activeUsers: activeUsersList,
       });
     } catch (error) {
