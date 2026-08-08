@@ -1589,7 +1589,10 @@ function renderTable(response) {
           colHead.includes("EQ INSURAN") ||
           colHead.includes("FAHS MVPI")
         ) {
-          $td.removeClass("expired-date expiring-date");
+          // Reset previous manual styles if any
+          $td[0].style.removeProperty("background-color");
+          $td[0].style.removeProperty("color");
+          
           if (statusVal === "running") {
             let dateStr = data[idx];
             if (dateStr && String(dateStr).trim() !== "") {
@@ -1602,9 +1605,20 @@ function renderTable(response) {
                     (expDate.getTime() - today.getTime()) /
                       (1000 * 60 * 60 * 24),
                   );
-                  if (diffDays < 0) $td.addClass("expired-date");
-                  else if (diffDays >= 0 && diffDays <= 30)
-                    $td.addClass("expiring-date");
+                  
+                  if (diffDays < 0) {
+                    // Already Expired (< 0 days)
+                    $td[0].style.setProperty("background-color", "#800000", "important");
+                    $td[0].style.setProperty("color", "#ffffff", "important");
+                  } else if (diffDays >= 0 && diffDays <= 15) {
+                    // 15 Days Gap (0 to 15 days)
+                    $td[0].style.setProperty("background-color", "#FF9999", "important");
+                    $td[0].style.setProperty("color", "#000000", "important");
+                  } else if (diffDays > 15 && diffDays <= 30) {
+                    // 30 Days Gap (16 to 30 days)
+                    $td[0].style.setProperty("background-color", "#FFFF71", "important");
+                    $td[0].style.setProperty("color", "#000000", "important");
+                  }
                 }
               }
             }
@@ -1677,18 +1691,6 @@ function renderTable(response) {
         action: function () {
           document.querySelector(".dt-buttons").classList.remove("show");
           toggleBulkEditMode();
-        },
-        init: function (api, node, config) {
-          if (currentUser.role !== "Super Admin") {
-            $(node).css("display", "none").remove();
-          }
-        },
-      },
-      {
-        text: '<span class="material-icons" style="font-size:16px;">upload_file</span> Import',
-        className: "dt-button btn-outline",
-        action: function () {
-          openImportModal();
         },
         init: function (api, node, config) {
           if (currentUser.role !== "Super Admin") {
