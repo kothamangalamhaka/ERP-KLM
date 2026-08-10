@@ -423,6 +423,43 @@
       .footer-right {
         text-align: right;
       }
+
+      /* 🟢 NEW CSS FOR PERFECT ALIGNMENT */
+      .hr-stat {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .hr-stat .lbl {
+        width: 70px;
+        text-align: right;
+      }
+      .hr-stat .colon {
+        width: 15px;
+        text-align: center;
+      }
+      .hr-stat .val {
+        width: 35px; /* നമ്പറുകൾ കൃത്യമായി അലൈൻ ആകാൻ */
+        text-align: right;
+      }
+
+      /* Left side alignment */
+      .left-stat {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+      }
+      .left-stat .lbl {
+        width: 65px;
+        text-align: left;
+      }
+      .left-stat .colon {
+        width: 15px;
+        text-align: center;
+      }
+      .left-stat .val {
+        text-align: left;
+      }
       .ts-owner-details {
         margin-top: 15px;
         font-size: 11.5px;
@@ -636,6 +673,25 @@
           page-break-inside: avoid;
         }
       }
+
+      /* 🟢 DARK MODE STYLES */
+      body.dark-mode { background-color: #0f172a; }
+      body.dark-mode #leftCardsArea { background-color: #0f172a; }
+      body.dark-mode .ts-card { background: #1e293b; color: #e2e8f0; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5); }
+      body.dark-mode .ts-month-title, body.dark-mode .asset-code { color: #ffffff; }
+      body.dark-mode .info-lbl { color: #94a3b8; }
+      body.dark-mode .info-val { color: #e2e8f0; }
+      body.dark-mode .ts-table { border-color: #475569; }
+      body.dark-mode .ts-table th, body.dark-mode .ts-table td { border-color: #475569; }
+      body.dark-mode .ts-table th { background-color: #334155; color: #ffffff; }
+      body.dark-mode .ts-table tr:nth-child(even) { background-color: #0f172a; }
+      body.dark-mode .card-dl-btn { background: #334155; color: white; }
+      body.dark-mode .card-dl-btn:hover { background: #475569; }
+      body.dark-mode .invoice-box { background: #334155; border-color: #94a3b8; }
+      body.dark-mode .red-border-box-bottom { border-color: #ef4444; color: #fca5a5; }
+      body.dark-mode .logsheet-viewer-panel { background: #0f172a; }
+      body.dark-mode .logsheet-sidebar-panel { background: #1e293b; border-color: #334155; }
+      body.dark-mode .logsheet-file-item { background: #0f172a; color: #e2e8f0; border-color: #475569; }
     </style>
   </head>
 
@@ -728,6 +784,9 @@
         <div
           style="margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap"
         >
+          <!-- Dark Mode Button -->
+          <button class="hm" onclick="toggleDarkMode()" style="background-color: #334155; color: white; cursor:pointer;">🌗 Theme</button>
+          
           <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf">
             <span class="loader" id="pdfLoader"></span> 📄 PDF
           </button>
@@ -1605,30 +1664,25 @@
 
             <table class="ts-table">
                 <thead>
-                    <tr><th style="width: 25px;">Date</th><th style="width: 30px;">Day</th><th style="width: 40px;">Start</th><th style="width: 40px;">End</th><th style="width: 60px;">HMR S</th><th style="width: 60px;">HMR E</th><th style="width: 40px;">Fuel</th><th style="width: 45px;">Dist</th><th style="width: 35px;">Time</th><th style="width: 40px;">Normal</th><th style="width: 30px;">OT</th><th>Note</th></tr>
+                    <tr><th style="width: 25px;">Date</th><th style="width: 30px;">Day</th><th style="width: 40px;">Start</th><th style="width: 40px;">End</th><th style="width: 60px;">HMR S</th><th style="width: 60px;">HMR E</th><th style="width: 40px;">Fuel</th><th style="width: 45px;">Dist</th><th style="width: 35px;">Shift</th><th style="width: 40px;">Normal</th><th style="width: 30px;">OT</th><th>Note</th></tr>
                 </thead>
                 <tbody>${tableRowsHTML}</tbody>
             </table>
 
             <div class="ts-footer">
                 <div class="footer-left">
-                    <div>Total Dist: ${sumDist.toFixed(1)}</div>
-                    <div>Total Fuel: ${sumFuel.toFixed(1)}</div>
-                    <div>Mileage : ${mileage} Km/L</div>
+                    <div class="left-stat"><span class="lbl">Total Dist</span><span class="colon">:</span><span class="val">${sumDist.toFixed(1)}</span></div>
+                    <div class="left-stat"><span class="lbl">Total Fuel</span><span class="colon">:</span><span class="val">${sumFuel.toFixed(1)}</span></div>
+                    <div class="left-stat"><span class="lbl">Mileage</span><span class="colon">:</span><span class="val">${mileage} Km/L</span></div>
                 </div>
                 <div class="footer-right">
-                    <div>Normal Hr : ${sumNormal}</div>
-                    <div>OT Hr &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ${sumOT}</div>
-                    <div>Total Hr &nbsp;&nbsp;&nbsp;: ${totalHr}</div>
+                    <div class="hr-stat"><span class="lbl">Normal Hr</span><span class="colon">:</span><span class="val">${sumNormal}</span></div>
+                    <div class="hr-stat"><span class="lbl">OT Hr</span><span class="colon">:</span><span class="val">${sumOT}</span></div>
+                    <div class="hr-stat"><span class="lbl">Total Hr</span><span class="colon">:</span><span class="val">${totalHr}</span></div>
                 </div>
             </div>
 
-            <div class="ts-owner-details">
-                <div class="co-details"><span>Field Co :: ${dispFieldCo}</span><span>Site Co :: ${dispSiteCo}</span></div>
-                <div style="font-size:6px; color:transparent;">XXXXX</div>
-            </div>
-
-            <div class="red-border-box-bottom">${bottomBoxTextHTML}</div>
+            <!-- Removed ts-owner-details and red-border-box-bottom from LT view as requested -->
             
             <div class="card-actions-wrapper" style="position: absolute; bottom: 10mm; right: 12mm; display: flex; gap: 8px;">
                 <button class="card-dl-btn" style="position: relative; bottom: auto; right: auto;" onclick="copyCardImage(this)" title="Copy Image">📋</button>
@@ -2216,6 +2270,19 @@
           btn.innerHTML = "Current";
         }
       }
+
+      // 🟢 DARK MODE TOGGLE LOGIC
+      function toggleDarkMode() {
+        const isDark = document.body.classList.toggle("dark-mode");
+        localStorage.setItem("tsCardTheme", isDark ? "dark" : "light");
+      }
+      
+      (function initTheme() {
+        const savedTheme = localStorage.getItem("tsCardTheme");
+        if (savedTheme === "dark") {
+          document.body.classList.add("dark-mode");
+        }
+      })();
     </script>
   </body>
 </html>
