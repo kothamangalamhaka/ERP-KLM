@@ -30,11 +30,19 @@ body {
 /* Grid Layout */
 .action-grid-box {
   display: grid;
-  /* Changed min width to 260px to allow up to 6 cards on large screens */
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  /* Default for 14-inch laptops and standard screens */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
   width: 95vw;
   margin: 0 auto;
+}
+
+/* For 24-inch+ large screens (1600px and above) */
+@media (min-width: 1600px) {
+  .action-grid-box {
+    /* Reduced to 260px to fit more cards (like 5 or 6) in a single row */
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  }
 }
 
 /* Individual Card Styling */
