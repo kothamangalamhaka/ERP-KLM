@@ -30,18 +30,6 @@
         flex-direction: column;
         overflow: hidden; /* Prevent full body scroll, handle inside containers */
       }
-      
-      .lt a{
-        text-decoration: none;
-        color: white;
-      }
-
-      .lt{
-        padding-left: 10px;
-        padding-right: 10px;
-        border-radius: 4px;
-        border: none;
-      }
 
       .controls-wrapper {
         background: #0f2027;
@@ -50,15 +38,12 @@
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         z-index: 100;
         flex-shrink: 0;
-      }
-
-      .controls-inner {
-        max-width: 1300px;
-        margin: 0 auto;
+        /* Combined properties from inner */
         display: flex;
-        gap: 15px;
+        gap: 10px; 
         align-items: flex-end;
-        flex-wrap: wrap;
+        flex-wrap: nowrap; 
+        justify-content: center;
       }
 
       .form-group {
@@ -350,17 +335,26 @@
       .info-row {
         display: flex;
         font-size: 12.5px;
+        align-items: flex-start; /* 🟢 ടെക്സ്റ്റ് താഴേക്ക് പോകുമ്പോഴും അലൈൻമെന്റ് കൃത്യമാക്കാൻ */
       }
       .info-lbl {
-        width: 90px;
+        width: 65px;
         color: #333;
         font-weight: 700;
+        flex-shrink: 0;
+      }
+      .info-colon {
+        width: 15px;
+        color: #333;
+        font-weight: 700;
+        text-align: center;
         flex-shrink: 0;
       }
       .info-val {
         color: #000;
         font-weight: 600;
         word-break: break-word;
+        flex: 1;
       }
       .plate-wrapper {
         display: flex;
@@ -492,10 +486,6 @@
         border: none;
         transition: 0.2s;
       }
-
-      .lt {
-        background-color: #8b5cf6;
-      }
       
       .hm {
         background-color: #2563eb;
@@ -515,7 +505,7 @@
 
       /* 🟢 MOBILE RESPONSIVE FIXES */
       @media (max-width: 768px) {
-        .controls-inner {
+        .controls-wrapper {
           flex-direction: column;
           align-items: stretch;
         }
@@ -693,7 +683,7 @@
       body.dark-mode #leftCardsArea { background-color: #0f172a; }
       body.dark-mode .ts-card { background: #1e293b; color: #e2e8f0; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5); }
       body.dark-mode .ts-month-title, body.dark-mode .asset-code { color: #ffffff; }
-      body.dark-mode .info-lbl { color: #94a3b8; }
+      body.dark-mode .info-lbl, body.dark-mode .info-colon { color: #94a3b8; }
       body.dark-mode .info-val { color: #e2e8f0; }
       body.dark-mode .ts-table { border-color: #475569; }
       body.dark-mode .ts-table th, body.dark-mode .ts-table td { border-color: #475569; }
@@ -711,7 +701,6 @@
 
   <body>
     <div class="controls-wrapper">
-      <div class="controls-inner">
         <div class="form-group" style="width: 110px">
           <label>Month</label>
           <select id="selMonth">
@@ -795,20 +784,14 @@
           <span class="loader" id="genLoader"></span> Generate Report
         </button>
 
-        <div
-          style="margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap"
-        >
-          <!-- Dark Mode Button -->
-          <button class="hm" onclick="toggleDarkMode()" style="background-color: #334155; color: white; cursor:pointer;">🌗 Theme</button>
-          
-          <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf">
-            <span class="loader" id="pdfLoader"></span> 📄 PDF
-          </button>
-          <button class="lt"><a href="LTview.html">LT View</a></button>
-          <button class="hm"><a href="index.html">Home</a></button>
-          <button class="tsdb"><a href="./entry.html">Data Entry</a></button>
-        </div>
-      </div>
+        <!-- 🟢 Extra DIV removed. All buttons are in the same line now -->
+        <button class="hm" onclick="toggleDarkMode()" style="background-color: #334155; color: white; cursor:pointer; white-space: nowrap; margin-left: 15px;">🌗 Theme</button>
+        <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf">
+          <span class="loader" id="pdfLoader"></span> 📄 PDF
+        </button>
+        <button class="hm" style="background-color: #0d2d5e;"><a href="LTview.html">LT View</a></button>
+        <button class="hm"><a href="index.html">Home</a></button>
+        <button class="tsdb"><a href="./entry.html">Data Entry</a></button>
     </div>
 
     <div id="splitContainer">
@@ -1659,9 +1642,9 @@
             
             <div class="ts-header">
                 <div class="info-col">
-                    <div class="info-row"><div class="info-lbl">Driver</div><div class="info-val">: ${currDriver}</div></div>
-                    ${prevDriver ? `<div class="info-row"><div class="info-lbl" style="color:#64748b;">Old Driver</div><div class="info-val" style="color:#64748b;">: ${prevDriver}</div></div>` : ""}
-                    <div class="info-row"><div class="info-lbl">Mobile</div><div class="info-val">: ${currMobile}</div></div>
+                    <div class="info-row"><div class="info-lbl">Driver</div><div class="info-colon">:</div><div class="info-val">${currDriver}</div></div>
+                    ${prevDriver ? `<div class="info-row"><div class="info-lbl" style="color:#64748b;">Old Driver</div><div class="info-colon" style="color:#64748b;">:</div><div class="info-val" style="color:#64748b;">${prevDriver}</div></div>` : ""}
+                    <div class="info-row"><div class="info-lbl">Mobile</div><div class="info-colon">:</div><div class="info-val">${currMobile}</div></div>
                 </div>
                 
                 <div class="plate-wrapper">
@@ -1670,9 +1653,9 @@
                 </div>
                 
                 <div class="info-col">
-                    <div class="info-row"><div class="info-lbl">Site</div><div class="info-val">: ${currSite}</div></div>
-                    ${prevSite ? `<div class="info-row"><div class="info-lbl" style="color:#64748b;">Prev Site</div><div class="info-val" style="color:#64748b;">: ${prevSite}</div></div>` : ""}
-                    <div class="info-row"><div class="info-lbl">Vehicle</div><div class="info-val">: ${dispVType}</div></div>
+                    <div class="info-row"><div class="info-lbl">Site</div><div class="info-colon">:</div><div class="info-val">${currSite}</div></div>
+                    ${prevSite ? `<div class="info-row"><div class="info-lbl" style="color:#64748b;">Prev Site</div><div class="info-colon" style="color:#64748b;">:</div><div class="info-val" style="color:#64748b;">${prevSite}</div></div>` : ""}
+                    <div class="info-row"><div class="info-lbl">Vehicle</div><div class="info-colon">:</div><div class="info-val">${dispVType}</div></div>
                 </div>
             </div>
 
@@ -1713,77 +1696,108 @@
 
       async function downloadAllPDF() {
         const area = document.getElementById("reportArea");
-        const cards = area.querySelectorAll(".ts-card");
-        if (cards.length === 0) return alert("No reports generated yet.");
+        const cardElements = area.querySelectorAll(".ts-card");
+        if (cardElements.length === 0) return alert("No reports generated yet.");
 
+        const cards = Array.from(cardElements); // Convert to Array for chunking
         const btn = document.getElementById("btnPdf");
-        const loader = document.getElementById("pdfLoader");
-        const btns = area.querySelectorAll(".card-dl-btn");
-        const logBtns = area.querySelectorAll(".btn-log-window"); // 🟢 Hide log buttons
-
-        btns.forEach((b) => (b.style.display = "none"));
-        logBtns.forEach((b) => (b.style.display = "none"));
+        const originalBtnText = btn.innerHTML; 
         btn.disabled = true;
-        loader.style.display = "inline-block";
 
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF("p", "mm", "a4", true);
 
+        // 🟢 CHUNKING: 5 കാർഡുകൾ വീതം ഒരേസമയം (Parallel) ചെയ്യും
+        const CHUNK_SIZE = 5; 
+
         try {
-          for (let i = 0; i < cards.length; i++) {
-            const originalMargin = cards[i].style.margin;
-            const originalShadow = cards[i].style.boxShadow;
-            cards[i].style.width = "210mm";
-            cards[i].style.minHeight = "297mm";
-            cards[i].style.margin = "0";
-            cards[i].style.boxShadow = "none";
+          for (let i = 0; i < cards.length; i += CHUNK_SIZE) {
+            // Get the next batch of cards (e.g., 5 cards)
+            const chunk = cards.slice(i, i + CHUNK_SIZE);
+            
+            // Update UI Progress
+            btn.innerHTML = `<span class="loader" style="display:inline-block;"></span> PDF (${Math.min(i + CHUNK_SIZE, cards.length)}/${cards.length})`;
+            
+            // Yield to main thread to prevent UI freeze
+            await new Promise(resolve => setTimeout(resolve, 30));
 
-            const canvas = await html2canvas(cards[i], {
-              scale: 2.0,
-              useCORS: true,
-              logging: false,
+            // 🟢 PARALLEL PROCESSING: ബാച്ചിലുള്ള കാർഡുകൾ ഒരേസമയം ഇമേജ് ആക്കുന്നു
+            const canvasPromises = chunk.map(card => {
+              const cardId = card.id;
+              return html2canvas(card, {
+                scale: 2.0,
+                useCORS: true,
+                logging: false,
+                backgroundColor: "#ffffff",
+                onclone: (clonedDoc) => {
+                  clonedDoc.body.classList.remove("dark-mode");
+                  const clonedCard = clonedDoc.getElementById(cardId);
+                  if (clonedCard) {
+                    clonedCard.style.width = "210mm";
+                    clonedCard.style.minHeight = "297mm";
+                    clonedCard.style.margin = "0";
+                    clonedCard.style.boxShadow = "none";
+                    
+                    const btns = clonedCard.querySelectorAll(".card-dl-btn, .btn-log-window");
+                    btns.forEach((b) => (b.style.display = "none"));
+                  }
+                }
+              });
             });
-            const imgData = canvas.toDataURL("image/jpeg", 0.95);
 
-            if (i > 0) pdf.addPage();
-            pdf.addImage(imgData, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+            // Wait for all 5 cards to finish rendering
+            const canvases = await Promise.all(canvasPromises);
 
-            cards[i].style.margin = originalMargin;
-            cards[i].style.boxShadow = originalShadow;
+            // Add them to PDF in the correct order
+            for (let j = 0; j < canvases.length; j++) {
+              // Quality kept high at 0.95 as requested
+              const imgData = canvases[j].toDataURL("image/jpeg", 0.95);
+              if (i + j > 0) pdf.addPage();
+              pdf.addImage(imgData, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+            }
           }
+
+          btn.innerHTML = `<span class="loader" style="display:inline-block;"></span> Saving...`;
+          await new Promise(resolve => setTimeout(resolve, 50)); 
 
           const m = document.getElementById("selMonth").value;
           const y = document.getElementById("selYear").value;
           pdf.save(`Timesheet_Reports_${m}_${y}.pdf`);
+          
         } catch (err) {
           alert("Error generating PDF.");
+          console.error(err);
         } finally {
-          btns.forEach((b) => (b.style.display = "flex"));
-          logBtns.forEach((b) => (b.style.display = "block"));
           btn.disabled = false;
-          loader.style.display = "none";
+          btn.innerHTML = originalBtnText; 
         }
       }
 
       async function downloadPNG(btnElement, plateNo) {
         const card = btnElement.closest(".ts-card");
+        const cardId = card.id;
         const originalText = btnElement.innerHTML;
-        const logBtn = card.querySelector(".btn-log-window");
-        const actionContainer = card.querySelector(".card-actions-wrapper"); // 🟢 Hide wrapper for PNG
-
-        if (logBtn) logBtn.style.display = "none";
 
         btnElement.innerHTML = "⏳ Loading...";
         btnElement.style.background = "#e2e8f0";
         btnElement.disabled = true;
 
         setTimeout(async () => {
-          if (actionContainer) actionContainer.style.display = "none";
           try {
             const canvas = await html2canvas(card, {
               scale: 2,
               useCORS: true,
               backgroundColor: "#ffffff",
+              onclone: (clonedDoc) => {
+                clonedDoc.body.classList.remove("dark-mode");
+                const clonedCard = clonedDoc.getElementById(cardId);
+                if (clonedCard) {
+                    const clonedLogBtn = clonedCard.querySelector(".btn-log-window");
+                    if (clonedLogBtn) clonedLogBtn.style.display = "none";
+                    const clonedActionContainer = clonedCard.querySelector(".card-actions-wrapper");
+                    if (clonedActionContainer) clonedActionContainer.style.display = "none";
+                }
+              }
             });
             const link = document.createElement("a");
             link.download = `Timesheet_${plateNo}_${document.getElementById("selMonth").value}.png`;
@@ -1795,31 +1809,34 @@
             btnElement.innerHTML = originalText;
             btnElement.disabled = false;
             btnElement.style.background = "#e2e8f0";
-            if (actionContainer) actionContainer.style.display = "flex";
-            if (!document.body.classList.contains("split-active") && logBtn)
-              logBtn.style.display = "block";
           }
         }, 50);
       }
 
       async function copyCardImage(btnElement) {
         const card = btnElement.closest(".ts-card");
-        const logBtn = card.querySelector(".btn-log-window");
-        const actionContainer = card.querySelector(".card-actions-wrapper");
+        const cardId = card.id;
         const originalText = btnElement.innerHTML;
-
-        if (logBtn) logBtn.style.display = "none";
         
         btnElement.innerHTML = "⏳";
         btnElement.disabled = true;
 
         setTimeout(async () => {
-          if (actionContainer) actionContainer.style.display = "none"; // Hide buttons in screenshot
           try {
             const canvas = await html2canvas(card, {
               scale: 2, // High quality
               useCORS: true,
               backgroundColor: "#ffffff",
+              onclone: (clonedDoc) => {
+                clonedDoc.body.classList.remove("dark-mode");
+                const clonedCard = clonedDoc.getElementById(cardId);
+                if (clonedCard) {
+                    const clonedLogBtn = clonedCard.querySelector(".btn-log-window");
+                    if (clonedLogBtn) clonedLogBtn.style.display = "none";
+                    const clonedActionContainer = clonedCard.querySelector(".card-actions-wrapper");
+                    if (clonedActionContainer) clonedActionContainer.style.display = "none";
+                }
+              }
             });
             
             canvas.toBlob(async (blob) => {
@@ -1840,9 +1857,6 @@
             btnElement.innerHTML = originalText;
           } finally {
             btnElement.disabled = false;
-            if (actionContainer) actionContainer.style.display = "flex";
-            if (!document.body.classList.contains("split-active") && logBtn)
-              logBtn.style.display = "block";
           }
         }, 50);
       }
