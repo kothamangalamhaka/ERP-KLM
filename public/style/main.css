@@ -30,11 +30,10 @@ body {
 /* Grid Layout */
 .action-grid-box {
   display: grid;
-  /* Automatically creates columns based on screen width. Mobile = 1 col, PC = 3 or 4 cols */
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  /* Changed min width to 260px to allow up to 6 cards on large screens */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1.5rem;
-  width: 100%;
-  max-width: 1400px;
+  width: 95vw;
   margin: 0 auto;
 }
 
@@ -43,7 +42,7 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.4rem;
   display: flex;
   align-items: flex-start;
   gap: 1.2rem;
@@ -101,11 +100,33 @@ body {
     padding: 1rem;
   }
   .action-grid-box {
-    grid-template-columns: 1fr; /* Forces a single column on small screens */
+    /* Forces exactly 2 columns minimum on small screens */
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem; /* Slightly reduced gap for small screens */
   }
   .connect-btn {
     padding: 8px 12px;
     font-size: 1rem;
+  }
+  
+  /* Adjusted card layout to fit 2 items beautifully on mobile */
+  .action-card {
+    flex-direction: column; 
+    align-items: center;
+    text-align: center;
+    padding: 1rem;
+    gap: 0.8rem;
+  }
+  .card-icon {
+    width: 45px;
+    height: 45px;
+    font-size: 1.4rem;
+  }
+  .card-content h3 {
+    font-size: 0.95rem;
+  }
+  .card-content p {
+    font-size: 0.75rem;
   }
 }
 

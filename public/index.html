@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Haka Rentals (P) Ltd - MNC</title>
 
+    <!-- PWA Manifest and Theme Color -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#1e293b" />
+    <link rel="apple-touch-icon" href="icon-192x192.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -32,7 +37,9 @@
           <div class="card-icon">📁</div>
           <div class="card-content">
             <h3>Master Data Base</h3>
-            <p>Access and manage core company records during the entire working period.</p>
+            <p>
+              Access and manage core company records during the entire period.
+            </p>
           </div>
         </a>
 
@@ -52,11 +59,27 @@
           </div>
         </a>
 
+        <a href="./Timesheet/blank.html" class="action-card">
+          <div class="card-icon">⏳</div>
+          <div class="card-content">
+            <h3>Pending Logsheets</h3>
+            <p>Track and manage logsheets awaiting approval or completion.</p>
+          </div>
+        </a>
+
         <a href="./Timesheet/entry.html" class="action-card">
           <div class="card-icon">⚡</div>
           <div class="card-content">
             <h3>Live Grid Entry</h3>
             <p>Enter and update live data directly into the grid system.</p>
+          </div>
+        </a>
+
+        <a href="./Billing/index.html" class="action-card">
+          <div class="card-icon">🤝</div>
+          <div class="card-content">
+            <h3>Vendor Timesheet</h3>
+            <p>Manage and process Vendor timesheets for Vendors payment.</p>
           </div>
         </a>
 
@@ -75,7 +98,22 @@
             <p>Generate, View, Print Individual or Bulk Timesheet Cards.</p>
           </div>
         </a>
-          
+
+        <a href="./Master_Data_Base/log/index.html" class="action-card">
+          <div class="card-icon">📜</div>
+          <div class="card-content">
+            <h3>Master D B Log</h3>
+            <p>Review the history and change logs for the master database.</p>
+          </div>
+        </a>
+
+        <a href="./Master_Data_Base/backup.html" class="action-card">
+          <div class="card-icon">💾</div>
+          <div class="card-content">
+            <h3>SQL Backup</h3>
+            <p>Securely create, manage, and restore database backups.</p>
+          </div>
+        </a>
 
         <a href="./invoice_data/report.html" class="action-card">
           <div class="card-icon">🧾</div>
@@ -85,46 +123,60 @@
           </div>
         </a>
 
-        <a href="./Billing/index.html" class="action-card">
-          <div class="card-icon">🤝</div>
-          <div class="card-content">
-            <h3>Vendor Timesheet</h3>
-            <p>Manage and process Vendor timesheets for Vendors payment.</p>
-          </div>
-        </a>
-
-        <a href="./Timesheet/blank.html" class="action-card">
-          <div class="card-icon">⏳</div>
-          <div class="card-content">
-            <h3>Pending Logsheets</h3>
-            <p>Track and manage logsheets awaiting approval or completion.</p>
-          </div>
-        </a>
-
-        <a href="./Master_Data_Base/log/index.html" class="action-card">
-          <div class="card-icon">📜</div>
-          <div class="card-content">
-            <h3>Master Data Base Log</h3>
-            <p>Review the history and change logs for the master database.</p>
-          </div>
-        </a>
-
-        <a href="./Master_Data_Base/backup.html" class="action-card">
-          <div class="card-icon">💾</div>
-          <div class="card-content">
-            <h3>Database Backup</h3>
-            <p>Securely create, manage, and restore database backups.</p>
-          </div>
-        </a>
-
         <a href="./KLM/index.html" class="action-card">
           <div class="card-icon">🏢</div>
           <div class="card-content">
             <h3>KLM Branch Office</h3>
-            <p>Access KLM Branch office specific portals and operational data.</p>
+            <p>
+              Access KLM Branch office specific portals and operational data.
+            </p>
           </div>
         </a>
+
+        <a href="Own_Equipment_Tracker/" class="action-card">
+          <div class="card-icon">🚛</div>
+          <div class="card-content">
+            <h3>Own EQ Tracker</h3>
+            <p>
+              Track maintenance costs, operational expenses, and total revenue.
+            </p>
+          </div>
+        </a>
+
+        <a href="Employee_Tracker/" class="action-card">
+          <div class="card-icon">👥</div>
+          <div class="card-content">
+            <h3>Emp Tracker</h3>
+            <p>
+              Overall Employee Tracker to manage employee Data.
+            </p>
+          </div>
+        </a>
+
+        <a href="./vat_tracking/" class="action-card">
+          <div class="card-icon">📑</div>
+          <div class="card-content">
+            <h3>Track VAT Bills</h3>
+            <p>To Manage & Record Vat Bills, Amount.</p>
+          </div>
+          </a>
       </div>
     </main>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("./sw.js")
+            .then((registration) => {
+              console.log("Service Worker registered successfully");
+            })
+            .catch((error) => {
+              console.error("Service Worker registration failed:", error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
