@@ -79,6 +79,7 @@
         <div class="nav-tools">
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="bulkEditBtn" class="btn-success" onclick="toggleBulkEdit()">Bulk Edit</button>
+                <button id="cancelBulkBtn" class="btn-success" onclick="cancelBulkEdit()" style="display: none; background: #ef4444;">Cancel</button>
             </div>
 
             <div style="display: flex; align-items: center; gap: 5px;">
@@ -321,19 +322,38 @@
 
         // Bulk Edit Logic
         function toggleBulkEdit() {
-            if (document.activeElement && document.activeElement.classList.contains('edit-input')) {
+            if (document.activeElement && document.activeElement.isContentEditable) {
                 document.activeElement.blur();
             }
 
             isBulkMode = !isBulkMode;
             const btn = document.getElementById("bulkEditBtn");
+            const cancelBtn = document.getElementById("cancelBulkBtn");
+
             if (isBulkMode) {
                 btn.innerText = "💾 Save Changes";
                 btn.style.background = "#eab308";
+                cancelBtn.style.display = "inline-block";
                 showStatus("Bulk Edit ON (Single Click)", "saving");
             } else {
                 saveBulkChanges();
             }
+        }
+
+        function cancelBulkEdit() {
+            if (document.activeElement && document.activeElement.isContentEditable) {
+                document.activeElement.blur();
+            }
+            
+            isBulkMode = false;
+            pendingChanges = []; // Clear unsaved changes
+            
+            document.getElementById("bulkEditBtn").innerText = "Bulk Edit";
+            document.getElementById("bulkEditBtn").style.background = "#10b981";
+            document.getElementById("cancelBulkBtn").style.display = "none";
+            
+            showStatus("Changes Cancelled", "error");
+            fetchData(); // Fetch fresh original data from the server to wipe out unsaved local changes
         }
 
         /* Filter Menu Logic */
@@ -435,16 +455,36 @@
 
         /* Edit and Save Logic */
         function editCell(td, field, company, supplier, vat_no, display_name, site_name, month_index) {
-            if (td.querySelector("input") || td.classList.contains("inactive-cell")) return; 
+            if (td.classList.contains("inactive-cell")) return; 
             const span = td.querySelector("span");
-            const currentValue = span.innerText.trim();
-            td.innerHTML = `<input type="text" class="edit-input" value="${escapeHTML(currentValue)}" placeholder="${field === 'status' ? 'Enter Status' : ''}">`;
-            const input = td.querySelector("input");
-            input.focus();
-            input.selectionStart = input.selectionEnd = input.value.length;
+            if (span.isContentEditable) return; // Prevent re-triggering if already editing
 
-            input.onblur = async function() {
-                let newValue = this.value.trim();
+            const currentValue = span.innerText.trim();
+            
+            // Make span directly editable without injecting <input>
+            span.contentEditable = "true";
+            span.style.outline = "none"; 
+            span.style.background = "transparent";
+            span.style.display = "inline-block";
+            span.style.minWidth = "50px";
+            span.focus();
+
+            // Set cursor to the end of the text
+            let range = document.createRange();
+            let sel = window.getSelection();
+            if(span.childNodes.length > 0) {
+                range.setStart(span.childNodes[0], span.innerText.length);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+
+            span.onblur = async function() {
+                span.contentEditable = "false";
+                span.style.outline = "none";
+                span.style.background = "transparent";
+
+                let newValue = this.innerText.trim();
 
                 // 🟢 Excel-like Math Calculation (Amount കോളത്തിന് മാത്രം)
                 if (field === 'amount' && newValue !== "") {
@@ -466,7 +506,7 @@
                     }
                 }
 
-                td.innerHTML = `<span class="editable">${escapeHTML(newValue)}</span>`;
+                this.innerText = newValue; // Math calculation കഴിഞ്ഞുള്ള വാല്യൂ span-ൽ തിരികെ സെറ്റ് ചെയ്യുന്നു
                 
                 if (newValue !== currentValue) {
                     const grp = rawData.find(g => g.company === company && g.supplier === supplier);
@@ -489,7 +529,14 @@
                     }
                 }
             };
-            input.onkeydown = function(e) { if (e.key === "Enter") this.blur(); }
+
+            // Enter അടിച്ചാൽ എഡിറ്റിംഗ് സേവ് ആവാൻ വേണ്ടി
+            span.onkeydown = function(e) { 
+                if (e.key === "Enter") {
+                    e.preventDefault(); 
+                    this.blur(); 
+                }
+            }
         }
 
         async function saveCell(company, supplier, vat_no, display_name, site_name, month_index, field, value) {
@@ -510,6 +557,7 @@
             if (pendingChanges.length === 0) {
                 document.getElementById("bulkEditBtn").innerText = "Bulk Edit";
                 document.getElementById("bulkEditBtn").style.background = "#10b981";
+                document.getElementById("cancelBulkBtn").style.display = "none";
                 showStatus("No changes to save", "saved");
                 return;
             }
@@ -532,6 +580,7 @@
 
             document.getElementById("bulkEditBtn").innerText = "Bulk Edit";
             document.getElementById("bulkEditBtn").style.background = "#10b981";
+            document.getElementById("cancelBulkBtn").style.display = "none";
             renderTable(); 
         }
 
