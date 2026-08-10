@@ -1,7 +1,22 @@
 const express = require("express");
 const pool = require("../config/db");
-const { verifyToken, verifyEditor } = require("../middlewares/auth");
 const router = express.Router();
+
+// Custom Middleware to verify VAT code from .env
+const verifyVatCode = (req, res, next) => {
+    const clientCode = req.headers['x-vat-code'];
+    const serverCode = process.env.VAT_TRACKER_CODE;
+    
+    if (!serverCode) {
+        return res.status(500).json({ success: false, message: "Server configuration error: VAT_TRACKER_CODE not set" });
+    }
+    
+    if (clientCode === serverCode) {
+        next();
+    } else {
+        res.status(401).json({ success: false, message: "Invalid Access Code" });
+    }
+};
 
 // Helper to determine company from site name
 function getCompanyFromSite(siteName) {
@@ -14,7 +29,7 @@ function getCompanyFromSite(siteName) {
 }
 
 // GET DATA for VAT Tracking
-router.get("/data", verifyToken, async (req, res) => {
+router.get("/data", verifyVatCode, async (req, res) => {
     try {
         const { year } = req.query;
         if (!year) throw new Error("Year is required");
@@ -169,7 +184,7 @@ router.get("/data", verifyToken, async (req, res) => {
 
 
 // UPSERT Single Billing Cell
-router.post("/update-cell", verifyEditor, async (req, res) => {
+router.post("/update-cell", verifyVatCode, async (req, res) => {
     try {
         const { year, company, supplier, vat_no, display_name, site_name, month_index, field, value } = req.body;
         
@@ -199,7 +214,7 @@ router.post("/update-cell", verifyEditor, async (req, res) => {
 
 
 // NEW API FOR BULK SAVE
-router.post("/update-bulk", verifyEditor, async (req, res) => {
+router.post("/update-bulk", verifyVatCode, async (req, res) => {
     try {
         const { changes } = req.body;
         if (!changes || !Array.isArray(changes)) throw new Error("Invalid payload");

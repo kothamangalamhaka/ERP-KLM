@@ -46,12 +46,32 @@
         .status-saving { color: #f59e0b; }
         .status-saved { color: #10b981; }
         .status-error { color: #ef4444; }
+        
+        /* Login Modal Styles */
+        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 32, 39, 0.95); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; width: 300px; }
+        .login-box h2 { margin-top: 0; color: #0f2027; }
+        .login-box input { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 14px; text-align: center;}
+        .login-box button { width: 100%; background: #10b981; color: white; border: none; padding: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 15px; }
+        .login-box button:hover { background: #059669; }
+        #loginError { color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none; }
     </style>
 </head>
 <body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-overlay">
+        <div class="login-box">
+            <h2>VAT Tracking Access</h2>
+            <p style="font-size: 12px; color: #64748b;">Please enter the secure access code.</p>
+            <input type="password" id="vatAccessCode" placeholder="Enter Access Code" onkeydown="if(event.key === 'Enter') verifyLogin()">
+            <div id="loginError">Invalid Access Code. Try again.</div>
+            <button onclick="verifyLogin()">Unlock</button>
+        </div>
+    </div>
+
     <div class="navbar">
         <div style="display:flex; align-items:center;">
-            <a href="../Timesheet/Timesheet.html" style="color:white; text-decoration:none; margin-right: 15px; font-size: 20px;">🔙</a>
+            <a href="javascript:history.back()" style="color:white; text-decoration:none; margin-right: 15px; font-size: 20px;">🔙</a>
             <span style="font-size: 18px; font-weight: 600; white-space: nowrap;">VAT Billing & Tracking</span>
             <span id="saveStatus"></span>
         </div>
@@ -113,8 +133,32 @@
     </div>
 
     <script>
-        const token = localStorage.getItem("timesheetToken");
-        if (!token) window.location.href = "../index.html";
+        let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
+
+        // Login Check
+        if (vatCode) {
+            document.getElementById("loginModal").style.display = "none";
+            fetchData();
+        }
+
+        function verifyLogin() {
+            const inputCode = document.getElementById("vatAccessCode").value.trim();
+            if(!inputCode) return;
+            vatCode = inputCode;
+            sessionStorage.setItem("vatTrackerCode", vatCode);
+            document.getElementById("loginError").style.display = "none";
+            document.getElementById("loginModal").style.display = "none";
+            fetchData();
+        }
+
+        function triggerLoginError() {
+            sessionStorage.removeItem("vatTrackerCode");
+            vatCode = "";
+            document.getElementById("loginModal").style.display = "flex";
+            document.getElementById("loginError").style.display = "block";
+            document.getElementById("vatAccessCode").value = "";
+            document.getElementById("vatAccessCode").focus();
+        }
 
         const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         let rawData = [];
@@ -133,8 +177,9 @@
             document.getElementById("tableBody").innerHTML = '<tr><td colspan="20">Loading...</td></tr>';
             try {
                 const res = await fetch(`/timesheet/api/vat-tracking/data?year=${currentYear}`, {
-                    headers: { "Authorization": "Bearer " + token }
+                    headers: { "x-vat-code": vatCode }
                 });
+                if (res.status === 401) return triggerLoginError();
                 const json = await res.json();
                 if (json.success) {
                     rawData = json.data;
@@ -451,9 +496,10 @@
             showStatus("Saving...", "saving");
             try {
                 const res = await fetch(`/timesheet/api/vat-tracking/update-cell`, {
-                    method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                    method: "POST", headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
                     body: JSON.stringify({ year: currentYear, company, supplier, vat_no, display_name, site_name, month_index, field, value })
                 });
+                if (res.status === 401) return triggerLoginError();
                 const json = await res.json();
                 if (json.success) showStatus("✓ Saved", "saved");
                 else showStatus("Error", "error");
@@ -471,9 +517,10 @@
             showStatus("Saving bulk changes...", "saving");
             try {
                 const res = await fetch(`/timesheet/api/vat-tracking/update-bulk`, {
-                    method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                    method: "POST", headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
                     body: JSON.stringify({ changes: pendingChanges })
                 });
+                if (res.status === 401) return triggerLoginError();
                 const json = await res.json();
                 if (json.success) {
                     showStatus("✓ Bulk Saved", "saved");
