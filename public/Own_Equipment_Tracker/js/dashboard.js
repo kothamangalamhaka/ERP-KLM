@@ -250,13 +250,13 @@ async function saveInlineData() {
       });
 
       await loadDashboardData();
-      alert("All changes successfully updated via Python Engine!");
+      showToast("All changes successfully updated..!", "success");
     } else {
-      alert("Save failed: " + (result.detail || result.message || "Unknown error"));
+      showToast("Save failed: " + (result.detail || result.message || "Unknown error"), "error");
     }
   } catch (err) {
     console.error("Inline Save Error:", err);
-    alert("Error communicating with Python Server.");
+    showToast("Error communicating with Server.", "error");
   }
 }
 function populateEquipmentDropdown() {
@@ -292,7 +292,10 @@ async function saveEquipment() {
   if (res.ok) {
     closeModal("equipmentModal");
     loadDashboardData();
-  } else alert("Failed.");
+    showToast("Equipment added successfully!", "success");
+  } else {
+    showToast("Failed to add equipment.", "error");
+  }
 }
 
 // 🟢 OPEN EDIT COST MODAL
@@ -399,8 +402,9 @@ async function saveMonthlyData() {
   if (success) {
     closeModal("dataModal");
     loadDashboardData();
+    showToast("Monthly data saved successfully!", "success");
   } else {
-    alert("Failed to save.");
+    showToast("Failed to save data.", "error");
   }
 }
 
@@ -414,8 +418,9 @@ async function saveAndAddNew() {
     
     if (currIndex < eqSelect.options.length - 1) {
       nextVal = eqSelect.options[currIndex + 1].value;
+      showToast("Data saved. Moving to next equipment.", "success");
     } else {
-      alert("Saved! This was the last equipment in the list.");
+      showToast("Saved! This was the last equipment in the list.", "success");
     }
     
     await loadDashboardData(); 
@@ -424,7 +429,7 @@ async function saveAndAddNew() {
     populateModalFields();
     
   } else {
-    alert("Failed to save.");
+    showToast("Failed to save data.", "error");
   }
 }
 
