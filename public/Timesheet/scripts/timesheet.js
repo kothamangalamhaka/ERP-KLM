@@ -972,6 +972,20 @@ document.addEventListener("click", function (e) {
 // ==========================================
 function openLockModal() {
     document.getElementById("entryLockModal").style.display = "flex";
+    
+    // Calculate exactly 2 months back from the current date
+    const targetDate = new Date();
+    targetDate.setMonth(targetDate.getMonth() - 2);
+    
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June", 
+        "July", "August", "September", "October", "November", "December"
+    ];
+    
+    // Set the dynamic month and year to the modal inputs
+    document.getElementById("lockMonth").value = monthNames[targetDate.getMonth()];
+    document.getElementById("lockYear").value = targetDate.getFullYear();
+    
     fetchLockStatus();
 }
 
