@@ -34,6 +34,12 @@ app.include_router(payment_router)
 from routers.payment_export_py import router as payment_export_router
 app.include_router(payment_export_router)
 
+# Import the new router
+from routers import we1_own_eq_data_base
+
+# Include it in your FastAPI app (usually after creating app = FastAPI())
+app.include_router(we1_own_eq_data_base.router)
+
 class ExportRequest(BaseModel):
     headers: list
     rows: list

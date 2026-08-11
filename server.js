@@ -19,6 +19,7 @@ const excelJS = require("exceljs");
 const fetch = require("node-fetch");
 const compression = require("compression");
 const backupRoutes = require("./routes/backup");
+const we1OwnEqRoutes = require("./routes/We1OwnEq");
 
 // Routes
 const billingRoutes = require("./routes/billing");
@@ -70,7 +71,7 @@ app.use('/api/employee-tracker/auth', employeeTrackerAuthRoutes);
 app.use('/api/employee-tracker/admin', employeeTrackerAdminRoutes);
 app.use('/api/employee-tracker', employeeTrackerRoutes);
 app.use("/api/view-bill", viewBillRoutes);
-
+app.use("/api/we1-own-eq", we1OwnEqRoutes);
 
 // ==========================================
 // 🐍 PYTHON ENGINE PROXY (Port 8001 Forwarder)
