@@ -2716,8 +2716,11 @@ function attachEditListeners() {
         let v = $input.val();
         $input.val("");
         $input.val(v);
-        if ($input.is("textarea"))
-          $input.css("height", $input[0].scrollHeight + "px");
+        if ($input.is("textarea")) {
+          $input.css("height", Math.max($cell.outerHeight(), $input[0].scrollHeight) + "px");
+        } else {
+          $input.css("height", $cell.outerHeight() + "px"); /* Forces exact Excel height matching */
+        }
       }
 
       $input.on("keydown", function (e) {

@@ -781,15 +781,32 @@ body.dark-mode table.DTCR_clonedTable.dataTable {
 }
 
 .edit-input {
-  width: 100%;
-  min-width: 100px;
-  padding: 4px;
-  border: 1px solid var(--primary);
-  border-radius: 3px;
+  width: calc(100% + 20px); /* Expands to cover padding */
+  margin: -8px -10px; /* Pulls input to the absolute edges of the td */
+  padding: 6px 10px;
+  border: 0.1px solid var(--primary); /* Excel-like solid outer border */
+  border-radius: 0;
   font-family: inherit;
   font-size: 13px;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+  background: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Deep shadow for floating effect */
+  position: relative;
+  z-index: 50; /* Brings it above other cells */
+}
+
+/* For Select/Dropdown to look flush */
+select.edit-input {
+  width: calc(100% + 20px) !important;
+  cursor: pointer;
+}
+
+/* Dark mode adjustment for the new Excel-style input */
+body.dark-mode .edit-input {
+  background: #1e293b;
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
 }
 
 .mobile-tools-btn {
