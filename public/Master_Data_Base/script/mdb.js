@@ -254,8 +254,10 @@ resetInactivityTimer();
 
 window.addEventListener("beforeunload", function (e) {
   if (saveQueue.length > 0) {
-    const confirmationMessage =
-      "You have unsaved changes. Are you sure you want to leave? Data may be lost.";
+    clearTimeout(editDebounceTimer);
+    processQueue(); 
+
+    const confirmationMessage = "Data is saving in background. Leave site?";
     e.returnValue = confirmationMessage;
     return confirmationMessage;
   }
@@ -301,6 +303,7 @@ let DYNAMIC_COMPANIES = ["Haka", "Aljoda", "Masar Wheels", "We1"];
 let globalNextSN = 1,
   saveQueue = [],
   isProcessingQueue = false,
+  editDebounceTimer = null, 
   activeFilters = {},
   currentFilterColName = "";
 let globalLockedCols = [],
@@ -2520,6 +2523,7 @@ async function processQueue() {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ edits: currentBatch }),
+      keepalive: true 
     });
     const data = await res.json();
     isProcessingQueue = false;
@@ -2588,6 +2592,72 @@ function applyHistoricalState(dbId, colName, value) {
   saveQueue.push({ dbId: dbId, colName: colName, newValue: value });
   processQueue();
 }
+
+/* --- NEW CODE --- */
+// 🟢 INSTANT FRONT-END CALCULATION ENGINE
+function autoCalculateRow(dbId) {
+    let $row = $(`#erpTable tbody tr[data-sheetrow="${dbId}"]`);
+    if (!$row.length) return;
+
+    let getVal = (headerMatch) => {
+        let colIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, "").toUpperCase().includes(headerMatch.replace(/\s+/g, "").toUpperCase()));
+        if (colIdx === -1) return "";
+        return $row.find(`td[data-colname="${cachedHeaders[colIdx]}"]`).text().trim();
+    };
+
+    let setVal = (headerMatch, val) => {
+        let colIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, "").toUpperCase().includes(headerMatch.replace(/\s+/g, "").toUpperCase()));
+        if (colIdx === -1) return;
+        let colName = cachedHeaders[colIdx];
+        let $td = $row.find(`td[data-colname="${colName}"]`);
+        let oldVal = $td.text().trim();
+        
+        if (oldVal !== String(val)) {
+            $td.text(val);
+            if (erpDataTable) erpDataTable.cell($td[0]).data(val);
+            
+            let plateIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER"));
+            let plateNo = plateIdx !== -1 ? $row.find("td").eq(plateIdx).text().trim() : "N/A";
+            
+            // Queue for instant backend sync
+            saveQueue.push({
+                dbId: dbId,
+                colName: colName,
+                newValue: String(val),
+                plate: plateNo
+            });
+        }
+    };
+
+    let wsVal = getVal("WORKSTART");
+    let lwdVal = getVal("LASTWORKINGDAY");
+    let statusVal = getVal("STATUS").toLowerCase();
+    let mobVal = getVal("EQUIPMENTREACHED");
+
+    if (mobVal && !wsVal) {
+        setVal("WORKSTART", mobVal);
+        wsVal = mobVal;
+    }
+
+    if (wsVal && lwdVal) {
+        let d1 = parseDateStr(wsVal);
+        let d2 = parseDateStr(lwdVal);
+        if (d1 && d2 && !isNaN(d1) && !isNaN(d2)) {
+            let diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+            if (diffDays > 0) {
+                setVal("DAYSWORKED", diffDays);
+            }
+        }
+    }
+
+    if (statusVal === "released" && lwdVal) {
+        if (!getVal("RELEASEDATE")) setVal("RELEASEDATE", lwdVal);
+    }
+    if (statusVal === "replaced" && lwdVal) {
+        if (!getVal("REPLACEDDATE")) setVal("REPLACEDDATE", lwdVal);
+    }
+}
+
 
 function attachEditListeners() {
   $("#erpTable tbody")
@@ -2776,8 +2846,10 @@ function attachEditListeners() {
               else if (direction === "LEFT")
                 $nextCell = getValidHorizontalCell($cell, "LEFT");
               $(this).blur();
-              if ($nextCell && $nextCell.length)
-                setTimeout(() => $nextCell.dblclick(), 50);
+              if ($nextCell && $nextCell.length) {
+                // 🟢 10X SPEEDUP: Zero-lag instant cell switch without blocking UI
+                requestAnimationFrame(() => $nextCell.trigger("dblclick"));
+              }
             }
           }
         }
@@ -2788,9 +2860,16 @@ function attachEditListeners() {
         if (isDateCol && newVal) newVal = formatToDDMMMYYYY(newVal);
         else if (colUpper === "PLATE NUMBER")
           newVal = formatPlateNumber(newVal);
+          
+        // editing-cell എന്ന ക്ലാസ്സ് കളഞ്ഞ് സെൽ പഴയപടിയാക്കുന്നു
+        $cell.removeClass("editing-cell").css({ "height": "", "width": "", "min-width": "" });
+        
         $cell.text(newVal);
-        erpDataTable.cell($cell[0]).data(newVal);
+        
+        // 🟢 10X SPEEDUP: Update Memory & Backend ONLY if value actually changed
         if (newVal !== oldVal) {
+          erpDataTable.cell($cell[0]).data(newVal); // Fast Memory Update
+          
           undoStack.push({
             sheetRow: sheetRow,
             colName: colName,
@@ -2801,7 +2880,6 @@ function attachEditListeners() {
           redoStack = [];
           updateUndoRedoUI();
 
-          // 🟢 NEW CODE: Extract Plate Number from the row so Telegram always gets it
           let plateIdxInTable = cachedHeaders.findIndex(
             (h) => h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER")
           );
@@ -2813,9 +2891,17 @@ function attachEditListeners() {
             dbId: sheetRow,
             colName: colName,
             newValue: newVal,
-            plate: rowPlateNo // 🟢 Passing Plate Number explicitly
+            plate: rowPlateNo 
           });
-          processQueue();
+          
+          // INSTANTLY CALCULATE DEPENDENT FIELDS ON EDIT
+          autoCalculateRow(sheetRow);
+          
+          // 🟢 10X SPEEDUP: Debounce network calls. Wait 800ms before sending batch to server
+          clearTimeout(editDebounceTimer);
+          editDebounceTimer = setTimeout(() => {
+              processQueue();
+          }, 800);
         }
       });
     });
@@ -2970,16 +3056,8 @@ $(document).on(
     if (undoStack.length > 50) undoStack = undoStack.slice(-50);
     updateUndoRedoUI();
 
-    // അപ്ഡേറ്റുകൾ ഉണ്ടെങ്കിൽ അവ സേവ് ചെയ്യുന്നു
-    if (bulkEditsBatch.length > 0) {
-      updatedRowIndexes.forEach((rIdx) => {
-        erpDataTable.row(rIdx).invalidate("data");
-      });
-      erpDataTable.draw(false);
-
-      saveQueue.push(...bulkEditsBatch);
-      processQueue();
-    }
+    if (undoStack.length > 50) undoStack = undoStack.slice(-50);
+    updateUndoRedoUI();
 
     // 🟢 പുതിയ വരികൾ ഉണ്ടെങ്കിൽ ബാക്കെൻഡിലേക്ക് അയച്ചു ചേർക്കുന്നു
     if (newRowsToCreate.length > 0) {
@@ -3001,37 +3079,37 @@ $(document).on(
             showToast("Error creating new rows", "error");
           }
         });
-    } else if (bulkEditsBatch.length > 0) {
-      showToast(
-        `Pasted ${bulkEditsBatch.length} cells instantly! Syncing to DB...`,
-        "success",
-      );
-    } else {
-      showToast("No valid changes detected in paste.", "info");
     }
 
-    if (undoStack.length > 50) undoStack = undoStack.slice(-50);
-    updateUndoRedoUI();
-
+    // നിലവിലുള്ള വരികളിൽ അപ്ഡേറ്റുകൾ ഉണ്ടെങ്കിൽ അവ സേവ് ചെയ്യുന്നു
     if (bulkEditsBatch.length > 0) {
-      // Invalidate and redraw ONLY the modified rows in a single batch
+      saveQueue.push(...bulkEditsBatch);
+      
       updatedRowIndexes.forEach((rIdx) => {
+        let dbId = erpDataTable.row(rIdx).node().getAttribute("data-sheetrow");
+        // 🟢 AUTO-CALCULATE PASTED ROWS INSTANTLY
+        autoCalculateRow(dbId);
         erpDataTable.row(rIdx).invalidate("data");
       });
+      
       erpDataTable.draw(false);
-
-      saveQueue.push(...bulkEditsBatch);
       processQueue();
-
-      showToast(
-        `Pasted ${bulkEditsBatch.length} cells instantly! Syncing to DB...`,
-        "success",
-      );
-    } else {
+      
+      showToast(`Pasted ${bulkEditsBatch.length} cells instantly! Syncing to DB...`, "success");
+    } else if (newRowsToCreate.length === 0) {
       showToast("No valid changes detected in paste.", "info");
     }
   },
 );
+
+document.addEventListener("visibilitychange", function() {
+  if (document.visibilityState === "hidden") {
+    if (saveQueue.length > 0) {
+      clearTimeout(editDebounceTimer); // Cancels the 800ms wait
+      processQueue(); // Forces immediate save
+    }
+  }
+});
 
 // 🟢 Helper for Add New Company in Modal
 function handleModalCompanyChange(selectEl) {

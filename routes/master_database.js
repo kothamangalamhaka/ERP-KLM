@@ -791,8 +791,9 @@ module.exports = function (pool, middlewares, helpers) {
         return res.json({ success: false, message: "No edits provided." });
       }
 
-      // 🟢 NEW CODE: ടെലഗ്രാം അലേർട്ടിനായി പഴയ വാല്യൂവും പ്ലേറ്റ് നമ്പറും വേഗത്തിൽ എടുക്കുന്നു
       let changeLogs = [];
+      let additionalEdits = []; // 🟢 കാൽക്കുലേറ്റ് ചെയ്യുന്ന പുതിയ ഡാറ്റ സൂക്ഷിക്കാൻ
+
       for (let edit of edits) {
         let { dbId, colName, newValue, plate } = edit;
         const recordRes = await client.query(
@@ -813,8 +814,25 @@ module.exports = function (pool, middlewares, helpers) {
               newVal: rawNewVal !== "" ? rawNewVal : "(Blank)",
             });
           }
+
+          // 🟢 FIX: പൈത്തണിലേക്ക് അയക്കുന്നതിന് മുൻപ് Node.js-ൽ വെച്ച് തന്നെ Days Worked കാൽക്കുലേറ്റ് ചെയ്യുന്നു
+          let simulatedRow = { ...currentData, [colName]: newValue };
+          let calculatedUpdates = calculateDependentFields(simulatedRow);
+          
+          for (let calcCol in calculatedUpdates) {
+             if (calculatedUpdates[calcCol] !== currentData[calcCol]) {
+                additionalEdits.push({
+                   dbId: dbId,
+                   colName: calcCol,
+                   newValue: calculatedUpdates[calcCol]
+                });
+             }
+          }
         }
       }
+
+      // 🟢 കാൽക്കുലേറ്റ് ചെയ്ത Days Worked ഉൾപ്പെടെയുള്ള പുതിയ ഡാറ്റ കൂടി മെയിൻ എഡിറ്റ് ലിസ്റ്റിലേക്ക് ചേർക്കുന്നു
+      edits.push(...additionalEdits);
 
       // Forwarding batch edits to Python Engine (Port 8001)
       const pyResponse = await axios.post(
