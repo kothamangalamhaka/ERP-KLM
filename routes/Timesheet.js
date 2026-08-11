@@ -852,14 +852,17 @@ router.post("/api/upsert-grid-cell", verifyEditor, async (req, res) => {
     if (!allowedCols.includes(col_name))
       return res.json({ success: false, message: "Invalid column parameter" });
 
+    const username = req.user.username; // Extracting user from token via verifyEditor
+
 const query = `
-            INSERT INTO timesheet_daily_records (month, year, plate_no, record_date, "${col_name}", calc_distance, calc_time) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7) 
+            INSERT INTO timesheet_daily_records (month, year, plate_no, record_date, "${col_name}", calc_distance, calc_time, modified_by) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
             ON CONFLICT (month, year, plate_no, record_date) 
             DO UPDATE SET 
                 "${col_name}" = EXCLUDED."${col_name}", 
                 calc_distance = EXCLUDED.calc_distance, 
                 calc_time = EXCLUDED.calc_time, 
+                modified_by = EXCLUDED.modified_by,
                 updated_at = CURRENT_TIMESTAMP
         `;
     await pool.query(query, [
@@ -870,6 +873,7 @@ const query = `
       col_value,
       calc_distance,
       calc_time,
+      username
     ]);
     res.json({ success: true });
   } catch (error) {
@@ -890,6 +894,8 @@ router.post("/api/bulk-import", verifyEditor, async (req, res) => {
     }
 
     await client.query("BEGIN");
+    
+    const username = req.user.username; // Extracting user from token via verifyEditor
 
     // Batch Processing Logic to speed up large imports (reduces overhead)
     for (let i = 0; i < records.length; i += 1000) {
@@ -898,8 +904,8 @@ router.post("/api/bulk-import", verifyEditor, async (req, res) => {
         await client.query(
           `
                     INSERT INTO timesheet_daily_records 
-                    (month, year, plate_no, record_date, wrk_start, wrk_end, hmr_start, hmr_end, fuel, bd, remark, nl_checked, calc_distance, calc_time) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+                    (month, year, plate_no, record_date, wrk_start, wrk_end, hmr_start, hmr_end, fuel, bd, remark, nl_checked, calc_distance, calc_time, modified_by) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
                     ON CONFLICT (month, year, plate_no, record_date) 
                     DO UPDATE SET 
                         wrk_start = EXCLUDED.wrk_start, 
@@ -912,6 +918,7 @@ router.post("/api/bulk-import", verifyEditor, async (req, res) => {
                         nl_checked = EXCLUDED.nl_checked, 
                         calc_distance = EXCLUDED.calc_distance, 
                         calc_time = EXCLUDED.calc_time, 
+                        modified_by = EXCLUDED.modified_by,
                         updated_at = CURRENT_TIMESTAMP
                 `,
           [
@@ -929,6 +936,7 @@ router.post("/api/bulk-import", verifyEditor, async (req, res) => {
             row.nl_checked,
             row.calc_distance,
             row.calc_time,
+            username
           ],
         );
       }

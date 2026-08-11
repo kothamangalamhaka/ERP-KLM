@@ -75,7 +75,7 @@ body {
 
 .container {
   padding: 15px;
-  max-width: 1500px;
+  max-width: 1617px; 
   margin: 0 auto;
   box-sizing: border-box;
   transition: padding-right 0.3s ease, max-width 0.3s ease;
@@ -188,7 +188,7 @@ textarea:focus {
 .table-center-wrapper {
   flex: 1;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start; /* center മാറി flex-start ആക്കി */
   min-width: 0;
 }
 
@@ -1047,11 +1047,14 @@ body.logsheet-open #tableCenterWrapper {
 }
 
 /* 🟢 Shrink Remark Column when Logsheet is open */
-body.logsheet-open #gridTable col:last-child {
+body.logsheet-open #gridTable col:nth-last-child(2) {
+  width: 50px !important;
+}
+body.logsheet-open #gridTable th:nth-last-child(2) {
   width: 50px !important;
 }
 body.logsheet-open #gridTable th:last-child {
-  width: 50px !important;
+  width: 50px !important; /* Modified By കോളം കൂടെ ചെറുതാക്കാൻ */
 }
 
 /* 🟢 Style for the new Logsheet width drag handle */

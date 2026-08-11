@@ -825,6 +825,7 @@ function renderGrid(
       <td><input type="text" class="grid-readonly" id="dist_${i}" value="${dbDist}" tabindex="-1" readonly></td>
       <td><input type="text" class="grid-readonly" id="time_${i}" value="${cleanVal(rowData.calc_time)}" tabindex="-1" readonly></td>
       <td><textarea class="grid-input" data-col="remark" data-row="${i}">${rowRemark}</textarea></td>
+      <td><input type="text" class="grid-readonly" id="mod_${i}" value="${cleanVal(rowData.modified_by)}" tabindex="-1" readonly style="font-size: 11px; color: #64748b; background: transparent; text-transform: capitalize;"></td>
     `;
     tbody.appendChild(tr);
   }
@@ -965,23 +966,38 @@ function attachGridEvents() {
       });
     }
 
+    // 🟢 പുതിയ മാറ്റം: ഫോക്കസ് ചെയ്യുമ്പോൾ നിലവിലുള്ള വാല്യൂ സേവ് ചെയ്തു വെക്കുന്നു
+    input.addEventListener("focus", function () {
+      this.dataset.oldVal = this.type === "checkbox" ? this.checked : this.value;
+    });
+
     input.addEventListener("blur", function () {
       const row = this.getAttribute("data-row");
       const col = this.getAttribute("data-col");
-      calculateRow(row); 
-      const val = this.type === "checkbox" ? this.checked : this.value; 
-      saveCellData(row, col, val);
-      updateSummaryBox();
+      let currentVal = this.type === "checkbox" ? this.checked : this.value;
+      
+      if (String(this.dataset.oldVal) !== String(currentVal)) {
+        calculateRow(row); 
+        const finalVal = this.type === "checkbox" ? this.checked : this.value; 
+        saveCellData(row, col, finalVal);
+        updateSummaryBox();
+        this.dataset.oldVal = finalVal; 
+      }
     });
 
     if (input.type === "checkbox") {
       input.addEventListener("change", function () {
         const row = this.getAttribute("data-row");
         const col = this.getAttribute("data-col");
-        const val = this.checked;
-        calculateRow(row);
-        saveCellData(row, col, val);
-        updateSummaryBox();
+        let currentVal = this.checked;
+        
+        if (String(this.dataset.oldVal) !== String(currentVal)) {
+          calculateRow(row);
+          const finalVal = this.checked;
+          saveCellData(row, col, finalVal);
+          updateSummaryBox();
+          this.dataset.oldVal = finalVal;
+        }
       });
     }
   });
@@ -1190,6 +1206,15 @@ async function saveCellData(rowIdx, colName, colValue) {
       logout();
       return;
     }
+
+    // Update Modified By column locally right after saving
+    try {
+      const user = JSON.parse(localStorage.getItem("timesheetUser"));
+      if (user && user.username) {
+        const modInput = document.getElementById(`mod_${rowIdx}`);
+        if (modInput) modInput.value = user.username;
+      }
+    } catch (e) {}
 
     clearTimeout(saveTimeout);
     statusLabel.innerText = "✓ Saved";
