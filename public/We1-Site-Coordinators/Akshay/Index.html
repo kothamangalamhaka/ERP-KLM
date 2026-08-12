@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akshay - Dashboard</title>
+    <style>
+        /* Base Styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #061727;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* Container Design */
+        .dashboard-container {
+            background: #000000;
+            padding: 40px 50px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 1200px;
+        }
+
+        .dashboard-container h1 {
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .dashboard-container p {
+            color: #b9e9ec;
+            margin-bottom: 30px;
+            font-size: 15px;
+        }
+
+        /* Flexbox Layout for Centering and Wrapping */
+        .links-grid {
+            display: flex;
+            flex-wrap: wrap; /* Allows cards to drop to the next line */
+            justify-content: center; /* Keeps everything centered */
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        /* Button/Card Base Style (Mobile First: 1 in a row for very small screens) */
+        .btn {
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 25px 10px;
+            border-radius: 12px;
+            font-size: 14px; 
+            font-weight: 600;
+            color: #e4e2e2;
+            transition: all 0.3s ease;
+            text-align: center;
+            box-sizing: border-box;
+            
+            /* വളരെ ചെറിയ സ്ക്രീനുകളിൽ 1 കാർഡ് മാത്രം വരാൻ */
+            width: 100%; 
+            min-height: 130px;
+        }
+
+        .btn span {
+            font-size: 36px; 
+        }
+
+        /* Hover Effect */
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Colors */
+        .btn-water-non { background-color: #1e6fa5; }
+        .btn-water-non:hover { background-color: #2980b9; }
+
+        .btn-water-vat { background-color: #18ac56; }
+        .btn-water-vat:hover { background-color: #27ae60; }
+
+        .btn-delivery { background-color: #c27c0b; }
+        .btn-delivery:hover { background-color: #d68910; }
+
+        /* Responsive Breakpoints */
+
+        /* Standard Mobile (2 in a row) - 400px ന് മുകളിലുള്ള സ്ക്രീനുകൾക്ക് */
+        @media (min-width: 400px) {
+            .btn { 
+                width: calc(50% - 10px); 
+            }
+        }
+
+        /* Tablet (3 in a row) */
+        @media (min-width: 600px) {
+            .btn { 
+                width: calc(33.333% - 14px); 
+                font-size: 15px;
+            }
+        }
+
+        /* Desktop (4 in a row) */
+        @media (min-width: 900px) {
+            .btn { 
+                width: calc(25% - 15px); 
+                font-size: 16px;
+            }
+        }
+
+        /* Large Screen (Max 5 in a row) */
+        @media (min-width: 1200px) {
+            .btn { 
+                width: calc(20% - 16px);
+                max-width: 220px; 
+                height: 145px;
+            }
+        }
+        
+        /* Container padding adjustment for very small mobile screens */
+        @media (max-width: 480px) {
+            .dashboard-container {
+                padding: 30px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <h1>Welcome, Akshay</h1>
+        <p>Please select a document to proceed</p>
+
+        <div class="links-grid">
+            <a href="./Water-bill-non-vat.html" class="btn btn-water-non">
+                <span>💧</span> Water Bill (Non-VAT)
+            </a>
+            
+            <a href="./Water-bill-vat.html" class="btn btn-water-vat">
+                <span>🧾</span> Water Bill (VAT)
+            </a>
+            
+            <a href="./Delivery_note.html" class="btn btn-delivery">
+                <span>🚚</span> Delivery Note
+            </a>
+            
+            <!-- പുതിയ കാർഡുകൾ താഴെ കൂട്ടിച്ചേർക്കാവുന്നതാണ്. അവ തനിയെ ക്രമീകരിക്കപ്പെടും. -->
+        </div>
+    </div>
+
+</body>
+</html>
