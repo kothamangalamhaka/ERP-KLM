@@ -186,6 +186,10 @@
             color: #000000;
         }
 
+        a{
+            text-decoration: none;
+        }
+
         .status-running { color: #1a7f37; font-weight: 600; }
         .status-released { color: #cf222e; font-weight: 600; }
         .status-mobilizing { color: #d97706; font-weight: 600; }
@@ -201,6 +205,10 @@
         <button onclick="openLog('DriverLog')">👤 Driver Log</button>
         <button onclick="openLog('OwnerLog')">📋 Owner Log</button>
         <button onclick="openLog('SanthookLog')">📦 Santhook Log</button>
+
+        <button class="salary" style="background: #f7c111; color: white; border: none; margin-left: 10px;">
+            <a href="EQ_Driver_payroll.html" style="color: rgb(5, 5, 5);">Driver Salary</a>
+        </button>
         <!-- 🟢 Added id="exportBtn" -->
         <button id="exportBtn" style="background: #0969da; color: white; border: none; margin-left: 10px;" onclick="exportToExcel()">📊 Export Excel</button>
         <!-- 🟢 Logout Button -->
@@ -543,15 +551,48 @@
             });
         }
 
-        // 🟢 Change Plate / Next Button Logic
-        function changePlate() {
-            document.getElementById('splitLogModal').style.display = 'none';
+        // 🟢 Change Plate / Next Button Logic (Updated with Auto-Save & Auto-Next)
+        async function changePlate() {
             const currentType = document.getElementById('activeLogType').value;
-            openLog(currentType); // Re-opens the plate selection popup for the same log type
+            const currentPlate = document.getElementById('activeLogPlate').value;
+            
+            // ഫീൽഡുകളിൽ വല്ല ഡാറ്റയും എന്റർ ചെയ്തിട്ടുണ്ടോ എന്ന് പരിശോധിക്കുന്നു
+            let hasData = false;
+            logConfigs[currentType].forEach(f => {
+                if (document.getElementById(f.id).value.trim() !== '') {
+                    hasData = true;
+                }
+            });
+
+            // ഫോമിൽ ഡാറ്റ ഉണ്ടെങ്കിൽ 'Next' അമർത്തുമ്പോൾ ആദ്യം ഡാറ്റ സേവ് ചെയ്യും
+            if (hasData) {
+                const isSaved = await saveLogEntry(true);
+                if (!isSaved) return; // സേവിങ്ങിൽ പ്രശ്നം ഉണ്ടെങ്കിൽ അടുത്തതിലേക്ക് പോകില്ല
+            }
+
+            // ഡ്രോപ്പ്-ഡൗണിലെ ലിസ്റ്റിൽ നിന്നും അടുത്ത പ്ലേറ്റ് കണ്ടുപിടിക്കുന്നു
+            const uniquePlates = [...new Set(globalPlates)];
+            const currentIndex = uniquePlates.indexOf(currentPlate);
+            let nextIndex = currentIndex + 1;
+            
+            // ലിസ്റ്റ് തീർന്നാൽ വീണ്ടും ഒന്നാമത്തെ വണ്ടിയിലേക്ക് തന്നെ പോകും
+            if (nextIndex >= uniquePlates.length) {
+                nextIndex = 0; 
+            }
+
+            const nextPlate = uniquePlates[nextIndex];
+            
+            // പുതിയ പ്ലേറ്റ് ഡീറ്റെയിൽസ് UI-ൽ സെറ്റ് ചെയ്ത് ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നു
+            document.getElementById('activeLogPlate').value = nextPlate;
+            document.getElementById('splitLogTitle').innerText = `📂 ${currentType} - ${nextPlate}`;
+            document.getElementById('editLogId').value = ''; // Reset ID
+            
+            renderLogForm(currentType); 
+            loadLogHistory(currentType, nextPlate); 
         }
 
         // 🟢 6. Save or Update Log
-        async function saveLogEntry() {
+        async function saveLogEntry(isAutoSave = false) {
             const type = document.getElementById('activeLogType').value;
             const plate = document.getElementById('activeLogPlate').value;
             const id = document.getElementById('editLogId').value;
@@ -572,14 +613,21 @@
                 
                 if (responseData.success) {
                     document.getElementById('editLogId').value = ''; // Reset
-                    renderLogForm(type); // Clear form
-                    loadLogHistory(type, plate); // Refresh Table
-                    loadTableData(); // Refresh Main Table in background to sync main status
+                    
+                    // Auto-save വഴി അല്ലാതെ നേരിട്ട് 'Update Log' അമർത്തിയാൽ മാത്രം ഫോം ക്ലിയർ ചെയ്യുക
+                    if (!isAutoSave) {
+                        renderLogForm(type);
+                        loadLogHistory(type, plate);
+                    }
+                    loadTableData(); // മെയിൻ ടേബിൾ അപ്ഡേറ്റ് ആകാൻ
+                    return true;
                 } else {
                     alert("Error: " + responseData.message);
+                    return false;
                 }
             } catch(e) {
                 alert("Network Error");
+                return false;
             }
         }
 

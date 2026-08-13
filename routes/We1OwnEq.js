@@ -89,6 +89,24 @@ router.post("/log/save", verifyEditor, async (req, res) => {
                 syncQuery = `UPDATE we1_own_eq_master SET driver_name=$2, joining_date=$3, salary=$4 WHERE plate_no=$1`;
                 syncVals.push(r.driver_name, r.join_date, r.salary);
             }
+        } else if(type === 'VehicleTypeLog') {
+            const latest = await client.query(`SELECT vehicle_type FROM we1_vtype_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`, [plate_no]);
+            if(latest.rows.length > 0) {
+                syncQuery = `UPDATE we1_own_eq_master SET vehicle_type=$2 WHERE plate_no=$1`;
+                syncVals.push(latest.rows[0].vehicle_type);
+            }
+        } else if(type === 'OwnerLog') {
+            const latest = await client.query(`SELECT owner_name FROM we1_owner_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`, [plate_no]);
+            if(latest.rows.length > 0) {
+                syncQuery = `UPDATE we1_own_eq_master SET vehicle_owner=$2 WHERE plate_no=$1`;
+                syncVals.push(latest.rows[0].owner_name);
+            }
+        } else if(type === 'SanthookLog') {
+            const latest = await client.query(`SELECT santhook_name FROM we1_santhook_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`, [plate_no]);
+            if(latest.rows.length > 0) {
+                syncQuery = `UPDATE we1_own_eq_master SET santhook=$2 WHERE plate_no=$1`;
+                syncVals.push(latest.rows[0].santhook_name);
+            }
         }
 
         if(syncQuery) await client.query(syncQuery, syncVals);
