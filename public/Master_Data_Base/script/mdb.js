@@ -399,12 +399,24 @@ async function fetchData(isSilent = false) {
       return performLogout();
 
     let currentHash =
-      JSON.stringify(data.rows) +
       JSON.stringify(data.lockedCols) +
       JSON.stringify(data.alignments) +
       JSON.stringify(data.colTypes) +
       JSON.stringify(data.colWidths);
-    if (isSilent && currentHash === lastDataHash) return updateSyncUI("live");
+
+    if (isSilent) {
+      if (currentHash !== lastDataHash) {
+        // Headers or settings changed, full re-render needed
+        lastDataHash = currentHash;
+        renderTable(data);
+      } else {
+        // Only data might have changed, update specific rows smoothly without destroying DOM
+        updateTableDataSmoothly(data.rows);
+        updateSyncUI("live");
+      }
+      return;
+    }
+    
     lastDataHash = currentHash;
     renderTable(data);
   } catch (e) {
@@ -3110,6 +3122,52 @@ document.addEventListener("visibilitychange", function() {
     }
   }
 });
+
+function updateTableDataSmoothly(newRows) {
+    if (!erpDataTable) return;
+
+    let existingRows = {};
+    // Get all current row IDs
+    erpDataTable.rows().every(function () {
+        let node = this.node();
+        let dbId = $(node).attr("data-sheetrow");
+        if (dbId) existingRows[dbId] = this.index();
+    });
+
+    let currentScroll = $('.table-scroll-wrapper').scrollTop();
+
+    newRows.forEach(newRow => {
+        let dbId = newRow[newRow.length - 1]; // Last element is usually dbId
+        
+        if (existingRows.hasOwnProperty(dbId)) {
+            // Row exists, check if data changed and update
+            let rowIndex = existingRows[dbId];
+            let oldRowData = erpDataTable.row(rowIndex).data();
+            let hasChanged = JSON.stringify(oldRowData) !== JSON.stringify(newRow);
+            
+            if (hasChanged) {
+                erpDataTable.row(rowIndex).data(newRow);
+                // Highlight changed row temporarily to show user the update
+                let $node = $(erpDataTable.row(rowIndex).node());
+                $node.css("transition", "background-color 0.5s ease").css("background-color", "#dcfce7");
+                setTimeout(() => $node.css("background-color", ""), 1500);
+            }
+            delete existingRows[dbId]; // Remove from tracking
+        } else {
+            // New row found in background, add it
+            erpDataTable.row.add(newRow);
+        }
+    });
+
+    // Any IDs left in existingRows were deleted from DB, so remove them from table
+    Object.keys(existingRows).forEach(dbId => {
+        erpDataTable.row(existingRows[dbId]).remove();
+    });
+
+    // Draw without resetting pagination or sorting
+    erpDataTable.draw(false);
+    $('.table-scroll-wrapper').scrollTop(currentScroll); // Preserve scroll position
+}
 
 // 🟢 Helper for Add New Company in Modal
 function handleModalCompanyChange(selectEl) {
