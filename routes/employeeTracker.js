@@ -40,7 +40,7 @@ router.get('/all', async (req, res) => {
 });
 
 // 2. Add New Employee with Unique ID Generation
-router.post('/add', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'document', maxCount: 1 }]), async (req, res) => {
+router.post('/add', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'documents', maxCount: 10 }]), async (req, res) => {
     try {
         const { 
             name, designation, joining_date, category, mobile, alt_mobile, address, 
@@ -66,13 +66,25 @@ router.post('/add', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'docu
             [unique_id, name, designation, joining_date, category, imagePath, mobile, alt_mobile, address, passport_no, notes, emergency_name, emergency_mobile, emergency_alt, emergency_relation]
         );
 
-        if (req.files['document']) {
-            const docPath = `/uploads/employee_docs/${req.files['document'][0].filename}`;
-            const docName = req.files['document'][0].originalname;
-            await pool.query(
-                `INSERT INTO employee_documents (employee_id, doc_name, file_path) VALUES ($1, $2, $3)`,
-                [newEmp.rows[0].id, docName, docPath]
-            );
+        // Handle Multiple Documents Upload Safely
+        const uploadedDocs = req.files && (req.files['documents'] || req.files['document']);
+        if (uploadedDocs) {
+            const docs = Array.isArray(uploadedDocs) ? uploadedDocs : [uploadedDocs];
+            
+            let docNames = req.body.doc_names || [];
+            if (!Array.isArray(docNames)) docNames = [docNames];
+
+            for (let i = 0; i < docs.length; i++) {
+                const docPath = `/uploads/employee_docs/${docs[i].filename}`;
+                const customDocName = docNames[i] || docs[i].originalname;
+                
+                const targetEmpId = req.params.id ? req.params.id : newEmp.rows[0].id;
+
+                await pool.query(
+                    `INSERT INTO employee_documents (employee_id, doc_name, file_path) VALUES ($1, $2, $3)`,
+                    [targetEmpId, customDocName, docPath]
+                );
+            }
         }
         res.json({ success: true, message: "Employee added successfully!" });
     } catch (err) {
@@ -80,14 +92,14 @@ router.post('/add', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'docu
     }
 });
 
-// 3. Edit Employee & Track Position History Change (Updated for Timeline)
-router.post('/edit/:id', upload.single('image'), async (req, res) => {
+// 3. Edit Employee & Handle Multiple File Uploads & Doc Replacement
+router.post('/edit/:id', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'documents', maxCount: 10 }]), async (req, res) => {
     try {
         const empId = req.params.id;
         const { 
             name, designation, joining_date, category, prev_end_date, new_start_date, released_date, mobile, alt_mobile, address, 
             passport_no, notes, emergency_name, emergency_mobile, 
-            emergency_alt, emergency_relation 
+            emergency_alt, emergency_relation, doc_action, doc_name, replace_doc_id
         } = req.body;
 
         const oldData = await pool.query('SELECT category, designation, joining_date FROM employees WHERE id = $1', [empId]);
@@ -99,9 +111,8 @@ router.post('/edit/:id', upload.single('image'), async (req, res) => {
 
         let activeJoiningDate = joining_date;
 
-        // If category changed, log to history and update active joining date
-        if (prevCat !== category) {
-            activeJoiningDate = new_start_date; // New role starts from new date
+        if (prevCat !== category && prevCat !== 'Released') {
+            activeJoiningDate = new_start_date; 
             await pool.query(
                 `INSERT INTO employee_history (employee_id, previous_category, previous_designation, start_date, end_date) VALUES ($1, $2, $3, $4, $5)`,
                 [empId, prevCat, prevDesig, prevJoiningDate, prev_end_date]
@@ -111,14 +122,41 @@ router.post('/edit/:id', upload.single('image'), async (req, res) => {
         let query = `UPDATE employees SET name = $1, designation = $2, joining_date = $3, category = $4, mobile = $5, alt_mobile = $6, address = $7, passport_no = $8, notes = $9, emergency_name = $10, emergency_mobile = $11, emergency_alt = $12, emergency_relation = $13, released_date = $14`;
         let params = [name, designation, activeJoiningDate, category, mobile, alt_mobile, address, passport_no, notes, emergency_name, emergency_mobile, emergency_alt, emergency_relation, released_date || null];
 
-        if (req.file) {
+        if (req.files && req.files['image']) {
             query += `, image_path = $15`;
-            params.push(`/uploads/employee_images/${req.file.filename}`);
+            params.push(`/uploads/employee_images/${req.files['image'][0].filename}`);
         }
         query += ` WHERE id = $${params.length + 1}`;
         params.push(empId);
 
         await pool.query(query, params);
+
+        // Handle Document Replace/Add Logic with Multiple Files
+        if (doc_action === 'add_new' || doc_action === 'replace') {
+            if (req.files && req.files['documents']) {
+                const docs = req.files['documents'];
+                
+                let docNames = req.body.doc_names || [];
+                if (!Array.isArray(docNames)) docNames = [docNames];
+
+                // If replace is selected, mark the old document as deleted
+                if (doc_action === 'replace' && replace_doc_id) {
+                    await pool.query(`UPDATE employee_documents SET doc_name = CONCAT(doc_name, '_del') WHERE id = $1`, [replace_doc_id]);
+                }
+
+                // Loop through all staged documents and insert them
+                for (let i = 0; i < docs.length; i++) {
+                    const docPath = `/uploads/employee_docs/${docs[i].filename}`;
+                    const customDocName = docNames[i] || docs[i].originalname;
+                    
+                    await pool.query(
+                        `INSERT INTO employee_documents (employee_id, doc_name, file_path) VALUES ($1, $2, $3)`,
+                        [empId, customDocName, docPath]
+                    );
+                }
+            }
+        }
+
         res.json({ success: true, message: "Employee updated successfully!" });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });

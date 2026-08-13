@@ -36,10 +36,22 @@
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #333; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        
+        /* New 2-Column Grid for Modals */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
+        
+        /* Progress Bar Styles */
+        .progress-container { display: none; width: 100%; background-color: #e9ecef; border-radius: 5px; margin-top: 15px; overflow: hidden; }
+        .progress-bar { width: 0%; height: 15px; background-color: #28a745; transition: width 0.3s ease; }
+        .progress-text { font-size: 12px; text-align: center; color: #333; font-weight: bold; margin-top: 5px; }
         .btn { padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-primary { background: #007bff; }
         .btn-danger { background: #dc3545; }
         .btn-warning { background: #ffc107; color: #333; }
+        .btnx { background: #0e9db3; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btnx:hover { background: #0b7a8c; }
+        .btn:hover { opacity: 0.9; }
 
         /* Custom Notification Toast */
         #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px; position: fixed; z-index: 2000; right: 30px; bottom: 30px; font-size: 14px; }
@@ -59,18 +71,19 @@
         </div>
         <button class="search-btn" onclick="toggleSearch()" title="Search">🔍</button>
         <button class="btn" onclick="openAddModal()">+ Add New Staff</button>
+        <button class="btnx" onclick="window.location.href='../staff_salary/'"">Staff Salary</button>
         <button class="btn btn-primary" onclick="window.location.href='../admin/index.html'">Admin Panel</button>
     </div>
 </div>
 
 <div class="filters">
-    <button class="active" onclick="filterStaff('All', this)">All</button>
-    <button onclick="filterStaff('Director', this)">Directors</button>
-    <button onclick="filterStaff('Site Co', this)">Site Co</button>
-    <button onclick="filterStaff('Field Co', this)">Field Co</button>
-    <button onclick="filterStaff('Office Admin', this)">Office Admin</button>
-    <button onclick="filterStaff('Office Accounts', this)">Office Accounts</button>
-    <button onclick="filterStaff('Released', this)" style="background: #dc3545; color: white;">Released</button>
+    <button class="active" onclick="filterStaff('All', this)">All <span id="count-All">(0)</span></button>
+    <button onclick="filterStaff('Director', this)">Directors <span id="count-Director">(0)</span></button>
+    <button onclick="filterStaff('Site Co', this)">Site Co <span id="count-SiteCo">(0)</span></button>
+    <button onclick="filterStaff('Field Co', this)">Field Co <span id="count-FieldCo">(0)</span></button>
+    <button onclick="filterStaff('Office Admin', this)">Office Admin <span id="count-OfficeAdmin">(0)</span></button>
+    <button onclick="filterStaff('Office Accounts', this)">Office Accounts <span id="count-OfficeAccounts">(0)</span></button>
+    <button onclick="filterStaff('Released', this)" style="background: #dc3545; color: white;">Released <span id="count-Released">(0)</span></button>
 </div>
 
 <div id="staffContainer"></div>
@@ -125,8 +138,38 @@
         const data = await res.json();
         if (data.success) {
             allEmployeesData = data.employees;
+            updateCounts(); // പുതിയ ഫംഗ്ഷൻ വിളിക്കുന്നു 
             renderStaff('All');
         }
+    }
+
+    // ഓരോ കാറ്റഗറിയിലെയും കൗണ്ട് കണ്ടെത്തി അപ്ഡേറ്റ് ചെയ്യാനുള്ള ഫംഗ്ഷൻ
+    function updateCounts() {
+        const counts = {
+            'All': allEmployeesData.length,
+            'Director': 0,
+            'Site Co': 0,
+            'Field Co': 0,
+            'Office Admin': 0,
+            'Office Accounts': 0,
+            'Released': 0
+        };
+
+        // മൊത്തം ഡാറ്റയിൽ നിന്നും ഓരോ കാറ്റഗറിയുടെയും എണ്ണം എടുക്കുന്നു
+        allEmployeesData.forEach(emp => {
+            if (counts[emp.category] !== undefined) {
+                counts[emp.category]++;
+            }
+        });
+
+        // HTML-ലെ സ്പാനുകളിലേക്ക് കൗണ്ട് നൽകുന്നു
+        document.getElementById('count-All').innerText = `(${counts['All']})`;
+        document.getElementById('count-Director').innerText = `(${counts['Director']})`;
+        document.getElementById('count-SiteCo').innerText = `(${counts['Site Co']})`;
+        document.getElementById('count-FieldCo').innerText = `(${counts['Field Co']})`;
+        document.getElementById('count-OfficeAdmin').innerText = `(${counts['Office Admin']})`;
+        document.getElementById('count-OfficeAccounts').innerText = `(${counts['Office Accounts']})`;
+        document.getElementById('count-Released').innerText = `(${counts['Released']})`;
     }
 
     // ഡാറ്റ സേവ് ചെയ്യുമ്പോഴും ഡിലീറ്റ് ചെയ്യുമ്പോഴും ഇത് വിളിക്കാം
@@ -261,56 +304,292 @@
         renderStaff('All', matches);
     }
 
-    // Open Add Staff Modal
-    function openAddModal() {
-        document.getElementById('modalBody').innerHTML = `
-            <h2>Add New Staff</h2>
-            <form id="addStaffForm" onsubmit="submitStaff(event)">
-                <div class="form-group"><label>Full Name</label><input type="text" name="name" required></div>
-                <div class="form-group"><label>Division / Category</label>
-                    <select name="category" required>
-                        <option value="Director">Director</option>
-                        <option value="Site Co">Site Co</option>
-                        <option value="Field Co">Field Co</option>
-                        <option value="Office Admin">Office Admin</option>
-                        <option value="Office Accounts">Office Accounts</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Designation</label><input type="text" name="designation"></div>
-                <div class="form-group"><label>Joining Date</label><input type="date" name="joining_date" required></div>
-                <div class="form-group"><label>Mobile No</label><input type="text" name="mobile"></div>
-                <div class="form-group"><label>Alternative Mobile No</label><input type="text" name="alt_mobile"></div>
-                <div class="form-group"><label>Address</label><textarea name="address" rows="2"></textarea></div>
-                <div class="form-group"><label>Passport No</label><input type="text" name="passport_no"></div>
-                <div class="form-group"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
-                
-                <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact Details</h4>
-                <div class="form-group"><label>Contact Person Name</label><input type="text" name="emergency_name"></div>
-                <div class="form-group"><label>Emergency Mobile</label><input type="text" name="emergency_mobile"></div>
-                <div class="form-group"><label>Emergency Alt Mobile</label><input type="text" name="emergency_alt"></div>
-                <div class="form-group"><label>Relationship</label><input type="text" name="emergency_relation"></div>
 
-                <div class="form-group"><label>Staff Photo</label><input type="file" name="image" accept="image/*"></div>
-                <div class="form-group"><label>Attach Document</label><input type="file" name="document"></div>
-                <button type="submit" class="btn" style="width:100%; margin-top:10px;">Save Staff</button>
+
+// Open Add Staff Modal (2-Column Layout)
+    function openAddModal() {
+    stagedDocuments = []; // Clear previous docs
+
+    document.getElementById('modalBody').innerHTML = `
+        <h2>Add New Staff</h2>
+        <form id="addStaffForm" onsubmit="submitStaff(event)">
+                <div class="form-row">
+                    <div class="form-group"><label>Full Name</label><input type="text" name="name" required></div>
+                    <div class="form-group"><label>Division / Category</label>
+                        <select name="category" required>
+                            <option value="Director">Director</option>
+                            <option value="Site Co">Site Co</option>
+                            <option value="Field Co">Field Co</option>
+                            <option value="Office Admin">Office Admin</option>
+                            <option value="Office Accounts">Office Accounts</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Designation</label><input type="text" name="designation"></div>
+                    <div class="form-group"><label>Joining Date</label><input type="date" name="joining_date" required></div>
+                    <div class="form-group"><label>Mobile No</label><input type="text" name="mobile"></div>
+                    <div class="form-group"><label>Alt Mobile No</label><input type="text" name="alt_mobile"></div>
+                    <div class="form-group"><label>Passport No</label><input type="text" name="passport_no"></div>
+                    <div class="form-group"><label>Staff Photo</label><input type="file" name="image" accept=".jpg, .jpeg, .png"></div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group full-width"><label>Address</label><textarea name="address" rows="2"></textarea></div>
+                    <div class="form-group full-width"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
+                </div>
+
+                <h4 style="margin:10px 0 5px 0; color:#007bff; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Emergency Contact</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>Name</label><input type="text" name="emergency_name"></div>
+                    <div class="form-group"><label>Relationship</label><input type="text" name="emergency_relation"></div>
+                    <div class="form-group"><label>Mobile</label><input type="text" name="emergency_mobile"></div>
+                    <div class="form-group"><label>Alt Mobile</label><input type="text" name="emergency_alt"></div>
+                </div>
+
+                <h4 style="margin:10px 0 5px 0; color:#007bff; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Upload Documents</h4>
+                <div class="form-row" style="align-items: flex-end;">
+                    <div class="form-group"><label>Document Name (e.g., Aadhar)</label><input type="text" id="tempDocName" placeholder="Enter Name"></div>
+                    <div class="form-group">
+                        <label>Attach File (PDF, PNG, JPG)</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="file" id="tempDocFile" accept=".pdf, .png, .jpg, .jpeg" style="flex:1;">
+                            <button type="button" onclick="addStagedDocument()" class="btn btn-primary" style="padding: 8px 15px;">Add</button>
+                        </div>
+                    </div>
+                </div>
+                <ul id="stagedDocsList" style="list-style:none; padding:0; margin:10px 0;"></ul>
+                
+                <div class="progress-container" id="progressContainer"><div class="progress-bar" id="progressBar"></div></div>
+                <div class="progress-text" id="progressText"></div>
+
+                <button type="submit" id="submitBtn" class="btn" style="width:100%; margin-top:15px;">Save Staff</button>
             </form>
         `;
+
+        // Reset staged document list after UI is created
+        renderStagedDocuments();
+
         document.getElementById('staffModal').style.display = 'flex';
+    }
+
+    // Open Edit Staff Modal (2-Column Layout)
+    async function openEditModal(id) {
+
+    // Clear previously staged documents
+    stagedDocuments = [];
+
+    const res = await fetch(`/api/employee-tracker/details/${id}`);
+    const data = await res.json();
+
+    if (!data.success) return;
+
+    const emp = data.employee;
+    const docs = data.documents || []; 
+
+    window.currentEmpCategory = emp.category;
+
+        document.getElementById('modalBody').innerHTML = `
+            <h2>Edit Staff (${emp.unique_id})</h2>
+            <form id="editStaffForm" onsubmit="updateStaff(event, ${emp.id})">
+                <div class="form-row">
+                    <div class="form-group"><label>Full Name</label><input type="text" name="name" value="${emp.name || ''}" required></div>
+                    <div class="form-group"><label>Division / Category</label>
+                        <select name="category" id="categorySelect" onchange="checkCategoryChange(this)" required>
+                            <option value="Director" ${emp.category === 'Director' ? 'selected' : ''}>Director</option>
+                            <option value="Site Co" ${emp.category === 'Site Co' ? 'selected' : ''}>Site Co</option>
+                            <option value="Field Co" ${emp.category === 'Field Co' ? 'selected' : ''}>Field Co</option>
+                            <option value="Office Admin" ${emp.category === 'Office Admin' ? 'selected' : ''}>Office Admin</option>
+                            <option value="Office Accounts" ${emp.category === 'Office Accounts' ? 'selected' : ''}>Office Accounts</option>
+                            <option value="Released" ${emp.category === 'Released' ? 'selected' : ''}>Released</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Hidden Boxes -->
+                    <div id="roleChangeBox" class="full-width" style="display:none; background:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba;">
+                        <p style="margin:0 0 8px 0; font-size:13px; color:#856404; font-weight:bold;">Role Change Detected! Enter dates:</p>
+                        <div class="form-row">
+                            <div class="form-group"><label>Previous Role End Date</label><input type="date" name="prev_end_date" id="prev_end_date"></div>
+                            <div class="form-group"><label>New Role Start Date</label><input type="date" name="new_start_date" id="new_start_date"></div>
+                        </div>
+                    </div>
+                    <div id="releasedBox" class="full-width" style="display:${emp.category === 'Released' ? 'block' : 'none'}; background:#f8d7da; padding:10px; border-radius:5px; border:1px solid #f5c6cb;">
+                        <div class="form-group"><label style="color:#721c24;">Released Date</label><input type="date" name="released_date" id="released_date" value="${toInputDate(emp.released_date) || ''}"></div>
+                    </div>
+
+                    <div class="form-group"><label>Designation</label><input type="text" name="designation" value="${emp.designation || ''}"></div>
+                    <div class="form-group"><label>Joining Date</label><input type="date" name="joining_date" value="${toInputDate(emp.joining_date)}" required></div>
+                    <div class="form-group"><label>Mobile No</label><input type="text" name="mobile" value="${emp.mobile || ''}"></div>
+                    <div class="form-group"><label>Alt Mobile No</label><input type="text" name="alt_mobile" value="${emp.alt_mobile || ''}"></div>
+                    <div class="form-group"><label>Passport No</label><input type="text" name="passport_no" value="${emp.passport_no || ''}"></div>
+                    <div class="form-group"><label>Update Photo</label><input type="file" name="image" accept=".jpg, .jpeg, .png"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width"><label>Address</label><textarea name="address" rows="2">${emp.address || ''}</textarea></div>
+                    <div class="form-group full-width"><label>Notes</label><textarea name="notes" rows="2">${emp.notes || ''}</textarea></div>
+                </div>
+
+                <h4 style="margin:10px 0 5px 0; color:#007bff; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Emergency Contact</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>Name</label><input type="text" name="emergency_name" value="${emp.emergency_name || ''}"></div>
+                    <div class="form-group"><label>Relationship</label><input type="text" name="emergency_relation" value="${emp.emergency_relation || ''}"></div>
+                    <div class="form-group"><label>Mobile</label><input type="text" name="emergency_mobile" value="${emp.emergency_mobile || ''}"></div>
+                    <div class="form-group"><label>Alt Mobile</label><input type="text" name="emergency_alt" value="${emp.emergency_alt || ''}"></div>
+                </div>
+
+                <h4 style="margin:10px 0 5px 0; color:#007bff; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Manage Documents</h4>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>Document Action</label>
+                        <select name="doc_action" onchange="toggleDocAction(this)">
+                            <option value="none">-- No Document Updates --</option>
+                            <option value="add_new">Add New Document</option>
+                            ${docs.length > 0 ? `<option value="replace">Replace Existing Document</option>` : ''}
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="replaceDocSection" style="display:none; background:#e9ecef; padding:10px; border-radius:5px; margin-bottom:12px;">
+                    <div class="form-group"><label>Select Document to Replace</label>
+                        <select name="replace_doc_id">
+                            ${docs.map((d, index) => `<option value="${d.id}">${d.doc_name} (${index + 1})</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+
+                <div id="uploadDocSection" style="display:none;">
+                    <div class="form-row" style="align-items: flex-end;">
+                        <div class="form-group"><label>Document Name</label><input type="text" id="tempDocName" placeholder="Enter Name"></div>
+                        <div class="form-group">
+                            <label>Attach File (PDF, PNG, JPG)</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="file" id="tempDocFile" accept=".pdf, .png, .jpg, .jpeg" style="flex:1;">
+                                <button type="button" onclick="addStagedDocument()" class="btn btn-primary" style="padding: 8px 15px;">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                    <ul id="stagedDocsList" style="list-style:none; padding:0; margin:10px 0;"></ul>
+                </div>
+
+                <div class="progress-container" id="progressContainer"><div class="progress-bar" id="progressBar"></div></div>
+                <div class="progress-text" id="progressText"></div>
+
+                <button type="submit" id="updateBtn" class="btn btn-warning" style="width:100%; margin-top:15px;">Update Staff</button>
+            </form>
+        `;
+    }
+
+
+    // Reusable Upload Function with Progress Bar
+    function uploadDataWithProgress(url, formData, btnId) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const btn = document.getElementById(btnId);
+
+            progressContainer.style.display = 'block';
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+
+            xhr.upload.addEventListener("progress", (event) => {
+                if (event.lengthComputable) {
+                    const percentComplete = Math.round((event.loaded / event.total) * 100);
+                    progressBar.style.width = percentComplete + "%";
+                    progressText.innerText = `Uploading... ${percentComplete}%`;
+                }
+            });
+
+            xhr.addEventListener("load", () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve(JSON.parse(xhr.responseText));
+                } else {
+                    reject("Upload Failed");
+                }
+            });
+            
+            xhr.addEventListener("error", () => reject("Network Error"));
+            xhr.open("POST", url);
+            xhr.send(formData);
+        });
     }
 
     async function submitStaff(e) {
         e.preventDefault();
         const formData = new FormData(e.target);
-        const res = await fetch('/api/employee-tracker/add', { method: 'POST', body: formData });
-        const data = await res.json();
+        
+        // Staged ഫയലുകൾ ഒന്നിനുപുറകെ ഒന്നായി ഫോമിലേക്ക് ചേർക്കുന്നു
+        stagedDocuments.forEach(doc => {
+            formData.append('documents', doc.file); // ശ്രദ്ധിക്കുക: പേര് 'documents' എന്നാണ്
+            formData.append('doc_names', doc.name);
+        });
+
+        try {
+            const data = await uploadDataWithProgress('/api/employee-tracker/add', formData, 'submitBtn');
+            if (data.success) {
+                showToast("Staff added successfully!");
+                closeModal();
+                loadStaff();
+            } else {
+                showToast("Error: " + data.message);
+            }
+        } catch (err) {
+            showToast("Error connecting to server!");
+        }
+    }
+
+    async function updateStaff(e, id) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+
+    // Add staged documents to FormData
+    stagedDocuments.forEach(doc => {
+        formData.append('documents', doc.file);
+        formData.append('doc_names', doc.name);
+    });
+
+    // Debug: Check files before sending
+    console.log("Files being uploaded:");
+
+    for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+            console.log(
+                "File:",
+                key,
+                value.name,
+                value.size,
+                value.type
+            );
+        }
+    }
+
+    try {
+        const data = await uploadDataWithProgress(
+            `/api/employee-tracker/edit/${id}`,
+            formData,
+            'updateBtn'
+        );
+
         if (data.success) {
-            showToast("Staff added successfully!");
+            showToast("Staff updated successfully!");
+
+            // Clear staged documents
+            stagedDocuments = [];
+
             closeModal();
-            loadStaff();
+            await loadStaff();
+
         } else {
             showToast("Error: " + data.message);
         }
+
+    } catch (err) {
+        console.error("Update Error:", err);
+        showToast("Error updating data!");
     }
+}
+    
 
     // View Details Modal with Timeline History
     async function viewDetails(id) {
@@ -322,7 +601,15 @@
         const history = data.history;
         const docs = data.documents;
 
-        let docHtml = docs.map(d => `<li><a href="${d.file_path}" target="_blank">${d.doc_name}</a></li>`).join('');
+        let docSectionHtml = '';
+        if (docs && docs.length > 0) {
+            // ഫ്രണ്ട് എൻഡിൽ പേരിനൊപ്പം കൗണ്ട് കാണിക്കുന്നു (index + 1)
+            let docHtml = docs.map((d, index) => `<li><a href="${d.file_path}" target="_blank">${d.doc_name} (${index + 1})</a></li>`).join('');
+            docSectionHtml = `
+                <h4 style="margin:10px 0 5px 0; color:#007bff;">Attached Documents</h4>
+                <ul>${docHtml}</ul>
+            `;
+        }
         
         // Timeline Generation
         let timelineHtml = '';
@@ -350,8 +637,7 @@
             <p><b>Name:</b> ${emp.emergency_name || 'N/A'} (${emp.emergency_relation || 'N/A'})</p>
             <p><b>Mobile:</b> ${emp.emergency_mobile || 'N/A'} | <b>Alt:</b> ${emp.emergency_alt || 'N/A'}</p>
             
-            <h4 style="margin:10px 0 5px 0; color:#007bff;">Attached Documents</h4>
-            <ul>${docHtml || '<li>No documents attached</li>'}</ul>
+            ${docSectionHtml}
 
             <h4 style="margin:10px 0 5px 0; color:#007bff;">Position History Log</h4>
             <ul style="list-style-type: none; padding-left: 0;">${timelineHtml}</ul>
@@ -362,73 +648,6 @@
             </div>
         `;
         document.getElementById('staffModal').style.display = 'flex';
-    }
-
-    // Open Edit Staff Modal (With Dynamic Category Box)
-    async function openEditModal(id) {
-        const res = await fetch(`/api/employee-tracker/details/${id}`);
-        const data = await res.json();
-        if (!data.success) return;
-        const emp = data.employee;
-
-        // Store original category globally for comparison
-        window.currentEmpCategory = emp.category;
-
-        document.getElementById('modalBody').innerHTML = `
-            <h2>Edit Staff (${emp.unique_id})</h2>
-            <form id="editStaffForm" onsubmit="updateStaff(event, ${emp.id})">
-                <div class="form-group"><label>Full Name</label><input type="text" name="name" value="${emp.name || ''}" required></div>
-                
-                <div class="form-group"><label>Division / Category</label>
-                    <select name="category" id="categorySelect" onchange="checkCategoryChange(this)" required>
-                        <option value="Director" ${emp.category === 'Director' ? 'selected' : ''}>Director</option>
-                        <option value="Site Co" ${emp.category === 'Site Co' ? 'selected' : ''}>Site Co</option>
-                        <option value="Field Co" ${emp.category === 'Field Co' ? 'selected' : ''}>Field Co</option>
-                        <option value="Office Admin" ${emp.category === 'Office Admin' ? 'selected' : ''}>Office Admin</option>
-                        <option value="Office Accounts" ${emp.category === 'Office Accounts' ? 'selected' : ''}>Office Accounts</option>
-                        <option value="Released" ${emp.category === 'Released' ? 'selected' : ''}>Released</option>
-                    </select>
-                </div>
-
-                <!-- HIDDEN BOX: Appears only when Category changes -->
-                <div id="roleChangeBox" style="display:none; background:#fff3cd; padding:10px; border-radius:5px; margin-bottom:12px; border:1px solid #ffeeba;">
-                    <p style="margin:0 0 8px 0; font-size:13px; color:#856404; font-weight:bold;">Role Change Detected! Please provide dates to update History.</p>
-                    <div class="form-group">
-                        <label>Previous Role End Date</label>
-                        <input type="date" name="prev_end_date" id="prev_end_date">
-                    </div>
-                    <div class="form-group">
-                        <label>New Role Start Date</label>
-                        <input type="date" name="new_start_date" id="new_start_date">
-                    </div>
-                </div>
-                
-                <!-- HIDDEN BOX: Appears only when Released is selected -->
-                <div id="releasedBox" style="display:${emp.category === 'Released' ? 'block' : 'none'}; background:#f8d7da; padding:10px; border-radius:5px; margin-bottom:12px; border:1px solid #f5c6cb;">
-                    <div class="form-group">
-                        <label style="color:#721c24;">Last Working Day (Released Date)</label>
-                        <input type="date" name="released_date" id="released_date" value="${toInputDate(emp.released_date) || ''}">
-                    </div>
-                </div>
-
-                <div class="form-group"><label>Designation</label><input type="text" name="designation" value="${emp.designation || ''}"></div>
-                <div class="form-group"><label>Joining Date (Current Role)</label><input type="date" name="joining_date" value="${toInputDate(emp.joining_date)}" required></div>
-                <div class="form-group"><label>Mobile No</label><input type="text" name="mobile" value="${emp.mobile || ''}"></div>
-                <div class="form-group"><label>Alternative Mobile No</label><input type="text" name="alt_mobile" value="${emp.alt_mobile || ''}"></div>
-                <div class="form-group"><label>Address</label><textarea name="address" rows="2">${emp.address || ''}</textarea></div>
-                <div class="form-group"><label>Passport No</label><input type="text" name="passport_no" value="${emp.passport_no || ''}"></div>
-                <div class="form-group"><label>Notes</label><textarea name="notes" rows="2">${emp.notes || ''}</textarea></div>
-                
-                <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact Details</h4>
-                <div class="form-group"><label>Contact Person Name</label><input type="text" name="emergency_name" value="${emp.emergency_name || ''}"></div>
-                <div class="form-group"><label>Emergency Mobile</label><input type="text" name="emergency_mobile" value="${emp.emergency_mobile || ''}"></div>
-                <div class="form-group"><label>Emergency Alt Mobile</label><input type="text" name="emergency_alt" value="${emp.emergency_alt || ''}"></div>
-                <div class="form-group"><label>Relationship</label><input type="text" name="emergency_relation" value="${emp.emergency_relation || ''}"></div>
-
-                <div class="form-group"><label>New Staff Photo (Optional)</label><input type="file" name="image" accept="image/*"></div>
-                <button type="submit" class="btn btn-warning" style="width:100%; margin-top:10px;">Update Staff</button>
-            </form>
-        `;
     }
 
     // Detect if category is changed
@@ -457,19 +676,6 @@
         }
     }
 
-    async function updateStaff(e, id) {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const res = await fetch(`/api/employee-tracker/edit/${id}`, { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-            showToast("Staff updated successfully!");
-            closeModal();
-            loadStaff();
-        } else {
-            showToast("Error: " + data.message);
-        }
-    }
 
     function deleteStaff(id) {
         document.getElementById('modalBody').innerHTML = `
@@ -506,6 +712,60 @@
         } else {
             showToast("Error: " + (data.message || "Deletion failed!"));
         }
+    }
+
+    function toggleDocAction(select) {
+        const replaceSection = document.getElementById('replaceDocSection');
+        const uploadSection = document.getElementById('uploadDocSection');
+        
+        if (select.value === 'none') {
+            replaceSection.style.display = 'none';
+            uploadSection.style.display = 'none';
+        } else if (select.value === 'add_new') {
+            replaceSection.style.display = 'none';
+            uploadSection.style.display = 'block';
+        } else if (select.value === 'replace') {
+            replaceSection.style.display = 'block';
+            uploadSection.style.display = 'block';
+        }
+    }
+
+    let stagedDocuments = []; // ഡോക്യുമെന്റുകൾ താൽക്കാലികമായി സൂക്ഷിക്കാൻ
+
+    function addStagedDocument() {
+        const nameInput = document.getElementById('tempDocName');
+        const fileInput = document.getElementById('tempDocFile');
+
+        if (!fileInput.files.length) {
+            showToast("Please select a file to attach!");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const docName = nameInput.value.trim() || file.name;
+
+        stagedDocuments.push({ name: docName, file: file });
+
+        // ഫീൽഡുകൾ ക്ലിയർ ചെയ്യുന്നു
+        nameInput.value = '';
+        fileInput.value = '';
+        
+        renderStagedDocuments();
+    }
+
+    function renderStagedDocuments() {
+        const list = document.getElementById('stagedDocsList');
+        list.innerHTML = stagedDocuments.map((doc, index) => `
+            <li style="display:flex; justify-content:space-between; background:#e9ecef; padding:8px 12px; margin-bottom:5px; border-radius:4px; font-size:13px; align-items:center;">
+                <span><b>${doc.name}</b> <small>(${doc.file.name})</small></span>
+                <button type="button" style="color:#dc3545; border:none; background:none; cursor:pointer; font-weight:bold; font-size:16px;" onclick="removeStagedDocument(${index})">✖</button>
+            </li>
+        `).join('');
+    }
+
+    function removeStagedDocument(index) {
+        stagedDocuments.splice(index, 1);
+        renderStagedDocuments();
     }
 
     function closeModal() {
