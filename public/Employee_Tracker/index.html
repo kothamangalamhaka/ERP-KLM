@@ -87,7 +87,12 @@ async function handleLogin() {
         if (res.ok) {
             localStorage.setItem('emp_token', data.token);
             localStorage.setItem('emp_user', JSON.stringify(data.user));
-            window.location.href = 'Dashboard/'; // Dashboard link
+            
+            // Check if there is a redirect URL, otherwise go to Dashboard
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect') || 'Dashboard/';
+            
+            window.location.href = redirectUrl;
         } else {
             showAlert(data.message, 'error');
         }

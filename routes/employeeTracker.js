@@ -23,10 +23,13 @@ const upload = multer({ storage: storage });
 router.get('/all', async (req, res) => {
     try {
         const { category } = req.query;
+        // 'All' category defaults to newest first
         let query = 'SELECT * FROM employees ORDER BY id DESC';
         let params = [];
+        
         if (category && category !== 'All') {
-            query = 'SELECT * FROM employees WHERE category = $1 ORDER BY id DESC';
+            // Specific categories are sorted by unique_id in ascending order
+            query = 'SELECT * FROM employees WHERE category = $1 ORDER BY unique_id ASC';
             params = [category];
         }
         const result = await pool.query(query, params);
@@ -36,8 +39,7 @@ router.get('/all', async (req, res) => {
     }
 });
 
-// 2. Add New Employee (with Image & Auto ID generation)
-// 2. Add New Employee (Updated with joining_date)
+// 2. Add New Employee with Unique ID Generation
 router.post('/add', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'document', maxCount: 1 }]), async (req, res) => {
     try {
         const { 
@@ -83,7 +85,7 @@ router.post('/edit/:id', upload.single('image'), async (req, res) => {
     try {
         const empId = req.params.id;
         const { 
-            name, designation, joining_date, category, prev_end_date, new_start_date, mobile, alt_mobile, address, 
+            name, designation, joining_date, category, prev_end_date, new_start_date, released_date, mobile, alt_mobile, address, 
             passport_no, notes, emergency_name, emergency_mobile, 
             emergency_alt, emergency_relation 
         } = req.body;
@@ -106,11 +108,11 @@ router.post('/edit/:id', upload.single('image'), async (req, res) => {
             );
         }
 
-        let query = `UPDATE employees SET name = $1, designation = $2, joining_date = $3, category = $4, mobile = $5, alt_mobile = $6, address = $7, passport_no = $8, notes = $9, emergency_name = $10, emergency_mobile = $11, emergency_alt = $12, emergency_relation = $13`;
-        let params = [name, designation, activeJoiningDate, category, mobile, alt_mobile, address, passport_no, notes, emergency_name, emergency_mobile, emergency_alt, emergency_relation];
+        let query = `UPDATE employees SET name = $1, designation = $2, joining_date = $3, category = $4, mobile = $5, alt_mobile = $6, address = $7, passport_no = $8, notes = $9, emergency_name = $10, emergency_mobile = $11, emergency_alt = $12, emergency_relation = $13, released_date = $14`;
+        let params = [name, designation, activeJoiningDate, category, mobile, alt_mobile, address, passport_no, notes, emergency_name, emergency_mobile, emergency_alt, emergency_relation, released_date || null];
 
         if (req.file) {
-            query += `, image_path = $14`;
+            query += `, image_path = $15`;
             params.push(`/uploads/employee_images/${req.file.filename}`);
         }
         query += ` WHERE id = $${params.length + 1}`;

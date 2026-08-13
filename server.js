@@ -42,6 +42,7 @@ const employeeTrackerAdminRoutes = require('./routes/employeeTrackerAdminRoutes'
 const employeeTrackerRoutes = require('./routes/employeeTracker');
 const viewBillRoutes = require("./routes/view_bill");
 const we1EqDriverPayrollRoute = require('./routes/We1_EQ_Driver_Payroll');
+const staffSalaryRoute = require('./routes/StaffSalary');
 
 
 
@@ -74,6 +75,8 @@ app.use('/api/employee-tracker', employeeTrackerRoutes);
 app.use("/api/view-bill", viewBillRoutes);
 app.use("/api/we1-own-eq", we1OwnEqRoutes);
 app.use('/api/we1-eq-driver-payroll', we1EqDriverPayrollRoute);
+app.use('/api/staff-salary', staffSalaryRoute);
+
 
 // ==========================================
 // 🐍 PYTHON ENGINE PROXY (Port 8001 Forwarder)

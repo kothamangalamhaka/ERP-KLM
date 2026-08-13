@@ -188,6 +188,7 @@
 
         .status-running { color: #1a7f37; font-weight: 600; }
         .status-released { color: #cf222e; font-weight: 600; }
+        .status-mobilizing { color: #d97706; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -357,7 +358,7 @@
 
                     const tr = document.createElement('tr');
                     const currentStatus = cleanVal(row.status);
-                    const statusClass = currentStatus === 'Running' ? 'status-running' : 'status-released';
+                    const statusClass = currentStatus === 'Running' ? 'status-running' : (currentStatus === 'Mobilizing' ? 'status-mobilizing' : 'status-released');
 
                     tr.innerHTML = `
                         <td class="sn-col">${index + 1}</td>
@@ -642,6 +643,7 @@
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Status</label>
                         <select id="newStatus" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;">
                             <option value="Running">Running</option>
+                            <option value="Mobilizing">Mobilizing</option>
                             <option value="Released">Released</option>
                         </select>
                     </div>

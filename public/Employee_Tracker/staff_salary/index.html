@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Salary Management</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f5; margin: 0; padding: 0; font-size: 13px; }
+        .ribbon { background: #fff; padding: 15px 20px; display: flex; gap: 15px; align-items: center; border-bottom: 1px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+        .ribbon h2 { margin: 0; margin-right: auto; color: #2c3e50; font-size: 18px; }
+        .ribbon select, .ribbon button { padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+        .btn-primary { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .container { padding: 20px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; background: white; white-space: nowrap; }
+        th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: left; }
+        th { background: #2c3e50; color: white; }
+        input[type="number"], input[type="text"], select.edit-input { width: 100%; padding: 5px; border: 1px solid #007bff; border-radius: 3px; box-sizing: border-box; }
+        .calc-field { font-weight: bold; background: #f8f9fa; }
+        .action-btn { padding: 4px 8px; border: none; border-radius: 3px; cursor: pointer; color: white; font-weight: bold; }
+        .btn-edit { background: #dc3545; }
+        .btn-save { background: #28a745; }
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px; position: fixed; right: 30px; bottom: 30px; z-index: 1000; }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body>
+
+<div class="ribbon">
+    <h2>Staff Salary Management</h2>
+    <label>Month:</label>
+    <select id="monthSelect">
+        <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+        <option value="04">April</option><option value="05">May</option><option value="06">June</option>
+        <option value="07">July</option><option value="08">August</option><option value="09">September</option>
+        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+    </select>
+    <label>Year:</label>
+    <select id="yearSelect"></select>
+    <button class="btn-primary" onclick="loadSalaryData()">Load Data</button>
+    <button class="action-btn" style="background: #dc3545; padding: 6px 12px;" onclick="logout()">Logout</button>
+</div>
+
+<div class="container">
+    <table id="salaryTable">
+        <thead>
+            <tr>
+                <th>SN</th>
+                <th>Employee Name</th>
+                <th>Designation</th>
+                <th>Basic Salary</th>
+                <th>Food Allowance</th>
+                <th>Mobile Allowance</th>
+                <th>Gross Salary</th>
+                <th>Present Days</th>
+                <th>Commission</th>
+                <th>Deductions</th>
+                <th>Total Payable</th>
+                <th>Currency</th>
+                <th>Status</th>
+                <th>Remark</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="salaryBody">
+            <tr><td colspan="15" style="text-align: center; padding: 20px;">Select Month and Year to load active staff.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        // Check Authentication using correct keys
+        const user = localStorage.getItem('emp_user');
+        if (!user) {
+            // Pass the current URL as a redirect parameter
+            window.location.href = '../index.html?redirect=' + encodeURIComponent(window.location.href); 
+            return;
+        }
+
+        const date = new Date();
+        document.getElementById('monthSelect').value = String(date.getMonth() + 1).padStart(2, '0');
+        const yearSelect = document.getElementById('yearSelect');
+        const currentYear = date.getFullYear();
+        for (let i = currentYear - 2; i <= currentYear + 2; i++) {
+            yearSelect.innerHTML += `<option value="${i}" ${i === currentYear ? 'selected' : ''}>${i}</option>`;
+        }
+        loadSalaryData();
+    });
+
+    function logout() {
+        // Remove correct keys on logout
+        localStorage.removeItem('emp_user');
+        localStorage.removeItem('emp_token');
+        window.location.href = '../index.html';
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.innerText = msg; t.className = "show";
+        setTimeout(() => t.className = "", 3000);
+    }
+
+    function cleanNum(val) { return parseFloat(val) || 0; }
+
+    async function loadSalaryData() {
+        const month = document.getElementById('monthSelect').value;
+        const year = document.getElementById('yearSelect').value;
+        const tbody = document.getElementById('salaryBody');
+        tbody.innerHTML = '<tr><td colspan="15" style="text-align: center;">Loading...</td></tr>';
+
+        try {
+            const res = await fetch(`/api/staff-salary/data?month_year=${year}-${month}`);
+            const data = await res.json();
+
+            if (!data.success || data.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="15" style="text-align: center;">No active staff found for this month.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            data.data.forEach((row, index) => {
+                const basic = cleanNum(row.basic_salary);
+                const food = cleanNum(row.food_allowance);
+                const mob = cleanNum(row.mobile_allowance);
+                const gross = basic + food + mob;
+                const comm = cleanNum(row.commission);
+                const ded = cleanNum(row.deduction);
+                const total = gross + comm - ded;
+
+                tbody.innerHTML += `
+                    <tr id="row-${index}">
+                        <td>${index + 1}</td>
+                        <td><b>${row.name}</b><input type="hidden" class="emp_id" value="${row.emp_id}"></td>
+                        <td>${row.designations}</td>
+                        <td class="col-basic">${basic.toFixed(2)}</td>
+                        <td class="col-food">${food.toFixed(2)}</td>
+                        <td class="col-mob">${mob.toFixed(2)}</td>
+                        <td class="col-gross calc-field">${gross.toFixed(2)}</td>
+                        <td class="col-days">${cleanNum(row.present_days)}</td>
+                        <td class="col-comm">${comm.toFixed(2)}</td>
+                        <td class="col-ded">${ded.toFixed(2)}</td>
+                        <td class="col-total calc-field">${total.toFixed(2)}</td>
+                        <td class="col-curr">${row.currency || 'SAR'}</td>
+                        <td class="col-status" style="font-weight:bold; color: ${row.status === 'Paid' ? 'green' : (row.status === 'Hold' ? 'orange' : 'red')}">${row.status || 'Unpaid'}</td>
+                        <td class="col-remark">${row.remark || '-'}</td>
+                        <td><button class="action-btn btn-edit" onclick="enableEdit(${index})">Edit</button></td>
+                    </tr>
+                `;
+            });
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="15" style="color: red; text-align: center;">Failed to load data.</td></tr>';
+        }
+    }
+
+    function enableEdit(i) {
+        const tr = document.getElementById(`row-${i}`);
+        const getText = (cls) => tr.querySelector(cls).innerText;
+
+        tr.querySelector('.col-basic').innerHTML = `<input type="number" id="basic-${i}" value="${getText('.col-basic')}" oninput="calc(${i})">`;
+        tr.querySelector('.col-food').innerHTML = `<input type="number" id="food-${i}" value="${getText('.col-food')}" oninput="calc(${i})">`;
+        tr.querySelector('.col-mob').innerHTML = `<input type="number" id="mob-${i}" value="${getText('.col-mob')}" oninput="calc(${i})">`;
+        tr.querySelector('.col-days').innerHTML = `<input type="number" id="days-${i}" value="${getText('.col-days')}">`;
+        tr.querySelector('.col-comm').innerHTML = `<input type="number" id="comm-${i}" value="${getText('.col-comm')}" oninput="calc(${i})">`;
+        tr.querySelector('.col-ded').innerHTML = `<input type="number" id="ded-${i}" value="${getText('.col-ded')}" oninput="calc(${i})">`;
+        
+        tr.querySelector('.col-curr').innerHTML = `
+            <select id="curr-${i}" class="edit-input">
+                <option value="SAR" ${getText('.col-curr')==='SAR'?'selected':''}>SAR</option>
+                <option value="INR" ${getText('.col-curr')==='INR'?'selected':''}>INR</option>
+                <option value="USD" ${getText('.col-curr')==='USD'?'selected':''}>USD</option>
+            </select>`;
+            
+        tr.querySelector('.col-status').innerHTML = `
+            <select id="status-${i}" class="edit-input">
+                <option value="Unpaid" ${getText('.col-status')==='Unpaid'?'selected':''}>Unpaid</option>
+                <option value="Paid" ${getText('.col-status')==='Paid'?'selected':''}>Paid</option>
+                <option value="Hold" ${getText('.col-status')==='Hold'?'selected':''}>Hold</option>
+            </select>`;
+            
+        tr.querySelector('.col-remark').innerHTML = `<input type="text" id="rem-${i}" value="${getText('.col-remark')==='-'?'':getText('.col-remark')}">`;
+        tr.querySelector('td:last-child').innerHTML = `<button class="action-btn btn-save" onclick="saveData(${i})">Save</button>`;
+    }
+
+    function calc(i) {
+        const basic = cleanNum(document.getElementById(`basic-${i}`).value);
+        const food = cleanNum(document.getElementById(`food-${i}`).value);
+        const mob = cleanNum(document.getElementById(`mob-${i}`).value);
+        const comm = cleanNum(document.getElementById(`comm-${i}`).value);
+        const ded = cleanNum(document.getElementById(`ded-${i}`).value);
+        
+        const gross = basic + food + mob;
+        const total = gross + comm - ded;
+        
+        document.getElementById(`row-${i}`).querySelector('.col-gross').innerText = gross.toFixed(2);
+        document.getElementById(`row-${i}`).querySelector('.col-total').innerText = total.toFixed(2);
+    }
+
+    async function saveData(i) {
+        const tr = document.getElementById(`row-${i}`);
+        const payload = {
+            month_year: `${document.getElementById('yearSelect').value}-${document.getElementById('monthSelect').value}`,
+            emp_id: tr.querySelector('.emp_id').value,
+            basic_salary: document.getElementById(`basic-${i}`).value,
+            food_allowance: document.getElementById(`food-${i}`).value,
+            mobile_allowance: document.getElementById(`mob-${i}`).value,
+            present_days: document.getElementById(`days-${i}`).value,
+            commission: document.getElementById(`comm-${i}`).value,
+            deduction: document.getElementById(`ded-${i}`).value,
+            currency: document.getElementById(`curr-${i}`).value,
+            status: document.getElementById(`status-${i}`).value,
+            remark: document.getElementById(`rem-${i}`).value
+        };
+
+        try {
+            const res = await fetch('/api/staff-salary/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast("Saved successfully");
+                loadSalaryData(); // Reload to reset UI
+            } else {
+                showToast("Error saving: " + data.message);
+            }
+        } catch (e) {
+            showToast("Network Error");
+        }
+    }
+</script>
+</body>
+</html>

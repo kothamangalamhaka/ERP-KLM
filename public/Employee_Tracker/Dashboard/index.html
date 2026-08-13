@@ -7,10 +7,22 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: #f4f7f6; margin: 0; padding: 20px; }
         .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .filters { margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; }
-        .filters button { padding: 8px 15px; border: none; background: #ddd; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .filters { margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; position: sticky; top: 0; background: #f4f7f6; padding: 15px 0; z-index: 100; border-bottom: 1px solid #ddd; }
+        .filters button { padding: 8px 15px; border: none; background: #ddd; cursor: pointer; border-radius: 4px; font-weight: bold; transition: 0.3s; }
+        .filters button:hover { background: #bbb; }
         .filters button.active { background: #007bff; color: white; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+        
+        /* Search Bar Styles */
+        .search-container { display: flex; align-items: center; gap: 10px; }
+        .search-input-wrapper { position: relative; }
+        .search-input { display: none; padding: 8px 12px; border: 1px solid #ccc; border-radius: 20px; width: 250px; outline: none; transition: 0.3s; }
+        .search-input.show { display: block; }
+        .search-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 5px; }
+        .suggestions { display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; z-index: 1000; margin-top: 5px; }
+        .suggestion-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; color: #333; }
+        .suggestion-item:hover { background: #f4f7f6; }
+        
         .card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s; }
         .card:hover { transform: translateY(-3px); }
         .card img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #007bff; }
@@ -40,7 +52,12 @@
 
 <div class="header">
     <h2>Employee Directory</h2>
-    <div>
+    <div class="search-container">
+        <div class="search-input-wrapper">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search Name or Code..." oninput="showSuggestions()" autocomplete="off">
+            <div id="suggestionBox" class="suggestions"></div>
+        </div>
+        <button class="search-btn" onclick="toggleSearch()" title="Search">🔍</button>
         <button class="btn" onclick="openAddModal()">+ Add New Staff</button>
         <button class="btn btn-primary" onclick="window.location.href='../admin/index.html'">Admin Panel</button>
     </div>
@@ -53,9 +70,10 @@
     <button onclick="filterStaff('Field Co', this)">Field Co</button>
     <button onclick="filterStaff('Office Admin', this)">Office Admin</button>
     <button onclick="filterStaff('Office Accounts', this)">Office Accounts</button>
+    <button onclick="filterStaff('Released', this)" style="background: #dc3545; color: white;">Released</button>
 </div>
 
-<div class="grid" id="staffGrid"></div>
+<div id="staffContainer"></div>
 
 <!-- CUSTOM MODAL -->
 <div id="staffModal" class="modal">
@@ -69,289 +87,430 @@
 <div id="toast"></div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => loadStaff('All'));
-
-function showToast(message) {
-    const toast = document.getElementById("toast");
-    toast.className = "show";
-    toast.innerText = message;
-    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
-}
-
-// Date Formatter (eg: 2026 May 26)
-function formatDate(dateStr) {
-    if (!dateStr) return 'N/A';
-    const d = new Date(dateStr);
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${d.getFullYear()} ${months[d.getMonth()]} ${String(d.getDate()).padStart(2, '0')}`;
-}
-
-// Ensure proper date input format (YYYY-MM-DD)
-function toInputDate(dateStr) {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-async function loadStaff(category) {
-    const res = await fetch(`/api/employee-tracker/all?category=${category}`);
-    const data = await res.json();
-    const grid = document.getElementById('staffGrid');
-    grid.innerHTML = '';
-
-    if (!data.success || data.employees.length === 0) {
-        grid.innerHTML = '<p>No staff found.</p>';
-        return;
+    // Authentication Check
+    const user = localStorage.getItem('emp_user');
+    if (!user) {
+        window.location.href = '../index.html?redirect=' + encodeURIComponent(window.location.href); 
     }
 
-    data.employees.forEach(emp => {
-        grid.innerHTML += `
-            <div class="card" onclick="viewDetails(${emp.id})">
-                <img src="${emp.image_path || 'https://via.placeholder.com/80'}" alt="Staff">
-                <h3>${emp.name}</h3>
-                <p><b>${emp.unique_id}</b></p>
-                <p>${emp.designation || emp.category}</p>
-                <p>📞 ${emp.mobile || 'N/A'}</p>
+    let allEmployeesData = []; // സ്റ്റാഫ് ഡാറ്റ മുഴുവനായും സൂക്ഷിക്കാൻ
+
+    document.addEventListener('DOMContentLoaded', () => fetchAllStaff());
+
+    function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.className = "show";
+        toast.innerText = message;
+        setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+
+    // Date Formatter (eg: 2026 May 26)
+    function formatDate(dateStr) {
+        if (!dateStr) return 'N/A';
+        const d = new Date(dateStr);
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        return `${d.getFullYear()} ${months[d.getMonth()]} ${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    // Ensure proper date input format (YYYY-MM-DD)
+    function toInputDate(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    // ഡാറ്റാബേസിൽ നിന്നും ഒരിക്കൽ മാത്രം എല്ലാ സ്റ്റാഫിനെയും എടുക്കുന്നു
+    async function fetchAllStaff() {
+        const res = await fetch(`/api/employee-tracker/all?category=All`);
+        const data = await res.json();
+        if (data.success) {
+            allEmployeesData = data.employees;
+            renderStaff('All');
+        }
+    }
+
+    // ഡാറ്റ സേവ് ചെയ്യുമ്പോഴും ഡിലീറ്റ് ചെയ്യുമ്പോഴും ഇത് വിളിക്കാം
+    async function loadStaff() {
+        await fetchAllStaff();
+    }
+
+    // കാറ്റഗറി ഫിൽറ്റർ (ഉദാ: Site Co ക്ലിക്ക് ചെയ്യുമ്പോൾ)
+    function filterStaff(category, btn) {
+        document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+        
+        // സെർച്ച് റീസെറ്റ് ചെയ്യുക
+        document.getElementById('searchInput').value = '';
+        document.getElementById('suggestionBox').style.display = 'none';
+        
+        renderStaff(category);
+    }
+
+    // ഡാറ്റ സ്ക്രീനിൽ കാണിക്കാൻ (All ആയാലും കാറ്റഗറി ആയാലും)
+    function renderStaff(filterCategory, specificData = null) {
+        const container = document.getElementById('staffContainer');
+        container.innerHTML = '';
+        
+        // സെർച്ച് റിസൾട്ട് ആണെങ്കിൽ അത് എടുക്കുക, അല്ലെങ്കിൽ ഫിൽറ്റർ ചെയ്തത് എടുക്കുക
+        let displayData = specificData ? specificData : allEmployeesData;
+        
+        if (filterCategory !== 'All' && !specificData) {
+            displayData = displayData.filter(emp => emp.category === filterCategory);
+        }
+
+        if (displayData.length === 0) {
+            container.innerHTML = '<p style="padding:20px; font-weight:bold; color:#dc3545;">No staff found in this section.</p>';
+            return;
+        }
+
+        const categories = ['Director', 'Site Co', 'Field Co', 'Office Admin', 'Office Accounts', 'Released'];
+        const grouped = {};
+        categories.forEach(c => grouped[c] = []);
+
+        displayData.forEach(emp => {
+            if(grouped[emp.category] !== undefined) {
+                grouped[emp.category].push(emp);
+            } else {
+                grouped[emp.category] = [emp];
+            }
+        });
+
+        for (const [cat, emps] of Object.entries(grouped)) {
+            if (emps && emps.length > 0) {
+                // കാറ്റഗറിക്ക് ഉള്ളിൽ ഐഡി വെച്ച് കൃത്യമായി ഓർഡർ ചെയ്യുന്നു
+                emps.sort((a, b) => (a.unique_id || '').localeCompare(b.unique_id || ''));
+
+                let sectionHtml = `
+                    <div class="category-section" style="margin-bottom: 40px;">
+                        <h3 style="color: #2c3e50; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 15px;">${cat}</h3>
+                        <div class="grid">
+                `;
+                
+                emps.forEach(emp => {
+                    sectionHtml += `
+                        <div class="card" onclick="viewDetails(${emp.id})">
+                            <img src="${emp.image_path || 'https://via.placeholder.com/80'}" alt="Staff">
+                            <h3>${emp.name}</h3>
+                            <p><b>${emp.unique_id}</b></p>
+                            <p>${emp.designation || emp.category}</p>
+                            <p>📞 ${emp.mobile || 'N/A'}</p>
+                        </div>
+                    `;
+                });
+                sectionHtml += `</div></div>`;
+                container.innerHTML += sectionHtml;
+            }
+        }
+    }
+
+    // --- Search & Suggestion Functionality ---
+    function toggleSearch() {
+        const input = document.getElementById('searchInput');
+        input.classList.toggle('show');
+        if (input.classList.contains('show')) {
+            input.focus();
+        } else {
+            input.value = '';
+            document.getElementById('suggestionBox').style.display = 'none';
+            
+            // നിലവിൽ സെലക്ട് ചെയ്ത ടാബ് തിരികെ കൊണ്ടുവരാൻ
+            const activeBtn = document.querySelector('.filters button.active');
+            const cat = activeBtn ? (activeBtn.innerText === 'Directors' ? 'Director' : activeBtn.innerText) : 'All';
+            renderStaff(cat);
+        }
+    }
+
+    // ടൈപ്പ് ചെയ്യുമ്പോൾ സജഷൻസ് കാണിക്കാൻ
+    function showSuggestions() {
+        const val = document.getElementById('searchInput').value.toLowerCase();
+        const box = document.getElementById('suggestionBox');
+        box.innerHTML = '';
+        
+        if (!val) {
+            box.style.display = 'none';
+            const activeBtn = document.querySelector('.filters button.active');
+            const cat = activeBtn ? (activeBtn.innerText === 'Directors' ? 'Director' : activeBtn.innerText) : 'All';
+            renderStaff(cat);
+            return;
+        }
+
+        const matches = allEmployeesData.filter(emp => 
+            (emp.name || '').toLowerCase().includes(val) || 
+            (emp.unique_id || '').toLowerCase().includes(val)
+        );
+
+        if (matches.length > 0) {
+            matches.forEach(emp => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.innerHTML = `<b>${emp.unique_id}</b> - ${emp.name}`;
+                // സജഷനിൽ ക്ലിക്ക് ചെയ്താൽ ആ വ്യക്തിയെ മാത്രം കാണിക്കും
+                div.onclick = () => {
+                    document.getElementById('searchInput').value = emp.name;
+                    box.style.display = 'none';
+                    renderStaff('All', [emp]); 
+                };
+                box.appendChild(div);
+            });
+            box.style.display = 'block';
+        } else {
+            box.style.display = 'none';
+        }
+        
+        // ടൈപ്പ് ചെയ്യുമ്പോഴും സ്ക്രീനിലെ കാർഡുകൾ അപ്ഡേറ്റ് ആവാൻ 
+        renderStaff('All', matches);
+    }
+
+    // Open Add Staff Modal
+    function openAddModal() {
+        document.getElementById('modalBody').innerHTML = `
+            <h2>Add New Staff</h2>
+            <form id="addStaffForm" onsubmit="submitStaff(event)">
+                <div class="form-group"><label>Full Name</label><input type="text" name="name" required></div>
+                <div class="form-group"><label>Division / Category</label>
+                    <select name="category" required>
+                        <option value="Director">Director</option>
+                        <option value="Site Co">Site Co</option>
+                        <option value="Field Co">Field Co</option>
+                        <option value="Office Admin">Office Admin</option>
+                        <option value="Office Accounts">Office Accounts</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Designation</label><input type="text" name="designation"></div>
+                <div class="form-group"><label>Joining Date</label><input type="date" name="joining_date" required></div>
+                <div class="form-group"><label>Mobile No</label><input type="text" name="mobile"></div>
+                <div class="form-group"><label>Alternative Mobile No</label><input type="text" name="alt_mobile"></div>
+                <div class="form-group"><label>Address</label><textarea name="address" rows="2"></textarea></div>
+                <div class="form-group"><label>Passport No</label><input type="text" name="passport_no"></div>
+                <div class="form-group"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
+                
+                <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact Details</h4>
+                <div class="form-group"><label>Contact Person Name</label><input type="text" name="emergency_name"></div>
+                <div class="form-group"><label>Emergency Mobile</label><input type="text" name="emergency_mobile"></div>
+                <div class="form-group"><label>Emergency Alt Mobile</label><input type="text" name="emergency_alt"></div>
+                <div class="form-group"><label>Relationship</label><input type="text" name="emergency_relation"></div>
+
+                <div class="form-group"><label>Staff Photo</label><input type="file" name="image" accept="image/*"></div>
+                <div class="form-group"><label>Attach Document</label><input type="file" name="document"></div>
+                <button type="submit" class="btn" style="width:100%; margin-top:10px;">Save Staff</button>
+            </form>
+        `;
+        document.getElementById('staffModal').style.display = 'flex';
+    }
+
+    async function submitStaff(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const res = await fetch('/api/employee-tracker/add', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Staff added successfully!");
+            closeModal();
+            loadStaff();
+        } else {
+            showToast("Error: " + data.message);
+        }
+    }
+
+    // View Details Modal with Timeline History
+    async function viewDetails(id) {
+        const res = await fetch(`/api/employee-tracker/details/${id}`);
+        const data = await res.json();
+        if (!data.success) return;
+
+        const emp = data.employee;
+        const history = data.history;
+        const docs = data.documents;
+
+        let docHtml = docs.map(d => `<li><a href="${d.file_path}" target="_blank">${d.doc_name}</a></li>`).join('');
+        
+        // Timeline Generation
+        let timelineHtml = '';
+        if (history && history.length > 0) {
+            history.forEach(h => {
+                timelineHtml += `<li style="margin-bottom:8px;"><b>${formatDate(h.start_date)} - ${formatDate(h.end_date)}</b> : ${h.previous_category} ${h.previous_designation ? `(${h.previous_designation})` : ''}</li>`;
+            });
+        }
+        // Append Current Role
+        timelineHtml += `<li style="margin-bottom:8px; color:green;"><b>${formatDate(emp.joining_date)} - Present</b> : ${emp.category} ${emp.designation ? `(${emp.designation})` : ''}</li>`;
+
+        document.getElementById('modalBody').innerHTML = `
+            <div style="text-align:center;">
+                <img src="${emp.image_path || 'https://via.placeholder.com/80'}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;">
+                <h2>${emp.name}</h2>
+                <p style="color:#007bff; font-weight:bold;">${emp.unique_id} - ${emp.designation || emp.category}</p>
+            </div>
+            <hr>
+            <p><b>Mobile:</b> ${emp.mobile || 'N/A'} | <b>Alt Mobile:</b> ${emp.alt_mobile || 'N/A'}</p>
+            <p><b>Address:</b> ${emp.address || 'N/A'}</p>
+            <p><b>Passport No:</b> ${emp.passport_no || 'N/A'}</p>
+            <p><b>Notes:</b> ${emp.notes || 'N/A'}</p>
+            
+            <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact</h4>
+            <p><b>Name:</b> ${emp.emergency_name || 'N/A'} (${emp.emergency_relation || 'N/A'})</p>
+            <p><b>Mobile:</b> ${emp.emergency_mobile || 'N/A'} | <b>Alt:</b> ${emp.emergency_alt || 'N/A'}</p>
+            
+            <h4 style="margin:10px 0 5px 0; color:#007bff;">Attached Documents</h4>
+            <ul>${docHtml || '<li>No documents attached</li>'}</ul>
+
+            <h4 style="margin:10px 0 5px 0; color:#007bff;">Position History Log</h4>
+            <ul style="list-style-type: none; padding-left: 0;">${timelineHtml}</ul>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                <button class="btn btn-warning" onclick="openEditModal(${emp.id})">✏️ Edit Staff</button>
+                <button class="btn btn-danger" onclick="deleteStaff(${emp.id})">🗑️ Delete Staff</button>
             </div>
         `;
-    });
-}
-
-function filterStaff(cat, btn) {
-    document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    loadStaff(cat);
-}
-
-// Open Add Staff Modal
-function openAddModal() {
-    document.getElementById('modalBody').innerHTML = `
-        <h2>Add New Staff</h2>
-        <form id="addStaffForm" onsubmit="submitStaff(event)">
-            <div class="form-group"><label>Full Name</label><input type="text" name="name" required></div>
-            <div class="form-group"><label>Division / Category</label>
-                <select name="category" required>
-                    <option value="Director">Director</option>
-                    <option value="Site Co">Site Co</option>
-                    <option value="Field Co">Field Co</option>
-                    <option value="Office Admin">Office Admin</option>
-                    <option value="Office Accounts">Office Accounts</option>
-                </select>
-            </div>
-            <div class="form-group"><label>Designation</label><input type="text" name="designation"></div>
-            <div class="form-group"><label>Joining Date</label><input type="date" name="joining_date" required></div>
-            <div class="form-group"><label>Mobile No</label><input type="text" name="mobile"></div>
-            <div class="form-group"><label>Alternative Mobile No</label><input type="text" name="alt_mobile"></div>
-            <div class="form-group"><label>Address</label><textarea name="address" rows="2"></textarea></div>
-            <div class="form-group"><label>Passport No</label><input type="text" name="passport_no"></div>
-            <div class="form-group"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
-            
-            <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact Details</h4>
-            <div class="form-group"><label>Contact Person Name</label><input type="text" name="emergency_name"></div>
-            <div class="form-group"><label>Emergency Mobile</label><input type="text" name="emergency_mobile"></div>
-            <div class="form-group"><label>Emergency Alt Mobile</label><input type="text" name="emergency_alt"></div>
-            <div class="form-group"><label>Relationship</label><input type="text" name="emergency_relation"></div>
-
-            <div class="form-group"><label>Staff Photo</label><input type="file" name="image" accept="image/*"></div>
-            <div class="form-group"><label>Attach Document</label><input type="file" name="document"></div>
-            <button type="submit" class="btn" style="width:100%; margin-top:10px;">Save Staff</button>
-        </form>
-    `;
-    document.getElementById('staffModal').style.display = 'flex';
-}
-
-async function submitStaff(e) {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const res = await fetch('/api/employee-tracker/add', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.success) {
-        showToast("Staff added successfully!");
-        closeModal();
-        loadStaff('All');
-    } else {
-        showToast("Error: " + data.message);
+        document.getElementById('staffModal').style.display = 'flex';
     }
-}
 
-// View Details Modal with Timeline History
-async function viewDetails(id) {
-    const res = await fetch(`/api/employee-tracker/details/${id}`);
-    const data = await res.json();
-    if (!data.success) return;
+    // Open Edit Staff Modal (With Dynamic Category Box)
+    async function openEditModal(id) {
+        const res = await fetch(`/api/employee-tracker/details/${id}`);
+        const data = await res.json();
+        if (!data.success) return;
+        const emp = data.employee;
 
-    const emp = data.employee;
-    const history = data.history;
-    const docs = data.documents;
+        // Store original category globally for comparison
+        window.currentEmpCategory = emp.category;
 
-    let docHtml = docs.map(d => `<li><a href="${d.file_path}" target="_blank">${d.doc_name}</a></li>`).join('');
-    
-    // Timeline Generation
-    let timelineHtml = '';
-    if (history && history.length > 0) {
-        history.forEach(h => {
-            timelineHtml += `<li style="margin-bottom:8px;"><b>${formatDate(h.start_date)} - ${formatDate(h.end_date)}</b> : ${h.previous_category} ${h.previous_designation ? `(${h.previous_designation})` : ''}</li>`;
+        document.getElementById('modalBody').innerHTML = `
+            <h2>Edit Staff (${emp.unique_id})</h2>
+            <form id="editStaffForm" onsubmit="updateStaff(event, ${emp.id})">
+                <div class="form-group"><label>Full Name</label><input type="text" name="name" value="${emp.name || ''}" required></div>
+                
+                <div class="form-group"><label>Division / Category</label>
+                    <select name="category" id="categorySelect" onchange="checkCategoryChange(this)" required>
+                        <option value="Director" ${emp.category === 'Director' ? 'selected' : ''}>Director</option>
+                        <option value="Site Co" ${emp.category === 'Site Co' ? 'selected' : ''}>Site Co</option>
+                        <option value="Field Co" ${emp.category === 'Field Co' ? 'selected' : ''}>Field Co</option>
+                        <option value="Office Admin" ${emp.category === 'Office Admin' ? 'selected' : ''}>Office Admin</option>
+                        <option value="Office Accounts" ${emp.category === 'Office Accounts' ? 'selected' : ''}>Office Accounts</option>
+                        <option value="Released" ${emp.category === 'Released' ? 'selected' : ''}>Released</option>
+                    </select>
+                </div>
+
+                <!-- HIDDEN BOX: Appears only when Category changes -->
+                <div id="roleChangeBox" style="display:none; background:#fff3cd; padding:10px; border-radius:5px; margin-bottom:12px; border:1px solid #ffeeba;">
+                    <p style="margin:0 0 8px 0; font-size:13px; color:#856404; font-weight:bold;">Role Change Detected! Please provide dates to update History.</p>
+                    <div class="form-group">
+                        <label>Previous Role End Date</label>
+                        <input type="date" name="prev_end_date" id="prev_end_date">
+                    </div>
+                    <div class="form-group">
+                        <label>New Role Start Date</label>
+                        <input type="date" name="new_start_date" id="new_start_date">
+                    </div>
+                </div>
+                
+                <!-- HIDDEN BOX: Appears only when Released is selected -->
+                <div id="releasedBox" style="display:${emp.category === 'Released' ? 'block' : 'none'}; background:#f8d7da; padding:10px; border-radius:5px; margin-bottom:12px; border:1px solid #f5c6cb;">
+                    <div class="form-group">
+                        <label style="color:#721c24;">Last Working Day (Released Date)</label>
+                        <input type="date" name="released_date" id="released_date" value="${toInputDate(emp.released_date) || ''}">
+                    </div>
+                </div>
+
+                <div class="form-group"><label>Designation</label><input type="text" name="designation" value="${emp.designation || ''}"></div>
+                <div class="form-group"><label>Joining Date (Current Role)</label><input type="date" name="joining_date" value="${toInputDate(emp.joining_date)}" required></div>
+                <div class="form-group"><label>Mobile No</label><input type="text" name="mobile" value="${emp.mobile || ''}"></div>
+                <div class="form-group"><label>Alternative Mobile No</label><input type="text" name="alt_mobile" value="${emp.alt_mobile || ''}"></div>
+                <div class="form-group"><label>Address</label><textarea name="address" rows="2">${emp.address || ''}</textarea></div>
+                <div class="form-group"><label>Passport No</label><input type="text" name="passport_no" value="${emp.passport_no || ''}"></div>
+                <div class="form-group"><label>Notes</label><textarea name="notes" rows="2">${emp.notes || ''}</textarea></div>
+                
+                <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact Details</h4>
+                <div class="form-group"><label>Contact Person Name</label><input type="text" name="emergency_name" value="${emp.emergency_name || ''}"></div>
+                <div class="form-group"><label>Emergency Mobile</label><input type="text" name="emergency_mobile" value="${emp.emergency_mobile || ''}"></div>
+                <div class="form-group"><label>Emergency Alt Mobile</label><input type="text" name="emergency_alt" value="${emp.emergency_alt || ''}"></div>
+                <div class="form-group"><label>Relationship</label><input type="text" name="emergency_relation" value="${emp.emergency_relation || ''}"></div>
+
+                <div class="form-group"><label>New Staff Photo (Optional)</label><input type="file" name="image" accept="image/*"></div>
+                <button type="submit" class="btn btn-warning" style="width:100%; margin-top:10px;">Update Staff</button>
+            </form>
+        `;
+    }
+
+    // Detect if category is changed
+    function checkCategoryChange(selectElem) {
+        const changeBox = document.getElementById('roleChangeBox');
+        const releasedBox = document.getElementById('releasedBox');
+        
+        // History Tracking Box
+        if (selectElem.value !== window.currentEmpCategory && selectElem.value !== 'Released') {
+            changeBox.style.display = 'block';
+            document.getElementById('prev_end_date').required = true;
+            document.getElementById('new_start_date').required = true;
+        } else {
+            changeBox.style.display = 'none';
+            document.getElementById('prev_end_date').required = false;
+            document.getElementById('new_start_date').required = false;
+        }
+
+        // Released Date Box
+        if (selectElem.value === 'Released') {
+            releasedBox.style.display = 'block';
+            document.getElementById('released_date').required = true;
+        } else {
+            releasedBox.style.display = 'none';
+            document.getElementById('released_date').required = false;
+        }
+    }
+
+    async function updateStaff(e, id) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const res = await fetch(`/api/employee-tracker/edit/${id}`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Staff updated successfully!");
+            closeModal();
+            loadStaff();
+        } else {
+            showToast("Error: " + data.message);
+        }
+    }
+
+    function deleteStaff(id) {
+        document.getElementById('modalBody').innerHTML = `
+            <div style="text-align:center; padding: 20px;">
+                <h3 style="color: #dc3545; margin-bottom: 10px;">Security Verification</h3>
+                <p style="font-size: 14px; color: #555;">Enter Admin Delete Security Key to proceed:</p>
+                <div class="form-group" style="margin: 15px 0;">
+                    <input type="password" id="deleteSecretInput" placeholder="Enter Security Key" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 16px;">
+                </div>
+                <button class="btn btn-danger" onclick="confirmDelete(${id})">Confirm Delete</button>
+                <button class="btn" onclick="viewDetails(${id})" style="background: #6c757d; margin-left: 10px;">Cancel</button>
+            </div>
+        `;
+    }
+
+    async function confirmDelete(id) {
+        const deleteSecret = document.getElementById('deleteSecretInput').value;
+        if (!deleteSecret) {
+            showToast("Please enter the security key!");
+            return;
+        }
+
+        const res = await fetch(`/api/employee-tracker/delete/${id}`, { 
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ deleteSecret })
         });
-    }
-    // Append Current Role
-    timelineHtml += `<li style="margin-bottom:8px; color:green;"><b>${formatDate(emp.joining_date)} - Present</b> : ${emp.category} ${emp.designation ? `(${emp.designation})` : ''}</li>`;
-
-    document.getElementById('modalBody').innerHTML = `
-        <div style="text-align:center;">
-            <img src="${emp.image_path || 'https://via.placeholder.com/80'}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;">
-            <h2>${emp.name}</h2>
-            <p style="color:#007bff; font-weight:bold;">${emp.unique_id} - ${emp.designation || emp.category}</p>
-        </div>
-        <hr>
-        <p><b>Mobile:</b> ${emp.mobile || 'N/A'} | <b>Alt Mobile:</b> ${emp.alt_mobile || 'N/A'}</p>
-        <p><b>Address:</b> ${emp.address || 'N/A'}</p>
-        <p><b>Passport No:</b> ${emp.passport_no || 'N/A'}</p>
-        <p><b>Notes:</b> ${emp.notes || 'N/A'}</p>
         
-        <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact</h4>
-        <p><b>Name:</b> ${emp.emergency_name || 'N/A'} (${emp.emergency_relation || 'N/A'})</p>
-        <p><b>Mobile:</b> ${emp.emergency_mobile || 'N/A'} | <b>Alt:</b> ${emp.emergency_alt || 'N/A'}</p>
-        
-        <h4 style="margin:10px 0 5px 0; color:#007bff;">Attached Documents</h4>
-        <ul>${docHtml || '<li>No documents attached</li>'}</ul>
-
-        <h4 style="margin:10px 0 5px 0; color:#007bff;">Position History Log</h4>
-        <ul style="list-style-type: none; padding-left: 0;">${timelineHtml}</ul>
-
-        <div style="margin-top: 20px; display: flex; justify-content: space-between;">
-            <button class="btn btn-warning" onclick="openEditModal(${emp.id})">✏️ Edit Staff</button>
-            <button class="btn btn-danger" onclick="deleteStaff(${emp.id})">🗑️ Delete Staff</button>
-        </div>
-    `;
-    document.getElementById('staffModal').style.display = 'flex';
-}
-
-// Open Edit Staff Modal (With Dynamic Category Box)
-async function openEditModal(id) {
-    const res = await fetch(`/api/employee-tracker/details/${id}`);
-    const data = await res.json();
-    if (!data.success) return;
-    const emp = data.employee;
-
-    // Store original category globally for comparison
-    window.currentEmpCategory = emp.category;
-
-    document.getElementById('modalBody').innerHTML = `
-        <h2>Edit Staff (${emp.unique_id})</h2>
-        <form id="editStaffForm" onsubmit="updateStaff(event, ${emp.id})">
-            <div class="form-group"><label>Full Name</label><input type="text" name="name" value="${emp.name || ''}" required></div>
-            
-            <div class="form-group"><label>Division / Category</label>
-                <select name="category" onchange="checkCategoryChange(this)" required>
-                    <option value="Director" ${emp.category === 'Director' ? 'selected' : ''}>Director</option>
-                    <option value="Site Co" ${emp.category === 'Site Co' ? 'selected' : ''}>Site Co</option>
-                    <option value="Field Co" ${emp.category === 'Field Co' ? 'selected' : ''}>Field Co</option>
-                    <option value="Office Admin" ${emp.category === 'Office Admin' ? 'selected' : ''}>Office Admin</option>
-                    <option value="Office Accounts" ${emp.category === 'Office Accounts' ? 'selected' : ''}>Office Accounts</option>
-                </select>
-            </div>
-
-            <!-- HIDDEN BOX: Appears only when Category changes -->
-            <div id="roleChangeBox" style="display:none; background:#fff3cd; padding:10px; border-radius:5px; margin-bottom:12px; border:1px solid #ffeeba;">
-                <p style="margin:0 0 8px 0; font-size:13px; color:#856404; font-weight:bold;">Role Change Detected! Please provide dates to update History.</p>
-                <div class="form-group">
-                    <label>Previous Role End Date</label>
-                    <input type="date" name="prev_end_date" id="prev_end_date">
-                </div>
-                <div class="form-group">
-                    <label>New Role Start Date</label>
-                    <input type="date" name="new_start_date" id="new_start_date">
-                </div>
-            </div>
-
-            <div class="form-group"><label>Designation</label><input type="text" name="designation" value="${emp.designation || ''}"></div>
-            <div class="form-group"><label>Joining Date (Current Role)</label><input type="date" name="joining_date" value="${toInputDate(emp.joining_date)}" required></div>
-            <div class="form-group"><label>Mobile No</label><input type="text" name="mobile" value="${emp.mobile || ''}"></div>
-            <div class="form-group"><label>Alternative Mobile No</label><input type="text" name="alt_mobile" value="${emp.alt_mobile || ''}"></div>
-            <div class="form-group"><label>Address</label><textarea name="address" rows="2">${emp.address || ''}</textarea></div>
-            <div class="form-group"><label>Passport No</label><input type="text" name="passport_no" value="${emp.passport_no || ''}"></div>
-            <div class="form-group"><label>Notes</label><textarea name="notes" rows="2">${emp.notes || ''}</textarea></div>
-            
-            <h4 style="margin:10px 0 5px 0; color:#007bff;">Emergency Contact Details</h4>
-            <div class="form-group"><label>Contact Person Name</label><input type="text" name="emergency_name" value="${emp.emergency_name || ''}"></div>
-            <div class="form-group"><label>Emergency Mobile</label><input type="text" name="emergency_mobile" value="${emp.emergency_mobile || ''}"></div>
-            <div class="form-group"><label>Emergency Alt Mobile</label><input type="text" name="emergency_alt" value="${emp.emergency_alt || ''}"></div>
-            <div class="form-group"><label>Relationship</label><input type="text" name="emergency_relation" value="${emp.emergency_relation || ''}"></div>
-
-            <div class="form-group"><label>New Staff Photo (Optional)</label><input type="file" name="image" accept="image/*"></div>
-            <button type="submit" class="btn btn-warning" style="width:100%; margin-top:10px;">Update Staff</button>
-        </form>
-    `;
-}
-
-// Detect if category is changed
-function checkCategoryChange(selectElem) {
-    const changeBox = document.getElementById('roleChangeBox');
-    if (selectElem.value !== window.currentEmpCategory) {
-        changeBox.style.display = 'block';
-        document.getElementById('prev_end_date').required = true;
-        document.getElementById('new_start_date').required = true;
-    } else {
-        changeBox.style.display = 'none';
-        document.getElementById('prev_end_date').required = false;
-        document.getElementById('new_start_date').required = false;
-    }
-}
-
-async function updateStaff(e, id) {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const res = await fetch(`/api/employee-tracker/edit/${id}`, { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.success) {
-        showToast("Staff updated successfully!");
-        closeModal();
-        loadStaff('All');
-    } else {
-        showToast("Error: " + data.message);
-    }
-}
-
-function deleteStaff(id) {
-    document.getElementById('modalBody').innerHTML = `
-        <div style="text-align:center; padding: 20px;">
-            <h3 style="color: #dc3545; margin-bottom: 10px;">Security Verification</h3>
-            <p style="font-size: 14px; color: #555;">Enter Admin Delete Security Key to proceed:</p>
-            <div class="form-group" style="margin: 15px 0;">
-                <input type="password" id="deleteSecretInput" placeholder="Enter Security Key" style="padding: 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 16px;">
-            </div>
-            <button class="btn btn-danger" onclick="confirmDelete(${id})">Confirm Delete</button>
-            <button class="btn" onclick="viewDetails(${id})" style="background: #6c757d; margin-left: 10px;">Cancel</button>
-        </div>
-    `;
-}
-
-async function confirmDelete(id) {
-    const deleteSecret = document.getElementById('deleteSecretInput').value;
-    if (!deleteSecret) {
-        showToast("Please enter the security key!");
-        return;
+        const data = await res.json();
+        if (data.success) {
+            showToast("Staff deleted successfully!");
+            closeModal();
+            loadStaff();
+        } else {
+            showToast("Error: " + (data.message || "Deletion failed!"));
+        }
     }
 
-    const res = await fetch(`/api/employee-tracker/delete/${id}`, { 
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deleteSecret })
-    });
-    
-    const data = await res.json();
-    if (data.success) {
-        showToast("Staff deleted successfully!");
-        closeModal();
-        loadStaff('All');
-    } else {
-        showToast("Error: " + (data.message || "Deletion failed!"));
+    function closeModal() {
+        document.getElementById('staffModal').style.display = 'none';
     }
-}
-
-function closeModal() {
-    document.getElementById('staffModal').style.display = 'none';
-}
 </script>
 </body>
 </html>
