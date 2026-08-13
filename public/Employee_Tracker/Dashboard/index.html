@@ -436,35 +436,64 @@
                     <div class="form-group"><label>Alt Mobile</label><input type="text" name="emergency_alt" value="${emp.emergency_alt || ''}"></div>
                 </div>
 
-                <h4 style="margin:10px 0 5px 0; color:#007bff; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Manage Documents</h4>
+                <h4 style="margin:10px 0 5px 0; color:#007bff; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Manage & Remove Documents</h4>
+                ${docs.length > 0 ? `
+                    <div style="background:#e9ecef; padding:10px; border-radius:5px; margin-bottom:12px;">
+                        <label style="font-weight:600; font-size:13px; margin-bottom:5px; display:block; color:#333;">Existing Documents (Click ✖ to Remove)</label>
+                        <ul style="list-style:none; padding:0; margin:0;">
+                            ${docs.map((d) => {
+    const fileName = (d.file_path || '').split('/').pop();
+
+    const match = fileName.match(/-(\d+)\.[^.]+$/);
+
+    const actualDocNumber = match
+        ? parseInt(match[1], 10)
+        : '';
+
+    return `
+        <li style="display:flex; justify-content:space-between; background:#fff; padding:6px 10px; margin-bottom:4px; border-radius:4px; font-size:13px; align-items:center; border:1px solid #ddd;">
+            <span>
+                <a href="${d.file_path}" target="_blank">
+                    ${d.doc_name}
+                </a>
+                <small>(${actualDocNumber})</small>
+            </span>
+
+            <button
+                type="button"
+                style="color:#dc3545; border:none; background:none; cursor:pointer; font-weight:bold; font-size:16px;"
+                onclick="deleteExistingDocument(${d.id}, ${emp.id})"
+            >✖</button>
+        </li>
+    `;
+}).join('')}
+
+                        </ul>
+                    </div>
+                ` : '<p style="font-size:13px; color:#666;">No documents attached yet.</p>'}
+
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>Document Action</label>
                         <select name="doc_action" onchange="toggleDocAction(this)">
-                            <option value="none">-- No Document Updates --</option>
+                            <option value="none" selected>-- No Document Updates --</option>
                             <option value="add_new">Add New Document</option>
-                            ${docs.length > 0 ? `<option value="replace">Replace Existing Document</option>` : ''}
-                        </select>
-                    </div>
-                </div>
-                
-                <div id="replaceDocSection" style="display:none; background:#e9ecef; padding:10px; border-radius:5px; margin-bottom:12px;">
-                    <div class="form-group"><label>Select Document to Replace</label>
-                        <select name="replace_doc_id">
-                            ${docs.map((d, index) => `<option value="${d.id}">${d.doc_name} (${index + 1})</option>`).join('')}
                         </select>
                     </div>
                 </div>
 
-                <div id="uploadDocSection" style="display:none;">
-                    <div class="form-row" style="align-items: flex-end;">
-                        <div class="form-group"><label>Document Name</label><input type="text" id="tempDocName" placeholder="Enter Name"></div>
-                        <div class="form-group">
-                            <label>Attach File (PDF, PNG, JPG)</label>
-                            <div style="display:flex; gap:10px;">
-                                <input type="file" id="tempDocFile" accept=".pdf, .png, .jpg, .jpeg" style="flex:1;">
-                                <button type="button" onclick="addStagedDocument()" class="btn btn-primary" style="padding: 8px 15px;">Add</button>
-                            </div>
+                <div id="uploadDocSection" style="display:none; margin-top: 10px;">
+                    <div style="display: grid; grid-template-columns: 1.2fr 1.5fr auto; gap: 10px; align-items: flex-end;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Document Name</label>
+                            <input type="text" id="tempDocName" placeholder="Enter Name">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Attach File (PDF, JPG)</label>
+                            <input type="file" id="tempDocFile" accept=".pdf, .png, .jpg, .jpeg">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <button type="button" onclick="addStagedDocument()" class="btn btn-primary" style="padding: 8px 15px; height: 38px;">Add</button>
                         </div>
                     </div>
                     <ul id="stagedDocsList" style="list-style:none; padding:0; margin:10px 0;"></ul>
@@ -603,8 +632,28 @@
 
         let docSectionHtml = '';
         if (docs && docs.length > 0) {
-            // ഫ്രണ്ട് എൻഡിൽ പേരിനൊപ്പം കൗണ്ട് കാണിക്കുന്നു (index + 1)
-            let docHtml = docs.map((d, index) => `<li><a href="${d.file_path}" target="_blank">${d.doc_name} (${index + 1})</a></li>`).join('');
+            let docHtml = docs.map((d) => {
+    const fileName = (d.file_path || '').split('/').pop();
+
+    // Extract number from:
+    // EMP-001-1.pdf
+    // EMP-001-10.pdf
+    const match = fileName.match(/-(\d+)\.[^.]+$/);
+
+    const actualDocNumber = match
+        ? parseInt(match[1], 10)
+        : '';
+
+    return `
+        <li>
+            ${actualDocNumber} &nbsp;&nbsp;
+            <a href="${d.file_path}" target="_blank">
+                ${d.doc_name}
+            </a>
+        </li>
+    `;
+}).join('');
+
             docSectionHtml = `
                 <h4 style="margin:10px 0 5px 0; color:#007bff;">Attached Documents</h4>
                 <ul>${docHtml}</ul>
@@ -719,14 +768,14 @@
         const uploadSection = document.getElementById('uploadDocSection');
         
         if (select.value === 'none') {
-            replaceSection.style.display = 'none';
-            uploadSection.style.display = 'none';
+            if (replaceSection) replaceSection.style.display = 'none';
+            if (uploadSection) uploadSection.style.display = 'none';
         } else if (select.value === 'add_new') {
-            replaceSection.style.display = 'none';
-            uploadSection.style.display = 'block';
+            if (replaceSection) replaceSection.style.display = 'none';
+            if (uploadSection) uploadSection.style.display = 'block';
         } else if (select.value === 'replace') {
-            replaceSection.style.display = 'block';
-            uploadSection.style.display = 'block';
+            if (replaceSection) replaceSection.style.display = 'block';
+            if (uploadSection) uploadSection.style.display = 'block';
         }
     }
 
@@ -766,6 +815,37 @@
     function removeStagedDocument(index) {
         stagedDocuments.splice(index, 1);
         renderStagedDocuments();
+    }
+
+    function deleteExistingDocument(docId, empId) {
+        document.getElementById('modalBody').innerHTML = `
+            <div style="text-align:center; padding: 20px;">
+                <h3 style="color: #dc3545; margin-bottom: 10px;">Confirm Deletion</h3>
+                <p style="font-size: 14px; color: #555;">Are you sure you want to remove this attached document?</p>
+                <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
+                    <button class="btn btn-danger" onclick="confirmDeleteDocument(${docId}, ${empId})">Yes, Delete</button>
+                    <button class="btn" onclick="openEditModal(${empId})" style="background: #6c757d;">Cancel</button>
+                </div>
+            </div>
+        `;
+    }
+
+    async function confirmDeleteDocument(docId, empId) {
+        try {
+            const res = await fetch(`/api/employee-tracker/document/${docId}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast("Document removed successfully!");
+                openEditModal(empId);
+                loadStaff();
+            } else {
+                showToast("Error: " + data.message);
+            }
+        } catch (err) {
+            showToast("Error connecting to server!");
+        }
     }
 
     function closeModal() {
