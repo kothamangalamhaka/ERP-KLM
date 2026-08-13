@@ -792,7 +792,7 @@ module.exports = function (pool, middlewares, helpers) {
       }
 
       let changeLogs = [];
-      let additionalEdits = []; // 🟢 കാൽക്കുലേറ്റ് ചെയ്യുന്ന പുതിയ ഡാറ്റ സൂക്ഷിക്കാൻ
+      let additionalEdits = []; 
 
       for (let edit of edits) {
         let { dbId, colName, newValue, plate } = edit;
@@ -847,7 +847,10 @@ module.exports = function (pool, middlewares, helpers) {
       pool
         .query(
           "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'BATCH_UPDATE_PY', $2)",
-          [req.user.username, JSON.stringify({ count: edits.length })],
+          [
+            req.user.username, 
+            JSON.stringify({ count: edits.length, changes: changeLogs })
+          ],
         )
         .catch((err) => console.error("Log error:", err.message));
 
