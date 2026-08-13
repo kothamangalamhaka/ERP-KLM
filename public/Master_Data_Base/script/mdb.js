@@ -2690,6 +2690,7 @@ function attachEditListeners() {
       sel.removeAllRanges();
       sel.addRange(range);
     });
+
   $("#erpTable tbody")
     .off("dblclick", "td")
     .on("dblclick", "td", function () {
@@ -2700,10 +2701,8 @@ function attachEditListeners() {
       let $cell = $(this),
         colName = $cell.data("colname"),
         colUpper = String(colName).replace(/\s+/g, " ").trim().toUpperCase();
-      if (
-        globalLockedCols.includes(colName) &&
-        currentUser.role !== "Super Admin"
-      )
+        
+      if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin")
         return showToast("Column is locked by Super Admin.", "error");
       if (colUpper === "SN")
         return showToast("Access Denied: SN is auto-generated.", "error");
@@ -2712,210 +2711,250 @@ function attachEditListeners() {
 
       let oldVal = $cell.text(),
         sheetRow = $cell.closest("tr").data("sheetrow");
-      let colTypeObj = cachedColTypes.find((c) => c.name === colName),
-        cType = colTypeObj ? colTypeObj.type : "varchar";
-      let inputHtml = "",
-        isSelect = false,
-        isDateCol =
-          cType === "date" ||
-          colUpper.includes("DATE") ||
-          colUpper.includes("EXPIRE") ||
-          colUpper.includes("EQUIPMENT REACHED") ||
-          colUpper === "LAST WORKING DAY" ||
-          colUpper === "WORK START",
-        isIntCol = cType === "int";
 
-      if (isDateCol) {
-        inputHtml = `<input type="date" class="edit-input" value="${convertToInputDate(oldVal)}">`;
-      } else if (isIntCol) {
-        inputHtml = `<input type="number" class="edit-input" value="${oldVal.replace(/"/g, "&quot;")}">`;
-      } else if (["REMARK", "REMARKS", "DRIVER LOG"].includes(colUpper)) {
-        inputHtml = `<textarea class="edit-input">${oldVal}</textarea>`;
-      } else if (colUpper === "STATUS") {
-        let optsStatus = ["Running", "Released", "Replaced", "Mobilizing"],
-          optionsStatusHtml = optsStatus
-            .map(function (o) {
-              return `<option value="${o}" ${oldVal.toLowerCase() === o.toLowerCase() ? "selected" : ""}>${o}</option>`;
-            })
-            .join("");
-        inputHtml = `<select class="edit-input"><option value=""></option>${optionsStatusHtml}</select>`;
-        isSelect = true;
-      } else if (colUpper === "IF SUB") {
-        let optsSub = ["Sub"],
-          optionsSubHtml = optsSub
-            .map(function (o) {
-              return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
-            })
-            .join("");
-        inputHtml = `<select class="edit-input"><option value=""></option>${optionsSubHtml}</select>`;
-        isSelect = true;
-      } else if (colUpper === "COMPANY") {
-        let optionsCompHtml = DYNAMIC_COMPANIES.map(function (o) {
-          return `<option value="${o.replace(/"/g, "&quot;")}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
-        }).join("");
-        optionsCompHtml += `<option value="ADD_NEW_COMPANY" style="font-weight:bold; color:#2563eb;">+ Add New</option>`;
-        inputHtml = `<select class="edit-input"><option value=""></option>${optionsCompHtml}</select>`;
-        isSelect = true;
-      } else if (colUpper === "VAT BILL OR NOT") {
-        let optsVat = ["Yes", "No"],
-          optionsVatHtml = optsVat
-            .map(function (o) {
-              return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
-            })
-            .join("");
-        inputHtml = `<select class="edit-input"><option value=""></option>${optionsVatHtml}</select>`;
-        isSelect = true;
-      } else {
-        inputHtml = `<input type="text" class="edit-input" value="${oldVal.replace(/"/g, "&quot;")}">`;
-      }
+      // Helper function to open cell (Safe Fallback)
+      const openCellForEditing = () => {
+          let colTypeObj = cachedColTypes.find((c) => c.name === colName),
+            cType = colTypeObj ? colTypeObj.type : "varchar";
+          let inputHtml = "",
+            isSelect = false,
+            isDateCol =
+              cType === "date" ||
+              colUpper.includes("DATE") ||
+              colUpper.includes("EXPIRE") ||
+              colUpper.includes("EQUIPMENT REACHED") ||
+              colUpper === "LAST WORKING DAY" ||
+              colUpper === "WORK START",
+            isIntCol = cType === "int";
 
-      let $input = $(inputHtml);
-      $cell.html($input);
-      $input.focus();
-
-      // 🟢 Intercept "+ Add New Company" selection inside inline cell editor
-      if (colUpper === "COMPANY") {
-        $input.on("change", function () {
-          if ($(this).val() === "ADD_NEW_COMPANY") {
-            let newComp = prompt("Enter New Company Name:")?.trim();
-            if (newComp) {
-              if (!DYNAMIC_COMPANIES.includes(newComp)) {
-                DYNAMIC_COMPANIES.push(newComp);
-                DYNAMIC_COMPANIES.sort();
-              }
-              $(this).append(
-                `<option value="${newComp.replace(/"/g, "&quot;")}" selected>${newComp}</option>`,
-              );
-              $(this).val(newComp);
-            } else {
-              $(this).val(oldVal);
-            }
+          if (isDateCol) {
+            inputHtml = `<input type="date" class="edit-input" value="${convertToInputDate(oldVal)}">`;
+          } else if (isIntCol) {
+            inputHtml = `<input type="number" class="edit-input" value="${oldVal.replace(/"/g, "&quot;")}">`;
+          } else if (["REMARK", "REMARKS", "DRIVER LOG"].includes(colUpper)) {
+            inputHtml = `<textarea class="edit-input">${oldVal}</textarea>`;
+          } else if (colUpper === "STATUS") {
+            let optsStatus = ["Running", "Released", "Replaced", "Mobilizing"],
+              optionsStatusHtml = optsStatus
+                .map(function (o) {
+                  return `<option value="${o}" ${oldVal.toLowerCase() === o.toLowerCase() ? "selected" : ""}>${o}</option>`;
+                })
+                .join("");
+            inputHtml = `<select class="edit-input"><option value=""></option>${optionsStatusHtml}</select>`;
+            isSelect = true;
+          } else if (colUpper === "IF SUB") {
+            let optsSub = ["Sub"],
+              optionsSubHtml = optsSub
+                .map(function (o) {
+                  return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
+                })
+                .join("");
+            inputHtml = `<select class="edit-input"><option value=""></option>${optionsSubHtml}</select>`;
+            isSelect = true;
+          } else if (colUpper === "COMPANY") {
+            let optionsCompHtml = DYNAMIC_COMPANIES.map(function (o) {
+              return `<option value="${o.replace(/"/g, "&quot;")}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
+            }).join("");
+            optionsCompHtml += `<option value="ADD_NEW_COMPANY" style="font-weight:bold; color:#2563eb;">+ Add New</option>`;
+            inputHtml = `<select class="edit-input"><option value=""></option>${optionsCompHtml}</select>`;
+            isSelect = true;
+          } else if (colUpper === "VAT BILL OR NOT") {
+            let optsVat = ["Yes", "No"],
+              optionsVatHtml = optsVat
+                .map(function (o) {
+                  return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
+                })
+                .join("");
+            inputHtml = `<select class="edit-input"><option value=""></option>${optionsVatHtml}</select>`;
+            isSelect = true;
+          } else {
+            inputHtml = `<input type="text" class="edit-input" value="${oldVal.replace(/"/g, "&quot;")}">`;
           }
-        });
-      }
 
-      if (!isSelect && !isDateCol) {
-        let v = $input.val();
-        $input.val("");
-        $input.val(v);
-        if ($input.is("textarea")) {
-          $input.css("height", Math.max($cell.outerHeight(), $input[0].scrollHeight) + "px");
-        } else {
-          $input.css("height", $cell.outerHeight() + "px"); /* Forces exact Excel height matching */
-        }
-      }
+          let $input = $(inputHtml);
+          $cell.html($input);
+          $input.focus();
 
-      $input.on("keydown", function (e) {
-        if (e.key === "Escape") {
-          $cell.text(oldVal);
-          erpDataTable.cell($cell[0]).data(oldVal);
-          return;
-        }
-        if (e.key === "Enter" && e.altKey && $(this).is("textarea")) {
-          e.preventDefault();
-          let start = this.selectionStart,
-            end = this.selectionEnd,
-            val = $(this).val();
-          $(this).val(val.substring(0, start) + "\n" + val.substring(end));
-          this.selectionStart = this.selectionEnd = start + 1;
-          $(this).css("height", "auto");
-          $(this).css("height", this.scrollHeight + "px");
-          return;
-        }
-        if (["Enter", "Tab", "ArrowUp", "ArrowDown"].includes(e.key)) {
-          if (!isSelect || ["Enter", "Tab"].includes(e.key)) {
-            if (e.key === "Enter") e.preventDefault();
-            let direction = "";
-            if (e.key === "Enter") direction = e.shiftKey ? "UP" : "DOWN";
-            else if (e.key === "Tab") {
-              direction = e.shiftKey ? "LEFT" : "RIGHT";
-              e.preventDefault();
-            } else if (e.key === "ArrowUp" && !isDateCol) direction = "UP";
-            else if (e.key === "ArrowDown" && !isDateCol) direction = "DOWN";
-            if (direction) {
-              let $currentRow = $cell.closest("tr"),
-                colIndex = $cell.index(),
-                $nextCell = null;
-              function getValidHorizontalCell($td, dir) {
-                let $nxt = dir === "RIGHT" ? $td.next("td") : $td.prev("td");
-                if ($nxt.length) {
-                  if (
-                    String($nxt.data("colname")).trim().toUpperCase() ===
-                      "SN" ||
-                    $nxt.css("display") === "none"
-                  )
-                    return getValidHorizontalCell($nxt, dir);
-                  return $nxt;
+          if (colUpper === "COMPANY") {
+            $input.on("change", function () {
+              if ($(this).val() === "ADD_NEW_COMPANY") {
+                let newComp = prompt("Enter New Company Name:")?.trim();
+                if (newComp) {
+                  if (!DYNAMIC_COMPANIES.includes(newComp)) {
+                    DYNAMIC_COMPANIES.push(newComp);
+                    DYNAMIC_COMPANIES.sort();
+                  }
+                  $(this).append(
+                    `<option value="${newComp.replace(/"/g, "&quot;")}" selected>${newComp}</option>`,
+                  );
+                  $(this).val(newComp);
+                } else {
+                  $(this).val(oldVal);
                 }
-                return null;
               }
-              if (direction === "DOWN")
-                $nextCell = $currentRow.next("tr").find("td").eq(colIndex);
-              else if (direction === "UP")
-                $nextCell = $currentRow.prev("tr").find("td").eq(colIndex);
-              else if (direction === "RIGHT")
-                $nextCell = getValidHorizontalCell($cell, "RIGHT");
-              else if (direction === "LEFT")
-                $nextCell = getValidHorizontalCell($cell, "LEFT");
-              $(this).blur();
-              if ($nextCell && $nextCell.length) {
-                // 🟢 10X SPEEDUP: Zero-lag instant cell switch without blocking UI
-                requestAnimationFrame(() => $nextCell.trigger("dblclick"));
-              }
+            });
+          }
+
+          if (!isSelect && !isDateCol) {
+            let v = $input.val();
+            $input.val("");
+            $input.val(v);
+            if ($input.is("textarea")) {
+              $input.css("height", Math.max($cell.outerHeight(), $input[0].scrollHeight) + "px");
+            } else {
+              $input.css("height", $cell.outerHeight() + "px");
             }
           }
-        }
-      });
-      $input.on("blur", function () {
-        if ($cell.find(".edit-input").length === 0) return;
-        let newVal = $(this).val();
-        if (isDateCol && newVal) newVal = formatToDDMMMYYYY(newVal);
-        else if (colUpper === "PLATE NUMBER")
-          newVal = formatPlateNumber(newVal);
-          
-        // editing-cell എന്ന ക്ലാസ്സ് കളഞ്ഞ് സെൽ പഴയപടിയാക്കുന്നു
-        $cell.removeClass("editing-cell").css({ "height": "", "width": "", "min-width": "" });
-        
-        $cell.text(newVal);
-        
-        // 🟢 10X SPEEDUP: Update Memory & Backend ONLY if value actually changed
-        if (newVal !== oldVal) {
-          erpDataTable.cell($cell[0]).data(newVal); // Fast Memory Update
-          
-          undoStack.push({
-            sheetRow: sheetRow,
-            colName: colName,
-            oldVal: oldVal,
-            newVal: newVal,
-          });
-          if (undoStack.length > 50) undoStack.shift();
-          redoStack = [];
-          updateUndoRedoUI();
 
-          let plateIdxInTable = cachedHeaders.findIndex(
-            (h) => h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER")
-          );
-          let rowPlateNo = plateIdxInTable !== -1 
-            ? $cell.closest("tr").find("td").eq(plateIdxInTable).text().trim() 
-            : "N/A";
+          $input.on("keydown", function (e) {
+            if (e.key === "Escape") {
+              $cell.text(oldVal);
+              erpDataTable.cell($cell[0]).data(oldVal);
+              
+              // Unlock cell if cancelled
+              fetch("/api/unlock-cell", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ dbId: sheetRow, colName: colName }),
+              }).catch(()=> console.warn("Unlock bypass"));
+              return;
+            }
+            if (e.key === "Enter" && e.altKey && $(this).is("textarea")) {
+              e.preventDefault();
+              let start = this.selectionStart,
+                end = this.selectionEnd,
+                val = $(this).val();
+              $(this).val(val.substring(0, start) + "\n" + val.substring(end));
+              this.selectionStart = this.selectionEnd = start + 1;
+              $(this).css("height", "auto");
+              $(this).css("height", this.scrollHeight + "px");
+              return;
+            }
+            if (["Enter", "Tab", "ArrowUp", "ArrowDown"].includes(e.key)) {
+              if (!isSelect || ["Enter", "Tab"].includes(e.key)) {
+                if (e.key === "Enter") e.preventDefault();
+                let direction = "";
+                if (e.key === "Enter") direction = e.shiftKey ? "UP" : "DOWN";
+                else if (e.key === "Tab") {
+                  direction = e.shiftKey ? "LEFT" : "RIGHT";
+                  e.preventDefault();
+                } else if (e.key === "ArrowUp" && !isDateCol) direction = "UP";
+                else if (e.key === "ArrowDown" && !isDateCol) direction = "DOWN";
 
-          saveQueue.push({
-            dbId: sheetRow,
-            colName: colName,
-            newValue: newVal,
-            plate: rowPlateNo 
+                if (direction) {
+                  let $currentRow = $cell.closest("tr"),
+                    colIndex = $cell.index(),
+                    $nextCell = null;
+                  function getValidHorizontalCell($td, dir) {
+                    let $nxt = dir === "RIGHT" ? $td.next("td") : $td.prev("td");
+                    if ($nxt.length) {
+                      if (
+                        String($nxt.data("colname")).trim().toUpperCase() === "SN" ||
+                        $nxt.css("display") === "none"
+                      )
+                        return getValidHorizontalCell($nxt, dir);
+                      return $nxt;
+                    }
+                    return null;
+                  }
+                  if (direction === "DOWN")
+                    $nextCell = $currentRow.next("tr").find("td").eq(colIndex);
+                  else if (direction === "UP")
+                    $nextCell = $currentRow.prev("tr").find("td").eq(colIndex);
+                  else if (direction === "RIGHT")
+                    $nextCell = getValidHorizontalCell($cell, "RIGHT");
+                  else if (direction === "LEFT")
+                    $nextCell = getValidHorizontalCell($cell, "LEFT");
+
+                  $(this).blur();
+
+                  if ($nextCell && $nextCell.length) {
+                    requestAnimationFrame(() => $nextCell.trigger("dblclick"));
+                  }
+                }
+              }
+            }
           });
-          
-          // INSTANTLY CALCULATE DEPENDENT FIELDS ON EDIT
-          autoCalculateRow(sheetRow);
-          
-          // 🟢 10X SPEEDUP: Debounce network calls. Wait 800ms before sending batch to server
-          clearTimeout(editDebounceTimer);
-          editDebounceTimer = setTimeout(() => {
-              processQueue();
-          }, 800);
-        }
-      });
+
+          // BLUR EVENT TO RELEASE LOCK AND SAVE
+          $input.on("blur", function () {
+            if ($cell.find(".edit-input").length === 0) return;
+            let newVal = $(this).val();
+            if (isDateCol && newVal) newVal = formatToDDMMMYYYY(newVal);
+            else if (colUpper === "PLATE NUMBER") newVal = formatPlateNumber(newVal);
+
+            $cell.removeClass("editing-cell").css({ height: "", width: "", "min-width": "" });
+            $cell.text(newVal);
+
+            // Release the lock in backend
+            fetch("/api/unlock-cell", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ dbId: sheetRow, colName: colName }),
+            }).catch(()=> console.warn("Unlock bypass"));
+
+            if (newVal !== oldVal) {
+              erpDataTable.cell($cell[0]).data(newVal);
+
+              undoStack.push({
+                sheetRow: sheetRow,
+                colName: colName,
+                oldVal: oldVal,
+                newVal: newVal,
+              });
+              if (undoStack.length > 50) undoStack.shift();
+              redoStack = [];
+              updateUndoRedoUI();
+
+              let plateIdxInTable = cachedHeaders.findIndex((h) =>
+                h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER")
+              );
+              let rowPlateNo =
+                plateIdxInTable !== -1
+                  ? $cell.closest("tr").find("td").eq(plateIdxInTable).text().trim()
+                  : "N/A";
+
+              saveQueue.push({
+                dbId: sheetRow,
+                colName: colName,
+                newValue: newVal,
+                plate: rowPlateNo,
+              });
+
+              autoCalculateRow(sheetRow);
+
+              clearTimeout(editDebounceTimer);
+              editDebounceTimer = setTimeout(() => {
+                processQueue();
+              }, 800);
+            }
+          });
+      };
+
+      // 🟢 Check Lock with Safe Fallback
+      fetch("/api/lock-cell", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ dbId: sheetRow, colName: colName }),
+      })
+        .then(async (res) => {
+            if (!res.ok) throw new Error("API not ready");
+            return res.json();
+        })
+        .then(lockData => {
+          if (lockData && lockData.locked) {
+            showToast(`This cell is currently being edited by @${lockData.lockedBy}`, "error");
+            return; // Cell is locked by someone else
+          }
+          openCellForEditing(); // Open successfully
+        })
+        .catch(err => {
+            console.warn("Lock API offline, opening anyway.");
+            openCellForEditing(); // Safe Fallback: Open even if API fails!
+        });
     });
 }
 
@@ -3147,10 +3186,6 @@ function updateTableDataSmoothly(newRows) {
             
             if (hasChanged) {
                 erpDataTable.row(rowIndex).data(newRow);
-                // Highlight changed row temporarily to show user the update
-                let $node = $(erpDataTable.row(rowIndex).node());
-                $node.css("transition", "background-color 0.5s ease").css("background-color", "#dcfce7");
-                setTimeout(() => $node.css("background-color", ""), 1500);
             }
             delete existingRows[dbId]; // Remove from tracking
         } else {

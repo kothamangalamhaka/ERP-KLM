@@ -55,6 +55,42 @@ module.exports = function (pool, middlewares, helpers) {
   // 🛠️ SHARED UTILITY FUNCTIONS (Leak-Free & LIVE)
   // ==========================================
 
+  // 🟢 NEW CODE: In-Memory Cell Lock System (Zero Memory Leak)
+  const activeCellLocks = {}; 
+
+  // Auto-cleanup stale locks (Unlocks cell if abandoned for more than 2 minutes)
+  setInterval(() => {
+    const now = Date.now();
+    for (let key in activeCellLocks) {
+      if (now - activeCellLocks[key].time > 120000) {
+        delete activeCellLocks[key];
+      }
+    }
+  }, 60000);
+
+  router.post("/lock-cell", verifyToken, (req, res) => {
+    const { dbId, colName } = req.body;
+    const key = `${dbId}_${colName}`;
+    const currentUser = req.user.username;
+
+    if (activeCellLocks[key] && activeCellLocks[key].user !== currentUser) {
+      return res.json({ locked: true, lockedBy: activeCellLocks[key].user });
+    }
+    
+    activeCellLocks[key] = { user: currentUser, time: Date.now() };
+    res.json({ locked: false });
+  });
+
+  router.post("/unlock-cell", verifyToken, (req, res) => {
+    const { dbId, colName } = req.body;
+    const key = `${dbId}_${colName}`;
+    
+    if (activeCellLocks[key] && activeCellLocks[key].user === req.user.username) {
+      delete activeCellLocks[key];
+    }
+    res.json({ success: true });
+  });
+
   // 🟢 NEW CODE: Live Telegram Alert function (Guaranteed Trigger)
   async function sendLiveTelegramAlert(username, changeLogs) {
     if (!changeLogs || changeLogs.length === 0) return;
