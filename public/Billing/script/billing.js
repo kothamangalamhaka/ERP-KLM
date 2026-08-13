@@ -281,8 +281,9 @@ function autoArrangeForOwners(ownerNames) {
     });
   });
 
+  // Trigger calculation only via .nhr to preserve custom otrate from being overwritten
   document
-    .querySelectorAll(".nhr, .othr, .nrate, .otrate, .rent")
+    .querySelectorAll(".nhr")
     .forEach((el) => calculateRow(el));
 
   if (groupCount > 0) {
@@ -586,12 +587,15 @@ function arrangeProperly() {
         }
 
         groupCount++;
-        container.appendChild(createBillCard(group, `group_${groupCount}`));
-      });
-      document
-        .querySelectorAll(".nhr, .othr, .nrate, .otrate, .rent")
-        .forEach((el) => calculateRow(el));
-      showToast(`Successfully generated ${groupCount} table(s)!`);
+      container.appendChild(createBillCard(group, `group_${groupCount}`));
+    });
+    
+    // Trigger calculation only via .nhr to preserve custom otrate from being overwritten
+    document
+      .querySelectorAll(".nhr")
+      .forEach((el) => calculateRow(el));
+      
+    showToast(`Successfully generated ${groupCount} table(s)!`);
     }
     document.getElementById("loader").style.display = "none";
     document.getElementById("loaderText").innerText = "Processing Data...";

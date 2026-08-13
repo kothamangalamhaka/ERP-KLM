@@ -1,0 +1,561 @@
+<!-- public/We1-own-EQ/EQ_Driver_payroll.html -->
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>We1 EQ Driver Payroll</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text-main: #000000;
+            --border: #d0d7de;
+            --ribbon-bg: #f6f8fa;
+            --btn-hover: #0969da;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: lemonchiffon;
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            font-size: 13px;
+        }
+
+        .ribbon {
+            background-color: lemonchiffon;
+            padding: 12px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            border-bottom: 2px solid black;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .ribbon-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-right: auto;
+            color: #000000;
+        }
+
+        .ribbon select, .ribbon button {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .btn-primary { background: #0969da; color: white; font-weight: bold; border: none; cursor: pointer; }
+        .btn-success { background: #1a7f37; color: white; font-weight: bold; border: none; cursor: pointer; }
+        .btn-danger { background: #cf222e; color: white; font-weight: bold; border: none; cursor: pointer; }
+
+        .container { padding: 20px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        th, td { border: 1px solid black; padding: 8px 12px; text-align: left; }
+        th { background-color: lemonchiffon; font-weight: bolder; color: #000000; }
+        tbody tr:hover { background-color: #f3f4f6; }
+
+        input[type="number"], input[type="text"], select.edit-dropdown {
+            width: 100%; padding: 4px; box-sizing: border-box; border: 1px solid #0969da; border-radius: 3px; font-size: 12px;
+        }
+
+        .action-btns { display: flex; gap: 5px; }
+        .edit-btn { background: #cf222e; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .save-btn { background: #1a7f37; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .card-btn { background: #57606a; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;}
+        
+        .status-paid { color: #1a7f37; font-weight: bold; }
+        .status-unpaid { color: #cf222e; font-weight: bold; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-content { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 95%; }
+        .modal-toolbar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
+        
+        .icon-btn { background: #f6f8fa; border: 1px solid var(--border); padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .icon-btn:hover { background: #e5e7eb; }
+
+        /* Card Design */
+        .pay-card {
+            background-color: #fae6df; padding: 30px; width: 500px; box-sizing: border-box;
+            color: #000; font-family: 'Georgia', serif; border: 1px solid #ccc;
+        }
+        .pay-card-title { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 25px; }
+        .pay-card-sub { display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; margin-bottom: 15px; }
+        
+        /* Specific Font Requirement */
+        #cardPlateNo { font-family: Arial, sans-serif; }
+
+        .pay-card-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; border: 1px solid #000; }
+        .pay-card-table th, .pay-card-table td { border: 1px solid #000; padding: 10px; color: #000; }
+        .pay-card-table th { background-color: #f4b084; font-weight: bold; }
+        .row-green { background-color: #c6e0b4; }
+        .row-blue { background-color: #ddebf7; font-weight: bold; }
+        .row-red { background-color: #ff9999; }
+        .row-dark-green { background-color: #00b050; font-weight: bold; }
+        
+        /* Alignments */
+        .text-left { text-align: left !important; padding-left: 15px !important; }
+        .text-right { text-align: right !important; padding-right: 15px !important; }
+        .text-center { text-align: center !important; }
+
+        /* Toast */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background-color: #333; color: #fff; padding: 12px 20px; border-radius: 4px; font-size: 13px; opacity: 0; transform: translateY(100%); transition: all 0.3s ease; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background-color: #1a7f37; }
+        .toast.error { background-color: #cf222e; }
+    </style>
+</head>
+<body>
+
+    <div class="ribbon">
+        <div class="ribbon-title" id="pageTitle">We1 Own EQ Driver Payroll</div>
+        
+        <label style="font-weight: 600;">Month:</label>
+        <select id="monthSelect">
+            <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+            <option value="04">April</option><option value="05">May</option><option value="06">June</option>
+            <option value="07">July</option><option value="08">August</option><option value="09">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+        </select>
+        <select id="yearSelect"></select>
+
+        <button class="btn-primary" onclick="loadPayrollData()">Load Data</button>
+        <button class="btn-success" onclick="exportScreen()">📄 Screen Export</button>
+        <button class="btn-success" onclick="openBatchExport()">📁 Batch Export</button>
+        <button class="btn-danger" style="margin-left:auto;" onclick="logout()">🚪 Logout</button>
+    </div>
+
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>SN</th><th>Plate No</th><th>Driver Name</th><th>Basic Salary</th><th>Over Time</th>
+                    <th>Gross Salary</th><th>Deduction Pending</th><th>Total Salary</th><th>Status</th><th>Remark</th><th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="payrollTableBody">
+                <tr><td colspan="11" style="text-align: center; padding: 20px;">Please select Month and Year, then click Load Data.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- Security Login Modal -->
+    <div id="loginModal" class="modal-overlay" style="z-index: 2000;">
+        <div class="modal-content" style="width: 350px; box-sizing: border-box;">
+            <div style="font-size: 15px; font-weight: bold; margin-bottom: 10px; color: #cf222e;">🔒 Security Verification</div>
+            <p style="margin: 0 0 15px 0; color: #57606a; font-size: 13px;">You need an access code to view and edit this payroll.</p>
+            <input type="password" id="accessCodeInput" style="width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Enter Security Code">
+            <button class="btn-primary" style="width: 100%; padding: 10px; box-sizing: border-box; border-radius: 4px;" onclick="verifyAccessCode()">Verify & Access</button>
+        </div>
+    </div>
+
+    <!-- Batch Export Modal -->
+    <div id="batchExportModal" class="modal-overlay">
+        <div class="modal-content" style="width: 400px;">
+            <div style="font-size: 15px; font-weight: bold; margin-bottom: 15px;">📁 Batch Export (Month to Month)</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <label>From:</label>
+                    <input type="month" id="batchFrom" style="width: 100%; padding: 8px;">
+                </div>
+                <div style="flex: 1;">
+                    <label>To:</label>
+                    <input type="month" id="batchTo" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-danger" style="padding: 8px 15px;" onclick="document.getElementById('batchExportModal').style.display='none'">Cancel</button>
+                <button class="btn-success" id="batchBtn" style="padding: 8px 15px;" onclick="exportBatch()">Export to Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pay Card Modal -->
+    <div id="cardModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-toolbar">
+                <button class="icon-btn" onclick="copyCardText()" title="Copy as Text">📋 Copy Text</button>
+                <button class="icon-btn" onclick="copyCardImage()" title="Copy as Image (WhatsApp)">📸 Copy Image</button>
+                <button class="icon-btn" onclick="downloadCardImage()" title="Save as Image">💾 Save Image</button>
+                <button class="icon-btn" style="color: red;" onclick="closeCardModal()">✖ Close</button>
+            </div>
+            
+            <div id="captureCard" class="pay-card">
+                <div class="pay-card-title" id="cardTitle">We1 Pay Roll Month - Year</div>
+                <div class="pay-card-sub">
+                    <span id="cardDriverName">Driver Name</span>
+                    <span id="cardPlateNo">Plate No</span>
+                </div>
+                <table class="pay-card-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">SN</th>
+                            <th style="width: 60%;">Particulars</th>
+                            <th style="width: 30%;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="row-green">
+                            <td>1</td>
+                            <td class="text-left">Basic Salary</td>
+                            <td class="text-center" id="cardBasic">0.00</td>
+                        </tr>
+                        <tr class="row-green">
+                            <td>2</td>
+                            <td class="text-left">Add : Over Time</td>
+                            <td class="text-center" id="cardOT">0.00</td>
+                        </tr>
+                        <tr class="row-blue">
+                            <td>3</td>
+                            <td class="text-right">Gross Salary</td>
+                            <td class="text-center" id="cardGross">0.00</td>
+                        </tr>
+                        <tr class="row-red">
+                            <td>4</td>
+                            <td class="text-left">Less : Deductions</td>
+                            <td class="text-center" id="cardDeduction">0.00</td>
+                        </tr>
+                        <tr class="row-dark-green">
+                            <td>5</td>
+                            <td class="text-right">Salary Payable</td>
+                            <td class="text-center" id="cardTotal">0.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showToast(message, isError = false) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${isError ? 'error' : 'success'}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const date = new Date();
+            const currentMonth = String(date.getMonth() + 1).padStart(2, '0');
+            const currentYear = date.getFullYear();
+            
+            document.getElementById('monthSelect').value = currentMonth;
+            const yearSelect = document.getElementById('yearSelect');
+            for(let i = currentYear - 2; i <= currentYear + 2; i++) {
+                yearSelect.innerHTML += `<option value="${i}" ${i === currentYear ? 'selected' : ''}>${i}</option>`;
+            }
+
+            // Check if Token Exists
+            if(!localStorage.getItem("timesheetToken")) {
+                promptForAccessCode();
+            } else {
+                loadPayrollData();
+            }
+
+            // Enter key for login
+            document.getElementById('accessCodeInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') verifyAccessCode();
+            });
+        });
+
+        // ======= Auth Logic ======= //
+        function promptForAccessCode() { document.getElementById('loginModal').style.display = 'flex'; }
+        
+        async function verifyAccessCode() {
+            const codeInput = document.getElementById('accessCodeInput').value;
+            if (!codeInput) return showToast("Please enter the access code.", true);
+            try {
+                // Using existing we1-own-eq verify logic for simplicity and unified access
+                const res = await fetch('/api/we1-own-eq/verify-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: codeInput })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem("timesheetToken", data.token);
+                    document.getElementById('loginModal').style.display = 'none';
+                    loadPayrollData(); 
+                } else {
+                    showToast(data.message, true);
+                }
+            } catch (error) { showToast("Network error.", true); }
+        }
+
+        function logout() {
+            localStorage.removeItem("timesheetToken");
+            window.location.reload();
+        }
+
+        function cleanVal(val) { return (val === null || val === undefined) ? 0 : parseFloat(val); }
+
+        // ======= Load Data ======= //
+        async function loadPayrollData() {
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            const monthYear = `${year}-${month}`;
+            const tbody = document.getElementById('payrollTableBody');
+
+            // Dynamic Header Title Update
+            const monthName = getMonthName(month);
+            document.getElementById('pageTitle').innerText = `We1 Own EQ Driver Payroll - ${monthName} ${year}`;
+            
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align: center;">Loading...</td></tr>';
+
+            try {
+                const token = localStorage.getItem("timesheetToken"); 
+                if(!token) return promptForAccessCode();
+
+                const res = await fetch(`/api/we1-eq-driver-payroll/data?month_year=${monthYear}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+
+                if (!data.success) {
+                    if (data.message && data.message.toLowerCase().includes("session") || data.message.toLowerCase().includes("token")) {
+                        return promptForAccessCode();
+                    }
+                    throw new Error(data.message);
+                }
+
+                if (data.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center;">No vehicles found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                data.data.forEach((row, index) => {
+                    const basic = cleanVal(row.basic_salary);
+                    const ot = cleanVal(row.over_time);
+                    const gross = basic + ot;
+                    const deduction = cleanVal(row.deduction);
+                    const total = gross - deduction;
+                    const statusClass = row.status === 'Paid' ? 'status-paid' : 'status-unpaid';
+
+                    const tr = document.createElement('tr');
+                    tr.id = `row-${index}`;
+                    tr.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td class="plate-cell">${row.plate_no || '-'}</td>
+                        <td class="driver-cell">${row.driver_name || '-'}</td>
+                        <td class="basic-cell">${basic.toFixed(2)}</td>
+                        <td class="ot-cell">${ot.toFixed(2)}</td>
+                        <td class="gross-cell calc-field">${gross.toFixed(2)}</td>
+                        <td class="deduction-cell">${deduction.toFixed(2)}</td>
+                        <td class="total-cell calc-field">${total.toFixed(2)}</td>
+                        <td class="status-cell ${statusClass}">${row.status || 'Un Paid'}</td>
+                        <td class="remark-cell">${row.remark || '-'}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="edit-btn" onclick="enableEdit(${index})">Edit</button>
+                                <button class="card-btn" onclick="openCardModal(${index})" title="View Pay Slip">💳</button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                showToast("Data loaded successfully.");
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        // ======= Editing & Saving ======= //
+        function enableEdit(index) {
+            const tr = document.getElementById(`row-${index}`);
+            const basic = tr.querySelector('.basic-cell').innerText;
+            const ot = tr.querySelector('.ot-cell').innerText;
+            const deduction = tr.querySelector('.deduction-cell').innerText;
+            const status = tr.querySelector('.status-cell').innerText;
+            const remark = tr.querySelector('.remark-cell').innerText === '-' ? '' : tr.querySelector('.remark-cell').innerText;
+
+            tr.querySelector('.basic-cell').innerHTML = `<input type="number" id="basic-${index}" value="${basic}" oninput="calculateRow(${index})">`;
+            tr.querySelector('.ot-cell').innerHTML = `<input type="number" id="ot-${index}" value="${ot}" oninput="calculateRow(${index})">`;
+            tr.querySelector('.deduction-cell').innerHTML = `<input type="number" id="deduction-${index}" value="${deduction}" oninput="calculateRow(${index})">`;
+            tr.querySelector('.status-cell').innerHTML = `<select id="status-${index}" class="edit-dropdown"><option value="Un Paid" ${status === 'Un Paid' ? 'selected' : ''}>Un Paid</option><option value="Paid" ${status === 'Paid' ? 'selected' : ''}>Paid</option></select>`;
+            tr.querySelector('.remark-cell').innerHTML = `<input type="text" id="remark-${index}" value="${remark}">`;
+            tr.querySelector('td:last-child').innerHTML = `<div class="action-btns"><button class="save-btn" onclick="saveRow(${index})">Save</button></div>`;
+        }
+
+        function calculateRow(index) {
+            const basic = parseFloat(document.getElementById(`basic-${index}`).value) || 0;
+            const ot = parseFloat(document.getElementById(`ot-${index}`).value) || 0;
+            const deduction = parseFloat(document.getElementById(`deduction-${index}`).value) || 0;
+            const tr = document.getElementById(`row-${index}`);
+            tr.querySelector('.gross-cell').innerText = (basic + ot).toFixed(2);
+            tr.querySelector('.total-cell').innerText = ((basic + ot) - deduction).toFixed(2);
+        }
+
+        async function saveRow(index) {
+            const tr = document.getElementById(`row-${index}`);
+            const payload = {
+                month_year: `${document.getElementById('yearSelect').value}-${document.getElementById('monthSelect').value}`,
+                plate_no: tr.querySelector('.plate-cell').innerText,
+                driver_name: tr.querySelector('.driver-cell').innerText,
+                basic_salary: document.getElementById(`basic-${index}`).value,
+                over_time: document.getElementById(`ot-${index}`).value,
+                deduction: document.getElementById(`deduction-${index}`).value,
+                status: document.getElementById(`status-${index}`).value,
+                remark: document.getElementById(`remark-${index}`).value
+            };
+
+            const btn = tr.querySelector('.save-btn');
+            btn.innerText = 'Saving...'; btn.disabled = true;
+
+            try {
+                const token = localStorage.getItem("timesheetToken");
+                const res = await fetch('/api/we1-eq-driver-payroll/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    tr.querySelector('.basic-cell').innerText = parseFloat(payload.basic_salary).toFixed(2);
+                    tr.querySelector('.ot-cell').innerText = parseFloat(payload.over_time).toFixed(2);
+                    tr.querySelector('.deduction-cell').innerText = parseFloat(payload.deduction).toFixed(2);
+                    const statusCell = tr.querySelector('.status-cell');
+                    statusCell.innerText = payload.status;
+                    statusCell.className = `status-cell ${payload.status === 'Paid' ? 'status-paid' : 'status-unpaid'}`;
+                    tr.querySelector('.remark-cell').innerText = payload.remark || '-';
+                    tr.querySelector('td:last-child').innerHTML = `<div class="action-btns"><button class="edit-btn" onclick="enableEdit(${index})">Edit</button><button class="card-btn" onclick="openCardModal(${index})" title="View Pay Slip">💳</button></div>`;
+                    showToast("Record saved successfully.");
+                } else {
+                    showToast("Error saving: " + data.message, true);
+                    btn.innerText = 'Save'; btn.disabled = false;
+                }
+            } catch (error) {
+                showToast("Network error occurred.", true);
+                btn.innerText = 'Save'; btn.disabled = false;
+            }
+        }
+
+        // ======= Card Modal Logic ======= //
+        function getMonthName(monthStr) {
+            const date = new Date(`2000-${monthStr}-01`);
+            return date.toLocaleString('default', { month: 'long' });
+        }
+
+        function openCardModal(index) {
+            const tr = document.getElementById(`row-${index}`);
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            const monthName = getMonthName(month);
+
+            document.getElementById('cardTitle').innerText = `We1 Pay Roll ${monthName} - ${year}`;
+            document.getElementById('cardDriverName').innerText = tr.querySelector('.driver-cell').innerText;
+            document.getElementById('cardPlateNo').innerText = tr.querySelector('.plate-cell').innerText;
+            
+            document.getElementById('cardBasic').innerText = tr.querySelector('.basic-cell').innerText;
+            document.getElementById('cardOT').innerText = tr.querySelector('.ot-cell').innerText;
+            document.getElementById('cardGross').innerText = tr.querySelector('.gross-cell').innerText;
+            document.getElementById('cardDeduction').innerText = tr.querySelector('.deduction-cell').innerText;
+            document.getElementById('cardTotal').innerText = tr.querySelector('.total-cell').innerText;
+
+            document.getElementById('cardModal').style.display = 'flex';
+        }
+
+        function closeCardModal() { document.getElementById('cardModal').style.display = 'none'; }
+
+        function copyCardText() {
+            const text = `*${document.getElementById('cardTitle').innerText}*\nDriver: ${document.getElementById('cardDriverName').innerText}\nPlate: ${document.getElementById('cardPlateNo').innerText}\n------------------------\nBasic Salary: ${document.getElementById('cardBasic').innerText}\nOver Time: ${document.getElementById('cardOT').innerText}\n*Gross Salary: ${document.getElementById('cardGross').innerText}*\nDeductions: ${document.getElementById('cardDeduction').innerText}\n------------------------\n*Salary Payable: ${document.getElementById('cardTotal').innerText}*`;
+            navigator.clipboard.writeText(text).then(() => showToast("Text copied to clipboard!")).catch(() => showToast("Failed to copy text.", true));
+        }
+
+        function copyCardImage() {
+            const card = document.getElementById('captureCard');
+            html2canvas(card, { scale: 2, backgroundColor: null }).then(canvas => {
+                canvas.toBlob(blob => {
+                    try {
+                        navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(() => showToast("Image copied! Paste it in WhatsApp."));
+                    } catch (e) { showToast("Error copying image.", true); }
+                });
+            });
+        }
+
+        function downloadCardImage() {
+            const card = document.getElementById('captureCard');
+            const dName = document.getElementById('cardDriverName').innerText.replace(/[{}]/g, '').trim();
+            html2canvas(card, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `PaySlip_${dName}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                showToast("Image saved successfully.");
+            });
+        }
+
+        // ======= Export Logic ======= //
+        async function exportScreen() {
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            const token = localStorage.getItem("timesheetToken");
+            
+            showToast("Generating Screen Export...");
+            try {
+                const res = await fetch(`/py/api/we1-eq-driver-payroll/export-screen?month_year=${year}-${month}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!res.ok) throw new Error("Failed");
+                
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `We1_Own_EQ_Driver_Payroll_${year}_${month}.xlsx`;
+                document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url);
+            } catch (e) { showToast("Export Failed", true); }
+        }
+
+        function openBatchExport() {
+            document.getElementById('batchExportModal').style.display = 'flex';
+        }
+
+        async function exportBatch() {
+            const start = document.getElementById('batchFrom').value;
+            const end = document.getElementById('batchTo').value;
+            if(!start || !end) return showToast("Please select From and To months.", true);
+            if(start > end) return showToast("From month cannot be greater than To month.", true);
+
+            const btn = document.getElementById('batchBtn');
+            btn.innerText = 'Exporting...'; btn.disabled = true;
+            
+            try {
+                const token = localStorage.getItem("timesheetToken");
+                const res = await fetch(`/py/api/we1-eq-driver-payroll/export-batch?start_month=${start}&end_month=${end}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!res.ok) throw new Error("Failed");
+                
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `We1_Own_EQ_Driver_Payroll_Batch_${start}_to_${end}.xlsx`;
+                document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url);
+                document.getElementById('batchExportModal').style.display = 'none';
+                showToast("Batch Export successful.");
+            } catch (e) { 
+                showToast("Batch Export Failed", true); 
+            } finally {
+                btn.innerText = 'Export to Excel'; btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
