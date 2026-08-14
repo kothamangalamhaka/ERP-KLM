@@ -73,3 +73,24 @@ async function handleSignup() {
         showAlert('Server error! Please try again later.', 'error');
     }
 }
+
+function clearAuthForms() {
+    const fields = [
+        'loginUser',
+        'loginPass',
+        'signupUser',
+        'signupPass'
+    ];
+
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    showAlert('', '');
+}
+
+// Normal page load + browser Back/Forward restore
+window.addEventListener('pageshow', function () {
+    clearAuthForms();
+});

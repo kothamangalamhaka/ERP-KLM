@@ -3,177 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>We1 Own EQ - Authentication</title>
+    <title>Login - We1 Own EQ</title>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background: #eef2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .auth-card { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 350px; }
-        .auth-card h2 { text-align: center; margin-bottom: 20px; color: #2c3e50; }
+        body { font-family: 'Inter', sans-serif; background: #f6f8fa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
+        h2 { text-align: center; color: #24292f; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
-        .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        .btn { width: 100%; padding: 10px; background: #0969da; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .btn:hover { background: #034eaa; }
-        .toggle-link { text-align: center; margin-top: 15px; font-size: 13px; cursor: pointer; color: #2980b9; }
-        .alert { display: none; padding: 10px; margin-bottom: 15px; border-radius: 4px; font-size: 13px; }
-        .alert-error { background: #f8d7da; color: #721c24; }
-        .alert-success { background: #d4edda; color: #155724; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+        input { width: 100%; padding: 10px; border: 1px solid #d0d7de; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #0969da; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #065bbf; }
+        #errorMsg { color: #cf222e; text-align: center; font-size: 13px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
-<div class="auth-card">
-    <div id="alertBox" class="alert"></div>
-    
-    <div id="loginForm">
-        <h2>We1 EQ Login</h2>
-        <div class="form-group">
-            <label>Username</label>
-            <input type="text" id="loginUser" required>
-        </div>
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="loginPass" required>
-        </div>
-        <button class="btn" onclick="handleLogin()">Login</button>
-        <div class="toggle-link" onclick="toggleView('signup')">New User? Sign Up Here</div>
+<div class="login-card">
+    <h2>We1 EQ Login</h2>
+    <div class="form-group">
+        <label>Username</label>
+        <!-- Added autocomplete="off" -->
+        <input type="text" id="username" placeholder="Enter username" autocomplete="off" required>
     </div>
-
-    <div id="signupForm" style="display: none;">
-        <h2>User Signup</h2>
-        <div class="form-group">
-            <label>Username</label>
-            <input type="text" id="signupUser" required>
-        </div>
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="signupPass" required>
-        </div>
-        <button class="btn" style="background: #2980b9;" onclick="handleSignup()">Request Access</button>
-        <div class="toggle-link" onclick="toggleView('login')">Already have an account? Login</div>
+    <div class="form-group">
+        <label>Password</label>
+        <!-- Added autocomplete="new-password" to trick aggressive password managers -->
+        <input type="password" id="password" placeholder="Enter password" autocomplete="new-password" required>
     </div>
+    <button onclick="handleLogin()">Login</button>
+    <div id="errorMsg">Invalid credentials!</div>
 </div>
 
 <script>
-// 🟢 Auto-redirect if already logged in
-document.addEventListener("DOMContentLoaded", () => {
-    const token = localStorage.getItem('emp_token');
-    if (token && token !== "undefined" && token !== "null") {
-        const urlParams = new URLSearchParams(window.location.search);
-        let redirectUrl = urlParams.get('redirect') || 'index.html';
-        window.location.replace(redirectUrl);
-    }
-});
 
-function toggleView(type) {
-    document.getElementById('loginForm').style.display = type === 'login' ? 'block' : 'none';
-    document.getElementById('signupForm').style.display = type === 'signup' ? 'block' : 'none';
-    showAlert('', '');
-}
+     window.addEventListener('pageshow', function () {
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
 
-function showAlert(msg, type) {
-    const box = document.getElementById('alertBox');
-    if (!box) return;
-    if (!msg) { box.style.display = 'none'; return; }
-    box.className = `alert alert-${type}`;
-    box.innerText = msg;
-    box.style.display = 'block';
-}
+        const errorMsg = document.getElementById('errorMsg');
+        errorMsg.innerText = '';
+        errorMsg.style.display = 'none';
+    });
+    
+    async function handleLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorMsg = document.getElementById('errorMsg');
+        errorMsg.style.display = 'none';
 
-async function handleLogin() {
-    const username = document.getElementById('loginUser').value;
-    const password = document.getElementById('loginPass').value;
-
-    if (!username || !password) return showAlert('Please enter both username and password', 'error');
-
-    try {
-        const res = await fetch('/api/employee-tracker/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-
-        // 🟢 CRITICAL FIX: Checking data.success instead of res.ok
-        if (data.success && data.token) {
-
-    localStorage.setItem('emp_token', data.token);
-
-    if (data.user) {
-        localStorage.setItem(
-            'emp_user',
-            JSON.stringify(data.user)
-        );
-    }
-
-    showAlert(
-        'Login successful! Redirecting...',
-        'success'
-    );
-
-    setTimeout(() => {
-
-        const urlParams =
-            new URLSearchParams(window.location.search);
-
-        let redirectUrl =
-            urlParams.get('redirect') || 'index.html';
-
-        if (!redirectUrl || redirectUrl === 'null') {
-            redirectUrl = 'index.html';
+        if (!username || !password) {
+            errorMsg.innerText = 'Please enter both fields';
+            errorMsg.style.display = 'block';
+            return;
         }
 
-        window.location.replace(redirectUrl);
+        try {
+            // ഈ API റൂട്ട് employloguser ടേബിളിൽ നിന്ന് ഡാറ്റ എടുക്കുന്നതാണ്
+            const res = await fetch('/api/own-equipment/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
 
-    }, 500);
-
-} else {
-
-    // Do not leave an old token around
-    localStorage.removeItem('emp_token');
-    localStorage.removeItem('emp_user');
-
-    showAlert(
-        data.message || 'Invalid Login',
-        'error'
-    );
-}
-
-    } catch (err) {
-        showAlert('Server error! Please try again.', 'error');
-    }
-}
-
-
-async function handleSignup() {
-    const username = document.getElementById('signupUser').value;
-    const password = document.getElementById('signupPass').value;
-
-    if (!username || !password) return showAlert('Please enter username and password', 'error');
-
-    try {
-        const res = await fetch('/api/employee-tracker/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-            showAlert(data.message, 'success');
-            setTimeout(() => toggleView('login'), 2000);
-        } else {
-            showAlert(data.message, 'error');
+            if (data.success && data.token) {
+                // Token ഉം User ഡാറ്റയും സേവ് ചെയ്യുന്നു
+                localStorage.setItem('emp_token', data.token);
+                localStorage.setItem('emp_user', JSON.stringify(data.user));
+                
+                // Redirecting to index.html or back to payroll page
+                const params = new URLSearchParams(window.location.search);
+                window.location.href = params.get('redirect') || 'index.html';
+            } else {
+                errorMsg.innerText = data.message || 'Login failed';
+                errorMsg.style.display = 'block';
+            }
+        } catch (err) {
+            errorMsg.innerText = 'Server Error! Please try again.';
+            errorMsg.style.display = 'block';
         }
-    } catch (err) {
-        showAlert('Server error! Please try again.', 'error');
     }
-}
-
-// Enter key support for login
-document.getElementById('loginPass').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') handleLogin();
-});
+    
 </script>
 </body>
 </html>

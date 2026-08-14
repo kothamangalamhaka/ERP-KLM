@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs"); // Added bcryptjs
+const jwt = require("jsonwebtoken"); // Added jsonwebtoken to fix the error
 
 // Corrected DB connection path based on your server.js setup
 const pool = require("../config/db");
@@ -13,7 +14,7 @@ router.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
-      `INSERT INTO equipment_users (username, password, status) VALUES ($1, $2, 'pending')`,
+      `INSERT INTO employloguser (username, password, status) VALUES ($1, $2, 'pending')`,
       [username, hashedPassword],
     );
     res.json({ success: true, message: "User registered successfully." });
@@ -32,7 +33,7 @@ router.post("/login", async (req, res) => {
   try {
     // Fetch user by username only
     const result = await pool.query(
-      `SELECT id, username, password, role, status FROM equipment_users WHERE username = $1`,
+      `SELECT id, username, password, role, status FROM employloguser WHERE username = $1`,
       [username],
     );
 
@@ -57,7 +58,14 @@ router.post("/login", async (req, res) => {
     // Remove password from user object for security before sending to frontend
     delete user.password;
 
-    res.json({ success: true, user });
+    // JWT Token ജനറേറ്റ് ചെയ്യുന്നു
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "12h" }
+    );
+
+    res.json({ success: true, token, user });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error during login." });

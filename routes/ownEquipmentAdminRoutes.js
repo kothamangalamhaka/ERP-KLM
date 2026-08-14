@@ -6,7 +6,7 @@ const pool = require('../config/db');
 router.get('/all-users', async (req, res) => {
     try {
         const result = await pool.query(
-            `SELECT id, username, role, status FROM equipment_users ORDER BY id ASC`
+            `SELECT id, username, role, status FROM employloguser ORDER BY id ASC`
         );
         res.json(result.rows);
     } catch (err) {
@@ -20,7 +20,7 @@ router.post('/update-status', async (req, res) => {
     const { id, status } = req.body;
     try {
         await pool.query(
-            `UPDATE equipment_users SET status = $1 WHERE id = $2`,
+            `UPDATE employloguser SET status = $1 WHERE id = $2`,
             [status, id]
         );
         res.json({ success: true, message: `User status updated to ${status}` });
@@ -35,7 +35,7 @@ router.post('/make-super-admin', async (req, res) => {
     const { id } = req.body;
     try {
         await pool.query(
-            `UPDATE equipment_users SET role = 'super_admin' WHERE id = $1`,
+            `UPDATE employloguser SET role = 'super_admin' WHERE id = $1`,
             [id]
         );
         res.json({ success: true, message: "User promoted to Super Admin" });
@@ -56,7 +56,7 @@ router.post('/demote-user', async (req, res) => {
 
     try {
         await pool.query(
-            `UPDATE equipment_users SET role = 'user' WHERE id = $1`,
+            `UPDATE employloguser SET role = 'user' WHERE id = $1`,
             [id]
         );
         res.json({ success: true, message: "Super Admin rights removed." });
@@ -74,7 +74,7 @@ router.delete('/delete-user/:id', async (req, res) => {
     }
 
     try {
-        await pool.query(`DELETE FROM equipment_users WHERE id = $1`, [req.params.id]);
+        await pool.query(`DELETE FROM employloguser WHERE id = $1`, [req.params.id]);
         res.json({ success: true, message: "User deleted successfully" });
     } catch (err) {
         console.error("Error deleting user:", err);

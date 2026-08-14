@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Meta Tags to Prevent Caching -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <title>Employee Tracker - Authentication</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -29,11 +35,11 @@
         <h2>Employee Tracker</h2>
         <div class="form-group">
             <label>Username</label>
-            <input type="text" id="loginUser" required>
+            <input type="text" id="loginUser" autocomplete="off" required>
         </div>
         <div class="form-group">
             <label>Password</label>
-            <input type="password" id="loginPass" required>
+            <input type="password" id="loginPass" autocomplete="new-password" required>
         </div>
         <button class="btn" onclick="handleLogin()">Login</button>
         <div class="toggle-link" onclick="toggleView('signup')">New User? Sign Up Here</div>
@@ -43,11 +49,11 @@
         <h2>User Signup</h2>
         <div class="form-group">
             <label>Username</label>
-            <input type="text" id="signupUser" required>
+            <input type="text" id="signupUser" autocomplete="off" required>
         </div>
         <div class="form-group">
             <label>Password</label>
-            <input type="password" id="signupPass" required>
+            <input type="password" id="signupPass" autocomplete="new-password" required>
         </div>
         <button class="btn" style="background: #2980b9;" onclick="handleSignup()">Request Access</button>
         <div class="toggle-link" onclick="toggleView('login')">Already have an account? Login</div>
@@ -55,6 +61,35 @@
 </div>
 
 <script>
+// Clears all inputs when the page is loaded or restored from bfcache
+window.addEventListener('pageshow', function(event) {
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('signupUser').value = '';
+    document.getElementById('signupPass').value = '';
+});
+
+// Function to handle redirection properly without setting a default
+function navigateBack() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectUrl = urlParams.get('redirect');
+    
+    if (redirectUrl) {
+        window.location.replace(redirectUrl);
+    } else if (document.referrer) {
+        window.location.replace(document.referrer);
+    } else {
+        window.history.back();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('emp_token');
+    if (token) {
+        navigateBack();
+    }
+});
+
 function toggleView(type) {
     document.getElementById('loginForm').style.display = type === 'login' ? 'block' : 'none';
     document.getElementById('signupForm').style.display = type === 'signup' ? 'block' : 'none';
@@ -88,11 +123,8 @@ async function handleLogin() {
             localStorage.setItem('emp_token', data.token);
             localStorage.setItem('emp_user', JSON.stringify(data.user));
             
-            // Check if there is a redirect URL, otherwise go to Dashboard
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirectUrl = urlParams.get('redirect') || 'Dashboard/';
-            
-            window.location.href = redirectUrl;
+            // Redirect using the new navigateBack function
+            navigateBack();
         } else {
             showAlert(data.message, 'error');
         }

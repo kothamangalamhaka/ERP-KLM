@@ -329,11 +329,29 @@
         let globalPlates = []; // 🟢 Store plates for dropdown
 
         // High-performance DOM rendering strategy
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('emp_token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            loadTableData();
+        });
+
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                const token = localStorage.getItem('emp_token');
+                if (!token) {
+                    window.location.replace('login.html');
+                }
+            }
+        });
+
         async function loadTableData() {
             const tbody = document.getElementById('eqTableBody');
             
             try {
-                const token = localStorage.getItem("timesheetToken"); 
+                const token = localStorage.getItem("emp_token"); 
                 const res = await fetch('/api/we1-own-eq/data', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
@@ -341,7 +359,7 @@
 
                 if (!data.success) {
                     if (data.message && (data.message.toLowerCase().includes("session") || data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized"))) {
-                        promptForAccessCode();
+                        logout(); // Invalid token ആണെങ്കിൽ ലോഗൗട്ട് ചെയ്യുക
                         return;
                     }
                     throw new Error(data.message);
@@ -490,7 +508,7 @@
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + localStorage.getItem("timesheetToken") 
+                        'Authorization': 'Bearer ' + localStorage.getItem("emp_token") 
                     },
                     body: JSON.stringify({ type: type, plate: plate })
                 });
@@ -606,7 +624,7 @@
             try {
                 const res = await fetch('/api/we1-own-eq/log/save', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem("timesheetToken") },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem("emp_token") },
                     body: JSON.stringify(payload)
                 });
                 const responseData = await res.json();
@@ -724,7 +742,7 @@
             };
 
             try {
-                const token = localStorage.getItem("timesheetToken");
+                const token = localStorage.getItem("emp_token");
                 const res = await fetch('/api/we1-own-eq/add', {
                     method: 'POST',
                     headers: { 
@@ -787,7 +805,7 @@
             cell.style.backgroundColor = '#fff3cd'; // Yellow (Saving state)
 
             try {
-                const token = localStorage.getItem("timesheetToken");
+                const token = localStorage.getItem("emp_token");
                 const res = await fetch('/api/we1-own-eq/update-note', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
@@ -823,7 +841,7 @@
             btn.style.opacity = '0.7';
 
             try {
-                const token = localStorage.getItem("timesheetToken"); 
+                const token = localStorage.getItem("emp_token"); 
                 // 🟢 പൈത്തൺ പ്രോക്സി പോർട്ട് (8001) ലേക്ക് കോൾ പോകുന്നു
                 const res = await fetch('/py/api/we1-own-eq/export', {
                     method: 'GET',
@@ -904,8 +922,9 @@
 
         // 🟢 10. Logout & Inactivity Auto-Logout Logic
         function logout() {
-            localStorage.removeItem("timesheetToken"); // ടോക്കൺ ഡിലീറ്റ് ചെയ്യുന്നു
-            window.location.reload(); // പേജ് റീലോഡ് ചെയ്യുന്നു (അപ്പോൾ വീണ്ടും പാസ്‌വേഡ് ചോദിക്കും)
+            localStorage.removeItem("emp_token");
+            localStorage.removeItem("emp_user");
+            window.location.href = "login.html"; // ലോഗിൻ പേജിലേക്ക് പോകും
         }
 
         let inactivityTimer;

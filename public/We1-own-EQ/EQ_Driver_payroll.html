@@ -245,6 +245,15 @@
             loadPayrollData();
         });
 
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                const token = localStorage.getItem('emp_token');
+                if (!token) {
+                    window.location.replace('login.html');
+                }
+            }
+        });
+
         function logout() {
             localStorage.removeItem('emp_user');
             localStorage.removeItem('emp_token');
