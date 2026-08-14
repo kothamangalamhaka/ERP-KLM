@@ -133,12 +133,11 @@ def export_payroll_screen(month_year: str):
         
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        # Fetching master and payroll data combined for the month
         query = """
-            SELECT p.plate_no, p.driver_name, p.basic_salary, p.over_time, p.deduction, p.status, p.remark
+            SELECT p.plate_no, p.driver_name, p.basic_salary, p.over_time, p.deduction, COALESCE(p.advance_paid, 0) as advance_paid, p.remark
             FROM we1_payroll p WHERE p.month_year = %s
             UNION
-            SELECT m.plate_no, m.driver_name, 0 as basic_salary, 0 as over_time, 0 as deduction, 'Un Paid' as status, '' as remark
+            SELECT m.plate_no, m.driver_name, 0 as basic_salary, 0 as over_time, 0 as deduction, 0 as advance_paid, '' as remark
             FROM we1_own_eq_master m WHERE NOT EXISTS (
                 SELECT 1 FROM we1_payroll p2 WHERE p2.month_year = %s AND p2.plate_no = m.plate_no AND p2.driver_name = m.driver_name
             ) ORDER BY plate_no ASC, driver_name ASC
@@ -149,7 +148,6 @@ def export_payroll_screen(month_year: str):
         wb = openpyxl.Workbook()
         ws = wb.active
         
-        # Format month_year (YYYY-MM) to mmm-yy (e.g., Aug-26)
         tab_name = datetime.strptime(month_year, "%Y-%m").strftime("%b-%y")
         ws.title = tab_name
         
@@ -176,7 +174,6 @@ def export_payroll_batch(start_month: str, end_month: str):
         raise HTTPException(status_code=500, detail="Database connection failed")
         
     try:
-        # Generate list of months between start and end
         start_y, start_m = map(int, start_month.split('-'))
         end_y, end_m = map(int, end_month.split('-'))
         months = []
@@ -189,16 +186,16 @@ def export_payroll_batch(start_month: str, end_month: str):
                 y += 1
                 
         wb = openpyxl.Workbook()
-        wb.remove(wb.active) # Remove default sheet
+        wb.remove(wb.active)
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         for my in months:
             query = """
-                SELECT p.plate_no, p.driver_name, p.basic_salary, p.over_time, p.deduction, p.status, p.remark
+                SELECT p.plate_no, p.driver_name, p.basic_salary, p.over_time, p.deduction, COALESCE(p.advance_paid, 0) as advance_paid, p.remark
                 FROM we1_payroll p WHERE p.month_year = %s
                 UNION
-                SELECT m.plate_no, m.driver_name, 0 as basic_salary, 0 as over_time, 0 as deduction, 'Un Paid' as status, '' as remark
+                SELECT m.plate_no, m.driver_name, 0 as basic_salary, 0 as over_time, 0 as deduction, 0 as advance_paid, '' as remark
                 FROM we1_own_eq_master m WHERE NOT EXISTS (
                     SELECT 1 FROM we1_payroll p2 WHERE p2.month_year = %s AND p2.plate_no = m.plate_no AND p2.driver_name = m.driver_name
                 ) ORDER BY plate_no ASC, driver_name ASC
@@ -206,7 +203,6 @@ def export_payroll_batch(start_month: str, end_month: str):
             cursor.execute(query, (my, my))
             data = cursor.fetchall()
             
-            # Format my (YYYY-MM) to mmm-yy (e.g., Aug-26)
             tab_name = datetime.strptime(my, "%Y-%m").strftime("%b-%y")
             ws = wb.create_sheet(title=tab_name)
             
@@ -226,18 +222,19 @@ def export_payroll_batch(start_month: str, end_month: str):
             cursor.close()
             conn.close()
 
-# Helper function to apply specific Excel formatting
 def apply_payroll_excel_formatting(ws, data):
-    headers = ["SN", "Plate No", "Driver Name", "Basic Salary", "Over Time", "Gross Salary", "Deduction", "Total Salary", "Status", "Remark"]
+    headers = ["SN", "Plate No", "Driver Name", "Basic Salary", "Over Time", "Gross Salary", "Deduction", "Total Salary", "Advance / Paid", "Payable", "Status", "Remark"]
     ws.append(headers)
     
     header_fill = PatternFill(start_color="000000", end_color="000000", fill_type="solid")
     header_font = Font(color="FFFFFF", bold=True)
+    center_align = Alignment(horizontal="center", vertical="center")
+    left_align = Alignment(horizontal="left", vertical="center")
     
     for col_num, cell in enumerate(ws[1], 1):
         cell.fill = header_fill
         cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.alignment = center_align
         
     for i, row in enumerate(data, start=1):
         basic = float(row['basic_salary'] or 0)
@@ -245,17 +242,42 @@ def apply_payroll_excel_formatting(ws, data):
         gross = basic + ot
         ded = float(row['deduction'] or 0)
         total = gross - ded
+        adv = float(row['advance_paid'] or 0)
+        payable = total - adv
         
+        status = 'Un Paid'
+        if total == payable and total != 0:
+            status = 'Un Paid'
+        elif total > payable and payable > 0:
+            status = 'Partially Paid'
+        elif payable == 0 and total > 0:
+            status = 'Paid'
+        elif payable < 0:
+            status = 'Advanced'
+        elif total == 0:
+            status = 'Un Paid'
+            
         ws.append([
             i, row['plate_no'], row['driver_name'], 
-            basic, ot, gross, ded, total, 
-            row['status'] or 'Un Paid', row['remark'] or ''
+            basic if basic != 0 else "", 
+            ot if ot != 0 else "", 
+            gross if gross != 0 else "", 
+            ded if ded != 0 else "", 
+            total if total != 0 else "", 
+            adv if adv != 0 else "", 
+            payable if payable != 0 else "", 
+            status, 
+            row['remark'] or ''
         ])
         
     ws.freeze_panes = "A2"
-    ws.sheet_view.zoomScale = 80
-    ws.auto_filter.ref = f"A1:J{len(data)+1}"
+    ws.sheet_view.zoomScale = 100
+    ws.auto_filter.ref = f"A1:L{len(data)+1}"
     
-    col_widths = {'A':6, 'B':15, 'C':25, 'D':15, 'E':15, 'F':15, 'G':15, 'H':15, 'I':12, 'J':35}
+    for row in ws.iter_rows(min_row=2, max_row=len(data)+1, min_col=4, max_col=11):
+        for cell in row:
+            cell.alignment = center_align
+
+    col_widths = {'A':6, 'B':15, 'C':25, 'D':15, 'E':15, 'F':15, 'G':15, 'H':15, 'I':15, 'J':15, 'K':15, 'L':35}
     for col, w in col_widths.items():
         ws.column_dimensions[col].width = w
