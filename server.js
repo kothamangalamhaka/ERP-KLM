@@ -20,6 +20,7 @@ const fetch = require("node-fetch");
 const compression = require("compression");
 const backupRoutes = require("./routes/backup");
 const we1OwnEqRoutes = require("./routes/We1OwnEq");
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 // Routes
 const billingRoutes = require("./routes/billing");
@@ -76,6 +77,20 @@ app.use("/api/view-bill", viewBillRoutes);
 app.use("/api/we1-own-eq", we1OwnEqRoutes);
 app.use('/api/we1-eq-driver-payroll', we1EqDriverPayrollRoute);
 app.use('/api/staff-salary', staffSalaryRoute);
+
+
+
+
+// ==========================================
+// 🔄 REVERSE PROXY FOR PYTHON API (Port 8001)
+// ==========================================
+app.use('/api/python', createProxyMiddleware({
+    target: 'http://127.0.0.1:8001',
+    changeOrigin: true,
+}));
+
+app.use("/billing", billingRoutes);
+app.use("/timesheet", timesheetRoutes);
 
 
 // ==========================================

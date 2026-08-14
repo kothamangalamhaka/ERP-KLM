@@ -2,23 +2,18 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db'); 
 
-// Simple Auth Middleware Check
 const verifyAuth = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    if (!authHeader && !req.headers['token']) {
-        // You can tighten this check based on how tokens are passed from frontend
-    }
     next();
 };
 
-// 1. Fetch Salary Data and dynamically calculate Designations
+// 1. Fetch Salary Data
 router.get("/data", verifyAuth, async (req, res) => {
     try {
-        const { month_year } = req.query; // YYYY-MM
+        const { month_year } = req.query; 
         if (!month_year) return res.json({ success: false, message: "Month/Year required" });
 
         const startDate = `${month_year}-01`;
-        
         const [year, month] = month_year.split('-');
         const endDate = new Date(year, month, 0).toISOString().split('T')[0];
 
@@ -63,10 +58,12 @@ router.get("/data", verifyAuth, async (req, res) => {
                 name: emp.name,
                 designations: desigString || 'Unknown',
                 basic_salary: payRec.basic_salary || 0,
+                over_time: payRec.over_time || 0,
                 food_allowance: payRec.food_allowance || 0,
                 mobile_allowance: payRec.mobile_allowance || 0,
                 present_days: payRec.present_days || 0,
                 commission: payRec.commission || 0,
+                staff_remittance: payRec.staff_remittance || 0,
                 deduction: payRec.deduction || 0,
                 currency: payRec.currency || 'SAR',
                 status: payRec.status || 'Unpaid',
@@ -84,21 +81,23 @@ router.get("/data", verifyAuth, async (req, res) => {
 router.post("/save", verifyAuth, async (req, res) => {
     try {
         const { 
-            month_year, emp_id, basic_salary, food_allowance, mobile_allowance, 
-            present_days, commission, deduction, currency, status, remark 
+            month_year, emp_id, basic_salary, over_time, food_allowance, mobile_allowance, 
+            present_days, commission, staff_remittance, deduction, currency, status, remark 
         } = req.body;
 
         const query = `
             INSERT INTO staff_payroll 
-            (month_year, emp_id, basic_salary, food_allowance, mobile_allowance, present_days, commission, deduction, currency, status, remark)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            (month_year, emp_id, basic_salary, over_time, food_allowance, mobile_allowance, present_days, commission, staff_remittance, deduction, currency, status, remark)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             ON CONFLICT (month_year, emp_id) 
             DO UPDATE SET 
                 basic_salary = EXCLUDED.basic_salary,
+                over_time = EXCLUDED.over_time,
                 food_allowance = EXCLUDED.food_allowance,
                 mobile_allowance = EXCLUDED.mobile_allowance,
                 present_days = EXCLUDED.present_days,
                 commission = EXCLUDED.commission,
+                staff_remittance = EXCLUDED.staff_remittance,
                 deduction = EXCLUDED.deduction,
                 currency = EXCLUDED.currency,
                 status = EXCLUDED.status,
@@ -106,8 +105,8 @@ router.post("/save", verifyAuth, async (req, res) => {
         `;
 
         const values = [
-            month_year, emp_id, basic_salary || 0, food_allowance || 0, mobile_allowance || 0,
-            present_days || 0, commission || 0, deduction || 0, currency, status, remark
+            month_year, emp_id, basic_salary || 0, over_time || 0, food_allowance || 0, mobile_allowance || 0,
+            present_days || 0, commission || 0, staff_remittance || 0, deduction || 0, currency, status, remark
         ];
 
         await pool.query(query, values);

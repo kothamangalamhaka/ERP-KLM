@@ -14,31 +14,38 @@ import pandas as pd
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from routers import Staff_salary_export
+from routers.own_equipment_py import router as own_equipment_router
+from routers.payment_py import router as payment_router
+from routers.payment_export_py import router as payment_export_router
+from routers import we1_own_eq_data_base
+from fastapi.middleware.cors import CORSMiddleware
+
 
 
 load_dotenv()
 
 app = FastAPI(title="Haka ERP Python Engine")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=False,  # Changed to False to prevent CORS conflict with '*'
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # ==========================================
 # 🚀 REGISTER MODULAR PYTHON ROUTERS
 # ==========================================
 # new code - main.py
-from routers.own_equipment_py import router as own_equipment_router
 app.include_router(own_equipment_router)
-
-from routers.payment_py import router as payment_router
 app.include_router(payment_router)
-
-# 🟢 അതിവേഗ Excel Export-നായി പുതിയ Python Router ചേർക്കുന്നു
-from routers.payment_export_py import router as payment_export_router
 app.include_router(payment_export_router)
-
-# Import the new router
-from routers import we1_own_eq_data_base
-
-# Include it in your FastAPI app (usually after creating app = FastAPI())
 app.include_router(we1_own_eq_data_base.router)
+app.include_router(Staff_salary_export.router, prefix="/py", tags=["Salary Export"])
+
+
 
 class ExportRequest(BaseModel):
     headers: list

@@ -103,6 +103,11 @@
             background: #f8f9fa;
         }
 
+/* Center alignment class */
+.text-center {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
         /*
          * Editable cells
          *
@@ -210,16 +215,26 @@
         }
 
         @keyframes fadeout {
-            from {
-                bottom: 30px;
-                opacity: 1;
-            }
-
-            to {
-                bottom: 0;
-                opacity: 0;
-            }
+            from { bottom: 30px; opacity: 1; }
+            to { bottom: 0; opacity: 0; }
         }
+
+        /* Export Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: #fff; padding: 25px; border-radius: 6px;
+            width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .modal-content h3 { margin-top: 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-group { margin-bottom: 15px; }
+        .modal-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        .modal-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
     </style>
 </head>
 
@@ -285,6 +300,12 @@
 
     </div>
 
+    <button 
+        class="btn-primary" 
+        style="background: #17a2b8; margin-left: 10px; margin-right: 10px;" 
+        onclick="openExportModal()">
+        Export Options
+    </button>
 
     <button
         class="action-btn"
@@ -314,15 +335,17 @@
                 <th>SN</th>
                 <th>Employee Name</th>
                 <th>Designation</th>
-                <th>Basic Salary</th>
-                <th>Food Allowance</th>
-                <th>Mobile Allowance</th>
-                <th>Gross Salary</th>
-                <th>Present Days</th>
-                <th>Commission</th>
-                <th>Deductions</th>
-                <th>Total Payable</th>
-                <th>Currency</th>
+                <th class="text-center">Basic Salary</th>
+                <th class="text-center">Over Time</th>
+                <th class="text-center">Food Allowance</th>
+                <th class="text-center">Mobile Allowance</th>
+                <th class="text-center">Gross Salary</th>
+                <th class="text-center">Present Days</th>
+                <th class="text-center">Commission</th>
+                <th class="text-center">Staff Remittance</th>
+                <th class="text-center">Deductions</th>
+                <th class="text-center">Total Payable</th>
+                <th class="text-center">Currency</th>
                 <th>Status</th>
                 <th>Remark</th>
             </tr>
@@ -347,6 +370,41 @@
 
 <div id="toast"></div>
 
+<!-- Export Modal UI -->
+<div class="modal-overlay" id="exportModal">
+    <div class="modal-content">
+        <h3>Export Salary Data</h3>
+        <div class="modal-group">
+            <label>Select Export Type</label>
+            <select id="exportType" onchange="toggleBatchOptions()">
+                <option value="single">1. Export Current View Month</option>
+                <option value="batch">2. Batch Export (Custom Period)</option>
+            </select>
+        </div>
+        
+        <div id="batchOptions" style="display: none;">
+            <div class="modal-group">
+                <label>From Period</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="batchStartMonth"></select>
+                    <select id="batchStartYear"></select>
+                </div>
+            </div>
+            <div class="modal-group">
+                <label>To Period</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="batchEndMonth"></select>
+                    <select id="batchEndYear"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" style="padding: 8px 15px;" onclick="closeExportModal()">Close</button>
+            <button class="btn-primary" style="background: #28a745; padding: 8px 15px;" onclick="executeExport()">Download Excel</button>
+        </div>
+    </div>
+</div>
 
 <script>
 
@@ -603,6 +661,11 @@
      * LOAD DATA
      */
 
+    /* Helper function to display empty string if value is 0 */
+    function formatZero(val) {
+        return val === 0 ? '' : val.toFixed(2);
+    }
+
     async function loadSalaryData() {
 
         editMode = false;
@@ -619,9 +682,9 @@
         const tbody =
             document.getElementById('salaryBody');
 
-
+        /* Changed colspan from 14 to 16 because we added Over Time & Remittance */
         tbody.innerHTML =
-            '<tr><td colspan="14" style="text-align: center;">Loading...</td></tr>';
+            '<tr><td colspan="16" style="text-align: center;">Loading...</td></tr>';
 
 
         try {
@@ -642,7 +705,7 @@
             ) {
 
                 tbody.innerHTML =
-                    '<tr><td colspan="14" style="text-align: center;">No active staff found for this month.</td></tr>';
+                    '<tr><td colspan="16" style="text-align: center;">No active staff found for this month.</td></tr>';
 
                 return;
 
@@ -652,13 +715,6 @@
             tbody.innerHTML = '';
 
 
-            /*
-             * IMPORTANT:
-             *
-             * Sort data according to designation
-             * before displaying rows.
-             */
-
             const sortedData =
                 sortStaffByDesignation(
                     data.data
@@ -667,151 +723,44 @@
 
             sortedData.forEach((row, index) => {
 
-                const basic =
-                    cleanNum(row.basic_salary);
-
-                const food =
-                    cleanNum(row.food_allowance);
-
-                const mob =
-                    cleanNum(row.mobile_allowance);
-
-                const gross =
-                    basic + food + mob;
-
-                const comm =
-                    cleanNum(row.commission);
-
-                const ded =
-                    cleanNum(row.deduction);
-
-                const total =
-                    gross + comm - ded;
-
+                const basic = cleanNum(row.basic_salary);
+                const ot = cleanNum(row.over_time);
+                const food = cleanNum(row.food_allowance);
+                const mob = cleanNum(row.mobile_allowance);
+                const gross = basic + ot + food + mob;
+                const days = cleanNum(row.present_days);
+                const comm = cleanNum(row.commission);
+                const remit = cleanNum(row.staff_remittance);
+                const ded = cleanNum(row.deduction);
+                const total = (gross + comm + remit) - ded;
 
                 tbody.innerHTML += `
-
                     <tr id="row-${index}">
-
-                        <td>
-                            ${index + 1}
-                        </td>
-
-
-                        <td>
-                            <b>${row.name}</b>
-
-                            <input
-                                type="hidden"
-                                class="emp_id"
-                                value="${row.emp_id}">
-                        </td>
-
-
-                        <td>
-                            ${row.designations}
-                        </td>
-
-
-                        <td
-                            class="col-basic"
-                            data-value="${basic}">
-                            ${basic.toFixed(2)}
-                        </td>
-
-
-                        <td
-                            class="col-food"
-                            data-value="${food}">
-                            ${food.toFixed(2)}
-                        </td>
-
-
-                        <td
-                            class="col-mob"
-                            data-value="${mob}">
-                            ${mob.toFixed(2)}
-                        </td>
-
-
-                        <td class="col-gross calc-field">
-                            ${gross.toFixed(2)}
-                        </td>
-
-
-                        <td
-                            class="col-days"
-                            data-value="${cleanNum(row.present_days)}">
-                            ${cleanNum(row.present_days)}
-                        </td>
-
-
-                        <td
-                            class="col-comm"
-                            data-value="${comm}">
-                            ${comm.toFixed(2)}
-                        </td>
-
-
-                        <td
-                            class="col-ded"
-                            data-value="${ded}">
-                            ${ded.toFixed(2)}
-                        </td>
-
-
-                        <td class="col-total calc-field">
-                            ${total.toFixed(2)}
-                        </td>
-
-
-                        <td
-                            class="col-curr"
-                            data-value="${row.currency || 'SAR'}">
-                            ${row.currency || 'SAR'}
-                        </td>
-
-
-                        <td
-                            class="col-status"
-                            data-value="${row.status || 'Unpaid'}"
-                            style="
-                                font-weight: bold;
-                                color: ${
-                                    row.status === 'Paid'
-                                        ? 'green'
-                                        : (
-                                            row.status === 'Hold'
-                                                ? 'orange'
-                                                : 'red'
-                                        )
-                                }
-                            "
-                        >
-                            ${row.status || 'Unpaid'}
-                        </td>
-
-
-                        <td
-                            class="col-remark"
-                            data-value="${row.remark || ''}">
-                            ${row.remark || '-'}
-                        </td>
-
+                        <td>${index + 1}</td>
+                        <td><b>${row.name}</b><input type="hidden" class="emp_id" value="${row.emp_id}"></td>
+                        <td>${row.designations}</td>
+                        <td class="col-basic text-center" data-value="${basic}">${formatZero(basic)}</td>
+                        <td class="col-ot text-center" data-value="${ot}">${formatZero(ot)}</td>
+                        <td class="col-food text-center" data-value="${food}">${formatZero(food)}</td>
+                        <td class="col-mob text-center" data-value="${mob}">${formatZero(mob)}</td>
+                        <td class="col-gross calc-field text-center">${formatZero(gross)}</td>
+                        <td class="col-days text-center" data-value="${days}">${days === 0 ? '' : days}</td>
+                        <td class="col-comm text-center" data-value="${comm}">${formatZero(comm)}</td>
+                        <td class="col-remit text-center" data-value="${remit}">${formatZero(remit)}</td>
+                        <td class="col-ded text-center" data-value="${ded}">${formatZero(ded)}</td>
+                        <td class="col-total calc-field text-center">${formatZero(total)}</td>
+                        <td class="col-curr text-center" data-value="${row.currency || 'SAR'}">${row.currency || 'SAR'}</td>
+                        <td class="col-status text-center" data-value="${row.status || 'Unpaid'}" style="font-weight: bold; color: ${row.status === 'Paid' ? 'green' : (row.status === 'Hold' ? 'orange' : 'red')}">${row.status || 'Unpaid'}</td>
+                        <td class="col-remark" data-value="${row.remark || ''}">${row.remark || '-'}</td>
                     </tr>
-
                 `;
 
             });
 
-
         } catch (e) {
-
             tbody.innerHTML =
-                '<tr><td colspan="14" style="color: red; text-align: center;">Failed to load data.</td></tr>';
-
+                '<tr><td colspan="16" style="color: red; text-align: center;">Failed to load data.</td></tr>';
         }
-
     }
 
 
@@ -824,88 +773,31 @@
 
     function enableEditAll() {
 
-        const rows =
-            document.querySelectorAll(
-                '#salaryBody tr[id^="row-"]'
-            );
-
+        const rows = document.querySelectorAll('#salaryBody tr[id^="row-"]');
 
         if (rows.length === 0) {
-
             showToast("No staff data available");
-
             return;
-
         }
-
 
         editMode = true;
 
-
         rows.forEach((tr) => {
-
-            makeCellEditable(
-                tr.querySelector('.col-basic'),
-                'number'
-            );
-
-            makeCellEditable(
-                tr.querySelector('.col-food'),
-                'number'
-            );
-
-            makeCellEditable(
-                tr.querySelector('.col-mob'),
-                'number'
-            );
-
-            makeCellEditable(
-                tr.querySelector('.col-days'),
-                'number'
-            );
-
-            makeCellEditable(
-                tr.querySelector('.col-comm'),
-                'number'
-            );
-
-            makeCellEditable(
-                tr.querySelector('.col-ded'),
-                'number'
-            );
-
-            /*
-             * Currency = DROPDOWN
-             */
-
-            makeCellEditable(
-                tr.querySelector('.col-curr'),
-                'currency'
-            );
-
-            /*
-             * Status = DROPDOWN
-             */
-
-            makeCellEditable(
-                tr.querySelector('.col-status'),
-                'status'
-            );
-
-            makeCellEditable(
-                tr.querySelector('.col-remark'),
-                'text'
-            );
-
+            makeCellEditable(tr.querySelector('.col-basic'), 'number');
+            makeCellEditable(tr.querySelector('.col-ot'), 'number');
+            makeCellEditable(tr.querySelector('.col-food'), 'number');
+            makeCellEditable(tr.querySelector('.col-mob'), 'number');
+            makeCellEditable(tr.querySelector('.col-days'), 'number');
+            makeCellEditable(tr.querySelector('.col-comm'), 'number');
+            makeCellEditable(tr.querySelector('.col-remit'), 'number');
+            makeCellEditable(tr.querySelector('.col-ded'), 'number');
+            makeCellEditable(tr.querySelector('.col-curr'), 'currency');
+            makeCellEditable(tr.querySelector('.col-status'), 'status');
+            makeCellEditable(tr.querySelector('.col-remark'), 'text');
         });
 
-
         setEditMode();
-
-
-        showToast(
-            "Edit mode enabled"
-        );
+        showToast("Edit mode enabled");
 
     }
 
@@ -1168,71 +1060,21 @@
      */
 
     function calculateRow(tr) {
+        if (!tr) return;
 
-        if (!tr) {
-            return;
-        }
+        const basic = cleanNum(tr.querySelector('.col-basic').innerText);
+        const ot = cleanNum(tr.querySelector('.col-ot').innerText);
+        const food = cleanNum(tr.querySelector('.col-food').innerText);
+        const mob = cleanNum(tr.querySelector('.col-mob').innerText);
+        const comm = cleanNum(tr.querySelector('.col-comm').innerText);
+        const remit = cleanNum(tr.querySelector('.col-remit').innerText);
+        const ded = cleanNum(tr.querySelector('.col-ded').innerText);
 
+        const gross = basic + ot + food + mob;
+        const total = (gross + comm + remit) - ded;
 
-        const basic =
-            cleanNum(
-                tr.querySelector(
-                    '.col-basic'
-                ).innerText
-            );
-
-
-        const food =
-            cleanNum(
-                tr.querySelector(
-                    '.col-food'
-                ).innerText
-            );
-
-
-        const mob =
-            cleanNum(
-                tr.querySelector(
-                    '.col-mob'
-                ).innerText
-            );
-
-
-        const comm =
-            cleanNum(
-                tr.querySelector(
-                    '.col-comm'
-                ).innerText
-            );
-
-
-        const ded =
-            cleanNum(
-                tr.querySelector(
-                    '.col-ded'
-                ).innerText
-            );
-
-
-        const gross =
-            basic + food + mob;
-
-
-        const total =
-            gross + comm - ded;
-
-
-        tr.querySelector(
-            '.col-gross'
-        ).innerText =
-            gross.toFixed(2);
-
-
-        tr.querySelector(
-            '.col-total'
-        ).innerText =
-            total.toFixed(2);
-
+        tr.querySelector('.col-gross').innerText = formatZero(gross);
+        tr.querySelector('.col-total').innerText = formatZero(total);
     }
 
 
@@ -1404,125 +1246,42 @@
      */
 
     async function saveRow(tr) {
-
         const payload = {
-
-            month_year:
-                `${
-                    document.getElementById(
-                        'yearSelect'
-                    ).value
-                }-${
-                    document.getElementById(
-                        'monthSelect'
-                    ).value
-                }`,
-
-            emp_id:
-                tr.querySelector(
-                    '.emp_id'
-                ).value,
-
-            basic_salary:
-                getCellValue(
-                    tr,
-                    '.col-basic'
-                ),
-
-            food_allowance:
-                getCellValue(
-                    tr,
-                    '.col-food'
-                ),
-
-            mobile_allowance:
-                getCellValue(
-                    tr,
-                    '.col-mob'
-                ),
-
-            present_days:
-                getCellValue(
-                    tr,
-                    '.col-days'
-                ),
-
-            commission:
-                getCellValue(
-                    tr,
-                    '.col-comm'
-                ),
-
-            deduction:
-                getCellValue(
-                    tr,
-                    '.col-ded'
-                ),
-
-            currency:
-                getCellValue(
-                    tr,
-                    '.col-curr'
-                ),
-
-            status:
-                getCellValue(
-                    tr,
-                    '.col-status'
-                ),
-
-            remark:
-                getCellValue(
-                    tr,
-                    '.col-remark'
-                )
-
+            month_year: `${document.getElementById('yearSelect').value}-${document.getElementById('monthSelect').value}`,
+            emp_id: tr.querySelector('.emp_id').value,
+            basic_salary: getCellValue(tr, '.col-basic'),
+            over_time: getCellValue(tr, '.col-ot'),
+            food_allowance: getCellValue(tr, '.col-food'),
+            mobile_allowance: getCellValue(tr, '.col-mob'),
+            present_days: getCellValue(tr, '.col-days'),
+            commission: getCellValue(tr, '.col-comm'),
+            staff_remittance: getCellValue(tr, '.col-remit'),
+            deduction: getCellValue(tr, '.col-ded'),
+            currency: getCellValue(tr, '.col-curr'),
+            status: getCellValue(tr, '.col-status'),
+            remark: getCellValue(tr, '.col-remark')
         };
 
-
         try {
+            const res = await fetch('/api/staff-salary/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
 
-            const res =
-                await fetch(
-                    '/api/staff-salary/save',
-                    {
-                        method: 'POST',
+            const data = await res.json();
 
-                        headers: {
-                            'Content-Type':
-                                'application/json'
-                        },
-
-                        body:
-                            JSON.stringify(
-                                payload
-                            )
-                    }
-                );
-
-
-            const data =
-                await res.json();
-
-
-            if (
-                data.success
-            ) {
-
+            if (data.success) {
                 return true;
-
             }
 
-
             return false;
-
 
         } catch (e) {
-
             return false;
-
         }
-
     }
 
 
@@ -1681,6 +1440,98 @@
         ).style.display =
             'flex';
 
+    }
+
+
+    /*
+     * EXPORT MODAL & LOGIC
+     */
+    function openExportModal() {
+        const date = new Date();
+        const currentMonth = String(date.getMonth() + 1).padStart(2, '0');
+        const currentYear = date.getFullYear();
+
+        const months = ['01-January','02-February','03-March','04-April','05-May','06-June','07-July','08-August','09-September','10-October','11-November','12-December'];
+        
+        ['batchStartMonth', 'batchEndMonth'].forEach(id => {
+            document.getElementById(id).innerHTML = months.map(m => {
+                let [val, name] = m.split('-');
+                return `<option value="${val}" ${val === currentMonth ? 'selected' : ''}>${name}</option>`;
+            }).join('');
+        });
+
+        ['batchStartYear', 'batchEndYear'].forEach(id => {
+            let sel = document.getElementById(id);
+            sel.innerHTML = '';
+            for(let i = currentYear - 2; i <= currentYear + 2; i++) {
+                sel.innerHTML += `<option value="${i}" ${i === currentYear ? 'selected' : ''}>${i}</option>`;
+            }
+        });
+
+        document.getElementById('exportType').value = 'single';
+        toggleBatchOptions();
+        document.getElementById('exportModal').style.display = 'flex';
+    }
+
+    function closeExportModal() {
+        document.getElementById('exportModal').style.display = 'none';
+    }
+
+    function toggleBatchOptions() {
+        const type = document.getElementById('exportType').value;
+        document.getElementById('batchOptions').style.display = type === 'batch' ? 'block' : 'none';
+    }
+
+    async function executeExport() {
+        const type = document.getElementById('exportType').value;
+        
+        // Routing through your native Node.js /py proxy
+        let url = `/py/export-salary?`;
+        
+        let fileName = 'Own Staff Salary';
+        
+        if (type === 'single') {
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            url += `start_period=${year}-${month}&end_period=${year}-${month}`;
+            fileName += ` - ${year}-${month}.xlsx`;
+        } else {
+            const startM = document.getElementById('batchStartMonth').value;
+            const startY = document.getElementById('batchStartYear').value;
+            const endM = document.getElementById('batchEndMonth').value;
+            const endY = document.getElementById('batchEndYear').value;
+            url += `start_period=${startY}-${startM}&end_period=${endY}-${endM}`;
+            fileName += ` - Batch.xlsx`;
+        }
+
+        try {
+            showToast("Generating Excel file...");
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': localStorage.getItem('emp_token')
+                }
+            });
+
+            if (!response.ok) throw new Error("Export API failed");
+            
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            
+            closeExportModal();
+            showToast("Export Downloaded Successfully");
+            
+        } catch (error) {
+            showToast("Error generating export file");
+            console.error(error);
+        }
     }
 
 </script>
