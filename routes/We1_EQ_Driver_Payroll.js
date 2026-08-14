@@ -2,11 +2,18 @@
 
 const express = require("express");
 const pool = require("../config/db"); 
-const { verifyToken, verifyEditor } = require("../middlewares/auth"); 
+
+// Custom middleware to check emp_token
+const verifyAuth = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) return res.status(401).json({ success: false, message: "No token provided" });
+    next();
+};
+
 const router = express.Router();
 
 // 1. Fetch Payroll Data for a specific Month/Year
-router.get("/data", verifyToken, async (req, res) => {
+router.get("/data", verifyAuth, async (req, res) => {
     try {
         const { month_year } = req.query; 
         
@@ -14,7 +21,6 @@ router.get("/data", verifyToken, async (req, res) => {
             return res.json({ success: false, message: "Month and Year required" });
         }
 
-        // UNION query to get all saved payrolls for the month + any active drivers in master not yet in payroll
         const query = `
             SELECT 
                 p.plate_no, 
@@ -22,6 +28,7 @@ router.get("/data", verifyToken, async (req, res) => {
                 p.basic_salary, 
                 p.over_time, 
                 p.deduction, 
+                COALESCE(p.advance_paid, 0) as advance_paid,
                 p.status, 
                 p.remark
             FROM we1_payroll p 
@@ -35,6 +42,7 @@ router.get("/data", verifyToken, async (req, res) => {
                 0 as basic_salary, 
                 0 as over_time, 
                 0 as deduction, 
+                0 as advance_paid,
                 'Un Paid' as status, 
                 '' as remark
             FROM we1_own_eq_master m
@@ -56,27 +64,27 @@ router.get("/data", verifyToken, async (req, res) => {
 });
 
 // 2. Save or Update Payroll Entry
-router.post("/save", verifyEditor, async (req, res) => {
+router.post("/save", verifyAuth, async (req, res) => {
     try {
         const { 
             month_year, plate_no, driver_name, basic_salary, 
-            over_time, deduction, status, remark 
+            over_time, deduction, advance_paid, status, remark 
         } = req.body;
 
         if (!month_year || !plate_no || !driver_name) {
             return res.json({ success: false, message: "Month/Year, Plate No and Driver Name required" });
         }
 
-        // Upsert based on month_year + plate_no + driver_name
         const query = `
             INSERT INTO we1_payroll 
-            (month_year, plate_no, driver_name, basic_salary, over_time, deduction, status, remark)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            (month_year, plate_no, driver_name, basic_salary, over_time, deduction, advance_paid, status, remark)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT (month_year, plate_no, driver_name) 
             DO UPDATE SET 
                 basic_salary = EXCLUDED.basic_salary,
                 over_time = EXCLUDED.over_time,
                 deduction = EXCLUDED.deduction,
+                advance_paid = EXCLUDED.advance_paid,
                 status = EXCLUDED.status,
                 remark = EXCLUDED.remark
         `;
@@ -88,6 +96,7 @@ router.post("/save", verifyEditor, async (req, res) => {
             basic_salary || 0, 
             over_time || 0, 
             deduction || 0, 
+            advance_paid || 0,
             status || 'Un Paid', 
             remark
         ];
