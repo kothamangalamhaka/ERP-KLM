@@ -1,3 +1,4 @@
+<!-- public/We1-own-EQ/EQ_Driver_payroll.html -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -16,7 +17,7 @@
 
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg);
+            background-color: white;
             color: var(--text-main);
             margin: 0;
             padding: 0;
@@ -52,48 +53,48 @@
 
         .btn-primary { background: #0969da; color: white; font-weight: bold; border: none; cursor: pointer; }
         .btn-success { background: #1a7f37; color: white; font-weight: bold; border: none; cursor: pointer; }
-        .btn-danger { background: #cf222e; color: white; font-weight: bold; border: none !important; cursor: pointer; }
-        .btn-edit-all { background: #dc3545; color: white; border: none !important; cursor: pointer; font-weight: bold; }
-        .btn-save-all { background: #28a745; color: white; border: none !important; cursor: pointer; font-weight: bold; }
-        .btn-cancel { background: #6c757d; color: white; border: none !important; cursor: pointer; font-weight: bold; }
+        .btn-danger { background: #cf222e; color: white; font-weight: bold; border: none; cursor: pointer; }
 
         .container { padding: 20px; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; white-space: nowrap; }
-        th, td { border: 1px solid black; padding: 6px 8px; }
-        th { background-color: #f6f8fa; font-weight: bolder; color: #000000; text-align: center; cursor: pointer; position: relative; user-select: none; }
-        th:hover { background-color: #e5e7eb; }
+        th, td { border: 1px solid black; padding: 8px 12px; text-align: left; }
+        th { background-color: white; font-weight: bolder; color: #000000; }
+        tbody tr:hover { background-color: #f3f4f6; }
 
-        .fit-content { width: 1%; white-space: nowrap; text-align: center; }
-        .text-center { text-align: center !important; }
-        .calc-field { font-weight: bold; background: #f8f9fa; }
-        .editable { cursor: text; background: #fffdf2; outline: none; border: 1px solid transparent; width: 100%; box-sizing: border-box; text-align: center; }
-        .editable:focus { background: #fff8d6; border: 1px solid #0969da; }
+        input[type="number"], input[type="text"], select.edit-dropdown {
+            width: 100%; padding: 4px; box-sizing: border-box; border: 1px solid #0969da; border-radius: 3px; font-size: 12px;
+        }
 
-        #editControls { display: none; gap: 10px; align-items: center; }
-        #normalControls { display: flex; gap: 10px; align-items: center; }
-
+        .action-btns { display: flex; gap: 5px; }
+        .edit-btn { background: #cf222e; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .save-btn { background: #1a7f37; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .card-btn { background: #57606a; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;}
+        
         .status-paid { color: #1a7f37; font-weight: bold; }
-        .status-partially { color: #d97706; font-weight: bold; }
         .status-unpaid { color: #cf222e; font-weight: bold; }
-        .status-advanced { color: #800080; font-weight: bold; }
 
-        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background-color: #333; color: #fff; padding: 12px 20px; border-radius: 4px; font-size: 13px; opacity: 0; transform: translateY(100%); transition: all 0.3s ease; }
-        .toast.show { opacity: 1; transform: translateY(0); }
-        .toast.success { background-color: #1a7f37; }
-        .toast.error { background-color: #cf222e; }
-        
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center; }
+        /* Modal Styles */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;
+        }
         .modal-content { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 95%; }
+        .modal-toolbar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
         
-        /* Filter Popup Style */
-        #filterPopup { position: absolute; display: none; background: white; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000; padding: 10px; width: 200px; border-radius: 4px; }
-        .filter-options { max-height: 200px; overflow-y: auto; margin-bottom: 10px; }
-        .filter-option { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0; }
+        .icon-btn { background: #f6f8fa; border: 1px solid var(--border); padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .icon-btn:hover { background: #e5e7eb; }
 
-        .pay-card { background-color: #fae6df; padding: 30px; width: 500px; box-sizing: border-box; color: #000; font-family: 'Georgia', serif; border: 1px solid #ccc; }
+        /* Card Design */
+        .pay-card {
+            background-color: #fae6df; padding: 30px; width: 500px; box-sizing: border-box;
+            color: #000; font-family: 'Georgia', serif; border: 1px solid #ccc;
+        }
         .pay-card-title { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 25px; }
         .pay-card-sub { display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; margin-bottom: 15px; }
+        
+        /* Specific Font Requirement */
+        #cardPlateNo { font-family: Arial, sans-serif; }
+
         .pay-card-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; border: 1px solid #000; }
         .pay-card-table th, .pay-card-table td { border: 1px solid #000; padding: 10px; color: #000; }
         .pay-card-table th { background-color: #f4b084; font-weight: bold; }
@@ -101,7 +102,18 @@
         .row-blue { background-color: #ddebf7; font-weight: bold; }
         .row-red { background-color: #ff9999; }
         .row-dark-green { background-color: #00b050; font-weight: bold; }
-        .action-col { width: 50px !important; text-align: center; }
+        
+        /* Alignments */
+        .text-left { text-align: left !important; padding-left: 15px !important; }
+        .text-right { text-align: right !important; padding-right: 15px !important; }
+        .text-center { text-align: center !important; }
+
+        /* Toast */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background-color: #333; color: #fff; padding: 12px 20px; border-radius: 4px; font-size: 13px; opacity: 0; transform: translateY(100%); transition: all 0.3s ease; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { background-color: #1a7f37; }
+        .toast.error { background-color: #cf222e; }
     </style>
 </head>
 <body>
@@ -120,54 +132,33 @@
 
         <button class="btn-primary" onclick="loadPayrollData()">Load Data</button>
         <button class="btn-success" onclick="exportScreen()">📄 Screen Export</button>
-        <button class="btn-success" onclick="document.getElementById('batchExportModal').style.display='flex'">📁 Batch Export</button>
-
-        <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
-            <div id="normalControls">
-                <button class="btn-edit-all" onclick="enableEditAll()">Edit All</button>
-            </div>
-            <div id="editControls">
-                <button class="btn-save-all" onclick="saveAll()">Save All</button>
-                <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
-            </div>
-            <button class="btn-danger" onclick="logout()">🚪 Logout</button>
-        </div>
+        <button class="btn-success" onclick="openBatchExport()">📁 Batch Export</button>
+        <button class="btn-danger" style="margin-left:auto;" onclick="logout()">🚪 Logout</button>
     </div>
 
     <div class="container">
-        <table id="payrollTable">
+        <table>
             <thead>
                 <tr>
-                    <th ondblclick="openFilter(event, 0)">SN</th>
-                    <th ondblclick="openFilter(event, 1)">Plate No</th>
-                    <th ondblclick="openFilter(event, 2)">Driver Name</th>
-                    <th class="fit-content" ondblclick="openFilter(event, 3)">Basic Salary</th>
-                    <th class="fit-content" ondblclick="openFilter(event, 4)">Over Time</th>
-                    <th class="fit-content" ondblclick="openFilter(event, 5)">Gross Salary</th>
-                    <th class="fit-content" ondblclick="openFilter(event, 6)">Deductions</th>
-                    <th class="fit-content" ondblclick="openFilter(event, 7)">Total Salary</th>
-                    <th class="fit-content" ondblclick="openFilter(event, 8)">Advance / Paid</th>
-                    <th class="fit-content" ondblclick="openFilter(event, 9)">Payable</th>
-                    <th ondblclick="openFilter(event, 10)">Status</th>
-                    <th ondblclick="openFilter(event, 11)">Remark</th>
-                    <th class="action-col">Action</th>
+                    <th>SN</th><th>Plate No</th><th>Driver Name</th><th>Basic Salary</th><th>Over Time</th>
+                    <th>Gross Salary</th><th>Deduction Pending</th><th>Total Salary</th><th>Status</th><th>Remark</th><th>Action</th>
                 </tr>
             </thead>
             <tbody id="payrollTableBody">
-                <tr><td colspan="13" style="text-align: center; padding: 20px;">Loading...</td></tr>
+                <tr><td colspan="11" style="text-align: center; padding: 20px;">Please select Month and Year, then click Load Data.</td></tr>
             </tbody>
         </table>
     </div>
 
     <div id="toast-container"></div>
 
-    <!-- Filter Popup -->
-    <div id="filterPopup">
-        <div style="font-weight: bold; margin-bottom: 8px;">Filter</div>
-        <div class="filter-options" id="filterOptions"></div>
-        <div style="display: flex; gap: 5px;">
-            <button class="btn-primary" style="flex:1;" onclick="applyFilter()">Apply</button>
-            <button class="btn-cancel" style="flex:1;" onclick="closeFilter()">Close</button>
+    <!-- Security Login Modal -->
+    <div id="loginModal" class="modal-overlay" style="z-index: 2000;">
+        <div class="modal-content" style="width: 350px; box-sizing: border-box;">
+            <div style="font-size: 15px; font-weight: bold; margin-bottom: 10px; color: #cf222e;">🔒 Security Verification</div>
+            <p style="margin: 0 0 15px 0; color: #57606a; font-size: 13px;">You need an access code to view and edit this payroll.</p>
+            <input type="password" id="accessCodeInput" style="width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Enter Security Code">
+            <button class="btn-primary" style="width: 100%; padding: 10px; box-sizing: border-box; border-radius: 4px;" onclick="verifyAccessCode()">Verify & Access</button>
         </div>
     </div>
 
@@ -176,11 +167,17 @@
         <div class="modal-content" style="width: 400px;">
             <div style="font-size: 15px; font-weight: bold; margin-bottom: 15px;">📁 Batch Export (Month to Month)</div>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1;"><label>From:</label><input type="month" id="batchFrom" style="width: 100%; padding: 8px;"></div>
-                <div style="flex: 1;"><label>To:</label><input type="month" id="batchTo" style="width: 100%; padding: 8px;"></div>
+                <div style="flex: 1;">
+                    <label>From:</label>
+                    <input type="month" id="batchFrom" style="width: 100%; padding: 8px;">
+                </div>
+                <div style="flex: 1;">
+                    <label>To:</label>
+                    <input type="month" id="batchTo" style="width: 100%; padding: 8px;">
+                </div>
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                <button class="btn-cancel" style="padding: 8px 15px;" onclick="document.getElementById('batchExportModal').style.display='none'">Cancel</button>
+                <button class="btn-danger" style="padding: 8px 15px;" onclick="document.getElementById('batchExportModal').style.display='none'">Cancel</button>
                 <button class="btn-success" id="batchBtn" style="padding: 8px 15px;" onclick="exportBatch()">Export to Excel</button>
             </div>
         </div>
@@ -189,10 +186,13 @@
     <!-- Pay Card Modal -->
     <div id="cardModal" class="modal-overlay">
         <div class="modal-content">
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px;">
-                <button onclick="downloadCardImage()" style="cursor:pointer; padding:5px;">💾 Save Image</button>
-                <button onclick="document.getElementById('cardModal').style.display='none'" style="cursor:pointer; padding:5px; color:red;">✖ Close</button>
+            <div class="modal-toolbar">
+                <button class="icon-btn" onclick="copyCardText()" title="Copy as Text">📋 Copy Text</button>
+                <button class="icon-btn" onclick="copyCardImage()" title="Copy as Image (WhatsApp)">📸 Copy Image</button>
+                <button class="icon-btn" onclick="downloadCardImage()" title="Save as Image">💾 Save Image</button>
+                <button class="icon-btn" style="color: red;" onclick="closeCardModal()">✖ Close</button>
             </div>
+            
             <div id="captureCard" class="pay-card">
                 <div class="pay-card-title" id="cardTitle">We1 Pay Roll Month - Year</div>
                 <div class="pay-card-sub">
@@ -200,15 +200,39 @@
                     <span id="cardPlateNo">Plate No</span>
                 </div>
                 <table class="pay-card-table">
-                    <thead><tr><th style="width: 10%;">SN</th><th style="width: 60%;">Particulars</th><th style="width: 30%;">Amount</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">SN</th>
+                            <th style="width: 60%;">Particulars</th>
+                            <th style="width: 30%;">Amount</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        <tr class="row-green"><td>1</td><td style="text-align:left;">Basic Salary</td><td id="cardBasic">0.00</td></tr>
-                        <tr class="row-green"><td>2</td><td style="text-align:left;">Add : Over Time</td><td id="cardOT">0.00</td></tr>
-                        <tr class="row-blue"><td>3</td><td style="text-align:right;">Gross Salary</td><td id="cardGross">0.00</td></tr>
-                        <tr class="row-red"><td>4</td><td style="text-align:left;">Less : Deductions</td><td id="cardDeduction">0.00</td></tr>
-                        <tr class="row-blue"><td>5</td><td style="text-align:right;">Total Salary</td><td id="cardTotal">0.00</td></tr>
-                        <tr class="row-red"><td>6</td><td style="text-align:left;">Less : Advance/Paid</td><td id="cardAdvance">0.00</td></tr>
-                        <tr class="row-dark-green"><td>7</td><td style="text-align:right; color:white;">Payable Amount</td><td id="cardPayable" style="color:white;">0.00</td></tr>
+                        <tr class="row-green">
+                            <td>1</td>
+                            <td class="text-left">Basic Salary</td>
+                            <td class="text-center" id="cardBasic">0.00</td>
+                        </tr>
+                        <tr class="row-green">
+                            <td>2</td>
+                            <td class="text-left">Add : Over Time</td>
+                            <td class="text-center" id="cardOT">0.00</td>
+                        </tr>
+                        <tr class="row-blue">
+                            <td>3</td>
+                            <td class="text-right">Gross Salary</td>
+                            <td class="text-center" id="cardGross">0.00</td>
+                        </tr>
+                        <tr class="row-red">
+                            <td>4</td>
+                            <td class="text-left">Less : Deductions</td>
+                            <td class="text-center" id="cardDeduction">0.00</td>
+                        </tr>
+                        <tr class="row-dark-green">
+                            <td>5</td>
+                            <td class="text-right">Salary Payable</td>
+                            <td class="text-center" id="cardTotal">0.00</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -216,9 +240,6 @@
     </div>
 
     <script>
-        let editMode = false;
-        let currentFilterCol = -1;
-
         function showToast(message, isError = false) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -230,277 +251,243 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            const user = localStorage.getItem('emp_user');
-            const token = localStorage.getItem('emp_token');
-            if (!user || !token) {
-                window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
-                return;
-            }
             const date = new Date();
-            document.getElementById('monthSelect').value = String(date.getMonth() + 1).padStart(2, '0');
+            const currentMonth = String(date.getMonth() + 1).padStart(2, '0');
+            const currentYear = date.getFullYear();
+            
+            document.getElementById('monthSelect').value = currentMonth;
             const yearSelect = document.getElementById('yearSelect');
-            for(let i = date.getFullYear() - 2; i <= date.getFullYear() + 2; i++) {
-                yearSelect.innerHTML += `<option value="${i}" ${i === date.getFullYear() ? 'selected' : ''}>${i}</option>`;
+            for(let i = currentYear - 2; i <= currentYear + 2; i++) {
+                yearSelect.innerHTML += `<option value="${i}" ${i === currentYear ? 'selected' : ''}>${i}</option>`;
             }
-            loadPayrollData();
+
+            // Check if Token Exists
+            if(!localStorage.getItem("timesheetToken")) {
+                promptForAccessCode();
+            } else {
+                loadPayrollData();
+            }
+
+            // Enter key for login
+            document.getElementById('accessCodeInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') verifyAccessCode();
+            });
         });
 
-        function logout() {
-            localStorage.removeItem('emp_user');
-            localStorage.removeItem('emp_token');
-            window.location.replace('login.html');
+        // ======= Auth Logic ======= //
+        function promptForAccessCode() { document.getElementById('loginModal').style.display = 'flex'; }
+        
+        async function verifyAccessCode() {
+            const codeInput = document.getElementById('accessCodeInput').value;
+            if (!codeInput) return showToast("Please enter the access code.", true);
+            try {
+                // Using existing we1-own-eq verify logic for simplicity and unified access
+                const res = await fetch('/api/we1-own-eq/verify-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: codeInput })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem("timesheetToken", data.token);
+                    document.getElementById('loginModal').style.display = 'none';
+                    loadPayrollData(); 
+                } else {
+                    showToast(data.message, true);
+                }
+            } catch (error) { showToast("Network error.", true); }
         }
 
-        window.addEventListener('pageshow', (event) => {
-            if (event.persisted || performance.getEntriesByType("navigation")[0]?.type === "back_forward") {
-                const token = localStorage.getItem('emp_token');
-                if (!token || token === "undefined" || token === "null") window.location.replace('login.html');
-            }
-        });
+        function logout() {
+            localStorage.removeItem("timesheetToken");
+            window.location.reload();
+        }
 
-        function cleanNum(val) { return parseFloat(val) || 0; }
-        function formatZero(val) { return val === 0 ? '' : parseFloat(val).toFixed(2); }
+        function cleanVal(val) { return (val === null || val === undefined) ? 0 : parseFloat(val); }
 
+        // ======= Load Data ======= //
         async function loadPayrollData() {
-            editMode = false;
-            document.getElementById('normalControls').style.display = 'flex';
-            document.getElementById('editControls').style.display = 'none';
             const month = document.getElementById('monthSelect').value;
             const year = document.getElementById('yearSelect').value;
+            const monthYear = `${year}-${month}`;
             const tbody = document.getElementById('payrollTableBody');
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            document.getElementById('pageTitle').innerText = `We1 Own EQ Driver Payroll - ${monthNames[parseInt(month)-1]} ${year}`;
-            tbody.innerHTML = '<tr><td colspan="13" class="text-center">Loading...</td></tr>';
+
+            // Dynamic Header Title Update
+            const monthName = getMonthName(month);
+            document.getElementById('pageTitle').innerText = `We1 Own EQ Driver Payroll - ${monthName} ${year}`;
+            
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align: center;">Loading...</td></tr>';
+
             try {
-                const token = localStorage.getItem("emp_token");
-                const res = await fetch(`/api/we1-eq-driver-payroll/data?month_year=${year}-${month}`, {
+                const token = localStorage.getItem("timesheetToken"); 
+                if(!token) return promptForAccessCode();
+
+                const res = await fetch(`/api/we1-eq-driver-payroll/data?month_year=${monthYear}`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const data = await res.json();
-                if (res.status === 401 || res.status === 403) {
-                    localStorage.removeItem('emp_token'); localStorage.removeItem('emp_user');
-                    window.location.replace('login.html?redirect=' + encodeURIComponent(window.location.href));
+
+                if (!data.success) {
+                    if (data.message && data.message.toLowerCase().includes("session") || data.message.toLowerCase().includes("token")) {
+                        return promptForAccessCode();
+                    }
+                    throw new Error(data.message);
+                }
+
+                if (data.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center;">No vehicles found.</td></tr>';
                     return;
                 }
-                if (!data.success || !Array.isArray(data.data) || data.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="13" class="text-center">No data found.</td></tr>';
-                    return;
-                }
+
                 tbody.innerHTML = '';
                 data.data.forEach((row, index) => {
-                    const basic = cleanNum(row.basic_salary);
-                    const ot = cleanNum(row.over_time);
+                    const basic = cleanVal(row.basic_salary);
+                    const ot = cleanVal(row.over_time);
                     const gross = basic + ot;
-                    const ded = cleanNum(row.deduction);
-                    const total = gross - ded;
-                    const adv = cleanNum(row.advance_paid);
-                    const payable = total - adv;
-                    let statClass = 'status-unpaid';
-                    if (row.status === 'Paid') statClass = 'status-paid';
-                    else if (row.status === 'Partially Paid') statClass = 'status-partially';
-                    else if (row.status === 'Advanced') statClass = 'status-advanced';
-                    tbody.innerHTML += `
-                        <tr id="row-${index}">
-                            <td class="text-center">${index + 1}</td>
-                            <td class="col-plate">${row.plate_no || '-'}</td>
-                            <td class="col-driver">${row.driver_name || '-'}</td>
-                            <td class="col-basic fit-content text-center" data-val="${basic}">${formatZero(basic)}</td>
-                            <td class="col-ot fit-content text-center" data-val="${ot}">${formatZero(ot)}</td>
-                            <td class="col-gross fit-content text-center calc-field">${formatZero(gross)}</td>
-                            <td class="col-ded fit-content text-center" data-val="${ded}">${formatZero(ded)}</td>
-                            <td class="col-total fit-content text-center calc-field">${formatZero(total)}</td>
-                            <td class="col-adv fit-content text-center" data-val="${adv}">${formatZero(adv)}</td>
-                            <td class="col-payable fit-content text-center calc-field" style="color:#0969da;">${formatZero(payable)}</td>
-                            <td class="col-status fit-content text-center ${statClass}">${row.status || 'Un Paid'}</td>
-                            <td class="col-remark">${row.remark || ''}</td>
-                            <td class="text-center action-col"><button class="btn-primary" style="padding:2px 6px;" onclick="openCardModal(${index})">💷</button></td>
-                        </tr>
+                    const deduction = cleanVal(row.deduction);
+                    const total = gross - deduction;
+                    const statusClass = row.status === 'Paid' ? 'status-paid' : 'status-unpaid';
+
+                    const tr = document.createElement('tr');
+                    tr.id = `row-${index}`;
+                    tr.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td class="plate-cell">${row.plate_no || '-'}</td>
+                        <td class="driver-cell">${row.driver_name || '-'}</td>
+                        <td class="basic-cell">${basic.toFixed(2)}</td>
+                        <td class="ot-cell">${ot.toFixed(2)}</td>
+                        <td class="gross-cell calc-field">${gross.toFixed(2)}</td>
+                        <td class="deduction-cell">${deduction.toFixed(2)}</td>
+                        <td class="total-cell calc-field">${total.toFixed(2)}</td>
+                        <td class="status-cell ${statusClass}">${row.status || 'Un Paid'}</td>
+                        <td class="remark-cell">${row.remark || '-'}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="edit-btn" onclick="enableEdit(${index})">Edit</button>
+                                <button class="card-btn" onclick="openCardModal(${index})" title="View Pay Slip">💳</button>
+                            </div>
+                        </td>
                     `;
+                    tbody.appendChild(tr);
                 });
-            } catch (error) { tbody.innerHTML = `<tr><td colspan="13" class="text-center" style="color:red;">Error loading data.</td></tr>`; }
-        }
-
-        // Filter Logic
-        // പുതിയ openFilter ഫങ്ഷൻ
-function openFilter(event, colIndex) {
-    event.stopPropagation();
-    currentFilterCol = colIndex;
-    
-    const th = event.currentTarget;
-    const rect = th.getBoundingClientRect();
-    const popup = document.getElementById('filterPopup');
-    
-    // പോപ്പ്അപ്പ് പൊസിഷൻ ചെയ്യുന്നു
-    popup.style.top = (rect.bottom + window.scrollY) + 'px';
-    popup.style.left = (rect.left + window.scrollX) + 'px';
-    popup.style.display = 'block';
-
-    const tbody = document.getElementById('payrollTableBody');
-    const rows = tbody.getElementsByTagName('tr');
-    const uniqueValues = new Set();
-
-    // നിലവിൽ കാണുന്ന വരികളിൽ നിന്ന് മാത്രം ഡാറ്റ എടുക്കുന്നു (Cascading)
-    for (let row of rows) {
-        if (row.style.display !== 'none') {
-            const cell = row.getElementsByTagName('td')[colIndex];
-            if (cell) {
-                let val = cell.innerText.trim();
-                uniqueValues.add(val === "" || val === "-" ? "(Blank)" : val);
-            }
-        }
-    }
-
-    const filterOptions = document.getElementById('filterOptions');
-    filterOptions.innerHTML = '';
-    
-    // ചെക്ക്ബോക്സ് ലിസ്റ്റ് തയ്യാറാക്കുന്നു
-    Array.from(uniqueValues).sort().forEach(val => {
-        filterOptions.innerHTML += `
-            <label class="filter-option">
-                <input type="checkbox" value="${val}" checked> ${val}
-            </label>
-        `;
-    });
-}
-
-        // പുതിയ applyFilter ഫങ്ഷൻ
-function applyFilter() {
-    const checkboxes = document.querySelectorAll('#filterOptions input[type="checkbox"]');
-    const selectedValues = Array.from(checkboxes).filter(i => i.checked).map(i => i.value);
-    
-    const rows = document.querySelectorAll('#payrollTableBody tr');
-    rows.forEach(row => {
-        const cell = row.getElementsByTagName('td')[currentFilterCol];
-        if (cell) {
-            let val = cell.innerText.trim();
-            let displayVal = val === "" || val === "-" ? "(Blank)" : val;
-            
-            // നിലവിലെ ഫിൽട്ടർ തിരഞ്ഞെടുപ്പിനനുസരിച്ച് വരി കാണിക്കുകയോ മറയ്ക്കുകയോ ചെയ്യുന്നു
-            if (selectedValues.includes(displayVal)) {
-                // ശ്രദ്ധിക്കുക: മൾട്ടി-കോളം ഫിൽട്ടറിംഗ് സങ്കീർണ്ണമാണ്. 
-                // ഇവിടെ ഇത് ലളിതമായി നിലവിലെ കോളത്തെ മാത്രം ഫിൽട്ടർ ചെയ്യുന്നു.
-                row.style.display = ""; 
-            } else {
-                row.style.display = "none";
-            }
-        }
-    });
-    closeFilter();
-}
-
-        function closeFilter() { document.getElementById('filterPopup').style.display = 'none'; }
-        document.addEventListener('click', (e) => {
-            const popup = document.getElementById('filterPopup');
-            if (!popup.contains(e.target) && e.target.tagName !== 'TH') closeFilter();
-        });
-
-        // Edit / Save Logic
-        function handleArrowKeys(e, index, colClass) {
-            if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                const prev = document.querySelector(`#row-${index - 1} .${colClass} input`);
-                if (prev) { prev.focus(); prev.select(); }
-            } else if (e.key === 'ArrowDown' || e.key === 'Enter') {
-                e.preventDefault();
-                const next = document.querySelector(`#row-${index + 1} .${colClass} input`);
-                if (next) { next.focus(); next.select(); }
+                showToast("Data loaded successfully.");
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
             }
         }
 
-        function enableEditAll() {
-            const rows = document.querySelectorAll('#payrollTableBody tr[id^="row-"]');
-            if (rows.length === 0) return showToast("No data to edit.");
-            editMode = true;
-            document.getElementById('normalControls').style.display = 'none';
-            document.getElementById('editControls').style.display = 'flex';
-            rows.forEach((tr, index) => {
-                const makeEditable = (cls) => {
-                    const cell = tr.querySelector(`.${cls}`);
-                    const val = cell.getAttribute('data-val');
-                    cell.innerHTML = `<input type="number" class="editable" value="${val === '0' ? '' : val}" oninput="calculateRow(${index})" onkeydown="handleArrowKeys(event, ${index}, '${cls}')">`;
-                };
-                makeEditable('col-basic'); makeEditable('col-ot'); makeEditable('col-ded'); makeEditable('col-adv');
-                const remCell = tr.querySelector('.col-remark');
-                const remVal = remCell.innerText;
-                remCell.innerHTML = `<input type="text" style="width:100%; border:1px solid transparent; outline:none; background:#fffdf2;" value="${remVal}">`;
-            });
-            showToast("Edit mode enabled");
+        // ======= Editing & Saving ======= //
+        function enableEdit(index) {
+            const tr = document.getElementById(`row-${index}`);
+            const basic = tr.querySelector('.basic-cell').innerText;
+            const ot = tr.querySelector('.ot-cell').innerText;
+            const deduction = tr.querySelector('.deduction-cell').innerText;
+            const status = tr.querySelector('.status-cell').innerText;
+            const remark = tr.querySelector('.remark-cell').innerText === '-' ? '' : tr.querySelector('.remark-cell').innerText;
+
+            tr.querySelector('.basic-cell').innerHTML = `<input type="number" id="basic-${index}" value="${basic}" oninput="calculateRow(${index})">`;
+            tr.querySelector('.ot-cell').innerHTML = `<input type="number" id="ot-${index}" value="${ot}" oninput="calculateRow(${index})">`;
+            tr.querySelector('.deduction-cell').innerHTML = `<input type="number" id="deduction-${index}" value="${deduction}" oninput="calculateRow(${index})">`;
+            tr.querySelector('.status-cell').innerHTML = `<select id="status-${index}" class="edit-dropdown"><option value="Un Paid" ${status === 'Un Paid' ? 'selected' : ''}>Un Paid</option><option value="Paid" ${status === 'Paid' ? 'selected' : ''}>Paid</option></select>`;
+            tr.querySelector('.remark-cell').innerHTML = `<input type="text" id="remark-${index}" value="${remark}">`;
+            tr.querySelector('td:last-child').innerHTML = `<div class="action-btns"><button class="save-btn" onclick="saveRow(${index})">Save</button></div>`;
         }
 
         function calculateRow(index) {
+            const basic = parseFloat(document.getElementById(`basic-${index}`).value) || 0;
+            const ot = parseFloat(document.getElementById(`ot-${index}`).value) || 0;
+            const deduction = parseFloat(document.getElementById(`deduction-${index}`).value) || 0;
             const tr = document.getElementById(`row-${index}`);
-            if(!tr) return;
-            const basic = cleanNum(tr.querySelector('.col-basic input').value);
-            const ot = cleanNum(tr.querySelector('.col-ot input').value);
-            const ded = cleanNum(tr.querySelector('.col-ded input').value);
-            const adv = cleanNum(tr.querySelector('.col-adv input').value);
-            const gross = basic + ot;
-            const total = gross - ded;
-            const payable = total - adv;
-            let status = 'Un Paid'; let statClass = 'status-unpaid';
-            if (total === payable && total !== 0) { status = 'Un Paid'; statClass = 'status-unpaid'; }
-            else if (total > payable && payable > 0) { status = 'Partially Paid'; statClass = 'status-partially'; }
-            else if (payable === 0 && total > 0) { status = 'Paid'; statClass = 'status-paid'; }
-            else if (payable < 0) { status = 'Advanced'; statClass = 'status-advanced'; }
-            tr.querySelector('.col-gross').innerText = formatZero(gross);
-            tr.querySelector('.col-total').innerText = formatZero(total);
-            tr.querySelector('.col-payable').innerText = formatZero(payable);
-            const statCell = tr.querySelector('.col-status');
-            statCell.innerText = status;
-            statCell.className = `col-status fit-content text-center ${statClass}`;
+            tr.querySelector('.gross-cell').innerText = (basic + ot).toFixed(2);
+            tr.querySelector('.total-cell').innerText = ((basic + ot) - deduction).toFixed(2);
         }
 
-        function cancelEdit() { loadPayrollData(); }
+        async function saveRow(index) {
+            const tr = document.getElementById(`row-${index}`);
+            const payload = {
+                month_year: `${document.getElementById('yearSelect').value}-${document.getElementById('monthSelect').value}`,
+                plate_no: tr.querySelector('.plate-cell').innerText,
+                driver_name: tr.querySelector('.driver-cell').innerText,
+                basic_salary: document.getElementById(`basic-${index}`).value,
+                over_time: document.getElementById(`ot-${index}`).value,
+                deduction: document.getElementById(`deduction-${index}`).value,
+                status: document.getElementById(`status-${index}`).value,
+                remark: document.getElementById(`remark-${index}`).value
+            };
 
-        async function saveAll() {
-            if (!editMode) return;
-            const rows = document.querySelectorAll('#payrollTableBody tr[id^="row-"]');
-            const token = localStorage.getItem("emp_token");
-            const month_year = `${document.getElementById('yearSelect').value}-${document.getElementById('monthSelect').value}`;
-            let allSuccess = true;
-            document.querySelector('.btn-save-all').innerText = 'Saving...';
-            document.querySelector('.btn-save-all').disabled = true;
-            for (const tr of rows) {
-                const payload = {
-                    month_year: month_year,
-                    plate_no: tr.querySelector('.col-plate').innerText,
-                    driver_name: tr.querySelector('.col-driver').innerText,
-                    basic_salary: cleanNum(tr.querySelector('.col-basic input').value),
-                    over_time: cleanNum(tr.querySelector('.col-ot input').value),
-                    deduction: cleanNum(tr.querySelector('.col-ded input').value),
-                    advance_paid: cleanNum(tr.querySelector('.col-adv input').value),
-                    status: tr.querySelector('.col-status').innerText,
-                    remark: tr.querySelector('.col-remark input').value
-                };
-                try {
-                    const res = await fetch('/api/we1-eq-driver-payroll/save', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await res.json();
-                    if (!data.success) allSuccess = false;
-                } catch(e) { allSuccess = false; }
+            const btn = tr.querySelector('.save-btn');
+            btn.innerText = 'Saving...'; btn.disabled = true;
+
+            try {
+                const token = localStorage.getItem("timesheetToken");
+                const res = await fetch('/api/we1-eq-driver-payroll/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    tr.querySelector('.basic-cell').innerText = parseFloat(payload.basic_salary).toFixed(2);
+                    tr.querySelector('.ot-cell').innerText = parseFloat(payload.over_time).toFixed(2);
+                    tr.querySelector('.deduction-cell').innerText = parseFloat(payload.deduction).toFixed(2);
+                    const statusCell = tr.querySelector('.status-cell');
+                    statusCell.innerText = payload.status;
+                    statusCell.className = `status-cell ${payload.status === 'Paid' ? 'status-paid' : 'status-unpaid'}`;
+                    tr.querySelector('.remark-cell').innerText = payload.remark || '-';
+                    tr.querySelector('td:last-child').innerHTML = `<div class="action-btns"><button class="edit-btn" onclick="enableEdit(${index})">Edit</button><button class="card-btn" onclick="openCardModal(${index})" title="View Pay Slip">💳</button></div>`;
+                    showToast("Record saved successfully.");
+                } else {
+                    showToast("Error saving: " + data.message, true);
+                    btn.innerText = 'Save'; btn.disabled = false;
+                }
+            } catch (error) {
+                showToast("Network error occurred.", true);
+                btn.innerText = 'Save'; btn.disabled = false;
             }
-            document.querySelector('.btn-save-all').innerText = 'Save All';
-            document.querySelector('.btn-save-all').disabled = false;
-            if (allSuccess) { showToast("All records saved successfully."); loadPayrollData(); }
-            else { showToast("Some records failed to save.", true); }
+        }
+
+        // ======= Card Modal Logic ======= //
+        function getMonthName(monthStr) {
+            const date = new Date(`2000-${monthStr}-01`);
+            return date.toLocaleString('default', { month: 'long' });
         }
 
         function openCardModal(index) {
             const tr = document.getElementById(`row-${index}`);
-            document.getElementById('cardTitle').innerText = document.getElementById('pageTitle').innerText;
-            document.getElementById('cardDriverName').innerText = tr.querySelector('.col-driver').innerText;
-            document.getElementById('cardPlateNo').innerText = tr.querySelector('.col-plate').innerText;
-            document.getElementById('cardBasic').innerText = editMode ? formatZero(cleanNum(tr.querySelector('.col-basic input').value)) : tr.querySelector('.col-basic').innerText;
-            document.getElementById('cardOT').innerText = editMode ? formatZero(cleanNum(tr.querySelector('.col-ot input').value)) : tr.querySelector('.col-ot').innerText;
-            document.getElementById('cardGross').innerText = tr.querySelector('.col-gross').innerText;
-            document.getElementById('cardDeduction').innerText = editMode ? formatZero(cleanNum(tr.querySelector('.col-ded input').value)) : tr.querySelector('.col-ded').innerText;
-            document.getElementById('cardTotal').innerText = tr.querySelector('.col-total').innerText;
-            document.getElementById('cardAdvance').innerText = editMode ? formatZero(cleanNum(tr.querySelector('.col-adv input').value)) : tr.querySelector('.col-adv').innerText;
-            document.getElementById('cardPayable').innerText = tr.querySelector('.col-payable').innerText;
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            const monthName = getMonthName(month);
+
+            document.getElementById('cardTitle').innerText = `We1 Pay Roll ${monthName} - ${year}`;
+            document.getElementById('cardDriverName').innerText = tr.querySelector('.driver-cell').innerText;
+            document.getElementById('cardPlateNo').innerText = tr.querySelector('.plate-cell').innerText;
+            
+            document.getElementById('cardBasic').innerText = tr.querySelector('.basic-cell').innerText;
+            document.getElementById('cardOT').innerText = tr.querySelector('.ot-cell').innerText;
+            document.getElementById('cardGross').innerText = tr.querySelector('.gross-cell').innerText;
+            document.getElementById('cardDeduction').innerText = tr.querySelector('.deduction-cell').innerText;
+            document.getElementById('cardTotal').innerText = tr.querySelector('.total-cell').innerText;
+
             document.getElementById('cardModal').style.display = 'flex';
+        }
+
+        function closeCardModal() { document.getElementById('cardModal').style.display = 'none'; }
+
+        function copyCardText() {
+            const text = `*${document.getElementById('cardTitle').innerText}*\nDriver: ${document.getElementById('cardDriverName').innerText}\nPlate: ${document.getElementById('cardPlateNo').innerText}\n------------------------\nBasic Salary: ${document.getElementById('cardBasic').innerText}\nOver Time: ${document.getElementById('cardOT').innerText}\n*Gross Salary: ${document.getElementById('cardGross').innerText}*\nDeductions: ${document.getElementById('cardDeduction').innerText}\n------------------------\n*Salary Payable: ${document.getElementById('cardTotal').innerText}*`;
+            navigator.clipboard.writeText(text).then(() => showToast("Text copied to clipboard!")).catch(() => showToast("Failed to copy text.", true));
+        }
+
+        function copyCardImage() {
+            const card = document.getElementById('captureCard');
+            html2canvas(card, { scale: 2, backgroundColor: null }).then(canvas => {
+                canvas.toBlob(blob => {
+                    try {
+                        navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(() => showToast("Image copied! Paste it in WhatsApp."));
+                    } catch (e) { showToast("Error copying image.", true); }
+                });
+            });
         }
 
         function downloadCardImage() {
@@ -511,17 +498,23 @@ function applyFilter() {
                 link.download = `PaySlip_${dName}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
+                showToast("Image saved successfully.");
             });
         }
 
+        // ======= Export Logic ======= //
         async function exportScreen() {
             const month = document.getElementById('monthSelect').value;
             const year = document.getElementById('yearSelect').value;
-            const token = localStorage.getItem("emp_token");
+            const token = localStorage.getItem("timesheetToken");
+            
             showToast("Generating Screen Export...");
             try {
-                const res = await fetch(`/py/api/we1-eq-driver-payroll/export-screen?month_year=${year}-${month}`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const res = await fetch(`/py/api/we1-eq-driver-payroll/export-screen?month_year=${year}-${month}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
                 if (!res.ok) throw new Error("Failed");
+                
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -530,16 +523,26 @@ function applyFilter() {
             } catch (e) { showToast("Export Failed", true); }
         }
 
+        function openBatchExport() {
+            document.getElementById('batchExportModal').style.display = 'flex';
+        }
+
         async function exportBatch() {
             const start = document.getElementById('batchFrom').value;
             const end = document.getElementById('batchTo').value;
-            if(!start || !end) return showToast("Please select months.", true);
-            const token = localStorage.getItem("emp_token");
+            if(!start || !end) return showToast("Please select From and To months.", true);
+            if(start > end) return showToast("From month cannot be greater than To month.", true);
+
             const btn = document.getElementById('batchBtn');
             btn.innerText = 'Exporting...'; btn.disabled = true;
+            
             try {
-                const res = await fetch(`/py/api/we1-eq-driver-payroll/export-batch?start_month=${start}&end_month=${end}`, { headers: { 'Authorization': 'Bearer ' + token } });
+                const token = localStorage.getItem("timesheetToken");
+                const res = await fetch(`/py/api/we1-eq-driver-payroll/export-batch?start_month=${start}&end_month=${end}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
                 if (!res.ok) throw new Error("Failed");
+                
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -547,8 +550,11 @@ function applyFilter() {
                 document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url);
                 document.getElementById('batchExportModal').style.display = 'none';
                 showToast("Batch Export successful.");
-            } catch (e) { showToast("Batch Export Failed", true); }
-            finally { btn.innerText = 'Export to Excel'; btn.disabled = false; }
+            } catch (e) { 
+                showToast("Batch Export Failed", true); 
+            } finally {
+                btn.innerText = 'Export to Excel'; btn.disabled = false;
+            }
         }
     </script>
 </body>
