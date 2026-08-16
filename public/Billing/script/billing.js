@@ -30,12 +30,6 @@ let savedBillingData = [];
 let manualTableCount = 0;
 let isCombinedView = false;
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const token = localStorage.getItem("token");
-  if (token) verifyToken(token);
-  else document.getElementById("loginUserId").focus();
-});
-
 async function verifyToken(token) {
   document.getElementById("loader").style.display = "flex";
   try {
@@ -54,30 +48,129 @@ async function verifyToken(token) {
   }
 }
 
+document.addEventListener("DOMContentLoaded", async () => {
+  const token = localStorage.getItem("invoiceToken");
+  
+  if (token) {
+      verifyToken(token);
+  } else {
+      document.getElementById("loginScreen").style.display = "flex";
+      document.getElementById("mainAppContainer").style.display = "none";
+      document.getElementById("loginUserId").focus();
+  }
+});
+
+function toggleAuthView(viewId) {
+  document.getElementById('loginBox').style.display = 'none';
+  document.getElementById('signupBox').style.display = 'none';
+  document.getElementById('forgotBox').style.display = 'none';
+  document.getElementById(viewId).style.display = 'block';
+}
+
+async function executeSignup() {
+  const displayName = document.getElementById("regName").value;
+  const username = document.getElementById("regUser").value;
+  const email = document.getElementById("regEmail").value;
+  const password = document.getElementById("regPass").value;
+
+  if (!username || !email || !password) return showToast("Fill all required fields");
+
+  document.getElementById("loader").style.display = "flex";
+  try {
+      const res = await fetch("/api/invoice-auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ displayName, username, email, password })
+      });
+      const data = await res.json();
+      document.getElementById("loader").style.display = "none";
+      alert(data.message);
+      if (data.success) toggleAuthView('loginBox');
+  } catch (err) { 
+      document.getElementById("loader").style.display = "none";
+      alert("Server Error"); 
+  }
+}
+
+async function requestOtp() {
+  const email = document.getElementById("forgotEmail").value;
+  if (!email) return alert("Enter email");
+  
+  document.getElementById("loader").style.display = "flex";
+  try {
+      const res = await fetch("/api/invoice-auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      document.getElementById("loader").style.display = "none";
+      alert(data.message);
+      if (data.success) {
+          document.getElementById("otpRequestSection").style.display = "none";
+          document.getElementById("otpVerifySection").style.display = "block";
+      }
+  } catch (err) { 
+      document.getElementById("loader").style.display = "none";
+      alert("Server Error"); 
+  }
+}
+
+async function resetPassword() {
+  const email = document.getElementById("forgotEmail").value;
+  const otp = document.getElementById("resetOtp").value;
+  const newPassword = document.getElementById("newPass").value;
+  if (!otp || !newPassword) return alert("Enter OTP and new password");
+  
+  document.getElementById("loader").style.display = "flex";
+  try {
+      const res = await fetch("/api/invoice-auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, otp, newPassword })
+      });
+      const data = await res.json();
+      document.getElementById("loader").style.display = "none";
+      alert(data.message);
+      if (data.success) toggleAuthView('loginBox');
+  } catch (err) { 
+      document.getElementById("loader").style.display = "none";
+      alert("Server Error"); 
+  }
+}
+
 async function executeLogin() {
   const username = document.getElementById("loginUserId").value;
   const password = document.getElementById("loginPass").value;
   if (!username || !password) return alert("Enter credentials");
 
+  document.getElementById("loader").style.display = "flex";
   try {
-    const res = await fetch("/api/login", {
+    const res = await fetch("/api/invoice-auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
+    document.getElementById("loader").style.display = "none";
+    
     if (data.success) {
-      localStorage.setItem("token", data.token);
+      localStorage.setItem("invoiceToken", data.token);
+      // Update local storage so existing ERP API calls use this token format temporarily
+      localStorage.setItem("token", data.token); 
       loadApp();
     } else alert(data.message);
   } catch (err) {
+    document.getElementById("loader").style.display = "none";
     alert("Server Error.");
   }
 }
 
 function executeLogout() {
+  localStorage.removeItem("invoiceToken");
   localStorage.removeItem("token");
-  window.location.reload();
+  localStorage.removeItem("timesheetToken"); 
+  window.location.replace("index.html"); 
 }
 
 function loadApp() {

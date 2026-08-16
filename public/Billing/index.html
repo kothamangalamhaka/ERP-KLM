@@ -22,8 +22,9 @@
     </div>
 
     <div id="loginScreen">
-      <div class="login-box">
-        <h2>Haka ERP Login</h2>
+      <!-- Login Box -->
+      <div class="login-box" id="loginBox">
+        <h2>Billing & Report Login</h2>
         <input
           type="text"
           id="loginUserId"
@@ -37,6 +38,40 @@
           onkeypress="if (event.key === 'Enter') executeLogin();"
         />
         <button onclick="executeLogin()">Secure Login</button>
+        <div style="margin-top: 15px; font-size: 14px;">
+            <a href="#" onclick="toggleAuthView('signupBox')" style="color: #007bff; text-decoration: none;">Create Account</a> | 
+            <a href="#" onclick="toggleAuthView('forgotBox')" style="color: #007bff; text-decoration: none;">Forgot Password?</a>
+        </div>
+      </div>
+
+      <!-- Signup Box -->
+      <div class="login-box" id="signupBox" style="display: none;">
+        <h2>Create Account</h2>
+        <input type="text" id="regName" placeholder="Display Name">
+        <input type="text" id="regUser" placeholder="Username">
+        <input type="email" id="regEmail" placeholder="Email">
+        <input type="password" id="regPass" placeholder="Password">
+        <button onclick="executeSignup()" style="background: #28a745;">Sign Up</button>
+        <div style="margin-top: 15px; font-size: 14px;">
+            <a href="#" onclick="toggleAuthView('loginBox')" style="color: #6c757d; text-decoration: none;">Back to Login</a>
+        </div>
+      </div>
+
+      <!-- Forgot Password Box -->
+      <div class="login-box" id="forgotBox" style="display: none;">
+        <h2>Reset Password</h2>
+        <div id="otpRequestSection">
+            <input type="email" id="forgotEmail" placeholder="Enter your Email">
+            <button onclick="requestOtp()" style="background: #17a2b8;">Send OTP to Email</button>
+        </div>
+        <div id="otpVerifySection" style="display: none;">
+            <input type="text" id="resetOtp" placeholder="Enter OTP received in Email">
+            <input type="password" id="newPass" placeholder="Enter New Password">
+            <button onclick="resetPassword()" style="background: #ff9800;">Reset Password</button>
+        </div>
+        <div style="margin-top: 15px; font-size: 14px;">
+            <a href="#" onclick="toggleAuthView('loginBox')" style="color: #6c757d; text-decoration: none;">Back to Login</a>
+        </div>
       </div>
     </div>
 
