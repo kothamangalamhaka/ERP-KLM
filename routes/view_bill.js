@@ -508,9 +508,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       let diff_ot = "";
       let diff_st = "";
 
-      // report.html സ്ക്രീനിൽ diff_clear ചെയ്തിട്ടില്ലെങ്കിൽ മാത്രം Difference പരിശോധിക്കുക
       if (!isDiffCleared) {
-        // പോസിറ്റീവ് വാല്യൂസ് (ts_nr > inv_nr) മാത്രം എടുക്കുക, നെഗറ്റീവ് വാല്യൂസ് പൂർണ്ണമായി ഒഴിവാക്കുക
         if (ts_nr > inv_nr) {
           diff_nr = parseFloat((ts_nr - inv_nr).toFixed(2));
         }
