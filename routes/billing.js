@@ -16,7 +16,7 @@ const verifyBillingEditor = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const allowedRoles = ["Super Admin", "Admin", "Site Coordinator"];
+    const allowedRoles = ["Super Admin", "Admin", "User"];
 
     if (!allowedRoles.includes(decoded.role)) {
       return res.status(403).json({

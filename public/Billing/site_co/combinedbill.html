@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Combined Multi-Month Bill Generator | View Bill Access</title>
+    <meta name="viewport" content="width=1650" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link rel="stylesheet" href="../style/billing.css" />
+  </head>
+  <body>
+
+    <!-- 🟢 Login Screen Overlay -->
+    <div id="loginScreen">
+      <div class="login-box">
+        <h2>Haka ERP Login (Site Co)</h2>
+        <input
+          type="text"
+          id="loginUserId"
+          placeholder="Username"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <input
+          type="password"
+          id="loginPass"
+          placeholder="Password"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <button onclick="executeLogin()">Secure Login</button>
+      </div>
+    </div>
+
+    <!-- 🟢 Main App Container (Hidden until logged in) -->
+    <div id="mainAppContainer" style="display: none">
+      <div class="top-controls-wrapper">
+        <div class="top-controls">
+          <a href="./index.html" class="btn btn-dash" title="Back to Dashboard" style="text-decoration: none;">
+            <i class="material-icons" style="font-size: 20px; color: #007bff">arrow_back</i>
+          </a>
+
+        <!-- 🟢 Plate No Auto-search (Fixed Label on Single Line) -->
+        <div class="selector-wrapper autocomplete-wrapper" style="width: 260px; display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;">
+          <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">Plate No:</label>
+          <input type="text" id="plateSearch" placeholder="Type Plate No..." oninput="searchPlate(this)" autocomplete="off" style="text-transform: uppercase; font-weight: bold; flex: 1; min-width: 130px;" />
+          <div class="suggestion-box" id="plateSuggestions"></div>
+        </div>
+
+        <!-- From Month -->
+        <div class="selector-wrapper" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
+          <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">From:</label>
+          <select id="fromMonth" style="height:32px; border:none; background:transparent; font-weight:bold;">
+            <option value="January">January</option>
+            <option value="February">February</option>
+            <option value="March">March</option>
+            <option value="April" selected>April</option>
+            <option value="May">May</option>
+            <option value="June">June</option>
+            <option value="July">July</option>
+            <option value="August">August</option>
+            <option value="September">September</option>
+            <option value="October">October</option>
+            <option value="November">November</option>
+            <option value="December">December</option>
+          </select>
+          <input type="number" id="fromYear" value="2026" style="width:65px; height:32px; border:none; font-weight:bold;" />
+        </div>
+
+        <!-- To Month -->
+        <div class="selector-wrapper" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
+          <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">To:</label>
+          <select id="toMonth" style="height:32px; border:none; background:transparent; font-weight:bold;">
+            <option value="January">January</option>
+            <option value="February">February</option>
+            <option value="March">March</option>
+            <option value="April">April</option>
+            <option value="May">May</option>
+            <option value="June" selected>June</option>
+            <option value="July">July</option>
+            <option value="August">August</option>
+            <option value="September">September</option>
+            <option value="October">October</option>
+            <option value="November">November</option>
+            <option value="December">December</option>
+          </select>
+          <input type="number" id="toYear" value="2026" style="width:65px; height:32px; border:none; font-weight:bold;" />
+        </div>
+
+        <button type="button" class="btn btn-fetch" onclick="fetchCombinedBill()">
+          Generate Bill ✨
+        </button>
+
+        <!-- Toggle Images Button -->
+        <button type="button" class="btn" style="background:#6f42c1;" onclick="toggleCardImages()">
+          <i class="material-icons" style="font-size:16px;">visibility</i> Seal & Signature
+        </button>
+
+        <button type="button" class="btn" style="background:#007bff;" onclick="downloadPNG()">
+          <i class="material-icons" style="font-size:16px;">download</i> 
+        </button>
+
+        <button type="button" class="btn" style="background:#17a2b8;" onclick="copyHighQualityImage()">
+          <i class="material-icons" style="font-size:16px;">content_copy</i>
+        </button>
+
+        <button type="button" class="btn" style="background:#1d6f42;" onclick="exportToExcel()">
+          <i class="material-icons" style="font-size:16px;">table_chart</i> Excel
+        </button>
+        
+        <button type="button" class="btn" style="background:#dc3545; margin-left: auto;" onclick="executeLogout()">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+      <div class="bill-card" id="combinedBillCard">
+        <div class="print-area" id="printArea">
+          <!-- 🟢 Header Image Hidden by Default on Page Load/Reload -->
+          <img id="compHeaderImg" src="https://i.ibb.co/Ld752yD5/hd.png" class="header-img hidden-image" alt="Header" crossorigin="anonymous" />
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            <div style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase;">
+              OWNER : <span id="dispOwnerName">COMPANY VEHICLE</span>
+            </div>
+          </div>
+
+          <h3>Bill Summary for Each Month ملخص فاتورة الشهر</h3>
+
+          <!-- Combined Multi-Month Table -->
+          <table id="combinedTable">
+            <thead id="combinedTableHead">
+              <tr>
+                <th style="width: 4%;">#</th>
+                <th style="width: 10%;">Date</th>
+                <th style="width: 16%;">Vehicle Type</th>
+                <th style="width: 20%;">Driver</th>
+                <th style="width: 14%;">Plate No</th>
+                <th style="width: 8%;">N.Hr</th>
+                <th style="width: 8%;">OT Hr</th>
+                <th style="width: 10%;">Rent</th>
+                <th style="width: 10%;">Total</th>
+              </tr>
+            </thead>
+            <tbody id="combinedTableBody">
+              <tr>
+                <td colspan="9" style="padding: 30px; color: #888;">
+                  Type a Plate No and click "Generate Combined Bill ✨"
+                </td>
+              </tr>
+            </tbody>
+            <tfoot id="combinedTableFoot">
+              <tr class="total-row">
+                <td colspan="5" style="text-align: right; padding-right: 15px; font-weight: bold;">Grand Total:</td>
+                <td id="gtNHr">0</td>
+                <td id="gtOTHr">0</td>
+                <td id="gtRent">0</td>
+                <td id="gtTotal">0</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <!-- 🟢 Footer Signature & Seal Hidden by Default on Page Load/Reload -->
+          <div class="footer" style="margin-top:40px; display:flex; justify-content:space-between; align-items:flex-end;">
+            <div style="text-align: left; padding-bottom: 10px;">
+              <p class="company-text hidden-image" style="margin-bottom: 5px;"><b>Approved By Accounts Team</b></p>
+              <p style="border-top: 1px solid #333; width: 250px; margin: 0;"></p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
+              <img src="https://i.ibb.co/CK8X4YpV/Screenshot-2026-03-28-111438.png" class="signature-img hidden-image" alt="Signature" crossorigin="anonymous" style="max-height: 80px;" />
+              <img src="https://i.ibb.co/mrLFJdBy/sl.png" class="seal hidden-image" alt="Company Seal" crossorigin="anonymous" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🟢 Image Toggle Security Verification Modal -->
+    <div id="imageSecurityModal" class="modal-overlay" style="display: none;">
+      <div class="modal-box" style="width: 380px; text-align: center;">
+        <h3 style="color: #1a4d80; margin-top: 0; font-size: 18px; border:none; background:transparent; padding:0;">Security Verification</h3>
+        <p style="font-size: 14px; color: #334155; margin: 15px 0 20px 0; font-weight: 600; line-height: 1.4;">
+          Ask Lince to provide Seal and Signature
+        </p>
+        <input
+          type="password"
+          id="imgSecurityCode"
+          placeholder="Enter Security Code"
+          style="text-align: center; font-size: 15px; letter-spacing: 2px; margin-bottom: 20px; width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;"
+          onkeypress="if (event.key === 'Enter') submitImageSecurityCode();"
+        />
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button type="button" class="btn" style="background: #6c757d; flex: 1; padding: 10px; justify-content: center;" onclick="closeImageSecurityModal()">
+            Cancel
+          </button>
+          <button type="button" class="btn" style="background: #2563eb; flex: 1; padding: 10px; justify-content: center;" onclick="submitImageSecurityCode()">
+            Verify & Show
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+      let suggestionPlates = [];
+      let combinedDataCache = null;
+      let currentFocus = -1;
+      let isImagesVerified = false;
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        const token = localStorage.getItem("view_bill_token");
+        if (token) {
+          verifyToken(token);
+        } else {
+          document.getElementById("loginUserId").focus();
+        }
+      });
+
+      async function verifyToken(token) {
+        try {
+          const res = await fetch("/api/view-bill/verify-session", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) loadApp();
+            else executeLogout();
+          } else executeLogout();
+        } catch (err) {
+          executeLogout();
+        }
+      }
+
+      async function executeLogin() {
+        const username = document.getElementById("loginUserId").value.trim();
+        const password = document.getElementById("loginPass").value;
+        if (!username || !password) return showToast("Enter credentials");
+
+        try {
+          const res = await fetch("/api/view-bill/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            localStorage.setItem("view_bill_token", data.token);
+            loadApp();
+          } else {
+            showToast(data.message || "Invalid Credentials!");
+          }
+        } catch (err) {
+          showToast("Server Error.");
+        }
+      }
+
+      function executeLogout() {
+        localStorage.removeItem("view_bill_token");
+        window.location.replace("combinedbill.html");
+      }
+
+      function loadApp() {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("mainAppContainer").style.display = "block";
+        loadSuggestions();
+        attachKeyboardEvents();
+      }
+
+      async function loadSuggestions() {
+        try {
+          const token = localStorage.getItem("view_bill_token");
+          const res = await fetch("/api/view-bill/suggestions", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.status === 401 || res.status === 403) {
+            executeLogout();
+            return;
+          }
+          const data = await res.json();
+          if (data.success) {
+            suggestionPlates = data.plates || [];
+          }
+        } catch (e) {
+          console.error("Error loading suggestion list", e);
+        }
+      }
+
+      function searchPlate(input) {
+        const val = input.value.trim().toUpperCase().replace(/\s+/g, "");
+        const box = document.getElementById("plateSuggestions");
+        currentFocus = -1;
+
+        if (!val) { box.style.display = "none"; return; }
+
+        const matches = suggestionPlates.filter((p) => p && p.toUpperCase().replace(/\s+/g, "").includes(val));
+
+        if (matches.length > 0) {
+          box.innerHTML = "";
+          matches.forEach((m, index) => {
+            let div = document.createElement("div");
+            div.className = "suggestion-item";
+            if (index === 0) div.classList.add("active");
+            div.innerText = m;
+            div.onmousedown = function (e) {
+              e.preventDefault();
+              input.value = m;
+              box.style.display = "none";
+              fetchCombinedBill();
+            };
+            box.appendChild(div);
+          });
+          box.style.display = "block";
+        } else box.style.display = "none";
+      }
+
+      function attachKeyboardEvents() {
+        const input = document.getElementById("plateSearch");
+        input.addEventListener("keydown", function (e) {
+          const box = document.getElementById("plateSuggestions");
+          if (box && box.style.display === "block") {
+            let items = box.querySelectorAll(".suggestion-item");
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              currentFocus++;
+              if (currentFocus >= items.length) currentFocus = 0;
+              updateActiveSuggestion(items, currentFocus, box);
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              currentFocus--;
+              if (currentFocus < 0) currentFocus = items.length - 1;
+              updateActiveSuggestion(items, currentFocus, box);
+            } else if (e.key === "Enter" || e.key === "Tab") {
+              e.preventDefault();
+              let targetIdx = currentFocus > -1 ? currentFocus : 0;
+              if (items[targetIdx]) {
+                input.value = items[targetIdx].innerText;
+                box.style.display = "none";
+                fetchCombinedBill();
+              }
+            }
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            fetchCombinedBill();
+          }
+        });
+      }
+
+      function updateActiveSuggestion(items, index, box) {
+        items.forEach((item) => item.classList.remove("active"));
+        if (items[index]) {
+          items[index].classList.add("active");
+          items[index].scrollIntoView({ block: "nearest" });
+        }
+      }
+
+      async function fetchCombinedBill() {
+        const plate = document.getElementById("plateSearch").value.trim();
+        const fromM = document.getElementById("fromMonth").value;
+        const fromY = document.getElementById("fromYear").value;
+        const toM = document.getElementById("toMonth").value;
+        const toY = document.getElementById("toYear").value;
+
+        if (!plate) return showToast("Please enter a Plate No.");
+
+        const token = localStorage.getItem("view_bill_token");
+        const tbody = document.getElementById("combinedTableBody");
+        tbody.innerHTML = '<tr><td colspan="10" style="padding:20px; color:#666;">Fetching combined bill data...</td></tr>';
+
+        try {
+          const url = `/billing/combined-bill?plate_no=${encodeURIComponent(plate)}&from_month=${fromM}&from_year=${fromY}&to_month=${toM}&to_year=${toY}`;
+          const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (res.status === 401 || res.status === 403) {
+            executeLogout();
+            return;
+          }
+          const data = await res.json();
+
+          if (data.success) {
+            combinedDataCache = data;
+            renderCombinedTable(data);
+          } else {
+            tbody.innerHTML = `<tr><td colspan="10" style="padding:20px; color:red;">${data.message}</td></tr>`;
+          }
+        } catch (e) {
+          tbody.innerHTML = '<tr><td colspan="10" style="padding:20px; color:red;">Server Connection Error.</td></tr>';
+        }
+      }
+
+      function renderCombinedTable(data) {
+        const thead = document.getElementById("combinedTableHead");
+        const tbody = document.getElementById("combinedTableBody");
+        const tfoot = document.getElementById("combinedTableFoot");
+        tbody.innerHTML = "";
+
+        if (data.rows.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" style="padding:20px; color:#888;">No records found for this period.</td></tr>';
+          return;
+        }
+
+        document.getElementById("dispOwnerName").innerText = data.rows[0].owner || "COMPANY VEHICLE";
+
+        const hasVat = data.rows.some((r) => parseFloat(r.vat_amount) > 0 || parseFloat(r.vat_percent) > 0);
+
+        if (hasVat) {
+          thead.innerHTML = `
+            <tr>
+              <th style="width: 4%;">#</th>
+              <th style="width: 10%;">Date</th>
+              <th style="width: 16%;">Vehicle Type</th>
+              <th style="width: 20%;">Driver</th>
+              <th style="width: 12%;">Plate No</th>
+              <th style="width: 7%;">N.Hr</th>
+              <th style="width: 7%;">OT Hr</th>
+              <th style="width: 8%;">Rent</th>
+              <th style="width: 8%;">VAT</th>
+              <th style="width: 8%;">Total</th>
+            </tr>
+          `;
+        } else {
+          thead.innerHTML = `
+            <tr>
+              <th style="width: 4%;">#</th>
+              <th style="width: 10%;">Date</th>
+              <th style="width: 18%;">Vehicle Type</th>
+              <th style="width: 22%;">Driver</th>
+              <th style="width: 14%;">Plate No</th>
+              <th style="width: 8%;">N.Hr</th>
+              <th style="width: 8%;">OT Hr</th>
+              <th style="width: 8%;">Rent</th>
+              <th style="width: 8%;">Total</th>
+            </tr>
+          `;
+        }
+
+        data.rows.forEach((r, idx) => {
+          let vatCell = hasVat ? `<td>${r.vat_amount > 0 ? parseFloat(r.vat_amount).toFixed(2) : "0"}</td>` : "";
+
+          tbody.innerHTML += `
+            <tr>
+              <td>${idx + 1}</td>
+              <td class="date-cell">${r.date}</td>
+              <td>${r.vtype}</td>
+              <td>${escapeHTML(r.driver)}</td>
+              <td>${r.plate_no}</td>
+              <td>${r.nhr}</td>
+              <td>${r.othr}</td>
+              <td>${r.rent}</td>
+              ${vatCell}
+              <td style="font-weight:bold;">${r.total}</td>
+            </tr>
+          `;
+        });
+
+        if (hasVat) {
+          tfoot.innerHTML = `
+            <tr class="total-row">
+              <td colspan="5" style="text-align: right; padding-right: 15px; font-weight: bold;">Grand Total:</td>
+              <td>${data.totals.nhr}</td>
+              <td>${data.totals.othr}</td>
+              <td>${data.totals.rent.toFixed(2)}</td>
+              <td>${data.totals.vat_amount.toFixed(2)}</td>
+              <td>${data.totals.total.toFixed(2)}</td>
+            </tr>
+          `;
+        } else {
+          tfoot.innerHTML = `
+            <tr class="total-row">
+              <td colspan="5" style="text-align: right; padding-right: 15px; font-weight: bold;">Grand Total:</td>
+              <td>${data.totals.nhr}</td>
+              <td>${data.totals.othr}</td>
+              <td>${data.totals.rent.toFixed(2)}</td>
+              <td>${data.totals.total.toFixed(2)}</td>
+            </tr>
+          `;
+        }
+      }
+
+      function escapeHTML(str) {
+        if (!str) return "";
+        return String(str).replace(/[&<>'"]/g, (tag) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+      }
+
+      // 🟢 Image Toggle with Security Code Check
+      function toggleCardImages() {
+        const area = document.getElementById("printArea");
+        const isHidden = area.querySelector(".header-img")?.classList.contains("hidden-image");
+
+        if (isHidden) {
+          if (isImagesVerified) {
+            revealImages(area);
+          } else {
+            openImageSecurityModal();
+          }
+        } else {
+          hideImages(area);
+        }
+      }
+
+      function revealImages(area) {
+        area.querySelectorAll(".header-img, .seal, .signature-img, .company-text").forEach((img) => {
+          img.classList.remove("hidden-image");
+        });
+        showToast("Header & Stamps Enabled!");
+      }
+
+      function hideImages(area) {
+        area.querySelectorAll(".header-img, .seal, .signature-img, .company-text").forEach((img) => {
+          img.classList.add("hidden-image");
+        });
+        showToast("Header & Stamps Hidden!");
+      }
+
+      function openImageSecurityModal() {
+        document.getElementById("imgSecurityCode").value = "";
+        document.getElementById("imageSecurityModal").style.display = "flex";
+        document.getElementById("imgSecurityCode").focus();
+      }
+
+      function closeImageSecurityModal() {
+        document.getElementById("imageSecurityModal").style.display = "none";
+      }
+
+      async function submitImageSecurityCode() {
+        const code = document.getElementById("imgSecurityCode").value.trim();
+        if (!code) return showToast("Please enter the security code!");
+
+        const token = localStorage.getItem("view_bill_token");
+        try {
+          const res = await fetch("/billing/verify-combined-security", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ code: code }),
+          });
+
+          const data = await res.json();
+          if (data.success) {
+            isImagesVerified = true;
+            closeImageSecurityModal();
+            const area = document.getElementById("printArea");
+            revealImages(area);
+          } else {
+            showToast(data.message || "Invalid Security Code!");
+            document.getElementById("imgSecurityCode").value = "";
+          }
+        } catch (err) {
+          showToast("Server Connection Error!");
+        }
+      }
+
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.innerText = msg;
+        t.className = "show";
+        setTimeout(() => (t.className = ""), 3000);
+      }
+
+      async function downloadPNG() {
+        const area = document.getElementById("printArea");
+        const canvas = await html2canvas(area, { scale: 3, useCORS: true });
+        const link = document.createElement("a");
+        link.download = `Combined_Bill_${document.getElementById("plateSearch").value}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+
+      async function copyHighQualityImage() {
+        const area = document.getElementById("printArea");
+        const canvas = await html2canvas(area, { scale: 3, useCORS: true });
+        canvas.toBlob(async (blob) => {
+          if (navigator.clipboard) {
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+            showToast("HQ Image Copied to Clipboard!");
+          }
+        });
+      }
+
+      function exportToExcel() {
+        if (!combinedDataCache || combinedDataCache.rows.length === 0) return showToast("No data to export!");
+        const ws = XLSX.utils.json_to_sheet(combinedDataCache.rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Combined_Bill");
+        XLSX.writeFile(wb, `Combined_Bill_${combinedDataCache.plate_no}.xlsx`);
+      }
+    </script>
+  </body>
+</html>
