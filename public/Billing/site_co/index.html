@@ -4,12 +4,127 @@
     <meta charset="UTF-8" />
     <title>View Bill & Dashboard Report | Haka ERP</title>
     <meta name="viewport" content="width=1650" />
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-    <link rel="stylesheet" href="style/billing.css" />
+
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+
     <style>
-      a, .btn, .tab-btn { text-decoration: none !important; }
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        margin: 20px;
+        background-color: #f4f7f6;
+      }
+
+      .loader-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.9);
+        z-index: 3000;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+
+      .spinner {
+        border: 6px solid #f3f3f3;
+        border-top: 6px solid #1a4d80;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .top-controls-wrapper {
+        width: 100%;
+        max-width: 1650px;
+        margin: 0 auto 20px auto;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e2e8f0;
+        position: sticky;
+        top: 10px;
+        z-index: 9900;
+        box-sizing: border-box;
+      }
+
+      .ribbon-single-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        gap: 15px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .ribbon-left,
+      .ribbon-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: nowrap;
+      }
+
+      .btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        color: white;
+        font-weight: bold;
+        transition: 0.3s;
+        font-size: 13px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        height: 36px;
+        box-sizing: border-box;
+        text-decoration: none !important;
+      }
+
+      .btn:hover {
+        opacity: 0.85;
+        transform: translateY(-1px);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-dash {
+        background-color: #e2e8f0;
+        color: #334155;
+        padding: 6px 10px;
+      }
+
+      .btn-reset {
+        background-color: #6c757d;
+      }
+
+      .btn-fetch {
+        background-color: #ff9800;
+      }
+
       .tab-btn {
         padding: 8px 16px;
         background: #e2e8f0;
@@ -20,73 +135,262 @@
         cursor: pointer;
         font-size: 13px;
         transition: 0.2s;
+        text-decoration: none !important;
+        display: inline-flex;
+        align-items: center;
+        height: 36px;
+        box-sizing: border-box;
       }
-      .tab-btn.active { background: #2563eb; color: white; }
-      
+
+      .tab-btn.active {
+        background: #2563eb;
+        color: white;
+      }
+
+      .selector-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: #f8f9fa;
+        padding: 0 8px;
+        border-radius: 5px;
+        border: 1px solid #e9ecef;
+        height: 36px;
+        box-sizing: border-box;
+      }
+
+      .autocomplete-wrapper {
+        position: relative;
+      }
+
+      .suggestion-box {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 320px;
+        background: white;
+        border: 1px solid #1a4d80;
+        z-index: 9999;
+        max-height: 300px;
+        overflow-y: auto;
+        display: none;
+        text-align: left;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        border-radius: 0 0 4px 4px;
+      }
+
+      .suggestion-item {
+        padding: 8px 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        font-size: 13px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .suggestion-item:hover,
+      .suggestion-item.active {
+        background-color: #1a4d80;
+        color: white;
+      }
+
+      .bill-card {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+        width: 100%;
+        max-width: 1650px;
+        margin: 0 auto 30px auto;
+        box-sizing: border-box;
+        border: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .bill-card.edit-mode {
+        border: 1px solid #ddd;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+      }
+
+      .card-header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8fafc;
+        padding: 12px 18px;
+        border-radius: 8px 8px 0 0;
+        border-bottom: 1px solid #e2e8f0;
+        margin-bottom: 15px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .edit-mode .card-header-bar {
+        background: #f8fafc;
+        border-bottom-color: #e2e8f0;
+      }
+
+      .print-area {
+        background: white;
+        position: relative;
+        width: 100%;
+        padding: 10px;
+        box-sizing: border-box;
+        margin: 0 auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        table-layout: fixed;
+      }
+
+      th {
+        background-color: #1a4d80;
+        color: white;
+        padding: 10px 4px;
+        font-size: 12px;
+        border: 1px solid #10365c;
+        text-align: center;
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      td {
+        border: 1px solid #adb5bd;
+        padding: 0;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 13px;
+        height: 42px;
+      }
+
+      .supplier-bill-table th {
+        background: #1a4d80 !important;
+        color: white;
+        padding: 6px 8px !important;
+        font-size: 12px;
+        height: 28px;
+      }
+
+      .supplier-bill-table td {
+        padding: 5px 8px !important;
+        font-size: 12px;
+        height: 36px;
+        line-height: 1.4;
+      }
+
+      .supplier-bill-table td.editable-number-cell {
+        background: transparent;
+      }
+
+      .supplier-bill-table .edit-number-input {
+        width: 70px;
+        max-width: 90%;
+        height: 32px;
+        padding: 3px 5px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+        border: 1px solid #facc15;
+        border-radius: 4px;
+        background: #fef9c3;
+        color: #0f172a;
+        box-sizing: border-box;
+        outline: none;
+      }
+
+      .supplier-bill-table .edit-number-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+/* Remove number input spinner arrows */
+
+/* Chrome / Edge / Safari */
+.supplier-bill-table .edit-number-input::-webkit-outer-spin-button,
+.supplier-bill-table .edit-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+.supplier-bill-table .edit-number-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+
+      .supplier-bill-table .view-number-text {
+        display: inline-block;
+        min-width: 30px;
+      }
+
       .report-table-wrapper {
         background: white;
         padding: 20px;
         border-radius: 8px;
         border: 1px solid #cbd5e1;
         overflow-x: auto;
-        width: 98vw;
-        position: relative;
-        left: 50%;
-        transform: translateX(-50%);
+        width: 100%;
+        max-width: 1650px;
+        margin: 0 auto;
         box-sizing: border-box;
       }
+
       .report-table {
-        width: max-content !important; /* Allows table to expand to fit exact custom pixel widths */
-        min-width: 100% !important;
+        width: 100% !important;
         border-collapse: collapse;
         font-size: 12px;
-        table-layout: fixed !important; /* Strictly forces pixel widths */
+        table-layout: fixed !important;
       }
-      .report-table th, .report-table td {
+
+      .report-table th,
+      .report-table td {
         border: 1px solid #cbd5e1;
         padding: 6px 8px;
         text-align: center;
         vertical-align: middle;
         overflow: hidden;
       }
-      
-      /* 100% Strict Custom Pixel Widths & Text Wrapping */
-      .col-sn { width: 25px !important; white-space: nowrap; }
-      .col-date { width: 55px !important; white-space: nowrap; }
-      .col-rate { width: 60px !important; white-space: nowrap; }
-      .col-vat { width: 35px !important; white-space: nowrap; }
-      
-      /* Site (250px), Owner (300px), Driver (450px) - Text wraps nicely if exceeded */
-      .col-site { width: 180px !important; white-space: normal !important; word-wrap: break-word; text-align: left; }
-      .col-owner { width: 200px !important; white-space: normal !important; word-wrap: break-word; text-align: left; }
-      .col-driver { width: 250px !important; white-space: normal !important; word-wrap: break-word; text-align: left; }
-      
-      .col-plate { width: 85px !important; white-space: nowrap; font-weight: bold; }
-      
-      /* NR, OT, IDN exactly 50px */
-      .col-num-data { width: 50px !important; white-space: nowrap; }
-      .col-idn { width: 50px !important; white-space: nowrap; }
-      .report-table th {
-        background: #1e293b;
-        color: white;
-        font-weight: 700;
-        user-select: none;
-        position: relative;
-      }
-      .th-general { background: #0f172a !important; }
-      .th-ts { background: #166534 !important; }
-      .th-summary { background: #1e40af !important; }
-      .th-supplier { background: #6b21a8 !important; }
-      .th-diff { background: #be123c !important; }
 
-      /* Excel-Like Filter Popup Styling */
+      .th-general {
+        background: #0f172a !important;
+      }
+
+      .th-ts {
+        background: #166534 !important;
+      }
+
+      .th-summary {
+        background: #1e40af !important;
+      }
+
+      .th-supplier {
+        background: #6b21a8 !important;
+      }
+
+      .th-diff {
+        background: #be123c !important;
+      }
+
       .filter-icon {
         font-size: 11px;
         margin-left: 6px;
         cursor: pointer;
         opacity: 0.8;
       }
-      .filter-icon:hover { opacity: 1; color: #38bdf8; }
+
+      .filter-icon:hover {
+        opacity: 1;
+        color: #38bdf8;
+      }
+
       .filter-popup {
         position: absolute;
         background: white;
@@ -99,6 +403,7 @@
         color: #1e293b;
         text-align: left;
       }
+
       .filter-popup input[type="text"] {
         width: 100%;
         padding: 6px 10px;
@@ -109,11 +414,13 @@
         box-sizing: border-box;
         outline: none;
       }
+
       .filter-options {
         max-height: 180px;
         overflow-y: auto;
         margin-bottom: 12px;
       }
+
       .filter-item {
         display: flex;
         align-items: center;
@@ -122,7 +429,11 @@
         font-size: 12px;
         cursor: pointer;
       }
-      .filter-item:hover { background: #f1f5f9; }
+
+      .filter-item:hover {
+        background: #f1f5f9;
+      }
+
       .filter-actions {
         display: flex;
         justify-content: space-between;
@@ -130,6 +441,7 @@
         border-top: 1px solid #f1f5f9;
         padding-top: 8px;
       }
+
       .filter-actions button {
         flex: 1;
         padding: 6px;
@@ -140,77 +452,6 @@
         font-weight: 700;
       }
 
-      /* Single Row Professional Ribbon */
-      .top-controls-wrapper {
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
-        padding: 10px 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
-      }
-      .ribbon-single-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: nowrap;
-        gap: 15px;
-        max-width: 1600px;
-        margin: 0 auto;
-      }
-      .ribbon-left, .ribbon-right {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: nowrap;
-      }
-
-      /* Compact Bill Cards */
-      .supplier-bill-table th {
-        background: #1a4d80 !important;
-        color: white;
-        padding: 6px 8px !important;
-        font-size: 12px;
-        height: 28px;
-      }
-      .supplier-bill-table td {
-        padding: 5px 8px !important;
-        font-size: 12px;
-        height: 26px;
-        line-height: 1.3;
-      }
-
-      /* Loader Animation */
-      .loader-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(255, 255, 255, 0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-        flex-direction: column;
-        backdrop-filter: blur(1px);
-      }
-      .spinner {
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #2563eb;
-        border-radius: 50%;
-        width: 35px;
-        height: 35px;
-        animation: spin 0.6s linear infinite;
-      }
-      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      .spinner {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #2563eb;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        animation: spin 0.8s linear infinite;
-      }
-      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-      /* Login Modal */
       .auth-modal {
         position: fixed;
         inset: 0;
@@ -220,6 +461,7 @@
         justify-content: center;
         z-index: 9999;
       }
+
       .auth-box {
         background: white;
         padding: 30px;
@@ -227,6 +469,7 @@
         width: 360px;
         text-align: center;
       }
+
       .auth-box input {
         width: 100%;
         padding: 10px;
@@ -235,6 +478,7 @@
         border-radius: 6px;
         box-sizing: border-box;
       }
+
       .auth-box button {
         width: 100%;
         padding: 10px;
@@ -245,86 +489,312 @@
         font-weight: 700;
         cursor: pointer;
       }
+
+      #toast {
+        visibility: hidden;
+        min-width: 250px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 5px;
+        padding: 14px;
+        position: fixed;
+        z-index: 9999;
+        left: 50%;
+        bottom: 30px;
+        transform: translateX(-50%);
+        font-size: 15px;
+        font-weight: bold;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      #toast.show {
+        visibility: visible;
+        animation: fadein 0.5s, fadeout 0.5s 2.5s;
+      }
+
+      @keyframes fadein {
+        from {
+          bottom: 0;
+          opacity: 0;
+        }
+
+        to {
+          bottom: 30px;
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadeout {
+        from {
+          bottom: 30px;
+          opacity: 1;
+        }
+
+        to {
+          bottom: 0;
+          opacity: 0;
+        }
+      }
+
+      .edit-hint {
+        display: none;
+        color: #1d4ed8;
+        font-size: 12px;
+        font-weight: 700;
+        margin-right: auto;
+        margin-left: 10px;
+      }
+
+      .edit-mode .edit-hint {
+        display: inline-block;
+      }
+
+      .edit-action-buttons {
+        display: flex;
+        gap: 10px;
+      }
     </style>
   </head>
+
   <body>
-    <!-- Data Loading Animation -->
     <div id="loaderOverlay" class="loader-overlay" style="display:none;">
       <div class="spinner"></div>
-      <p style="margin-top:12px; font-weight:700; color:#1e293b;">Fetching Data...</p>
+      <p style="margin-top:12px; font-weight:700; color:#1e293b;">
+        Fetching Data...
+      </p>
     </div>
 
-    <!-- Auth Overlay -->
     <div id="authModal" class="auth-modal">
       <div class="auth-box">
-        <h2 id="authTitle" style="margin-top:0; color:#0f172a;">View Bill Login</h2>
+        <h2 id="authTitle" style="margin-top:0; color:#0f172a;">
+          View Bill Login
+        </h2>
+
         <div id="loginForm">
-          <input type="text" id="loginUsername" placeholder="Username" onkeypress="if (event.key === 'Enter') executeViewBillLogin();" />
-          <input type="password" id="loginPassword" placeholder="Password" onkeypress="if (event.key === 'Enter') executeViewBillLogin();" />
-          <button id="loginBtn" onclick="executeViewBillLogin()">Login</button>
+          <input
+            type="text"
+            id="loginUsername"
+            placeholder="Username"
+            onkeypress="if (event.key === 'Enter') executeViewBillLogin();"
+          />
+
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="Password"
+            onkeypress="if (event.key === 'Enter') executeViewBillLogin();"
+          />
+
+          <button id="loginBtn" onclick="executeViewBillLogin()">
+            Login
+          </button>
+
           <p style="margin-top:15px; font-size:12px; color:#64748b;">
-            New Site Coordinator? <a href="#" onclick="toggleAuthMode('signup')" style="color:#2563eb;">Sign Up</a>
+            New Site Coordinator?
+            <a
+              href="#"
+              onclick="toggleAuthMode('signup')"
+              style="color:#2563eb;"
+            >
+              Sign Up
+            </a>
           </p>
         </div>
+
         <div id="signupForm" style="display:none;">
           <input type="text" id="signupName" placeholder="Full Name" />
           <input type="text" id="signupUsername" placeholder="Username" />
-          <input type="password" id="signupPassword" placeholder="Password" />
-          <button onclick="executeViewBillSignup()">Request Access</button>
+          <input
+            type="password"
+            id="signupPassword"
+            placeholder="Password"
+          />
+
+          <button onclick="executeViewBillSignup()">
+            Request Access
+          </button>
+
           <p style="margin-top:15px; font-size:12px; color:#64748b;">
-            Already have an account? <a href="#" onclick="toggleAuthMode('login')" style="color:#2563eb;">Login</a>
+            Already have an account?
+            <a
+              href="#"
+              onclick="toggleAuthMode('login')"
+              style="color:#2563eb;"
+            >
+              Login
+            </a>
           </p>
         </div>
       </div>
     </div>
 
-    <!-- Main View Bill App -->
     <div id="mainApp" style="display:none;">
       <div class="top-controls-wrapper">
         <div class="ribbon-single-row">
-          <!-- Left: Back, Search & Filter (Admin Button Removed) -->
           <div class="ribbon-left">
-            <a href="../index.html" class="btn btn-dash" title="Back to Billing" style="padding: 4px 8px;">
-              <i class="material-icons" style="font-size:18px; color:#007bff">arrow_back</i>
+            <a
+              href="../index.html"
+              class="btn btn-dash"
+              title="Back to Billing"
+              style="padding: 4px 8px;"
+            >
+              <i
+                class="material-icons"
+                style="font-size:18px; color:#007bff"
+              >
+                arrow_back
+              </i>
             </a>
-            
+
             <div class="selector-wrapper" style="width:120px;">
-              <select id="searchType" style="height:32px; border:none; background:transparent; font-weight:bold; font-size:12px;">
+              <select
+                id="searchType"
+                style="height:32px; border:none; background:transparent; font-weight:bold; font-size:12px; width:100%;"
+              >
                 <option value="all">Plate/Owner</option>
                 <option value="plate">Plate No</option>
                 <option value="owner">Owner Name</option>
               </select>
             </div>
-            <div class="selector-wrapper autocomplete-wrapper" style="width:200px; display:flex; align-items:center; gap:8px;">
-              <input type="text" id="searchInput" placeholder="Type Plate/Owner..." oninput="searchSuggestions(this)" onkeydown="handleSuggestionKeyDown(event)" autocomplete="off" style="text-transform:uppercase; font-weight:bold; flex:1; font-size:12px;" />
-              <div class="suggestion-box" id="searchSuggestionsBox"></div>
+
+            <div
+              class="selector-wrapper autocomplete-wrapper"
+              style="width:180px; display:flex; align-items:center; gap:8px;"
+            >
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Type Plate/Owner..."
+                oninput="searchSuggestions(this)"
+                onkeydown="handleSuggestionKeyDown(event)"
+                autocomplete="off"
+                style="text-transform:uppercase; font-weight:bold; flex:1; font-size:12px; border:none; background:transparent; outline:none;"
+              />
+
+              <div
+                class="suggestion-box"
+                id="searchSuggestionsBox"
+              ></div>
             </div>
-            <div class="selector-wrapper" style="display:flex; align-items:center; gap:5px;">
-              <label style="font-weight:bold; color:#1a4d80; font-size:12px;">Month:</label>
-              <select id="selMonth" style="height:32px; border:none; background:transparent; font-weight:bold; font-size:12px;">
-                <option value="January">January</option><option value="February">February</option><option value="March">March</option>
-                <option value="April" selected>April</option><option value="May">May</option><option value="June">June</option>
-                <option value="July">July</option><option value="August">August</option><option value="September">September</option>
-                <option value="October">October</option><option value="November">November</option><option value="December">December</option>
+
+            <div
+              class="selector-wrapper"
+              style="display:flex; align-items:center; gap:5px;"
+            >
+              <label
+                style="font-weight:bold; color:#1a4d80; font-size:12px;"
+              >
+                Month:
+              </label>
+
+              <select
+                id="selMonth"
+                style="height:32px; border:none; background:transparent; font-weight:bold; font-size:12px;"
+              >
+                <option value="January">January</option>
+                <option value="February">February</option>
+                <option value="March">March</option>
+                <option value="April" selected>April</option>
+                <option value="May">May</option>
+                <option value="June">June</option>
+                <option value="July">July</option>
+                <option value="August">August</option>
+                <option value="September">September</option>
+                <option value="October">October</option>
+                <option value="November">November</option>
+                <option value="December">December</option>
               </select>
-              <input type="number" id="selYear" value="2026" style="width:55px; height:32px; border:none; font-weight:bold; font-size:12px;" />
+
+              <input
+                type="number"
+                id="selYear"
+                value="2026"
+                style="width:55px; height:32px; border:none; font-weight:bold; font-size:12px;"
+              />
             </div>
-            <button type="button" class="btn btn-fetch" onclick="fetchViewBillData()" style="padding: 6px 12px; font-size:12px;">Fetch</button>
-            <button id="btnArrange" type="button" class="btn" style="background:#6f42c1; padding: 6px 12px; font-size:12px;" onclick="arrangeCompanyCards()">Arrange</button>
-            <button type="button" class="btn" style="background:#1d6f42; padding: 6px 12px; font-size:12px;" onclick="exportDataToExcel()">Excel</button>
+
+            <button
+              type="button"
+              class="btn btn-fetch"
+              onclick="fetchViewBillData()"
+              style="padding: 6px 12px; font-size:12px;"
+            >
+              Change Month 
+            </button>
+
+            <button
+              id="btnArrange"
+              type="button"
+              class="btn"
+              style="background:#b40000; padding: 6px 12px; font-size:12px;"
+              onclick="arrangeCompanyCards()"
+            >
+              Company Wise Arrange
+            </button>
+
+            <button
+              type="button"
+              class="btn"
+              style="background:#17a2b8; padding: 6px 12px; font-size:12px;"
+              onclick="addManualCardRow()"
+            >
+              + Manual Entry
+            </button>
+
+            <button
+              type="button"
+              class="btn"
+              style="background:#1d6f42; padding: 6px 12px; font-size:12px;"
+              onclick="exportDataToExcel()"
+            >
+              Excel
+            </button>
           </div>
 
-          <!-- Right: Mode Switcher Tabs & Profile -->
           <div class="ribbon-right">
-            <button id="btnTabCards" class="tab-btn active" onclick="switchViewTab('cards')">📄 Cards</button>
-            <button id="btnTabReport" class="tab-btn" onclick="switchViewTab('report')">📊 Report</button>
-            
-            <!-- 🟢 Combined Bill Button linking to the new screen -->
-            <a href="./combinedbill.html" class="tab-btn" style="background: #10b981; color: white;">📑 Combined Bill</a>
-            
-            <div class="user-profile-box" style="position:relative; display:inline-block; cursor:pointer;" onclick="toggleLogoutBtn()">
-              <span id="userInfoText" style="font-weight:700; color:#1a4d80; font-size:13px; padding:6px 10px; background:#f1f5f9; border-radius:6px;">Loading... ▾</span>
-              <button id="logoutDropdownBtn" class="btn btn-reset" onclick="executeViewBillLogout()" style="display:none; position:absolute; right:0; top:110%; height:32px; padding: 6px 14px; font-size:12px; background:#dc3545; z-index:1000;">
+            <button
+              id="btnTabCards"
+              class="tab-btn active"
+              onclick="switchViewTab('cards')"
+            >
+              📄 Cards
+            </button>
+
+            <button
+              id="btnTabReport"
+              class="tab-btn"
+              onclick="switchViewTab('report')"
+            >
+              📊 Report
+            </button>
+
+            <a
+              href="./combinedbill.html"
+              class="tab-btn"
+              style="background: #10b981; color: white;"
+            >
+              📑 Combined Bill
+            </a>
+
+            <div
+              class="user-profile-box"
+              style="position:relative; display:inline-block; cursor:pointer;"
+              onclick="toggleLogoutBtn()"
+            >
+              <span
+                id="userInfoText"
+                style="font-weight:700; color:#1a4d80; font-size:13px; padding:6px 10px; background:#f1f5f9; border-radius:6px; display:inline-block; height:36px; box-sizing:border-box; line-height:24px;"
+              >
+                Loading... ▾
+              </span>
+
+              <button
+                id="logoutDropdownBtn"
+                class="btn btn-reset"
+                onclick="executeViewBillLogout()"
+                style="display:none; position:absolute; right:0; top:110%; height:32px; padding: 6px 14px; font-size:12px; background:#dc3545; z-index:1000;"
+              >
                 Logout
               </button>
             </div>
@@ -332,51 +802,192 @@
         </div>
       </div>
 
-      <div class="container" style="max-width: 1600px; margin: 0 auto; padding: 0 20px;">
-        <!-- TAB 1: Vendor Bill Cards View -->
+      <div
+        class="container"
+        style="max-width: 1650px; margin: 0 auto; padding: 0 20px; box-sizing: border-box;"
+      >
         <div id="tabCardsView">
-          <div id="cardsContainer" style="display:flex; flex-direction:column; gap:30px;">
-            <div style="text-align:center; padding:50px; background:white; border-radius:8px; border:1px dashed #ccc;">
+          <div
+            id="cardsContainer"
+            style="display:flex; flex-direction:column; gap:30px;"
+          >
+            <div
+              style="text-align:center; padding:50px; background:white; border-radius:8px; border:1px dashed #ccc;"
+            >
               <h2>No Bills Loaded</h2>
-              <p>Type Plate No / Owner Name, select month, and click "Fetch"</p>
+              <p>
+                Type Plate No / Owner Name, select month, and click "Fetch"
+              </p>
             </div>
           </div>
         </div>
 
-        <!-- TAB 2: Dashboard Report View -->
         <div id="tabReportView" style="display:none;">
           <div class="report-table-wrapper">
             <table class="report-table" id="dashboardReportTable">
               <thead>
                 <tr>
-                  <th colspan="8" class="th-general">GENERAL INFO</th>
-                  <th colspan="2" class="th-ts">AS PER LOGSHEET</th>
-                  <th colspan="2" class="th-summary">AS PER BILL SUMMARY</th>
-                  <th colspan="2" class="th-supplier">TO SUPPLIER</th>
-                  <th colspan="3" class="th-diff">DIFFERENCE</th>
+                  <th colspan="8" class="th-general">
+                    GENERAL INFO
+                  </th>
+
+                  <th colspan="2" class="th-ts">
+                    AS PER LOGSHEET
+                  </th>
+
+                  <th colspan="2" class="th-summary">
+                    AS PER BILL SUMMARY
+                  </th>
+
+                  <th colspan="2" class="th-supplier">
+                    TO SUPPLIER
+                  </th>
+
+                  <th colspan="3" class="th-diff">
+                    DIFFERENCE
+                  </th>
                 </tr>
-               <tr>
-                  <th class="th-general col-sn">#</th>
-                  <th class="th-general col-date">Date</th>
-                  <th class="th-general col-rate">Rate</th>
-                  <th class="th-general col-vat">VAT</th>
-                  <th class="th-general col-site">Site Name</th>
-                  <th class="th-general col-owner">Owner Name <span class="filter-icon" onclick="openExcelFilter(event, 'owner')">▾</span></th>
-                  <th class="th-general col-driver">Driver Name <span class="filter-icon" onclick="openExcelFilter(event, 'driver_name')">▾</span></th>
-                  <th class="th-general col-plate">Plate No <span class="filter-icon" onclick="openExcelFilter(event, 'plate')">▾</span></th>
-                  <th class="th-ts col-num-data">NR <span class="filter-icon" onclick="openExcelFilter(event, 'ts_nr')">▾</span></th>
-                  <th class="th-ts col-num-data">OT <span class="filter-icon" onclick="openExcelFilter(event, 'ts_ot')">▾</span></th>
-                  <th class="th-summary col-num-data">NR <span class="filter-icon" onclick="openExcelFilter(event, 'inv_nr')">▾</span></th>
-                  <th class="th-summary col-num-data">OT <span class="filter-icon" onclick="openExcelFilter(event, 'inv_ot')">▾</span></th>
-                  <th class="th-supplier col-num-data">NR <span class="filter-icon" onclick="openExcelFilter(event, 'bill_db_nr')">▾</span></th>
-                  <th class="th-supplier col-num-data">OT <span class="filter-icon" onclick="openExcelFilter(event, 'bill_db_ot')">▾</span></th>
-                  <th class="th-diff col-num-data">NR <span class="filter-icon" onclick="openExcelFilter(event, 'diff_nr')">▾</span></th>
-                  <th class="th-diff col-num-data">OT <span class="filter-icon" onclick="openExcelFilter(event, 'diff_ot')">▾</span></th>
-                  <th class="th-diff col-idn">IDN <span class="filter-icon" onclick="openExcelFilter(event, 'diff_st')">▾</span></th>
+
+                <tr>
+                  <th class="th-general" style="width:25px;">#</th>
+                  <th class="th-general" style="width:55px;">Date</th>
+                  <th class="th-general" style="width:60px;">Rate</th>
+                  <th class="th-general" style="width:35px;">VAT</th>
+                  <th class="th-general" style="width:140px;">
+                    Site Name
+                  </th>
+
+                  <th class="th-general" style="width:160px;">
+                    Owner Name
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'owner')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th class="th-general" style="width:160px;">
+                    Driver Name
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'driver_name')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th class="th-general" style="width:85px;">
+                    Plate No
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'plate')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th class="th-ts" style="width:45px;">
+                    NR
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'ts_nr')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th class="th-ts" style="width:45px;">
+                    OT
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'ts_ot')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th class="th-summary" style="width:45px;">
+                    NR
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'inv_nr')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th class="th-summary" style="width:45px;">
+                    OT
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'inv_ot')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th class="th-supplier" style="width:45px;">
+                    NR
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'bill_db_nr')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th class="th-supplier" style="width:45px;">
+                    OT
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'bill_db_ot')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th class="th-diff" style="width:45px;">
+                    NR
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'diff_nr')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th class="th-diff" style="width:45px;">
+                    OT
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'diff_ot')"
+                    >
+                      ▾
+                    </span>
+                  </th>
+
+                  <th style="background:#be123c; width:45px;">
+                    IDN
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'diff_st')"
+                    >
+                      ▾
+                    </span>
+                  </th>
                 </tr>
               </thead>
+
               <tbody id="reportTableBody">
-                <tr><td colspan="17" style="padding:30px; color:#64748b;">No report data fetched yet.</td></tr>
+                <tr>
+                  <td
+                    colspan="17"
+                    style="padding:30px; color:#64748b;"
+                  >
+                    No report data fetched yet.
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -384,19 +995,54 @@
       </div>
     </div>
 
-    <!-- Excel Filter Popup Container (Added Select All Option) -->
-    <div id="filterPopup" class="filter-popup" style="display:none;">
-      <input type="text" id="filterSearchInput" placeholder="Search..." oninput="filterCheckboxList()" />
-      <div style="padding: 4px 6px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: bold;">
-        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-          <input type="checkbox" id="selectAllFilter" onclick="toggleSelectAllFilters(this.checked)" checked />
+    <div
+      id="filterPopup"
+      class="filter-popup"
+      style="display:none;"
+    >
+      <input
+        type="text"
+        id="filterSearchInput"
+        placeholder="Search..."
+        oninput="filterCheckboxList()"
+      />
+
+      <div
+        style="padding: 4px 6px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: bold;"
+      >
+        <label
+          style="display: flex; align-items: center; gap: 8px; cursor: pointer;"
+        >
+          <input
+            type="checkbox"
+            id="selectAllFilter"
+            onclick="toggleSelectAllFilters(this.checked)"
+            checked
+          />
+
           <span>Select All</span>
         </label>
       </div>
-      <div class="filter-options" id="filterOptionsList"></div>
+
+      <div
+        class="filter-options"
+        id="filterOptionsList"
+      ></div>
+
       <div class="filter-actions">
-        <button style="background:#2563eb; color:white;" onclick="applyExcelFilter()">Apply</button>
-        <button style="background:#e2e8f0; color:#334155;" onclick="clearExcelFilter()">Clear</button>
+        <button
+          style="background:#2563eb; color:white;"
+          onclick="applyExcelFilter()"
+        >
+          Apply
+        </button>
+
+        <button
+          style="background:#e2e8f0; color:#334155;"
+          onclick="clearExcelFilter()"
+        >
+          Clear
+        </button>
       </div>
     </div>
 
@@ -404,80 +1050,195 @@
 
     <script>
       let currentUser = null;
+
       let suggestionPlates = [];
       let suggestionOwners = [];
+
       let fetchedRowsCache = [];
       let fetchedReportCache = [];
+
       let activeFilterKey = "";
       let activeFilters = {};
 
+      let currentFocusIndex = -1;
+
       document.addEventListener("DOMContentLoaded", () => {
-        const token = localStorage.getItem("view_bill_token");
-        if (token) verifySession(token);
-      });
+  const token = localStorage.getItem("view_bill_token");
+
+  if (token) {
+    verifySession(token);
+  }
+});
+
+/* Prevent Arrow Up / Arrow Down from changing edit values */
+document.addEventListener("keydown", function (e) {
+  if (
+    e.target.classList &&
+    e.target.classList.contains("edit-number-input") &&
+    (e.key === "ArrowUp" || e.key === "ArrowDown")
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+});
+
+/* Prevent mouse wheel from changing number input values */
+document.addEventListener(
+  "wheel",
+  function (e) {
+    if (
+      e.target.classList &&
+      e.target.classList.contains("edit-number-input")
+    ) {
+      e.preventDefault();
+    }
+  },
+  { passive: false }
+);
+
 
       function toggleAuthMode(mode) {
-        document.getElementById("loginForm").style.display = mode === "login" ? "block" : "none";
-        document.getElementById("signupForm").style.display = mode === "signup" ? "block" : "none";
-        document.getElementById("authTitle").innerText = mode === "login" ? "View Bill Login" : "Request Access";
+        document.getElementById("loginForm").style.display =
+          mode === "login" ? "block" : "none";
+
+        document.getElementById("signupForm").style.display =
+          mode === "signup" ? "block" : "none";
+
+        document.getElementById("authTitle").innerText =
+          mode === "login"
+            ? "View Bill Login"
+            : "Request Access";
       }
 
       async function executeViewBillLogin() {
-        const username = document.getElementById("loginUsername").value.trim();
-        const password = document.getElementById("loginPassword").value;
-        const loginBtn = document.getElementById("loginBtn");
-        if (!username || !password) return showToast("Enter credentials");
+        const username =
+          document.getElementById("loginUsername").value.trim();
 
-        if (loginBtn) { loginBtn.disabled = true; loginBtn.innerText = "Authenticating..."; }
+        const password =
+          document.getElementById("loginPassword").value;
+
+        const loginBtn =
+          document.getElementById("loginBtn");
+
+        if (!username || !password) {
+          return showToast("Enter credentials");
+        }
+
+        if (loginBtn) {
+          loginBtn.disabled = true;
+          loginBtn.innerText = "Authenticating...";
+        }
+
         try {
           const res = await fetch("/api/view-bill/login", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username,
+              password,
+            }),
           });
+
           const data = await res.json();
+
           if (data.success) {
-            localStorage.setItem("view_bill_token", data.token);
+            localStorage.setItem(
+              "view_bill_token",
+              data.token
+            );
+
             await verifySession(data.token);
-          } else { showToast(data.message || "Login failed"); }
-        } catch (e) { showToast("Server error"); } 
-        finally { if (loginBtn) { loginBtn.disabled = false; loginBtn.innerText = "Login"; } }
+          } else {
+            showToast(data.message || "Login failed");
+          }
+        } catch (e) {
+          showToast("Server error");
+        } finally {
+          if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerText = "Login";
+          }
+        }
       }
 
       async function executeViewBillSignup() {
-        const displayName = document.getElementById("signupName").value.trim();
-        const username = document.getElementById("signupUsername").value.trim();
-        const password = document.getElementById("signupPassword").value;
-        if (!username || !password) return showToast("All fields required");
+        const displayName =
+          document.getElementById("signupName").value.trim();
+
+        const username =
+          document.getElementById("signupUsername").value.trim();
+
+        const password =
+          document.getElementById("signupPassword").value;
+
+        if (!username || !password) {
+          return showToast("All fields required");
+        }
+
         try {
           const res = await fetch("/api/view-bill/signup", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ displayName, username, password }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              displayName,
+              username,
+              password,
+            }),
           });
+
           const data = await res.json();
+
           if (data.success) {
             showToast(data.message);
             toggleAuthMode("login");
-          } else showToast(data.message);
-        } catch (e) { showToast("Signup error"); }
+          } else {
+            showToast(data.message);
+          }
+        } catch (e) {
+          showToast("Signup error");
+        }
       }
 
       async function verifySession(token) {
         try {
-          const res = await fetch("/api/view-bill/verify-session", {
-            headers: { Authorization: "Bearer " + token },
-          });
+          const res = await fetch(
+            "/api/view-bill/verify-session",
+            {
+              headers: {
+                Authorization: "Bearer " + token,
+              },
+            }
+          );
+
           const data = await res.json();
+
           if (data.success) {
             currentUser = data.user;
-            document.getElementById("authModal").style.display = "none";
-            document.getElementById("mainApp").style.display = "block";
-            let sitesCount = (currentUser.assigned_sites || []).length;
-            document.getElementById("userInfoText").innerText = `${currentUser.displayName || currentUser.username} ▾`;
+
+            document.getElementById(
+              "authModal"
+            ).style.display = "none";
+
+            document.getElementById(
+              "mainApp"
+            ).style.display = "block";
+
+            document.getElementById(
+              "userInfoText"
+            ).innerText =
+              `${currentUser.displayName || currentUser.username} ▾`;
+
             loadSuggestions();
-          } else executeViewBillLogout();
-        } catch (e) { executeViewBillLogout(); }
+          } else {
+            executeViewBillLogout();
+          }
+        } catch (e) {
+          executeViewBillLogout();
+        }
       }
 
       function executeViewBillLogout() {
@@ -486,28 +1247,58 @@
       }
 
       function toggleLogoutBtn() {
-        const logoutBtn = document.getElementById("logoutDropdownBtn");
-        if (logoutBtn) logoutBtn.style.display = logoutBtn.style.display === "block" ? "none" : "block";
+        const logoutBtn =
+          document.getElementById("logoutDropdownBtn");
+
+        if (logoutBtn) {
+          logoutBtn.style.display =
+            logoutBtn.style.display === "block"
+              ? "none"
+              : "block";
+        }
       }
 
-      document.addEventListener("click", function(e) {
-        const box = e.target.closest(".user-profile-box");
+      document.addEventListener("click", function (e) {
+        const box =
+          e.target.closest(".user-profile-box");
+
         if (!box) {
-          const logoutBtn = document.getElementById("logoutDropdownBtn");
-          if (logoutBtn) logoutBtn.style.display = "none";
+          const logoutBtn =
+            document.getElementById(
+              "logoutDropdownBtn"
+            );
+
+          if (logoutBtn) {
+            logoutBtn.style.display = "none";
+          }
         }
-        if (!e.target.closest(".filter-icon") && !e.target.closest(".filter-popup")) {
-          document.getElementById("filterPopup").style.display = "none";
+
+        if (
+          !e.target.closest(".filter-icon") &&
+          !e.target.closest(".filter-popup")
+        ) {
+          document.getElementById(
+            "filterPopup"
+          ).style.display = "none";
         }
       });
 
       async function loadSuggestions() {
-        const token = localStorage.getItem("view_bill_token");
+        const token =
+          localStorage.getItem("view_bill_token");
+
         try {
-          const res = await fetch("/api/view-bill/suggestions", {
-            headers: { Authorization: "Bearer " + token },
-          });
+          const res = await fetch(
+            "/api/view-bill/suggestions",
+            {
+              headers: {
+                Authorization: "Bearer " + token,
+              },
+            }
+          );
+
           const data = await res.json();
+
           if (data.success) {
             suggestionPlates = data.plates || [];
             suggestionOwners = data.owners || [];
@@ -515,357 +1306,3330 @@
         } catch (e) {}
       }
 
-      let currentFocusIndex = -1;
       function searchSuggestions(input) {
-        const val = input.value.trim().toUpperCase();
-        const type = document.getElementById("searchType").value;
-        const box = document.getElementById("searchSuggestionsBox");
+        const val =
+          input.value.trim().toUpperCase();
+
+        const type =
+          document.getElementById(
+            "searchType"
+          ).value;
+
+        const box =
+          document.getElementById(
+            "searchSuggestionsBox"
+          );
+
         currentFocusIndex = -1;
-        if (!val) { box.style.display = "none"; return; }
+
+        if (!val) {
+          box.style.display = "none";
+          return;
+        }
 
         let pool = [];
-        if (type === "plate") pool = suggestionPlates;
-        else if (type === "owner") pool = suggestionOwners;
-        else pool = [...new Set([...suggestionPlates, ...suggestionOwners])];
 
-        let matches = pool.filter((p) => p.toUpperCase().includes(val));
+        if (type === "plate") {
+          pool = suggestionPlates;
+        } else if (type === "owner") {
+          pool = suggestionOwners;
+        } else {
+          pool = [
+            ...new Set([
+              ...suggestionPlates,
+              ...suggestionOwners,
+            ]),
+          ];
+        }
+
+        let matches = pool.filter((p) =>
+          p.toUpperCase().includes(val)
+        );
+
         if (matches.length > 0) {
           box.innerHTML = "";
+
           matches.forEach((m) => {
-            let div = document.createElement("div");
-            div.className = "suggestion-item";
+            let div =
+              document.createElement("div");
+
+            div.className =
+              "suggestion-item";
+
             div.innerText = m;
+
             div.onclick = () => {
               input.value = m;
               box.style.display = "none";
               fetchViewBillData();
             };
+
             box.appendChild(div);
           });
+
           box.style.display = "block";
-        } else box.style.display = "none";
+        } else {
+          box.style.display = "none";
+        }
       }
 
       function handleSuggestionKeyDown(e) {
-        const box = document.getElementById("searchSuggestionsBox");
+        const box =
+          document.getElementById(
+            "searchSuggestionsBox"
+          );
+
         if (box.style.display !== "block") {
-          if (e.key === "Enter") fetchViewBillData();
+          if (e.key === "Enter") {
+            fetchViewBillData();
+          }
+
           return;
         }
-        const items = box.getElementsByClassName("suggestion-item");
-        if (!items || items.length === 0) return;
+
+        const items =
+          box.getElementsByClassName(
+            "suggestion-item"
+          );
+
+        if (!items || items.length === 0) {
+          return;
+        }
 
         if (e.key === "ArrowDown") {
           e.preventDefault();
-          currentFocusIndex = (currentFocusIndex + 1) % items.length;
+
+          currentFocusIndex =
+            (currentFocusIndex + 1) %
+            items.length;
+
           setActiveSuggestion(items);
         } else if (e.key === "ArrowUp") {
           e.preventDefault();
-          currentFocusIndex = (currentFocusIndex - 1 + items.length) % items.length;
+
+          currentFocusIndex =
+            (currentFocusIndex - 1 + items.length) %
+            items.length;
+
           setActiveSuggestion(items);
         } else if (e.key === "Enter") {
           e.preventDefault();
-          if (currentFocusIndex > -1 && items[currentFocusIndex]) items[currentFocusIndex].click();
-          else { box.style.display = "none"; fetchViewBillData(); }
+
+          if (
+            currentFocusIndex > -1 &&
+            items[currentFocusIndex]
+          ) {
+            items[currentFocusIndex].click();
+          } else {
+            box.style.display = "none";
+            fetchViewBillData();
+          }
         }
       }
 
       function setActiveSuggestion(items) {
-        for (let i = 0; i < items.length; i++) items[i].classList.remove("active");
-        if (currentFocusIndex > -1 && items[currentFocusIndex]) {
-          items[currentFocusIndex].classList.add("active");
-          items[currentFocusIndex].scrollIntoView({ block: "nearest" });
+        for (
+          let i = 0;
+          i < items.length;
+          i++
+        ) {
+          items[i].classList.remove("active");
+        }
+
+        if (
+          currentFocusIndex > -1 &&
+          items[currentFocusIndex]
+        ) {
+          items[
+            currentFocusIndex
+          ].classList.add("active");
+
+          items[
+            currentFocusIndex
+          ].scrollIntoView({
+            block: "nearest",
+          });
         }
       }
 
       function switchViewTab(tab) {
-        document.getElementById("btnTabCards").classList.toggle("active", tab === "cards");
-        document.getElementById("btnTabReport").classList.toggle("active", tab === "report");
-        document.getElementById("tabCardsView").style.display = tab === "cards" ? "block" : "none";
-        document.getElementById("tabReportView").style.display = tab === "report" ? "block" : "none";
-        document.getElementById("btnArrange").style.display = tab === "cards" ? "inline-block" : "none";
+        document
+          .getElementById("btnTabCards")
+          .classList.toggle(
+            "active",
+            tab === "cards"
+          );
+
+        document
+          .getElementById("btnTabReport")
+          .classList.toggle(
+            "active",
+            tab === "report"
+          );
+
+        document.getElementById(
+          "tabCardsView"
+        ).style.display =
+          tab === "cards" ? "block" : "none";
+
+        document.getElementById(
+          "tabReportView"
+        ).style.display =
+          tab === "report" ? "block" : "none";
+
+        document.getElementById(
+          "btnArrange"
+        ).style.display =
+          tab === "cards"
+            ? "inline-block"
+            : "none";
       }
 
       async function fetchViewBillData() {
-        const searchVal = document.getElementById("searchInput").value.trim();
-        const searchType = document.getElementById("searchType").value;
-        const month = document.getElementById("selMonth").value;
-        const year = document.getElementById("selYear").value;
-        const token = localStorage.getItem("view_bill_token");
+        const searchVal =
+          document.getElementById(
+            "searchInput"
+          ).value.trim();
 
-        document.getElementById("loaderOverlay").style.display = "flex";
+        const searchType =
+          document.getElementById(
+            "searchType"
+          ).value;
+
+        const month =
+          document.getElementById(
+            "selMonth"
+          ).value;
+
+        const year =
+          document.getElementById(
+            "selYear"
+          ).value;
+
+        const token =
+          localStorage.getItem(
+            "view_bill_token"
+          );
+
+        document.getElementById(
+          "loaderOverlay"
+        ).style.display = "flex";
+
         try {
-          const res = await fetch(`/api/view-bill/data?month=${month}&year=${year}&search_type=${searchType}&search_value=${encodeURIComponent(searchVal)}`, {
-            headers: { Authorization: "Bearer " + token },
-          });
+          const res = await fetch(
+            `/api/view-bill/data?month=${month}&year=${year}&search_type=${searchType}&search_value=${encodeURIComponent(searchVal)}`,
+            {
+              headers: {
+                Authorization:
+                  "Bearer " + token,
+              },
+            }
+          );
+
           const data = await res.json();
+
           if (data.success) {
-            fetchedRowsCache = data.rows || [];
-            fetchedReportCache = data.reportData || [];
-            activeFilters = {}; // Reset filters on new fetch
-            renderCardsView(fetchedRowsCache);
-            renderReportTable(fetchedReportCache);
-          } else showToast(data.message || "Failed to fetch data");
-        } catch (e) { showToast("Error fetching data"); }
-        finally { document.getElementById("loaderOverlay").style.display = "none"; }
+            fetchedRowsCache =
+              data.rows || [];
+
+            fetchedReportCache =
+              data.reportData || [];
+
+            activeFilters = {};
+
+            renderCardsView(
+              fetchedRowsCache
+            );
+
+            renderReportTable(
+              fetchedReportCache
+            );
+          } else {
+            showToast(
+              data.message ||
+                "Failed to fetch data"
+            );
+          }
+        } catch (e) {
+          showToast(
+            "Error fetching data"
+          );
+        } finally {
+          document.getElementById(
+            "loaderOverlay"
+          ).style.display = "none";
+        }
       }
 
-      /* EXCEL-LIKE DROPDOWN FILTER LOGIC (Optimized & Select All Added) */
       function openExcelFilter(e, key) {
         e.stopPropagation();
-        activeFilterKey = key;
-        const popup = document.getElementById("filterPopup");
-        const list = document.getElementById("filterOptionsList");
-        document.getElementById("filterSearchInput").value = "";
-        
-        // Filter data based on OTHER active filters so dropdown only shows relevant options
-        let dataForPopup = fetchedReportCache.filter(r => {
-          for (let fKey in activeFilters) {
-            if (fKey !== key && activeFilters[fKey]) {
-              if (!activeFilters[fKey].includes(String(r[fKey] || "-"))) return false;
-            }
-          }
-          return true;
-        });
 
-        let uniqueVals = [...new Set(dataForPopup.map(r => String(r[key] || "-")))].sort();
+        activeFilterKey = key;
+
+        const popup =
+          document.getElementById(
+            "filterPopup"
+          );
+
+        const list =
+          document.getElementById(
+            "filterOptionsList"
+          );
+
+        document.getElementById(
+          "filterSearchInput"
+        ).value = "";
+
+        let dataForPopup =
+          fetchedReportCache.filter((r) => {
+            for (
+              let fKey in activeFilters
+            ) {
+              if (
+                fKey !== key &&
+                activeFilters[fKey]
+              ) {
+                if (
+                  !activeFilters[
+                    fKey
+                  ].includes(
+                    String(
+                      r[fKey] || "-"
+                    )
+                  )
+                ) {
+                  return false;
+                }
+              }
+            }
+
+            return true;
+          });
+
+        let uniqueVals = [
+          ...new Set(
+            dataForPopup.map((r) =>
+              String(
+                r[key] || "-"
+              )
+            )
+          ),
+        ].sort();
+
         let htmlSnippet = "";
 
-        uniqueVals.forEach(val => {
-          const isChecked = !activeFilters[key] || activeFilters[key].includes(val);
+        uniqueVals.forEach((val) => {
+          const isChecked =
+            !activeFilters[key] ||
+            activeFilters[key].includes(
+              val
+            );
+
           htmlSnippet += `
             <label class="filter-item">
-              <input type="checkbox" value="${val}" ${isChecked ? "checked" : ""} onchange="checkSelectAllState()" />
-              <span>${val}</span>
+              <input
+                type="checkbox"
+                value="${escapeHtmlAttribute(val)}"
+                ${isChecked ? "checked" : ""}
+                onchange="checkSelectAllState()"
+              />
+              <span>${escapeHtml(val)}</span>
             </label>
           `;
         });
 
         list.innerHTML = htmlSnippet;
-        document.getElementById("selectAllFilter").checked = !activeFilters[key] || activeFilters[key].length === uniqueVals.length;
+
+        document.getElementById(
+          "selectAllFilter"
+        ).checked =
+          !activeFilters[key] ||
+          activeFilters[key].length ===
+            uniqueVals.length;
 
         popup.style.display = "block";
-        popup.style.top = (e.pageY + 10) + "px";
-        popup.style.left = Math.min(e.pageX - 100, window.innerWidth - 260) + "px";
+
+        popup.style.top =
+          e.pageY + 10 + "px";
+
+        popup.style.left =
+          Math.min(
+            e.pageX - 100,
+            window.innerWidth - 260
+          ) + "px";
       }
 
-      function toggleSelectAllFilters(isChecked) {
-        document.querySelectorAll("#filterOptionsList .filter-item").forEach(item => {
-          if (item.style.display !== "none") {
-            const chk = item.querySelector("input[type='checkbox']");
-            if (chk) chk.checked = isChecked;
-          }
-        });
+      function toggleSelectAllFilters(
+        isChecked
+      ) {
+        document
+          .querySelectorAll(
+            "#filterOptionsList .filter-item"
+          )
+          .forEach((item) => {
+            if (
+              item.style.display !==
+              "none"
+            ) {
+              const chk =
+                item.querySelector(
+                  "input[type='checkbox']"
+                );
+
+              if (chk) {
+                chk.checked =
+                  isChecked;
+              }
+            }
+          });
       }
 
       function checkSelectAllState() {
-        const checkboxes = document.querySelectorAll("#filterOptionsList .filter-item input[type='checkbox']");
-        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-        document.getElementById("selectAllFilter").checked = (checkedCount === checkboxes.length);
+        const checkboxes =
+          document.querySelectorAll(
+            "#filterOptionsList .filter-item input[type='checkbox']"
+          );
+
+        const checkedCount =
+          Array.from(checkboxes).filter(
+            (cb) => cb.checked
+          ).length;
+
+        document.getElementById(
+          "selectAllFilter"
+        ).checked =
+          checkedCount ===
+          checkboxes.length;
       }
 
       function filterCheckboxList() {
-        const query = document.getElementById("filterSearchInput").value.toLowerCase();
-        document.querySelectorAll("#filterOptionsList .filter-item").forEach(item => {
-          item.style.display = item.innerText.toLowerCase().includes(query) ? "flex" : "none";
-        });
+        const query =
+          document.getElementById(
+            "filterSearchInput"
+          ).value.toLowerCase();
+
+        document
+          .querySelectorAll(
+            "#filterOptionsList .filter-item"
+          )
+          .forEach((item) => {
+            item.style.display =
+              item.innerText
+                .toLowerCase()
+                .includes(query)
+                ? "flex"
+                : "none";
+          });
       }
 
       function applyExcelFilter() {
-        const checked = Array.from(document.querySelectorAll("#filterOptionsList input:checked")).map(cb => cb.value);
-        activeFilters[activeFilterKey] = checked;
-        document.getElementById("filterPopup").style.display = "none";
-        
-        // Show loader smoothly without UI freezing
-        document.getElementById("loaderOverlay").style.display = "flex";
+        const checked =
+          Array.from(
+            document.querySelectorAll(
+              "#filterOptionsList input:checked"
+            )
+          ).map(
+            (cb) => cb.value
+          );
+
+        activeFilters[
+          activeFilterKey
+        ] = checked;
+
+        document.getElementById(
+          "filterPopup"
+        ).style.display = "none";
+
+        document.getElementById(
+          "loaderOverlay"
+        ).style.display = "flex";
+
         setTimeout(() => {
           filterAndRenderReport();
-          document.getElementById("loaderOverlay").style.display = "none";
+
+          document.getElementById(
+            "loaderOverlay"
+          ).style.display = "none";
         }, 50);
       }
 
       function clearExcelFilter() {
-        delete activeFilters[activeFilterKey];
-        document.getElementById("filterPopup").style.display = "none";
+        delete activeFilters[
+          activeFilterKey
+        ];
+
+        document.getElementById(
+          "filterPopup"
+        ).style.display = "none";
+
         filterAndRenderReport();
       }
 
       function filterAndRenderReport() {
-        let filteredData = fetchedReportCache.filter(r => {
-          for (let key in activeFilters) {
-            if (!activeFilters[key].includes(String(r[key] || "-"))) return false;
-          }
-          return true;
-        });
-        renderReportTable(filteredData);
+        let filteredData =
+          fetchedReportCache.filter(
+            (r) => {
+              for (
+                let key in activeFilters
+              ) {
+                if (
+                  !activeFilters[
+                    key
+                  ].includes(
+                    String(
+                      r[key] || "-"
+                    )
+                  )
+                ) {
+                  return false;
+                }
+              }
+
+              return true;
+            }
+          );
+
+        renderReportTable(
+          filteredData
+        );
       }
 
-      function renderCardsView(rows, append = false, companyTitle = "") {
-        const container = document.getElementById("cardsContainer");
-        if (!append) container.innerHTML = "";
-        if (rows.length === 0 && !append) {
-          container.innerHTML = `<div style="text-align:center; padding:50px; background:white; border-radius:8px;"><h2>No Matching Vendor Bills Found</h2></div>`;
+      /*
+       * ============================================================
+       * CARD BUILDING
+       * ============================================================
+       *
+       * Each card stores the original rows internally.
+       * This allows Cancel to restore the exact original values.
+       */
+
+      function renderCardsView(
+        rows,
+        append = false,
+        companyTitle = ""
+      ) {
+        const container =
+          document.getElementById(
+            "cardsContainer"
+          );
+
+        if (!append) {
+          container.innerHTML = "";
+        }
+
+        if (
+          rows.length === 0 &&
+          !append
+        ) {
+          container.innerHTML = `
+            <div
+              style="text-align:center; padding:50px; background:white; border-radius:8px;"
+            >
+              <h2>No Matching Vendor Bills Found</h2>
+            </div>
+          `;
+
           return;
         }
 
-        let card = document.createElement("div");
-        card.className = "bill-card";
-        card.style.marginBottom = "30px";
-        let rowsHtml = "";
-        let totalNHr = 0, totalOTHr = 0, totalRent = 0, totalVat = 0, grandTotal = 0;
-        const hasVat = rows.some((r) => parseFloat(r.vat_amount || 0) > 0 || parseFloat(r.vat_percent || 0) > 0);
+        const card =
+          buildBillCardElement(
+            rows,
+            companyTitle
+          );
 
-        rows.forEach((r, idx) => {
-          const nhrVal = parseFloat(r.nhr || 0);
-          const othrVal = parseFloat(r.othr || 0);
-          const rentVal = parseFloat(r.rent || 0);
-          const vatVal = parseFloat(r.vat_amount || 0);
-          const totalVal = parseFloat(r.total || 0);
-
-          totalNHr += nhrVal; totalOTHr += othrVal; totalRent += rentVal; totalVat += vatVal; grandTotal += totalVal;
-          const vatCell = hasVat ? `<td>${vatVal.toFixed(2)}</td>` : "";
-
-          rowsHtml += `
-            <tr>
-              <td>${idx + 1}</td>
-              <td>${r.date}</td>
-              <td>${r.vtype}</td>
-              <td style="text-align:left; white-space:nowrap;">${r.driver}</td>
-              <td style="font-weight:bold;">${r.plate_no}</td>
-              <td>${nhrVal}</td>
-              <td>${othrVal}</td>
-              <td>${rentVal.toFixed(2)}</td>
-              ${vatCell}
-              <td style="font-weight:bold;">${totalVal.toFixed(2)}</td>
-            </tr>
-          `;
-        });
-
-        const displayTitle = companyTitle ? `${companyTitle} - ${rows[0]?.owner || "COMPANY VEHICLE"}` : `Owner: ${rows[0]?.owner || "COMPANY VEHICLE"}`;
-        card.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:12px 18px; border-radius:8px 8px 0 0; border-bottom:1px solid #e2e8f0; margin-bottom:15px;" class="no-print">
-            <b style="color:#1a4d80; font-size:16px;">${displayTitle}</b>
-            <div style="display:flex; gap:10px;">
-              <button class="btn" style="background:#007bff;" onclick="downloadCardPNG(this)">⬇️ Download PNG</button>
-              <button class="btn" style="background:#17a2b8;" onclick="copyCardHQ(this)">📋 Copy HQ Image</button>
-            </div>
-          </div>
-          <div class="print-area" style="padding:15px; background:white;">
-            <div style="border:1px solid #cbd5e1; padding:12px; margin-bottom:15px; text-align:center; background:#f8fafc; font-weight:bold; font-size:18px; color:#1e293b;">
-              Bill Summary for Each Month ملخص فاتورة الشهر
-            </div>
-            <table class="report-table supplier-bill-table" style="min-width:100%;">
-              <thead>
-                <tr>
-                  <th style="width:4%;">#</th><th style="width:9%;">Date</th><th style="width:16%;">Vehicle Type</th>
-                  <th style="width:18%;">Driver</th><th style="width:11%;">Plate No</th><th style="width:7%;">N.Hr</th>
-                  <th style="width:7%;">OT Hr</th><th style="width:10%;">Rent</th>
-                  ${hasVat ? '<th style="width:8%;">VAT</th>' : ''}
-                  <th style="width:10%;">Total</th>
-                </tr>
-              </thead>
-              <tbody>${rowsHtml}</tbody>
-              <tfoot>
-                <tr style="font-weight:bold; background:#f8fafc; font-size:14px;">
-                  <td colspan="5" style="text-align:right; padding-right:15px;">Grand Total:</td>
-                  <td>${totalNHr}</td><td>${totalOTHr}</td><td>${totalRent.toFixed(2)}</td>
-                  ${hasVat ? `<td>${totalVat.toFixed(2)}</td>` : ''}
-                  <td style="color:#1a4d80;">${grandTotal.toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        `;
         container.appendChild(card);
       }
 
-      function renderReportTable(data) {
-        const tbody = document.getElementById("reportTableBody");
-        tbody.innerHTML = "";
-        if (data.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="17" style="padding:30px;">No report records found.</td></tr>`;
+      function buildBillCardElement(
+        rows,
+        companyTitle = ""
+      ) {
+        const card =
+          document.createElement(
+            "div"
+          );
+
+        card.className =
+          "bill-card";
+
+        /*
+         * Keep a deep copy of the original data.
+         * Cancel uses this copy.
+         */
+        card._originalRows =
+          JSON.parse(
+            JSON.stringify(rows)
+          );
+
+        card._companyTitle =
+          companyTitle;
+
+        let rowsHtml = "";
+
+        let totalNHr = 0;
+        let totalOTHr = 0;
+        let totalRent = 0;
+        let totalVat = 0;
+        let grandTotal = 0;
+
+        let sumTsNr = 0;
+        let sumTsOt = 0;
+        let sumInvNr = 0;
+        let sumInvOt = 0;
+
+        const hasVat =
+          rows.some(
+            (r) =>
+              parseFloat(
+                r.vat_amount || 0
+              ) > 0 ||
+              parseFloat(
+                r.vat_percent || 0
+              ) > 0
+          );
+
+        rows.forEach(
+          (r, idx) => {
+            const nhrVal =
+              parseFloat(
+                r.nhr || 0
+              );
+
+            const othrVal =
+              parseFloat(
+                r.othr || 0
+              );
+
+            const nrateVal =
+              parseFloat(
+                r.nrate || 0
+              );
+
+            const otrateVal =
+              parseFloat(
+                r.otrate || 0
+              );
+
+            const rentVal =
+              parseFloat(
+                r.rent ||
+                  (
+                    nhrVal *
+                      nrateVal +
+                    othrVal *
+                      otrateVal
+                  ) ||
+                  0
+              );
+
+            const vatVal =
+              parseFloat(
+                r.vat_amount || 0
+              );
+
+            const totalVal =
+              parseFloat(
+                r.total ||
+                  (
+                    rentVal +
+                    vatVal
+                  ) ||
+                  0
+              );
+
+            totalNHr += nhrVal;
+            totalOTHr += othrVal;
+            totalRent += rentVal;
+            totalVat += vatVal;
+            grandTotal += totalVal;
+
+            const repMatch =
+              fetchedReportCache.find(
+                (rep) =>
+                  rep.plate ===
+                  r.plate_no
+              ) || {};
+
+            const tsNr =
+              parseFloat(
+                repMatch.ts_nr || 0
+              );
+
+            const tsOt =
+              parseFloat(
+                repMatch.ts_ot || 0
+              );
+
+            const invNr =
+              parseFloat(
+                repMatch.inv_nr || 0
+              );
+
+            const invOt =
+              parseFloat(
+                repMatch.inv_ot || 0
+              );
+
+            sumTsNr += tsNr;
+            sumTsOt += tsOt;
+            sumInvNr += invNr;
+            sumInvOt += invOt;
+
+            rowsHtml += `
+              <tr data-plate="${escapeHtmlAttribute(
+                r.plate_no || ""
+              )}">
+                
+                <td>
+                  ${idx + 1}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    r.date || ""
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    r.vtype || ""
+                  )}
+                </td>
+
+                <td style="text-align:left;" class="site-column-cell">
+                  ${escapeHtml(
+                    r.site || "N/A"
+                  )}
+                </td>
+
+                <td
+                  style="text-align:left; white-space:nowrap;"
+                >
+                  ${escapeHtml(
+                    r.driver || ""
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    r.plate_no || ""
+                  )}
+                </td>
+
+                <!-- N.Hr : VIEW TEXT -->
+                <td
+                  class="nhr-cell editable-number-cell"
+                  data-original-value="${nhrVal}"
+                >
+                  <span class="view-number-text">
+                    ${formatNumberDisplay(
+                      nhrVal
+                    )}
+                  </span>
+
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="edit-number-input nhr-field"
+                    value="${nhrVal}"
+                    style="display:none;"
+                    oninput="recalculateCardRow(this)"
+                  />
+                </td>
+
+                <!-- N.Rate -->
+                <td
+                  class="rate-column-cell editable-number-cell"
+                >
+                  <span class="view-number-text">
+                    ${formatNumberDisplay(
+                      nrateVal
+                    )}
+                  </span>
+
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="edit-number-input nrate-field"
+                    value="${nrateVal}"
+                    style="display:none;"
+                    oninput="recalculateCardRow(this)"
+                  />
+                </td>
+
+                <!-- OT Hr : VIEW TEXT -->
+                <td
+                  class="othr-cell editable-number-cell"
+                  data-original-value="${othrVal}"
+                >
+                  <span class="view-number-text">
+                    ${formatNumberDisplay(
+                      othrVal
+                    )}
+                  </span>
+
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="edit-number-input othr-field"
+                    value="${othrVal}"
+                    style="display:none;"
+                    oninput="recalculateCardRow(this)"
+                  />
+                </td>
+
+                <!-- OT Rate -->
+                <td
+                  class="rate-column-cell editable-number-cell"
+                >
+                  <span class="view-number-text">
+                    ${formatNumberDisplay(
+                      otrateVal
+                    )}
+                  </span>
+
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="edit-number-input otrate-field"
+                    value="${otrateVal}"
+                    style="display:none;"
+                    oninput="recalculateCardRow(this)"
+                  />
+                </td>
+
+                <td class="rent-cell">
+                  ${rentVal.toFixed(2)}
+                </td>
+
+                ${
+                  hasVat
+                    ? `
+                      <td class="vat-cell">
+                        ${vatVal.toFixed(2)}
+                      </td>
+                    `
+                    : ""
+                }
+
+                <td
+                  style="font-weight:bold;"
+                  class="total-cell"
+                >
+                  ${totalVal.toFixed(2)}
+                </td>
+
+                <td
+                  class="extra-comparison-col"
+                  style="background:#f0fdf4;"
+                >
+                  ${repMatch.ts_nr || 0}
+                </td>
+
+                <td
+                  class="extra-comparison-col"
+                  style="background:#f0fdf4;"
+                >
+                  ${repMatch.ts_ot || 0}
+                </td>
+
+                <td
+                  class="extra-comparison-col"
+                  style="background:#eff6ff;"
+                >
+                  ${repMatch.inv_nr || 0}
+                </td>
+
+                <td
+                  class="extra-comparison-col"
+                  style="background:#eff6ff;"
+                >
+                  ${repMatch.inv_ot || 0}
+                </td>
+
+              </tr>
+            `;
+          }
+        );
+
+        const displayTitle =
+          companyTitle
+            ? `${companyTitle} - ${
+                rows[0]?.owner ||
+                "COMPANY VEHICLE"
+              }`
+            : `Owner: ${
+                rows[0]?.owner ||
+                "COMPANY VEHICLE"
+              }`;
+
+        card.innerHTML = `
+          <div class="card-header-bar no-print">
+
+            <div
+              style="display:flex; align-items:center; gap:8px;"
+            >
+              <b
+                style="color:#1a4d80; font-size:16px;"
+              >
+                ${escapeHtml(
+                  displayTitle
+                )}
+              </b>
+
+              <span class="edit-hint">
+                ✏️ Edit Mode — N.Hr / OT Hr / Rates are editable
+              </span>
+            </div>
+
+            <div class="edit-action-buttons">
+
+              <!-- NORMAL MODE -->
+              <button
+                class="btn card-edit-btn"
+                style="background:#2563eb;"
+                onclick="enableCardEdit(this)"
+              >
+                ✏️ Edit
+              </button>
+
+              <button
+                class="btn card-download-btn"
+                style="background:#007bff;"
+                onclick="downloadCardPNG(this)"
+              >
+                ⬇️ Download PNG
+              </button>
+
+              <button
+                class="btn card-copy-btn"
+                style="background:#17a2b8;"
+                onclick="copyCardHQ(this)"
+              >
+                📋 Copy HQ Image
+              </button>
+
+              <!-- EDIT MODE -->
+              <button
+                class="btn card-save-btn"
+                style="background:#28a745; display:none;"
+                onclick="saveEditedCardToERP(this)"
+              >
+                💾 Save
+              </button>
+
+              <button
+                class="btn card-cancel-btn"
+                style="background:#dc3545; display:none;"
+                onclick="cancelCardEdit(this)"
+              >
+                ✖ Cancel
+              </button>
+
+            </div>
+          </div>
+
+          <div class="print-area">
+
+            <div
+              style="border:1px solid #cbd5e1; padding:12px; margin-bottom:15px; text-align:center; background:#f8fafc; font-weight:bold; font-size:18px; color:#1e293b;"
+            >
+              Bill Summary for Each Month
+              ملخص فاتورة الشهر
+            </div>
+
+            <table class="report-table supplier-bill-table">
+
+              <thead>
+                <tr>
+
+                  <th style="width:3%;">
+                    #
+                  </th>
+
+                  <th style="width:7%;">
+                    Date
+                  </th>
+
+                  <th style="width:11%;">
+                    Vehicle Type
+                  </th>
+
+                  <th style="width:12%;" class="site-column-cell">
+                    Site
+                  </th>
+
+                  <th style="width:12%;">
+                    Driver
+                  </th>
+
+                  <th style="width:8%;">
+                    Plate No
+                  </th>
+
+                  <th
+                    style="width:5%;"
+                    title="Editable in Edit Mode"
+                  >
+                    N.Hr
+                  </th>
+
+                  <th
+                    style="width:6%;"
+                    class="rate-column-cell"
+                  >
+                    N.Rate
+                  </th>
+
+                  <th
+                    style="width:5%;"
+                    title="Editable in Edit Mode"
+                  >
+                    OT Hr
+                  </th>
+
+                  <th
+                    style="width:6%;"
+                    class="rate-column-cell"
+                  >
+                    OT Rate
+                  </th>
+
+                  <th style="width:7%;">
+                    Rent
+                  </th>
+
+                  ${
+                    hasVat
+                      ? `
+                        <th style="width:6%;">
+                          VAT
+                        </th>
+                      `
+                      : ""
+                  }
+
+                  <th style="width:7%;">
+                    Total
+                  </th>
+
+                  <th
+                    style="width:5%;"
+                    class="extra-comparison-col th-ts"
+                  >
+                    Log. NR
+                  </th>
+
+                  <th
+                    style="width:5%;"
+                    class="extra-comparison-col th-ts"
+                  >
+                    Log. OT
+                  </th>
+
+                  <th
+                    style="width:5%;"
+                    class="extra-comparison-col th-summary"
+                  >
+                    Bill NR
+                  </th>
+
+                  <th
+                    style="width:5%;"
+                    class="extra-comparison-col th-summary"
+                  >
+                    Bill OT
+                  </th>
+
+                </tr>
+              </thead>
+
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+
+              <tfoot>
+
+                <tr
+                  style="font-weight:bold; background:#f8fafc; font-size:14px;"
+                >
+
+                  <td
+                    colspan="6"
+                    style="text-align:right; padding-right:15px;"
+                  >
+                    Grand Total:
+                  </td>
+
+                  <td class="grand-nhr">
+                    ${formatNumberDisplay(
+                      totalNHr
+                    )}
+                  </td>
+
+                  <td
+                    class="rate-column-cell"
+                  ></td>
+
+                  <td class="grand-othr">
+                    ${formatNumberDisplay(
+                      totalOTHr
+                    )}
+                  </td>
+
+                  <td
+                    class="rate-column-cell"
+                  ></td>
+
+                  <td class="grand-rent">
+                    ${totalRent.toFixed(2)}
+                  </td>
+
+                  ${
+                    hasVat
+                      ? `
+                        <td class="grand-vat">
+                          ${totalVat.toFixed(2)}
+                        </td>
+                      `
+                      : ""
+                  }
+
+                  <td
+                    style="color:#000000;"
+                    class="grand-total"
+                  >
+                    ${grandTotal.toFixed(2)}
+                  </td>
+
+                  <td
+                    class="extra-comparison-col"
+                    style="background:#f0fdf4;"
+                  >
+                    ${sumTsNr}
+                  </td>
+
+                  <td
+                    class="extra-comparison-col"
+                    style="background:#f0fdf4;"
+                  >
+                    ${sumTsOt}
+                  </td>
+
+                  <td
+                    class="extra-comparison-col"
+                    style="background:#eff6ff;"
+                  >
+                    ${sumInvNr}
+                  </td>
+
+                  <td
+                    class="extra-comparison-col"
+                    style="background:#eff6ff;"
+                  >
+                    ${sumInvOt}
+                  </td>
+
+                </tr>
+
+              </tfoot>
+
+            </table>
+          </div>
+        `;
+
+        return card;
+      }
+
+     /*
+       * ============================================================
+       * EDIT MODE & CANCEL EDIT (FIXED FOR MANUAL CARD DATA PRESERVATION)
+       * ============================================================
+       */
+
+      function enableCardEdit(btn) {
+        const card = btn.closest(".bill-card");
+        if (!card || card.classList.contains("edit-mode")) return;
+
+        card.classList.add("edit-mode");
+
+        // എഡിറ്റ് തുടങ്ങുന്നതിന് തൊട്ടുമുമ്പുള്ള വാല്യൂസ് കൃത്യമായി ബാക്കപ്പ് ചെയ്യുന്നു
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((row) => {
+          const nhrInput = row.querySelector(".nhr-field");
+          const othrInput = row.querySelector(".othr-field");
+          const nrateInput = row.querySelector(".nrate-field");
+          const otrateInput = row.querySelector(".otrate-field");
+
+          if (nhrInput) nhrInput.dataset.original = nhrInput.value;
+          if (othrInput) othrInput.dataset.original = othrInput.value;
+          if (nrateInput) nrateInput.dataset.original = nrateInput.value;
+          if (otrateInput) otrateInput.dataset.original = otrateInput.value;
+        });
+
+        card.querySelectorAll(".edit-number-input").forEach((input) => {
+          input.style.display = "inline-block";
+        });
+
+        card.querySelectorAll(".view-number-text").forEach((span) => {
+          span.style.display = "none";
+        });
+
+        card.querySelector(".card-edit-btn").style.display = "none";
+        card.querySelector(".card-download-btn").style.display = "none";
+        card.querySelector(".card-copy-btn").style.display = "none";
+        card.querySelector(".card-save-btn").style.display = "inline-flex";
+        card.querySelector(".card-cancel-btn").style.display = "inline-flex";
+
+        const firstNhr = card.querySelector(".nhr-field");
+        if (firstNhr) {
+          setTimeout(() => {
+            firstNhr.focus();
+            firstNhr.select();
+          }, 50);
+        }
+      }
+
+      function cancelCardEdit(btn) {
+        const card = btn.closest(".bill-card");
+        if (!card) return;
+
+        const isManualCard = card.id && card.id.startsWith("manualBillCard_");
+
+        // മാനുവൽ കാർഡ് ആണെങ്കിൽ ടേബിൾ മാറ്റാതെ എഡിറ്റ് ചെയ്ത ഫീൽഡുകൾ മാത്രം പഴയ വാല്യൂവിലേക്ക് മാറ്റുന്നു
+        if (isManualCard) {
+          card.classList.remove("edit-mode");
+
+          card.querySelectorAll(".supplier-bill-table tbody tr").forEach((row) => {
+            const nhrInput = row.querySelector(".nhr-field");
+            const othrInput = row.querySelector(".othr-field");
+            const nrateInput = row.querySelector(".nrate-field");
+            const otrateInput = row.querySelector(".otrate-field");
+
+            if (nhrInput && nhrInput.dataset.original !== undefined) {
+              nhrInput.value = nhrInput.dataset.original;
+            }
+            if (othrInput && othrInput.dataset.original !== undefined) {
+              othrInput.value = othrInput.dataset.original;
+            }
+            if (nrateInput && nrateInput.dataset.original !== undefined) {
+              nrateInput.value = nrateInput.dataset.original;
+            }
+            if (otrateInput && otrateInput.dataset.original !== undefined) {
+              otrateInput.value = otrateInput.dataset.original;
+            }
+
+            if (nhrInput) recalculateCardRow(nhrInput);
+          });
+
+          card.querySelectorAll(".edit-number-input").forEach((input) => {
+            input.style.display = "none";
+          });
+
+          card.querySelectorAll(".view-number-text").forEach((span) => {
+            span.style.display = "inline-block";
+          });
+
+          card.querySelector(".card-edit-btn").style.display = "inline-flex";
+          card.querySelector(".card-download-btn").style.display = "inline-flex";
+          card.querySelector(".card-copy-btn").style.display = "inline-flex";
+          card.querySelector(".card-save-btn").style.display = "none";
+          card.querySelector(".card-cancel-btn").style.display = "none";
+
+          showToast("Changes cancelled");
           return;
         }
-        data.forEach((r, idx) => {
-          tbody.innerHTML += `
-            <tr>
-              <td class="col-sn">${idx + 1}</td>
-              <td class="col-date">${r.report_date}</td>
-              <td class="col-rate">${r.rate}</td>
-              <td class="col-vat">${r.vat}</td>
-              <td class="col-site">${r.site}</td>
-              <td class="col-owner">${r.owner}</td>
-              <td class="col-driver">${r.driver_name}</td>
-              <td class="col-plate" style="color:#0f172a;">${r.plate}</td>
-              <!-- 1. As Per Logsheet -->
-              <td class="col-num-data" style="background:#f0fdf4;">${r.ts_nr || ""}</td>
-              <td class="col-num-data" style="background:#f0fdf4;">${r.ts_ot || ""}</td>
-              <!-- 2. As Per Bill Summary -->
-              <td class="col-num-data" style="background:#eff6ff;">${r.inv_nr !== undefined && r.inv_nr !== null ? r.inv_nr : ""}</td>
-              <td class="col-num-data" style="background:#eff6ff;">${r.inv_ot !== undefined && r.inv_ot !== null ? r.inv_ot : ""}</td>
-              <!-- 3. To Supplier (Billing Records DB) -->
-              <td class="col-num-data" style="background:#faf5ff;">${r.bill_db_nr !== undefined && r.bill_db_nr !== null ? r.bill_db_nr : ""}</td>
-              <td class="col-num-data" style="background:#faf5ff;">${r.bill_db_ot !== undefined && r.bill_db_ot !== null ? r.bill_db_ot : ""}</td>
-              <!-- 4. Difference -->
-              <td class="col-num-data" style="color:#be123c; font-weight:bold;">${r.diff_nr || ""}</td>
-              <td class="col-num-data" style="color:#be123c; font-weight:bold;">${r.diff_ot || ""}</td>
-              <td class="col-idn" style="font-weight:bold;">${r.diff_st || ""}</td>
-            </tr>
-          `;
-        });
+
+        // സാധാരണ കാർഡുകൾ പഴയതുപോലെ rebuild ചെയ്യുന്നു
+        const originalRows = card._originalRows ? JSON.parse(JSON.stringify(card._originalRows)) : null;
+        const companyTitle = card._companyTitle || "";
+
+        if (originalRows) {
+          const newCard = buildBillCardElement(originalRows, companyTitle);
+          card.replaceWith(newCard);
+          showToast("Changes cancelled");
+          return;
+        }
+
+        card.classList.remove("edit-mode");
+        card.querySelectorAll(".edit-number-input").forEach((input) => (input.style.display = "none"));
+        card.querySelectorAll(".view-number-text").forEach((span) => (span.style.display = "inline-block"));
+
+        card.querySelector(".card-edit-btn").style.display = "inline-flex";
+        card.querySelector(".card-download-btn").style.display = "inline-flex";
+        card.querySelector(".card-copy-btn").style.display = "inline-flex";
+        card.querySelector(".card-save-btn").style.display = "none";
+        card.querySelector(".card-cancel-btn").style.display = "none";
+      }
+      /*
+       * ============================================================
+       * RECALCULATE EDITED ROW
+       * ============================================================
+       *
+       * N.Hr and OT Hr are read from the inputs.
+       * N.Rate and OT Rate are also read from inputs.
+       *
+       * Rent = N.Hr * N.Rate + OT Hr * OT Rate
+       *
+       * Total = Rent + existing VAT
+       */
+
+      function recalculateCardRow(input) {
+        const row =
+          input.closest("tr");
+
+        const card =
+          row.closest(".bill-card");
+
+        if (!row || !card) {
+          return;
+        }
+
+        const nhr =
+          parseFloat(
+            row.querySelector(
+              ".nhr-field"
+            )?.value || 0
+          );
+
+        const nrate =
+          parseFloat(
+            row.querySelector(
+              ".nrate-field"
+            )?.value || 0
+          );
+
+        const othr =
+          parseFloat(
+            row.querySelector(
+              ".othr-field"
+            )?.value || 0
+          );
+
+        const otrate =
+          parseFloat(
+            row.querySelector(
+              ".otrate-field"
+            )?.value || 0
+          );
+
+        /*
+         * Existing VAT value remains untouched.
+         */
+        const vat =
+          parseFloat(
+            row.querySelector(
+              ".vat-cell"
+            )?.innerText || 0
+          );
+
+        const rent =
+          nhr * nrate +
+          othr * otrate;
+
+        const total =
+          rent + vat;
+
+        row.querySelector(
+          ".rent-cell"
+        ).innerText =
+          rent.toFixed(2);
+
+        row.querySelector(
+          ".total-cell"
+        ).innerText =
+          total.toFixed(2);
+
+        /*
+         * Update visible text values while editing too.
+         */
+        updateEditTextMirror(
+          row,
+          ".nhr-field",
+          ".nhr-cell .view-number-text"
+        );
+
+        updateEditTextMirror(
+          row,
+          ".othr-field",
+          ".othr-cell .view-number-text"
+        );
+
+        updateEditTextMirror(
+          row,
+          ".nrate-field",
+          ".rate-column-cell:nth-child(8) .view-number-text"
+        );
+
+        updateEditTextMirror(
+          row,
+          ".otrate-field",
+          ".rate-column-cell:nth-child(10) .view-number-text"
+        );
+
+        /*
+         * Recalculate card totals.
+         */
+        recalculateCardGrandTotals(
+          card
+        );
       }
 
-      function arrangeCompanyCards() {
-        if (fetchedRowsCache.length === 0) return showToast("Fetch data first!");
-        let groups = {};
-        fetchedRowsCache.forEach((item) => {
-          let comp = "Haka";
-          let s = (item.site || "").toUpperCase();
-          if (s.includes("ALJODA")) comp = "Aljoda";
-          else if (s.includes("MASAR")) comp = "Masar Wheels";
-          else if (s.includes("WE1")) comp = "We1 Track";
-          if (!groups[comp]) groups[comp] = [];
-          groups[comp].push(item);
-        });
-        const container = document.getElementById("cardsContainer");
-        container.innerHTML = "";
-        Object.keys(groups).forEach((comp) => { renderCardsView(groups[comp], true, comp); });
-        showToast("Arranged Company-wise!");
+      function updateEditTextMirror(
+        row,
+        inputSelector,
+        textSelector
+      ) {
+        const input =
+          row.querySelector(
+            inputSelector
+          );
+
+        const text =
+          row.querySelector(
+            textSelector
+          );
+
+        if (
+          !input ||
+          !text
+        ) {
+          return;
+        }
+
+        const value =
+          parseFloat(
+            input.value || 0
+          );
+
+        text.innerText =
+          formatNumberDisplay(
+            value
+          );
       }
+
+      function recalculateCardGrandTotals(
+        card
+      ) {
+        let gNHr = 0;
+        let gOTHr = 0;
+        let gRent = 0;
+        let gVat = 0;
+        let gTotal = 0;
+
+        card
+          .querySelectorAll(
+            ".supplier-bill-table tbody tr"
+          )
+          .forEach((row) => {
+            const nhr =
+              parseFloat(
+                row.querySelector(
+                  ".nhr-field"
+                )?.value || 0
+              );
+
+            const othr =
+              parseFloat(
+                row.querySelector(
+                  ".othr-field"
+                )?.value || 0
+              );
+
+            const rent =
+              parseFloat(
+                row.querySelector(
+                  ".rent-cell"
+                )?.innerText || 0
+              );
+
+            const vat =
+              parseFloat(
+                row.querySelector(
+                  ".vat-cell"
+                )?.innerText || 0
+              );
+
+            const total =
+              parseFloat(
+                row.querySelector(
+                  ".total-cell"
+                )?.innerText || 0
+              );
+
+            gNHr += nhr;
+            gOTHr += othr;
+            gRent += rent;
+            gVat += vat;
+            gTotal += total;
+          });
+
+        const grandNHr =
+          card.querySelector(
+            ".grand-nhr"
+          );
+
+        const grandOTHr =
+          card.querySelector(
+            ".grand-othr"
+          );
+
+        const grandRent =
+          card.querySelector(
+            ".grand-rent"
+          );
+
+        const grandVat =
+          card.querySelector(
+            ".grand-vat"
+          );
+
+        const grandTotal =
+          card.querySelector(
+            ".grand-total"
+          );
+
+        if (grandNHr) {
+          grandNHr.innerText =
+            formatNumberDisplay(
+              gNHr
+            );
+        }
+
+        if (grandOTHr) {
+          grandOTHr.innerText =
+            formatNumberDisplay(
+              gOTHr
+            );
+        }
+
+        if (grandRent) {
+          grandRent.innerText =
+            gRent.toFixed(2);
+        }
+
+        if (grandVat) {
+          grandVat.innerText =
+            gVat.toFixed(2);
+        }
+
+        if (grandTotal) {
+          grandTotal.innerText =
+            gTotal.toFixed(2);
+        }
+      }
+
+      /*
+       * ============================================================
+       * SAVE EDITED CARD TO ERP
+       * ============================================================
+       *
+       * This keeps the same ERP endpoint:
+       *
+       * POST /billing/save
+       *
+       * N.Hr and OT Hr are now taken from their input fields.
+       */
+
+      async function saveEditedCardToERP(
+        btn
+      ) {
+        const card =
+          btn.closest(".bill-card");
+
+        if (!card) {
+          return;
+        }
+
+        const fullMonth =
+          document.getElementById(
+            "selMonth"
+          ).value +
+          " " +
+          document.getElementById(
+            "selYear"
+          ).value;
+
+        const token =
+          localStorage.getItem(
+            "view_bill_token"
+          );
+
+        let items = [];
+
+        let invalidFound = false;
+
+        card
+          .querySelectorAll(
+            ".supplier-bill-table tbody tr"
+          )
+          .forEach((r) => {
+            const plate =
+              r.getAttribute(
+                "data-plate"
+              );
+
+            if (!plate) {
+              return;
+            }
+
+            const nhrInput =
+              r.querySelector(
+                ".nhr-field"
+              );
+
+            const othrInput =
+              r.querySelector(
+                ".othr-field"
+              );
+
+            const nrateInput =
+              r.querySelector(
+                ".nrate-field"
+              );
+
+            const otrateInput =
+              r.querySelector(
+                ".otrate-field"
+              );
+
+            /*
+             * IMPORTANT:
+             * Read the values directly from the inputs.
+             * Therefore edited N.Hr and OT Hr will be saved.
+             */
+            const nhr =
+              parseFloat(
+                nhrInput?.value
+              );
+
+            const othr =
+              parseFloat(
+                othrInput?.value
+              );
+
+            const nrate =
+              parseFloat(
+                nrateInput?.value
+              );
+
+            const otrate =
+              parseFloat(
+                otrateInput?.value
+              );
+
+            if (
+              !Number.isFinite(nhr) ||
+              !Number.isFinite(othr) ||
+              !Number.isFinite(nrate) ||
+              !Number.isFinite(otrate)
+            ) {
+              invalidFound = true;
+              return;
+            }
+
+            const rent =
+              parseFloat(
+                r.querySelector(
+                  ".rent-cell"
+                )?.innerText || 0
+              );
+
+            const total =
+              parseFloat(
+                r.querySelector(
+                  ".total-cell"
+                )?.innerText || 0
+              );
+
+            const site =
+              r.children[3]
+                .innerText;
+
+            const driver =
+              r.children[4]
+                .innerText;
+
+            const vtype =
+              r.children[2]
+                .innerText;
+
+            const vatAmount =
+              parseFloat(
+                r.querySelector(
+                  ".vat-cell"
+                )?.innerText || 0
+              );
+
+            const vatPercent =
+              findVatPercentForPlate(
+                plate
+              );
+
+            const ownerText =
+              card.querySelector(
+                "b"
+              )?.innerText || "";
+
+            const owner =
+              ownerText.includes(
+                " - "
+              )
+                ? ownerText
+                    .split(" - ")
+                    .slice(1)
+                    .join(" - ")
+                : ownerText.replace(
+                    /^Owner:\s*/i,
+                    ""
+                  ) ||
+                  "COMPANY VEHICLE";
+
+            items.push({
+              date:
+                r.children[1]
+                  .innerText,
+
+              owner:
+                owner,
+
+              company:
+                "Haka",
+
+              site_name:
+                site,
+
+              vtype:
+                vtype,
+
+              driver:
+                driver,
+
+              plate:
+                plate,
+
+              /*
+               * IMPORTANT SAVED VALUES
+               */
+              nhr:
+                nhr,
+
+              nrate:
+                nrate,
+
+              othr:
+                othr,
+
+              otrate:
+                otrate,
+
+              rent:
+                rent,
+
+              vat_percent:
+                vatPercent,
+
+              vat_amount:
+                vatAmount,
+
+              total:
+                total,
+
+              adjusted_amount:
+                0,
+
+              after_adjustment:
+                total,
+
+              remark:
+                "",
+            });
+          });
+
+        if (invalidFound) {
+          return showToast(
+            "Please enter valid N.Hr, OT Hr, N.Rate and OT Rate values."
+          );
+        }
+
+        if (items.length === 0) {
+          return showToast(
+            "No items to save!"
+          );
+        }
+
+        /*
+         * Disable Save / Cancel during request.
+         */
+        const saveBtn =
+          card.querySelector(
+            ".card-save-btn"
+          );
+
+        const cancelBtn =
+          card.querySelector(
+            ".card-cancel-btn"
+          );
+
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerText =
+            "⏳ Saving...";
+        }
+
+        if (cancelBtn) {
+          cancelBtn.disabled = true;
+        }
+
+        document.getElementById(
+          "loaderOverlay"
+        ).style.display = "flex";
+
+        try {
+          const res =
+            await fetch(
+              "/billing/save",
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+
+                  Authorization:
+                    "Bearer " +
+                    token,
+                },
+
+                body: JSON.stringify({
+                  billing_period:
+                    fullMonth,
+
+                  items:
+                    items,
+                }),
+              }
+            );
+
+          const data =
+            await res.json();
+
+          if (data.success) {
+            /*
+             * Update the card's original rows
+             * to the newly saved values.
+             *
+             * This means clicking Edit again
+             * will start from the newly saved data.
+             */
+            card._originalRows =
+              buildRowsFromEditedCard(
+                card
+              );
+
+            /*
+             * Update fetched cache too.
+             */
+            updateFetchedRowsCacheFromItems(
+              items
+            );
+
+            /*
+             * Exit edit mode.
+             */
+            exitCardEditMode(
+              card
+            );
+
+            /*
+             * Make the new values the
+             * new display values.
+             */
+            refreshCardOriginalData(
+              card
+            );
+
+            showToast(
+              "Saved successfully to ERP!"
+            );
+          } else {
+            showToast(
+              "Error: " +
+                (
+                  data.message ||
+                  "Unable to save"
+                )
+            );
+          }
+        } catch (e) {
+          showToast(
+            "Server connection error."
+          );
+        } finally {
+          document.getElementById(
+            "loaderOverlay"
+          ).style.display = "none";
+
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerText =
+              "💾 Save";
+          }
+
+          if (cancelBtn) {
+            cancelBtn.disabled =
+              false;
+          }
+        }
+      }
+
+      function buildRowsFromEditedCard(
+        card
+      ) {
+        const rows = [];
+
+        card
+          .querySelectorAll(
+            ".supplier-bill-table tbody tr"
+          )
+          .forEach((r) => {
+            const plate =
+              r.getAttribute(
+                "data-plate"
+              );
+
+            if (!plate) {
+              return;
+            }
+
+            const nhr =
+              parseFloat(
+                r.querySelector(
+                  ".nhr-field"
+                )?.value || 0
+              );
+
+            const othr =
+              parseFloat(
+                r.querySelector(
+                  ".othr-field"
+                )?.value || 0
+              );
+
+            const nrate =
+              parseFloat(
+                r.querySelector(
+                  ".nrate-field"
+                )?.value || 0
+              );
+
+            const otrate =
+              parseFloat(
+                r.querySelector(
+                  ".otrate-field"
+                )?.value || 0
+              );
+
+            const rent =
+              parseFloat(
+                r.querySelector(
+                  ".rent-cell"
+                )?.innerText || 0
+              );
+
+            const total =
+              parseFloat(
+                r.querySelector(
+                  ".total-cell"
+                )?.innerText || 0
+              );
+
+            const vatAmount =
+              parseFloat(
+                r.querySelector(
+                  ".vat-cell"
+                )?.innerText || 0
+              );
+
+            const originalRow =
+              findOriginalRowByPlate(
+                card,
+                plate
+              );
+
+            rows.push({
+              ...(originalRow || {}),
+
+              date:
+                r.children[1]
+                  .innerText,
+
+              vtype:
+                r.children[2]
+                  .innerText,
+
+              site:
+                r.children[3]
+                  .innerText,
+
+              driver:
+                r.children[4]
+                  .innerText,
+
+              plate_no:
+                plate,
+
+              nhr:
+                nhr,
+
+              nrate:
+                nrate,
+
+              othr:
+                othr,
+
+              otrate:
+                otrate,
+
+              rent:
+                rent,
+
+              vat_amount:
+                vatAmount,
+
+              total:
+                total,
+            });
+          });
+
+        return rows;
+      }
+
+      function findOriginalRowByPlate(
+        card,
+        plate
+      ) {
+        const rows =
+          card._originalRows || [];
+
+        return (
+          rows.find(
+            (r) =>
+              String(
+                r.plate_no || ""
+              ) === String(plate)
+          ) || null
+        );
+      }
+
+      function updateFetchedRowsCacheFromItems(
+        items
+      ) {
+        items.forEach(
+          (item) => {
+            const index =
+              fetchedRowsCache.findIndex(
+                (r) =>
+                  String(
+                    r.plate_no || ""
+                  ) ===
+                  String(
+                    item.plate
+                  )
+              );
+
+            if (index !== -1) {
+              fetchedRowsCache[
+                index
+              ].nhr =
+                item.nhr;
+
+              fetchedRowsCache[
+                index
+              ].nrate =
+                item.nrate;
+
+              fetchedRowsCache[
+                index
+              ].othr =
+                item.othr;
+
+              fetchedRowsCache[
+                index
+              ].otrate =
+                item.otrate;
+
+              fetchedRowsCache[
+                index
+              ].rent =
+                item.rent;
+
+              fetchedRowsCache[
+                index
+              ].total =
+                item.total;
+
+              fetchedRowsCache[
+                index
+              ].vat_amount =
+                item.vat_amount;
+            }
+          }
+        );
+      }
+
+      function findVatPercentForPlate(
+        plate
+      ) {
+        const row =
+          fetchedRowsCache.find(
+            (r) =>
+              String(
+                r.plate_no || ""
+              ) === String(plate)
+          );
+
+        return parseFloat(
+          row?.vat_percent || 0
+        );
+      }
+
+      function exitCardEditMode(
+        card
+      ) {
+        card.classList.remove(
+          "edit-mode"
+        );
+
+        card.querySelectorAll(
+          ".edit-number-input"
+        ).forEach((input) => {
+          input.style.display =
+            "none";
+        });
+
+        card.querySelectorAll(
+          ".view-number-text"
+        ).forEach((span) => {
+          span.style.display =
+            "inline-block";
+        });
+
+        card.querySelector(
+          ".card-edit-btn"
+        ).style.display =
+          "inline-flex";
+
+        card.querySelector(
+          ".card-download-btn"
+        ).style.display =
+          "inline-flex";
+
+        card.querySelector(
+          ".card-copy-btn"
+        ).style.display =
+          "inline-flex";
+
+        card.querySelector(
+          ".card-save-btn"
+        ).style.display =
+          "none";
+
+        card.querySelector(
+          ".card-cancel-btn"
+        ).style.display =
+          "none";
+      }
+
+      function refreshCardOriginalData(
+        card
+      ) {
+        /*
+         * Update text values from inputs.
+         */
+        card
+          .querySelectorAll(
+            ".supplier-bill-table tbody tr"
+          )
+          .forEach((row) => {
+            const nhr =
+              parseFloat(
+                row.querySelector(
+                  ".nhr-field"
+                )?.value || 0
+              );
+
+            const othr =
+              parseFloat(
+                row.querySelector(
+                  ".othr-field"
+                )?.value || 0
+              );
+
+            const nrate =
+              parseFloat(
+                row.querySelector(
+                  ".nrate-field"
+                )?.value || 0
+              );
+
+            const otrate =
+              parseFloat(
+                row.querySelector(
+                  ".otrate-field"
+                )?.value || 0
+              );
+
+            const nhrText =
+              row.querySelector(
+                ".nhr-cell .view-number-text"
+              );
+
+            const othrText =
+              row.querySelector(
+                ".othr-cell .view-number-text"
+              );
+
+            const cells =
+              row.querySelectorAll(
+                ".rate-column-cell"
+              );
+
+            const nrateText =
+              cells[0]?.querySelector(
+                ".view-number-text"
+              );
+
+            const otrateText =
+              cells[1]?.querySelector(
+                ".view-number-text"
+              );
+
+            if (nhrText) {
+              nhrText.innerText =
+                formatNumberDisplay(
+                  nhr
+                );
+            }
+
+            if (othrText) {
+              othrText.innerText =
+                formatNumberDisplay(
+                  othr
+                );
+            }
+
+            if (nrateText) {
+              nrateText.innerText =
+                formatNumberDisplay(
+                  nrate
+                );
+            }
+
+            if (otrateText) {
+              otrateText.innerText =
+                formatNumberDisplay(
+                  otrate
+                );
+            }
+          });
+      }
+
+      /*
+       * ============================================================
+       * MANUAL BILL TABLE (CLEAN BORDERLESS & AUTO-ROW)
+       * ============================================================
+       */
+
+      let manualTableCount = 0;
+
+      function addManualCardRow() {
+        manualTableCount++;
+        const container = document.getElementById("cardsContainer");
+
+        if (container.innerText.includes("No Bills Loaded")) {
+          container.innerHTML = "";
+        }
+
+        const selMonth = document.getElementById("selMonth").value.substring(0, 3);
+        const selYear = document.getElementById("selYear").value.substring(2);
+        const dateStr = `${selMonth} ${selYear}`;
+
+        const emptyManualItem = {
+          date: dateStr,
+          vtype: "",
+          driver: "",
+          site: "",
+          plate_no: "",
+          nhr: 0,
+          nrate: 0,
+          othr: 0,
+          otrate: 0,
+          rent: 0,
+          vat_amount: 0,
+          total: 0,
+          owner: "Manual Entry"
+        };
+
+        const card = buildBillCardElement([emptyManualItem], "Manual Entry Table");
+        card.id = `manualBillCard_${manualTableCount}`;
+
+        const firstRow = card.querySelector(".supplier-bill-table tbody tr");
+        if (firstRow) {
+          setupManualPlateInput(firstRow);
+        }
+
+        container.insertAdjacentElement("afterbegin", card);
+        showToast("Blank Manual Table Created!");
+      }
+
+      function addManualRowDirectly(cardId) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+
+        const tbody = card.querySelector(".supplier-bill-table tbody");
+        const rowCount = tbody.querySelectorAll("tr").length + 1;
+
+        const selMonth = document.getElementById("selMonth").value.substring(0, 3);
+        const selYear = document.getElementById("selYear").value.substring(2);
+        const dateStr = `${selMonth} ${selYear}`;
+
+        const isCurrentlyEditing = card.classList.contains("edit-mode");
+
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-plate", "");
+
+        tr.innerHTML = `
+          <td>${rowCount}</td>
+          <td>${dateStr}</td>
+          <td class="manual-vtype"></td>
+          <td style="text-align:left;" class="site-column-cell manual-site"></td>
+          <td style="text-align:left; white-space:nowrap;" class="manual-driver"></td>
+          <td class="manual-plate-cell">
+            <input type="text" class="manual-plate-input" 
+              placeholder="Plate No..." 
+              autocomplete="off"
+              style="width:100%; height:100%; border:none; background:transparent; text-align:center; text-transform:uppercase; font-weight:bold; font-size:12px; outline:none; color:#0f172a; font-family:inherit;" />
+          </td>
+          <td class="nhr-cell editable-number-cell" data-original-value="0">
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input nhr-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+          </td>
+          <td class="rate-column-cell editable-number-cell">
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input nrate-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+          </td>
+          <td class="othr-cell editable-number-cell" data-original-value="0">
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input othr-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+          </td>
+          <td class="rate-column-cell editable-number-cell">
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input otrate-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+          </td>
+          <td class="rent-cell">0.00</td>
+          <td style="font-weight:bold;" class="total-cell">0.00</td>
+          <td class="extra-comparison-col" style="background:#f0fdf4;">0</td>
+          <td class="extra-comparison-col" style="background:#f0fdf4;">0</td>
+          <td class="extra-comparison-col" style="background:#eff6ff;">0</td>
+          <td class="extra-comparison-col" style="background:#eff6ff;">0</td>
+        `;
+
+        tbody.appendChild(tr);
+        setupManualPlateInput(tr);
+        recalculateCardGrandTotals(card);
+      }
+
+      /*
+       * ============================================================
+       * DOWNLOAD PNG (HIDE BLANK ROWS AUTOMATICALLY)
+       * ============================================================
+       */
 
       async function downloadCardPNG(btn) {
-        const printArea = btn.closest(".bill-card").querySelector(".print-area");
-        const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
-        const link = document.createElement("a");
-        link.download = `Bill_Report.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
+        const card = btn.closest(".bill-card");
+        if (!card) return;
+
+        if (card.classList.contains("edit-mode")) {
+          return showToast("Exit edit mode first.");
+        }
+
+        // ബ്ലാങ്ക് ആയ അവസാന വരികൾ താൽക്കാലികമായി മറയ്ക്കുന്നു
+        const hiddenBlankRows = [];
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const plateVal = r.getAttribute("data-plate") || r.querySelector(".manual-plate-input")?.value?.trim() || "";
+          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
+          const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
+          if (!plateVal && nhr === 0 && othr === 0) {
+            r.style.display = "none";
+            hiddenBlankRows.push(r);
+          }
+        });
+
+        card.querySelectorAll(
+          ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+        ).forEach((el) => (el.style.display = "none"));
+
+        card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = "none"));
+
+        const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
+        if (grandTotalCell) {
+          grandTotalCell.setAttribute("colspan", "5");
+        }
+
+        const printArea = card.querySelector(".print-area");
+
+        try {
+          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+          const link = document.createElement("a");
+          link.download = `Bill_Report.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        } catch (e) {
+          showToast("Unable to create PNG.");
+        } finally {
+          // ഹൈഡ് ചെയ്ത വരികളും കോളങ്ങളും തിരികെ കൊണ്ടുവരുന്നു
+          hiddenBlankRows.forEach((r) => (r.style.display = ""));
+          card.querySelectorAll(
+            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+          ).forEach((el) => (el.style.display = ""));
+          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          if (grandTotalCell) {
+            grandTotalCell.setAttribute("colspan", "6");
+          }
+        }
       }
 
+      /*
+       * ============================================================
+       * COPY HQ IMAGE (HIDE BLANK ROWS AUTOMATICALLY)
+       * ============================================================
+       */
+
       async function copyCardHQ(btn) {
-        const printArea = btn.closest(".bill-card").querySelector(".print-area");
-        const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
-        canvas.toBlob(async (blob) => {
-          if (navigator.clipboard) {
-            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-            showToast("Copied to Clipboard!");
+        const card = btn.closest(".bill-card");
+        if (!card) return;
+
+        if (card.classList.contains("edit-mode")) {
+          return showToast("Exit edit mode first.");
+        }
+
+        // ബ്ലാങ്ക് ആയ വരികൾ താൽക്കാലികമായി മറയ്ക്കുന്നു
+        const hiddenBlankRows = [];
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const plateVal = r.getAttribute("data-plate") || r.querySelector(".manual-plate-input")?.value?.trim() || "";
+          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
+          const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
+          if (!plateVal && nhr === 0 && othr === 0) {
+            r.style.display = "none";
+            hiddenBlankRows.push(r);
+          }
+        });
+
+        card.querySelectorAll(
+          ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+        ).forEach((el) => (el.style.display = "none"));
+
+        card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = "none"));
+
+        const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
+        if (grandTotalCell) {
+          grandTotalCell.setAttribute("colspan", "5");
+        }
+
+        const printArea = card.querySelector(".print-area");
+
+        try {
+          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+          canvas.toBlob(async (blob) => {
+            try {
+              if (!blob || !navigator.clipboard || typeof ClipboardItem === "undefined") {
+                showToast("Clipboard image is not supported in this browser.");
+                return;
+              }
+              await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+              showToast("Copied to Clipboard!");
+            } catch (e) {
+              showToast("Unable to copy image.");
+            }
+          }, "image/png");
+        } catch (e) {
+          showToast("Unable to create image.");
+        } finally {
+          hiddenBlankRows.forEach((r) => (r.style.display = ""));
+          card.querySelectorAll(
+            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+          ).forEach((el) => (el.style.display = ""));
+          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          if (grandTotalCell) {
+            grandTotalCell.setAttribute("colspan", "6");
+          }
+        }
+      }
+
+      /*
+       * ============================================================
+       * MANUAL PLATE INPUT WITH KEYBOARD NAVIGATION & 4-COLUMN SYNC
+       * ============================================================
+       */
+
+      let manualFocusIndex = -1;
+      let currentActivePlateCallback = null;
+
+      function setupManualPlateInput(row) {
+        const plateTd = row.children[5];
+        if (!plateTd) return;
+
+        plateTd.classList.add("manual-plate-cell");
+        plateTd.innerHTML = `
+          <input type="text" class="manual-plate-input" 
+            placeholder="Plate No..." 
+            autocomplete="off"
+            style="width:100%; height:100%; border:none; background:transparent; text-align:center; text-transform:uppercase; font-weight:bold; font-size:12px; outline:none; color:#0f172a; font-family:inherit;" />
+        `;
+
+        const plateInput = plateTd.querySelector(".manual-plate-input");
+
+        plateInput.addEventListener("input", function () {
+          const val = this.value.trim().toUpperCase().replace(/\s+/g, "");
+          if (!val) {
+            hideGlobalSuggestionBox();
+            return;
+          }
+
+          const matches = suggestionPlates.filter((p) =>
+            p && p.toUpperCase().replace(/\s+/g, "").includes(val)
+          );
+
+          if (matches.length > 0) {
+            manualFocusIndex = 0;
+            currentActivePlateCallback = (selectedPlate) => {
+              plateInput.value = selectedPlate;
+              row.setAttribute("data-plate", selectedPlate);
+              hideGlobalSuggestionBox();
+              fetchAndAutoFillManualRow(row, selectedPlate);
+            };
+            renderGlobalSuggestionBox(plateInput, matches, currentActivePlateCallback);
+          } else {
+            hideGlobalSuggestionBox();
+          }
+        });
+
+        plateInput.addEventListener("keydown", function (e) {
+          const globalBox = document.getElementById("manualGlobalSuggestionBox");
+          const isBoxVisible = globalBox && globalBox.style.display === "block";
+
+          if (isBoxVisible) {
+            const items = globalBox.querySelectorAll(".suggestion-item");
+            if (items.length > 0) {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                manualFocusIndex = (manualFocusIndex + 1) % items.length;
+                updateManualActiveSuggestion(items, manualFocusIndex, globalBox);
+                return;
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                manualFocusIndex = (manualFocusIndex - 1 + items.length) % items.length;
+                updateManualActiveSuggestion(items, manualFocusIndex, globalBox);
+                return;
+              } else if (e.key === "Enter" || e.key === "Tab") {
+                e.preventDefault();
+                if (manualFocusIndex > -1 && items[manualFocusIndex]) {
+                  const selectedText = items[manualFocusIndex].innerText;
+                  if (currentActivePlateCallback) currentActivePlateCallback(selectedText);
+                }
+                return;
+              }
+            }
+          }
+
+          if (e.key === "Enter") {
+            e.preventDefault();
+            hideGlobalSuggestionBox();
+            const val = this.value.trim().toUpperCase();
+            if (val) {
+              row.setAttribute("data-plate", val);
+              fetchAndAutoFillManualRow(row, val);
+            }
           }
         });
       }
 
+      function updateManualActiveSuggestion(items, index, box) {
+        items.forEach((it) => it.classList.remove("active"));
+        if (items[index]) {
+          items[index].classList.add("active");
+          items[index].scrollIntoView({ block: "nearest" });
+        }
+      }
+
+      function renderGlobalSuggestionBox(targetInput, matches, onSelectCallback) {
+        let globalBox = document.getElementById("manualGlobalSuggestionBox");
+        if (!globalBox) {
+          globalBox = document.createElement("div");
+          globalBox.id = "manualGlobalSuggestionBox";
+          globalBox.className = "suggestion-box";
+          globalBox.style.cssText = "position:absolute; z-index:999999; box-shadow:0 8px 20px rgba(0,0,0,0.25); width:200px; max-height:220px; border-radius:4px; overflow-y:auto; background:white; border:1px solid #1a4d80;";
+          document.body.appendChild(globalBox);
+        }
+
+        const rect = targetInput.getBoundingClientRect();
+        globalBox.style.top = `${rect.bottom + window.scrollY}px`;
+        globalBox.style.left = `${rect.left + window.scrollX}px`;
+
+        globalBox.innerHTML = "";
+        matches.forEach((m, idx) => {
+          const div = document.createElement("div");
+          div.className = "suggestion-item" + (idx === 0 ? " active" : "");
+          div.innerText = m;
+          div.onmousedown = (e) => {
+            e.preventDefault();
+            onSelectCallback(m);
+          };
+          globalBox.appendChild(div);
+        });
+
+        globalBox.style.display = "block";
+      }
+
+      function hideGlobalSuggestionBox() {
+        const globalBox = document.getElementById("manualGlobalSuggestionBox");
+        if (globalBox) globalBox.style.display = "none";
+        manualFocusIndex = -1;
+      }
+
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest(".manual-plate-input") && !e.target.closest("#manualGlobalSuggestionBox")) {
+          hideGlobalSuggestionBox();
+        }
+      });
+
+      /*
+       * ============================================================
+       * FETCH & AUTO-FILL INCLUDING LAST 4 COMPARISON COLUMNS
+       * ============================================================
+       */
+
+      async function fetchAndAutoFillManualRow(row, plate) {
+        const month = document.getElementById("selMonth").value;
+        const year = document.getElementById("selYear").value;
+        const token = localStorage.getItem("view_bill_token");
+
+        let match = fetchedRowsCache.find(
+          (r) => String(r.plate_no || "").trim().toUpperCase() === String(plate).trim().toUpperCase()
+        );
+
+        let repMatch = fetchedReportCache.find(
+          (rep) => String(rep.plate || "").trim().toUpperCase() === String(plate).trim().toUpperCase()
+        );
+
+        if (!match || !repMatch) {
+          try {
+            document.getElementById("loaderOverlay").style.display = "flex";
+            const res = await fetch(
+              `/api/view-bill/data?month=${month}&year=${year}&search_type=plate&search_value=${encodeURIComponent(plate)}`,
+              {
+                headers: { Authorization: "Bearer " + token },
+              }
+            );
+            const data = await res.json();
+            if (data.success) {
+              if (data.rows && data.rows.length > 0) match = data.rows[0];
+              if (data.reportData && data.reportData.length > 0) repMatch = data.reportData[0];
+            }
+          } catch (e) {
+            console.error(e);
+          } finally {
+            document.getElementById("loaderOverlay").style.display = "none";
+          }
+        }
+
+        if (match) {
+          row.children[2].innerText = match.vtype || "-";
+          row.children[3].innerText = match.site || "-";
+          row.children[4].innerText = match.driver || "-";
+
+          const nhrVal = parseFloat(match.nhr || 0);
+          const nrateVal = parseFloat(match.nrate || 0);
+          const othrVal = parseFloat(match.othr || 0);
+          const otrateVal = parseFloat(match.otrate || 0);
+
+          row.querySelector(".nhr-field").value = nhrVal;
+          row.querySelector(".nhr-cell .view-number-text").innerText = formatNumberDisplay(nhrVal);
+
+          row.querySelector(".nrate-field").value = nrateVal;
+          row.querySelectorAll(".rate-column-cell")[0].querySelector(".view-number-text").innerText = formatNumberDisplay(nrateVal);
+
+          row.querySelector(".othr-field").value = othrVal;
+          row.querySelector(".othr-cell .view-number-text").innerText = formatNumberDisplay(othrVal);
+
+          row.querySelector(".otrate-field").value = otrateVal;
+          row.querySelectorAll(".rate-column-cell")[1].querySelector(".view-number-text").innerText = formatNumberDisplay(otrateVal);
+
+          // 🟢 Last 4 Columns (Log. NR, Log. OT, Bill NR, Bill OT) Auto-fill
+          const tsNr = repMatch ? parseFloat(repMatch.ts_nr || 0) : 0;
+          const tsOt = repMatch ? parseFloat(repMatch.ts_ot || 0) : 0;
+          const invNr = repMatch ? parseFloat(repMatch.inv_nr || 0) : 0;
+          const invOt = repMatch ? parseFloat(repMatch.inv_ot || 0) : 0;
+
+          const extraCols = row.querySelectorAll(".extra-comparison-col");
+          if (extraCols.length >= 4) {
+            extraCols[0].innerText = formatNumberDisplay(tsNr);
+            extraCols[1].innerText = formatNumberDisplay(tsOt);
+            extraCols[2].innerText = formatNumberDisplay(invNr);
+            extraCols[3].innerText = formatNumberDisplay(invOt);
+          }
+
+          recalculateCardRow(row.querySelector(".nhr-field"));
+          updateManualComparisonTotals(row.closest(".bill-card"));
+
+          const tbody = row.parentElement;
+          if (row === tbody.lastElementChild) {
+            const card = row.closest(".bill-card");
+            addManualRowDirectly(card.id);
+          }
+          showToast(`Data loaded for Plate: ${plate}`);
+        }
+      }
+
+      function updateManualComparisonTotals(card) {
+        if (!card) return;
+        let sumTsNr = 0, sumTsOt = 0, sumInvNr = 0, sumInvOt = 0;
+
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const cols = r.querySelectorAll(".extra-comparison-col");
+          if (cols.length >= 4) {
+            sumTsNr += parseFloat(cols[0].innerText) || 0;
+            sumTsOt += parseFloat(cols[1].innerText) || 0;
+            sumInvNr += parseFloat(cols[2].innerText) || 0;
+            sumInvOt += parseFloat(cols[3].innerText) || 0;
+          }
+        });
+
+        const tfootCols = card.querySelectorAll(".supplier-bill-table tfoot tr td.extra-comparison-col");
+        if (tfootCols.length >= 4) {
+          tfootCols[0].innerText = formatNumberDisplay(sumTsNr);
+          tfootCols[1].innerText = formatNumberDisplay(sumTsOt);
+          tfootCols[2].innerText = formatNumberDisplay(sumInvNr);
+          tfootCols[3].innerText = formatNumberDisplay(sumInvOt);
+        }
+      }
+
+      /*
+       * ============================================================
+       * COMPANY ARRANGE
+       * ============================================================
+       */
+
+      function arrangeCompanyCards() {
+        if (
+          fetchedRowsCache.length === 0
+        ) {
+          return showToast(
+            "Fetch data first!"
+          );
+        }
+
+        let groups = {};
+
+        fetchedRowsCache.forEach(
+          (item) => {
+            let comp = "Haka";
+
+            let s =
+              (
+                item.site || ""
+              ).toUpperCase();
+
+            if (
+              s.includes(
+                "ALJODA"
+              )
+            ) {
+              comp = "Aljoda";
+            } else if (
+              s.includes(
+                "MASAR"
+              )
+            ) {
+              comp =
+                "Masar Wheels";
+            } else if (
+              s.includes(
+                "WE1"
+              )
+            ) {
+              comp =
+                "We1 Track";
+            }
+
+            if (!groups[comp]) {
+              groups[comp] = [];
+            }
+
+            groups[comp].push(
+              item
+            );
+          }
+        );
+
+        const container =
+          document.getElementById(
+            "cardsContainer"
+          );
+
+        container.innerHTML = "";
+
+        Object.keys(groups).forEach(
+          (comp) => {
+            renderCardsView(
+              groups[comp],
+              true,
+              comp
+            );
+          }
+        );
+
+        showToast(
+          "Arranged Company-wise!"
+        );
+      }
+
+      /*
+       * ============================================================
+       * DOWNLOAD PNG
+       * ============================================================
+       *
+       * Download button exists ONLY outside edit mode.
+       */
+
+      async function downloadCardPNG(
+        btn
+      ) {
+        const card =
+          btn.closest(".bill-card");
+
+        if (!card) {
+          return;
+        }
+
+        if (
+          card.classList.contains(
+            "edit-mode"
+          )
+        ) {
+          return showToast(
+            "Exit edit mode first."
+          );
+        }
+
+        card
+          .querySelectorAll(
+            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+          )
+          .forEach(
+            (el) =>
+              (el.style.display =
+                "none")
+          );
+
+        // Site കോളം ഡൗൺലോഡ്/കോപ്പി സമയത്ത് മാത്രം ഹൈഡ് ചെയ്യാൻ
+        card
+          .querySelectorAll(".site-column-cell")
+          .forEach(
+            (el) =>
+              (el.style.display = "none")
+          );
+
+        // ഡൗൺലോഡ് സമയത്ത് colspan 6 എന്നത് 5 ആക്കി മാറ്റാൻ
+        const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
+        if (grandTotalCell) {
+          grandTotalCell.setAttribute("colspan", "5");
+        }
+
+        const printArea =
+          card.querySelector(
+            ".print-area"
+          );
+
+        try {
+          const canvas =
+            await html2canvas(
+              printArea,
+              {
+                scale: 3,
+                useCORS: true,
+              }
+            );
+
+          const link =
+            document.createElement(
+              "a"
+            );
+
+          link.download =
+            `Bill_Report.png`;
+
+          link.href =
+            canvas.toDataURL(
+              "image/png"
+            );
+
+          link.click();
+        } catch (e) {
+          showToast(
+            "Unable to create PNG."
+          );
+        } finally {
+          card
+            .querySelectorAll(
+              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+            )
+            .forEach(
+              (el) =>
+                (el.style.display =
+                  "")
+            );
+
+          card
+            .querySelectorAll(".site-column-cell")
+            .forEach(
+              (el) =>
+                (el.style.display = "")
+            );
+
+          if (grandTotalCell) {
+            grandTotalCell.setAttribute("colspan", "6");
+          }
+        }
+      }
+
+      /*
+       * ============================================================
+       * COPY HQ IMAGE
+       * ============================================================
+       */
+
+      async function copyCardHQ(
+        btn
+      ) {
+        const card =
+          btn.closest(".bill-card");
+
+        if (!card) {
+          return;
+        }
+
+        if (
+          card.classList.contains(
+            "edit-mode"
+          )
+        ) {
+          return showToast(
+            "Exit edit mode first."
+          );
+        }
+
+        card
+          .querySelectorAll(
+            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+          )
+          .forEach(
+            (el) =>
+              (el.style.display =
+                "none")
+          );
+
+        // Site കോളം ഡൗൺലോഡ്/കോപ്പി സമയത്ത് മാത്രം ഹൈഡ് ചെയ്യാൻ
+        card
+          .querySelectorAll(".site-column-cell")
+          .forEach(
+            (el) =>
+              (el.style.display = "none")
+          );
+
+        // കോപ്പി ചെയ്യുന്ന സമയത്ത് colspan 6 എന്നത് 5 ആക്കി മാറ്റാൻ
+        const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
+        if (grandTotalCell) {
+          grandTotalCell.setAttribute("colspan", "5");
+        }
+
+        const printArea =
+          card.querySelector(
+            ".print-area"
+          );
+
+        try {
+          const canvas =
+            await html2canvas(
+              printArea,
+              {
+                scale: 3,
+                useCORS: true,
+              }
+            );
+
+          canvas.toBlob(
+            async (blob) => {
+              try {
+                if (
+                  !blob ||
+                  !navigator.clipboard ||
+                  typeof ClipboardItem ===
+                    "undefined"
+                ) {
+                  showToast(
+                    "Clipboard image is not supported in this browser."
+                  );
+
+                  return;
+                }
+
+                await navigator.clipboard.write(
+                  [
+                    new ClipboardItem(
+                      {
+                        "image/png":
+                          blob,
+                      }
+                    ),
+                  ]
+                );
+
+                showToast(
+                  "Copied to Clipboard!"
+                );
+              } catch (e) {
+                showToast(
+                  "Unable to copy image."
+                );
+              }
+            },
+            "image/png"
+          );
+        } catch (e) {
+          showToast(
+            "Unable to create image."
+          );
+        } finally {
+          card
+            .querySelectorAll(
+              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+            )
+            .forEach(
+              (el) =>
+                (el.style.display =
+                  "")
+            );
+
+          card
+            .querySelectorAll(".site-column-cell")
+            .forEach(
+              (el) =>
+                (el.style.display = "")
+            );
+
+          if (grandTotalCell) {
+            grandTotalCell.setAttribute("colspan", "6");
+          }
+        }
+      }
+
+      /*
+       * ============================================================
+       * REPORT TABLE
+       * ============================================================
+       */
+
+      function renderReportTable(
+        data
+      ) {
+        const tbody =
+          document.getElementById(
+            "reportTableBody"
+          );
+
+        tbody.innerHTML = "";
+
+        if (data.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td
+                colspan="17"
+                style="padding:30px;"
+              >
+                No report records found.
+              </td>
+            </tr>
+          `;
+
+          return;
+        }
+
+        data.forEach(
+          (r, idx) => {
+            tbody.innerHTML += `
+              <tr>
+
+                <td>
+                  ${idx + 1}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    r.report_date
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    r.rate
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    r.vat
+                  )}
+                </td>
+
+                <td style="text-align:left;">
+                  ${escapeHtml(
+                    r.site
+                  )}
+                </td>
+
+                <td style="text-align:left;">
+                  ${escapeHtml(
+                    r.owner
+                  )}
+                </td>
+
+                <td style="text-align:left;">
+                  ${escapeHtml(
+                    r.driver_name
+                  )}
+                </td>
+
+                <td
+                  style="font-weight:bold; color:#0f172a;"
+                >
+                  ${escapeHtml(
+                    r.plate
+                  )}
+                </td>
+
+                <td
+                  style="background:#f0fdf4;"
+                >
+                  ${r.ts_nr || ""}
+                </td>
+
+                <td
+                  style="background:#f0fdf4;"
+                >
+                  ${r.ts_ot || ""}
+                </td>
+
+                <td
+                  style="background:#eff6ff;"
+                >
+                  ${
+                    r.inv_nr !==
+                      undefined &&
+                    r.inv_nr !== null
+                      ? r.inv_nr
+                      : ""
+                  }
+                </td>
+
+                <td
+                  style="background:#eff6ff;"
+                >
+                  ${
+                    r.inv_ot !==
+                      undefined &&
+                    r.inv_ot !== null
+                      ? r.inv_ot
+                      : ""
+                  }
+                </td>
+
+                <td
+                  style="background:#faf5ff;"
+                >
+                  ${
+                    r.bill_db_nr !==
+                      undefined &&
+                    r.bill_db_nr !== null
+                      ? r.bill_db_nr
+                      : ""
+                  }
+                </td>
+
+                <td
+                  style="background:#faf5ff;"
+                >
+                  ${
+                    r.bill_db_ot !==
+                      undefined &&
+                    r.bill_db_ot !== null
+                      ? r.bill_db_ot
+                      : ""
+                  }
+                </td>
+
+                <td
+                  style="color:#be123c; font-weight:bold;"
+                >
+                  ${r.diff_nr || ""}
+                </td>
+
+                <td
+                  style="color:#be123c; font-weight:bold;"
+                >
+                  ${r.diff_ot || ""}
+                </td>
+
+                <td
+                  style="font-weight:bold;"
+                >
+                  ${r.diff_st || ""}
+                </td>
+
+              </tr>
+            `;
+          }
+        );
+      }
+
+      /*
+       * ============================================================
+       * EXCEL EXPORT
+       * ============================================================
+       */
+
       function exportDataToExcel() {
-        if (fetchedRowsCache.length === 0) return showToast("No data to export!");
-        const ws = XLSX.utils.json_to_sheet(fetchedRowsCache);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "View_Bill");
-        XLSX.writeFile(wb, `View_Bill_Export.xlsx`);
+        if (
+          fetchedRowsCache.length ===
+          0
+        ) {
+          return showToast(
+            "No data to export!"
+          );
+        }
+
+        const ws =
+          XLSX.utils.json_to_sheet(
+            fetchedRowsCache
+          );
+
+        const wb =
+          XLSX.utils.book_new();
+
+        XLSX.utils.book_append_sheet(
+          wb,
+          ws,
+          "View_Bill"
+        );
+
+        XLSX.writeFile(
+          wb,
+          `View_Bill_Export.xlsx`
+        );
+      }
+
+      /*
+       * ============================================================
+       * HELPERS
+       * ============================================================
+       */
+
+      function formatNumberDisplay(
+        value
+      ) {
+        const num =
+          parseFloat(value);
+
+        if (
+          !Number.isFinite(num)
+        ) {
+          return "0";
+        }
+
+        /*
+         * Keep normal display clean:
+         * 10 -> 10
+         * 10.5 -> 10.5
+         * 10.25 -> 10.25
+         */
+        return Number.isInteger(num)
+          ? String(num)
+          : String(
+              parseFloat(
+                num.toFixed(2)
+              )
+            );
+      }
+
+      function escapeHtml(
+        value
+      ) {
+        if (
+          value === null ||
+          value === undefined
+        ) {
+          return "";
+        }
+
+        return String(value)
+          .replace(
+            /&/g,
+            "&amp;"
+          )
+          .replace(
+            /</g,
+            "&lt;"
+          )
+          .replace(
+            />/g,
+            "&gt;"
+          )
+          .replace(
+            /"/g,
+            "&quot;"
+          )
+          .replace(
+            /'/g,
+            "&#039;"
+          );
+      }
+
+      function escapeHtmlAttribute(
+        value
+      ) {
+        return escapeHtml(value);
       }
 
       function showToast(msg) {
-        const t = document.getElementById("toast");
+        const t =
+          document.getElementById(
+            "toast"
+          );
+
         t.innerText = msg;
+
         t.className = "show";
-        setTimeout(() => (t.className = ""), 3000);
+
+        setTimeout(
+          () =>
+            (t.className = ""),
+          3000
+        );
       }
     </script>
   </body>
