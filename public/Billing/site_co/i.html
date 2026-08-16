@@ -2446,132 +2446,46 @@ document.addEventListener(
         return card;
       }
 
-      /*
+     /*
        * ============================================================
-       * EDIT MODE
+       * EDIT MODE & CANCEL EDIT (FIXED FOR MANUAL CARD DATA PRESERVATION)
        * ============================================================
        */
 
       function enableCardEdit(btn) {
-        const card =
-          btn.closest(".bill-card");
+        const card = btn.closest(".bill-card");
+        if (!card || card.classList.contains("edit-mode")) return;
 
-        if (!card) {
-          return;
-        }
+        card.classList.add("edit-mode");
 
-        if (
-          card.classList.contains(
-            "edit-mode"
-          )
-        ) {
-          return;
-        }
+        // എഡിറ്റ് തുടങ്ങുന്നതിന് തൊട്ടുമുമ്പുള്ള വാല്യൂസ് കൃത്യമായി ബാക്കപ്പ് ചെയ്യുന്നു
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((row) => {
+          const nhrInput = row.querySelector(".nhr-field");
+          const othrInput = row.querySelector(".othr-field");
+          const nrateInput = row.querySelector(".nrate-field");
+          const otrateInput = row.querySelector(".otrate-field");
 
-        card.classList.add(
-          "edit-mode"
-        );
-
-        /*
-         * Store current values before editing.
-         * This protects Cancel.
-         */
-        card.querySelectorAll(
-          ".supplier-bill-table tbody tr"
-        ).forEach((row) => {
-          const nhrInput =
-            row.querySelector(
-              ".nhr-field"
-            );
-
-          const othrInput =
-            row.querySelector(
-              ".othr-field"
-            );
-
-          const nrateInput =
-            row.querySelector(
-              ".nrate-field"
-            );
-
-          const otrateInput =
-            row.querySelector(
-              ".otrate-field"
-            );
-
-          if (nhrInput) {
-            nhrInput.dataset.original =
-              nhrInput.value;
-          }
-
-          if (othrInput) {
-            othrInput.dataset.original =
-              othrInput.value;
-          }
-
-          if (nrateInput) {
-            nrateInput.dataset.original =
-              nrateInput.value;
-          }
-
-          if (otrateInput) {
-            otrateInput.dataset.original =
-              otrateInput.value;
-          }
+          if (nhrInput) nhrInput.dataset.original = nhrInput.value;
+          if (othrInput) othrInput.dataset.original = othrInput.value;
+          if (nrateInput) nrateInput.dataset.original = nrateInput.value;
+          if (otrateInput) otrateInput.dataset.original = otrateInput.value;
         });
 
-        /*
-         * Show numeric input fields.
-         */
-        card.querySelectorAll(
-          ".edit-number-input"
-        ).forEach((input) => {
-          input.style.display =
-            "inline-block";
+        card.querySelectorAll(".edit-number-input").forEach((input) => {
+          input.style.display = "inline-block";
         });
 
-        /*
-         * Hide view text.
-         */
-        card.querySelectorAll(
-          ".view-number-text"
-        ).forEach((span) => {
+        card.querySelectorAll(".view-number-text").forEach((span) => {
           span.style.display = "none";
         });
 
-        /*
-         * Change buttons.
-         */
-        card.querySelector(
-          ".card-edit-btn"
-        ).style.display = "none";
+        card.querySelector(".card-edit-btn").style.display = "none";
+        card.querySelector(".card-download-btn").style.display = "none";
+        card.querySelector(".card-copy-btn").style.display = "none";
+        card.querySelector(".card-save-btn").style.display = "inline-flex";
+        card.querySelector(".card-cancel-btn").style.display = "inline-flex";
 
-        card.querySelector(
-          ".card-download-btn"
-        ).style.display = "none";
-
-        card.querySelector(
-          ".card-copy-btn"
-        ).style.display = "none";
-
-        card.querySelector(
-          ".card-save-btn"
-        ).style.display =
-          "inline-flex";
-
-        card.querySelector(
-          ".card-cancel-btn"
-        ).style.display =
-          "inline-flex";
-
-        /*
-         * Focus first N.Hr field.
-         */
-        const firstNhr =
-          card.querySelector(
-            ".nhr-field"
-          );
-
+        const firstNhr = card.querySelector(".nhr-field");
         if (firstNhr) {
           setTimeout(() => {
             firstNhr.focus();
@@ -2580,99 +2494,77 @@ document.addEventListener(
         }
       }
 
-      /*
-       * ============================================================
-       * CANCEL EDIT
-       * ============================================================
-       */
-
       function cancelCardEdit(btn) {
-        const card =
-          btn.closest(".bill-card");
+        const card = btn.closest(".bill-card");
+        if (!card) return;
 
-        if (!card) {
+        const isManualCard = card.id && card.id.startsWith("manualBillCard_");
+
+        // മാനുവൽ കാർഡ് ആണെങ്കിൽ ടേബിൾ മാറ്റാതെ എഡിറ്റ് ചെയ്ത ഫീൽഡുകൾ മാത്രം പഴയ വാല്യൂവിലേക്ക് മാറ്റുന്നു
+        if (isManualCard) {
+          card.classList.remove("edit-mode");
+
+          card.querySelectorAll(".supplier-bill-table tbody tr").forEach((row) => {
+            const nhrInput = row.querySelector(".nhr-field");
+            const othrInput = row.querySelector(".othr-field");
+            const nrateInput = row.querySelector(".nrate-field");
+            const otrateInput = row.querySelector(".otrate-field");
+
+            if (nhrInput && nhrInput.dataset.original !== undefined) {
+              nhrInput.value = nhrInput.dataset.original;
+            }
+            if (othrInput && othrInput.dataset.original !== undefined) {
+              othrInput.value = othrInput.dataset.original;
+            }
+            if (nrateInput && nrateInput.dataset.original !== undefined) {
+              nrateInput.value = nrateInput.dataset.original;
+            }
+            if (otrateInput && otrateInput.dataset.original !== undefined) {
+              otrateInput.value = otrateInput.dataset.original;
+            }
+
+            if (nhrInput) recalculateCardRow(nhrInput);
+          });
+
+          card.querySelectorAll(".edit-number-input").forEach((input) => {
+            input.style.display = "none";
+          });
+
+          card.querySelectorAll(".view-number-text").forEach((span) => {
+            span.style.display = "inline-block";
+          });
+
+          card.querySelector(".card-edit-btn").style.display = "inline-flex";
+          card.querySelector(".card-download-btn").style.display = "inline-flex";
+          card.querySelector(".card-copy-btn").style.display = "inline-flex";
+          card.querySelector(".card-save-btn").style.display = "none";
+          card.querySelector(".card-cancel-btn").style.display = "none";
+
+          showToast("Changes cancelled");
           return;
         }
 
-        /*
-         * Restore values from original rows.
-         * Rebuilding the card also restores Rent / Total / Grand Total.
-         */
-        const originalRows =
-          card._originalRows
-            ? JSON.parse(
-                JSON.stringify(
-                  card._originalRows
-                )
-              )
-            : null;
-
-        const companyTitle =
-          card._companyTitle || "";
+        // സാധാരണ കാർഡുകൾ പഴയതുപോലെ rebuild ചെയ്യുന്നു
+        const originalRows = card._originalRows ? JSON.parse(JSON.stringify(card._originalRows)) : null;
+        const companyTitle = card._companyTitle || "";
 
         if (originalRows) {
-          const newCard =
-            buildBillCardElement(
-              originalRows,
-              companyTitle
-            );
-
-          card.replaceWith(
-            newCard
-          );
-
-          showToast(
-            "Changes cancelled"
-          );
-
+          const newCard = buildBillCardElement(originalRows, companyTitle);
+          card.replaceWith(newCard);
+          showToast("Changes cancelled");
           return;
         }
 
-        /*
-         * Fallback if original data is not available.
-         */
-        card.classList.remove(
-          "edit-mode"
-        );
+        card.classList.remove("edit-mode");
+        card.querySelectorAll(".edit-number-input").forEach((input) => (input.style.display = "none"));
+        card.querySelectorAll(".view-number-text").forEach((span) => (span.style.display = "inline-block"));
 
-        card.querySelectorAll(
-          ".edit-number-input"
-        ).forEach((input) => {
-          input.style.display =
-            "none";
-        });
-
-        card.querySelectorAll(
-          ".view-number-text"
-        ).forEach((span) => {
-          span.style.display =
-            "inline-block";
-        });
-
-        card.querySelector(
-          ".card-edit-btn"
-        ).style.display =
-          "inline-flex";
-
-        card.querySelector(
-          ".card-download-btn"
-        ).style.display =
-          "inline-flex";
-
-        card.querySelector(
-          ".card-copy-btn"
-        ).style.display =
-          "inline-flex";
-
-        card.querySelector(
-          ".card-save-btn"
-        ).style.display = "none";
-
-        card.querySelector(
-          ".card-cancel-btn"
-        ).style.display = "none";
+        card.querySelector(".card-edit-btn").style.display = "inline-flex";
+        card.querySelector(".card-download-btn").style.display = "inline-flex";
+        card.querySelector(".card-copy-btn").style.display = "inline-flex";
+        card.querySelector(".card-save-btn").style.display = "none";
+        card.querySelector(".card-cancel-btn").style.display = "none";
       }
-
       /*
        * ============================================================
        * RECALCULATE EDITED ROW
@@ -3649,63 +3541,482 @@ document.addEventListener(
 
       /*
        * ============================================================
-       * MANUAL CARD
+       * MANUAL BILL TABLE (CLEAN BORDERLESS & AUTO-ROW)
        * ============================================================
        */
 
+      let manualTableCount = 0;
+
       function addManualCardRow() {
-        const manualRow = [
-          {
-            date:
-              document
-                .getElementById(
-                  "selMonth"
-                )
-                .value.substring(
-                  0,
-                  3
-                ) +
-              " " +
-              document
-                .getElementById(
-                  "selYear"
-                )
-                .value.substring(
-                  2
-                ),
+        manualTableCount++;
+        const container = document.getElementById("cardsContainer");
 
-            vtype:
-              "Dump Truck 24",
+        if (container.innerText.includes("No Bills Loaded")) {
+          container.innerHTML = "";
+        }
 
-            driver:
-              "Manual Driver",
+        const selMonth = document.getElementById("selMonth").value.substring(0, 3);
+        const selYear = document.getElementById("selYear").value.substring(2);
+        const dateStr = `${selMonth} ${selYear}`;
 
-            site:
-              "Manual Site",
+        const emptyManualItem = {
+          date: dateStr,
+          vtype: "",
+          driver: "",
+          site: "",
+          plate_no: "",
+          nhr: 0,
+          nrate: 0,
+          othr: 0,
+          otrate: 0,
+          rent: 0,
+          vat_amount: 0,
+          total: 0,
+          owner: "Manual Entry"
+        };
 
-            plate_no:
-              "NEW 0000",
+        const card = buildBillCardElement([emptyManualItem], "Manual Entry Table");
+        card.id = `manualBillCard_${manualTableCount}`;
 
-            nhr: 0,
-            othr: 0,
-            nrate: 0,
-            otrate: 0,
-            rent: 0,
-            total: 0,
-            owner:
-              "Manual Owner",
-          },
-        ];
+        const firstRow = card.querySelector(".supplier-bill-table tbody tr");
+        if (firstRow) {
+          setupManualPlateInput(firstRow);
+        }
 
-        renderCardsView(
-          manualRow,
-          true,
-          "Manual Bill"
+        container.insertAdjacentElement("afterbegin", card);
+        showToast("Blank Manual Table Created!");
+      }
+
+      function addManualRowDirectly(cardId) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+
+        const tbody = card.querySelector(".supplier-bill-table tbody");
+        const rowCount = tbody.querySelectorAll("tr").length + 1;
+
+        const selMonth = document.getElementById("selMonth").value.substring(0, 3);
+        const selYear = document.getElementById("selYear").value.substring(2);
+        const dateStr = `${selMonth} ${selYear}`;
+
+        const isCurrentlyEditing = card.classList.contains("edit-mode");
+
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-plate", "");
+
+        tr.innerHTML = `
+          <td>${rowCount}</td>
+          <td>${dateStr}</td>
+          <td class="manual-vtype"></td>
+          <td style="text-align:left;" class="site-column-cell manual-site"></td>
+          <td style="text-align:left; white-space:nowrap;" class="manual-driver"></td>
+          <td class="manual-plate-cell">
+            <input type="text" class="manual-plate-input" 
+              placeholder="Plate No..." 
+              autocomplete="off"
+              style="width:100%; height:100%; border:none; background:transparent; text-align:center; text-transform:uppercase; font-weight:bold; font-size:12px; outline:none; color:#0f172a; font-family:inherit;" />
+          </td>
+          <td class="nhr-cell editable-number-cell" data-original-value="0">
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input nhr-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+          </td>
+          <td class="rate-column-cell editable-number-cell">
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input nrate-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+          </td>
+          <td class="othr-cell editable-number-cell" data-original-value="0">
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input othr-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+          </td>
+          <td class="rate-column-cell editable-number-cell">
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input otrate-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+          </td>
+          <td class="rent-cell">0.00</td>
+          <td style="font-weight:bold;" class="total-cell">0.00</td>
+          <td class="extra-comparison-col" style="background:#f0fdf4;">0</td>
+          <td class="extra-comparison-col" style="background:#f0fdf4;">0</td>
+          <td class="extra-comparison-col" style="background:#eff6ff;">0</td>
+          <td class="extra-comparison-col" style="background:#eff6ff;">0</td>
+        `;
+
+        tbody.appendChild(tr);
+        setupManualPlateInput(tr);
+        recalculateCardGrandTotals(card);
+      }
+
+      /*
+       * ============================================================
+       * DOWNLOAD PNG (HIDE BLANK ROWS AUTOMATICALLY)
+       * ============================================================
+       */
+
+      async function downloadCardPNG(btn) {
+        const card = btn.closest(".bill-card");
+        if (!card) return;
+
+        if (card.classList.contains("edit-mode")) {
+          return showToast("Exit edit mode first.");
+        }
+
+        // ബ്ലാങ്ക് ആയ അവസാന വരികൾ താൽക്കാലികമായി മറയ്ക്കുന്നു
+        const hiddenBlankRows = [];
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const plateVal = r.getAttribute("data-plate") || r.querySelector(".manual-plate-input")?.value?.trim() || "";
+          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
+          const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
+          if (!plateVal && nhr === 0 && othr === 0) {
+            r.style.display = "none";
+            hiddenBlankRows.push(r);
+          }
+        });
+
+        card.querySelectorAll(
+          ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+        ).forEach((el) => (el.style.display = "none"));
+
+        card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = "none"));
+
+        const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
+        if (grandTotalCell) {
+          grandTotalCell.setAttribute("colspan", "5");
+        }
+
+        const printArea = card.querySelector(".print-area");
+
+        try {
+          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+          const link = document.createElement("a");
+          link.download = `Bill_Report.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        } catch (e) {
+          showToast("Unable to create PNG.");
+        } finally {
+          // ഹൈഡ് ചെയ്ത വരികളും കോളങ്ങളും തിരികെ കൊണ്ടുവരുന്നു
+          hiddenBlankRows.forEach((r) => (r.style.display = ""));
+          card.querySelectorAll(
+            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+          ).forEach((el) => (el.style.display = ""));
+          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          if (grandTotalCell) {
+            grandTotalCell.setAttribute("colspan", "6");
+          }
+        }
+      }
+
+      /*
+       * ============================================================
+       * COPY HQ IMAGE (HIDE BLANK ROWS AUTOMATICALLY)
+       * ============================================================
+       */
+
+      async function copyCardHQ(btn) {
+        const card = btn.closest(".bill-card");
+        if (!card) return;
+
+        if (card.classList.contains("edit-mode")) {
+          return showToast("Exit edit mode first.");
+        }
+
+        // ബ്ലാങ്ക് ആയ വരികൾ താൽക്കാലികമായി മറയ്ക്കുന്നു
+        const hiddenBlankRows = [];
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const plateVal = r.getAttribute("data-plate") || r.querySelector(".manual-plate-input")?.value?.trim() || "";
+          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
+          const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
+          if (!plateVal && nhr === 0 && othr === 0) {
+            r.style.display = "none";
+            hiddenBlankRows.push(r);
+          }
+        });
+
+        card.querySelectorAll(
+          ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+        ).forEach((el) => (el.style.display = "none"));
+
+        card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = "none"));
+
+        const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
+        if (grandTotalCell) {
+          grandTotalCell.setAttribute("colspan", "5");
+        }
+
+        const printArea = card.querySelector(".print-area");
+
+        try {
+          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+          canvas.toBlob(async (blob) => {
+            try {
+              if (!blob || !navigator.clipboard || typeof ClipboardItem === "undefined") {
+                showToast("Clipboard image is not supported in this browser.");
+                return;
+              }
+              await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+              showToast("Copied to Clipboard!");
+            } catch (e) {
+              showToast("Unable to copy image.");
+            }
+          }, "image/png");
+        } catch (e) {
+          showToast("Unable to create image.");
+        } finally {
+          hiddenBlankRows.forEach((r) => (r.style.display = ""));
+          card.querySelectorAll(
+            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+          ).forEach((el) => (el.style.display = ""));
+          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          if (grandTotalCell) {
+            grandTotalCell.setAttribute("colspan", "6");
+          }
+        }
+      }
+
+      /*
+       * ============================================================
+       * MANUAL PLATE INPUT WITH KEYBOARD NAVIGATION & 4-COLUMN SYNC
+       * ============================================================
+       */
+
+      let manualFocusIndex = -1;
+      let currentActivePlateCallback = null;
+
+      function setupManualPlateInput(row) {
+        const plateTd = row.children[5];
+        if (!plateTd) return;
+
+        plateTd.classList.add("manual-plate-cell");
+        plateTd.innerHTML = `
+          <input type="text" class="manual-plate-input" 
+            placeholder="Plate No..." 
+            autocomplete="off"
+            style="width:100%; height:100%; border:none; background:transparent; text-align:center; text-transform:uppercase; font-weight:bold; font-size:12px; outline:none; color:#0f172a; font-family:inherit;" />
+        `;
+
+        const plateInput = plateTd.querySelector(".manual-plate-input");
+
+        plateInput.addEventListener("input", function () {
+          const val = this.value.trim().toUpperCase().replace(/\s+/g, "");
+          if (!val) {
+            hideGlobalSuggestionBox();
+            return;
+          }
+
+          const matches = suggestionPlates.filter((p) =>
+            p && p.toUpperCase().replace(/\s+/g, "").includes(val)
+          );
+
+          if (matches.length > 0) {
+            manualFocusIndex = 0;
+            currentActivePlateCallback = (selectedPlate) => {
+              plateInput.value = selectedPlate;
+              row.setAttribute("data-plate", selectedPlate);
+              hideGlobalSuggestionBox();
+              fetchAndAutoFillManualRow(row, selectedPlate);
+            };
+            renderGlobalSuggestionBox(plateInput, matches, currentActivePlateCallback);
+          } else {
+            hideGlobalSuggestionBox();
+          }
+        });
+
+        plateInput.addEventListener("keydown", function (e) {
+          const globalBox = document.getElementById("manualGlobalSuggestionBox");
+          const isBoxVisible = globalBox && globalBox.style.display === "block";
+
+          if (isBoxVisible) {
+            const items = globalBox.querySelectorAll(".suggestion-item");
+            if (items.length > 0) {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                manualFocusIndex = (manualFocusIndex + 1) % items.length;
+                updateManualActiveSuggestion(items, manualFocusIndex, globalBox);
+                return;
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                manualFocusIndex = (manualFocusIndex - 1 + items.length) % items.length;
+                updateManualActiveSuggestion(items, manualFocusIndex, globalBox);
+                return;
+              } else if (e.key === "Enter" || e.key === "Tab") {
+                e.preventDefault();
+                if (manualFocusIndex > -1 && items[manualFocusIndex]) {
+                  const selectedText = items[manualFocusIndex].innerText;
+                  if (currentActivePlateCallback) currentActivePlateCallback(selectedText);
+                }
+                return;
+              }
+            }
+          }
+
+          if (e.key === "Enter") {
+            e.preventDefault();
+            hideGlobalSuggestionBox();
+            const val = this.value.trim().toUpperCase();
+            if (val) {
+              row.setAttribute("data-plate", val);
+              fetchAndAutoFillManualRow(row, val);
+            }
+          }
+        });
+      }
+
+      function updateManualActiveSuggestion(items, index, box) {
+        items.forEach((it) => it.classList.remove("active"));
+        if (items[index]) {
+          items[index].classList.add("active");
+          items[index].scrollIntoView({ block: "nearest" });
+        }
+      }
+
+      function renderGlobalSuggestionBox(targetInput, matches, onSelectCallback) {
+        let globalBox = document.getElementById("manualGlobalSuggestionBox");
+        if (!globalBox) {
+          globalBox = document.createElement("div");
+          globalBox.id = "manualGlobalSuggestionBox";
+          globalBox.className = "suggestion-box";
+          globalBox.style.cssText = "position:absolute; z-index:999999; box-shadow:0 8px 20px rgba(0,0,0,0.25); width:200px; max-height:220px; border-radius:4px; overflow-y:auto; background:white; border:1px solid #1a4d80;";
+          document.body.appendChild(globalBox);
+        }
+
+        const rect = targetInput.getBoundingClientRect();
+        globalBox.style.top = `${rect.bottom + window.scrollY}px`;
+        globalBox.style.left = `${rect.left + window.scrollX}px`;
+
+        globalBox.innerHTML = "";
+        matches.forEach((m, idx) => {
+          const div = document.createElement("div");
+          div.className = "suggestion-item" + (idx === 0 ? " active" : "");
+          div.innerText = m;
+          div.onmousedown = (e) => {
+            e.preventDefault();
+            onSelectCallback(m);
+          };
+          globalBox.appendChild(div);
+        });
+
+        globalBox.style.display = "block";
+      }
+
+      function hideGlobalSuggestionBox() {
+        const globalBox = document.getElementById("manualGlobalSuggestionBox");
+        if (globalBox) globalBox.style.display = "none";
+        manualFocusIndex = -1;
+      }
+
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest(".manual-plate-input") && !e.target.closest("#manualGlobalSuggestionBox")) {
+          hideGlobalSuggestionBox();
+        }
+      });
+
+      /*
+       * ============================================================
+       * FETCH & AUTO-FILL INCLUDING LAST 4 COMPARISON COLUMNS
+       * ============================================================
+       */
+
+      async function fetchAndAutoFillManualRow(row, plate) {
+        const month = document.getElementById("selMonth").value;
+        const year = document.getElementById("selYear").value;
+        const token = localStorage.getItem("view_bill_token");
+
+        let match = fetchedRowsCache.find(
+          (r) => String(r.plate_no || "").trim().toUpperCase() === String(plate).trim().toUpperCase()
         );
 
-        showToast(
-          "Manual Row Added!"
+        let repMatch = fetchedReportCache.find(
+          (rep) => String(rep.plate || "").trim().toUpperCase() === String(plate).trim().toUpperCase()
         );
+
+        if (!match || !repMatch) {
+          try {
+            document.getElementById("loaderOverlay").style.display = "flex";
+            const res = await fetch(
+              `/api/view-bill/data?month=${month}&year=${year}&search_type=plate&search_value=${encodeURIComponent(plate)}`,
+              {
+                headers: { Authorization: "Bearer " + token },
+              }
+            );
+            const data = await res.json();
+            if (data.success) {
+              if (data.rows && data.rows.length > 0) match = data.rows[0];
+              if (data.reportData && data.reportData.length > 0) repMatch = data.reportData[0];
+            }
+          } catch (e) {
+            console.error(e);
+          } finally {
+            document.getElementById("loaderOverlay").style.display = "none";
+          }
+        }
+
+        if (match) {
+          row.children[2].innerText = match.vtype || "-";
+          row.children[3].innerText = match.site || "-";
+          row.children[4].innerText = match.driver || "-";
+
+          const nhrVal = parseFloat(match.nhr || 0);
+          const nrateVal = parseFloat(match.nrate || 0);
+          const othrVal = parseFloat(match.othr || 0);
+          const otrateVal = parseFloat(match.otrate || 0);
+
+          row.querySelector(".nhr-field").value = nhrVal;
+          row.querySelector(".nhr-cell .view-number-text").innerText = formatNumberDisplay(nhrVal);
+
+          row.querySelector(".nrate-field").value = nrateVal;
+          row.querySelectorAll(".rate-column-cell")[0].querySelector(".view-number-text").innerText = formatNumberDisplay(nrateVal);
+
+          row.querySelector(".othr-field").value = othrVal;
+          row.querySelector(".othr-cell .view-number-text").innerText = formatNumberDisplay(othrVal);
+
+          row.querySelector(".otrate-field").value = otrateVal;
+          row.querySelectorAll(".rate-column-cell")[1].querySelector(".view-number-text").innerText = formatNumberDisplay(otrateVal);
+
+          // 🟢 Last 4 Columns (Log. NR, Log. OT, Bill NR, Bill OT) Auto-fill
+          const tsNr = repMatch ? parseFloat(repMatch.ts_nr || 0) : 0;
+          const tsOt = repMatch ? parseFloat(repMatch.ts_ot || 0) : 0;
+          const invNr = repMatch ? parseFloat(repMatch.inv_nr || 0) : 0;
+          const invOt = repMatch ? parseFloat(repMatch.inv_ot || 0) : 0;
+
+          const extraCols = row.querySelectorAll(".extra-comparison-col");
+          if (extraCols.length >= 4) {
+            extraCols[0].innerText = formatNumberDisplay(tsNr);
+            extraCols[1].innerText = formatNumberDisplay(tsOt);
+            extraCols[2].innerText = formatNumberDisplay(invNr);
+            extraCols[3].innerText = formatNumberDisplay(invOt);
+          }
+
+          recalculateCardRow(row.querySelector(".nhr-field"));
+          updateManualComparisonTotals(row.closest(".bill-card"));
+
+          const tbody = row.parentElement;
+          if (row === tbody.lastElementChild) {
+            const card = row.closest(".bill-card");
+            addManualRowDirectly(card.id);
+          }
+          showToast(`Data loaded for Plate: ${plate}`);
+        }
+      }
+
+      function updateManualComparisonTotals(card) {
+        if (!card) return;
+        let sumTsNr = 0, sumTsOt = 0, sumInvNr = 0, sumInvOt = 0;
+
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const cols = r.querySelectorAll(".extra-comparison-col");
+          if (cols.length >= 4) {
+            sumTsNr += parseFloat(cols[0].innerText) || 0;
+            sumTsOt += parseFloat(cols[1].innerText) || 0;
+            sumInvNr += parseFloat(cols[2].innerText) || 0;
+            sumInvOt += parseFloat(cols[3].innerText) || 0;
+          }
+        });
+
+        const tfootCols = card.querySelectorAll(".supplier-bill-table tfoot tr td.extra-comparison-col");
+        if (tfootCols.length >= 4) {
+          tfootCols[0].innerText = formatNumberDisplay(sumTsNr);
+          tfootCols[1].innerText = formatNumberDisplay(sumTsOt);
+          tfootCols[2].innerText = formatNumberDisplay(sumInvNr);
+          tfootCols[3].innerText = formatNumberDisplay(sumInvOt);
+        }
       }
 
       /*
