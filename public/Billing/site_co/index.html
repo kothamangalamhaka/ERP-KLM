@@ -225,11 +225,70 @@
         margin-bottom: 15px;
         width: 100%;
         box-sizing: border-box;
+        gap: 15px;
+        flex-wrap: nowrap;
       }
 
       .edit-mode .card-header-bar {
         background: #f8fafc;
         border-bottom-color: #e2e8f0;
+      }
+
+      .card-header-title-text {
+        color: #1a4d80;
+        font-size: 15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+      }
+
+      .edit-action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-shrink: 0;
+        align-items: center;
+      }
+
+      .dropdown-menu-container {
+        position: relative;
+        display: inline-block;
+      }
+
+      .dropdown-content-menu {
+        display: none;
+        position: absolute;
+        top: 110%;
+        left: 0;
+        background-color: #ffffff;
+        min-width: 190px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.15);
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        z-index: 10000;
+        overflow: hidden;
+      }
+
+      .dropdown-content-menu.show {
+        display: block;
+      }
+
+      .dropdown-menu-item {
+        color: #334155;
+        padding: 10px 14px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+
+      .dropdown-menu-item:hover {
+        background-color: #f1f5f9;
+        color: #1a4d80;
       }
 
       .print-area {
@@ -306,25 +365,24 @@
       }
 
       .supplier-bill-table .edit-number-input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
-}
+        border-color: #2563eb;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+      }
 
-/* Remove number input spinner arrows */
+      /* Remove number input spinner arrows */
 
-/* Chrome / Edge / Safari */
-.supplier-bill-table .edit-number-input::-webkit-outer-spin-button,
-.supplier-bill-table .edit-number-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
+      /* Chrome / Edge / Safari */
+      .supplier-bill-table .edit-number-input::-webkit-outer-spin-button,
+      .supplier-bill-table .edit-number-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
 
-/* Firefox */
-.supplier-bill-table .edit-number-input[type="number"] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
+      /* Firefox */
+      .supplier-bill-table .edit-number-input[type="number"] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+      }
 
       .supplier-bill-table .view-number-text {
         display: inline-block;
@@ -510,7 +568,9 @@
 
       #toast.show {
         visibility: visible;
-        animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        animation:
+          fadein 0.5s,
+          fadeout 0.5s 2.5s;
       }
 
       @keyframes fadein {
@@ -554,20 +614,41 @@
         display: flex;
         gap: 10px;
       }
+
+      .hidden-image {
+        display: none !important;
+      }
+
+      .card-footer-sign {
+        margin-top: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        width: 100%;
+        padding-top: 10px;
+      }
+
+      .header-img {
+        width: 100%;
+        height: auto;
+        max-height: 160px;
+        display: block;
+        margin: 0 auto 15px auto;
+      }
     </style>
   </head>
 
   <body>
-    <div id="loaderOverlay" class="loader-overlay" style="display:none;">
+    <div id="loaderOverlay" class="loader-overlay" style="display: none">
       <div class="spinner"></div>
-      <p style="margin-top:12px; font-weight:700; color:#1e293b;">
+      <p style="margin-top: 12px; font-weight: 700; color: #1e293b">
         Fetching Data...
       </p>
     </div>
 
     <div id="authModal" class="auth-modal">
       <div class="auth-box">
-        <h2 id="authTitle" style="margin-top:0; color:#0f172a;">
+        <h2 id="authTitle" style="margin-top: 0; color: #0f172a">
           View Bill Login
         </h2>
 
@@ -586,41 +667,33 @@
             onkeypress="if (event.key === 'Enter') executeViewBillLogin();"
           />
 
-          <button id="loginBtn" onclick="executeViewBillLogin()">
-            Login
-          </button>
+          <button id="loginBtn" onclick="executeViewBillLogin()">Login</button>
 
-          <p style="margin-top:15px; font-size:12px; color:#64748b;">
+          <p style="margin-top: 15px; font-size: 12px; color: #64748b">
             New Site Coordinator?
             <a
               href="#"
               onclick="toggleAuthMode('signup')"
-              style="color:#2563eb;"
+              style="color: #2563eb"
             >
               Sign Up
             </a>
           </p>
         </div>
 
-        <div id="signupForm" style="display:none;">
+        <div id="signupForm" style="display: none">
           <input type="text" id="signupName" placeholder="Full Name" />
           <input type="text" id="signupUsername" placeholder="Username" />
-          <input
-            type="password"
-            id="signupPassword"
-            placeholder="Password"
-          />
+          <input type="password" id="signupPassword" placeholder="Password" />
 
-          <button onclick="executeViewBillSignup()">
-            Request Access
-          </button>
+          <button onclick="executeViewBillSignup()">Request Access</button>
 
-          <p style="margin-top:15px; font-size:12px; color:#64748b;">
+          <p style="margin-top: 15px; font-size: 12px; color: #64748b">
             Already have an account?
             <a
               href="#"
               onclick="toggleAuthMode('login')"
-              style="color:#2563eb;"
+              style="color: #2563eb"
             >
               Login
             </a>
@@ -629,7 +702,7 @@
       </div>
     </div>
 
-    <div id="mainApp" style="display:none;">
+    <div id="mainApp" style="display: none">
       <div class="top-controls-wrapper">
         <div class="ribbon-single-row">
           <div class="ribbon-left">
@@ -637,20 +710,24 @@
               href="../index.html"
               class="btn btn-dash"
               title="Back to Billing"
-              style="padding: 4px 8px;"
+              style="padding: 4px 8px"
             >
-              <i
-                class="material-icons"
-                style="font-size:18px; color:#007bff"
-              >
+              <i class="material-icons" style="font-size: 18px; color: #007bff">
                 arrow_back
               </i>
             </a>
 
-            <div class="selector-wrapper" style="width:120px;">
+            <div class="selector-wrapper" style="width: 120px">
               <select
                 id="searchType"
-                style="height:32px; border:none; background:transparent; font-weight:bold; font-size:12px; width:100%;"
+                style="
+                  height: 32px;
+                  border: none;
+                  background: transparent;
+                  font-weight: bold;
+                  font-size: 12px;
+                  width: 100%;
+                "
               >
                 <option value="all">Plate/Owner</option>
                 <option value="plate">Plate No</option>
@@ -660,7 +737,7 @@
 
             <div
               class="selector-wrapper autocomplete-wrapper"
-              style="width:180px; display:flex; align-items:center; gap:8px;"
+              style="width: 180px; display: flex; align-items: center; gap: 8px"
             >
               <input
                 type="text"
@@ -669,28 +746,37 @@
                 oninput="searchSuggestions(this)"
                 onkeydown="handleSuggestionKeyDown(event)"
                 autocomplete="off"
-                style="text-transform:uppercase; font-weight:bold; flex:1; font-size:12px; border:none; background:transparent; outline:none;"
+                style="
+                  text-transform: uppercase;
+                  font-weight: bold;
+                  flex: 1;
+                  font-size: 12px;
+                  border: none;
+                  background: transparent;
+                  outline: none;
+                "
               />
 
-              <div
-                class="suggestion-box"
-                id="searchSuggestionsBox"
-              ></div>
+              <div class="suggestion-box" id="searchSuggestionsBox"></div>
             </div>
 
             <div
               class="selector-wrapper"
-              style="display:flex; align-items:center; gap:5px;"
+              style="display: flex; align-items: center; gap: 5px"
             >
-              <label
-                style="font-weight:bold; color:#1a4d80; font-size:12px;"
-              >
+              <label style="font-weight: bold; color: #1a4d80; font-size: 12px">
                 Month:
               </label>
 
               <select
                 id="selMonth"
-                style="height:32px; border:none; background:transparent; font-weight:bold; font-size:12px;"
+                style="
+                  height: 32px;
+                  border: none;
+                  background: transparent;
+                  font-weight: bold;
+                  font-size: 12px;
+                "
               >
                 <option value="January">January</option>
                 <option value="February">February</option>
@@ -710,7 +796,13 @@
                 type="number"
                 id="selYear"
                 value="2026"
-                style="width:55px; height:32px; border:none; font-weight:bold; font-size:12px;"
+                style="
+                  width: 55px;
+                  height: 32px;
+                  border: none;
+                  font-weight: bold;
+                  font-size: 12px;
+                "
               />
             </div>
 
@@ -718,25 +810,38 @@
               type="button"
               class="btn btn-fetch"
               onclick="fetchViewBillData()"
-              style="padding: 6px 12px; font-size:12px;"
+              style="padding: 6px 12px; font-size: 12px"
             >
-              Change Month 
+              Change Month
             </button>
 
-            <button
-              id="btnArrange"
-              type="button"
-              class="btn"
-              style="background:#b40000; padding: 6px 12px; font-size:12px;"
-              onclick="arrangeCompanyCards()"
-            >
-              Company Wise Arrange
-            </button>
+            <div class="dropdown-menu-container" id="arrangeDropdownContainer">
+              <button
+                id="btnArrangeMain"
+                type="button"
+                class="btn"
+                style="background: #b40000; padding: 6px 12px; font-size: 12px"
+                onclick="toggleArrangeDropdown(event)"
+              >
+                Arrange ✨ ▾
+              </button>
+              <div class="dropdown-content-menu" id="arrangeDropdownMenu">
+                <div class="dropdown-menu-item" onclick="arrangeCompanyCards()">
+                  🏢 By Company
+                </div>
+                <div class="dropdown-menu-item" onclick="arrangeOwnerCards()">
+                  👤 By Owner
+                </div>
+                <div class="dropdown-menu-item" onclick="arrangeCompanyOwnerCards()">
+                  🏢+👤 Company + Owner
+                </div>
+              </div>
+            </div>
 
             <button
               type="button"
               class="btn"
-              style="background:#17a2b8; padding: 6px 12px; font-size:12px;"
+              style="background: #17a2b8; padding: 6px 12px; font-size: 12px"
               onclick="addManualCardRow()"
             >
               + Manual Entry
@@ -745,7 +850,7 @@
             <button
               type="button"
               class="btn"
-              style="background:#1d6f42; padding: 6px 12px; font-size:12px;"
+              style="background: #1d6f42; padding: 6px 12px; font-size: 12px"
               onclick="exportDataToExcel()"
             >
               Excel
@@ -772,19 +877,30 @@
             <a
               href="./combinedbill.html"
               class="tab-btn"
-              style="background: #10b981; color: white;"
+              style="background: #10b981; color: white"
             >
               📑 Combined Bill
             </a>
 
             <div
               class="user-profile-box"
-              style="position:relative; display:inline-block; cursor:pointer;"
+              style="position: relative; display: inline-block; cursor: pointer"
               onclick="toggleLogoutBtn()"
             >
               <span
                 id="userInfoText"
-                style="font-weight:700; color:#1a4d80; font-size:13px; padding:6px 10px; background:#f1f5f9; border-radius:6px; display:inline-block; height:36px; box-sizing:border-box; line-height:24px;"
+                style="
+                  font-weight: 700;
+                  color: #1a4d80;
+                  font-size: 13px;
+                  padding: 6px 10px;
+                  background: #f1f5f9;
+                  border-radius: 6px;
+                  display: inline-block;
+                  height: 36px;
+                  box-sizing: border-box;
+                  line-height: 24px;
+                "
               >
                 Loading... ▾
               </span>
@@ -793,7 +909,17 @@
                 id="logoutDropdownBtn"
                 class="btn btn-reset"
                 onclick="executeViewBillLogout()"
-                style="display:none; position:absolute; right:0; top:110%; height:32px; padding: 6px 14px; font-size:12px; background:#dc3545; z-index:1000;"
+                style="
+                  display: none;
+                  position: absolute;
+                  right: 0;
+                  top: 110%;
+                  height: 32px;
+                  padding: 6px 14px;
+                  font-size: 12px;
+                  background: #dc3545;
+                  z-index: 1000;
+                "
               >
                 Logout
               </button>
@@ -804,60 +930,57 @@
 
       <div
         class="container"
-        style="max-width: 1650px; margin: 0 auto; padding: 0 20px; box-sizing: border-box;"
+        style="
+          max-width: 1650px;
+          margin: 0 auto;
+          padding: 0 20px;
+          box-sizing: border-box;
+        "
       >
         <div id="tabCardsView">
           <div
             id="cardsContainer"
-            style="display:flex; flex-direction:column; gap:30px;"
+            style="display: flex; flex-direction: column; gap: 30px"
           >
             <div
-              style="text-align:center; padding:50px; background:white; border-radius:8px; border:1px dashed #ccc;"
+              style="
+                text-align: center;
+                padding: 50px;
+                background: white;
+                border-radius: 8px;
+                border: 1px dashed #ccc;
+              "
             >
               <h2>No Bills Loaded</h2>
-              <p>
-                Type Plate No / Owner Name, select month, and click "Fetch"
-              </p>
+              <p>Type Plate No / Owner Name, select month, and click "Fetch"</p>
             </div>
           </div>
         </div>
 
-        <div id="tabReportView" style="display:none;">
+        <div id="tabReportView" style="display: none">
           <div class="report-table-wrapper">
             <table class="report-table" id="dashboardReportTable">
               <thead>
                 <tr>
-                  <th colspan="8" class="th-general">
-                    GENERAL INFO
-                  </th>
+                  <th colspan="8" class="th-general">GENERAL INFO</th>
 
-                  <th colspan="2" class="th-ts">
-                    AS PER LOGSHEET
-                  </th>
+                  <th colspan="2" class="th-ts">AS PER LOGSHEET</th>
 
-                  <th colspan="2" class="th-summary">
-                    AS PER BILL SUMMARY
-                  </th>
+                  <th colspan="2" class="th-summary">AS PER BILL SUMMARY</th>
 
-                  <th colspan="2" class="th-supplier">
-                    TO SUPPLIER
-                  </th>
+                  <th colspan="2" class="th-supplier">TO SUPPLIER</th>
 
-                  <th colspan="3" class="th-diff">
-                    DIFFERENCE
-                  </th>
+                  <th colspan="3" class="th-diff">DIFFERENCE</th>
                 </tr>
 
                 <tr>
-                  <th class="th-general" style="width:25px;">#</th>
-                  <th class="th-general" style="width:55px;">Date</th>
-                  <th class="th-general" style="width:60px;">Rate</th>
-                  <th class="th-general" style="width:35px;">VAT</th>
-                  <th class="th-general" style="width:140px;">
-                    Site Name
-                  </th>
+                  <th class="th-general" style="width: 25px">#</th>
+                  <th class="th-general" style="width: 55px">Date</th>
+                  <th class="th-general" style="width: 60px">Rate</th>
+                  <th class="th-general" style="width: 35px">VAT</th>
+                  <th class="th-general" style="width: 140px">Site Name</th>
 
-                  <th class="th-general" style="width:160px;">
+                  <th class="th-general" style="width: 160px">
                     Owner Name
                     <span
                       class="filter-icon"
@@ -867,7 +990,7 @@
                     </span>
                   </th>
 
-                  <th class="th-general" style="width:160px;">
+                  <th class="th-general" style="width: 160px">
                     Driver Name
                     <span
                       class="filter-icon"
@@ -877,7 +1000,7 @@
                     </span>
                   </th>
 
-                  <th class="th-general" style="width:85px;">
+                  <th class="th-general" style="width: 85px">
                     Plate No
                     <span
                       class="filter-icon"
@@ -887,7 +1010,7 @@
                     </span>
                   </th>
 
-                  <th class="th-ts" style="width:45px;">
+                  <th class="th-ts" style="width: 45px">
                     NR
                     <span
                       class="filter-icon"
@@ -897,7 +1020,7 @@
                     </span>
                   </th>
 
-                  <th class="th-ts" style="width:45px;">
+                  <th class="th-ts" style="width: 45px">
                     OT
                     <span
                       class="filter-icon"
@@ -907,7 +1030,7 @@
                     </span>
                   </th>
 
-                  <th class="th-summary" style="width:45px;">
+                  <th class="th-summary" style="width: 45px">
                     NR
                     <span
                       class="filter-icon"
@@ -917,7 +1040,7 @@
                     </span>
                   </th>
 
-                  <th class="th-summary" style="width:45px;">
+                  <th class="th-summary" style="width: 45px">
                     OT
                     <span
                       class="filter-icon"
@@ -927,7 +1050,7 @@
                     </span>
                   </th>
 
-                  <th class="th-supplier" style="width:45px;">
+                  <th class="th-supplier" style="width: 45px">
                     NR
                     <span
                       class="filter-icon"
@@ -937,7 +1060,7 @@
                     </span>
                   </th>
 
-                  <th class="th-supplier" style="width:45px;">
+                  <th class="th-supplier" style="width: 45px">
                     OT
                     <span
                       class="filter-icon"
@@ -947,7 +1070,7 @@
                     </span>
                   </th>
 
-                  <th class="th-diff" style="width:45px;">
+                  <th class="th-diff" style="width: 45px">
                     NR
                     <span
                       class="filter-icon"
@@ -957,7 +1080,7 @@
                     </span>
                   </th>
 
-                  <th class="th-diff" style="width:45px;">
+                  <th class="th-diff" style="width: 45px">
                     OT
                     <span
                       class="filter-icon"
@@ -967,7 +1090,7 @@
                     </span>
                   </th>
 
-                  <th style="background:#be123c; width:45px;">
+                  <th style="background: #be123c; width: 45px">
                     IDN
                     <span
                       class="filter-icon"
@@ -981,10 +1104,7 @@
 
               <tbody id="reportTableBody">
                 <tr>
-                  <td
-                    colspan="17"
-                    style="padding:30px; color:#64748b;"
-                  >
+                  <td colspan="17" style="padding: 30px; color: #64748b">
                     No report data fetched yet.
                   </td>
                 </tr>
@@ -995,11 +1115,7 @@
       </div>
     </div>
 
-    <div
-      id="filterPopup"
-      class="filter-popup"
-      style="display:none;"
-    >
+    <div id="filterPopup" class="filter-popup" style="display: none">
       <input
         type="text"
         id="filterSearchInput"
@@ -1008,10 +1124,15 @@
       />
 
       <div
-        style="padding: 4px 6px; border-bottom: 1px solid #f1f5f9; font-size: 12px; font-weight: bold;"
+        style="
+          padding: 4px 6px;
+          border-bottom: 1px solid #f1f5f9;
+          font-size: 12px;
+          font-weight: bold;
+        "
       >
         <label
-          style="display: flex; align-items: center; gap: 8px; cursor: pointer;"
+          style="display: flex; align-items: center; gap: 8px; cursor: pointer"
         >
           <input
             type="checkbox"
@@ -1024,21 +1145,18 @@
         </label>
       </div>
 
-      <div
-        class="filter-options"
-        id="filterOptionsList"
-      ></div>
+      <div class="filter-options" id="filterOptionsList"></div>
 
       <div class="filter-actions">
         <button
-          style="background:#2563eb; color:white;"
+          style="background: #2563eb; color: white"
           onclick="applyExcelFilter()"
         >
           Apply
         </button>
 
         <button
-          style="background:#e2e8f0; color:#334155;"
+          style="background: #e2e8f0; color: #334155"
           onclick="clearExcelFilter()"
         >
           Clear
@@ -1049,6 +1167,57 @@
     <div id="toast"></div>
 
     <script>
+      const companyData = {
+        Haka: {
+          header: "https://i.ibb.co/Ld752yD5/hd.png",
+          seal: "https://i.ibb.co/mrLFJdBy/sl.png",
+          text: "Approved By Accounts Team",
+          signature:
+            "https://i.ibb.co/CK8X4YpV/Screenshot-2026-03-28-111438.png",
+        },
+        Aljoda: {
+          header: "https://i.ibb.co/3yMwhgD5/Screenshot-2026-03-28-103621.png",
+          seal: "https://i.ibb.co/4gRPdGXc/Screenshot-2026-03-28-103653.png",
+          text: "Approved By Accounts Team",
+          signature:
+            "https://i.ibb.co/Z1b8gCwT/Screenshot-2026-03-28-111323.png",
+        },
+        "Masar Wheels": {
+          header: "https://i.ibb.co/gM7QnS59/Screenshot-2026-03-28-103016.png",
+          seal: "https://i.ibb.co/Y63vHZ9/Screenshot-2026-03-28-103341.png",
+          text: "Approved By Accounts Team",
+          signature:
+            "https://i.ibb.co/bMPNp3SJ/Screenshot-2026-03-28-111529.png",
+        },
+        "We1 Track": {
+          header: "https://i.ibb.co/4w55CkbM/Screenshot-2026-03-28-103434.png",
+          seal: "https://i.ibb.co/XfybvXzL/Screenshot-2026-03-28-103519.png",
+          text: "Approved By Accounts Team",
+          signature:
+            "https://i.ibb.co/pBmhnB2j/Screenshot-2026-03-28-111612.png",
+        },
+      };
+
+      function getCompanyFromSite(siteName) {
+        if (!siteName) return "Haka";
+        let s = siteName.toUpperCase();
+        if (s.includes("ALJODA")) return "Aljoda";
+        if (s.includes("MASAR")) return "Masar Wheels";
+        if (s.includes("WE1") || s.includes("WE 1")) return "We1 Track";
+        return "Haka";
+      }
+
+      function toggleCardImages(btn) {
+        const card = btn.closest(".bill-card");
+        if (!card) return;
+        // Header, Seal, Signature, Text എന്നിവ ഒന്നിച്ച് Toggle ചെയ്യുന്നു
+        card
+          .querySelectorAll(
+            ".header-img, .card-footer-sign .seal, .card-footer-sign .signature-img, .card-footer-sign .company-text",
+          )
+          .forEach((img) => img.classList.toggle("hidden-image"));
+      }
+
       let currentUser = null;
 
       let suggestionPlates = [];
@@ -1063,39 +1232,38 @@
       let currentFocusIndex = -1;
 
       document.addEventListener("DOMContentLoaded", () => {
-  const token = localStorage.getItem("view_bill_token");
+        const token = localStorage.getItem("view_bill_token");
 
-  if (token) {
-    verifySession(token);
-  }
-});
+        if (token) {
+          verifySession(token);
+        }
+      });
 
-/* Prevent Arrow Up / Arrow Down from changing edit values */
-document.addEventListener("keydown", function (e) {
-  if (
-    e.target.classList &&
-    e.target.classList.contains("edit-number-input") &&
-    (e.key === "ArrowUp" || e.key === "ArrowDown")
-  ) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-});
+      /* Prevent Arrow Up / Arrow Down from changing edit values */
+      document.addEventListener("keydown", function (e) {
+        if (
+          e.target.classList &&
+          e.target.classList.contains("edit-number-input") &&
+          (e.key === "ArrowUp" || e.key === "ArrowDown")
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      });
 
-/* Prevent mouse wheel from changing number input values */
-document.addEventListener(
-  "wheel",
-  function (e) {
-    if (
-      e.target.classList &&
-      e.target.classList.contains("edit-number-input")
-    ) {
-      e.preventDefault();
-    }
-  },
-  { passive: false }
-);
-
+      /* Prevent mouse wheel from changing number input values */
+      document.addEventListener(
+        "wheel",
+        function (e) {
+          if (
+            e.target.classList &&
+            e.target.classList.contains("edit-number-input")
+          ) {
+            e.preventDefault();
+          }
+        },
+        { passive: false },
+      );
 
       function toggleAuthMode(mode) {
         document.getElementById("loginForm").style.display =
@@ -1105,20 +1273,15 @@ document.addEventListener(
           mode === "signup" ? "block" : "none";
 
         document.getElementById("authTitle").innerText =
-          mode === "login"
-            ? "View Bill Login"
-            : "Request Access";
+          mode === "login" ? "View Bill Login" : "Request Access";
       }
 
       async function executeViewBillLogin() {
-        const username =
-          document.getElementById("loginUsername").value.trim();
+        const username = document.getElementById("loginUsername").value.trim();
 
-        const password =
-          document.getElementById("loginPassword").value;
+        const password = document.getElementById("loginPassword").value;
 
-        const loginBtn =
-          document.getElementById("loginBtn");
+        const loginBtn = document.getElementById("loginBtn");
 
         if (!username || !password) {
           return showToast("Enter credentials");
@@ -1144,10 +1307,7 @@ document.addEventListener(
           const data = await res.json();
 
           if (data.success) {
-            localStorage.setItem(
-              "view_bill_token",
-              data.token
-            );
+            localStorage.setItem("view_bill_token", data.token);
 
             await verifySession(data.token);
           } else {
@@ -1164,14 +1324,11 @@ document.addEventListener(
       }
 
       async function executeViewBillSignup() {
-        const displayName =
-          document.getElementById("signupName").value.trim();
+        const displayName = document.getElementById("signupName").value.trim();
 
-        const username =
-          document.getElementById("signupUsername").value.trim();
+        const username = document.getElementById("signupUsername").value.trim();
 
-        const password =
-          document.getElementById("signupPassword").value;
+        const password = document.getElementById("signupPassword").value;
 
         if (!username || !password) {
           return showToast("All fields required");
@@ -1205,31 +1362,22 @@ document.addEventListener(
 
       async function verifySession(token) {
         try {
-          const res = await fetch(
-            "/api/view-bill/verify-session",
-            {
-              headers: {
-                Authorization: "Bearer " + token,
-              },
-            }
-          );
+          const res = await fetch("/api/view-bill/verify-session", {
+            headers: {
+              Authorization: "Bearer " + token,
+            },
+          });
 
           const data = await res.json();
 
           if (data.success) {
             currentUser = data.user;
 
-            document.getElementById(
-              "authModal"
-            ).style.display = "none";
+            document.getElementById("authModal").style.display = "none";
 
-            document.getElementById(
-              "mainApp"
-            ).style.display = "block";
+            document.getElementById("mainApp").style.display = "block";
 
-            document.getElementById(
-              "userInfoText"
-            ).innerText =
+            document.getElementById("userInfoText").innerText =
               `${currentUser.displayName || currentUser.username} ▾`;
 
             loadSuggestions();
@@ -1247,26 +1395,19 @@ document.addEventListener(
       }
 
       function toggleLogoutBtn() {
-        const logoutBtn =
-          document.getElementById("logoutDropdownBtn");
+        const logoutBtn = document.getElementById("logoutDropdownBtn");
 
         if (logoutBtn) {
           logoutBtn.style.display =
-            logoutBtn.style.display === "block"
-              ? "none"
-              : "block";
+            logoutBtn.style.display === "block" ? "none" : "block";
         }
       }
 
       document.addEventListener("click", function (e) {
-        const box =
-          e.target.closest(".user-profile-box");
+        const box = e.target.closest(".user-profile-box");
 
         if (!box) {
-          const logoutBtn =
-            document.getElementById(
-              "logoutDropdownBtn"
-            );
+          const logoutBtn = document.getElementById("logoutDropdownBtn");
 
           if (logoutBtn) {
             logoutBtn.style.display = "none";
@@ -1277,25 +1418,19 @@ document.addEventListener(
           !e.target.closest(".filter-icon") &&
           !e.target.closest(".filter-popup")
         ) {
-          document.getElementById(
-            "filterPopup"
-          ).style.display = "none";
+          document.getElementById("filterPopup").style.display = "none";
         }
       });
 
       async function loadSuggestions() {
-        const token =
-          localStorage.getItem("view_bill_token");
+        const token = localStorage.getItem("view_bill_token");
 
         try {
-          const res = await fetch(
-            "/api/view-bill/suggestions",
-            {
-              headers: {
-                Authorization: "Bearer " + token,
-              },
-            }
-          );
+          const res = await fetch("/api/view-bill/suggestions", {
+            headers: {
+              Authorization: "Bearer " + token,
+            },
+          });
 
           const data = await res.json();
 
@@ -1307,18 +1442,11 @@ document.addEventListener(
       }
 
       function searchSuggestions(input) {
-        const val =
-          input.value.trim().toUpperCase();
+        const val = input.value.trim().toUpperCase();
 
-        const type =
-          document.getElementById(
-            "searchType"
-          ).value;
+        const type = document.getElementById("searchType").value;
 
-        const box =
-          document.getElementById(
-            "searchSuggestionsBox"
-          );
+        const box = document.getElementById("searchSuggestionsBox");
 
         currentFocusIndex = -1;
 
@@ -1334,27 +1462,18 @@ document.addEventListener(
         } else if (type === "owner") {
           pool = suggestionOwners;
         } else {
-          pool = [
-            ...new Set([
-              ...suggestionPlates,
-              ...suggestionOwners,
-            ]),
-          ];
+          pool = [...new Set([...suggestionPlates, ...suggestionOwners])];
         }
 
-        let matches = pool.filter((p) =>
-          p.toUpperCase().includes(val)
-        );
+        let matches = pool.filter((p) => p.toUpperCase().includes(val));
 
         if (matches.length > 0) {
           box.innerHTML = "";
 
           matches.forEach((m) => {
-            let div =
-              document.createElement("div");
+            let div = document.createElement("div");
 
-            div.className =
-              "suggestion-item";
+            div.className = "suggestion-item";
 
             div.innerText = m;
 
@@ -1374,10 +1493,7 @@ document.addEventListener(
       }
 
       function handleSuggestionKeyDown(e) {
-        const box =
-          document.getElementById(
-            "searchSuggestionsBox"
-          );
+        const box = document.getElementById("searchSuggestionsBox");
 
         if (box.style.display !== "block") {
           if (e.key === "Enter") {
@@ -1387,10 +1503,7 @@ document.addEventListener(
           return;
         }
 
-        const items =
-          box.getElementsByClassName(
-            "suggestion-item"
-          );
+        const items = box.getElementsByClassName("suggestion-item");
 
         if (!items || items.length === 0) {
           return;
@@ -1399,26 +1512,20 @@ document.addEventListener(
         if (e.key === "ArrowDown") {
           e.preventDefault();
 
-          currentFocusIndex =
-            (currentFocusIndex + 1) %
-            items.length;
+          currentFocusIndex = (currentFocusIndex + 1) % items.length;
 
           setActiveSuggestion(items);
         } else if (e.key === "ArrowUp") {
           e.preventDefault();
 
           currentFocusIndex =
-            (currentFocusIndex - 1 + items.length) %
-            items.length;
+            (currentFocusIndex - 1 + items.length) % items.length;
 
           setActiveSuggestion(items);
         } else if (e.key === "Enter") {
           e.preventDefault();
 
-          if (
-            currentFocusIndex > -1 &&
-            items[currentFocusIndex]
-          ) {
+          if (currentFocusIndex > -1 && items[currentFocusIndex]) {
             items[currentFocusIndex].click();
           } else {
             box.style.display = "none";
@@ -1428,25 +1535,14 @@ document.addEventListener(
       }
 
       function setActiveSuggestion(items) {
-        for (
-          let i = 0;
-          i < items.length;
-          i++
-        ) {
+        for (let i = 0; i < items.length; i++) {
           items[i].classList.remove("active");
         }
 
-        if (
-          currentFocusIndex > -1 &&
-          items[currentFocusIndex]
-        ) {
-          items[
-            currentFocusIndex
-          ].classList.add("active");
+        if (currentFocusIndex > -1 && items[currentFocusIndex]) {
+          items[currentFocusIndex].classList.add("active");
 
-          items[
-            currentFocusIndex
-          ].scrollIntoView({
+          items[currentFocusIndex].scrollIntoView({
             block: "nearest",
           });
         }
@@ -1455,109 +1551,64 @@ document.addEventListener(
       function switchViewTab(tab) {
         document
           .getElementById("btnTabCards")
-          .classList.toggle(
-            "active",
-            tab === "cards"
-          );
+          .classList.toggle("active", tab === "cards");
 
         document
           .getElementById("btnTabReport")
-          .classList.toggle(
-            "active",
-            tab === "report"
-          );
+          .classList.toggle("active", tab === "report");
 
-        document.getElementById(
-          "tabCardsView"
-        ).style.display =
+        document.getElementById("tabCardsView").style.display =
           tab === "cards" ? "block" : "none";
 
-        document.getElementById(
-          "tabReportView"
-        ).style.display =
+        document.getElementById("tabReportView").style.display =
           tab === "report" ? "block" : "none";
 
-        document.getElementById(
-          "btnArrange"
-        ).style.display =
-          tab === "cards"
-            ? "inline-block"
-            : "none";
+        document.getElementById("arrangeDropdownContainer").style.display =
+          tab === "cards" ? "inline-block" : "none";
       }
 
       async function fetchViewBillData() {
-        const searchVal =
-          document.getElementById(
-            "searchInput"
-          ).value.trim();
+        const searchVal = document.getElementById("searchInput").value.trim();
 
-        const searchType =
-          document.getElementById(
-            "searchType"
-          ).value;
+        const searchType = document.getElementById("searchType").value;
 
-        const month =
-          document.getElementById(
-            "selMonth"
-          ).value;
+        const month = document.getElementById("selMonth").value;
 
-        const year =
-          document.getElementById(
-            "selYear"
-          ).value;
+        const year = document.getElementById("selYear").value;
 
-        const token =
-          localStorage.getItem(
-            "view_bill_token"
-          );
+        const token = localStorage.getItem("view_bill_token");
 
-        document.getElementById(
-          "loaderOverlay"
-        ).style.display = "flex";
+        document.getElementById("loaderOverlay").style.display = "flex";
 
         try {
           const res = await fetch(
             `/api/view-bill/data?month=${month}&year=${year}&search_type=${searchType}&search_value=${encodeURIComponent(searchVal)}`,
             {
               headers: {
-                Authorization:
-                  "Bearer " + token,
+                Authorization: "Bearer " + token,
               },
-            }
+            },
           );
 
           const data = await res.json();
 
           if (data.success) {
-            fetchedRowsCache =
-              data.rows || [];
+            fetchedRowsCache = data.rows || [];
 
-            fetchedReportCache =
-              data.reportData || [];
+            fetchedReportCache = data.reportData || [];
 
             activeFilters = {};
 
-            renderCardsView(
-              fetchedRowsCache
-            );
+            renderCardsView(fetchedRowsCache);
 
-            renderReportTable(
-              fetchedReportCache
-            );
+            renderReportTable(fetchedReportCache);
           } else {
-            showToast(
-              data.message ||
-                "Failed to fetch data"
-            );
+            showToast(data.message || "Failed to fetch data");
           }
         } catch (e) {
-          showToast(
-            "Error fetching data"
-          );
+          showToast("Error fetching data");
         } finally {
-          document.getElementById(
-            "loaderOverlay"
-          ).style.display = "none";
+          document.getElementById("loaderOverlay").style.display = "none";
         }
       }
 
@@ -1566,64 +1617,33 @@ document.addEventListener(
 
         activeFilterKey = key;
 
-        const popup =
-          document.getElementById(
-            "filterPopup"
-          );
+        const popup = document.getElementById("filterPopup");
 
-        const list =
-          document.getElementById(
-            "filterOptionsList"
-          );
+        const list = document.getElementById("filterOptionsList");
 
-        document.getElementById(
-          "filterSearchInput"
-        ).value = "";
+        document.getElementById("filterSearchInput").value = "";
 
-        let dataForPopup =
-          fetchedReportCache.filter((r) => {
-            for (
-              let fKey in activeFilters
-            ) {
-              if (
-                fKey !== key &&
-                activeFilters[fKey]
-              ) {
-                if (
-                  !activeFilters[
-                    fKey
-                  ].includes(
-                    String(
-                      r[fKey] || "-"
-                    )
-                  )
-                ) {
-                  return false;
-                }
+        let dataForPopup = fetchedReportCache.filter((r) => {
+          for (let fKey in activeFilters) {
+            if (fKey !== key && activeFilters[fKey]) {
+              if (!activeFilters[fKey].includes(String(r[fKey] || "-"))) {
+                return false;
               }
             }
+          }
 
-            return true;
-          });
+          return true;
+        });
 
         let uniqueVals = [
-          ...new Set(
-            dataForPopup.map((r) =>
-              String(
-                r[key] || "-"
-              )
-            )
-          ),
+          ...new Set(dataForPopup.map((r) => String(r[key] || "-"))),
         ].sort();
 
         let htmlSnippet = "";
 
         uniqueVals.forEach((val) => {
           const isChecked =
-            !activeFilters[key] ||
-            activeFilters[key].includes(
-              val
-            );
+            !activeFilters[key] || activeFilters[key].includes(val);
 
           htmlSnippet += `
             <label class="filter-item">
@@ -1640,158 +1660,97 @@ document.addEventListener(
 
         list.innerHTML = htmlSnippet;
 
-        document.getElementById(
-          "selectAllFilter"
-        ).checked =
+        document.getElementById("selectAllFilter").checked =
           !activeFilters[key] ||
-          activeFilters[key].length ===
-            uniqueVals.length;
+          activeFilters[key].length === uniqueVals.length;
 
         popup.style.display = "block";
 
-        popup.style.top =
-          e.pageY + 10 + "px";
+        popup.style.top = e.pageY + 10 + "px";
 
         popup.style.left =
-          Math.min(
-            e.pageX - 100,
-            window.innerWidth - 260
-          ) + "px";
+          Math.min(e.pageX - 100, window.innerWidth - 260) + "px";
       }
 
-      function toggleSelectAllFilters(
-        isChecked
-      ) {
+      function toggleSelectAllFilters(isChecked) {
         document
-          .querySelectorAll(
-            "#filterOptionsList .filter-item"
-          )
+          .querySelectorAll("#filterOptionsList .filter-item")
           .forEach((item) => {
-            if (
-              item.style.display !==
-              "none"
-            ) {
-              const chk =
-                item.querySelector(
-                  "input[type='checkbox']"
-                );
+            if (item.style.display !== "none") {
+              const chk = item.querySelector("input[type='checkbox']");
 
               if (chk) {
-                chk.checked =
-                  isChecked;
+                chk.checked = isChecked;
               }
             }
           });
       }
 
       function checkSelectAllState() {
-        const checkboxes =
-          document.querySelectorAll(
-            "#filterOptionsList .filter-item input[type='checkbox']"
-          );
+        const checkboxes = document.querySelectorAll(
+          "#filterOptionsList .filter-item input[type='checkbox']",
+        );
 
-        const checkedCount =
-          Array.from(checkboxes).filter(
-            (cb) => cb.checked
-          ).length;
+        const checkedCount = Array.from(checkboxes).filter(
+          (cb) => cb.checked,
+        ).length;
 
-        document.getElementById(
-          "selectAllFilter"
-        ).checked =
-          checkedCount ===
-          checkboxes.length;
+        document.getElementById("selectAllFilter").checked =
+          checkedCount === checkboxes.length;
       }
 
       function filterCheckboxList() {
-        const query =
-          document.getElementById(
-            "filterSearchInput"
-          ).value.toLowerCase();
+        const query = document
+          .getElementById("filterSearchInput")
+          .value.toLowerCase();
 
         document
-          .querySelectorAll(
-            "#filterOptionsList .filter-item"
-          )
+          .querySelectorAll("#filterOptionsList .filter-item")
           .forEach((item) => {
-            item.style.display =
-              item.innerText
-                .toLowerCase()
-                .includes(query)
-                ? "flex"
-                : "none";
+            item.style.display = item.innerText.toLowerCase().includes(query)
+              ? "flex"
+              : "none";
           });
       }
 
       function applyExcelFilter() {
-        const checked =
-          Array.from(
-            document.querySelectorAll(
-              "#filterOptionsList input:checked"
-            )
-          ).map(
-            (cb) => cb.value
-          );
+        const checked = Array.from(
+          document.querySelectorAll("#filterOptionsList input:checked"),
+        ).map((cb) => cb.value);
 
-        activeFilters[
-          activeFilterKey
-        ] = checked;
+        activeFilters[activeFilterKey] = checked;
 
-        document.getElementById(
-          "filterPopup"
-        ).style.display = "none";
+        document.getElementById("filterPopup").style.display = "none";
 
-        document.getElementById(
-          "loaderOverlay"
-        ).style.display = "flex";
+        document.getElementById("loaderOverlay").style.display = "flex";
 
         setTimeout(() => {
           filterAndRenderReport();
 
-          document.getElementById(
-            "loaderOverlay"
-          ).style.display = "none";
+          document.getElementById("loaderOverlay").style.display = "none";
         }, 50);
       }
 
       function clearExcelFilter() {
-        delete activeFilters[
-          activeFilterKey
-        ];
+        delete activeFilters[activeFilterKey];
 
-        document.getElementById(
-          "filterPopup"
-        ).style.display = "none";
+        document.getElementById("filterPopup").style.display = "none";
 
         filterAndRenderReport();
       }
 
       function filterAndRenderReport() {
-        let filteredData =
-          fetchedReportCache.filter(
-            (r) => {
-              for (
-                let key in activeFilters
-              ) {
-                if (
-                  !activeFilters[
-                    key
-                  ].includes(
-                    String(
-                      r[key] || "-"
-                    )
-                  )
-                ) {
-                  return false;
-                }
-              }
-
-              return true;
+        let filteredData = fetchedReportCache.filter((r) => {
+          for (let key in activeFilters) {
+            if (!activeFilters[key].includes(String(r[key] || "-"))) {
+              return false;
             }
-          );
+          }
 
-        renderReportTable(
-          filteredData
-        );
+          return true;
+        });
+
+        renderReportTable(filteredData);
       }
 
       /*
@@ -1803,24 +1762,14 @@ document.addEventListener(
        * This allows Cancel to restore the exact original values.
        */
 
-      function renderCardsView(
-        rows,
-        append = false,
-        companyTitle = ""
-      ) {
-        const container =
-          document.getElementById(
-            "cardsContainer"
-          );
+      function renderCardsView(rows, append = false, companyTitle = "") {
+        const container = document.getElementById("cardsContainer");
 
         if (!append) {
           container.innerHTML = "";
         }
 
-        if (
-          rows.length === 0 &&
-          !append
-        ) {
+        if (rows.length === 0 && !append) {
           container.innerHTML = `
             <div
               style="text-align:center; padding:50px; background:white; border-radius:8px;"
@@ -1832,41 +1781,33 @@ document.addEventListener(
           return;
         }
 
-        const card =
-          buildBillCardElement(
-            rows,
-            companyTitle
-          );
+        const card = buildBillCardElement(rows, companyTitle);
 
         container.appendChild(card);
       }
 
-      function buildBillCardElement(
-        rows,
-        companyTitle = ""
-      ) {
-        const card =
-          document.createElement(
-            "div"
-          );
+      function buildBillCardElement(rows, companyTitle = "") {
+        const card = document.createElement("div");
 
-        card.className =
-          "bill-card";
+        card.className = "bill-card";
 
-        /*
-         * Keep a deep copy of the original data.
-         * Cancel uses this copy.
-         */
-        card._originalRows =
-          JSON.parse(
-            JSON.stringify(rows)
-          );
+        card._originalRows = JSON.parse(JSON.stringify(rows));
 
-        card._companyTitle =
-          companyTitle;
+        card._companyTitle = companyTitle;
+
+        // 🟢 കമ്പനി നിർണ്ണയിക്കുന്നു
+        let detectedComp = "Haka";
+        if (companyTitle && companyData[companyTitle]) {
+          detectedComp = companyTitle;
+        } else if (rows && rows.length > 0) {
+          const firstSite =
+            rows.find((r) => r.site && r.site !== "N/A" && r.site !== "-")
+              ?.site || "";
+          detectedComp = getCompanyFromSite(firstSite);
+        }
+        const compConfig = companyData[detectedComp] || companyData["Haka"];
 
         let rowsHtml = "";
-
         let totalNHr = 0;
         let totalOTHr = 0;
         let totalRent = 0;
@@ -1878,316 +1819,143 @@ document.addEventListener(
         let sumInvNr = 0;
         let sumInvOt = 0;
 
-        const hasVat =
-          rows.some(
-            (r) =>
-              parseFloat(
-                r.vat_amount || 0
-              ) > 0 ||
-              parseFloat(
-                r.vat_percent || 0
-              ) > 0
-          );
-
-        rows.forEach(
-          (r, idx) => {
-            const nhrVal =
-              parseFloat(
-                r.nhr || 0
-              );
-
-            const othrVal =
-              parseFloat(
-                r.othr || 0
-              );
-
-            const nrateVal =
-              parseFloat(
-                r.nrate || 0
-              );
-
-            const otrateVal =
-              parseFloat(
-                r.otrate || 0
-              );
-
-            const rentVal =
-              parseFloat(
-                r.rent ||
-                  (
-                    nhrVal *
-                      nrateVal +
-                    othrVal *
-                      otrateVal
-                  ) ||
-                  0
-              );
-
-            const vatVal =
-              parseFloat(
-                r.vat_amount || 0
-              );
-
-            const totalVal =
-              parseFloat(
-                r.total ||
-                  (
-                    rentVal +
-                    vatVal
-                  ) ||
-                  0
-              );
-
-            totalNHr += nhrVal;
-            totalOTHr += othrVal;
-            totalRent += rentVal;
-            totalVat += vatVal;
-            grandTotal += totalVal;
-
-            const repMatch =
-              fetchedReportCache.find(
-                (rep) =>
-                  rep.plate ===
-                  r.plate_no
-              ) || {};
-
-            const tsNr =
-              parseFloat(
-                repMatch.ts_nr || 0
-              );
-
-            const tsOt =
-              parseFloat(
-                repMatch.ts_ot || 0
-              );
-
-            const invNr =
-              parseFloat(
-                repMatch.inv_nr || 0
-              );
-
-            const invOt =
-              parseFloat(
-                repMatch.inv_ot || 0
-              );
-
-            sumTsNr += tsNr;
-            sumTsOt += tsOt;
-            sumInvNr += invNr;
-            sumInvOt += invOt;
-
-            rowsHtml += `
-              <tr data-plate="${escapeHtmlAttribute(
-                r.plate_no || ""
-              )}">
-                
-                <td>
-                  ${idx + 1}
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    r.date || ""
-                  )}
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    r.vtype || ""
-                  )}
-                </td>
-
-                <td style="text-align:left;" class="site-column-cell">
-                  ${escapeHtml(
-                    r.site || "N/A"
-                  )}
-                </td>
-
-                <td
-                  style="text-align:left; white-space:nowrap;"
-                >
-                  ${escapeHtml(
-                    r.driver || ""
-                  )}
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    r.plate_no || ""
-                  )}
-                </td>
-
-                <!-- N.Hr : VIEW TEXT -->
-                <td
-                  class="nhr-cell editable-number-cell"
-                  data-original-value="${nhrVal}"
-                >
-                  <span class="view-number-text">
-                    ${formatNumberDisplay(
-                      nhrVal
-                    )}
-                  </span>
-
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    class="edit-number-input nhr-field"
-                    value="${nhrVal}"
-                    style="display:none;"
-                    oninput="recalculateCardRow(this)"
-                  />
-                </td>
-
-                <!-- N.Rate -->
-                <td
-                  class="rate-column-cell editable-number-cell"
-                >
-                  <span class="view-number-text">
-                    ${formatNumberDisplay(
-                      nrateVal
-                    )}
-                  </span>
-
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    class="edit-number-input nrate-field"
-                    value="${nrateVal}"
-                    style="display:none;"
-                    oninput="recalculateCardRow(this)"
-                  />
-                </td>
-
-                <!-- OT Hr : VIEW TEXT -->
-                <td
-                  class="othr-cell editable-number-cell"
-                  data-original-value="${othrVal}"
-                >
-                  <span class="view-number-text">
-                    ${formatNumberDisplay(
-                      othrVal
-                    )}
-                  </span>
-
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    class="edit-number-input othr-field"
-                    value="${othrVal}"
-                    style="display:none;"
-                    oninput="recalculateCardRow(this)"
-                  />
-                </td>
-
-                <!-- OT Rate -->
-                <td
-                  class="rate-column-cell editable-number-cell"
-                >
-                  <span class="view-number-text">
-                    ${formatNumberDisplay(
-                      otrateVal
-                    )}
-                  </span>
-
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    class="edit-number-input otrate-field"
-                    value="${otrateVal}"
-                    style="display:none;"
-                    oninput="recalculateCardRow(this)"
-                  />
-                </td>
-
-                <td class="rent-cell">
-                  ${rentVal.toFixed(2)}
-                </td>
-
-                ${
-                  hasVat
-                    ? `
-                      <td class="vat-cell">
-                        ${vatVal.toFixed(2)}
-                      </td>
-                    `
-                    : ""
-                }
-
-                <td
-                  style="font-weight:bold;"
-                  class="total-cell"
-                >
-                  ${totalVal.toFixed(2)}
-                </td>
-
-                <td
-                  class="extra-comparison-col"
-                  style="background:#f0fdf4;"
-                >
-                  ${repMatch.ts_nr || 0}
-                </td>
-
-                <td
-                  class="extra-comparison-col"
-                  style="background:#f0fdf4;"
-                >
-                  ${repMatch.ts_ot || 0}
-                </td>
-
-                <td
-                  class="extra-comparison-col"
-                  style="background:#eff6ff;"
-                >
-                  ${repMatch.inv_nr || 0}
-                </td>
-
-                <td
-                  class="extra-comparison-col"
-                  style="background:#eff6ff;"
-                >
-                  ${repMatch.inv_ot || 0}
-                </td>
-
-              </tr>
-            `;
-          }
+        const hasVat = rows.some(
+          (r) =>
+            parseFloat(r.vat_amount || 0) > 0 ||
+            parseFloat(r.vat_percent || 0) > 0,
         );
 
-        const displayTitle =
-          companyTitle
-            ? `${companyTitle} - ${
-                rows[0]?.owner ||
-                "COMPANY VEHICLE"
-              }`
-            : `Owner: ${
-                rows[0]?.owner ||
-                "COMPANY VEHICLE"
-              }`;
+        rows.forEach((r, idx) => {
+          const nhrVal = parseFloat(r.nhr || 0);
+          const othrVal = parseFloat(r.othr || 0);
+          const nrateVal = parseFloat(r.nrate || 0);
+          const otrateVal = parseFloat(r.otrate || 0);
+          const rentVal = parseFloat(
+            r.rent || nhrVal * nrateVal + othrVal * otrateVal || 0,
+          );
+          const vatVal = parseFloat(r.vat_amount || 0);
+          const totalVal = parseFloat(r.total || rentVal + vatVal || 0);
+
+          totalNHr += nhrVal;
+          totalOTHr += othrVal;
+          totalRent += rentVal;
+          totalVat += vatVal;
+          grandTotal += totalVal;
+
+          const repMatch =
+            fetchedReportCache.find((rep) => rep.plate === r.plate_no) || {};
+
+          const tsNr = parseFloat(repMatch.ts_nr || 0);
+          const tsOt = parseFloat(repMatch.ts_ot || 0);
+          const invNr = parseFloat(repMatch.inv_nr || 0);
+          const invOt = parseFloat(repMatch.inv_ot || 0);
+
+          sumTsNr += tsNr;
+          sumTsOt += tsOt;
+          sumInvNr += invNr;
+          sumInvOt += invOt;
+
+          const rowOwner = r.owner || fetchedReportCache.find(rep => rep.plate === r.plate_no)?.owner || "COMPANY VEHICLE";
+
+            rowsHtml += `
+              <tr data-plate="${escapeHtmlAttribute(r.plate_no || "")}" data-owner="${escapeHtmlAttribute(rowOwner)}">
+                <td>${idx + 1}</td>
+                <td>${escapeHtml(r.date || "")}</td>
+                <td>${escapeHtml(r.vtype || "")}</td>
+                <td style="text-align:left;" class="site-column-cell">${escapeHtml(r.site || "N/A")}</td>
+                <td style="text-align:left; white-space:nowrap;">${escapeHtml(r.driver || "")}</td>
+                <td>${escapeHtml(r.plate_no || "")}</td>
+                <td class="nhr-cell editable-number-cell" data-original-value="${nhrVal}">
+                  <span class="view-number-text">${formatNumberDisplay(nhrVal)}</span>
+                  <input type="number" step="0.01" min="0" class="edit-number-input nhr-field" value="${nhrVal}" style="display:none;" oninput="recalculateCardRow(this)" />
+                </td>
+                <td class="rate-column-cell editable-number-cell">
+                  <span class="view-number-text">${formatNumberDisplay(nrateVal)}</span>
+                  <input type="number" step="0.01" min="0" class="edit-number-input nrate-field" value="${nrateVal}" style="display:none;" oninput="recalculateCardRow(this)" />
+                </td>
+                <td class="othr-cell editable-number-cell" data-original-value="${othrVal}">
+                  <span class="view-number-text">${formatNumberDisplay(othrVal)}</span>
+                  <input type="number" step="0.01" min="0" class="edit-number-input othr-field" value="${othrVal}" style="display:none;" oninput="recalculateCardRow(this)" />
+                </td>
+                <td class="rate-column-cell editable-number-cell">
+                  <span class="view-number-text">${formatNumberDisplay(otrateVal)}</span>
+                  <input type="number" step="0.01" min="0" class="edit-number-input otrate-field" value="${otrateVal}" style="display:none;" oninput="recalculateCardRow(this)" />
+                </td>
+                <td class="rent-cell">${rentVal.toFixed(2)}</td>
+                ${hasVat ? `<td class="vat-cell">${vatVal.toFixed(2)}</td>` : ""}
+                <td style="font-weight:bold;" class="total-cell">${totalVal.toFixed(2)}</td>
+                <td class="extra-comparison-col" style="background:#f0fdf4;">${repMatch.ts_nr || 0}</td>
+                <td class="extra-comparison-col" style="background:#f0fdf4;">${repMatch.ts_ot || 0}</td>
+                <td class="extra-comparison-col" style="background:#eff6ff;">${repMatch.inv_nr || 0}</td>
+                <td class="extra-comparison-col" style="background:#eff6ff;">${repMatch.inv_ot || 0}</td>
+              </tr>
+            `;
+        });
+
+        // 🟢 ടേബിളിലെ ഓരോ വരിയിൽ നിന്നുമുള്ള യഥാർത്ഥ ഓണർമാരെ കൃത്യമായി ശേഖരിക്കുന്നു
+        let ownerCounts = {};
+        rows.forEach((r) => {
+          let o = (r.owner || "").trim();
+          if (!o || o === "Manual Entry") {
+            const matched = fetchedRowsCache.find(
+              (cr) =>
+                String(cr.plate_no || "")
+                  .trim()
+                  .toUpperCase() ===
+                String(r.plate_no || "")
+                  .trim()
+                  .toUpperCase(),
+            );
+            o = matched?.owner?.trim() || "COMPANY VEHICLE";
+          }
+          if (o) {
+            ownerCounts[o] = (ownerCounts[o] || 0) + 1;
+          }
+        });
+
+        let distinctOwners = Object.keys(ownerCounts);
+        let displayTitle = "";
+
+        if (distinctOwners.length === 1) {
+          // ഒരൊറ്റ ഓണർ മാത്രമുള്ളപ്പോൾ
+          displayTitle =
+            companyTitle && companyTitle !== "Manual Entry Table"
+              ? `${companyTitle} - ${distinctOwners[0]}`
+              : `Owner: ${distinctOwners[0]}`;
+        } else if (distinctOwners.length > 1) {
+          // പല ഓണർമാർ വരുമ്പോൾ എണ്ണം സഹിതം കൃത്യമായി കാണിക്കുന്നു
+          let ownerSummary = distinctOwners
+            .map((o) => `${o} (${ownerCounts[o]})`)
+            .join(" | ");
+          displayTitle =
+            companyTitle && companyTitle !== "Manual Entry Table"
+              ? `${companyTitle} | ${ownerSummary}`
+              : `Owners: ${ownerSummary}`;
+        } else {
+          displayTitle = companyTitle || "Manual Entry Table";
+        }
 
         card.innerHTML = `
           <div class="card-header-bar no-print">
-
-            <div
-              style="display:flex; align-items:center; gap:8px;"
-            >
-              <b
-                style="color:#1a4d80; font-size:16px;"
-              >
-                ${escapeHtml(
-                  displayTitle
-                )}
+            <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+              <b class="card-header-title-text" title="${escapeHtml(displayTitle)}">
+                ${escapeHtml(displayTitle)}
               </b>
-
-              <span class="edit-hint">
-                ✏️ Edit Mode — N.Hr / OT Hr / Rates are editable
+              <span class="edit-hint" style="flex-shrink:0;">
+                ✏️ Edit Mode
               </span>
             </div>
 
             <div class="edit-action-buttons">
+              <!-- 🟢 SEAL & SIGN TOGGLE BUTTON -->
+              <button
+                class="btn"
+                title="Toggle Seal & Signature"
+                style="background:#6f42c1;"
+                onclick="toggleCardImages(this)"
+              >
+                <i class="material-icons" style="font-size:16px;">visibility</i> Seal/Sign
+              </button>
 
               <!-- NORMAL MODE -->
               <button
@@ -2230,11 +1998,12 @@ document.addEventListener(
               >
                 ✖ Cancel
               </button>
-
             </div>
           </div>
 
           <div class="print-area">
+            <!-- 🟢 HEADER IMAGE (Company-wise) -->
+            <img src="${compConfig.header}" class="header-img hidden-image" alt="Header" crossorigin="anonymous" />
 
             <div
               style="border:1px solid #cbd5e1; padding:12px; margin-bottom:15px; text-align:center; background:#f8fafc; font-weight:bold; font-size:18px; color:#1e293b;"
@@ -2244,108 +2013,25 @@ document.addEventListener(
             </div>
 
             <table class="report-table supplier-bill-table">
-
               <thead>
                 <tr>
-
-                  <th style="width:3%;">
-                    #
-                  </th>
-
-                  <th style="width:7%;">
-                    Date
-                  </th>
-
-                  <th style="width:11%;">
-                    Vehicle Type
-                  </th>
-
-                  <th style="width:12%;" class="site-column-cell">
-                    Site
-                  </th>
-
-                  <th style="width:12%;">
-                    Driver
-                  </th>
-
-                  <th style="width:8%;">
-                    Plate No
-                  </th>
-
-                  <th
-                    style="width:5%;"
-                    title="Editable in Edit Mode"
-                  >
-                    N.Hr
-                  </th>
-
-                  <th
-                    style="width:6%;"
-                    class="rate-column-cell"
-                  >
-                    N.Rate
-                  </th>
-
-                  <th
-                    style="width:5%;"
-                    title="Editable in Edit Mode"
-                  >
-                    OT Hr
-                  </th>
-
-                  <th
-                    style="width:6%;"
-                    class="rate-column-cell"
-                  >
-                    OT Rate
-                  </th>
-
-                  <th style="width:7%;">
-                    Rent
-                  </th>
-
-                  ${
-                    hasVat
-                      ? `
-                        <th style="width:6%;">
-                          VAT
-                        </th>
-                      `
-                      : ""
-                  }
-
-                  <th style="width:7%;">
-                    Total
-                  </th>
-
-                  <th
-                    style="width:5%;"
-                    class="extra-comparison-col th-ts"
-                  >
-                    Log. NR
-                  </th>
-
-                  <th
-                    style="width:5%;"
-                    class="extra-comparison-col th-ts"
-                  >
-                    Log. OT
-                  </th>
-
-                  <th
-                    style="width:5%;"
-                    class="extra-comparison-col th-summary"
-                  >
-                    Bill NR
-                  </th>
-
-                  <th
-                    style="width:5%;"
-                    class="extra-comparison-col th-summary"
-                  >
-                    Bill OT
-                  </th>
-
+                  <th style="width:3%;">#</th>
+                  <th style="width:7%;">Date</th>
+                  <th style="width:11%;">Vehicle Type</th>
+                  <th style="width:12%;" class="site-column-cell">Site</th>
+                  <th style="width:12%;">Driver</th>
+                  <th style="width:8%;">Plate No</th>
+                  <th style="width:5%;" title="Editable in Edit Mode">N.Hr</th>
+                  <th style="width:6%;" class="rate-column-cell">N.Rate</th>
+                  <th style="width:5%;" title="Editable in Edit Mode">OT Hr</th>
+                  <th style="width:6%;" class="rate-column-cell">OT Rate</th>
+                  <th style="width:7%;">Rent</th>
+                  ${hasVat ? `<th style="width:6%;">VAT</th>` : ""}
+                  <th style="width:7%;">Total</th>
+                  <th style="width:5%;" class="extra-comparison-col th-ts">Log. NR</th>
+                  <th style="width:5%;" class="extra-comparison-col th-ts">Log. OT</th>
+                  <th style="width:5%;" class="extra-comparison-col th-summary">Bill NR</th>
+                  <th style="width:5%;" class="extra-comparison-col th-summary">Bill OT</th>
                 </tr>
               </thead>
 
@@ -2354,99 +2040,46 @@ document.addEventListener(
               </tbody>
 
               <tfoot>
-
-                <tr
-                  style="font-weight:bold; background:#f8fafc; font-size:14px;"
-                >
-
-                  <td
-                    colspan="6"
-                    style="text-align:right; padding-right:15px;"
-                  >
+                <tr style="font-weight:bold; background:#f8fafc; font-size:14px;">
+                  <td colspan="6" style="text-align:right; padding-right:15px;">
                     Grand Total:
                   </td>
-
-                  <td class="grand-nhr">
-                    ${formatNumberDisplay(
-                      totalNHr
-                    )}
-                  </td>
-
-                  <td
-                    class="rate-column-cell"
-                  ></td>
-
-                  <td class="grand-othr">
-                    ${formatNumberDisplay(
-                      totalOTHr
-                    )}
-                  </td>
-
-                  <td
-                    class="rate-column-cell"
-                  ></td>
-
-                  <td class="grand-rent">
-                    ${totalRent.toFixed(2)}
-                  </td>
-
-                  ${
-                    hasVat
-                      ? `
-                        <td class="grand-vat">
-                          ${totalVat.toFixed(2)}
-                        </td>
-                      `
-                      : ""
-                  }
-
-                  <td
-                    style="color:#000000;"
-                    class="grand-total"
-                  >
-                    ${grandTotal.toFixed(2)}
-                  </td>
-
-                  <td
-                    class="extra-comparison-col"
-                    style="background:#f0fdf4;"
-                  >
-                    ${sumTsNr}
-                  </td>
-
-                  <td
-                    class="extra-comparison-col"
-                    style="background:#f0fdf4;"
-                  >
-                    ${sumTsOt}
-                  </td>
-
-                  <td
-                    class="extra-comparison-col"
-                    style="background:#eff6ff;"
-                  >
-                    ${sumInvNr}
-                  </td>
-
-                  <td
-                    class="extra-comparison-col"
-                    style="background:#eff6ff;"
-                  >
-                    ${sumInvOt}
-                  </td>
-
+                  <td class="grand-nhr">${formatNumberDisplay(totalNHr)}</td>
+                  <td class="rate-column-cell"></td>
+                  <td class="grand-othr">${formatNumberDisplay(totalOTHr)}</td>
+                  <td class="rate-column-cell"></td>
+                  <td class="grand-rent">${totalRent.toFixed(2)}</td>
+                  ${hasVat ? `<td class="grand-vat">${totalVat.toFixed(2)}</td>` : ""}
+                  <td style="color:#000000;" class="grand-total">${grandTotal.toFixed(2)}</td>
+                  <td class="extra-comparison-col" style="background:#f0fdf4;">${sumTsNr}</td>
+                  <td class="extra-comparison-col" style="background:#f0fdf4;">${sumTsOt}</td>
+                  <td class="extra-comparison-col" style="background:#eff6ff;">${sumInvNr}</td>
+                  <td class="extra-comparison-col" style="background:#eff6ff;">${sumInvOt}</td>
                 </tr>
-
               </tfoot>
-
             </table>
+
+            <!-- 🟢 FOOTER WITH SEAL AND SIGNATURE -->
+            <div class="card-footer-sign footer">
+              <div style="text-align: left; padding-bottom: 10px;">
+                <p class="company-text hidden-image" style="margin-bottom: 5px; font-size: 13px; color: #1e293b;">
+                  <b>${compConfig.text}</b>
+                </p>
+                <p class="company-text hidden-image" style="border-top: 1px solid #333; width: 250px; margin: 0;"></p>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
+                <img src="${compConfig.signature}" class="signature-img hidden-image" alt="Signature" crossorigin="anonymous" style="margin-bottom: 0; max-height: 75px;">
+                <img src="${compConfig.seal}" class="seal hidden-image" alt="Company Seal" crossorigin="anonymous" style="margin-bottom: 0; max-height: 75px;">
+              </div>
+            </div>
           </div>
         `;
 
         return card;
       }
 
-     /*
+      /*
        * ============================================================
        * EDIT MODE & CANCEL EDIT (FIXED FOR MANUAL CARD DATA PRESERVATION)
        * ============================================================
@@ -2459,17 +2092,19 @@ document.addEventListener(
         card.classList.add("edit-mode");
 
         // എഡിറ്റ് തുടങ്ങുന്നതിന് തൊട്ടുമുമ്പുള്ള വാല്യൂസ് കൃത്യമായി ബാക്കപ്പ് ചെയ്യുന്നു
-        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((row) => {
-          const nhrInput = row.querySelector(".nhr-field");
-          const othrInput = row.querySelector(".othr-field");
-          const nrateInput = row.querySelector(".nrate-field");
-          const otrateInput = row.querySelector(".otrate-field");
+        card
+          .querySelectorAll(".supplier-bill-table tbody tr")
+          .forEach((row) => {
+            const nhrInput = row.querySelector(".nhr-field");
+            const othrInput = row.querySelector(".othr-field");
+            const nrateInput = row.querySelector(".nrate-field");
+            const otrateInput = row.querySelector(".otrate-field");
 
-          if (nhrInput) nhrInput.dataset.original = nhrInput.value;
-          if (othrInput) othrInput.dataset.original = othrInput.value;
-          if (nrateInput) nrateInput.dataset.original = nrateInput.value;
-          if (otrateInput) otrateInput.dataset.original = otrateInput.value;
-        });
+            if (nhrInput) nhrInput.dataset.original = nhrInput.value;
+            if (othrInput) othrInput.dataset.original = othrInput.value;
+            if (nrateInput) nrateInput.dataset.original = nrateInput.value;
+            if (otrateInput) otrateInput.dataset.original = otrateInput.value;
+          });
 
         card.querySelectorAll(".edit-number-input").forEach((input) => {
           input.style.display = "inline-block";
@@ -2504,27 +2139,29 @@ document.addEventListener(
         if (isManualCard) {
           card.classList.remove("edit-mode");
 
-          card.querySelectorAll(".supplier-bill-table tbody tr").forEach((row) => {
-            const nhrInput = row.querySelector(".nhr-field");
-            const othrInput = row.querySelector(".othr-field");
-            const nrateInput = row.querySelector(".nrate-field");
-            const otrateInput = row.querySelector(".otrate-field");
+          card
+            .querySelectorAll(".supplier-bill-table tbody tr")
+            .forEach((row) => {
+              const nhrInput = row.querySelector(".nhr-field");
+              const othrInput = row.querySelector(".othr-field");
+              const nrateInput = row.querySelector(".nrate-field");
+              const otrateInput = row.querySelector(".otrate-field");
 
-            if (nhrInput && nhrInput.dataset.original !== undefined) {
-              nhrInput.value = nhrInput.dataset.original;
-            }
-            if (othrInput && othrInput.dataset.original !== undefined) {
-              othrInput.value = othrInput.dataset.original;
-            }
-            if (nrateInput && nrateInput.dataset.original !== undefined) {
-              nrateInput.value = nrateInput.dataset.original;
-            }
-            if (otrateInput && otrateInput.dataset.original !== undefined) {
-              otrateInput.value = otrateInput.dataset.original;
-            }
+              if (nhrInput && nhrInput.dataset.original !== undefined) {
+                nhrInput.value = nhrInput.dataset.original;
+              }
+              if (othrInput && othrInput.dataset.original !== undefined) {
+                othrInput.value = othrInput.dataset.original;
+              }
+              if (nrateInput && nrateInput.dataset.original !== undefined) {
+                nrateInput.value = nrateInput.dataset.original;
+              }
+              if (otrateInput && otrateInput.dataset.original !== undefined) {
+                otrateInput.value = otrateInput.dataset.original;
+              }
 
-            if (nhrInput) recalculateCardRow(nhrInput);
-          });
+              if (nhrInput) recalculateCardRow(nhrInput);
+            });
 
           card.querySelectorAll(".edit-number-input").forEach((input) => {
             input.style.display = "none";
@@ -2535,7 +2172,8 @@ document.addEventListener(
           });
 
           card.querySelector(".card-edit-btn").style.display = "inline-flex";
-          card.querySelector(".card-download-btn").style.display = "inline-flex";
+          card.querySelector(".card-download-btn").style.display =
+            "inline-flex";
           card.querySelector(".card-copy-btn").style.display = "inline-flex";
           card.querySelector(".card-save-btn").style.display = "none";
           card.querySelector(".card-cancel-btn").style.display = "none";
@@ -2545,7 +2183,9 @@ document.addEventListener(
         }
 
         // സാധാരണ കാർഡുകൾ പഴയതുപോലെ rebuild ചെയ്യുന്നു
-        const originalRows = card._originalRows ? JSON.parse(JSON.stringify(card._originalRows)) : null;
+        const originalRows = card._originalRows
+          ? JSON.parse(JSON.stringify(card._originalRows))
+          : null;
         const companyTitle = card._companyTitle || "";
 
         if (originalRows) {
@@ -2556,8 +2196,12 @@ document.addEventListener(
         }
 
         card.classList.remove("edit-mode");
-        card.querySelectorAll(".edit-number-input").forEach((input) => (input.style.display = "none"));
-        card.querySelectorAll(".view-number-text").forEach((span) => (span.style.display = "inline-block"));
+        card
+          .querySelectorAll(".edit-number-input")
+          .forEach((input) => (input.style.display = "none"));
+        card
+          .querySelectorAll(".view-number-text")
+          .forEach((span) => (span.style.display = "inline-block"));
 
         card.querySelector(".card-edit-btn").style.display = "inline-flex";
         card.querySelector(".card-download-btn").style.display = "inline-flex";
@@ -2579,142 +2223,81 @@ document.addEventListener(
        */
 
       function recalculateCardRow(input) {
-        const row =
-          input.closest("tr");
+        const row = input.closest("tr");
 
-        const card =
-          row.closest(".bill-card");
+        const card = row.closest(".bill-card");
 
         if (!row || !card) {
           return;
         }
 
-        const nhr =
-          parseFloat(
-            row.querySelector(
-              ".nhr-field"
-            )?.value || 0
-          );
+        const nhr = parseFloat(row.querySelector(".nhr-field")?.value || 0);
 
-        const nrate =
-          parseFloat(
-            row.querySelector(
-              ".nrate-field"
-            )?.value || 0
-          );
+        const nrate = parseFloat(row.querySelector(".nrate-field")?.value || 0);
 
-        const othr =
-          parseFloat(
-            row.querySelector(
-              ".othr-field"
-            )?.value || 0
-          );
+        const othr = parseFloat(row.querySelector(".othr-field")?.value || 0);
 
-        const otrate =
-          parseFloat(
-            row.querySelector(
-              ".otrate-field"
-            )?.value || 0
-          );
+        const otrate = parseFloat(
+          row.querySelector(".otrate-field")?.value || 0,
+        );
 
         /*
          * Existing VAT value remains untouched.
          */
-        const vat =
-          parseFloat(
-            row.querySelector(
-              ".vat-cell"
-            )?.innerText || 0
-          );
+        const vat = parseFloat(row.querySelector(".vat-cell")?.innerText || 0);
 
-        const rent =
-          nhr * nrate +
-          othr * otrate;
+        const rent = nhr * nrate + othr * otrate;
 
-        const total =
-          rent + vat;
+        const total = rent + vat;
 
-        row.querySelector(
-          ".rent-cell"
-        ).innerText =
-          rent.toFixed(2);
+        row.querySelector(".rent-cell").innerText = rent.toFixed(2);
 
-        row.querySelector(
-          ".total-cell"
-        ).innerText =
-          total.toFixed(2);
+        row.querySelector(".total-cell").innerText = total.toFixed(2);
 
         /*
          * Update visible text values while editing too.
          */
-        updateEditTextMirror(
-          row,
-          ".nhr-field",
-          ".nhr-cell .view-number-text"
-        );
+        updateEditTextMirror(row, ".nhr-field", ".nhr-cell .view-number-text");
 
         updateEditTextMirror(
           row,
           ".othr-field",
-          ".othr-cell .view-number-text"
+          ".othr-cell .view-number-text",
         );
 
         updateEditTextMirror(
           row,
           ".nrate-field",
-          ".rate-column-cell:nth-child(8) .view-number-text"
+          ".rate-column-cell:nth-child(8) .view-number-text",
         );
 
         updateEditTextMirror(
           row,
           ".otrate-field",
-          ".rate-column-cell:nth-child(10) .view-number-text"
+          ".rate-column-cell:nth-child(10) .view-number-text",
         );
 
         /*
          * Recalculate card totals.
          */
-        recalculateCardGrandTotals(
-          card
-        );
+        recalculateCardGrandTotals(card);
       }
 
-      function updateEditTextMirror(
-        row,
-        inputSelector,
-        textSelector
-      ) {
-        const input =
-          row.querySelector(
-            inputSelector
-          );
+      function updateEditTextMirror(row, inputSelector, textSelector) {
+        const input = row.querySelector(inputSelector);
 
-        const text =
-          row.querySelector(
-            textSelector
-          );
+        const text = row.querySelector(textSelector);
 
-        if (
-          !input ||
-          !text
-        ) {
+        if (!input || !text) {
           return;
         }
 
-        const value =
-          parseFloat(
-            input.value || 0
-          );
+        const value = parseFloat(input.value || 0);
 
-        text.innerText =
-          formatNumberDisplay(
-            value
-          );
+        text.innerText = formatNumberDisplay(value);
       }
 
-      function recalculateCardGrandTotals(
-        card
-      ) {
+      function recalculateCardGrandTotals(card) {
         let gNHr = 0;
         let gOTHr = 0;
         let gRent = 0;
@@ -2722,44 +2305,25 @@ document.addEventListener(
         let gTotal = 0;
 
         card
-          .querySelectorAll(
-            ".supplier-bill-table tbody tr"
-          )
+          .querySelectorAll(".supplier-bill-table tbody tr")
           .forEach((row) => {
-            const nhr =
-              parseFloat(
-                row.querySelector(
-                  ".nhr-field"
-                )?.value || 0
-              );
+            const nhr = parseFloat(row.querySelector(".nhr-field")?.value || 0);
 
-            const othr =
-              parseFloat(
-                row.querySelector(
-                  ".othr-field"
-                )?.value || 0
-              );
+            const othr = parseFloat(
+              row.querySelector(".othr-field")?.value || 0,
+            );
 
-            const rent =
-              parseFloat(
-                row.querySelector(
-                  ".rent-cell"
-                )?.innerText || 0
-              );
+            const rent = parseFloat(
+              row.querySelector(".rent-cell")?.innerText || 0,
+            );
 
-            const vat =
-              parseFloat(
-                row.querySelector(
-                  ".vat-cell"
-                )?.innerText || 0
-              );
+            const vat = parseFloat(
+              row.querySelector(".vat-cell")?.innerText || 0,
+            );
 
-            const total =
-              parseFloat(
-                row.querySelector(
-                  ".total-cell"
-                )?.innerText || 0
-              );
+            const total = parseFloat(
+              row.querySelector(".total-cell")?.innerText || 0,
+            );
 
             gNHr += nhr;
             gOTHr += othr;
@@ -2768,58 +2332,34 @@ document.addEventListener(
             gTotal += total;
           });
 
-        const grandNHr =
-          card.querySelector(
-            ".grand-nhr"
-          );
+        const grandNHr = card.querySelector(".grand-nhr");
 
-        const grandOTHr =
-          card.querySelector(
-            ".grand-othr"
-          );
+        const grandOTHr = card.querySelector(".grand-othr");
 
-        const grandRent =
-          card.querySelector(
-            ".grand-rent"
-          );
+        const grandRent = card.querySelector(".grand-rent");
 
-        const grandVat =
-          card.querySelector(
-            ".grand-vat"
-          );
+        const grandVat = card.querySelector(".grand-vat");
 
-        const grandTotal =
-          card.querySelector(
-            ".grand-total"
-          );
+        const grandTotal = card.querySelector(".grand-total");
 
         if (grandNHr) {
-          grandNHr.innerText =
-            formatNumberDisplay(
-              gNHr
-            );
+          grandNHr.innerText = formatNumberDisplay(gNHr);
         }
 
         if (grandOTHr) {
-          grandOTHr.innerText =
-            formatNumberDisplay(
-              gOTHr
-            );
+          grandOTHr.innerText = formatNumberDisplay(gOTHr);
         }
 
         if (grandRent) {
-          grandRent.innerText =
-            gRent.toFixed(2);
+          grandRent.innerText = gRent.toFixed(2);
         }
 
         if (grandVat) {
-          grandVat.innerText =
-            gVat.toFixed(2);
+          grandVat.innerText = gVat.toFixed(2);
         }
 
         if (grandTotal) {
-          grandTotal.innerText =
-            gTotal.toFixed(2);
+          grandTotal.innerText = gTotal.toFixed(2);
         }
       }
 
@@ -2835,288 +2375,179 @@ document.addEventListener(
        * N.Hr and OT Hr are now taken from their input fields.
        */
 
-      async function saveEditedCardToERP(
-        btn
-      ) {
-        const card =
-          btn.closest(".bill-card");
+      async function saveEditedCardToERP(btn) {
+        const card = btn.closest(".bill-card");
 
         if (!card) {
           return;
         }
 
         const fullMonth =
-          document.getElementById(
-            "selMonth"
-          ).value +
+          document.getElementById("selMonth").value +
           " " +
-          document.getElementById(
-            "selYear"
-          ).value;
+          document.getElementById("selYear").value;
 
-        const token =
-          localStorage.getItem(
-            "view_bill_token"
-          );
+        const token = localStorage.getItem("view_bill_token");
 
         let items = [];
 
         let invalidFound = false;
 
-        card
-          .querySelectorAll(
-            ".supplier-bill-table tbody tr"
-          )
-          .forEach((r) => {
-            const plate =
-              r.getAttribute(
-                "data-plate"
-              );
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const plate = r.getAttribute("data-plate");
 
-            if (!plate) {
-              return;
-            }
+          if (!plate) {
+            return;
+          }
 
-            const nhrInput =
-              r.querySelector(
-                ".nhr-field"
-              );
+          const nhrInput = r.querySelector(".nhr-field");
 
-            const othrInput =
-              r.querySelector(
-                ".othr-field"
-              );
+          const othrInput = r.querySelector(".othr-field");
 
-            const nrateInput =
-              r.querySelector(
-                ".nrate-field"
-              );
+          const nrateInput = r.querySelector(".nrate-field");
 
-            const otrateInput =
-              r.querySelector(
-                ".otrate-field"
-              );
+          const otrateInput = r.querySelector(".otrate-field");
+
+          /*
+           * IMPORTANT:
+           * Read the values directly from the inputs.
+           * Therefore edited N.Hr and OT Hr will be saved.
+           */
+          const nhr = parseFloat(nhrInput?.value);
+
+          const othr = parseFloat(othrInput?.value);
+
+          const nrate = parseFloat(nrateInput?.value);
+
+          const otrate = parseFloat(otrateInput?.value);
+
+          if (
+            !Number.isFinite(nhr) ||
+            !Number.isFinite(othr) ||
+            !Number.isFinite(nrate) ||
+            !Number.isFinite(otrate)
+          ) {
+            invalidFound = true;
+            return;
+          }
+
+          const rent = parseFloat(
+            r.querySelector(".rent-cell")?.innerText || 0,
+          );
+
+          const total = parseFloat(
+            r.querySelector(".total-cell")?.innerText || 0,
+          );
+
+          const site = r.children[3].innerText;
+
+          const driver = r.children[4].innerText;
+
+          const vtype = r.children[2].innerText;
+
+          const vatAmount = parseFloat(
+            r.querySelector(".vat-cell")?.innerText || 0,
+          );
+
+          const vatPercent = findVatPercentForPlate(plate);
+
+          // 🟢 റോയിലെ യഥാർത്ഥ ഓണറെ സേവ് ചെയ്യുന്നു
+          const matchedCacheRow = fetchedRowsCache.find(
+            (cr) => String(cr.plate_no || "").trim() === String(plate).trim(),
+          );
+          const owner =
+            r.getAttribute("data-owner") ||
+            matchedCacheRow?.owner ||
+            "COMPANY VEHICLE";
+
+          items.push({
+            date: r.children[1].innerText,
+
+            owner: owner,
+
+            company: "Haka",
+
+            site_name: site,
+
+            vtype: vtype,
+
+            driver: driver,
+
+            plate: plate,
 
             /*
-             * IMPORTANT:
-             * Read the values directly from the inputs.
-             * Therefore edited N.Hr and OT Hr will be saved.
+             * IMPORTANT SAVED VALUES
              */
-            const nhr =
-              parseFloat(
-                nhrInput?.value
-              );
+            nhr: nhr,
 
-            const othr =
-              parseFloat(
-                othrInput?.value
-              );
+            nrate: nrate,
 
-            const nrate =
-              parseFloat(
-                nrateInput?.value
-              );
+            othr: othr,
 
-            const otrate =
-              parseFloat(
-                otrateInput?.value
-              );
+            otrate: otrate,
 
-            if (
-              !Number.isFinite(nhr) ||
-              !Number.isFinite(othr) ||
-              !Number.isFinite(nrate) ||
-              !Number.isFinite(otrate)
-            ) {
-              invalidFound = true;
-              return;
-            }
+            rent: rent,
 
-            const rent =
-              parseFloat(
-                r.querySelector(
-                  ".rent-cell"
-                )?.innerText || 0
-              );
+            vat_percent: vatPercent,
 
-            const total =
-              parseFloat(
-                r.querySelector(
-                  ".total-cell"
-                )?.innerText || 0
-              );
+            vat_amount: vatAmount,
 
-            const site =
-              r.children[3]
-                .innerText;
+            total: total,
 
-            const driver =
-              r.children[4]
-                .innerText;
+            adjusted_amount: 0,
 
-            const vtype =
-              r.children[2]
-                .innerText;
+            after_adjustment: total,
 
-            const vatAmount =
-              parseFloat(
-                r.querySelector(
-                  ".vat-cell"
-                )?.innerText || 0
-              );
-
-            const vatPercent =
-              findVatPercentForPlate(
-                plate
-              );
-
-            const ownerText =
-              card.querySelector(
-                "b"
-              )?.innerText || "";
-
-            const owner =
-              ownerText.includes(
-                " - "
-              )
-                ? ownerText
-                    .split(" - ")
-                    .slice(1)
-                    .join(" - ")
-                : ownerText.replace(
-                    /^Owner:\s*/i,
-                    ""
-                  ) ||
-                  "COMPANY VEHICLE";
-
-            items.push({
-              date:
-                r.children[1]
-                  .innerText,
-
-              owner:
-                owner,
-
-              company:
-                "Haka",
-
-              site_name:
-                site,
-
-              vtype:
-                vtype,
-
-              driver:
-                driver,
-
-              plate:
-                plate,
-
-              /*
-               * IMPORTANT SAVED VALUES
-               */
-              nhr:
-                nhr,
-
-              nrate:
-                nrate,
-
-              othr:
-                othr,
-
-              otrate:
-                otrate,
-
-              rent:
-                rent,
-
-              vat_percent:
-                vatPercent,
-
-              vat_amount:
-                vatAmount,
-
-              total:
-                total,
-
-              adjusted_amount:
-                0,
-
-              after_adjustment:
-                total,
-
-              remark:
-                "",
-            });
+            remark: "",
           });
+        });
 
         if (invalidFound) {
           return showToast(
-            "Please enter valid N.Hr, OT Hr, N.Rate and OT Rate values."
+            "Please enter valid N.Hr, OT Hr, N.Rate and OT Rate values.",
           );
         }
 
         if (items.length === 0) {
-          return showToast(
-            "No items to save!"
-          );
+          return showToast("No items to save!");
         }
 
         /*
          * Disable Save / Cancel during request.
          */
-        const saveBtn =
-          card.querySelector(
-            ".card-save-btn"
-          );
+        const saveBtn = card.querySelector(".card-save-btn");
 
-        const cancelBtn =
-          card.querySelector(
-            ".card-cancel-btn"
-          );
+        const cancelBtn = card.querySelector(".card-cancel-btn");
 
         if (saveBtn) {
           saveBtn.disabled = true;
-          saveBtn.innerText =
-            "⏳ Saving...";
+          saveBtn.innerText = "⏳ Saving...";
         }
 
         if (cancelBtn) {
           cancelBtn.disabled = true;
         }
 
-        document.getElementById(
-          "loaderOverlay"
-        ).style.display = "flex";
+        document.getElementById("loaderOverlay").style.display = "flex";
 
         try {
-          const res =
-            await fetch(
-              "/billing/save",
-              {
-                method: "POST",
+          const res = await fetch("/billing/save", {
+            method: "POST",
 
-                headers: {
-                  "Content-Type":
-                    "application/json",
+            headers: {
+              "Content-Type": "application/json",
 
-                  Authorization:
-                    "Bearer " +
-                    token,
-                },
+              Authorization: "Bearer " + token,
+            },
 
-                body: JSON.stringify({
-                  billing_period:
-                    fullMonth,
+            body: JSON.stringify({
+              billing_period: fullMonth,
 
-                  items:
-                    items,
-                }),
-              }
-            );
+              items: items,
+            }),
+          });
 
-          const data =
-            await res.json();
+          const data = await res.json();
 
           if (data.success) {
             /*
@@ -3126,415 +2557,217 @@ document.addEventListener(
              * This means clicking Edit again
              * will start from the newly saved data.
              */
-            card._originalRows =
-              buildRowsFromEditedCard(
-                card
-              );
+            card._originalRows = buildRowsFromEditedCard(card);
 
             /*
              * Update fetched cache too.
              */
-            updateFetchedRowsCacheFromItems(
-              items
-            );
+            updateFetchedRowsCacheFromItems(items);
 
             /*
              * Exit edit mode.
              */
-            exitCardEditMode(
-              card
-            );
+            exitCardEditMode(card);
 
             /*
              * Make the new values the
              * new display values.
              */
-            refreshCardOriginalData(
-              card
-            );
+            refreshCardOriginalData(card);
 
-            showToast(
-              "Saved successfully to ERP!"
-            );
+            showToast("Saved successfully to ERP!");
           } else {
-            showToast(
-              "Error: " +
-                (
-                  data.message ||
-                  "Unable to save"
-                )
-            );
+            showToast("Error: " + (data.message || "Unable to save"));
           }
         } catch (e) {
-          showToast(
-            "Server connection error."
-          );
+          showToast("Server connection error.");
         } finally {
-          document.getElementById(
-            "loaderOverlay"
-          ).style.display = "none";
+          document.getElementById("loaderOverlay").style.display = "none";
 
           if (saveBtn) {
             saveBtn.disabled = false;
-            saveBtn.innerText =
-              "💾 Save";
+            saveBtn.innerText = "💾 Save";
           }
 
           if (cancelBtn) {
-            cancelBtn.disabled =
-              false;
+            cancelBtn.disabled = false;
           }
         }
       }
 
-      function buildRowsFromEditedCard(
-        card
-      ) {
+      function buildRowsFromEditedCard(card) {
         const rows = [];
 
-        card
-          .querySelectorAll(
-            ".supplier-bill-table tbody tr"
-          )
-          .forEach((r) => {
-            const plate =
-              r.getAttribute(
-                "data-plate"
-              );
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const plate = r.getAttribute("data-plate");
 
-            if (!plate) {
-              return;
-            }
+          if (!plate) {
+            return;
+          }
 
-            const nhr =
-              parseFloat(
-                r.querySelector(
-                  ".nhr-field"
-                )?.value || 0
-              );
+          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
 
-            const othr =
-              parseFloat(
-                r.querySelector(
-                  ".othr-field"
-                )?.value || 0
-              );
+          const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
 
-            const nrate =
-              parseFloat(
-                r.querySelector(
-                  ".nrate-field"
-                )?.value || 0
-              );
+          const nrate = parseFloat(r.querySelector(".nrate-field")?.value || 0);
 
-            const otrate =
-              parseFloat(
-                r.querySelector(
-                  ".otrate-field"
-                )?.value || 0
-              );
+          const otrate = parseFloat(
+            r.querySelector(".otrate-field")?.value || 0,
+          );
 
-            const rent =
-              parseFloat(
-                r.querySelector(
-                  ".rent-cell"
-                )?.innerText || 0
-              );
+          const rent = parseFloat(
+            r.querySelector(".rent-cell")?.innerText || 0,
+          );
 
-            const total =
-              parseFloat(
-                r.querySelector(
-                  ".total-cell"
-                )?.innerText || 0
-              );
+          const total = parseFloat(
+            r.querySelector(".total-cell")?.innerText || 0,
+          );
 
-            const vatAmount =
-              parseFloat(
-                r.querySelector(
-                  ".vat-cell"
-                )?.innerText || 0
-              );
+          const vatAmount = parseFloat(
+            r.querySelector(".vat-cell")?.innerText || 0,
+          );
 
-            const originalRow =
-              findOriginalRowByPlate(
-                card,
-                plate
-              );
+          const originalRow = findOriginalRowByPlate(card, plate);
 
-            rows.push({
-              ...(originalRow || {}),
+          rows.push({
+            ...(originalRow || {}),
 
-              date:
-                r.children[1]
-                  .innerText,
+            date: r.children[1].innerText,
 
-              vtype:
-                r.children[2]
-                  .innerText,
+            vtype: r.children[2].innerText,
 
-              site:
-                r.children[3]
-                  .innerText,
+            site: r.children[3].innerText,
 
-              driver:
-                r.children[4]
-                  .innerText,
+            driver: r.children[4].innerText,
 
-              plate_no:
-                plate,
+            plate_no: plate,
 
-              nhr:
-                nhr,
+            nhr: nhr,
 
-              nrate:
-                nrate,
+            nrate: nrate,
 
-              othr:
-                othr,
+            othr: othr,
 
-              otrate:
-                otrate,
+            otrate: otrate,
 
-              rent:
-                rent,
+            rent: rent,
 
-              vat_amount:
-                vatAmount,
+            vat_amount: vatAmount,
 
-              total:
-                total,
-            });
+            total: total,
           });
+        });
 
         return rows;
       }
 
-      function findOriginalRowByPlate(
-        card,
-        plate
-      ) {
-        const rows =
-          card._originalRows || [];
+      function findOriginalRowByPlate(card, plate) {
+        const rows = card._originalRows || [];
 
         return (
-          rows.find(
-            (r) =>
-              String(
-                r.plate_no || ""
-              ) === String(plate)
-          ) || null
+          rows.find((r) => String(r.plate_no || "") === String(plate)) || null
         );
       }
 
-      function updateFetchedRowsCacheFromItems(
-        items
-      ) {
-        items.forEach(
-          (item) => {
-            const index =
-              fetchedRowsCache.findIndex(
-                (r) =>
-                  String(
-                    r.plate_no || ""
-                  ) ===
-                  String(
-                    item.plate
-                  )
-              );
-
-            if (index !== -1) {
-              fetchedRowsCache[
-                index
-              ].nhr =
-                item.nhr;
-
-              fetchedRowsCache[
-                index
-              ].nrate =
-                item.nrate;
-
-              fetchedRowsCache[
-                index
-              ].othr =
-                item.othr;
-
-              fetchedRowsCache[
-                index
-              ].otrate =
-                item.otrate;
-
-              fetchedRowsCache[
-                index
-              ].rent =
-                item.rent;
-
-              fetchedRowsCache[
-                index
-              ].total =
-                item.total;
-
-              fetchedRowsCache[
-                index
-              ].vat_amount =
-                item.vat_amount;
-            }
-          }
-        );
-      }
-
-      function findVatPercentForPlate(
-        plate
-      ) {
-        const row =
-          fetchedRowsCache.find(
-            (r) =>
-              String(
-                r.plate_no || ""
-              ) === String(plate)
+      function updateFetchedRowsCacheFromItems(items) {
+        items.forEach((item) => {
+          const index = fetchedRowsCache.findIndex(
+            (r) => String(r.plate_no || "") === String(item.plate),
           );
 
-        return parseFloat(
-          row?.vat_percent || 0
-        );
+          if (index !== -1) {
+            fetchedRowsCache[index].nhr = item.nhr;
+
+            fetchedRowsCache[index].nrate = item.nrate;
+
+            fetchedRowsCache[index].othr = item.othr;
+
+            fetchedRowsCache[index].otrate = item.otrate;
+
+            fetchedRowsCache[index].rent = item.rent;
+
+            fetchedRowsCache[index].total = item.total;
+
+            fetchedRowsCache[index].vat_amount = item.vat_amount;
+          }
+        });
       }
 
-      function exitCardEditMode(
-        card
-      ) {
-        card.classList.remove(
-          "edit-mode"
+      function findVatPercentForPlate(plate) {
+        const row = fetchedRowsCache.find(
+          (r) => String(r.plate_no || "") === String(plate),
         );
 
-        card.querySelectorAll(
-          ".edit-number-input"
-        ).forEach((input) => {
-          input.style.display =
-            "none";
-        });
-
-        card.querySelectorAll(
-          ".view-number-text"
-        ).forEach((span) => {
-          span.style.display =
-            "inline-block";
-        });
-
-        card.querySelector(
-          ".card-edit-btn"
-        ).style.display =
-          "inline-flex";
-
-        card.querySelector(
-          ".card-download-btn"
-        ).style.display =
-          "inline-flex";
-
-        card.querySelector(
-          ".card-copy-btn"
-        ).style.display =
-          "inline-flex";
-
-        card.querySelector(
-          ".card-save-btn"
-        ).style.display =
-          "none";
-
-        card.querySelector(
-          ".card-cancel-btn"
-        ).style.display =
-          "none";
+        return parseFloat(row?.vat_percent || 0);
       }
 
-      function refreshCardOriginalData(
-        card
-      ) {
+      function exitCardEditMode(card) {
+        card.classList.remove("edit-mode");
+
+        card.querySelectorAll(".edit-number-input").forEach((input) => {
+          input.style.display = "none";
+        });
+
+        card.querySelectorAll(".view-number-text").forEach((span) => {
+          span.style.display = "inline-block";
+        });
+
+        card.querySelector(".card-edit-btn").style.display = "inline-flex";
+
+        card.querySelector(".card-download-btn").style.display = "inline-flex";
+
+        card.querySelector(".card-copy-btn").style.display = "inline-flex";
+
+        card.querySelector(".card-save-btn").style.display = "none";
+
+        card.querySelector(".card-cancel-btn").style.display = "none";
+      }
+
+      function refreshCardOriginalData(card) {
         /*
          * Update text values from inputs.
          */
         card
-          .querySelectorAll(
-            ".supplier-bill-table tbody tr"
-          )
+          .querySelectorAll(".supplier-bill-table tbody tr")
           .forEach((row) => {
-            const nhr =
-              parseFloat(
-                row.querySelector(
-                  ".nhr-field"
-                )?.value || 0
-              );
+            const nhr = parseFloat(row.querySelector(".nhr-field")?.value || 0);
 
-            const othr =
-              parseFloat(
-                row.querySelector(
-                  ".othr-field"
-                )?.value || 0
-              );
+            const othr = parseFloat(
+              row.querySelector(".othr-field")?.value || 0,
+            );
 
-            const nrate =
-              parseFloat(
-                row.querySelector(
-                  ".nrate-field"
-                )?.value || 0
-              );
+            const nrate = parseFloat(
+              row.querySelector(".nrate-field")?.value || 0,
+            );
 
-            const otrate =
-              parseFloat(
-                row.querySelector(
-                  ".otrate-field"
-                )?.value || 0
-              );
+            const otrate = parseFloat(
+              row.querySelector(".otrate-field")?.value || 0,
+            );
 
-            const nhrText =
-              row.querySelector(
-                ".nhr-cell .view-number-text"
-              );
+            const nhrText = row.querySelector(".nhr-cell .view-number-text");
 
-            const othrText =
-              row.querySelector(
-                ".othr-cell .view-number-text"
-              );
+            const othrText = row.querySelector(".othr-cell .view-number-text");
 
-            const cells =
-              row.querySelectorAll(
-                ".rate-column-cell"
-              );
+            const cells = row.querySelectorAll(".rate-column-cell");
 
-            const nrateText =
-              cells[0]?.querySelector(
-                ".view-number-text"
-              );
+            const nrateText = cells[0]?.querySelector(".view-number-text");
 
-            const otrateText =
-              cells[1]?.querySelector(
-                ".view-number-text"
-              );
+            const otrateText = cells[1]?.querySelector(".view-number-text");
 
             if (nhrText) {
-              nhrText.innerText =
-                formatNumberDisplay(
-                  nhr
-                );
+              nhrText.innerText = formatNumberDisplay(nhr);
             }
 
             if (othrText) {
-              othrText.innerText =
-                formatNumberDisplay(
-                  othr
-                );
+              othrText.innerText = formatNumberDisplay(othr);
             }
 
             if (nrateText) {
-              nrateText.innerText =
-                formatNumberDisplay(
-                  nrate
-                );
+              nrateText.innerText = formatNumberDisplay(nrate);
             }
 
             if (otrateText) {
-              otrateText.innerText =
-                formatNumberDisplay(
-                  otrate
-                );
+              otrateText.innerText = formatNumberDisplay(otrate);
             }
           });
       }
@@ -3555,7 +2788,9 @@ document.addEventListener(
           container.innerHTML = "";
         }
 
-        const selMonth = document.getElementById("selMonth").value.substring(0, 3);
+        const selMonth = document
+          .getElementById("selMonth")
+          .value.substring(0, 3);
         const selYear = document.getElementById("selYear").value.substring(2);
         const dateStr = `${selMonth} ${selYear}`;
 
@@ -3572,10 +2807,13 @@ document.addEventListener(
           rent: 0,
           vat_amount: 0,
           total: 0,
-          owner: "Manual Entry"
+          owner: "Manual Entry",
         };
 
-        const card = buildBillCardElement([emptyManualItem], "Manual Entry Table");
+        const card = buildBillCardElement(
+          [emptyManualItem],
+          "Manual Entry Table",
+        );
         card.id = `manualBillCard_${manualTableCount}`;
 
         const firstRow = card.querySelector(".supplier-bill-table tbody tr");
@@ -3594,7 +2832,9 @@ document.addEventListener(
         const tbody = card.querySelector(".supplier-bill-table tbody");
         const rowCount = tbody.querySelectorAll("tr").length + 1;
 
-        const selMonth = document.getElementById("selMonth").value.substring(0, 3);
+        const selMonth = document
+          .getElementById("selMonth")
+          .value.substring(0, 3);
         const selYear = document.getElementById("selYear").value.substring(2);
         const dateStr = `${selMonth} ${selYear}`;
 
@@ -3616,20 +2856,20 @@ document.addEventListener(
               style="width:100%; height:100%; border:none; background:transparent; text-align:center; text-transform:uppercase; font-weight:bold; font-size:12px; outline:none; color:#0f172a; font-family:inherit;" />
           </td>
           <td class="nhr-cell editable-number-cell" data-original-value="0">
-            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
-            <input type="number" step="0.01" min="0" class="edit-number-input nhr-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? "none" : "inline-block"};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input nhr-field" value="0" style="display:${isCurrentlyEditing ? "inline-block" : "none"};" oninput="recalculateCardRow(this)" />
           </td>
           <td class="rate-column-cell editable-number-cell">
-            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
-            <input type="number" step="0.01" min="0" class="edit-number-input nrate-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? "none" : "inline-block"};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input nrate-field" value="0" style="display:${isCurrentlyEditing ? "inline-block" : "none"};" oninput="recalculateCardRow(this)" />
           </td>
           <td class="othr-cell editable-number-cell" data-original-value="0">
-            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
-            <input type="number" step="0.01" min="0" class="edit-number-input othr-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? "none" : "inline-block"};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input othr-field" value="0" style="display:${isCurrentlyEditing ? "inline-block" : "none"};" oninput="recalculateCardRow(this)" />
           </td>
           <td class="rate-column-cell editable-number-cell">
-            <span class="view-number-text" style="display:${isCurrentlyEditing ? 'none' : 'inline-block'};">0</span>
-            <input type="number" step="0.01" min="0" class="edit-number-input otrate-field" value="0" style="display:${isCurrentlyEditing ? 'inline-block' : 'none'};" oninput="recalculateCardRow(this)" />
+            <span class="view-number-text" style="display:${isCurrentlyEditing ? "none" : "inline-block"};">0</span>
+            <input type="number" step="0.01" min="0" class="edit-number-input otrate-field" value="0" style="display:${isCurrentlyEditing ? "inline-block" : "none"};" oninput="recalculateCardRow(this)" />
           </td>
           <td class="rent-cell">0.00</td>
           <td style="font-weight:bold;" class="total-cell">0.00</td>
@@ -3661,7 +2901,10 @@ document.addEventListener(
         // ബ്ലാങ്ക് ആയ അവസാന വരികൾ താൽക്കാലികമായി മറയ്ക്കുന്നു
         const hiddenBlankRows = [];
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          const plateVal = r.getAttribute("data-plate") || r.querySelector(".manual-plate-input")?.value?.trim() || "";
+          const plateVal =
+            r.getAttribute("data-plate") ||
+            r.querySelector(".manual-plate-input")?.value?.trim() ||
+            "";
           const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
           const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
           if (!plateVal && nhr === 0 && othr === 0) {
@@ -3670,11 +2913,15 @@ document.addEventListener(
           }
         });
 
-        card.querySelectorAll(
-          ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
-        ).forEach((el) => (el.style.display = "none"));
+        card
+          .querySelectorAll(
+            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+          )
+          .forEach((el) => (el.style.display = "none"));
 
-        card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = "none"));
+        card
+          .querySelectorAll(".site-column-cell")
+          .forEach((el) => (el.style.display = "none"));
 
         const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
         if (grandTotalCell) {
@@ -3684,7 +2931,10 @@ document.addEventListener(
         const printArea = card.querySelector(".print-area");
 
         try {
-          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+          const canvas = await html2canvas(printArea, {
+            scale: 3,
+            useCORS: true,
+          });
           const link = document.createElement("a");
           link.download = `Bill_Report.png`;
           link.href = canvas.toDataURL("image/png");
@@ -3694,10 +2944,14 @@ document.addEventListener(
         } finally {
           // ഹൈഡ് ചെയ്ത വരികളും കോളങ്ങളും തിരികെ കൊണ്ടുവരുന്നു
           hiddenBlankRows.forEach((r) => (r.style.display = ""));
-          card.querySelectorAll(
-            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
-          ).forEach((el) => (el.style.display = ""));
-          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          card
+            .querySelectorAll(
+              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+            )
+            .forEach((el) => (el.style.display = ""));
+          card
+            .querySelectorAll(".site-column-cell")
+            .forEach((el) => (el.style.display = ""));
           if (grandTotalCell) {
             grandTotalCell.setAttribute("colspan", "6");
           }
@@ -3721,7 +2975,10 @@ document.addEventListener(
         // ബ്ലാങ്ക് ആയ വരികൾ താൽക്കാലികമായി മറയ്ക്കുന്നു
         const hiddenBlankRows = [];
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          const plateVal = r.getAttribute("data-plate") || r.querySelector(".manual-plate-input")?.value?.trim() || "";
+          const plateVal =
+            r.getAttribute("data-plate") ||
+            r.querySelector(".manual-plate-input")?.value?.trim() ||
+            "";
           const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
           const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
           if (!plateVal && nhr === 0 && othr === 0) {
@@ -3730,11 +2987,15 @@ document.addEventListener(
           }
         });
 
-        card.querySelectorAll(
-          ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
-        ).forEach((el) => (el.style.display = "none"));
+        card
+          .querySelectorAll(
+            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+          )
+          .forEach((el) => (el.style.display = "none"));
 
-        card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = "none"));
+        card
+          .querySelectorAll(".site-column-cell")
+          .forEach((el) => (el.style.display = "none"));
 
         const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
         if (grandTotalCell) {
@@ -3744,14 +3005,23 @@ document.addEventListener(
         const printArea = card.querySelector(".print-area");
 
         try {
-          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+          const canvas = await html2canvas(printArea, {
+            scale: 3,
+            useCORS: true,
+          });
           canvas.toBlob(async (blob) => {
             try {
-              if (!blob || !navigator.clipboard || typeof ClipboardItem === "undefined") {
+              if (
+                !blob ||
+                !navigator.clipboard ||
+                typeof ClipboardItem === "undefined"
+              ) {
                 showToast("Clipboard image is not supported in this browser.");
                 return;
               }
-              await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+              await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob }),
+              ]);
               showToast("Copied to Clipboard!");
             } catch (e) {
               showToast("Unable to copy image.");
@@ -3761,10 +3031,14 @@ document.addEventListener(
           showToast("Unable to create image.");
         } finally {
           hiddenBlankRows.forEach((r) => (r.style.display = ""));
-          card.querySelectorAll(
-            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
-          ).forEach((el) => (el.style.display = ""));
-          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          card
+            .querySelectorAll(
+              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+            )
+            .forEach((el) => (el.style.display = ""));
+          card
+            .querySelectorAll(".site-column-cell")
+            .forEach((el) => (el.style.display = ""));
           if (grandTotalCell) {
             grandTotalCell.setAttribute("colspan", "6");
           }
@@ -3801,8 +3075,8 @@ document.addEventListener(
             return;
           }
 
-          const matches = suggestionPlates.filter((p) =>
-            p && p.toUpperCase().replace(/\s+/g, "").includes(val)
+          const matches = suggestionPlates.filter(
+            (p) => p && p.toUpperCase().replace(/\s+/g, "").includes(val),
           );
 
           if (matches.length > 0) {
@@ -3813,14 +3087,20 @@ document.addEventListener(
               hideGlobalSuggestionBox();
               fetchAndAutoFillManualRow(row, selectedPlate);
             };
-            renderGlobalSuggestionBox(plateInput, matches, currentActivePlateCallback);
+            renderGlobalSuggestionBox(
+              plateInput,
+              matches,
+              currentActivePlateCallback,
+            );
           } else {
             hideGlobalSuggestionBox();
           }
         });
 
         plateInput.addEventListener("keydown", function (e) {
-          const globalBox = document.getElementById("manualGlobalSuggestionBox");
+          const globalBox = document.getElementById(
+            "manualGlobalSuggestionBox",
+          );
           const isBoxVisible = globalBox && globalBox.style.display === "block";
 
           if (isBoxVisible) {
@@ -3829,18 +3109,28 @@ document.addEventListener(
               if (e.key === "ArrowDown") {
                 e.preventDefault();
                 manualFocusIndex = (manualFocusIndex + 1) % items.length;
-                updateManualActiveSuggestion(items, manualFocusIndex, globalBox);
+                updateManualActiveSuggestion(
+                  items,
+                  manualFocusIndex,
+                  globalBox,
+                );
                 return;
               } else if (e.key === "ArrowUp") {
                 e.preventDefault();
-                manualFocusIndex = (manualFocusIndex - 1 + items.length) % items.length;
-                updateManualActiveSuggestion(items, manualFocusIndex, globalBox);
+                manualFocusIndex =
+                  (manualFocusIndex - 1 + items.length) % items.length;
+                updateManualActiveSuggestion(
+                  items,
+                  manualFocusIndex,
+                  globalBox,
+                );
                 return;
               } else if (e.key === "Enter" || e.key === "Tab") {
                 e.preventDefault();
                 if (manualFocusIndex > -1 && items[manualFocusIndex]) {
                   const selectedText = items[manualFocusIndex].innerText;
-                  if (currentActivePlateCallback) currentActivePlateCallback(selectedText);
+                  if (currentActivePlateCallback)
+                    currentActivePlateCallback(selectedText);
                 }
                 return;
               }
@@ -3867,13 +3157,18 @@ document.addEventListener(
         }
       }
 
-      function renderGlobalSuggestionBox(targetInput, matches, onSelectCallback) {
+      function renderGlobalSuggestionBox(
+        targetInput,
+        matches,
+        onSelectCallback,
+      ) {
         let globalBox = document.getElementById("manualGlobalSuggestionBox");
         if (!globalBox) {
           globalBox = document.createElement("div");
           globalBox.id = "manualGlobalSuggestionBox";
           globalBox.className = "suggestion-box";
-          globalBox.style.cssText = "position:absolute; z-index:999999; box-shadow:0 8px 20px rgba(0,0,0,0.25); width:200px; max-height:220px; border-radius:4px; overflow-y:auto; background:white; border:1px solid #1a4d80;";
+          globalBox.style.cssText =
+            "position:absolute; z-index:999999; box-shadow:0 8px 20px rgba(0,0,0,0.25); width:200px; max-height:220px; border-radius:4px; overflow-y:auto; background:white; border:1px solid #1a4d80;";
           document.body.appendChild(globalBox);
         }
 
@@ -3903,7 +3198,10 @@ document.addEventListener(
       }
 
       document.addEventListener("click", function (e) {
-        if (!e.target.closest(".manual-plate-input") && !e.target.closest("#manualGlobalSuggestionBox")) {
+        if (
+          !e.target.closest(".manual-plate-input") &&
+          !e.target.closest("#manualGlobalSuggestionBox")
+        ) {
           hideGlobalSuggestionBox();
         }
       });
@@ -3920,11 +3218,17 @@ document.addEventListener(
         const token = localStorage.getItem("view_bill_token");
 
         let match = fetchedRowsCache.find(
-          (r) => String(r.plate_no || "").trim().toUpperCase() === String(plate).trim().toUpperCase()
+          (r) =>
+            String(r.plate_no || "")
+              .trim()
+              .toUpperCase() === String(plate).trim().toUpperCase(),
         );
 
         let repMatch = fetchedReportCache.find(
-          (rep) => String(rep.plate || "").trim().toUpperCase() === String(plate).trim().toUpperCase()
+          (rep) =>
+            String(rep.plate || "")
+              .trim()
+              .toUpperCase() === String(plate).trim().toUpperCase(),
         );
 
         if (!match || !repMatch) {
@@ -3934,12 +3238,13 @@ document.addEventListener(
               `/api/view-bill/data?month=${month}&year=${year}&search_type=plate&search_value=${encodeURIComponent(plate)}`,
               {
                 headers: { Authorization: "Bearer " + token },
-              }
+              },
             );
             const data = await res.json();
             if (data.success) {
               if (data.rows && data.rows.length > 0) match = data.rows[0];
-              if (data.reportData && data.reportData.length > 0) repMatch = data.reportData[0];
+              if (data.reportData && data.reportData.length > 0)
+                repMatch = data.reportData[0];
             }
           } catch (e) {
             console.error(e);
@@ -3949,6 +3254,9 @@ document.addEventListener(
         }
 
         if (match) {
+          // റോ ഡാറ്റാ ആട്രിബ്യൂട്ടിൽ ഓണറെ കൂടി സേവ് ചെയ്യുന്നു
+          row.setAttribute("data-owner", match.owner || "COMPANY VEHICLE");
+
           row.children[2].innerText = match.vtype || "-";
           row.children[3].innerText = match.site || "-";
           row.children[4].innerText = match.driver || "-";
@@ -3959,18 +3267,26 @@ document.addEventListener(
           const otrateVal = parseFloat(match.otrate || 0);
 
           row.querySelector(".nhr-field").value = nhrVal;
-          row.querySelector(".nhr-cell .view-number-text").innerText = formatNumberDisplay(nhrVal);
+          row.querySelector(".nhr-cell .view-number-text").innerText =
+            formatNumberDisplay(nhrVal);
 
           row.querySelector(".nrate-field").value = nrateVal;
-          row.querySelectorAll(".rate-column-cell")[0].querySelector(".view-number-text").innerText = formatNumberDisplay(nrateVal);
+          row
+            .querySelectorAll(".rate-column-cell")[0]
+            .querySelector(".view-number-text").innerText =
+            formatNumberDisplay(nrateVal);
 
           row.querySelector(".othr-field").value = othrVal;
-          row.querySelector(".othr-cell .view-number-text").innerText = formatNumberDisplay(othrVal);
+          row.querySelector(".othr-cell .view-number-text").innerText =
+            formatNumberDisplay(othrVal);
 
           row.querySelector(".otrate-field").value = otrateVal;
-          row.querySelectorAll(".rate-column-cell")[1].querySelector(".view-number-text").innerText = formatNumberDisplay(otrateVal);
+          row
+            .querySelectorAll(".rate-column-cell")[1]
+            .querySelector(".view-number-text").innerText =
+            formatNumberDisplay(otrateVal);
 
-          // 🟢 Last 4 Columns (Log. NR, Log. OT, Bill NR, Bill OT) Auto-fill
+          // 🟢 Last 4 Columns Auto-fill
           const tsNr = repMatch ? parseFloat(repMatch.ts_nr || 0) : 0;
           const tsOt = repMatch ? parseFloat(repMatch.ts_ot || 0) : 0;
           const invNr = repMatch ? parseFloat(repMatch.inv_nr || 0) : 0;
@@ -3987,6 +3303,9 @@ document.addEventListener(
           recalculateCardRow(row.querySelector(".nhr-field"));
           updateManualComparisonTotals(row.closest(".bill-card"));
 
+          // 🟢 പുതിയ പ്ലേറ്റ് നമ്പർ വരുമ്പോൾ ടോപ്പ് ഹെഡറിലെ ടൈറ്റിൽ dynamic ആയി അപ്ഡേറ്റ് ചെയ്യുന്നു
+          updateCardHeaderTitle(row.closest(".bill-card"));
+
           const tbody = row.parentElement;
           if (row === tbody.lastElementChild) {
             const card = row.closest(".bill-card");
@@ -3998,7 +3317,10 @@ document.addEventListener(
 
       function updateManualComparisonTotals(card) {
         if (!card) return;
-        let sumTsNr = 0, sumTsOt = 0, sumInvNr = 0, sumInvOt = 0;
+        let sumTsNr = 0,
+          sumTsOt = 0,
+          sumInvNr = 0,
+          sumInvOt = 0;
 
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
           const cols = r.querySelectorAll(".extra-comparison-col");
@@ -4010,7 +3332,9 @@ document.addEventListener(
           }
         });
 
-        const tfootCols = card.querySelectorAll(".supplier-bill-table tfoot tr td.extra-comparison-col");
+        const tfootCols = card.querySelectorAll(
+          ".supplier-bill-table tfoot tr td.extra-comparison-col",
+        );
         if (tfootCols.length >= 4) {
           tfootCols[0].innerText = formatNumberDisplay(sumTsNr);
           tfootCols[1].innerText = formatNumberDisplay(sumTsOt);
@@ -4019,84 +3343,264 @@ document.addEventListener(
         }
       }
 
+      function updateCardHeaderTitle(card) {
+        if (!card) return;
+        const titleEl = card.querySelector(".card-header-title-text");
+        if (!titleEl) return;
+
+        let ownerCounts = {};
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          let o = r.getAttribute("data-owner") || "";
+          if (o && o !== "Manual Entry") {
+            ownerCounts[o] = (ownerCounts[o] || 0) + 1;
+          }
+        });
+
+        let distinctOwners = Object.keys(ownerCounts);
+        let titleText = "";
+        if (distinctOwners.length === 0) {
+          titleText = "Manual Entry Table";
+        } else if (distinctOwners.length === 1) {
+          titleText = `Owner: ${distinctOwners[0]}`;
+        } else {
+          let summary = distinctOwners
+            .map((o) => `${o} (${ownerCounts[o]})`)
+            .join(" | ");
+          titleText = `Multiple Owners: ${summary}`;
+        }
+        titleEl.innerText = titleText;
+        titleEl.title = titleText; // മൗസ് വെക്കുമ്പോൾ ഫുൾ പേര് കാണാൻ
+      }
+
       /*
        * ============================================================
-       * COMPANY ARRANGE
+       * UI SCREEN DATA COLLECTOR (CURRENT ON-SCREEN ROWS ONLY)
        * ============================================================
        */
 
-      function arrangeCompanyCards() {
-        if (
-          fetchedRowsCache.length === 0
-        ) {
-          return showToast(
-            "Fetch data first!"
-          );
+      function getScreenRowsData() {
+        const rows = [];
+        const cards = document.querySelectorAll("#cardsContainer .bill-card");
+
+        cards.forEach((card) => {
+          card
+            .querySelectorAll(".supplier-bill-table tbody tr")
+            .forEach((r) => {
+              const plateInput = r.querySelector(".manual-plate-input");
+              const plate = (
+                r.getAttribute("data-plate") ||
+                (plateInput ? plateInput.value : "") ||
+                r.children[5]?.innerText ||
+                ""
+              )
+                .trim()
+                .toUpperCase();
+
+              const nhr = parseFloat(
+                r.querySelector(".nhr-field")?.value ||
+                  r.querySelector(".nhr-cell .view-number-text")?.innerText ||
+                  0,
+              );
+              const othr = parseFloat(
+                r.querySelector(".othr-field")?.value ||
+                  r.querySelector(".othr-cell .view-number-text")?.innerText ||
+                  0,
+              );
+
+              // ശൂന്യമായ (ബ്ലാങ്ക്) വരികൾ ഒഴിവാക്കുന്നു
+              if (!plate && nhr === 0 && othr === 0) return;
+
+              const nrate = parseFloat(
+                r.querySelector(".nrate-field")?.value ||
+                  r
+                    .querySelectorAll(".rate-column-cell")[0]
+                    ?.querySelector(".view-number-text")?.innerText ||
+                  0,
+              );
+              const otrate = parseFloat(
+                r.querySelector(".otrate-field")?.value ||
+                  r
+                    .querySelectorAll(".rate-column-cell")[1]
+                    ?.querySelector(".view-number-text")?.innerText ||
+                  0,
+              );
+              const rent = parseFloat(
+                r.querySelector(".rent-cell")?.innerText ||
+                  nhr * nrate + othr * otrate ||
+                  0,
+              );
+              const vat = parseFloat(
+                r.querySelector(".vat-cell")?.innerText || 0,
+              );
+              const total = parseFloat(
+                r.querySelector(".total-cell")?.innerText || rent + vat || 0,
+              );
+
+              // 🟢 Cache-ൽ നിന്ന് യഥാർത്ഥ Owner കൃത്യമായി കണ്ടെത്തുന്നു
+              const matchedCache = fetchedRowsCache.find(
+                (cr) => String(cr.plate_no || "").trim().toUpperCase() === plate
+              );
+              const matchedReport = fetchedReportCache.find(
+                (rep) => String(rep.plate || "").trim().toUpperCase() === plate
+              );
+
+              let owner = r.getAttribute("data-owner");
+              if (!owner || owner === "Manual Entry" || owner === "COMPANY VEHICLE" || owner.includes("Multiple Owners")) {
+                owner = matchedCache?.owner || matchedReport?.owner || "COMPANY VEHICLE";
+              }
+              owner = owner.trim();
+
+              rows.push({
+                date: r.children[1]?.innerText?.trim() || "",
+                vtype:
+                  r.children[2]?.innerText?.trim() ||
+                  matchedCache?.vtype ||
+                  "-",
+                site:
+                  r.children[3]?.innerText?.trim() || matchedCache?.site || "-",
+                driver:
+                  r.children[4]?.innerText?.trim() ||
+                  matchedCache?.driver ||
+                  "-",
+                plate_no: plate,
+                nhr: nhr,
+                nrate: nrate,
+                othr: othr,
+                otrate: otrate,
+                rent: rent,
+                vat_amount: vat,
+                total: total,
+                owner: owner,
+              });
+            });
+        });
+
+        return rows;
+      }
+
+      /*
+       * ============================================================
+       * COMPANY WISE ARRANGE (UI DATA ONLY)
+       * ============================================================
+       */
+
+      function toggleArrangeDropdown(e) {
+        e.stopPropagation();
+        const menu = document.getElementById("arrangeDropdownMenu");
+        if (menu) menu.classList.toggle("show");
+      }
+
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest("#arrangeDropdownContainer")) {
+          const menu = document.getElementById("arrangeDropdownMenu");
+          if (menu) menu.classList.remove("show");
         }
+      });
+
+      /*
+       * ============================================================
+       * 1. COMPANY WISE ARRANGE
+       * ============================================================
+       */
+      function arrangeCompanyCards() {
+        const menu = document.getElementById("arrangeDropdownMenu");
+        if (menu) menu.classList.remove("show");
+
+        const screenItems = getScreenRowsData();
+        if (screenItems.length === 0) return showToast("No active bills on screen to arrange!");
 
         let groups = {};
+        screenItems.forEach((item) => {
+          let comp = getCompanyFromSite(item.site);
+          if (!groups[comp]) groups[comp] = [];
+          groups[comp].push(item);
+        });
 
-        fetchedRowsCache.forEach(
-          (item) => {
-            let comp = "Haka";
-
-            let s =
-              (
-                item.site || ""
-              ).toUpperCase();
-
-            if (
-              s.includes(
-                "ALJODA"
-              )
-            ) {
-              comp = "Aljoda";
-            } else if (
-              s.includes(
-                "MASAR"
-              )
-            ) {
-              comp =
-                "Masar Wheels";
-            } else if (
-              s.includes(
-                "WE1"
-              )
-            ) {
-              comp =
-                "We1 Track";
-            }
-
-            if (!groups[comp]) {
-              groups[comp] = [];
-            }
-
-            groups[comp].push(
-              item
-            );
-          }
-        );
-
-        const container =
-          document.getElementById(
-            "cardsContainer"
-          );
-
+        const container = document.getElementById("cardsContainer");
         container.innerHTML = "";
 
-        Object.keys(groups).forEach(
-          (comp) => {
-            renderCardsView(
-              groups[comp],
-              true,
-              comp
-            );
-          }
-        );
+        Object.keys(groups).forEach((comp) => {
+          groups[comp].sort((a, b) => (a.plate_no || "").localeCompare(b.plate_no || ""));
+          renderCardsView(groups[comp], true, comp);
+        });
 
-        showToast(
-          "Arranged Company-wise!"
-        );
+        showToast(`Arranged ${screenItems.length} vehicle(s) Company-wise!`);
+      }
+
+      /*
+       * ============================================================
+       * 2. OWNER WISE ARRANGE
+       * ============================================================
+       */
+      function arrangeOwnerCards() {
+        const menu = document.getElementById("arrangeDropdownMenu");
+        if (menu) menu.classList.remove("show");
+
+        const screenItems = getScreenRowsData();
+        if (screenItems.length === 0) return showToast("No active bills on screen to arrange!");
+
+        let groups = {};
+        screenItems.forEach((item) => {
+          let owner = (item.owner || "COMPANY VEHICLE").trim().toUpperCase();
+          if (!groups[owner]) groups[owner] = [];
+          groups[owner].push(item);
+        });
+
+        const container = document.getElementById("cardsContainer");
+        container.innerHTML = "";
+
+        const sortedOwners = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+        sortedOwners.forEach((ownerName) => {
+          groups[ownerName].sort((a, b) => (a.plate_no || "").localeCompare(b.plate_no || ""));
+          renderCardsView(groups[ownerName], true, "");
+        });
+
+        showToast(`Arranged into ${sortedOwners.length} Owner Table(s)!`);
+      }
+
+      /*
+       * ============================================================
+       * 3. COMPANY + OWNER WISE ARRANGE (GROUPED BY OWNER CONSECUTIVELY)
+       * ============================================================
+       */
+      function arrangeCompanyOwnerCards() {
+        const menu = document.getElementById("arrangeDropdownMenu");
+        if (menu) menu.classList.remove("show");
+
+        const screenItems = getScreenRowsData();
+        if (screenItems.length === 0) return showToast("No active bills on screen to arrange!");
+
+        let groups = {};
+        screenItems.forEach((item) => {
+          let comp = getCompanyFromSite(item.site);
+          let owner = (item.owner || "COMPANY VEHICLE").trim().toUpperCase();
+          
+          // 🟢 Owner ആദ്യം വരുന്ന വിധത്തിൽ key മാറ്റുന്നു
+          let key = `${owner}|||${comp}`;
+
+          if (!groups[key]) {
+            groups[key] = {
+              company: comp,
+              owner: owner,
+              items: []
+            };
+          }
+          groups[key].items.push(item);
+        });
+
+        const container = document.getElementById("cardsContainer");
+        container.innerHTML = "";
+
+        // 🟢 Owner Alphabetical Order-ൽ സോർട്ട് ചെയ്യുമ്പോൾ ഒരേ Owner-ന്റെ എല്ലാ കമ്പനി ടേബിളുകളും താഴെ താഴെ വരും
+        const sortedKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+        
+        sortedKeys.forEach((key) => {
+          const group = groups[key];
+          group.items.sort((a, b) => (a.plate_no || "").localeCompare(b.plate_no || ""));
+          renderCardsView(group.items, true, group.company);
+        });
+
+        showToast(`Arranged into ${sortedKeys.length} Table(s) with Owners grouped consecutively!`);
       }
 
       /*
@@ -4107,43 +3611,27 @@ document.addEventListener(
        * Download button exists ONLY outside edit mode.
        */
 
-      async function downloadCardPNG(
-        btn
-      ) {
-        const card =
-          btn.closest(".bill-card");
+      async function downloadCardPNG(btn) {
+        const card = btn.closest(".bill-card");
 
         if (!card) {
           return;
         }
 
-        if (
-          card.classList.contains(
-            "edit-mode"
-          )
-        ) {
-          return showToast(
-            "Exit edit mode first."
-          );
+        if (card.classList.contains("edit-mode")) {
+          return showToast("Exit edit mode first.");
         }
 
         card
           .querySelectorAll(
-            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
           )
-          .forEach(
-            (el) =>
-              (el.style.display =
-                "none")
-          );
+          .forEach((el) => (el.style.display = "none"));
 
         // Site കോളം ഡൗൺലോഡ്/കോപ്പി സമയത്ത് മാത്രം ഹൈഡ് ചെയ്യാൻ
         card
           .querySelectorAll(".site-column-cell")
-          .forEach(
-            (el) =>
-              (el.style.display = "none")
-          );
+          .forEach((el) => (el.style.display = "none"));
 
         // ഡൗൺലോഡ് സമയത്ത് colspan 6 എന്നത് 5 ആക്കി മാറ്റാൻ
         const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
@@ -4151,56 +3639,35 @@ document.addEventListener(
           grandTotalCell.setAttribute("colspan", "5");
         }
 
-        const printArea =
-          card.querySelector(
-            ".print-area"
-          );
+        const printArea = card.querySelector(".print-area");
 
         try {
-          const canvas =
-            await html2canvas(
-              printArea,
-              {
-                scale: 3,
-                useCORS: true,
-              }
-            );
+          const canvas = await html2canvas(printArea, {
+            scale: 3,
+            useCORS: true,
+            logging: false,
+            imageTimeout: 0,
+          });
 
-          const link =
-            document.createElement(
-              "a"
-            );
+          const link = document.createElement("a");
 
-          link.download =
-            `Bill_Report.png`;
+          link.download = `Bill_Report.png`;
 
-          link.href =
-            canvas.toDataURL(
-              "image/png"
-            );
+          link.href = canvas.toDataURL("image/png");
 
           link.click();
         } catch (e) {
-          showToast(
-            "Unable to create PNG."
-          );
+          showToast("Unable to create PNG.");
         } finally {
           card
             .querySelectorAll(
-              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
             )
-            .forEach(
-              (el) =>
-                (el.style.display =
-                  "")
-            );
+            .forEach((el) => (el.style.display = ""));
 
           card
             .querySelectorAll(".site-column-cell")
-            .forEach(
-              (el) =>
-                (el.style.display = "")
-            );
+            .forEach((el) => (el.style.display = ""));
 
           if (grandTotalCell) {
             grandTotalCell.setAttribute("colspan", "6");
@@ -4214,43 +3681,27 @@ document.addEventListener(
        * ============================================================
        */
 
-      async function copyCardHQ(
-        btn
-      ) {
-        const card =
-          btn.closest(".bill-card");
+      async function copyCardHQ(btn) {
+        const card = btn.closest(".bill-card");
 
         if (!card) {
           return;
         }
 
-        if (
-          card.classList.contains(
-            "edit-mode"
-          )
-        ) {
-          return showToast(
-            "Exit edit mode first."
-          );
+        if (card.classList.contains("edit-mode")) {
+          return showToast("Exit edit mode first.");
         }
 
         card
           .querySelectorAll(
-            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
           )
-          .forEach(
-            (el) =>
-              (el.style.display =
-                "none")
-          );
+          .forEach((el) => (el.style.display = "none"));
 
         // Site കോളം ഡൗൺലോഡ്/കോപ്പി സമയത്ത് മാത്രം ഹൈഡ് ചെയ്യാൻ
         card
           .querySelectorAll(".site-column-cell")
-          .forEach(
-            (el) =>
-              (el.style.display = "none")
-          );
+          .forEach((el) => (el.style.display = "none"));
 
         // കോപ്പി ചെയ്യുന്ന സമയത്ത് colspan 6 എന്നത് 5 ആക്കി മാറ്റാൻ
         const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
@@ -4258,80 +3709,51 @@ document.addEventListener(
           grandTotalCell.setAttribute("colspan", "5");
         }
 
-        const printArea =
-          card.querySelector(
-            ".print-area"
-          );
+        const printArea = card.querySelector(".print-area");
 
         try {
-          const canvas =
-            await html2canvas(
-              printArea,
-              {
-                scale: 3,
-                useCORS: true,
+          const canvas = await html2canvas(printArea, {
+            scale: 3,
+            useCORS: true,
+            logging: false,
+            imageTimeout: 0,
+          });
+
+          canvas.toBlob(async (blob) => {
+            try {
+              if (
+                !blob ||
+                !navigator.clipboard ||
+                typeof ClipboardItem === "undefined"
+              ) {
+                showToast("Clipboard image is not supported in this browser.");
+
+                return;
               }
-            );
 
-          canvas.toBlob(
-            async (blob) => {
-              try {
-                if (
-                  !blob ||
-                  !navigator.clipboard ||
-                  typeof ClipboardItem ===
-                    "undefined"
-                ) {
-                  showToast(
-                    "Clipboard image is not supported in this browser."
-                  );
+              await navigator.clipboard.write([
+                new ClipboardItem({
+                  "image/png": blob,
+                }),
+              ]);
 
-                  return;
-                }
-
-                await navigator.clipboard.write(
-                  [
-                    new ClipboardItem(
-                      {
-                        "image/png":
-                          blob,
-                      }
-                    ),
-                  ]
-                );
-
-                showToast(
-                  "Copied to Clipboard!"
-                );
-              } catch (e) {
-                showToast(
-                  "Unable to copy image."
-                );
-              }
-            },
-            "image/png"
-          );
+              showToast("Copied to Clipboard!");
+            } catch (e) {
+              showToast("Unable to copy image.");
+            }
+          }, "image/png");
         } catch (e) {
-          showToast(
-            "Unable to create image."
-          );
+          showToast("Unable to create image.");
         } finally {
           card
             .querySelectorAll(
-              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)"
+              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
             )
-            .forEach(
-              (el) =>
-                (el.style.display =
-                  "")
-            );
+            .forEach((el) => (el.style.display = ""));
 
           card
             .querySelectorAll(".site-column-cell")
-            .forEach(
-              (el) =>
-                (el.style.display = "")
-            );
+            .forEach((el) => (el.style.display = ""));
 
           if (grandTotalCell) {
             grandTotalCell.setAttribute("colspan", "6");
@@ -4345,13 +3767,8 @@ document.addEventListener(
        * ============================================================
        */
 
-      function renderReportTable(
-        data
-      ) {
-        const tbody =
-          document.getElementById(
-            "reportTableBody"
-          );
+      function renderReportTable(data) {
+        const tbody = document.getElementById("reportTableBody");
 
         tbody.innerHTML = "";
 
@@ -4370,9 +3787,8 @@ document.addEventListener(
           return;
         }
 
-        data.forEach(
-          (r, idx) => {
-            tbody.innerHTML += `
+        data.forEach((r, idx) => {
+          tbody.innerHTML += `
               <tr>
 
                 <td>
@@ -4380,47 +3796,33 @@ document.addEventListener(
                 </td>
 
                 <td>
-                  ${escapeHtml(
-                    r.report_date
-                  )}
+                  ${escapeHtml(r.report_date)}
                 </td>
 
                 <td>
-                  ${escapeHtml(
-                    r.rate
-                  )}
+                  ${escapeHtml(r.rate)}
                 </td>
 
                 <td>
-                  ${escapeHtml(
-                    r.vat
-                  )}
+                  ${escapeHtml(r.vat)}
                 </td>
 
                 <td style="text-align:left;">
-                  ${escapeHtml(
-                    r.site
-                  )}
+                  ${escapeHtml(r.site)}
                 </td>
 
                 <td style="text-align:left;">
-                  ${escapeHtml(
-                    r.owner
-                  )}
+                  ${escapeHtml(r.owner)}
                 </td>
 
                 <td style="text-align:left;">
-                  ${escapeHtml(
-                    r.driver_name
-                  )}
+                  ${escapeHtml(r.driver_name)}
                 </td>
 
                 <td
                   style="font-weight:bold; color:#0f172a;"
                 >
-                  ${escapeHtml(
-                    r.plate
-                  )}
+                  ${escapeHtml(r.plate)}
                 </td>
 
                 <td
@@ -4438,34 +3840,20 @@ document.addEventListener(
                 <td
                   style="background:#eff6ff;"
                 >
-                  ${
-                    r.inv_nr !==
-                      undefined &&
-                    r.inv_nr !== null
-                      ? r.inv_nr
-                      : ""
-                  }
+                  ${r.inv_nr !== undefined && r.inv_nr !== null ? r.inv_nr : ""}
                 </td>
 
                 <td
                   style="background:#eff6ff;"
                 >
-                  ${
-                    r.inv_ot !==
-                      undefined &&
-                    r.inv_ot !== null
-                      ? r.inv_ot
-                      : ""
-                  }
+                  ${r.inv_ot !== undefined && r.inv_ot !== null ? r.inv_ot : ""}
                 </td>
 
                 <td
                   style="background:#faf5ff;"
                 >
                   ${
-                    r.bill_db_nr !==
-                      undefined &&
-                    r.bill_db_nr !== null
+                    r.bill_db_nr !== undefined && r.bill_db_nr !== null
                       ? r.bill_db_nr
                       : ""
                   }
@@ -4475,9 +3863,7 @@ document.addEventListener(
                   style="background:#faf5ff;"
                 >
                   ${
-                    r.bill_db_ot !==
-                      undefined &&
-                    r.bill_db_ot !== null
+                    r.bill_db_ot !== undefined && r.bill_db_ot !== null
                       ? r.bill_db_ot
                       : ""
                   }
@@ -4503,8 +3889,7 @@ document.addEventListener(
 
               </tr>
             `;
-          }
-        );
+        });
       }
 
       /*
@@ -4514,33 +3899,17 @@ document.addEventListener(
        */
 
       function exportDataToExcel() {
-        if (
-          fetchedRowsCache.length ===
-          0
-        ) {
-          return showToast(
-            "No data to export!"
-          );
+        if (fetchedRowsCache.length === 0) {
+          return showToast("No data to export!");
         }
 
-        const ws =
-          XLSX.utils.json_to_sheet(
-            fetchedRowsCache
-          );
+        const ws = XLSX.utils.json_to_sheet(fetchedRowsCache);
 
-        const wb =
-          XLSX.utils.book_new();
+        const wb = XLSX.utils.book_new();
 
-        XLSX.utils.book_append_sheet(
-          wb,
-          ws,
-          "View_Bill"
-        );
+        XLSX.utils.book_append_sheet(wb, ws, "View_Bill");
 
-        XLSX.writeFile(
-          wb,
-          `View_Bill_Export.xlsx`
-        );
+        XLSX.writeFile(wb, `View_Bill_Export.xlsx`);
       }
 
       /*
@@ -4549,15 +3918,10 @@ document.addEventListener(
        * ============================================================
        */
 
-      function formatNumberDisplay(
-        value
-      ) {
-        const num =
-          parseFloat(value);
+      function formatNumberDisplay(value) {
+        const num = parseFloat(value);
 
-        if (
-          !Number.isFinite(num)
-        ) {
+        if (!Number.isFinite(num)) {
           return "0";
         }
 
@@ -4569,67 +3933,34 @@ document.addEventListener(
          */
         return Number.isInteger(num)
           ? String(num)
-          : String(
-              parseFloat(
-                num.toFixed(2)
-              )
-            );
+          : String(parseFloat(num.toFixed(2)));
       }
 
-      function escapeHtml(
-        value
-      ) {
-        if (
-          value === null ||
-          value === undefined
-        ) {
+      function escapeHtml(value) {
+        if (value === null || value === undefined) {
           return "";
         }
 
         return String(value)
-          .replace(
-            /&/g,
-            "&amp;"
-          )
-          .replace(
-            /</g,
-            "&lt;"
-          )
-          .replace(
-            />/g,
-            "&gt;"
-          )
-          .replace(
-            /"/g,
-            "&quot;"
-          )
-          .replace(
-            /'/g,
-            "&#039;"
-          );
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
       }
 
-      function escapeHtmlAttribute(
-        value
-      ) {
+      function escapeHtmlAttribute(value) {
         return escapeHtml(value);
       }
 
       function showToast(msg) {
-        const t =
-          document.getElementById(
-            "toast"
-          );
+        const t = document.getElementById("toast");
 
         t.innerText = msg;
 
         t.className = "show";
 
-        setTimeout(
-          () =>
-            (t.className = ""),
-          3000
-        );
+        setTimeout(() => (t.className = ""), 3000);
       }
     </script>
   </body>
