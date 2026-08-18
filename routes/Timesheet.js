@@ -803,6 +803,41 @@ router.post("/api/delete-log-entry", verifyEditor, async (req, res) => {
 });
 
 // ==========================================
+// RECORD LOCKING (CONCURRENCY CONTROL)
+// ==========================================
+const activeRecordLocks = new Map();
+
+router.post("/api/record-lock/request", verifyToken, (req, res) => {
+  const { plate, month, year } = req.body;
+  const lockKey = `${plate}_${month}_${year}`;
+  const username = req.user.username;
+  const now = Date.now();
+
+  const existingLock = activeRecordLocks.get(lockKey);
+  
+  // ലോക്ക് 15 മിനിറ്റ് വരെ നിലനിൽക്കും (സിസ്റ്റം ക്രാഷ് ആയാലും ഡാറ്റ ബ്ലോക്ക് ആകാതിരിക്കാൻ)
+  if (existingLock && existingLock.username !== username && (now - existingLock.timestamp < 15 * 60 * 1000)) {
+    return res.json({ success: false, lockedBy: existingLock.username });
+  }
+
+  activeRecordLocks.set(lockKey, { username, timestamp: now });
+  res.json({ success: true });
+});
+
+router.post("/api/record-lock/release", verifyToken, (req, res) => {
+  const { plate, month, year } = req.body;
+  const lockKey = `${plate}_${month}_${year}`;
+  const username = req.user.username;
+
+  const existingLock = activeRecordLocks.get(lockKey);
+  // ലോക്ക് ചെയ്ത ആൾക്ക് മാത്രമേ അത് റിലീസ് ചെയ്യാൻ സാധിക്കൂ
+  if (existingLock && existingLock.username === username) {
+    activeRecordLocks.delete(lockKey);
+  }
+  res.json({ success: true });
+});
+
+// ==========================================
 // GRID DATA ENTRY & BULK IMPORT
 // ==========================================
 router.get("/api/grid-data", verifyToken, async (req, res) => {

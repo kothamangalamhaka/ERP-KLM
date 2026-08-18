@@ -45,6 +45,25 @@ let systemLockData = { month: null, year: null };
 let isEditingInvoice = false;
 let currentInvoices = [];
 let loggedRowsTracker = new Set();
+let currentLockedRecord = null; // 🟢 ഏത് വണ്ടിയാണ് ലോക്ക് ചെയ്തത് എന്ന് ട്രാക്ക് ചെയ്യാൻ
+
+function releaseLock() {
+  if (currentLockedRecord) {
+    const lockToken = localStorage.getItem("timesheetToken");
+    if (lockToken) {
+      fetch('/timesheet/api/record-lock/release', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + lockToken
+        },
+        body: JSON.stringify(currentLockedRecord),
+        keepalive: true // 🟢 ടാബ് പെട്ടെന്ന് ക്ലോസ് ചെയ്താലും ഈ റിക്വസ്റ്റ് ബാക്കെൻഡിൽ എത്താൻ ഇത് സഹായിക്കും
+      }).catch(e => {});
+    }
+    currentLockedRecord = null;
+  }
+}
 
 async function init() {
   const ts = new Date().getTime();
@@ -155,6 +174,9 @@ function searchPlate() {
   clearInvoiceForm();
   isEditingInvoice = false;
   currentInvoices = [];
+
+  
+  releaseLock();
 
   if (!val) {
     let history = JSON.parse(
@@ -391,6 +413,29 @@ async function triggerFetch() {
       "Cache-Control": "no-cache",
       Pragma: "no-cache",
     };
+
+    // 🟢 RECORD LOCK REQUEST
+    const lockRes = await fetch('/timesheet/api/record-lock/request', {
+      method: 'POST',
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ plate: p, month: m, year: y })
+    });
+    const lockData = await lockRes.json();
+    
+    if (!lockData.success) {
+      await customAlert(`This record is currently being edited by [ ${lockData.lockedBy.toUpperCase()} ]. Please try again later to prevent overwriting.`, "Record Locked 🔒");
+      tbody.innerHTML = `<tr class="loading-row"><td colspan="13" style="color:#ef4444; font-weight:bold;">Record is locked by ${lockData.lockedBy.toUpperCase()}. Cannot fetch data.</td></tr>`;
+      btn.disabled = false;
+      text.innerText = "Fetch Data";
+      loader.style.display = "none";
+      return;
+    }
+
+    
+    currentLockedRecord = { plate: p, month: m, year: y };
 
     const res = await fetch(
       `/timesheet/api/grid-data?month=${m}&year=${y}&plate=${p}&_t=${ts}`,
@@ -1176,9 +1221,9 @@ function calculateRow(rowIdx) {
 }
 
 let saveTimeout;
-let pendingSaves = 0; // 🟢 ഡാറ്റ സേവ് ആകാൻ ബാക്കിയുണ്ടോ എന്ന് ട്രാക്ക് ചെയ്യാൻ
+let pendingSaves = 0; 
 
-// 🟢 ഡാറ്റ സേവ് ആകുന്നതിന് മുൻപ് യൂസർ പേജ് ക്ലോസ് ചെയ്യാൻ ശ്രമിച്ചാൽ വാണിംഗ് നൽകുന്നു
+
 window.addEventListener("beforeunload", function (e) {
   if (pendingSaves > 0) {
     e.preventDefault();
@@ -1187,11 +1232,16 @@ window.addEventListener("beforeunload", function (e) {
   }
 });
 
+
+window.addEventListener("pagehide", function () {
+  releaseLock();
+});
+
 async function saveCellData(rowIdx, colName, colValue) {
   const plate = document.getElementById("selPlate").value.trim().toUpperCase();
   if (!plate || !colName) return;
   
-  pendingSaves++; // 🟢 സേവിങ് തുടങ്ങി എന്ന് മാർക്ക് ചെയ്യുന്നു
+  pendingSaves++; 
   const statusLabel = document.getElementById("saveStatus");
   statusLabel.innerText = "Saving...";
   statusLabel.className = "save-indicator status-saving";
@@ -1447,6 +1497,7 @@ function toggleDarkMode() {
   document.getElementById("userDropdownMenu").style.display = "none";
 }
 function logout() {
+  releaseLock(); 
   localStorage.removeItem("timesheetToken");
   localStorage.removeItem("timesheetUser");
   
