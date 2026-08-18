@@ -61,17 +61,19 @@ const colLabels = {
 };
 
 let alertResolver, promptResolver, confirmResolver;
-function customAlert(title, msg) {
+function customAlert(message, title = "Notice") {
   return new Promise((res) => {
     alertResolver = res;
     document.getElementById("alertTitle").innerText = title;
-    document.getElementById("alertMessage").innerText = msg;
+    document.getElementById("alertMessage").innerText = message;
     document.getElementById("alertTitle").style.color =
       title === "Error"
         ? "#dc3545"
         : title === "Warning"
           ? "#f59e0b"
-          : "#0f2027";
+          : title === "Success"
+            ? "#198754"
+            : "#0f2027";
     document.getElementById("customAlertModal").style.display = "flex";
   });
 }
@@ -79,11 +81,11 @@ function resolveAlert() {
   document.getElementById("customAlertModal").style.display = "none";
   if (alertResolver) alertResolver();
 }
-function customPrompt(title, msg) {
+function customPrompt(message, title = "Input Required") {
   return new Promise((res) => {
     promptResolver = res;
     document.getElementById("promptTitle").innerText = title;
-    document.getElementById("promptMessage").innerText = msg;
+    document.getElementById("promptMessage").innerText = message;
     document.getElementById("promptInput").value = "";
     document.getElementById("customPromptModal").style.display = "flex";
     setTimeout(() => document.getElementById("promptInput").focus(), 100);
