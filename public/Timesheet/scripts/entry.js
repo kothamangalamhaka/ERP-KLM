@@ -1336,8 +1336,11 @@ async function saveCellData(rowIdx, colName, colValue) {
       }
     } catch (logErr) {}
   } catch (e) {
+    console.error("Save Error:", e);
     statusLabel.innerText = "Error";
     statusLabel.style.backgroundColor = "#dc3545";
+    // 🟢 ഡാറ്റാബേസ് എന്തുകൊണ്ടാണ് സേവ് ചെയ്യാത്തത് എന്ന് സ്ക്രീനിൽ കാണിക്കാൻ
+    customAlert("Failed to save. Reason: " + (e.message || "Unknown Error"), "Database Error");
   } finally {
     // 🟢 സേവിങ് കഴിഞ്ഞാൽ കൗണ്ട് കുറയ്ക്കുന്നു (Error വന്നാലും Success ആയാലും)
     pendingSaves = Math.max(0, pendingSaves - 1); 

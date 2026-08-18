@@ -815,9 +815,15 @@ router.post("/api/record-lock/request", verifyToken, (req, res) => {
 
   const existingLock = activeRecordLocks.get(lockKey);
   
-  // ലോക്ക് 15 മിനിറ്റ് വരെ നിലനിൽക്കും (സിസ്റ്റം ക്രാഷ് ആയാലും ഡാറ്റ ബ്ലോക്ക് ആകാതിരിക്കാൻ)
-  if (existingLock && existingLock.username !== username && (now - existingLock.timestamp < 15 * 60 * 1000)) {
-    return res.json({ success: false, lockedBy: existingLock.username });
+  if (existingLock) {
+     // 🟢 Case Insensitive & Space Removal (വലിയക്ഷരമായാലും ചെറിയക്ഷരമായാലും പ്രശ്നമില്ല)
+     const oldUser = String(existingLock.username).trim().toLowerCase();
+     const newUser = String(username).trim().toLowerCase();
+     
+     // 🟢 വേറൊരാളാണ് ലോക്ക് ചെയ്തതെങ്കിൽ മാത്രം ബ്ലോക്ക് ചെയ്യുക
+     if (oldUser !== newUser && (now - existingLock.timestamp < 15 * 60 * 1000)) {
+       return res.json({ success: false, lockedBy: existingLock.username });
+     }
   }
 
   activeRecordLocks.set(lockKey, { username, timestamp: now });
@@ -830,9 +836,14 @@ router.post("/api/record-lock/release", verifyToken, (req, res) => {
   const username = req.user.username;
 
   const existingLock = activeRecordLocks.get(lockKey);
-  // ലോക്ക് ചെയ്ത ആൾക്ക് മാത്രമേ അത് റിലീസ് ചെയ്യാൻ സാധിക്കൂ
-  if (existingLock && existingLock.username === username) {
-    activeRecordLocks.delete(lockKey);
+  if (existingLock) {
+     const oldUser = String(existingLock.username).trim().toLowerCase();
+     const newUser = String(username).trim().toLowerCase();
+     
+     // 🟢 ലോഗിൻ ചെയ്ത ആൾ തന്നെയാണെങ്കിൽ ലോക്ക് റിലീസ് ചെയ്യുക
+     if (oldUser === newUser) {
+        activeRecordLocks.delete(lockKey);
+     }
   }
   res.json({ success: true });
 });
