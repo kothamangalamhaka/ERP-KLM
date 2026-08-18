@@ -1,5 +1,10 @@
 const token = localStorage.getItem("timesheetToken");
-if (!token) {
+const userStr = localStorage.getItem("timesheetUser");
+
+// 🟢 ടോക്കണോ യൂസർ ഡാറ്റയോ ഇല്ലെങ്കിൽ നിർബന്ധമായും ലോഗൗട്ട് ആക്കും
+if (!token || !userStr) {
+  localStorage.removeItem("timesheetToken");
+  localStorage.removeItem("timesheetUser");
   const currentPage = encodeURIComponent(
     window.location.pathname.split("/").pop() + window.location.search,
   );
@@ -24,7 +29,6 @@ const months = [
 ];
 document.getElementById("selMonth").value = months[dDate.getMonth()];
 
-const userStr = localStorage.getItem("timesheetUser");
 if (userStr) {
   const u = JSON.parse(userStr);
   const uiEl = document.getElementById("userInfo");
@@ -408,10 +412,20 @@ async function triggerFetch() {
       return;
     }
 
-    if (!res.ok || (data.success === false && data.message && (data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized")))) {
+    const errorMsg = data.message ? String(data.message).toLowerCase() : "";
+    const isAuthError = !res.ok || res.status === 401 || res.status === 403 || 
+                        (data.success === false && (errorMsg.includes("token") || errorMsg.includes("unauthorized") || errorMsg.includes("jwt") || errorMsg.includes("expired")));
+
+    if (isAuthError) {
       await customAlert("Session expired. Please login again.", "Session Timeout");
       logout();
       return;
+    }
+
+    // 🟢 ഡാറ്റ ഫെച്ച് ചെയ്യാൻ പറ്റിയില്ലെങ്കിൽ നിശബ്ദമായി പരാജയപ്പെടാതെ അലർട്ട് നൽകുന്നു
+    if (data.success === false) {
+      await customAlert(data.message || "Failed to fetch data.", "Database Error");
+      throw new Error(data.message);
     }
 
     const logRes = await fetch(
@@ -1162,9 +1176,22 @@ function calculateRow(rowIdx) {
 }
 
 let saveTimeout;
+let pendingSaves = 0; // 🟢 ഡാറ്റ സേവ് ആകാൻ ബാക്കിയുണ്ടോ എന്ന് ട്രാക്ക് ചെയ്യാൻ
+
+// 🟢 ഡാറ്റ സേവ് ആകുന്നതിന് മുൻപ് യൂസർ പേജ് ക്ലോസ് ചെയ്യാൻ ശ്രമിച്ചാൽ വാണിംഗ് നൽകുന്നു
+window.addEventListener("beforeunload", function (e) {
+  if (pendingSaves > 0) {
+    e.preventDefault();
+    e.returnValue = "Data is still saving. Are you sure you want to leave?";
+    return e.returnValue;
+  }
+});
+
 async function saveCellData(rowIdx, colName, colValue) {
   const plate = document.getElementById("selPlate").value.trim().toUpperCase();
   if (!plate || !colName) return;
+  
+  pendingSaves++; // 🟢 സേവിങ് തുടങ്ങി എന്ന് മാർക്ക് ചെയ്യുന്നു
   const statusLabel = document.getElementById("saveStatus");
   statusLabel.innerText = "Saving...";
   statusLabel.className = "save-indicator status-saving";
@@ -1201,10 +1228,20 @@ async function saveCellData(rowIdx, colName, colValue) {
 
     const data = await response.json().catch(() => ({}));
     
-    if (!response.ok || (data.success === false && data.message && (data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized")))) {
-      await customAlert("Session expired. Please login again.", "Session Timeout");
+    // 🟢 വിപുലീകരിച്ച എറർ ചെക്കിംഗ് (jwt, expired, forbidden എന്നിവ കൂടി ഉൾപ്പെടുത്തി)
+    const errorMsg = data.message ? String(data.message).toLowerCase() : "";
+    const isAuthError = !response.ok || response.status === 401 || response.status === 403 || 
+                        (data.success === false && (errorMsg.includes("token") || errorMsg.includes("unauthorized") || errorMsg.includes("jwt") || errorMsg.includes("expired") || errorMsg.includes("forbidden") || errorMsg.includes("session")));
+
+    if (isAuthError) {
+      await customAlert("Session expired or invalid. Please login again.", "Session Timeout");
       logout();
       return;
+    }
+
+    // 🟢 Critical Fix: ഡാറ്റാബേസ് എറർ പോലെയുള്ള മറ്റ് പ്രശ്നങ്ങൾ വന്നാൽ "Saved" എന്ന് കാണിക്കാതെ ഇവിടെ വെച്ച് എക്സിക്യൂഷൻ നിർത്തുന്നു.
+    if (data.success === false) {
+      throw new Error(data.message || "Server rejected the save operation.");
     }
 
     // Update Modified By column locally right after saving
@@ -1251,6 +1288,9 @@ async function saveCellData(rowIdx, colName, colValue) {
   } catch (e) {
     statusLabel.innerText = "Error";
     statusLabel.style.backgroundColor = "#dc3545";
+  } finally {
+    // 🟢 സേവിങ് കഴിഞ്ഞാൽ കൗണ്ട് കുറയ്ക്കുന്നു (Error വന്നാലും Success ആയാലും)
+    pendingSaves = Math.max(0, pendingSaves - 1); 
   }
 }
 

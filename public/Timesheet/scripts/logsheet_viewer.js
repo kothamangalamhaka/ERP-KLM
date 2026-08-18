@@ -279,7 +279,7 @@ function loadViewerContent(filePath, mimeType, token) {
           // Loop through all pages in the PDF
           for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
-            const viewport = page.getViewport({ scale: 2.0 });
+            const viewport = page.getViewport({ scale: 1.5 });
 
             const canvas = document.createElement("canvas");
             canvas.width = viewport.width;
@@ -306,7 +306,8 @@ function loadViewerContent(filePath, mimeType, token) {
         viewer.innerHTML = `
           <div class="image-zoom-wrapper" id="imgWrapper" style="overflow: hidden;">
             <div id="zoomContent" style="display: flex; justify-content: center; align-items: center; transition: transform 0.1s ease-out;">
-              <img src="${fileURL}" draggable="false" style="max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.2s ease-out;" alt="Logsheet" />
+              <!-- 🟢 decoding="async" UI ബ്ലോക്ക് ആകാതെ ഇമേജ് വേഗത്തിൽ ലോഡ് ചെയ്യാൻ സഹായിക്കുന്നു. image-rendering ഒറിജിനൽ കോൺട്രാസ്റ്റ് നിലനിർത്തുന്നു -->
+              <img src="${fileURL}" decoding="async" draggable="false" style="max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.2s ease-out; image-rendering: -webkit-optimize-contrast;" alt="Logsheet" />
             </div>
           </div>
           <div class="zoom-controls">
@@ -481,7 +482,7 @@ async function generatePdfFromFiles(
         const ctx = canvas.getContext("2d");
         ctx.drawImage(bitmap, 0, 0);
 
-        const imgData = canvas.toDataURL("image/jpeg", 0.9);
+        const imgData = canvas.toDataURL("image/jpeg", 1.0);
         const singleImgPdf = new jsPDF({
           orientation: bitmap.width > bitmap.height ? "l" : "p",
           unit: "mm",
