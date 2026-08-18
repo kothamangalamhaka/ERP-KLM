@@ -18,7 +18,7 @@ const companyData = {
     signature: "https://i.ibb.co/bMPNp3SJ/Screenshot-2026-03-28-111529.png",
   },
   "We1 Track": {
-    header: "https://i.ibb.co/3mfqVqWF/we1-logo.png",
+    header: "./img/we1.png",
     seal: "https://i.ibb.co/XfybvXzL/Screenshot-2026-03-28-103519.png",
     text: "Approved By Accounts Team",
     signature: "https://i.ibb.co/pBmhnB2j/Screenshot-2026-03-28-111612.png",
