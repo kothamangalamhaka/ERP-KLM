@@ -522,13 +522,24 @@
             line-height: 1.5;
           "
         ></p>
-        <button
-          class="btn-inv-save"
-          style="margin: 0"
-          onclick="closeCustomAlert()"
-        >
-          OK
-        </button>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button
+            class="btn-inv-save"
+            style="margin: 0; padding: 6px 15px;"
+            onclick="closeCustomAlert()"
+          >
+            OK
+          </button>
+          <!-- 🟢 NEW: ഡാറ്റാബേസ് എറർ വരുമ്പോൾ ലോഗൗട്ട് ചെയ്യാൻ മാത്രമുള്ള പുതിയ ബട്ടൺ -->
+          <button
+            id="alertLogoutBtn"
+            class="btn-inv-close"
+            style="margin: 0; padding: 6px 15px; display: none; background-color: #ef4444; color: white;"
+            onclick="logout()"
+          >
+            Logout
+          </button>
+        </div>
       </div>
     </div>
 

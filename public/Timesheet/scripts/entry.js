@@ -86,16 +86,17 @@ async function init() {
   try {
     rData = await rRes.json();
   } catch (e) {
+    // നെറ്റ് സ്ലോ ആണെങ്കിൽ ലോഗൗട്ട് ചെയ്യില്ല
+    return;
+  }
+
+  // 🟢 401/403 (ശരിക്കുമുള്ള ടോക്കൺ എക്സ്പയറി) ആണെങ്കിൽ മാത്രം ലോഗൗട്ട് ആകും
+  if (rRes.status === 401 || rRes.status === 403) {
     logout();
     return;
   }
 
-  if (!rRes.ok || (rData.success === false && rData.message && (rData.message.toLowerCase().includes("token") || rData.message.toLowerCase().includes("unauthorized")))) {
-    logout();
-    return;
-  }
-
-  if (rData.success) rulesCache = rData.data;
+  if (rData && rData.success) rulesCache = rData.data;
 
   const srRes = await fetch(`/timesheet/api/special-rules?_t=${ts}`, {
     headers: {
@@ -414,27 +415,42 @@ async function triggerFetch() {
       Pragma: "no-cache",
     };
 
-    // 🟢 RECORD LOCK REQUEST
-    const lockRes = await fetch('/timesheet/api/record-lock/request', {
-      method: 'POST',
-      headers: {
-        "Authorization": "Bearer " + token,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ plate: p, month: m, year: y })
-    });
-    const lockData = await lockRes.json();
-    
+    // 🟢 RECORD LOCK REQUEST (WITH CRASH FIX & ERROR HANDLING)
+    let lockRes, lockData;
+    try {
+      lockRes = await fetch('/timesheet/api/record-lock/request', {
+        method: 'POST',
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ plate: p, month: m, year: y })
+      });
+      lockData = await lockRes.json();
+    } catch (e) {
+      // ഇൻ്റർനെറ്റ് ഇല്ലാത്ത അവസ്ഥയാണെങ്കിൽ കൃത്യമായി അലർട്ട് നൽകുന്നു
+      await customAlert("Network connection lost. Please check your internet and try again.", "Connection Error");
+      throw e; 
+    }
+
+    // 🟢 ലോഗിൻ യഥാർത്ഥത്തിൽ എക്സ്പയർ ആയാൽ മാത്രം ലോഗൗട്ട് ആകാൻ (!lockRes.ok ഡിലീറ്റ് ചെയ്തു)
+    if (lockRes.status === 401 || lockRes.status === 403) {
+      await customAlert("Session expired or invalid. Please login again.", "Session Timeout");
+      logout();
+      return;
+    }
+
     if (!lockData.success) {
-      await customAlert(`This record is currently being edited by [ ${lockData.lockedBy.toUpperCase()} ]. Please try again later to prevent overwriting.`, "Record Locked 🔒");
-      tbody.innerHTML = `<tr class="loading-row"><td colspan="13" style="color:#ef4444; font-weight:bold;">Record is locked by ${lockData.lockedBy.toUpperCase()}. Cannot fetch data.</td></tr>`;
+      // 🟢 പേര് ഇല്ലെങ്കിൽ ക്രാഷ് ആകാതിരിക്കാൻ സേഫ് ചെക്ക്
+      let lockedUser = lockData.lockedBy ? lockData.lockedBy.toUpperCase() : "ANOTHER USER";
+      await customAlert(`This record is currently being edited by [ ${lockedUser} ]. Please try again later to prevent overwriting.`, "Record Locked 🔒");
+      tbody.innerHTML = `<tr class="loading-row"><td colspan="13" style="color:#ef4444; font-weight:bold;">Record is locked by ${lockedUser}. Cannot fetch data.</td></tr>`;
       btn.disabled = false;
       text.innerText = "Fetch Data";
       loader.style.display = "none";
       return;
     }
 
-    
     currentLockedRecord = { plate: p, month: m, year: y };
 
     const res = await fetch(
@@ -457,11 +473,7 @@ async function triggerFetch() {
       return;
     }
 
-    const errorMsg = data.message ? String(data.message).toLowerCase() : "";
-    const isAuthError = !res.ok || res.status === 401 || res.status === 403 || 
-                        (data.success === false && (errorMsg.includes("token") || errorMsg.includes("unauthorized") || errorMsg.includes("jwt") || errorMsg.includes("expired")));
-
-    if (isAuthError) {
+    if (res.status === 401 || res.status === 403) {
       await customAlert("Session expired. Please login again.", "Session Timeout");
       logout();
       return;
@@ -759,6 +771,9 @@ async function triggerFetch() {
     btn.disabled = false;
     text.innerText = "Fetch Data";
     loader.style.display = "none";
+    
+    // 🟢 2 മണിക്കൂർ കഴിഞ്ഞ് നെറ്റ് ലാഗ് കാരണം ഫെച്ച് ഫെയിൽ ആയാൽ ഗ്രിഡിലെ എഴുത്തിന് പുറമെ വലിയൊരു പോപ്പ്-അപ്പ് കൂടി കാണിക്കും (യൂസറുടെ ശ്രദ്ധയിൽ പെടാൻ).
+    await customAlert("Network connection lost or server is unreachable. Please check your internet and try again.", "Connection Error");
   }
 }
 
@@ -1180,7 +1195,6 @@ function calculateRow(rowIdx) {
         sitesArray = [];
       }
 
-      // 🟢 FIXED: Partial Keyword Match
       let siteMatch =
         sitesArray.includes("ALL") ||
         sitesArray.some((keyword) => site.includes(keyword));
@@ -1278,20 +1292,16 @@ async function saveCellData(rowIdx, colName, colValue) {
 
     const data = await response.json().catch(() => ({}));
     
-    // 🟢 വിപുലീകരിച്ച എറർ ചെക്കിംഗ് (jwt, expired, forbidden എന്നിവ കൂടി ഉൾപ്പെടുത്തി)
-    const errorMsg = data.message ? String(data.message).toLowerCase() : "";
-    const isAuthError = !response.ok || response.status === 401 || response.status === 403 || 
-                        (data.success === false && (errorMsg.includes("token") || errorMsg.includes("unauthorized") || errorMsg.includes("jwt") || errorMsg.includes("expired") || errorMsg.includes("forbidden") || errorMsg.includes("session")));
-
-    if (isAuthError) {
+    // 🟢 യഥാർത്ഥ ടോക്കൺ പ്രശ്നമാണെങ്കിൽ (401/403) മാത്രം ലോഗൗട്ട് ആക്കും. നെറ്റ് കട്ട് ആയാൽ ലോഗൗട്ട് ആകില്ല!
+    if (response.status === 401 || response.status === 403) {
       await customAlert("Session expired or invalid. Please login again.", "Session Timeout");
       logout();
       return;
     }
 
-    // 🟢 Critical Fix: ഡാറ്റാബേസ് എറർ പോലെയുള്ള മറ്റ് പ്രശ്നങ്ങൾ വന്നാൽ "Saved" എന്ന് കാണിക്കാതെ ഇവിടെ വെച്ച് എക്സിക്യൂഷൻ നിർത്തുന്നു.
-    if (data.success === false) {
-      throw new Error(data.message || "Server rejected the save operation.");
+    // 🟢 ഡാറ്റ സേവ് ആയില്ലെങ്കിൽ നേരിട്ട് Catch ബ്ലോക്കിലേക്ക് പോയി പോപ്പ്-അപ്പ് വരും (ഡാറ്റ നഷ്ടപ്പെടില്ല)
+    if (!response.ok || data.success === false) {
+      throw new Error(data.message || "Server connection lag. Data not saved.");
     }
 
     // Update Modified By column locally right after saving
@@ -1339,10 +1349,8 @@ async function saveCellData(rowIdx, colName, colValue) {
     console.error("Save Error:", e);
     statusLabel.innerText = "Error";
     statusLabel.style.backgroundColor = "#dc3545";
-    // 🟢 ഡാറ്റാബേസ് എന്തുകൊണ്ടാണ് സേവ് ചെയ്യാത്തത് എന്ന് സ്ക്രീനിൽ കാണിക്കാൻ
     customAlert("Failed to save. Reason: " + (e.message || "Unknown Error"), "Database Error");
   } finally {
-    // 🟢 സേവിങ് കഴിഞ്ഞാൽ കൗണ്ട് കുറയ്ക്കുന്നു (Error വന്നാലും Success ആയാലും)
     pendingSaves = Math.max(0, pendingSaves - 1); 
   }
 }
@@ -1351,6 +1359,17 @@ function customAlert(message, title = "Notice") {
   return new Promise((resolve) => {
     document.getElementById("customAlertTitle").innerText = title;
     document.getElementById("customAlertMessage").innerText = message;
+    
+    // 🟢 ഡാറ്റാബേസ് എറർ ആണെങ്കിൽ മാത്രം പോപ്പ്-അപ്പിൽ ലോഗൗട്ട് ബട്ടൺ കാണിക്കുക
+    const logoutBtn = document.getElementById("alertLogoutBtn");
+    if (logoutBtn) {
+      if (title === "Database Error" || title === "Connection Error") {
+        logoutBtn.style.display = "inline-block";
+      } else {
+        logoutBtn.style.display = "none";
+      }
+    }
+    
     document.getElementById("customAlertModal").style.display = "flex";
     window.closeCustomAlert = function () {
       document.getElementById("customAlertModal").style.display = "none";
