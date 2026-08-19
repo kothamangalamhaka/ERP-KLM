@@ -190,6 +190,7 @@ const FIXED_COLUMNS = [
   "OLD DRIVER NAME",
   "OD MOB",
   "DAYS WORKED",
+  "STATUS REMARK",
 ];
 
 let currentUser = JSON.parse(localStorage.getItem("erpUser"));
@@ -215,7 +216,7 @@ function buildUserMenu() {
   if (currentUser.role === "Super Admin") {
     menu.insertAdjacentHTML(
       "beforeend",
-      `<a href="./admin/index.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:var(--primary);">admin_panel_settings</span> Admin Console</a><a href="./log/index.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:#14b8a6;">history</span> View Logs</a><a href="./recycle_bin.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:var(--danger);">delete_sweep</span> Recycle Bin</a><div class="user-dropdown-divider"></div>`,
+      `<a href="./admin/index.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:var(--primary);">admin_panel_settings</span> Admin Console</a><a href="./log/index.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:#14b8a6;">history</span> View Logs</a><button class="user-dropdown-item" onclick="runLegacyMigration()"><span class="material-icons" style="font-size:16px; color:#f59e0b;">sync_alt</span> Sync Legacy Logs</button><a href="./recycle_bin.html" class="user-dropdown-item"><span class="material-icons" style="font-size:16px; color:var(--danger);">delete_sweep</span> Recycle Bin</a><div class="user-dropdown-divider"></div>`,
     );
   }
   menu.insertAdjacentHTML(
@@ -585,7 +586,7 @@ async function fetchDriverLogsForModal(dbId) {
       let html = "";
       data.logs.forEach((l) => {
         let actionStr = l.id === "current" ? "Current" : l.updated_by;
-        html += `<tr><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.driver_name || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mobile || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_start || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_end || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${actionStr}</td><td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">-</td></tr>`;
+        html += `<tr><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.name || l.driver_name || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mob || l.mobile || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.start || l.work_start || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.end || l.work_end || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${actionStr}</td><td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">-</td></tr>`;
       });
       if (data.logs.length === 0)
         html =
@@ -623,18 +624,18 @@ async function fetchDriverLogsForSidePanel(dbId) {
         let badge = isCurrent
           ? '<span style="background:#0ea5e9; color:white; padding:2px 4px; border-radius:4px; font-size:9px; margin-left:5px;">CURRENT</span>'
           : "";
-        let reuseBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:#10b981;" onclick="reuseDriverDetails('${(l.driver_name || "").replace(/'/g, "\\'")}', '${l.mobile || ""}')" title="Copy Details to Form">content_copy</i>`;
+        let reuseBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:#10b981;" onclick="reuseDriverDetails('${(l.name || l.driver_name || "").replace(/'/g, "\\'")}', '${l.mob || l.mobile || ""}')" title="Copy Details to Form">content_copy</i>`;
         let editBtn = "",
           deleteBtn = "";
 
         if (currentUser.role !== "Viewer") {
-          editBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:var(--primary);" onclick="openEditLogModal('${l.id}', '${(l.driver_name || "").replace(/'/g, "\\'")}', '${l.mobile || ""}', '${l.work_start || ""}', '${l.work_end || ""}')" title="Edit Log">edit</i>`;
+          editBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:var(--primary);" onclick="openEditLogModal('${l.id}', '${(l.name || l.driver_name || "").replace(/'/g, "\\'")}', '${l.mob || l.mobile || ""}', '${l.start || l.work_start || ""}', '${l.end || l.work_end || ""}', '${(l.status_remark || "").replace(/'/g, "\\'")}')" title="Edit Log">edit</i>`;
           if (!isCurrent)
             deleteBtn = `<i class="material-icons" style="font-size:16px; cursor:pointer; color:var(--danger);" onclick="deleteDriverLog('${l.id}')" title="Delete Log">delete</i>`;
         }
 
         let actionButtons = `<div style="display:flex; justify-content:center; gap:10px;">${reuseBtn}${editBtn}${deleteBtn}</div>`;
-        html += `<tr style="${rowStyle}"><td style="padding:8px; border-bottom:1px solid var(--border-color); font-weight:600;">${l.driver_name || "-"}${badge}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mobile || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_start || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.work_end || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">${actionButtons}</td></tr>`;
+        html += `<tr style="${rowStyle}"><td style="padding:8px; border-bottom:1px solid var(--border-color); font-weight:600;">${l.name || l.driver_name || "-"}${badge}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mob || l.mobile || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.start || l.work_start || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.end || l.work_end || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">${actionButtons}</td></tr>`;
       });
       if (data.logs.length === 0)
         html =
@@ -648,7 +649,7 @@ async function fetchDriverLogsForSidePanel(dbId) {
   }
 }
 
-function openEditLogModal(id, name, mob, start, end) {
+function openEditLogModal(id, name, mob, start, end, remark) {
   $("#editLogId").val(id);
   $("#editLogName").val(name);
   $("#editLogMob").val(mob);
@@ -656,6 +657,7 @@ function openEditLogModal(id, name, mob, start, end) {
   else $("#editLogStart").val(convertToInputDate(start));
   if (id === "current") $("#editLogEnd").val("").prop("disabled", true);
   else $("#editLogEnd").val(convertToInputDate(end)).prop("disabled", false);
+  $("#editLogStatusRemark").val(remark || "");
   $("#editLogModalOverlay").css("display", "flex");
 }
 
@@ -721,6 +723,7 @@ async function submitEditLog() {
           mobile: mob,
           workStart: start,
           workEnd: formatToDDMMMYYYY(end),
+          statusRemark: $("#editLogStatusRemark").val().trim()
         }),
       });
       const data = await res.json();
@@ -831,6 +834,7 @@ async function submitDriverUpdate() {
           newDriver: nName,
           newMob: nMob,
           newWorkStart: finalNewStart,
+          statusRemark: $("#drvUpdateStatusRemark").val().trim(),
         }),
       });
       const data = await res.json();
@@ -842,6 +846,7 @@ async function submitDriverUpdate() {
         $("#drvUpdateNewName").val("");
         $("#drvUpdateNewMob").val("");
         $("#drvUpdateNewStart").val("");
+        $("#drvUpdateStatusRemark").val("");
       } else showToast(data.message, "error");
     } catch (e) {
       showToast("Failed to update driver", "error");
@@ -850,6 +855,7 @@ async function submitDriverUpdate() {
     // Past Log Mode
     let pStartRaw = $("#drvPastStart").val();
     let pEndRaw = $("#drvPastEnd").val();
+    let pRemark = $("#drvPastStatusRemark").val().trim();
     if (!nName || !pStartRaw || !pEndRaw)
       return showToast("Name, Start Date, and End Date are required", "error");
 
@@ -876,6 +882,7 @@ async function submitDriverUpdate() {
           mobile: nMob,
           workStart: formatToDDMMMYYYY(pStartRaw),
           workEnd: formatToDDMMMYYYY(pEndRaw),
+          statusRemark: pRemark
         }),
       });
       const data = await res.json();
@@ -885,6 +892,7 @@ async function submitDriverUpdate() {
         fetchDriverLogsForSidePanel(contextDriverDbId);
         $("#drvPastStart").val("");
         $("#drvPastEnd").val("");
+        $("#drvPastStatusRemark").val("");
       } else showToast(data.message, "error");
     } catch (e) {
       showToast("Failed to add past log", "error");
@@ -3221,4 +3229,39 @@ function handleModalCompanyChange(selectEl) {
       selectEl.value = "";
     }
   }
+}
+
+// --- LEGACY LOG MIGRATION TRIGGER ---
+async function runLegacyMigration() {
+  document.getElementById("userDropdownMenu").classList.remove("show");
+  Swal.fire({
+    title: "Migrate Legacy Data?",
+    text: "This will scan the database and move all old driver column data into the JSON driver history safely.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, Start Migration!",
+    confirmButtonColor: "#0ea5e9"
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      showToast("Migration Started...", "info");
+      try {
+        const res = await fetch("/api/admin/migrate-legacy-logs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          }
+        });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire("Success!", data.message, "success");
+          fetchData(true);
+        } else {
+          Swal.fire("Error", data.message, "error");
+        }
+      } catch (e) {
+        showToast("Migration failed to start.", "error");
+      }
+    }
+  });
 }

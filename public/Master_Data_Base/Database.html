@@ -361,7 +361,7 @@
     </div>
 
     <div id="colVisModalOverlay" class="modal-overlay">
-      <div class="modal-box" style="width: 750px; max-width: 95vw">
+      <div class="modal-box" style="width: 810px; max-width: 95vw">
         <div
           style="
             display: flex;
@@ -899,6 +899,23 @@
                 style="margin-bottom: 0; padding: 6px; font-size: 12px"
                 required
               />
+              <label
+                style="
+                  font-size: 11px;
+                  font-weight: 600;
+                  margin-top: 8px;
+                  display: block;
+                  color: var(--primary);
+                "
+                >Status Remark (Reason for change)</label
+              >
+              <input
+                type="text"
+                id="drvUpdateStatusRemark"
+                class="modal-input"
+                style="margin-bottom: 0; padding: 6px; font-size: 12px"
+                placeholder="e.g. Resigned, Terminated, Transfer..."
+              />
             </div>
           </div>
 
@@ -953,18 +970,24 @@
             required
           />
 
-          <div id="pastLogDates" style="display: none; gap: 10px">
-            <div style="flex: 1">
+          <div id="pastLogDates" style="display: none; flex-wrap: wrap; gap: 10px">
+            <div style="flex: 1; min-width: 45%;">
               <label style="font-size: 12px; font-weight: 600"
                 >Work Start Date</label
               >
               <input type="date" id="drvPastStart" class="modal-input" />
             </div>
-            <div style="flex: 1">
+            <div style="flex: 1; min-width: 45%;">
               <label style="font-size: 12px; font-weight: 600"
                 >Work End Date</label
               >
               <input type="date" id="drvPastEnd" class="modal-input" />
+            </div>
+            <div style="width: 100%;">
+              <label style="font-size: 12px; font-weight: 600; color: var(--primary)"
+                >Status Remark</label
+              >
+              <input type="text" id="drvPastStatusRemark" class="modal-input" placeholder="e.g. Resigned, Terminated..." />
             </div>
           </div>
 
@@ -1109,7 +1132,9 @@
         <input type="date" id="editLogStart" class="modal-input" required />
         <label style="font-size: 12px; font-weight: 600">Work End</label>
         <input type="date" id="editLogEnd" class="modal-input" required />
-        <div style="display: flex; justify-content: flex-end; gap: 8px">
+        <label style="font-size: 12px; font-weight: 600; color: var(--primary)">Status Remark</label>
+        <input type="text" id="editLogStatusRemark" class="modal-input" placeholder="e.g. Resigned, Terminated..." />
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
           <button
             class="btn btn-outline"
             onclick="$('#editLogModalOverlay').hide()"

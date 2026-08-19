@@ -42,6 +42,7 @@ module.exports = function (pool, middlewares, helpers) {
     COLUMNS.OLD_DRIVER,
     COLUMNS.OD_MOB,
     COLUMNS.DAYS_WORKED,
+    "STATUS REMARK",
   ];
 
   const STATUS_ENUM = {
@@ -944,6 +945,177 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
+  // ==========================================
+  // 🚀 DRIVER LOGIC & ONE-TIME MIGRATION APIs
+  // ==========================================
+
+  router.post("/admin/migrate-legacy-logs", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Super Admin Access Required." });
+      
+      const records = await pool.query("SELECT id, record_data FROM erp_records WHERE deleted_at IS NULL");
+      let migratedCount = 0;
+
+      for (let row of records.rows) {
+        let data = row.record_data;
+        const getCol = (matchStr) => Object.keys(data).find((k) => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
+        
+        let oldDriverCol = getCol("OLD DRIVER NAME");
+        let odMobCol = getCol("OD MOB");
+        let odEndCol = getCol("OD WRK END");
+        let statusRemarkCol = getCol("STATUS REMARK");
+        
+        let oldName = data[oldDriverCol];
+        if (oldName && String(oldName).trim() !== "") {
+          if (!data.driver_history) data.driver_history = [];
+          
+          let alreadyExists = data.driver_history.find(h => h.name === oldName && h.end === (data[odEndCol] || "01-Jan-1990"));
+          
+          if (!alreadyExists) {
+            data.driver_history.push({
+              id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+              name: oldName,
+              mob: data[odMobCol] || "",
+              start: "IDK",
+              end: data[odEndCol] && String(data[odEndCol]).trim() !== "" ? data[odEndCol] : "01-Jan-1990",
+              status_remark: data[statusRemarkCol] || "",
+              updated_by: "System Migration",
+              timestamp: Date.now()
+            });
+            
+            await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [data, row.id]);
+            migratedCount++;
+          }
+        }
+      }
+      res.json({ success: true, message: `Successfully migrated ${migratedCount} legacy records.` });
+    } catch (error) {
+      handleError(res, error, req.user.role, "MIGRATE_LEGACY");
+    }
+  });
+
+  router.post("/update-driver", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
+
+      const { dbId, plate_number, currentDriver, currentMob, oldWorkStart, workEnd, newDriver, newMob, newWorkStart, statusRemark } = req.body;
+      
+      const recordRes = await pool.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
+      if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
+      
+      let prevData = recordRes.rows[0].record_data;
+      if (!prevData.driver_history) prevData.driver_history = [];
+
+      let finalWorkEnd = workEnd && workEnd.trim() !== "" ? workEnd : "01-Jan-1990";
+      
+      if (currentDriver && currentDriver.trim() !== "") {
+        prevData.driver_history.push({
+          id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+          name: currentDriver,
+          mob: currentMob || "",
+          start: oldWorkStart || "IDK",
+          end: finalWorkEnd,
+          status_remark: statusRemark || "",
+          updated_by: req.user.username,
+          timestamp: Date.now()
+        });
+      }
+
+      let latestLog = null;
+      if (prevData.driver_history.length > 0) {
+        let sortedHistory = [...prevData.driver_history].sort((a, b) => {
+           let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
+           let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
+           return timeA - timeB; 
+        });
+        latestLog = sortedHistory[sortedHistory.length - 1];
+      }
+
+      const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
+      
+      if (latestLog) {
+         prevData[getCol("OLD DRIVER NAME")] = latestLog.name;
+         prevData[getCol("OD MOB")] = latestLog.mob;
+         prevData[getCol("OD WRK END")] = latestLog.end;
+         prevData[getCol("STATUS REMARK")] = latestLog.status_remark || "";
+      }
+
+      if (newDriver) {
+         prevData[getCol("DRIVER NAME")] = newDriver;
+         prevData[getCol("MOBILE")] = newMob;
+         prevData[getCol("WORK START")] = newWorkStart;
+      } else {
+         prevData[getCol("DRIVER NAME")] = "";
+         prevData[getCol("MOBILE")] = "";
+         prevData[getCol("WORK START")] = "";
+      }
+
+      await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
+      res.json({ success: true, message: "Driver updated securely." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "UPDATE_DRIVER");
+    }
+  });
+
+  router.post("/add-past-driver-log", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
+
+      const { dbId, driverName, mobile, workStart, workEnd, statusRemark } = req.body;
+      
+      const recordRes = await pool.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
+      if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
+      
+      let prevData = recordRes.rows[0].record_data;
+      if (!prevData.driver_history) prevData.driver_history = [];
+
+      let finalWorkEnd = workEnd && workEnd.trim() !== "" ? workEnd : "01-Jan-1990";
+      
+      prevData.driver_history.push({
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+        name: driverName,
+        mob: mobile || "",
+        start: workStart || "IDK",
+        end: finalWorkEnd,
+        status_remark: statusRemark || "",
+        updated_by: req.user.username,
+        timestamp: Date.now()
+      });
+
+      let sortedHistory = [...prevData.driver_history].sort((a, b) => {
+           let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
+           let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
+           return timeA - timeB; 
+      });
+      let latestLog = sortedHistory[sortedHistory.length - 1];
+
+      const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
+      
+      if (latestLog) {
+         prevData[getCol("OLD DRIVER NAME")] = latestLog.name;
+         prevData[getCol("OD MOB")] = latestLog.mob;
+         prevData[getCol("OD WRK END")] = latestLog.end;
+         prevData[getCol("STATUS REMARK")] = latestLog.status_remark || "";
+      }
+
+      await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
+      res.json({ success: true, message: "Past driver log added." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "ADD_PAST_DRIVER");
+    }
+  });
+
+  router.post("/get-driver-logs", verifyToken, async (req, res) => {
+    try {
+      const { dbId } = req.body;
+      const recordRes = await pool.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
+      if (recordRes.rows.length === 0) return res.json({ success: false, logs: [] });
+      
+      res.json({ success: true, logs: recordRes.rows[0].record_data.driver_history || [] });
+    } catch (error) {
+      handleError(res, error, req.user.role, "GET_LOGS");
+    }
+  });
+
   return router;
 };
-
