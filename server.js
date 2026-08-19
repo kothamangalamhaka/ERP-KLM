@@ -23,6 +23,7 @@ const we1OwnEqRoutes = require("./routes/We1OwnEq");
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 
+
 // Routes
 const billingRoutes = require("./routes/billing");
 const timesheetRoutes = require("./routes/Timesheet");
@@ -46,6 +47,7 @@ const viewBillRoutes = require("./routes/view_bill");
 const we1EqDriverPayrollRoute = require('./routes/We1_EQ_Driver_Payroll');
 const staffSalaryRoute = require('./routes/StaffSalary');
 const invoiceAuthRoutes = require('./routes/invoiceAuth');
+const zohoInvoiceRoute = require('./routes/zoho_download_inv');
 
 
 
@@ -81,6 +83,7 @@ app.use("/api/we1-own-eq", we1OwnEqRoutes);
 app.use('/api/we1-eq-driver-payroll', we1EqDriverPayrollRoute);
 app.use('/api/staff-salary', staffSalaryRoute);
 app.use('/api/invoice-auth', invoiceAuthRoutes);
+app.use('/api', zohoInvoiceRoute);
 
 
 
