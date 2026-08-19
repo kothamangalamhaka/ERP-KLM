@@ -51,19 +51,29 @@ function releaseLock() {
   if (currentLockedRecord) {
     const lockToken = localStorage.getItem("timesheetToken");
     if (lockToken) {
+      const payload = JSON.stringify(currentLockedRecord);
       fetch('/timesheet/api/record-lock/release', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + lockToken
         },
-        body: JSON.stringify(currentLockedRecord),
-        keepalive: true // 🟢 ടാബ് പെട്ടെന്ന് ക്ലോസ് ചെയ്താലും ഈ റിക്വസ്റ്റ് ബാക്കെൻഡിൽ എത്താൻ ഇത് സഹായിക്കും
-      }).catch(e => {});
+        body: payload,
+        keepalive: true 
+      }).catch(e => console.error("Lock release error:", e));
     }
     currentLockedRecord = null;
   }
 }
+
+// 🟢 NEW: Month അല്ലെങ്കിൽ Year മാറ്റുമ്പോൾ പഴയ ലോക്ക് റിലീസ് ആവാൻ
+document.getElementById("selMonth").addEventListener("change", releaseLock);
+document.getElementById("selYear").addEventListener("change", releaseLock);
+
+// 🟢 NEW: വിൻഡോ പൂർണ്ണമായും ക്ലോസ് ചെയ്യുമ്പോൾ ഉറപ്പായും റിലീസ് ആവാൻ
+window.addEventListener("unload", function () {
+  releaseLock();
+});
 
 async function init() {
   const ts = new Date().getTime();
@@ -396,6 +406,12 @@ async function triggerFetch() {
 
   const m = document.getElementById("selMonth").value;
   const y = document.getElementById("selYear").value;
+
+  // 🟢 NEW FIX: വേറെ മാസമാണ് സെലക്ട് ചെയ്തതെങ്കിൽ പഴയ ലോക്ക് റിലീസ് ചെയ്യുക
+  if (currentLockedRecord && (currentLockedRecord.plate !== p || currentLockedRecord.month !== m || currentLockedRecord.year !== y)) {
+    releaseLock();
+  }
+
   const tbody = document.getElementById("gridBody");
   const btn = document.getElementById("fetchBtn");
   const loader = document.getElementById("fetchLoader");
@@ -415,7 +431,6 @@ async function triggerFetch() {
       Pragma: "no-cache",
     };
 
-    // 🟢 RECORD LOCK REQUEST (WITH CRASH FIX & ERROR HANDLING)
     let lockRes, lockData;
     try {
       lockRes = await fetch('/timesheet/api/record-lock/request', {
@@ -428,12 +443,10 @@ async function triggerFetch() {
       });
       lockData = await lockRes.json();
     } catch (e) {
-      // ഇൻ്റർനെറ്റ് ഇല്ലാത്ത അവസ്ഥയാണെങ്കിൽ കൃത്യമായി അലർട്ട് നൽകുന്നു
       await customAlert("Network connection lost. Please check your internet and try again.", "Connection Error");
       throw e; 
     }
 
-    // 🟢 ലോഗിൻ യഥാർത്ഥത്തിൽ എക്സ്പയർ ആയാൽ മാത്രം ലോഗൗട്ട് ആകാൻ (!lockRes.ok ഡിലീറ്റ് ചെയ്തു)
     if (lockRes.status === 401 || lockRes.status === 403) {
       await customAlert("Session expired or invalid. Please login again.", "Session Timeout");
       logout();
@@ -441,7 +454,6 @@ async function triggerFetch() {
     }
 
     if (!lockData.success) {
-      // 🟢 പേര് ഇല്ലെങ്കിൽ ക്രാഷ് ആകാതിരിക്കാൻ സേഫ് ചെക്ക്
       let lockedUser = lockData.lockedBy ? lockData.lockedBy.toUpperCase() : "ANOTHER USER";
       await customAlert(`This record is currently being edited by [ ${lockedUser} ]. Please try again later to prevent overwriting.`, "Record Locked 🔒");
       tbody.innerHTML = `<tr class="loading-row"><td colspan="13" style="color:#ef4444; font-weight:bold;">Record is locked by ${lockedUser}. Cannot fetch data.</td></tr>`;
@@ -451,6 +463,7 @@ async function triggerFetch() {
       return;
     }
 
+    // 🟢 ലോക്ക് കിട്ടിയ ഉടൻ തന്നെ സേവ് ചെയ്യുക
     currentLockedRecord = { plate: p, month: m, year: y };
 
     const res = await fetch(
@@ -459,6 +472,7 @@ async function triggerFetch() {
     );
 
     if (res.status === 401 || res.status === 403) {
+      releaseLock(); // 🟢 NEW
       await customAlert("Session expired. Please login again.", "Session Timeout");
       logout();
       return;
@@ -468,23 +482,18 @@ async function triggerFetch() {
     try {
       data = await res.json();
     } catch (e) {
+      releaseLock(); // 🟢 NEW
       await customAlert("Session expired or invalid response. Please login again.", "Session Timeout");
       logout();
       return;
     }
 
-    if (res.status === 401 || res.status === 403) {
-      await customAlert("Session expired. Please login again.", "Session Timeout");
-      logout();
-      return;
-    }
-
-    // 🟢 ഡാറ്റ ഫെച്ച് ചെയ്യാൻ പറ്റിയില്ലെങ്കിൽ നിശബ്ദമായി പരാജയപ്പെടാതെ അലർട്ട് നൽകുന്നു
     if (data.success === false) {
+      releaseLock(); // 🟢 NEW
       await customAlert(data.message || "Failed to fetch data.", "Database Error");
       throw new Error(data.message);
     }
-
+    
     const logRes = await fetch(
       `/timesheet/api/vehicle-logs?plate=${p}&_t=${ts}`,
       { headers, cache: "no-store" },
@@ -1523,13 +1532,14 @@ function logout() {
   localStorage.removeItem("timesheetToken");
   localStorage.removeItem("timesheetUser");
   
-  // നിലവിൽ നിൽക്കുന്ന പേജ് ഏതാണെന്ന് കണ്ടെത്തുക
   const currentPage = encodeURIComponent(
     window.location.pathname.split("/").pop() + window.location.search
   );
   
-  // ലോഗിൻ പേജിലേക്ക് പോകുമ്പോൾ ആ പേജിന്റെ പേര് കൂടെ കൊണ്ടുപോകുക
-  window.location.href = "index.html?redirect=" + currentPage;
+  // 🟢 NEW: Lock release ഫെച്ച് കംപ്ലീറ്റ് ആകാൻ 300ms സമയം കൊടുക്കുന്നു
+  setTimeout(() => {
+    window.location.href = "index.html?redirect=" + currentPage;
+  }, 300);
 }
 
 (function initTheme() {
