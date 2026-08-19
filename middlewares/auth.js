@@ -33,9 +33,18 @@ const pool = require('../config/db');
 const verifyEditor = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.json({ success: false, message: 'No token provided' });
+    
+    let decoded;
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        
+        // Step 1: Verify the JWT Token first
+        decoded = jwt.verify(token, JWT_SECRET);
+    } catch (e) {
+        // Only trigger token errors for actual JWT failures
+        return res.json({ success: false, message: 'Invalid token' });
+    }
+
+    try {
+        // Step 2: Perform the Database Query separately
         const userRes = await pool.query("SELECT role, status FROM timesheet_users WHERE id = $1", [decoded.id]);
         if (userRes.rows.length === 0 || userRes.rows[0].status !== 'Active') {
             return res.json({ success: false, message: 'User inactive or not found.' });
@@ -50,8 +59,10 @@ const verifyEditor = async (req, res, next) => {
 
         req.user = { ...decoded, role: currentRole };
         next();
-    } catch (e) {
-        res.json({ success: false, message: 'Invalid token' });
+    } catch (dbError) {
+        console.error("Database Error in Auth Middleware:", dbError.message);
+        // Return a general error so the frontend doesn't log the user out
+        return res.json({ success: false, message: 'Database connection error. Please try again.' });
     }
 };
 
