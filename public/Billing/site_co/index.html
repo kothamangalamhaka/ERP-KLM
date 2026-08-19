@@ -781,7 +781,7 @@
                 <option value="January">January</option>
                 <option value="February">February</option>
                 <option value="March">March</option>
-                <option value="April" selected>April</option>
+                <option value="April">April</option>
                 <option value="May">May</option>
                 <option value="June">June</option>
                 <option value="July">July</option>
@@ -1233,12 +1233,24 @@
       let currentFocusIndex = -1;
 
       document.addEventListener("DOMContentLoaded", () => {
-        const token = localStorage.getItem("view_bill_token");
+  // Set previous month and corresponding year dynamically
+  const currentDate = new Date();
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  const prevMonth = currentDate.toLocaleString('default', { month: 'long' });
+  const targetYear = currentDate.getFullYear();
 
-        if (token) {
-          verifySession(token);
-        }
-      });
+  const monthSelect = document.getElementById("selMonth");
+  const yearInput = document.getElementById("selYear");
+
+  if (monthSelect) monthSelect.value = prevMonth;
+  if (yearInput) yearInput.value = targetYear;
+
+  const token = localStorage.getItem("view_bill_token");
+
+  if (token) {
+    verifySession(token);
+  }
+});
 
       /* Prevent Arrow Up / Arrow Down from changing edit values */
       document.addEventListener("keydown", function (e) {
