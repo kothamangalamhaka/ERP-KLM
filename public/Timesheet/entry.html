@@ -522,19 +522,47 @@
             line-height: 1.5;
           "
         ></p>
-        <div style="display: flex; gap: 10px; justify-content: center;">
+
+        <input 
+          type="password" 
+          id="gridUnlockInput" 
+          placeholder="Enter OTP or Master Code" 
+          style="display: none; width: 100%; height: 35px; margin-bottom: 15px; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
+        />
+
+        <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
+          <button
+            id="alertRequestOtpBtn"
+            class="btn-inv-save"
+            style="flex: 1 1 45%; margin: 0; padding: 8px 15px; display: none; background-color: #3b82f6; color: white; border: none; font-weight: 600;"
+            onclick="requestOtpFromGrid()"
+          >
+            📩 Req OTP
+          </button>
+          
+          <button
+            id="alertUnlockBtn"
+            class="btn-inv-save"
+            style="flex: 1 1 45%; margin: 0; padding: 8px 15px; display: none; background-color: #f59e0b; color: white; border: none; font-weight: 600;"
+            onclick="triggerGridUnlock()"
+          >
+            🔑 Unlock
+          </button>
+
+          <!-- 🟢 OK Button (താഴെ സ്പേസ് ബാർ പോലെ ഫുൾ നീളത്തിൽ) -->
           <button
             class="btn-inv-save"
-            style="margin: 0; padding: 6px 15px;"
+            style="flex: 1 1 100%; margin: 0; padding: 8px 15px; font-weight: 600; background-color: #0ea5e9; color: white; border: none;"
             onclick="closeCustomAlert()"
           >
             OK
           </button>
-          <!-- 🟢 NEW: ഡാറ്റാബേസ് എറർ വരുമ്പോൾ ലോഗൗട്ട് ചെയ്യാൻ മാത്രമുള്ള പുതിയ ബട്ടൺ -->
+          
+          <!-- 🟢 Logout Button (ലോഗൗട്ട് വേണ്ട സമയത്ത് മാത്രം ഫുൾ നീളത്തിൽ വരും) -->
           <button
             id="alertLogoutBtn"
             class="btn-inv-close"
-            style="margin: 0; padding: 6px 15px; display: none; background-color: #ef4444; color: white;"
+            style="flex: 1 1 100%; margin: 0; padding: 8px 15px; display: none; background-color: #ef4444; color: white; font-weight: 600;"
             onclick="logout()"
           >
             Logout

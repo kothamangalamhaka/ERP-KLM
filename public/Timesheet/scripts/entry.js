@@ -70,11 +70,6 @@ function releaseLock() {
 document.getElementById("selMonth").addEventListener("change", releaseLock);
 document.getElementById("selYear").addEventListener("change", releaseLock);
 
-// 🟢 NEW: വിൻഡോ പൂർണ്ണമായും ക്ലോസ് ചെയ്യുമ്പോൾ ഉറപ്പായും റിലീസ് ആവാൻ
-window.addEventListener("unload", function () {
-  releaseLock();
-});
-
 async function init() {
   const ts = new Date().getTime();
 
@@ -764,11 +759,11 @@ async function triggerFetch() {
     .catch(e => console.log("Error fetching logsheet count:", e));
     
     let existingData = data.success ? data.data : [];
-    setTimeout(() => {
+    setTimeout(async () => {
       renderGrid(m, y, p, existingData, sStartVal, sEndVal, logs);
       
-      // 🟢 NEW: Apply Lock verification after render
-      applyLockStatus(m, y);
+      // 🟢 FIX: എപ്പോഴും ഡാറ്റാബേസിൽ നിന്നും ലേറ്റസ്റ്റ് ലോക്ക് സ്റ്റാറ്റസ് എടുക്കാൻ (Async)
+      await applyLockStatus(m, y, false);
 
       btn.disabled = false;
       text.innerText = "Fetch Data";
@@ -1367,15 +1362,32 @@ async function saveCellData(rowIdx, colName, colValue) {
 function customAlert(message, title = "Notice") {
   return new Promise((resolve) => {
     document.getElementById("customAlertTitle").innerText = title;
+    document.getElementById("customAlertTitle").style.color = (title.includes("Success") || title.includes("Unlocked")) ? "#10b981" : "#ef4444";
     document.getElementById("customAlertMessage").innerText = message;
     
-    // 🟢 ഡാറ്റാബേസ് എറർ ആണെങ്കിൽ മാത്രം പോപ്പ്-അപ്പിൽ ലോഗൗട്ട് ബട്ടൺ കാണിക്കുക
     const logoutBtn = document.getElementById("alertLogoutBtn");
+    const unlockBtn = document.getElementById("alertUnlockBtn");
+    const reqOtpBtn = document.getElementById("alertRequestOtpBtn");
+    const otpInput = document.getElementById("gridUnlockInput");
+    
     if (logoutBtn) {
       if (title === "Database Error" || title === "Connection Error") {
         logoutBtn.style.display = "inline-block";
       } else {
         logoutBtn.style.display = "none";
+      }
+    }
+
+    if (unlockBtn && reqOtpBtn && otpInput) {
+      if (title === "Period Locked" || title === "Period Locked 🔒") {
+        unlockBtn.style.display = "inline-block";
+        reqOtpBtn.style.display = "inline-block";
+        otpInput.style.display = "none"; // 🟢 ആദ്യം ഇൻപുട്ട് ബോക്സ് ഹൈഡ് ചെയ്യുന്നു
+        otpInput.value = ""; 
+      } else {
+        unlockBtn.style.display = "none";
+        reqOtpBtn.style.display = "none";
+        otpInput.style.display = "none";
       }
     }
     
@@ -1385,6 +1397,116 @@ function customAlert(message, title = "Notice") {
       resolve();
     };
   });
+}
+
+// --------------------------------------------------------
+// 🟢 OTP & UNLOCK FUNCTIONS
+// --------------------------------------------------------
+
+async function requestOtpFromGrid() {
+  const btn = document.getElementById("alertRequestOtpBtn");
+  btn.disabled = true;
+  btn.innerText = "Sending...";
+  try {
+      const token = localStorage.getItem("timesheetToken");
+      const res = await fetch("/api/lock/request-unlock", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token }
+      });
+      const data = await res.json();
+      
+      if(data.success) {
+          document.getElementById("customAlertTitle").innerText = "OTP Sent 📩";
+          document.getElementById("customAlertTitle").style.color = "#3b82f6";
+          document.getElementById("customAlertMessage").innerText = data.message;
+          // 🟢 OTP അയച്ചു കഴിഞ്ഞാൽ മാത്രം ഇൻപുട്ട് ബോക്സ് കാണിക്കുന്നു
+          document.getElementById("gridUnlockInput").style.display = "block";
+          document.getElementById("gridUnlockInput").focus();
+      } else {
+          document.getElementById("customAlertMessage").innerText = data.message;
+      }
+  } catch(e) {
+      document.getElementById("customAlertMessage").innerText = "Network issue while sending OTP.";
+  } finally {
+      btn.disabled = false;
+      btn.innerText = "📩 Req OTP";
+  }
+}
+
+async function triggerGridUnlock() {
+  const otpInput = document.getElementById("gridUnlockInput");
+  
+  // 🟢 ഇൻപുട്ട് ബോക്സ് ഹൈഡ് ആണെങ്കിൽ (അതായത് യൂസർ മാസ്റ്റർ കോഡ് അടിക്കാൻ വന്നാൽ), ആദ്യം ബോക്സ് കാണിക്കുക
+  if (otpInput && otpInput.style.display === "none") {
+      otpInput.style.display = "block";
+      otpInput.focus();
+      return; // ഫംഗ്ഷൻ ഇവിടെ നിർത്തുന്നു, യൂസർ കോഡ് അടിച്ച ശേഷം വീണ്ടും ബട്ടൺ അമർത്തണം
+  }
+
+  const code = otpInput ? otpInput.value.trim() : "";
+  
+  if (!code) {
+      if (otpInput) {
+          otpInput.style.borderColor = "#ef4444";
+          otpInput.placeholder = "Enter Code First!";
+          setTimeout(() => {
+              otpInput.style.borderColor = "#cbd5e1";
+              otpInput.placeholder = "Enter OTP or Master Code";
+          }, 2000);
+      }
+      return;
+  }
+
+  const btn = document.getElementById("alertUnlockBtn");
+  btn.disabled = true;
+  btn.innerText = "Wait...";
+
+  try {
+      const token = localStorage.getItem("timesheetToken");
+      const res = await fetch("/api/lock/verify-unlock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ code })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+          closeCustomAlert(); 
+          await customAlert("System unlocked successfully! You can now edit the data.", "Success");
+          
+          systemLockData = { month: null, year: null }; 
+          
+          document.querySelectorAll(".grid-input").forEach(el => {
+              el.disabled = false;
+              el.style.backgroundColor = ""; 
+              el.style.cursor = "text";
+              el.style.color = "";
+              el.style.opacity = "1"; 
+          });
+          
+          const invBtn = document.querySelector(".btn-inv-save");
+          if(invBtn) {
+              invBtn.disabled = false;
+              invBtn.style.opacity = "1";
+              invBtn.innerText = "Save Invoice Data";
+          }
+      } else {
+          if (otpInput) {
+              otpInput.value = "";
+              otpInput.style.borderColor = "#ef4444";
+              otpInput.placeholder = "Invalid Code!";
+              setTimeout(() => {
+                  otpInput.style.borderColor = "#cbd5e1";
+                  otpInput.placeholder = "Enter OTP or Master Code";
+              }, 2000);
+          }
+      }
+  } catch (e) {
+      document.getElementById("customAlertMessage").innerText = "Verification failed. Check network.";
+  } finally {
+      btn.disabled = false;
+      btn.innerText = "🔑 Unlock";
+  }
 }
 
 function customPrompt(message, isPassword = false, title = "Input Required") {
@@ -1892,38 +2014,84 @@ async function importExcel() {
 init();
 
 // ==========================================
-// 🔒 LOCK PERIOD CHECKER
+// 🔒 LOCK PERIOD CHECKER (UPDATED)
 // ==========================================
-function applyLockStatus(selectedMonthStr, selectedYearStr) {
-    if (!systemLockData.month || !systemLockData.year) return; // Not locked
+async function applyLockStatus(selectedMonthStr, selectedYearStr, silent = false) {
+    // 1. എപ്പോഴും ഡാറ്റാബേസിൽ നിന്നും ലേറ്റസ്റ്റ് ലോക്ക് സ്റ്റാറ്റസ് എടുക്കുക
+    try {
+        const ts = new Date().getTime();
+        const lRes = await fetch(`/api/lock/status?_t=${ts}`, { headers: { Authorization: "Bearer " + token }});
+        const lData = await lRes.json();
+        if (lData.success && lData.data && lData.data.lock_month) {
+            systemLockData = { month: lData.data.lock_month, year: lData.data.lock_year };
+        } else {
+            systemLockData = { month: null, year: null };
+        }
+    } catch (e) {
+        console.error("Lock fetch error:", e);
+    }
 
     const sYear = parseInt(selectedYearStr);
     const sMonthIdx = months.indexOf(selectedMonthStr);
-    const lockYear = parseInt(systemLockData.year);
-    const lockMonthIdx = months.indexOf(systemLockData.month);
+    const lockYear = systemLockData.year ? parseInt(systemLockData.year) : 0;
+    const lockMonthIdx = systemLockData.month ? months.indexOf(systemLockData.month) : -1;
 
-    // Calculate absolute months for comparison (Year * 12 + MonthIndex)
     const selectedAbsolute = (sYear * 12) + sMonthIdx;
     const lockAbsolute = (lockYear * 12) + lockMonthIdx;
 
-    if (selectedAbsolute <= lockAbsolute) {
-        // IT IS LOCKED! Disable grid.
+    const isCurrentlyLockedInDB = systemLockData.month && systemLockData.year && (selectedAbsolute <= lockAbsolute);
+    
+    if (isCurrentlyLockedInDB) {
+        // സിസ്റ്റം ലോക്ക്ഡ് ആണ്! ഗ്രിഡ് ഡിസേബിൾ ചെയ്യുക
+        let wasAlreadyDisabled = false;
         document.querySelectorAll(".grid-input").forEach(el => {
+            if(el.disabled) wasAlreadyDisabled = true;
             el.disabled = true;
-            el.style.backgroundColor = "transparent"; // 🟢 Changed to transparent
+            el.style.backgroundColor = "transparent"; 
             el.style.cursor = "not-allowed";
             el.style.color = "Black";
             el.style.opacity = "0.9"; 
         });
         
-        // Disable Invoice Edit buttons if needed
         const invBtn = document.querySelector(".btn-inv-save");
-        if(invBtn) {
+        if (invBtn) {
             invBtn.disabled = true;
             invBtn.style.opacity = "0.5";
             invBtn.innerText = "🔒 Locked Period";
         }
         
-        customAlert(`The period up to ${systemLockData.month} ${systemLockData.year} is locked. You cannot edit this data.`, "Period Locked");
+        // സൈലന്റ് മോഡ് അല്ലെങ്കിൽ മാത്രം പോപ്പ്-അപ്പ് കാണിക്കുക
+        if (!silent && !wasAlreadyDisabled) {
+            customAlert(`The period up to ${systemLockData.month} ${systemLockData.year} is locked. You cannot edit this data.`, "Period Locked");
+        }
+    } else {
+        // 🟢 സിസ്റ്റം അൺലോക്ക്ഡ് ആണ്. നിലവിൽ ഗ്രിഡ് ഡിസേബിൾ ആയി കിടക്കുന്നുണ്ടെങ്കിൽ അത് റീ-എനേബിൾ ചെയ്യുക
+        let isUIDisabled = document.querySelector(".grid-input")?.disabled === true;
+        if (isUIDisabled) {
+            document.querySelectorAll(".grid-input").forEach(el => {
+                el.disabled = false;
+                el.style.backgroundColor = ""; 
+                el.style.cursor = "text";
+                el.style.color = "";
+                el.style.opacity = "1"; 
+            });
+            
+            const invBtn = document.querySelector(".btn-inv-save");
+            if(invBtn) {
+                invBtn.disabled = false;
+                invBtn.style.opacity = "1";
+                invBtn.innerText = "Save Invoice Data";
+            }
+        }
     }
 }
+
+window.addEventListener("focus", async () => {
+    const m = document.getElementById("selMonth").value;
+    const y = document.getElementById("selYear").value;
+    const p = document.getElementById("selPlate").value.trim();
+    
+    if (m && y && p && document.getElementById("gridBody").innerHTML.includes("grid-input")) {
+      await applyLockStatus(m, y, true); 
+    }
+});
