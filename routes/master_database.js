@@ -1051,6 +1051,11 @@ module.exports = function (pool, middlewares, helpers) {
       }
 
       await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
+
+      // Telegram Alert
+      let alertMsg = `🔄 <b>DRIVER UPDATED / HANDOVER</b>\n\n<b>Plate:</b> ${plate_number || "N/A"}\n<b>Old Driver:</b> ${currentDriver || "None"}\n<b>New Driver:</b> ${newDriver || "None"}\n<b>Updated by:</b> @${req.user.username}`;
+      await sendActivityTelegramMessage(alertMsg).catch(e => console.error("Telegram Error:", e));
+
       res.json({ success: true, message: "Driver updated securely." });
     } catch (error) {
       handleError(res, error, req.user.role, "UPDATE_DRIVER");
@@ -1063,7 +1068,8 @@ module.exports = function (pool, middlewares, helpers) {
 
       const { dbId, driverName, mobile, workStart, workEnd, statusRemark } = req.body;
       
-      const recordRes = await pool.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
+      // Fetching plate_number along with record_data
+      const recordRes = await pool.query("SELECT plate_number, record_data FROM erp_records WHERE id = $1", [dbId]);
       if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
       
       let prevData = recordRes.rows[0].record_data;
@@ -1099,6 +1105,11 @@ module.exports = function (pool, middlewares, helpers) {
       }
 
       await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
+
+      // Telegram Alert
+      let alertMsg = `📜 <b>PAST DRIVER LOG ADDED</b>\n\n<b>Plate:</b> ${recordRes.rows[0].plate_number || "N/A"}\n<b>Driver:</b> ${driverName}\n<b>Updated by:</b> @${req.user.username}`;
+      await sendActivityTelegramMessage(alertMsg).catch(e => console.error("Telegram Error:", e));
+
       res.json({ success: true, message: "Past driver log added." });
     } catch (error) {
       handleError(res, error, req.user.role, "ADD_PAST_DRIVER");
@@ -1114,6 +1125,115 @@ module.exports = function (pool, middlewares, helpers) {
       res.json({ success: true, logs: recordRes.rows[0].record_data.driver_history || [] });
     } catch (error) {
       handleError(res, error, req.user.role, "GET_LOGS");
+    }
+  });
+
+  // 🟢 NEW API: Edit Driver Log
+  router.post("/edit-driver-log", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
+
+      const { dbId, logId, driverName, mobile, workStart, workEnd, statusRemark } = req.body;
+      
+      // Fetching plate_number along with record_data
+      const recordRes = await pool.query("SELECT plate_number, record_data FROM erp_records WHERE id = $1", [dbId]);
+      if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
+      
+      let prevData = recordRes.rows[0].record_data;
+      if (!prevData.driver_history) return res.json({ success: false, message: "History not found." });
+
+      let logIndex = prevData.driver_history.findIndex(l => l.id === logId);
+      if (logIndex === -1) return res.json({ success: false, message: "Log not found." });
+
+      prevData.driver_history[logIndex].name = driverName;
+      prevData.driver_history[logIndex].mob = mobile;
+      prevData.driver_history[logIndex].start = workStart || "IDK";
+      prevData.driver_history[logIndex].end = workEnd || "01-Jan-1990";
+      prevData.driver_history[logIndex].status_remark = statusRemark || "";
+      prevData.driver_history[logIndex].updated_by = req.user.username;
+      prevData.driver_history[logIndex].timestamp = Date.now();
+
+      // Sort and update the main cell dependency
+      let sortedHistory = [...prevData.driver_history].sort((a, b) => {
+           let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
+           let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
+           return timeA - timeB; 
+      });
+      let latestLog = sortedHistory[sortedHistory.length - 1];
+
+      const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
+      
+      if (latestLog) {
+         prevData[getCol("OLD DRIVER NAME")] = latestLog.name;
+         prevData[getCol("OD MOB")] = latestLog.mob;
+         prevData[getCol("OD WRK END")] = latestLog.end;
+         prevData[getCol("STATUS REMARK")] = latestLog.status_remark || "";
+      }
+
+      await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
+
+      // Telegram Alert
+      let alertMsg = `✏️ <b>DRIVER LOG EDITED</b>\n\n<b>Plate:</b> ${recordRes.rows[0].plate_number || "N/A"}\n<b>Driver:</b> ${driverName}\n<b>Updated by:</b> @${req.user.username}`;
+      await sendActivityTelegramMessage(alertMsg).catch(e => console.error("Telegram Error:", e));
+
+      res.json({ success: true, message: "Log updated successfully." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "EDIT_DRIVER_LOG");
+    }
+  });
+
+  // 🟢 NEW API: Delete Driver Log
+  router.post("/delete-driver-log", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
+
+      const { dbId, logId } = req.body;
+      
+      // Fetching plate_number along with record_data
+      const recordRes = await pool.query("SELECT plate_number, record_data FROM erp_records WHERE id = $1", [dbId]);
+      if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
+      
+      let prevData = recordRes.rows[0].record_data;
+      if (!prevData.driver_history) return res.json({ success: false, message: "History not found." });
+
+      // Identify the driver name before removing the log
+      let logToDelete = prevData.driver_history.find(l => l.id === logId);
+      let deletedDriverName = logToDelete ? logToDelete.name : "Unknown";
+
+      // Remove the specific log
+      prevData.driver_history = prevData.driver_history.filter(l => l.id !== logId);
+
+      const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
+
+      if (prevData.driver_history.length > 0) {
+          let sortedHistory = [...prevData.driver_history].sort((a, b) => {
+               let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
+               let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
+               return timeA - timeB; 
+          });
+          let latestLog = sortedHistory[sortedHistory.length - 1];
+          
+          prevData[getCol("OLD DRIVER NAME")] = latestLog.name;
+          prevData[getCol("OD MOB")] = latestLog.mob;
+          prevData[getCol("OD WRK END")] = latestLog.end;
+          prevData[getCol("STATUS REMARK")] = latestLog.status_remark || "";
+      } else {
+          // If history is completely empty after deletion
+          prevData[getCol("OLD DRIVER NAME")] = "";
+          prevData[getCol("OD MOB")] = "";
+          prevData[getCol("OD WRK END")] = "";
+          prevData[getCol("STATUS REMARK")] = "";
+      }
+
+      await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
+
+      // Telegram Alert
+      let alertMsg = `🗑️ <b>DRIVER LOG DELETED</b>\n\n<b>Plate:</b> ${recordRes.rows[0].plate_number || "N/A"}\n<b>Deleted Driver:</b> ${deletedDriverName}\n<b>Deleted by:</b> @${req.user.username}`;
+      await sendActivityTelegramMessage(alertMsg).catch(e => console.error("Telegram Error:", e));
+
+      res.json({ success: true, message: "Log deleted successfully." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "DELETE_DRIVER_LOG");
     }
   });
 

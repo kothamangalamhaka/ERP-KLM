@@ -1302,8 +1302,36 @@ function toggleHeaderWrap() {
 function updateActiveUsersUI(users) {
   const count = users.length;
   document.getElementById("activeCountDisplay").innerText = `${count} active`;
-  const tooltipText = "Currently Active Users:\n• " + users.join("\n• ");
-  document.getElementById("activeUsersBadge").setAttribute("title", tooltipText);
+  
+  const badge = document.getElementById("activeUsersBadge");
+  badge.removeAttribute("title");
+  
+  badge.onclick = function() {
+    // Creating a premium badge layout for usernames
+    let usersHtml = '<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px;">';
+    
+    users.forEach(user => {
+      usersHtml += `
+        <div style="background: #f8fafc; color: #0f172a; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+          <span class="material-icons" style="font-size: 18px; color: #10b981;">account_circle</span>
+          ${user}
+        </div>
+      `;
+    });
+    
+    usersHtml += '</div>';
+
+    Swal.fire({
+      title: '<strong>Currently Active</strong>',
+      html: usersHtml,
+      showConfirmButton: true,
+      confirmButtonColor: '#0ea5e9',
+      confirmButtonText: 'Done',
+      customClass: {
+        popup: 'animated fadeIn faster'
+      }
+    });
+  };
 }
 
 function renderTable(response) {
@@ -1613,66 +1641,74 @@ function renderTable(response) {
       today.setHours(0, 0, 0, 0);
       let colWraps = JSON.parse(localStorage.getItem("erpColWraps")) || {};
 
+      let api = this.api(); // Get DataTable API instance
+
       cachedHeaders.forEach((h, idx) => {
-        let $td = $("td", row).eq(idx),
-          colHead = String(h).replace(/\s+/g, " ").trim().toUpperCase();
-        if (colWraps[h] === "wrap") {
-          $td[0].style.setProperty("white-space", "normal", "important");
-          $td[0].style.setProperty("word-break", "break-word", "important");
-        } else if (colWraps[h] === "nowrap") {
-          $td[0].style.setProperty("white-space", "nowrap", "important");
-          $td[0].style.setProperty("text-overflow", "ellipsis", "important");
-          $td[0].style.setProperty("overflow", "hidden", "important");
-        } else {
-          $td.css({
-            "white-space": "",
-            "word-break": "",
-            "text-overflow": "",
-            overflow: "",
-          });
-        }
-
-        // KEEP PRE-LINE FOR HISTORY NEWLINES OVERRIDING THE OTHERS
-        if (typeof data[idx] === "string" && data[idx].includes("\n")) {
-          $td[0].style.setProperty("white-space", "pre-line", "important");
-        }
-
-        if (
-          colHead.includes("IQAMA EXPIRE") ||
-          colHead.includes("LICENSE EXPIRE") ||
-          colHead.includes("LICENCE EXPIRE") ||
-          colHead.includes("EQ INSURAN") ||
-          colHead.includes("FAHS MVPI")
-        ) {
-          // Reset previous manual styles if any
-          $td[0].style.removeProperty("background-color");
-          $td[0].style.removeProperty("color");
+        // Safely get the specific cell node (skips if column is hidden)
+        let cellNode = api.cell(row, idx).node();
+        
+        if (cellNode) {
+          let $td = $(cellNode);
+          let colHead = String(h).replace(/\s+/g, " ").trim().toUpperCase();
           
-          if (statusVal === "running") {
-            let dateStr = data[idx];
-            if (dateStr && String(dateStr).trim() !== "") {
-              let parsedDateStr = convertToInputDate(dateStr);
-              if (parsedDateStr) {
-                let expDate = new Date(`${parsedDateStr}T00:00:00`);
-                if (!isNaN(expDate.getTime())) {
-                  expDate.setHours(0, 0, 0, 0);
-                  let diffDays = Math.ceil(
-                    (expDate.getTime() - today.getTime()) /
-                      (1000 * 60 * 60 * 24),
-                  );
-                  
-                  if (diffDays < 0) {
-                    // Already Expired (< 0 days)
-                    $td[0].style.setProperty("background-color", "#800000", "important");
-                    $td[0].style.setProperty("color", "#ffffff", "important");
-                  } else if (diffDays >= 0 && diffDays <= 15) {
-                    // 15 Days Gap (0 to 15 days)
-                    $td[0].style.setProperty("background-color", "#FF9999", "important");
-                    $td[0].style.setProperty("color", "#000000", "important");
-                  } else if (diffDays > 15 && diffDays <= 30) {
-                    // 30 Days Gap (16 to 30 days)
-                    $td[0].style.setProperty("background-color", "#FFFF71", "important");
-                    $td[0].style.setProperty("color", "#000000", "important");
+          if (colWraps[h] === "wrap") {
+            $td[0].style.setProperty("white-space", "normal", "important");
+            $td[0].style.setProperty("word-break", "break-word", "important");
+          } else if (colWraps[h] === "nowrap") {
+            $td[0].style.setProperty("white-space", "nowrap", "important");
+            $td[0].style.setProperty("text-overflow", "ellipsis", "important");
+            $td[0].style.setProperty("overflow", "hidden", "important");
+          } else {
+            $td.css({
+              "white-space": "",
+              "word-break": "",
+              "text-overflow": "",
+              overflow: "",
+            });
+          }
+
+          // KEEP PRE-LINE FOR HISTORY NEWLINES OVERRIDING THE OTHERS
+          if (typeof data[idx] === "string" && data[idx].includes("\n")) {
+            $td[0].style.setProperty("white-space", "pre-line", "important");
+          }
+
+          if (
+            colHead.includes("IQAMA EXPIRE") ||
+            colHead.includes("LICENSE EXPIRE") ||
+            colHead.includes("LICENCE EXPIRE") ||
+            colHead.includes("EQ INSURAN") ||
+            colHead.includes("FAHS MVPI")
+          ) {
+            // Reset previous manual styles if any
+            $td[0].style.removeProperty("background-color");
+            $td[0].style.removeProperty("color");
+            
+            if (statusVal === "running") {
+              let dateStr = data[idx];
+              if (dateStr && String(dateStr).trim() !== "") {
+                let parsedDateStr = convertToInputDate(dateStr);
+                if (parsedDateStr) {
+                  let expDate = new Date(`${parsedDateStr}T00:00:00`);
+                  if (!isNaN(expDate.getTime())) {
+                    expDate.setHours(0, 0, 0, 0);
+                    let diffDays = Math.ceil(
+                      (expDate.getTime() - today.getTime()) /
+                        (1000 * 60 * 60 * 24),
+                    );
+                    
+                    if (diffDays < 0) {
+                      // Already Expired (< 0 days)
+                      $td[0].style.setProperty("background-color", "#800000", "important");
+                      $td[0].style.setProperty("color", "#ffffff", "important");
+                    } else if (diffDays >= 0 && diffDays <= 15) {
+                      // 15 Days Gap (0 to 15 days)
+                      $td[0].style.setProperty("background-color", "#FF9999", "important");
+                      $td[0].style.setProperty("color", "#000000", "important");
+                    } else if (diffDays > 15 && diffDays <= 30) {
+                      // 30 Days Gap (16 to 30 days)
+                      $td[0].style.setProperty("background-color", "#FFFF71", "important");
+                      $td[0].style.setProperty("color", "#000000", "important");
+                    }
                   }
                 }
               }
@@ -2716,6 +2752,17 @@ function attachEditListeners() {
         return showToast("Access Denied: SN is auto-generated.", "error");
       if (colUpper === "DAYS WORKED")
         return showToast("Auto calculated column.", "warning");
+
+      // STRICT READ-ONLY COLUMNS TO PREVENT DATA LOSS & MAINTAIN ACCURACY
+      const strictReadOnlyCols = [
+        "OLD DRIVER NAME", 
+        "OD MOB", 
+        "OD WRK END", 
+        "STATUS REMARK"
+      ];
+      if (strictReadOnlyCols.includes(colUpper)) {
+        return showToast(`Access Denied: '${colUpper}' is strictly Read-Only.`, "error");
+      }
 
       let oldVal = $cell.text(),
         sheetRow = $cell.closest("tr").data("sheetrow");

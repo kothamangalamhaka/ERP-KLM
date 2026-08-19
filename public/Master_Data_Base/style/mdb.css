@@ -492,8 +492,18 @@ body.dark-mode .user-dropdown-item.danger:hover {
   border: 1px solid var(--border-color);
 }
 
+/* Force DataTables wrapper to fill the available flex space */
+.dataTables_wrapper {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  width: 100%;
+}
+
 .table-scroll-wrapper {
   width: 100%;
+  flex-grow: 1; /* Expands to fill empty space */
+  min-height: 55vh; /* Maintains a minimum height even with 1 row */
   overflow-x: auto;
   overflow-y: auto;
   max-height: calc(100vh - 200px);
