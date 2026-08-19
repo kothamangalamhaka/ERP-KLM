@@ -204,18 +204,20 @@
 
     <!-- Service Worker Registration -->
     <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("./sw.js")
-            .then((registration) => {
-              console.log("Service Worker registered successfully");
-            })
-            .catch((error) => {
-              console.error("Service Worker registration failed:", error);
-            });
-        });
-      }
+      if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // ലോക്കൽ ഐപി ആണെങ്കിൽ ടെസ്റ്റിing സ്കിപ്പ് ചെയ്യാൻ അല്ലെങ്കിൽ കൺസോൾ ക്ലീൻ വെക്കാൻ
+    const isLocalIP = window.location.hostname.startsWith('192.168.') || window.location.hostname === 'localhost';
+    
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW Registered'))
+      .catch(err => {
+        if (isLocalIP) {
+          console.warn('Local IP SSL restriction: Service Worker bypassed for testing.');
+        }
+      });
+  });
+}
     </script>
   </body>
 </html>

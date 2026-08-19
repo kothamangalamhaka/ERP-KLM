@@ -2336,6 +2336,7 @@ function toggleAllColumns(show) {
 }
 
 function openColVisModal() {
+  $("#colVisSearch").val(""); // Clear search input when opening
   document.getElementById("colVisList").innerHTML = "";
   erpDataTable.columns().every(function (index) {
     let title = cachedHeaders[index];
@@ -2345,6 +2346,20 @@ function openColVisModal() {
     );
   });
   $("#colVisModalOverlay").css("display", "flex");
+  setTimeout(() => $("#colVisSearch").focus(), 100); // Auto focus on search box
+}
+
+// 🟢 NEW FUNCTION: Filter columns based on search input
+function filterColVis(keyword) {
+  const lowerKw = keyword.toLowerCase().trim();
+  $(".col-vis-item").each(function () {
+    const labelText = $(this).find("label").text().toLowerCase();
+    if (labelText.includes(lowerKw)) {
+      $(this).show();
+    } else {
+      $(this).hide();
+    }
+  });
 }
 
 function openAddEntryModal() {

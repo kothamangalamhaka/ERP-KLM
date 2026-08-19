@@ -377,21 +377,30 @@
           <h3 style="margin: 0; border: none; padding: 0">
             Show / Hide Columns
           </h3>
-          <div style="display: flex; gap: 8px">
-            <button
-              class="btn btn-outline"
-              style="padding: 4px 10px; font-size: 11px"
-              onclick="toggleAllColumns(true)"
-            >
-              Select All
-            </button>
-            <button
-              class="btn btn-outline"
-              style="padding: 4px 10px; font-size: 11px"
-              onclick="toggleAllColumns(false)"
-            >
-              Unselect All
-            </button>
+          
+          <div style="display: flex; align-items: center; gap: 15px; flex-grow: 1; justify-content: flex-end;">
+            <!-- Search Bar Added Here -->
+            <div style="position: relative; max-width: 250px; width: 100%;">
+              <span class="material-icons" style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 16px; color: #94a3b8;">search</span>
+              <input type="text" id="colVisSearch" placeholder="Search columns..." style="width: 100%; padding: 6px 8px 6px 30px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; outline: none; color: #0f172a; box-sizing: border-box;" onkeyup="filterColVis(this.value)">
+            </div>
+
+            <div style="display: flex; gap: 8px">
+              <button
+                class="btn btn-outline"
+                style="padding: 4px 10px; font-size: 11px"
+                onclick="toggleAllColumns(true)"
+              >
+                Select All
+              </button>
+              <button
+                class="btn btn-outline"
+                style="padding: 4px 10px; font-size: 11px"
+                onclick="toggleAllColumns(false)"
+              >
+                Unselect All
+              </button>
+            </div>
           </div>
         </div>
         <div id="colVisList" class="col-vis-grid"></div>
