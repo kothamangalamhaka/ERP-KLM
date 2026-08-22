@@ -557,6 +557,12 @@ function handleDriverAction(action) {
     $("#drvUpdateNewName").val("");
     $("#drvUpdateNewMob").val("");
     $("#drvUpdateNewStart").val("");
+    $("#drvUpdateIqamaNo").val("");
+    $("#drvUpdateIqamaExp").val("");
+    $("#drvUpdateLicenceExp").val("");
+    $("#drvUpdateIqamaNote").val("");
+    $("#drvUpdateLicenceNote").val("");
+    $("#drvUpdateNationality").val("");
     $("#drvPastStart").val("");
     $("#drvPastEnd").val("");
     fetchDriverLogsForSidePanel(contextDriverDbId);
@@ -791,6 +797,15 @@ async function submitDriverUpdate() {
     let endRaw = $("#drvUpdateEnd").val();
     let nStartRaw = $("#drvUpdateNewStart").val();
 
+    let iqamaNo = $("#drvUpdateIqamaNo").val().trim();
+    let iqamaExpRaw = $("#drvUpdateIqamaExp").val();
+    let iqamaExp = iqamaExpRaw ? formatToDDMMMYYYY(iqamaExpRaw) : "";
+    let licenceExpRaw = $("#drvUpdateLicenceExp").val();
+    let licenceExp = licenceExpRaw ? formatToDDMMMYYYY(licenceExpRaw) : "";
+    let iqamaNote = $("#drvUpdateIqamaNote").val().trim();
+    let licenceNote = $("#drvUpdateLicenceNote").val().trim();
+    let nationality = $("#drvUpdateNationality").val().trim();
+
     if (!endRaw)
       return showToast("Current Driver End Date is required", "error");
 
@@ -841,6 +856,12 @@ async function submitDriverUpdate() {
           newMob: nMob,
           newWorkStart: finalNewStart,
           statusRemark: $("#drvUpdateStatusRemark").val().trim(),
+          iqamaNo: iqamaNo,
+          iqamaExp: iqamaExp,
+          licenceExp: licenceExp,
+          iqamaNote: iqamaNote,
+          licenceNote: licenceNote,
+          nationality: nationality
         }),
       });
       const data = await res.json();

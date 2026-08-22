@@ -1006,7 +1006,7 @@ module.exports = function (pool, middlewares, helpers) {
     try {
       if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
 
-      const { dbId, plate_number, currentDriver, currentMob, oldWorkStart, workEnd, newDriver, newMob, newWorkStart, statusRemark } = req.body;
+      const { dbId, plate_number, currentDriver, currentMob, oldWorkStart, workEnd, newDriver, newMob, newWorkStart, statusRemark, iqamaNo, iqamaExp, licenceExp, iqamaNote, licenceNote, nationality } = req.body;
       
       const recordRes = await pool.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
       if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
@@ -1052,10 +1052,26 @@ module.exports = function (pool, middlewares, helpers) {
          prevData[getCol("DRIVER NAME")] = newDriver;
          prevData[getCol("MOBILE")] = newMob;
          prevData[getCol("WORK START")] = newWorkStart;
+         
+         // Set new document details or clear them if left blank
+         prevData[getCol("Iqama Number")] = iqamaNo !== undefined ? iqamaNo : "";
+         prevData[getCol("Iqama Expire Date")] = iqamaExp !== undefined ? iqamaExp : "";
+         prevData[getCol("License Expire Date")] = licenceExp !== undefined ? licenceExp : "";
+         prevData[getCol("Iqama Note")] = iqamaNote !== undefined ? iqamaNote : "";
+         prevData[getCol("Licence Note")] = licenceNote !== undefined ? licenceNote : "";
+         prevData[getCol("Nationality")] = nationality !== undefined ? nationality : "";
       } else {
          prevData[getCol("DRIVER NAME")] = "";
          prevData[getCol("MOBILE")] = "";
          prevData[getCol("WORK START")] = "";
+         
+         // Clear documents when driver is removed completely
+         prevData[getCol("Iqama Number")] = "";
+         prevData[getCol("Iqama Expire Date")] = "";
+         prevData[getCol("License Expire Date")] = "";
+         prevData[getCol("Iqama Note")] = "";
+         prevData[getCol("Licence Note")] = "";
+         prevData[getCol("Nationality")] = "";
       }
 
       await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
