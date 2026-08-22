@@ -1,6 +1,6 @@
 require("dotenv").config();
 require("./routes/backup");
-const https = require("https"); // Add this
+const https = require("https"); 
 const fs = require("fs");
 const { startEmailCron } = require('./services/autoEmailer');
 const {
@@ -957,8 +957,10 @@ cron.schedule("* * * * *", async () => {
 });
 
 // ==========================================
-// 🚀 SERVER INITIALIZATION (Secure HTTPS)
+// 🚀 SERVER INITIALIZATION (HTTP & HTTPS on Same Port)
 // ==========================================
+const httpolyglot = require("httpolyglot");
+
 const PORT = process.env.PORT || 5000;
 
 const sslOptions = {
@@ -966,6 +968,7 @@ const sslOptions = {
   cert: fs.readFileSync('./erp-cert.pem')
 };
 
-https.createServer(sslOptions, app).listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Secure ERP Server running on Port ${PORT}`);
+// httpolyglot handles both HTTP and HTTPS on the same port
+httpolyglot.createServer(sslOptions, app).listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 ERP Server running on both HTTP and HTTPS at Port ${PORT}`);
 });
