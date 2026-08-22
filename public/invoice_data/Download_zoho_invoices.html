@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zoho Invoice Sync Hub</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Include JSZip Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+      /* ... (Keep the EXACT SAME CSS as provided in the previous step) ... */
+      :root {
+        --primary-color: #2563eb;
+        --primary-hover: #1d4ed8;
+        --secondary-color: #10b981;
+        --secondary-hover: #059669;
+        --bg-color: #f1f5f9;
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        color: var(--text-main);
+      }
+      .app-wrapper {
+        background: var(--card-bg);
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow:
+          0 10px 40px -10px rgba(0, 0, 0, 0.1),
+          0 0 0 1px rgba(0, 0, 0, 0.02);
+        width: 100%;
+        max-width: 460px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .app-wrapper::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+      }
+      .header-icon {
+        background: #eff6ff;
+        color: var(--primary-color);
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 28px;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1);
+      }
+      h2 {
+        margin: 0 0 10px 0;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      p {
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 30px;
+      }
+      .form-group {
+        text-align: left;
+        margin-bottom: 25px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text-main);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .custom-select {
+        position: relative;
+      }
+      select {
+        width: 100%;
+        padding: 14px 16px;
+        font-family: inherit;
+        font-size: 15px;
+        color: var(--text-main);
+        background-color: #f8fafc;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        appearance: none;
+        outline: none;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+        cursor: pointer;
+      }
+      select:focus {
+        border-color: var(--primary-color);
+        background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+      }
+      .custom-select::after {
+        content: "▼";
+        font-size: 10px;
+        color: var(--text-muted);
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+      .action-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .btn-bill {
+        background-color: #f59e0b;
+        box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.39);
+      }
+      .btn-bill:hover:not(:disabled) {
+        background-color: #d97706;
+        transform: translateY(-2px);
+      }
+      button {
+        border: none;
+        padding: 16px;
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        color: white;
+      }
+      .btn-zip {
+        background-color: var(--secondary-color);
+        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
+      }
+      .btn-zip:hover:not(:disabled) {
+        background-color: var(--secondary-hover);
+        transform: translateY(-2px);
+      }
+      .btn-pdf {
+        background-color: var(--primary-color);
+        box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.39);
+      }
+      .btn-pdf:hover:not(:disabled) {
+        background-color: var(--primary-hover);
+        transform: translateY(-2px);
+      }
+      button:disabled {
+        background-color: #cbd5e1;
+        box-shadow: none;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn-icon {
+        font-size: 20px;
+      }
+      .status-container {
+        margin-top: 25px;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .status-info {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+        display: flex;
+      }
+      .status-success {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+        display: flex;
+      }
+      .status-error {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        display: flex;
+      }
+      .spinner {
+        width: 18px;
+        height: 18px;
+        border: 3px solid rgba(29, 78, 216, 0.2);
+        border-radius: 50%;
+        border-top-color: #1d4ed8;
+        animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-wrapper">
+      <div class="header-icon">📥</div>
+      <h2>Invoice Download Hub</h2>
+      <p>
+        Securely fetch and download today's registered invoices from the mail
+        server to your local system.
+      </p>
+
+      <div class="form-group">
+        <label for="vendorSelect">Select Vendor Profile</label>
+        <div class="custom-select">
+          <select id="vendorSelect">
+            <option value="">Establishing connection...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="action-cards">
+        <button
+          id="btnZip"
+          class="btn-zip"
+          onclick="startDownload(true)"
+          disabled
+        >
+          <span class="btn-icon">📦 ZIP</span>
+        </button>
+        <button
+          id="btnIndiv"
+          class="btn-pdf"
+          onclick="startDownload(false)"
+          disabled
+        >
+          <span class="btn-icon">📥 PDF</span>
+        </button>
+
+        <button
+          id="btnBill"
+          class="btn-bill"
+          onclick="startBillProcess()"
+          disabled
+        >
+          <span class="btn-icon">🧾 Bill</span>
+        </button>
+      </div>
+
+      <div id="statusBox" class="status-container">
+        <div id="loadingSpinner" class="spinner" style="display: none"></div>
+        <span id="statusText"></span>
+      </div>
+    </div>
+
+    <script>
+      window.onload = async function () {
+        try {
+          const response = await fetch("/api/invoice-vendors");
+          if (!response.ok) throw new Error("Network response was not ok");
+          const vendors = await response.json();
+          populateDropdown(vendors);
+        } catch (err) {
+          showStatus("Failed to establish connection with server.", "error");
+        }
+      };
+
+      function populateDropdown(vendors) {
+      const select = document.getElementById('vendorSelect');
+      select.innerHTML = ''; 
+      for (const key in vendors) {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.text = vendors[key].label;
+        select.appendChild(opt);
+      }
+      document.getElementById('btnZip').disabled = false;
+      document.getElementById('btnIndiv').disabled = false;
+      document.getElementById('btnBill').disabled = false;
+    }
+
+    async function startBillProcess() {
+      const vendorSelect = document.getElementById('vendorSelect');
+      const vendorKey = vendorSelect.value;
+      const vendorName = vendorSelect.options[vendorSelect.selectedIndex].text;
+      
+      showStatus(`Processing Bills for ${vendorName}...`, 'info', true);
+      // Backend function details can be connected here next
+    }
+
+      function showStatus(message, type, isLoading = false) {
+        const statusBox = document.getElementById("statusBox");
+        const statusText = document.getElementById("statusText");
+        const spinner = document.getElementById("loadingSpinner");
+        statusBox.className = `status-container status-${type}`;
+        statusText.innerText = message;
+        spinner.style.display = isLoading ? "block" : "none";
+      }
+
+      async function startDownload(asZip) {
+        const vendorSelect = document.getElementById("vendorSelect");
+        const vendorKey = vendorSelect.value;
+        const vendorName =
+          vendorSelect.options[vendorSelect.selectedIndex].text;
+        const btnZip = document.getElementById("btnZip");
+        const btnIndiv = document.getElementById("btnIndiv");
+
+        btnZip.disabled = true;
+        btnIndiv.disabled = true;
+        vendorSelect.disabled = true;
+
+        showStatus(
+          `Scanning mailbox for today's ${vendorName} invoices...`,
+          "info",
+          true,
+        );
+
+        try {
+          // We no longer send 'asZip' to the backend
+          const response = await fetch("/api/invoice-download", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ vendorKey }),
+          });
+
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || "Server connection failed");
+          }
+
+          const data = await response.json();
+
+          if (data.count === 0) {
+            showStatus("No matching invoices found for today.", "error");
+            return;
+          }
+
+          if (asZip) {
+            showStatus(
+              `Zipping ${data.count} file(s) locally...`,
+              "info",
+              true,
+            );
+            const zip = new JSZip();
+
+            // Add each file to the zip instance
+            data.files.forEach((file) => {
+              zip.file(file.name, file.data, { base64: true });
+            });
+
+            // Generate the zip blob and download
+            const content = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement("a");
+            link.href = window.URL.createObjectURL(content);
+            link.download = `${vendorName}_Invoices.zip`;
+            link.click();
+            window.URL.revokeObjectURL(link.href);
+
+            showStatus(`Successfully created and downloaded ZIP.`, "success");
+          } else {
+            showStatus(`Processing ${data.count} file(s)...`, "info", true);
+            data.files.forEach((file, index) => {
+              setTimeout(() => {
+                const link = document.createElement("a");
+                link.href = "data:" + file.mimeType + ";base64," + file.data;
+                link.download = file.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }, index * 600);
+            });
+
+            setTimeout(() => {
+              showStatus(
+                `Successfully downloaded ${data.count} file(s).`,
+                "success",
+              );
+            }, data.count * 600);
+          }
+        } catch (err) {
+          showStatus(`Error: ${err.message}`, "error");
+        } finally {
+          btnZip.disabled = false;
+          btnIndiv.disabled = false;
+          vendorSelect.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>

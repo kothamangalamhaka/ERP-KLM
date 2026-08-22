@@ -20,6 +20,7 @@ from routers.payment_py import router as payment_router
 from routers.payment_export_py import router as payment_export_router
 from routers import we1_own_eq_data_base
 from fastapi.middleware.cors import CORSMiddleware
+from routers import invoice_download
 
 
 
@@ -44,6 +45,7 @@ app.include_router(payment_router)
 app.include_router(payment_export_router)
 app.include_router(we1_own_eq_data_base.router)
 app.include_router(Staff_salary_export.router, prefix="/py", tags=["Salary Export"])
+app.include_router(invoice_download.router)
 
 
 
