@@ -399,6 +399,9 @@ async function fetchData(isSilent = false) {
     )
       return performLogout();
 
+    // Fix: Always update Global SN even during silent background fetch
+    globalNextSN = data.nextSN || globalNextSN;
+
     let currentHash =
       JSON.stringify(data.lockedCols) +
       JSON.stringify(data.alignments) +
@@ -1652,6 +1655,9 @@ function renderTable(response) {
     autoWidth: false,
     stateSave: true,
     rowCallback: function (row, data) {
+      // Fix: Ensure new dynamic rows get the proper sheetrow ID to prevent duplication
+      $(row).attr("data-sheetrow", data[data.length - 1]);
+
       let sIdx = cachedHeaders.findIndex(
           (h) => h.trim().toLowerCase() === "status",
         ),
@@ -2430,27 +2436,45 @@ function openAddEntryModal() {
   });
   $("#dynamicFormFields").append(listsHtml);
 
+  // --- NEW CUSTOM ORDERING & HIDING LOGIC ---
+  const excludedCols = [
+    "DAYS WORKED", "PAY FROM", "MUBARAK REMARK", "OFFICE REMARK",
+    "LAST WORKING DAY", "RELEASE DATE", "REPLACED DATE", "REPLACED NEW VEHICLE",
+    "DRIVER STATUS REMARK", "OD WRK END", "OLD DRIVER NAME", "OD MOB"
+  ];
+
+  const priorityOrder = [
+    "SN", "WORK START", "PLATE NUMBER", "PLATE NO", "EQUIPMENT REACHED AT SITE",
+    "TYPE OF VEHICLE", "RATE", "SITE", "IF SUB", "COMPANY", "CUSTOMER", "STATUS",
+    "STATUS REMARK", "OWNER NAME", "OWNER", "MOBILE (OWNER)", "VAT BILL OR NOT",
+    "VAT BILL STATUS", "DRIVER NAME", "MOBILE", "MOBILE (DRIVER)", "IQAMA NUMBER",
+    "IQAMA EXPIRE DATE", "IQAMA EXPIRE", "LICENSE EXPIRE DATE", "LICENSE EXPIRE",
+    "LICENCE EXPIRE DATE", "LICENCE EXPIRE", "IQAMA NOTE", "LICENCE NOTE", "LICENSE NOTE",
+    "NATIONALITY", "EQ INSURANSE EXPIRE DATE", "EQ INSURAN", "FAHS MVPI EXPIRE", 
+    "FAHS MVPI", "CHASIS NO.", "CHASIS NO", "MODEL"
+  ];
+
+  let generatedHtmlMap = {};
+  let remainingHeaders = [];
+
   cachedHeaders.forEach((header, index) => {
     let colTypeObj = cachedColTypes.find((c) => c.name === header),
       cType = colTypeObj ? colTypeObj.type : "varchar",
       colUpper = header.replace(/\s+/g, " ").trim().toUpperCase();
-    const excludedCols = [
-      "DAYS WORKED",
-      "PAY FROM",
-      "MUBARAK REMARK",
-      "OFFICE REMARK",
-    ];
+
     if (excludedCols.includes(colUpper)) return;
+
     let isDateCol =
         cType === "date" ||
         colUpper.includes("DATE") ||
         colUpper.includes("EXPIRE") ||
         colUpper.includes("EQUIPMENT REACHED") ||
         colUpper === "LAST WORKING DAY" ||
-        colUpper === "WORK START",
-      isIntCol = cType === "int";
+        colUpper === "WORK START";
+    let isIntCol = cType === "int";
     let isSuggestionCol = suggestionTargetCols.includes(colUpper),
       listAttr = isSuggestionCol ? `list="datalist_entry_${index}"` : "";
+
     let inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}" ${listAttr}>`;
 
     if (isDateCol) {
@@ -2481,10 +2505,26 @@ function openAddEntryModal() {
       inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}" value="${currentUser.site}" readonly style="background-color:#f8fafc; cursor:not-allowed;">`;
     }
 
-    $("#dynamicFormFields").append(
-      `<div class="form-group"><label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#334155; font-size:12px;">${header}</label>${inputHtml}</div>`,
-    );
+    generatedHtmlMap[colUpper] = `<div class="form-group"><label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#334155; font-size:12px;">${header}</label>${inputHtml}</div>`;
+    remainingHeaders.push({ original: header, upper: colUpper });
   });
+
+  let finalHtml = "";
+  // 1. Process items that match the priority order
+  priorityOrder.forEach(priorityCol => {
+    let matchingIndex = remainingHeaders.findIndex(h => h.upper === priorityCol);
+    if (matchingIndex !== -1) {
+      finalHtml += generatedHtmlMap[priorityCol];
+      remainingHeaders.splice(matchingIndex, 1);
+    }
+  });
+
+  // 2. Append any remaining fields that were not in the priority list
+  remainingHeaders.forEach(h => {
+    finalHtml += generatedHtmlMap[h.upper];
+  });
+
+  $("#dynamicFormFields").append(finalHtml);
   $("#entryModalOverlay").css("display", "flex");
 }
 
