@@ -83,7 +83,7 @@ app.use("/api/we1-own-eq", we1OwnEqRoutes);
 app.use('/api/we1-eq-driver-payroll', we1EqDriverPayrollRoute);
 app.use('/api/staff-salary', staffSalaryRoute);
 app.use('/api/invoice-auth', invoiceAuthRoutes);
-app.use('/api', zohoInvoiceRoute);
+app.use('/api', require('./routes/zoho_download_inv'));
 
 
 
