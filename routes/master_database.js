@@ -1261,5 +1261,117 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
+  // ==========================================
+  // 🟢 COLUMN MANAGEMENT APIs (RENAME, LOCK, DELETE)
+  // ==========================================
+
+  // 1. Rename Column API
+  router.post("/admin/rename-column", verifyToken, async (req, res) => {
+    const client = await pool.connect();
+    try {
+      if (req.user.role !== "Super Admin") {
+        return res.json({ success: false, message: "Super Admin Access Required." });
+      }
+
+      const { oldName, newName, colType } = req.body;
+      if (!oldName || !newName) {
+        return res.json({ success: false, message: "Names cannot be empty." });
+      }
+
+      await client.query("BEGIN");
+
+      // പുതിയ പേരിൽ കോളം നേരത്തെ ഉണ്ടോ എന്ന് നോക്കുന്നു
+      const checkRes = await client.query(
+        "SELECT id FROM erp_headers WHERE header_name = $1 AND deleted_at IS NULL",
+        [newName]
+      );
+      if (checkRes.rows.length > 0) {
+        throw new Error("A column with this new name already exists.");
+      }
+
+      // Header ടേബിളിൽ പേര് മാറ്റുന്നു
+      await client.query(
+        "UPDATE erp_headers SET header_name = $1, col_type = $2 WHERE header_name = $3",
+        [newName, colType || "varchar", oldName]
+      );
+
+      // JSON റെക്കോർഡുകളിലെ പഴയ കീ മാറ്റി പുതിയ കീ ആക്കുന്നു (Data Loss ഇല്ലാതെ)
+      await client.query(
+        `UPDATE erp_records 
+         SET record_data = (record_data - $1) || jsonb_build_object($2::text, record_data->> $1) 
+         WHERE record_data ? $1`,
+        [oldName, newName]
+      );
+
+      await client.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'RENAME_COLUMN', $2)",
+        [req.user.username, JSON.stringify({ oldName, newName })]
+      );
+
+      await client.query("COMMIT");
+      res.json({ success: true, message: "Column renamed successfully." });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      handleError(res, error, req.user.role, "RENAME_COLUMN");
+    } finally {
+      client.release();
+    }
+  });
+
+  // 2. Toggle Lock API
+  router.post("/admin/toggle-lock", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") {
+        return res.json({ success: false, message: "Super Admin Access Required." });
+      }
+
+      const { colName, isLocked } = req.body;
+      if (!colName) return res.json({ success: false, message: "Column name required." });
+
+      await pool.query(
+        "UPDATE erp_headers SET is_locked = $1 WHERE header_name = $2",
+        [isLocked, colName]
+      );
+
+      res.json({ success: true, message: `Column ${isLocked ? "Locked" : "Unlocked"} successfully.` });
+    } catch (error) {
+      handleError(res, error, req.user.role, "TOGGLE_LOCK");
+    }
+  });
+
+  // 3. Delete Column API
+  router.post("/admin/delete-column", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") {
+        return res.json({ success: false, message: "Super Admin Access Required." });
+      }
+
+      const { colName, adminPassword } = req.body;
+      if (!colName || !adminPassword) return res.json({ success: false, message: "Missing required fields." });
+
+      // Super Admin പാസ്സ്‌വേർഡ് ശരിയാണോ എന്ന് നോക്കുന്നു
+      const adminRes = await pool.query("SELECT password FROM users WHERE username = $1 AND role = 'Super Admin'", [req.user.username]);
+      if (adminRes.rows.length === 0) return res.json({ success: false, message: "Admin not found." });
+
+      const isValid = await bcrypt.compare(adminPassword, adminRes.rows[0].password);
+      if (!isValid) return res.json({ success: false, message: "Incorrect Admin Password." });
+
+      // കോളം Soft Delete ചെയ്യുന്നു (Recycle Bin ലേക്ക് മാറ്റുന്നു)
+      await pool.query(
+        "UPDATE erp_headers SET deleted_at = CURRENT_TIMESTAMP WHERE header_name = $1",
+        [colName]
+      );
+
+      await pool.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'DELETE_COLUMN', $2)",
+        [req.user.username, JSON.stringify({ colName })]
+      );
+
+      res.json({ success: true, message: "Column moved to Recycle Bin." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "DELETE_COLUMN");
+    }
+  });
+
   return router;
 };

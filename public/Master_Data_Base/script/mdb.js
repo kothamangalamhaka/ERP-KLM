@@ -319,6 +319,8 @@ let contextColName = "",
   contextDriverMob = "",
   contextDriverStart = "";
 
+let globalSearchMode = "general"; 
+
 function updateUndoRedoUI() {
   $(".dt-undo-btn").prop("disabled", undoStack.length === 0);
   $(".dt-redo-btn").prop("disabled", redoStack.length === 0);
@@ -1655,8 +1657,7 @@ function renderTable(response) {
     autoWidth: false,
     stateSave: true,
     rowCallback: function (row, data) {
-      // Fix: Ensure new dynamic rows get the proper sheetrow ID to prevent duplication
-      $(row).attr("data-sheetrow", data[data.length - 1]);
+      if (data._dbId) $(row).attr("data-sheetrow", data._dbId);
 
       let sIdx = cachedHeaders.findIndex(
           (h) => h.trim().toLowerCase() === "status",
@@ -1928,6 +1929,47 @@ function renderTable(response) {
           return $(this).text().includes("Import") || $(this).text().includes("Bulk Edit");
         }).remove();
       }
+
+      // --- CUSTOM SEARCH DROPDOWN LOGIC ---
+      if ($("#searchModeSelector").length === 0) {
+        let $searchLabel = $('.dataTables_filter label');
+        $searchLabel.css({ 'display': 'flex', 'align-items': 'center', 'gap': '5px' });
+        $searchLabel.prepend(`
+            <select id="searchModeSelector" style="padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; outline: none; cursor: pointer; background: #f8fafc; color: #0f172a; font-weight: normal;">
+                <option value="general" ${globalSearchMode === 'general' ? 'selected' : ''}>General</option>
+                <option value="plate" ${globalSearchMode === 'plate' ? 'selected' : ''}>Plate No</option>
+            </select>
+        `);
+
+        let $searchInput = $('.dataTables_filter input');
+        $searchInput.off(); // Remove default DataTables search behavior
+
+        let applyCustomSearch = () => {
+            let val = $searchInput.val();
+            let mode = $("#searchModeSelector").val();
+            let plateIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER"));
+
+            if (mode === "plate" && plateIdx !== -1) {
+                erpDataTable.search(""); // Clear global search
+                erpDataTable.column(plateIdx).search(val).draw();
+            } else {
+                if (plateIdx !== -1) erpDataTable.column(plateIdx).search(""); // Clear column search
+                erpDataTable.search(val).draw();
+            }
+        };
+
+        // Bind our custom search function
+        $searchInput.on('keyup input search clear', applyCustomSearch);
+        
+        // Handle Dropdown change
+        $("#searchModeSelector").on('change', function() {
+            globalSearchMode = $(this).val(); // Save state
+            applyCustomSearch();
+            $searchInput.focus();
+        });
+      }
+      // ------------------------------------
+
       applyColumnResizing();
       attachContextMenus();
       for (let colName in activeFilters) {
@@ -2443,15 +2485,16 @@ function openAddEntryModal() {
     "DRIVER STATUS REMARK", "OD WRK END", "OLD DRIVER NAME", "OD MOB"
   ];
 
-  const priorityOrder = [
+ const priorityOrder = [
     "SN", "WORK START", "PLATE NUMBER", "PLATE NO", "EQUIPMENT REACHED AT SITE",
     "TYPE OF VEHICLE", "RATE", "SITE", "IF SUB", "COMPANY", "CUSTOMER", "STATUS",
-    "STATUS REMARK", "OWNER NAME", "OWNER", "MOBILE (OWNER)", "VAT BILL OR NOT",
+    "STATUS REMARK", "OWNER NAME", "OWNER", "OWNER NUMBER", "MOBILE (OWNER)", "VAT BILL OR NOT",
     "VAT BILL STATUS", "DRIVER NAME", "MOBILE", "MOBILE (DRIVER)", "IQAMA NUMBER",
     "IQAMA EXPIRE DATE", "IQAMA EXPIRE", "LICENSE EXPIRE DATE", "LICENSE EXPIRE",
-    "LICENCE EXPIRE DATE", "LICENCE EXPIRE", "IQAMA NOTE", "LICENCE NOTE", "LICENSE NOTE",
-    "NATIONALITY", "EQ INSURANSE EXPIRE DATE", "EQ INSURAN", "FAHS MVPI EXPIRE", 
-    "FAHS MVPI", "CHASIS NO.", "CHASIS NO", "MODEL"
+    "LICENCE EXPIRE DATE", "LICENCE EXPIRE", 
+    "EQ INSURANSE EXPIRE DATE", "EQ INSURAN", "FAHS MVPI EXPIRE", "FAHS MVPI", 
+    "IQAMA NOTE", "LICENCE NOTE", "LICENSE NOTE", "NATIONALITY", 
+    "CHASIS NO.", "CHASIS NO", "MODEL"
   ];
 
   let generatedHtmlMap = {};
@@ -2472,8 +2515,17 @@ function openAddEntryModal() {
         colUpper === "LAST WORKING DAY" ||
         colUpper === "WORK START";
     let isIntCol = cType === "int";
-    let isSuggestionCol = suggestionTargetCols.includes(colUpper),
-      listAttr = isSuggestionCol ? `list="datalist_entry_${index}"` : "";
+    
+    let isSuggestionCol = suggestionTargetCols.includes(colUpper);
+    let listAttr = isSuggestionCol ? `list="datalist_entry_${index}"` : "";
+
+    // Fix: Link 'Old Vehicle' to 'Plate Number' suggestions
+    if (colUpper === "OLD VEHICLE") {
+      let plateIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, " ").trim().toUpperCase() === "PLATE NUMBER");
+      if (plateIdx !== -1) {
+        listAttr = `list="datalist_entry_${plateIdx}"`;
+      }
+    }
 
     let inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}" ${listAttr}>`;
 
@@ -3304,42 +3356,55 @@ function updateTableDataSmoothly(newRows) {
     if (!erpDataTable) return;
 
     let existingRows = {};
-    // Get all current row IDs
+    
+    // ടേബിളിലുള്ള പഴയ വരികളുടെ ID കൾ കൃത്യമായി എടുക്കുന്നു
     erpDataTable.rows().every(function () {
         let node = this.node();
-        let dbId = $(node).attr("data-sheetrow");
-        if (dbId) existingRows[dbId] = this.index();
+        let dbId;
+        if (node) {
+            dbId = $(node).attr("data-sheetrow");
+        } else {
+            let rowData = this.data();
+            if (rowData._dbId) dbId = rowData._dbId;
+        }
+        if (dbId) existingRows[String(dbId)] = this.index();
     });
 
     let currentScroll = $('.table-scroll-wrapper').scrollTop();
 
     newRows.forEach(newRow => {
-        let dbId = newRow[newRow.length - 1]; // Last element is usually dbId
+        let dbId = String(newRow[newRow.length - 1]);
         
+        let rowDataForTable = [...newRow];
+        rowDataForTable.pop(); // ടേബിളിൽ ഡിസ്പ്ലേ ചെയ്യാൻ ID റിമൂവ് ചെയ്യുന്നു
+        rowDataForTable._dbId = dbId; // ഡാറ്റ നഷ്ടപ്പെടാതിരിക്കാൻ ഒളിപ്പിച്ചു വെക്കുന്നു
+
         if (existingRows.hasOwnProperty(dbId)) {
-            // Row exists, check if data changed and update
             let rowIndex = existingRows[dbId];
             let oldRowData = erpDataTable.row(rowIndex).data();
-            let hasChanged = JSON.stringify(oldRowData) !== JSON.stringify(newRow);
             
-            if (hasChanged) {
-                erpDataTable.row(rowIndex).data(newRow);
+            let oldClean = Array.from(oldRowData);
+            let newClean = Array.from(rowDataForTable);
+            
+            if (JSON.stringify(oldClean) !== JSON.stringify(newClean)) {
+                erpDataTable.row(rowIndex).data(rowDataForTable);
+                let node = erpDataTable.row(rowIndex).node();
+                if (node) $(node).attr("data-sheetrow", dbId);
             }
-            delete existingRows[dbId]; // Remove from tracking
+            delete existingRows[dbId];
         } else {
-            // New row found in background, add it
-            erpDataTable.row.add(newRow);
+            let addedRow = erpDataTable.row.add(rowDataForTable);
+            let node = addedRow.node();
+            if (node) $(node).attr("data-sheetrow", dbId);
         }
     });
 
-    // Any IDs left in existingRows were deleted from DB, so remove them from table
     Object.keys(existingRows).forEach(dbId => {
         erpDataTable.row(existingRows[dbId]).remove();
     });
 
-    // Draw without resetting pagination or sorting
     erpDataTable.draw(false);
-    $('.table-scroll-wrapper').scrollTop(currentScroll); // Preserve scroll position
+    $('.table-scroll-wrapper').scrollTop(currentScroll);
 }
 
 // 🟢 Helper for Add New Company in Modal
