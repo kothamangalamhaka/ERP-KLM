@@ -190,7 +190,7 @@ const FIXED_COLUMNS = [
   "OLD DRIVER NAME",
   "OD MOB",
   "DAYS WORKED",
-  "STATUS REMARK",
+  "DRIVER STATUS REMARK",
 ];
 
 let currentUser = JSON.parse(localStorage.getItem("erpUser"));
@@ -684,10 +684,16 @@ async function submitEditLog() {
       let wsCol =
         cachedHeaders.find((h) => h.toUpperCase() === "WORK START") ||
         "Work Start";
+      let srCol = 
+        cachedHeaders.find((h) => h.replace(/\s+/g, "").toUpperCase() === "DRIVERSTATUSREMARK") || 
+        "Driver Status Remark";
+        
+
       let edits = [
         { dbId: contextDriverDbId, colName: dNameCol, newValue: name },
         { dbId: contextDriverDbId, colName: mobCol, newValue: mob },
         { dbId: contextDriverDbId, colName: wsCol, newValue: start },
+        { dbId: contextDriverDbId, colName: srCol, newValue: $("#editLogStatusRemark").val().trim() }
       ];
       const res = await fetch("/api/update-cells-batch", {
         method: "POST",
@@ -2773,7 +2779,8 @@ function attachEditListeners() {
         "OLD DRIVER NAME", 
         "OD MOB", 
         "OD WRK END", 
-        "STATUS REMARK"
+        "DRIVER STATUS REMARK",
+        "DRIVER NAME"
       ];
       if (strictReadOnlyCols.includes(colUpper)) {
         return showToast(`Access Denied: '${colUpper}' is strictly Read-Only.`, "error");

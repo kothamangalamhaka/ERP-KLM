@@ -42,7 +42,7 @@ module.exports = function (pool, middlewares, helpers) {
     COLUMNS.OLD_DRIVER,
     COLUMNS.OD_MOB,
     COLUMNS.DAYS_WORKED,
-    "STATUS REMARK",
+    "DRIVER STATUS REMARK",
   ];
 
   const STATUS_ENUM = {
@@ -539,7 +539,15 @@ module.exports = function (pool, middlewares, helpers) {
       let rows = [];
       dataResult.rows.forEach((dbRow) => {
         let rowArray = [];
-        headers.forEach((h) => rowArray.push(dbRow.record_data[h] || ""));
+        headers.forEach((h) => {
+          let val = dbRow.record_data[h];
+          if (val === undefined) {
+             // Case-insensitive fallback if exact case is missing
+             let foundKey = Object.keys(dbRow.record_data).find(k => k.replace(/\s+/g, "").toUpperCase() === h.replace(/\s+/g, "").toUpperCase());
+             if (foundKey) val = dbRow.record_data[foundKey];
+          }
+          rowArray.push(val || "");
+        });
         rowArray.push(dbRow.id);
         rows.push(rowArray);
       });
@@ -960,10 +968,10 @@ module.exports = function (pool, middlewares, helpers) {
         let data = row.record_data;
         const getCol = (matchStr) => Object.keys(data).find((k) => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
         
-        let oldDriverCol = getCol("OLD DRIVER NAME");
-        let odMobCol = getCol("OD MOB");
-        let odEndCol = getCol("OD WRK END");
-        let statusRemarkCol = getCol("STATUS REMARK");
+        let oldDriverCol = getCol("Old Driver Name");
+        let odMobCol = getCol("OD Mob");
+        let odEndCol = getCol("OD Wrk End");
+        let statusRemarkCol = getCol("Driver Status Remark");
         
         let oldName = data[oldDriverCol];
         if (oldName && String(oldName).trim() !== "") {
@@ -1034,10 +1042,10 @@ module.exports = function (pool, middlewares, helpers) {
       const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
       
       if (latestLog) {
-         prevData[getCol("OLD DRIVER NAME")] = latestLog.name;
-         prevData[getCol("OD MOB")] = latestLog.mob;
-         prevData[getCol("OD WRK END")] = latestLog.end;
-         prevData[getCol("STATUS REMARK")] = latestLog.status_remark || "";
+         prevData[getCol("Old Driver Name")] = latestLog.name;
+         prevData[getCol("OD Mob")] = latestLog.mob;
+         prevData[getCol("OD Wrk End")] = latestLog.end;
+         prevData[getCol("Driver Status Remark")] = latestLog.status_remark || "";
       }
 
       if (newDriver) {
@@ -1098,10 +1106,10 @@ module.exports = function (pool, middlewares, helpers) {
       const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
       
       if (latestLog) {
-         prevData[getCol("OLD DRIVER NAME")] = latestLog.name;
-         prevData[getCol("OD MOB")] = latestLog.mob;
-         prevData[getCol("OD WRK END")] = latestLog.end;
-         prevData[getCol("STATUS REMARK")] = latestLog.status_remark || "";
+         prevData[getCol("Old Driver Name")] = latestLog.name;
+         prevData[getCol("OD Mob")] = latestLog.mob;
+         prevData[getCol("OD Wrk End")] = latestLog.end;
+         prevData[getCol("Driver Status Remark")] = latestLog.status_remark || "";
       }
 
       await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
@@ -1164,10 +1172,10 @@ module.exports = function (pool, middlewares, helpers) {
       const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
       
       if (latestLog) {
-         prevData[getCol("OLD DRIVER NAME")] = latestLog.name;
-         prevData[getCol("OD MOB")] = latestLog.mob;
-         prevData[getCol("OD WRK END")] = latestLog.end;
-         prevData[getCol("STATUS REMARK")] = latestLog.status_remark || "";
+         prevData[getCol("Old Driver Name")] = latestLog.name;
+         prevData[getCol("OD Mob")] = latestLog.mob;
+         prevData[getCol("OD Wrk End")] = latestLog.end;
+         prevData[getCol("Driver Status Remark")] = latestLog.status_remark || "";
       }
 
       await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
@@ -1216,13 +1224,13 @@ module.exports = function (pool, middlewares, helpers) {
           prevData[getCol("OLD DRIVER NAME")] = latestLog.name;
           prevData[getCol("OD MOB")] = latestLog.mob;
           prevData[getCol("OD WRK END")] = latestLog.end;
-          prevData[getCol("STATUS REMARK")] = latestLog.status_remark || "";
+          prevData[getCol("DRIVER STATUS REMARK")] = latestLog.status_remark || "";
       } else {
           // If history is completely empty after deletion
-          prevData[getCol("OLD DRIVER NAME")] = "";
-          prevData[getCol("OD MOB")] = "";
-          prevData[getCol("OD WRK END")] = "";
-          prevData[getCol("STATUS REMARK")] = "";
+          prevData[getCol("Old Driver Name")] = "";
+          prevData[getCol("OD Mob")] = "";
+          prevData[getCol("OD Wrk End")] = "";
+          prevData[getCol("Driver Status Remark")] = "";
       }
 
       await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
