@@ -231,7 +231,7 @@ function closeLogsheetViewer() {
   // 🟢 Revert to Default 2-Column Layout
   document.body.classList.remove("logsheet-open");
   const container = document.querySelector(".container");
-  if (container) container.style.maxWidth = "1500px";
+  if (container) container.style.maxWidth = "1620px";
 }
 
 // 🟢 3. Load Viewer Content (With rotation support)
