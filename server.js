@@ -266,7 +266,7 @@ app.post("/api/login", async (req, res) => {
         site: user.site_access,
       },
       JWT_SECRET,
-      { expiresIn: "12h" },
+      { expiresIn: "365d" },
     );
     await pool.query(
       "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'LOGIN', '{}')",

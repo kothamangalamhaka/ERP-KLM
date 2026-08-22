@@ -82,7 +82,9 @@ async function init() {
     cache: "no-store",
   });
   
+  // 🟢 NEW: Added alert before logging out on page load
   if (rRes.status === 401 || rRes.status === 403) {
+    await customAlert("Session expired. Please login again.", "Session Timeout");
     logout();
     return;
   }
@@ -449,13 +451,20 @@ async function triggerFetch() {
     }
 
     if (!lockData.success) {
-      let lockedUser = lockData.lockedBy ? lockData.lockedBy.toUpperCase() : "ANOTHER USER";
-      await customAlert(`This record is currently being edited by [ ${lockedUser} ]. Please try again later to prevent overwriting.`, "Record Locked 🔒");
-      tbody.innerHTML = `<tr class="loading-row"><td colspan="13" style="color:#ef4444; font-weight:bold;">Record is locked by ${lockedUser}. Cannot fetch data.</td></tr>`;
-      btn.disabled = false;
-      text.innerText = "Fetch Data";
-      loader.style.display = "none";
-      return;
+      if (lockData.lockedBy) {
+        let lockedUser = lockData.lockedBy.toUpperCase();
+        await customAlert(`This record is currently being edited by [ ${lockedUser} ]. Please try again later to prevent overwriting.`, "Record Locked 🔒");
+        tbody.innerHTML = `<tr class="loading-row"><td colspan="13" style="color:#ef4444; font-weight:bold;">Record is locked by ${lockedUser}. Cannot fetch data.</td></tr>`;
+        btn.disabled = false;
+        text.innerText = "Fetch Data";
+        loader.style.display = "none";
+        return;
+      } else {
+        // If success is false but no lockedBy, it is a Token Expiry or Auth error from middleware
+        await customAlert(lockData.message || "Session expired or invalid. Please login again.", "Session Timeout");
+        logout();
+        return;
+      }
     }
 
     // 🟢 ലോക്ക് കിട്ടിയ ഉടൻ തന്നെ സേവ് ചെയ്യുക
@@ -2021,6 +2030,14 @@ async function applyLockStatus(selectedMonthStr, selectedYearStr, silent = false
     try {
         const ts = new Date().getTime();
         const lRes = await fetch(`/api/lock/status?_t=${ts}`, { headers: { Authorization: "Bearer " + token }});
+        
+        // 🟢 NEW: Check session expiry dynamically on tab focus or grid load
+        if (lRes.status === 401 || lRes.status === 403) {
+            await customAlert("Session expired due to inactivity. Please login again to prevent data loss.", "Session Timeout");
+            logout();
+            return;
+        }
+
         const lData = await lRes.json();
         if (lData.success && lData.data && lData.data.lock_month) {
             systemLockData = { month: lData.data.lock_month, year: lData.data.lock_year };
