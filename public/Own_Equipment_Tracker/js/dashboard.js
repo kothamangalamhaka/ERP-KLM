@@ -709,3 +709,247 @@ function copyRevenuePlateNo() {
     showToast("Failed to copy Plate No.", "error");
   });
 }
+
+// ==========================================
+// 🚀 GENERIC GRID PASTE & NAVIGATION LOGIC
+// ==========================================
+
+function copyModalPlateNo(selectId) {
+  const select = document.getElementById(selectId);
+  if (select.selectedIndex === -1) return;
+  navigator.clipboard.writeText(select.options[select.selectedIndex].text)
+    .then(() => showToast(`Copied Plate No!`, "success"))
+    .catch(() => showToast("Failed to copy", "error"));
+}
+
+function attachGridListeners(className) {
+  const inputs = document.querySelectorAll('.' + className);
+  inputs.forEach(input => {
+    // Arrow Key Navigation
+    input.addEventListener('keydown', (e) => {
+      const row = parseInt(input.getAttribute('data-row'));
+      const col = parseInt(input.getAttribute('data-col'));
+      let nextInput;
+
+      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        nextInput = document.querySelector(`.${className}[data-row="${row + 1}"][data-col="${col}"]`);
+      } else if (e.key === 'ArrowUp') {
+        nextInput = document.querySelector(`.${className}[data-row="${row - 1}"][data-col="${col}"]`);
+      } else if (e.key === 'ArrowRight') {
+        nextInput = document.querySelector(`.${className}[data-row="${row}"][data-col="${col + 1}"]`);
+      } else if (e.key === 'ArrowLeft') {
+        nextInput = document.querySelector(`.${className}[data-row="${row}"][data-col="${col - 1}"]`);
+      }
+
+      if (nextInput) {
+        e.preventDefault();
+        nextInput.focus();
+        nextInput.select();
+      }
+    });
+
+    // Multi-column Paste from Excel
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+      const rows = pasteData.split(/\r?\n/);
+      const startRow = parseInt(input.getAttribute('data-row'));
+      const startCol = parseInt(input.getAttribute('data-col'));
+
+      rows.forEach((rowData, rIdx) => {
+        if (!rowData.trim()) return;
+        const cells = rowData.split('\t');
+        cells.forEach((cellData, cIdx) => {
+          const targetRow = startRow + rIdx;
+          const targetCol = startCol + cIdx;
+          const targetInput = document.querySelector(`.${className}[data-row="${targetRow}"][data-col="${targetCol}"]`);
+          if (targetInput) {
+            let cleanVal = cellData.replace(/[^0-9.-]+/g, "");
+            if (cleanVal !== "") {
+              targetInput.value = cleanVal;
+              // Explicitly trigger the Net Salary calculation on paste
+              if (className === 'sal-input') {
+                calculateNetSalary(targetRow);
+              }
+            }
+          }
+        });
+      });
+    });
+  });
+}
+
+function getBaseLog(eqId, y, m) {
+  return rawMonthlyLogs.find(x => x.equipment_id === eqId && x.year === y && x.month === m) || {};
+}
+
+// ==========================================
+// 🧾 EXPENSE MODAL
+// ==========================================
+function openExpenseModal() {
+  const select = document.getElementById("expenseEqId");
+  select.innerHTML = rawEquipments.map(e => `<option value="${e.id}">${e.plate_no}</option>`).join("");
+  populateExpenseTable();
+  document.getElementById("expenseModal").style.display = "flex";
+}
+
+function populateExpenseTable() {
+  const eqId = Number(document.getElementById("expenseEqId").value);
+  const y = Number(document.getElementById("filterYear").value);
+  let html = "";
+  
+  for (let m = 1; m <= 12; m++) {
+    const log = getBaseLog(eqId, y, m);
+    html += `<tr>
+      <td style="font-weight: bold; background: #fafafa; text-align: center;">${fullMonthNames[m-1]} ${y}</td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="1" id="exp_maint_${m}" value="${log.maintenance_cost || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="2" id="exp_santook_${m}" value="${log.santook_rent || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="3" id="exp_debit_${m}" value="${log.debit || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="4" id="exp_pwas_${m}" value="${log.pwas || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="5" id="exp_other_${m}" value="${log.other_expense || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+    </tr>`;
+  }
+  document.getElementById("expenseTableBody").innerHTML = html;
+  attachGridListeners('exp-input');
+}
+
+async function postExpenseData() {
+  const eqId = Number(document.getElementById("expenseEqId").value);
+  const y = Number(document.getElementById("filterYear").value);
+  let logs = [];
+  for (let m = 1; m <= 12; m++) {
+    let log = getBaseLog(eqId, y, m);
+    log.equipment_id = eqId; log.year = y; log.month = m;
+    log.maintenance_cost = parseFloat(document.getElementById(`exp_maint_${m}`).value) || 0;
+    log.santook_rent = parseFloat(document.getElementById(`exp_santook_${m}`).value) || 0;
+    log.debit = parseFloat(document.getElementById(`exp_debit_${m}`).value) || 0;
+    log.pwas = parseFloat(document.getElementById(`exp_pwas_${m}`).value) || 0;
+    log.other_expense = parseFloat(document.getElementById(`exp_other_${m}`).value) || 0;
+    logs.push(log);
+  }
+  return await fetch("/py/own-equipment/bulk-save-logs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ logs }) }).then(r => r.json());
+}
+async function saveExpenseData() { if((await postExpenseData()).success) { closeModal("expenseModal"); await loadDashboardData(); showToast("Expenses saved!", "success"); } }
+async function saveAndNextExpense() {
+  if((await postExpenseData()).success) {
+    const s = document.getElementById("expenseEqId");
+    if(s.selectedIndex < s.options.length - 1) { s.selectedIndex++; copyModalPlateNo('expenseEqId'); }
+    await loadDashboardData(); populateExpenseTable(); showToast("Saved & Moved Next!", "success");
+  }
+}
+
+// ==========================================
+// 💵 SALARY MODAL (Auto Calculate Net)
+// ==========================================
+function openSalaryModal() {
+  const select = document.getElementById("salaryEqId");
+  select.innerHTML = rawEquipments.map(e => `<option value="${e.id}">${e.plate_no}</option>`).join("");
+  populateSalaryTable();
+  document.getElementById("salaryModal").style.display = "flex";
+}
+
+function calculateNetSalary(m) {
+  const basic = parseFloat(document.getElementById(`sal_basic_${m}`).value) || 0;
+  const ot = parseFloat(document.getElementById(`sal_ot_${m}`).value) || 0;
+  const penalty = parseFloat(document.getElementById(`sal_penalty_${m}`).value) || 0;
+  document.getElementById(`sal_net_${m}`).innerText = (basic + ot - penalty).toFixed(2);
+}
+
+function populateSalaryTable() {
+  const eqId = Number(document.getElementById("salaryEqId").value);
+  const y = Number(document.getElementById("filterYear").value);
+  let html = "";
+  
+  for (let m = 1; m <= 12; m++) {
+    const log = getBaseLog(eqId, y, m);
+    // Explicitly convert to Numbers to avoid string concatenation issues
+    const basic = Number(log.basic_salary) || 0; 
+    const ot = Number(log.overtime) || 0; 
+    const penalty = Number(log.penalty) || 0;
+    const net = basic + ot - penalty;
+    
+    html += `<tr>
+      <td style="font-weight: bold; background: #fafafa; text-align: center;">${fullMonthNames[m-1]} ${y}</td>
+      <td style="padding:0;"><input type="number" class="sal-input" data-row="${m}" data-col="1" id="sal_basic_${m}" value="${basic || ''}" oninput="calculateNetSalary(${m})" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="sal-input" data-row="${m}" data-col="2" id="sal_ot_${m}" value="${ot || ''}" oninput="calculateNetSalary(${m})" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="sal-input" data-row="${m}" data-col="3" id="sal_penalty_${m}" value="${penalty || ''}" oninput="calculateNetSalary(${m})" style="width:100%; border:none; text-align:center; padding:10px 0; color:red;"></td>
+      <td style="background: #f8f9fa; text-align: center; font-weight: bold;"><span id="sal_net_${m}">${net.toFixed(2)}</span></td>
+    </tr>`;
+  }
+  document.getElementById("salaryTableBody").innerHTML = html;
+  attachGridListeners('sal-input');
+}
+
+async function postSalaryData() {
+  const eqId = Number(document.getElementById("salaryEqId").value);
+  const y = Number(document.getElementById("filterYear").value);
+  let logs = [];
+  for (let m = 1; m <= 12; m++) {
+    let log = getBaseLog(eqId, y, m);
+    log.equipment_id = eqId; log.year = y; log.month = m;
+    log.basic_salary = parseFloat(document.getElementById(`sal_basic_${m}`).value) || 0;
+    log.overtime = parseFloat(document.getElementById(`sal_ot_${m}`).value) || 0;
+    log.penalty = parseFloat(document.getElementById(`sal_penalty_${m}`).value) || 0;
+    logs.push(log);
+  }
+  return await fetch("/py/own-equipment/bulk-save-logs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ logs }) }).then(r => r.json());
+}
+async function saveSalaryData() { if((await postSalaryData()).success) { closeModal("salaryModal"); await loadDashboardData(); showToast("Salary saved!", "success"); } }
+async function saveAndNextSalary() {
+  if((await postSalaryData()).success) {
+    const s = document.getElementById("salaryEqId");
+    if(s.selectedIndex < s.options.length - 1) { s.selectedIndex++; copyModalPlateNo('salaryEqId'); }
+    await loadDashboardData(); populateSalaryTable(); showToast("Saved & Moved Next!", "success");
+  }
+}
+
+// ==========================================
+// 🤝 COMMISSION MODAL
+// ==========================================
+function openCommissionModal() {
+  const select = document.getElementById("commissionEqId");
+  select.innerHTML = rawEquipments.map(e => `<option value="${e.id}">${e.plate_no}</option>`).join("");
+  populateCommissionTable();
+  document.getElementById("commissionModal").style.display = "flex";
+}
+
+function populateCommissionTable() {
+  const eqId = Number(document.getElementById("commissionEqId").value);
+  const y = Number(document.getElementById("filterYear").value);
+  let html = "";
+  
+  for (let m = 1; m <= 12; m++) {
+    const log = getBaseLog(eqId, y, m);
+    html += `<tr>
+      <td style="font-weight: bold; background: #fafafa; text-align: center;">${fullMonthNames[m-1]} ${y}</td>
+      <td style="padding:0;"><input type="number" class="comm-input" data-row="${m}" data-col="1" id="comm_kafil_${m}" value="${log.kafil_comm || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="comm-input" data-row="${m}" data-col="2" id="comm_owner_${m}" value="${log.owner_comm || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="comm-input" data-row="${m}" data-col="3" id="comm_investor_${m}" value="${log.investor_comm || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+    </tr>`;
+  }
+  document.getElementById("commissionTableBody").innerHTML = html;
+  attachGridListeners('comm-input');
+}
+
+async function postCommissionData() {
+  const eqId = Number(document.getElementById("commissionEqId").value);
+  const y = Number(document.getElementById("filterYear").value);
+  let logs = [];
+  for (let m = 1; m <= 12; m++) {
+    let log = getBaseLog(eqId, y, m);
+    log.equipment_id = eqId; log.year = y; log.month = m;
+    log.kafil_comm = parseFloat(document.getElementById(`comm_kafil_${m}`).value) || 0;
+    log.owner_comm = parseFloat(document.getElementById(`comm_owner_${m}`).value) || 0;
+    log.investor_comm = parseFloat(document.getElementById(`comm_investor_${m}`).value) || 0;
+    logs.push(log);
+  }
+  return await fetch("/py/own-equipment/bulk-save-logs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ logs }) }).then(r => r.json());
+}
+async function saveCommissionData() { if((await postCommissionData()).success) { closeModal("commissionModal"); await loadDashboardData(); showToast("Commission saved!", "success"); } }
+async function saveAndNextCommission() {
+  if((await postCommissionData()).success) {
+    const s = document.getElementById("commissionEqId");
+    if(s.selectedIndex < s.options.length - 1) { s.selectedIndex++; copyModalPlateNo('commissionEqId'); }
+    await loadDashboardData(); populateCommissionTable(); showToast("Saved & Moved Next!", "success");
+  }
+}

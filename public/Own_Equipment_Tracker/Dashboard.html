@@ -275,6 +275,57 @@
         margin-top: 15px;
       }
 
+
+      /* ==========================================
+         🔻 DROPDOWN MENU STYLES FOR BUTTONS
+         ========================================== */
+      .dropdown-btn-group {
+        position: relative;
+        display: inline-block;
+      }
+      .dropdown-btn-group .btn {
+        margin: 0;
+      }
+      .dropdown-content-menu {
+        display: none;
+        position: absolute;
+        background-color: #fff;
+        min-width: 170px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 1000;
+        border-radius: 6px;
+        overflow: hidden;
+        top: 100%;
+        left: 0;
+        border: 1px solid #ddd;
+      }
+      .dropdown-content-menu button {
+        color: #333;
+        padding: 10px 15px;
+        text-decoration: none;
+        display: block;
+        background: none;
+        border: none;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 13px;
+        border-bottom: 1px solid #f1f1f1;
+        transition: background 0.2s;
+      }
+      .dropdown-content-menu button:last-child {
+        border-bottom: none;
+      }
+      .dropdown-content-menu button:hover {
+        background-color: #f1f1f1;
+        color: #000;
+      }
+      .dropdown-btn-group:hover .dropdown-content-menu {
+        display: block;
+      }
+
+
       /* ==========================================
          🍞 TOAST NOTIFICATION STYLES
          ========================================== */
@@ -340,45 +391,39 @@
         <button class="btn btn-blue" onclick="renderTable()">Apply</button>
       </div>
  <div class="controls">
-        <button
-          class="btn btn-dark"
-          onclick="window.location.href = 'summary.html'"
-        >
-          Summary
-        </button>
-        <!-- New Revenue Button Added Here -->
-        <button
-          class="btn btn-primary"
-          style="background: #27ae60;"
-          onclick="openRevenueModal()"
-        >
-          💰 Revenue
-        </button>
-        <button
-          class="btn btn-primary"
-          style="background: #e67e22;"
-          onclick="openEditCostModal()"
-        >
-          ✏️ Edit Purchase
-        </button>
-        <button class="btn btn-primary" onclick="openEquipmentModal()">
-          + Add New
-        </button>
-        <button class="btn btn-blue" onclick="openDataModal()">
-          + Input Data
-        </button>
-        <button id="btnEditInline" class="btn btn-primary" style="background: #8e44ad;" onclick="toggleEditMode()">
-          ✏️ Edit Data
-        </button>
-        <button class="btn btn-excel" onclick="exportToExcel()">
-          Export Excel
-        </button>
-        <button
-          class="btn btn-dark"
-          onclick="window.location.href = 'list.html'"
-        >
-          List View
-        </button>
+        <button class="btn btn-dark" onclick="window.location.href = 'summary.html'">Summary</button>
+
+        <!-- Group 1: Yearly Data -->
+        <div class="dropdown-btn-group">
+          <button class="btn btn-primary" style="background: #16a085;">📅 Yearly Data ▼</button>
+          <div class="dropdown-content-menu">
+            <button onclick="openRevenueModal()">💰 Revenue</button>
+            <button onclick="openExpenseModal()">🧾 Expense</button>
+            <button onclick="openSalaryModal()">💵 Driver Salary</button>
+            <button onclick="openCommissionModal()">🤝 Commission's</button>
+          </div>
+        </div>
+        
+        <!-- Group 2: Purchase -->
+        <div class="dropdown-btn-group">
+          <button class="btn btn-primary" style="background: #e67e22;">🛒 Purchase ▼</button>
+          <div class="dropdown-content-menu">
+            <button onclick="openEquipmentModal()">+ Add New Equipment</button>
+            <button onclick="openEditCostModal()">✏️ Edit Purchase Cost</button>
+          </div>
+        </div>
+
+        <!-- Group 3: Edit -->
+        <div class="dropdown-btn-group">
+          <button class="btn btn-primary" style="background: #8e44ad;">📝 Edit ▼</button>
+          <div class="dropdown-content-menu">
+            <button onclick="openDataModal()">+ Input Data</button>
+            <button id="btnEditInline" onclick="toggleEditMode()">✏️ Edit All Data</button>
+          </div>
+        </div>
+
+        <button class="btn btn-excel" onclick="exportToExcel()">Export Excel</button>
+        <button class="btn btn-dark" onclick="window.location.href = 'list.html'">List View</button>
 
         <!-- Active Users Badge -->
         <button 
@@ -582,10 +627,10 @@
         </div>
         <div class="table-container" style="max-height: 340px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
           <table style="width: 100%; table-layout: fixed;">
-            <thead style="position: sticky; top: 0; z-index: 2;">
+            <thead>
               <tr>
-                <th style="background: #f2f2f2; color: #000; width: 50%;">Month</th>
-                <th style="background: #e2efda; color: #000; width: 50%;">Operational Revenue</th>
+                <th style="background: #f2f2f2; color: #000; width: 50%; position: sticky; top: 0; z-index: 5;">Month</th>
+                <th style="background: #e2efda; color: #000; width: 50%; position: sticky; top: 0; z-index: 5;">Operational Revenue</th>
               </tr>
             </thead>
             <tbody id="revenueTableBody">
@@ -597,6 +642,99 @@
           <button class="btn" onclick="closeModal('revenueModal')">Cancel</button>
           <button class="btn btn-primary" style="background: #27ae60;" onclick="saveRevenueData()">Save & Close</button>
           <button class="btn btn-blue" onclick="saveAndNextRevenue()">Save & Next</button>
+        </div>
+      </div>
+    </div>
+
+<!-- ================= EXPENSE MODAL ================= -->
+    <div id="expenseModal" class="modal">
+      <div class="modal-content" style="width: 800px; padding: 20px;">
+        <h3 style="margin-bottom: 15px;">Update Expenses</h3>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
+          <select id="expenseEqId" onchange="populateExpenseTable()" style="flex: 1; margin: 0;"></select>
+          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px;" onclick="copyModalPlateNo('expenseEqId')" title="Copy Plate No">📋</button>
+        </div>
+        <div class="table-container" style="max-height: 400px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
+          <table style="width: 100%; table-layout: fixed;">
+           <thead>
+              <tr>
+                <th style="background: #f2f2f2; width: 15%; position: sticky; top: 0; z-index: 5;">Month</th>
+                <th style="background: #fce4d6; position: sticky; top: 0; z-index: 5;">EQ Maint</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Santook</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Debit Note</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">PWAS</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Other</th>
+              </tr>
+            </thead>
+            <tbody id="expenseTableBody"></tbody>
+          </table>
+        </div>
+        <div class="modal-actions" style="margin-top: 15px;">
+          <button class="btn" onclick="closeModal('expenseModal')">Cancel</button>
+          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveExpenseData()">Save & Close</button>
+          <button class="btn btn-blue" onclick="saveAndNextExpense()">Save & Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SALARY MODAL ================= -->
+    <div id="salaryModal" class="modal">
+      <div class="modal-content" style="width: 700px; padding: 20px;">
+        <h3 style="margin-bottom: 15px;">Update Salary Details</h3>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
+          <select id="salaryEqId" onchange="populateSalaryTable()" style="flex: 1; margin: 0;"></select>
+          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px;" onclick="copyModalPlateNo('salaryEqId')" title="Copy Plate No">📋</button>
+        </div>
+        <div class="table-container" style="max-height: 400px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
+          <table style="width: 100%; table-layout: fixed;">
+            <thead>
+              <tr>
+                <th style="background: #f2f2f2; width: 20%; position: sticky; top: 0; z-index: 5;">Month</th>
+                <th style="background: #e2efda; position: sticky; top: 0; z-index: 5;">Basic</th>
+                <th style="background: #e2efda; position: sticky; top: 0; z-index: 5;">OT</th>
+                <th style="background: #f8d7da; color: #721c24; position: sticky; top: 0; z-index: 5;">Penalty</th>
+                <th style="background: #d4edda; font-weight: bold; position: sticky; top: 0; z-index: 5;">Net Salary</th>
+              </tr>
+            </thead>
+            <tbody id="salaryTableBody"></tbody>
+          </table>
+        </div>
+        <div class="modal-actions" style="margin-top: 15px;">
+          <button class="btn" onclick="closeModal('salaryModal')">Cancel</button>
+          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveSalaryData()">Save & Close</button>
+          <button class="btn btn-blue" onclick="saveAndNextSalary()">Save & Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= COMMISSION MODAL ================= -->
+    <div id="commissionModal" class="modal">
+      <div class="modal-content" style="width: 600px; padding: 20px;">
+        <h3 style="margin-bottom: 15px;">Update Commission</h3>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
+          <select id="commissionEqId" onchange="populateCommissionTable()" style="flex: 1; margin: 0;"></select>
+          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px;" onclick="copyModalPlateNo('commissionEqId')" title="Copy Plate No">📋</button>
+        </div>
+        <div class="table-container" style="max-height: 400px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
+          <table style="width: 100%; table-layout: fixed;">
+            <thead>
+              <tr>
+                <th style="background: #f2f2f2; width: 25%; position: sticky; top: 0; z-index: 5;">Month</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Kafil</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Owner</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Investor</th>
+              </tr>
+            </thead>
+            <tbody id="commissionTableBody"></tbody>
+          </table>
+        </div>
+        <div class="modal-actions" style="margin-top: 15px;">
+          <button class="btn" onclick="closeModal('commissionModal')">Cancel</button>
+          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveCommissionData()">Save & Close</button>
+          <button class="btn btn-blue" onclick="saveAndNextCommission()">Save & Next</button>
         </div>
       </div>
     </div>
