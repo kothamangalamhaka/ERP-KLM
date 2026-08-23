@@ -69,17 +69,17 @@ window.addEventListener('pageshow', function(event) {
     document.getElementById('signupPass').value = '';
 });
 
-// Function to handle redirection properly without setting a default
+// Function to handle redirection properly with a default dashboard page
 function navigateBack() {
     const urlParams = new URLSearchParams(window.location.search);
     const redirectUrl = urlParams.get('redirect');
     
     if (redirectUrl) {
         window.location.replace(redirectUrl);
-    } else if (document.referrer) {
+    } else if (document.referrer && !document.referrer.includes(window.location.pathname)) {
         window.location.replace(document.referrer);
     } else {
-        window.history.back();
+        window.location.replace('/Employee_Tracker/Dashboard');
     }
 }
 
