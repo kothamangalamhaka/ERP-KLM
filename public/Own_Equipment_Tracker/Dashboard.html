@@ -346,6 +346,14 @@
         >
           Summary
         </button>
+        <!-- New Revenue Button Added Here -->
+        <button
+          class="btn btn-primary"
+          style="background: #27ae60;"
+          onclick="openRevenueModal()"
+        >
+          💰 Revenue
+        </button>
         <button
           class="btn btn-primary"
           style="background: #e67e22;"
@@ -559,6 +567,36 @@
           <button class="btn btn-primary" onclick="saveAndAddNew()">
             Next
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revenue Input Modal -->
+    <div id="revenueModal" class="modal">
+      <div class="modal-content" style="width: 400px; padding: 20px;">
+        <h3 style="margin-bottom: 15px;">Update Operational Revenue</h3>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
+          <select id="revenueEqId" onchange="populateRevenueTable()" style="flex: 1; margin: 0;"></select>
+          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px; color: #333;" onclick="copyRevenuePlateNo()" title="Copy Plate No">📋</button>
+        </div>
+        <div class="table-container" style="max-height: 340px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
+          <table style="width: 100%; table-layout: fixed;">
+            <thead style="position: sticky; top: 0; z-index: 2;">
+              <tr>
+                <th style="background: #f2f2f2; color: #000; width: 50%;">Month</th>
+                <th style="background: #e2efda; color: #000; width: 50%;">Operational Revenue</th>
+              </tr>
+            </thead>
+            <tbody id="revenueTableBody">
+              <!-- Rows injected by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-actions" style="margin-top: 15px;">
+          <button class="btn" onclick="closeModal('revenueModal')">Cancel</button>
+          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveRevenueData()">Save & Close</button>
+          <button class="btn btn-blue" onclick="saveAndNextRevenue()">Save & Next</button>
         </div>
       </div>
     </div>

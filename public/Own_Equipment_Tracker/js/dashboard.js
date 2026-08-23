@@ -544,3 +544,168 @@ function showActiveUsersModal() {
     .join('');
   document.getElementById('activeUsersModal').style.display = 'flex';
 }
+
+// ==========================================
+// 💰 REVENUE MODAL LOGIC
+// ==========================================
+
+function openRevenueModal() {
+  const select = document.getElementById("revenueEqId");
+  select.innerHTML = rawEquipments
+    .map(e => `<option value="${e.id}">${e.plate_no}</option>`)
+    .join("");
+  populateRevenueTable();
+  document.getElementById("revenueModal").style.display = "flex";
+}
+
+function populateRevenueTable() {
+  const eqId = Number(document.getElementById("revenueEqId").value);
+  const y = Number(document.getElementById("filterYear").value);
+  const tbody = document.getElementById("revenueTableBody");
+  
+  let html = "";
+  for (let m = 1; m <= 12; m++) {
+    const log = rawMonthlyLogs.find(x => x.equipment_id === eqId && x.year === y && x.month === m);
+    const rev = (log && Number(log.op_revenue) !== 0) ? log.op_revenue : "";
+    
+    html += `
+      <tr>
+        <td style="font-weight: bold; background: #fafafa; text-align: center; width: 50%;">
+          ${fullMonthNames[m-1]} ${y}
+        </td>
+        <td style="padding: 0; background: #fff; width: 50%;">
+          <input type="number" id="rev_input_${m}" class="rev-input-cell" data-index="${m}" value="${rev}" 
+                 style="width: 100%; border: none; text-align: center; font-weight: bold; background: transparent; padding: 12px 0; outline: none; box-shadow: none;" 
+                 placeholder="0" />
+        </td>
+      </tr>
+    `;
+  }
+  tbody.innerHTML = html;
+
+  const inputs = document.querySelectorAll('.rev-input-cell');
+  inputs.forEach((input, index) => {
+    // Keydown Event Listener for Arrow & Enter keys
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (inputs[index + 1]) inputs[index + 1].focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (inputs[index - 1]) inputs[index - 1].focus();
+      }
+    });
+
+    // Paste Event Listener for Excel bulk copy-paste
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+      
+      // Split pasted text by newline characters
+      const rows = pasteData.split(/\r?\n/);
+      let currentIndex = index;
+
+      rows.forEach(row => {
+        if (currentIndex < inputs.length) {
+          // Remove non-numeric characters (like commas) but keep decimals
+          let cleanVal = row.replace(/[^0-9.-]+/g, ""); 
+          
+          if (cleanVal !== "" || row.trim() !== "") {
+            inputs[currentIndex].value = cleanVal;
+          }
+          currentIndex++;
+        }
+      });
+    });
+  });
+}
+
+// Helper Function for Saving Data
+async function postRevenueData() {
+  const eqId = Number(document.getElementById("revenueEqId").value);
+  const y = Number(document.getElementById("filterYear").value);
+  let groupedLogs = {};
+
+  for (let m = 1; m <= 12; m++) {
+    const inputVal = document.getElementById(`rev_input_${m}`).value;
+    const revVal = parseFloat(inputVal) || 0;
+    const existingLog = rawMonthlyLogs.find(x => x.equipment_id === eqId && x.year === y && x.month === m) || {};
+    
+    groupedLogs[`${eqId}_${m}`] = {
+      equipment_id: eqId,
+      year: y,
+      month: m,
+      maintenance_cost: existingLog.maintenance_cost || 0,
+      basic_salary: existingLog.basic_salary || 0,
+      overtime: existingLog.overtime || 0,
+      penalty: existingLog.penalty || 0,
+      santook_rent: existingLog.santook_rent || 0,
+      kafil_comm: existingLog.kafil_comm || 0,
+      owner_comm: existingLog.owner_comm || 0,
+      investor_comm: existingLog.investor_comm || 0,
+      debit: existingLog.debit || 0,
+      pwas: existingLog.pwas || 0,
+      other_expense: existingLog.other_expense || 0,
+      op_revenue: revVal // Only updates operational revenue
+    };
+  }
+
+  try {
+    const res = await fetch("/py/own-equipment/bulk-save-logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ logs: Object.values(groupedLogs) })
+    });
+    const result = await res.json();
+    return res.ok && result.success;
+  } catch (err) {
+    console.error("Revenue Save Error:", err);
+    return false;
+  }
+}
+
+// Triggered by 'Save & Close'
+async function saveRevenueData() {
+  if (await postRevenueData()) {
+    closeModal("revenueModal");
+    await loadDashboardData();
+    showToast("Revenue updated successfully!", "success");
+  } else {
+    showToast("Failed to save revenue.", "error");
+  }
+}
+
+// Triggered by 'Save & Next'
+async function saveAndNextRevenue() {
+  if (await postRevenueData()) {
+    const select = document.getElementById("revenueEqId");
+    
+    if (select.selectedIndex < select.options.length - 1) {
+      select.selectedIndex += 1; // Move to next equipment
+      showToast("Saved! Moving to next equipment.", "success");
+      copyRevenuePlateNo(); // Automatically copy the new plate number
+    } else {
+      showToast("Saved! This is the last equipment.", "success");
+    }
+    
+    await loadDashboardData(); // Refresh background data
+    populateRevenueTable(); // Load the new equipment into the modal
+  } else {
+    showToast("Failed to save revenue.", "error");
+  }
+}
+
+// Function to copy the selected plate number in Revenue Modal
+function copyRevenuePlateNo() {
+  const select = document.getElementById("revenueEqId");
+  if (select.selectedIndex === -1) return;
+  
+  const plateNo = select.options[select.selectedIndex].text;
+  
+  navigator.clipboard.writeText(plateNo).then(() => {
+    showToast(`Copied: ${plateNo}`, "success");
+  }).catch(err => {
+    console.error("Failed to copy text: ", err);
+    showToast("Failed to copy Plate No.", "error");
+  });
+}
