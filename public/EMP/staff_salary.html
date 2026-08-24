@@ -229,7 +229,7 @@
         text-align: center;
         margin: 15px 0;
         border: 1px solid #334155;
-        background: #0f172a;
+        background: #000000;
         color: white;
         border-radius: 4px;
       }
@@ -385,38 +385,24 @@
           <div
             style="
               display: flex;
-              gap: 10px;
+              gap: 15px;
               margin-bottom: 20px;
               text-align: left;
             "
           >
             <div style="flex: 1">
-              <label style="color: white; font-size: 13px">From Month</label>
-              <input
-                type="month"
-                id="batchFrom"
-                class="pin-input"
-                style="
-                  width: 100%;
-                  margin-top: 5px;
-                  font-size: 15px;
-                  letter-spacing: normal;
-                "
-              />
+              <label style="color: white; font-size: 13px">From</label>
+              <div style="display: flex; gap: 5px; margin-top: 5px;">
+                <select id="batchFromMonth" class="pin-input" style="width: 60%; margin: 0; font-size: 14px; padding: 8px; letter-spacing: normal; cursor: pointer;"></select>
+                <select id="batchFromYear" class="pin-input" style="width: 40%; margin: 0; font-size: 14px; padding: 8px; letter-spacing: normal; cursor: pointer;"></select>
+              </div>
             </div>
             <div style="flex: 1">
-              <label style="color: white; font-size: 13px">To Month</label>
-              <input
-                type="month"
-                id="batchTo"
-                class="pin-input"
-                style="
-                  width: 100%;
-                  margin-top: 5px;
-                  font-size: 15px;
-                  letter-spacing: normal;
-                "
-              />
+              <label style="color: white; font-size: 13px">To</label>
+              <div style="display: flex; gap: 5px; margin-top: 5px;">
+                <select id="batchToMonth" class="pin-input" style="width: 60%; margin: 0; font-size: 14px; padding: 8px; letter-spacing: normal; cursor: pointer;"></select>
+                <select id="batchToYear" class="pin-input" style="width: 40%; margin: 0; font-size: 14px; padding: 8px; letter-spacing: normal; cursor: pointer;"></select>
+              </div>
             </div>
           </div>
           <div class="modal-btns">
@@ -635,6 +621,26 @@
         yearSelect.value = currentYear;
         updateMonthDropdown();
         document.getElementById("monthSelect").value = currentMonth;
+
+        // Populate Batch Export Dropdowns
+        const bFromM = document.getElementById("batchFromMonth");
+        const bFromY = document.getElementById("batchFromYear");
+        const bToM = document.getElementById("batchToMonth");
+        const bToY = document.getElementById("batchToYear");
+
+        for (let i = 2026; i <= 2055; i++) {
+          bFromY.appendChild(new Option(i, i));
+          bToY.appendChild(new Option(i, i));
+        }
+        allMonths.forEach(m => {
+          bFromM.appendChild(new Option(m.name, m.val));
+          bToM.appendChild(new Option(m.name, m.val));
+        });
+
+        bFromY.value = currentYear;
+        bToY.value = currentYear;
+        bFromM.value = currentMonth;
+        bToM.value = currentMonth;
 
         if (sessionStorage.getItem("sal_token")) {
           document.getElementById("pinModal").style.display = "none";
@@ -1125,11 +1131,19 @@ function exportPDF(format) {
       }
 
       function executeBatchExport() {
-        const from = document.getElementById("batchFrom").value;
-        const to = document.getElementById("batchTo").value;
+        const fromM = document.getElementById("batchFromMonth").value;
+        const fromY = document.getElementById("batchFromYear").value;
+        const toM = document.getElementById("batchToMonth").value;
+        const toY = document.getElementById("batchToYear").value;
+        
+        const from = `${fromY}-${fromM}`;
+        const to = `${toY}-${toM}`;
         const token = sessionStorage.getItem("sal_token");
 
-        if (!from || !to) return alert("Please select both dates.");
+        // Validation check
+        if (from > to) {
+            return alert("Invalid Date Range: 'From' date cannot be later than 'To' date.");
+        }
 
         document.getElementById("batchExportModal").style.display = "none";
         // Changed port from 8000 to 8001

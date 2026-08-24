@@ -72,7 +72,7 @@ def generate_month_sheet(ws, month_str, db_conn):
         row_num = ws.max_row
         ws.merge_cells(f'B{row_num}:D{row_num}')
         ws[f'B{row_num}'] = "Cash Balances"
-        ws[f'B{row_num}'].font = font_bold
+        ws[f'B{row_num}'].font = Font(bold=True, size=14)
         ws[f'B{row_num}'].fill = fill_orange
         ws[f'B{row_num}'].alignment = align_center
 
@@ -94,11 +94,12 @@ def generate_month_sheet(ws, month_str, db_conn):
         cur.execute("SELECT * FROM employee_data WHERE (start_date IS NULL OR start_date <= %s) ORDER BY id ASC", (f"{year}-{month:02d}-31",))
         employees = cur.fetchall()
 
-        ws.append(["", "", "", ""])
+        ws.append(["", "", "", ""]) # Blank spacing row
+        ws.append(["", "", "", ""]) # Row for the title background
         row_num = ws.max_row
         ws.merge_cells(f'B{row_num}:D{row_num}')
         ws.cell(row=row_num, column=2, value="Staff Salary").fill = fill_orange
-        ws.cell(row=row_num, column=2).font = font_bold
+        ws.cell(row=row_num, column=2).font = Font(bold=True, size=14)
         ws.cell(row=row_num, column=2).alignment = align_center
 
         total_salary_b = 0
@@ -165,7 +166,7 @@ def generate_month_sheet(ws, month_str, db_conn):
         row_num = ws.max_row
         ws.merge_cells(f'B{row_num}:D{row_num}')
         ws[f'B{row_num}'] = "Office Expense :: Current Period"
-        ws[f'B{row_num}'].font = font_bold
+        ws[f'B{row_num}'].font = Font(bold=True, size=14)
         ws[f'B{row_num}'].fill = fill_orange
         ws[f'B{row_num}'].alignment = align_center
 
@@ -193,15 +194,16 @@ def generate_month_sheet(ws, month_str, db_conn):
         for col_idx in range(2, 5):
             cell = ws.cell(row=ws.max_row, column=col_idx)
             cell.fill = fill_red
-            cell.font = font_bold_white
+            cell.font = Font(bold=True, size=14, color="FFFFFF")
         ws[f'D{ws.max_row}'].alignment = align_right
 
         # --- Office Expense :: Upcoming Period ---
         ws.append(["", "", "", ""]) # Blank spacing row
+        ws.append(["", "", "", ""]) # Row for the title background
         row_num = ws.max_row
         ws.merge_cells(f'B{row_num}:D{row_num}')
         ws[f'B{row_num}'] = "Office Expense :: Upcoming Period"
-        ws[f'B{row_num}'].font = font_bold
+        ws[f'B{row_num}'].font = Font(bold=True, size=14)
         ws[f'B{row_num}'].fill = fill_orange
         ws[f'B{row_num}'].alignment = align_center
 
@@ -227,12 +229,12 @@ def generate_month_sheet(ws, month_str, db_conn):
         for col_idx in range(2, 5):
             cell = ws.cell(row=ws.max_row, column=col_idx)
             cell.fill = fill_maroon
-            cell.font = font_bold_white
+            cell.font = Font(bold=True, size=14, color="FFFFFF")
         ws[f'D{ws.max_row}'].alignment = align_right
 
     # Final Formatting: Borders, Height, Decimals, Vertical Alignment
     for row in ws.iter_rows(min_row=1, max_col=4, max_row=ws.max_row):
-        ws.row_dimensions[row[0].row].height = 30 if row[0].row == 1 else 22
+        ws.row_dimensions[row[0].row].height = 34 if row[0].row == 1 else 22
         
         # Check if the row is a blank spacer (no data in B, C, D)
         is_blank_row = all(cell.value in [None, ""] for cell in row[1:])
