@@ -1,87 +1,100 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Management</title>
-    <link rel="stylesheet" href="style/office_staff_data.css">
+    <link rel="stylesheet" href="style/office_staff_data.css" />
+  </head>
 
-</head>
-
-<body>
-
+  <body>
     <div id="pageBlocker" class="page-blocker">
-        <div class="pin-box">
-            <h3>Admin Access</h3>
-            <p style="font-size: 14px; color: #666; margin-top: -10px;">Enter security code to view data.</p>
-            <input type="password" id="entryPin" class="pin-input" placeholder="••••"
-                onkeypress="if(event.key==='Enter') verifyEntryPin()">
-            <div class="modal-btns">
-                <button class="btn-cancel" onclick="goBackToReport()">Go Back</button>
-                <button class="btn-verify" onclick="verifyEntryPin()">Unlock</button>
-            </div>
+      <div class="pin-box">
+        <h3>Admin Access</h3>
+        <p style="font-size: 14px; color: #666; margin-top: -10px">
+          Enter security code to view data.
+        </p>
+        <input
+          type="password"
+          id="entryPin"
+          class="pin-input"
+          placeholder="••••"
+          onkeypress="if (event.key === 'Enter') verifyEntryPin();"
+        />
+        <div class="modal-btns">
+          <button class="btn-cancel" onclick="goBackToReport()">Go Back</button>
+          <button class="btn-verify" onclick="verifyEntryPin()">Unlock</button>
         </div>
+      </div>
     </div>
 
-    <div class="container" id="mainContent" style="display: none;">
-        <div class="header">
-            <h2>Employee List</h2>
-            <button class="go-back" onclick="window.location.href='./Employee_Timesheet_Card.html'">Time Sheet
-                Records</button>
-            <button class="add-btn" onclick="openModal()">+ Add New Employee</button>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Full Name</th>
-                    <th>Mobile</th>
-                    <th>Base Salary</th>
-                    <th>Shift Hrs / Day</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="employeeTableBody"></tbody>
-        </table>
+    <div class="container" id="mainContent" style="display: none">
+      <div class="header">
+        <h2>Employee List</h2>
+        <button
+          class="go-back"
+          onclick="window.location.href = './Employee_Timesheet_Card.html'"
+        >
+          Time Sheet Records
+        </button>
+        <button class="add-btn" onclick="openModal()">
+          + Add New Employee
+        </button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Full Name</th>
+            <th>Mobile</th>
+            <th>Base Salary</th>
+            <th>Shift Hrs / Day</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="employeeTableBody"></tbody>
+      </table>
     </div>
 
     <div id="regModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span id="modalTitle">Register New Employee</span>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="empId">
-                <label>Full Name</label>
-                <input type="text" id="empName">
-                <label>Mobile Number</label>
-                <input type="text" id="empMobile">
-
-                <div class="shift-inputs">
-                    <div style="flex:1;">
-                        <label>Base Salary</label>
-                        <input type="number" id="baseSalary" value="20000">
-                    </div>
-                    <div style="flex:1;">
-                        <label>Shift Hrs / Day</label>
-                        <input type="number" id="shiftHrs" value="10">
-                    </div>
-                </div>
-
-                <label>Work Start Date</label>
-                <input type="date" id="startDate">
-                <label>Work End Date (Optional)</label>
-                <input type="date" id="endDate">
-                <button class="save-btn" onclick="saveEmployee()">Save Data</button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <span id="modalTitle">Register New Employee</span>
+          <button class="close-btn" onclick="closeModal()">&times;</button>
         </div>
+        <div class="modal-body">
+          <input type="hidden" id="empId" />
+          <label>Full Name</label>
+          <input type="text" id="empName" />
+          <label>Mobile Number</label>
+          <input type="text" id="empMobile" />
+
+          <div class="shift-inputs">
+            <div style="flex: 1">
+              <label>Base Salary</label>
+              <input type="number" id="baseSalary" value="20000" />
+            </div>
+            <div style="flex: 1">
+              <label>Shift Hrs / Day</label>
+              <input type="number" id="shiftHrs" value="10" />
+            </div>
+            <div style="flex: 1">
+              <label>Mobile Allowance</label>
+              <input type="number" id="mobileAllowance" value="0" />
+            </div>
+          </div>
+
+          <label>Work Start Date</label>
+          <input type="date" id="startDate" />
+          <label>Work End Date (Optional)</label>
+          <input type="date" id="endDate" />
+          <button class="save-btn" onclick="saveEmployee()">Save Data</button>
+        </div>
+      </div>
     </div>
 
     <div id="toastMessage" class="toast">Data Saved Successfully!</div>
 
     <script src="script/office_staff_data.js"></script>
-</body>
-
+  </body>
 </html>

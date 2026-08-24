@@ -40,19 +40,21 @@ router.get("/", async (req, res) => {
 // 2. Add a new employee (Modified for Accounting Sync)
 router.post("/new", async (req, res) => {
   try {
-    const { name, mobile, base_salary, shift_hours, start, end } = req.body;
+    // Added mobile_allowance here
+    const { name, mobile, base_salary, shift_hours, mobile_allowance, start, end } = req.body;
 
     // Insert Employee
     const newEmployee = await pool.query(
-      "INSERT INTO employee_data (name, mobile, base_salary, shift_hours, start_date, end_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      "INSERT INTO employee_data (name, mobile, base_salary, shift_hours, mobile_allowance, start_date, end_date) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
       [
         name,
         mobile,
         base_salary || 0,
         shift_hours || 10,
-        start || null,
-        end || null,
-      ],
+        mobile_allowance || 0, // Added to position $5
+        start || null,         // Moved to position $6
+        end || null,           // Moved to position $7
+      ]
     );
 
     const empId = newEmployee.rows[0].id;
@@ -74,18 +76,20 @@ router.post("/new", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, mobile, base_salary, shift_hours, start, end } = req.body;
+    // Added mobile_allowance here
+    const { name, mobile, base_salary, shift_hours, mobile_allowance, start, end } = req.body;
     const updateEmployee = await pool.query(
-      "UPDATE employee_data SET name = $1, mobile = $2, base_salary = $3, shift_hours = $4, start_date = $5, end_date = $6 WHERE id = $7 RETURNING *",
+      "UPDATE employee_data SET name = $1, mobile = $2, base_salary = $3, shift_hours = $4, mobile_allowance = $5, start_date = $6, end_date = $7 WHERE id = $8",
       [
         name,
         mobile,
         base_salary || 0,
         shift_hours || 10,
-        start || null,
-        end || null,
-        id,
-      ],
+        mobile_allowance || 0, // Added to position $5
+        start || null,         // Moved to position $6
+        end || null,           // Moved to position $7
+        id                     // Moved to position $8
+      ]
     );
     res.json(updateEmployee.rows[0]);
   } catch (err) {

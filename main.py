@@ -20,6 +20,7 @@ from routers.payment_py import router as payment_router
 from routers.payment_export_py import router as payment_export_router
 from routers import we1_own_eq_data_base
 from fastapi.middleware.cors import CORSMiddleware
+from routers import klm_staff_payroll
 
 
 
@@ -31,7 +32,7 @@ app = FastAPI(title="Haka ERP Python Engine")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
-    allow_credentials=False,  # Changed to False to prevent CORS conflict with '*'
+    allow_credentials=False,  
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -45,6 +46,7 @@ app.include_router(payment_router)
 app.include_router(payment_export_router)
 app.include_router(we1_own_eq_data_base.router)
 app.include_router(Staff_salary_export.router, prefix="/py", tags=["Salary Export"])
+app.include_router(klm_staff_payroll.router, prefix="/api/py-payroll", tags=["Payroll Export"])
 
 
 

@@ -48,6 +48,7 @@ const we1EqDriverPayrollRoute = require('./routes/We1_EQ_Driver_Payroll');
 const staffSalaryRoute = require('./routes/StaffSalary');
 const invoiceAuthRoutes = require('./routes/invoiceAuth');
 const zohoInvoiceRoute = require('./routes/zoho_download_inv');
+const payrollRouter = require("./routes/klm_emp_payroll");
 
 
 
@@ -84,6 +85,7 @@ app.use('/api/we1-eq-driver-payroll', we1EqDriverPayrollRoute);
 app.use('/api/staff-salary', staffSalaryRoute);
 app.use('/api/invoice-auth', invoiceAuthRoutes);
 app.use('/api', require('./routes/zoho_download_inv'));
+app.use("/api/payroll", payrollRouter);
 
 
 
