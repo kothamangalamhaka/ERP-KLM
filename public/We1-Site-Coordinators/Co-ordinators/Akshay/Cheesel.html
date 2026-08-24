@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فاتورة مبيعات ضريبية - نقدية</title>
+    <!-- Libraries for PDF and PNG export, and QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        body {
+            background-color: #555;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, Tahoma, sans-serif;
+        }
+
+        /* Toolbar for Buttons */
+        .toolbar {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 210mm;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+        .toolbar button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-pdf { background-color: #d9534f; }
+        .btn-pdf:hover { background-color: #c9302c; }
+        .btn-png { background-color: #0275d8; }
+        .btn-png:hover { background-color: #025aa5; }
+
+        /* A4 Page Container */
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            background: #fff;
+            padding: 20mm;
+            box-sizing: border-box;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            color: #000;
+        }
+
+        /* Classes to apply during export to hide UI elements */
+        .exporting {
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 20mm !important;
+        }
+        .exporting input {
+            border: none !important;
+            background: transparent !important;
+        }
+
+        /* Form elements */
+        input {
+            font-family: inherit;
+            font-size: inherit;
+            border: 1px dashed #ccc;
+            padding: 2px 5px;
+            background: #fafafa;
+            color: #000;
+            outline: none;
+        }
+        input:focus { border-color: #0275d8; }
+        
+        /* Layout Specifics based on First Image */
+        .header { text-align: right; font-weight: bold; font-size: 15px; margin-bottom: 10px; line-height: 1.6; }
+        
+        .title-section { text-align: center; margin-bottom: 30px; }
+        .title-section input { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 5px; width: 150px; }
+        .title-text { font-size: 20px; font-weight: bold; }
+
+        .info-grid {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            font-size: 14px;
+            gap: 50px;
+        }
+        .info-col-right {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 55%;
+        }
+        .info-col-left {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 42%;
+        }
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .info-col-right .info-row span {
+            width: 55px; /* Aligns inputs perfectly on the right */
+            white-space: nowrap;
+            flex-shrink: 0; /* Prevents label from squishing */
+        }
+        .info-col-left .info-row span {
+            width: 110px; /* Exact space for "الرقم الضريبي للعميل" */
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .info-row input {
+            flex-grow: 1;
+            width: 100%;
+            min-width: 0;
+        }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+        th, td { border: none; padding: 5px; }
+        th { font-weight: normal; }
+        /* Table widths based on image */
+        .col-total { width: 15%; text-align: left; }
+        .col-price { width: 15%; text-align: left; }
+        .col-qty { width: 10%; text-align: center; }
+        .col-name { width: 35%; text-align: right; }
+        .col-num { width: 15%; text-align: right; }
+        .col-hash { width: 5%; text-align: right; }
+
+        .spacer { flex-grow: 1; min-height: 100mm; }
+
+        .footer-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .qr-section { display: flex; align-items: center; gap: 40px; margin-right: 50px; }
+        .qr-code { width: 110px; height: 110px; }
+        .admin-text { font-size: 14px; font-weight: bold; text-align: center; }
+
+        .totals-table { width: 280px; font-size: 15px; }
+        .totals-table td { padding: 6px 0; }
+        .totals-table td:first-child { text-align: right; width: 60%; }
+        .totals-table td:last-child { text-align: left; }
+        
+        .amount-words { font-weight: bold; font-size: 15px; margin-top: 30px; }
+        .amount-words input { width: 450px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- Toolbar (Will not be printed) -->
+    <div class="toolbar" id="toolbar">
+        <button class="btn-pdf" onclick="downloadPDF()">Download as PDF</button>
+        <button class="btn-png" onclick="copyPNG()">Copy as PNG</button>
+    </div>
+
+    <!-- Printable Area -->
+    <div class="page" id="invoice-page">
+        
+        <div class="header">
+            <input type="text" id="compName" value="مؤسسة احمد ثامر البدراني" style="width: 250px; text-align: right; font-weight: bold;" oninput="generateQR()"><br>
+            <input type="text" value="مدينة المنورة - الدائري الثاني" style="width: 250px; text-align: right;">
+        </div>
+
+        <div class="title-section">
+            <input type="number" id="invoiceNo" value="104026"><br>
+            <div class="title-text">فاتورة مبيعات ضريبية - نقدية</div>
+        </div>
+
+        <div class="info-grid">
+            <!-- Right Column (Date & Customer Name) -->
+            <div class="info-col-right">
+                <div class="info-row">
+                    <span>التاريخ</span>
+                    <input type="text" id="dateInput" value="AM 07:33 2026/06/10" dir="ltr" style="text-align: right;" onchange="updateCustomDate()">
+                </div>
+                <div class="info-row">
+                    <span>اسم العميل</span>
+                    <input type="text" value="مؤسسة ابتسام محمد بن عبد الله بابطين للمقاولات العامة">
+                </div>
+            </div>
+            
+            <!-- Left Column (Account No & VAT No) -->
+            <div class="info-col-left">
+                <div class="info-row">
+                    <span>رقم الحساب</span>
+                    <input type="text" value="122101">
+                </div>
+                <div class="info-row">
+                    <span>الرقم الضريبي للعميل</span>
+                    <input type="text" id="custVat" value="310056446900003" oninput="generateQR()">
+                </div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-total">الاجمالي</th>
+                    <th class="col-price">السعر</th>
+                    <th class="col-qty">الكمية</th>
+                    <th class="col-name">اسم الصنف</th>
+                    <th class="col-num">رقم الصنف</th>
+                    <th class="col-hash">#</th>
+                </tr>
+            </thead>
+            <tbody id="itemsBody">
+                <tr>
+                    <td class="col-total row-total">3,600.00</td>
+                    <td class="col-price"><input type="number" class="rate" value="1800" style="width: 80px; text-align: left;" oninput="calculate()"></td>
+                    <td class="col-qty"><input type="number" class="qty" value="2" style="width: 50px; text-align: center;" oninput="calculate()"></td>
+                    <td class="col-name"><input type="text" value="علبه شاكوش كبير" style="width: 90%; text-align: right;"></td>
+                    <td class="col-num"><input type="text" value="21HB50" style="width: 90%; text-align: right;"></td>
+                    <td class="col-hash">1 <span style="margin-right:8px; font-size:10px;"></span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- This empty div pushes the footer down to perfectly match the original image -->
+        <div class="spacer"></div>
+
+        <div class="footer-section">
+            <div class="qr-section">
+                <div id="qrcode" class="qr-code"></div>
+                <div class="admin-text">مدير النظام</div>
+            </div>
+
+            <table class="totals-table">
+                <tr>
+                    <td>الاجمالي</td>
+                    <td id="subTotal">3,600.00</td>
+                </tr>
+                <tr>
+                    <td>الخصم</td>
+                    <td><input type="number" id="discount" value="0.00" style="width: 70px; text-align: left;" oninput="calculate()"></td>
+                </tr>
+                <tr>
+                    <td>الصافي</td>
+                    <td id="netAmount">3,600.00</td>
+                </tr>
+                <tr>
+                    <td>ضريبة القيمة المضافة</td>
+                    <td id="vatAmount">0.00</td>
+                </tr>
+                <tr>
+                    <td>القيمة الاجمالية</td>
+                    <td id="grandTotal">3,600.00</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="amount-words">
+            <input type="text" id="amountWords" value="فقط ثلاثة آلاف و ستمائة ريال سعودي لا غير">
+        </div>
+
+    </div>
+
+    <script>
+        // --- Date and Auto-Increment Logic ---
+        function initDate() {
+            const now = new Date();
+            // User requirement: 104026 = 2026 Aug 24
+            const baseDate = new Date(2026, 7, 24); // Month 7 is August (0-indexed)
+            
+            // Current midnight vs Base midnight
+            const currentMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const baseMidnight = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+            
+            const diffTime = currentMidnight - baseMidnight;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            document.getElementById('invoiceNo').value = 104026 + diffDays;
+
+            // Format date matching original: AM/PM HH:MM YYYY/MM/DD
+            const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
+            let hrs = now.getHours() % 12;
+            hrs = hrs ? hrs : 12;
+            const min = now.getMinutes().toString().padStart(2, '0');
+            const yyyy = now.getFullYear();
+            const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+            const dd = now.getDate().toString().padStart(2, '0');
+            
+            document.getElementById('dateInput').value = `${ampm} ${hrs.toString().padStart(2,'0')}:${min} ${yyyy}/${mm}/${dd}`;
+        }
+
+        // Just an empty handler, if user edits text manually we let them
+        function updateCustomDate() { generateQR(); }
+
+        // --- Calculation Logic ---
+        function calculate() {
+            const qty = parseFloat(document.querySelector('.qty').value) || 0;
+            const rate = parseFloat(document.querySelector('.rate').value) || 0;
+            const rowTotal = qty * rate;
+            
+            document.querySelector('.row-total').innerText = rowTotal.toFixed(2);
+            
+            const subTotal = rowTotal;
+            const discount = parseFloat(document.getElementById('discount').value) || 0;
+            const netAmount = subTotal - discount;
+            const vatAmount = 0; // VAT always 0 as requested
+            const grandTotal = netAmount + vatAmount;
+
+            document.getElementById('subTotal').innerText = subTotal.toFixed(2);
+            document.getElementById('netAmount').innerText = netAmount.toFixed(2);
+            document.getElementById('vatAmount').innerText = vatAmount.toFixed(2);
+            document.getElementById('grandTotal').innerText = grandTotal.toFixed(2);
+
+            updateArabicAmount(grandTotal);
+            generateQR();
+        }
+
+        // --- Arabic Amount in Words (Simplified Tafqeet) ---
+        function updateArabicAmount(num) {
+            num = Math.floor(num);
+            if(num === 0) { document.getElementById('amountWords').value = "صفر"; return; }
+            
+            const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
+            const tens = ["", "عشرة", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+            const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
+            
+            function convertUpTo999(n) {
+                let s = "";
+                let h = Math.floor(n / 100);
+                let rem = n % 100;
+                if (h > 0) s += hundreds[h] + " ";
+                
+                if (rem > 0) {
+                    if (h > 0) s += "و ";
+                    if (rem < 10) s += ones[rem] + " ";
+                    else if (rem === 10) s += "عشرة ";
+                    else if (rem === 11) s += "أحد عشر ";
+                    else if (rem === 12) s += "اثنا عشر ";
+                    else if (rem < 20) s += ones[rem - 10] + " عشر ";
+                    else {
+                        let o = rem % 10;
+                        let t = Math.floor(rem / 10);
+                        if (o > 0) s += ones[o] + " و " + tens[t] + " ";
+                        else s += tens[t] + " ";
+                    }
+                }
+                return s.trim();
+            }
+
+            let str = "";
+            let th = Math.floor(num / 1000);
+            let rem2 = num % 1000;
+
+            if (th > 0) {
+                if (th === 1) str += "ألف ";
+                else if (th === 2) str += "ألفان ";
+                else if (th >= 3 && th <= 10) str += ones[th] + " آلاف ";
+                else str += convertUpTo999(th) + " ألف ";
+            }
+
+            if (rem2 > 0) {
+                if (str !== "") str += "و ";
+                str += convertUpTo999(rem2);
+            }
+
+            document.getElementById('amountWords').value = "فقط " + str.trim() + " ريال سعودي لا غير";
+        }
+
+        // --- ZATCA TLV Base64 QR Code ---
+        function generateTLV(tag, value) {
+            const encoder = new TextEncoder();
+            const valBytes = encoder.encode(value);
+            const tagBuf = new Uint8Array([tag]);
+            const lenBuf = new Uint8Array([valBytes.length]);
+            const tlv = new Uint8Array(tagBuf.length + lenBuf.length + valBytes.length);
+            tlv.set(tagBuf, 0);
+            tlv.set(lenBuf, 1);
+            tlv.set(valBytes, 2);
+            return tlv;
+        }
+
+        let qrcodeObj = null;
+
+        function generateQR() {
+            const seller = document.getElementById('compName').value || "مؤسسة";
+            const vatNo = document.getElementById('custVat').value || "0";
+            const dateTime = new Date().toISOString();
+            const total = document.getElementById('grandTotal').innerText;
+            const vat = document.getElementById('vatAmount').innerText;
+            
+            const tlv1 = generateTLV(1, seller);
+            const tlv2 = generateTLV(2, vatNo);
+            const tlv3 = generateTLV(3, dateTime);
+            const tlv4 = generateTLV(4, total);
+            const tlv5 = generateTLV(5, vat);
+            
+            const combined = new Uint8Array(tlv1.length + tlv2.length + tlv3.length + tlv4.length + tlv5.length);
+            let offset = 0;
+            [tlv1, tlv2, tlv3, tlv4, tlv5].forEach(tlv => {
+                combined.set(tlv, offset);
+                offset += tlv.length;
+            });
+            
+            let binary = '';
+            combined.forEach(b => binary += String.fromCharCode(b));
+            const base64QR = btoa(binary);
+            
+            document.getElementById('qrcode').innerHTML = "";
+            qrcodeObj = new QRCode(document.getElementById("qrcode"), {
+                text: base64QR,
+                width: 110,
+                height: 110,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+
+        // --- Export Functions ---
+        function preExport() {
+            document.getElementById('invoice-page').classList.add('exporting');
+        }
+        function postExport() {
+            document.getElementById('invoice-page').classList.remove('exporting');
+        }
+
+        function downloadPDF() {
+            preExport();
+            const element = document.getElementById('invoice-page');
+            const opt = {
+                margin: 0,
+                filename: 'Invoice.pdf',
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save().then(postExport).catch(postExport);
+        }
+
+        function copyPNG() {
+            preExport();
+            const element = document.getElementById('invoice-page');
+            html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
+                canvas.toBlob(blob => {
+                    if(!blob) return alert('Failed to create image');
+                    const item = new ClipboardItem({ "image/png": blob });
+                    navigator.clipboard.write([item]).then(() => {
+                        alert('Image successfully copied to clipboard!');
+                    }).catch(err => {
+                        alert('Failed to copy to clipboard. Try downloading PDF instead.');
+                        console.error(err);
+                    });
+                    postExport();
+                });
+            }).catch(postExport);
+        }
+
+        // Initialize on load
+        window.onload = () => {
+            initDate();
+            calculate();
+        };
+    </script>
+</body>
+</html>
