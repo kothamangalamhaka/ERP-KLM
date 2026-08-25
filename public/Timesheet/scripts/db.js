@@ -363,10 +363,13 @@ function copyColumnData() {
       copyString += val + "\n";
     }
   });
-  navigator.clipboard.writeText(copyString).then(() => {
-    showStatus("✓ Column Copied", "saved");
-    document.getElementById("headerContextMenu").style.display = "none";
-  }).catch(err => customAlert("Error", "Failed to copy data"));
+  navigator.clipboard
+    .writeText(copyString)
+    .then(() => {
+      showStatus("✓ Column Copied", "saved");
+      document.getElementById("headerContextMenu").style.display = "none";
+    })
+    .catch((err) => customAlert("Error", "Failed to copy data"));
 }
 
 function copyTableData() {
@@ -375,7 +378,9 @@ function copyTableData() {
   let headerRow = [];
   customColOrder.forEach((colId) => {
     if (!hiddenColumns.includes(colId)) {
-      headerRow.push(colLabels[colId] || colId.replace(/_/g, " ").toUpperCase());
+      headerRow.push(
+        colLabels[colId] || colId.replace(/_/g, " ").toUpperCase(),
+      );
     }
   });
   copyString += headerRow.join("\t") + "\n";
@@ -386,8 +391,10 @@ function copyTableData() {
         if (!hiddenColumns.includes(colId)) {
           let val = row[colId];
           if (colId === "vat") {
-            let v = String(val || "").trim().toLowerCase();
-            val = (v === "yes" || v === "true" || v === "15") ? "Yes" : "No";
+            let v = String(val || "")
+              .trim()
+              .toLowerCase();
+            val = v === "yes" || v === "true" || v === "15" ? "Yes" : "No";
           } else {
             if (val === null || val === undefined) val = "";
             else val = String(val).replace(/\n/g, " ");
@@ -398,10 +405,13 @@ function copyTableData() {
       copyString += rowValues.join("\t") + "\n";
     }
   });
-  navigator.clipboard.writeText(copyString).then(() => {
-    showStatus("✓ Table Copied", "saved");
-    document.getElementById("headerContextMenu").style.display = "none";
-  }).catch(err => customAlert("Error", "Failed to copy data"));
+  navigator.clipboard
+    .writeText(copyString)
+    .then(() => {
+      showStatus("✓ Table Copied", "saved");
+      document.getElementById("headerContextMenu").style.display = "none";
+    })
+    .catch((err) => customAlert("Error", "Failed to copy data"));
 }
 
 function openColumnAlter() {
@@ -518,12 +528,14 @@ function openAdvancedFilter(e) {
   document.getElementById("filterSearchInput").value = "";
 
   // 🟢 NEW: Get the current global search value
-  const globalSearch = document.getElementById("searchInput").value.toUpperCase();
+  const globalSearch = document
+    .getElementById("searchInput")
+    .value.toUpperCase();
 
   const uniqueValues = new Set();
   tableData.forEach((row) => {
     let passesOtherFilters = true;
-    
+
     // 1. Check existing column filters
     for (const colName in activeFilters) {
       if (colName === activeHeaderCol) continue;
@@ -536,13 +548,27 @@ function openAdvancedFilter(e) {
       }
     }
 
-    // 2. 🟢 NEW: Check global search filter
+    // 2. 🟢 NEW: Check global search filter (General or Plate No)
+    const searchType = document.getElementById("searchType").value;
     if (passesOtherFilters && globalSearch !== "") {
-      let rowText = Object.values(row)
-        .map((v) => (v ? String(v).toUpperCase() : ""))
-        .join(" ");
-      if (!rowText.includes(globalSearch)) {
-        passesOtherFilters = false;
+      if (searchType === "plate") {
+        const p1 = (row.plate_no || "").toUpperCase();
+        const p2 = (row.site_old_veh || "").toUpperCase();
+        const p3 = (row.site_new_veh || "").toUpperCase();
+        if (
+          !p1.includes(globalSearch) &&
+          !p2.includes(globalSearch) &&
+          !p3.includes(globalSearch)
+        ) {
+          passesOtherFilters = false;
+        }
+      } else {
+        let rowText = Object.values(row)
+          .map((v) => (v ? String(v).toUpperCase() : ""))
+          .join(" ");
+        if (!rowText.includes(globalSearch)) {
+          passesOtherFilters = false;
+        }
       }
     }
 
@@ -641,12 +667,26 @@ function applyGridFilters() {
         break;
       }
     }
+    const searchType = document.getElementById("searchType").value;
     if (showRow && globalSearch !== "") {
-      let rowText = Object.values(row)
-        .map((v) => (v ? String(v).toUpperCase() : ""))
-        .join(" ");
-      if (!rowText.includes(globalSearch)) {
-        showRow = false;
+      if (searchType === "plate") {
+        const p1 = (row.plate_no || "").toUpperCase();
+        const p2 = (row.site_old_veh || "").toUpperCase();
+        const p3 = (row.site_new_veh || "").toUpperCase();
+        if (
+          !p1.includes(globalSearch) &&
+          !p2.includes(globalSearch) &&
+          !p3.includes(globalSearch)
+        ) {
+          showRow = false;
+        }
+      } else {
+        let rowText = Object.values(row)
+          .map((v) => (v ? String(v).toUpperCase() : ""))
+          .join(" ");
+        if (!rowText.includes(globalSearch)) {
+          showRow = false;
+        }
       }
     }
     if (trs[index]) {
@@ -843,9 +883,15 @@ async function initDB() {
 
 // NEW: Function to update global datalists for all forms dynamically
 function updateGlobalDatalists() {
-  const uniqueSites = [...new Set(tableData.map(r => r.site_name).filter(Boolean))].sort();
-  const uniqueFieldCos = [...new Set(tableData.map(r => r.field_co).filter(Boolean))].sort();
-  const uniqueSiteCos = [...new Set(tableData.map(r => r.site_co).filter(Boolean))].sort();
+  const uniqueSites = [
+    ...new Set(tableData.map((r) => r.site_name).filter(Boolean)),
+  ].sort();
+  const uniqueFieldCos = [
+    ...new Set(tableData.map((r) => r.field_co).filter(Boolean)),
+  ].sort();
+  const uniqueSiteCos = [
+    ...new Set(tableData.map((r) => r.site_co).filter(Boolean)),
+  ].sort();
 
   let datalistContainer = document.getElementById("globalDatalists");
   if (!datalistContainer) {
@@ -855,9 +901,9 @@ function updateGlobalDatalists() {
   }
 
   datalistContainer.innerHTML = `
-    <datalist id="globalSiteNameList">${uniqueSites.map(v => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
-    <datalist id="globalFieldCoList">${uniqueFieldCos.map(v => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
-    <datalist id="globalSiteCoList">${uniqueSiteCos.map(v => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    <datalist id="globalSiteNameList">${uniqueSites.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    <datalist id="globalFieldCoList">${uniqueFieldCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    <datalist id="globalSiteCoList">${uniqueSiteCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
   `;
 }
 
@@ -1713,8 +1759,8 @@ async function saveDriverLog() {
     if (res.success) {
       showStatus("✓ Saved", "saved");
       customAlert("Success", "Driver log saved successfully!");
-      await initDB(); 
-      fetchLogs(payload.plate_no, "driver"); 
+      await initDB();
+      fetchLogs(payload.plate_no, "driver");
       clearDriverForm();
     } else {
       showStatus("Error", "error");
@@ -1810,8 +1856,8 @@ async function saveSiteLog() {
     if (res.success) {
       showStatus("✓ Saved", "saved");
       customAlert("Success", "Site log saved successfully!");
-      await initDB(); 
-      fetchLogs(payload.plate_no, "site"); 
+      await initDB();
+      fetchLogs(payload.plate_no, "site");
       clearSiteForm();
     } else {
       showStatus("Error", "error");
