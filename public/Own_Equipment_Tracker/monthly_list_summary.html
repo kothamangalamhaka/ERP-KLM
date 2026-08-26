@@ -17,33 +17,43 @@
         .btn-group { display: flex; flex-wrap: wrap; gap: 10px; }
         .year-group { padding-bottom: 10px; }
         
+        /* 🟢 Common Button Styles */
         .filter-btn { 
-            flex: 1 1 calc(8.33% - 10px);
             min-width: 80px; padding: 10px; text-align: center; border: 1px solid #ccc; 
             border-radius: 6px; cursor: pointer; background: #f8f9fa; font-weight: bold; 
-            transition: 0.2s; color: #2c3e50;
+            transition: all 0.3s ease; color: #2c3e50;
         }
         .filter-btn:hover { background: #e2e8f0; }
         .filter-btn.active { background: #2980b9; color: white; border-color: #2980b9; }
 
-        @media (max-width: 1200px) { .filter-btn { flex: 1 1 calc(16.66% - 10px); } }
-        @media (max-width: 900px) { .filter-btn { flex: 1 1 calc(25% - 10px); } }
-        @media (max-width: 600px) { .filter-btn { flex: 1 1 calc(33.33% - 10px); } }
+       /* 🟢 Year Button Specific Styles */
+        .year-btn { flex: 0 0 calc(25% - 10px); } 
+        .year-btn.active { flex: 0 0 100%; font-size: 16px; padding: 12px; } 
+        /* 🟢 Month Button Specific Styles */
+        .month-btn { flex: 1 1 calc(16.66% - 10px); } /* 6 in a row */
+        @media (max-width: 900px) { .month-btn { flex: 1 1 calc(25% - 10px); } }
+        @media (max-width: 600px) { .month-btn { flex: 1 1 calc(33.33% - 10px); } }
 
         .month-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px; overflow-x: auto; }
         .month-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
-        .month-title { font-size: 18px; font-weight: bold; color: #2c3e50; margin: 0; text-align: center; flex: 1; }
+        .month-title { font-size: 22px; font-weight: bold; color: #2c3e50; margin: 0; text-align: center; flex: 1; }
         
         .export-icons { display: flex; gap: 12px; }
         .export-btn { background: none; border: none; font-size: 20px; cursor: pointer; transition: transform 0.2s; padding: 5px; }
         .export-btn:hover { transform: scale(1.2); }
 
-        table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
         th, td { border: 1px solid #000; padding: 5px 8px; text-align: center; height: 33px; }
-        .eq-width { min-width: 95px; }
-        .pl-width { min-width: 120px; } /* 🟢 NEW: Increased width for Profit or Loss */
         
-        .th-main { background: #ffffff; font-weight: bold; font-size: 13px; }
+        /* 🟢 NEW: Header Specific Styles for better visibility */
+        th { font-weight: 800; font-size: 14px; background-color: #f1f5f9; color: #2c3e50; }
+        td { font-weight: 500; color: #333; }
+        
+        .eq-width { min-width: 95px; }
+        .pl-width { min-width: 120px; } 
+        
+        /* 🟢 NEW: Main Header Row Styles */
+        .th-main { background: #ffffff; font-weight: 900; font-size: 15px; color: #1e293b; }
         .bg-op-exp { background: #f8cbad !important; font-weight: bold; }
         .bg-op-rev { background: #c6e0b4 !important; font-weight: bold; }
         .bg-net-op { background: #bdd7ee !important; font-weight: bold; }
@@ -75,7 +85,6 @@
     <h4 style="margin: 0 0 10px 0; color: #7f8c8d;">Select Year</h4>
     <div class="btn-group year-group" id="yearButtonsContainer"></div>
     
-    <!-- 🟢 Hidden initially, shown only when a year is selected -->
     <div id="monthSection" style="display: none; margin-top: 20px; padding-top: 15px; border-top: 2px solid #eee;">
         <h4 style="margin: 0 0 10px 0; color: #7f8c8d;">Select Month</h4>
         <div class="btn-group" id="monthButtonsContainer"></div>

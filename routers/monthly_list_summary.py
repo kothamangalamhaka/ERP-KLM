@@ -154,6 +154,12 @@ async def export_monthly_summary_excel(from_y: int, from_m: int, to_y: int, to_m
                         ws.column_dimensions[get_column_letter(col)].width = 18 
                     else:
                         ws.column_dimensions[get_column_letter(col)].width = 14
+                        
+                # 🟢 NEW: Freeze Row 3 and Columns A & B (SN & Plate No)
+                ws.freeze_panes = "C4"
+                
+                # 🟢 NEW: Enable Auto Filter on Header Row (Row 3, Columns A to O)
+                ws.auto_filter.ref = f"A3:O{r_idx - 1}"
 
         if len(wb.sheetnames) == 0:
             wb.create_sheet("No Data")

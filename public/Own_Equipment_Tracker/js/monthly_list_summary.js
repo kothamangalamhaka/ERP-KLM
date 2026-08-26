@@ -13,8 +13,8 @@ const monthNames = [
   "December",
 ];
 
-let selectedYear = null; // 🟢 Initially null (No year selected)
-let selectedMonth = null; // Initially null
+let selectedYear = null;
+let selectedMonth = null;
 let currentExportType = "";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -32,25 +32,24 @@ function initFilters() {
   const startYear = Math.max(currentYear, 2026);
   for (let y = startYear; y >= 2026; y--) {
     const btn = document.createElement("div");
-    btn.className = `filter-btn`;
+    // 🟢 Added 'year-btn' class for dynamic 4-in-a-row to full-width styling
+    btn.className = `filter-btn year-btn ${y === selectedYear ? "active" : ""}`;
     btn.innerText = y;
     btn.onclick = () => selectYear(y);
     yearContainer.appendChild(btn);
   }
-  renderMonthButtons(); // Will hide month section initially
+  renderMonthButtons();
 }
 
-// 🟢 NEW: Year Selection Logic
 function selectYear(y) {
   if (selectedYear === y) {
-    selectedYear = null; // Toggle Off if same year clicked
+    selectedYear = null; // Toggle Off
     selectedMonth = null;
   } else {
-    selectedYear = y; // Set new year
-    selectedMonth = null; // Reset month when year changes
+    selectedYear = y; // Toggle On
+    selectedMonth = null; // Reset month
   }
 
-  // Update Year Button UI
   document
     .querySelectorAll("#yearButtonsContainer .filter-btn")
     .forEach((b) => {
@@ -76,7 +75,8 @@ function renderMonthButtons() {
   container.innerHTML = "";
 
   const allBtn = document.createElement("div");
-  allBtn.className = `filter-btn ${selectedMonth === "ALL" ? "active" : ""}`;
+  // 🟢 Added 'month-btn' class
+  allBtn.className = `filter-btn month-btn ${selectedMonth === "ALL" ? "active" : ""}`;
   allBtn.innerText = "All Months";
   allBtn.onclick = () => selectMonth("ALL");
   container.appendChild(allBtn);
@@ -84,17 +84,17 @@ function renderMonthButtons() {
   monthNames.forEach((m, idx) => {
     const btn = document.createElement("div");
     const monthNum = idx + 1;
-    btn.className = `filter-btn ${selectedMonth === monthNum ? "active" : ""}`;
+    // 🟢 Added 'month-btn' class
+    btn.className = `filter-btn month-btn ${selectedMonth === monthNum ? "active" : ""}`;
     btn.innerText = m;
     btn.onclick = () => selectMonth(monthNum);
     container.appendChild(btn);
   });
 }
 
-// 🟢 NEW: Month Selection Logic
 function selectMonth(m) {
   if (selectedMonth === m) {
-    selectedMonth = null; // Toggle Off if same month clicked
+    selectedMonth = null; // Toggle Off
   } else {
     selectedMonth = m; // Toggle On
   }
@@ -181,7 +181,6 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
                             <th class="eq-width">Kafil</th>
                             <th class="eq-width">Owner</th>
                             <th class="eq-width">Investor</th>
-                            <!-- 🟢 ADDED .pl-width here -->
                             <th class="bg-pl pl-width">Profit or Loss</th>
                         </tr>
                     </thead>
@@ -292,7 +291,6 @@ function fmt(val) {
   return Number(val) === 0 ? "" : Number(val).toFixed(2);
 }
 
-// 🟢 EXPORT MODAL LOGIC
 function openExportModal(type) {
   currentExportType = type;
 
@@ -313,7 +311,6 @@ function openExportModal(type) {
   document.getElementById("fromYear").innerHTML = yearOptions;
   document.getElementById("toYear").innerHTML = yearOptions;
 
-  // Use current year if selectedYear is null
   const defaultYear = selectedYear || new Date().getFullYear();
   document.getElementById("fromYear").value = defaultYear;
   document.getElementById("toYear").value = defaultYear;
