@@ -13,8 +13,8 @@ const monthNames = [
   "December",
 ];
 
-let selectedYear = new Date().getFullYear();
-let selectedMonth = null;
+let selectedYear = null; // 🟢 Initially null (No year selected)
+let selectedMonth = null; // Initially null
 let currentExportType = "";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -32,29 +32,47 @@ function initFilters() {
   const startYear = Math.max(currentYear, 2026);
   for (let y = startYear; y >= 2026; y--) {
     const btn = document.createElement("div");
-    btn.className = `filter-btn ${y === selectedYear ? "active" : ""}`;
+    btn.className = `filter-btn`;
     btn.innerText = y;
     btn.onclick = () => selectYear(y);
     yearContainer.appendChild(btn);
   }
-  renderMonthButtons();
+  renderMonthButtons(); // Will hide month section initially
 }
 
+// 🟢 NEW: Year Selection Logic
 function selectYear(y) {
-  selectedYear = y;
+  if (selectedYear === y) {
+    selectedYear = null; // Toggle Off if same year clicked
+    selectedMonth = null;
+  } else {
+    selectedYear = y; // Set new year
+    selectedMonth = null; // Reset month when year changes
+  }
+
+  // Update Year Button UI
   document
     .querySelectorAll("#yearButtonsContainer .filter-btn")
     .forEach((b) => {
       b.classList.remove("active");
-      if (parseInt(b.innerText) === y) b.classList.add("active");
+      if (parseInt(b.innerText) === selectedYear) b.classList.add("active");
     });
-  if (selectedMonth !== null) {
-    loadMonthlyData();
-  }
+
+  renderMonthButtons();
+  updateTableVisibility();
 }
 
 function renderMonthButtons() {
+  const monthSection = document.getElementById("monthSection");
   const container = document.getElementById("monthButtonsContainer");
+
+  if (selectedYear === null) {
+    monthSection.style.display = "none";
+    container.innerHTML = "";
+    return;
+  }
+
+  monthSection.style.display = "block";
   container.innerHTML = "";
 
   const allBtn = document.createElement("div");
@@ -73,16 +91,30 @@ function renderMonthButtons() {
   });
 }
 
+// 🟢 NEW: Month Selection Logic
 function selectMonth(m) {
   if (selectedMonth === m) {
-    selectedMonth = null;
-    document.getElementById("dataContainer").innerHTML =
-      "<p style='text-align:center; font-size: 16px; color: #7f8c8d; margin-top: 50px;'>👆 Please select a month to view the data.</p>";
+    selectedMonth = null; // Toggle Off if same month clicked
   } else {
-    selectedMonth = m;
-    loadMonthlyData();
+    selectedMonth = m; // Toggle On
   }
   renderMonthButtons();
+  updateTableVisibility();
+}
+
+function updateTableVisibility() {
+  const container = document.getElementById("dataContainer");
+  if (selectedYear === null) {
+    container.innerHTML =
+      "<p style='text-align:center; font-size: 16px; color: #7f8c8d; margin-top: 50px;'>👆 Please select a Year first to proceed.</p>";
+    return;
+  }
+  if (selectedMonth === null) {
+    container.innerHTML =
+      "<p style='text-align:center; font-size: 16px; color: #7f8c8d; margin-top: 50px;'>👆 Please select a month to view the data.</p>";
+    return;
+  }
+  loadMonthlyData();
 }
 
 async function loadMonthlyData() {
@@ -149,7 +181,8 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
                             <th class="eq-width">Kafil</th>
                             <th class="eq-width">Owner</th>
                             <th class="eq-width">Investor</th>
-                            <th class="bg-pl">Profit or Loss</th>
+                            <!-- 🟢 ADDED .pl-width here -->
+                            <th class="bg-pl pl-width">Profit or Loss</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -221,7 +254,7 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
                     <td>${fmt(kafil)}</td>
                     <td>${fmt(owner)}</td>
                     <td>${fmt(inv)}</td>
-                    <td class="bg-pl" style="color: ${pl < 0 ? "red" : "black"};">${fmt(pl)}</td>
+                    <td class="bg-pl pl-width" style="color: ${pl < 0 ? "red" : "black"};">${fmt(pl)}</td>
                 </tr>
             `;
     });
@@ -241,7 +274,7 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
                         <td>${fmt(totals.kafil)}</td>
                         <td>${fmt(totals.owner)}</td>
                         <td>${fmt(totals.inv)}</td>
-                        <td class="bg-pl" style="color: ${totals.pl < 0 ? "red" : "black"};">${fmt(totals.pl)}</td>
+                        <td class="bg-pl pl-width" style="color: ${totals.pl < 0 ? "red" : "black"};">${fmt(totals.pl)}</td>
                     </tr>
                 </tbody>
             </table>
@@ -259,6 +292,7 @@ function fmt(val) {
   return Number(val) === 0 ? "" : Number(val).toFixed(2);
 }
 
+// 🟢 EXPORT MODAL LOGIC
 function openExportModal(type) {
   currentExportType = type;
 
@@ -279,8 +313,10 @@ function openExportModal(type) {
   document.getElementById("fromYear").innerHTML = yearOptions;
   document.getElementById("toYear").innerHTML = yearOptions;
 
-  document.getElementById("fromYear").value = selectedYear;
-  document.getElementById("toYear").value = selectedYear;
+  // Use current year if selectedYear is null
+  const defaultYear = selectedYear || new Date().getFullYear();
+  document.getElementById("fromYear").value = defaultYear;
+  document.getElementById("toYear").value = defaultYear;
 
   if (selectedMonth !== "ALL" && selectedMonth !== null) {
     document.getElementById("fromMonth").value = selectedMonth;
@@ -374,13 +410,7 @@ async function executeBatchExport() {
       selectedYear = prevYear;
       selectedMonth = prevMonth;
       renderMonthButtons();
-
-      if (selectedMonth) {
-        loadMonthlyData();
-      } else {
-        document.getElementById("dataContainer").innerHTML =
-          "<p style='text-align:center; font-size: 16px; color: #7f8c8d; margin-top: 50px;'>👆 Please select a month to view the data.</p>";
-      }
+      updateTableVisibility();
       showToast("Batch PDF Export Completed!", "success");
     } catch (e) {
       showToast("Error generating PDFs", "error");

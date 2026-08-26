@@ -15,7 +15,7 @@
         
         .filter-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .btn-group { display: flex; flex-wrap: wrap; gap: 10px; }
-        .year-group { border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 15px; }
+        .year-group { padding-bottom: 10px; }
         
         .filter-btn { 
             flex: 1 1 calc(8.33% - 10px);
@@ -41,6 +41,7 @@
         table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
         th, td { border: 1px solid #000; padding: 5px 8px; text-align: center; height: 33px; }
         .eq-width { min-width: 95px; }
+        .pl-width { min-width: 120px; } /* 🟢 NEW: Increased width for Profit or Loss */
         
         .th-main { background: #ffffff; font-weight: bold; font-size: 13px; }
         .bg-op-exp { background: #f8cbad !important; font-weight: bold; }
@@ -54,12 +55,9 @@
         .toast.success { background: #27ae60; border-left: 5px solid #1e8449; }
         .toast.error { background: #e74c3c; border-left: 5px solid #c0392b; }
 
-        /* Modal Styles */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 450px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .modal-content h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .checkbox-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start; margin: 20px 0; }
-        .checkbox-grid label { width: calc(33.33% - 10px); text-align: left; font-size: 14px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -77,13 +75,16 @@
     <h4 style="margin: 0 0 10px 0; color: #7f8c8d;">Select Year</h4>
     <div class="btn-group year-group" id="yearButtonsContainer"></div>
     
-    <h4 style="margin: 0 0 10px 0; color: #7f8c8d;">Select Month</h4>
-    <div class="btn-group" id="monthButtonsContainer"></div>
+    <!-- 🟢 Hidden initially, shown only when a year is selected -->
+    <div id="monthSection" style="display: none; margin-top: 20px; padding-top: 15px; border-top: 2px solid #eee;">
+        <h4 style="margin: 0 0 10px 0; color: #7f8c8d;">Select Month</h4>
+        <div class="btn-group" id="monthButtonsContainer"></div>
+    </div>
 </div>
 
 <div id="dataContainer">
     <p style="text-align:center; font-size: 16px; color: #7f8c8d; margin-top: 50px;">
-        👆 Please select a month to view the data.
+        👆 Please select a Year first to proceed.
     </p>
 </div>
 
@@ -93,7 +94,6 @@
         <h3>Select Period to Export</h3>
         
         <div style="display: flex; gap: 20px; justify-content: center; margin: 25px 0; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
-            <!-- FROM -->
             <div style="text-align: left;">
                 <label style="display:block; font-weight:bold; margin-bottom:8px; color:#2980b9;">From Date:</label>
                 <div style="display: flex; gap: 8px;">
@@ -102,7 +102,6 @@
                 </div>
             </div>
             
-            <!-- TO -->
             <div style="text-align: left;">
                 <label style="display:block; font-weight:bold; margin-bottom:8px; color:#27ae60;">To Date:</label>
                 <div style="display: flex; gap: 8px;">

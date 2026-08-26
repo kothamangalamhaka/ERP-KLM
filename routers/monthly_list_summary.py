@@ -150,6 +150,8 @@ async def export_monthly_summary_excel(from_y: int, from_m: int, to_y: int, to_m
                 for col in range(1, 16):
                     if col in equal_width_cols:
                         ws.column_dimensions[get_column_letter(col)].width = 15 
+                    elif col == 15: # 🟢 Profit or Loss Column Width
+                        ws.column_dimensions[get_column_letter(col)].width = 18 
                     else:
                         ws.column_dimensions[get_column_letter(col)].width = 14
 
