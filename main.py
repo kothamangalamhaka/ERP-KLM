@@ -21,6 +21,7 @@ from routers.payment_export_py import router as payment_export_router
 from routers import we1_own_eq_data_base
 from fastapi.middleware.cors import CORSMiddleware
 from routers import klm_staff_payroll
+from routers import monthly_list_summary
 
 
 
@@ -47,7 +48,7 @@ app.include_router(payment_export_router)
 app.include_router(we1_own_eq_data_base.router)
 app.include_router(Staff_salary_export.router, prefix="/py", tags=["Salary Export"])
 app.include_router(klm_staff_payroll.router, prefix="/api/py-payroll", tags=["Payroll Export"])
-
+app.include_router(monthly_list_summary.router)
 
 
 

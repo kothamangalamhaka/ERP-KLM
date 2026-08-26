@@ -49,6 +49,7 @@ const staffSalaryRoute = require('./routes/StaffSalary');
 const invoiceAuthRoutes = require('./routes/invoiceAuth');
 const zohoInvoiceRoute = require('./routes/zoho_download_inv');
 const payrollRouter = require("./routes/klm_emp_payroll");
+const monthly_summary = require("./routes/monthly_list_summary");
 
 
 
@@ -86,6 +87,7 @@ app.use('/api/staff-salary', staffSalaryRoute);
 app.use('/api/invoice-auth', invoiceAuthRoutes);
 app.use('/api', require('./routes/zoho_download_inv'));
 app.use("/api/payroll", payrollRouter);
+app.use("/api/monthly-summary", monthly_summary);
 
 
 
