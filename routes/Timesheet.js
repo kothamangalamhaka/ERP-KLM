@@ -1650,19 +1650,19 @@ setInterval(async () => {
 async function runAutoLock() {
   try {
     const now = new Date();
-    
+
     const lockTargetDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-    
+
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const targetMonthStr = monthNames[lockTargetDate.getMonth()];
     const targetYear = lockTargetDate.getFullYear();
 
     const res = await pool.query("SELECT lock_month, lock_year FROM timesheet_lock_period WHERE id = 1");
-    
+
     if (res.rows.length > 0) {
         const current = res.rows[0];
         let currentLockDate = new Date(1970, 0, 1); 
-        
+
         if (current.lock_month && current.lock_year) {
             currentLockDate = new Date(current.lock_year, monthNames.indexOf(current.lock_month), 1);
         }
@@ -1683,180 +1683,5 @@ async function runAutoLock() {
 runAutoLock();
 
 setInterval(runAutoLock, 12 * 60 * 60 * 1000);
-
-
-// ==========================================
-// 🟢 LIVE LOCK TRANSFER & POLLING LOGIC
-// ==========================================
-function startRecordPoll(p, m, y) {
-  clearInterval(recordPollTimer);
-  recordPollTimer = setInterval(async () => {
-      try {
-          const res = await fetch(`/timesheet/api/record-lock/poll?plate=${p}&month=${m}&year=${y}`, {
-              headers: { Authorization: "Bearer " + token }
-          });
-          const data = await res.json();
-          const userStr = localStorage.getItem("timesheetUser");
-          if (!userStr) return;
-          const user = JSON.parse(userStr).username.trim().toLowerCase();
-
-          if (!data.locked) {
-              if (isReadOnlyMode) {
-                  // Nobody owns it anymore, I can claim it!
-                  claimLockSilently(p, m, y);
-              }
-              return;
-          }
-
-          // If I am the OWNER
-          if (data.owner.trim().toLowerCase() === user) {
-              if (isReadOnlyMode) {
-                  // I just got ownership! Make UI editable LIVE.
-                  isReadOnlyMode = false;
-                  makeGridEditableLive();
-                  document.getElementById("btnRequestEdit").style.display = "none";
-                  currentLockedRecord = { plate: p, month: m, year: y };
-                  
-                  // Small toast to notify
-                  const Toast = Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000 });
-                  Toast.fire({ icon: "success", title: "Edit Access Granted!" });
-              }
-
-              // Check if someone is requesting from me
-              if (data.requestedBy && !incomingRequestActive) {
-                  incomingRequestActive = true;
-                  showTransferRequestPopup(data.requestedBy, p, m, y);
-              }
-          }
-          // If I am the REQUESTER waiting
-          else if (data.requestedBy && data.requestedBy.trim().toLowerCase() === user) {
-              if (Date.now() - data.requestTime >= 30000) {
-                   // 30 Seconds passed. Force claim!
-                   forceClaimLock(p, m, y);
-              }
-          }
-          // Someone else owns it and I am not the requester
-          else {
-              if (!isReadOnlyMode) {
-                  // Lock was taken from me! Make UI read-only LIVE.
-                  isReadOnlyMode = true;
-                  currentLockedRecord = null;
-                  makeGridReadOnlyLive();
-                  customAlert("Access Transferred", "Edit access has been transferred to another user. You are now in Read-Only mode.");
-              }
-          }
-      } catch (e) {}
-  }, 5000); // Poll every 5 seconds
-}
-
-async function claimLockSilently(p, m, y) {
-  await fetch("/timesheet/api/record-lock/request", {
-      method: 'POST',
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ plate: p, month: m, year: y })
-  });
-  // Next poll will pick up ownership
-}
-
-async function requestEditAccess() {
-  const p = document.getElementById("selPlate").value.trim().toUpperCase();
-  const m = document.getElementById("selMonth").value;
-  const y = document.getElementById("selYear").value;
-  
-  const btn = document.getElementById("btnRequestEdit");
-  btn.innerText = "⏳ Request Sent...";
-  btn.disabled = true;
-
-  try {
-      const res = await fetch("/timesheet/api/record-lock/request-transfer", {
-          method: 'POST',
-          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-          body: JSON.stringify({ plate: p, month: m, year: y })
-      });
-      const data = await res.json();
-      if(data.success) {
-          const Toast = Swal.mixin({ toast: true, position: "top-end", showConfirmButton: false, timer: 3000 });
-          Toast.fire({ icon: "info", title: "Request sent. Waiting for approval..." });
-      } else {
-          customAlert("Notice", data.message);
-          btn.innerText = "🔔 Request Edit";
-          btn.disabled = false;
-      }
-  } catch(e) {}
-}
-
-function showTransferRequestPopup(requester, p, m, y) {
-  let timerInterval;
-  Swal.fire({
-    title: 'Edit Access Requested',
-    html: `<b>${requester.toUpperCase()}</b> is requesting to edit this record.<br><br>Auto-approving in <b style="color:red; font-size:18px;"></b> seconds.`,
-    timer: 30000,
-    timerProgressBar: true,
-    showCancelButton: true,
-    confirmButtonColor: '#10b981',
-    cancelButtonColor: '#ef4444',
-    confirmButtonText: 'Approve',
-    cancelButtonText: 'Reject',
-    allowOutsideClick: false,
-    didOpen: () => {
-      const b = Swal.getHtmlContainer().querySelector('b:nth-of-type(2)');
-      timerInterval = setInterval(() => {
-        b.textContent = Math.ceil(Swal.getTimerLeft() / 1000);
-      }, 1000);
-    },
-    willClose: () => {
-      clearInterval(timerInterval);
-    }
-  }).then((result) => {
-    incomingRequestActive = false;
-    if (result.isConfirmed || result.dismiss === Swal.DismissReason.timer) {
-      resolveTransfer(p, m, y, 'approve');
-    } else {
-      resolveTransfer(p, m, y, 'reject');
-    }
-  });
-}
-
-async function resolveTransfer(p, m, y, action) {
-  await fetch("/timesheet/api/record-lock/resolve-transfer", {
-      method: 'POST',
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ plate: p, month: m, year: y, action: action })
-  });
-}
-
-async function forceClaimLock(p, m, y) {
-  await fetch("/timesheet/api/record-lock/resolve-transfer", {
-      method: 'POST',
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ plate: p, month: m, year: y, action: 'force' })
-  });
-}
-
-function makeGridEditableLive() {
-  document.querySelectorAll(".grid-input").forEach(el => {
-      el.disabled = false;
-      el.style.backgroundColor = "";
-      el.style.cursor = "text";
-  });
-  const saveLabel = document.getElementById("saveStatus");
-  saveLabel.innerText = "✓ Ready to Edit";
-  saveLabel.className = "save-indicator status-saved";
-  saveLabel.style.opacity = "1";
-  setTimeout(() => { saveLabel.className = "save-indicator"; }, 3000);
-}
-
-function makeGridReadOnlyLive() {
-  document.querySelectorAll(".grid-input").forEach(el => {
-      el.disabled = true;
-      el.style.backgroundColor = "#f1f5f9";
-      el.style.cursor = "not-allowed";
-  });
-  const saveLabel = document.getElementById("saveStatus");
-  saveLabel.innerText = "Read Only";
-  saveLabel.className = "save-indicator status-saving";
-  saveLabel.style.opacity = "1";
-}
-
 
 module.exports = router;

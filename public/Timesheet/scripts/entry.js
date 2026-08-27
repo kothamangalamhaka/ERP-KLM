@@ -491,6 +491,42 @@ async function triggerFetch() {
       clearInvoiceForm();
     }
 
+    // 🟢 RESTORED: Fetch and Display Actual Logsheet Count
+    fetch("/timesheet/api/logsheets/list", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ month: m, year: y, plate_no: p }),
+    })
+    .then(res => res.json())
+    .then(lsData => {
+      const actualLsSpan = document.getElementById("actualLogsheetCount");
+      if (actualLsSpan) {
+        if (lsData.success && lsData.files && lsData.files.length > 0) {
+          let validCount = 0;
+          let zeroCount = 0;
+          
+          lsData.files.forEach(f => {
+            if (f.size === 0) zeroCount++;
+            else validCount++;
+          });
+          
+          let htmlStr = `<span style="font-weight: 700;">[ ${validCount} ]</span>`;
+          
+          if (zeroCount > 0) {
+            htmlStr += `<span style="color: #ef4444; font-weight: 700; margin-left: 6px; font-size: 13px;" title="${zeroCount} Empty (0B) files">${zeroCount}</span>`;
+          }
+          
+          actualLsSpan.innerHTML = htmlStr;
+        } else {
+          actualLsSpan.innerHTML = "";
+        }
+      }
+    })
+    .catch(e => console.log("Error fetching logsheet count:", e));
+
     let existingData = data.success ? data.data : [];
     
     try {
