@@ -30,6 +30,12 @@
         align-items: center;
         flex-direction: column;
       }
+      
+      .remark-column-cell:empty:before {
+        content: attr(data-placeholder);
+        color: #94a3b8;
+        font-style: italic;
+      }
 
       .spinner {
         border: 6px solid #f3f3f3;
@@ -310,7 +316,8 @@
       th {
         background-color: #1a4d80;
         color: white;
-        padding: 10px 4px;
+        padding: 12px 6px; /* 🟢 Increased padding */
+        height: 38px;      /* 🟢 Added proper height */
         font-size: 12px;
         border: 1px solid #10365c;
         text-align: center;
@@ -391,12 +398,12 @@
 
       .report-table-wrapper {
         background: white;
-        padding: 20px;
+        padding: 15px;
         border-radius: 8px;
         border: 1px solid #cbd5e1;
         overflow-x: auto;
-        width: 100%;
-        max-width: 1650px;
+        width: 98%;        /* 🟢 സ്ക്രീനിന്റെ ഫുൾ വിഡ്ത് എടുക്കാൻ */
+        max-width: none;   /* 🟢 മാക്സിമം ലിമിറ്റ് ഒഴിവാക്കുന്നു */
         margin: 0 auto;
         box-sizing: border-box;
       }
@@ -405,7 +412,7 @@
         width: 100% !important;
         border-collapse: collapse;
         font-size: 12px;
-        table-layout: fixed !important;
+        table-layout: auto !important; /* 🟢 ഓട്ടോ ലേഔട്ട് ആക്കുമ്പോൾ കോളങ്ങൾ ഡാറ്റയ്ക്ക് അനുസരിച്ച് കൃത്യമായി സ്പേസ് എടുത്തുനിൽക്കും */
       }
 
       .report-table th,
@@ -1870,8 +1877,9 @@
 
           const rowOwner = r.owner || fetchedReportCache.find(rep => rep.plate === r.plate_no)?.owner || "COMPANY VEHICLE";
 
+            // 🟢 Fix 2: Added data-site to the tr tag
             rowsHtml += `
-              <tr data-plate="${escapeHtmlAttribute(r.plate_no || "")}" data-owner="${escapeHtmlAttribute(rowOwner)}">
+              <tr data-plate="${escapeHtmlAttribute(r.plate_no || "")}" data-owner="${escapeHtmlAttribute(rowOwner)}" data-site="${escapeHtmlAttribute(r.site || 'N/A')}">
                 <td>${idx + 1}</td>
                 <td>${escapeHtml(r.date || "")}</td>
                 <td>${escapeHtml(r.vtype || "")}</td>
@@ -1897,6 +1905,14 @@
                 <td class="rent-cell">${rentVal.toFixed(2)}</td>
                 ${hasVat ? `<td class="vat-cell">${vatVal.toFixed(2)}</td>` : ""}
                 <td style="font-weight:bold;" class="total-cell">${totalVal.toFixed(2)}</td>
+                <td class="remark-column-cell no-print" 
+                    contenteditable="true" 
+                    spellcheck="false"
+                    data-month="${escapeHtmlAttribute(r.date || '')}" 
+                    data-placeholder="Add remark..."
+                    style="text-align:left; padding: 4px 8px !important; font-size: 11px; outline:none; cursor:text; color:#1e293b; background-color: #f8fafc; border: 1px dashed #cbd5e1;"
+                    onblur="autoSaveInlineRemark(this)" 
+                    onkeypress="if(event.key === 'Enter') { event.preventDefault(); this.blur(); }">${escapeHtml(r.remark || '')}</td>
                 <td class="extra-comparison-col" style="background:#f0fdf4;">${repMatch.ts_nr || 0}</td>
                 <td class="extra-comparison-col" style="background:#f0fdf4;">${repMatch.ts_ot || 0}</td>
                 <td class="extra-comparison-col" style="background:#eff6ff;">${repMatch.inv_nr || 0}</td>
@@ -2041,10 +2057,12 @@
                   <th style="width:7%;">Rent</th>
                   ${hasVat ? `<th style="width:6%;">VAT</th>` : ""}
                   <th style="width:7%;">Total</th>
+                  <th style="width:12%;" class="remark-column-cell no-print">Remark</th>
                   <th style="width:5%;" class="extra-comparison-col th-ts">Log. NR</th>
                   <th style="width:5%;" class="extra-comparison-col th-ts">Log. OT</th>
                   <th style="width:5%;" class="extra-comparison-col th-summary">Bill NR</th>
                   <th style="width:5%;" class="extra-comparison-col th-summary">Bill OT</th>
+                </tr>
                 </tr>
               </thead>
 
@@ -2064,6 +2082,7 @@
                   <td class="grand-rent">${totalRent.toFixed(2)}</td>
                   ${hasVat ? `<td class="grand-vat">${totalVat.toFixed(2)}</td>` : ""}
                   <td style="color:#000000;" class="grand-total">${grandTotal.toFixed(2)}</td>
+                  <td class="remark-column-cell no-print"></td>
                   <td class="extra-comparison-col" style="background:#f0fdf4;">${sumTsNr}</td>
                   <td class="extra-comparison-col" style="background:#f0fdf4;">${sumTsOt}</td>
                   <td class="extra-comparison-col" style="background:#eff6ff;">${sumInvNr}</td>
@@ -2511,7 +2530,7 @@
 
             after_adjustment: total,
 
-            remark: "",
+            remark: r.querySelector(".remark-inline-input")?.value?.trim() || "",
           });
         });
 
@@ -2544,7 +2563,8 @@
         document.getElementById("loaderOverlay").style.display = "flex";
 
         try {
-          const res = await fetch("/billing/save", {
+          // 🟢 /billing/save എന്നതിന് പകരം View Bill-ലെ റൂട്ട് കോൾ ചെയ്യുന്നു
+          const res = await fetch("/api/view-bill/save-bill", {
             method: "POST",
 
             headers: {
@@ -2886,6 +2906,13 @@
           </td>
           <td class="rent-cell">0.00</td>
           <td style="font-weight:bold;" class="total-cell">0.00</td>
+          <td class="remark-column-cell no-print" 
+              contenteditable="true" 
+              spellcheck="false"
+              data-placeholder="Add remark..."
+              style="text-align:left; padding: 4px 8px !important; font-size: 11px; outline:none; cursor:text; color:#1e293b; background-color: #f8fafc; border: 1px dashed #cbd5e1;"
+              onblur="autoSaveInlineRemark(this)"
+              onkeypress="if(event.key === 'Enter') { event.preventDefault(); this.blur(); }"></td>
           <td class="extra-comparison-col" style="background:#f0fdf4;">0</td>
           <td class="extra-comparison-col" style="background:#f0fdf4;">0</td>
           <td class="extra-comparison-col" style="background:#eff6ff;">0</td>
@@ -2899,55 +2926,43 @@
 
       /*
        * ============================================================
-       * DOWNLOAD PNG (HIDE BLANK ROWS AUTOMATICALLY)
+       * DOWNLOAD PNG & COPY HQ IMAGE (GUARANTEED REMARK HIDE)
        * ============================================================
        */
 
       async function downloadCardPNG(btn) {
         const card = btn.closest(".bill-card");
         if (!card) return;
+        if (card.classList.contains("edit-mode")) return showToast("Exit edit mode first.");
 
-        if (card.classList.contains("edit-mode")) {
-          return showToast("Exit edit mode first.");
-        }
+        await syncActiveCardDataBeforeAction(card);
 
-        // ബ്ലാങ്ക് ആയ അവസാന വരികൾ താൽക്കാലികമായി മറയ്ക്കുന്നു
         const hiddenBlankRows = [];
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          const plateVal =
-            r.getAttribute("data-plate") ||
-            r.querySelector(".manual-plate-input")?.value?.trim() ||
-            "";
+          const plateVal = r.getAttribute("data-plate") || r.querySelector(".manual-plate-input")?.value?.trim() || "";
           const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
           const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
           if (!plateVal && nhr === 0 && othr === 0) {
-            r.style.display = "none";
+            r.style.setProperty("display", "none", "important");
             hiddenBlankRows.push(r);
           }
         });
 
-        card
-          .querySelectorAll(
-            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
-          )
-          .forEach((el) => (el.style.display = "none"));
-
-        card
-          .querySelectorAll(".site-column-cell")
-          .forEach((el) => (el.style.display = "none"));
+        // 🟢 Forcefully Hide Remark Column & Others
+        card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => {
+          el.style.setProperty("display", "none", "important");
+        });
+        card.querySelectorAll(".site-column-cell").forEach((el) => {
+          el.style.setProperty("display", "none", "important");
+        });
 
         const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
-        if (grandTotalCell) {
-          grandTotalCell.setAttribute("colspan", "5");
-        }
+        if (grandTotalCell) grandTotalCell.setAttribute("colspan", "5");
 
         const printArea = card.querySelector(".print-area");
 
         try {
-          const canvas = await html2canvas(printArea, {
-            scale: 3,
-            useCORS: true,
-          });
+          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true, logging: false });
           const link = document.createElement("a");
           link.download = `Bill_Report.png`;
           link.href = canvas.toDataURL("image/png");
@@ -2955,86 +2970,53 @@
         } catch (e) {
           showToast("Unable to create PNG.");
         } finally {
-          // ഹൈഡ് ചെയ്ത വരികളും കോളങ്ങളും തിരികെ കൊണ്ടുവരുന്നു
           hiddenBlankRows.forEach((r) => (r.style.display = ""));
-          card
-            .querySelectorAll(
-              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
-            )
-            .forEach((el) => (el.style.display = ""));
-          card
-            .querySelectorAll(".site-column-cell")
-            .forEach((el) => (el.style.display = ""));
-          if (grandTotalCell) {
-            grandTotalCell.setAttribute("colspan", "6");
-          }
+          card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => (el.style.display = ""));
+          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          if (grandTotalCell) grandTotalCell.setAttribute("colspan", "6");
         }
       }
-
-      /*
-       * ============================================================
-       * COPY HQ IMAGE (HIDE BLANK ROWS AUTOMATICALLY)
-       * ============================================================
-       */
 
       async function copyCardHQ(btn) {
         const card = btn.closest(".bill-card");
         if (!card) return;
+        if (card.classList.contains("edit-mode")) return showToast("Exit edit mode first.");
 
-        if (card.classList.contains("edit-mode")) {
-          return showToast("Exit edit mode first.");
-        }
+        await syncActiveCardDataBeforeAction(card);
 
-        // ബ്ലാങ്ക് ആയ വരികൾ താൽക്കാലികമായി മറയ്ക്കുന്നു
         const hiddenBlankRows = [];
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          const plateVal =
-            r.getAttribute("data-plate") ||
-            r.querySelector(".manual-plate-input")?.value?.trim() ||
-            "";
+          const plateVal = r.getAttribute("data-plate") || r.querySelector(".manual-plate-input")?.value?.trim() || "";
           const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
           const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
           if (!plateVal && nhr === 0 && othr === 0) {
-            r.style.display = "none";
+            r.style.setProperty("display", "none", "important");
             hiddenBlankRows.push(r);
           }
         });
 
-        card
-          .querySelectorAll(
-            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
-          )
-          .forEach((el) => (el.style.display = "none"));
-
-        card
-          .querySelectorAll(".site-column-cell")
-          .forEach((el) => (el.style.display = "none"));
+        // 🟢 Forcefully Hide Remark Column & Others
+        card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => {
+          el.style.setProperty("display", "none", "important");
+        });
+        card.querySelectorAll(".site-column-cell").forEach((el) => {
+          el.style.setProperty("display", "none", "important");
+        });
 
         const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
-        if (grandTotalCell) {
-          grandTotalCell.setAttribute("colspan", "5");
-        }
+        if (grandTotalCell) grandTotalCell.setAttribute("colspan", "5");
 
         const printArea = card.querySelector(".print-area");
 
         try {
-          const canvas = await html2canvas(printArea, {
-            scale: 3,
-            useCORS: true,
-          });
+          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true, logging: false });
           canvas.toBlob(async (blob) => {
             try {
-              if (
-                !blob ||
-                !navigator.clipboard ||
-                typeof ClipboardItem === "undefined"
-              ) {
+              if (!blob || !navigator.clipboard || typeof ClipboardItem === "undefined") {
                 showToast("Clipboard image is not supported in this browser.");
                 return;
               }
-              await navigator.clipboard.write([
-                new ClipboardItem({ "image/png": blob }),
-              ]);
+              await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
               showToast("Copied to Clipboard!");
             } catch (e) {
               showToast("Unable to copy image.");
@@ -3044,17 +3026,9 @@
           showToast("Unable to create image.");
         } finally {
           hiddenBlankRows.forEach((r) => (r.style.display = ""));
-          card
-            .querySelectorAll(
-              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
-            )
-            .forEach((el) => (el.style.display = ""));
-          card
-            .querySelectorAll(".site-column-cell")
-            .forEach((el) => (el.style.display = ""));
-          if (grandTotalCell) {
-            grandTotalCell.setAttribute("colspan", "6");
-          }
+          card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => (el.style.display = ""));
+          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          if (grandTotalCell) grandTotalCell.setAttribute("colspan", "6");
         }
       }
 
@@ -3635,9 +3609,12 @@
           return showToast("Exit edit mode first.");
         }
 
+        // 🟢 ഡൗൺലോഡിന് മുൻപ് ആക്ടീവ് കാർഡിലെ ഡാറ്റ ബാക്ക് എൻഡിൽ സേവ് ചെയ്യുന്നു
+        await syncActiveCardDataBeforeAction(card);
+
         card
           .querySelectorAll(
-            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+            ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
           )
           .forEach((el) => (el.style.display = "none"));
 
@@ -3674,7 +3651,7 @@
         } finally {
           card
             .querySelectorAll(
-              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
             )
             .forEach((el) => (el.style.display = ""));
 
@@ -3705,9 +3682,12 @@
           return showToast("Exit edit mode first.");
         }
 
+        // 🟢 കോപ്പിക്ക് മുൻപ് ആക്ടീവ് കാർഡിലെ ഡാറ്റ ബാക്ക് എൻഡിൽ സേവ് ചെയ്യുന്നു
+        await syncActiveCardDataBeforeAction(card);
+
         card
           .querySelectorAll(
-            ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+            ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
           )
           .forEach((el) => (el.style.display = "none"));
 
@@ -3760,7 +3740,7 @@
         } finally {
           card
             .querySelectorAll(
-              ".no-print, .rate-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
             )
             .forEach((el) => (el.style.display = ""));
 
@@ -3974,6 +3954,119 @@
         t.className = "show";
 
         setTimeout(() => (t.className = ""), 3000);
+      }
+
+
+      // 🟢 1. Auto Save Remark on Blur or Enter Key (Clean Content Editable)
+      async function autoSaveInlineRemark(cell) {
+        const row = cell.closest("tr");
+        if (!row) return;
+
+        const plate = row.getAttribute("data-plate");
+        const site = row.getAttribute("data-site") || row.children[3]?.innerText?.trim() || "";
+        const remarkVal = cell.innerText.trim();
+        
+        let rawMonth = cell.getAttribute("data-month") || "";
+        let fullMonth = document.getElementById("selMonth").value + " " + document.getElementById("selYear").value;
+        
+        if (rawMonth) {
+           const mParts = rawMonth.split(" ");
+           if (mParts.length === 2) {
+              const fullNames = { "Jan":"January", "Feb":"February", "Mar":"March", "Apr":"April", "May":"May", "Jun":"June", "Jul":"July", "Aug":"August", "Sep":"September", "Oct":"October", "Nov":"November", "Dec":"December" };
+              fullMonth = (fullNames[mParts[0]] || mParts[0]) + " 20" + mParts[1];
+           }
+        }
+
+        // 🟢 കാഷെയിൽ അപ്ഡേറ്റ് ചെയ്യുന്നു (റീലോഡ് ആകുമ്പോൾ ഡാറ്റ മാറാൻ)
+        let matchedCache = fetchedRowsCache.find(cr => String(cr.plate_no || "").trim().toUpperCase() === String(plate).trim().toUpperCase() && (cr.date || "") === rawMonth);
+        if (matchedCache) {
+            matchedCache.remark = remarkVal;
+        }
+
+        if (!plate) return;
+        const token = localStorage.getItem("view_bill_token");
+
+        try {
+          const res = await fetch("/api/view-bill/save-remark", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({
+              plate_no: plate,
+              month: fullMonth,
+              site_name: site,
+              remark: remarkVal,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast("Remark saved!");
+          } else {
+            showToast("Failed to save: " + data.message);
+          }
+        } catch (e) {
+          console.warn("Remark auto-save failed", e);
+        }
+      }
+
+      // 🟢 2. Sync Active Card Screen Data (Auto-save rates/rent before Copy & Download)
+      async function syncActiveCardDataBeforeAction(card) {
+        const fullMonth = document.getElementById("selMonth").value + " " + document.getElementById("selYear").value;
+        const token = localStorage.getItem("view_bill_token");
+        const items = [];
+
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          const plate = r.getAttribute("data-plate");
+          if (!plate) return;
+
+          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || r.querySelector(".nhr-cell .view-number-text")?.innerText || 0);
+          const othr = parseFloat(r.querySelector(".othr-field")?.value || r.querySelector(".othr-cell .view-number-text")?.innerText || 0);
+          const cells = r.querySelectorAll(".rate-column-cell");
+          const nrate = parseFloat(cells[0]?.querySelector(".nrate-field")?.value || cells[0]?.querySelector(".view-number-text")?.innerText || 0);
+          const otrate = parseFloat(cells[1]?.querySelector(".otrate-field")?.value || cells[1]?.querySelector(".view-number-text")?.innerText || 0);
+          const rent = parseFloat(r.querySelector(".rent-cell")?.innerText || 0);
+          const vat = parseFloat(r.querySelector(".vat-cell")?.innerText || 0);
+          const total = parseFloat(r.querySelector(".total-cell")?.innerText || 0);
+          const remark = r.querySelector(".remark-inline-input")?.value?.trim() || "";
+          const owner = r.getAttribute("data-owner") || "COMPANY VEHICLE";
+
+          items.push({
+            date: r.children[1]?.innerText?.trim() || "",
+            vtype: r.children[2]?.innerText?.trim() || "",
+            site: r.children[3]?.innerText?.trim() || "N/A",
+            driver: r.children[4]?.innerText?.trim() || "",
+            plate_no: plate,
+            nhr: nhr,
+            nrate: nrate,
+            othr: othr,
+            otrate: otrate,
+            rent: rent,
+            vat_amount: vat,
+            total: total,
+            owner: owner,
+            remark: remark
+          });
+        });
+
+        if (items.length > 0) {
+          try {
+            await fetch("/api/view-bill/save-active-bill", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+              body: JSON.stringify({
+                month: fullMonth,
+                items: items,
+              }),
+            });
+          } catch (err) {
+            console.warn("Background auto-save failed", err);
+          }
+        }
       }
     </script>
   </body>

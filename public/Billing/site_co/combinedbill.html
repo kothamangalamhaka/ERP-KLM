@@ -51,8 +51,9 @@
           </a>
 
           <!-- Plate / Owner Type Selector -->
-          <div class="selector-wrapper" style="width: 120px;">
+          <div class="selector-wrapper" style="width: 135px;">
             <select id="searchType" onchange="document.getElementById('plateSearch').value=''; document.getElementById('plateSuggestions').style.display='none'; document.getElementById('plateSearch').focus();" style="height:32px; border:none; background:transparent; font-weight:bold; font-size:12px; width:100%;">
+              <option value="all">Plate / Owner</option>
               <option value="plate">Plate No</option>
               <option value="owner">Owner Name</option>
             </select>
@@ -128,7 +129,7 @@
             <i class="material-icons" style="font-size:16px;">table_chart</i> Excel
           </button>
           
-          <button type="button" class="btn" style="background:#dc3545; margin-left: auto;" onclick="executeLogout()">
+          <button type="button" class="btn" style="background:#dc3545; margin-left: 10px;" onclick="executeLogout()">
             Logout
           </button>
         </div>
@@ -283,7 +284,11 @@
 
         if (!val) { box.style.display = "none"; return; }
 
-        const pool = type === "plate" ? suggestionPlates : suggestionOwners;
+        let pool = [];
+        if (type === "plate") pool = suggestionPlates;
+        else if (type === "owner") pool = suggestionOwners;
+        else pool = [...new Set([...suggestionPlates, ...suggestionOwners])];
+
         const matches = pool.filter((p) => p && p.toUpperCase().includes(val));
 
         if (matches.length > 0) {
@@ -363,14 +368,20 @@
 
       async function fetchCombinedBill() {
         const searchVal = document.getElementById("plateSearch").value.trim();
-        const searchType = document.getElementById("searchType").value;
+        let searchType = document.getElementById("searchType").value;
         const fromM = document.getElementById("fromMonth").value;
         const fromY = parseInt(document.getElementById("fromYear").value);
         const toM = document.getElementById("toMonth").value;
         const toY = parseInt(document.getElementById("toYear").value);
 
         if (!searchVal) {
-          return showToast(`Please enter a ${searchType === 'plate' ? 'Plate No' : 'Owner Name'}.`);
+          return showToast("Please enter Plate No or Owner Name.");
+        }
+
+        // Auto-detect if 'all' is selected
+        if (searchType === "all") {
+          const isPlate = suggestionPlates.some(p => p.toUpperCase() === searchVal.toUpperCase());
+          searchType = isPlate ? "plate" : "owner";
         }
 
         const token = localStorage.getItem("view_bill_token");
@@ -381,10 +392,16 @@
           let data = null;
 
           if (searchType === "plate") {
-            const url = `/billing/combined-bill?plate_no=${encodeURIComponent(searchVal)}&from_month=${fromM}&from_year=${fromY}&to_month=${toM}&to_year=${toY}`;
+            const url = `/api/view-bill/combined-bill?plate_no=${encodeURIComponent(searchVal)}&from_month=${fromM}&from_year=${fromY}&to_month=${toM}&to_year=${toY}`;
             const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
-            if (res.status === 401 || res.status === 403) return executeLogout();
+            if (res.status === 401) return executeLogout();
             data = await res.json();
+            
+            if (data && !data.success) {
+              container.innerHTML = `<div style="text-align:center; padding:30px; color:#be123c; font-weight:bold;">${data.message || "Plate no not exist. Contact Administrator."}</div>`;
+              showToast(data.message || "Plate no not exist. Contact Administrator.");
+              return;
+            }
           } else {
             let allRows = [];
             const fromIdx = fromY * 12 + ALL_MONTHS.indexOf(fromM);
@@ -396,7 +413,9 @@
               
               const url = `/api/view-bill/data?month=${m}&year=${y}&search_type=owner&search_value=${encodeURIComponent(searchVal)}`;
               const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
-              if (res.status === 401 || res.status === 403) return executeLogout();
+              
+              // 401 മാത്രം ലോഗൗട്ട് ചെയ്യുക
+              if (res.status === 401) return executeLogout();
               
               const monthData = await res.json();
               if (monthData.success && monthData.rows) {
@@ -447,7 +466,8 @@
         // Group rows by Company based on Site name
         const companyGroups = {};
         data.rows.forEach(r => {
-          const comp = getCompanyFromSite(r.site);
+          // 🟢 Always prioritize getCompanyFromSite to prevent mismatch
+          let comp = getCompanyFromSite(r.site || r.site_name) || r.company || "Haka";
           if (!companyGroups[comp]) companyGroups[comp] = [];
           companyGroups[comp].push(r);
         });
@@ -477,23 +497,25 @@
 
           const cardHtml = `
             <div class="bill-card" style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 15px rgba(0,0,0,0.08); border: 1px solid #ddd;">
+              <!-- 🟢 Top Action Bar (Outside print-area so it won't appear in copy/download) -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                <div style="font-weight: 800; font-size: 15px; color: #1a4d80; text-transform: uppercase;">
+                  OWNER : <span>${escapeHTML(dispOwner)}</span> | <span style="color: #b40000;">${escapeHTML(compName)}</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn" style="background: #007bff; padding: 4px 10px; font-size: 11px; height: 30px;" onclick="downloadSingleCard(this)" title="Download this card as PNG">
+                    <i class="material-icons" style="font-size: 14px;">download</i> Download
+                  </button>
+                  <button type="button" class="btn" style="background: #17a2b8; padding: 4px 10px; font-size: 11px; height: 30px;" onclick="copySingleCardHQ(this)" title="Copy this card image">
+                    <i class="material-icons" style="font-size: 14px;">content_copy</i> Copy
+                  </button>
+                </div>
+              </div>
+
+              <!-- 🟢 Clean Print Area -->
               <div class="print-area" style="background: white; padding: 10px;">
                 <!-- Header Image -->
                 <img src="${compConfig.header}" class="header-img ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Header" crossorigin="anonymous" style="width:100%; height:auto; max-height:200px; display:block; margin: 0 auto 15px auto;" />
-
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
-                  <div style="font-weight: 800; font-size: 15px; color: #1a4d80; text-transform: uppercase;">
-                    OWNER : <span>${escapeHTML(dispOwner)}</span> | <span style="color: #b40000;">${escapeHTML(compName)}</span>
-                  </div>
-                  <div style="display: flex; gap: 8px;">
-                    <button type="button" class="btn" style="background: #007bff; padding: 4px 10px; font-size: 11px; height: 30px;" onclick="downloadSingleCard(this)" title="Download this card as PNG">
-                      <i class="material-icons" style="font-size: 14px;">download</i> Download
-                    </button>
-                    <button type="button" class="btn" style="background: #17a2b8; padding: 4px 10px; font-size: 11px; height: 30px;" onclick="copySingleCardHQ(this)" title="Copy this card image">
-                      <i class="material-icons" style="font-size: 14px;">content_copy</i> Copy
-                    </button>
-                  </div>
-                </div>
 
                 <div style="border:1px solid #cbd5e1; padding:12px; margin:15px 0; text-align:center; background:#f8fafc; font-weight:bold; font-size:18px; color:#1e293b;">
                   Bill Summary for Each Month ملخص فاتورة الشهر
@@ -703,7 +725,7 @@
 
         const token = localStorage.getItem("view_bill_token");
         try {
-          const res = await fetch("/billing/verify-combined-security", {
+          const res = await fetch("/api/view-bill/verify-combined-security", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
