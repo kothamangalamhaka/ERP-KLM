@@ -540,7 +540,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
 
       reportData.push({
         report_date: monthStr.substring(0, 3) + " " + yearStr.substring(2, 4),
-        rate: baseRate || saved?.nrate || "-", // Updated to use baseRate
+        rate: baseRate || saved?.nrate || "-",
         vat: (v.vat || "No").toLowerCase().includes("yes") ? "Yes" : "No",
         site: v.site_name || "N/A",
         owner: v.owner_name || "COMPANY VEHICLE",

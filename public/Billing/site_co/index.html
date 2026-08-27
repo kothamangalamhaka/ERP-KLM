@@ -313,19 +313,7 @@
         table-layout: fixed;
       }
 
-      th {
-        background-color: #1a4d80;
-        color: white;
-        padding: 12px 6px; /* 🟢 Increased padding */
-        height: 38px;      /* 🟢 Added proper height */
-        font-size: 12px;
-        border: 1px solid #10365c;
-        text-align: center;
-        font-weight: bold;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+     
 
       td {
         border: 1px solid #adb5bd;
@@ -396,14 +384,28 @@
         min-width: 30px;
       }
 
+     th {
+        background-color: #1a4d80;
+        color: white;
+        padding: 12px 6px;
+        height: 38px;
+        font-size: 12px;
+        border: 1px solid #10365c;
+        text-align: center;
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       .report-table-wrapper {
         background: white;
         padding: 15px;
         border-radius: 8px;
         border: 1px solid #cbd5e1;
         overflow-x: auto;
-        width: 98%;        /* 🟢 സ്ക്രീനിന്റെ ഫുൾ വിഡ്ത് എടുക്കാൻ */
-        max-width: none;   /* 🟢 മാക്സിമം ലിമിറ്റ് ഒഴിവാക്കുന്നു */
+        width: 98%;
+        max-width: none;
         margin: 0 auto;
         box-sizing: border-box;
       }
@@ -412,7 +414,7 @@
         width: 100% !important;
         border-collapse: collapse;
         font-size: 12px;
-        table-layout: auto !important; /* 🟢 ഓട്ടോ ലേഔട്ട് ആക്കുമ്പോൾ കോളങ്ങൾ ഡാറ്റയ്ക്ക് അനുസരിച്ച് കൃത്യമായി സ്പേസ് എടുത്തുനിൽക്കും */
+        table-layout: auto !important;
       }
 
       .report-table th,
@@ -985,36 +987,25 @@
                   <th class="th-general" style="width: 55px">Date</th>
                   <th class="th-general" style="width: 60px">Rate</th>
                   <th class="th-general" style="width: 35px">VAT</th>
-                  <th class="th-general" style="width: 140px">Site Name</th>
+                  
+                  <th class="th-general" style="width: 140px">
+                    Site Name
+                    <span class="filter-icon" onclick="openExcelFilter(event, 'site')">▾</span>
+                  </th>
 
                   <th class="th-general" style="width: 160px">
                     Owner Name
-                    <span
-                      class="filter-icon"
-                      onclick="openExcelFilter(event, 'owner')"
-                    >
-                      ▾
-                    </span>
+                    <span class="filter-icon" onclick="openExcelFilter(event, 'owner')">▾</span>
                   </th>
 
                   <th class="th-general" style="width: 160px">
                     Driver Name
-                    <span
-                      class="filter-icon"
-                      onclick="openExcelFilter(event, 'driver_name')"
-                    >
-                      ▾
-                    </span>
+                    <span class="filter-icon" onclick="openExcelFilter(event, 'driver_name')">▾</span>
                   </th>
 
                   <th class="th-general" style="width: 85px">
                     Plate No
-                    <span
-                      class="filter-icon"
-                      onclick="openExcelFilter(event, 'plate')"
-                    >
-                      ▾
-                    </span>
+                    <span class="filter-icon" onclick="openExcelFilter(event, 'plate')">▾</span>
                   </th>
 
                   <th class="th-ts" style="width: 45px">
