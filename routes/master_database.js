@@ -698,6 +698,34 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
+  // 🟢 DELETE ROW (SOFT DELETE)
+  router.post("/delete-row", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin" && req.user.role !== "Admin") {
+        return res.json({ success: false, message: "Access Denied." });
+      }
+      const { dbId } = req.body;
+      
+      const recordRes = await pool.query("SELECT plate_number FROM erp_records WHERE id = $1", [dbId]);
+      let plate = recordRes.rows.length > 0 ? recordRes.rows[0].plate_number : "Unknown";
+
+      await pool.query("UPDATE erp_records SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1", [dbId]);
+      
+      await pool.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'DELETE_ROW', $2)",
+        [req.user.username, JSON.stringify({ dbId, plate })]
+      );
+
+      await sendActivityTelegramMessage(
+        `🗑️ <b>ROW DELETED (To Recycle Bin)</b>\n\n<b>Plate:</b> ${plate}\n<b>Deleted by:</b> @${req.user.username}`
+      );
+
+      res.json({ success: true, message: "Row moved to recycle bin." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "DELETE_ROW");
+    }
+  });
+
   router.post("/add-row", verifyToken, async (req, res) => {
     try {
       if (req.user.role === "Viewer")
@@ -1339,6 +1367,82 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
+  // 🟢 GET RECYCLE BIN ROWS
+  router.get("/admin/recycle-bin/rows", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
+      const result = await pool.query("SELECT id, plate_number, record_data, deleted_at FROM erp_records WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC");
+      res.json({ success: true, rows: result.rows });
+    } catch (error) {
+      handleError(res, error, req.user.role, "GET_RECYCLE_BIN_ROWS");
+    }
+  });
+
+  // 🟢 RESTORE DELETED ROW
+  router.post("/admin/recycle-bin/restore-row", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
+      const { dbId } = req.body;
+      await pool.query("UPDATE erp_records SET deleted_at = NULL WHERE id = $1", [dbId]);
+      res.json({ success: true, message: "Row restored." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "RESTORE_ROW");
+    }
+  });
+
+  // 🟢 GET RECYCLE BIN COLUMNS
+  router.get("/admin/recycle-bin/columns", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
+      const result = await pool.query("SELECT header_name, deleted_at FROM erp_headers WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC");
+      res.json({ success: true, columns: result.rows });
+    } catch (error) {
+      handleError(res, error, req.user.role, "GET_RECYCLE_BIN_COLUMNS");
+    }
+  });
+
+  // 🟢 RESTORE DELETED COLUMN
+  router.post("/admin/recycle-bin/restore-column", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
+      const { colName } = req.body;
+      await pool.query("UPDATE erp_headers SET deleted_at = NULL WHERE header_name = $1", [colName]);
+      res.json({ success: true, message: "Column restored." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "RESTORE_COLUMN");
+    }
+  });
+
+  // 🟢 PURGE DELETED ROW (PERMANENT DELETE)
+  router.post("/admin/recycle-bin/purge-row", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
+      const { dbId } = req.body;
+      await pool.query("DELETE FROM erp_records WHERE id = $1 AND deleted_at IS NOT NULL", [dbId]);
+      res.json({ success: true, message: "Row permanently deleted." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "PURGE_ROW");
+    }
+  });
+
+  // 🟢 PURGE DELETED COLUMN (PERMANENT DELETE)
+  router.post("/admin/recycle-bin/purge-column", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
+      const { colName } = req.body;
+      
+      // 1. Delete the header definition
+      await pool.query("DELETE FROM erp_headers WHERE header_name = $1 AND deleted_at IS NOT NULL", [colName]);
+      
+      // 2. Remove the key and data completely from JSON objects in all records to free up DB space
+      await pool.query("UPDATE erp_records SET record_data = record_data - $1 WHERE record_data ? $1", [colName]);
+      
+      res.json({ success: true, message: "Column and its data permanently deleted." });
+    } catch (error) {
+      handleError(res, error, req.user.role, "PURGE_COLUMN");
+    }
+  });
+
   // 3. Delete Column API
   router.post("/admin/delete-column", verifyToken, async (req, res) => {
     try {
@@ -1356,7 +1460,7 @@ module.exports = function (pool, middlewares, helpers) {
       const isValid = await bcrypt.compare(adminPassword, adminRes.rows[0].password);
       if (!isValid) return res.json({ success: false, message: "Incorrect Admin Password." });
 
-      // കോളം Soft Delete ചെയ്യുന്നു (Recycle Bin ലേക്ക് മാറ്റുന്നു)
+   
       await pool.query(
         "UPDATE erp_headers SET deleted_at = CURRENT_TIMESTAMP WHERE header_name = $1",
         [colName]

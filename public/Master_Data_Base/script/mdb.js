@@ -287,6 +287,7 @@ document.addEventListener("click", function (event) {
     toolsMenu.classList.remove("show");
   $("#headerContextMenu").fadeOut(100);
   $("#driverContextMenu").fadeOut(100);
+  $("#rowContextMenu").fadeOut(100);
   if (
     !$(event.target).closest("#excelFilterMenu").length &&
     !$(event.target).hasClass("filter-icon")
@@ -314,10 +315,17 @@ let globalLockedCols = [],
 let contextColName = "",
   contextColIdx = -1,
   contextDriverDbId = null,
+  contextRowDbId = null,
   contextDriverPlate = "",
   contextDriverName = "",
   contextDriverMob = "",
-  contextDriverStart = "";
+  contextDriverStart = "",
+  contextDriverIqamaNo = "",
+  contextDriverIqamaExp = "",
+  contextDriverLicenceExp = "",
+  contextDriverIqamaNote = "",
+  contextDriverLicenceNote = "",
+  contextDriverNationality = "";
 
 let globalSearchMode = "general"; 
 
@@ -506,40 +514,79 @@ function toggleQuickEditMode() {
 let currentDriverModalMode = "handover";
 function setDriverMode(mode) {
   currentDriverModalMode = mode;
+  const activeStyle = { background: "white", color: "#0f172a", "box-shadow": "0 1px 3px rgba(0,0,0,0.1)" };
+  const inactiveStyle = { background: "transparent", color: "#64748b", "box-shadow": "none" };
+
+  $("#tabHandover").css(mode === "handover" ? activeStyle : inactiveStyle);
+  $("#tabCurrentUpdate").css(mode === "current_update" ? activeStyle : inactiveStyle);
+  $("#tabPastLog").css(mode === "past" ? activeStyle : inactiveStyle);
+
   if (mode === "handover") {
-    $("#tabHandover").css({
-      background: "white",
-      color: "#0f172a",
-      "box-shadow": "0 1px 3px rgba(0,0,0,0.1)",
-    });
-    $("#tabPastLog").css({
-      background: "transparent",
-      color: "#64748b",
-      "box-shadow": "none",
-    });
-    $("#formHandoverMode, #handoverStartDateBlock").show();
-    $("#formPastMode, #pastLogDates").hide();
+    $("#formHandoverMode").show();
+    $("#formCurrentUpdateMode").hide();
+    $("#formPastMode").hide();
+    $("#handoverStartDateBlock").show();
+    $("#pastLogDates").hide();
+    $("#documentsBlock").show();
+    $("#lblDriverName").text("New Driver Name");
+    $("#lblDriverStart").text("New Driver Work Start Date").css("color", "var(--success)");
     $("#btnSaveDriverAction")
       .text("Save & Change Driver")
       .removeClass("btn-primary")
-      .addClass("btn-success");
+      .removeClass("btn-info")
+      .addClass("btn-success")
+      .css("background", "")
+      .css("color", "");
+      
+    // Clear out current specific data so user enters fresh
+    $("#drvUpdateNewName").val("");
+    $("#drvUpdateNewMob").val("");
+    $("#drvUpdateNewStart").val("");
+  } else if (mode === "current_update") {
+    $("#formHandoverMode").hide();
+    $("#formCurrentUpdateMode").show();
+    $("#formPastMode").hide();
+    $("#handoverStartDateBlock").show();
+    $("#pastLogDates").hide();
+    $("#documentsBlock").show();
+    $("#lblDriverName").text("Current Driver Name (Edit)");
+    $("#lblDriverStart").text("Current Work Start Date (Edit)").css("color", "var(--primary)");
+    $("#btnSaveDriverAction")
+      .text("Update Current Details")
+      .removeClass("btn-success")
+      .removeClass("btn-primary")
+      .css("background", "var(--primary)")
+      .css("color", "white");
+
+    // Auto-fill existing current driver details & all documents
+    $("#drvUpdateNewName").val(contextDriverName || "");
+    $("#drvUpdateNewMob").val(contextDriverMob || "");
+    if(contextDriverStart && contextDriverStart !== "IDK") {
+       $("#drvUpdateNewStart").val(convertToInputDate(contextDriverStart));
+    } else {
+       $("#drvUpdateNewStart").val("");
+    }
+    $("#drvUpdateIqamaNo").val(contextDriverIqamaNo || "");
+    $("#drvUpdateIqamaExp").val(convertToInputDate(contextDriverIqamaExp));
+    $("#drvUpdateLicenceExp").val(convertToInputDate(contextDriverLicenceExp));
+    $("#drvUpdateIqamaNote").val(contextDriverIqamaNote || "");
+    $("#drvUpdateLicenceNote").val(contextDriverLicenceNote || "");
+    $("#drvUpdateNationality").val(contextDriverNationality || "");
   } else {
-    $("#tabPastLog").css({
-      background: "white",
-      color: "#0f172a",
-      "box-shadow": "0 1px 3px rgba(0,0,0,0.1)",
-    });
-    $("#tabHandover").css({
-      background: "transparent",
-      color: "#64748b",
-      "box-shadow": "none",
-    });
-    $("#formHandoverMode, #handoverStartDateBlock").hide();
-    $("#formPastMode, #pastLogDates").show();
+    $("#formHandoverMode").hide();
+    $("#formCurrentUpdateMode").hide();
+    $("#formPastMode").show();
+    $("#handoverStartDateBlock").hide();
+    $("#pastLogDates").show();
+    $("#documentsBlock").hide();
+    $("#lblDriverName").text("Driver Name");
     $("#btnSaveDriverAction")
       .text("Add to History")
       .removeClass("btn-success")
-      .addClass("btn-primary");
+      .removeClass("btn-info")
+      .addClass("btn-primary")
+      .css("background", "")
+      .css("color", "");
   }
 }
 
@@ -796,7 +843,65 @@ async function submitDriverUpdate() {
   let nName = $("#drvUpdateNewName").val().trim();
   let nMob = $("#drvUpdateNewMob").val().trim();
 
-  if (currentDriverModalMode === "handover") {
+  if (currentDriverModalMode === "current_update") {
+    let nStartRaw = $("#drvUpdateNewStart").val();
+    if (!nName) return showToast("Name is required", "error");
+    
+    let start = nStartRaw ? formatToDDMMMYYYY(nStartRaw) : "IDK";
+    let iqamaNo = $("#drvUpdateIqamaNo").val().trim();
+    let iqamaExpRaw = $("#drvUpdateIqamaExp").val();
+    let iqamaExp = iqamaExpRaw ? formatToDDMMMYYYY(iqamaExpRaw) : "";
+    let licenceExpRaw = $("#drvUpdateLicenceExp").val();
+    let licenceExp = licenceExpRaw ? formatToDDMMMYYYY(licenceExpRaw) : "";
+    let iqamaNote = $("#drvUpdateIqamaNote").val().trim();
+    let licenceNote = $("#drvUpdateLicenceNote").val().trim();
+    let nationality = $("#drvUpdateNationality").val().trim();
+
+    showToast("Updating Current Driver...", "info");
+
+    let edits = [
+        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.toUpperCase() === "DRIVER NAME") || "Driver Name", newValue: nName },
+        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.toUpperCase() === "MOBILE") || "Mobile", newValue: nMob },
+        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.toUpperCase() === "WORK START") || "Work Start", newValue: start },
+        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "IQAMANUMBER") || "Iqama Number", newValue: iqamaNo },
+        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "IQAMAEXPIREDATE" || h.replace(/\s+/g, "").toUpperCase() === "IQAMAEXPIRE") || "Iqama Expire Date", newValue: iqamaExp },
+        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "LICENSEEXPIREDATE" || h.replace(/\s+/g, "").toUpperCase() === "LICENSEEXPIRE" || h.replace(/\s+/g, "").toUpperCase() === "LICENCEEXPIREDATE") || "License Expire Date", newValue: licenceExp },
+        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "IQAMANOTE") || "Iqama Note", newValue: iqamaNote },
+        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "LICENCENOTE" || h.replace(/\s+/g, "").toUpperCase() === "LICENSENOTE") || "Licence Note", newValue: licenceNote },
+        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "NATIONALITY") || "Nationality", newValue: nationality },
+    ];
+
+    try {
+        const res = await fetch("/api/update-cells-batch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ edits: edits }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Current driver updated!", "success");
+            fetchData(true);
+            fetchDriverLogsForSidePanel(contextDriverDbId);
+            contextDriverName = nName;
+            contextDriverMob = nMob;
+            contextDriverStart = start;
+            contextDriverIqamaNo = iqamaNo;
+            contextDriverIqamaExp = iqamaExp;
+            contextDriverLicenceExp = licenceExp;
+            contextDriverIqamaNote = iqamaNote;
+            contextDriverLicenceNote = licenceNote;
+            contextDriverNationality = nationality;
+            $("#drvUpdateCurrentName").text(nName);
+            $("#drvUpdateCurrentMob").text(nMob);
+            $("#drvUpdateOldStart").val(convertToInputDate(start));
+            $('#driverUpdateModalOverlay').hide();
+        } else {
+            showToast(data.message, "error");
+        }
+    } catch (e) {
+        showToast("Failed to update driver", "error");
+    }
+  } else if (currentDriverModalMode === "handover") {
     let oldStartRaw = $("#drvUpdateOldStart").val();
     let oldStart = oldStartRaw ? formatToDDMMMYYYY(oldStartRaw) : "IDK";
     let endRaw = $("#drvUpdateEnd").val();
@@ -1127,6 +1232,16 @@ function attachContextMenus() {
   $("#erpTable tbody")
     .off("contextmenu", "td")
     .on("contextmenu", "td", function (e) {
+      if ($(this).hasClass("sn-column")) {
+         e.preventDefault();
+         e.stopPropagation();
+         contextRowDbId = $(this).closest("tr").data("sheetrow");
+         $("#rowContextMenu")
+           .css({ top: e.pageY + "px", left: e.pageX + "px" })
+           .fadeIn(200);
+         return;
+      }
+
       let colName = $(this).data("colname");
       if (colName && colName.toUpperCase() === "DRIVER NAME") {
         e.preventDefault();
@@ -1136,24 +1251,25 @@ function attachContextMenus() {
         let startIdx = cachedHeaders.findIndex(
           (h) => h.trim().toLowerCase() === "work start",
         );
-        contextDriverDbId = $(this).closest("tr").data("sheetrow");
-        contextDriverPlate = $(this)
-          .closest("tr")
-          .find("td")
-          .eq(plateIdx)
-          .text();
-        contextDriverName = $(this).text();
-        contextDriverMob = $(this)
-          .closest("tr")
-          .find(
-            `td[data-colname="${cachedHeaders.find((h) => h.toUpperCase() === "MOBILE")}"]`,
-          )
-          .text();
-        contextDriverStart = $(this)
-          .closest("tr")
-          .find("td")
-          .eq(startIdx)
-          .text();
+        let $row = $(this).closest("tr");
+        contextDriverDbId = $row.data("sheetrow");
+        contextDriverPlate = $row.find("td").eq(plateIdx).text().trim();
+        contextDriverName = $(this).text().trim();
+        
+        let getCellVal = (matchStr) => {
+          let foundH = cachedHeaders.find((h) => h.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase());
+          return foundH ? $row.find(`td[data-colname="${foundH}"]`).text().trim() : "";
+        };
+
+        contextDriverMob = getCellVal("MOBILE");
+        contextDriverStart = $row.find("td").eq(startIdx).text().trim();
+        contextDriverIqamaNo = getCellVal("IQAMANUMBER") || getCellVal("IQAMANO");
+        contextDriverIqamaExp = getCellVal("IQAMAEXPIREDATE") || getCellVal("IQAMAEXPIRE");
+        contextDriverLicenceExp = getCellVal("LICENSEEXPIREDATE") || getCellVal("LICENCEEXPIREDATE") || getCellVal("LICENSEEXPIRE") || getCellVal("LICENCEEXPIRE");
+        contextDriverIqamaNote = getCellVal("IQAMANOTE");
+        contextDriverLicenceNote = getCellVal("LICENCENOTE") || getCellVal("LICENSENOTE");
+        contextDriverNationality = getCellVal("NATIONALITY");
+
         $("#driverContextMenu")
           .css({ top: e.pageY + "px", left: e.pageX + "px" })
           .fadeIn(200);
@@ -1237,6 +1353,52 @@ async function handleMenuAction(action) {
       });
     }
   }
+}
+
+function openEditRowModal() {
+   $("#rowContextMenu").hide();
+   if(contextRowDbId) {
+      openAddEntryModal(contextRowDbId);
+   }
+}
+
+function deleteSelectedRow() {
+   $("#rowContextMenu").hide();
+   if(!contextRowDbId) return;
+
+   if (currentUser.role !== "Super Admin" && currentUser.role !== "Admin") {
+      return showToast("Only Admins can delete rows.", "error");
+   }
+
+   Swal.fire({
+      title: 'Move Row to Recycle Bin?',
+      text: 'This row and all its data will be hidden from the master DB.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'var(--danger)',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, move it!'
+   }).then(async (result) => {
+      if (result.isConfirmed) {
+         showToast("Moving to recycle bin...", "info");
+         try {
+            const res = await fetch("/api/delete-row", {
+               method: "POST",
+               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+               body: JSON.stringify({ dbId: contextRowDbId })
+            });
+            const data = await res.json();
+            if(data.success) {
+               showToast("Row moved to Recycle Bin", "success");
+               fetchData(true);
+            } else {
+               showToast(data.message, "error");
+            }
+         } catch(e) {
+            showToast("Delete failed", "error");
+         }
+      }
+   });
 }
 
 async function submitRelativeColumn() {
@@ -2437,10 +2599,24 @@ function filterColVis(keyword) {
   });
 }
 
-function openAddEntryModal() {
+let editingRowDbId = null;
+function openAddEntryModal(dbId = null) {
+  if (typeof dbId === "object") dbId = null; // Click object block
   document.getElementById("userDropdownMenu").classList.remove("show");
   if (currentUser.role === "Viewer")
     return showToast("Access Denied.", "error");
+
+  editingRowDbId = dbId;
+  if (editingRowDbId) {
+    $("#entryModalOverlay h3").text("Edit Entire Row");
+    $("#entryModalOverlay .btn-primary").hide(); // Hide 'Save & New' when editing
+    $("#entryModalOverlay .btn-success").text("Update Record");
+  } else {
+    $("#entryModalOverlay h3").text("Create New Entry");
+    $("#entryModalOverlay .btn-primary").show();
+    $("#entryModalOverlay .btn-success").text("Save Entry");
+  }
+
   $("#dynamicFormFields").empty();
   let listsHtml = "";
   const suggestionTargetCols = [
@@ -2577,10 +2753,27 @@ function openAddEntryModal() {
   });
 
   $("#dynamicFormFields").append(finalHtml);
+
+  if (editingRowDbId) {
+    let $row = $(`#erpTable tbody tr[data-sheetrow="${editingRowDbId}"]`);
+    $(".entry-input").each(function () {
+      let colName = $(this).data("colname");
+      if (colName === "SN") return;
+      let val = $row.find(`td[data-colname="${colName}"]`).text().trim();
+      if ($(this).attr("type") === "date" && val) {
+         $(this).val(convertToInputDate(val));
+      } else {
+         $(this).val(val);
+      }
+    });
+    let snVal = $row.find(`td[data-colname="SN"]`).text().trim() || $row.find("td.sn-column").text().trim();
+    $(".entry-input[data-colname='SN']").val(snVal);
+  }
+
   $("#entryModalOverlay").css("display", "flex");
 }
 
-async function submitNewEntry() {
+async function submitNewEntry(keepOpen = false) {
   let rowDataObj = {};
   $(".entry-input").each(function () {
     let val = $(this).val().trim(),
@@ -2598,23 +2791,62 @@ async function submitNewEntry() {
     if (isDateCol && val) val = formatToDDMMMYYYY(val);
     rowDataObj[$(this).data("colname")] = val;
   });
-  $("#entryModalOverlay").hide();
-  updateSyncUI("saving");
-  const res = await fetch("/api/add-row", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ rowDataObj: rowDataObj }),
-  });
-  const data = await res.json();
-  if (data.success) {
-    showToast("Added!", "success");
-    fetchData(true);
+
+  if (!keepOpen) {
+    $("#entryModalOverlay").hide();
   } else {
+    $("#entryModalOverlay .btn").prop("disabled", true);
+    showToast("Saving...", "info");
+  }
+
+  updateSyncUI("saving");
+
+  try {
+    let res, data;
+    
+    if (editingRowDbId) {
+      let edits = [];
+      for (let col in rowDataObj) {
+         if (col.toUpperCase() === "SN") continue;
+         edits.push({ dbId: editingRowDbId, colName: col, newValue: rowDataObj[col] });
+      }
+      res = await fetch("/api/update-cells-batch", {
+         method: "POST",
+         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+         body: JSON.stringify({ edits: edits }),
+      });
+      data = await res.json();
+    } else {
+      res = await fetch("/api/add-row", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ rowDataObj: rowDataObj }),
+      });
+      data = await res.json();
+    }
+    
+    if (data.success) {
+      showToast(editingRowDbId ? "Record Updated!" : "Added!", "success");
+      if (!editingRowDbId) globalNextSN++; 
+      fetchData(true);
+      
+      if (keepOpen && !editingRowDbId) {
+        openAddEntryModal(); 
+      }
+    } else {
+      updateSyncUI("error");
+      showToast(data.message, "error");
+    }
+  } catch (error) {
     updateSyncUI("error");
-    showToast(data.message, "error");
+    showToast("Network Error", "error");
+  } finally {
+    if (keepOpen) {
+      $("#entryModalOverlay .btn").prop("disabled", false);
+    }
   }
 }
 

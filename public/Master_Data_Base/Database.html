@@ -320,6 +320,17 @@
       </div>
     </div>
 
+    <!-- 🟢 NEW ROW CONTEXT MENU -->
+    <div id="rowContextMenu" class="custom-context-menu">
+      <div class="menu-item" onclick="openEditRowModal()">
+        <i class="material-icons" style="color: var(--primary)">edit_square</i> Edit Entire Row
+      </div>
+      <div class="menu-divider admin-only-menu"></div>
+      <div class="menu-item admin-only-menu" onclick="deleteSelectedRow()" style="color: var(--danger)">
+        <i class="material-icons" style="color: var(--danger)">delete</i> Delete Row
+      </div>
+    </div>
+
     <div
       id="excelFilterMenu"
       class="excel-filter-menu"
@@ -633,7 +644,10 @@
           >
             Cancel
           </button>
-          <button class="btn btn-success" onclick="submitNewEntry()">
+          <button class="btn btn-primary" onclick="submitNewEntry(true)">
+            Save & New
+          </button>
+          <button class="btn btn-success" onclick="submitNewEntry(false)">
             Save Entry
           </button>
         </div>
@@ -827,19 +841,38 @@
                 background: white;
                 color: #0f172a;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                font-size: 11px;
+                padding: 6px;
               "
               onclick="setDriverMode('handover')"
             >
               Change Driver
             </button>
             <button
+              id="tabCurrentUpdate"
+              class="btn"
+              style="flex: 1; background: transparent; color: #64748b; font-size: 11px; padding: 6px;"
+              onclick="setDriverMode('current_update')"
+            >
+              Update Current
+            </button>
+            <button
               id="tabPastLog"
               class="btn"
-              style="flex: 1; background: transparent; color: #64748b"
+              style="flex: 1; background: transparent; color: #64748b; font-size: 11px; padding: 6px;"
               onclick="setDriverMode('past')"
             >
               Add Past Log
             </button>
+          </div>
+
+          <div id="formCurrentUpdateMode" style="display: none; margin-bottom: 15px">
+            <div style="background: #e0f2fe; padding: 10px; border-radius: 8px; border: 1px solid #bae6fd;">
+              <p style="font-size: 11px; color: #0284c7; margin: 0; font-weight: 600;">
+                <span class="material-icons" style="font-size: 12px; vertical-align: middle;">info</span>
+                Updates the CURRENT driver's details and documents. No history changes.
+              </p>
+            </div>
           </div>
 
           <div id="formHandoverMode">
@@ -957,8 +990,9 @@
           </div>
 
           <label
+            id="lblDriverName"
             style="font-size: 12px; font-weight: 600; color: var(--primary)"
-            >Driver Name</label
+            >New Driver Name</label
           >
           <input
             type="text"
@@ -979,7 +1013,7 @@
             required
           />
 
-          <div style="margin-top: 15px; margin-bottom: 15px; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 8px; background: #f8fafc;">
+          <div id="documentsBlock" style="margin-top: 15px; margin-bottom: 15px; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 8px; background: #f8fafc;">
             <label style="font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">OPTIONAL DOCUMENTS (Leave blank to clear old data)</label>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
               <div style="flex: 1; min-width: 45%;">
@@ -991,10 +1025,6 @@
                 <input type="date" id="drvUpdateIqamaExp" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
               </div>
               <div style="flex: 1; min-width: 45%;">
-                <label style="font-size: 11px; font-weight: 600;">License Expire</label>
-                <input type="date" id="drvUpdateLicenceExp" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
-              </div>
-              <div style="flex: 1; min-width: 45%;">
                 <label style="font-size: 11px; font-weight: 600;">Iqama Note</label>
                 <input type="text" id="drvUpdateIqamaNote" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
               </div>
@@ -1002,7 +1032,11 @@
                 <label style="font-size: 11px; font-weight: 600;">Nationality</label>
                 <input type="text" id="drvUpdateNationality" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
               </div>
-              <div style="flex: 1; min-width: 100%;">
+              <div style="flex: 1; min-width: 45%;">
+                <label style="font-size: 11px; font-weight: 600;">License Expire</label>
+                <input type="date" id="drvUpdateLicenceExp" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
+              </div>
+              <div style="flex: 1; min-width: 45%;">
                 <label style="font-size: 11px; font-weight: 600;">Licence Note</label>
                 <input type="text" id="drvUpdateLicenceNote" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
               </div>
@@ -1032,6 +1066,7 @@
 
           <div id="handoverStartDateBlock">
             <label
+              id="lblDriverStart"
               style="font-size: 12px; font-weight: 600; color: var(--success)"
               >New Driver Work Start Date</label
             >
