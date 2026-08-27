@@ -323,7 +323,7 @@ router.get("/suggestions", verifyViewBillUser, async (req, res) => {
   }
 });
 
-// 9. View Bill Data API (Exact match with report.html: Active vehicles only + Accurate Calculations)
+// 9. View Bill Data API (Fixed with exact month-wise vehicle_site_log mapping and Site Co permission check)
 router.get("/data", verifyViewBillUser, async (req, res) => {
   try {
     const { month, year, search_type, search_value } = req.query;
@@ -353,7 +353,6 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
     let invoices = invoicesRes.rows;
     let billing = billingRes.rows;
 
-    // 🟢 1. EXACT MONTH DATE RANGE CALCULATION FOR ACTIVE VEHICLES
     const monthNames = [
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December"
@@ -363,50 +362,13 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
     const monthEnd = new Date(parseInt(yearStr), mIdx + 1, 0, 23, 59, 59, 999);
     const daysInMonth = monthEnd.getDate();
 
-    // 🟢 2. FILTER VEHICLES: ONLY ACTIVE IN THIS MONTH (MATCHING REPORT.HTML LOGIC)
-    vehicles = vehicles.filter((v) => {
-      let normPlate = cleanPlate(v.plate_no);
-      if (!normPlate) return false;
+    // 🟢 Site Co യുടെ അസൈൻഡ് സൈറ്റുകൾ
+    const userAssignedSites = user.role === "Site Co" 
+      ? (user.assigned_sites || []).map((s) => String(s).trim().toLowerCase()) 
+      : [];
 
-      let vSiteLogs = siteLogs.filter((s) => cleanPlate(s.plate_no) === normPlate);
-      if (vSiteLogs.length === 0) return false;
-
-      return vSiteLogs.some((s) => {
-        let st = s.work_start_date ? new Date(s.work_start_date) : new Date(2000, 0, 1);
-        let ed = s.work_end_date ? new Date(s.work_end_date) : new Date(2100, 11, 31);
-        if (s.status === "Running" && !s.work_end_date) ed = new Date(2100, 11, 31);
-
-        return st <= monthEnd && ed >= monthStart;
-      });
-    });
-
-    // 🟢 3. SITE CO PERMISSION FILTERING
-    if (user.role === "Site Co") {
-      const assigned = (user.assigned_sites || []).map((s) => String(s).trim().toLowerCase());
-      if (assigned.length === 0) {
-        return res.json({ success: true, rows: [], reportData: [] });
-      }
-
-      siteLogs = siteLogs.filter((s) => s.site_name && assigned.includes(s.site_name.trim().toLowerCase()));
-      vehicles = vehicles.filter((v) =>
-        (v.site_name && assigned.includes(v.site_name.trim().toLowerCase())) ||
-        siteLogs.some((s) => cleanPlate(s.plate_no) === cleanPlate(v.plate_no))
-      );
-    }
-
-    // 🟢 4. SEARCH QUERY FILTERING
-    if (search_value && search_value.trim() !== "") {
-      const cleanVal = search_value.trim().toUpperCase();
-      if (search_type === "plate") {
-        vehicles = vehicles.filter((v) => (v.plate_no || "").trim().toUpperCase().includes(cleanVal));
-      } else if (search_type === "owner") {
-        vehicles = vehicles.filter((v) => (v.owner_name || "").trim().toUpperCase().includes(cleanVal));
-      } else {
-        vehicles = vehicles.filter((v) =>
-          (v.plate_no || "").trim().toUpperCase().includes(cleanVal) ||
-          (v.owner_name || "").trim().toUpperCase().includes(cleanVal)
-        );
-      }
+    if (user.role === "Site Co" && userAssignedSites.length === 0) {
+      return res.json({ success: true, rows: [], reportData: [] });
     }
 
     let resultRows = [];
@@ -417,16 +379,43 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       let normPlate = cleanPlate(v.plate_no);
       if (!normPlate) return;
 
-      let saved = billing.find((b) => cleanPlate(b.plate_no) === normPlate);
+      // 🟢 ഈ മാസത്തിൽ ഈ വണ്ടിക്ക് ബാധകമായ സൈറ്റ് ലോഗ് (vehicle_site_log) മാത്രം കണ്ടുപിടിക്കുന്നു
+      let vSiteLogs = siteLogs.filter((s) => cleanPlate(s.plate_no) === normPlate);
+      let activeSiteLog = vSiteLogs.find((s) => {
+        let st = s.work_start_date ? new Date(s.work_start_date) : new Date(2000, 0, 1);
+        let ed = s.work_end_date ? new Date(s.work_end_date) : new Date(2100, 11, 31);
+        if (s.status === "Running" && !s.work_end_date) ed = new Date(2100, 11, 31);
+        return st <= monthEnd && ed >= monthStart;
+      });
+
+      // ഈ മാസത്തിൽ ആക്ടീവ് സൈറ്റ് ലോഗ് ഇല്ലെങ്കിൽ ഒഴിവാക്കുന്നു
+      if (!activeSiteLog) return;
+
+      let currentSiteName = (activeSiteLog.site_name || v.site_name || "N/A").trim();
+
+      // 🟢 Site Co പെർമിഷൻ പരിശോധന (ലോഗ് ലുള്ള സൈറ്റ് യൂസർക്ക് ആക്സസ് ഉണ്ടോ എന്ന് നോക്കുന്നു)
+      if (user.role === "Site Co") {
+        if (!userAssignedSites.includes(currentSiteName.toLowerCase())) {
+          return; // ആക്സസ് ഇല്ലെങ്കിൽ ഈ വണ്ടി ഒഴിവാക്കും
+        }
+      }
+
+      // 🟢 സർച്ച് ഫിൽട്ടർ പരിശോധന
+      if (search_value && search_value.trim() !== "") {
+        const cleanVal = search_value.trim().toUpperCase();
+        let match = false;
+        if (search_type === "plate" && displayPlate.includes(cleanVal)) match = true;
+        else if (search_type === "owner" && (v.owner_name || "").trim().toUpperCase().includes(cleanVal)) match = true;
+        else if (!search_type || search_type === "all") {
+          if (displayPlate.includes(cleanVal) || (v.owner_name || "").trim().toUpperCase().includes(cleanVal)) match = true;
+        }
+        if (!match) return;
+      }
+
+      let saved = billing.find((b) => cleanPlate(b.plate_no) === normPlate && (b.site_name || "").trim().toLowerCase() === currentSiteName.toLowerCase());
       let vInvs = invoices.filter((i) => cleanPlate(i.plate_no) === normPlate);
       let invData = vInvs[0] || {};
 
-      // Fetch dynamic rate from site logs or vehicle master
-      let activeSiteLog = siteLogs.find(s => 
-          cleanPlate(s.plate_no) === normPlate && 
-          (s.site_name || "").trim().toLowerCase() === (v.site_name || "").trim().toLowerCase()
-      );
-      
       let baseRate = activeSiteLog && activeSiteLog.rate ? parseFloat(activeSiteLog.rate) : (parseFloat(v.rate) || 0);
       let calculatedNRate = baseRate ? (baseRate / 260) : 0;
       let calculatedOTRate = baseRate ? ((baseRate / 260) * 0.7) : 0;
@@ -434,11 +423,9 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       let nhr = saved ? parseFloat(saved.nhr) || 0 : 0;
       let othr = saved ? parseFloat(saved.othr) || 0 : 0;
       
-      // Override 0 rates with database calculated rates
       let nrate = (saved && parseFloat(saved.nrate) > 0) ? parseFloat(saved.nrate) : calculatedNRate;
       let otrate = (saved && parseFloat(saved.otrate) > 0) ? parseFloat(saved.otrate) : calculatedOTRate;
 
-      // Calculate dynamic rent and total if not saved
       let rent = (saved && parseFloat(saved.rent) > 0) ? parseFloat(saved.rent) : ((nhr * nrate) + (othr * otrate));
       let vatAmt = saved ? parseFloat(saved.vat_amount) || 0 : 0;
       let total = (saved && parseFloat(saved.total) > 0) ? parseFloat(saved.total) : (rent + vatAmt);
@@ -447,7 +434,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         date: monthStr.substring(0, 3) + " " + yearStr.substring(2, 4),
         vtype: v.vehicle_type || "N/A",
         driver: v.driver_name || "N/A",
-        site: v.site_name || "N/A",
+        site: currentSiteName, // 🟢 കൃത്യമായ മാസം തോതെയുള്ള സൈറ്റ് പേര്
         plate_no: displayPlate,
         owner: v.owner_name || "COMPANY VEHICLE",
         nhr,
@@ -460,10 +447,10 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         total,
         invoice_no: invData.invoice_no || "",
         bill_no: invData.bill_no || "",
-        remark: saved ? (saved.remark || "") : ""  // 🟢 ഈ വരി നിർബന്ധമായും ചേർക്കണം!
+        remark: saved ? (saved.remark || "") : ""
       });
 
-      // 🟢 5. REPORT.HTML ACCURATE LOGSHEET CALCULATION (FRIDAYS, 31ST, SPECIAL RULES)
+      // 🟢 Logsheet calculations
       let ts_nr = 0, ts_ot = 0;
       let vTs = timesheets.filter((t) => cleanPlate(t.plate_no) === normPlate);
 
@@ -474,7 +461,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         }).replace(/ /g, " ");
 
         let dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][checkDate.getDay()];
-        let siteForRule = (v.site_name || "").split("&")[0].trim().toUpperCase();
+        let siteForRule = currentSiteName.split("&")[0].trim().toUpperCase();
         
         let specialRule = specialRulesRes.rows.find(
           (r) => r.is_active && (r.sites.includes("ALL") || r.sites.includes(siteForRule)) && r.dates.includes(formattedDate)
@@ -518,7 +505,6 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       let bill_sup_nr = parseFloat(saved?.nhr) || 0;
       let bill_sup_ot = parseFloat(saved?.othr) || 0;
 
-      // 🟢 6. ACCURATE DIFFERENCE CALCULATION (Positive Only + Respects 'diff_clear' from report screen)
       let isDiffCleared = invData.diff_clear && !["no", "false", "0", "", "null", "undefined"].includes(String(invData.diff_clear).trim().toLowerCase());
 
       let diff_nr = "";
@@ -526,12 +512,8 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       let diff_st = "";
 
       if (!isDiffCleared) {
-        if (ts_nr > inv_nr) {
-          diff_nr = parseFloat((ts_nr - inv_nr).toFixed(2));
-        }
-        if (ts_ot > inv_ot) {
-          diff_ot = parseFloat((ts_ot - inv_ot).toFixed(2));
-        }
+        if (ts_nr > inv_nr) diff_nr = parseFloat((ts_nr - inv_nr).toFixed(2));
+        if (ts_ot > inv_ot) diff_ot = parseFloat((ts_ot - inv_ot).toFixed(2));
 
         if (diff_nr !== "" && diff_ot !== "") diff_st = "NR & OT";
         else if (diff_nr !== "") diff_st = "NR";
@@ -542,7 +524,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         report_date: monthStr.substring(0, 3) + " " + yearStr.substring(2, 4),
         rate: baseRate || saved?.nrate || "-",
         vat: (v.vat || "No").toLowerCase().includes("yes") ? "Yes" : "No",
-        site: v.site_name || "N/A",
+        site: currentSiteName,
         owner: v.owner_name || "COMPANY VEHICLE",
         driver_name: v.driver_name || "N/A",
         plate: displayPlate,
