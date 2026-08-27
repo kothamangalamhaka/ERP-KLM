@@ -21,6 +21,8 @@
         --secondary-hover: #059669;
         --bill-color: #f59e0b;
         --bill-hover: #d97706;
+        --check-color: #64748b;
+        --check-hover: #475569;
 
         --bg-color: #f1f5f9;
         --card-bg: #ffffff;
@@ -53,35 +55,25 @@
 
       .app-wrapper {
         background: var(--card-bg);
-
         padding: 40px;
-
         border-radius: 16px;
-
         box-shadow:
           0 10px 40px -10px rgba(0, 0, 0, 0.1),
           0 0 0 1px rgba(0, 0, 0, 0.02);
-
         width: 100%;
         max-width: 540px;
-
         text-align: center;
-
         position: relative;
         overflow: hidden;
       }
 
       .app-wrapper::before {
         content: "";
-
         position: absolute;
-
         top: 0;
         left: 0;
         right: 0;
-
         height: 6px;
-
         background: linear-gradient(
           90deg,
           var(--primary-color),
@@ -91,65 +83,45 @@
 
       .header-icon {
         background: #eff6ff;
-
         color: var(--primary-color);
-
         width: 64px;
         height: 64px;
-
         border-radius: 50%;
-
         display: flex;
         align-items: center;
         justify-content: center;
-
         margin: 0 auto 20px;
-
         font-size: 28px;
-
         box-shadow:
           0 4px 6px -1px rgba(37, 99, 235, 0.1);
       }
 
       h2 {
         margin: 0 0 10px 0;
-
         font-size: 24px;
-
         font-weight: 700;
-
         letter-spacing: -0.02em;
       }
 
       p {
         color: var(--text-muted);
-
         font-size: 14px;
-
         line-height: 1.6;
-
         margin: 0 0 30px;
       }
 
       .form-group {
         text-align: left;
-
         margin-bottom: 25px;
       }
 
       label {
         display: block;
-
         font-weight: 600;
-
         font-size: 13px;
-
         color: var(--text-main);
-
         margin-bottom: 8px;
-
         text-transform: uppercase;
-
         letter-spacing: 0.05em;
       }
 
@@ -159,150 +131,115 @@
 
       select {
         width: 100%;
-
         padding: 14px 45px 14px 16px;
-
         font-family: inherit;
-
         font-size: 15px;
-
         color: var(--text-main);
-
         background-color: #f8fafc;
-
         border: 1px solid var(--border-color);
-
         border-radius: 10px;
-
         appearance: none;
-
         outline: none;
-
         transition: all 0.2s ease;
-
         cursor: pointer;
       }
 
       select:focus {
         border-color: var(--primary-color);
-
         background-color: #fff;
-
         box-shadow:
           0 0 0 4px rgba(37, 99, 235, 0.1);
       }
 
       select:disabled {
         cursor: not-allowed;
-
         opacity: 0.75;
       }
 
       .custom-select::after {
         content: "▼";
-
         font-size: 10px;
-
         color: var(--text-muted);
-
         position: absolute;
-
         right: 18px;
         top: 50%;
-
         transform: translateY(-50%);
-
         pointer-events: none;
       }
 
       .action-cards {
         display: grid;
-
-        grid-template-columns: repeat(3, 1fr);
-
+        /* Changed to a 2x2 grid to accommodate 4 buttons */
+        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
-
         margin-top: 20px;
       }
 
       button {
         border: none;
-
         padding: 16px 10px;
-
         min-height: 82px;
-
         border-radius: 10px;
-
         font-family: inherit;
-
         font-size: 14px;
-
         font-weight: 600;
-
         cursor: pointer;
-
         display: flex;
-
         flex-direction: column;
-
         align-items: center;
-
         justify-content: center;
-
         gap: 8px;
-
         transition: all 0.2s ease;
-
         color: white;
       }
 
       button:disabled {
         background-color: #cbd5e1 !important;
-
         box-shadow: none !important;
-
         cursor: not-allowed;
-
         transform: none !important;
+      }
+
+      .btn-check {
+        background-color: var(--check-color);
+        box-shadow: 0 4px 14px 0 rgba(100, 116, 139, 0.39);
+      }
+
+      .btn-check:hover:not(:disabled) {
+        background-color: var(--check-hover);
+        transform: translateY(-2px);
       }
 
       .btn-zip {
         background-color: var(--secondary-color);
-
         box-shadow:
           0 4px 14px 0 rgba(16, 185, 129, 0.39);
       }
 
       .btn-zip:hover:not(:disabled) {
         background-color: var(--secondary-hover);
-
         transform: translateY(-2px);
       }
 
       .btn-pdf {
         background-color: var(--primary-color);
-
         box-shadow:
           0 4px 14px 0 rgba(37, 99, 235, 0.39);
       }
 
       .btn-pdf:hover:not(:disabled) {
         background-color: var(--primary-hover);
-
         transform: translateY(-2px);
       }
 
       .btn-bill {
         background-color: var(--bill-color);
-
         box-shadow:
           0 4px 14px 0 rgba(245, 158, 11, 0.39);
       }
 
       .btn-bill:hover:not(:disabled) {
         background-color: var(--bill-hover);
-
         transform: translateY(-2px);
       }
 
@@ -312,68 +249,45 @@
 
       .status-container {
         margin-top: 25px;
-
         padding: 15px;
-
         border-radius: 8px;
-
         font-size: 14px;
-
         font-weight: 500;
-
         display: none;
-
         align-items: center;
-
         justify-content: center;
-
         gap: 10px;
-
         text-align: center;
       }
 
       .status-info {
         background: #eff6ff;
-
         color: #1d4ed8;
-
         border: 1px solid #bfdbfe;
-
         display: flex;
       }
 
       .status-success {
         background: #ecfdf5;
-
         color: #047857;
-
         border: 1px solid #a7f3d0;
-
         display: flex;
       }
 
       .status-error {
         background: #fef2f2;
-
         color: #b91c1c;
-
         border: 1px solid #fecaca;
-
         display: flex;
       }
 
       .spinner {
         width: 18px;
         height: 18px;
-
         border: 3px solid rgba(29, 78, 216, 0.2);
-
         border-radius: 50%;
-
         border-top-color: #1d4ed8;
-
         animation: spin 1s ease-in-out infinite;
-
         flex-shrink: 0;
       }
 
@@ -393,7 +307,7 @@
         }
 
         .action-cards {
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr 1fr;
         }
 
         button {
@@ -439,6 +353,22 @@
 
       <div class="action-cards">
 
+        <!-- NEW CHECK BUTTON -->
+        <button
+          id="btnCheck"
+          class="btn-check"
+          type="button"
+          onclick="checkFileCount()"
+          disabled
+        >
+          <span class="btn-icon">
+            🔍
+          </span>
+          <span>
+            Check
+          </span>
+        </button>
+
         <button
           id="btnZip"
           class="btn-zip"
@@ -449,7 +379,6 @@
           <span class="btn-icon">
             📦
           </span>
-
           <span>
             ZIP
           </span>
@@ -465,7 +394,6 @@
           <span class="btn-icon">
             📥
           </span>
-
           <span>
             PDF
           </span>
@@ -481,7 +409,6 @@
           <span class="btn-icon">
             🧾
           </span>
-
           <span>
             Bill
           </span>
@@ -513,17 +440,11 @@
        * ============================================================
        */
 
-      const vendorSelect =
-        document.getElementById("vendorSelect");
-
-      const btnZip =
-        document.getElementById("btnZip");
-
-      const btnIndiv =
-        document.getElementById("btnIndiv");
-
-      const btnBill =
-        document.getElementById("btnBill");
+      const vendorSelect = document.getElementById("vendorSelect");
+      const btnCheck = document.getElementById("btnCheck");
+      const btnZip = document.getElementById("btnZip");
+      const btnIndiv = document.getElementById("btnIndiv");
+      const btnBill = document.getElementById("btnBill");
 
       /*
        * ============================================================
@@ -535,24 +456,13 @@
 
       async function loadVendors() {
         disableControls();
-
         vendorSelect.innerHTML = "";
-
-        const loadingOption =
-          document.createElement("option");
-
+        const loadingOption = document.createElement("option");
         loadingOption.value = "";
-        loadingOption.textContent =
-          "Establishing connection...";
-
+        loadingOption.textContent = "Establishing connection...";
         vendorSelect.appendChild(loadingOption);
 
         try {
-          /*
-           * IMPORTANT:
-           * Use a relative URL so this works when Express serves
-           * the HTML file.
-           */
           const response = await fetch(
             "/api/invoice-vendors",
             {
@@ -565,14 +475,10 @@
           );
 
           if (!response.ok) {
-            throw new Error(
-              `Server returned HTTP ${response.status}`
-            );
+            throw new Error(`Server returned HTTP ${response.status}`);
           }
 
-          const vendors =
-            await response.json();
-
+          const vendors = await response.json();
           populateDropdown(vendors);
 
           showStatus(
@@ -582,22 +488,11 @@
           );
 
         } catch (error) {
-
-          console.error(
-            "Vendor loading error:",
-            error
-          );
-
+          console.error("Vendor loading error:", error);
           vendorSelect.innerHTML = "";
-
-          const errorOption =
-            document.createElement("option");
-
+          const errorOption = document.createElement("option");
           errorOption.value = "";
-
-          errorOption.textContent =
-            "Unable to connect to server";
-
+          errorOption.textContent = "Unable to connect to server";
           vendorSelect.appendChild(errorOption);
 
           showStatus(
@@ -615,7 +510,6 @@
        */
 
       function populateDropdown(vendors) {
-
         vendorSelect.innerHTML = "";
 
         if (
@@ -623,39 +517,23 @@
           typeof vendors !== "object" ||
           Object.keys(vendors).length === 0
         ) {
-          const option =
-            document.createElement("option");
-
+          const option = document.createElement("option");
           option.value = "";
-
-          option.textContent =
-            "No vendor profiles available";
-
+          option.textContent = "No vendor profiles available";
           vendorSelect.appendChild(option);
-
           disableControls();
-
           return;
         }
 
         for (const key of Object.keys(vendors)) {
-
-          const vendor =
-            vendors[key];
-
-          const option =
-            document.createElement("option");
-
+          const vendor = vendors[key];
+          const option = document.createElement("option");
           option.value = key;
-
-          option.textContent =
-            vendor.label || key;
-
+          option.textContent = vendor.label || key;
           vendorSelect.appendChild(option);
         }
 
         enableControls();
-
         vendorSelect.focus();
       }
 
@@ -666,24 +544,18 @@
        */
 
       function disableControls() {
-
         vendorSelect.disabled = true;
-
+        btnCheck.disabled = true;
         btnZip.disabled = true;
-
         btnIndiv.disabled = true;
-
         btnBill.disabled = true;
       }
 
       function enableControls() {
-
         vendorSelect.disabled = false;
-
+        btnCheck.disabled = false;
         btnZip.disabled = false;
-
         btnIndiv.disabled = false;
-
         btnBill.disabled = false;
       }
 
@@ -694,30 +566,65 @@
        */
 
       function getSelectedVendor() {
-
-        const vendorKey =
-          vendorSelect.value;
-
+        const vendorKey = vendorSelect.value;
         if (!vendorKey) {
-          throw new Error(
-            "Please select a vendor."
-          );
+          throw new Error("Please select a vendor.");
+        }
+        const selectedOption = vendorSelect.options[vendorSelect.selectedIndex];
+        const vendorName = selectedOption ? selectedOption.textContent : vendorKey;
+        return { vendorKey, vendorName };
+      }
+
+      /*
+       * ============================================================
+       * CHECK FILE COUNT
+       * ============================================================
+       */
+      
+      async function checkFileCount() {
+        let vendor;
+        try {
+          vendor = getSelectedVendor();
+        } catch (error) {
+          showStatus(error.message, "error");
+          return;
         }
 
-        const selectedOption =
-          vendorSelect.options[
-            vendorSelect.selectedIndex
-          ];
+        disableControls();
+        showStatus(`Checking available invoices for ${vendor.vendorName}...`, "info", true);
 
-        const vendorName =
-          selectedOption
-            ? selectedOption.textContent
-            : vendorKey;
+        try {
+          const response = await fetch("/api/invoice-download", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json"
+            },
+            body: JSON.stringify({
+              vendorKey: vendor.vendorKey
+            })
+          });
 
-        return {
-          vendorKey,
-          vendorName
-        };
+          const data = await parseJsonResponse(response);
+
+          if (!response.ok) {
+            throw new Error(data.detail || data.error || "Server connection failed");
+          }
+
+          if (!data.files || data.files.length === 0) {
+            showStatus("No matching invoices found for today.", "error");
+            return;
+          }
+
+          const count = data.files.length;
+          showStatus(`Found ${count} invoice file(s) ready to download.`, "success");
+
+        } catch (error) {
+          console.error("Check count error:", error);
+          showStatus(`Error: ${error.message}`, "error");
+        } finally {
+          enableControls();
+        }
       }
 
       /*
@@ -727,107 +634,49 @@
        */
 
       async function startBillProcess() {
-
         let vendor;
-
         try {
-          vendor =
-            getSelectedVendor();
+          vendor = getSelectedVendor();
         } catch (error) {
-          showStatus(
-            error.message,
-            "error"
-          );
-
+          showStatus(error.message, "error");
           return;
         }
 
         disableControls();
-
-        showStatus(
-          `Processing Bills for ${vendor.vendorName}...`,
-          "info",
-          true
-        );
+        showStatus(`Processing Bills for ${vendor.vendorName}...`, "info", true);
 
         try {
+          const response = await fetch("/api/invoice-bill-download", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json"
+            },
+            body: JSON.stringify({
+              vendorKey: vendor.vendorKey
+            })
+          });
 
-          const response =
-            await fetch(
-              "/api/invoice-bill-download",
-              {
-                method: "POST",
-
-                headers: {
-                  "Content-Type":
-                    "application/json",
-
-                  Accept:
-                    "application/json"
-                },
-
-                body: JSON.stringify({
-                  vendorKey:
-                    vendor.vendorKey
-                })
-              }
-            );
-
-          const data =
-            await parseJsonResponse(response);
+          const data = await parseJsonResponse(response);
 
           if (!response.ok) {
-            throw new Error(
-              data.detail ||
-              data.error ||
-              "Server connection failed"
-            );
+            throw new Error(data.detail || data.error || "Server connection failed");
           }
 
-          if (
-            !data.files ||
-            data.files.length === 0
-          ) {
-            showStatus(
-              "No matching bills found for today.",
-              "error"
-            );
-
+          if (!data.files || data.files.length === 0) {
+            showStatus("No matching bills found for today.", "error");
             return;
           }
 
-          const count =
-            data.files.length;
-
-          showStatus(
-            `Downloading ${count} bill file(s)...`,
-            "info",
-            true
-          );
-
-          await downloadFiles(
-            data.files
-          );
-
-          showStatus(
-            `Successfully downloaded ${count} bill file(s).`,
-            "success"
-          );
+          const count = data.files.length;
+          showStatus(`Downloading ${count} bill file(s)...`, "info", true);
+          await downloadFiles(data.files);
+          showStatus(`Successfully downloaded ${count} bill file(s).`, "success");
 
         } catch (error) {
-
-          console.error(
-            "Bill download error:",
-            error
-          );
-
-          showStatus(
-            `Error: ${error.message}`,
-            "error"
-          );
-
+          console.error("Bill download error:", error);
+          showStatus(`Error: ${error.message}`, "error");
         } finally {
-
           enableControls();
         }
       }
@@ -839,173 +688,76 @@
        */
 
       async function startDownload(asZip) {
-
         let vendor;
-
         try {
-          vendor =
-            getSelectedVendor();
+          vendor = getSelectedVendor();
         } catch (error) {
-
-          showStatus(
-            error.message,
-            "error"
-          );
-
+          showStatus(error.message, "error");
           return;
         }
 
-        btnZip.disabled = true;
-        btnIndiv.disabled = true;
-        btnBill.disabled = true;
-        vendorSelect.disabled = true;
-
-        showStatus(
-          `Scanning mailbox for today's ${vendor.vendorName} invoices...`,
-          "info",
-          true
-        );
+        disableControls();
+        showStatus(`Scanning mailbox for today's ${vendor.vendorName} invoices...`, "info", true);
 
         try {
+          const response = await fetch("/api/invoice-download", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json"
+            },
+            body: JSON.stringify({
+              vendorKey: vendor.vendorKey
+            })
+          });
 
-          const response =
-            await fetch(
-              "/api/invoice-download",
-              {
-                method: "POST",
-
-                headers: {
-                  "Content-Type":
-                    "application/json",
-
-                  Accept:
-                    "application/json"
-                },
-
-                body: JSON.stringify({
-                  vendorKey:
-                    vendor.vendorKey
-                })
-              }
-            );
-
-          const data =
-            await parseJsonResponse(response);
+          const data = await parseJsonResponse(response);
 
           if (!response.ok) {
-
-            throw new Error(
-              data.detail ||
-              data.error ||
-              "Server connection failed"
-            );
+            throw new Error(data.detail || data.error || "Server connection failed");
           }
 
-          if (
-            !data.files ||
-            data.files.length === 0
-          ) {
-
-            showStatus(
-              "No matching invoices found for today.",
-              "error"
-            );
-
+          if (!data.files || data.files.length === 0) {
+            showStatus("No matching invoices found for today.", "error");
             return;
           }
 
-          const files =
-            data.files;
+          const files = data.files;
 
           if (asZip) {
-
-            showStatus(
-              `Creating ZIP containing ${files.length} file(s)...`,
-              "info",
-              true
-            );
-
-            const zip =
-              new JSZip();
+            showStatus(`Creating ZIP containing ${files.length} file(s)...`, "info", true);
+            const zip = new JSZip();
 
             files.forEach((file) => {
-
-              zip.file(
-                file.name,
-                file.data,
-                {
-                  base64: true
-                }
-              );
+              zip.file(file.name, file.data, { base64: true });
             });
 
-            const content =
-              await zip.generateAsync({
-                type: "blob"
-              });
-
-            const url =
-              window.URL.createObjectURL(
-                content
-              );
-
-            const link =
-              document.createElement("a");
-
+            const content = await zip.generateAsync({ type: "blob" });
+            const url = window.URL.createObjectURL(content);
+            const link = document.createElement("a");
+            
             link.href = url;
-
-            link.download =
-              `${sanitizeClientFilename(
-                vendor.vendorName
-              )}_Invoices.zip`;
-
+            link.download = `${sanitizeClientFilename(vendor.vendorName)}_Invoices.zip`;
             document.body.appendChild(link);
-
             link.click();
-
             link.remove();
 
             setTimeout(() => {
               window.URL.revokeObjectURL(url);
             }, 1000);
 
-            showStatus(
-              "Successfully created and downloaded ZIP.",
-              "success"
-            );
+            showStatus("Successfully created and downloaded ZIP.", "success");
 
           } else {
-
-            showStatus(
-              `Processing ${files.length} file(s)...`,
-              "info",
-              true
-            );
-
-            await downloadFiles(
-              files
-            );
-
-            showStatus(
-              `Successfully downloaded ${files.length} invoice file(s).`,
-              "success"
-            );
+            showStatus(`Processing ${files.length} file(s)...`, "info", true);
+            await downloadFiles(files);
+            showStatus(`Successfully downloaded ${files.length} invoice file(s).`, "success");
           }
 
         } catch (error) {
-
-          console.error(
-            "Invoice download error:",
-            error
-          );
-
-          showStatus(
-            `Error: ${error.message}`,
-            "error"
-          );
-
+          console.error("Invoice download error:", error);
+          showStatus(`Error: ${error.message}`, "error");
         } finally {
-
           enableControls();
         }
       }
@@ -1017,24 +769,10 @@
        */
 
       async function downloadFiles(files) {
+        for (let index = 0; index < files.length; index++) {
+          const file = files[index];
+          downloadBase64File(file);
 
-        for (
-          let index = 0;
-          index < files.length;
-          index++
-        ) {
-
-          const file =
-            files[index];
-
-          downloadBase64File(
-            file
-          );
-
-          /*
-           * Small delay prevents browsers from blocking a large
-           * number of downloads at the same instant.
-           */
           if (index < files.length - 1) {
             await sleep(600);
           }
@@ -1048,37 +786,18 @@
        */
 
       function downloadBase64File(file) {
-
-        if (
-          !file ||
-          !file.data ||
-          !file.name
-        ) {
-          console.warn(
-            "Invalid file received:",
-            file
-          );
-
+        if (!file || !file.data || !file.name) {
+          console.warn("Invalid file received:", file);
           return;
         }
 
-        const mimeType =
-          file.mimeType ||
-          "application/pdf";
-
-        const link =
-          document.createElement("a");
-
-        link.href =
-          `data:${mimeType};base64,${file.data}`;
-
-        link.download =
-          file.name;
-
+        const mimeType = file.mimeType || "application/pdf";
+        const link = document.createElement("a");
+        link.href = `data:${mimeType};base64,${file.data}`;
+        link.download = file.name;
+        
         document.body.appendChild(link);
-
         link.click();
-
         link.remove();
       }
 
@@ -1088,31 +807,16 @@
        * ============================================================
        */
 
-      async function parseJsonResponse(
-        response
-      ) {
-
-        const text =
-          await response.text();
-
+      async function parseJsonResponse(response) {
+        const text = await response.text();
         if (!text) {
           return {};
         }
-
         try {
-
           return JSON.parse(text);
-
         } catch (error) {
-
-          console.error(
-            "Invalid JSON response:",
-            text
-          );
-
-          throw new Error(
-            "Server returned an invalid response."
-          );
+          console.error("Invalid JSON response:", text);
+          throw new Error("Server returned an invalid response.");
         }
       }
 
@@ -1122,37 +826,14 @@
        * ============================================================
        */
 
-      function showStatus(
-        message,
-        type,
-        isLoading = false
-      ) {
+      function showStatus(message, type, isLoading = false) {
+        const statusBox = document.getElementById("statusBox");
+        const statusText = document.getElementById("statusText");
+        const spinner = document.getElementById("loadingSpinner");
 
-        const statusBox =
-          document.getElementById(
-            "statusBox"
-          );
-
-        const statusText =
-          document.getElementById(
-            "statusText"
-          );
-
-        const spinner =
-          document.getElementById(
-            "loadingSpinner"
-          );
-
-        statusBox.className =
-          `status-container status-${type}`;
-
-        statusText.textContent =
-          message;
-
-        spinner.style.display =
-          isLoading
-            ? "block"
-            : "none";
+        statusBox.className = `status-container status-${type}`;
+        statusText.textContent = message;
+        spinner.style.display = isLoading ? "block" : "none";
       }
 
       /*
@@ -1162,20 +843,10 @@
        */
 
       function sleep(milliseconds) {
-
-        return new Promise(
-          (resolve) =>
-            setTimeout(
-              resolve,
-              milliseconds
-            )
-        );
+        return new Promise((resolve) => setTimeout(resolve, milliseconds));
       }
 
-      function sanitizeClientFilename(
-        filename
-      ) {
-
+      function sanitizeClientFilename(filename) {
         return String(filename)
           .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
           .trim()
