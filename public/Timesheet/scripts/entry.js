@@ -14,18 +14,8 @@ if (!token || !userStr) {
 const dDate = new Date();
 document.getElementById("selYear").value = dDate.getFullYear();
 const months = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 document.getElementById("selMonth").value = months[dDate.getMonth()];
 
@@ -45,7 +35,32 @@ let systemLockData = { month: null, year: null };
 let isEditingInvoice = false;
 let currentInvoices = [];
 let loggedRowsTracker = new Set();
-let currentLockedRecord = null; // 🟢 ഏത് വണ്ടിയാണ് ലോക്ക് ചെയ്തത് എന്ന് ട്രാക്ക് ചെയ്യാൻ
+let currentLockedRecord = null; 
+
+// 🟢 NEW: Variables for Live Lock Transfer
+let isReadOnlyMode = false;
+let recordPollTimer = null;
+let incomingRequestActive = false;
+let amIWaitingForApproval = false;
+
+// 🟢 NEW: Month Navigation Arrow Functions
+function prevMonth() {
+  const sel = document.getElementById("selMonth");
+  const yr = document.getElementById("selYear");
+  if(sel.selectedIndex > 0) { sel.selectedIndex--; }
+  else { sel.selectedIndex = 11; yr.value = parseInt(yr.value) - 1; }
+  releaseLock();
+  if(document.getElementById('selPlate').value) triggerFetch();
+}
+
+function nextMonth() {
+  const sel = document.getElementById("selMonth");
+  const yr = document.getElementById("selYear");
+  if(sel.selectedIndex < 11) { sel.selectedIndex++; }
+  else { sel.selectedIndex = 0; yr.value = parseInt(yr.value) + 1; }
+  releaseLock();
+  if(document.getElementById('selPlate').value) triggerFetch();
+}
 
 function releaseLock() {
   if (currentLockedRecord) {
@@ -66,7 +81,6 @@ function releaseLock() {
   }
 }
 
-// 🟢 NEW: Month അല്ലെങ്കിൽ Year മാറ്റുമ്പോൾ പഴയ ലോക്ക് റിലീസ് ആവാൻ
 document.getElementById("selMonth").addEventListener("change", releaseLock);
 document.getElementById("selYear").addEventListener("change", releaseLock);
 
@@ -74,15 +88,10 @@ async function init() {
   const ts = new Date().getTime();
 
   const rRes = await fetch(`/timesheet/api/rules?_t=${ts}`, {
-    headers: {
-      Authorization: "Bearer " + token,
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-    },
+    headers: { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" },
     cache: "no-store",
   });
   
-  // 🟢 NEW: Added alert before logging out on page load
   if (rRes.status === 401 || rRes.status === 403) {
     await customAlert("Session expired. Please login again.", "Session Timeout");
     logout();
@@ -90,56 +99,31 @@ async function init() {
   }
   
   let rData;
-  try {
-    rData = await rRes.json();
-  } catch (e) {
-    // നെറ്റ് സ്ലോ ആണെങ്കിൽ ലോഗൗട്ട് ചെയ്യില്ല
-    return;
-  }
-
-  // 🟢 401/403 (ശരിക്കുമുള്ള ടോക്കൺ എക്സ്പയറി) ആണെങ്കിൽ മാത്രം ലോഗൗട്ട് ആകും
-  if (rRes.status === 401 || rRes.status === 403) {
-    logout();
-    return;
-  }
+  try { rData = await rRes.json(); } catch (e) { return; }
 
   if (rData && rData.success) rulesCache = rData.data;
 
   const srRes = await fetch(`/timesheet/api/special-rules?_t=${ts}`, {
-    headers: {
-      Authorization: "Bearer " + token,
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-    },
+    headers: { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" },
     cache: "no-store",
   });
   const srData = await srRes.json();
   if (srData.success) specialRulesCache = srData.data;
 
-  // 🟢 NEW: Fetch Break Rules
   const brRes = await fetch(`/timesheet/api/break-rules?_t=${ts}`, {
-    headers: {
-      Authorization: "Bearer " + token,
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-    },
+    headers: { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" },
     cache: "no-store",
   });
   const brData = await brRes.json();
   if (brData.success) breakRulesCache = brData.data;
 
   const vRes = await fetch(`/timesheet/api/vehicle-info?_t=${ts}`, {
-    headers: {
-      Authorization: "Bearer " + token,
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-    },
+    headers: { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" },
     cache: "no-store",
   });
   const vData = await vRes.json();
   if (vData.success) vehiclesCache = vData.data;
 
-  // 🟢 NEW: Fetch Lock Status
   const lRes = await fetch(`/api/lock/status?_t=${ts}`, { headers: { Authorization: "Bearer " + token }});
   const lData = await lRes.json().catch(()=>({}));
   if(lData.success && lData.data) {
@@ -155,7 +139,6 @@ function searchPlate() {
   sug.innerHTML = ""; 
   currentFocus = -1;
 
-  // പുതിയ വരി (Clear previous count on new search)
   if(document.getElementById("actualLogsheetCount")) {
       document.getElementById("actualLogsheetCount").innerHTML = "";
   }
@@ -172,24 +155,18 @@ function searchPlate() {
   document.getElementById("dispWorkOrder").innerText = "N/A";
   document.getElementById("dispSiteStart").innerText = "N/A";
   document.getElementById("dispSiteEnd").innerText = "N/A";
-  if (document.getElementById("oldVehRow"))
-    document.getElementById("oldVehRow").style.display = "none";
-  if (document.getElementById("newVehRow"))
-    document.getElementById("newVehRow").style.display = "none";
+  if (document.getElementById("oldVehRow")) document.getElementById("oldVehRow").style.display = "none";
+  if (document.getElementById("newVehRow")) document.getElementById("newVehRow").style.display = "none";
 
-  document.getElementById("invSiteSelect").innerHTML =
-    '<option value="">Waiting for data...</option>';
+  document.getElementById("invSiteSelect").innerHTML = '<option value="">Waiting for data...</option>';
   clearInvoiceForm();
   isEditingInvoice = false;
   currentInvoices = [];
-
   
   releaseLock();
 
   if (!val) {
-    let history = JSON.parse(
-      localStorage.getItem("plateSearchHistory") || "[]",
-    );
+    let history = JSON.parse(localStorage.getItem("plateSearchHistory") || "[]");
     if (history.length > 0) {
       sug.style.display = "block";
       sug.style.maxHeight = "105px";
@@ -197,15 +174,11 @@ function searchPlate() {
       history.forEach((hPlate) => {
         let div = document.createElement("div");
         div.innerHTML = `<b>${hPlate}</b>`;
-        let masterObj = vehiclesCache.find(
-          (v) => v.plate_no.toUpperCase() === hPlate,
-        ) || { plate_no: hPlate };
+        let masterObj = vehiclesCache.find((v) => v.plate_no.toUpperCase() === hPlate) || { plate_no: hPlate };
         div.onclick = () => selectPlate(masterObj);
         sug.appendChild(div);
       });
-    } else {
-      sug.style.display = "none";
-    }
+    } else { sug.style.display = "none"; }
     return;
   }
 
@@ -225,12 +198,9 @@ function searchPlate() {
     matches.forEach((m) => {
       let div = document.createElement("div");
       let displayText = m.plate_no;
-      if (m.asset_code && m.asset_code.toUpperCase().includes(val))
-        displayText += ` (${m.asset_code})`;
-      else if (m.wrk_order_no && m.wrk_order_no.toUpperCase().includes(val))
-        displayText += ` [${m.wrk_order_no}]`;
-      else if (m.driver_name && m.driver_name.toUpperCase().includes(val))
-        displayText += ` - ${m.driver_name}`;
+      if (m.asset_code && m.asset_code.toUpperCase().includes(val)) displayText += ` (${m.asset_code})`;
+      else if (m.wrk_order_no && m.wrk_order_no.toUpperCase().includes(val)) displayText += ` [${m.wrk_order_no}]`;
+      else if (m.driver_name && m.driver_name.toUpperCase().includes(val)) displayText += ` - ${m.driver_name}`;
       div.innerText = displayText;
       div.onclick = () => selectPlate(m);
       sug.appendChild(div);
@@ -248,21 +218,14 @@ function selectPlate(vObj) {
 document.getElementById("selPlate").addEventListener("keydown", function (e) {
   let sug = document.getElementById("plateSuggestions");
   if (sug.style.display === "none") {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      triggerFetch();
-    }
+    if (e.key === "Enter") { e.preventDefault(); triggerFetch(); }
     return;
   }
   let items = sug.getElementsByTagName("div");
   if (e.key === "ArrowDown") {
-    e.preventDefault();
-    currentFocus++;
-    addActive(items);
+    e.preventDefault(); currentFocus++; addActive(items);
   } else if (e.key === "ArrowUp") {
-    e.preventDefault();
-    currentFocus--;
-    addActive(items);
+    e.preventDefault(); currentFocus--; addActive(items);
   } else if (e.key === "Enter" || e.key === "Tab") {
     e.preventDefault();
     if (currentFocus > -1 && items[currentFocus]) items[currentFocus].click();
@@ -281,8 +244,7 @@ function addActive(items) {
 }
 
 function removeActive(items) {
-  for (let i = 0; i < items.length; i++)
-    items[i].classList.remove("suggestion-active");
+  for (let i = 0; i < items.length; i++) items[i].classList.remove("suggestion-active");
 }
 
 function parseLogDate(dStr, defaultDate) {
@@ -292,51 +254,28 @@ function parseLogDate(dStr, defaultDate) {
 }
 
 function getGapStatus(d, sLogs, dLogs) {
-  let sActive = false,
-    sGap = false,
-    isReplaced = false,
-    isBeforeStart = false,
-    isAfterEnd = false;
-  let dActive = false,
-    dGap = false;
+  let sActive = false, sGap = false, isReplaced = false, isBeforeStart = false, isAfterEnd = false;
+  let dActive = false, dGap = false;
 
   if (sLogs && sLogs.length > 0) {
-    let ascSLogs = [...sLogs].sort(
-      (a, b) =>
-        parseLogDate(a.work_start_date, new Date("2000-01-01")) -
-        parseLogDate(b.work_start_date, new Date("2000-01-01")),
-    );
+    let ascSLogs = [...sLogs].sort((a, b) => parseLogDate(a.work_start_date, new Date("2000-01-01")) - parseLogDate(b.work_start_date, new Date("2000-01-01")));
     for (let i = 0; i < ascSLogs.length; i++) {
-      let st = parseLogDate(
-        ascSLogs[i].work_start_date,
-        new Date("2000-01-01"),
-      );
+      let st = parseLogDate(ascSLogs[i].work_start_date, new Date("2000-01-01"));
       let ed = parseLogDate(ascSLogs[i].work_end_date, new Date("2099-01-01"));
-      if (d >= st && d <= ed) {
-        sActive = true;
-        break;
-      }
+      if (d >= st && d <= ed) { sActive = true; break; }
       if (d > ed) {
         if (ascSLogs[i].status === "Replaced") isReplaced = true;
         else isReplaced = false; 
       }
     }
     if (!sActive) {
-      let firstStart = parseLogDate(
-        ascSLogs[0].work_start_date,
-        new Date("2000-01-01"),
-      );
-      let lastEnd = parseLogDate(
-        ascSLogs[ascSLogs.length - 1].work_end_date,
-        new Date("2099-01-01"),
-      );
+      let firstStart = parseLogDate(ascSLogs[0].work_start_date, new Date("2000-01-01"));
+      let lastEnd = parseLogDate(ascSLogs[ascSLogs.length - 1].work_end_date, new Date("2099-01-01"));
       if (d >= firstStart && d <= lastEnd) sGap = true;
       else if (d < firstStart) isBeforeStart = true;
       else if (d > lastEnd) isAfterEnd = true;
     }
-  } else {
-    sActive = true;
-  }
+  } else { sActive = true; }
 
   if (!sActive) {
     if (isReplaced) return "R";
@@ -347,25 +286,13 @@ function getGapStatus(d, sLogs, dLogs) {
   }
 
   if (dLogs && dLogs.length > 0) {
-    let ascDLogs = [...dLogs].sort(
-      (a, b) =>
-        parseLogDate(a.work_start_date, new Date("2000-01-01")) -
-        parseLogDate(b.work_start_date, new Date("2000-01-01")),
-    );
+    let ascDLogs = [...dLogs].sort((a, b) => parseLogDate(a.work_start_date, new Date("2000-01-01")) - parseLogDate(b.work_start_date, new Date("2000-01-01")));
     for (let i = 0; i < ascDLogs.length; i++) {
-      let st = parseLogDate(
-        ascDLogs[i].work_start_date,
-        new Date("2000-01-01"),
-      );
+      let st = parseLogDate(ascDLogs[i].work_start_date, new Date("2000-01-01"));
       let ed = parseLogDate(ascDLogs[i].work_end_date, new Date("2099-01-01"));
-      if (d >= st && d <= ed) {
-        dActive = true;
-        break;
-      }
+      if (d >= st && d <= ed) { dActive = true; break; }
     }
-  } else {
-    dActive = true;
-  }
+  } else { dActive = true; }
 
   if (!dActive) return "DC";
   return "ACTIVE";
@@ -375,9 +302,7 @@ function getDaysInMonth(monthStr, year) {
   return new Date(year, months.indexOf(monthStr) + 1, 0).getDate();
 }
 function getDayName(dayNum, monthStr, year) {
-  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-    new Date(`${monthStr} ${dayNum}, ${year}`).getDay()
-  ];
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(`${monthStr} ${dayNum}, ${year}`).getDay()];
 }
 function formatDateUI(dStr) {
   if (!dStr || dStr === "N/A") return "N/A";
@@ -398,13 +323,11 @@ async function triggerFetch() {
   savePlateHistory(p);
 
   const inlineLogsheet = document.getElementById("inlineLogsheet");
-  if (inlineLogsheet && inlineLogsheet.style.display !== "none")
-    openLogsheetViewer(p);
+  if (inlineLogsheet && inlineLogsheet.style.display !== "none") openLogsheetViewer(p);
 
   const m = document.getElementById("selMonth").value;
   const y = document.getElementById("selYear").value;
 
-  // 🟢 NEW FIX: വേറെ മാസമാണ് സെലക്ട് ചെയ്തതെങ്കിൽ പഴയ ലോക്ക് റിലീസ് ചെയ്യുക
   if (currentLockedRecord && (currentLockedRecord.plate !== p || currentLockedRecord.month !== m || currentLockedRecord.year !== y)) {
     releaseLock();
   }
@@ -417,25 +340,17 @@ async function triggerFetch() {
   btn.disabled = true;
   text.innerText = "Wait...";
   loader.style.display = "block";
-  tbody.innerHTML =
-    '<tr class="loading-row"><td colspan="13">Fetching database records...</td></tr>';
+  tbody.innerHTML = '<tr class="loading-row"><td colspan="13">Fetching database records...</td></tr>';
 
   try {
     const ts = new Date().getTime();
-    const headers = {
-      Authorization: "Bearer " + token,
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-    };
+    const headers = { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" };
 
     let lockRes, lockData;
     try {
       lockRes = await fetch('/timesheet/api/record-lock/request', {
         method: 'POST',
-        headers: {
-          "Authorization": "Bearer " + token,
-          "Content-Type": "application/json"
-        },
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ plate: p, month: m, year: y })
       });
       lockData = await lockRes.json();
@@ -453,274 +368,121 @@ async function triggerFetch() {
     if (!lockData.success) {
       if (lockData.lockedBy) {
         let lockedUser = lockData.lockedBy.toUpperCase();
-        await customAlert(`This record is currently being edited by [ ${lockedUser} ]. Please try again later to prevent overwriting.`, "Record Locked 🔒");
-        tbody.innerHTML = `<tr class="loading-row"><td colspan="13" style="color:#ef4444; font-weight:bold;">Record is locked by ${lockedUser}. Cannot fetch data.</td></tr>`;
-        btn.disabled = false;
-        text.innerText = "Fetch Data";
-        loader.style.display = "none";
-        return;
+        
+        // 🟢 Show Alert, Set Read-Only Mode & Show Request Edit Button
+        await customAlert(`This record is currently being edited by [ ${lockedUser} ]. Opening in Read-Only mode.`, "Record Locked 🔒");
+        
+        isReadOnlyMode = true;
+        // 🟢 FIX: Reset button completely so user can request again
+        let btnReq = document.getElementById("btnRequestEdit");
+        btnReq.style.display = "inline-block"; 
+        btnReq.style.opacity = "1";
+        btnReq.disabled = false;
+        amIWaitingForApproval = false; // Reset waiting state
       } else {
-        // If success is false but no lockedBy, it is a Token Expiry or Auth error from middleware
         await customAlert(lockData.message || "Session expired or invalid. Please login again.", "Session Timeout");
         logout();
         return;
       }
+    } else {
+      isReadOnlyMode = false;
+      document.getElementById("btnRequestEdit").style.display = "none";
+      currentLockedRecord = { plate: p, month: m, year: y };
     }
 
-    // 🟢 ലോക്ക് കിട്ടിയ ഉടൻ തന്നെ സേവ് ചെയ്യുക
-    currentLockedRecord = { plate: p, month: m, year: y };
-
-    const res = await fetch(
-      `/timesheet/api/grid-data?month=${m}&year=${y}&plate=${p}&_t=${ts}`,
-      { headers, cache: "no-store" },
-    );
+    const res = await fetch(`/timesheet/api/grid-data?month=${m}&year=${y}&plate=${p}&_t=${ts}`, { headers, cache: "no-store" });
 
     if (res.status === 401 || res.status === 403) {
-      releaseLock(); // 🟢 NEW
+      releaseLock(); 
       await customAlert("Session expired. Please login again.", "Session Timeout");
       logout();
       return;
     }
 
     let data;
-    try {
-      data = await res.json();
-    } catch (e) {
-      releaseLock(); // 🟢 NEW
+    try { data = await res.json(); } 
+    catch (e) {
+      releaseLock(); 
       await customAlert("Session expired or invalid response. Please login again.", "Session Timeout");
       logout();
       return;
     }
 
     if (data.success === false) {
-      releaseLock(); // 🟢 NEW
-      await customAlert(data.message || "Failed to fetch data.", "Database Error");
+      releaseLock(); 
       throw new Error(data.message);
     }
     
-    const logRes = await fetch(
-      `/timesheet/api/vehicle-logs?plate=${p}&_t=${ts}`,
-      { headers, cache: "no-store" },
-    );
-
-    if (logRes.status === 401 || logRes.status === 403) {
-      await customAlert("Session expired. Please login again.", "Session Timeout");
-      logout();
-      return;
-    }
-    
+    const logRes = await fetch(`/timesheet/api/vehicle-logs?plate=${p}&_t=${ts}`, { headers, cache: "no-store" });
     let logs;
-    try {
-      logs = await logRes.json();
-    } catch (e) {
-      await customAlert("Session expired. Please login again.", "Session Timeout");
-      logout();
-      return;
-    }
+    try { logs = await logRes.json(); } catch (e) { logs = { drivers: [], sites: [] }; }
 
     let mIdx = months.indexOf(m);
     let monthStart = new Date(y, mIdx, 1);
     let monthEnd = new Date(y, mIdx + 1, 0);
 
-    let dNameArr = [],
-      dMobArr = [],
-      siteArr = [],
-      activeSites = [];
+    let dNameArr = [], dMobArr = [], siteArr = [], activeSites = [];
 
     if (logs.success) {
       let activeDrivers = logs.drivers.filter((d) => {
-        let st = d.work_start_date
-          ? new Date(d.work_start_date)
-          : new Date("2000-01-01");
-        let ed = d.work_end_date
-          ? new Date(d.work_end_date)
-          : new Date("2099-01-01");
+        let st = d.work_start_date ? new Date(d.work_start_date) : new Date("2000-01-01");
+        let ed = d.work_end_date ? new Date(d.work_end_date) : new Date("2099-01-01");
         return st <= monthEnd && ed >= monthStart;
       });
-      if (
-        activeDrivers.length === 0 &&
-        logs.drivers &&
-        logs.drivers.length > 0
-      ) {
-        activeDrivers = [
-          [...logs.drivers].sort(
-            (a, b) =>
-              new Date(b.work_start_date || "2000-01-01") -
-              new Date(a.work_start_date || "2000-01-01"),
-          )[0],
-        ];
+      if (activeDrivers.length === 0 && logs.drivers && logs.drivers.length > 0) {
+        activeDrivers = [ [...logs.drivers].sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"))[0] ];
       }
       if (activeDrivers.length > 0) {
-        dNameArr = [...new Set(activeDrivers.map((d) => d.driver_name))].filter(
-          (val) =>
-            val && String(val).trim() !== "" && String(val).trim() !== "-",
-        );
-        dMobArr = [
-          ...new Set(activeDrivers.map((d) => d.driver_mobile)),
-        ].filter(
-          (val) =>
-            val && String(val).trim() !== "" && String(val).trim() !== "-",
-        );
+        dNameArr = [...new Set(activeDrivers.map((d) => d.driver_name))].filter(Boolean);
+        dMobArr = [...new Set(activeDrivers.map((d) => d.driver_mobile))].filter(Boolean);
       }
 
       activeSites = logs.sites.filter((s) => {
-        let st = s.work_start_date
-          ? new Date(s.work_start_date)
-          : new Date("2000-01-01");
-        let ed = s.work_end_date
-          ? new Date(s.work_end_date)
-          : new Date("2099-01-01");
+        let st = s.work_start_date ? new Date(s.work_start_date) : new Date("2000-01-01");
+        let ed = s.work_end_date ? new Date(s.work_end_date) : new Date("2099-01-01");
         return st <= monthEnd && ed >= monthStart;
       });
       if (activeSites.length === 0 && logs.sites && logs.sites.length > 0) {
-        activeSites = [
-          [...logs.sites].sort(
-            (a, b) =>
-              new Date(b.work_start_date || "2000-01-01") -
-              new Date(a.work_start_date || "2000-01-01"),
-          )[0],
-        ];
+        activeSites = [ [...logs.sites].sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"))[0] ];
       }
       if (activeSites.length > 0) {
-        siteArr = [...new Set(activeSites.map((s) => s.site_name))].filter(
-          Boolean,
-        );
+        siteArr = [...new Set(activeSites.map((s) => s.site_name))].filter(Boolean);
       }
     }
 
     let vObjMaster = vehiclesCache.find((v) => v.plate_no.toUpperCase() === p);
-    if (dNameArr.length === 0 && vObjMaster && vObjMaster.driver_name)
-      dNameArr.push(vObjMaster.driver_name);
-    if (dMobArr.length === 0 && vObjMaster && vObjMaster.driver_mobile)
-      dMobArr.push(vObjMaster.driver_mobile);
-    if (siteArr.length === 0 && vObjMaster && vObjMaster.site_name)
-      siteArr.push(vObjMaster.site_name);
+    document.getElementById("dispDName").innerText = dNameArr.length > 0 ? dNameArr.join(" & ") : (vObjMaster ? vObjMaster.driver_name || "N/A" : "N/A");
+    document.getElementById("dispDMob").innerText = dMobArr.length > 0 ? dMobArr.join(" & ") : (vObjMaster ? vObjMaster.driver_mobile || "N/A" : "N/A");
+    document.getElementById("dispSite").innerText = siteArr.length > 0 ? siteArr.join(" & ") : (vObjMaster ? vObjMaster.site_name || "N/A" : "N/A");
+    document.getElementById("dispOName").innerText = vObjMaster ? vObjMaster.owner_name || "N/A" : "N/A";
+    document.getElementById("dispOMob").innerText = vObjMaster ? vObjMaster.owner_mobile || "N/A" : "N/A";
+    document.getElementById("dispVType").innerText = vObjMaster ? vObjMaster.vehicle_type || "N/A" : "N/A";
 
-    document.getElementById("dispDName").innerText =
-      dNameArr.length > 0 ? dNameArr.join(" & ") : "N/A";
-    document.getElementById("dispDMob").innerText =
-      dMobArr.length > 0 ? dMobArr.join(" & ") : "N/A";
-    document.getElementById("dispSite").innerText =
-      siteArr.length > 0 ? siteArr.join(" & ") : "N/A";
-    document.getElementById("dispOName").innerText = vObjMaster
-      ? vObjMaster.owner_name || "N/A"
-      : "N/A";
-    document.getElementById("dispOMob").innerText = vObjMaster
-      ? vObjMaster.owner_mobile || "N/A"
-      : "N/A";
-    document.getElementById("dispVType").innerText = vObjMaster
-      ? vObjMaster.vehicle_type || "N/A"
-      : "N/A";
-
-    let sStartVal = null,
-      sEndVal = null;
+    let sStartVal = null, sEndVal = null;
     if (activeSites.length > 0) {
-      activeSites.sort(
-        (a, b) =>
-          new Date(b.work_start_date || "2000-01-01") -
-          new Date(a.work_start_date || "2000-01-01"),
-      );
       let latestSiteLog = activeSites[0];
-      sStartVal = latestSiteLog.work_start_date
-        ? latestSiteLog.work_start_date.split("T")[0]
-        : null;
-      sEndVal = latestSiteLog.work_end_date
-        ? latestSiteLog.work_end_date.split("T")[0]
-        : null;
-
-      document.getElementById("dispFieldCo").innerText =
-        latestSiteLog.field_co || (vObjMaster ? vObjMaster.field_co : "N/A");
-      document.getElementById("dispSiteCo").innerText =
-        latestSiteLog.site_co || (vObjMaster ? vObjMaster.site_co : "N/A");
-      document.getElementById("dispSiteStart").innerText = formatDateUI(
-        sStartVal || "N/A",
-      );
-
-      if (sEndVal) {
-        let endStatusText = latestSiteLog.new_vehicle_no
-          ? " (Replaced)"
-          : " (Released)";
-        document.getElementById("dispSiteEnd").innerText =
-          formatDateUI(sEndVal) + endStatusText;
-      } else {
-        document.getElementById("dispSiteEnd").innerText = "Running";
-      }
-
-      document.getElementById("dispAsset").innerText =
-        latestSiteLog.asset_code ||
-        (vObjMaster ? vObjMaster.asset_code : null) ||
-        "N/A";
-      document.getElementById("dispWorkOrder").innerText =
-        latestSiteLog.work_order_no ||
-        (vObjMaster ? vObjMaster.wrk_order_no : null) ||
-        "N/A";
-
-      if (
-        latestSiteLog.old_vehicle_no &&
-        latestSiteLog.old_vehicle_no.trim() !== ""
-      ) {
-        if (document.getElementById("oldVehRow")) {
-          document.getElementById("oldVehRow").style.display = "flex";
-          document.getElementById("dispOldVeh").innerText =
-            latestSiteLog.old_vehicle_no;
-        }
-      } else {
-        if (document.getElementById("oldVehRow"))
-          document.getElementById("oldVehRow").style.display = "none";
-      }
-
-      if (
-        latestSiteLog.new_vehicle_no &&
-        latestSiteLog.new_vehicle_no.trim() !== ""
-      ) {
-        if (document.getElementById("newVehRow")) {
-          document.getElementById("newVehRow").style.display = "flex";
-          document.getElementById("dispNewVeh").innerText =
-            latestSiteLog.new_vehicle_no;
-        }
-      } else {
-        if (document.getElementById("newVehRow"))
-          document.getElementById("newVehRow").style.display = "none";
-      }
-    } else {
-      document.getElementById("dispSiteStart").innerText = "N/A";
-      document.getElementById("dispSiteEnd").innerText = "N/A";
-      if (document.getElementById("oldVehRow"))
-        document.getElementById("oldVehRow").style.display = "none";
-      if (document.getElementById("newVehRow"))
-        document.getElementById("newVehRow").style.display = "none";
-      document.getElementById("dispFieldCo").innerText = vObjMaster
-        ? vObjMaster.field_co || "N/A"
-        : "N/A";
-      document.getElementById("dispSiteCo").innerText = vObjMaster
-        ? vObjMaster.site_co || "N/A"
-        : "N/A";
-      document.getElementById("dispAsset").innerText = vObjMaster
-        ? vObjMaster.asset_code || "N/A"
-        : "N/A";
-      document.getElementById("dispWorkOrder").innerText = vObjMaster
-        ? vObjMaster.wrk_order_no || "N/A"
-        : "N/A";
+      sStartVal = latestSiteLog.work_start_date ? latestSiteLog.work_start_date.split("T")[0] : null;
+      sEndVal = latestSiteLog.work_end_date ? latestSiteLog.work_end_date.split("T")[0] : null;
+      document.getElementById("dispFieldCo").innerText = latestSiteLog.field_co || (vObjMaster ? vObjMaster.field_co : "N/A");
+      document.getElementById("dispSiteCo").innerText = latestSiteLog.site_co || (vObjMaster ? vObjMaster.site_co : "N/A");
+      document.getElementById("dispSiteStart").innerText = formatDateUI(sStartVal || "N/A");
+      document.getElementById("dispSiteEnd").innerText = sEndVal ? formatDateUI(sEndVal) + (latestSiteLog.new_vehicle_no ? " (Replaced)" : " (Released)") : "Running";
+      document.getElementById("dispAsset").innerText = latestSiteLog.asset_code || (vObjMaster ? vObjMaster.asset_code : "N/A");
+      document.getElementById("dispWorkOrder").innerText = latestSiteLog.work_order_no || (vObjMaster ? vObjMaster.wrk_order_no : "N/A");
     }
 
     try {
-      const invRes = await fetch(
-        `/payment/get-invoice?plate_no=${p}&month=${m + " " + y}&_t=${ts}`,
-        { headers, cache: "no-store" },
-      );
+      const invRes = await fetch(`/payment/get-invoice?plate_no=${p}&month=${m + " " + y}&_t=${ts}`, { headers, cache: "no-store" });
       const invData = await invRes.json();
       currentInvoices = invData.success && invData.data ? invData.data : [];
-    } catch (e) {
-      currentInvoices = [];
-    }
+    } catch (e) { currentInvoices = []; }
 
     const invSiteSelect = document.getElementById("invSiteSelect");
     invSiteSelect.innerHTML = "";
     if (siteArr.length > 0) {
       siteArr.forEach((siteName) => {
         let opt = document.createElement("option");
-        opt.value = siteName;
-        opt.text = siteName;
+        opt.value = siteName; opt.text = siteName;
         invSiteSelect.appendChild(opt);
       });
       loadInvoiceForSelectedSite();
@@ -729,64 +491,28 @@ async function triggerFetch() {
       clearInvoiceForm();
     }
 
-    fetch("/timesheet/api/logsheets/list", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-      body: JSON.stringify({ month: m, year: y, plate_no: p }),
-    })
-    .then(res => res.json())
-    .then(lsData => {
-      const actualLsSpan = document.getElementById("actualLogsheetCount");
-      if (actualLsSpan) {
-        if (lsData.success && lsData.files && lsData.files.length > 0) {
-          let validCount = 0;
-          let zeroCount = 0;
-          
-          // 0B ഫയലുകളെ വേർതിരിച്ച് എണ്ണുന്നു
-          lsData.files.forEach(f => {
-            if (f.size === 0) zeroCount++;
-            else validCount++;
-          });
-          
-          // പച്ച നിറത്തിൽ സ്ക്വയർ ബ്രാക്കറ്റ്
-          let htmlStr = `<span style="font-weight: 700;">[ ${validCount} ]</span>`;
-          
-          // 0B ഫയൽ ഉണ്ടെങ്കിൽ മാത്രം ചുവന്ന നിറത്തിൽ പുറത്തു കാണിക്കുക 
-          if (zeroCount > 0) {
-            htmlStr += `<span style="color: #ef4444; font-weight: 700; margin-left: 6px; font-size: 13px;" title="${zeroCount} Empty (0B) files">${zeroCount}</span>`;
-          }
-          
-          actualLsSpan.innerHTML = htmlStr;
-        } else {
-          actualLsSpan.innerHTML = "";
-        }
-      }
-    })
-    .catch(e => console.log("Error fetching logsheet count:", e));
-    
     let existingData = data.success ? data.data : [];
-    setTimeout(async () => {
-      renderGrid(m, y, p, existingData, sStartVal, sEndVal, logs);
-      
-      // 🟢 FIX: എപ്പോഴും ഡാറ്റാബേസിൽ നിന്നും ലേറ്റസ്റ്റ് ലോക്ക് സ്റ്റാറ്റസ് എടുക്കാൻ (Async)
-      await applyLockStatus(m, y, false);
+    
+    try {
+        renderGrid(m, y, p, existingData, sStartVal, sEndVal, logs);
+        await applyLockStatus(m, y, false);
+        
+        if(typeof startRecordPoll === "function") {
+            startRecordPoll(p, m, y);
+        }
+    } catch (renderError) {
+        console.error("Render Grid Error:", renderError);
+    } finally {
+        btn.disabled = false;
+        text.innerText = "Fetch Data";
+        loader.style.display = "none";
+    }
 
-      btn.disabled = false;
-      text.innerText = "Fetch Data";
-      loader.style.display = "none";
-    }, 300);
   } catch (error) {
-    tbody.innerHTML =
-      '<tr class="loading-row"><td colspan="13" style="color:red;">Error fetching data. Check connection.</td></tr>';
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="13" style="color:red;">Error fetching data. Check connection.</td></tr>';
     btn.disabled = false;
     text.innerText = "Fetch Data";
     loader.style.display = "none";
-    
-    // 🟢 2 മണിക്കൂർ കഴിഞ്ഞ് നെറ്റ് ലാഗ് കാരണം ഫെച്ച് ഫെയിൽ ആയാൽ ഗ്രിഡിലെ എഴുത്തിന് പുറമെ വലിയൊരു പോപ്പ്-അപ്പ് കൂടി കാണിക്കും (യൂസറുടെ ശ്രദ്ധയിൽ പെടാൻ).
-    await customAlert("Network connection lost or server is unreachable. Please check your internet and try again.", "Connection Error");
   }
 }
 
@@ -896,22 +622,24 @@ function renderGrid(
       }
     }
 
+    let disabledAttr = isReadOnlyMode ? 'disabled style="background-color: #f1f5f9; cursor: not-allowed;"' : '';
+
     let tr = document.createElement("tr");
     tr.className = rowClass;
     tr.innerHTML = `
       <td><input type="text" class="grid-readonly" value="${plate}" tabindex="-1" readonly></td>
       <td><input type="text" class="grid-readonly" value="${i}" tabindex="-1" readonly></td>
       <td><input type="text" class="grid-readonly" value="${dayName}" tabindex="-1" readonly style="color:#64748b;"></td>
-      <td><input type="text" class="grid-input" data-col="wrk_start" data-row="${i}" value="${ws}"></td>
-      <td><input type="text" class="grid-input" data-col="wrk_end" data-row="${i}" value="${cleanVal(rowData.wrk_end)}"></td>
-      <td><input type="text" class="grid-input" data-col="hmr_start" data-row="${i}" value="${cleanVal(rowData.hmr_start)}"></td>
-      <td><input type="text" class="grid-input" data-col="hmr_end" data-row="${i}" value="${cleanVal(rowData.hmr_end)}"></td>
-      <td><input type="text" class="grid-input" data-col="fuel" data-row="${i}" value="${cleanVal(rowData.fuel)}"></td>
-      <td><input type="text" class="grid-input" data-col="bd" data-row="${i}" value="${displayBd}"></td>
-      <td><input type="checkbox" class="grid-input" data-col="nl_checked" data-row="${i}" ${rowData.nl_checked ? "checked" : ""}></td>
+      <td><input type="text" class="grid-input" data-col="wrk_start" data-row="${i}" value="${ws}" ${disabledAttr}></td>
+      <td><input type="text" class="grid-input" data-col="wrk_end" data-row="${i}" value="${cleanVal(rowData.wrk_end)}" ${disabledAttr}></td>
+      <td><input type="text" class="grid-input" data-col="hmr_start" data-row="${i}" value="${cleanVal(rowData.hmr_start)}" ${disabledAttr}></td>
+      <td><input type="text" class="grid-input" data-col="hmr_end" data-row="${i}" value="${cleanVal(rowData.hmr_end)}" ${disabledAttr}></td>
+      <td><input type="text" class="grid-input" data-col="fuel" data-row="${i}" value="${cleanVal(rowData.fuel)}" ${disabledAttr}></td>
+      <td><input type="text" class="grid-input" data-col="bd" data-row="${i}" value="${displayBd}" ${disabledAttr}></td>
+      <td><input type="checkbox" class="grid-input" data-col="nl_checked" data-row="${i}" ${rowData.nl_checked ? "checked" : ""} ${isReadOnlyMode ? 'disabled' : ''}></td>
       <td><input type="text" class="grid-readonly" id="dist_${i}" value="${dbDist}" tabindex="-1" readonly></td>
       <td><input type="text" class="grid-readonly" id="time_${i}" value="${cleanVal(rowData.calc_time)}" tabindex="-1" readonly></td>
-      <td><textarea class="grid-input" data-col="remark" data-row="${i}">${rowRemark}</textarea></td>
+      <td><textarea class="grid-input" data-col="remark" data-row="${i}" ${disabledAttr}>${rowRemark}</textarea></td>
       <td><input type="text" class="grid-readonly" id="mod_${i}" value="${cleanVal(rowData.modified_by)}" tabindex="-1" readonly style="font-size: 11px; color: #64748b; background: transparent; text-transform: capitalize;"></td>
     `;
     tbody.appendChild(tr);
@@ -1053,7 +781,6 @@ function attachGridEvents() {
       });
     }
 
-    // 🟢 പുതിയ മാറ്റം: ഫോക്കസ് ചെയ്യുമ്പോൾ നിലവിലുള്ള വാല്യൂ സേവ് ചെയ്തു വെക്കുന്നു
     input.addEventListener("focus", function () {
       this.dataset.oldVal = this.type === "checkbox" ? this.checked : this.value;
     });
@@ -1134,14 +861,13 @@ function calculateRow(rowIdx) {
   );
   let bd = bdInput.value.trim().toUpperCase();
 
-  // 🟢 Auto-map Shorthands to Professional Codes
   if (bd === "B") bd = "BD";
   else if (bd === "N") bd = "NW";
   else if (bd === "S") bd = "NS";
   else if (bd === "NR") bd = "NR";
   else if (bd === "F") bd = "Fri";
   
-  bdInput.value = bd; // Update the UI instantly
+  bdInput.value = bd; 
   let bdCheck = bd.toUpperCase();
 
   if (ws !== "" && we !== "") {
@@ -1267,7 +993,7 @@ window.addEventListener("pagehide", function () {
 async function saveCellData(rowIdx, colName, colValue) {
   const plate = document.getElementById("selPlate").value.trim().toUpperCase();
   if (!plate || !colName) return;
-  
+
   pendingSaves++; 
   const statusLabel = document.getElementById("saveStatus");
   statusLabel.innerText = "Saving...";
@@ -1295,6 +1021,7 @@ async function saveCellData(rowIdx, colName, colValue) {
         Authorization: "Bearer " + token,
       },
       body: JSON.stringify(payload),
+      keepalive: true 
     });
 
     if (response.status === 401 || response.status === 403) {
@@ -1304,20 +1031,11 @@ async function saveCellData(rowIdx, colName, colValue) {
     }
 
     const data = await response.json().catch(() => ({}));
-    
-    // 🟢 യഥാർത്ഥ ടോക്കൺ പ്രശ്നമാണെങ്കിൽ (401/403) മാത്രം ലോഗൗട്ട് ആക്കും. നെറ്റ് കട്ട് ആയാൽ ലോഗൗട്ട് ആകില്ല!
-    if (response.status === 401 || response.status === 403) {
-      await customAlert("Session expired or invalid. Please login again.", "Session Timeout");
-      logout();
-      return;
-    }
 
-    // 🟢 ഡാറ്റ സേവ് ആയില്ലെങ്കിൽ നേരിട്ട് Catch ബ്ലോക്കിലേക്ക് പോയി പോപ്പ്-അപ്പ് വരും (ഡാറ്റ നഷ്ടപ്പെടില്ല)
     if (!response.ok || data.success === false) {
-      throw new Error(data.message || "Server connection lag. Data not saved.");
+      throw new Error(data.message || "Database rejected the save. Possible sync issue.");
     }
 
-    // Update Modified By column locally right after saving
     try {
       const user = JSON.parse(localStorage.getItem("timesheetUser"));
       if (user && user.username) {
@@ -1355,14 +1073,17 @@ async function saveCellData(rowIdx, colName, colValue) {
             entry_date: formattedDate,
             action: "UPDATE",
           }),
+          keepalive: true
         });
       }
     } catch (logErr) {}
   } catch (e) {
-    console.error("Save Error:", e);
+    console.error("Strict Save Error:", e);
     statusLabel.innerText = "Error";
     statusLabel.style.backgroundColor = "#dc3545";
-    customAlert("Failed to save. Reason: " + (e.message || "Unknown Error"), "Database Error");
+    
+    await customAlert("CRITICAL ERROR: Data failed to save securely to the database. To prevent data loss, your session will be closed. Reason: " + (e.message || "Server Connection Error"), "Database Error");
+    logout(); 
   } finally {
     pendingSaves = Math.max(0, pendingSaves - 1); 
   }
@@ -1371,7 +1092,7 @@ async function saveCellData(rowIdx, colName, colValue) {
 function customAlert(message, title = "Notice") {
   return new Promise((resolve) => {
     document.getElementById("customAlertTitle").innerText = title;
-    document.getElementById("customAlertTitle").style.color = (title.includes("Success") || title.includes("Unlocked")) ? "#10b981" : "#ef4444";
+    document.getElementById("customAlertTitle").style.color = (title.includes("Success") || title.includes("Unlocked") || title.includes("Transferred")) ? "#10b981" : "#ef4444";
     document.getElementById("customAlertMessage").innerText = message;
     
     const logoutBtn = document.getElementById("alertLogoutBtn");
@@ -1391,7 +1112,7 @@ function customAlert(message, title = "Notice") {
       if (title === "Period Locked" || title === "Period Locked 🔒") {
         unlockBtn.style.display = "inline-block";
         reqOtpBtn.style.display = "inline-block";
-        otpInput.style.display = "none"; // 🟢 ആദ്യം ഇൻപുട്ട് ബോക്സ് ഹൈഡ് ചെയ്യുന്നു
+        otpInput.style.display = "none"; 
         otpInput.value = ""; 
       } else {
         unlockBtn.style.display = "none";
@@ -1428,7 +1149,6 @@ async function requestOtpFromGrid() {
           document.getElementById("customAlertTitle").innerText = "OTP Sent 📩";
           document.getElementById("customAlertTitle").style.color = "#3b82f6";
           document.getElementById("customAlertMessage").innerText = data.message;
-          // 🟢 OTP അയച്ചു കഴിഞ്ഞാൽ മാത്രം ഇൻപുട്ട് ബോക്സ് കാണിക്കുന്നു
           document.getElementById("gridUnlockInput").style.display = "block";
           document.getElementById("gridUnlockInput").focus();
       } else {
@@ -1445,11 +1165,10 @@ async function requestOtpFromGrid() {
 async function triggerGridUnlock() {
   const otpInput = document.getElementById("gridUnlockInput");
   
-  // 🟢 ഇൻപുട്ട് ബോക്സ് ഹൈഡ് ആണെങ്കിൽ (അതായത് യൂസർ മാസ്റ്റർ കോഡ് അടിക്കാൻ വന്നാൽ), ആദ്യം ബോക്സ് കാണിക്കുക
   if (otpInput && otpInput.style.display === "none") {
       otpInput.style.display = "block";
       otpInput.focus();
-      return; // ഫംഗ്ഷൻ ഇവിടെ നിർത്തുന്നു, യൂസർ കോഡ് അടിച്ച ശേഷം വീണ്ടും ബട്ടൺ അമർത്തണം
+      return; 
   }
 
   const code = otpInput ? otpInput.value.trim() : "";
@@ -1667,7 +1386,6 @@ function logout() {
     window.location.pathname.split("/").pop() + window.location.search
   );
   
-  // 🟢 NEW: Lock release ഫെച്ച് കംപ്ലീറ്റ് ആകാൻ 300ms സമയം കൊടുക്കുന്നു
   setTimeout(() => {
     window.location.href = "index.html?redirect=" + currentPage;
   }, 300);
@@ -1798,7 +1516,6 @@ async function importExcel() {
     const vData = await vRes.json();
     if (vData.success) vInfo = vData.data;
 
-    // 🟢 FETCHING CACHES LOCALLY IN IMPORT FOR ACCURACY
     const srRes = await fetch("/timesheet/api/special-rules", {
       headers: { Authorization: "Bearer " + token },
     });
@@ -1823,7 +1540,6 @@ async function importExcel() {
         .trim()
         .toUpperCase();
       
-      // 🟢 Excel Import Auto-map
       if (bd === "B") bd = "BD";
       else if (bd === "N") bd = "NW";
       else if (bd === "S") bd = "NS";
@@ -1893,7 +1609,6 @@ async function importExcel() {
             sitesArray = [];
           }
 
-          // 🟢 FIXED: Partial Keyword Match
           let siteMatch =
             sitesArray.includes("ALL") ||
             sitesArray.some((keyword) => site.includes(keyword));
@@ -2026,12 +1741,10 @@ init();
 // 🔒 LOCK PERIOD CHECKER (UPDATED)
 // ==========================================
 async function applyLockStatus(selectedMonthStr, selectedYearStr, silent = false) {
-    // 1. എപ്പോഴും ഡാറ്റാബേസിൽ നിന്നും ലേറ്റസ്റ്റ് ലോക്ക് സ്റ്റാറ്റസ് എടുക്കുക
     try {
         const ts = new Date().getTime();
         const lRes = await fetch(`/api/lock/status?_t=${ts}`, { headers: { Authorization: "Bearer " + token }});
         
-        // 🟢 NEW: Check session expiry dynamically on tab focus or grid load
         if (lRes.status === 401 || lRes.status === 403) {
             await customAlert("Session expired due to inactivity. Please login again to prevent data loss.", "Session Timeout");
             logout();
@@ -2059,7 +1772,6 @@ async function applyLockStatus(selectedMonthStr, selectedYearStr, silent = false
     const isCurrentlyLockedInDB = systemLockData.month && systemLockData.year && (selectedAbsolute <= lockAbsolute);
     
     if (isCurrentlyLockedInDB) {
-        // സിസ്റ്റം ലോക്ക്ഡ് ആണ്! ഗ്രിഡ് ഡിസേബിൾ ചെയ്യുക
         let wasAlreadyDisabled = false;
         document.querySelectorAll(".grid-input").forEach(el => {
             if(el.disabled) wasAlreadyDisabled = true;
@@ -2077,12 +1789,12 @@ async function applyLockStatus(selectedMonthStr, selectedYearStr, silent = false
             invBtn.innerText = "🔒 Locked Period";
         }
         
-        // സൈലന്റ് മോഡ് അല്ലെങ്കിൽ മാത്രം പോപ്പ്-അപ്പ് കാണിക്കുക
         if (!silent && !wasAlreadyDisabled) {
             customAlert(`The period up to ${systemLockData.month} ${systemLockData.year} is locked. You cannot edit this data.`, "Period Locked");
         }
     } else {
-        // 🟢 സിസ്റ്റം അൺലോക്ക്ഡ് ആണ്. നിലവിൽ ഗ്രിഡ് ഡിസേബിൾ ആയി കിടക്കുന്നുണ്ടെങ്കിൽ അത് റീ-എനേബിൾ ചെയ്യുക
+        if (isReadOnlyMode) return;
+
         let isUIDisabled = document.querySelector(".grid-input")?.disabled === true;
         if (isUIDisabled) {
             document.querySelectorAll(".grid-input").forEach(el => {
@@ -2112,3 +1824,210 @@ window.addEventListener("focus", async () => {
       await applyLockStatus(m, y, true); 
     }
 });
+
+
+// ==========================================
+// 🟢 LIVE LOCK TRANSFER & POLLING LOGIC
+// ==========================================
+
+function startRecordPoll(p, m, y) {
+  clearInterval(recordPollTimer);
+  recordPollTimer = setInterval(async () => {
+      try {
+          const ts = new Date().getTime(); 
+          const res = await fetch(`/timesheet/api/record-lock/poll?plate=${p}&month=${m}&year=${y}&_t=${ts}`, {
+              headers: { 
+                  "Authorization": "Bearer " + token,
+                  "Cache-Control": "no-cache",
+                  "Pragma": "no-cache"
+              },
+              cache: "no-store"
+          });
+          const data = await res.json();
+          const userStr = localStorage.getItem("timesheetUser");
+          if (!userStr) return;
+          const user = JSON.parse(userStr).username.trim().toLowerCase();
+
+          const isMe = data.owner && data.owner.trim().toLowerCase() === user;
+          const isRequestedByMe = data.requestedBy && data.requestedBy.trim().toLowerCase() === user;
+          const isRejected = data.requestedBy === "REJECTED";
+
+          if (!data.locked) {
+              if (isReadOnlyMode) claimLockSilently(p, m, y); 
+              return;
+          }
+
+          if (isMe) {
+              if (isReadOnlyMode) {
+                  isReadOnlyMode = false;
+                  amIWaitingForApproval = false;
+                  clearInterval(recordPollTimer); 
+                  
+                  Swal.fire({
+                      title: "Access Granted! 🔓",
+                      text: "Refreshing grid to load the latest data...",
+                      icon: "success",
+                      timer: 1500,
+                      showConfirmButton: false
+                  }).then(() => {
+                      triggerFetch(); 
+                  });
+                  return;
+              }
+
+              if (data.requestedBy && data.requestedBy !== "REJECTED" && !incomingRequestActive) {
+                  incomingRequestActive = true;
+                  showTransferRequestPopup(data.requestedBy, p, m, y);
+              }
+          } else {
+              if (!isReadOnlyMode) {
+                  isReadOnlyMode = true;
+                  currentLockedRecord = null;
+                  makeGridReadOnlyLive();
+                  customAlert("Edit access has been transferred to another user. You are now in Read-Only mode.", "Access Transferred"); 
+              }
+
+              // 3. I AM THE REQUESTER WAITING FOR RESPONSE
+              if (amIWaitingForApproval) {
+                  if (isRejected) {
+                      // 🟢 Request was REJECTED by Active User
+                      amIWaitingForApproval = false;
+                      Swal.fire({ toast: true, position: "top-end", icon: "error", title: "Request Rejected by the active user.", showConfirmButton: false, timer: 4000 });
+                      
+                      const btn = document.getElementById("btnRequestEdit");
+                      btn.style.opacity = "1";
+                      btn.disabled = false;
+                      
+                      // Clear rejection state on backend
+                      fetch("/timesheet/api/record-lock/clear-rejection", {
+                          method: 'POST',
+                          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+                          body: JSON.stringify({ plate: p, month: m, year: y })
+                      });
+                  } else if (isRequestedByMe) {
+                      // 🟢 Waiting for 30s Timeout
+                      if (data.requestTime && (Date.now() - data.requestTime >= 30000)) {
+                          forceClaimLock(p, m, y); 
+                      }
+                  } else if (!data.requestedBy) {
+                      // 🟢 FAILSAFE: Active user closed tab or lock released naturally
+                      amIWaitingForApproval = false;
+                      const btn = document.getElementById("btnRequestEdit");
+                      btn.style.opacity = "1";
+                      btn.disabled = false;
+                  }
+              }
+          }
+      } catch (e) {}
+  }, 5000); 
+}
+
+async function claimLockSilently(p, m, y) {
+  await fetch("/timesheet/api/record-lock/request", {
+      method: 'POST',
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ plate: p, month: m, year: y })
+  });
+}
+
+async function requestEditAccess() {
+  const p = document.getElementById("selPlate").value.trim().toUpperCase();
+  const m = document.getElementById("selMonth").value;
+  const y = document.getElementById("selYear").value;
+  
+  const btn = document.getElementById("btnRequestEdit");
+  btn.style.opacity = "0.5";
+  btn.disabled = true;
+
+  try {
+      const res = await fetch("/timesheet/api/record-lock/request-transfer", {
+          method: 'POST',
+          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ plate: p, month: m, year: y })
+      });
+      const data = await res.json();
+      if(data.success) {
+          Swal.fire({ toast: true, position: "top-end", icon: "info", title: "Request sent. Waiting for approval...", showConfirmButton: false, timer: 3000 });
+          amIWaitingForApproval = true;
+          
+          // 🟢 ZERO DELAY FIX: Force local timer for exact 29 seconds!
+          setTimeout(() => {
+              if (amIWaitingForApproval) {
+                  forceClaimLock(p, m, y);
+              }
+          }, 29000);
+      } else {
+          customAlert(data.message, "Notice");
+          btn.style.opacity = "1";
+          btn.disabled = false;
+      }
+  } catch(e) {}
+}
+
+function showTransferRequestPopup(requester, p, m, y) {
+  // 🟢 NEW: Play Bell Audio Alert
+  try {
+    const bellAudio = new Audio("../alert_mp3/bell_alert.mp3");
+    bellAudio.play().catch(e => console.log("Audio autoplay prevented by browser:", e));
+  } catch (e) {}
+
+  let timerInterval;
+  Swal.fire({
+    title: 'Edit Access Requested',
+    html: `<b>${requester.toUpperCase()}</b> is requesting to edit this record.<br><br>Auto-approving in <b id="swal-timer" style="color:red; font-size:18px;"></b> seconds.`,
+    timer: 29000,
+    timerProgressBar: true,
+    showCancelButton: true,
+    confirmButtonColor: '#10b981',
+    cancelButtonColor: '#ef4444',
+    confirmButtonText: 'Approve',
+    cancelButtonText: 'Reject',
+    allowOutsideClick: false,
+    didOpen: () => {
+      const b = Swal.getHtmlContainer().querySelector('#swal-timer');
+      if (b) {
+        timerInterval = setInterval(() => {
+          b.textContent = Math.ceil(Swal.getTimerLeft() / 1000);
+        }, 1000);
+      }
+    },
+    willClose: () => {
+      clearInterval(timerInterval);
+    }
+  }).then((result) => {
+    incomingRequestActive = false;
+    if (result.isConfirmed || result.dismiss === Swal.DismissReason.timer) {
+      resolveTransfer(p, m, y, 'approve');
+    } else {
+      resolveTransfer(p, m, y, 'reject');
+    }
+  });
+}
+
+async function resolveTransfer(p, m, y, action) {
+  await fetch("/timesheet/api/record-lock/resolve-transfer", {
+      method: 'POST',
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ plate: p, month: m, year: y, action: action })
+  });
+}
+
+async function forceClaimLock(p, m, y) {
+  await fetch("/timesheet/api/record-lock/resolve-transfer", {
+      method: 'POST',
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ plate: p, month: m, year: y, action: 'force' })
+  });
+}
+
+function makeGridReadOnlyLive() {
+  document.querySelectorAll(".grid-input").forEach(el => {
+      el.disabled = true;
+      el.style.backgroundColor = "#f1f5f9";
+      el.style.cursor = "not-allowed";
+  });
+  const saveLabel = document.getElementById("saveStatus");
+  saveLabel.innerText = "Read Only";
+  saveLabel.className = "save-indicator status-saving";
+  saveLabel.style.opacity = "1";
+}

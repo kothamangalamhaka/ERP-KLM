@@ -26,7 +26,7 @@ router.post("/set", verifySuperAdmin, async (req, res) => {
 });
 
 // Request Unlock OTP
-router.post("/request-unlock", verifySuperAdmin, async (req, res) => {
+router.post("/request-unlock", verifyToken, async (req, res) => {
     try {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins validity
@@ -52,7 +52,7 @@ router.post("/request-unlock", verifySuperAdmin, async (req, res) => {
 });
 
 // Verify OTP or Master Code and Unlock
-router.post("/verify-unlock", verifySuperAdmin, async (req, res) => {
+router.post("/verify-unlock", verifyToken, async (req, res) => {
     try {
         const { code } = req.body;
         const masterCode = process.env.MASTER_UNLOCK_CODE;

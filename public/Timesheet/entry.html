@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timesheet - Live Grid Entry</title>
     <link rel="stylesheet" href="style/entry.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -73,8 +74,10 @@
           <div class="mobile-single-row">
             <div class="form-group select-month">
               <label class="pc-label">Month</label>
-              <select id="selMonth">
-                <option value="January">Jan</option>
+              <div style="display: flex; align-items: center; gap: 5px;">
+                <button class="month-nav-btn" onclick="prevMonth()" title="Previous Month">◀</button>
+                <select id="selMonth" onchange="releaseLock(); if(document.getElementById('selPlate').value) triggerFetch();">
+                  <option value="January">Jan</option>
                 <option value="February">Feb</option>
                 <option value="March">Mar</option>
                 <option value="April">Apr</option>
@@ -87,6 +90,8 @@
                 <option value="November">Nov</option>
                 <option value="December">Dec</option>
               </select>
+                <button class="month-nav-btn" onclick="nextMonth()" title="Next Month">▶</button>
+              </div>
             </div>
 
             <div class="form-group select-year">
@@ -124,6 +129,8 @@
           </div>
 
           <div class="nav-buttons-row">
+            <!-- 🟢 FIX: Text removed, only Bell icon, added tooltip and adjusted padding -->
+            <button id="btnRequestEdit" class="req-edit-btn" style="display:none; padding: 8px 12px; font-size: 16px;" title="Request Edit Access" onclick="requestEditAccess()">🔔</button>     
             <button class="pendingl"><a href="blank.html">Pending</a></button>
             <button class="tsm"><a href="Dashboard.html">Timesheet</a></button>
             <button class="tsm"><a href="view.html">Ts Card</a></button>
