@@ -170,24 +170,29 @@
             display: flex;
             gap: 20px;
             align-items: flex-start;
+            width: 100%;
         }
         .log-left-form {
-            flex: 1;
+            width: 340px;
+            min-width: 320px;
             background: #f6f8fa;
             padding: 15px;
             border-radius: 6px;
             border: 1px solid var(--border);
+            box-sizing: border-box;
         }
         .log-right-history {
-            flex: 2;
-            max-height: 450px;
+            flex: 1;
+            max-height: 480px;
             overflow-y: auto;
+            overflow-x: visible;
             border: 1px solid var(--border);
             border-radius: 6px;
         }
         .log-right-history table {
             width: 100%;
             border-collapse: collapse;
+            white-space: nowrap;
         }
         .log-right-history th {
             position: sticky;
@@ -197,7 +202,7 @@
             font-size: 12px;
         }
         .log-right-history td, .log-right-history th {
-            padding: 6px 10px;
+            padding: 7px 12px;
             font-size: 12px;
         }
         .edit-icon {
@@ -368,7 +373,9 @@
             padding: 10px;
             border-radius: 6px;
             border: 1px solid var(--border);
-            width: 170px;
+            width: 175px;
+            min-width: 165px;
+            box-sizing: border-box;
         }
 
         .quick-log-tab-btn {
@@ -390,7 +397,6 @@
             border-color: #0969da;
         }
 
-        /* Nested Timeline Entry Sub-card styling */
         .sub-timeline-card {
             border: 1px solid #e1e4e8;
             background: #fafbfc;
@@ -407,14 +413,23 @@
 </head>
 <body>
 
+    <!-- Global Datalist Container for Live Suggestions -->
+    <div id="globalDatalists">
+        <datalist id="vTypeSuggestions"></datalist>
+        <datalist id="siteSuggestions"></datalist>
+        <datalist id="driverSuggestions"></datalist>
+        <datalist id="ownerSuggestions"></datalist>
+        <datalist id="santhookSuggestions"></datalist>
+        <datalist id="plateSuggestions"></datalist>
+    </div>
+
     <div class="ribbon">
         <div class="ribbon-title">We1 Own EQ Data</div>
         <button style="background: #1a7f37; color: white; border: none;" onclick="openAddModal()">➕ Add New</button>
         <button onclick="openLog('SiteLog')">🏢 Site Log</button>
-        <button onclick="openLog('VehicleTypeLog')">🚜 Vehicle Type Log</button>
         <button onclick="openLog('DriverLog')">👤 Driver Log</button>
+        <button onclick="openLog('VehicleTypeLog')">🚜 Vehicle Type & Santhook</button>
         <button onclick="openLog('OwnerLog')">📋 Owner Log</button>
-        <button onclick="openLog('SanthookLog')">📦 Santhook Log</button>
 
         <button class="salary" style="background: #f7c111; color: white; border: none; margin-left: 10px;">
             <a href="EQ_Driver_payroll.html" style="color: rgb(5, 5, 5);">Driver Salary</a>
@@ -480,7 +495,7 @@
 
     <!-- Full Chronological History Modal -->
     <div id="fullHistoryModal" class="modal-overlay" style="z-index: 2050;">
-        <div class="modal-content" style="width: 1100px; max-width: 96vw; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-content" style="width: 1150px; max-width: 96vw; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="modal-header">
                 <span id="fullHistoryTitle" style="font-size: 16px; color: #0969da;">📜 Chronological Vehicle Timeline</span>
                 <button class="close-btn" onclick="document.getElementById('fullHistoryModal').style.display='none'">✖</button>
@@ -489,15 +504,13 @@
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background: #e5e7eb; position: sticky; top: 0; z-index: 5;">
-                            <th style="width: 25%;">Site Period</th>
-                            <th style="width: 20%;">Vehicle Type</th>
-                            <th style="width: 30%;">Driver Timeline (In this period)</th>
-                            <th style="width: 25%;">Ownership / Santhook</th>
+                            <th style="width: 28%;">Site Period</th>
+                            <th style="width: 26%;">Vehicle Type & Santhook</th>
+                            <th style="width: 28%;">Driver Timeline (In this period)</th>
+                            <th style="width: 18%;">Ownership Period</th>
                         </tr>
                     </thead>
-                    <tbody id="fullHistoryTableBody">
-                        <!-- Loaded dynamically -->
-                    </tbody>
+                    <tbody id="fullHistoryTableBody"></tbody>
                 </table>
             </div>
         </div>
@@ -505,7 +518,7 @@
 
     <!-- Split Log Master Modal -->
     <div id="splitLogModal" class="modal-overlay">
-        <div class="modal-content" style="width: 950px; max-width: 95vw;">
+        <div class="modal-content" style="width: fit-content; min-width: 900px; max-width: 98vw; box-sizing: border-box;">
             <div class="modal-header">
                 <span id="splitLogTitle">Log Details</span>
                 <button class="close-btn" onclick="document.getElementById('splitLogModal').style.display='none'">✖</button>
@@ -516,19 +529,22 @@
                     <div style="font-weight: 700; font-size: 11px; color: #57606a; margin-bottom: 4px; text-transform: uppercase;">Select Category</div>
                     <button class="quick-log-tab-btn" onclick="switchQuickLog('SiteLog', this)">🏢 Site Log</button>
                     <button class="quick-log-tab-btn" onclick="switchQuickLog('DriverLog', this)">👤 Driver Log</button>
-                    <button class="quick-log-tab-btn" onclick="switchQuickLog('VehicleTypeLog', this)">🚜 Vehicle Type</button>
+                    <button class="quick-log-tab-btn" onclick="switchQuickLog('VehicleTypeLog', this)">🚜 Type & Santhook</button>
                     <button class="quick-log-tab-btn" onclick="switchQuickLog('OwnerLog', this)">📋 Owner Log</button>
-                    <button class="quick-log-tab-btn" onclick="switchQuickLog('SanthookLog', this)">📦 Santhook Log</button>
                 </div>
 
                 <div class="log-left-form">
                     <input type="hidden" id="editLogId">
+                    <input type="hidden" id="editSanthookLogId">
                     <input type="hidden" id="activeLogType">
                     <input type="hidden" id="activeLogPlate">
                     <div id="dynamicLogForm" style="display: flex; flex-direction: column; gap: 10px;"></div>
-                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    
+                    <!-- 🟢 Action Buttons Row with Cancel Button Included -->
+                    <div style="display: flex; gap: 8px; margin-top: 15px;">
+                        <button onclick="cancelLogEdit()" style="flex: 1; padding: 8px 6px; background: #6e7781; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;" title="Clear without saving">❌ Cancel</button>
                         <button onclick="saveLogEntry()" style="flex: 2; padding: 8px; background: #1a7f37; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Update Log</button>
-                        <button onclick="changePlate()" style="flex: 1; padding: 8px; background: #5f4b0f; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-shadow: 0 1px 1px rgba(0,0,0,0.2);">Next Plate ⏭</button>
+                        <button onclick="changePlate()" style="flex: 1.5; padding: 8px 6px; background: #5f4b0f; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-shadow: 0 1px 1px rgba(0,0,0,0.2);">Next Plate ⏭</button>
                     </div>
                 </div>
                 <div class="log-right-history">
@@ -618,11 +634,23 @@
                             <button class="filter-btn" onclick="openExcelFilter(event, 'note')">▼</button>
                         </div>
                     </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Old EQ</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'old_eq')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>New EQ</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'new_eq')">▼</button>
+                        </div>
+                    </th>
                 </tr>
             </thead>
             <tbody id="eqTableBody">
                 <tr>
-                    <td colspan="13" style="text-align: center; padding: 20px; color: #57606a;">
+                    <td colspan="15" style="text-align: center; padding: 20px; color: #57606a;">
                         Fetching data via Load Balancer...
                     </td>
                 </tr>
@@ -649,6 +677,10 @@
 
         let uniqueVehicleTypes = new Set();
         let uniqueSiteNames = new Set();
+        let uniqueDriverNames = new Set();
+        let uniqueOwnerNames = new Set();
+        let uniqueSanthookNames = new Set();
+        let uniquePlates = new Set();
         let globalPlates = [];
 
         // Grid Master Data & Filter States
@@ -656,6 +688,8 @@
         let activeFilters = {};
         let currentFilterKey = null;
         let selectedContextMenuPlate = null;
+        let currentSortColumn = null;
+        let currentSortDirection = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('emp_token');
@@ -675,7 +709,6 @@
             }
         });
 
-        // Close Popups on clicking outside
         document.addEventListener('click', (e) => {
             const menu = document.getElementById('excelFilterMenu');
             if (menu.style.display === 'flex' && !menu.contains(e.target) && !e.target.classList.contains('filter-btn')) {
@@ -687,6 +720,15 @@
                 contextMenu.style.display = 'none';
             }
         });
+
+        function updateGlobalDatalists() {
+            document.getElementById('vTypeSuggestions').innerHTML = Array.from(uniqueVehicleTypes).map(v => `<option value="${v}">`).join('');
+            document.getElementById('siteSuggestions').innerHTML = Array.from(uniqueSiteNames).map(s => `<option value="${s}">`).join('');
+            document.getElementById('driverSuggestions').innerHTML = Array.from(uniqueDriverNames).map(d => `<option value="${d}">`).join('');
+            document.getElementById('ownerSuggestions').innerHTML = Array.from(uniqueOwnerNames).map(o => `<option value="${o}">`).join('');
+            document.getElementById('santhookSuggestions').innerHTML = Array.from(uniqueSanthookNames).map(st => `<option value="${st}">`).join('');
+            document.getElementById('plateSuggestions').innerHTML = Array.from(uniquePlates).map(p => `<option value="${p}">`).join('');
+        }
 
         async function loadTableData() {
             const tbody = document.getElementById('eqTableBody');
@@ -707,6 +749,10 @@
 
                 uniqueVehicleTypes.clear();
                 uniqueSiteNames.clear();
+                uniqueDriverNames.clear();
+                uniqueOwnerNames.clear();
+                uniqueSanthookNames.clear();
+                uniquePlates.clear();
                 globalPlates = [];
                 
                 masterTableData = (data.data || []).map(row => {
@@ -715,9 +761,15 @@
                     
                     if (row.vehicle_type && row.vehicle_type.trim() !== "") uniqueVehicleTypes.add(row.vehicle_type.trim());
                     if (row.site_name && row.site_name.trim() !== "") uniqueSiteNames.add(row.site_name.trim());
-                    if (row.plate_no) globalPlates.push(row.plate_no);
+                    if (row.driver_name && row.driver_name.trim() !== "") uniqueDriverNames.add(row.driver_name.trim());
+                    if (row.vehicle_owner && row.vehicle_owner.trim() !== "") uniqueOwnerNames.add(row.vehicle_owner.trim());
+                    if (row.santhook && row.santhook.trim() !== "") uniqueSanthookNames.add(row.santhook.trim());
+                    if (row.plate_no && row.plate_no.trim() !== "") {
+                        uniquePlates.add(row.plate_no.trim());
+                        globalPlates.push(row.plate_no.trim());
+                    }
 
-                    const formattedRow = {
+                    return {
                         ...row,
                         mob_date_ui,
                         joining_date_ui,
@@ -730,14 +782,14 @@
                         vehicle_owner: cleanVal(row.vehicle_owner),
                         santhook: cleanVal(row.santhook),
                         salary: cleanVal(row.salary),
-                        plate_no: cleanVal(row.plate_no)
+                        plate_no: cleanVal(row.plate_no),
+                        old_eq: cleanVal(row.old_eq),
+                        new_eq: cleanVal(row.new_eq)
                     };
-
-                    // 🟢 നിലവിൽ ആക്ടീവ് ഫിൽട്ടർ ഉള്ള കോളങ്ങളിൽ പുതിയ ഡാറ്റ വരികയാണെങ്കിൽ ഫിൽട്ടർ ബട്ടൺ ക്ലാസ് നിലനിർത്തുന്നു
-                    return formattedRow;
                 });
 
-                // 🟢 ഫിൽട്ടർ ബട്ടണുകളുടെ ആക്ടീവ് ബ്ലൂ കളർ ഹൈലൈറ്റ് നിലനിർത്തുന്നു
+                updateGlobalDatalists();
+
                 const thButtons = document.querySelectorAll('.filter-btn');
                 thButtons.forEach(btn => {
                     const fnStr = btn.getAttribute('onclick') || '';
@@ -757,7 +809,7 @@
 
                 renderFilteredTable();
             } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
             }
         }
 
@@ -777,7 +829,7 @@
             });
 
             if (filteredRows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
                 return;
             }
 
@@ -801,6 +853,8 @@
                     <td>${row.salary}</td>
                     <td class="${statusClass}">${row.status}</td>
                     <td ondblclick="enableNoteEdit(this)" onblur="saveNoteDirect(this, '${row.plate_no}')" data-old="${row.note}" style="white-space: pre-wrap; cursor: pointer; outline: none; min-width: 150px; transition: background 0.3s;" title="Double click to edit">${row.note}</td>
+                    <td>${row.old_eq}</td>
+                    <td>${row.new_eq}</td>
                 `;
                 fragment.appendChild(tr);
             });
@@ -808,7 +862,6 @@
             tbody.appendChild(fragment);
         }
 
-        // Right-Click Context Menu Logic
         function handlePlateContextMenu(e, plateNo) {
             e.preventDefault();
             selectedContextMenuPlate = plateNo;
@@ -831,7 +884,6 @@
             }
         }
 
-        // Quick Edit Modal Setup
         function openQuickEditModal(plateNo) {
             document.getElementById('quickLogSidebar').style.display = 'flex';
             document.getElementById('splitLogTitle').innerText = `📂 Quick Manage Logs - ${plateNo}`;
@@ -842,19 +894,56 @@
             document.getElementById('splitLogModal').style.display = 'flex';
         }
 
-        function switchQuickLog(type, btnElement) {
+        // 🟢 Auto-Save previous tab data when switching category
+        async function switchQuickLog(type, btnElement) {
+            const prevType = document.getElementById('activeLogType').value;
+            const currentPlate = document.getElementById('activeLogPlate').value;
+
+            if (prevType && prevType !== type && logHasUnsavedData(prevType)) {
+                await saveLogEntry(true); // Auto-save prior category before switching
+            }
+
             document.querySelectorAll('.quick-log-tab-btn').forEach(b => b.classList.remove('active'));
             if (btnElement) btnElement.classList.add('active');
 
             const plate = document.getElementById('activeLogPlate').value;
             document.getElementById('activeLogType').value = type;
             document.getElementById('editLogId').value = '';
+            document.getElementById('editSanthookLogId').value = '';
             
             renderLogForm(type);
             loadLogHistory(type, plate);
         }
 
-        // Comprehensive Chronological History Timeline Builder
+        // Helper to check if current form has inputs
+        function logHasUnsavedData(type) {
+            if (!logConfigs[type]) return false;
+            let hasData = false;
+            const check = (f) => {
+                const elem = document.getElementById(f.id);
+                if (elem && elem.value.trim() !== '') hasData = true;
+            };
+
+            logConfigs[type].forEach(f => {
+                if (f.type === 'row') f.fields.forEach(subF => check(subF));
+                else check(f);
+            });
+            return hasData;
+        }
+
+        // 🟢 Cancel / Clear current log input form without saving
+        function cancelLogEdit() {
+            const currentType = document.getElementById('activeLogType').value;
+            const currentPlate = document.getElementById('activeLogPlate').value;
+
+            document.getElementById('editLogId').value = '';
+            document.getElementById('editSanthookLogId').value = '';
+            renderLogForm(currentType);
+            loadLogHistory(currentType, currentPlate);
+        }
+
+        // 🟢 Perfect Sequential Timeline Matching Logic
+        // 🟢 Perfect Accurate Chronological Vehicle Timeline Builder
         async function openChronologicalHistory(plateNo) {
             const modal = document.getElementById('fullHistoryModal');
             const tbody = document.getElementById('fullHistoryTableBody');
@@ -866,7 +955,6 @@
                 const token = localStorage.getItem("emp_token");
                 const fetchTypes = ['SiteLog', 'DriverLog', 'VehicleTypeLog', 'OwnerLog', 'SanthookLog'];
                 
-                // Fetch all 5 logs in parallel for high speed
                 const fetchPromises = fetchTypes.map(type => 
                     fetch('/api/we1-own-eq/log/history', {
                         method: 'POST',
@@ -878,54 +966,51 @@
                 const [siteRes, driverRes, vtypeRes, ownerRes, santhookRes] = await Promise.all(fetchPromises);
 
                 const sites = (siteRes.success ? siteRes.data : []).sort((a, b) => new Date(a.mob_date || 0) - new Date(b.mob_date || 0));
-                const drivers = driverRes.success ? driverRes.data : [];
-                const vtypes = vtypeRes.success ? vtypeRes.data : [];
-                const owners = ownerRes.success ? ownerRes.data : [];
-                const santhooks = santhookRes.success ? santhookRes.data : [];
+                const drivers = (driverRes.success ? driverRes.data : []).sort((a, b) => new Date(a.join_date || 0) - new Date(b.join_date || 0));
+                const vtypes = (vtypeRes.success ? vtypeRes.data : []).sort((a, b) => new Date(a.start_date || 0) - new Date(b.start_date || 0));
+                const owners = (ownerRes.success ? ownerRes.data : []).sort((a, b) => new Date(a.start_date || 0) - new Date(b.start_date || 0));
+                const santhooks = (santhookRes.success ? santhookRes.data : []).sort((a, b) => new Date(a.start_date || 0) - new Date(b.start_date || 0));
 
                 if (sites.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #57606a;">No historical site log records found for this plate number.</td></tr>';
                     return;
                 }
 
+                const masterCurrent = masterTableData.find(m => m.plate_no === plateNo);
+
+                // Smart Interval Calculator (Start of next is End of current if not specified)
+                const computeSmartIntervals = (list, startKey, endKey) => {
+                    return list.map((item, idx) => {
+                        const start = item[startKey] ? new Date(item[startKey]) : new Date(0);
+                        let end = item[endKey] ? new Date(item[endKey]) : null;
+                        
+                        if (!end && idx + 1 < list.length && list[idx + 1][startKey]) {
+                            end = new Date(list[idx + 1][startKey]);
+                        } else if (!end) {
+                            end = new Date(8640000000000000);
+                        }
+                        return { raw: item, start, end };
+                    });
+                };
+
+                const computedVTypes = computeSmartIntervals(vtypes, 'start_date', 'end_date');
+                const computedSanthooks = computeSmartIntervals(santhooks, 'start_date', 'end_date');
+                const computedOwners = computeSmartIntervals(owners, 'start_date', 'end_date');
+                const computedDrivers = computeSmartIntervals(drivers, 'join_date', 'work_end_date');
+
                 tbody.innerHTML = sites.map(s => {
-                    const sStart = s.mob_date ? new Date(s.mob_date) : null;
+                    const sStart = s.mob_date ? new Date(s.mob_date) : new Date(0);
                     const sEnd = s.replaced_date ? new Date(s.replaced_date) : (s.work_end_date ? new Date(s.work_end_date) : new Date(8640000000000000));
 
-                    // Match Drivers active in this Site period
-                    const matchedDrivers = drivers.filter(d => {
-                        const dStart = d.join_date ? new Date(d.join_date) : null;
-                        const dEnd = d.work_end_date ? new Date(d.work_end_date) : new Date(8640000000000000);
-                        if (!dStart && !sStart) return true;
-                        return (dStart <= sEnd && dEnd >= (sStart || new Date(0)));
-                    });
+                    // 🟢 Strict Non-overlapping Window Filter (end > sStart & start <= sEnd)
+                    const matchedDrivers = computedDrivers.filter(d => (d.start <= sEnd && d.end > sStart)).map(d => d.raw);
+                    const matchedVTypes = computedVTypes.filter(v => (v.start <= sEnd && v.end > sStart)).map(d => d.raw);
+                    const matchedSanthooks = computedSanthooks.filter(st => (st.start <= sEnd && st.end > sStart)).map(d => d.raw);
+                    const matchedOwners = computedOwners.filter(o => (o.start <= sEnd && o.end > sStart)).map(d => d.raw);
 
-                    // Match Vehicle Types active in this period
-                    const matchedVTypes = vtypes.filter(v => {
-                        const vStart = v.start_date ? new Date(v.start_date) : null;
-                        return !vStart || vStart <= sEnd;
-                    });
-
-                    // Match Owners
-                    const matchedOwners = owners.filter(o => {
-                        const oStart = o.start_date ? new Date(o.start_date) : null;
-                        const oEnd = o.end_date ? new Date(o.end_date) : new Date(8640000000000000);
-                        return !oStart || (oStart <= sEnd && oEnd >= (sStart || new Date(0)));
-                    });
-
-                    // Match Santhooks
-                    const matchedSanthooks = santhooks.filter(st => {
-                        const stStart = st.start_date ? new Date(st.start_date) : null;
-                        const stEnd = st.end_date ? new Date(st.end_date) : new Date(8640000000000000);
-                        return !stStart || (stStart <= sEnd && stEnd >= (sStart || new Date(0)));
-                    });
-
-                    // Build Drivers HTML (Multi-line)
+                    // Build Drivers Card
                     let driverHtml = '-';
                     if (matchedDrivers.length > 0) {
-                        // Find current row in master table to fallback mobile if missing in log
-                        const masterCurrent = masterTableData.find(m => m.plate_no === plateNo);
-                        
                         driverHtml = matchedDrivers.map(d => {
                             const mobileNum = d.driver_mobile || d.mobile || d.driver_mob || (masterCurrent && masterCurrent.driver_name === d.driver_name ? masterCurrent.driver_mobile : '') || '-';
                             return `
@@ -939,17 +1024,50 @@
                         }).join('');
                     }
 
-                    // Build Vehicle Type HTML
-                    let vtypeHtml = matchedVTypes.length > 0 ? matchedVTypes.map(v => `<strong>🚜 ${v.vehicle_type}</strong> (${formatUIDate(v.start_date)})`).join('<br>') : '-';
+                    // Build Vehicle Type & Santhook Card (Properly Merged without ghost duplicates)
+                    let vtypeSanthookHtml = '-';
+                    const maxCount = Math.max(matchedVTypes.length, matchedSanthooks.length);
+                    if (maxCount > 0) {
+                        const uniqueCombos = [];
+                        for(let i = 0; i < maxCount; i++) {
+                            const vt = matchedVTypes[i] || (matchedVTypes.length === 1 ? matchedVTypes[0] : {});
+                            const st = matchedSanthooks[i] || (matchedSanthooks.length === 1 ? matchedSanthooks[0] : {});
+                            
+                            const startDate = vt.start_date || st.start_date || s.mob_date;
+                            const endDate = vt.end_date || st.end_date || s.work_end_date || s.replaced_date;
 
-                    // Build Owner / Santhook HTML (Multi-line)
-                    let ownerHtml = matchedOwners.map(o => `<div><strong>🏢 Owner:</strong> ${o.owner_name} <span style="color:#57606a;">(${formatUIDate(o.start_date)} - ${formatUIDate(o.end_date)})</span></div>`).join('');
-                    let santhookHtml = matchedSanthooks.map(st => `<div><strong>📦 Santhook:</strong> ${st.santhook_name} <span style="color:#57606a;">(${formatUIDate(st.start_date)} - ${formatUIDate(st.end_date)})</span></div>`).join('');
-                    let combinedOwnerSanthook = `${ownerHtml}${ownerHtml && santhookHtml ? '<hr style="border:0; border-top:1px dashed #d0d7de; margin:4px 0;">' : ''}${santhookHtml}` || '-';
+                            uniqueCombos.push(`
+                                <div class="sub-timeline-card">
+                                    <strong>🚜 Type:</strong> ${vt.vehicle_type || '-'}<br>
+                                    <strong>📦 Santhook:</strong> ${st.santhook_name || '-'}<br>
+                                    🗓 Period: ${formatUIDate(startDate)} to ${formatUIDate(endDate)}
+                                </div>
+                            `);
+                        }
+                        vtypeSanthookHtml = uniqueCombos.join('');
+                    }
+
+                    // Build Owner Card
+                    let ownerHtml = matchedOwners.length > 0 ? matchedOwners.map(o => `
+                        <div class="sub-timeline-card">
+                            <strong>🏢 ${o.owner_name}</strong><br>
+                            🗓 Period: ${formatUIDate(o.start_date)} to ${formatUIDate(o.end_date)}
+                        </div>
+                    `).join('') : '-';
 
                     let siteStatus = '<span style="color:#1a7f37; font-weight:bold;">Running</span>';
                     if (s.replaced_date) siteStatus = '<span style="color:#cf222e; font-weight:bold;">Replaced</span>';
                     else if (s.work_end_date) siteStatus = '<span style="color:#d97706; font-weight:bold;">Released</span>';
+
+                    let replacementHtml = '';
+                    if (s.old_eq || s.new_eq) {
+                        replacementHtml = `
+                            <div style="margin-top: 4px; padding: 4px 6px; background: #fff; border: 1px solid #d0d7de; border-radius: 4px; font-size: 11px;">
+                                ${s.old_eq ? `<div><strong>Old EQ:</strong> ${s.old_eq}</div>` : ''}
+                                ${s.new_eq ? `<div><strong>New EQ:</strong> ${s.new_eq}</div>` : ''}
+                            </div>
+                        `;
+                    }
 
                     return `
                         <tr>
@@ -960,11 +1078,12 @@
                                     End: ${formatUIDate(s.work_end_date)}<br>
                                     Replaced: ${formatUIDate(s.replaced_date)}<br>
                                     Status: ${siteStatus}
+                                    ${replacementHtml}
                                 </div>
                             </td>
-                            <td style="vertical-align: top;">${vtypeHtml}</td>
+                            <td style="vertical-align: top;">${vtypeSanthookHtml}</td>
                             <td style="vertical-align: top;">${driverHtml}</td>
-                            <td style="vertical-align: top; font-size: 11px;">${combinedOwnerOwnerSanthook(combinedOwnerSanthook)}</td>
+                            <td style="vertical-align: top;">${ownerHtml}</td>
                         </tr>
                     `;
                 }).join('');
@@ -974,11 +1093,6 @@
             }
         }
 
-        function combinedOwnerOwnerSanthook(html) {
-            return html.trim() === '' ? '-' : html;
-        }
-
-        // Excel-like Filter Logic
         function openExcelFilter(event, columnKey) {
             event.stopPropagation();
             currentFilterKey = columnKey;
@@ -1086,28 +1200,122 @@
             closeFilterMenu();
         }
 
+        async function loadTableData() {
+            const tbody = document.getElementById('eqTableBody');
+            try {
+                const token = localStorage.getItem("emp_token"); 
+                const res = await fetch('/api/we1-own-eq/data', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+
+                if (!data.success) {
+                    if (data.message && (data.message.toLowerCase().includes("session") || data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized"))) {
+                        logout();
+                        return;
+                    }
+                    throw new Error(data.message);
+                }
+
+                uniqueVehicleTypes.clear();
+                uniqueSiteNames.clear();
+                uniqueDriverNames.clear();
+                uniqueOwnerNames.clear();
+                uniqueSanthookNames.clear();
+                uniquePlates.clear();
+                globalPlates = [];
+                
+                masterTableData = (data.data || []).map(row => {
+                    const mob_date_ui = formatUIDate(row.mob_date);
+                    const joining_date_ui = formatUIDate(row.joining_date);
+                    
+                    if (row.vehicle_type && row.vehicle_type.trim() !== "") uniqueVehicleTypes.add(row.vehicle_type.trim());
+                    if (row.site_name && row.site_name.trim() !== "") uniqueSiteNames.add(row.site_name.trim());
+                    if (row.driver_name && row.driver_name.trim() !== "") uniqueDriverNames.add(row.driver_name.trim());
+                    if (row.vehicle_owner && row.vehicle_owner.trim() !== "") uniqueOwnerNames.add(row.vehicle_owner.trim());
+                    if (row.santhook && row.santhook.trim() !== "") uniqueSanthookNames.add(row.santhook.trim());
+                    if (row.plate_no && row.plate_no.trim() !== "") {
+                        uniquePlates.add(row.plate_no.trim());
+                        globalPlates.push(row.plate_no.trim());
+                    }
+
+                    return {
+                        ...row,
+                        mob_date_ui,
+                        joining_date_ui,
+                        status: cleanVal(row.status),
+                        note: cleanVal(row.note),
+                        driver_mobile: cleanVal(row.driver_mobile),
+                        vehicle_type: cleanVal(row.vehicle_type),
+                        driver_name: cleanVal(row.driver_name),
+                        site_name: cleanVal(row.site_name),
+                        vehicle_owner: cleanVal(row.vehicle_owner),
+                        santhook: cleanVal(row.santhook),
+                        salary: cleanVal(row.salary),
+                        plate_no: cleanVal(row.plate_no),
+                        old_eq: cleanVal(row.old_eq),
+                        new_eq: cleanVal(row.new_eq)
+                    };
+                });
+
+                updateGlobalDatalists();
+
+                // 🟢 നിലവിലുള്ള Sort റീ-അപ്ലൈ ചെയ്യുന്നു
+                applySortingInternal();
+
+                // ഫിൽട്ടർ ബട്ടണുകളുടെ ആക്ടീവ് ബ്ലൂ കളർ ഹൈലൈറ്റ് നിലനിർത്തുന്നു
+                const thButtons = document.querySelectorAll('.filter-btn');
+                thButtons.forEach(btn => {
+                    const fnStr = btn.getAttribute('onclick') || '';
+                    let matchedKey = null;
+                    for (const key in activeFilters) {
+                        if (fnStr.includes(`'${key}'`)) {
+                            matchedKey = key;
+                            break;
+                        }
+                    }
+                    if (matchedKey && activeFilters[matchedKey]) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                renderFilteredTable();
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
+            }
+        }
+
+        // 🟢 3. സോർട്ടിംഗ് ലോജിക്
         function sortGrid(direction) {
             if (!currentFilterKey) return;
+            currentSortColumn = currentFilterKey;
+            currentSortDirection = direction;
+
+            applySortingInternal();
+            renderFilteredTable();
+            closeFilterMenu();
+        }
+
+        function applySortingInternal() {
+            if (!currentSortColumn || !currentSortDirection) return;
 
             masterTableData.sort((a, b) => {
-                let valA = String(a[currentFilterKey] ?? '').toLowerCase();
-                let valB = String(b[currentFilterKey] ?? '').toLowerCase();
+                let valA = String(a[currentSortColumn] ?? '').toLowerCase();
+                let valB = String(b[currentSortColumn] ?? '').toLowerCase();
 
                 const numA = parseFloat(valA);
                 const numB = parseFloat(valB);
 
                 if (!isNaN(numA) && !isNaN(numB)) {
-                    return direction === 'asc' ? numA - numB : numB - numA;
+                    return currentSortDirection === 'asc' ? numA - numB : numB - numA;
                 }
 
-                return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                return currentSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
             });
-
-            renderFilteredTable();
-            closeFilterMenu();
         }
 
-        // Modal Handlers
         function openModal(title, content) {
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalBody').innerHTML = content;
@@ -1132,10 +1340,12 @@
             if(!plate) return alert("Please select a Plate No");
             
             document.getElementById('plateSelectModal').style.display = 'none';
-            document.getElementById('splitLogTitle').innerText = `📂 ${type} - ${plate}`;
+            const titleLabel = type === 'VehicleTypeLog' ? '🚜 Vehicle Type & Santhook' : `📂 ${type}`;
+            document.getElementById('splitLogTitle').innerText = `${titleLabel} - ${plate}`;
             document.getElementById('activeLogType').value = type;
             document.getElementById('activeLogPlate').value = plate;
             document.getElementById('editLogId').value = '';
+            document.getElementById('editSanthookLogId').value = '';
 
             renderLogForm(type);
             loadLogHistory(type, plate);
@@ -1144,28 +1354,33 @@
 
         const logConfigs = {
             'SiteLog': [
-                { id: 'f_site_name', label: 'Site Name', type: 'text' },
+                { id: 'f_site_name', label: 'Site Name', type: 'text', list: 'siteSuggestions' },
                 { id: 'f_mob_date', label: 'Mobilisation Date', type: 'date' },
                 { id: 'f_work_end_date', label: 'Work End Date', type: 'date' },
-                { id: 'f_replaced_date', label: 'Replaced Date', type: 'date' }
+                { id: 'f_replaced_date', label: 'Replaced Date', type: 'date' },
+                { 
+                    type: 'row', 
+                    fields: [
+                        { id: 'f_old_eq', label: 'Old EQ', type: 'text', placeholder: 'Old EQ', list: 'plateSuggestions' },
+                        { id: 'f_new_eq', label: 'New EQ', type: 'text', placeholder: 'New EQ', list: 'plateSuggestions' }
+                    ]
+                }
             ],
             'DriverLog': [
-                { id: 'f_driver_name', label: 'Driver Name', type: 'text' },
+                { id: 'f_driver_name', label: 'Driver Name', type: 'text', list: 'driverSuggestions' },
+                { id: 'f_driver_mobile', label: 'Mobile', type: 'text', placeholder: 'Mobile Number' },
                 { id: 'f_join_date', label: 'Joining Date', type: 'date' },
                 { id: 'f_work_end_date', label: 'Work End Date', type: 'date' },
                 { id: 'f_salary', label: 'Salary', type: 'number' }
             ],
             'VehicleTypeLog': [
-                { id: 'f_vehicle_type', label: 'Vehicle Type', type: 'text' },
-                { id: 'f_start_date', label: 'Date', type: 'date' }
+                { id: 'f_vehicle_type', label: 'Vehicle Type', type: 'text', list: 'vTypeSuggestions' },
+                { id: 'f_santhook_name', label: 'Santhook', type: 'text', list: 'santhookSuggestions' },
+                { id: 'f_start_date', label: 'Date :: Start', type: 'date' },
+                { id: 'f_end_date', label: 'Date :: End', type: 'date' }
             ],
             'OwnerLog': [
-                { id: 'f_owner_name', label: 'Owner Name', type: 'text' },
-                { id: 'f_start_date', label: 'Start Date', type: 'date' },
-                { id: 'f_end_date', label: 'End Date', type: 'date' }
-            ],
-            'SanthookLog': [
-                { id: 'f_santhook_name', label: 'Santhook Name', type: 'text' },
+                { id: 'f_owner_name', label: 'Owner Name', type: 'text', list: 'ownerSuggestions' },
                 { id: 'f_start_date', label: 'Start Date', type: 'date' },
                 { id: 'f_end_date', label: 'End Date', type: 'date' }
             ]
@@ -1174,34 +1389,101 @@
         function renderLogForm(type) {
             const formContainer = document.getElementById('dynamicLogForm');
             const fields = logConfigs[type];
-            formContainer.innerHTML = fields.map(f => `
-                <div>
-                    <label style="font-weight:600; font-size:11px; display:block; margin-bottom:3px;">${f.label}</label>
-                    <input type="${f.type}" id="${f.id}" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px;">
-                </div>
-            `).join('');
+            
+            formContainer.innerHTML = fields.map(f => {
+                if (f.type === 'row') {
+                    return `
+                        <div style="display: flex; gap: 10px;">
+                            ${f.fields.map(subF => `
+                                <div style="flex: 1;">
+                                    <label style="font-weight:600; font-size:11px; display:block; margin-bottom:3px;">${subF.label}</label>
+                                    <input type="${subF.type}" id="${subF.id}" placeholder="${subF.placeholder || ''}" ${subF.list ? `list="${subF.list}"` : ''} autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px;">
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                return `
+                    <div>
+                        <label style="font-weight:600; font-size:11px; display:block; margin-bottom:3px;">${f.label}</label>
+                        <input type="${f.type}" id="${f.id}" ${f.list ? `list="${f.list}"` : ''} autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px;">
+                    </div>
+                `;
+            }).join('');
         }
 
         async function loadLogHistory(type, plate) {
             const tbody = document.getElementById('logTableBody');
             const thead = document.getElementById('logTableHead');
-            tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
             
             let headers = [];
-            if(type === 'SiteLog') headers = ['Site', 'Mob Date', 'End Date', 'Replaced', 'Status', 'Edit'];
-            else if(type === 'DriverLog') headers = ['Driver Name', 'Join Date', 'End Date', 'Salary', 'Edit'];
-            else if(type === 'VehicleTypeLog') headers = ['Vehicle Type', 'Date', 'Edit'];
+            if(type === 'SiteLog') headers = ['Site', 'Mob Date', 'End Date', 'Replaced', 'Old EQ', 'New EQ', 'Status', 'Edit'];
+            else if(type === 'DriverLog') headers = ['Driver Name', 'Mobile', 'Join Date', 'End Date', 'Salary', 'Edit'];
+            else if(type === 'VehicleTypeLog') headers = ['Vehicle Type', 'Santhook Name', 'Start Date', 'End Date', 'Edit'];
             else if(type === 'OwnerLog') headers = ['Owner Name', 'Start Date', 'End Date', 'Edit'];
-            else if(type === 'SanthookLog') headers = ['Santhook Name', 'Start Date', 'End Date', 'Edit'];
 
             thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
 
             try {
+                const token = localStorage.getItem("emp_token");
+
+                if (type === 'VehicleTypeLog') {
+                    const [vRes, sRes] = await Promise.all([
+                        fetch('/api/we1-own-eq/log/history', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                            body: JSON.stringify({ type: 'VehicleTypeLog', plate })
+                        }).then(r => r.json()),
+                        fetch('/api/we1-own-eq/log/history', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                            body: JSON.stringify({ type: 'SanthookLog', plate })
+                        }).then(r => r.json())
+                    ]);
+
+                    const vList = vRes.success ? vRes.data : [];
+                    const sList = sRes.success ? sRes.data : [];
+                    const count = Math.max(vList.length, sList.length);
+
+                    if (count === 0) {
+                        tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center;">No history found</td></tr>`;
+                        return;
+                    }
+
+                    let rowsHtml = '';
+                    for (let i = 0; i < count; i++) {
+                        const vItem = vList[i] || {};
+                        const sItem = sList[i] || {};
+                        const mergedItem = {
+                            id: vItem.id || null,
+                            santhook_log_id: sItem.id || null,
+                            vehicle_type: vItem.vehicle_type || '',
+                            santhook_name: sItem.santhook_name || '',
+                            start_date: vItem.start_date || sItem.start_date || '',
+                            end_date: vItem.end_date || sItem.end_date || ''
+                        };
+
+                        const safeData = JSON.stringify(mergedItem).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                        rowsHtml += `
+                            <tr>
+                                <td>${mergedItem.vehicle_type || '-'}</td>
+                                <td>${mergedItem.santhook_name || '-'}</td>
+                                <td>${formatUIDate(mergedItem.start_date)}</td>
+                                <td>${formatUIDate(mergedItem.end_date)}</td>
+                                <td><span class="edit-icon" onclick="editLogEntry('${safeData}')">✏️</span></td>
+                            </tr>
+                        `;
+                    }
+                    tbody.innerHTML = rowsHtml;
+                    return;
+                }
+
                 const res = await fetch(`/api/we1-own-eq/log/history`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + localStorage.getItem("emp_token") 
+                        'Authorization': 'Bearer ' + token 
                     },
                     body: JSON.stringify({ type: type, plate: plate })
                 });
@@ -1222,15 +1504,11 @@
                         else if(r.work_end_date) status = '<span style="color:#d97706; font-weight:bold;">Released</span>';
                         else status = '<span style="color:#1a7f37; font-weight:bold;">Running</span>';
                         
-                        tdHtml = `<td>${r.site_name || '-'}</td><td>${formatUIDate(r.mob_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${formatUIDate(r.replaced_date)}</td><td>${status}</td>`;
+                        tdHtml = `<td>${r.site_name || '-'}</td><td>${formatUIDate(r.mob_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${formatUIDate(r.replaced_date)}</td><td>${r.old_eq || '-'}</td><td>${r.new_eq || '-'}</td><td>${status}</td>`;
                     } else if(type === 'DriverLog') {
-                        tdHtml = `<td>${r.driver_name || '-'}</td><td>${formatUIDate(r.join_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${r.salary || '-'}</td>`;
-                    } else if(type === 'VehicleTypeLog') {
-                        tdHtml = `<td>${r.vehicle_type || '-'}</td><td>${formatUIDate(r.start_date)}</td>`;
+                        tdHtml = `<td>${r.driver_name || '-'}</td><td>${r.driver_mobile || r.mobile || '-'}</td><td>${formatUIDate(r.join_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${r.salary || '-'}</td>`;
                     } else if(type === 'OwnerLog') {
                         tdHtml = `<td>${r.owner_name || '-'}</td><td>${formatUIDate(r.start_date)}</td><td>${formatUIDate(r.end_date)}</td>`;
-                    } else if(type === 'SanthookLog') {
-                        tdHtml = `<td>${r.santhook_name || '-'}</td><td>${formatUIDate(r.start_date)}</td><td>${formatUIDate(r.end_date)}</td>`;
                     }
                     
                     const safeData = JSON.stringify(r).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
@@ -1245,16 +1523,28 @@
 
         function editLogEntry(jsonStr) {
             const data = JSON.parse(jsonStr);
-            document.getElementById('editLogId').value = data.id;
+            document.getElementById('editLogId').value = data.id || '';
+            document.getElementById('editSanthookLogId').value = data.santhook_log_id || '';
             
             const type = document.getElementById('activeLogType').value;
             const fields = logConfigs[type];
-            fields.forEach(f => {
+
+            const populateField = (f) => {
                 const dbVal = data[f.id.replace('f_', '')];
+                const elem = document.getElementById(f.id);
+                if (!elem) return;
                 if(f.type === 'date' && dbVal) {
-                    document.getElementById(f.id).value = dbVal.split('T')[0];
+                    elem.value = dbVal.split('T')[0];
                 } else {
-                    document.getElementById(f.id).value = dbVal || '';
+                    elem.value = dbVal || '';
+                }
+            };
+
+            fields.forEach(f => {
+                if (f.type === 'row') {
+                    f.fields.forEach(subF => populateField(subF));
+                } else {
+                    populateField(f);
                 }
             });
         }
@@ -1263,31 +1553,26 @@
             const currentType = document.getElementById('activeLogType').value;
             const currentPlate = document.getElementById('activeLogPlate').value;
             
-            let hasData = false;
-            logConfigs[currentType].forEach(f => {
-                if (document.getElementById(f.id).value.trim() !== '') {
-                    hasData = true;
-                }
-            });
-
-            if (hasData) {
+            if (logHasUnsavedData(currentType)) {
                 const isSaved = await saveLogEntry(true);
                 if (!isSaved) return;
             }
 
-            const uniquePlates = [...new Set(globalPlates)];
-            const currentIndex = uniquePlates.indexOf(currentPlate);
+            const uniquePlatesList = [...new Set(globalPlates)];
+            const currentIndex = uniquePlatesList.indexOf(currentPlate);
             let nextIndex = currentIndex + 1;
             
-            if (nextIndex >= uniquePlates.length) {
+            if (nextIndex >= uniquePlatesList.length) {
                 nextIndex = 0; 
             }
 
-            const nextPlate = uniquePlates[nextIndex];
+            const nextPlate = uniquePlatesList[nextIndex];
             
             document.getElementById('activeLogPlate').value = nextPlate;
-            document.getElementById('splitLogTitle').innerText = `📂 ${currentType} - ${nextPlate}`;
+            const titleLabel = currentType === 'VehicleTypeLog' ? '🚜 Vehicle Type & Santhook' : `📂 ${currentType}`;
+            document.getElementById('splitLogTitle').innerText = `${titleLabel} - ${nextPlate}`;
             document.getElementById('editLogId').value = '';
+            document.getElementById('editSanthookLogId').value = '';
             
             renderLogForm(currentType); 
             loadLogHistory(currentType, nextPlate); 
@@ -1297,17 +1582,91 @@
             const type = document.getElementById('activeLogType').value;
             const plate = document.getElementById('activeLogPlate').value;
             const id = document.getElementById('editLogId').value;
+            const token = localStorage.getItem("emp_token");
+
+            if (type === 'VehicleTypeLog') {
+                const vTypeVal = document.getElementById('f_vehicle_type').value.trim();
+                const santhookVal = document.getElementById('f_santhook_name').value.trim();
+                const startDateVal = document.getElementById('f_start_date').value.trim();
+                const endDateVal = document.getElementById('f_end_date').value.trim();
+                const santhookLogId = document.getElementById('editSanthookLogId').value;
+
+                const vTypePayload = {
+                    type: 'VehicleTypeLog',
+                    plate_no: plate,
+                    id: id || null,
+                    data: {
+                        vehicle_type: vTypeVal === "" ? null : vTypeVal,
+                        start_date: startDateVal === "" ? null : startDateVal
+                    }
+                };
+
+                const santhookPayload = {
+                    type: 'SanthookLog',
+                    plate_no: plate,
+                    id: santhookLogId || null,
+                    data: {
+                        santhook_name: santhookVal === "" ? null : santhookVal,
+                        start_date: startDateVal === "" ? null : startDateVal,
+                        end_date: endDateVal === "" ? null : endDateVal
+                    }
+                };
+
+                try {
+                    const [res1, res2] = await Promise.all([
+                        fetch('/api/we1-own-eq/log/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                            body: JSON.stringify(vTypePayload)
+                        }).then(r => r.json()),
+                        fetch('/api/we1-own-eq/log/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                            body: JSON.stringify(santhookPayload)
+                        }).then(r => r.json())
+                    ]);
+
+                    if (res1.success && res2.success) {
+                        document.getElementById('editLogId').value = '';
+                        document.getElementById('editSanthookLogId').value = '';
+                        if (!isAutoSave) {
+                            renderLogForm(type);
+                            loadLogHistory(type, plate);
+                        }
+                        loadTableData();
+                        return true;
+                    } else {
+                        alert("Error saving merged log: " + (res1.message || res2.message));
+                        return false;
+                    }
+                } catch(e) {
+                    alert("Network Error");
+                    return false;
+                }
+            }
 
             const payload = { type, plate_no: plate, id: id || null, data: {} };
+            
+            const extractValue = (f) => {
+                const elem = document.getElementById(f.id);
+                if (elem) {
+                    const val = elem.value.trim();
+                    payload.data[f.id.replace('f_', '')] = val === "" ? null : val;
+                }
+            };
+
             logConfigs[type].forEach(f => {
-                const val = document.getElementById(f.id).value.trim();
-                payload.data[f.id.replace('f_', '')] = val === "" ? null : val;
+                if (f.type === 'row') {
+                    f.fields.forEach(subF => extractValue(subF));
+                } else {
+                    extractValue(f);
+                }
             });
 
             try {
                 const res = await fetch('/api/we1-own-eq/log/save', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem("emp_token") },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                     body: JSON.stringify(payload)
                 });
                 const responseData = await res.json();
@@ -1332,14 +1691,8 @@
         }
 
         function openAddModal() {
-            const vTypeOptions = Array.from(uniqueVehicleTypes).map(v => `<option value="${v}">`).join('');
-            const siteOptions = Array.from(uniqueSiteNames).map(s => `<option value="${s}">`).join('');
-
             let formHtml = `
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-height: 70vh; overflow-y: auto; padding-right: 5px;">
-                    <datalist id="vTypeSuggestions">${vTypeOptions}</datalist>
-                    <datalist id="siteSuggestions">${siteOptions}</datalist>
-
                     <div style="grid-column: span 2;">
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Plate Number <span style="color:red;">*</span></label>
                         <input type="text" id="newPlateNo" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px; text-transform: uppercase;" placeholder="e.g. 1234 ABC">
@@ -1354,7 +1707,7 @@
                     </div>
                     <div>
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Driver Name</label>
-                        <input type="text" id="newDriver" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Driver Name">
+                        <input type="text" id="newDriver" list="driverSuggestions" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Driver Name">
                     </div>
                     <div>
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Mobile</label>
@@ -1370,11 +1723,11 @@
                     </div>
                     <div>
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Vehicle Owner</label>
-                        <input type="text" id="newOwner" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Owner Name">
+                        <input type="text" id="newOwner" list="ownerSuggestions" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Owner Name">
                     </div>
                     <div>
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Santhook</label>
-                        <input type="text" id="newSanthook" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Santhook Owner Name">
+                        <input type="text" id="newSanthook" list="santhookSuggestions" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Santhook Owner Name">
                     </div>
                     <div>
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Salary</label>
@@ -1410,7 +1763,7 @@
                 joining_date: document.getElementById('newJoinDate').value,
                 site_name: document.getElementById('newSite').value.trim(),
                 vehicle_owner: document.getElementById('newOwner').value.trim(),
-                santhook: document.getElementById('newSanthook').value,
+                santhook: document.getElementById('newSanthook').value.trim(),
                 salary: document.getElementById('newSalary').value,
                 status: document.getElementById('newStatus').value
             };
@@ -1429,8 +1782,6 @@
                 
                 if (data.success) {
                     closeModal();
-                    
-                    // 🟢 പുതിയ ഡാറ്റ ആക്ടീവ് ഫിൽട്ടറുകളിൽ ഉൾപ്പെടുത്തുന്നു
                     if (activeFilters['plate_no']) activeFilters['plate_no'].add(payload.plate_no);
                     if (activeFilters['vehicle_type'] && payload.vehicle_type) activeFilters['vehicle_type'].add(payload.vehicle_type);
                     if (activeFilters['site_name'] && payload.site_name) activeFilters['site_name'].add(payload.site_name);

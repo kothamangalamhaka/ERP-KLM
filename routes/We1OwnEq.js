@@ -72,22 +72,25 @@ router.post("/log/save", verifyEditor, async (req, res) => {
         let syncVals = [plate_no];
 
         if(type === 'SiteLog') {
-            const latest = await client.query(`SELECT site_name, mob_date, work_end_date, replaced_date FROM we1_site_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`, [plate_no]);
+            // 🟢 old_eq, new_eq കൂടി ക്വറിയിൽ ഉൾപ്പെടുത്തി
+            const latest = await client.query(`SELECT site_name, mob_date, work_end_date, replaced_date, old_eq, new_eq FROM we1_site_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`, [plate_no]);
             if(latest.rows.length > 0) {
                 const r = latest.rows[0];
                 let status = 'Running';
                 if(r.replaced_date) status = 'Replaced';
                 else if(r.work_end_date) status = 'Released';
                 
-                syncQuery = `UPDATE we1_own_eq_master SET site_name=$2, mob_date=$3, status=$4 WHERE plate_no=$1`;
-                syncVals.push(r.site_name, r.mob_date, status);
+                // 🟢 Master table ലേക്ക് old_eq, new_eq സിങ്ക് ചെയ്യുന്നു
+                syncQuery = `UPDATE we1_own_eq_master SET site_name=$2, mob_date=$3, status=$4, old_eq=$5, new_eq=$6 WHERE plate_no=$1`;
+                syncVals.push(r.site_name, r.mob_date, status, r.old_eq || null, r.new_eq || null);
             }
         } else if(type === 'DriverLog') {
-            const latest = await client.query(`SELECT driver_name, join_date, salary FROM we1_driver_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`, [plate_no]);
+            // 🟢 driver_mobile കൂടി ഉൾപ്പെടുത്തി
+            const latest = await client.query(`SELECT driver_name, driver_mobile, join_date, salary FROM we1_driver_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`, [plate_no]);
             if(latest.rows.length > 0) {
                 const r = latest.rows[0];
-                syncQuery = `UPDATE we1_own_eq_master SET driver_name=$2, joining_date=$3, salary=$4 WHERE plate_no=$1`;
-                syncVals.push(r.driver_name, r.join_date, r.salary);
+                syncQuery = `UPDATE we1_own_eq_master SET driver_name=$2, driver_mobile=$3, joining_date=$4, salary=$5 WHERE plate_no=$1`;
+                syncVals.push(r.driver_name, r.driver_mobile || null, r.join_date, r.salary);
             }
         } else if(type === 'VehicleTypeLog') {
             const latest = await client.query(`SELECT vehicle_type FROM we1_vtype_log WHERE plate_no = $1 ORDER BY id DESC LIMIT 1`, [plate_no]);
@@ -154,7 +157,7 @@ router.post("/add", verifyEditor, async (req, res) => {
         // 2. Insert into Specific Logs Automatically (Always creates an initial row)
         await client.query(`INSERT INTO we1_site_log (plate_no, site_name, mob_date) VALUES ($1, $2, $3)`, [cleanPlate, val(site_name), val(mob_date)]);
         
-        await client.query(`INSERT INTO we1_driver_log (plate_no, driver_name, join_date, salary) VALUES ($1, $2, $3, $4)`, [cleanPlate, val(driver_name), val(joining_date), val(salary)]);
+        await client.query(`INSERT INTO we1_driver_log (plate_no, driver_name, driver_mobile, join_date, salary) VALUES ($1, $2, $3, $4, $5)`, [cleanPlate, val(driver_name), val(driver_mobile), val(joining_date), val(salary)]);
         
         await client.query(`INSERT INTO we1_vtype_log (plate_no, vehicle_type, start_date) VALUES ($1, $2, $3)`, [cleanPlate, val(vehicle_type), val(mob_date)]);
         
