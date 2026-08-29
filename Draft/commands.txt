@@ -48,3 +48,48 @@ python restart
           systemctl restart haka-python
 
           source venv/bin/activate   activate venue
+
+
+
+Own EQ DB plate no error rectify 
+
+BEGIN;
+
+-- 1. Main Master Table Update
+UPDATE we1_own_eq_master 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+-- 2. Site Log Update
+UPDATE we1_site_log 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+-- 3. Driver Log Update
+UPDATE we1_driver_log 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+-- 4. Vehicle Type Log Update
+UPDATE we1_vtype_log 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+-- 5. Owner Log Update
+UPDATE we1_owner_log 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+-- 6. Santhook Log Update
+UPDATE we1_santhook_log 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+COMMIT;
+
+
+
+
+
+
+
