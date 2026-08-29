@@ -1,845 +1,1202 @@
 <!doctype html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>We1 Own EQ Management</title>
     <style>
-        :root {
-            --bg: #ffffff;
-            --text-main: #24292f;
-            --border: #d0d7de;
-            --ribbon-bg: #f6f8fa;
-            --btn-bg: #ffffff;
-            --btn-border: #1b1f2426;
-            --btn-hover: #0969da;
-        }
+      :root {
+        --bg: #ffffff;
+        --text-main: #24292f;
+        --border: #d0d7de;
+        --ribbon-bg: #f6f8fa;
+        --btn-bg: #ffffff;
+        --btn-border: #1b1f2426;
+        --btn-hover: #0969da;
+      }
 
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            font-size: 13px;
-        }
+      body {
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        padding: 0;
+        font-size: 13px;
+      }
 
-        /* Top Ribbon */
-        .ribbon {
-            background-color: var(--ribbon-bg);
-            padding: 12px 20px;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+      /* Top Ribbon */
+      .ribbon {
+        background-color: var(--ribbon-bg);
+        padding: 12px 20px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
 
-        .ribbon-title {
-            font-size: 16px;
-            font-weight: 700;
-            margin-right: auto;
-            color: #0f172a;
-        }
+      .ribbon-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-right: auto;
+        color: #0f172a;
+      }
 
-        .ribbon button {
-            background: var(--btn-bg);
-            border: 1px solid var(--btn-border);
-            padding: 6px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            color: #24292f;
-            transition: all 0.15s ease-in-out;
-            box-shadow: 0 1px 0 rgba(27,31,36,0.04);
-        }
+      .ribbon button {
+        background: var(--btn-bg);
+        border: 1px solid var(--btn-border);
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        color: #24292f;
+        transition: all 0.15s ease-in-out;
+        box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+      }
 
-        .ribbon button:hover {
-            border-color: var(--btn-hover);
-            color: var(--btn-hover);
-        }
+      .ribbon button:hover {
+        border-color: var(--btn-hover);
+        color: var(--btn-hover);
+      }
 
-        /* Table Container */
-        .container {
-            padding: 20px;
-            overflow-x: auto;
-        }
+      /* Table Container */
+      .container {
+        padding: 20px;
+        overflow-x: auto;
+      }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            white-space: nowrap;
-        }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        white-space: nowrap;
+      }
 
-        th, td {
-            border: 1px solid var(--border);
-            padding: 8px 12px;
-            text-align: left;
-        }
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 8px 12px;
+        text-align: left;
+      }
 
-        th {
-            background-color: var(--ribbon-bg);
-            font-weight: 600;
-            color: #57606a;
-            position: relative;
-            user-select: none;
-        }
+      th {
+        background-color: var(--ribbon-bg);
+        font-weight: 600;
+        color: #57606a;
+        position: relative;
+        user-select: none;
+      }
 
-        .th-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 6px;
-        }
+      .th-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+      }
 
-        .filter-btn {
-            cursor: pointer;
-            padding: 2px 5px;
-            border-radius: 3px;
-            font-size: 11px;
-            color: #57606a;
-            border: 1px solid transparent;
-            background: transparent;
-        }
+      .filter-btn {
+        cursor: pointer;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 11px;
+        color: #57606a;
+        border: 1px solid transparent;
+        background: transparent;
+      }
 
-        .filter-btn:hover {
-            background: #e1e4e8;
-            border-color: #d0d7de;
-        }
+      .filter-btn:hover {
+        background: #e1e4e8;
+        border-color: #d0d7de;
+      }
 
-        .filter-btn.active {
-            color: #0969da;
-            background: #ddf4ff;
-            border-color: #54aeff;
-            font-weight: bold;
-        }
-        
-        tbody tr {
-            background-color: #ffffff;
-        }
+      .filter-btn.active {
+        color: #0969da;
+        background: #ddf4ff;
+        border-color: #54aeff;
+        font-weight: bold;
+      }
 
-        tbody tr:hover {
-            background-color: #f3f4f6;
-        }
+      tbody tr {
+        background-color: #ffffff;
+      }
 
-        /* Modal / Popup Styles */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.4);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(2px);
-        }
+      tbody tr:hover {
+        background-color: #f3f4f6;
+      }
 
-        .modal-content {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            width: 400px;
-            max-width: 90%;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
+      /* Modal / Popup Styles */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(2px);
+      }
 
-        .modal-header {
-            font-size: 15px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 10px;
-        }
+      .modal-content {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 400px;
+        max-width: 90%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
 
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            color: #cf222e;
-        }
+      .modal-header {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 10px;
+      }
 
-        /* Split Log Layout CSS */
-        .split-layout {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-            width: 100%;
-        }
-        .log-left-form {
-            width: 340px;
-            min-width: 320px;
-            background: #f6f8fa;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            box-sizing: border-box;
-        }
-        .log-right-history {
-            flex: 1;
-            max-height: 480px;
-            overflow-y: auto;
-            overflow-x: visible;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-        }
-        .log-right-history table {
-            width: 100%;
-            border-collapse: collapse;
-            white-space: nowrap;
-        }
-        .log-right-history th {
-            position: sticky;
-            top: 0;
-            background: #e5e7eb;
-            z-index: 10;
-            font-size: 12px;
-        }
-        .log-right-history td, .log-right-history th {
-            padding: 7px 12px;
-            font-size: 12px;
-        }
-        .edit-icon {
-            cursor: pointer;
-            color: #0969da;
-            font-weight: bold;
-        }
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: #cf222e;
+      }
 
-        td.sn-col {
-            color: #6e7781;
-            font-weight: 500;
-        }
+      /* Split Log Layout CSS */
+      .split-layout {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        width: 100%;
+      }
+      .log-left-form {
+        width: 340px;
+        min-width: 320px;
+        background: #f6f8fa;
+        padding: 15px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        box-sizing: border-box;
+      }
+      .log-right-history {
+        flex: 1;
+        max-height: 480px;
+        overflow-y: auto;
+        overflow-x: visible;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+      }
+      .log-right-history table {
+        width: 100%;
+        border-collapse: collapse;
+        white-space: nowrap;
+      }
+      .log-right-history th {
+        position: sticky;
+        top: 0;
+        background: #e5e7eb;
+        z-index: 10;
+        font-size: 12px;
+      }
+      .log-right-history td,
+      .log-right-history th {
+        padding: 7px 12px;
+        font-size: 12px;
+      }
+      .edit-icon {
+        cursor: pointer;
+        color: #0969da;
+        font-weight: bold;
+      }
 
-        td.plate-col {
-            font-weight: 700;
-            color: #000000;
-            cursor: context-menu;
-        }
+      td.sn-col {
+        color: #6e7781;
+        font-weight: 500;
+      }
 
-        a {
-            text-decoration: none;
-        }
+      td.plate-col {
+        font-weight: 700;
+        color: #000000;
+        cursor: context-menu;
+      }
 
-        .status-running { color: #1a7f37; font-weight: 600; }
-        .status-released { color: #cf222e; font-weight: 600; }
-        .status-mobilizing { color: #d97706; font-weight: 600; }
+      a {
+        text-decoration: none;
+      }
 
-        /* Excel-like Header Filter Popup with User Resizing */
-        #excelFilterMenu {
-            display: none;
-            position: absolute;
-            background: #ffffff;
-            border: 1px solid #d0d7de;
-            border-radius: 6px;
-            box-shadow: 0 8px 24px rgba(140,149,159,0.2);
-            width: 260px;
-            min-width: 220px;
-            max-width: 500px;
-            min-height: 280px;
-            max-height: 80vh;
-            z-index: 1050;
-            padding: 10px;
-            font-size: 12px;
-            resize: both;
-            overflow: hidden;
-            box-sizing: border-box;
-            flex-direction: column;
-        }
+      .status-running {
+        color: #1a7f37;
+        font-weight: 600;
+      }
+      .status-released {
+        color: #cf222e;
+        font-weight: 600;
+      }
+      .status-mobilizing {
+        color: #d97706;
+        font-weight: 600;
+      }
 
-        .sort-btn-group {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 8px;
-        }
+      /* Excel-like Header Filter Popup with User Resizing */
+      #excelFilterMenu {
+        display: none;
+        position: absolute;
+        background: #ffffff;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+        width: 260px;
+        min-width: 220px;
+        max-width: 500px;
+        min-height: 280px;
+        max-height: 80vh;
+        z-index: 1050;
+        padding: 10px;
+        font-size: 12px;
+        resize: both;
+        overflow: hidden;
+        box-sizing: border-box;
+        flex-direction: column;
+      }
 
-        .sort-btn-group button {
-            flex: 1;
-            padding: 6px;
-            background: #f6f8fa;
-            border: 1px solid #d0d7de;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-        }
+      .sort-btn-group {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
 
-        .sort-btn-group button:hover {
-            background: #eaeef2;
-            border-color: #0969da;
-            color: #0969da;
-        }
+      .sort-btn-group button {
+        flex: 1;
+        padding: 6px;
+        background: #f6f8fa;
+        border: 1px solid #d0d7de;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+      }
 
-        .filter-search-box {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 6px 8px;
-            border: 1px solid #d0d7de;
-            border-radius: 4px;
-            margin-bottom: 8px;
-            outline: none;
-        }
+      .sort-btn-group button:hover {
+        background: #eaeef2;
+        border-color: #0969da;
+        color: #0969da;
+      }
 
-        .filter-search-box:focus {
-            border-color: #0969da;
-        }
+      .filter-search-box {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+        border: 1px solid #d0d7de;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        outline: none;
+      }
 
-        .filter-list-container {
-            flex: 1;
-            min-height: 140px;
-            max-height: none;
-            overflow-y: auto;
-            border: 1px solid #e1e4e8;
-            border-radius: 4px;
-            padding: 4px 6px;
-            background: #fafbfc;
-            margin-bottom: 10px;
-        }
+      .filter-search-box:focus {
+        border-color: #0969da;
+      }
 
-        .filter-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 3px 0;
-            cursor: pointer;
-        }
+      .filter-list-container {
+        flex: 1;
+        min-height: 140px;
+        max-height: none;
+        overflow-y: auto;
+        border: 1px solid #e1e4e8;
+        border-radius: 4px;
+        padding: 4px 6px;
+        background: #fafbfc;
+        margin-bottom: 10px;
+      }
 
-        .filter-item input {
-            cursor: pointer;
-        }
+      .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 0;
+        cursor: pointer;
+      }
 
-        .filter-actions {
-            display: flex;
-            gap: 6px;
-        }
+      .filter-item input {
+        cursor: pointer;
+      }
 
-        .filter-actions button {
-            flex: 1;
-            padding: 6px;
-            border-radius: 4px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-        }
+      .filter-actions {
+        display: flex;
+        gap: 6px;
+      }
 
-        .btn-apply { background: #0969da; color: #fff; }
-        .btn-cancel { background: #e1e4e8; color: #24292f; }
+      .filter-actions button {
+        flex: 1;
+        padding: 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+      }
 
-        /* Custom Right-Click Context Menu */
-        #plateContextMenu {
-            display: none;
-            position: absolute;
-            background: #ffffff;
-            border: 1px solid #d0d7de;
-            border-radius: 6px;
-            box-shadow: 0 8px 24px rgba(140,149,159,0.25);
-            width: 200px;
-            z-index: 2100;
-            padding: 4px 0;
-            font-size: 13px;
-        }
+      .btn-apply {
+        background: #0969da;
+        color: #fff;
+      }
+      .btn-cancel {
+        background: #e1e4e8;
+        color: #24292f;
+      }
 
-        .context-menu-item {
-            padding: 8px 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            color: #24292f;
-            font-weight: 500;
-            transition: background 0.15s;
-        }
+      /* Custom Right-Click Context Menu */
+      #plateContextMenu {
+        display: none;
+        position: absolute;
+        background: #ffffff;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(140, 149, 159, 0.25);
+        width: 200px;
+        z-index: 2100;
+        padding: 4px 0;
+        font-size: 13px;
+      }
 
-        .context-menu-item:hover {
-            background: #0969da;
-            color: #ffffff;
-        }
+      .context-menu-item {
+        padding: 8px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: #24292f;
+        font-weight: 500;
+        transition: background 0.15s;
+      }
 
-        /* Quick Log Switcher in Edit Popup */
-        .quick-log-tabs {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            background: #f6f8fa;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            width: 175px;
-            min-width: 165px;
-            box-sizing: border-box;
-        }
+      .context-menu-item:hover {
+        background: #0969da;
+        color: #ffffff;
+      }
 
-        .quick-log-tab-btn {
-            padding: 8px 10px;
-            text-align: left;
-            border: 1px solid var(--border);
-            background: #ffffff;
-            border-radius: 4px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 12px;
-            color: #24292f;
-            transition: all 0.15s;
-        }
+      /* Quick Log Switcher in Edit Popup */
+      .quick-log-tabs {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        background: #f6f8fa;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        width: 175px;
+        min-width: 165px;
+        box-sizing: border-box;
+      }
 
-        .quick-log-tab-btn:hover, .quick-log-tab-btn.active {
-            background: #0969da;
-            color: #ffffff;
-            border-color: #0969da;
-        }
+      .quick-log-tab-btn {
+        padding: 8px 10px;
+        text-align: left;
+        border: 1px solid var(--border);
+        background: #ffffff;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 12px;
+        color: #24292f;
+        transition: all 0.15s;
+      }
 
-        .sub-timeline-card {
-            border: 1px solid #e1e4e8;
-            background: #fafbfc;
-            padding: 6px 10px;
-            border-radius: 4px;
-            margin-bottom: 5px;
-            font-size: 11px;
-            line-height: 1.4;
-        }
-        .sub-timeline-card:last-child {
-            margin-bottom: 0;
-        }
+      .quick-log-tab-btn:hover,
+      .quick-log-tab-btn.active {
+        background: #0969da;
+        color: #ffffff;
+        border-color: #0969da;
+      }
+
+      .sub-timeline-card {
+        border: 1px solid #e1e4e8;
+        background: #fafbfc;
+        padding: 6px 10px;
+        border-radius: 4px;
+        margin-bottom: 5px;
+        font-size: 11px;
+        line-height: 1.4;
+      }
+      .sub-timeline-card:last-child {
+        margin-bottom: 0;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <!-- Global Datalist Container for Live Suggestions -->
     <div id="globalDatalists">
-        <datalist id="vTypeSuggestions"></datalist>
-        <datalist id="siteSuggestions"></datalist>
-        <datalist id="driverSuggestions"></datalist>
-        <datalist id="ownerSuggestions"></datalist>
-        <datalist id="santhookSuggestions"></datalist>
-        <datalist id="plateSuggestions"></datalist>
+      <datalist id="vTypeSuggestions"></datalist>
+      <datalist id="siteSuggestions"></datalist>
+      <datalist id="driverSuggestions"></datalist>
+      <datalist id="ownerSuggestions"></datalist>
+      <datalist id="santhookSuggestions"></datalist>
+      <datalist id="plateSuggestions"></datalist>
     </div>
 
     <div class="ribbon">
-        <div class="ribbon-title">We1 Own EQ Data</div>
-        <button style="background: #1a7f37; color: white; border: none;" onclick="openAddModal()">➕ Add New</button>
-        <button onclick="openLog('SiteLog')">🏢 Site Log</button>
-        <button onclick="openLog('DriverLog')">👤 Driver Log</button>
-        <button onclick="openLog('VehicleTypeLog')">🚜 Vehicle Type & Santhook</button>
-        <button onclick="openLog('OwnerLog')">📋 Owner Log</button>
+      <div class="ribbon-title">We1 Own EQ Data</div>
+      <button
+        style="background: #1a7f37; color: white; border: none"
+        onclick="openAddModal()"
+      >
+        ➕ Add New
+      </button>
+      <button onclick="openLog('SiteLog')">🏢 Site Log</button>
+      <button onclick="openLog('DriverLog')">👤 Driver Log</button>
+      <button onclick="openLog('VehicleTypeLog')">
+        🚜 Vehicle Type & Santhook
+      </button>
+      <button onclick="openLog('OwnerLog')">📋 Owner Log</button>
 
-        <button class="salary" style="background: #f7c111; color: white; border: none; margin-left: 10px;">
-            <a href="EQ_Driver_payroll.html" style="color: rgb(5, 5, 5);">Driver Salary</a>
-        </button>
-        <button id="exportBtn" style="background: #0969da; color: white; border: none; margin-left: 10px;" onclick="exportToExcel()">📊 Export Excel</button>
-        <button style="background: #cf222e; color: white; border: none; margin-left: 10px;" onclick="logout()">🚪 Logout</button>
+      <button
+        class="salary"
+        style="
+          background: #f7c111;
+          color: white;
+          border: none;
+          margin-left: 10px;
+        "
+      >
+        <a href="EQ_Driver_payroll.html" style="color: rgb(5, 5, 5)"
+          >Driver Salary</a
+        >
+      </button>
+      <button
+        id="exportBtn"
+        style="
+          background: #0969da;
+          color: white;
+          border: none;
+          margin-left: 10px;
+        "
+        onclick="exportToExcel()"
+      >
+        📊 Export Excel
+      </button>
+      <button
+        style="
+          background: #cf222e;
+          color: white;
+          border: none;
+          margin-left: 10px;
+        "
+        onclick="logout()"
+      >
+        🚪 Logout
+      </button>
     </div>
 
     <!-- Right-Click Context Menu -->
     <div id="plateContextMenu">
-        <div class="context-menu-item" onclick="triggerContextMenuAction('edit')">
-            <span>✏️</span> <span>Quick Edit Logs</span>
-        </div>
-        <div class="context-menu-item" onclick="triggerContextMenuAction('history')">
-            <span>📜</span> <span>View Full Timeline</span>
-        </div>
+      <div class="context-menu-item" onclick="triggerContextMenuAction('edit')">
+        <span>✏️</span> <span>Quick Edit Logs</span>
+      </div>
+      <div
+        class="context-menu-item"
+        onclick="triggerContextMenuAction('history')"
+      >
+        <span>📜</span> <span>View Full Timeline</span>
+      </div>
     </div>
 
     <!-- Excel Filter Popup Floating Container -->
     <div id="excelFilterMenu">
-        <div class="sort-btn-group">
-            <button onclick="sortGrid('asc')">🔼 Sort A-Z</button>
-            <button onclick="sortGrid('desc')">🔽 Sort Z-A</button>
-        </div>
-        <input type="text" id="filterSearchInput" class="filter-search-box" placeholder="Search..." oninput="onFilterSearchInput()">
-        <div class="filter-list-container">
-            <label class="filter-item" style="font-weight: bold; border-bottom: 1px solid #e1e4e8; padding-bottom: 4px; margin-bottom: 4px;">
-                <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"> (Select All)
-            </label>
-            <div id="filterItemsList"></div>
-        </div>
-        <div class="filter-actions">
-            <button class="btn-apply" onclick="applyCurrentFilter()">Apply</button>
-            <button class="btn-cancel" onclick="closeFilterMenu()">Cancel</button>
-        </div>
+      <div class="sort-btn-group">
+        <button onclick="sortGrid('asc')">🔼 Sort A-Z</button>
+        <button onclick="sortGrid('desc')">🔽 Sort Z-A</button>
+      </div>
+      <input
+        type="text"
+        id="filterSearchInput"
+        class="filter-search-box"
+        placeholder="Search..."
+        oninput="onFilterSearchInput()"
+      />
+      <div class="filter-list-container">
+        <label
+          class="filter-item"
+          style="
+            font-weight: bold;
+            border-bottom: 1px solid #e1e4e8;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+          "
+        >
+          <input
+            type="checkbox"
+            id="selectAllCheckbox"
+            onchange="toggleSelectAll(this)"
+          />
+          (Select All)
+        </label>
+        <div id="filterItemsList"></div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn-apply" onclick="applyCurrentFilter()">Apply</button>
+        <button class="btn-cancel" onclick="closeFilterMenu()">Cancel</button>
+      </div>
     </div>
 
     <!-- Popup Modal -->
     <div id="commonModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span id="modalTitle">Title</span>
-                <button class="close-btn" onclick="closeModal()">✖</button>
-            </div>
-            <div id="modalBody" style="font-size: 13px;"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <span id="modalTitle">Title</span>
+          <button class="close-btn" onclick="closeModal()">✖</button>
         </div>
+        <div id="modalBody" style="font-size: 13px"></div>
+      </div>
     </div>
 
     <!-- Plate Selection Modal -->
-    <div id="plateSelectModal" class="modal-overlay" style="z-index: 2000;">
-        <div class="modal-content" style="width: 300px;">
-            <div class="modal-header">
-                <span>Select Plate for Log</span>
-                <button class="close-btn" onclick="document.getElementById('plateSelectModal').style.display='none'">✖</button>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <input type="hidden" id="tempLogType">
-                <select id="logPlateDropdown" style="padding: 8px; border: 1px solid #d0d7de; border-radius: 4px; width: 100%;"></select>
-                <button onclick="fetchLogData()" style="padding: 8px; background: #0969da; color: white; border: none; border-radius: 4px; cursor: pointer;">Fetch Data</button>
-            </div>
+    <div id="plateSelectModal" class="modal-overlay" style="z-index: 2000">
+      <div class="modal-content" style="width: 300px">
+        <div class="modal-header">
+          <span>Select Plate for Log</span>
+          <button
+            class="close-btn"
+            onclick="
+              document.getElementById('plateSelectModal').style.display = 'none'
+            "
+          >
+            ✖
+          </button>
         </div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <input type="hidden" id="tempLogType" />
+          <select
+            id="logPlateDropdown"
+            style="
+              padding: 8px;
+              border: 1px solid #d0d7de;
+              border-radius: 4px;
+              width: 100%;
+            "
+          ></select>
+          <button
+            onclick="fetchLogData()"
+            style="
+              padding: 8px;
+              background: #0969da;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+            "
+          >
+            Fetch Data
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Full Chronological History Modal -->
-    <div id="fullHistoryModal" class="modal-overlay" style="z-index: 2050;">
-        <div class="modal-content" style="width: 1150px; max-width: 96vw; max-height: 90vh; display: flex; flex-direction: column;">
-            <div class="modal-header">
-                <span id="fullHistoryTitle" style="font-size: 16px; color: #0969da;">📜 Chronological Vehicle Timeline</span>
-                <button class="close-btn" onclick="document.getElementById('fullHistoryModal').style.display='none'">✖</button>
-            </div>
-            <div style="flex: 1; overflow-y: auto; padding-right: 5px; margin-top: 5px;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #e5e7eb; position: sticky; top: 0; z-index: 5;">
-                            <th style="width: 28%;">Site Period</th>
-                            <th style="width: 26%;">Vehicle Type & Santhook</th>
-                            <th style="width: 28%;">Driver Timeline (In this period)</th>
-                            <th style="width: 18%;">Ownership Period</th>
-                        </tr>
-                    </thead>
-                    <tbody id="fullHistoryTableBody"></tbody>
-                </table>
-            </div>
+    <div id="fullHistoryModal" class="modal-overlay" style="z-index: 2050">
+      <div
+        class="modal-content"
+        style="
+          width: 1150px;
+          max-width: 96vw;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+        "
+      >
+        <div class="modal-header">
+          <span id="fullHistoryTitle" style="font-size: 16px; color: #0969da"
+            >📜 Chronological Vehicle Timeline</span
+          >
+          <button
+            class="close-btn"
+            onclick="
+              document.getElementById('fullHistoryModal').style.display = 'none'
+            "
+          >
+            ✖
+          </button>
         </div>
+        <div
+          style="flex: 1; overflow-y: auto; padding-right: 5px; margin-top: 5px"
+        >
+          <table style="width: 100%; border-collapse: collapse">
+            <thead>
+              <tr
+                style="
+                  background: #e5e7eb;
+                  position: sticky;
+                  top: 0;
+                  z-index: 5;
+                "
+              >
+                <th style="width: 28%">Site Period</th>
+                <th style="width: 26%">Vehicle Type & Santhook</th>
+                <th style="width: 28%">Driver Timeline (In this period)</th>
+                <th style="width: 18%">Ownership Period</th>
+              </tr>
+            </thead>
+            <tbody id="fullHistoryTableBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Split Log Master Modal -->
     <div id="splitLogModal" class="modal-overlay">
-        <div class="modal-content" style="width: fit-content; min-width: 900px; max-width: 98vw; box-sizing: border-box;">
-            <div class="modal-header">
-                <span id="splitLogTitle">Log Details</span>
-                <button class="close-btn" onclick="document.getElementById('splitLogModal').style.display='none'">✖</button>
-            </div>
-            <div class="split-layout">
-                <!-- Left Quick Selector Bar -->
-                <div id="quickLogSidebar" class="quick-log-tabs" style="display: none;">
-                    <div style="font-weight: 700; font-size: 11px; color: #57606a; margin-bottom: 4px; text-transform: uppercase;">Select Category</div>
-                    <button class="quick-log-tab-btn" onclick="switchQuickLog('SiteLog', this)">🏢 Site Log</button>
-                    <button class="quick-log-tab-btn" onclick="switchQuickLog('DriverLog', this)">👤 Driver Log</button>
-                    <button class="quick-log-tab-btn" onclick="switchQuickLog('VehicleTypeLog', this)">🚜 Type & Santhook</button>
-                    <button class="quick-log-tab-btn" onclick="switchQuickLog('OwnerLog', this)">📋 Owner Log</button>
-                </div>
-
-                <div class="log-left-form">
-                    <input type="hidden" id="editLogId">
-                    <input type="hidden" id="editSanthookLogId">
-                    <input type="hidden" id="activeLogType">
-                    <input type="hidden" id="activeLogPlate">
-                    <div id="dynamicLogForm" style="display: flex; flex-direction: column; gap: 10px;"></div>
-                    
-                    <!-- 🟢 Action Buttons Row with Cancel Button Included -->
-                    <div style="display: flex; gap: 8px; margin-top: 15px;">
-                        <button onclick="cancelLogEdit()" style="flex: 1; padding: 8px 6px; background: #6e7781; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;" title="Clear without saving">❌ Cancel</button>
-                        <button onclick="saveLogEntry()" style="flex: 2; padding: 8px; background: #1a7f37; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Update Log</button>
-                        <button onclick="changePlate()" style="flex: 1.5; padding: 8px 6px; background: #5f4b0f; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-shadow: 0 1px 1px rgba(0,0,0,0.2);">Next Plate ⏭</button>
-                    </div>
-                </div>
-                <div class="log-right-history">
-                    <table>
-                        <thead id="logTableHead"></thead>
-                        <tbody id="logTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
+      <div
+        class="modal-content"
+        style="
+          width: fit-content;
+          min-width: 900px;
+          max-width: 98vw;
+          box-sizing: border-box;
+        "
+      >
+        <div class="modal-header">
+          <span id="splitLogTitle">Log Details</span>
+          <button
+            class="close-btn"
+            onclick="
+              document.getElementById('splitLogModal').style.display = 'none'
+            "
+          >
+            ✖
+          </button>
         </div>
+        <div class="split-layout">
+          <!-- Left Quick Selector Bar -->
+          <div
+            id="quickLogSidebar"
+            class="quick-log-tabs"
+            style="display: none"
+          >
+            <div
+              style="
+                font-weight: 700;
+                font-size: 11px;
+                color: #57606a;
+                margin-bottom: 4px;
+                text-transform: uppercase;
+              "
+            >
+              Select Category
+            </div>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('SiteLog', this)"
+            >
+              🏢 Site Log
+            </button>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('DriverLog', this)"
+            >
+              👤 Driver Log
+            </button>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('VehicleTypeLog', this)"
+            >
+              🚜 Type & Santhook
+            </button>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('OwnerLog', this)"
+            >
+              📋 Owner Log
+            </button>
+          </div>
+
+          <div class="log-left-form">
+            <input type="hidden" id="editLogId" />
+            <input type="hidden" id="editSanthookLogId" />
+            <input type="hidden" id="activeLogType" />
+            <input type="hidden" id="activeLogPlate" />
+            <div
+              id="dynamicLogForm"
+              style="display: flex; flex-direction: column; gap: 10px"
+            ></div>
+
+            <!-- 🟢 Action Buttons Row with Cancel Button Included -->
+            <div style="display: flex; gap: 8px; margin-top: 15px">
+              <button
+                onclick="cancelLogEdit()"
+                style="
+                  flex: 1;
+                  padding: 8px 6px;
+                  background: #6e7781;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: bold;
+                "
+                title="Clear without saving"
+              >
+                ❌ Cancel
+              </button>
+              <button
+                onclick="saveLogEntry()"
+                style="
+                  flex: 2;
+                  padding: 8px;
+                  background: #1a7f37;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: bold;
+                "
+              >
+                Update Log
+              </button>
+              <button
+                onclick="changePlate()"
+                style="
+                  flex: 1.5;
+                  padding: 8px 6px;
+                  background: #5f4b0f;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: bold;
+                  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+                "
+              >
+                Next Plate ⏭
+              </button>
+            </div>
+          </div>
+          <div class="log-right-history">
+            <table>
+              <thead id="logTableHead"></thead>
+              <tbody id="logTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="container">
-        <table id="eqTable">
-            <thead>
-                <tr>
-                    <th>SN</th>
-                    <th>
-                        <div class="th-content">
-                            <span>Mobilisation Date</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'mob_date_ui')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Vehicle Type</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'vehicle_type')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Plate No</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'plate_no')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Driver Name</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'driver_name')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Mobile</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'driver_mobile')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Joining Date</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'joining_date_ui')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Site Name</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'site_name')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Vehicle Owner</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'vehicle_owner')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Santhook</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'santhook')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Salary</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'salary')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Status</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'status')">▼</button>
-                        </div>
-                    </th>
-                    <th style="min-width: 150px;">
-                        <div class="th-content">
-                            <span>Note ✏️</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'note')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>Old EQ</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'old_eq')">▼</button>
-                        </div>
-                    </th>
-                    <th>
-                        <div class="th-content">
-                            <span>New EQ</span>
-                            <button class="filter-btn" onclick="openExcelFilter(event, 'new_eq')">▼</button>
-                        </div>
-                    </th>
-                </tr>
-            </thead>
-            <tbody id="eqTableBody">
-                <tr>
-                    <td colspan="15" style="text-align: center; padding: 20px; color: #57606a;">
-                        Fetching data via Load Balancer...
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+      <table id="eqTable">
+        <thead>
+          <tr>
+            <th>SN</th>
+            <th>
+              <div class="th-content">
+                <span>Mobilisation Date</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'mob_date_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Vehicle Type</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'vehicle_type')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Plate No</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'plate_no')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Driver Name</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'driver_name')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Mobile</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'driver_mobile')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Joining Date</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'joining_date_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Site Name</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'site_name')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Vehicle Owner</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'vehicle_owner')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Santhook</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'santhook')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Salary</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'salary')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Status</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'status')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th style="min-width: 150px">
+              <div class="th-content">
+                <span>Note ✏️</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'note')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Old EQ</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'old_eq')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>New EQ</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'new_eq')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="eqTableBody">
+          <tr>
+            <td
+              colspan="15"
+              style="text-align: center; padding: 20px; color: #57606a"
+            >
+              Fetching data via Load Balancer...
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <script>
-        function formatUIDate(dateStr) {
-            if (!dateStr) return "-";
-            const d = new Date(dateStr);
-            if (isNaN(d)) return "-";
-            
-            const day = String(d.getDate()).padStart(2, '0');
-            const month = d.toLocaleString('en-GB', { month: 'short' });
-            const year = String(d.getFullYear()).slice(-2);
-            
-            return `${day}-${month}-${year}`;
+      function formatUIDate(dateStr) {
+        if (!dateStr) return "-";
+        const d = new Date(dateStr);
+        if (isNaN(d)) return "-";
+
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = d.toLocaleString("en-GB", { month: "short" });
+        const year = String(d.getFullYear()).slice(-2);
+
+        return `${day}-${month}-${year}`;
+      }
+
+      function cleanVal(val) {
+        return val === null || val === undefined ? "-" : val;
+      }
+
+      let uniqueVehicleTypes = new Set();
+      let uniqueSiteNames = new Set();
+      let uniqueDriverNames = new Set();
+      let uniqueOwnerNames = new Set();
+      let uniqueSanthookNames = new Set();
+      let uniquePlates = new Set();
+      let globalPlates = [];
+
+      // Grid Master Data & Filter States
+      let masterTableData = [];
+      let activeFilters = {};
+      let currentFilterKey = null;
+      let selectedContextMenuPlate = null;
+      let currentSortColumn = null;
+      let currentSortDirection = null;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const token = localStorage.getItem("emp_token");
+        if (!token) {
+          window.location.href = "login.html";
+          return;
+        }
+        loadTableData();
+      });
+
+      window.addEventListener("pageshow", (event) => {
+        if (
+          event.persisted ||
+          (window.performance && window.performance.navigation.type === 2)
+        ) {
+          const token = localStorage.getItem("emp_token");
+          if (!token) {
+            window.location.replace("login.html");
+          }
+        }
+      });
+
+      document.addEventListener("click", (e) => {
+        const menu = document.getElementById("excelFilterMenu");
+        if (
+          menu.style.display === "flex" &&
+          !menu.contains(e.target) &&
+          !e.target.classList.contains("filter-btn")
+        ) {
+          closeFilterMenu();
         }
 
-        function cleanVal(val) {
-            return val === null || val === undefined ? "-" : val;
+        const contextMenu = document.getElementById("plateContextMenu");
+        if (
+          contextMenu.style.display === "block" &&
+          !contextMenu.contains(e.target)
+        ) {
+          contextMenu.style.display = "none";
         }
+      });
 
-        let uniqueVehicleTypes = new Set();
-        let uniqueSiteNames = new Set();
-        let uniqueDriverNames = new Set();
-        let uniqueOwnerNames = new Set();
-        let uniqueSanthookNames = new Set();
-        let uniquePlates = new Set();
-        let globalPlates = [];
+      function updateGlobalDatalists() {
+        document.getElementById("vTypeSuggestions").innerHTML = Array.from(
+          uniqueVehicleTypes,
+        )
+          .map((v) => `<option value="${v}">`)
+          .join("");
+        document.getElementById("siteSuggestions").innerHTML = Array.from(
+          uniqueSiteNames,
+        )
+          .map((s) => `<option value="${s}">`)
+          .join("");
+        document.getElementById("driverSuggestions").innerHTML = Array.from(
+          uniqueDriverNames,
+        )
+          .map((d) => `<option value="${d}">`)
+          .join("");
+        document.getElementById("ownerSuggestions").innerHTML = Array.from(
+          uniqueOwnerNames,
+        )
+          .map((o) => `<option value="${o}">`)
+          .join("");
+        document.getElementById("santhookSuggestions").innerHTML = Array.from(
+          uniqueSanthookNames,
+        )
+          .map((st) => `<option value="${st}">`)
+          .join("");
+        document.getElementById("plateSuggestions").innerHTML = Array.from(
+          uniquePlates,
+        )
+          .map((p) => `<option value="${p}">`)
+          .join("");
+      }
 
-        // Grid Master Data & Filter States
-        let masterTableData = [];
-        let activeFilters = {};
-        let currentFilterKey = null;
-        let selectedContextMenuPlate = null;
-        let currentSortColumn = null;
-        let currentSortDirection = null;
+      async function loadTableData() {
+        const tbody = document.getElementById("eqTableBody");
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/api/we1-own-eq/data", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await res.json();
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const token = localStorage.getItem('emp_token');
-            if (!token) {
-                window.location.href = 'login.html';
-                return;
+          if (!data.success) {
+            if (
+              data.message &&
+              (data.message.toLowerCase().includes("session") ||
+                data.message.toLowerCase().includes("token") ||
+                data.message.toLowerCase().includes("unauthorized"))
+            ) {
+              logout();
+              return;
             }
-            loadTableData();
+            throw new Error(data.message);
+          }
+
+          uniqueVehicleTypes.clear();
+          uniqueSiteNames.clear();
+          uniqueDriverNames.clear();
+          uniqueOwnerNames.clear();
+          uniqueSanthookNames.clear();
+          uniquePlates.clear();
+          globalPlates = [];
+
+          masterTableData = (data.data || []).map((row) => {
+            const mob_date_ui = formatUIDate(row.mob_date);
+            const joining_date_ui = formatUIDate(row.joining_date);
+
+            if (row.vehicle_type && row.vehicle_type.trim() !== "")
+              uniqueVehicleTypes.add(row.vehicle_type.trim());
+            if (row.site_name && row.site_name.trim() !== "")
+              uniqueSiteNames.add(row.site_name.trim());
+            if (row.driver_name && row.driver_name.trim() !== "")
+              uniqueDriverNames.add(row.driver_name.trim());
+            if (row.vehicle_owner && row.vehicle_owner.trim() !== "")
+              uniqueOwnerNames.add(row.vehicle_owner.trim());
+            if (row.santhook && row.santhook.trim() !== "")
+              uniqueSanthookNames.add(row.santhook.trim());
+            if (row.plate_no && row.plate_no.trim() !== "") {
+              uniquePlates.add(row.plate_no.trim());
+              globalPlates.push(row.plate_no.trim());
+            }
+
+            return {
+              ...row,
+              mob_date_ui,
+              joining_date_ui,
+              status: cleanVal(row.status),
+              note: cleanVal(row.note),
+              driver_mobile: cleanVal(row.driver_mobile),
+              vehicle_type: cleanVal(row.vehicle_type),
+              driver_name: cleanVal(row.driver_name),
+              site_name: cleanVal(row.site_name),
+              vehicle_owner: cleanVal(row.vehicle_owner),
+              santhook: cleanVal(row.santhook),
+              salary: cleanVal(row.salary),
+              plate_no: cleanVal(row.plate_no),
+              old_eq: cleanVal(row.old_eq),
+              new_eq: cleanVal(row.new_eq),
+            };
+          });
+
+          updateGlobalDatalists();
+
+          const thButtons = document.querySelectorAll(".filter-btn");
+          thButtons.forEach((btn) => {
+            const fnStr = btn.getAttribute("onclick") || "";
+            let matchedKey = null;
+            for (const key in activeFilters) {
+              if (fnStr.includes(`'${key}'`)) {
+                matchedKey = key;
+                break;
+              }
+            }
+            if (matchedKey && activeFilters[matchedKey]) {
+              btn.classList.add("active");
+            } else {
+              btn.classList.remove("active");
+            }
+          });
+
+          renderFilteredTable();
+        } catch (error) {
+          tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
+        }
+      }
+
+      function renderFilteredTable() {
+        const tbody = document.getElementById("eqTableBody");
+        tbody.innerHTML = "";
+
+        let filteredRows = masterTableData.filter((row) => {
+          for (const key in activeFilters) {
+            const allowed = activeFilters[key];
+            const val = String(row[key] ?? "-");
+            if (allowed && !allowed.has(val)) {
+              return false;
+            }
+          }
+          return true;
         });
 
-        window.addEventListener('pageshow', (event) => {
-            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-                const token = localStorage.getItem('emp_token');
-                if (!token) {
-                    window.location.replace('login.html');
-                }
-            }
-        });
-
-        document.addEventListener('click', (e) => {
-            const menu = document.getElementById('excelFilterMenu');
-            if (menu.style.display === 'flex' && !menu.contains(e.target) && !e.target.classList.contains('filter-btn')) {
-                closeFilterMenu();
-            }
-
-            const contextMenu = document.getElementById('plateContextMenu');
-            if (contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) {
-                contextMenu.style.display = 'none';
-            }
-        });
-
-        function updateGlobalDatalists() {
-            document.getElementById('vTypeSuggestions').innerHTML = Array.from(uniqueVehicleTypes).map(v => `<option value="${v}">`).join('');
-            document.getElementById('siteSuggestions').innerHTML = Array.from(uniqueSiteNames).map(s => `<option value="${s}">`).join('');
-            document.getElementById('driverSuggestions').innerHTML = Array.from(uniqueDriverNames).map(d => `<option value="${d}">`).join('');
-            document.getElementById('ownerSuggestions').innerHTML = Array.from(uniqueOwnerNames).map(o => `<option value="${o}">`).join('');
-            document.getElementById('santhookSuggestions').innerHTML = Array.from(uniqueSanthookNames).map(st => `<option value="${st}">`).join('');
-            document.getElementById('plateSuggestions').innerHTML = Array.from(uniquePlates).map(p => `<option value="${p}">`).join('');
+        if (filteredRows.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="15" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
+          return;
         }
 
-        async function loadTableData() {
-            const tbody = document.getElementById('eqTableBody');
-            try {
-                const token = localStorage.getItem("emp_token"); 
-                const res = await fetch('/api/we1-own-eq/data', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const data = await res.json();
+        const fragment = document.createDocumentFragment();
 
-                if (!data.success) {
-                    if (data.message && (data.message.toLowerCase().includes("session") || data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized"))) {
-                        logout();
-                        return;
-                    }
-                    throw new Error(data.message);
-                }
+        filteredRows.forEach((row, index) => {
+          const tr = document.createElement("tr");
+          const statusClass =
+            row.status === "Running"
+              ? "status-running"
+              : row.status === "Mobilizing"
+                ? "status-mobilizing"
+                : "status-released";
 
-                uniqueVehicleTypes.clear();
-                uniqueSiteNames.clear();
-                uniqueDriverNames.clear();
-                uniqueOwnerNames.clear();
-                uniqueSanthookNames.clear();
-                uniquePlates.clear();
-                globalPlates = [];
-                
-                masterTableData = (data.data || []).map(row => {
-                    const mob_date_ui = formatUIDate(row.mob_date);
-                    const joining_date_ui = formatUIDate(row.joining_date);
-                    
-                    if (row.vehicle_type && row.vehicle_type.trim() !== "") uniqueVehicleTypes.add(row.vehicle_type.trim());
-                    if (row.site_name && row.site_name.trim() !== "") uniqueSiteNames.add(row.site_name.trim());
-                    if (row.driver_name && row.driver_name.trim() !== "") uniqueDriverNames.add(row.driver_name.trim());
-                    if (row.vehicle_owner && row.vehicle_owner.trim() !== "") uniqueOwnerNames.add(row.vehicle_owner.trim());
-                    if (row.santhook && row.santhook.trim() !== "") uniqueSanthookNames.add(row.santhook.trim());
-                    if (row.plate_no && row.plate_no.trim() !== "") {
-                        uniquePlates.add(row.plate_no.trim());
-                        globalPlates.push(row.plate_no.trim());
-                    }
-
-                    return {
-                        ...row,
-                        mob_date_ui,
-                        joining_date_ui,
-                        status: cleanVal(row.status),
-                        note: cleanVal(row.note),
-                        driver_mobile: cleanVal(row.driver_mobile),
-                        vehicle_type: cleanVal(row.vehicle_type),
-                        driver_name: cleanVal(row.driver_name),
-                        site_name: cleanVal(row.site_name),
-                        vehicle_owner: cleanVal(row.vehicle_owner),
-                        santhook: cleanVal(row.santhook),
-                        salary: cleanVal(row.salary),
-                        plate_no: cleanVal(row.plate_no),
-                        old_eq: cleanVal(row.old_eq),
-                        new_eq: cleanVal(row.new_eq)
-                    };
-                });
-
-                updateGlobalDatalists();
-
-                const thButtons = document.querySelectorAll('.filter-btn');
-                thButtons.forEach(btn => {
-                    const fnStr = btn.getAttribute('onclick') || '';
-                    let matchedKey = null;
-                    for (const key in activeFilters) {
-                        if (fnStr.includes(`'${key}'`)) {
-                            matchedKey = key;
-                            break;
-                        }
-                    }
-                    if (matchedKey && activeFilters[matchedKey]) {
-                        btn.classList.add('active');
-                    } else {
-                        btn.classList.remove('active');
-                    }
-                });
-
-                renderFilteredTable();
-            } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
-            }
-        }
-
-        function renderFilteredTable() {
-            const tbody = document.getElementById('eqTableBody');
-            tbody.innerHTML = '';
-
-            let filteredRows = masterTableData.filter(row => {
-                for (const key in activeFilters) {
-                    const allowed = activeFilters[key];
-                    const val = String(row[key] ?? '-');
-                    if (allowed && !allowed.has(val)) {
-                        return false;
-                    }
-                }
-                return true;
-            });
-
-            if (filteredRows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
-                return;
-            }
-
-            const fragment = document.createDocumentFragment();
-
-            filteredRows.forEach((row, index) => {
-                const tr = document.createElement('tr');
-                const statusClass = row.status === 'Running' ? 'status-running' : (row.status === 'Mobilizing' ? 'status-mobilizing' : 'status-released');
-
-                tr.innerHTML = `
+          tr.innerHTML = `
                     <td class="sn-col">${index + 1}</td>
                     <td>${row.mob_date_ui}</td>
                     <td>${row.vehicle_type}</td>
@@ -856,223 +1213,316 @@
                     <td>${row.old_eq}</td>
                     <td>${row.new_eq}</td>
                 `;
-                fragment.appendChild(tr);
+          fragment.appendChild(tr);
+        });
+
+        tbody.appendChild(fragment);
+      }
+
+      function handlePlateContextMenu(e, plateNo) {
+        e.preventDefault();
+        selectedContextMenuPlate = plateNo;
+        const menu = document.getElementById("plateContextMenu");
+        menu.style.top = `${e.pageY}px`;
+        menu.style.left = `${e.pageX}px`;
+        menu.style.display = "block";
+      }
+
+      function triggerContextMenuAction(action) {
+        const contextMenu = document.getElementById("plateContextMenu");
+        contextMenu.style.display = "none";
+
+        if (!selectedContextMenuPlate) return;
+
+        if (action === "edit") {
+          openQuickEditModal(selectedContextMenuPlate);
+        } else if (action === "history") {
+          openChronologicalHistory(selectedContextMenuPlate);
+        }
+      }
+
+      function openQuickEditModal(plateNo) {
+        document.getElementById("quickLogSidebar").style.display = "flex";
+        document.getElementById("splitLogTitle").innerText =
+          `📂 Quick Manage Logs - ${plateNo}`;
+        document.getElementById("activeLogPlate").value = plateNo;
+
+        const firstTab = document.querySelector(".quick-log-tab-btn");
+        switchQuickLog("SiteLog", firstTab);
+        document.getElementById("splitLogModal").style.display = "flex";
+      }
+
+      // 🟢 Auto-Save previous tab data when switching category
+      async function switchQuickLog(type, btnElement) {
+        const prevType = document.getElementById("activeLogType").value;
+        const currentPlate = document.getElementById("activeLogPlate").value;
+
+        if (prevType && prevType !== type && logHasUnsavedData(prevType)) {
+          await saveLogEntry(true); // Auto-save prior category before switching
+        }
+
+        document
+          .querySelectorAll(".quick-log-tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        if (btnElement) btnElement.classList.add("active");
+
+        const plate = document.getElementById("activeLogPlate").value;
+        document.getElementById("activeLogType").value = type;
+        document.getElementById("editLogId").value = "";
+        document.getElementById("editSanthookLogId").value = "";
+
+        renderLogForm(type);
+        loadLogHistory(type, plate);
+      }
+
+      // Helper to check if current form has inputs
+      function logHasUnsavedData(type) {
+        if (!logConfigs[type]) return false;
+        let hasData = false;
+        const check = (f) => {
+          const elem = document.getElementById(f.id);
+          if (elem && elem.value.trim() !== "") hasData = true;
+        };
+
+        logConfigs[type].forEach((f) => {
+          if (f.type === "row") f.fields.forEach((subF) => check(subF));
+          else check(f);
+        });
+        return hasData;
+      }
+
+      // 🟢 Cancel / Clear current log input form without saving
+      function cancelLogEdit() {
+        const currentType = document.getElementById("activeLogType").value;
+        const currentPlate = document.getElementById("activeLogPlate").value;
+
+        document.getElementById("editLogId").value = "";
+        document.getElementById("editSanthookLogId").value = "";
+        renderLogForm(currentType);
+        loadLogHistory(currentType, currentPlate);
+      }
+
+      // 🟢 Perfect Sequential Timeline Matching Logic
+      // 🟢 Perfect Accurate Chronological Vehicle Timeline Builder
+      async function openChronologicalHistory(plateNo) {
+        const modal = document.getElementById("fullHistoryModal");
+        const tbody = document.getElementById("fullHistoryTableBody");
+        document.getElementById("fullHistoryTitle").innerText =
+          `📜 Chronological Vehicle Timeline - ${plateNo}`;
+        tbody.innerHTML =
+          '<tr><td colspan="4" style="text-align: center; padding: 20px;">Generating Timeline History...</td></tr>';
+        modal.style.display = "flex";
+
+        try {
+          const token = localStorage.getItem("emp_token");
+          const fetchTypes = [
+            "SiteLog",
+            "DriverLog",
+            "VehicleTypeLog",
+            "OwnerLog",
+            "SanthookLog",
+          ];
+
+          const fetchPromises = fetchTypes.map((type) =>
+            fetch("/api/we1-own-eq/log/history", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+              body: JSON.stringify({ type: type, plate: plateNo }),
+            }).then((r) => r.json()),
+          );
+
+          const [siteRes, driverRes, vtypeRes, ownerRes, santhookRes] =
+            await Promise.all(fetchPromises);
+
+          const sites = (siteRes.success ? siteRes.data : []).sort(
+            (a, b) => new Date(b.mob_date || 0) - new Date(a.mob_date || 0),
+          );
+          const drivers = (driverRes.success ? driverRes.data : []).sort(
+            (a, b) => new Date(b.join_date || 0) - new Date(a.join_date || 0),
+          );
+          const vtypes = (vtypeRes.success ? vtypeRes.data : []).sort(
+            (a, b) => new Date(b.start_date || 0) - new Date(a.start_date || 0),
+          );
+          const owners = (ownerRes.success ? ownerRes.data : []).sort(
+            (a, b) => new Date(b.start_date || 0) - new Date(a.start_date || 0),
+          );
+          const santhooks = (santhookRes.success ? santhookRes.data : []).sort(
+            (a, b) => new Date(b.start_date || 0) - new Date(a.start_date || 0),
+          );
+
+          if (sites.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #57606a;">No historical site log records found for this plate number.</td></tr>';
+            return;
+          }
+
+          const masterCurrent = masterTableData.find(
+            (m) => m.plate_no === plateNo,
+          );
+
+          // Smart Interval Calculator (Start of next is End of current if not specified)
+          const computeSmartIntervals = (list, startKey, endKey) => {
+            return list.map((item, idx) => {
+              const start = item[startKey]
+                ? new Date(item[startKey])
+                : new Date(0);
+              let end = item[endKey] ? new Date(item[endKey]) : null;
+
+              if (!end && idx + 1 < list.length && list[idx + 1][startKey]) {
+                end = new Date(list[idx + 1][startKey]);
+              } else if (!end) {
+                end = new Date(8640000000000000);
+              }
+              return { raw: item, start, end };
             });
+          };
 
-            tbody.appendChild(fragment);
-        }
+          const computedVTypes = computeSmartIntervals(
+            vtypes,
+            "start_date",
+            "end_date",
+          );
+          const computedSanthooks = computeSmartIntervals(
+            santhooks,
+            "start_date",
+            "end_date",
+          );
+          const computedOwners = computeSmartIntervals(
+            owners,
+            "start_date",
+            "end_date",
+          );
+          const computedDrivers = computeSmartIntervals(
+            drivers,
+            "join_date",
+            "work_end_date",
+          );
 
-        function handlePlateContextMenu(e, plateNo) {
-            e.preventDefault();
-            selectedContextMenuPlate = plateNo;
-            const menu = document.getElementById('plateContextMenu');
-            menu.style.top = `${e.pageY}px`;
-            menu.style.left = `${e.pageX}px`;
-            menu.style.display = 'block';
-        }
+          tbody.innerHTML = sites
+            .map((s) => {
+              const sStart = s.mob_date ? new Date(s.mob_date) : new Date(0);
+              const sEnd = s.replaced_date
+                ? new Date(s.replaced_date)
+                : s.work_end_date
+                  ? new Date(s.work_end_date)
+                  : new Date(8640000000000000);
 
-        function triggerContextMenuAction(action) {
-            const contextMenu = document.getElementById('plateContextMenu');
-            contextMenu.style.display = 'none';
+              // 🟢 Strict Non-overlapping Window Filter (end > sStart & start <= sEnd)
+              const matchedDrivers = computedDrivers
+                .filter((d) => d.start <= sEnd && d.end > sStart)
+                .map((d) => d.raw);
+              const matchedVTypes = computedVTypes
+                .filter((v) => v.start <= sEnd && v.end > sStart)
+                .map((d) => d.raw);
+              const matchedSanthooks = computedSanthooks
+                .filter((st) => st.start <= sEnd && st.end > sStart)
+                .map((d) => d.raw);
+              const matchedOwners = computedOwners
+                .filter((o) => o.start <= sEnd && o.end > sStart)
+                .map((d) => d.raw);
 
-            if (!selectedContextMenuPlate) return;
-
-            if (action === 'edit') {
-                openQuickEditModal(selectedContextMenuPlate);
-            } else if (action === 'history') {
-                openChronologicalHistory(selectedContextMenuPlate);
-            }
-        }
-
-        function openQuickEditModal(plateNo) {
-            document.getElementById('quickLogSidebar').style.display = 'flex';
-            document.getElementById('splitLogTitle').innerText = `📂 Quick Manage Logs - ${plateNo}`;
-            document.getElementById('activeLogPlate').value = plateNo;
-            
-            const firstTab = document.querySelector('.quick-log-tab-btn');
-            switchQuickLog('SiteLog', firstTab);
-            document.getElementById('splitLogModal').style.display = 'flex';
-        }
-
-        // 🟢 Auto-Save previous tab data when switching category
-        async function switchQuickLog(type, btnElement) {
-            const prevType = document.getElementById('activeLogType').value;
-            const currentPlate = document.getElementById('activeLogPlate').value;
-
-            if (prevType && prevType !== type && logHasUnsavedData(prevType)) {
-                await saveLogEntry(true); // Auto-save prior category before switching
-            }
-
-            document.querySelectorAll('.quick-log-tab-btn').forEach(b => b.classList.remove('active'));
-            if (btnElement) btnElement.classList.add('active');
-
-            const plate = document.getElementById('activeLogPlate').value;
-            document.getElementById('activeLogType').value = type;
-            document.getElementById('editLogId').value = '';
-            document.getElementById('editSanthookLogId').value = '';
-            
-            renderLogForm(type);
-            loadLogHistory(type, plate);
-        }
-
-        // Helper to check if current form has inputs
-        function logHasUnsavedData(type) {
-            if (!logConfigs[type]) return false;
-            let hasData = false;
-            const check = (f) => {
-                const elem = document.getElementById(f.id);
-                if (elem && elem.value.trim() !== '') hasData = true;
-            };
-
-            logConfigs[type].forEach(f => {
-                if (f.type === 'row') f.fields.forEach(subF => check(subF));
-                else check(f);
-            });
-            return hasData;
-        }
-
-        // 🟢 Cancel / Clear current log input form without saving
-        function cancelLogEdit() {
-            const currentType = document.getElementById('activeLogType').value;
-            const currentPlate = document.getElementById('activeLogPlate').value;
-
-            document.getElementById('editLogId').value = '';
-            document.getElementById('editSanthookLogId').value = '';
-            renderLogForm(currentType);
-            loadLogHistory(currentType, currentPlate);
-        }
-
-        // 🟢 Perfect Sequential Timeline Matching Logic
-        // 🟢 Perfect Accurate Chronological Vehicle Timeline Builder
-        async function openChronologicalHistory(plateNo) {
-            const modal = document.getElementById('fullHistoryModal');
-            const tbody = document.getElementById('fullHistoryTableBody');
-            document.getElementById('fullHistoryTitle').innerText = `📜 Chronological Vehicle Timeline - ${plateNo}`;
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">Generating Timeline History...</td></tr>';
-            modal.style.display = 'flex';
-
-            try {
-                const token = localStorage.getItem("emp_token");
-                const fetchTypes = ['SiteLog', 'DriverLog', 'VehicleTypeLog', 'OwnerLog', 'SanthookLog'];
-                
-                const fetchPromises = fetchTypes.map(type => 
-                    fetch('/api/we1-own-eq/log/history', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                        body: JSON.stringify({ type: type, plate: plateNo })
-                    }).then(r => r.json())
-                );
-
-                const [siteRes, driverRes, vtypeRes, ownerRes, santhookRes] = await Promise.all(fetchPromises);
-
-                const sites = (siteRes.success ? siteRes.data : []).sort((a, b) => new Date(a.mob_date || 0) - new Date(b.mob_date || 0));
-                const drivers = (driverRes.success ? driverRes.data : []).sort((a, b) => new Date(a.join_date || 0) - new Date(b.join_date || 0));
-                const vtypes = (vtypeRes.success ? vtypeRes.data : []).sort((a, b) => new Date(a.start_date || 0) - new Date(b.start_date || 0));
-                const owners = (ownerRes.success ? ownerRes.data : []).sort((a, b) => new Date(a.start_date || 0) - new Date(b.start_date || 0));
-                const santhooks = (santhookRes.success ? santhookRes.data : []).sort((a, b) => new Date(a.start_date || 0) - new Date(b.start_date || 0));
-
-                if (sites.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #57606a;">No historical site log records found for this plate number.</td></tr>';
-                    return;
-                }
-
-                const masterCurrent = masterTableData.find(m => m.plate_no === plateNo);
-
-                // Smart Interval Calculator (Start of next is End of current if not specified)
-                const computeSmartIntervals = (list, startKey, endKey) => {
-                    return list.map((item, idx) => {
-                        const start = item[startKey] ? new Date(item[startKey]) : new Date(0);
-                        let end = item[endKey] ? new Date(item[endKey]) : null;
-                        
-                        if (!end && idx + 1 < list.length && list[idx + 1][startKey]) {
-                            end = new Date(list[idx + 1][startKey]);
-                        } else if (!end) {
-                            end = new Date(8640000000000000);
-                        }
-                        return { raw: item, start, end };
-                    });
-                };
-
-                const computedVTypes = computeSmartIntervals(vtypes, 'start_date', 'end_date');
-                const computedSanthooks = computeSmartIntervals(santhooks, 'start_date', 'end_date');
-                const computedOwners = computeSmartIntervals(owners, 'start_date', 'end_date');
-                const computedDrivers = computeSmartIntervals(drivers, 'join_date', 'work_end_date');
-
-                tbody.innerHTML = sites.map(s => {
-                    const sStart = s.mob_date ? new Date(s.mob_date) : new Date(0);
-                    const sEnd = s.replaced_date ? new Date(s.replaced_date) : (s.work_end_date ? new Date(s.work_end_date) : new Date(8640000000000000));
-
-                    // 🟢 Strict Non-overlapping Window Filter (end > sStart & start <= sEnd)
-                    const matchedDrivers = computedDrivers.filter(d => (d.start <= sEnd && d.end > sStart)).map(d => d.raw);
-                    const matchedVTypes = computedVTypes.filter(v => (v.start <= sEnd && v.end > sStart)).map(d => d.raw);
-                    const matchedSanthooks = computedSanthooks.filter(st => (st.start <= sEnd && st.end > sStart)).map(d => d.raw);
-                    const matchedOwners = computedOwners.filter(o => (o.start <= sEnd && o.end > sStart)).map(d => d.raw);
-
-                    // Build Drivers Card
-                    let driverHtml = '-';
-                    if (matchedDrivers.length > 0) {
-                        driverHtml = matchedDrivers.map(d => {
-                            const mobileNum = d.driver_mobile || d.mobile || d.driver_mob || (masterCurrent && masterCurrent.driver_name === d.driver_name ? masterCurrent.driver_mobile : '') || '-';
-                            return `
+              // Build Drivers Card
+              let driverHtml = "-";
+              if (matchedDrivers.length > 0) {
+                driverHtml = matchedDrivers
+                  .map((d) => {
+                    const mobileNum =
+                      d.driver_mobile ||
+                      d.mobile ||
+                      d.driver_mob ||
+                      (masterCurrent &&
+                      masterCurrent.driver_name === d.driver_name
+                        ? masterCurrent.driver_mobile
+                        : "") ||
+                      "-";
+                    return `
                                 <div class="sub-timeline-card">
-                                    <strong>👤 ${d.driver_name || '-'}</strong><br>
+                                    <strong>👤 ${d.driver_name || "-"}</strong><br>
                                     📞 Mobile: ${mobileNum}<br>
                                     🗓 Period: ${formatUIDate(d.join_date)} to ${formatUIDate(d.work_end_date)}<br>
-                                    💰 Salary: ${d.salary || '-'}
+                                    💰 Salary: ${d.salary || "-"}
                                 </div>
                             `;
-                        }).join('');
-                    }
+                  })
+                  .join("");
+              }
 
-                    // Build Vehicle Type & Santhook Card (Properly Merged without ghost duplicates)
-                    let vtypeSanthookHtml = '-';
-                    const maxCount = Math.max(matchedVTypes.length, matchedSanthooks.length);
-                    if (maxCount > 0) {
-                        const uniqueCombos = [];
-                        for(let i = 0; i < maxCount; i++) {
-                            const vt = matchedVTypes[i] || (matchedVTypes.length === 1 ? matchedVTypes[0] : {});
-                            const st = matchedSanthooks[i] || (matchedSanthooks.length === 1 ? matchedSanthooks[0] : {});
-                            
-                            const startDate = vt.start_date || st.start_date || s.mob_date;
-                            const endDate = vt.end_date || st.end_date || s.work_end_date || s.replaced_date;
+              // Build Vehicle Type & Santhook Card (Properly Merged without ghost duplicates)
+              let vtypeSanthookHtml = "-";
+              const maxCount = Math.max(
+                matchedVTypes.length,
+                matchedSanthooks.length,
+              );
+              if (maxCount > 0) {
+                const uniqueCombos = [];
+                for (let i = 0; i < maxCount; i++) {
+                  const vt =
+                    matchedVTypes[i] ||
+                    (matchedVTypes.length === 1 ? matchedVTypes[0] : {});
+                  const st =
+                    matchedSanthooks[i] ||
+                    (matchedSanthooks.length === 1 ? matchedSanthooks[0] : {});
 
-                            uniqueCombos.push(`
+                  const startDate =
+                    vt.start_date || st.start_date || s.mob_date;
+                  const endDate =
+                    vt.end_date ||
+                    st.end_date ||
+                    s.work_end_date ||
+                    s.replaced_date;
+
+                  uniqueCombos.push(`
                                 <div class="sub-timeline-card">
-                                    <strong>🚜 Type:</strong> ${vt.vehicle_type || '-'}<br>
-                                    <strong>📦 Santhook:</strong> ${st.santhook_name || '-'}<br>
+                                    <strong>🚜 Type:</strong> ${vt.vehicle_type || "-"}<br>
+                                    <strong>📦 Santhook:</strong> ${st.santhook_name || "-"}<br>
                                     🗓 Period: ${formatUIDate(startDate)} to ${formatUIDate(endDate)}
                                 </div>
                             `);
-                        }
-                        vtypeSanthookHtml = uniqueCombos.join('');
-                    }
+                }
+                vtypeSanthookHtml = uniqueCombos.join("");
+              }
 
-                    // Build Owner Card
-                    let ownerHtml = matchedOwners.length > 0 ? matchedOwners.map(o => `
+              // Build Owner Card
+              let ownerHtml =
+                matchedOwners.length > 0
+                  ? matchedOwners
+                      .map(
+                        (o) => `
                         <div class="sub-timeline-card">
                             <strong>🏢 ${o.owner_name}</strong><br>
                             🗓 Period: ${formatUIDate(o.start_date)} to ${formatUIDate(o.end_date)}
                         </div>
-                    `).join('') : '-';
+                    `,
+                      )
+                      .join("")
+                  : "-";
 
-                    let siteStatus = '<span style="color:#1a7f37; font-weight:bold;">Running</span>';
-                    if (s.replaced_date) siteStatus = '<span style="color:#cf222e; font-weight:bold;">Replaced</span>';
-                    else if (s.work_end_date) siteStatus = '<span style="color:#d97706; font-weight:bold;">Released</span>';
+              let siteStatus =
+                '<span style="color:#1a7f37; font-weight:bold;">Running</span>';
+              if (s.replaced_date)
+                siteStatus =
+                  '<span style="color:#cf222e; font-weight:bold;">Replaced</span>';
+              else if (s.work_end_date)
+                siteStatus =
+                  '<span style="color:#d97706; font-weight:bold;">Released</span>';
 
-                    let replacementHtml = '';
-                    if (s.old_eq || s.new_eq) {
-                        replacementHtml = `
+              let replacementHtml = "";
+              if (s.old_eq || s.new_eq) {
+                replacementHtml = `
                             <div style="margin-top: 4px; padding: 4px 6px; background: #fff; border: 1px solid #d0d7de; border-radius: 4px; font-size: 11px;">
-                                ${s.old_eq ? `<div><strong>Old EQ:</strong> ${s.old_eq}</div>` : ''}
-                                ${s.new_eq ? `<div><strong>New EQ:</strong> ${s.new_eq}</div>` : ''}
+                                ${s.old_eq ? `<div><strong>Old EQ:</strong> ${s.old_eq}</div>` : ""}
+                                ${s.new_eq ? `<div><strong>New EQ:</strong> ${s.new_eq}</div>` : ""}
                             </div>
                         `;
-                    }
+              }
 
-                    return `
+              return `
                         <tr>
                             <td style="vertical-align: top;">
-                                <div style="font-weight: 700; font-size: 13px; color: #0969da;">${s.site_name || '-'}</div>
+                                <div style="font-weight: 700; font-size: 13px; color: #0969da;">${s.site_name || "-"}</div>
                                 <div style="font-size: 11px; color: #57606a; margin-top: 3px;">
                                     Start: ${formatUIDate(s.mob_date)}<br>
                                     End: ${formatUIDate(s.work_end_date)}<br>
@@ -1086,612 +1536,767 @@
                             <td style="vertical-align: top;">${ownerHtml}</td>
                         </tr>
                     `;
-                }).join('');
-
-            } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: red; padding: 20px;">Error generating timeline: ${err.message}</td></tr>`;
-            }
+            })
+            .join("");
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: red; padding: 20px;">Error generating timeline: ${err.message}</td></tr>`;
         }
+      }
 
-        function openExcelFilter(event, columnKey) {
-            event.stopPropagation();
-            currentFilterKey = columnKey;
-            
-            const btn = event.currentTarget;
-            const rect = btn.getBoundingClientRect();
-            const menu = document.getElementById('excelFilterMenu');
-            
-            menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
-            menu.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 270)}px`;
-            menu.style.display = 'flex';
+      function openExcelFilter(event, columnKey) {
+        event.stopPropagation();
+        currentFilterKey = columnKey;
 
-            document.getElementById('filterSearchInput').value = '';
-            populateFilterOptions(columnKey);
-        }
+        const btn = event.currentTarget;
+        const rect = btn.getBoundingClientRect();
+        const menu = document.getElementById("excelFilterMenu");
 
-        function closeFilterMenu() {
-            document.getElementById('excelFilterMenu').style.display = 'none';
-            currentFilterKey = null;
-        }
+        menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
+        menu.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 270)}px`;
+        menu.style.display = "flex";
 
-        function populateFilterOptions(columnKey, searchTerm = '') {
-            const container = document.getElementById('filterItemsList');
-            container.innerHTML = '';
+        document.getElementById("filterSearchInput").value = "";
+        populateFilterOptions(columnKey);
+      }
 
-            const uniqueValues = [...new Set(masterTableData.map(r => String(r[columnKey] ?? '-')))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-            const currentSelected = activeFilters[columnKey] || new Set(uniqueValues);
+      function closeFilterMenu() {
+        document.getElementById("excelFilterMenu").style.display = "none";
+        currentFilterKey = null;
+      }
 
-            const filteredValues = uniqueValues.filter(val => val.toLowerCase().includes(searchTerm.toLowerCase()));
+      function populateFilterOptions(columnKey, searchTerm = "") {
+        const container = document.getElementById("filterItemsList");
+        container.innerHTML = "";
 
-            filteredValues.forEach(val => {
-                const isChecked = currentSelected.has(val);
-                const label = document.createElement('label');
-                label.className = 'filter-item';
-                label.innerHTML = `
-                    <input type="checkbox" class="col-filter-check" value="${val.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''} onchange="onCheckboxChange()">
+        const uniqueValues = [
+          ...new Set(masterTableData.map((r) => String(r[columnKey] ?? "-"))),
+        ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const currentSelected =
+          activeFilters[columnKey] || new Set(uniqueValues);
+
+        const filteredValues = uniqueValues.filter((val) =>
+          val.toLowerCase().includes(searchTerm.toLowerCase()),
+        );
+
+        filteredValues.forEach((val) => {
+          const isChecked = currentSelected.has(val);
+          const label = document.createElement("label");
+          label.className = "filter-item";
+          label.innerHTML = `
+                    <input type="checkbox" class="col-filter-check" value="${val.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} onchange="onCheckboxChange()">
                     <span>${val}</span>
                 `;
-                container.appendChild(label);
-            });
+          container.appendChild(label);
+        });
 
-            syncSelectAllCheckbox();
+        syncSelectAllCheckbox();
+      }
+
+      function onFilterSearchInput() {
+        const query = document.getElementById("filterSearchInput").value;
+        if (currentFilterKey) {
+          populateFilterOptions(currentFilterKey, query);
+        }
+      }
+
+      function toggleSelectAll(masterCb) {
+        const cbs = document.querySelectorAll(".col-filter-check");
+        cbs.forEach((cb) => (cb.checked = masterCb.checked));
+      }
+
+      function onCheckboxChange() {
+        syncSelectAllCheckbox();
+      }
+
+      function syncSelectAllCheckbox() {
+        const allCbs = document.querySelectorAll(".col-filter-check");
+        const checkedCbs = document.querySelectorAll(
+          ".col-filter-check:checked",
+        );
+        const selectAll = document.getElementById("selectAllCheckbox");
+        if (allCbs.length === 0) {
+          selectAll.checked = false;
+          selectAll.indeterminate = false;
+        } else if (allCbs.length === checkedCbs.length) {
+          selectAll.checked = true;
+          selectAll.indeterminate = false;
+        } else if (checkedCbs.length === 0) {
+          selectAll.checked = false;
+          selectAll.indeterminate = false;
+        } else {
+          selectAll.indeterminate = true;
+        }
+      }
+
+      function applyCurrentFilter() {
+        if (!currentFilterKey) return;
+
+        const allUnique = [
+          ...new Set(
+            masterTableData.map((r) => String(r[currentFilterKey] ?? "-")),
+          ),
+        ];
+        const checkedBoxes = document.querySelectorAll(
+          ".col-filter-check:checked",
+        );
+        const selectedSet = new Set(
+          Array.from(checkedBoxes).map((cb) => cb.value),
+        );
+
+        if (selectedSet.size === allUnique.length) {
+          delete activeFilters[currentFilterKey];
+        } else {
+          activeFilters[currentFilterKey] = selectedSet;
         }
 
-        function onFilterSearchInput() {
-            const query = document.getElementById('filterSearchInput').value;
-            if (currentFilterKey) {
-                populateFilterOptions(currentFilterKey, query);
-            }
-        }
-
-        function toggleSelectAll(masterCb) {
-            const cbs = document.querySelectorAll('.col-filter-check');
-            cbs.forEach(cb => cb.checked = masterCb.checked);
-        }
-
-        function onCheckboxChange() {
-            syncSelectAllCheckbox();
-        }
-
-        function syncSelectAllCheckbox() {
-            const allCbs = document.querySelectorAll('.col-filter-check');
-            const checkedCbs = document.querySelectorAll('.col-filter-check:checked');
-            const selectAll = document.getElementById('selectAllCheckbox');
-            if (allCbs.length === 0) {
-                selectAll.checked = false;
-                selectAll.indeterminate = false;
-            } else if (allCbs.length === checkedCbs.length) {
-                selectAll.checked = true;
-                selectAll.indeterminate = false;
-            } else if (checkedCbs.length === 0) {
-                selectAll.checked = false;
-                selectAll.indeterminate = false;
+        const thButtons = document.querySelectorAll(".filter-btn");
+        thButtons.forEach((btn) => {
+          const fnStr = btn.getAttribute("onclick") || "";
+          if (fnStr.includes(`'${currentFilterKey}'`)) {
+            if (activeFilters[currentFilterKey]) {
+              btn.classList.add("active");
             } else {
-                selectAll.indeterminate = true;
+              btn.classList.remove("active");
             }
-        }
+          }
+        });
 
-        function applyCurrentFilter() {
-            if (!currentFilterKey) return;
+        renderFilteredTable();
+        closeFilterMenu();
+      }
 
-            const allUnique = [...new Set(masterTableData.map(r => String(r[currentFilterKey] ?? '-')))];
-            const checkedBoxes = document.querySelectorAll('.col-filter-check:checked');
-            const selectedSet = new Set(Array.from(checkedBoxes).map(cb => cb.value));
+      async function loadTableData() {
+        const tbody = document.getElementById("eqTableBody");
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/api/we1-own-eq/data", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await res.json();
 
-            if (selectedSet.size === allUnique.length) {
-                delete activeFilters[currentFilterKey];
+          if (!data.success) {
+            if (
+              data.message &&
+              (data.message.toLowerCase().includes("session") ||
+                data.message.toLowerCase().includes("token") ||
+                data.message.toLowerCase().includes("unauthorized"))
+            ) {
+              logout();
+              return;
+            }
+            throw new Error(data.message);
+          }
+
+          uniqueVehicleTypes.clear();
+          uniqueSiteNames.clear();
+          uniqueDriverNames.clear();
+          uniqueOwnerNames.clear();
+          uniqueSanthookNames.clear();
+          uniquePlates.clear();
+          globalPlates = [];
+
+          masterTableData = (data.data || []).map((row) => {
+            const mob_date_ui = formatUIDate(row.mob_date);
+            const joining_date_ui = formatUIDate(row.joining_date);
+
+            if (row.vehicle_type && row.vehicle_type.trim() !== "")
+              uniqueVehicleTypes.add(row.vehicle_type.trim());
+            if (row.site_name && row.site_name.trim() !== "")
+              uniqueSiteNames.add(row.site_name.trim());
+            if (row.driver_name && row.driver_name.trim() !== "")
+              uniqueDriverNames.add(row.driver_name.trim());
+            if (row.vehicle_owner && row.vehicle_owner.trim() !== "")
+              uniqueOwnerNames.add(row.vehicle_owner.trim());
+            if (row.santhook && row.santhook.trim() !== "")
+              uniqueSanthookNames.add(row.santhook.trim());
+            if (row.plate_no && row.plate_no.trim() !== "") {
+              uniquePlates.add(row.plate_no.trim());
+              globalPlates.push(row.plate_no.trim());
+            }
+
+            return {
+              ...row,
+              mob_date_ui,
+              joining_date_ui,
+              status: cleanVal(row.status),
+              note: cleanVal(row.note),
+              driver_mobile: cleanVal(row.driver_mobile),
+              vehicle_type: cleanVal(row.vehicle_type),
+              driver_name: cleanVal(row.driver_name),
+              site_name: cleanVal(row.site_name),
+              vehicle_owner: cleanVal(row.vehicle_owner),
+              santhook: cleanVal(row.santhook),
+              salary: cleanVal(row.salary),
+              plate_no: cleanVal(row.plate_no),
+              old_eq: cleanVal(row.old_eq),
+              new_eq: cleanVal(row.new_eq),
+            };
+          });
+
+          updateGlobalDatalists();
+
+          // 🟢 നിലവിലുള്ള Sort റീ-അപ്ലൈ ചെയ്യുന്നു
+          applySortingInternal();
+
+          // ഫിൽട്ടർ ബട്ടണുകളുടെ ആക്ടീവ് ബ്ലൂ കളർ ഹൈലൈറ്റ് നിലനിർത്തുന്നു
+          const thButtons = document.querySelectorAll(".filter-btn");
+          thButtons.forEach((btn) => {
+            const fnStr = btn.getAttribute("onclick") || "";
+            let matchedKey = null;
+            for (const key in activeFilters) {
+              if (fnStr.includes(`'${key}'`)) {
+                matchedKey = key;
+                break;
+              }
+            }
+            if (matchedKey && activeFilters[matchedKey]) {
+              btn.classList.add("active");
             } else {
-                activeFilters[currentFilterKey] = selectedSet;
+              btn.classList.remove("active");
             }
+          });
 
-            const thButtons = document.querySelectorAll('.filter-btn');
-            thButtons.forEach(btn => {
-                const fnStr = btn.getAttribute('onclick') || '';
-                if (fnStr.includes(`'${currentFilterKey}'`)) {
-                    if (activeFilters[currentFilterKey]) {
-                        btn.classList.add('active');
-                    } else {
-                        btn.classList.remove('active');
-                    }
-                }
-            });
-
-            renderFilteredTable();
-            closeFilterMenu();
+          renderFilteredTable();
+        } catch (error) {
+          tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
         }
+      }
 
-        async function loadTableData() {
-            const tbody = document.getElementById('eqTableBody');
-            try {
-                const token = localStorage.getItem("emp_token"); 
-                const res = await fetch('/api/we1-own-eq/data', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const data = await res.json();
+      // 🟢 3. സോർട്ടിംഗ് ലോജിക്
+      function sortGrid(direction) {
+        if (!currentFilterKey) return;
+        currentSortColumn = currentFilterKey;
+        currentSortDirection = direction;
 
-                if (!data.success) {
-                    if (data.message && (data.message.toLowerCase().includes("session") || data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized"))) {
-                        logout();
-                        return;
-                    }
-                    throw new Error(data.message);
-                }
+        applySortingInternal();
+        renderFilteredTable();
+        closeFilterMenu();
+      }
 
-                uniqueVehicleTypes.clear();
-                uniqueSiteNames.clear();
-                uniqueDriverNames.clear();
-                uniqueOwnerNames.clear();
-                uniqueSanthookNames.clear();
-                uniquePlates.clear();
-                globalPlates = [];
-                
-                masterTableData = (data.data || []).map(row => {
-                    const mob_date_ui = formatUIDate(row.mob_date);
-                    const joining_date_ui = formatUIDate(row.joining_date);
-                    
-                    if (row.vehicle_type && row.vehicle_type.trim() !== "") uniqueVehicleTypes.add(row.vehicle_type.trim());
-                    if (row.site_name && row.site_name.trim() !== "") uniqueSiteNames.add(row.site_name.trim());
-                    if (row.driver_name && row.driver_name.trim() !== "") uniqueDriverNames.add(row.driver_name.trim());
-                    if (row.vehicle_owner && row.vehicle_owner.trim() !== "") uniqueOwnerNames.add(row.vehicle_owner.trim());
-                    if (row.santhook && row.santhook.trim() !== "") uniqueSanthookNames.add(row.santhook.trim());
-                    if (row.plate_no && row.plate_no.trim() !== "") {
-                        uniquePlates.add(row.plate_no.trim());
-                        globalPlates.push(row.plate_no.trim());
-                    }
+      function applySortingInternal() {
+        if (!currentSortColumn || !currentSortDirection) return;
 
-                    return {
-                        ...row,
-                        mob_date_ui,
-                        joining_date_ui,
-                        status: cleanVal(row.status),
-                        note: cleanVal(row.note),
-                        driver_mobile: cleanVal(row.driver_mobile),
-                        vehicle_type: cleanVal(row.vehicle_type),
-                        driver_name: cleanVal(row.driver_name),
-                        site_name: cleanVal(row.site_name),
-                        vehicle_owner: cleanVal(row.vehicle_owner),
-                        santhook: cleanVal(row.santhook),
-                        salary: cleanVal(row.salary),
-                        plate_no: cleanVal(row.plate_no),
-                        old_eq: cleanVal(row.old_eq),
-                        new_eq: cleanVal(row.new_eq)
-                    };
-                });
+        masterTableData.sort((a, b) => {
+          let valA = String(a[currentSortColumn] ?? "").toLowerCase();
+          let valB = String(b[currentSortColumn] ?? "").toLowerCase();
 
-                updateGlobalDatalists();
+          const numA = parseFloat(valA);
+          const numB = parseFloat(valB);
 
-                // 🟢 നിലവിലുള്ള Sort റീ-അപ്ലൈ ചെയ്യുന്നു
-                applySortingInternal();
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return currentSortDirection === "asc" ? numA - numB : numB - numA;
+          }
 
-                // ഫിൽട്ടർ ബട്ടണുകളുടെ ആക്ടീവ് ബ്ലൂ കളർ ഹൈലൈറ്റ് നിലനിർത്തുന്നു
-                const thButtons = document.querySelectorAll('.filter-btn');
-                thButtons.forEach(btn => {
-                    const fnStr = btn.getAttribute('onclick') || '';
-                    let matchedKey = null;
-                    for (const key in activeFilters) {
-                        if (fnStr.includes(`'${key}'`)) {
-                            matchedKey = key;
-                            break;
-                        }
-                    }
-                    if (matchedKey && activeFilters[matchedKey]) {
-                        btn.classList.add('active');
-                    } else {
-                        btn.classList.remove('active');
-                    }
-                });
+          return currentSortDirection === "asc"
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        });
+      }
 
-                renderFilteredTable();
-            } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
-            }
-        }
+      function openModal(title, content) {
+        document.getElementById("modalTitle").innerText = title;
+        document.getElementById("modalBody").innerHTML = content;
+        document.getElementById("commonModal").style.display = "flex";
+      }
 
-        // 🟢 3. സോർട്ടിംഗ് ലോജിക്
-        function sortGrid(direction) {
-            if (!currentFilterKey) return;
-            currentSortColumn = currentFilterKey;
-            currentSortDirection = direction;
+      function closeModal() {
+        document.getElementById("commonModal").style.display = "none";
+      }
 
-            applySortingInternal();
-            renderFilteredTable();
-            closeFilterMenu();
-        }
+      function openLog(logName) {
+        document.getElementById("quickLogSidebar").style.display = "none";
+        document.getElementById("tempLogType").value = logName;
+        const drop = document.getElementById("logPlateDropdown");
+        drop.innerHTML =
+          '<option value="">Select Plate No...</option>' +
+          [...new Set(globalPlates)]
+            .map((p) => `<option value="${p}">${p}</option>`)
+            .join("");
+        document.getElementById("plateSelectModal").style.display = "flex";
+      }
 
-        function applySortingInternal() {
-            if (!currentSortColumn || !currentSortDirection) return;
+      function fetchLogData() {
+        const plate = document.getElementById("logPlateDropdown").value;
+        const type = document.getElementById("tempLogType").value;
+        if (!plate) return alert("Please select a Plate No");
 
-            masterTableData.sort((a, b) => {
-                let valA = String(a[currentSortColumn] ?? '').toLowerCase();
-                let valB = String(b[currentSortColumn] ?? '').toLowerCase();
+        document.getElementById("plateSelectModal").style.display = "none";
+        const titleLabel =
+          type === "VehicleTypeLog"
+            ? "🚜 Vehicle Type & Santhook"
+            : `📂 ${type}`;
+        document.getElementById("splitLogTitle").innerText =
+          `${titleLabel} - ${plate}`;
+        document.getElementById("activeLogType").value = type;
+        document.getElementById("activeLogPlate").value = plate;
+        document.getElementById("editLogId").value = "";
+        document.getElementById("editSanthookLogId").value = "";
 
-                const numA = parseFloat(valA);
-                const numB = parseFloat(valB);
+        renderLogForm(type);
+        loadLogHistory(type, plate);
+        document.getElementById("splitLogModal").style.display = "flex";
+      }
 
-                if (!isNaN(numA) && !isNaN(numB)) {
-                    return currentSortDirection === 'asc' ? numA - numB : numB - numA;
-                }
-
-                return currentSortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-            });
-        }
-
-        function openModal(title, content) {
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalBody').innerHTML = content;
-            document.getElementById('commonModal').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('commonModal').style.display = 'none';
-        }
-
-        function openLog(logName) {
-            document.getElementById('quickLogSidebar').style.display = 'none';
-            document.getElementById('tempLogType').value = logName;
-            const drop = document.getElementById('logPlateDropdown');
-            drop.innerHTML = '<option value="">Select Plate No...</option>' + [...new Set(globalPlates)].map(p => `<option value="${p}">${p}</option>`).join('');
-            document.getElementById('plateSelectModal').style.display = 'flex';
-        }
-
-        function fetchLogData() {
-            const plate = document.getElementById('logPlateDropdown').value;
-            const type = document.getElementById('tempLogType').value;
-            if(!plate) return alert("Please select a Plate No");
-            
-            document.getElementById('plateSelectModal').style.display = 'none';
-            const titleLabel = type === 'VehicleTypeLog' ? '🚜 Vehicle Type & Santhook' : `📂 ${type}`;
-            document.getElementById('splitLogTitle').innerText = `${titleLabel} - ${plate}`;
-            document.getElementById('activeLogType').value = type;
-            document.getElementById('activeLogPlate').value = plate;
-            document.getElementById('editLogId').value = '';
-            document.getElementById('editSanthookLogId').value = '';
-
-            renderLogForm(type);
-            loadLogHistory(type, plate);
-            document.getElementById('splitLogModal').style.display = 'flex';
-        }
-
-        const logConfigs = {
-            'SiteLog': [
-                { id: 'f_site_name', label: 'Site Name', type: 'text', list: 'siteSuggestions' },
-                { id: 'f_mob_date', label: 'Mobilisation Date', type: 'date' },
-                { id: 'f_work_end_date', label: 'Work End Date', type: 'date' },
-                { id: 'f_replaced_date', label: 'Replaced Date', type: 'date' },
-                { 
-                    type: 'row', 
-                    fields: [
-                        { id: 'f_old_eq', label: 'Old EQ', type: 'text', placeholder: 'Old EQ', list: 'plateSuggestions' },
-                        { id: 'f_new_eq', label: 'New EQ', type: 'text', placeholder: 'New EQ', list: 'plateSuggestions' }
-                    ]
-                }
+      const logConfigs = {
+        SiteLog: [
+          {
+            id: "f_site_name",
+            label: "Site Name",
+            type: "text",
+            list: "siteSuggestions",
+          },
+          { id: "f_mob_date", label: "Mobilisation Date", type: "date" },
+          { id: "f_work_end_date", label: "Work End Date", type: "date" },
+          { id: "f_replaced_date", label: "Replaced Date", type: "date" },
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_old_eq",
+                label: "Old EQ",
+                type: "text",
+                placeholder: "Old EQ",
+                list: "plateSuggestions",
+              },
+              {
+                id: "f_new_eq",
+                label: "New EQ",
+                type: "text",
+                placeholder: "New EQ",
+                list: "plateSuggestions",
+              },
             ],
-            'DriverLog': [
-                { id: 'f_driver_name', label: 'Driver Name', type: 'text', list: 'driverSuggestions' },
-                { id: 'f_driver_mobile', label: 'Mobile', type: 'text', placeholder: 'Mobile Number' },
-                { id: 'f_join_date', label: 'Joining Date', type: 'date' },
-                { id: 'f_work_end_date', label: 'Work End Date', type: 'date' },
-                { id: 'f_salary', label: 'Salary', type: 'number' }
-            ],
-            'VehicleTypeLog': [
-                { id: 'f_vehicle_type', label: 'Vehicle Type', type: 'text', list: 'vTypeSuggestions' },
-                { id: 'f_santhook_name', label: 'Santhook', type: 'text', list: 'santhookSuggestions' },
-                { id: 'f_start_date', label: 'Date :: Start', type: 'date' },
-                { id: 'f_end_date', label: 'Date :: End', type: 'date' }
-            ],
-            'OwnerLog': [
-                { id: 'f_owner_name', label: 'Owner Name', type: 'text', list: 'ownerSuggestions' },
-                { id: 'f_start_date', label: 'Start Date', type: 'date' },
-                { id: 'f_end_date', label: 'End Date', type: 'date' }
-            ]
-        };
+          },
+        ],
+        DriverLog: [
+          {
+            id: "f_driver_name",
+            label: "Driver Name",
+            type: "text",
+            list: "driverSuggestions",
+          },
+          {
+            id: "f_driver_mobile",
+            label: "Mobile",
+            type: "text",
+            placeholder: "Mobile Number",
+          },
+          { id: "f_join_date", label: "Joining Date", type: "date" },
+          { id: "f_work_end_date", label: "Work End Date", type: "date" },
+          { id: "f_salary", label: "Salary", type: "number" },
+        ],
+        VehicleTypeLog: [
+          {
+            id: "f_vehicle_type",
+            label: "Vehicle Type",
+            type: "text",
+            list: "vTypeSuggestions",
+          },
+          {
+            id: "f_santhook_name",
+            label: "Santhook",
+            type: "text",
+            list: "santhookSuggestions",
+          },
+          { id: "f_start_date", label: "Date :: Start", type: "date" },
+          { id: "f_end_date", label: "Date :: End", type: "date" },
+        ],
+        OwnerLog: [
+          {
+            id: "f_owner_name",
+            label: "Owner Name",
+            type: "text",
+            list: "ownerSuggestions",
+          },
+          { id: "f_start_date", label: "Start Date", type: "date" },
+          { id: "f_end_date", label: "End Date", type: "date" },
+        ],
+      };
 
-        function renderLogForm(type) {
-            const formContainer = document.getElementById('dynamicLogForm');
-            const fields = logConfigs[type];
-            
-            formContainer.innerHTML = fields.map(f => {
-                if (f.type === 'row') {
-                    return `
+      function renderLogForm(type) {
+        const formContainer = document.getElementById("dynamicLogForm");
+        const fields = logConfigs[type];
+
+        formContainer.innerHTML = fields
+          .map((f) => {
+            if (f.type === "row") {
+              return `
                         <div style="display: flex; gap: 10px;">
-                            ${f.fields.map(subF => `
+                            ${f.fields
+                              .map(
+                                (subF) => `
                                 <div style="flex: 1;">
                                     <label style="font-weight:600; font-size:11px; display:block; margin-bottom:3px;">${subF.label}</label>
-                                    <input type="${subF.type}" id="${subF.id}" placeholder="${subF.placeholder || ''}" ${subF.list ? `list="${subF.list}"` : ''} autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px;">
+                                    <input type="${subF.type}" id="${subF.id}" placeholder="${subF.placeholder || ""}" ${subF.list ? `list="${subF.list}"` : ""} autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px;">
                                 </div>
-                            `).join('')}
+                            `,
+                              )
+                              .join("")}
                         </div>
                     `;
-                }
-                return `
+            }
+            return `
                     <div>
                         <label style="font-weight:600; font-size:11px; display:block; margin-bottom:3px;">${f.label}</label>
-                        <input type="${f.type}" id="${f.id}" ${f.list ? `list="${f.list}"` : ''} autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px;">
+                        <input type="${f.type}" id="${f.id}" ${f.list ? `list="${f.list}"` : ""} autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px;">
                     </div>
                 `;
-            }).join('');
-        }
+          })
+          .join("");
+      }
 
-        async function loadLogHistory(type, plate) {
-            const tbody = document.getElementById('logTableBody');
-            const thead = document.getElementById('logTableHead');
-            tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
-            
-            let headers = [];
-            if(type === 'SiteLog') headers = ['Site', 'Mob Date', 'End Date', 'Replaced', 'Old EQ', 'New EQ', 'Status', 'Edit'];
-            else if(type === 'DriverLog') headers = ['Driver Name', 'Mobile', 'Join Date', 'End Date', 'Salary', 'Edit'];
-            else if(type === 'VehicleTypeLog') headers = ['Vehicle Type', 'Santhook Name', 'Start Date', 'End Date', 'Edit'];
-            else if(type === 'OwnerLog') headers = ['Owner Name', 'Start Date', 'End Date', 'Edit'];
+      async function loadLogHistory(type, plate) {
+        const tbody = document.getElementById("logTableBody");
+        const thead = document.getElementById("logTableHead");
+        tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
 
-            thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        let headers = [];
+        if (type === "SiteLog")
+          headers = [
+            "Site",
+            "Mob Date",
+            "End Date",
+            "Replaced",
+            "Old EQ",
+            "New EQ",
+            "Status",
+            "Edit",
+          ];
+        else if (type === "DriverLog")
+          headers = [
+            "Driver Name",
+            "Mobile",
+            "Join Date",
+            "End Date",
+            "Salary",
+            "Edit",
+          ];
+        else if (type === "VehicleTypeLog")
+          headers = [
+            "Vehicle Type",
+            "Santhook Name",
+            "Start Date",
+            "End Date",
+            "Edit",
+          ];
+        else if (type === "OwnerLog")
+          headers = ["Owner Name", "Start Date", "End Date", "Edit"];
 
-            try {
-                const token = localStorage.getItem("emp_token");
+        thead.innerHTML = `<tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr>`;
 
-                if (type === 'VehicleTypeLog') {
-                    const [vRes, sRes] = await Promise.all([
-                        fetch('/api/we1-own-eq/log/history', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                            body: JSON.stringify({ type: 'VehicleTypeLog', plate })
-                        }).then(r => r.json()),
-                        fetch('/api/we1-own-eq/log/history', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                            body: JSON.stringify({ type: 'SanthookLog', plate })
-                        }).then(r => r.json())
-                    ]);
+        try {
+          const token = localStorage.getItem("emp_token");
 
-                    const vList = vRes.success ? vRes.data : [];
-                    const sList = sRes.success ? sRes.data : [];
-                    const count = Math.max(vList.length, sList.length);
+          if (type === "VehicleTypeLog") {
+            const [vRes, sRes] = await Promise.all([
+              fetch("/api/we1-own-eq/log/history", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + token,
+                },
+                body: JSON.stringify({ type: "VehicleTypeLog", plate }),
+              }).then((r) => r.json()),
+              fetch("/api/we1-own-eq/log/history", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + token,
+                },
+                body: JSON.stringify({ type: "SanthookLog", plate }),
+              }).then((r) => r.json()),
+            ]);
 
-                    if (count === 0) {
-                        tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center;">No history found</td></tr>`;
-                        return;
-                    }
+            const vList = (vRes.success ? vRes.data : []).sort(
+              (a, b) =>
+                new Date(b.start_date || 0) - new Date(a.start_date || 0),
+            );
+            const sList = (sRes.success ? sRes.data : []).sort(
+              (a, b) =>
+                new Date(b.start_date || 0) - new Date(a.start_date || 0),
+            );
+            const count = Math.max(vList.length, sList.length);
 
-                    let rowsHtml = '';
-                    for (let i = 0; i < count; i++) {
-                        const vItem = vList[i] || {};
-                        const sItem = sList[i] || {};
-                        const mergedItem = {
-                            id: vItem.id || null,
-                            santhook_log_id: sItem.id || null,
-                            vehicle_type: vItem.vehicle_type || '',
-                            santhook_name: sItem.santhook_name || '',
-                            start_date: vItem.start_date || sItem.start_date || '',
-                            end_date: vItem.end_date || sItem.end_date || ''
-                        };
+            if (count === 0) {
+              tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center;">No history found</td></tr>`;
+              return;
+            }
 
-                        const safeData = JSON.stringify(mergedItem).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
-                        rowsHtml += `
+            let rowsHtml = "";
+            for (let i = 0; i < count; i++) {
+              const vItem = vList[i] || {};
+              const sItem = sList[i] || {};
+              const mergedItem = {
+                id: vItem.id || null,
+                santhook_log_id: sItem.id || null,
+                vehicle_type: vItem.vehicle_type || "",
+                santhook_name: sItem.santhook_name || "",
+                start_date: vItem.start_date || sItem.start_date || "",
+                end_date: vItem.end_date || sItem.end_date || "",
+              };
+
+              const safeData = JSON.stringify(mergedItem)
+                .replace(/'/g, "&#39;")
+                .replace(/"/g, "&quot;");
+              rowsHtml += `
                             <tr>
-                                <td>${mergedItem.vehicle_type || '-'}</td>
-                                <td>${mergedItem.santhook_name || '-'}</td>
+                                <td>${mergedItem.vehicle_type || "-"}</td>
+                                <td>${mergedItem.santhook_name || "-"}</td>
                                 <td>${formatUIDate(mergedItem.start_date)}</td>
                                 <td>${formatUIDate(mergedItem.end_date)}</td>
                                 <td><span class="edit-icon" onclick="editLogEntry('${safeData}')">✏️</span></td>
                             </tr>
                         `;
-                    }
-                    tbody.innerHTML = rowsHtml;
-                    return;
-                }
-
-                const res = await fetch(`/api/we1-own-eq/log/history`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token 
-                    },
-                    body: JSON.stringify({ type: type, plate: plate })
-                });
-                const data = await res.json();
-                
-                if (!data.success) throw new Error("Failed to load");
-                
-                if(data.data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center;">No history found</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = data.data.map(r => {
-                    let tdHtml = '';
-                    if(type === 'SiteLog') {
-                        let status = 'Running';
-                        if(r.replaced_date) status = '<span style="color:#cf222e; font-weight:bold;">Replaced</span>';
-                        else if(r.work_end_date) status = '<span style="color:#d97706; font-weight:bold;">Released</span>';
-                        else status = '<span style="color:#1a7f37; font-weight:bold;">Running</span>';
-                        
-                        tdHtml = `<td>${r.site_name || '-'}</td><td>${formatUIDate(r.mob_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${formatUIDate(r.replaced_date)}</td><td>${r.old_eq || '-'}</td><td>${r.new_eq || '-'}</td><td>${status}</td>`;
-                    } else if(type === 'DriverLog') {
-                        tdHtml = `<td>${r.driver_name || '-'}</td><td>${r.driver_mobile || r.mobile || '-'}</td><td>${formatUIDate(r.join_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${r.salary || '-'}</td>`;
-                    } else if(type === 'OwnerLog') {
-                        tdHtml = `<td>${r.owner_name || '-'}</td><td>${formatUIDate(r.start_date)}</td><td>${formatUIDate(r.end_date)}</td>`;
-                    }
-                    
-                    const safeData = JSON.stringify(r).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
-                    tdHtml += `<td><span class="edit-icon" onclick="editLogEntry('${safeData}')">✏️</span></td>`;
-                    return `<tr>${tdHtml}</tr>`;
-                }).join('');
-
-            } catch(e) {
-                tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; color:red;">Error fetching data</td></tr>`;
             }
+            tbody.innerHTML = rowsHtml;
+            return;
+          }
+
+          const res = await fetch(`/api/we1-own-eq/log/history`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ type: type, plate: plate }),
+          });
+          const data = await res.json();
+
+          if (!data.success) throw new Error("Failed to load");
+
+          if (data.data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center;">No history found</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = data.data
+            .map((r) => {
+              let tdHtml = "";
+              if (type === "SiteLog") {
+                let status = "Running";
+                if (r.replaced_date)
+                  status =
+                    '<span style="color:#cf222e; font-weight:bold;">Replaced</span>';
+                else if (r.work_end_date)
+                  status =
+                    '<span style="color:#d97706; font-weight:bold;">Released</span>';
+                else
+                  status =
+                    '<span style="color:#1a7f37; font-weight:bold;">Running</span>';
+
+                tdHtml = `<td>${r.site_name || "-"}</td><td>${formatUIDate(r.mob_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${formatUIDate(r.replaced_date)}</td><td>${r.old_eq || "-"}</td><td>${r.new_eq || "-"}</td><td>${status}</td>`;
+              } else if (type === "DriverLog") {
+                tdHtml = `<td>${r.driver_name || "-"}</td><td>${r.driver_mobile || r.mobile || "-"}</td><td>${formatUIDate(r.join_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${r.salary || "-"}</td>`;
+              } else if (type === "OwnerLog") {
+                tdHtml = `<td>${r.owner_name || "-"}</td><td>${formatUIDate(r.start_date)}</td><td>${formatUIDate(r.end_date)}</td>`;
+              }
+
+              const safeData = JSON.stringify(r)
+                .replace(/'/g, "&#39;")
+                .replace(/"/g, "&quot;");
+              tdHtml += `<td><span class="edit-icon" onclick="editLogEntry('${safeData}')">✏️</span></td>`;
+              return `<tr>${tdHtml}</tr>`;
+            })
+            .join("");
+        } catch (e) {
+          tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; color:red;">Error fetching data</td></tr>`;
+        }
+      }
+
+      function editLogEntry(jsonStr) {
+        const data = JSON.parse(jsonStr);
+        document.getElementById("editLogId").value = data.id || "";
+        document.getElementById("editSanthookLogId").value =
+          data.santhook_log_id || "";
+
+        const type = document.getElementById("activeLogType").value;
+        const fields = logConfigs[type];
+
+        const populateField = (f) => {
+          const dbVal = data[f.id.replace("f_", "")];
+          const elem = document.getElementById(f.id);
+          if (!elem) return;
+          if (f.type === "date" && dbVal) {
+            elem.value = dbVal.split("T")[0];
+          } else {
+            elem.value = dbVal || "";
+          }
+        };
+
+        fields.forEach((f) => {
+          if (f.type === "row") {
+            f.fields.forEach((subF) => populateField(subF));
+          } else {
+            populateField(f);
+          }
+        });
+      }
+
+      async function changePlate() {
+        const currentType = document.getElementById("activeLogType").value;
+        const currentPlate = document.getElementById("activeLogPlate").value;
+
+        if (logHasUnsavedData(currentType)) {
+          const isSaved = await saveLogEntry(true);
+          if (!isSaved) return;
         }
 
-        function editLogEntry(jsonStr) {
-            const data = JSON.parse(jsonStr);
-            document.getElementById('editLogId').value = data.id || '';
-            document.getElementById('editSanthookLogId').value = data.santhook_log_id || '';
-            
-            const type = document.getElementById('activeLogType').value;
-            const fields = logConfigs[type];
+        const uniquePlatesList = [...new Set(globalPlates)];
+        const currentIndex = uniquePlatesList.indexOf(currentPlate);
+        let nextIndex = currentIndex + 1;
 
-            const populateField = (f) => {
-                const dbVal = data[f.id.replace('f_', '')];
-                const elem = document.getElementById(f.id);
-                if (!elem) return;
-                if(f.type === 'date' && dbVal) {
-                    elem.value = dbVal.split('T')[0];
-                } else {
-                    elem.value = dbVal || '';
-                }
-            };
-
-            fields.forEach(f => {
-                if (f.type === 'row') {
-                    f.fields.forEach(subF => populateField(subF));
-                } else {
-                    populateField(f);
-                }
-            });
+        if (nextIndex >= uniquePlatesList.length) {
+          nextIndex = 0;
         }
 
-        async function changePlate() {
-            const currentType = document.getElementById('activeLogType').value;
-            const currentPlate = document.getElementById('activeLogPlate').value;
-            
-            if (logHasUnsavedData(currentType)) {
-                const isSaved = await saveLogEntry(true);
-                if (!isSaved) return;
-            }
+        const nextPlate = uniquePlatesList[nextIndex];
 
-            const uniquePlatesList = [...new Set(globalPlates)];
-            const currentIndex = uniquePlatesList.indexOf(currentPlate);
-            let nextIndex = currentIndex + 1;
-            
-            if (nextIndex >= uniquePlatesList.length) {
-                nextIndex = 0; 
-            }
+        document.getElementById("activeLogPlate").value = nextPlate;
+        const titleLabel =
+          currentType === "VehicleTypeLog"
+            ? "🚜 Vehicle Type & Santhook"
+            : `📂 ${currentType}`;
+        document.getElementById("splitLogTitle").innerText =
+          `${titleLabel} - ${nextPlate}`;
+        document.getElementById("editLogId").value = "";
+        document.getElementById("editSanthookLogId").value = "";
 
-            const nextPlate = uniquePlatesList[nextIndex];
-            
-            document.getElementById('activeLogPlate').value = nextPlate;
-            const titleLabel = currentType === 'VehicleTypeLog' ? '🚜 Vehicle Type & Santhook' : `📂 ${currentType}`;
-            document.getElementById('splitLogTitle').innerText = `${titleLabel} - ${nextPlate}`;
-            document.getElementById('editLogId').value = '';
-            document.getElementById('editSanthookLogId').value = '';
-            
-            renderLogForm(currentType); 
-            loadLogHistory(currentType, nextPlate); 
+        renderLogForm(currentType);
+        loadLogHistory(currentType, nextPlate);
+      }
+
+      async function saveLogEntry(isAutoSave = false) {
+        const type = document.getElementById("activeLogType").value;
+        const plate = document.getElementById("activeLogPlate").value;
+        const id = document.getElementById("editLogId").value;
+        const token = localStorage.getItem("emp_token");
+
+        if (type === "VehicleTypeLog") {
+          const vTypeVal = document
+            .getElementById("f_vehicle_type")
+            .value.trim();
+          const santhookVal = document
+            .getElementById("f_santhook_name")
+            .value.trim();
+          const startDateVal = document
+            .getElementById("f_start_date")
+            .value.trim();
+          const endDateVal = document.getElementById("f_end_date").value.trim();
+          const santhookLogId =
+            document.getElementById("editSanthookLogId").value;
+
+          const vTypePayload = {
+            type: "VehicleTypeLog",
+            plate_no: plate,
+            id: id || null,
+            data: {
+              vehicle_type: vTypeVal === "" ? null : vTypeVal,
+              start_date: startDateVal === "" ? null : startDateVal,
+            },
+          };
+
+          const santhookPayload = {
+            type: "SanthookLog",
+            plate_no: plate,
+            id: santhookLogId || null,
+            data: {
+              santhook_name: santhookVal === "" ? null : santhookVal,
+              start_date: startDateVal === "" ? null : startDateVal,
+              end_date: endDateVal === "" ? null : endDateVal,
+            },
+          };
+
+          try {
+            const [res1, res2] = await Promise.all([
+              fetch("/api/we1-own-eq/log/save", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + token,
+                },
+                body: JSON.stringify(vTypePayload),
+              }).then((r) => r.json()),
+              fetch("/api/we1-own-eq/log/save", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + token,
+                },
+                body: JSON.stringify(santhookPayload),
+              }).then((r) => r.json()),
+            ]);
+
+            if (res1.success && res2.success) {
+              document.getElementById("editLogId").value = "";
+              document.getElementById("editSanthookLogId").value = "";
+              if (!isAutoSave) {
+                renderLogForm(type);
+                loadLogHistory(type, plate);
+              }
+              loadTableData();
+              return true;
+            } else {
+              alert(
+                "Error saving merged log: " + (res1.message || res2.message),
+              );
+              return false;
+            }
+          } catch (e) {
+            alert("Network Error");
+            return false;
+          }
         }
 
-        async function saveLogEntry(isAutoSave = false) {
-            const type = document.getElementById('activeLogType').value;
-            const plate = document.getElementById('activeLogPlate').value;
-            const id = document.getElementById('editLogId').value;
-            const token = localStorage.getItem("emp_token");
+        const payload = { type, plate_no: plate, id: id || null, data: {} };
 
-            if (type === 'VehicleTypeLog') {
-                const vTypeVal = document.getElementById('f_vehicle_type').value.trim();
-                const santhookVal = document.getElementById('f_santhook_name').value.trim();
-                const startDateVal = document.getElementById('f_start_date').value.trim();
-                const endDateVal = document.getElementById('f_end_date').value.trim();
-                const santhookLogId = document.getElementById('editSanthookLogId').value;
+        const extractValue = (f) => {
+          const elem = document.getElementById(f.id);
+          if (elem) {
+            const val = elem.value.trim();
+            payload.data[f.id.replace("f_", "")] = val === "" ? null : val;
+          }
+        };
 
-                const vTypePayload = {
-                    type: 'VehicleTypeLog',
-                    plate_no: plate,
-                    id: id || null,
-                    data: {
-                        vehicle_type: vTypeVal === "" ? null : vTypeVal,
-                        start_date: startDateVal === "" ? null : startDateVal
-                    }
-                };
+        logConfigs[type].forEach((f) => {
+          if (f.type === "row") {
+            f.fields.forEach((subF) => extractValue(subF));
+          } else {
+            extractValue(f);
+          }
+        });
 
-                const santhookPayload = {
-                    type: 'SanthookLog',
-                    plate_no: plate,
-                    id: santhookLogId || null,
-                    data: {
-                        santhook_name: santhookVal === "" ? null : santhookVal,
-                        start_date: startDateVal === "" ? null : startDateVal,
-                        end_date: endDateVal === "" ? null : endDateVal
-                    }
-                };
+        try {
+          const res = await fetch("/api/we1-own-eq/log/save", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify(payload),
+          });
+          const responseData = await res.json();
 
-                try {
-                    const [res1, res2] = await Promise.all([
-                        fetch('/api/we1-own-eq/log/save', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                            body: JSON.stringify(vTypePayload)
-                        }).then(r => r.json()),
-                        fetch('/api/we1-own-eq/log/save', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                            body: JSON.stringify(santhookPayload)
-                        }).then(r => r.json())
-                    ]);
+          if (responseData.success) {
+            document.getElementById("editLogId").value = "";
 
-                    if (res1.success && res2.success) {
-                        document.getElementById('editLogId').value = '';
-                        document.getElementById('editSanthookLogId').value = '';
-                        if (!isAutoSave) {
-                            renderLogForm(type);
-                            loadLogHistory(type, plate);
-                        }
-                        loadTableData();
-                        return true;
-                    } else {
-                        alert("Error saving merged log: " + (res1.message || res2.message));
-                        return false;
-                    }
-                } catch(e) {
-                    alert("Network Error");
-                    return false;
-                }
+            if (!isAutoSave) {
+              renderLogForm(type);
+              loadLogHistory(type, plate);
             }
-
-            const payload = { type, plate_no: plate, id: id || null, data: {} };
-            
-            const extractValue = (f) => {
-                const elem = document.getElementById(f.id);
-                if (elem) {
-                    const val = elem.value.trim();
-                    payload.data[f.id.replace('f_', '')] = val === "" ? null : val;
-                }
-            };
-
-            logConfigs[type].forEach(f => {
-                if (f.type === 'row') {
-                    f.fields.forEach(subF => extractValue(subF));
-                } else {
-                    extractValue(f);
-                }
-            });
-
-            try {
-                const res = await fetch('/api/we1-own-eq/log/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify(payload)
-                });
-                const responseData = await res.json();
-                
-                if (responseData.success) {
-                    document.getElementById('editLogId').value = '';
-                    
-                    if (!isAutoSave) {
-                        renderLogForm(type);
-                        loadLogHistory(type, plate);
-                    }
-                    loadTableData();
-                    return true;
-                } else {
-                    alert("Error: " + responseData.message);
-                    return false;
-                }
-            } catch(e) {
-                alert("Network Error");
-                return false;
-            }
+            loadTableData();
+            return true;
+          } else {
+            alert("Error: " + responseData.message);
+            return false;
+          }
+        } catch (e) {
+          alert("Network Error");
+          return false;
         }
+      }
 
-        function openAddModal() {
-            let formHtml = `
+      function openAddModal() {
+        let formHtml = `
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-height: 70vh; overflow-y: auto; padding-right: 5px;">
                     <div style="grid-column: span 2;">
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Plate Number <span style="color:red;">*</span></label>
@@ -1744,176 +2349,189 @@
                     <button onclick="saveNewVehicle()" style="grid-column: span 2; margin-top: 10px; padding: 10px; background: #1a7f37; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">Save Full Details</button>
                 </div>
             `;
-            openModal('➕ Add New Equipment Entry', formHtml);
+        openModal("➕ Add New Equipment Entry", formHtml);
+      }
+
+      async function saveNewVehicle() {
+        const plate_no = document.getElementById("newPlateNo").value.trim();
+        if (!plate_no) {
+          alert("Please enter a Plate Number.");
+          return;
         }
 
-        async function saveNewVehicle() {
-            const plate_no = document.getElementById('newPlateNo').value.trim();
-            if (!plate_no) {
-                alert("Please enter a Plate Number.");
-                return;
-            }
+        const payload = {
+          plate_no: plate_no,
+          mob_date: document.getElementById("newMobDate").value,
+          vehicle_type: document.getElementById("newVType").value.trim(),
+          driver_name: document.getElementById("newDriver").value.trim(),
+          driver_mobile: document.getElementById("newDriverMob").value.trim(),
+          joining_date: document.getElementById("newJoinDate").value,
+          site_name: document.getElementById("newSite").value.trim(),
+          vehicle_owner: document.getElementById("newOwner").value.trim(),
+          santhook: document.getElementById("newSanthook").value.trim(),
+          salary: document.getElementById("newSalary").value,
+          status: document.getElementById("newStatus").value,
+        };
 
-            const payload = {
-                plate_no: plate_no,
-                mob_date: document.getElementById('newMobDate').value,
-                vehicle_type: document.getElementById('newVType').value.trim(),
-                driver_name: document.getElementById('newDriver').value.trim(),
-                driver_mobile: document.getElementById('newDriverMob').value.trim(),
-                joining_date: document.getElementById('newJoinDate').value,
-                site_name: document.getElementById('newSite').value.trim(),
-                vehicle_owner: document.getElementById('newOwner').value.trim(),
-                santhook: document.getElementById('newSanthook').value.trim(),
-                salary: document.getElementById('newSalary').value,
-                status: document.getElementById('newStatus').value
-            };
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/api/we1-own-eq/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
 
-            try {
-                const token = localStorage.getItem("emp_token");
-                const res = await fetch('/api/we1-own-eq/add', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    closeModal();
-                    if (activeFilters['plate_no']) activeFilters['plate_no'].add(payload.plate_no);
-                    if (activeFilters['vehicle_type'] && payload.vehicle_type) activeFilters['vehicle_type'].add(payload.vehicle_type);
-                    if (activeFilters['site_name'] && payload.site_name) activeFilters['site_name'].add(payload.site_name);
-                    if (activeFilters['status'] && payload.status) activeFilters['status'].add(payload.status);
+          if (data.success) {
+            closeModal();
+            if (activeFilters["plate_no"])
+              activeFilters["plate_no"].add(payload.plate_no);
+            if (activeFilters["vehicle_type"] && payload.vehicle_type)
+              activeFilters["vehicle_type"].add(payload.vehicle_type);
+            if (activeFilters["site_name"] && payload.site_name)
+              activeFilters["site_name"].add(payload.site_name);
+            if (activeFilters["status"] && payload.status)
+              activeFilters["status"].add(payload.status);
 
-                    await loadTableData();
-                } else {
-                    alert("Error: " + data.message);
-                }
-            } catch (error) {
-                alert("Network error occurred.");
-            }
+            await loadTableData();
+          } else {
+            alert("Error: " + data.message);
+          }
+        } catch (error) {
+          alert("Network error occurred.");
+        }
+      }
+
+      function enableNoteEdit(cell) {
+        if (cell.innerText === "-") cell.innerText = "";
+
+        cell.setAttribute("contenteditable", "plaintext-only");
+        cell.style.background = "#eff6ff";
+        cell.style.cursor = "text";
+        cell.focus();
+
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      async function saveNoteDirect(cell, plateNo) {
+        cell.setAttribute("contenteditable", "false");
+        cell.style.background = "transparent";
+        cell.style.cursor = "pointer";
+
+        let newNote = cell.innerText.trim();
+        if (newNote === "-") newNote = "";
+
+        let oldNote = cell.getAttribute("data-old");
+        if (oldNote === "-") oldNote = "";
+
+        if (newNote === oldNote) {
+          if (newNote === "") cell.innerText = "-";
+          return;
         }
 
-        function enableNoteEdit(cell) {
-            if (cell.innerText === '-') cell.innerText = '';
-            
-            cell.setAttribute('contenteditable', 'plaintext-only');
-            cell.style.background = '#eff6ff';
-            cell.style.cursor = 'text';
-            cell.focus();
-            
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(cell);
-            range.collapse(false);
-            selection.removeAllRanges();
-            selection.addRange(range);
+        cell.style.backgroundColor = "#fff3cd";
+
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/api/we1-own-eq/update-note", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ plate_no: plateNo, note: newNote }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            cell.style.backgroundColor = "#d1e7dd";
+            cell.setAttribute("data-old", newNote || "-");
+            if (newNote === "") cell.innerText = "-";
+            setTimeout(
+              () => (cell.style.backgroundColor = "transparent"),
+              1000,
+            );
+          } else {
+            alert("Error saving note: " + data.message);
+            cell.style.backgroundColor = "#f8d7da";
+            cell.innerText = oldNote || "-";
+          }
+        } catch (e) {
+          alert("Network error while saving note");
+          cell.style.backgroundColor = "#f8d7da";
+          cell.innerText = oldNote || "-";
         }
+      }
 
-        async function saveNoteDirect(cell, plateNo) {
-            cell.setAttribute('contenteditable', 'false');
-            cell.style.background = 'transparent';
-            cell.style.cursor = 'pointer';
-            
-            let newNote = cell.innerText.trim();
-            if (newNote === '-') newNote = '';
-            
-            let oldNote = cell.getAttribute('data-old');
-            if (oldNote === '-') oldNote = '';
+      async function exportToExcel() {
+        const btn = document.getElementById("exportBtn");
+        const originalText = btn.innerHTML;
 
-            if (newNote === oldNote) {
-                if (newNote === '') cell.innerText = '-';
-                return;
-            }
+        btn.innerHTML = "⏳ Exporting...";
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
 
-            cell.style.backgroundColor = '#fff3cd';
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/py/api/we1-own-eq/export", {
+            method: "GET",
+            headers: { Authorization: "Bearer " + token },
+          });
 
-            try {
-                const token = localStorage.getItem("emp_token");
-                const res = await fetch('/api/we1-own-eq/update-note', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify({ plate_no: plateNo, note: newNote })
-                });
-                const data = await res.json();
-                
-                if(data.success) {
-                    cell.style.backgroundColor = '#d1e7dd';
-                    cell.setAttribute('data-old', newNote || '-');
-                    if (newNote === '') cell.innerText = '-';
-                    setTimeout(() => cell.style.backgroundColor = 'transparent', 1000);
-                } else {
-                    alert("Error saving note: " + data.message);
-                    cell.style.backgroundColor = '#f8d7da';
-                    cell.innerText = oldNote || '-';
-                }
-            } catch(e) {
-                alert("Network error while saving note");
-                cell.style.backgroundColor = '#f8d7da';
-                cell.innerText = oldNote || '-';
-            }
+          if (!res.ok)
+            throw new Error("Failed to generate Excel file from server.");
+
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.style.display = "none";
+          a.href = url;
+          a.download = `We1_Own_EQ_Report_${new Date().toISOString().split("T")[0]}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } catch (e) {
+          alert("Failed to export: " + e.message);
+        } finally {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          btn.style.opacity = "1";
         }
+      }
 
-        async function exportToExcel() {
-            const btn = document.getElementById('exportBtn');
-            const originalText = btn.innerHTML;
-            
-            btn.innerHTML = '⏳ Exporting...';
-            btn.disabled = true;
-            btn.style.opacity = '0.7';
+      function logout() {
+        localStorage.removeItem("emp_token");
+        localStorage.removeItem("emp_user");
+        window.location.href = "login.html";
+      }
 
-            try {
-                const token = localStorage.getItem("emp_token"); 
-                const res = await fetch('/py/api/we1-own-eq/export', {
-                    method: 'GET',
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
+      let inactivityTimer;
+      const INACTIVITY_LIMIT = 120 * 60 * 1000;
 
-                if (!res.ok) throw new Error("Failed to generate Excel file from server.");
+      function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+          alert(
+            "Session expired due to 2 hours of inactivity. Please login again.",
+          );
+          logout();
+        }, INACTIVITY_LIMIT);
+      }
 
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `We1_Own_EQ_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            } catch (e) {
-                alert("Failed to export: " + e.message);
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                btn.style.opacity = '1';
-            }
-        }
+      ["mousemove", "mousedown", "keypress", "touchmove", "scroll"].forEach(
+        (evt) => document.addEventListener(evt, resetInactivityTimer, true),
+      );
 
-        function logout() {
-            localStorage.removeItem("emp_token");
-            localStorage.removeItem("emp_user");
-            window.location.href = "login.html";
-        }
-
-        let inactivityTimer;
-        const INACTIVITY_LIMIT = 120 * 60 * 1000;
-
-        function resetInactivityTimer() {
-            clearTimeout(inactivityTimer);
-            inactivityTimer = setTimeout(() => {
-                alert("Session expired due to 2 hours of inactivity. Please login again.");
-                logout();
-            }, INACTIVITY_LIMIT);
-        }
-
-        ['mousemove', 'mousedown', 'keypress', 'touchmove', 'scroll'].forEach(evt => 
-            document.addEventListener(evt, resetInactivityTimer, true)
-        );
-
-        resetInactivityTimer();
+      resetInactivityTimer();
     </script>
-</body>
+  </body>
 </html>
