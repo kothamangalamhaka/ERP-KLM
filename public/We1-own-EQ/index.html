@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>We1 Own EQ Management</title>
     <style>
-        /* Minimalist, Fast-loading Text-Editor like CSS */
         :root {
             --bg: #ffffff;
             --text-main: #24292f;
@@ -41,7 +40,7 @@
         .ribbon-title {
             font-size: 16px;
             font-weight: 700;
-            margin-right: auto; /* Pushes buttons to the right if needed, or keep them together */
+            margin-right: auto;
             color: #0f172a;
         }
 
@@ -85,6 +84,37 @@
             background-color: var(--ribbon-bg);
             font-weight: 600;
             color: #57606a;
+            position: relative;
+            user-select: none;
+        }
+
+        .th-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .filter-btn {
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #57606a;
+            border: 1px solid transparent;
+            background: transparent;
+        }
+
+        .filter-btn:hover {
+            background: #e1e4e8;
+            border-color: #d0d7de;
+        }
+
+        .filter-btn.active {
+            color: #0969da;
+            background: #ddf4ff;
+            border-color: #54aeff;
+            font-weight: bold;
         }
         
         tbody tr {
@@ -135,7 +165,7 @@
             color: #cf222e;
         }
 
-        /* 🟢 Split Log Layout CSS */
+        /* Split Log Layout CSS */
         .split-layout {
             display: flex;
             gap: 20px;
@@ -186,13 +216,118 @@
             color: #000000;
         }
 
-        a{
+        a {
             text-decoration: none;
         }
 
         .status-running { color: #1a7f37; font-weight: 600; }
         .status-released { color: #cf222e; font-weight: 600; }
         .status-mobilizing { color: #d97706; font-weight: 600; }
+
+        /* Excel-like Header Filter Popup */
+        #excelFilterMenu {
+            display: none;
+            position: absolute;
+            background: #ffffff;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(140,149,159,0.2);
+            width: 260px;
+            min-width: 220px;
+            max-width: 500px;
+            min-height: 280px;
+            max-height: 80vh;
+            z-index: 1050;
+            padding: 10px;
+            font-size: 12px;
+            resize: both;              
+            overflow: hidden;          
+            box-sizing: border-box;
+            display: flex;             
+            flex-direction: column;
+        }
+
+        .sort-btn-group {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .sort-btn-group button {
+            flex: 1;
+            padding: 6px;
+            background: #f6f8fa;
+            border: 1px solid #d0d7de;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .sort-btn-group button:hover {
+            background: #eaeef2;
+            border-color: #0969da;
+            color: #0969da;
+        }
+
+        .filter-search-box {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 6px 8px;
+            border: 1px solid #d0d7de;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            outline: none;
+        }
+
+        .filter-search-box:focus {
+            border-color: #0969da;
+        }
+
+        .filter-list-container {
+            flex: 1;
+            min-height: 140px;
+            max-height: none;
+            overflow-y: auto;
+            border: 1px solid #e1e4e8;
+            border-radius: 4px;
+            padding: 4px 6px;
+            background: #fafbfc;
+            margin-bottom: 10px;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 0;
+            cursor: pointer;
+        }
+
+        .filter-item input {
+            cursor: pointer;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .filter-actions button {
+            flex: 1;
+            padding: 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-apply { background: #0969da; color: #fff; }
+        .btn-cancel { background: #e1e4e8; color: #24292f; }
     </style>
 </head>
 <body>
@@ -209,10 +344,27 @@
         <button class="salary" style="background: #f7c111; color: white; border: none; margin-left: 10px;">
             <a href="EQ_Driver_payroll.html" style="color: rgb(5, 5, 5);">Driver Salary</a>
         </button>
-        <!-- 🟢 Added id="exportBtn" -->
         <button id="exportBtn" style="background: #0969da; color: white; border: none; margin-left: 10px;" onclick="exportToExcel()">📊 Export Excel</button>
-        <!-- 🟢 Logout Button -->
         <button style="background: #cf222e; color: white; border: none; margin-left: 10px;" onclick="logout()">🚪 Logout</button>
+    </div>
+
+    <!-- Excel Filter Popup Floating Container -->
+    <div id="excelFilterMenu">
+        <div class="sort-btn-group">
+            <button onclick="sortGrid('asc')">🔼 Sort A-Z</button>
+            <button onclick="sortGrid('desc')">🔽 Sort Z-A</button>
+        </div>
+        <input type="text" id="filterSearchInput" class="filter-search-box" placeholder="Search..." oninput="onFilterSearchInput()">
+        <div class="filter-list-container">
+            <label class="filter-item" style="font-weight: bold; border-bottom: 1px solid #e1e4e8; padding-bottom: 4px; margin-bottom: 4px;">
+                <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"> (Select All)
+            </label>
+            <div id="filterItemsList"></div>
+        </div>
+        <div class="filter-actions">
+            <button class="btn-apply" onclick="applyCurrentFilter()">Apply</button>
+            <button class="btn-cancel" onclick="closeFilterMenu()">Cancel</button>
+        </div>
     </div>
 
     <!-- Popup Modal -->
@@ -222,13 +374,11 @@
                 <span id="modalTitle">Title</span>
                 <button class="close-btn" onclick="closeModal()">✖</button>
             </div>
-            <div id="modalBody" style="font-size: 13px;">
-                <!-- Dynamic content will load here -->
-            </div>
+            <div id="modalBody" style="font-size: 13px;"></div>
         </div>
     </div>
 
-    <!-- 🟢 Plate Selection Modal -->
+    <!-- Plate Selection Modal -->
     <div id="plateSelectModal" class="modal-overlay" style="z-index: 2000;">
         <div class="modal-content" style="width: 300px;">
             <div class="modal-header">
@@ -237,15 +387,13 @@
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="hidden" id="tempLogType">
-                <select id="logPlateDropdown" style="padding: 8px; border: 1px solid #d0d7de; border-radius: 4px; width: 100%;">
-                    <!-- Options populated via JS -->
-                </select>
+                <select id="logPlateDropdown" style="padding: 8px; border: 1px solid #d0d7de; border-radius: 4px; width: 100%;"></select>
                 <button onclick="fetchLogData()" style="padding: 8px; background: #0969da; color: white; border: none; border-radius: 4px; cursor: pointer;">Fetch Data</button>
             </div>
         </div>
     </div>
 
-    <!-- 🟢 Split Log Master Modal -->
+    <!-- Split Log Master Modal -->
     <div id="splitLogModal" class="modal-overlay">
         <div class="modal-content" style="width: 900px; max-width: 95vw;">
             <div class="modal-header">
@@ -257,9 +405,7 @@
                     <input type="hidden" id="editLogId">
                     <input type="hidden" id="activeLogType">
                     <input type="hidden" id="activeLogPlate">
-                    <div id="dynamicLogForm" style="display: flex; flex-direction: column; gap: 10px;">
-                        <!-- Form renders here -->
-                    </div>
+                    <div id="dynamicLogForm" style="display: flex; flex-direction: column; gap: 10px;"></div>
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
                         <button onclick="saveLogEntry()" style="flex: 2; padding: 8px; background: #1a7f37; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Update Log</button>
                         <button onclick="changePlate()" style="flex: 1; padding: 8px; background: #5f4b0f; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-shadow: 0 1px 1px rgba(0,0,0,0.2);">Next Plate ⏭</button>
@@ -280,23 +426,83 @@
             <thead>
                 <tr>
                     <th>SN</th>
-                    <th>Mobilisation Date</th>
-                    <th>Vehicle Type</th>
-                    <th>Plate No</th>
-                    <th>Driver Name</th>
-                    <th>Mobile</th>
-                    <th>Joining Date</th>
-                    <th>Site Name</th>
-                    <th>Vehicle Owner</th>
-                    <th>Santhook</th>
-                    <th>Salary</th>
-                    <th>Status</th>
-                    <th style="min-width: 150px;">Note ✏️</th>
+                    <th>
+                        <div class="th-content">
+                            <span>Mobilisation Date</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'mob_date_ui')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Vehicle Type</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'vehicle_type')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Plate No</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'plate_no')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Driver Name</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'driver_name')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Mobile</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'driver_mobile')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Joining Date</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'joining_date_ui')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Site Name</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'site_name')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Vehicle Owner</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'vehicle_owner')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Santhook</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'santhook')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Salary</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'salary')">▼</button>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="th-content">
+                            <span>Status</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'status')">▼</button>
+                        </div>
+                    </th>
+                    <th style="min-width: 150px;">
+                        <div class="th-content">
+                            <span>Note ✏️</span>
+                            <button class="filter-btn" onclick="openExcelFilter(event, 'note')">▼</button>
+                        </div>
+                    </th>
                 </tr>
             </thead>
             <tbody id="eqTableBody">
                 <tr>
-                    <td colspan="11" style="text-align: center; padding: 20px; color: #57606a;">
+                    <td colspan="13" style="text-align: center; padding: 20px; color: #57606a;">
                         Fetching data via Load Balancer...
                     </td>
                 </tr>
@@ -305,30 +511,31 @@
     </div>
 
     <script>
-       // Format Date nicely for UI (dd-MMM-yy)
         function formatUIDate(dateStr) {
             if (!dateStr) return "-";
             const d = new Date(dateStr);
             if (isNaN(d)) return "-";
             
             const day = String(d.getDate()).padStart(2, '0');
-            const month = d.toLocaleString('en-GB', { month: 'short' }); // Jan, Feb, etc.
-            const year = String(d.getFullYear()).slice(-2); // 24, 25, 26
+            const month = d.toLocaleString('en-GB', { month: 'short' });
+            const year = String(d.getFullYear()).slice(-2);
             
             return `${day}-${month}-${year}`;
         }
 
-        // Clean null/undefined values
         function cleanVal(val) {
             return val === null || val === undefined ? "-" : val;
         }
 
-        // Global variables to store unique values for suggestions
         let uniqueVehicleTypes = new Set();
         let uniqueSiteNames = new Set();
-        let globalPlates = []; // 🟢 Store plates for dropdown
+        let globalPlates = [];
 
-        // High-performance DOM rendering strategy
+        // Grid Master Data & Filter States
+        let masterTableData = [];
+        let activeFilters = {}; // { columnKey: Set of allowed values }
+        let currentFilterKey = null;
+
         document.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('emp_token');
             if (!token) {
@@ -347,9 +554,16 @@
             }
         });
 
+        // Close Filter popup on clicking outside
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('excelFilterMenu');
+            if (menu.style.display === 'block' && !menu.contains(e.target) && !e.target.classList.contains('filter-btn')) {
+                closeFilterMenu();
+            }
+        });
+
         async function loadTableData() {
             const tbody = document.getElementById('eqTableBody');
-            
             try {
                 const token = localStorage.getItem("emp_token"); 
                 const res = await fetch('/api/we1-own-eq/data', {
@@ -359,55 +573,222 @@
 
                 if (!data.success) {
                     if (data.message && (data.message.toLowerCase().includes("session") || data.message.toLowerCase().includes("token") || data.message.toLowerCase().includes("unauthorized"))) {
-                        logout(); // Invalid token ആണെങ്കിൽ ലോഗൗട്ട് ചെയ്യുക
+                        logout();
                         return;
                     }
                     throw new Error(data.message);
                 }
 
-                tbody.innerHTML = ''; 
                 uniqueVehicleTypes.clear();
                 uniqueSiteNames.clear();
                 globalPlates = [];
                 
-                if (data.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px;">No vehicles found. Click Add New to start.</td></tr>';
-                    return;
-                }
-
-                const fragment = document.createDocumentFragment();
-
-                data.data.forEach((row, index) => {
+                masterTableData = (data.data || []).map(row => {
+                    const mob_date_ui = formatUIDate(row.mob_date);
+                    const joining_date_ui = formatUIDate(row.joining_date);
+                    
                     if (row.vehicle_type && row.vehicle_type.trim() !== "") uniqueVehicleTypes.add(row.vehicle_type.trim());
                     if (row.site_name && row.site_name.trim() !== "") uniqueSiteNames.add(row.site_name.trim());
                     if (row.plate_no) globalPlates.push(row.plate_no);
 
-                    const tr = document.createElement('tr');
-                    const currentStatus = cleanVal(row.status);
-                    const statusClass = currentStatus === 'Running' ? 'status-running' : (currentStatus === 'Mobilizing' ? 'status-mobilizing' : 'status-released');
-
-                    tr.innerHTML = `
-                        <td class="sn-col">${index + 1}</td>
-                        <td>${formatUIDate(row.mob_date)}</td>
-                        <td>${cleanVal(row.vehicle_type)}</td>
-                        <td class="plate-col">${cleanVal(row.plate_no)}</td>
-                        <td>${cleanVal(row.driver_name)}</td>
-                        <td>${cleanVal(row.driver_mobile)}</td>
-                        <td>${formatUIDate(row.joining_date)}</td>
-                        <td>${cleanVal(row.site_name)}</td>
-                        <td>${cleanVal(row.vehicle_owner)}</td>
-                        <td>${cleanVal(row.santhook)}</td>
-                        <td>${cleanVal(row.salary)}</td>
-                        <td class="${statusClass}">${currentStatus}</td>
-                        <td ondblclick="enableNoteEdit(this)" onblur="saveNoteDirect(this, '${row.plate_no}')" data-old="${cleanVal(row.note)}" style="white-space: pre-wrap; cursor: pointer; outline: none; min-width: 150px; transition: background 0.3s;" title="Double click to edit">${cleanVal(row.note)}</td>
-                    `;
-                    fragment.appendChild(tr);
+                    return {
+                        ...row,
+                        mob_date_ui,
+                        joining_date_ui,
+                        status: cleanVal(row.status),
+                        note: cleanVal(row.note),
+                        driver_mobile: cleanVal(row.driver_mobile),
+                        vehicle_type: cleanVal(row.vehicle_type),
+                        driver_name: cleanVal(row.driver_name),
+                        site_name: cleanVal(row.site_name),
+                        vehicle_owner: cleanVal(row.vehicle_owner),
+                        santhook: cleanVal(row.santhook),
+                        salary: cleanVal(row.salary),
+                        plate_no: cleanVal(row.plate_no)
+                    };
                 });
 
-                tbody.appendChild(fragment);
+                renderFilteredTable();
             } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="12" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
             }
+        }
+
+        function renderFilteredTable() {
+            const tbody = document.getElementById('eqTableBody');
+            tbody.innerHTML = '';
+
+            let filteredRows = masterTableData.filter(row => {
+                for (const key in activeFilters) {
+                    const allowed = activeFilters[key];
+                    const val = String(row[key] ?? '-');
+                    if (allowed && !allowed.has(val)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            if (filteredRows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            filteredRows.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                const statusClass = row.status === 'Running' ? 'status-running' : (row.status === 'Mobilizing' ? 'status-mobilizing' : 'status-released');
+
+                tr.innerHTML = `
+                    <td class="sn-col">${index + 1}</td>
+                    <td>${row.mob_date_ui}</td>
+                    <td>${row.vehicle_type}</td>
+                    <td class="plate-col">${row.plate_no}</td>
+                    <td>${row.driver_name}</td>
+                    <td>${row.driver_mobile}</td>
+                    <td>${row.joining_date_ui}</td>
+                    <td>${row.site_name}</td>
+                    <td>${row.vehicle_owner}</td>
+                    <td>${row.santhook}</td>
+                    <td>${row.salary}</td>
+                    <td class="${statusClass}">${row.status}</td>
+                    <td ondblclick="enableNoteEdit(this)" onblur="saveNoteDirect(this, '${row.plate_no}')" data-old="${row.note}" style="white-space: pre-wrap; cursor: pointer; outline: none; min-width: 150px; transition: background 0.3s;" title="Double click to edit">${row.note}</td>
+                `;
+                fragment.appendChild(tr);
+            });
+
+            tbody.appendChild(fragment);
+        }
+
+        // Excel-like Filter Logic
+        function openExcelFilter(event, columnKey) {
+            event.stopPropagation();
+            currentFilterKey = columnKey;
+            
+            const btn = event.currentTarget;
+            const rect = btn.getBoundingClientRect();
+            const menu = document.getElementById('excelFilterMenu');
+            
+            menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
+            menu.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 270)}px`;
+            menu.style.display = 'flex';
+
+            document.getElementById('filterSearchInput').value = '';
+            populateFilterOptions(columnKey);
+        }
+
+        function closeFilterMenu() {
+            document.getElementById('excelFilterMenu').style.display = 'none';
+            currentFilterKey = null;
+        }
+
+        function populateFilterOptions(columnKey, searchTerm = '') {
+            const container = document.getElementById('filterItemsList');
+            container.innerHTML = '';
+
+            const uniqueValues = [...new Set(masterTableData.map(r => String(r[columnKey] ?? '-')))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            const currentSelected = activeFilters[columnKey] || new Set(uniqueValues);
+
+            const filteredValues = uniqueValues.filter(val => val.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            filteredValues.forEach(val => {
+                const isChecked = currentSelected.has(val);
+                const label = document.createElement('label');
+                label.className = 'filter-item';
+                label.innerHTML = `
+                    <input type="checkbox" class="col-filter-check" value="${val.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''} onchange="onCheckboxChange()">
+                    <span>${val}</span>
+                `;
+                container.appendChild(label);
+            });
+
+            syncSelectAllCheckbox();
+        }
+
+        function onFilterSearchInput() {
+            const query = document.getElementById('filterSearchInput').value;
+            if (currentFilterKey) {
+                populateFilterOptions(currentFilterKey, query);
+            }
+        }
+
+        function toggleSelectAll(masterCb) {
+            const cbs = document.querySelectorAll('.col-filter-check');
+            cbs.forEach(cb => cb.checked = masterCb.checked);
+        }
+
+        function onCheckboxChange() {
+            syncSelectAllCheckbox();
+        }
+
+        function syncSelectAllCheckbox() {
+            const allCbs = document.querySelectorAll('.col-filter-check');
+            const checkedCbs = document.querySelectorAll('.col-filter-check:checked');
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (allCbs.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else if (allCbs.length === checkedCbs.length) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+            } else if (checkedCbs.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else {
+                selectAll.indeterminate = true;
+            }
+        }
+
+        function applyCurrentFilter() {
+            if (!currentFilterKey) return;
+
+            const allUnique = [...new Set(masterTableData.map(r => String(r[currentFilterKey] ?? '-')))];
+            const checkedBoxes = document.querySelectorAll('.col-filter-check:checked');
+            const selectedSet = new Set(Array.from(checkedBoxes).map(cb => cb.value));
+
+            if (selectedSet.size === allUnique.length) {
+                delete activeFilters[currentFilterKey]; // Filter removed if all selected
+            } else {
+                activeFilters[currentFilterKey] = selectedSet;
+            }
+
+            // Update UI Button style if active
+            const thButtons = document.querySelectorAll('.filter-btn');
+            thButtons.forEach(btn => {
+                const fnStr = btn.getAttribute('onclick') || '';
+                if (fnStr.includes(`'${currentFilterKey}'`)) {
+                    if (activeFilters[currentFilterKey]) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                }
+            });
+
+            renderFilteredTable();
+            closeFilterMenu();
+        }
+
+        function sortGrid(direction) {
+            if (!currentFilterKey) return;
+
+            masterTableData.sort((a, b) => {
+                let valA = String(a[currentFilterKey] ?? '').toLowerCase();
+                let valB = String(b[currentFilterKey] ?? '').toLowerCase();
+
+                const numA = parseFloat(valA);
+                const numB = parseFloat(valB);
+
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return direction === 'asc' ? numA - numB : numB - numA;
+                }
+
+                return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            });
+
+            renderFilteredTable();
+            closeFilterMenu();
         }
 
         // Modal Handlers
@@ -421,7 +802,6 @@
             document.getElementById('commonModal').style.display = 'none';
         }
 
-        // 🟢 1. Opens Plate Selection
         function openLog(logName) {
             document.getElementById('tempLogType').value = logName;
             const drop = document.getElementById('logPlateDropdown');
@@ -429,7 +809,6 @@
             document.getElementById('plateSelectModal').style.display = 'flex';
         }
 
-        // 🟢 2. Fetch Data & Open Split Modal
         function fetchLogData() {
             const plate = document.getElementById('logPlateDropdown').value;
             const type = document.getElementById('tempLogType').value;
@@ -439,14 +818,13 @@
             document.getElementById('splitLogTitle').innerText = `📂 ${type} - ${plate}`;
             document.getElementById('activeLogType').value = type;
             document.getElementById('activeLogPlate').value = plate;
-            document.getElementById('editLogId').value = ''; // Reset ID for new entry
+            document.getElementById('editLogId').value = '';
 
             renderLogForm(type);
             loadLogHistory(type, plate);
             document.getElementById('splitLogModal').style.display = 'flex';
         }
 
-        // 🟢 3. Render Form Dynamically based on Log Type
         const logConfigs = {
             'SiteLog': [
                 { id: 'f_site_name', label: 'Site Name', type: 'text' },
@@ -487,7 +865,6 @@
             `).join('');
         }
 
-        // 🟢 4. Load History Table
         async function loadLogHistory(type, plate) {
             const tbody = document.getElementById('logTableBody');
             const thead = document.getElementById('logTableHead');
@@ -503,7 +880,6 @@
             thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
 
             try {
-                // CHANGED TO POST REQUEST TO PREVENT URL ENCODING ISSUES
                 const res = await fetch(`/api/we1-own-eq/log/history`, {
                     method: 'POST',
                     headers: { 
@@ -540,7 +916,6 @@
                         tdHtml = `<td>${r.santhook_name || '-'}</td><td>${formatUIDate(r.start_date)}</td><td>${formatUIDate(r.end_date)}</td>`;
                     }
                     
-                    // Add Edit Icon storing row data as JSON
                     const safeData = JSON.stringify(r).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
                     tdHtml += `<td><span class="edit-icon" onclick="editLogEntry('${safeData}')">✏️</span></td>`;
                     return `<tr>${tdHtml}</tr>`;
@@ -551,30 +926,26 @@
             }
         }
 
-        // 🟢 5. Populate form for Editing
         function editLogEntry(jsonStr) {
             const data = JSON.parse(jsonStr);
             document.getElementById('editLogId').value = data.id;
             
-            // Map DB columns to form inputs
             const type = document.getElementById('activeLogType').value;
             const fields = logConfigs[type];
             fields.forEach(f => {
                 const dbVal = data[f.id.replace('f_', '')];
                 if(f.type === 'date' && dbVal) {
-                    document.getElementById(f.id).value = dbVal.split('T')[0]; // Format for date input
+                    document.getElementById(f.id).value = dbVal.split('T')[0];
                 } else {
                     document.getElementById(f.id).value = dbVal || '';
                 }
             });
         }
 
-        // 🟢 Change Plate / Next Button Logic (Updated with Auto-Save & Auto-Next)
         async function changePlate() {
             const currentType = document.getElementById('activeLogType').value;
             const currentPlate = document.getElementById('activeLogPlate').value;
             
-            // ഫീൽഡുകളിൽ വല്ല ഡാറ്റയും എന്റർ ചെയ്തിട്ടുണ്ടോ എന്ന് പരിശോധിക്കുന്നു
             let hasData = false;
             logConfigs[currentType].forEach(f => {
                 if (document.getElementById(f.id).value.trim() !== '') {
@@ -582,34 +953,29 @@
                 }
             });
 
-            // ഫോമിൽ ഡാറ്റ ഉണ്ടെങ്കിൽ 'Next' അമർത്തുമ്പോൾ ആദ്യം ഡാറ്റ സേവ് ചെയ്യും
             if (hasData) {
                 const isSaved = await saveLogEntry(true);
-                if (!isSaved) return; // സേവിങ്ങിൽ പ്രശ്നം ഉണ്ടെങ്കിൽ അടുത്തതിലേക്ക് പോകില്ല
+                if (!isSaved) return;
             }
 
-            // ഡ്രോപ്പ്-ഡൗണിലെ ലിസ്റ്റിൽ നിന്നും അടുത്ത പ്ലേറ്റ് കണ്ടുപിടിക്കുന്നു
             const uniquePlates = [...new Set(globalPlates)];
             const currentIndex = uniquePlates.indexOf(currentPlate);
             let nextIndex = currentIndex + 1;
             
-            // ലിസ്റ്റ് തീർന്നാൽ വീണ്ടും ഒന്നാമത്തെ വണ്ടിയിലേക്ക് തന്നെ പോകും
             if (nextIndex >= uniquePlates.length) {
                 nextIndex = 0; 
             }
 
             const nextPlate = uniquePlates[nextIndex];
             
-            // പുതിയ പ്ലേറ്റ് ഡീറ്റെയിൽസ് UI-ൽ സെറ്റ് ചെയ്ത് ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നു
             document.getElementById('activeLogPlate').value = nextPlate;
             document.getElementById('splitLogTitle').innerText = `📂 ${currentType} - ${nextPlate}`;
-            document.getElementById('editLogId').value = ''; // Reset ID
+            document.getElementById('editLogId').value = '';
             
             renderLogForm(currentType); 
             loadLogHistory(currentType, nextPlate); 
         }
 
-        // 🟢 6. Save or Update Log
         async function saveLogEntry(isAutoSave = false) {
             const type = document.getElementById('activeLogType').value;
             const plate = document.getElementById('activeLogPlate').value;
@@ -630,14 +996,13 @@
                 const responseData = await res.json();
                 
                 if (responseData.success) {
-                    document.getElementById('editLogId').value = ''; // Reset
+                    document.getElementById('editLogId').value = '';
                     
-                    // Auto-save വഴി അല്ലാതെ നേരിട്ട് 'Update Log' അമർത്തിയാൽ മാത്രം ഫോം ക്ലിയർ ചെയ്യുക
                     if (!isAutoSave) {
                         renderLogForm(type);
                         loadLogHistory(type, plate);
                     }
-                    loadTableData(); // മെയിൻ ടേബിൾ അപ്ഡേറ്റ് ആകാൻ
+                    loadTableData();
                     return true;
                 } else {
                     alert("Error: " + responseData.message);
@@ -649,16 +1014,12 @@
             }
         }
 
-        // Handler for Add New Button (Full Form)
         function openAddModal() {
-            // 🟢 Create HTML options from the Set dynamically
             const vTypeOptions = Array.from(uniqueVehicleTypes).map(v => `<option value="${v}">`).join('');
             const siteOptions = Array.from(uniqueSiteNames).map(s => `<option value="${s}">`).join('');
 
             let formHtml = `
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-height: 70vh; overflow-y: auto; padding-right: 5px;">
-                    
-                    <!-- 🟢 Datalists for Suggestions -->
                     <datalist id="vTypeSuggestions">${vTypeOptions}</datalist>
                     <datalist id="siteSuggestions">${siteOptions}</datalist>
 
@@ -672,7 +1033,6 @@
                     </div>
                     <div>
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Vehicle Type</label>
-                        <!-- 🟢 Added list attribute -->
                         <input type="text" id="newVType" list="vTypeSuggestions" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="e.g. Water Tanker">
                     </div>
                     <div>
@@ -689,7 +1049,6 @@
                     </div>
                     <div>
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Site Name</label>
-                        <!-- 🟢 Added list attribute -->
                         <input type="text" id="newSite" list="siteSuggestions" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Site Name">
                     </div>
                     <div>
@@ -698,7 +1057,6 @@
                     </div>
                     <div>
                         <label style="font-weight: 600; display: block; margin-bottom: 5px;">Santhook</label>
-                        <!-- 🟢 Changed to Text Input -->
                         <input type="text" id="newSanthook" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Santhook Owner Name">
                     </div>
                     <div>
@@ -719,7 +1077,6 @@
             openModal('➕ Add New Equipment Entry', formHtml);
         }
 
-        // Save new vehicle to database with all fields
         async function saveNewVehicle() {
             const plate_no = document.getElementById('newPlateNo').value.trim();
             if (!plate_no) {
@@ -755,7 +1112,7 @@
                 
                 if (data.success) {
                     closeModal();
-                    loadTableData(); // Refresh grid automatically
+                    loadTableData();
                 } else {
                     alert("Error: " + data.message);
                 }
@@ -764,19 +1121,14 @@
             }
         }
 
-
-        // 🟢 7. Note Edit Logic (Double Click to Edit - DOM Lightweight)
-        
         function enableNoteEdit(cell) {
-            if (cell.innerText === '-') cell.innerText = ''; // Clear default hyphen
+            if (cell.innerText === '-') cell.innerText = '';
             
-            // Enable editing on double click
             cell.setAttribute('contenteditable', 'plaintext-only');
             cell.style.background = '#eff6ff';
             cell.style.cursor = 'text';
             cell.focus();
             
-            // Move cursor to the end of the text
             const selection = window.getSelection();
             const range = document.createRange();
             range.selectNodeContents(cell);
@@ -786,8 +1138,8 @@
         }
 
         async function saveNoteDirect(cell, plateNo) {
-            cell.setAttribute('contenteditable', 'false'); // Disable editing
-            cell.style.background = 'transparent'; // Remove focus background
+            cell.setAttribute('contenteditable', 'false');
+            cell.style.background = 'transparent';
             cell.style.cursor = 'pointer';
             
             let newNote = cell.innerText.trim();
@@ -796,13 +1148,12 @@
             let oldNote = cell.getAttribute('data-old');
             if (oldNote === '-') oldNote = '';
 
-            // ഡാറ്റയിൽ മാറ്റമൊന്നും ഇല്ലെങ്കിൽ വെറുതെ API കാൾ പോകുന്നത് ഒഴിവാക്കാൻ
             if (newNote === oldNote) {
                 if (newNote === '') cell.innerText = '-';
                 return;
             }
 
-            cell.style.backgroundColor = '#fff3cd'; // Yellow (Saving state)
+            cell.style.backgroundColor = '#fff3cd';
 
             try {
                 const token = localStorage.getItem("emp_token");
@@ -814,35 +1165,32 @@
                 const data = await res.json();
                 
                 if(data.success) {
-                    cell.style.backgroundColor = '#d1e7dd'; // Green (Success state)
+                    cell.style.backgroundColor = '#d1e7dd';
                     cell.setAttribute('data-old', newNote || '-');
                     if (newNote === '') cell.innerText = '-';
                     setTimeout(() => cell.style.backgroundColor = 'transparent', 1000);
                 } else {
                     alert("Error saving note: " + data.message);
-                    cell.style.backgroundColor = '#f8d7da'; // Red (Error state)
-                    cell.innerText = oldNote || '-'; // Revert to old text
+                    cell.style.backgroundColor = '#f8d7da';
+                    cell.innerText = oldNote || '-';
                 }
             } catch(e) {
                 alert("Network error while saving note");
-                cell.style.backgroundColor = '#f8d7da'; // Red (Error state)
-                cell.innerText = oldNote || '-'; // Revert to old text
+                cell.style.backgroundColor = '#f8d7da';
+                cell.innerText = oldNote || '-';
             }
         }
 
-        // 🟢 8. Export to Excel Logic (Routed to Python Backend)
         async function exportToExcel() {
             const btn = document.getElementById('exportBtn');
             const originalText = btn.innerHTML;
             
-            // ⏳ Show Loading Animation
             btn.innerHTML = '⏳ Exporting...';
             btn.disabled = true;
             btn.style.opacity = '0.7';
 
             try {
                 const token = localStorage.getItem("emp_token"); 
-                // 🟢 പൈത്തൺ പ്രോക്സി പോർട്ട് (8001) ലേക്ക് കോൾ പോകുന്നു
                 const res = await fetch('/py/api/we1-own-eq/export', {
                     method: 'GET',
                     headers: { 'Authorization': 'Bearer ' + token }
@@ -850,7 +1198,6 @@
 
                 if (!res.ok) throw new Error("Failed to generate Excel file from server.");
 
-                // ഡൗൺലോഡ് ചെയ്യാനുള്ള ലോജിക്
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -861,74 +1208,23 @@
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-                
             } catch (e) {
                 alert("Failed to export: " + e.message);
             } finally {
-                // Restore button state
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 btn.style.opacity = '1';
             }
         }
 
-        // 🟢 9. External User Access Logic
-        function promptForAccessCode() {
-            let formHtml = `
-                <div style="display: flex; flex-direction: column; gap: 12px; padding: 5px;">
-                    <p style="margin: 0; color: #57606a; font-size: 13px;">You need an access code to view and edit this database.</p>
-                    <input type="password" id="accessCodeInput" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Enter Security Code">
-                    <button onclick="verifyAccessCode()" style="padding: 10px; background: #0969da; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Verify & Access</button>
-                </div>
-            `;
-            openModal('🔒 Security Verification', formHtml);
-            
-            // Enter key support
-            setTimeout(() => {
-                const input = document.getElementById('accessCodeInput');
-                if (input) {
-                    input.focus();
-                    input.addEventListener("keypress", function(event) {
-                        if (event.key === "Enter") verifyAccessCode();
-                    });
-                }
-            }, 100);
-        }
-
-        async function verifyAccessCode() {
-            const codeInput = document.getElementById('accessCodeInput').value;
-            if (!codeInput) return alert("Please enter the access code.");
-
-            try {
-                const res = await fetch('/api/we1-own-eq/verify-code', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: codeInput })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    // 🟢 ടോക്കൺ സേവ് ചെയ്ത ശേഷം ഡാറ്റ വീണ്ടും ലോഡ് ചെയ്യുന്നു
-                    localStorage.setItem("timesheetToken", data.token);
-                    closeModal();
-                    loadTableData(); 
-                } else {
-                    alert("Error: " + data.message);
-                }
-            } catch (error) {
-                alert("Network error. Please try again.");
-            }
-        }
-
-        // 🟢 10. Logout & Inactivity Auto-Logout Logic
         function logout() {
             localStorage.removeItem("emp_token");
             localStorage.removeItem("emp_user");
-            window.location.href = "login.html"; // ലോഗിൻ പേജിലേക്ക് പോകും
+            window.location.href = "login.html";
         }
 
         let inactivityTimer;
-        const INACTIVITY_LIMIT = 120 * 60 * 1000; // 2 Hour in milliseconds
+        const INACTIVITY_LIMIT = 120 * 60 * 1000;
 
         function resetInactivityTimer() {
             clearTimeout(inactivityTimer);
@@ -938,16 +1234,11 @@
             }, INACTIVITY_LIMIT);
         }
 
-        // യൂസർ മൗസ് അനക്കുകയോ, ടൈപ്പ് ചെയ്യുകയോ, സ്ക്രോൾ ചെയ്യുകയോ ചെയ്താൽ ടൈമർ റീസെറ്റ് ആകും
         ['mousemove', 'mousedown', 'keypress', 'touchmove', 'scroll'].forEach(evt => 
             document.addEventListener(evt, resetInactivityTimer, true)
         );
 
-        // പേജ് ലോഡ് ആകുമ്പോൾ തന്നെ ടൈമർ സ്റ്റാർട്ട് ചെയ്യുന്നു
         resetInactivityTimer();
-
-        // Initialize table on load
-        document.addEventListener('DOMContentLoaded', loadTableData);
     </script>
 </body>
 </html>
