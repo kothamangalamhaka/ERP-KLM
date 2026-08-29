@@ -448,14 +448,20 @@
     </div>
 
     <div class="ribbon">
-      <div class="ribbon-title">We1 Own EQ Data</div>
-      <button
-        style="background: #1a7f37; color: white; border: none"
-        onclick="openAddModal()"
-      >
-        ➕ Add New
-      </button>
-      <button onclick="openLog('SiteLog')">🏢 Site Log</button>
+        <div class="ribbon-title">We1 Own EQ Data</div>
+
+        <!-- 🟢 Global Search Container -->
+        <div style="display: flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid var(--border); padding: 2px 6px; border-radius: 6px;">
+            <select id="globalSearchType" onchange="onGlobalSearchInput()" style="border: none; background: transparent; font-size: 12px; font-weight: 600; color: #57606a; outline: none; cursor: pointer; padding: 4px;">
+                <option value="general">🌐 General</option>
+                <option value="plate_no">🔢 Plate No</option>
+                <option value="driver_name">👤 Driver</option>
+            </select>
+            <input type="text" id="globalSearchInput" placeholder="Search..." oninput="onGlobalSearchInput()" style="border: none; border-left: 1px solid var(--border); padding: 5px 8px; font-size: 12px; outline: none; width: 170px;">
+        </div>
+
+        <button style="background: #1a7f37; color: white; border: none;" onclick="openAddModal()">➕ Add New</button>
+        <button onclick="openLog('SiteLog')">🏢 Site Log</button>
       <button onclick="openLog('DriverLog')">👤 Driver Log</button>
       <button onclick="openLog('VehicleTypeLog')">
         🚜 Vehicle Type & Santhook
@@ -1164,26 +1170,55 @@
         }
       }
 
-      function renderFilteredTable() {
-        const tbody = document.getElementById("eqTableBody");
-        tbody.innerHTML = "";
+      let globalSearchQuery = '';
+        let globalSearchType = 'general';
 
-        let filteredRows = masterTableData.filter((row) => {
-          for (const key in activeFilters) {
-            const allowed = activeFilters[key];
-            const val = String(row[key] ?? "-");
-            if (allowed && !allowed.has(val)) {
-              return false;
-            }
-          }
-          return true;
-        });
-
-        if (filteredRows.length === 0) {
-          tbody.innerHTML =
-            '<tr><td colspan="15" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
-          return;
+        function onGlobalSearchInput() {
+            const inputElem = document.getElementById('globalSearchInput');
+            const typeElem = document.getElementById('globalSearchType');
+            
+            globalSearchQuery = (inputElem ? inputElem.value : '').trim().toLowerCase();
+            globalSearchType = typeElem ? typeElem.value : 'general';
+            
+            renderFilteredTable();
         }
+
+        function renderFilteredTable() {
+            const tbody = document.getElementById('eqTableBody');
+            tbody.innerHTML = '';
+
+            let filteredRows = masterTableData.filter(row => {
+                // 1. Column-wise Header Filters
+                for (const key in activeFilters) {
+                    const allowed = activeFilters[key];
+                    const val = String(row[key] ?? '-');
+                    if (allowed && !allowed.has(val)) {
+                        return false;
+                    }
+                }
+
+                // 2. 🟢 Ribbon Global Search Filter
+                if (globalSearchQuery !== '') {
+                    if (globalSearchType === 'plate_no') {
+                        const plate = String(row.plate_no || '').toLowerCase();
+                        if (!plate.includes(globalSearchQuery)) return false;
+                    } else if (globalSearchType === 'driver_name') {
+                        const driver = String(row.driver_name || '').toLowerCase();
+                        if (!driver.includes(globalSearchQuery)) return false;
+                    } else {
+                        // General: എല്ലാ കോളങ്ങളിലെയും വാല്യൂകളിൽ തിരയുന്നു
+                        const allRowValues = Object.values(row).map(v => String(v ?? '').toLowerCase()).join(' ');
+                        if (!allRowValues.includes(globalSearchQuery)) return false;
+                    }
+                }
+
+                return true;
+            });
+
+            if (filteredRows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
+                return;
+            }
 
         const fragment = document.createDocumentFragment();
 
@@ -1218,6 +1253,28 @@
 
         tbody.appendChild(fragment);
       }
+
+
+      // 🟢 നിലവിൽ UI ഗ്രിഡിൽ കാണുന്ന (Filtered & Sorted) പ്ലേറ്റുകളുടെ ലിസ്റ്റ് കൃത്യമായ ഓർഡറിൽ എടുക്കുന്നു
+function getCurrentGridPlates() {
+    let filteredRows = masterTableData.filter(row => {
+        for (const key in activeFilters) {
+            const allowed = activeFilters[key];
+            const val = String(row[key] ?? '-');
+            if (allowed && !allowed.has(val)) {
+                return false;
+            }
+        }
+        return true;
+    });
+
+    // നിലവിലെ ഓർഡർ അതേപടി നിലനിർത്തി പ്ലേറ്റുകൾ മാത്രമെടുക്കുന്നു
+    const visiblePlates = filteredRows
+        .map(r => (r.plate_no || '').trim())
+        .filter(p => p !== '' && p !== '-');
+
+    return [...new Set(visiblePlates)];
+}
 
       function handlePlateContextMenu(e, plateNo) {
         e.preventDefault();
@@ -1543,54 +1600,64 @@
         }
       }
 
-      function openExcelFilter(event, columnKey) {
-        event.stopPropagation();
-        currentFilterKey = columnKey;
+      let tempFilterSelection = new Set();
 
-        const btn = event.currentTarget;
-        const rect = btn.getBoundingClientRect();
-        const menu = document.getElementById("excelFilterMenu");
+function openExcelFilter(event, columnKey) {
+    event.stopPropagation();
+    currentFilterKey = columnKey;
+    
+    const btn = event.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const menu = document.getElementById('excelFilterMenu');
+    
+    menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
+    menu.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 270)}px`;
+    menu.style.display = 'flex';
 
-        menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
-        menu.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 270)}px`;
-        menu.style.display = "flex";
+    const allUnique = [...new Set(masterTableData.map(r => String(r[columnKey] ?? '-')))];
+    // 🟢 നേരത്തെ ഫിൽട്ടർ ചെയ്തിട്ടുണ്ടെങ്കിൽ അത് എടുക്കുന്നു, ഇല്ലെങ്കിൽ എല്ലാം സെലക്ട് ചെയ്യുന്നു
+    tempFilterSelection = activeFilters[columnKey] ? new Set(activeFilters[columnKey]) : new Set(allUnique);
 
-        document.getElementById("filterSearchInput").value = "";
-        populateFilterOptions(columnKey);
-      }
+    const searchInput = document.getElementById('filterSearchInput');
+    searchInput.value = '';
+    searchInput.placeholder = 'Search (eg: 5645, 5564)...';
+    populateFilterOptions(columnKey);
+}
 
       function closeFilterMenu() {
         document.getElementById("excelFilterMenu").style.display = "none";
         currentFilterKey = null;
       }
 
-      function populateFilterOptions(columnKey, searchTerm = "") {
-        const container = document.getElementById("filterItemsList");
-        container.innerHTML = "";
+      function populateFilterOptions(columnKey, searchTerm = '') {
+    const container = document.getElementById('filterItemsList');
+    container.innerHTML = '';
 
-        const uniqueValues = [
-          ...new Set(masterTableData.map((r) => String(r[columnKey] ?? "-"))),
-        ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-        const currentSelected =
-          activeFilters[columnKey] || new Set(uniqueValues);
+    const uniqueValues = [...new Set(masterTableData.map(r => String(r[columnKey] ?? '-')))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-        const filteredValues = uniqueValues.filter((val) =>
-          val.toLowerCase().includes(searchTerm.toLowerCase()),
-        );
+    // 🟢 ഒന്നിലധികം വാക്കുകൾ കോമ (,) അല്ലെങ്കിൽ സ്പേസ് ഇട്ട് സെർച്ച് ചെയ്യാൻ (Multi Search Split)
+    const searchTerms = searchTerm.trim().toLowerCase().split(/[\s,]+/).filter(t => t.length > 0);
 
-        filteredValues.forEach((val) => {
-          const isChecked = currentSelected.has(val);
-          const label = document.createElement("label");
-          label.className = "filter-item";
-          label.innerHTML = `
-                    <input type="checkbox" class="col-filter-check" value="${val.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} onchange="onCheckboxChange()">
-                    <span>${val}</span>
-                `;
-          container.appendChild(label);
-        });
+    const filteredValues = uniqueValues.filter(val => {
+        if (searchTerms.length === 0) return true;
+        const lowerVal = val.toLowerCase();
+        // സെർച്ച് ചെയ്ത വാക്കുകളിൽ ഏതെങ്കിലും ഒന്നുമായി മാച്ച് ആയാൽ ലിസ്റ്റിൽ കാണിക്കും
+        return searchTerms.some(term => lowerVal.includes(term));
+    });
 
-        syncSelectAllCheckbox();
-      }
+    filteredValues.forEach(val => {
+        const isChecked = tempFilterSelection.has(val);
+        const label = document.createElement('label');
+        label.className = 'filter-item';
+        label.innerHTML = `
+            <input type="checkbox" class="col-filter-check" value="${val.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''} onchange="onCheckboxChange(this)">
+            <span>${val}</span>
+        `;
+        container.appendChild(label);
+    });
+
+    syncSelectAllCheckbox();
+}
 
       function onFilterSearchInput() {
         const query = document.getElementById("filterSearchInput").value;
@@ -1600,13 +1667,25 @@
       }
 
       function toggleSelectAll(masterCb) {
-        const cbs = document.querySelectorAll(".col-filter-check");
-        cbs.forEach((cb) => (cb.checked = masterCb.checked));
-      }
+    const cbs = document.querySelectorAll('.col-filter-check');
+    cbs.forEach(cb => {
+        cb.checked = masterCb.checked;
+        if (masterCb.checked) {
+            tempFilterSelection.add(cb.value);
+        } else {
+            tempFilterSelection.delete(cb.value);
+        }
+    });
+}
 
-      function onCheckboxChange() {
-        syncSelectAllCheckbox();
-      }
+function onCheckboxChange(cb) {
+    if (cb.checked) {
+        tempFilterSelection.add(cb.value);
+    } else {
+        tempFilterSelection.delete(cb.value);
+    }
+    syncSelectAllCheckbox();
+}
 
       function syncSelectAllCheckbox() {
         const allCbs = document.querySelectorAll(".col-filter-check");
@@ -1629,41 +1708,32 @@
       }
 
       function applyCurrentFilter() {
-        if (!currentFilterKey) return;
+    if (!currentFilterKey) return;
 
-        const allUnique = [
-          ...new Set(
-            masterTableData.map((r) => String(r[currentFilterKey] ?? "-")),
-          ),
-        ];
-        const checkedBoxes = document.querySelectorAll(
-          ".col-filter-check:checked",
-        );
-        const selectedSet = new Set(
-          Array.from(checkedBoxes).map((cb) => cb.value),
-        );
+    const allUnique = [...new Set(masterTableData.map(r => String(r[currentFilterKey] ?? '-')))];
 
-        if (selectedSet.size === allUnique.length) {
-          delete activeFilters[currentFilterKey];
-        } else {
-          activeFilters[currentFilterKey] = selectedSet;
-        }
+    // 🟢 മുഴുവൻ സെലക്ട് ആണെങ്കിൽ ഫിൽട്ടർ ഒഴിവാക്കുന്നു, അല്ലെങ്കിൽ തിരഞ്ഞെടുത്തവ മാത്രം ഫിൽട്ടർ ആക്കുന്നു
+    if (tempFilterSelection.size === allUnique.length) {
+        delete activeFilters[currentFilterKey];
+    } else {
+        activeFilters[currentFilterKey] = new Set(tempFilterSelection);
+    }
 
-        const thButtons = document.querySelectorAll(".filter-btn");
-        thButtons.forEach((btn) => {
-          const fnStr = btn.getAttribute("onclick") || "";
-          if (fnStr.includes(`'${currentFilterKey}'`)) {
+    const thButtons = document.querySelectorAll('.filter-btn');
+    thButtons.forEach(btn => {
+        const fnStr = btn.getAttribute('onclick') || '';
+        if (fnStr.includes(`'${currentFilterKey}'`)) {
             if (activeFilters[currentFilterKey]) {
-              btn.classList.add("active");
+                btn.classList.add('active');
             } else {
-              btn.classList.remove("active");
+                btn.classList.remove('active');
             }
-          }
-        });
+        }
+    });
 
-        renderFilteredTable();
-        closeFilterMenu();
-      }
+    renderFilteredTable();
+    closeFilterMenu();
+}
 
       async function loadTableData() {
         const tbody = document.getElementById("eqTableBody");
@@ -1804,16 +1874,17 @@
       }
 
       function openLog(logName) {
-        document.getElementById("quickLogSidebar").style.display = "none";
-        document.getElementById("tempLogType").value = logName;
-        const drop = document.getElementById("logPlateDropdown");
-        drop.innerHTML =
-          '<option value="">Select Plate No...</option>' +
-          [...new Set(globalPlates)]
-            .map((p) => `<option value="${p}">${p}</option>`)
-            .join("");
-        document.getElementById("plateSelectModal").style.display = "flex";
-      }
+    document.getElementById('quickLogSidebar').style.display = 'none';
+    document.getElementById('tempLogType').value = logName;
+    const drop = document.getElementById('logPlateDropdown');
+    
+    // 🟢 UI-ൽ കാണുന്ന ഫിൽട്ടർ/സോർട്ട് ഓർഡറിലുള്ള പ്ലേറ്റുകൾ ഡ്രോപ്പ്ഡൗണിൽ നൽകുന്നു
+    const currentList = getCurrentGridPlates();
+    const platesToUse = currentList.length > 0 ? currentList : [...new Set(globalPlates)];
+
+    drop.innerHTML = '<option value="">Select Plate No...</option>' + platesToUse.map(p => `<option value="${p}">${p}</option>`).join('');
+    document.getElementById('plateSelectModal').style.display = 'flex';
+}
 
       function fetchLogData() {
         const plate = document.getElementById("logPlateDropdown").value;
@@ -2133,37 +2204,37 @@
       }
 
       async function changePlate() {
-        const currentType = document.getElementById("activeLogType").value;
-        const currentPlate = document.getElementById("activeLogPlate").value;
+    const currentType = document.getElementById('activeLogType').value;
+    const currentPlate = document.getElementById('activeLogPlate').value;
+    
+    if (logHasUnsavedData(currentType)) {
+        const isSaved = await saveLogEntry(true);
+        if (!isSaved) return;
+    }
 
-        if (logHasUnsavedData(currentType)) {
-          const isSaved = await saveLogEntry(true);
-          if (!isSaved) return;
-        }
+    // 🟢 നിലവിൽ ടേബിളിൽ ഉള്ള ഓർഡറിലെ അടുത്ത പ്ലേറ്റ് എടുക്കുന്നു
+    const currentGridPlates = getCurrentGridPlates();
+    const uniquePlatesList = currentGridPlates.length > 0 ? currentGridPlates : [...new Set(globalPlates)];
+    
+    const currentIndex = uniquePlatesList.indexOf(currentPlate);
+    let nextIndex = currentIndex + 1;
+    
+    if (nextIndex >= uniquePlatesList.length) {
+        nextIndex = 0; // അവസാനത്തെ പ്ലേറ്റ് കഴിഞ്ഞാൽ വീണ്ടും ആദ്യത്തേതിലേക്ക്
+    }
 
-        const uniquePlatesList = [...new Set(globalPlates)];
-        const currentIndex = uniquePlatesList.indexOf(currentPlate);
-        let nextIndex = currentIndex + 1;
-
-        if (nextIndex >= uniquePlatesList.length) {
-          nextIndex = 0;
-        }
-
-        const nextPlate = uniquePlatesList[nextIndex];
-
-        document.getElementById("activeLogPlate").value = nextPlate;
-        const titleLabel =
-          currentType === "VehicleTypeLog"
-            ? "🚜 Vehicle Type & Santhook"
-            : `📂 ${currentType}`;
-        document.getElementById("splitLogTitle").innerText =
-          `${titleLabel} - ${nextPlate}`;
-        document.getElementById("editLogId").value = "";
-        document.getElementById("editSanthookLogId").value = "";
-
-        renderLogForm(currentType);
-        loadLogHistory(currentType, nextPlate);
-      }
+    const nextPlate = uniquePlatesList[nextIndex];
+    if (!nextPlate) return;
+    
+    document.getElementById('activeLogPlate').value = nextPlate;
+    const titleLabel = currentType === 'VehicleTypeLog' ? '🚜 Vehicle Type & Santhook' : `📂 ${currentType}`;
+    document.getElementById('splitLogTitle').innerText = `${titleLabel} - ${nextPlate}`;
+    document.getElementById('editLogId').value = '';
+    document.getElementById('editSanthookLogId').value = '';
+    
+    renderLogForm(currentType); 
+    loadLogHistory(currentType, nextPlate); 
+}
 
       async function saveLogEntry(isAutoSave = false) {
         const type = document.getElementById("activeLogType").value;
