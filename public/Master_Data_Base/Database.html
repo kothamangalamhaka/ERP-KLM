@@ -35,24 +35,24 @@
     <style>
       /* Table Header Black Fill & White Text */
       #erpTable thead th {
-          background-color: #000000 !important;
-          color: #ffffff !important;
-          border-bottom: 1px solid #333333 !important;
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        border-bottom: 1px solid #333333 !important;
       }
-      
+
       /* Filter & Lock Icons Default White */
       #erpTable thead th .material-icons {
-          color: #ffffff !important; 
+        color: #ffffff !important;
       }
-      
+
       /* Keep the locked icon red for visibility */
       #erpTable thead th .material-icons.is-locked {
-          color: #ef4444 !important; 
+        color: #ef4444 !important;
       }
 
       /* Subtle border for column resizer on black background */
       #erpTable thead th .col-resizer {
-          border-right: 2px solid #444444 !important;
+        border-right: 2px solid #444444 !important;
       }
     </style>
 
@@ -161,13 +161,31 @@
         </button>
       </div>
 
-      <div class="user-dropdown-container" style="display: flex; align-items: center; gap: 10px;">
+      <div
+        class="user-dropdown-container"
+        style="display: flex; align-items: center; gap: 10px"
+      >
         <div
           id="activeUsersBadge"
-          style="display: flex; align-items: center; gap: 4px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; position: relative;"
+          style="
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+          "
           title="Active Users"
         >
-          <span class="material-icons" style="font-size: 12px; color: #10b981;">fiber_manual_record</span>
+          <span class="material-icons" style="font-size: 12px; color: #10b981"
+            >fiber_manual_record</span
+          >
           <span id="activeCountDisplay">0 active</span>
         </div>
 
@@ -270,7 +288,8 @@
       </div>
       <div class="menu-divider"></div>
       <div class="menu-item" onclick="handleMenuAction('copy_col_data')">
-        <i class="material-icons" style="color: var(--primary);">content_copy</i> Copy Data
+        <i class="material-icons" style="color: var(--primary)">content_copy</i>
+        Copy Data
       </div>
       <div class="menu-divider"></div>
       <div class="menu-item" onclick="handleMenuAction('align_left')">
@@ -323,11 +342,17 @@
     <!-- 🟢 NEW ROW CONTEXT MENU -->
     <div id="rowContextMenu" class="custom-context-menu">
       <div class="menu-item" onclick="openEditRowModal()">
-        <i class="material-icons" style="color: var(--primary)">edit_square</i> Edit Entire Row
+        <i class="material-icons" style="color: var(--primary)">edit_square</i>
+        Edit Entire Row
       </div>
       <div class="menu-divider admin-only-menu"></div>
-      <div class="menu-item admin-only-menu" onclick="deleteSelectedRow()" style="color: var(--danger)">
-        <i class="material-icons" style="color: var(--danger)">delete</i> Delete Row
+      <div
+        class="menu-item admin-only-menu"
+        onclick="deleteSelectedRow()"
+        style="color: var(--danger)"
+      >
+        <i class="material-icons" style="color: var(--danger)">delete</i> Delete
+        Row
       </div>
     </div>
 
@@ -388,12 +413,46 @@
           <h3 style="margin: 0; border: none; padding: 0">
             Show / Hide Columns
           </h3>
-          
-          <div style="display: flex; align-items: center; gap: 15px; flex-grow: 1; justify-content: flex-end;">
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 15px;
+              flex-grow: 1;
+              justify-content: flex-end;
+            "
+          >
             <!-- Search Bar Added Here -->
-            <div style="position: relative; max-width: 250px; width: 100%;">
-              <span class="material-icons" style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 16px; color: #94a3b8;">search</span>
-              <input type="text" id="colVisSearch" placeholder="Search columns..." style="width: 100%; padding: 6px 8px 6px 30px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; outline: none; color: #0f172a; box-sizing: border-box;" onkeyup="filterColVis(this.value)">
+            <div style="position: relative; max-width: 250px; width: 100%">
+              <span
+                class="material-icons"
+                style="
+                  position: absolute;
+                  left: 8px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  font-size: 16px;
+                  color: #94a3b8;
+                "
+                >search</span
+              >
+              <input
+                type="text"
+                id="colVisSearch"
+                placeholder="Search columns..."
+                style="
+                  width: 100%;
+                  padding: 6px 8px 6px 30px;
+                  border: 1px solid var(--border-color);
+                  border-radius: 4px;
+                  font-size: 13px;
+                  outline: none;
+                  color: #0f172a;
+                  box-sizing: border-box;
+                "
+                onkeyup="filterColVis(this.value)"
+              />
             </div>
 
             <div style="display: flex; gap: 8px">
@@ -851,7 +910,13 @@
             <button
               id="tabCurrentUpdate"
               class="btn"
-              style="flex: 1; background: transparent; color: #64748b; font-size: 11px; padding: 6px;"
+              style="
+                flex: 1;
+                background: transparent;
+                color: #64748b;
+                font-size: 11px;
+                padding: 6px;
+              "
               onclick="setDriverMode('current_update')"
             >
               Update Current
@@ -859,18 +924,46 @@
             <button
               id="tabPastLog"
               class="btn"
-              style="flex: 1; background: transparent; color: #64748b; font-size: 11px; padding: 6px;"
+              style="
+                flex: 1;
+                background: transparent;
+                color: #64748b;
+                font-size: 11px;
+                padding: 6px;
+              "
               onclick="setDriverMode('past')"
             >
               Add Past Log
             </button>
           </div>
 
-          <div id="formCurrentUpdateMode" style="display: none; margin-bottom: 15px">
-            <div style="background: #e0f2fe; padding: 10px; border-radius: 8px; border: 1px solid #bae6fd;">
-              <p style="font-size: 11px; color: #0284c7; margin: 0; font-weight: 600;">
-                <span class="material-icons" style="font-size: 12px; vertical-align: middle;">info</span>
-                Updates the CURRENT driver's details and documents. No history changes.
+          <div
+            id="formCurrentUpdateMode"
+            style="display: none; margin-bottom: 15px"
+          >
+            <div
+              style="
+                background: #e0f2fe;
+                padding: 10px;
+                border-radius: 8px;
+                border: 1px solid #bae6fd;
+              "
+            >
+              <p
+                style="
+                  font-size: 11px;
+                  color: #0284c7;
+                  margin: 0;
+                  font-weight: 600;
+                "
+              >
+                <span
+                  class="material-icons"
+                  style="font-size: 12px; vertical-align: middle"
+                  >info</span
+                >
+                Updates the CURRENT driver's details and documents. No history
+                changes.
               </p>
             </div>
           </div>
@@ -1013,54 +1106,125 @@
             required
           />
 
-          <div id="documentsBlock" style="margin-top: 15px; margin-bottom: 15px; padding: 10px; border: 1px dashed #cbd5e1; border-radius: 8px; background: #f8fafc;">
-            <label style="font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">OPTIONAL DOCUMENTS (Leave blank to clear old data)</label>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-              <div style="flex: 1; min-width: 45%;">
-                <label style="font-size: 11px; font-weight: 600;">Iqama Number</label>
-                <input type="text" id="drvUpdateIqamaNo" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
+          <div
+            id="documentsBlock"
+            style="
+              margin-top: 15px;
+              margin-bottom: 15px;
+              padding: 10px;
+              border: 1px dashed #cbd5e1;
+              border-radius: 8px;
+              background: #f8fafc;
+            "
+          >
+            <label
+              style="
+                font-size: 10px;
+                font-weight: 700;
+                color: #64748b;
+                margin-bottom: 8px;
+                display: block;
+              "
+              >OPTIONAL DOCUMENTS (Leave blank to clear old data)</label
+            >
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              <div style="flex: 1; min-width: 45%">
+                <label style="font-size: 11px; font-weight: 600"
+                  >Iqama Number</label
+                >
+                <input
+                  type="text"
+                  id="drvUpdateIqamaNo"
+                  class="modal-input"
+                  style="padding: 6px; font-size: 12px; margin-bottom: 0"
+                />
               </div>
-              <div style="flex: 1; min-width: 45%;">
-                <label style="font-size: 11px; font-weight: 600;">Iqama Expire</label>
-                <input type="date" id="drvUpdateIqamaExp" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
+              <div style="flex: 1; min-width: 45%">
+                <label style="font-size: 11px; font-weight: 600"
+                  >Iqama Expire</label
+                >
+                <input
+                  type="date"
+                  id="drvUpdateIqamaExp"
+                  class="modal-input"
+                  style="padding: 6px; font-size: 12px; margin-bottom: 0"
+                />
               </div>
-              <div style="flex: 1; min-width: 45%;">
-                <label style="font-size: 11px; font-weight: 600;">Iqama Note</label>
-                <input type="text" id="drvUpdateIqamaNote" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
+              <div style="flex: 1; min-width: 45%">
+                <label style="font-size: 11px; font-weight: 600"
+                  >Iqama Note</label
+                >
+                <input
+                  type="text"
+                  id="drvUpdateIqamaNote"
+                  class="modal-input"
+                  style="padding: 6px; font-size: 12px; margin-bottom: 0"
+                />
               </div>
-              <div style="flex: 1; min-width: 45%;">
-                <label style="font-size: 11px; font-weight: 600;">Nationality</label>
-                <input type="text" id="drvUpdateNationality" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
+              <div style="flex: 1; min-width: 45%">
+                <label style="font-size: 11px; font-weight: 600"
+                  >Nationality</label
+                >
+                <input
+                  type="text"
+                  id="drvUpdateNationality"
+                  class="modal-input"
+                  style="padding: 6px; font-size: 12px; margin-bottom: 0"
+                />
               </div>
-              <div style="flex: 1; min-width: 45%;">
-                <label style="font-size: 11px; font-weight: 600;">License Expire</label>
-                <input type="date" id="drvUpdateLicenceExp" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
+              <div style="flex: 1; min-width: 45%">
+                <label style="font-size: 11px; font-weight: 600"
+                  >License Expire</label
+                >
+                <input
+                  type="date"
+                  id="drvUpdateLicenceExp"
+                  class="modal-input"
+                  style="padding: 6px; font-size: 12px; margin-bottom: 0"
+                />
               </div>
-              <div style="flex: 1; min-width: 45%;">
-                <label style="font-size: 11px; font-weight: 600;">Licence Note</label>
-                <input type="text" id="drvUpdateLicenceNote" class="modal-input" style="padding: 6px; font-size: 12px; margin-bottom: 0;" />
+              <div style="flex: 1; min-width: 45%">
+                <label style="font-size: 11px; font-weight: 600"
+                  >Licence Note</label
+                >
+                <input
+                  type="text"
+                  id="drvUpdateLicenceNote"
+                  class="modal-input"
+                  style="padding: 6px; font-size: 12px; margin-bottom: 0"
+                />
               </div>
             </div>
           </div>
 
-          <div id="pastLogDates" style="display: none; flex-wrap: wrap; gap: 10px">
-            <div style="flex: 1; min-width: 45%;">
+          <div
+            id="pastLogDates"
+            style="display: none; flex-wrap: wrap; gap: 10px"
+          >
+            <div style="flex: 1; min-width: 45%">
               <label style="font-size: 12px; font-weight: 600"
-                >Work Start Date</label
+                >Driver Start Date</label
               >
               <input type="date" id="drvPastStart" class="modal-input" />
             </div>
-            <div style="flex: 1; min-width: 45%;">
+            <div style="flex: 1; min-width: 45%">
               <label style="font-size: 12px; font-weight: 600"
                 >Work End Date</label
               >
               <input type="date" id="drvPastEnd" class="modal-input" />
             </div>
-            <div style="width: 100%;">
-              <label style="font-size: 12px; font-weight: 600; color: var(--primary)"
-                > Driver Status Remark</label
+            <div style="width: 100%">
+              <label
+                style="font-size: 12px; font-weight: 600; color: var(--primary)"
               >
-              <input type="text" id="drvPastStatusRemark" class="modal-input" placeholder="e.g. Resigned, Terminated..." />
+                Driver Status Remark</label
+              >
+              <input
+                type="text"
+                id="drvPastStatusRemark"
+                class="modal-input"
+                placeholder="e.g. Resigned, Terminated..."
+              />
             </div>
           </div>
 
@@ -1068,7 +1232,7 @@
             <label
               id="lblDriverStart"
               style="font-size: 12px; font-weight: 600; color: var(--success)"
-              >New Driver Work Start Date</label
+              >New Driver Start Date</label
             >
             <input
               type="date"
@@ -1206,9 +1370,23 @@
         <input type="date" id="editLogStart" class="modal-input" required />
         <label style="font-size: 12px; font-weight: 600">Work End</label>
         <input type="date" id="editLogEnd" class="modal-input" required />
-        <label style="font-size: 12px; font-weight: 600; color: var(--primary)">Driver Status Remark</label>
-        <input type="text" id="editLogStatusRemark" class="modal-input" placeholder="e.g. Resigned, Terminated..." />
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--primary)"
+          >Driver Status Remark</label
+        >
+        <input
+          type="text"
+          id="editLogStatusRemark"
+          class="modal-input"
+          placeholder="e.g. Resigned, Terminated..."
+        />
+        <div
+          style="
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 10px;
+          "
+        >
           <button
             class="btn btn-outline"
             onclick="$('#editLogModalOverlay').hide()"
@@ -1223,85 +1401,35 @@
     </div>
 
     <div id="driverLogModalOverlay" class="modal-overlay">
-      <div class="modal-box" style="width: 600px; max-width: 95vw">
-        <h3>Driver History</h3>
+      <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h3 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 6px;">
+            <span class="material-icons" style="color: var(--primary);">history</span> Driver History
+          </h3>
+        </div>
         <p
           id="drvLogPlateDisplay"
-          style="font-weight: bold; color: var(--primary)"
+          style="font-weight: 700; color: var(--primary); font-size: 15px; margin-bottom: 14px;"
         ></p>
-        <div
-          style="
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-          "
-        >
-          <table
-            class="w-full text-left"
-            style="width: 100%; border-collapse: collapse; font-size: 12px"
-          >
-            <thead
-              style="background: #f8fafc; position: sticky; top: 0; z-index: 10"
-            >
+        <div class="driver-history-table-wrapper">
+          <table class="driver-history-table">
+            <thead>
               <tr>
-                <th
-                  style="
-                    padding: 8px;
-                    border-bottom: 1px solid var(--border-color);
-                  "
-                >
-                  Driver
-                </th>
-                <th
-                  style="
-                    padding: 8px;
-                    border-bottom: 1px solid var(--border-color);
-                  "
-                >
-                  Mobile
-                </th>
-                <th
-                  style="
-                    padding: 8px;
-                    border-bottom: 1px solid var(--border-color);
-                  "
-                >
-                  Start
-                </th>
-                <th
-                  style="
-                    padding: 8px;
-                    border-bottom: 1px solid var(--border-color);
-                  "
-                >
-                  End
-                </th>
-                <th
-                  style="
-                    padding: 8px;
-                    border-bottom: 1px solid var(--border-color);
-                  "
-                >
-                  Updated By
-                </th>
-                <th
-                  style="
-                    padding: 8px;
-                    border-bottom: 1px solid var(--border-color);
-                    text-align: center;
-                  "
-                >
-                  Action
-                </th>
+                <th>Driver</th>
+                <th>Mobile</th>
+                <th style="text-align: center;">Start</th>
+                <th style="text-align: center;">End</th>
+                <th>Updated By</th>
+                <th style="text-align: center; width: 80px;">Action</th>
               </tr>
             </thead>
             <tbody id="driverLogTableBody"></tbody>
           </table>
         </div>
-        <div style="display: flex; justify-content: flex-end; margin-top: 15px">
+        <div style="display: flex; justify-content: flex-end; margin-top: 18px">
           <button
             class="btn btn-primary"
+            style="padding: 8px 24px; font-weight: 600;"
             onclick="$('#driverLogModalOverlay').hide()"
           >
             Close

@@ -12,25 +12,26 @@ module.exports = function (pool, middlewares, helpers) {
   // 📌 GLOBAL CONFIGURATIONS & CONSTANTS
   // ==========================================
   const COLUMNS = {
-    SN: "SN",
-    PLATE_NUMBER: "PLATE NUMBER",
-    SITE: "SITE",
-    STATUS: "STATUS",
-    COMPANY: "COMPANY",
-    CUSTOMER: "CUSTOMER",
-    IF_SUB: "IF SUB",
-    WORK_START: "WORK START",
-    LAST_WORKING_DAY: "LAST WORKING DAY",
-    DAYS_WORKED: "DAYS WORKED",
-    MOBILIZATION: "EQUIPMENT REACHED AT SITE",
-    RELEASE_DATE: "RELEASE DATE",
-    REPLACED_DATE: "REPLACED DATE",
-    OLD_DRIVER: "OLD DRIVER NAME",
-    OD_MOB: "OD MOB",
-    OD_WORK_END: "OD WRK END",
-    DRIVER_NAME: "DRIVER NAME",
-    MOBILE: "MOBILE",
-  };
+  SN: "SN",
+  PLATE_NUMBER: "PLATE NUMBER",
+  SITE: "SITE",
+  STATUS: "STATUS",
+  COMPANY: "COMPANY",
+  CUSTOMER: "CUSTOMER",
+  IF_SUB: "IF SUB",
+  WORK_START: "WORK START",
+  LAST_WORKING_DAY: "LAST WORKING DAY",
+  DAYS_WORKED: "DAYS WORKED",
+  MOBILIZATION: "EQUIPMENT REACHED AT SITE",
+  RELEASE_DATE: "RELEASE DATE",
+  REPLACED_DATE: "REPLACED DATE",
+  OLD_DRIVER: "OLD DRIVER NAME",
+  OD_MOB: "OD MOB",
+  OD_WORK_END: "OD WRK END",
+  DRIVER_NAME: "DRIVER NAME",
+  MOBILE: "MOBILE",
+  DRIVER_START_DATE: "DRIVER START DATE",
+};
 
   const FIXED_COLUMNS = [
     COLUMNS.MOBILIZATION,
@@ -272,7 +273,7 @@ module.exports = function (pool, middlewares, helpers) {
         );
         const dNameCol = getCol(COLUMNS.DRIVER_NAME);
         const dMobCol = getCol(COLUMNS.MOBILE);
-        const dStartCol = getCol(COLUMNS.WORK_START);
+        const dStartCol = getCol(COLUMNS.DRIVER_START_DATE) || getCol("DRIVER START DATE");
 
         if (
           pLwdCol &&
@@ -341,13 +342,13 @@ module.exports = function (pool, middlewares, helpers) {
                   Math.random().toString(36).substr(2, 5),
                 name: prevData[dNameCol],
                 mob: prevData[dMobCol] || "",
-                start: prevData[dStartCol] || "IDK",
+                start: (dStartCol && prevData[dStartCol]) ? prevData[dStartCol] : "IDK",
                 end: autoLwdVal,
                 updated_by: "System",
               });
               prevData[dNameCol] = "";
               prevData[dMobCol] = "";
-              prevData[dStartCol] = "";
+              if (dStartCol) prevData[dStartCol] = "";
             }
 
             let calcUpdates = calculateDependentFields(prevData);
@@ -1030,89 +1031,92 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
-  router.post("/update-driver", verifyToken, async (req, res) => {
-    try {
-      if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
+  // 🟢 /update-driver API: WORK START ഡേറ്റിൽ തൊടാതെ DRIVER START DATE മാത്രം അപ്‌ഡേറ്റ് ചെയ്യുന്നു
+router.post("/update-driver", verifyToken, async (req, res) => {
+  try {
+    if (req.user.role === "Viewer") return res.json({ success: false, message: "Access Denied." });
 
-      const { dbId, plate_number, currentDriver, currentMob, oldWorkStart, workEnd, newDriver, newMob, newWorkStart, statusRemark, iqamaNo, iqamaExp, licenceExp, iqamaNote, licenceNote, nationality } = req.body;
-      
-      const recordRes = await pool.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
-      if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
-      
-      let prevData = recordRes.rows[0].record_data;
-      if (!prevData.driver_history) prevData.driver_history = [];
+    const { dbId, plate_number, currentDriver, currentMob, oldWorkStart, workEnd, newDriver, newMob, newWorkStart, statusRemark, iqamaNo, iqamaExp, licenceExp, iqamaNote, licenceNote, nationality } = req.body;
+    
+    const recordRes = await pool.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
+    if (recordRes.rows.length === 0) return res.json({ success: false, message: "Record not found." });
+    
+    let prevData = recordRes.rows[0].record_data;
+    if (!prevData.driver_history) prevData.driver_history = [];
 
-      let finalWorkEnd = workEnd && workEnd.trim() !== "" ? workEnd : "01-Jan-1990";
-      
-      if (currentDriver && currentDriver.trim() !== "") {
-        prevData.driver_history.push({
-          id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-          name: currentDriver,
-          mob: currentMob || "",
-          start: oldWorkStart || "IDK",
-          end: finalWorkEnd,
-          status_remark: statusRemark || "",
-          updated_by: req.user.username,
-          timestamp: Date.now()
-        });
-      }
-
-      let latestLog = null;
-      if (prevData.driver_history.length > 0) {
-        let sortedHistory = [...prevData.driver_history].sort((a, b) => {
-           let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
-           let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
-           return timeA - timeB; 
-        });
-        latestLog = sortedHistory[sortedHistory.length - 1];
-      }
-
-      const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
-      
-      if (latestLog) {
-         prevData[getCol("Old Driver Name")] = latestLog.name;
-         prevData[getCol("OD Mob")] = latestLog.mob;
-         prevData[getCol("OD Wrk End")] = latestLog.end;
-         prevData[getCol("Driver Status Remark")] = latestLog.status_remark || "";
-      }
-
-      if (newDriver) {
-         prevData[getCol("DRIVER NAME")] = newDriver;
-         prevData[getCol("MOBILE")] = newMob;
-         prevData[getCol("WORK START")] = newWorkStart;
-         
-         // Set new document details or clear them if left blank
-         prevData[getCol("Iqama Number")] = iqamaNo !== undefined ? iqamaNo : "";
-         prevData[getCol("Iqama Expire Date")] = iqamaExp !== undefined ? iqamaExp : "";
-         prevData[getCol("License Expire Date")] = licenceExp !== undefined ? licenceExp : "";
-         prevData[getCol("Iqama Note")] = iqamaNote !== undefined ? iqamaNote : "";
-         prevData[getCol("Licence Note")] = licenceNote !== undefined ? licenceNote : "";
-         prevData[getCol("Nationality")] = nationality !== undefined ? nationality : "";
-      } else {
-         prevData[getCol("DRIVER NAME")] = "";
-         prevData[getCol("MOBILE")] = "";
-         prevData[getCol("WORK START")] = "";
-         
-         // Clear documents when driver is removed completely
-         prevData[getCol("Iqama Number")] = "";
-         prevData[getCol("Iqama Expire Date")] = "";
-         prevData[getCol("License Expire Date")] = "";
-         prevData[getCol("Iqama Note")] = "";
-         prevData[getCol("Licence Note")] = "";
-         prevData[getCol("Nationality")] = "";
-      }
-
-      await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
-
-      // Telegram Alert
-      let alertMsg = `🔄 <b>DRIVER UPDATED / HANDOVER</b>\n\n<b>Plate:</b> ${plate_number || "N/A"}\n<b>Old Driver:</b> ${currentDriver || "None"}\n<b>New Driver:</b> ${newDriver || "None"}\n<b>Updated by:</b> @${req.user.username}`;
-      await sendActivityTelegramMessage(alertMsg).catch(e => console.error("Telegram Error:", e));
-
-      res.json({ success: true, message: "Driver updated securely." });
-    } catch (error) {
-      handleError(res, error, req.user.role, "UPDATE_DRIVER");
+    let finalWorkEnd = workEnd && workEnd.trim() !== "" ? workEnd : "01-Jan-1990";
+    
+    if (currentDriver && currentDriver.trim() !== "") {
+      prevData.driver_history.push({
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+        name: currentDriver,
+        mob: currentMob || "",
+        start: oldWorkStart || "IDK",
+        end: finalWorkEnd,
+        status_remark: statusRemark || "",
+        updated_by: req.user.username,
+        timestamp: Date.now()
+      });
     }
-  });
+
+    let latestLog = null;
+    if (prevData.driver_history.length > 0) {
+      let sortedHistory = [...prevData.driver_history].sort((a, b) => {
+         let timeA = new Date(a.end === "01-Jan-1990" ? 0 : a.end).getTime();
+         let timeB = new Date(b.end === "01-Jan-1990" ? 0 : b.end).getTime();
+         return timeA - timeB; 
+      });
+      latestLog = sortedHistory[sortedHistory.length - 1];
+    }
+
+    const getCol = (matchStr) => Object.keys(prevData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
+    
+    if (latestLog) {
+       prevData[getCol("Old Driver Name")] = latestLog.name;
+       prevData[getCol("OD Mob")] = latestLog.mob;
+       prevData[getCol("OD Wrk End")] = latestLog.end;
+       prevData[getCol("Driver Status Remark")] = latestLog.status_remark || "";
+    }
+
+    const drvStartCol = getCol("DRIVER START DATE") || "DRIVER START DATE";
+
+    if (newDriver) {
+       prevData[getCol("DRIVER NAME")] = newDriver;
+       prevData[getCol("MOBILE")] = newMob;
+       prevData[drvStartCol] = newWorkStart || "";
+       
+       // Set new document details or clear them if left blank
+       prevData[getCol("Iqama Number")] = iqamaNo !== undefined ? iqamaNo : "";
+       prevData[getCol("Iqama Expire Date")] = iqamaExp !== undefined ? iqamaExp : "";
+       prevData[getCol("License Expire Date")] = licenceExp !== undefined ? licenceExp : "";
+       prevData[getCol("Iqama Note")] = iqamaNote !== undefined ? iqamaNote : "";
+       prevData[getCol("Licence Note")] = licenceNote !== undefined ? licenceNote : "";
+       prevData[getCol("Nationality")] = nationality !== undefined ? nationality : "";
+    } else {
+       prevData[getCol("DRIVER NAME")] = "";
+       prevData[getCol("MOBILE")] = "";
+       prevData[drvStartCol] = "";
+       
+       // Clear documents when driver is removed completely
+       prevData[getCol("Iqama Number")] = "";
+       prevData[getCol("Iqama Expire Date")] = "";
+       prevData[getCol("License Expire Date")] = "";
+       prevData[getCol("Iqama Note")] = "";
+       prevData[getCol("Licence Note")] = "";
+       prevData[getCol("Nationality")] = "";
+    }
+
+    await pool.query("UPDATE erp_records SET record_data = $1 WHERE id = $2", [prevData, dbId]);
+
+    // Telegram Alert
+    let alertMsg = `🔄 <b>DRIVER UPDATED / HANDOVER</b>\n\n<b>Plate:</b> ${plate_number || "N/A"}\n<b>Old Driver:</b> ${currentDriver || "None"}\n<b>New Driver:</b> ${newDriver || "None"}\n<b>Updated by:</b> @${req.user.username}`;
+    await sendActivityTelegramMessage(alertMsg).catch(e => console.error("Telegram Error:", e));
+
+    res.json({ success: true, message: "Driver updated securely." });
+  } catch (error) {
+    handleError(res, error, req.user.role, "UPDATE_DRIVER");
+  }
+});
 
   router.post("/add-past-driver-log", verifyToken, async (req, res) => {
     try {
@@ -1174,7 +1178,39 @@ module.exports = function (pool, middlewares, helpers) {
       const recordRes = await pool.query("SELECT record_data FROM erp_records WHERE id = $1", [dbId]);
       if (recordRes.rows.length === 0) return res.json({ success: false, logs: [] });
       
-      res.json({ success: true, logs: recordRes.rows[0].record_data.driver_history || [] });
+      let recData = recordRes.rows[0].record_data || {};
+      let pastLogs = [...(recData.driver_history || [])];
+
+      const getCol = (matchStr) => Object.keys(recData).find(k => k.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase()) || matchStr;
+
+      let currentDriverName = recData[getCol("DRIVER NAME")];
+      let currentMob = recData[getCol("MOBILE")];
+      let currentStart = recData[getCol("DRIVER START DATE")] || recData["driver_start_date"] || "";
+
+      let allLogs = [];
+
+      // 🟢 നിലവിൽ ഡ്രൈവർ ഉണ്ടെങ്കിൽ അയാളെ CURRENT ആയി ഏറ്റവും മുകളിൽ ചേർക്കുന്നു
+      if (currentDriverName && String(currentDriverName).trim() !== "") {
+        allLogs.push({
+          id: "current",
+          name: currentDriverName.trim(),
+          mob: currentMob || "-",
+          start: currentStart || "IDK",
+          end: "Present",
+          updated_by: "Active Driver",
+          is_current: true
+        });
+      }
+
+      // പഴയ ഡ്രൈവർമാരെ തീയതി ക്രമത്തിൽ ചേർക്കുന്നു (Newest First)
+      pastLogs.sort((a, b) => new Date(b.end === "01-Jan-1990" ? 0 : b.end) - new Date(a.end === "01-Jan-1990" ? 0 : a.end));
+      allLogs.push(...pastLogs);
+
+      res.json({ 
+        success: true, 
+        logs: allLogs,
+        currentDriverStart: currentStart
+      });
     } catch (error) {
       handleError(res, error, req.user.role, "GET_LOGS");
     }

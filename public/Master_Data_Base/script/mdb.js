@@ -529,7 +529,7 @@ function setDriverMode(mode) {
     $("#pastLogDates").hide();
     $("#documentsBlock").show();
     $("#lblDriverName").text("New Driver Name");
-    $("#lblDriverStart").text("New Driver Work Start Date").css("color", "var(--success)");
+    $("#lblDriverStart").text("New Driver Start Date").css("color", "var(--success)");
     $("#btnSaveDriverAction")
       .text("Save & Change Driver")
       .removeClass("btn-primary")
@@ -550,7 +550,7 @@ function setDriverMode(mode) {
     $("#pastLogDates").hide();
     $("#documentsBlock").show();
     $("#lblDriverName").text("Current Driver Name (Edit)");
-    $("#lblDriverStart").text("Current Work Start Date (Edit)").css("color", "var(--primary)");
+    $("#lblDriverStart").text("Current Driver Start Date (Edit)").css("color", "var(--primary)");
     $("#btnSaveDriverAction")
       .text("Update Current Details")
       .removeClass("btn-success")
@@ -604,19 +604,11 @@ function handleDriverAction(action) {
     $("#drvUpdatePlateDisplay").text("Plate: " + contextDriverPlate);
     $("#drvUpdateCurrentName").text(contextDriverName || "N/A");
     $("#drvUpdateCurrentMob").text(contextDriverMob || "N/A");
-    $("#drvUpdateOldStart").val(convertToInputDate(contextDriverStart));
+    $("#drvUpdateOldStart").val("");
     $("#drvUpdateEnd").val("");
     $("#drvUpdateNewName").val("");
     $("#drvUpdateNewMob").val("");
     $("#drvUpdateNewStart").val("");
-    $("#drvUpdateIqamaNo").val("");
-    $("#drvUpdateIqamaExp").val("");
-    $("#drvUpdateLicenceExp").val("");
-    $("#drvUpdateIqamaNote").val("");
-    $("#drvUpdateLicenceNote").val("");
-    $("#drvUpdateNationality").val("");
-    $("#drvPastStart").val("");
-    $("#drvPastEnd").val("");
     fetchDriverLogsForSidePanel(contextDriverDbId);
     $("#driverUpdateModalOverlay").css("display", "flex");
   } else if (action === "view_log") {
@@ -643,17 +635,32 @@ async function fetchDriverLogsForModal(dbId) {
     if (data.success) {
       let html = "";
       data.logs.forEach((l) => {
-        let actionStr = l.id === "current" ? "Current" : l.updated_by;
-        html += `<tr><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.name || l.driver_name || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mob || l.mobile || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.start || l.work_start || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.end || l.work_end || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${actionStr}</td><td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">-</td></tr>`;
+        let isCurrent = l.id === "current" || l.is_current;
+        let badge = isCurrent
+          ? '<span style="background:#059669; color:#ffffff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; margin-left:8px; letter-spacing:0.5px; box-shadow:0 1px 2px rgba(0,0,0,0.1);">CURRENT</span>'
+          : "";
+        let rowClass = isCurrent ? 'class="current-driver-row" style="background:#ecfdf5; font-weight:600;"' : '';
+        let endVal = isCurrent
+          ? '<span style="color:#059669; font-weight:700;">Present</span>'
+          : (l.end || l.work_end || "-");
+
+        html += `<tr ${rowClass}>
+          <td style="font-weight: 600;">${l.name || l.driver_name || "-"}${badge}</td>
+          <td>${l.mob || l.mobile || "-"}</td>
+          <td style="text-align: center;">${l.start || l.work_start || "-"}</td>
+          <td style="text-align: center;">${endVal}</td>
+          <td>${l.updated_by || "-"}</td>
+          <td style="text-align: center; color: #94a3b8;">-</td>
+        </tr>`;
       });
       if (data.logs.length === 0)
         html =
-          '<tr><td colspan="6" style="text-align:center;">No history found.</td></tr>';
+          '<tr><td colspan="6" style="text-align:center; padding: 24px; color: #64748b;">No history records found.</td></tr>';
       $("#driverLogTableBody").html(html);
     }
   } catch (e) {
     $("#driverLogTableBody").html(
-      '<tr><td colspan="6" style="text-align:center; color:red;">Failed to load.</td></tr>',
+      '<tr><td colspan="6" style="text-align:center; color:var(--danger); padding: 20px;">Failed to load driver history.</td></tr>',
     );
   }
 }
@@ -674,7 +681,24 @@ async function fetchDriverLogsForSidePanel(dbId) {
     const data = await res.json();
     if (data.success) {
       let html = "";
-      data.logs.forEach((l) => {
+      let logs = data.logs || [];
+      
+      // 🟢 FIX: കറന്റ് ഡ്രൈവറുടെ Start Date ഹിസ്റ്ററിയിൽ നിന്നോ DB റെക്കോർഡിൽ നിന്നോ എടുക്കുന്നു
+      if (data.currentDriverStart) {
+        contextDriverStart = data.currentDriverStart;
+      } else if (logs.length > 0) {
+        // ഹിസ്റ്ററി ഉണ്ടെങ്കിൽ അവസാനത്തെ ഡ്രൈവറുടെ End Date ആയിരിക്കും കറന്റ് ഡ്രൈവറുടെ തുടക്കം
+        let sortedLogs = [...logs].sort((a, b) => new Date(a.end === "01-Jan-1990" ? 0 : a.end) - new Date(b.end === "01-Jan-1990" ? 0 : b.end));
+        let lastPastLog = sortedLogs[sortedLogs.length - 1];
+        contextDriverStart = lastPastLog.end;
+      }
+      
+      $("#drvUpdateOldStart").val(convertToInputDate(contextDriverStart));
+      if (currentDriverModalMode === "current_update") {
+        $("#drvUpdateNewStart").val(convertToInputDate(contextDriverStart));
+      }
+
+      logs.forEach((l) => {
         let isCurrent = l.id === "current";
         let rowStyle = isCurrent
           ? "background:rgba(14, 165, 233, 0.05);"
@@ -695,7 +719,7 @@ async function fetchDriverLogsForSidePanel(dbId) {
         let actionButtons = `<div style="display:flex; justify-content:center; gap:10px;">${reuseBtn}${editBtn}${deleteBtn}</div>`;
         html += `<tr style="${rowStyle}"><td style="padding:8px; border-bottom:1px solid var(--border-color); font-weight:600;">${l.name || l.driver_name || "-"}${badge}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.mob || l.mobile || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.start || l.work_start || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color);">${l.end || l.work_end || "-"}</td><td style="padding:8px; border-bottom:1px solid var(--border-color); text-align:center;">${actionButtons}</td></tr>`;
       });
-      if (data.logs.length === 0)
+      if (logs.length === 0)
         html =
           '<tr><td colspan="5" style="text-align:center; padding: 20px;">No history found.</td></tr>';
       $("#sidePanelDriverLogs").html(html);
@@ -739,18 +763,18 @@ async function submitEditLog() {
         "Driver Name";
       let mobCol =
         cachedHeaders.find((h) => h.toUpperCase() === "MOBILE") || "Mobile";
-      let wsCol =
-        cachedHeaders.find((h) => h.toUpperCase() === "WORK START") ||
-        "Work Start";
+      // 🟢 FIX: മെയിൻ WORK START മാറ്റി DRIVER START DATE ആക്കുന്നു
+      let dStartCol =
+        cachedHeaders.find((h) => h.replace(/\s+/g, "").toUpperCase() === "DRIVERSTARTDATE") ||
+        "DRIVER START DATE";
       let srCol = 
         cachedHeaders.find((h) => h.replace(/\s+/g, "").toUpperCase() === "DRIVERSTATUSREMARK") || 
         "Driver Status Remark";
-        
 
       let edits = [
         { dbId: contextDriverDbId, colName: dNameCol, newValue: name },
         { dbId: contextDriverDbId, colName: mobCol, newValue: mob },
-        { dbId: contextDriverDbId, colName: wsCol, newValue: start },
+        { dbId: contextDriverDbId, colName: dStartCol, newValue: start },
         { dbId: contextDriverDbId, colName: srCol, newValue: $("#editLogStatusRemark").val().trim() }
       ];
       const res = await fetch("/api/update-cells-batch", {
@@ -862,7 +886,7 @@ async function submitDriverUpdate() {
     let edits = [
         { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.toUpperCase() === "DRIVER NAME") || "Driver Name", newValue: nName },
         { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.toUpperCase() === "MOBILE") || "Mobile", newValue: nMob },
-        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.toUpperCase() === "WORK START") || "Work Start", newValue: start },
+        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "DRIVERSTARTDATE") || "DRIVER START DATE", newValue: start },
         { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "IQAMANUMBER") || "Iqama Number", newValue: iqamaNo },
         { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "IQAMAEXPIREDATE" || h.replace(/\s+/g, "").toUpperCase() === "IQAMAEXPIRE") || "Iqama Expire Date", newValue: iqamaExp },
         { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "LICENSEEXPIREDATE" || h.replace(/\s+/g, "").toUpperCase() === "LICENSEEXPIRE" || h.replace(/\s+/g, "").toUpperCase() === "LICENCEEXPIREDATE") || "License Expire Date", newValue: licenceExp },
@@ -1248,9 +1272,6 @@ function attachContextMenus() {
         let plateIdx = cachedHeaders.findIndex(
           (h) => h.trim().toLowerCase() === "plate number",
         );
-        let startIdx = cachedHeaders.findIndex(
-          (h) => h.trim().toLowerCase() === "work start",
-        );
         let $row = $(this).closest("tr");
         contextDriverDbId = $row.data("sheetrow");
         contextDriverPlate = $row.find("td").eq(plateIdx).text().trim();
@@ -1262,7 +1283,7 @@ function attachContextMenus() {
         };
 
         contextDriverMob = getCellVal("MOBILE");
-        contextDriverStart = $row.find("td").eq(startIdx).text().trim();
+        contextDriverStart = getCellVal("DRIVERSTARTDATE") || getCellVal("DRIVERSTART") || "";
         contextDriverIqamaNo = getCellVal("IQAMANUMBER") || getCellVal("IQAMANO");
         contextDriverIqamaExp = getCellVal("IQAMAEXPIREDATE") || getCellVal("IQAMAEXPIRE");
         contextDriverLicenceExp = getCellVal("LICENSEEXPIREDATE") || getCellVal("LICENCEEXPIREDATE") || getCellVal("LICENSEEXPIRE") || getCellVal("LICENCEEXPIRE");
