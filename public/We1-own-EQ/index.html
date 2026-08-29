@@ -717,7 +717,7 @@
                     if (row.site_name && row.site_name.trim() !== "") uniqueSiteNames.add(row.site_name.trim());
                     if (row.plate_no) globalPlates.push(row.plate_no);
 
-                    return {
+                    const formattedRow = {
                         ...row,
                         mob_date_ui,
                         joining_date_ui,
@@ -732,6 +732,27 @@
                         salary: cleanVal(row.salary),
                         plate_no: cleanVal(row.plate_no)
                     };
+
+                    // 🟢 നിലവിൽ ആക്ടീവ് ഫിൽട്ടർ ഉള്ള കോളങ്ങളിൽ പുതിയ ഡാറ്റ വരികയാണെങ്കിൽ ഫിൽട്ടർ ബട്ടൺ ക്ലാസ് നിലനിർത്തുന്നു
+                    return formattedRow;
+                });
+
+                // 🟢 ഫിൽട്ടർ ബട്ടണുകളുടെ ആക്ടീവ് ബ്ലൂ കളർ ഹൈലൈറ്റ് നിലനിർത്തുന്നു
+                const thButtons = document.querySelectorAll('.filter-btn');
+                thButtons.forEach(btn => {
+                    const fnStr = btn.getAttribute('onclick') || '';
+                    let matchedKey = null;
+                    for (const key in activeFilters) {
+                        if (fnStr.includes(`'${key}'`)) {
+                            matchedKey = key;
+                            break;
+                        }
+                    }
+                    if (matchedKey && activeFilters[matchedKey]) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
                 });
 
                 renderFilteredTable();
@@ -1408,7 +1429,14 @@
                 
                 if (data.success) {
                     closeModal();
-                    loadTableData();
+                    
+                    // 🟢 പുതിയ ഡാറ്റ ആക്ടീവ് ഫിൽട്ടറുകളിൽ ഉൾപ്പെടുത്തുന്നു
+                    if (activeFilters['plate_no']) activeFilters['plate_no'].add(payload.plate_no);
+                    if (activeFilters['vehicle_type'] && payload.vehicle_type) activeFilters['vehicle_type'].add(payload.vehicle_type);
+                    if (activeFilters['site_name'] && payload.site_name) activeFilters['site_name'].add(payload.site_name);
+                    if (activeFilters['status'] && payload.status) activeFilters['status'].add(payload.status);
+
+                    await loadTableData();
                 } else {
                     alert("Error: " + data.message);
                 }
