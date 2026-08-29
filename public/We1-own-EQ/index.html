@@ -1428,10 +1428,11 @@ function getCurrentGridPlates() {
                 : new Date(0);
               let end = item[endKey] ? new Date(item[endKey]) : null;
 
-              if (!end && idx + 1 < list.length && list[idx + 1][startKey]) {
-                end = new Date(list[idx + 1][startKey]);
+              // 🟢 List is sorted DESCENDING (newest first). So the "next" chronological record is at idx - 1.
+              if (!end && idx - 1 >= 0 && list[idx - 1][startKey]) {
+                end = new Date(list[idx - 1][startKey]);
               } else if (!end) {
-                end = new Date(8640000000000000);
+                end = new Date(8640000000000000); // Set to max future date
               }
               return { raw: item, start, end };
             });

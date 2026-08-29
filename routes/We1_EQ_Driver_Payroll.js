@@ -22,37 +22,76 @@ router.get("/data", verifyAuth, async (req, res) => {
         }
 
         const query = `
-            SELECT 
-                p.plate_no, 
-                p.driver_name, 
-                p.basic_salary, 
-                p.over_time, 
-                p.deduction, 
-                COALESCE(p.advance_paid, 0) as advance_paid,
-                p.status, 
-                p.remark
-            FROM we1_payroll p 
-            WHERE p.month_year = $1
-            
-            UNION
-            
-            SELECT 
-                m.plate_no, 
-                m.driver_name, 
-                0 as basic_salary, 
-                0 as over_time, 
-                0 as deduction, 
-                0 as advance_paid,
-                'Un Paid' as status, 
-                '' as remark
-            FROM we1_own_eq_master m
-            WHERE NOT EXISTS (
-                SELECT 1 FROM we1_payroll p2 
-                WHERE p2.month_year = $1 
-                  AND p2.plate_no = m.plate_no 
-                  AND p2.driver_name = m.driver_name
+            WITH VehicleEndDates AS (
+                -- Finding the exact stop/replace date of each vehicle from site log & master
+                SELECT 
+                    s.plate_no,
+                    CASE 
+                        WHEN m.status = 'Running' THEN NULL
+                        ELSE MAX(COALESCE(s.replaced_date, s.work_end_date))::date
+                    END as final_end_date
+                FROM we1_site_log s
+                JOIN we1_own_eq_master m ON s.plate_no = m.plate_no
+                GROUP BY s.plate_no, m.status
+            ),
+            DriverHistory AS (
+                SELECT
+                    d.plate_no,
+                    d.driver_name,
+                    d.join_date::date AS start_date,
+                    CASE 
+                        -- If a next driver exists, use their join date as the end date
+                        WHEN LEAD(d.join_date::date) OVER (PARTITION BY d.plate_no ORDER BY d.join_date) IS NOT NULL 
+                        THEN LEAD(d.join_date::date) OVER (PARTITION BY d.plate_no ORDER BY d.join_date)
+                        
+                        -- If no next driver, but the vehicle was replaced/stopped, use the vehicle's end date
+                        WHEN v.final_end_date IS NOT NULL 
+                        THEN v.final_end_date
+                        
+                        -- Otherwise, still running
+                        ELSE NULL
+                    END AS end_date
+                FROM we1_driver_log d
+                LEFT JOIN VehicleEndDates v ON d.plate_no = v.plate_no
+                WHERE d.driver_name IS NOT NULL AND TRIM(d.driver_name) != ''
+            ),
+            ActiveDrivers AS (
+                SELECT
+                    driver_name,
+                    STRING_AGG(DISTINCT plate_no, ' & ') AS plate_no
+                FROM DriverHistory
+                WHERE 
+                    (start_date IS NULL OR start_date <= (TO_DATE($1 || '-01', 'YYYY-MM-DD') + INTERVAL '1 month - 1 day')::date)
+                    AND 
+                    (end_date IS NULL OR end_date >= TO_DATE($1 || '-01', 'YYYY-MM-DD'))
+                GROUP BY driver_name
+            ),
+            PayrollData AS (
+                SELECT
+                    driver_name,
+                    MAX(plate_no) as plate_no,
+                    SUM(basic_salary) as basic_salary,
+                    SUM(over_time) as over_time,
+                    SUM(deduction) as deduction,
+                    SUM(COALESCE(advance_paid, 0)) as advance_paid,
+                    MAX(status) as status,
+                    MAX(remark) as remark
+                FROM we1_payroll
+                WHERE month_year = $1
+                GROUP BY driver_name
             )
-            ORDER BY plate_no ASC, driver_name ASC
+            SELECT
+                a.plate_no AS plate_no,
+                a.driver_name AS driver_name,
+                COALESCE(p.basic_salary, 0) AS basic_salary,
+                COALESCE(p.over_time, 0) AS over_time,
+                COALESCE(p.deduction, 0) AS deduction,
+                COALESCE(p.advance_paid, 0) AS advance_paid,
+                COALESCE(p.status, 'Un Paid') AS status,
+                COALESCE(p.remark, '') AS remark
+            FROM ActiveDrivers a
+            LEFT JOIN PayrollData p ON a.driver_name = p.driver_name
+            ORDER BY a.driver_name ASC
         `;
         
         const result = await pool.query(query, [month_year]);
