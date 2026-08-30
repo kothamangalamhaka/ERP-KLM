@@ -132,9 +132,7 @@ async function init() {
 }
 
 function searchPlate() {
-  document.getElementById("selPlate").addEventListener("focus", searchPlate);
-  document.getElementById("selPlate").addEventListener("click", searchPlate);
-  const val = document.getElementById("selPlate").value.toUpperCase();
+  const val = document.getElementById("selPlate").value.trim().toUpperCase();
   const sug = document.getElementById("plateSuggestions");
   sug.innerHTML = ""; 
   currentFocus = -1;
@@ -369,8 +367,17 @@ async function triggerFetch() {
       if (lockData.lockedBy) {
         let lockedUser = lockData.lockedBy.toUpperCase();
         
-        // 🟢 Show Alert, Set Read-Only Mode & Show Request Edit Button
-        await customAlert(`This record is currently being edited by [ ${lockedUser} ]. Opening in Read-Only mode.`, "Record Locked 🔒");
+        // 🟢 Modal Popup മാറ്റി മുകളിൽ വലതുവശത്ത് Toast Notification കാണിക്കുന്നു (No OK Click Required)
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'warning',
+          title: `Locked by [ ${lockedUser} ]`,
+          text: 'Opening in Read-Only mode',
+          showConfirmButton: false,
+          timer: 3500,
+          timerProgressBar: true
+        });
         
         isReadOnlyMode = true;
         // 🟢 FIX: Reset button completely so user can request again
@@ -458,18 +465,14 @@ async function triggerFetch() {
     document.getElementById("dispOMob").innerText = vObjMaster ? vObjMaster.owner_mobile || "N/A" : "N/A";
     document.getElementById("dispVType").innerText = vObjMaster ? vObjMaster.vehicle_type || "N/A" : "N/A";
 
-    let sStartVal = null, sEndVal = null;
-    if (activeSites.length > 0) {
-      let latestSiteLog = activeSites[0];
-      sStartVal = latestSiteLog.work_start_date ? latestSiteLog.work_start_date.split("T")[0] : null;
-      sEndVal = latestSiteLog.work_end_date ? latestSiteLog.work_end_date.split("T")[0] : null;
-      document.getElementById("dispFieldCo").innerText = latestSiteLog.field_co || (vObjMaster ? vObjMaster.field_co : "N/A");
-      document.getElementById("dispSiteCo").innerText = latestSiteLog.site_co || (vObjMaster ? vObjMaster.site_co : "N/A");
-      document.getElementById("dispSiteStart").innerText = formatDateUI(sStartVal || "N/A");
-      document.getElementById("dispSiteEnd").innerText = sEndVal ? formatDateUI(sEndVal) + (latestSiteLog.new_vehicle_no ? " (Replaced)" : " (Released)") : "Running";
-      document.getElementById("dispAsset").innerText = latestSiteLog.asset_code || (vObjMaster ? vObjMaster.asset_code : "N/A");
-      document.getElementById("dispWorkOrder").innerText = latestSiteLog.work_order_no || (vObjMaster ? vObjMaster.wrk_order_no : "N/A");
-    }
+    // Global variable ആയി activeSites സേവ് ചെയ്യുന്നു (Invoice site മാറുമ്പോൾ റീയൂസ് ചെയ്യാൻ)
+    window.currentActiveSitesList = activeSites;
+    window.currentVehicleMasterObj = vObjMaster;
+
+    updateSiteLogDetailsCard(activeSites.length > 0 ? activeSites[0] : null);
+
+    let sStartVal = activeSites.length > 0 && activeSites[0].work_start_date ? activeSites[0].work_start_date.split("T")[0] : null;
+    let sEndVal = activeSites.length > 0 && activeSites[0].work_end_date ? activeSites[0].work_end_date.split("T")[0] : null;
 
     try {
       const invRes = await fetch(`/payment/get-invoice?plate_no=${p}&month=${m + " " + y}&_t=${ts}`, { headers, cache: "no-store" });
@@ -552,12 +555,66 @@ async function triggerFetch() {
   }
 }
 
+// 🟢 NEW: Site Log Details Card അപ്ഡേറ്റ് ചെയ്യുന്ന ഹെൽപ്പർ ഫംഗ്ഷൻ (Old / New Vehicle സഹിതം)
+function updateSiteLogDetailsCard(targetSiteLog) {
+  const vMaster = window.currentVehicleMasterObj;
+  const oldVehRow = document.getElementById("oldVehRow");
+  const newVehRow = document.getElementById("newVehRow");
+
+  if (!targetSiteLog) {
+    document.getElementById("dispFieldCo").innerText = vMaster ? vMaster.field_co || "N/A" : "N/A";
+    document.getElementById("dispSiteCo").innerText = vMaster ? vMaster.site_co || "N/A" : "N/A";
+    document.getElementById("dispSiteStart").innerText = "N/A";
+    document.getElementById("dispSiteEnd").innerText = "N/A";
+    document.getElementById("dispAsset").innerText = vMaster ? vMaster.asset_code || "N/A" : "N/A";
+    document.getElementById("dispWorkOrder").innerText = vMaster ? vMaster.wrk_order_no || "N/A" : "N/A";
+    if (oldVehRow) oldVehRow.style.display = "none";
+    if (newVehRow) newVehRow.style.display = "none";
+    return;
+  }
+
+  const sStart = targetSiteLog.work_start_date ? targetSiteLog.work_start_date.split("T")[0] : null;
+  const sEnd = targetSiteLog.work_end_date ? targetSiteLog.work_end_date.split("T")[0] : null;
+
+  document.getElementById("dispFieldCo").innerText = targetSiteLog.field_co || (vMaster ? vMaster.field_co : "N/A");
+  document.getElementById("dispSiteCo").innerText = targetSiteLog.site_co || (vMaster ? vMaster.site_co : "N/A");
+  document.getElementById("dispSiteStart").innerText = formatDateUI(sStart || "N/A");
+  document.getElementById("dispSiteEnd").innerText = sEnd ? formatDateUI(sEnd) + (targetSiteLog.new_vehicle_no ? " (Replaced)" : " (Released)") : "Running";
+  document.getElementById("dispAsset").innerText = targetSiteLog.asset_code || (vMaster ? vMaster.asset_code : "N/A");
+  document.getElementById("dispWorkOrder").innerText = targetSiteLog.work_order_no || (vMaster ? vMaster.wrk_order_no : "N/A");
+
+  // 🟢 Old Vehicle ഉണ്ടെങ്കിൽ മാത്രം കാണിക്കുന്നു
+  if (targetSiteLog.old_vehicle_no && targetSiteLog.old_vehicle_no.trim() !== "" && targetSiteLog.old_vehicle_no !== "null") {
+    document.getElementById("dispOldVeh").innerText = targetSiteLog.old_vehicle_no.toUpperCase();
+    if (oldVehRow) oldVehRow.style.display = "flex";
+  } else {
+    if (oldVehRow) oldVehRow.style.display = "none";
+  }
+
+  // 🟢 New Vehicle ഉണ്ടെങ്കിൽ മാത്രം കാണിക്കുന്നു
+  if (targetSiteLog.new_vehicle_no && targetSiteLog.new_vehicle_no.trim() !== "" && targetSiteLog.new_vehicle_no !== "null") {
+    document.getElementById("dispNewVeh").innerText = targetSiteLog.new_vehicle_no.toUpperCase();
+    if (newVehRow) newVehRow.style.display = "flex";
+  } else {
+    if (newVehRow) newVehRow.style.display = "none";
+  }
+}
+
+// 🟢 Invoice Site ഡ്രോപ്പ്ഡൗൺ മാറുമ്പോൾ Invoice ഫോമും ഒപ്പം Site Log Details കാർഡും അപ്ഡേറ്റ് ആകുന്നു
 function loadInvoiceForSelectedSite() {
   const selectedSite = document.getElementById("invSiteSelect").value;
   if (!selectedSite) {
     clearInvoiceForm();
+    updateSiteLogDetailsCard(null);
     return;
   }
+
+  // തിരഞ്ഞെടുത്ത സൈറ്റിൻ്റെ ശരിയായ Site Log കണ്ടെത്തുന്നു
+  if (window.currentActiveSitesList && window.currentActiveSitesList.length > 0) {
+    const matchedSiteLog = window.currentActiveSitesList.find(s => s.site_name === selectedSite) || window.currentActiveSitesList[0];
+    updateSiteLogDetailsCard(matchedSiteLog);
+  }
+
   const inv = currentInvoices.find((i) => i.site_name === selectedSite);
   if (inv) {
     isEditingInvoice = true;
@@ -1125,6 +1182,13 @@ async function saveCellData(rowIdx, colName, colValue) {
   }
 }
 
+// 🟢 NEW: Navbar-ലെ 🔒 Lock ഐക്കണിൽ ക്ലിക്ക് ചെയ്യുമ്പോൾ അൺലോക്ക് പോപ്പ്-അപ്പ് ഓപ്പൺ ആകുന്നു
+function openPeriodUnlockModal() {
+  if (systemLockData && systemLockData.month && systemLockData.year) {
+    customAlert(`The period up to ${systemLockData.month} ${systemLockData.year} is locked. You cannot edit this data without unlocking.`, "Period Locked 🔒");
+  }
+}
+
 function customAlert(message, title = "Notice") {
   return new Promise((resolve) => {
     document.getElementById("customAlertTitle").innerText = title;
@@ -1134,6 +1198,8 @@ function customAlert(message, title = "Notice") {
     const logoutBtn = document.getElementById("alertLogoutBtn");
     const unlockBtn = document.getElementById("alertUnlockBtn");
     const reqOtpBtn = document.getElementById("alertRequestOtpBtn");
+    const okBtn = document.getElementById("alertOkBtn");
+    const closeBtn = document.getElementById("alertCloseBtn");
     const otpInput = document.getElementById("gridUnlockInput");
     
     if (logoutBtn) {
@@ -1150,10 +1216,14 @@ function customAlert(message, title = "Notice") {
         reqOtpBtn.style.display = "inline-block";
         otpInput.style.display = "none"; 
         otpInput.value = ""; 
+        if (okBtn) okBtn.style.display = "none"; // 🟢 OK ബട്ടൺ മറയ്ക്കുന്നു
+        if (closeBtn) closeBtn.style.display = "inline-block"; // 🟢 Close ബട്ടൺ കാണിക്കുന്നു
       } else {
         unlockBtn.style.display = "none";
         reqOtpBtn.style.display = "none";
         otpInput.style.display = "none";
+        if (okBtn) okBtn.style.display = "inline-block";
+        if (closeBtn) closeBtn.style.display = "none";
       }
     }
     
@@ -1407,7 +1477,16 @@ document.addEventListener("click", function (e) {
     const menu = document.getElementById("userDropdownMenu");
     if (menu) menu.style.display = "none";
   }
+  // 🟢 പുറത്ത് ക്ലിക്ക് ചെയ്യുമ്പോൾ suggestions ക്ലോസ് ആകാൻ
+  if (!e.target.closest(".autocomplete-container")) {
+    const sug = document.getElementById("plateSuggestions");
+    if (sug) sug.style.display = "none";
+  }
 });
+
+// 🟢 ഇൻപുട്ടിൽ ഫോക്കസ് ചെയ്യുമ്പോഴും ക്ലിക്ക് ചെയ്യുമ്പോഴും suggestions ഉടൻ വരാൻ
+document.getElementById("selPlate").addEventListener("focus", searchPlate);
+document.getElementById("selPlate").addEventListener("click", searchPlate);
 function toggleDarkMode() {
   const isDark = document.body.classList.toggle("dark-mode");
   localStorage.setItem("timesheetTheme", isDark ? "dark" : "light");
@@ -1808,9 +1887,7 @@ async function applyLockStatus(selectedMonthStr, selectedYearStr, silent = false
     const isCurrentlyLockedInDB = systemLockData.month && systemLockData.year && (selectedAbsolute <= lockAbsolute);
     
     if (isCurrentlyLockedInDB) {
-        let wasAlreadyDisabled = false;
         document.querySelectorAll(".grid-input").forEach(el => {
-            if(el.disabled) wasAlreadyDisabled = true;
             el.disabled = true;
             el.style.backgroundColor = "transparent"; 
             el.style.cursor = "not-allowed";
@@ -1825,10 +1902,16 @@ async function applyLockStatus(selectedMonthStr, selectedYearStr, silent = false
             invBtn.innerText = "🔒 Locked Period";
         }
         
-        if (!silent && !wasAlreadyDisabled) {
-            customAlert(`The period up to ${systemLockData.month} ${systemLockData.year} is locked. You cannot edit this data.`, "Period Locked");
-        }
+        // 🟢 പീരിയഡ് ലോക്ക്ഡ് ആണെങ്കിൽ Pending-ന് അരികിൽ 🔒 ഐക്കൺ ദൃശ്യമാക്കുന്നു
+        const lockBtn = document.getElementById("btnPeriodLock");
+        if (lockBtn) lockBtn.style.display = "inline-block";
+
+        // (ഓട്ടോമാറ്റിക് പോപ്പ്-അപ്പ് പൂർണ്ണമായും ഒഴിവാക്കി, ഉപയോക്താവിന് സുഗമമായി റീഡ്-മോഡിൽ ഡാറ്റ കാണാം)
     } else {
+        // 🟢 അൺലോക്ക്ഡ് ആണെങ്കിൽ 🔒 ഐക്കൺ മറയ്ക്കുന്നു
+        const lockBtn = document.getElementById("btnPeriodLock");
+        if (lockBtn) lockBtn.style.display = "none";
+
         if (isReadOnlyMode) return;
 
         let isUIDisabled = document.querySelector(".grid-input")?.disabled === true;
@@ -1920,7 +2003,16 @@ function startRecordPoll(p, m, y) {
                   isReadOnlyMode = true;
                   currentLockedRecord = null;
                   makeGridReadOnlyLive();
-                  customAlert("Edit access has been transferred to another user. You are now in Read-Only mode.", "Access Transferred"); 
+                  Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'info',
+                    title: 'Access Transferred',
+                    text: 'You are now in Read-Only mode.',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true
+                  });
               }
 
               // 3. I AM THE REQUESTER WAITING FOR RESPONSE

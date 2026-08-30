@@ -129,8 +129,9 @@
           </div>
 
           <div class="nav-buttons-row">
-            <!-- 🟢 FIX: Text removed, only Bell icon, added tooltip and adjusted padding -->
-            <button id="btnRequestEdit" class="req-edit-btn" style="display:none; padding: 8px 12px; font-size: 16px;" title="Request Edit Access" onclick="requestEditAccess()">🔔</button>     
+            <!-- 🟢 Bell icon & Lock icon adjusted for compact single row display -->
+            <button id="btnRequestEdit" class="req-edit-btn" style="display:none; padding: 6px 10px; font-size: 14px; margin: 0; line-height: 1;" title="Request Edit Access" onclick="requestEditAccess()">🔔</button>     
+            <button id="btnPeriodLock" class="req-edit-btn" style="display:none; padding: 6px 10px; font-size: 14px; margin: 0; line-height: 1; background-color: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer;" title="Period Locked - Click to Unlock" onclick="openPeriodUnlockModal()">🔒</button>
             <button class="pendingl"><a href="blank.html">Pending</a></button>
             <button class="tsm"><a href="Dashboard.html">Timesheet</a></button>
             <button class="tsm"><a href="view.html">Ts Card</a></button>
@@ -385,32 +386,32 @@
               <div
                 class="detail-row"
                 id="oldVehRow"
-                style="display: none; margin-top: 5px"
+                style="display: none;"
               >
-                <span class="detail-lbl" style="width: 80px; color: #8b5cf6"
-                  >Old Vehicle</span
+                <span class="detail-lbl" style="width: 80px; color: #d97706;"
+                  >Old</span
                 >
                 <span class="detail-sep">::</span>
                 <span
                   class="detail-val"
                   id="dispOldVeh"
-                  style="color: #8b5cf6; font-weight: 700"
+                  style="color: #d97706; font-weight: 700;"
                   >N/A</span
                 >
               </div>
               <div
                 class="detail-row"
                 id="newVehRow"
-                style="display: none; margin-top: 5px"
+                style="display: none;"
               >
-                <span class="detail-lbl" style="width: 80px; color: #f97316"
-                  >Replaced By</span
+                <span class="detail-lbl" style="width: 80px; color: #0284c7;"
+                  >New</span
                 >
                 <span class="detail-sep">::</span>
                 <span
                   class="detail-val"
                   id="dispNewVeh"
-                  style="color: #f97316; font-weight: 700"
+                  style="color: #0284c7; font-weight: 700;"
                   >N/A</span
                 >
               </div>
@@ -556,16 +557,27 @@
             🔑 Unlock
           </button>
 
-          <!-- 🟢 OK Button (താഴെ സ്പേസ് ബാർ പോലെ ഫുൾ നീളത്തിൽ) -->
+          <!-- 🟢 OK Button -->
           <button
+            id="alertOkBtn"
             class="btn-inv-save"
             style="flex: 1 1 100%; margin: 0; padding: 8px 15px; font-weight: 600; background-color: #0ea5e9; color: white; border: none;"
             onclick="closeCustomAlert()"
           >
             OK
           </button>
+
+          <!-- 🟢 Close Button (Period Lock പോപ്പ്-അപ്പിൽ OK ക്ക് പകരം Close വരും) -->
+          <button
+            id="alertCloseBtn"
+            class="btn-inv-close"
+            style="flex: 1 1 100%; margin: 0; padding: 8px 15px; display: none; background-color: #64748b; color: white; font-weight: 600; border: none; border-radius: 6px; cursor: pointer;"
+            onclick="closeCustomAlert()"
+          >
+            Close
+          </button>
           
-          <!-- 🟢 Logout Button (ലോഗൗട്ട് വേണ്ട സമയത്ത് മാത്രം ഫുൾ നീളത്തിൽ വരും) -->
+          <!-- 🟢 Logout Button -->
           <button
             id="alertLogoutBtn"
             class="btn-inv-close"

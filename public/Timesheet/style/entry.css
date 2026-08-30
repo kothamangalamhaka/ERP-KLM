@@ -101,21 +101,27 @@ body.logsheet-open .right-sidebar {
 /* PC Layout for Top Form */
 .top-form {
   display: flex;
-  gap: 15px;
+  gap: 10px;
   align-items: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow: visible !important; /* 🟢 Suggestions പുറത്തേക്ക് കട്ടാവാതെ വ്യക്തമായി കാണാൻ */
+  position: relative;
 }
 
 .mobile-single-row {
   display: flex;
-  gap: 15px;
+  gap: 10px;
   align-items: flex-end;
+  flex-shrink: 0;
 }
 
 .nav-buttons-row {
   display: flex;
-  gap: 10px;
+  gap: 6px;
   align-items: flex-end;
+  flex-shrink: 0;
+  margin-left: auto; /* വലതു വശത്തേക്ക് ഒതുങ്ങി നിൽക്കാൻ */
 }
 
 .form-group {
@@ -376,11 +382,22 @@ td input[type="checkbox"] {
   color: #f59e0b !important;
 }
 
+.card {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 15px;
+  border: 1px solid #e2e8f0;
+  overflow: visible !important; /* 🟢 Card കണ്ടെയ്‌നറും visible ആക്കുന്നു */
+}
+
 .autocomplete-container {
   position: relative;
   display: flex;
   gap: 8px;
   width: 250px;
+  z-index: 1005;
 }
 
 .suggestions {
@@ -391,11 +408,11 @@ td input[type="checkbox"] {
   background: white;
   border: 1px solid #cbd5e1;
   border-top: none;
-  max-height: 200px;
+  max-height: 220px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 9999 !important; /* 🟢 ടേബിളിന്റെ മുകളിൽ ഏറ്റവും മുന്നിൽ തെളിയാൻ */
   border-radius: 0 0 5px 5px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
 .suggestions div {
@@ -453,17 +470,18 @@ td input[type="checkbox"] {
   background: none;
   color: white;
   border: none;
-  padding: 8px 20px;
+  padding: 6px 12px; /* 🟢 സ്പേസ് ലാഭിക്കാൻ പാഡിംഗ് ഒതുക്കി */
   border-radius: 5px;
   cursor: pointer;
   font-weight: 600;
   font-family: Georgia, "Times New Roman", Times, serif;
   transition: background 0.2s;
+  white-space: nowrap;
 }
 
 .pendingl {
   border: 2px solid #0d6efd;
-  margin-left: 110px;
+  margin-left: 0; /* 🟢 110px മാർജിൻ മാറ്റി ഫിറ്റ് ആക്കി */
 }
 
 .pendingl > a {
