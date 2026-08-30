@@ -14,12 +14,26 @@ const logTableMapping = {
   SanthookLog: "we1_santhook_log",
 };
 
-// 1. Fetch all EQ Master Data
+// 1. Fetch all EQ Master Data (With Latest Driver Log Details Joined)
 router.get("/data", verifyToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM we1_own_eq_master ORDER BY id ASC",
-    );
+    const query = `
+      SELECT 
+        m.*,
+        d.iqama_no,
+        d.iqama_expiry,
+        d.licence_expiry
+      FROM we1_own_eq_master m
+      LEFT JOIN LATERAL (
+        SELECT iqama_no, iqama_expiry, licence_expiry
+        FROM we1_driver_log
+        WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM(m.plate_no))
+        ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
+        LIMIT 1
+      ) d ON true
+      ORDER BY m.id ASC
+    `;
+    const result = await pool.query(query);
     res.json({ success: true, data: result.rows });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -119,7 +133,7 @@ router.post("/log/save", verifyEditor, async (req, res) => {
       }
     } else if (type === "DriverLog") {
       const latest = await client.query(
-        `SELECT driver_name, driver_mobile, join_date, salary FROM we1_driver_log WHERE plate_no = $1 ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
+        `SELECT driver_name, driver_mobile, join_date, salary, iqama_no, iqama_expiry, licence_expiry FROM we1_driver_log WHERE plate_no = $1 ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
         [plate_no],
       );
       if (latest.rows.length > 0) {
@@ -173,7 +187,7 @@ router.post("/log/save", verifyEditor, async (req, res) => {
   }
 });
 
-// 4. Add New Vehicle (With Auto-Log Generation)
+// 4. Add New Vehicle (With Auto-Log Generation and Full Details)
 router.post("/add", verifyEditor, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -189,6 +203,18 @@ router.post("/add", verifyEditor, async (req, res) => {
       santhook,
       salary,
       status,
+      note,
+      old_eq,
+      new_eq,
+      iqama_no,
+      iqama_expiry,
+      licence_expiry,
+      chassis_no,
+      serial_no,
+      eq_insurance_exp,
+      fahs_mvpi_exp,
+      op_card_exp,
+      isthimaara_exp
     } = req.body;
 
     if (!plate_no) throw new Error("Plate number is required.");
@@ -201,9 +227,38 @@ router.post("/add", verifyEditor, async (req, res) => {
     // 1. Insert to Master Table
     const query = `
         INSERT INTO we1_own_eq_master 
-        (plate_no, mob_date, vehicle_type, driver_name, driver_mobile, joining_date, site_name, vehicle_owner, santhook, salary, status) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-        ON CONFLICT (plate_no) DO NOTHING
+        (
+          plate_no, mob_date, vehicle_type, driver_name, driver_mobile, 
+          joining_date, site_name, vehicle_owner, santhook, salary, 
+          status, note, old_eq, new_eq, chassis_no, 
+          serial_no, eq_insurance_exp, fahs_mvpi_exp, op_card_exp, isthimaara_exp
+        ) 
+        VALUES (
+          $1, $2, $3, $4, $5, 
+          $6, $7, $8, $9, $10, 
+          $11, $12, $13, $14, $15, 
+          $16, $17, $18, $19, $20
+        ) 
+        ON CONFLICT (plate_no) DO UPDATE SET
+          mob_date = EXCLUDED.mob_date,
+          vehicle_type = EXCLUDED.vehicle_type,
+          driver_name = EXCLUDED.driver_name,
+          driver_mobile = EXCLUDED.driver_mobile,
+          joining_date = EXCLUDED.joining_date,
+          site_name = EXCLUDED.site_name,
+          vehicle_owner = EXCLUDED.vehicle_owner,
+          santhook = EXCLUDED.santhook,
+          salary = EXCLUDED.salary,
+          status = EXCLUDED.status,
+          note = EXCLUDED.note,
+          old_eq = EXCLUDED.old_eq,
+          new_eq = EXCLUDED.new_eq,
+          chassis_no = EXCLUDED.chassis_no,
+          serial_no = EXCLUDED.serial_no,
+          eq_insurance_exp = EXCLUDED.eq_insurance_exp,
+          fahs_mvpi_exp = EXCLUDED.fahs_mvpi_exp,
+          op_card_exp = EXCLUDED.op_card_exp,
+          isthimaara_exp = EXCLUDED.isthimaara_exp
         `;
     const values = [
       cleanPlate,
@@ -217,23 +272,35 @@ router.post("/add", verifyEditor, async (req, res) => {
       val(santhook),
       val(salary),
       val(status) || "Running",
+      val(note),
+      val(old_eq),
+      val(new_eq),
+      val(chassis_no),
+      val(serial_no),
+      val(eq_insurance_exp),
+      val(fahs_mvpi_exp),
+      val(op_card_exp),
+      val(isthimaara_exp)
     ];
     await client.query(query, values);
 
     // 2. Insert into Specific Logs Automatically (Always creates an initial row)
     await client.query(
-      `INSERT INTO we1_site_log (plate_no, site_name, mob_date) VALUES ($1, $2, $3)`,
-      [cleanPlate, val(site_name), val(mob_date)],
+      `INSERT INTO we1_site_log (plate_no, site_name, mob_date, old_eq, new_eq) VALUES ($1, $2, $3, $4, $5)`,
+      [cleanPlate, val(site_name), val(mob_date), val(old_eq), val(new_eq)],
     );
 
     await client.query(
-      `INSERT INTO we1_driver_log (plate_no, driver_name, driver_mobile, join_date, salary) VALUES ($1, $2, $3, $4, $5)`,
+      `INSERT INTO we1_driver_log (plate_no, driver_name, driver_mobile, join_date, salary, iqama_no, iqama_expiry, licence_expiry) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         cleanPlate,
         val(driver_name),
         val(driver_mobile),
         val(joining_date),
         val(salary),
+        val(iqama_no),
+        val(iqama_expiry),
+        val(licence_expiry)
       ],
     );
 
@@ -276,6 +343,40 @@ router.post("/update-note", verifyEditor, async (req, res) => {
       [note, plate_no],
     );
     res.json({ success: true, message: "Note updated successfully." });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+// 5.1 Update Equipment Master Specs (Direct Data Edit)
+router.post("/equipment/update-specs", verifyEditor, async (req, res) => {
+  try {
+    const { plate_no, chassis_no, serial_no, eq_insurance_exp, fahs_mvpi_exp, op_card_exp, isthimaara_exp } = req.body;
+    if (!plate_no) throw new Error("Plate number is missing.");
+
+    const val = (v) => (v && String(v).trim() !== "" ? v : null);
+
+    await pool.query(
+      `UPDATE we1_own_eq_master 
+       SET chassis_no = $1, 
+           serial_no = $2, 
+           eq_insurance_exp = $3, 
+           fahs_mvpi_exp = $4,
+           op_card_exp = $5,
+           isthimaara_exp = $6 
+       WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($7))`,
+      [
+        val(chassis_no),
+        val(serial_no),
+        val(eq_insurance_exp),
+        val(fahs_mvpi_exp),
+        val(op_card_exp),
+        val(isthimaara_exp),
+        plate_no.trim()
+      ]
+    );
+
+    res.json({ success: true, message: "Equipment specifications updated successfully." });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

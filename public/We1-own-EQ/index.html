@@ -70,6 +70,7 @@
       .container {
         padding: 20px;
         overflow-x: auto;
+        min-height: 90vh;
       }
 
       table {
@@ -220,15 +221,43 @@
         font-weight: bold;
       }
 
+      /* 🟢 Sticky Freeze for SN & Plate No Columns */
+      th.sticky-sn, td.sticky-sn {
+        position: sticky;
+        left: 0;
+        background-color: inherit;
+        z-index: 2;
+      }
+      th.sticky-sn {
+        z-index: 12;
+        background-color: var(--ribbon-bg);
+      }
+
+      th.sticky-plate, td.sticky-plate {
+        position: sticky;
+        left: 45px; /* SN കോളത്തിന് ശേഷമുള്ള സ്ഥാനം */
+        background-color: inherit;
+        z-index: 2;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.08); /* സ്ക്രോൾ ചെയ്യുമ്പോൾ വേർതിരിവ് കാണാൻ */
+      }
+      th.sticky-plate {
+        z-index: 12;
+        background-color: var(--ribbon-bg);
+      }
+
       td.sn-col {
         color: #6e7781;
         font-weight: 500;
+        width: 35px;
+        min-width: 35px;
+        text-align: center;
       }
 
       td.plate-col {
         font-weight: 700;
         color: #000000;
         cursor: context-menu;
+        min-width: 100px;
       }
 
       a {
@@ -467,6 +496,7 @@
         🚜 Vehicle Type & Santhook
       </button>
       <button onclick="openLog('OwnerLog')">📋 Owner Log</button>
+      <button onclick="openLog('Equipment')">🚜 Equipment</button>
 
       <button
         class="salary"
@@ -724,6 +754,12 @@
             >
               📋 Owner Log
             </button>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('Equipment', this)"
+            >
+              🚜 Equipment
+            </button>
           </div>
 
           <div class="log-left-form">
@@ -801,7 +837,7 @@
       <table id="eqTable">
         <thead>
           <tr>
-            <th>SN</th>
+            <th class="sticky-sn">SN</th>
             <th>
               <div class="th-content">
                 <span>Mobilisation Date</span>
@@ -824,7 +860,7 @@
                 </button>
               </div>
             </th>
-            <th>
+            <th class="sticky-plate">
               <div class="th-content">
                 <span>Plate No</span>
                 <button
@@ -956,12 +992,111 @@
                 </button>
               </div>
             </th>
+            <th>
+              <div class="th-content">
+                <span>IQAMA No.</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'iqama_no')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>IQAMA Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'iqama_expiry_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Licence Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'licence_expiry_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Chassis No</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'chassis_no')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Serial No</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'serial_no')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>EQ Insurance Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'eq_insurance_exp_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>FAHS/MVPI Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'fahs_mvpi_exp_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Operation Card Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'op_card_exp_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <span>Isthimaara Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'isthimaara_exp_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody id="eqTableBody">
           <tr>
             <td
-              colspan="15"
+              colspan="22"
               style="text-align: center; padding: 20px; color: #57606a"
             >
               Fetching data via Load Balancer...
@@ -973,9 +1108,24 @@
 
     <script>
       function formatUIDate(dateStr) {
-        if (!dateStr) return "-";
+        if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return "";
+        
+        // തീയതിയിലെ ടൈംസോൺ പ്രശ്നം ഒഴിവാക്കാൻ YYYY-MM-DD നേരിട്ട് പാർസ് ചെയ്യുന്നു
+        const cleanStr = String(dateStr).split("T")[0].trim();
+        const parts = cleanStr.split(/[-/]/);
+        
+        if (parts.length === 3 && parts[0].length === 4) {
+          const year = parts[0].slice(-2);
+          const monthNum = parseInt(parts[1], 10) - 1;
+          const day = String(parts[2]).padStart(2, "0");
+          
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const month = monthNames[monthNum] || parts[1];
+          return `${day}-${month}-${year}`;
+        }
+
         const d = new Date(dateStr);
-        if (isNaN(d)) return "-";
+        if (isNaN(d.getTime())) return "";
 
         const day = String(d.getDate()).padStart(2, "0");
         const month = d.toLocaleString("en-GB", { month: "short" });
@@ -985,7 +1135,8 @@
       }
 
       function cleanVal(val) {
-        return val === null || val === undefined ? "-" : val;
+        if (val === null || val === undefined || val === "null" || val === "undefined") return "";
+        return String(val).trim();
       }
 
       let uniqueVehicleTypes = new Set();
@@ -1110,6 +1261,12 @@
           masterTableData = (data.data || []).map((row) => {
             const mob_date_ui = formatUIDate(row.mob_date);
             const joining_date_ui = formatUIDate(row.joining_date);
+            const iqama_expiry_ui = formatUIDate(row.iqama_expiry);
+            const licence_expiry_ui = formatUIDate(row.licence_expiry);
+            const eq_insurance_exp_ui = formatUIDate(row.eq_insurance_exp);
+            const fahs_mvpi_exp_ui = formatUIDate(row.fahs_mvpi_exp);
+            const op_card_exp_ui = formatUIDate(row.op_card_exp);
+            const isthimaara_exp_ui = formatUIDate(row.isthimaara_exp);
 
             if (row.vehicle_type && row.vehicle_type.trim() !== "")
               uniqueVehicleTypes.add(row.vehicle_type.trim());
@@ -1130,6 +1287,12 @@
               ...row,
               mob_date_ui,
               joining_date_ui,
+              iqama_expiry_ui,
+              licence_expiry_ui,
+              eq_insurance_exp_ui,
+              fahs_mvpi_exp_ui,
+              op_card_exp_ui,
+              isthimaara_exp_ui,
               status: cleanVal(row.status),
               note: cleanVal(row.note),
               driver_mobile: cleanVal(row.driver_mobile),
@@ -1142,6 +1305,9 @@
               plate_no: cleanVal(row.plate_no),
               old_eq: cleanVal(row.old_eq),
               new_eq: cleanVal(row.new_eq),
+              chassis_no: cleanVal(row.chassis_no),
+              serial_no: cleanVal(row.serial_no),
+              iqama_no: cleanVal(row.iqama_no),
             };
           });
 
@@ -1216,11 +1382,32 @@
             });
 
             if (filteredRows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="19" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
                 return;
             }
 
         const fragment = document.createDocumentFragment();
+
+        function getCellExpiryStyle(dateStr) {
+          if (!dateStr || dateStr === "null" || dateStr === "undefined" || dateStr.trim() === "") return "";
+          const target = new Date(dateStr);
+          if (isNaN(target.getTime())) return "";
+
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          target.setHours(0, 0, 0, 0);
+
+          const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+
+          if (diffDays < 0) {
+            // 🔴 Already Expired: Red background + White bold text
+            return "background-color: #dc3545 !important; color: #ffffff !important; font-weight: bold; text-align: center;";
+          } else if (diffDays <= 30) {
+            // 🟠 Expiring in 30 days: Orange background + Orange text
+            return "background-color: #fff3cd !important; color: #d97706 !important; font-weight: bold; text-align: center;";
+          }
+          return "";
+        }
 
         filteredRows.forEach((row, index) => {
           const tr = document.createElement("tr");
@@ -1232,10 +1419,10 @@
                 : "status-released";
 
           tr.innerHTML = `
-                    <td class="sn-col">${index + 1}</td>
+                    <td class="sn-col sticky-sn">${index + 1}</td>
                     <td>${row.mob_date_ui}</td>
                     <td>${row.vehicle_type}</td>
-                    <td class="plate-col" oncontextmenu="handlePlateContextMenu(event, '${row.plate_no}')" title="Right-click for options">${row.plate_no}</td>
+                    <td class="plate-col sticky-plate" oncontextmenu="handlePlateContextMenu(event, '${row.plate_no}')" title="Right-click for options">${row.plate_no}</td>
                     <td>${row.driver_name}</td>
                     <td>${row.driver_mobile}</td>
                     <td>${row.joining_date_ui}</td>
@@ -1247,6 +1434,15 @@
                     <td ondblclick="enableNoteEdit(this)" onblur="saveNoteDirect(this, '${row.plate_no}')" data-old="${row.note}" style="white-space: pre-wrap; cursor: pointer; outline: none; min-width: 150px; transition: background 0.3s;" title="Double click to edit">${row.note}</td>
                     <td>${row.old_eq}</td>
                     <td>${row.new_eq}</td>
+                    <td>${row.iqama_no || ''}</td>
+                    <td style="${getCellExpiryStyle(row.iqama_expiry)}">${row.iqama_expiry_ui || formatUIDate(row.iqama_expiry)}</td>
+                    <td style="${getCellExpiryStyle(row.licence_expiry)}">${row.licence_expiry_ui || formatUIDate(row.licence_expiry)}</td>
+                    <td>${row.chassis_no || ''}</td>
+                    <td>${row.serial_no || ''}</td>
+                    <td style="${getCellExpiryStyle(row.eq_insurance_exp)}">${row.eq_insurance_exp_ui || formatUIDate(row.eq_insurance_exp)}</td>
+                    <td style="${getCellExpiryStyle(row.fahs_mvpi_exp)}">${row.fahs_mvpi_exp_ui || formatUIDate(row.fahs_mvpi_exp)}</td>
+                    <td style="${getCellExpiryStyle(row.op_card_exp)}">${row.op_card_exp_ui || formatUIDate(row.op_card_exp)}</td>
+                    <td style="${getCellExpiryStyle(row.isthimaara_exp)}">${row.isthimaara_exp_ui || formatUIDate(row.isthimaara_exp)}</td>
                 `;
           fragment.appendChild(tr);
         });
@@ -1334,7 +1530,7 @@ function getCurrentGridPlates() {
 
       // Helper to check if current form has inputs
       function logHasUnsavedData(type) {
-        if (!logConfigs[type]) return false;
+        if (!logConfigs[type] || type === "Equipment") return false;
         let hasData = false;
         const check = (f) => {
           const elem = document.getElementById(f.id);
@@ -1769,6 +1965,8 @@ function onCheckboxChange(cb) {
           masterTableData = (data.data || []).map((row) => {
             const mob_date_ui = formatUIDate(row.mob_date);
             const joining_date_ui = formatUIDate(row.joining_date);
+            const eq_insurance_exp_ui = formatUIDate(row.eq_insurance_exp);
+            const fahs_mvpi_exp_ui = formatUIDate(row.fahs_mvpi_exp);
 
             if (row.vehicle_type && row.vehicle_type.trim() !== "")
               uniqueVehicleTypes.add(row.vehicle_type.trim());
@@ -1789,6 +1987,8 @@ function onCheckboxChange(cb) {
               ...row,
               mob_date_ui,
               joining_date_ui,
+              eq_insurance_exp_ui,
+              fahs_mvpi_exp_ui,
               status: cleanVal(row.status),
               note: cleanVal(row.note),
               driver_mobile: cleanVal(row.driver_mobile),
@@ -1801,6 +2001,8 @@ function onCheckboxChange(cb) {
               plate_no: cleanVal(row.plate_no),
               old_eq: cleanVal(row.old_eq),
               new_eq: cleanVal(row.new_eq),
+              chassis_no: cleanVal(row.chassis_no),
+              serial_no: cleanVal(row.serial_no),
             };
           });
 
@@ -1948,14 +2150,58 @@ function onCheckboxChange(cb) {
             list: "driverSuggestions",
           },
           {
-            id: "f_driver_mobile",
-            label: "Mobile",
-            type: "text",
-            placeholder: "Mobile Number",
+            type: "row",
+            fields: [
+              {
+                id: "f_driver_mobile",
+                label: "Mobile",
+                type: "text",
+                placeholder: "Mobile Number",
+              },
+              {
+                id: "f_salary",
+                label: "Salary",
+                type: "number",
+                placeholder: "Salary",
+              },
+            ],
           },
-          { id: "f_join_date", label: "Joining Date", type: "date" },
-          { id: "f_work_end_date", label: "Work End Date", type: "date" },
-          { id: "f_salary", label: "Salary", type: "number" },
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_join_date",
+                label: "Joining Date",
+                type: "date",
+              },
+              {
+                id: "f_work_end_date",
+                label: "Work End Date",
+                type: "date",
+              },
+            ],
+          },
+          {
+            id: "f_iqama_no",
+            label: "IQAMA No.",
+            type: "text",
+            placeholder: "Enter IQAMA No",
+          },
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_iqama_expiry",
+                label: "IQAMA Expiry",
+                type: "date",
+              },
+              {
+                id: "f_licence_expiry",
+                label: "Licence Expiry",
+                type: "date",
+              },
+            ],
+          },
         ],
         VehicleTypeLog: [
           {
@@ -1982,6 +2228,55 @@ function onCheckboxChange(cb) {
           },
           { id: "f_start_date", label: "Start Date", type: "date" },
           { id: "f_end_date", label: "End Date", type: "date" },
+        ],
+        Equipment: [
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_chassis_no",
+                label: "Chassis No",
+                type: "text",
+                placeholder: "Chassis No",
+              },
+              {
+                id: "f_serial_no",
+                label: "Serial No",
+                type: "text",
+                placeholder: "Serial No",
+              },
+            ],
+          },
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_eq_insurance_exp",
+                label: "EQ Insurance Exp",
+                type: "date",
+              },
+              {
+                id: "f_fahs_mvpi_exp",
+                label: "FAHS/MVPI Exp",
+                type: "date",
+              },
+            ],
+          },
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_op_card_exp",
+                label: "Operation Card Exp",
+                type: "date",
+              },
+              {
+                id: "f_isthimaara_exp",
+                label: "Isthimaara Exp",
+                type: "date",
+              },
+            ],
+          },
         ],
       };
 
@@ -2020,7 +2315,55 @@ function onCheckboxChange(cb) {
       async function loadLogHistory(type, plate) {
         const tbody = document.getElementById("logTableBody");
         const thead = document.getElementById("logTableHead");
-        tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11">Loading...</td></tr>';
+
+        if (type === "Equipment") {
+          thead.innerHTML = `<tr><th>Chassis No</th><th>Serial No</th><th>Insurance Exp</th><th>MVPI Exp</th><th>Op Card Exp</th><th>Isthimaara Exp</th></tr>`;
+          
+          const currentEq = masterTableData.find(
+            (m) => String(m.plate_no || "").toUpperCase().trim() === String(plate || "").toUpperCase().trim()
+          );
+
+          const setVal = (id, val, isDate = false) => {
+            const el = document.getElementById(id);
+            if (el) {
+              if (isDate) {
+                el.value = (val && val !== "-" && val !== "null") ? String(val).split("T")[0] : "";
+              } else {
+                el.value = (val && val !== "-" && val !== "null") ? val : "";
+              }
+            }
+          };
+
+          if (currentEq) {
+            setVal("f_chassis_no", currentEq.chassis_no);
+            setVal("f_serial_no", currentEq.serial_no);
+            setVal("f_eq_insurance_exp", currentEq.eq_insurance_exp, true);
+            setVal("f_fahs_mvpi_exp", currentEq.fahs_mvpi_exp, true);
+            setVal("f_op_card_exp", currentEq.op_card_exp, true);
+            setVal("f_isthimaara_exp", currentEq.isthimaara_exp, true);
+
+            tbody.innerHTML = `
+              <tr>
+                <td>${currentEq.chassis_no && currentEq.chassis_no !== "-" ? currentEq.chassis_no : "-"}</td>
+                <td>${currentEq.serial_no && currentEq.serial_no !== "-" ? currentEq.serial_no : "-"}</td>
+                <td>${formatUIDate(currentEq.eq_insurance_exp)}</td>
+                <td>${formatUIDate(currentEq.fahs_mvpi_exp)}</td>
+                <td>${formatUIDate(currentEq.op_card_exp)}</td>
+                <td>${formatUIDate(currentEq.isthimaara_exp)}</td>
+              </tr>
+            `;
+          } else {
+            setVal("f_chassis_no", "");
+            setVal("f_serial_no", "");
+            setVal("f_eq_insurance_exp", "", true);
+            setVal("f_fahs_mvpi_exp", "", true);
+            setVal("f_op_card_exp", "", true);
+            setVal("f_isthimaara_exp", "", true);
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No Equipment Details Found</td></tr>`;
+          }
+          return;
+        }
 
         let headers = [];
         if (type === "SiteLog")
@@ -2041,6 +2384,9 @@ function onCheckboxChange(cb) {
             "Join Date",
             "End Date",
             "Salary",
+            "IQAMA No.",
+            "IQAMA Exp",
+            "Licence Exp",
             "Edit",
           ];
         else if (type === "VehicleTypeLog")
@@ -2158,7 +2504,7 @@ function onCheckboxChange(cb) {
 
                 tdHtml = `<td>${r.site_name || "-"}</td><td>${formatUIDate(r.mob_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${formatUIDate(r.replaced_date)}</td><td>${r.old_eq || "-"}</td><td>${r.new_eq || "-"}</td><td>${status}</td>`;
               } else if (type === "DriverLog") {
-                tdHtml = `<td>${r.driver_name || "-"}</td><td>${r.driver_mobile || r.mobile || "-"}</td><td>${formatUIDate(r.join_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${r.salary || "-"}</td>`;
+                tdHtml = `<td>${r.driver_name || "-"}</td><td>${r.driver_mobile || r.mobile || "-"}</td><td>${formatUIDate(r.join_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${r.salary || "-"}</td><td>${r.iqama_no || "-"}</td><td>${formatUIDate(r.iqama_expiry)}</td><td>${formatUIDate(r.licence_expiry)}</td>`;
               } else if (type === "OwnerLog") {
                 tdHtml = `<td>${r.owner_name || "-"}</td><td>${formatUIDate(r.start_date)}</td><td>${formatUIDate(r.end_date)}</td>`;
               }
@@ -2228,7 +2574,7 @@ function onCheckboxChange(cb) {
     if (!nextPlate) return;
     
     document.getElementById('activeLogPlate').value = nextPlate;
-    const titleLabel = currentType === 'VehicleTypeLog' ? '🚜 Vehicle Type & Santhook' : `📂 ${currentType}`;
+    const titleLabel = currentType === 'VehicleTypeLog' ? '🚜 Vehicle Type & Santhook' : currentType === 'Equipment' ? '🚜 Equipment' : `📂 ${currentType}`;
     document.getElementById('splitLogTitle').innerText = `${titleLabel} - ${nextPlate}`;
     document.getElementById('editLogId').value = '';
     document.getElementById('editSanthookLogId').value = '';
@@ -2242,6 +2588,44 @@ function onCheckboxChange(cb) {
         const plate = document.getElementById("activeLogPlate").value;
         const id = document.getElementById("editLogId").value;
         const token = localStorage.getItem("emp_token");
+
+        if (type === "Equipment") {
+          const payload = {
+            plate_no: plate,
+            chassis_no: (document.getElementById("f_chassis_no")?.value || "").trim(),
+            serial_no: (document.getElementById("f_serial_no")?.value || "").trim(),
+            eq_insurance_exp: document.getElementById("f_eq_insurance_exp")?.value || null,
+            fahs_mvpi_exp: document.getElementById("f_fahs_mvpi_exp")?.value || null,
+            op_card_exp: document.getElementById("f_op_card_exp")?.value || null,
+            isthimaara_exp: document.getElementById("f_isthimaara_exp")?.value || null,
+          };
+
+          try {
+            const res = await fetch("/api/we1-own-eq/equipment/update-specs", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+              body: JSON.stringify(payload),
+            });
+            const responseData = await res.json();
+
+            if (responseData.success) {
+              await loadTableData();
+              if (!isAutoSave) {
+                loadLogHistory(type, plate);
+              }
+              return true;
+            } else {
+              alert("Error: " + responseData.message);
+              return false;
+            }
+          } catch (e) {
+            alert("Network Error while updating Equipment");
+            return false;
+          }
+        }
 
         if (type === "VehicleTypeLog") {
           const vTypeVal = document
@@ -2369,59 +2753,134 @@ function onCheckboxChange(cb) {
 
       function openAddModal() {
         let formHtml = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-height: 70vh; overflow-y: auto; padding-right: 5px;">
-                    <div style="grid-column: span 2;">
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Plate Number <span style="color:red;">*</span></label>
-                        <input type="text" id="newPlateNo" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px; text-transform: uppercase;" placeholder="e.g. 1234 ABC">
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Mobilisation Date</label>
-                        <input type="date" id="newMobDate" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;">
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Vehicle Type</label>
-                        <input type="text" id="newVType" list="vTypeSuggestions" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="e.g. Water Tanker">
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Driver Name</label>
-                        <input type="text" id="newDriver" list="driverSuggestions" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Driver Name">
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Mobile</label>
-                        <input type="text" id="newDriverMob" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Mobile Number">
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Joining Date</label>
-                        <input type="date" id="newJoinDate" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;">
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Site Name</label>
-                        <input type="text" id="newSite" list="siteSuggestions" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Site Name">
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Vehicle Owner</label>
-                        <input type="text" id="newOwner" list="ownerSuggestions" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Owner Name">
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Santhook</label>
-                        <input type="text" id="newSanthook" list="santhookSuggestions" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="Santhook Owner Name">
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Salary</label>
-                        <input type="number" id="newSalary" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;" placeholder="0.00">
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; display: block; margin-bottom: 5px;">Status</label>
-                        <select id="newStatus" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d0d7de; border-radius: 4px;">
-                            <option value="Running">Running</option>
-                            <option value="Mobilizing">Mobilizing</option>
-                            <option value="Released">Released</option>
-                        </select>
-                    </div>
-                    <button onclick="saveNewVehicle()" style="grid-column: span 2; margin-top: 10px; padding: 10px; background: #1a7f37; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 14px;">Save Full Details</button>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; max-height: 80vh; overflow-y: auto; padding: 10px 6px;">
+                
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Mobilisation Date</label>
+                    <input type="date" id="newMobDate" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
-            `;
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Vehicle Type</label>
+                    <input type="text" id="newVType" list="vTypeSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="e.g. Water Tanker">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 12px; color: #0969da; display: block; margin-bottom: 5px;">Plate Number <span style="color:red;">*</span></label>
+                    <input type="text" id="newPlateNo" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1.5px solid #0969da; border-radius: 6px; font-size: 13px; text-transform: uppercase; font-weight: 700; outline: none;" placeholder="e.g. 5645 JAA">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Driver Name</label>
+                    <input type="text" id="newDriver" list="driverSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Driver Name">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Mobile</label>
+                    <input type="text" id="newDriverMob" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Mobile Number">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Joining Date</label>
+                    <input type="date" id="newJoinDate" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Site Name</label>
+                    <input type="text" id="newSite" list="siteSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Site Name">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Vehicle Owner</label>
+                    <input type="text" id="newOwner" list="ownerSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Owner Name">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Santhook</label>
+                    <input type="text" id="newSanthook" list="santhookSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Santhook Owner Name">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Salary</label>
+                    <input type="number" id="newSalary" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Status</label>
+                    <select id="newStatus" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none; background: #fff;">
+                        <option value="Running">Running</option>
+                        <option value="Mobilizing">Mobilizing</option>
+                        <option value="Released">Released</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Note</label>
+                    <input type="text" id="newNote" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Enter Note">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Old EQ</label>
+                    <input type="text" id="newOldEq" list="plateSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Old Plate No">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">New EQ</label>
+                    <input type="text" id="newNewEq" list="plateSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="New Plate No">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">IQAMA No.</label>
+                    <input type="text" id="newIqamaNo" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="IQAMA Number">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">IQAMA Expiry</label>
+                    <input type="date" id="newIqamaExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Licence Expiry</label>
+                    <input type="date" id="newLicenceExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Chassis No</label>
+                    <input type="text" id="newChassisNo" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Chassis No">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Serial No</label>
+                    <input type="text" id="newSerialNo" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Serial No">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">EQ Insurance Exp</label>
+                    <input type="date" id="newEqInsuranceExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">FAHS/MVPI Exp</label>
+                    <input type="date" id="newFahsExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Operation Card Exp</label>
+                    <input type="date" id="newOpCardExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Isthimaara Exp</label>
+                    <input type="date" id="newIsthimaaraExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+
+                <div class="form-group" style="grid-column: span 2; display: flex; align-items: flex-end;">
+                    <button onclick="saveNewVehicle()" style="width: 100%; height: 36px; background: #1a7f37; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); transition: background 0.2s;">💾 Save Full Equipment Details</button>
+                </div>
+            </div>
+        `;
+        
+        // 🟢 Screen size അനുസരിച്ച് Responsive Width നൽകുന്നു
+        const modalContent = document.querySelector("#commonModal .modal-content");
+        if (modalContent) {
+          modalContent.style.width = "1180px";
+          modalContent.style.maxWidth = "94vw";
+          modalContent.style.padding = "24px";
+          modalContent.style.borderRadius = "10px";
+        }
         openModal("➕ Add New Equipment Entry", formHtml);
+      }
+
+      function closeModal() {
+        const modalContent = document.querySelector("#commonModal .modal-content");
+        if (modalContent) {
+          modalContent.style.width = "400px";
+          modalContent.style.maxWidth = "90%";
+          modalContent.style.padding = "20px";
+        }
+        document.getElementById("commonModal").style.display = "none";
       }
 
       async function saveNewVehicle() {
@@ -2433,16 +2892,28 @@ function onCheckboxChange(cb) {
 
         const payload = {
           plate_no: plate_no,
-          mob_date: document.getElementById("newMobDate").value,
+          mob_date: document.getElementById("newMobDate").value || null,
           vehicle_type: document.getElementById("newVType").value.trim(),
           driver_name: document.getElementById("newDriver").value.trim(),
           driver_mobile: document.getElementById("newDriverMob").value.trim(),
-          joining_date: document.getElementById("newJoinDate").value,
+          joining_date: document.getElementById("newJoinDate").value || null,
           site_name: document.getElementById("newSite").value.trim(),
           vehicle_owner: document.getElementById("newOwner").value.trim(),
           santhook: document.getElementById("newSanthook").value.trim(),
-          salary: document.getElementById("newSalary").value,
-          status: document.getElementById("newStatus").value,
+          salary: document.getElementById("newSalary").value || null,
+          status: document.getElementById("newStatus").value || "Running",
+          note: document.getElementById("newNote").value.trim(),
+          old_eq: document.getElementById("newOldEq").value.trim(),
+          new_eq: document.getElementById("newNewEq").value.trim(),
+          iqama_no: document.getElementById("newIqamaNo").value.trim(),
+          iqama_expiry: document.getElementById("newIqamaExp").value || null,
+          licence_expiry: document.getElementById("newLicenceExp").value || null,
+          chassis_no: document.getElementById("newChassisNo").value.trim(),
+          serial_no: document.getElementById("newSerialNo").value.trim(),
+          eq_insurance_exp: document.getElementById("newEqInsuranceExp").value || null,
+          fahs_mvpi_exp: document.getElementById("newFahsExp").value || null,
+          op_card_exp: document.getElementById("newOpCardExp").value || null,
+          isthimaara_exp: document.getElementById("newIsthimaaraExp").value || null
         };
 
         try {

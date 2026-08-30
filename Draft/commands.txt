@@ -51,7 +51,7 @@ python restart
 
 
 
-Own EQ DB plate no error rectify 
+Own EQ DB plate no error rectify   name correction 
 
 BEGIN;
 
@@ -88,7 +88,18 @@ WHERE UPPER(TRIM(plate_no)) = '1494';
 COMMIT;
 
 
+Delete A Plate no From OWN EQ DB 
 
+BEGIN;
+
+DELETE FROM we1_driver_log WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+DELETE FROM we1_site_log WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+DELETE FROM we1_vtype_log WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+DELETE FROM we1_owner_log WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+DELETE FROM we1_santhook_log WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+DELETE FROM we1_own_eq_master WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+
+COMMIT;
 
 
 

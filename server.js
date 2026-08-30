@@ -50,6 +50,7 @@ const invoiceAuthRoutes = require('./routes/invoiceAuth');
 const zohoInvoiceRoute = require('./routes/zoho_download_inv');
 const payrollRouter = require("./routes/klm_emp_payroll");
 const monthly_summary = require("./routes/monthly_list_summary");
+const { checkAndSendOwnEqAlerts } = require("./services/ownEqExpiryAlert");
 
 
 
@@ -915,9 +916,30 @@ cron.schedule(
     timezone: "Asia/Kolkata",
   },
 );
+
+// 🟢 Own Equipment Expiry Alert (Daily at 6:00 AM IST)
+cron.schedule(
+  "0 6 * * *",
+  async () => {
+    console.log(
+      "Auto Trigger: Sending Daily Own Equipment Expiry Alerts (IST 06:00 AM)...",
+    );
+    await checkAndSendOwnEqAlerts();
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata",
+  },
+);
+
 app.post("/api/admin/trigger-alerts", verifySuperAdmin, async (req, res) => {
   const result = await checkExpiriesAndSendAlerts();
   res.json(result);
+});
+
+app.post("/api/admin/trigger-own-eq-alerts", verifySuperAdmin, async (req, res) => {
+  await checkAndSendOwnEqAlerts();
+  res.json({ success: true, message: "Own Equipment Expiry Alert triggered." });
 });
 
 // ==========================================

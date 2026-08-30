@@ -34,75 +34,162 @@ def export_we1_own_eq_excel():
         
     try:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT * FROM we1_own_eq_master ORDER BY id ASC")
+        
+        # 🟢 Fetch Master Data with Driver Log (IQAMA & Licence) Details
+        query = """
+            SELECT 
+                m.*,
+                d.iqama_no,
+                d.iqama_expiry,
+                d.licence_expiry
+            FROM we1_own_eq_master m
+            LEFT JOIN LATERAL (
+                SELECT iqama_no, iqama_expiry, licence_expiry
+                FROM we1_driver_log
+                WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM(m.plate_no))
+                ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
+                LIMIT 1
+            ) d ON true
+            ORDER BY m.id ASC
+        """
+        cursor.execute(query)
         data = cursor.fetchall()
         
         wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "We1_Own_EQ"
-
-        headers = ["SN", "Mobilisation Date", "Vehicle Type", "Plate No", "Driver Name", 
-                   "Mobile", "Joining Date", "Site Name", "Vehicle Owner", "Santhook", 
-                   "Salary", "Status", "Note"]
         
-        ws.append(headers)
-
-        # 🟢 1. Header Styling (Black BG, White Text, Bold)
         header_fill = PatternFill(start_color="000000", end_color="000000", fill_type="solid")
         header_font = Font(color="FFFFFF", bold=True)
-        header_alignment = Alignment(horizontal="center", vertical="center")
+        center_alignment = Alignment(horizontal="center", vertical="center")
+        
+        # ==========================================
+        # 📑 TAB 1: Classic Summary (We1_Own_EQ)
+        # ==========================================
+        ws1 = wb.active
+        ws1.title = "We1_Own_EQ"
 
-        for col_num, cell in enumerate(ws[1], 1):
+        headers_tab1 = [
+            "SN", "Mobilisation Date", "Vehicle Type", "Plate No", "Driver Name", 
+            "Mobile", "Joining Date", "Site Name", "Vehicle Owner", "Santhook", 
+            "Salary", "Status", "Note"
+        ]
+        ws1.append(headers_tab1)
+
+        for cell in ws1[1]:
             cell.fill = header_fill
             cell.font = header_font
-            cell.alignment = header_alignment
+            cell.alignment = center_alignment
 
-        # 🟢 2. Append Data & Format
         for i, row in enumerate(data, start=1):
             salary_val = float(row['salary']) if row['salary'] else None
-            
-            ws.append([
+            ws1.append([
                 i,
                 row['mob_date'],
-                row['vehicle_type'],
-                row['plate_no'],
-                row['driver_name'],
-                row['driver_mobile'],
+                row['vehicle_type'] or "",
+                row['plate_no'] or "",
+                row['driver_name'] or "",
+                row['driver_mobile'] or "",
                 row['joining_date'],
-                row['site_name'],
-                row['vehicle_owner'],
-                row['santhook'],
+                row['site_name'] or "",
+                row['vehicle_owner'] or "",
+                row['santhook'] or "",
                 salary_val,
                 row['status'] or "Running",
-                row['note']
+                row['note'] or ""
             ])
 
-        # 🟢 3. Apply Styles to Data Rows (Dates and Multiline Notes)
-        for row in ws.iter_rows(min_row=2, max_col=13, max_row=len(data) + 1):
-            # Mob Date (Col 2) & Joining Date (Col 7) -> dd-MMM-yy
+        for row in ws1.iter_rows(min_row=2, max_col=13, max_row=len(data) + 1):
             if row[1].value:
                 row[1].number_format = 'DD-MMM-YY'
-                row[1].alignment = Alignment(horizontal="center")
+                row[1].alignment = center_alignment
             if row[6].value:
                 row[6].number_format = 'DD-MMM-YY'
-                row[6].alignment = Alignment(horizontal="center")
-            
-            # Note (Col 13) -> Wrap Text for multiline
+                row[6].alignment = center_alignment
             if row[12].value:
                 row[12].alignment = Alignment(wrap_text=True, vertical="top")
 
-        # 🟢 4. AutoFilter & Freeze Panes
-        ws.auto_filter.ref = f"A1:M{len(data) + 1}"
-        ws.freeze_panes = "A2"
+        ws1.auto_filter.ref = f"A1:M{len(data) + 1}"
+        ws1.freeze_panes = "A2"
+        ws1.sheet_view.zoomScale = 100
 
-        # 🟢 5. Adjust Column Widths
-        column_widths = {
-            'A': 5, 'B': 16, 'C': 16, 'D': 14, 'E': 22, 
+        col_widths_tab1 = {
+            'A': 6, 'B': 16, 'C': 18, 'D': 14, 'E': 22, 
             'F': 16, 'G': 16, 'H': 22, 'I': 22, 'J': 16, 
-            'K': 12, 'L': 12, 'M': 45
+            'K': 12, 'L': 12, 'M': 40
         }
-        for col, width in column_widths.items():
-            ws.column_dimensions[col].width = width
+        for col, width in col_widths_tab1.items():
+            ws1.column_dimensions[col].width = width
+
+        # ==========================================
+        # 📑 TAB 2: Full UI Details (Full_Details)
+        # ==========================================
+        ws2 = wb.create_sheet(title="Full_Details")
+
+        headers_tab2 = [
+            "SN", "Mobilisation Date", "Vehicle Type", "Plate No", "Driver Name", 
+            "Mobile", "Joining Date", "Site Name", "Vehicle Owner", "Santhook", 
+            "Salary", "Status", "Note", "Old EQ", "New EQ", 
+            "IQAMA No.", "IQAMA Exp", "Licence Exp", "Chassis No", "Serial No", 
+            "EQ Insurance Exp", "FAHS / MVPI Exp", "Operation Card Exp", "Isthimaara Exp"
+        ]
+        ws2.append(headers_tab2)
+
+        for cell in ws2[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_alignment
+
+        for i, row in enumerate(data, start=1):
+            salary_val = float(row['salary']) if row['salary'] else None
+            ws2.append([
+                i,
+                row['mob_date'],
+                row['vehicle_type'] or "",
+                row['plate_no'] or "",
+                row['driver_name'] or "",
+                row['driver_mobile'] or "",
+                row['joining_date'],
+                row['site_name'] or "",
+                row['vehicle_owner'] or "",
+                row['santhook'] or "",
+                salary_val,
+                row['status'] or "Running",
+                row['note'] or "",
+                row['old_eq'] or "",
+                row['new_eq'] or "",
+                row['iqama_no'] or "",
+                row['iqama_expiry'],
+                row['licence_expiry'],
+                row['chassis_no'] or "",
+                row['serial_no'] or "",
+                row['eq_insurance_exp'],
+                row['fahs_mvpi_exp'],
+                row['op_card_exp'],
+                row['isthimaara_exp']
+            ])
+
+        date_col_indexes = [2, 7, 17, 18, 21, 22, 23, 24] # 1-based columns for dates
+        for row in ws2.iter_rows(min_row=2, max_col=24, max_row=len(data) + 1):
+            for col_idx in date_col_indexes:
+                cell = row[col_idx - 1]
+                if cell.value:
+                    cell.number_format = 'DD-MMM-YY'
+                    cell.alignment = center_alignment
+            if row[12].value: # Note column
+                row[12].alignment = Alignment(wrap_text=True, vertical="top")
+
+        ws2.auto_filter.ref = f"A1:X{len(data) + 1}"
+        ws2.freeze_panes = "A2"
+        ws2.sheet_view.zoomScale = 100
+
+        col_widths_tab2 = {
+            'A': 6, 'B': 16, 'C': 18, 'D': 14, 'E': 22, 
+            'F': 16, 'G': 16, 'H': 22, 'I': 22, 'J': 16, 
+            'K': 12, 'L': 12, 'M': 35, 'N': 14, 'O': 14,
+            'P': 16, 'Q': 16, 'R': 16, 'S': 20, 'T': 20,
+            'U': 18, 'V': 18, 'W': 18, 'X': 18
+        }
+        for col, width in col_widths_tab2.items():
+            ws2.column_dimensions[col].width = width
 
         # Save to BytesIO stream
         output = io.BytesIO()
