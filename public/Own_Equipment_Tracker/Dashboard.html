@@ -402,7 +402,15 @@
           Loading...
         </button>
 
-        
+        <!-- Search Bar for Plate No -->
+        <input 
+          type="text" 
+          id="searchPlateNo" 
+          placeholder="🔍 Search Plate No..." 
+          onkeyup="filterByPlateNo()" 
+          style="padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 160px; outline: none;"
+        />
+
         <button class="btn btn-blue" onclick="window.location.href = 'monthly_list_summary.html'"> Month Summary</button>
         <button class="btn btn-dark" onclick="window.location.href = 'summary.html'">Summary</button>
 
@@ -421,7 +429,7 @@
         <div class="dropdown-btn-group">
           <button class="btn btn-primary" style="background: #e67e22;">🛒 Purchase ▼</button>
           <div class="dropdown-content-menu">
-            <button onclick="openEquipmentModal()">+ Add New Equipment</button>
+            <button onclick="openEquipmentModal()">✏️ Add New EQ </button>
             <button onclick="openEditCostModal()">✏️ Edit Purchase Cost</button>
           </div>
         </div>
@@ -430,7 +438,7 @@
         <div class="dropdown-btn-group">
           <button class="btn btn-primary" style="background: #8e44ad;">📝 Edit ▼</button>
           <div class="dropdown-content-menu">
-            <button onclick="openDataModal()">+ Input Data</button>
+            <button onclick="openDataModal()">✏️ Data Input Popup</button>
             <button id="btnEditInline" onclick="toggleEditMode()">✏️ Edit All Data</button>
           </div>
         </div>
@@ -483,11 +491,9 @@
           ><input type="number" id="eqRemainingCost" value="0" />
         </div>
         <div class="modal-actions">
-          <button class="btn" onclick="closeModal('equipmentModal')">
-            Cancel</button
-          ><button class="btn btn-primary" onclick="saveEquipment()">
-            Save
-          </button>
+          <button class="btn" onclick="closeModal('equipmentModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveEquipment(false)">Save & Close</button>
+          <button class="btn btn-blue" onclick="saveEquipment(true)">Save & Next</button>
         </div>
       </div>
     </div>

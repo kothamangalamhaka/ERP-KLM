@@ -100,8 +100,13 @@ async function loadDashboardData() {
     console.error(err);
   }
 }
+function filterByPlateNo() {
+  renderTable();
+}
+
 function renderTable() {
   const y = document.getElementById("filterYear").value;
+  const searchTerm = (document.getElementById("searchPlateNo") ? document.getElementById("searchPlateNo").value : "").trim().toLowerCase();
   const header = document.getElementById("tableHeader"),
     body = document.getElementById("tableBody");
   let vM = Array.from(document.querySelectorAll(".month-chk:checked")).map(
@@ -109,7 +114,7 @@ function renderTable() {
   );
   if (vM.length === 0) vM = Array.from({ length: 12 }, (_, i) => i + 1);
 
-  let r1 = `<tr><th rowspan="4" class="master-head">SN</th><th rowspan="4" class="master-head">Plate No</th><th rowspan="4" class="master-head">Date of Purchase</th><th rowspan="4" class="master-head">Purchase Cost Paid</th><th rowspan="4" class="master-head">Remaining Purchase Cost</th>`;
+  let r1 = `<tr><th rowspan="4" class="master-head">SN</th><th rowspan="4" class="master-head">Plate No</th><th rowspan="4" class="master-head">Date of <br> Purchase</th><th rowspan="4" class="master-head">Purchase <br> Cost Paid</th><th rowspan="4" class="master-head">Remaining <br> Purchase <br> Cost</th>`;
   let r2 = `<tr>`,
     r3 = `<tr>`,
     r4 = `<tr>`;
@@ -123,7 +128,19 @@ function renderTable() {
   header.innerHTML = r1 + `</tr>` + r2 + `</tr>` + r3 + `</tr>` + r4 + `</tr>`;
 
   body.innerHTML = "";
-  rawEquipments.forEach((eq, idx) => {
+  
+  // Chronological sorting based on Purchase Date (oldest to newest)
+  const sortedEquipments = [...rawEquipments].sort((a, b) => {
+    const dateA = a.purchase_date ? new Date(a.purchase_date).getTime() : 0;
+    const dateB = b.purchase_date ? new Date(b.purchase_date).getTime() : 0;
+    return dateA - dateB;
+  });
+
+  const filteredEquipments = sortedEquipments.filter(eq => 
+    !searchTerm || (eq.plate_no && eq.plate_no.toString().toLowerCase().includes(searchTerm))
+  );
+
+  filteredEquipments.forEach((eq, idx) => {
     let tr = `<tr>
       <td><b>${idx + 1}</b></td>
       <td><b>${eq.plate_no}</b></td>
@@ -267,34 +284,65 @@ function populateEquipmentDropdown() {
     .join("");
   if (currentVal) select.value = currentVal; 
 }
-function openEquipmentModal() {
-  document.getElementById("equipmentModal").style.display = "flex";
+function resetEquipmentForm() {
+  document.getElementById("eqPlateNo").value = "";
+  document.getElementById("eqPurchaseDate").value = "";
+  document.getElementById("eqPurchaseCost").value = "0";
+  document.getElementById("eqRemainingCost").value = "0";
 }
+
+function openEquipmentModal() {
+  resetEquipmentForm();
+  document.getElementById("equipmentModal").style.display = "flex";
+  document.getElementById("eqPlateNo").focus();
+}
+
 function openDataModal() {
   document.getElementById("dataModal").style.display = "flex";
   populateModalFields(); 
 }
+
 function closeModal(id) {
   document.getElementById(id).style.display = "none";
 }
-async function saveEquipment() {
+
+async function saveEquipment(isNext = false) {
+  const plateNo = document.getElementById("eqPlateNo").value.trim();
+  if (!plateNo) {
+    showToast("Please enter Plate No!", "error");
+    return;
+  }
+
   const d = {
-    plate_no: document.getElementById("eqPlateNo").value,
+    plate_no: plateNo,
     purchase_date: document.getElementById("eqPurchaseDate").value,
     purchase_cost: document.getElementById("eqPurchaseCost").value,
     remaining_purchase_cost: document.getElementById("eqRemainingCost").value || 0,
   };
-  const res = await fetch("/api/own-equipment/tracker/add-equipment", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(d),
-  });
-  if (res.ok) {
-    closeModal("equipmentModal");
-    loadDashboardData();
-    showToast("Equipment added successfully!", "success");
-  } else {
-    showToast("Failed to add equipment.", "error");
+
+  try {
+    const res = await fetch("/api/own-equipment/tracker/add-equipment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(d),
+    });
+
+    if (res.ok) {
+      await loadDashboardData();
+      showToast("Equipment added successfully!", "success");
+
+      if (isNext) {
+        resetEquipmentForm();
+        document.getElementById("eqPlateNo").focus();
+      } else {
+        closeModal("equipmentModal");
+      }
+    } else {
+      showToast("Failed to add equipment.", "error");
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("Server error while adding equipment.", "error");
   }
 }
 
