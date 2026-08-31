@@ -583,6 +583,13 @@
                   <div class="print-area" style="background: white; padding: 10px;">
                     <img src="${compConfig.header}" class="header-img ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Header" crossorigin="anonymous" style="width:100%; height:auto; max-height:200px; display:block; margin: 0 auto 15px auto;" />
 
+                    <!-- Owner Wrapper with class for export hiding -->
+                    <div class="card-owner-print-wrapper" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                      <div style="font-weight: 800; font-size: 15px; color: #1a4d80; text-transform: uppercase;">
+                        OWNER : <span>${escapeHTML(dispOwner)}</span>
+                      </div>
+                    </div>
+
                     <div style="border:1px solid #cbd5e1; padding:12px; margin:15px 0; text-align:center; background:#f8fafc; font-weight:bold; font-size:18px; color:#1e293b;">
                       Bill Summary for Each Month ملخص فاتورة الشهر
                     </div>
@@ -900,12 +907,21 @@
 
         const printArea = card.querySelector(".print-area");
         try {
-          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true, logging: false, imageTimeout: 0 });
+          const canvas = await html2canvas(printArea, {
+            scale: 3,
+            useCORS: true,
+            logging: false,
+            imageTimeout: 0,
+            onclone: (clonedDoc) => {
+              // Hide owner name wrapper in exported image
+              clonedDoc.querySelectorAll(".card-owner-print-wrapper").forEach(el => el.style.display = "none");
+            }
+          });
           const link = document.createElement("a");
           link.download = `Bill_${Date.now()}.png`;
           link.href = canvas.toDataURL("image/png");
           link.click();
-          showToast("Card downloaded successfully!");
+          showToast("Card downloaded successfully (Without Owner Name)!");
         } catch (e) {
           showToast("Unable to download card.");
         }
@@ -917,11 +933,20 @@
 
         const printArea = card.querySelector(".print-area");
         try {
-          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true, logging: false, imageTimeout: 0 });
+          const canvas = await html2canvas(printArea, {
+            scale: 3,
+            useCORS: true,
+            logging: false,
+            imageTimeout: 0,
+            onclone: (clonedDoc) => {
+              // Hide owner name wrapper in copied image
+              clonedDoc.querySelectorAll(".card-owner-print-wrapper").forEach(el => el.style.display = "none");
+            }
+          });
           canvas.toBlob(async (blob) => {
             if (navigator.clipboard && window.isSecureContext) {
               await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-              showToast("Card copied to clipboard!");
+              showToast("Card copied to clipboard (Without Owner Name)!");
             } else {
               showToast("Clipboard not supported. Downloading instead.");
               const link = document.createElement("a");

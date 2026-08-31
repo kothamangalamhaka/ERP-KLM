@@ -46,7 +46,7 @@
           <div class="suggestion-box" id="plateSuggestions"></div>
         </div>
 
-        <!-- From Month (Default: January) -->
+        <!-- From Month -->
         <div class="selector-wrapper" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
           <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">From:</label>
           <select id="fromMonth" style="height:32px; border:none; background:transparent; font-weight:bold;">
@@ -66,7 +66,7 @@
           <input type="number" id="fromYear" value="2026" style="width:65px; height:32px; border:none; font-weight:bold;" />
         </div>
 
-        <!-- To Month (Auto Selected: Current Month - 1) -->
+        <!-- To Month -->
         <div class="selector-wrapper" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
           <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">To:</label>
           <select id="toMonth" style="height:32px; border:none; background:transparent; font-weight:bold;">
@@ -75,7 +75,7 @@
             <option value="March">March</option>
             <option value="April">April</option>
             <option value="May">May</option>
-            <option value="June">June</option>
+            <option value="June" selected>June</option>
             <option value="July">July</option>
             <option value="August">August</option>
             <option value="September">September</option>
@@ -122,7 +122,8 @@
           <!-- 🟢 Header Image Hidden by Default on Page Load/Reload -->
           <img id="compHeaderImg" src="https://i.ibb.co/Ld752yD5/hd.png" class="header-img hidden-image" alt="Header" crossorigin="anonymous" />
 
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+          <!-- Owner Wrapper (Hidden on Export) -->
+          <div class="card-owner-print-wrapper" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
             <div style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase;">
               OWNER : <span id="dispOwnerName">COMPANY VEHICLE</span>
             </div>
@@ -283,7 +284,6 @@
 
         // To Month: Current Month - 1
         if (currentMonthIdx === 0) {
-          // January ആണെങ്കിൽ To Month മുൻ വർഷത്തെ December ആക്കും
           document.getElementById("toMonth").value = "December";
           document.getElementById("toYear").value = currentYear - 1;
         } else {
@@ -554,7 +554,6 @@
         const container = document.getElementById("splitCardsContainer");
         container.innerHTML = "";
 
-        // Check if images were verified or visible in state
         const isHidden = !isImagesVerified;
         const imgClass = isHidden ? "hidden-image" : "";
 
@@ -587,7 +586,8 @@
             <div class="print-area" id="${printAreaId}">
               <img src="https://i.ibb.co/Ld752yD5/hd.png" class="header-img ${imgClass}" alt="Header" crossorigin="anonymous" />
               
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+              <!-- Owner Wrapper (Hidden on Export) -->
+              <div class="card-owner-print-wrapper" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
                 <div style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase;">
                   OWNER : <span>${escapeHTML(ownerName)}</span>
                 </div>
@@ -655,7 +655,13 @@
 
       async function downloadSingleSplit(cardId, dateStr, plateNo) {
         const printArea = document.getElementById(cardId).querySelector(".print-area");
-        const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+        const canvas = await html2canvas(printArea, {
+          scale: 3,
+          useCORS: true,
+          onclone: (clonedDoc) => {
+            clonedDoc.querySelectorAll(".card-owner-print-wrapper").forEach(el => el.style.display = "none");
+          }
+        });
         const link = document.createElement("a");
         link.download = `${plateNo}_${dateStr.replace(/\s+/g, '_')}_Bill.png`;
         link.href = canvas.toDataURL("image/png");
@@ -664,11 +670,18 @@
 
       async function copySingleSplit(cardId) {
         const printArea = document.getElementById(cardId).querySelector(".print-area");
-        const canvas = await html2canvas(printArea, { scale: 4, useCORS: true, logging: false });
+        const canvas = await html2canvas(printArea, {
+          scale: 4,
+          useCORS: true,
+          logging: false,
+          onclone: (clonedDoc) => {
+            clonedDoc.querySelectorAll(".card-owner-print-wrapper").forEach(el => el.style.display = "none");
+          }
+        });
         canvas.toBlob(async (blob) => {
           if (navigator.clipboard && window.isSecureContext) {
             await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-            showToast("Single Card Copied to Clipboard!");
+            showToast("Single Card Copied to Clipboard (Without Owner Name)!");
           } else {
             showToast("Clipboard not supported. Downloading HD instead.");
             const link = document.createElement("a");
@@ -691,7 +704,13 @@
         }
 
         const printArea = document.getElementById(cardId).querySelector(".print-area");
-        const canvas = await html2canvas(printArea, { scale: 4, useCORS: true });
+        const canvas = await html2canvas(printArea, {
+          scale: 4,
+          useCORS: true,
+          onclone: (clonedDoc) => {
+            clonedDoc.querySelectorAll(".card-owner-print-wrapper").forEach(el => el.style.display = "none");
+          }
+        });
 
         canvas.toBlob(async (blob) => {
           try {
@@ -795,7 +814,13 @@
 
       async function downloadPNG() {
         const area = document.getElementById("printArea");
-        const canvas = await html2canvas(area, { scale: 3, useCORS: true });
+        const canvas = await html2canvas(area, {
+          scale: 3,
+          useCORS: true,
+          onclone: (clonedDoc) => {
+            clonedDoc.querySelectorAll(".card-owner-print-wrapper").forEach(el => el.style.display = "none");
+          }
+        });
         const link = document.createElement("a");
         link.download = `Combined_Bill_${document.getElementById("plateSearch").value}.png`;
         link.href = canvas.toDataURL("image/png");
@@ -804,11 +829,17 @@
 
       async function copyHighQualityImage() {
         const area = document.getElementById("printArea");
-        const canvas = await html2canvas(area, { scale: 3, useCORS: true });
+        const canvas = await html2canvas(area, {
+          scale: 3,
+          useCORS: true,
+          onclone: (clonedDoc) => {
+            clonedDoc.querySelectorAll(".card-owner-print-wrapper").forEach(el => el.style.display = "none");
+          }
+        });
         canvas.toBlob(async (blob) => {
           if (navigator.clipboard) {
             await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-            showToast("HQ Image Copied to Clipboard!");
+            showToast("HQ Image Copied to Clipboard (Without Owner Name)!");
           }
         });
       }
