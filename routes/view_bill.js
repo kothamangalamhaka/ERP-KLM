@@ -337,18 +337,22 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
     const yearStr = year.trim();
     const fullMonth = `${monthStr} ${yearStr}`;
 
-    const [vehiclesRes, sitesRes, driversRes, timesheetsRes, invoicesRes, billingRes, specialRulesRes] = await Promise.all([
-      pool.query("SELECT plate_no, owner_name, site_name, vehicle_type, vat, driver_name, driver_mobile, field_co, site_co, rate FROM timesheet_vehicles"),
+    const [vehiclesRes, sitesRes, driversRes, timesheetsRes, invoicesRes, billingRes, specialRulesRes, ratesRes, ownersRes] = await Promise.all([
+      pool.query("SELECT plate_no, owner_name, owner_mobile, site_name, vehicle_type, vat, driver_name, driver_mobile, field_co, site_co, rate FROM timesheet_vehicles"),
       pool.query("SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co, status FROM vehicle_site_log"),
       pool.query("SELECT plate_no, driver_name, driver_mobile, work_start_date, work_end_date, status FROM vehicle_driver_log"),
       pool.query("SELECT plate_no, record_date, calc_time, calc_distance, bd, remark, wrk_start, hmr_start FROM timesheet_daily_records WHERE month=$1 AND year=$2", [monthStr, yearStr]),
       pool.query("SELECT * FROM invoice_records WHERE month=$1", [fullMonth]),
       pool.query("SELECT * FROM billing_records WHERE billing_month=$1", [fullMonth]),
-      pool.query("SELECT * FROM special_days_rules WHERE is_active = true")
+      pool.query("SELECT * FROM special_days_rules WHERE is_active = true"),
+      pool.query("SELECT plate_no, site_name, rate, work_start_date, work_end_date FROM vehicle_rate_log"),
+      pool.query("SELECT plate_no, owner_name, owner_mobile, vat, work_start_date, work_end_date FROM vehicle_owner_log")
     ]);
 
     let vehicles = vehiclesRes.rows;
     let siteLogs = sitesRes.rows;
+    let rateLogs = ratesRes.rows;
+    let ownerLogs = ownersRes.rows;
     let timesheets = timesheetsRes.rows;
     let invoices = invoicesRes.rows;
     let billing = billingRes.rows;
@@ -416,7 +420,61 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       let vInvs = invoices.filter((i) => cleanPlate(i.plate_no) === normPlate);
       let invData = vInvs[0] || {};
 
-      let baseRate = activeSiteLog && activeSiteLog.rate ? parseFloat(activeSiteLog.rate) : (parseFloat(v.rate) || 0);
+      // 🟢 Driver Log Lookup for specific month
+      let vDriverLogs = driversRes.rows.filter((d) => cleanPlate(d.plate_no) === normPlate);
+      let validDLogs = vDriverLogs.filter((d) => {
+        let st = d.work_start_date ? new Date(d.work_start_date) : new Date(2000, 0, 1);
+        let ed = d.work_end_date ? new Date(d.work_end_date) : new Date(2100, 11, 31);
+        return st <= monthEnd && ed >= monthStart;
+      });
+
+      let effectiveDriver = (v.driver_name || "N/A").trim();
+      if (validDLogs.length > 0) {
+        validDLogs.sort((a, b) => new Date(a.work_start_date || "2000-01-01") - new Date(b.work_start_date || "2000-01-01"));
+        let driverNames = validDLogs.map((d) => d.driver_name).filter(Boolean);
+        if (driverNames.length > 0) {
+          effectiveDriver = [...new Set(driverNames)].join(" / ");
+        }
+      }
+
+      // 🟢 Rate Log Lookup for specific month
+      let vRateLogs = rateLogs.filter((r) => cleanPlate(r.plate_no) === normPlate);
+      let activeRateLog = vRateLogs.find((r) => {
+        let matchesSite = !r.site_name || r.site_name.trim() === "" || r.site_name.trim().toLowerCase() === currentSiteName.toLowerCase();
+        let st = r.work_start_date ? new Date(r.work_start_date) : new Date(2000, 0, 1);
+        let ed = r.work_end_date ? new Date(r.work_end_date) : new Date(2100, 11, 31);
+        return matchesSite && st <= monthEnd && ed >= monthStart;
+      });
+
+      let baseRate = 0;
+      if (activeRateLog && parseFloat(activeRateLog.rate) > 0) {
+        baseRate = parseFloat(activeRateLog.rate);
+      } else if (activeSiteLog && activeSiteLog.rate) {
+        baseRate = parseFloat(activeSiteLog.rate);
+      } else {
+        baseRate = parseFloat(v.rate) || 0;
+      }
+
+      // 🟢 Owner Log Lookup for specific month
+      let vOwnerLogs = ownerLogs.filter((o) => cleanPlate(o.plate_no) === normPlate);
+      let validOLogs = vOwnerLogs.filter((o) => {
+        let st = o.work_start_date ? new Date(o.work_start_date) : new Date(2000, 0, 1);
+        let ed = o.work_end_date ? new Date(o.work_end_date) : new Date(2100, 11, 31);
+        return st <= monthEnd && ed >= monthStart;
+      });
+
+      let effectiveOwner = (v.owner_name || "COMPANY VEHICLE").trim();
+      let effectiveVat = (v.vat || "No").trim();
+
+      if (validOLogs.length > 0) {
+        validOLogs.sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"));
+        let activeOwnerLog = validOLogs[0];
+        if (activeOwnerLog.owner_name) effectiveOwner = activeOwnerLog.owner_name.trim();
+        if (activeOwnerLog.vat) effectiveVat = String(activeOwnerLog.vat).trim();
+      }
+
+      let isEffectiveVatYes = effectiveVat.toLowerCase().includes("yes") || effectiveVat.toLowerCase() === "true" || effectiveVat === "15" ? "Yes" : "No";
+
       let calculatedNRate = baseRate ? (baseRate / 260) : 0;
       let calculatedOTRate = baseRate ? ((baseRate / 260) * 0.7) : 0;
 
@@ -427,23 +485,23 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       let otrate = (saved && parseFloat(saved.otrate) > 0) ? parseFloat(saved.otrate) : calculatedOTRate;
 
       let rent = (saved && parseFloat(saved.rent) > 0) ? parseFloat(saved.rent) : ((nhr * nrate) + (othr * otrate));
-      let vatAmt = saved ? parseFloat(saved.vat_amount) || 0 : 0;
+      let vatAmt = saved ? parseFloat(saved.vat_amount) || 0 : (isEffectiveVatYes === "Yes" ? rent * 0.15 : 0);
       let total = (saved && parseFloat(saved.total) > 0) ? parseFloat(saved.total) : (rent + vatAmt);
 
       resultRows.push({
         date: monthStr.substring(0, 3) + " " + yearStr.substring(2, 4),
         vtype: v.vehicle_type || "N/A",
-        driver: v.driver_name || "N/A",
-        site: currentSiteName, // 🟢 കൃത്യമായ മാസം തോതെയുള്ള സൈറ്റ് പേര്
+        driver: effectiveDriver,
+        site: currentSiteName,
         plate_no: displayPlate,
-        owner: v.owner_name || "COMPANY VEHICLE",
+        owner: effectiveOwner,
         nhr,
         othr,
         nrate: nrate,
         otrate: otrate,
         rent,
         vat_amount: vatAmt,
-        vat_percent: saved ? parseFloat(saved.vat_percent) || 0 : 0,
+        vat_percent: saved ? parseFloat(saved.vat_percent) || 0 : (isEffectiveVatYes === "Yes" ? 15 : 0),
         total,
         invoice_no: invData.invoice_no || "",
         bill_no: invData.bill_no || "",
@@ -523,10 +581,10 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       reportData.push({
         report_date: monthStr.substring(0, 3) + " " + yearStr.substring(2, 4),
         rate: baseRate || saved?.nrate || "-",
-        vat: (v.vat || "No").toLowerCase().includes("yes") ? "Yes" : "No",
+        vat: isEffectiveVatYes,
         site: currentSiteName,
-        owner: v.owner_name || "COMPANY VEHICLE",
-        driver_name: v.driver_name || "N/A",
+        owner: effectiveOwner,
+        driver_name: effectiveDriver,
         plate: displayPlate,
         ts_nr: ts_nr > 0 ? ts_nr : "",
         ts_ot: ts_ot > 0 ? ts_ot : "",
@@ -618,20 +676,24 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
       curDate.setMonth(curDate.getMonth() + 1);
     }
 
-    const savedResult = await pool.query(
-      `SELECT * FROM billing_records 
-       WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) 
-         AND billing_month = ANY($2::text[])
-       ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id ASC`,
-      [cleanPlate, targetMonths]
-    );
-
-    const tsVehicleRes = await pool.query(
-      `SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`,
-      [cleanPlate]
-    );
+    const [savedResult, tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes] = await Promise.all([
+      pool.query(
+        `SELECT * FROM billing_records 
+         WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) 
+           AND billing_month = ANY($2::text[])
+         ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id ASC`,
+        [cleanPlate, targetMonths]
+      ),
+      pool.query(`SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`, [cleanPlate]),
+      pool.query(`SELECT * FROM vehicle_rate_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate]),
+      pool.query(`SELECT * FROM vehicle_site_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate]),
+      pool.query(`SELECT * FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate])
+    ]);
 
     const vehicleInfo = tsVehicleRes.rows[0] || {};
+    const rateLogs = rateLogRes.rows || [];
+    const siteLogs = siteLogRes.rows || [];
+    const ownerLogs = ownerLogRes.rows || [];
 
     let combinedRows = [];
     let totals = { nhr: 0, othr: 0, rent: 0, vat_amount: 0, total: 0, adjusted_amount: 0, after_adjustment: 0 };
@@ -641,6 +703,39 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
 
       const [mName, yStr] = mStr.split(" ");
       const shortDate = mName.substring(0, 3) + " " + (yStr ? yStr.substring(2, 4) : "");
+
+      const mIdxCur = monthNames.indexOf(mName);
+      const mStart = new Date(parseInt(yStr), mIdxCur, 1);
+      const mEnd = new Date(parseInt(yStr), mIdxCur + 1, 0);
+
+      // Find historical rate from vehicle_rate_log for this specific month
+      let matchedRateLog = rateLogs.find((r) => {
+        let st = r.work_start_date ? new Date(r.work_start_date) : new Date("2000-01-01");
+        let ed = r.work_end_date ? new Date(r.work_end_date) : new Date("2099-01-01");
+        return st <= mEnd && ed >= mStart;
+      });
+
+      let historicalBaseRate = matchedRateLog ? parseFloat(matchedRateLog.rate) : 0;
+      
+      if (!historicalBaseRate) {
+        let matchedSiteLog = siteLogs.find((s) => {
+          let st = s.work_start_date ? new Date(s.work_start_date) : new Date("2000-01-01");
+          let ed = s.work_end_date ? new Date(s.work_end_date) : new Date("2099-01-01");
+          return st <= mEnd && ed >= mStart;
+        });
+        historicalBaseRate = matchedSiteLog ? parseFloat(matchedSiteLog.rate) : (parseFloat(vehicleInfo.rate) || 0);
+      }
+
+      let fallbackNRate = historicalBaseRate ? (historicalBaseRate / 260) : 0;
+      let fallbackOTRate = historicalBaseRate ? ((historicalBaseRate / 260) * 0.7) : 0;
+
+      // Find historical owner from vehicle_owner_log for this specific month
+      let matchedOwnerLog = ownerLogs.find((o) => {
+        let st = o.work_start_date ? new Date(o.work_start_date) : new Date("2000-01-01");
+        let ed = o.work_end_date ? new Date(o.work_end_date) : new Date("2099-01-01");
+        return st <= mEnd && ed >= mStart;
+      });
+      let fallbackOwnerName = matchedOwnerLog?.owner_name || vehicleInfo.owner_name || "COMPANY VEHICLE";
 
       if (savedRow) {
         let nhr = parseFloat(savedRow.nhr) || 0;
@@ -659,7 +754,6 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
         totals.adjusted_amount += adjAmt;
         totals.after_adjustment += afterAdj;
 
-        // 🟢 Site Name ൽ നിന്നും ശരിയായ കമ്പനി കണ്ടുപിടിക്കുന്നു (report.html ലെ അതേ ലോജിക്)
         let rowSite = savedRow.site_name || vehicleInfo.site_name || "N/A";
         let autoCompany = "Haka";
         let sUpper = rowSite.toUpperCase();
@@ -667,19 +761,22 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
         else if (sUpper.includes("MASAR")) autoCompany = "Masar Wheels";
         else if (sUpper.includes("WE1") || sUpper.includes("WE 1")) autoCompany = "We1 Track";
 
+        let rowNRate = (savedRow.nrate !== null && parseFloat(savedRow.nrate) > 0) ? parseFloat(savedRow.nrate) : fallbackNRate;
+        let rowOTRate = (savedRow.otrate !== null && parseFloat(savedRow.otrate) > 0) ? parseFloat(savedRow.otrate) : fallbackOTRate;
+
         combinedRows.push({
           billing_month: mStr,
           date: savedRow.date || shortDate,
-          company: autoCompany, // 🟢 Always use autoCompany calculated from Site
-          owner: savedRow.owner || vehicleInfo.owner_name || "COMPANY VEHICLE",
+          company: autoCompany,
+          owner: savedRow.owner || fallbackOwnerName,
           site_name: rowSite,
           vtype: savedRow.vtype || vehicleInfo.vehicle_type || "N/A",
           driver: savedRow.driver || vehicleInfo.driver_name || "N/A",
           plate_no: cleanPlate,
           nhr: nhr,
-          nrate: parseFloat(savedRow.nrate) || 0,
+          nrate: rowNRate,
           othr: othr,
-          otrate: parseFloat(savedRow.otrate) || 0,
+          otrate: rowOTRate,
           rent: rent,
           vat_percent: parseFloat(savedRow.vat_percent) || 0,
           vat_amount: vatAmt,
@@ -701,14 +798,14 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
           billing_month: mStr,
           date: shortDate,
           company: autoCompany,
-          owner: vehicleInfo.owner_name || "COMPANY VEHICLE",
+          owner: fallbackOwnerName,
           site_name: activeSite,
           vtype: vehicleInfo.vehicle_type || "N/A",
           driver: vehicleInfo.driver_name || "N/A",
           plate_no: cleanPlate,
           nhr: 0,
-          nrate: parseFloat(vehicleInfo.rate) || 0,
-          otrate: (parseFloat(vehicleInfo.rate) || 0) * 0.7,
+          nrate: fallbackNRate,
+          otrate: fallbackOTRate,
           rent: 0,
           vat_percent: 0,
           vat_amount: 0,

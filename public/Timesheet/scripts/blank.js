@@ -418,10 +418,17 @@ async function generatePendingReport() {
         return st <= monthEnd && ed >= monthStart;
       });
 
+      const oLogs = (data.logs.owners || []).filter((l) => l.plate_no === plate);
+      let activeOwners = oLogs.filter((o) => {
+        let st = parseLogDate(o.work_start_date, new Date("2000-01-01"));
+        let ed = parseLogDate(o.work_end_date, new Date("2099-01-01"));
+        return st <= monthEnd && ed >= monthStart;
+      });
+
       let currSite =
         activeSites.map((s) => s.site_name).join(" & ") || v.site_name || "N/A";
-      let ownerName = v.owner_name || "N/A";
-      let ownerMob = v.owner_mobile || "";
+      let ownerName = activeOwners.map((o) => o.owner_name).filter(Boolean).join(" & ") || v.owner_name || "N/A";
+      let ownerMob = activeOwners.map((o) => o.owner_mobile).filter(Boolean).join(" & ") || v.owner_mobile || "";
       let currDriver =
         activeDrivers.map((d) => d.driver_name).join(" & ") ||
         v.driver_name ||

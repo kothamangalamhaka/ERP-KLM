@@ -698,8 +698,9 @@ function getTableHTMLString(
   let processedVehicles = data.vehicles.map((v) => {
     const plate = v.plate_no;
     v.vRecords = data.records.filter((r) => r.plate_no === plate);
-    v.dLogs = data.logs.drivers.filter((l) => l.plate_no === plate);
-    v.sLogs = data.logs.sites.filter((l) => l.plate_no === plate);
+    v.dLogs = (data.logs.drivers || []).filter((l) => l.plate_no === plate);
+    v.sLogs = (data.logs.sites || []).filter((l) => l.plate_no === plate);
+    v.oLogs = (data.logs.owners || []).filter((l) => l.plate_no === plate);
 
     let activeDrivers = v.dLogs.filter((d) => {
       let st = parseLogDate(d.work_start_date, new Date("2000-01-01"));
@@ -713,6 +714,12 @@ function getTableHTMLString(
       return st <= monthEnd && ed >= monthStart;
     });
 
+    let activeOwners = v.oLogs.filter((o) => {
+      let st = parseLogDate(o.work_start_date, new Date("2000-01-01"));
+      let ed = parseLogDate(o.work_end_date, new Date("2099-01-01"));
+      return st <= monthEnd && ed >= monthStart;
+    });
+
     v.currDriver =
       activeDrivers.map((d) => d.driver_name).join(" & ") ||
       v.driver_name ||
@@ -723,6 +730,12 @@ function getTableHTMLString(
       "";
     v.currSite =
       activeSites.map((s) => s.site_name).join(" & ") || v.site_name || "";
+
+    // 🟢 Historical Owner mapping for selected month
+    v.currOwner =
+      activeOwners.map((o) => o.owner_name).filter(Boolean).join(" & ") ||
+      v.owner_name ||
+      "";
 
     return v;
   });
@@ -749,7 +762,7 @@ function getTableHTMLString(
     let trHTML = `
         <tr>
             <td class="col-no">${index + 1}</td>
-            <td class="wrap-cell">${v.owner_name || ""}</td>
+            <td class="wrap-cell">${v.currOwner || ""}</td>
             <td>${v.vehicle_type || ""}</td>
             <td class="wrap-cell">${v.currDriver}</td>
             <td>${v.currMobile}</td>

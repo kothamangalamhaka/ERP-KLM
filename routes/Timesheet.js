@@ -1661,12 +1661,25 @@ router.post("/api/public/view-report", async (req, res) => {
       "SELECT * FROM vehicle_site_log WHERE plate_no = ANY($1)",
       [plates],
     );
+    const ownerLogs = await pool.query(
+      "SELECT * FROM vehicle_owner_log WHERE plate_no = ANY($1)",
+      [plates],
+    );
+    const rateLogs = await pool.query(
+      "SELECT * FROM vehicle_rate_log WHERE plate_no = ANY($1)",
+      [plates],
+    );
 
     res.json({
       success: true,
       vehicles: vehicles,
       records: recordsResult.rows,
-      logs: { drivers: driverLogs.rows, sites: siteLogs.rows },
+      logs: { 
+        drivers: driverLogs.rows, 
+        sites: siteLogs.rows, 
+        owners: ownerLogs.rows, 
+        rates: rateLogs.rows 
+      },
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
