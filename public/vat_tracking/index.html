@@ -157,9 +157,13 @@
         let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
 
         // Login Check
+        // Login Check - If code already exists in session, fetch data. Otherwise, show modal without error text.
         if (vatCode) {
             document.getElementById("loginModal").style.display = "none";
             fetchData();
+        } else {
+            document.getElementById("loginModal").style.display = "flex";
+            document.getElementById("loginError").style.display = "none";
         }
 
         function verifyLogin() {
@@ -927,7 +931,7 @@ function renderTable() {
         function escapeHTML(str) { return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; }
         function escapeQuotes(str) { return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; }
 
-        fetchData();
+       
 
 function copyColumnValues(e, colName, monthIndex = null) {
             e.preventDefault();

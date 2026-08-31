@@ -2454,29 +2454,24 @@
             return;
           }
 
-          const rent = parseFloat(
-            r.querySelector(".rent-cell")?.innerText || 0,
-          );
-
-          const total = parseFloat(
-            r.querySelector(".total-cell")?.innerText || 0,
-          );
-
-          const site = r.children[3].innerText;
-
-          const driver = r.children[4].innerText;
-
-          const vtype = r.children[2].innerText;
-
-          const vatAmount = parseFloat(
-            r.querySelector(".vat-cell")?.innerText || 0,
-          );
-
+          // Rent, VAT, Total എന്നിവ ടെക്സ്റ്റിൽ നിന്നോ ഫോർമുലയിൽ നിന്നോ കൃത്യമായി കണക്കാക്കുന്നു
+          const calculatedRent = nhr * nrate + othr * otrate;
+          const rent = parseFloat(r.querySelector(".rent-cell")?.innerText) || calculatedRent || 0;
+          
           const vatPercent = findVatPercentForPlate(plate);
+          const calculatedVat = rent * (vatPercent / 100);
+          const vatAmount = parseFloat(r.querySelector(".vat-cell")?.innerText) || calculatedVat || 0;
+          
+          const calculatedTotal = rent + vatAmount;
+          const total = parseFloat(r.querySelector(".total-cell")?.innerText) || calculatedTotal || 0;
 
-          // 🟢 റോയിലെ യഥാർത്ഥ ഓണറെ സേവ് ചെയ്യുന്നു
+          const site = r.getAttribute("data-site") || r.children[3]?.innerText?.trim() || "N/A";
+          const driver = r.children[4]?.innerText?.trim() || "";
+          const vtype = r.children[2]?.innerText?.trim() || "";
+          const remark = r.querySelector(".remark-column-cell")?.innerText?.trim() || "";
+
           const matchedCacheRow = fetchedRowsCache.find(
-            (cr) => String(cr.plate_no || "").trim() === String(plate).trim(),
+            (cr) => String(cr.plate_no || "").trim().toUpperCase() === String(plate).trim().toUpperCase(),
           );
           const owner =
             r.getAttribute("data-owner") ||
@@ -2484,44 +2479,24 @@
             "COMPANY VEHICLE";
 
           items.push({
-            date: r.children[1].innerText,
-
+            date: r.children[1]?.innerText?.trim() || "",
             owner: owner,
-
             company: "Haka",
-
             site_name: site,
-
             vtype: vtype,
-
             driver: driver,
-
             plate: plate,
-
-            /*
-             * IMPORTANT SAVED VALUES
-             */
             nhr: nhr,
-
             nrate: nrate,
-
             othr: othr,
-
             otrate: otrate,
-
             rent: rent,
-
             vat_percent: vatPercent,
-
             vat_amount: vatAmount,
-
             total: total,
-
             adjusted_amount: 0,
-
             after_adjustment: total,
-
-            remark: r.querySelector(".remark-inline-input")?.value?.trim() || "",
+            remark: remark,
           });
         });
 
@@ -4020,40 +3995,50 @@
           const rent = parseFloat(r.querySelector(".rent-cell")?.innerText || 0);
           const vat = parseFloat(r.querySelector(".vat-cell")?.innerText || 0);
           const total = parseFloat(r.querySelector(".total-cell")?.innerText || 0);
-          const remark = r.querySelector(".remark-inline-input")?.value?.trim() || "";
+          const remark = r.querySelector(".remark-column-cell")?.innerText?.trim() || "";
           const owner = r.getAttribute("data-owner") || "COMPANY VEHICLE";
+          const site = r.getAttribute("data-site") || r.children[3]?.innerText?.trim() || "N/A";
+          const vatPercent = findVatPercentForPlate(plate);
 
           items.push({
             date: r.children[1]?.innerText?.trim() || "",
+            owner: owner,
+            company: "Haka",
+            site_name: site,
             vtype: r.children[2]?.innerText?.trim() || "",
-            site: r.children[3]?.innerText?.trim() || "N/A",
             driver: r.children[4]?.innerText?.trim() || "",
-            plate_no: plate,
+            plate: plate,
             nhr: nhr,
             nrate: nrate,
             othr: othr,
             otrate: otrate,
             rent: rent,
+            vat_percent: vatPercent,
             vat_amount: vat,
             total: total,
-            owner: owner,
+            adjusted_amount: 0,
+            after_adjustment: total,
             remark: remark
           });
         });
 
         if (items.length > 0) {
           try {
-            await fetch("/api/view-bill/save-active-bill", {
+            const res = await fetch("/api/view-bill/save-bill", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: "Bearer " + token,
               },
               body: JSON.stringify({
-                month: fullMonth,
+                billing_period: fullMonth,
                 items: items,
               }),
             });
+            const data = await res.json();
+            if (data.success) {
+              updateFetchedRowsCacheFromItems(items);
+            }
           } catch (err) {
             console.warn("Background auto-save failed", err);
           }
