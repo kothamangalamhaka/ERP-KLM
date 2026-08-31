@@ -422,16 +422,18 @@ async function triggerFetch() {
     
     const logRes = await fetch(`/timesheet/api/vehicle-logs?plate=${p}&_t=${ts}`, { headers, cache: "no-store" });
     let logs;
-    try { logs = await logRes.json(); } catch (e) { logs = { drivers: [], sites: [] }; }
+    try { logs = await logRes.json(); } catch (e) { logs = { drivers: [], sites: [], owners: [], rates: [] }; }
 
     let mIdx = months.indexOf(m);
     let monthStart = new Date(y, mIdx, 1);
     let monthEnd = new Date(y, mIdx + 1, 0);
 
     let dNameArr = [], dMobArr = [], siteArr = [], activeSites = [];
+    let oNameArr = [], oMobArr = [];
 
     if (logs.success) {
-      let activeDrivers = logs.drivers.filter((d) => {
+      // 1. Driver Logs
+      let activeDrivers = (logs.drivers || []).filter((d) => {
         let st = d.work_start_date ? new Date(d.work_start_date) : new Date("2000-01-01");
         let ed = d.work_end_date ? new Date(d.work_end_date) : new Date("2099-01-01");
         return st <= monthEnd && ed >= monthStart;
@@ -444,7 +446,8 @@ async function triggerFetch() {
         dMobArr = [...new Set(activeDrivers.map((d) => d.driver_mobile))].filter(Boolean);
       }
 
-      activeSites = logs.sites.filter((s) => {
+      // 2. Site Logs
+      activeSites = (logs.sites || []).filter((s) => {
         let st = s.work_start_date ? new Date(s.work_start_date) : new Date("2000-01-01");
         let ed = s.work_end_date ? new Date(s.work_end_date) : new Date("2099-01-01");
         return st <= monthEnd && ed >= monthStart;
@@ -455,14 +458,34 @@ async function triggerFetch() {
       if (activeSites.length > 0) {
         siteArr = [...new Set(activeSites.map((s) => s.site_name))].filter(Boolean);
       }
+
+      // 3. 🟢 Owner Logs (Monthly Filter & Fallback)
+      let activeOwners = (logs.owners || []).filter((o) => {
+        let st = o.work_start_date ? new Date(o.work_start_date) : new Date("2000-01-01");
+        let ed = o.work_end_date ? new Date(o.work_end_date) : new Date("2099-01-01");
+        return st <= monthEnd && ed >= monthStart;
+      });
+      if (activeOwners.length === 0 && logs.owners && logs.owners.length > 0) {
+        activeOwners = (logs.owners || []).filter((o) => o.status === "Running");
+        if (activeOwners.length === 0) {
+          activeOwners = [ [...logs.owners].sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"))[0] ];
+        }
+      }
+      if (activeOwners.length > 0) {
+        oNameArr = [...new Set(activeOwners.map((o) => o.owner_name))].filter(Boolean);
+        oMobArr = [...new Set(activeOwners.map((o) => o.owner_mobile))].filter(Boolean);
+      }
     }
 
     let vObjMaster = vehiclesCache.find((v) => v.plate_no.toUpperCase() === p);
     document.getElementById("dispDName").innerText = dNameArr.length > 0 ? dNameArr.join(" & ") : (vObjMaster ? vObjMaster.driver_name || "N/A" : "N/A");
     document.getElementById("dispDMob").innerText = dMobArr.length > 0 ? dMobArr.join(" & ") : (vObjMaster ? vObjMaster.driver_mobile || "N/A" : "N/A");
     document.getElementById("dispSite").innerText = siteArr.length > 0 ? siteArr.join(" & ") : (vObjMaster ? vObjMaster.site_name || "N/A" : "N/A");
-    document.getElementById("dispOName").innerText = vObjMaster ? vObjMaster.owner_name || "N/A" : "N/A";
-    document.getElementById("dispOMob").innerText = vObjMaster ? vObjMaster.owner_mobile || "N/A" : "N/A";
+    
+    // 🟢 Owner Details directly populated from Owner Log
+    document.getElementById("dispOName").innerText = oNameArr.length > 0 ? oNameArr.join(" & ") : (vObjMaster ? vObjMaster.owner_name || "N/A" : "N/A");
+    document.getElementById("dispOMob").innerText = oMobArr.length > 0 ? oMobArr.join(" & ") : (vObjMaster ? vObjMaster.owner_mobile || "N/A" : "N/A");
+    
     document.getElementById("dispVType").innerText = vObjMaster ? vObjMaster.vehicle_type || "N/A" : "N/A";
 
     // Global variable ആയി activeSites സേവ് ചെയ്യുന്നു (Invoice site മാറുമ്പോൾ റീയൂസ് ചെയ്യാൻ)

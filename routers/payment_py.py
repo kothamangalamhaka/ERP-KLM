@@ -16,7 +16,7 @@ class InvoiceEditRecord(BaseModel):
     plate: str
     site: str
     inv_nr: Optional[Any] = None
-    inv_ot: Optional[Any] = None
+    inv_ot: Optional[Any] = None 
     inv_amount: Optional[Any] = None
     inv_no: Optional[str] = ""
     bill_no: Optional[str] = ""

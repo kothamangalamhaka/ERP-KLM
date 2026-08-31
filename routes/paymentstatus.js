@@ -156,19 +156,21 @@ router.post("/save-inline-edits", async (req, res) => {
   }
 });
  
-// 🟢 Fetch Master Report Data
+// 🟢 Fetch Master Report Data (With Owner & Rate Logs)
 router.get("/master-report-data", async (req, res) => {
   try {
     const { month, year } = req.query;
     const fullMonth = `${month} ${year}`;
 
-    const [vehicles, sites, drivers, timesheets, invoices, billing] = await Promise.all([
+    const [vehicles, sites, drivers, timesheets, invoices, billing, owners, rates] = await Promise.all([
       pool.query("SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles"),
       pool.query("SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co FROM vehicle_site_log"),
       pool.query("SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log"),
       pool.query("SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month=$1 AND year=$2", [month, year]),
       pool.query("SELECT * FROM invoice_records WHERE month=$1", [fullMonth]),
-      pool.query("SELECT * FROM billing_records WHERE billing_month=$1", [fullMonth])
+      pool.query("SELECT * FROM billing_records WHERE billing_month=$1", [fullMonth]),
+      pool.query("SELECT plate_no, owner_name, vat, work_start_date, work_end_date, status FROM vehicle_owner_log"),
+      pool.query("SELECT plate_no, site_name, rate, work_start_date, work_end_date, status FROM vehicle_rate_log")
     ]);
 
     res.json({
@@ -179,6 +181,8 @@ router.get("/master-report-data", async (req, res) => {
       timesheets: timesheets.rows,
       invoices: invoices.rows,
       billing: billing.rows,
+      owners: owners.rows,
+      rates: rates.rows
     });
   } catch (err) {
     res.json({ success: false, message: err.message });
