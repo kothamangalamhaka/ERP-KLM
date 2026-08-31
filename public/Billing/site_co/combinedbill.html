@@ -64,14 +64,14 @@
             <div class="suggestion-box" id="plateSuggestions"></div>
           </div>
 
-          <!-- From Month -->
+          <!-- From Month (Default: January) -->
           <div class="selector-wrapper" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
             <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">From:</label>
             <select id="fromMonth" style="height:32px; border:none; background:transparent; font-weight:bold;">
-              <option value="January">January</option>
+              <option value="January" selected>January</option>
               <option value="February">February</option>
               <option value="March">March</option>
-              <option value="April" selected>April</option>
+              <option value="April">April</option>
               <option value="May">May</option>
               <option value="June">June</option>
               <option value="July">July</option>
@@ -84,7 +84,7 @@
             <input type="number" id="fromYear" value="2026" style="width:65px; height:32px; border:none; font-weight:bold;" />
           </div>
 
-          <!-- To Month -->
+          <!-- To Month (Auto Selected: Current Month - 1) -->
           <div class="selector-wrapper" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
             <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">To:</label>
             <select id="toMonth" style="height:32px; border:none; background:transparent; font-weight:bold;">
@@ -93,7 +93,7 @@
               <option value="March">March</option>
               <option value="April">April</option>
               <option value="May">May</option>
-              <option value="June" selected>June</option>
+              <option value="June">June</option>
               <option value="July">July</option>
               <option value="August">August</option>
               <option value="September">September</option>
@@ -117,12 +117,9 @@
             <i class="material-icons" style="font-size:16px;">visibility</i> Seal/Sign
           </button>
 
-          <button type="button" class="btn" style="background:#007bff;" onclick="downloadPNG()">
-            <i class="material-icons" style="font-size:16px;">download</i> 
-          </button>
-
-          <button type="button" class="btn" style="background:#17a2b8;" onclick="copyHighQualityImage()">
-            <i class="material-icons" style="font-size:16px;">content_copy</i>
+          <!-- Split Cards Toggle Button -->
+          <button type="button" id="btnToggleSplit" class="btn" style="background:#ff9800;" onclick="toggleSplitCards()">
+            <i class="material-icons" style="font-size:16px;">call_split</i> Split Cards 🔀
           </button>
 
           <button type="button" class="btn" style="background:#1d6f42;" onclick="exportToExcel()">
@@ -164,6 +161,7 @@
       let combinedDataCache = null;
       let currentFocus = -1;
       let imagesGloballyVisible = false;
+      let isSplitMode = false;
 
       const ALL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -252,9 +250,29 @@
         window.location.replace("combinedbill.html");
       }
 
+      function initDateSelectors() {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonthIdx = now.getMonth(); // 0 to 11
+
+        // From Month: January & Current Year
+        document.getElementById("fromMonth").value = "January";
+        document.getElementById("fromYear").value = currentYear;
+
+        // To Month: Current Month - 1
+        if (currentMonthIdx === 0) {
+          document.getElementById("toMonth").value = "December";
+          document.getElementById("toYear").value = currentYear - 1;
+        } else {
+          document.getElementById("toMonth").value = ALL_MONTHS[currentMonthIdx - 1];
+          document.getElementById("toYear").value = currentYear;
+        }
+      }
+
       function loadApp() {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("mainAppContainer").style.display = "block";
+        initDateSelectors();
         loadSuggestions();
         attachKeyboardEvents();
       }
@@ -366,6 +384,33 @@
         }
       }
 
+      function toggleSplitCards() {
+        if (!combinedDataCache || !combinedDataCache.rows || combinedDataCache.rows.length === 0) {
+          return showToast("Please generate a bill first!");
+        }
+
+        isSplitMode = !isSplitMode;
+        const toggleBtn = document.getElementById("btnToggleSplit");
+        const searchVal = document.getElementById("plateSearch").value.trim();
+        let searchType = document.getElementById("searchType").value;
+        if (searchType === "all") {
+          const isPlate = suggestionPlates.some(p => p.toUpperCase() === searchVal.toUpperCase());
+          searchType = isPlate ? "plate" : "owner";
+        }
+
+        if (isSplitMode) {
+          toggleBtn.innerHTML = `<i class="material-icons" style="font-size:16px;">view_agenda</i> Combined View 📑`;
+          toggleBtn.style.background = "#28a745";
+          renderMultiCompanyCards(combinedDataCache, searchType, searchVal);
+          showToast("Split into individual month cards!");
+        } else {
+          toggleBtn.innerHTML = `<i class="material-icons" style="font-size:16px;">call_split</i> Split Cards 🔀`;
+          toggleBtn.style.background = "#ff9800";
+          renderMultiCompanyCards(combinedDataCache, searchType, searchVal);
+          showToast("Switched back to Combined view!");
+        }
+      }
+
       async function fetchCombinedBill() {
         const searchVal = document.getElementById("plateSearch").value.trim();
         let searchType = document.getElementById("searchType").value;
@@ -378,7 +423,6 @@
           return showToast("Please enter Plate No or Owner Name.");
         }
 
-        // Auto-detect if 'all' is selected
         if (searchType === "all") {
           const isPlate = suggestionPlates.some(p => p.toUpperCase() === searchVal.toUpperCase());
           searchType = isPlate ? "plate" : "owner";
@@ -414,7 +458,6 @@
               const url = `/api/view-bill/data?month=${m}&year=${y}&search_type=owner&search_value=${encodeURIComponent(searchVal)}`;
               const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
               
-              // 401 മാത്രം ലോഗൗട്ട് ചെയ്യുക
               if (res.status === 401) return executeLogout();
               
               const monthData = await res.json();
@@ -449,11 +492,6 @@
         }
       }
 
-      /*
-       * ============================================================
-       * 🟢 MULTI-COMPANY CARD RENDERER
-       * ============================================================
-       */
       function renderMultiCompanyCards(data, searchType, searchVal) {
         const container = document.getElementById("cardsContainer");
         container.innerHTML = "";
@@ -463,20 +501,116 @@
 
         const hasVat = data.rows.some((r) => parseFloat(r.vat_amount || 0) > 0 || parseFloat(r.vat_percent || 0) > 0);
 
-        // Group rows by Company based on Site name
         const companyGroups = {};
         data.rows.forEach(r => {
-          // 🟢 Always prioritize getCompanyFromSite to prevent mismatch
           let comp = getCompanyFromSite(r.site || r.site_name) || r.company || "Haka";
           if (!companyGroups[comp]) companyGroups[comp] = [];
           companyGroups[comp].push(r);
         });
 
-        // Generate a separate card for each company found
         Object.keys(companyGroups).forEach(compName => {
           const compRows = companyGroups[compName];
           const compConfig = companyData[compName] || companyData["Haka"];
 
+          // 🟢 SPLIT MODE RENDER
+          if (isSplitMode) {
+            compRows.forEach((r, idx) => {
+              const monthName = r.month || r.date || "Month";
+              const rVat = parseFloat(r.vat_amount || 0);
+              const rRent = parseFloat(r.rent || 0);
+              const rTotal = parseFloat(r.total || (rRent + rVat) || 0);
+              const cardPlate = r.plate_no || r.plate || "";
+
+              const singleRowTableHtml = `
+                <table style="width:100%; border-collapse:collapse; margin-top:0; border:1px solid #cbd5e1; font-size: 13px;">
+                  <thead>
+                    <tr style="background:#1a4d80; color:white;">
+                      <th style="width: 4%; padding:8px; border: 1px solid #10365c;">#</th>
+                      <th style="width: 10%; padding:8px; border: 1px solid #10365c;">Month</th>
+                      <th style="width: 16%; padding:8px; border: 1px solid #10365c;">Vehicle Type</th>
+                      <th style="width: 20%; padding:8px; border: 1px solid #10365c;">Driver</th>
+                      <th style="width: 14%; padding:8px; border: 1px solid #10365c;">Plate No</th>
+                      <th style="width: 8%; padding:8px; border: 1px solid #10365c;">N.Hr</th>
+                      <th style="width: 8%; padding:8px; border: 1px solid #10365c;">OT Hr</th>
+                      <th style="width: 10%; padding:8px; border: 1px solid #10365c;">Rent</th>
+                      ${hasVat ? `<th style="width: 8%; padding:8px; border: 1px solid #10365c;">VAT</th>` : ""}
+                      <th style="width: 10%; padding:8px; border: 1px solid #10365c;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">1</td>
+                      <td class="date-cell" style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; font-weight:bold; color:#1a4d80;">${escapeHTML(r.month || r.date || "")}</td>
+                      <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">${escapeHTML(r.vtype || r.vehicle_type || "-")}</td>
+                      <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: left;">${escapeHTML(r.driver || r.driver_name || "-")}</td>
+                      <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; font-weight:bold;">${escapeHTML(cardPlate)}</td>
+                      <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">${parseFloat(r.nhr || 0)}</td>
+                      <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">${parseFloat(r.othr || 0)}</td>
+                      <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">${rRent.toFixed(2)}</td>
+                      ${hasVat ? `<td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">${rVat > 0 ? rVat.toFixed(2) : "0"}</td>` : ""}
+                      <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; font-weight:bold;">${rTotal.toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="total-row" style="background:#f8fafc; border-top:2px solid #cbd5e1;">
+                      <td colspan="5" style="text-align:right; padding-right:15px; padding-top:8px; padding-bottom:8px; border: 1px solid #cbd5e1; font-weight:bold;">Grand Total:</td>
+                      <td style="border: 1px solid #cbd5e1; text-align: center; font-weight:bold;">${parseFloat(r.nhr || 0)}</td>
+                      <td style="border: 1px solid #cbd5e1; text-align: center; font-weight:bold;">${parseFloat(r.othr || 0)}</td>
+                      <td style="border: 1px solid #cbd5e1; text-align: center; font-weight:bold;">${rRent.toFixed(2)}</td>
+                      ${hasVat ? `<td style="border: 1px solid #cbd5e1; text-align: center; font-weight:bold;">${rVat.toFixed(2)}</td>` : ""}
+                      <td style="border: 1px solid #cbd5e1; text-align: center; font-weight:bold;">${rTotal.toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              `;
+
+              const splitCardHtml = `
+                <div class="bill-card" style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 15px rgba(0,0,0,0.08); border: 1px solid #ddd;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                    <div style="font-weight: 800; font-size: 15px; color: #1a4d80; text-transform: uppercase;">
+                      ${escapeHTML(monthName)} — ${escapeHTML(dispOwner)} (${escapeHTML(cardPlate)}) | <span style="color: #b40000;">${escapeHTML(compName)}</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                      <button type="button" class="btn" style="background: #007bff; padding: 4px 10px; font-size: 11px; height: 30px;" onclick="downloadSingleCard(this)" title="Download this card as PNG">
+                        <i class="material-icons" style="font-size: 14px;">download</i> Download
+                      </button>
+                      <button type="button" class="btn" style="background: #17a2b8; padding: 4px 10px; font-size: 11px; height: 30px;" onclick="copySingleCardHQ(this)" title="Copy this card image">
+                        <i class="material-icons" style="font-size: 14px;">content_copy</i> Copy
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="print-area" style="background: white; padding: 10px;">
+                    <img src="${compConfig.header}" class="header-img ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Header" crossorigin="anonymous" style="width:100%; height:auto; max-height:200px; display:block; margin: 0 auto 15px auto;" />
+
+                    <div style="border:1px solid #cbd5e1; padding:12px; margin:15px 0; text-align:center; background:#f8fafc; font-weight:bold; font-size:18px; color:#1e293b;">
+                      Bill Summary for Each Month ملخص فاتورة الشهر
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 15px;">
+                      ${singleRowTableHtml}
+                    </div>
+
+                    <div class="footer card-footer-sign" style="margin-top:40px; display:flex; justify-content:space-between; align-items:flex-end;">
+                      <div style="text-align: left; padding-bottom: 10px;">
+                        <p class="company-text ${imagesGloballyVisible ? '' : 'hidden-image'}" style="margin-bottom: 5px; font-size: 13px; color: #1e293b;"><b>${compConfig.text}</b></p>
+                        <p class="company-text ${imagesGloballyVisible ? '' : 'hidden-image'}" style="border-top: 1px solid #333; width: 250px; margin: 0;"></p>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
+                        <img src="${compConfig.signature}" class="signature-img ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Signature" crossorigin="anonymous" style="max-height: 75px;" />
+                        <img src="${compConfig.seal}" class="seal ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Company Seal" crossorigin="anonymous" style="max-height: 75px;"/>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+
+              container.insertAdjacentHTML("beforeend", splitCardHtml);
+            });
+            return;
+          }
+
+          // 🟢 COMBINED MODE RENDER
           let innerContentHtml = "";
 
           if (searchType === "plate") {
@@ -497,7 +631,6 @@
 
           const cardHtml = `
             <div class="bill-card" style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 15px rgba(0,0,0,0.08); border: 1px solid #ddd;">
-              <!-- 🟢 Top Action Bar (Outside print-area so it won't appear in copy/download) -->
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
                 <div style="font-weight: 800; font-size: 15px; color: #1a4d80; text-transform: uppercase;">
                   OWNER : <span>${escapeHTML(dispOwner)}</span> | <span style="color: #b40000;">${escapeHTML(compName)}</span>
@@ -512,9 +645,7 @@
                 </div>
               </div>
 
-              <!-- 🟢 Clean Print Area -->
               <div class="print-area" style="background: white; padding: 10px;">
-                <!-- Header Image -->
                 <img src="${compConfig.header}" class="header-img ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Header" crossorigin="anonymous" style="width:100%; height:auto; max-height:200px; display:block; margin: 0 auto 15px auto;" />
 
                 <div style="border:1px solid #cbd5e1; padding:12px; margin:15px 0; text-align:center; background:#f8fafc; font-weight:bold; font-size:18px; color:#1e293b;">
@@ -525,7 +656,6 @@
                   ${innerContentHtml}
                 </div>
 
-                <!-- Footer Signature & Seal -->
                 <div class="footer card-footer-sign" style="margin-top:40px; display:flex; justify-content:space-between; align-items:flex-end;">
                   <div style="text-align: left; padding-bottom: 10px;">
                     <p class="company-text ${imagesGloballyVisible ? '' : 'hidden-image'}" style="margin-bottom: 5px; font-size: 13px; color: #1e293b;"><b>${compConfig.text}</b></p>
@@ -756,43 +886,6 @@
         setTimeout(() => (t.className = ""), 3000);
       }
 
-      async function downloadPNG() {
-        const cards = document.querySelectorAll("#cardsContainer .bill-card");
-        if (cards.length === 0) return showToast("No bill to download!");
-
-        cards.forEach(async (card, idx) => {
-          const canvas = await html2canvas(card, { scale: 3, useCORS: true, logging: false, imageTimeout: 0 });
-          const link = document.createElement("a");
-          link.download = `Combined_Bill_${idx + 1}.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-        });
-        showToast("Downloading bill images...");
-      }
-
-      async function copyHighQualityImage() {
-        const cards = document.querySelectorAll("#cardsContainer .bill-card");
-        if (cards.length === 0) return showToast("No bill to copy!");
-
-        try {
-          const canvas = await html2canvas(cards[0], { scale: 3, useCORS: true, logging: false, imageTimeout: 0 });
-          canvas.toBlob(async (blob) => {
-            if (navigator.clipboard && window.isSecureContext) {
-              await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-              showToast("HQ Combined Image Copied to Clipboard!");
-            } else {
-              showToast("Clipboard not supported. Downloading HD instead.");
-              const link = document.createElement("a");
-              link.download = `Combined_Bill_HD.png`;
-              link.href = URL.createObjectURL(blob);
-              link.click();
-            }
-          });
-        } catch (e) {
-          showToast("Unable to copy image.");
-        }
-      }
-
       function exportToExcel() {
         if (!combinedDataCache || combinedDataCache.rows.length === 0) return showToast("No data to export!");
         const ws = XLSX.utils.json_to_sheet(combinedDataCache.rows);
@@ -801,12 +894,6 @@
         XLSX.writeFile(wb, `Combined_Bill_${document.getElementById("plateSearch").value.trim() || 'Export'}.xlsx`);
       }
 
-
-      /*
-       * ============================================================
-       * SINGLE CARD DOWNLOAD & COPY FUNCTIONS
-       * ============================================================
-       */
       async function downloadSingleCard(btn) {
         const card = btn.closest(".bill-card");
         if (!card) return;
