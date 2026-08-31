@@ -46,14 +46,14 @@
           <div class="suggestion-box" id="plateSuggestions"></div>
         </div>
 
-        <!-- From Month -->
+        <!-- From Month (Default: January) -->
         <div class="selector-wrapper" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
           <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">From:</label>
           <select id="fromMonth" style="height:32px; border:none; background:transparent; font-weight:bold;">
-            <option value="January">January</option>
+            <option value="January" selected>January</option>
             <option value="February">February</option>
             <option value="March">March</option>
-            <option value="April" selected>April</option>
+            <option value="April">April</option>
             <option value="May">May</option>
             <option value="June">June</option>
             <option value="July">July</option>
@@ -66,7 +66,7 @@
           <input type="number" id="fromYear" value="2026" style="width:65px; height:32px; border:none; font-weight:bold;" />
         </div>
 
-        <!-- To Month -->
+        <!-- To Month (Auto Selected: Current Month - 1) -->
         <div class="selector-wrapper" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
           <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">To:</label>
           <select id="toMonth" style="height:32px; border:none; background:transparent; font-weight:bold;">
@@ -75,7 +75,7 @@
             <option value="March">March</option>
             <option value="April">April</option>
             <option value="May">May</option>
-            <option value="June" selected>June</option>
+            <option value="June">June</option>
             <option value="July">July</option>
             <option value="August">August</option>
             <option value="September">September</option>
@@ -95,12 +95,18 @@
           <i class="material-icons" style="font-size:16px;">visibility</i> Seal & Signature
         </button>
 
-        <button type="button" class="btn" style="background:#007bff;" onclick="downloadPNG()">
+        <!-- Combined Actions -->
+        <button type="button" id="btnCombinedDl" class="btn" style="background:#007bff;" onclick="downloadPNG()" title="Download Combined PNG">
           <i class="material-icons" style="font-size:16px;">download</i> 
         </button>
 
-        <button type="button" class="btn" style="background:#17a2b8;" onclick="copyHighQualityImage()">
+        <button type="button" id="btnCombinedCopy" class="btn" style="background:#17a2b8;" onclick="copyHighQualityImage()" title="Copy Combined Image">
           <i class="material-icons" style="font-size:16px;">content_copy</i>
+        </button>
+
+        <!-- Split / Combined Toggle Button -->
+        <button type="button" id="btnToggleSplit" class="btn" style="background:#ff9800;" onclick="toggleSplitCards()">
+          <i class="material-icons" style="font-size:16px;">call_split</i> Split Cards 🔀
         </button>
 
         <button type="button" class="btn" style="background:#1d6f42;" onclick="exportToExcel()">
@@ -110,6 +116,7 @@
     </div>
 
     <div class="container" style="max-width: 1200px; margin: 0 auto;">
+      <!-- Single Combined Bill Card -->
       <div class="bill-card" id="combinedBillCard">
         <div class="print-area" id="printArea">
           <!-- 🟢 Header Image Hidden by Default on Page Load/Reload -->
@@ -141,7 +148,7 @@
             <tbody id="combinedTableBody">
               <tr>
                 <td colspan="9" style="padding: 30px; color: #888;">
-                  Type a Plate No and click "Generate Combined Bill ✨"
+                  Type a Plate No and click "Generate Bill ✨"
                 </td>
               </tr>
             </tbody>
@@ -169,6 +176,9 @@
           </div>
         </div>
       </div>
+
+      <!-- 🟢 Split Multiple Cards Container -->
+      <div id="splitCardsContainer" style="display: none; flex-direction: column; gap: 35px; margin-bottom: 50px;"></div>
     </div>
 
     <!-- 🟢 Image Toggle Security Verification Modal -->
@@ -203,6 +213,7 @@
       let combinedDataCache = null;
       let currentFocus = -1;
       let isImagesVerified = false;
+      let isSplitMode = false;
 
       document.addEventListener("DOMContentLoaded", async () => {
         const token = localStorage.getItem("token");
@@ -257,9 +268,34 @@
         document.getElementById("mainAppContainer").style.display = "none";
       }
 
+      function initDateSelectors() {
+        const monthNames = [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"
+        ];
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonthIdx = now.getMonth(); // 0 to 11
+
+        // From Month: January & Current Year
+        document.getElementById("fromMonth").value = "January";
+        document.getElementById("fromYear").value = currentYear;
+
+        // To Month: Current Month - 1
+        if (currentMonthIdx === 0) {
+          // January ആണെങ്കിൽ To Month മുൻ വർഷത്തെ December ആക്കും
+          document.getElementById("toMonth").value = "December";
+          document.getElementById("toYear").value = currentYear - 1;
+        } else {
+          document.getElementById("toMonth").value = monthNames[currentMonthIdx - 1];
+          document.getElementById("toYear").value = currentYear;
+        }
+      }
+
       function loadApp() {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("mainAppContainer").style.display = "block";
+        initDateSelectors();
         loadVehiclesList();
         attachKeyboardEvents();
       }
@@ -379,6 +415,9 @@
           if (data.success) {
             combinedDataCache = data;
             renderCombinedTable(data);
+            if (isSplitMode) {
+              renderSplitCards(data);
+            }
           } else {
             tbody.innerHTML = `<tr><td colspan="10" style="padding:20px; color:red;">${data.message}</td></tr>`;
           }
@@ -433,7 +472,6 @@
           `;
         }
 
-        // 🟢 Non-editable Driver Name Text
         data.rows.forEach((r, idx) => {
           let vatCell = hasVat ? `<td>${r.vat_amount > 0 ? parseFloat(r.vat_amount).toFixed(2) : "0"}</td>` : "";
 
@@ -477,36 +515,233 @@
         }
       }
 
+      /* ========================================================
+         🟢 SPLIT VIEW LOGIC & INDIVIDUAL CARD GENERATION
+      ======================================================== */
+      function toggleSplitCards() {
+        if (!combinedDataCache || !combinedDataCache.rows || combinedDataCache.rows.length === 0) {
+          return showToast("Please generate a bill first!");
+        }
+
+        isSplitMode = !isSplitMode;
+        const combinedCard = document.getElementById("combinedBillCard");
+        const splitContainer = document.getElementById("splitCardsContainer");
+        const toggleBtn = document.getElementById("btnToggleSplit");
+        const btnDl = document.getElementById("btnCombinedDl");
+        const btnCopy = document.getElementById("btnCombinedCopy");
+
+        if (isSplitMode) {
+          combinedCard.style.display = "none";
+          if (btnDl) btnDl.style.display = "none";
+          if (btnCopy) btnCopy.style.display = "none";
+          splitContainer.style.display = "flex";
+          toggleBtn.innerHTML = `<i class="material-icons" style="font-size:16px;">view_agenda</i> Combined View 📑`;
+          toggleBtn.style.background = "#28a745";
+          renderSplitCards(combinedDataCache);
+          showToast("Split into individual month cards!");
+        } else {
+          combinedCard.style.display = "block";
+          if (btnDl) btnDl.style.display = "";
+          if (btnCopy) btnCopy.style.display = "";
+          splitContainer.style.display = "none";
+          toggleBtn.innerHTML = `<i class="material-icons" style="font-size:16px;">call_split</i> Split Cards 🔀`;
+          toggleBtn.style.background = "#ff9800";
+          showToast("Switched back to Combined view!");
+        }
+      }
+
+      function renderSplitCards(data) {
+        const container = document.getElementById("splitCardsContainer");
+        container.innerHTML = "";
+
+        // Check if images were verified or visible in state
+        const isHidden = !isImagesVerified;
+        const imgClass = isHidden ? "hidden-image" : "";
+
+        data.rows.forEach((r, idx) => {
+          const cardId = `splitCard_${idx}`;
+          const printAreaId = `printArea_split_${idx}`;
+          const hasVat = parseFloat(r.vat_amount) > 0 || parseFloat(r.vat_percent) > 0;
+          const ownerName = r.owner || data.rows[0].owner || "COMPANY VEHICLE";
+
+          const card = document.createElement("div");
+          card.className = "bill-card";
+          card.id = cardId;
+
+          card.innerHTML = `
+            <div class="no-export" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#f8f9fa; padding:10px 15px; border-radius:6px; border:1px solid #ddd;">
+              <b style="color:#1a4d80; font-size:15px;">${r.date} — ${ownerName} (${r.plate_no})</b>
+              <div style="display:flex; gap:10px;">
+                <button class="icon-btn" title="Download Image" style="background:#007bff;" onclick="downloadSingleSplit('${cardId}', '${r.date}', '${r.plate_no}')">
+                  <i class="material-icons">download</i>
+                </button>
+                <button class="icon-btn" title="Copy High Quality" style="background:#17a2b8;" onclick="copySingleSplit('${cardId}')">
+                  <i class="material-icons">content_copy</i>
+                </button>
+                <button class="icon-btn" title="WhatsApp Share" style="background:#25D366;" onclick="shareSingleWhatsAppSplit('${cardId}', '${ownerName}', '${r.date}')">
+                  <i class="material-icons">chat</i>
+                </button>
+              </div>
+            </div>
+
+            <div class="print-area" id="${printAreaId}">
+              <img src="https://i.ibb.co/Ld752yD5/hd.png" class="header-img ${imgClass}" alt="Header" crossorigin="anonymous" />
+              
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                <div style="font-weight: 800; font-size: 16px; color: #1a4d80; text-transform: uppercase;">
+                  OWNER : <span>${escapeHTML(ownerName)}</span>
+                </div>
+              </div>
+
+              <h3>Bill Summary for Each Month ملخص فاتورة الشهر</h3>
+
+              <table class="billTable">
+                <thead>
+                  <tr>
+                    <th style="width: 4%;">#</th>
+                    <th style="width: 10%;">Date</th>
+                    <th style="width: 18%;">Vehicle Type</th>
+                    <th style="width: 22%;">Driver</th>
+                    <th style="width: 14%;">Plate No</th>
+                    <th style="width: 8%;">N.Hr</th>
+                    <th style="width: 8%;">OT Hr</th>
+                    <th style="width: 8%;">Rent</th>
+                    ${hasVat ? '<th style="width: 8%;">VAT</th>' : ''}
+                    <th style="width: 8%;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td class="date-cell">${r.date}</td>
+                    <td>${escapeHTML(r.vtype)}</td>
+                    <td>${escapeHTML(r.driver)}</td>
+                    <td>${escapeHTML(r.plate_no)}</td>
+                    <td>${r.nhr}</td>
+                    <td>${r.othr}</td>
+                    <td>${r.rent}</td>
+                    ${hasVat ? `<td>${r.vat_amount > 0 ? parseFloat(r.vat_amount).toFixed(2) : "0"}</td>` : ''}
+                    <td style="font-weight:bold;">${r.total}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="total-row">
+                    <td colspan="5" style="text-align: right; padding-right: 15px; font-weight: bold;">Grand Total:</td>
+                    <td>${r.nhr}</td>
+                    <td>${r.othr}</td>
+                    <td>${r.rent}</td>
+                    ${hasVat ? `<td>${parseFloat(r.vat_amount || 0).toFixed(2)}</td>` : ''}
+                    <td>${r.total}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div class="footer" style="margin-top:40px; display:flex; justify-content:space-between; align-items:flex-end;">
+                <div style="text-align: left; padding-bottom: 10px;">
+                  <p class="company-text ${imgClass}" style="margin-bottom: 5px;"><b>Approved By Accounts Team</b></p>
+                  <p style="border-top: 1px solid #333; width: 250px; margin: 0;"></p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
+                  <img src="https://i.ibb.co/CK8X4YpV/Screenshot-2026-03-28-111438.png" class="signature-img ${imgClass}" alt="Signature" crossorigin="anonymous" style="max-height: 80px;" />
+                  <img src="https://i.ibb.co/mrLFJdBy/sl.png" class="seal ${imgClass}" alt="Company Seal" crossorigin="anonymous" />
+                </div>
+              </div>
+            </div>
+          `;
+
+          container.appendChild(card);
+        });
+      }
+
+      async function downloadSingleSplit(cardId, dateStr, plateNo) {
+        const printArea = document.getElementById(cardId).querySelector(".print-area");
+        const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+        const link = document.createElement("a");
+        link.download = `${plateNo}_${dateStr.replace(/\s+/g, '_')}_Bill.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+
+      async function copySingleSplit(cardId) {
+        const printArea = document.getElementById(cardId).querySelector(".print-area");
+        const canvas = await html2canvas(printArea, { scale: 4, useCORS: true, logging: false });
+        canvas.toBlob(async (blob) => {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+            showToast("Single Card Copied to Clipboard!");
+          } else {
+            showToast("Clipboard not supported. Downloading HD instead.");
+            const link = document.createElement("a");
+            link.download = `Bill_Card.png`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+          }
+        }, "image/png", 1.0);
+      }
+
+      async function shareSingleWhatsAppSplit(cardId, ownerName, dateStr) {
+        let mobile = "";
+        let safeOwner = ownerName.trim().toUpperCase();
+        let match = vehiclesMaster.find((v) => (v.owner || "").trim().toUpperCase() === safeOwner && v.owner_mobile);
+        if (match && match.owner_mobile) {
+          mobile = String(match.owner_mobile).replace(/[^0-9+]/g, "");
+        }
+        if (mobile.startsWith("05") && mobile.length === 10) {
+          mobile = "966" + mobile.substring(1);
+        }
+
+        const printArea = document.getElementById(cardId).querySelector(".print-area");
+        const canvas = await html2canvas(printArea, { scale: 4, useCORS: true });
+
+        canvas.toBlob(async (blob) => {
+          try {
+            if (navigator.clipboard && window.isSecureContext) {
+              await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+              showToast("Card copied! Opening WhatsApp...");
+            }
+            const msgText = encodeURIComponent(`*${dateStr} Bill*`);
+            setTimeout(() => {
+              if (mobile) {
+                window.open(`whatsapp://send?phone=${mobile}&text=${msgText}`, "_self");
+              } else {
+                window.open(`whatsapp://send?text=${msgText}`, "_self");
+              }
+            }, 800);
+          } catch (e) {
+            showToast("Failed to copy image to clipboard.");
+          }
+        }, "image/png", 1.0);
+      }
+
       function escapeHTML(str) {
         if (!str) return "";
         return String(str).replace(/[&<>'"]/g, (tag) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
       }
 
-      // 🟢 Image Toggle with Security Code Check
+      // 🟢 Image Toggle with Security Code Check across both views
       function toggleCardImages() {
-        const area = document.getElementById("printArea");
-        const isHidden = area.querySelector(".header-img")?.classList.contains("hidden-image");
+        const isHidden = document.querySelectorAll(".header-img.hidden-image").length > 0;
 
         if (isHidden) {
           if (isImagesVerified) {
-            revealImages(area);
+            revealAllImages();
           } else {
             openImageSecurityModal();
           }
         } else {
-          hideImages(area);
+          hideAllImages();
         }
       }
 
-      function revealImages(area) {
-        area.querySelectorAll(".header-img, .seal, .signature-img, .company-text").forEach((img) => {
+      function revealAllImages() {
+        document.querySelectorAll(".header-img, .seal, .signature-img, .company-text").forEach((img) => {
           img.classList.remove("hidden-image");
         });
         showToast("Header & Stamps Enabled!");
       }
 
-      function hideImages(area) {
-        area.querySelectorAll(".header-img, .seal, .signature-img, .company-text").forEach((img) => {
+      function hideAllImages() {
+        document.querySelectorAll(".header-img, .seal, .signature-img, .company-text").forEach((img) => {
           img.classList.add("hidden-image");
         });
         showToast("Header & Stamps Hidden!");
@@ -541,8 +776,7 @@
           if (data.success) {
             isImagesVerified = true;
             closeImageSecurityModal();
-            const area = document.getElementById("printArea");
-            revealImages(area);
+            revealAllImages();
           } else {
             showToast(data.message || "Invalid Security Code!");
             document.getElementById("imgSecurityCode").value = "";
