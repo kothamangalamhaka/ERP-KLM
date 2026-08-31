@@ -392,34 +392,169 @@ router.get("/api/vehicle-info", async (req, res) => {
   }
 });
 
+// ==========================================
+// VEHICLE LOGS (Driver, Site, Owner, Rate)
+// ==========================================
 router.get("/api/vehicle-logs", verifyToken, async (req, res) => {
   try {
     const { plate } = req.query;
-    const driverLogs = await pool.query(
-      `
-            SELECT * FROM vehicle_driver_log 
-            WHERE plate_no=$1 
-            ORDER BY 
-                CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC,
-                COALESCE(work_start_date, work_end_date, '1970-01-01') DESC,
-                id DESC
-        `,
-      [plate],
-    );
+    const [driverLogs, siteLogs, ownerLogs, rateLogs] = await Promise.all([
+      pool.query(`SELECT * FROM vehicle_driver_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
+      pool.query(`SELECT * FROM vehicle_site_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
+      pool.query(`SELECT * FROM vehicle_owner_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
+      pool.query(`SELECT * FROM vehicle_rate_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate])
+    ]);
 
-    const siteLogs = await pool.query(
-      `
-            SELECT * FROM vehicle_site_log 
-            WHERE plate_no=$1 
-            ORDER BY 
-                CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC,
-                COALESCE(work_start_date, work_end_date, '1970-01-01') DESC,
-                id DESC
-        `,
-      [plate],
-    );
+    res.json({
+      success: true,
+      drivers: driverLogs.rows,
+      sites: siteLogs.rows,
+      owners: ownerLogs.rows,
+      rates: rateLogs.rows
+    });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
 
-    res.json({ success: true, drivers: driverLogs.rows, sites: siteLogs.rows });
+// Update Owner Log
+router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { id, plate_no, owner_name, owner_mobile, vat, nop, company_display_name, work_start_date, work_end_date, status, reason } = req.body;
+    const calculatedStatus = work_end_date ? "Released" : (status || "Running");
+
+    if (id) {
+      await client.query(
+        `UPDATE vehicle_owner_log SET owner_name=$1, owner_mobile=$2, vat=$3, nop=$4, company_display_name=$5, work_start_date=$6, work_end_date=$7, status=$8, reason=$9 WHERE id=$10`,
+        [owner_name, owner_mobile, vat, nop, company_display_name, work_start_date || null, work_end_date || null, calculatedStatus, reason || null, id]
+      );
+    } else {
+      await client.query(
+        `INSERT INTO vehicle_owner_log (plate_no, owner_name, owner_mobile, vat, nop, company_display_name, work_start_date, work_end_date, status, reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [plate_no, owner_name, owner_mobile, vat, nop, company_display_name, work_start_date || null, work_end_date || null, calculatedStatus, reason || null]
+      );
+    }
+
+    router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { id, plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason } = req.body;
+    const calculatedStatus = work_end_date ? "Released" : (status || "Running");
+
+    let finalStartDate = work_start_date || null;
+    if (!finalStartDate && !id) {
+      const minSiteRes = await client.query(
+        `SELECT MIN(work_start_date) as first_start FROM vehicle_site_log WHERE UPPER(plate_no) = UPPER($1) AND work_start_date IS NOT NULL`,
+        [plate_no]
+      );
+      finalStartDate = minSiteRes.rows[0]?.first_start || null;
+    }
+
+    if (id) {
+      await client.query(
+        `UPDATE vehicle_owner_log SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name=$5, work_start_date=$6, work_end_date=$7, status=$8, reason=$9 WHERE id=$10`,
+        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, id]
+      );
+    } else {
+      await client.query(
+        `INSERT INTO vehicle_owner_log (plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [plate_no, owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null]
+      );
+    }
+
+    if (calculatedStatus === "Running") {
+      await client.query(
+        `UPDATE timesheet_vehicles SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name_=$5 WHERE UPPER(plate_no)=UPPER($6)`,
+        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, plate_no]
+      );
+    }
+
+    await logAudit(req.user, "OWNER_LOG_UPDATE", `Updated owner log for ${plate_no}`);
+    await client.query("COMMIT");
+    res.json({ success: true });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.json({ success: false, message: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+    await logAudit(req.user, "OWNER_LOG_UPDATE", `Updated owner log for ${plate_no}`);
+    await client.query("COMMIT");
+    res.json({ success: true });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.json({ success: false, message: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+// Update Rate Log
+router.post("/api/update-rate-log", verifyEditor, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { id, plate_no, site_name, rate, work_start_date, work_end_date, status, reason } = req.body;
+    const calculatedStatus = work_end_date ? "Released" : (status || "Running");
+
+    if (id) {
+      await client.query(
+        `UPDATE vehicle_rate_log SET site_name=$1, rate=$2, work_start_date=$3, work_end_date=$4, status=$5, reason=$6 WHERE id=$7`,
+        [site_name, rate || null, work_start_date || null, work_end_date || null, calculatedStatus, reason || null, id]
+      );
+    } else {
+      await client.query(
+        `INSERT INTO vehicle_rate_log (plate_no, site_name, rate, work_start_date, work_end_date, status, reason) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [plate_no, site_name, rate || null, work_start_date || null, work_end_date || null, calculatedStatus, reason || null]
+      );
+    }
+
+    if (calculatedStatus === "Running") {
+      await client.query(
+        `UPDATE vehicle_site_log SET rate=$1 WHERE UPPER(plate_no)=UPPER($2) AND status='Running'`,
+        [rate || null, plate_no]
+      );
+      await client.query(
+        `UPDATE timesheet_vehicles SET rate=$1 WHERE UPPER(plate_no)=UPPER($2)`,
+        [rate || null, plate_no]
+      );
+    }
+
+    await logAudit(req.user, "RATE_LOG_UPDATE", `Updated rate log for ${plate_no}`);
+    await client.query("COMMIT");
+    res.json({ success: true });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.json({ success: false, message: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+// Delete Log Entry support for Owner & Rate
+router.post("/api/delete-log-entry", verifyEditor, async (req, res) => {
+  try {
+    const { type, id } = req.body;
+    if (!id) throw new Error("Log ID missing");
+
+    if (type === "driver") {
+      await pool.query("DELETE FROM vehicle_driver_log WHERE id=$1", [id]);
+    } else if (type === "site") {
+      await pool.query("DELETE FROM vehicle_site_log WHERE id=$1", [id]);
+    } else if (type === "owner") {
+      await pool.query("DELETE FROM vehicle_owner_log WHERE id=$1", [id]);
+    } else if (type === "rate") {
+      await pool.query("DELETE FROM vehicle_rate_log WHERE id=$1", [id]);
+    } else {
+      throw new Error("Invalid log type");
+    }
+    await logAudit(req.user, "LOG_DELETE", `Deleted ${type} log ID ${id}`);
+    res.json({ success: true });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
@@ -437,7 +572,6 @@ router.get("/api/all-logs", verifyToken, async (req, res) => {
             COALESCE(work_start_date, work_end_date, '1970-01-01') DESC
         `);
 
-    // Check for specific columns safely, though auto-heal handles creation
     const siteColCheck = await pool.query(
       "SELECT column_name FROM information_schema.columns WHERE table_name='vehicle_site_log' AND column_name='asset_code'",
     );
@@ -456,7 +590,33 @@ router.get("/api/all-logs", verifyToken, async (req, res) => {
             COALESCE(work_start_date, work_end_date, '1970-01-01') DESC
         `);
 
-    res.json({ success: true, drivers: driverLogs.rows, sites: siteLogs.rows });
+    const ownerLogs = await pool.query(`
+            SELECT id, plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, reason,
+            TO_CHAR(work_start_date, 'YYYY-MM-DD') as start_date,
+            TO_CHAR(work_end_date, 'YYYY-MM-DD') as end_date, status
+            FROM vehicle_owner_log
+            ORDER BY plate_no ASC,
+            CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC,
+            COALESCE(work_start_date, work_end_date, '1970-01-01') DESC
+        `);
+
+    const rateLogs = await pool.query(`
+            SELECT id, plate_no, site_name, rate, reason,
+            TO_CHAR(work_start_date, 'YYYY-MM-DD') as start_date,
+            TO_CHAR(work_end_date, 'YYYY-MM-DD') as end_date, status
+            FROM vehicle_rate_log
+            ORDER BY plate_no ASC,
+            CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC,
+            COALESCE(work_start_date, work_end_date, '1970-01-01') DESC
+        `);
+
+    res.json({
+      success: true,
+      drivers: driverLogs.rows,
+      sites: siteLogs.rows,
+      owners: ownerLogs.rows,
+      rates: rateLogs.rows,
+    });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

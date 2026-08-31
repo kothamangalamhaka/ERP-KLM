@@ -394,7 +394,7 @@ td select:focus {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 .modal-wide {
-  width: 850px;
+  width: 65vw;
   max-width: 95%;
   max-height: 90vh;
   overflow-y: auto;
@@ -466,21 +466,34 @@ td select:focus {
   font-size: 12px;
   text-align: left;
   border-collapse: collapse;
-  min-width: 400px;
+  min-width: 700px;
+  table-layout: fixed;
 }
 .log-table th {
   background: #e2e8f0;
   color: #333;
-  padding: 8px;
+  padding: 8px 10px;
   position: sticky;
   top: 0;
   border-bottom: 2px solid #cbd5e1;
   font-weight: 600;
-  text-transform: none;
+  text-transform: uppercase;
+  font-size: 11px;
+  white-space: nowrap;
 }
 .log-table td {
-  padding: 8px;
+  padding: 8px 10px;
   border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+  word-break: break-word;
+}
+.log-table-container {
+  max-height: 420px;
+  overflow-x: auto;
+  overflow-y: auto;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 6px;
+  background: var(--bg-card, #fff);
 }
 .log-table tr:hover {
   background: #f1f5f9;

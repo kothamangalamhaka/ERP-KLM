@@ -1,27 +1,22 @@
 const token = localStorage.getItem("timesheetToken");
 if (!token) {
-  // User ippol ethu page-il aano ullathu, aa page-nte peru eduthu URL-il pass cheyyunnu
   const currentPage = encodeURIComponent(
     window.location.pathname.split("/").pop() + window.location.search,
   );
   window.location.href = "index.html?redirect=" + currentPage;
 }
 
-// ... existing code
 let userRole = "";
 const userStr = localStorage.getItem("timesheetUser");
 if (userStr) {
   const u = JSON.parse(userStr);
   userRole = u.role;
-  // UPDATE: Adjusted to support mobile icon and text structure
   document.getElementById("userInfo").innerHTML =
     `<span class="user-icon">👤</span><span class="user-text">${u.username} (${u.role})</span>`;
   if (userRole === "Super Admin" || userRole === "Editor")
-    document.getElementById("adminTools").style.display = "inline-flex"; // Changed to inline-flex for mobile CSS layout
+    document.getElementById("adminTools").style.display = "inline-flex";
 }
-// ... existing code
 
-// XSS Protection Helper
 function escapeHTML(str) {
   if (str === null || str === undefined) return "";
   return String(str).replace(
@@ -43,7 +38,6 @@ let activeFilters = {};
 let hiddenColumns = JSON.parse(localStorage.getItem("dbHiddenCols")) || [];
 let customColOrder = [];
 
-// 🟢 Status columns removed from default map, Field CO & Site CO added
 const colLabels = {
   vehicle_type: "Vehicle Type",
   site_rate: "Rate",
@@ -56,8 +50,13 @@ const colLabels = {
   driver_name: "Driver Name",
   driver_end_date: "Last Day",
   vat: "VAT (Yes/No)",
+  vat_no: "VAT NO",
   field_co: "Field CO",
   site_co: "Site CO",
+  owner_name: "Owner Name",
+  owner_mobile: "Owner Mobile",
+  company_display_name_: "Company Display Name",
+  company_display_name: "Company Display Name",
 };
 
 let alertResolver, promptResolver, confirmResolver;
@@ -121,7 +120,6 @@ function executeLogout() {
   window.location.reload();
 }
 
-// 🟢 Fetch & Open Audit Logs
 async function openAuditLogModal() {
   document.getElementById("userDropdownMenu").style.display = "none";
   document.getElementById("auditLogModal").style.display = "flex";
@@ -137,15 +135,14 @@ async function openAuditLogModal() {
       res.logs.forEach((l) => {
         let d = new Date(l.timestamp).toLocaleString();
         html += `<tr>
-                            <td>${d}</td>
-                            <td style="font-weight:600; color:#0d6efd;">${escapeHTML(l.user_info)}</td>
-                            <td><span class="status-badge" style="background:#e2e8f0; color:#333;">${escapeHTML(l.action_type)}</span></td>
-                            <td>${escapeHTML(l.details)}</td>
-                         </tr>`;
+                  <td>${d}</td>
+                  <td style="font-weight:600; color:#0d6efd;">${escapeHTML(l.user_info)}</td>
+                  <td><span class="status-badge" style="background:#e2e8f0; color:#333;">${escapeHTML(l.action_type)}</span></td>
+                  <td>${escapeHTML(l.details)}</td>
+                </tr>`;
       });
       document.getElementById("auditLogBody").innerHTML =
-        html ||
-        '<tr><td colspan="4" style="text-align:center;">No logs found.</td></tr>';
+        html || '<tr><td colspan="4" style="text-align:center;">No logs found.</td></tr>';
     } else {
       document.getElementById("auditLogBody").innerHTML =
         `<tr><td colspan="4" style="text-align:center; color:red;">${res.message}</td></tr>`;
@@ -269,6 +266,11 @@ function openHeaderMenu(e, col) {
     "site_new_veh",
     "field_co",
     "site_co",
+    "owner_name",
+    "owner_mobile",
+    "vat_no",
+    "company_display_name_",
+    "company_display_name",
   ];
   if (userRole !== "Super Admin" || unDeletable.includes(col)) {
     document.getElementById("hcm-delete").style.display = "none";
@@ -309,6 +311,7 @@ function syncColumnOrder() {
     "driver_end_date",
   ];
   if (dynamicCols.includes("vehicle_type")) defaultCols.unshift("vehicle_type");
+  if (dynamicCols.includes("owner_name")) defaultCols.push("owner_name");
   if (dynamicCols.includes("vat")) defaultCols.push("vat");
 
   dynamicCols.forEach((c) => {
@@ -321,6 +324,7 @@ function syncColumnOrder() {
         "vat",
         "field_co",
         "site_co",
+        "owner_name",
       ].includes(c)
     ) {
       defaultCols.push(c);
@@ -359,7 +363,7 @@ function copyColumnData() {
     if (trs[index] && trs[index].style.display !== "none") {
       let val = row[activeHeaderCol];
       if (val === null || val === undefined) val = "";
-      else val = String(val).replace(/\n/g, " "); // Removes newlines to prevent Excel breaking
+      else val = String(val).replace(/\n/g, " ");
       copyString += val + "\n";
     }
   });
@@ -369,7 +373,7 @@ function copyColumnData() {
       showStatus("✓ Column Copied", "saved");
       document.getElementById("headerContextMenu").style.display = "none";
     })
-    .catch((err) => customAlert("Error", "Failed to copy data"));
+    .catch(() => customAlert("Error", "Failed to copy data"));
 }
 
 function copyTableData() {
@@ -411,7 +415,7 @@ function copyTableData() {
       showStatus("✓ Table Copied", "saved");
       document.getElementById("headerContextMenu").style.display = "none";
     })
-    .catch((err) => customAlert("Error", "Failed to copy data"));
+    .catch(() => customAlert("Error", "Failed to copy data"));
 }
 
 function openColumnAlter() {
@@ -425,12 +429,12 @@ function openColumnAlter() {
     list.insertAdjacentHTML(
       "beforeend",
       `
-            <div class="column-item" draggable="true" data-id="${colId}">
-                <span class="drag-handle" title="Drag to reorder">☰</span>
-                <input type="checkbox" id="${randId}" value="${colId}" ${isChecked ? "checked" : ""} onchange="toggleSingleCol('${colId}', this.checked)">
-                <label for="${randId}" style="flex:1;">${escapeHTML(labelText)}</label>
-            </div>
-        `,
+        <div class="column-item" draggable="true" data-id="${colId}">
+          <span class="drag-handle" title="Drag to reorder">☰</span>
+          <input type="checkbox" id="${randId}" value="${colId}" ${isChecked ? "checked" : ""} onchange="toggleSingleCol('${colId}', this.checked)">
+          <label for="${randId}" style="flex:1;">${escapeHTML(labelText)}</label>
+        </div>
+      `,
     );
   });
   document.getElementById("columnAlterModal").style.display = "flex";
@@ -470,7 +474,7 @@ function setupDragAndDrop() {
       setTimeout(() => draggedItem.classList.add("dragging"), 0);
     }
   });
-  list.addEventListener("dragend", (e) => {
+  list.addEventListener("dragend", () => {
     if (draggedItem) {
       draggedItem.classList.remove("dragging");
       draggedItem = null;
@@ -527,7 +531,6 @@ function openAdvancedFilter(e) {
   popup.style.top = top + "px";
   document.getElementById("filterSearchInput").value = "";
 
-  // 🟢 NEW: Get the current global search value
   const globalSearch = document
     .getElementById("searchInput")
     .value.toUpperCase();
@@ -536,7 +539,6 @@ function openAdvancedFilter(e) {
   tableData.forEach((row) => {
     let passesOtherFilters = true;
 
-    // 1. Check existing column filters
     for (const colName in activeFilters) {
       if (colName === activeHeaderCol) continue;
       const selectedVals = activeFilters[colName];
@@ -548,7 +550,6 @@ function openAdvancedFilter(e) {
       }
     }
 
-    // 2. 🟢 NEW: Check global search filter (General or Plate No)
     const searchType = document.getElementById("searchType").value;
     if (passesOtherFilters && globalSearch !== "") {
       if (searchType === "plate") {
@@ -572,7 +573,6 @@ function openAdvancedFilter(e) {
       }
     }
 
-    // 3. Add to list only if it passes all filters
     if (passesOtherFilters) {
       let val = row[activeHeaderCol];
       if (val === null || val === undefined || String(val).trim() === "")
@@ -750,14 +750,19 @@ async function rowAbout() {
     "<tr><td>Loading...</td></tr>";
   document.getElementById("abtSiteLogs").innerHTML =
     "<tr><td>Loading...</td></tr>";
+  document.getElementById("abtRateLogs").innerHTML =
+    "<tr><td>Loading...</td></tr>";
+  document.getElementById("abtOwnerLogs").innerHTML =
+    "<tr><td>Loading...</td></tr>";
   document.getElementById("aboutModal").style.display = "flex";
 
   const res = await safeFetch(`/timesheet/api/vehicle-logs?plate=${plate}`, {
     headers: { Authorization: "Bearer " + token },
   });
   if (res.success) {
+    // 1. Driver Logs
     let dlHtml = "";
-    res.drivers.forEach((d) => {
+    (res.drivers || []).forEach((d) => {
       let badge =
         d.status === "Running"
           ? '<span class="status-badge bg-run">RUN</span>'
@@ -771,12 +776,13 @@ async function rowAbout() {
       }
     });
     document.getElementById("abtDriverLogs").innerHTML =
-      res.drivers.length > 0
+      (res.drivers && res.drivers.length > 0)
         ? dlHtml
         : '<tr><td colspan="4" style="color:#888;">No logs found.</td></tr>';
 
+    // 2. Site Logs
     let slHtml = "";
-    res.sites.forEach((s) => {
+    (res.sites || []).forEach((s) => {
       let badge =
         s.status === "Running"
           ? '<span class="status-badge bg-run">RUN</span>'
@@ -792,9 +798,47 @@ async function rowAbout() {
       }
     });
     document.getElementById("abtSiteLogs").innerHTML =
-      res.sites.length > 0
+      (res.sites && res.sites.length > 0)
         ? slHtml
         : '<tr><td colspan="4" style="color:#888;">No logs found.</td></tr>';
+
+    // 3. Rate Variation Logs
+    let rlHtml = "";
+    (res.rates || []).forEach((r) => {
+      let badge =
+        r.status === "Running"
+          ? '<span class="status-badge bg-run">RUN</span>'
+          : '<span class="status-badge bg-rel">REL</span>';
+      let start = r.work_start_date ? r.work_start_date.split("T")[0] : "-";
+      let end = r.work_end_date ? r.work_end_date.split("T")[0] : "-";
+      rlHtml += `<tr><td><b>${escapeHTML(r.site_name || "-")}</b></td><td><b style="color:#10b981;">${escapeHTML(r.rate || "-")}</b></td><td>${start}</td><td>${end}</td><td>${badge}</td></tr>`;
+      if (r.reason && r.reason.trim() !== "") {
+        rlHtml += `<tr><td colspan="5" style="padding-top:0; border-top:none; font-size:11px; color:#64748b; font-style:italic;">Note: ${escapeHTML(r.reason)}</td></tr>`;
+      }
+    });
+    document.getElementById("abtRateLogs").innerHTML =
+      (res.rates && res.rates.length > 0)
+        ? rlHtml
+        : '<tr><td colspan="5" style="color:#888;">No rate variation logs.</td></tr>';
+
+    // 4. Owner Logs
+    let olHtml = "";
+    (res.owners || []).forEach((o) => {
+      let badge =
+        o.status === "Running"
+          ? '<span class="status-badge bg-run">RUN</span>'
+          : '<span class="status-badge bg-rel">REL</span>';
+      let start = o.work_start_date ? o.work_start_date.split("T")[0] : "-";
+      let end = o.work_end_date ? o.work_end_date.split("T")[0] : "-";
+      olHtml += `<tr><td><b>${escapeHTML(o.owner_name || "-")}</b><br><span style="font-size:10px;">${escapeHTML(o.owner_mobile || "")}</span></td><td>${escapeHTML(o.vat_no || "-")}</td><td>${escapeHTML(o.company_display_name || "-")}</td><td>${start}</td><td>${end}</td><td>${badge}</td></tr>`;
+      if (o.reason && o.reason.trim() !== "") {
+        olHtml += `<tr><td colspan="6" style="padding-top:0; border-top:none; font-size:11px; color:#64748b; font-style:italic;">Reason: ${escapeHTML(o.reason)}</td></tr>`;
+      }
+    });
+    document.getElementById("abtOwnerLogs").innerHTML =
+      (res.owners && res.owners.length > 0)
+        ? olHtml
+        : '<tr><td colspan="6" style="color:#888;">No owner logs found.</td></tr>';
   }
 }
 
@@ -831,6 +875,7 @@ async function initDB() {
     if (dataJson.success) {
       let drivers = logData.success ? logData.drivers : [];
       let sites = logData.success ? logData.sites : [];
+      let owners = logData.success ? (logData.owners || []) : [];
 
       tableData = dataJson.data.map((row) => {
         let dLog = drivers.find((d) => d.plate_no === row.plate_no);
@@ -857,6 +902,17 @@ async function initDB() {
           sLog && sLog.field_co ? sLog.field_co : row.field_co || "";
         row.site_co = sLog && sLog.site_co ? sLog.site_co : row.site_co || "";
 
+        // 🟢 Active Owner Log Mapping
+        let oLog = owners.find((o) => o.plate_no === row.plate_no && o.status === "Running");
+        if (oLog) {
+          row.owner_name = oLog.owner_name || row.owner_name || "";
+          row.owner_mobile = oLog.owner_mobile || row.owner_mobile || "";
+          row.vat = oLog.vat || row.vat || "No";
+          row.vat_no = oLog.vat_no || row.vat_no || "";
+          row.company_display_name_ = oLog.company_display_name || row.company_display_name_ || row.company_display_name || "";
+          row.company_display_name = row.company_display_name_;
+        }
+
         return row;
       });
 
@@ -872,7 +928,7 @@ async function initDB() {
         return 0;
       });
       renderTable();
-      updateGlobalDatalists(); // NEW: Generate auto-suggestions
+      updateGlobalDatalists();
     }
   } catch (err) {
     document.getElementById("errorBanner").style.display = "block";
@@ -881,7 +937,6 @@ async function initDB() {
   }
 }
 
-// NEW: Function to update global datalists for all forms dynamically
 function updateGlobalDatalists() {
   const uniqueSites = [
     ...new Set(tableData.map((r) => r.site_name).filter(Boolean)),
@@ -979,6 +1034,8 @@ function renderTable() {
       addCol(colId, "FIELD CO", "justify-content:center; color:#c4b5fd;");
     else if (colId === "site_co")
       addCol(colId, "SITE CO", "justify-content:center; color:#c4b5fd;");
+    else if (colId === "owner_name")
+      addCol(colId, "OWNER NAME");
     else addCol(colId, colId.replace(/_/g, " ").toUpperCase());
   });
   headHtml += `</tr>`;
@@ -1029,7 +1086,7 @@ function renderTable() {
       } else if (colId === "site_name") {
         addCell(
           colId,
-          `<div class="cell-log-wrapper"><input type="text" value="${escapeHTML(row.site_name)}" readonly><div class="cell-log-btn" onclick="openSiteLog(event, '${row.plate_no}')">📝</div></div>`,
+          `<div class="cell-log-wrapper"><input type="text" value="${escapeHTML(row.site_name)}" readonly><button type="button" class="cell-log-btn" onclick="openSiteLog(event, '${row.plate_no}')" title="Site Log" style="border:none; outline:none; background:transparent;">&#x1F4DD;</button></div>`,
         );
       } else if (colId === "site_end_date") {
         if (!row.site_end_date || row.site_end_date === "") {
@@ -1048,7 +1105,7 @@ function renderTable() {
       } else if (colId === "driver_name") {
         addCell(
           colId,
-          `<div class="cell-log-wrapper"><input type="text" value="${escapeHTML(row.driver_name)}" readonly><div class="cell-log-btn" onclick="openDriverLog(event, '${row.plate_no}')">📝</div></div>`,
+          `<div class="cell-log-wrapper"><input type="text" value="${escapeHTML(row.driver_name)}" readonly><button type="button" class="cell-log-btn" onclick="openDriverLog(event, '${row.plate_no}')" title="Driver Log" style="border:none; outline:none; background:transparent;">&#x1F4DD;</button></div>`,
         );
       } else if (colId === "driver_end_date") {
         if (!row.driver_end_date || row.driver_end_date === "") {
@@ -1062,6 +1119,11 @@ function renderTable() {
             `<div class="date-with-tooltip"><input type="date" style="${vDStyle}" value="${escapeHTML(row.driver_end_date)}" onchange="fastUpdateLog('${row.plate_no}', 'driver', 'end', this.value, ${row.latest_driver_log_id})"><span class="tooltip-text">${escapeHTML(row.current_driver_status).toUpperCase()}</span></div>`,
           );
         }
+      } else if (colId === "owner_name") {
+        addCell(
+          colId,
+          `<div class="cell-log-wrapper"><input type="text" value="${escapeHTML(row.owner_name || "")}" readonly><button type="button" class="cell-log-btn" onclick="openOwnerLog(event, '${row.plate_no}')" title="Owner Log" style="border:none; outline:none; background:transparent;">&#x1F4DD;</button></div>`,
+        );
       } else if (colId === "site_old_veh") {
         addCell(
           colId,
@@ -1230,11 +1292,10 @@ function manageColumn(colName) {
 function openAddVehicleModal() {
   const form = document.getElementById("addVehicleForm");
   form.style.display = "grid";
-  form.style.gridTemplateColumns = "repeat(3, 1fr)"; // 3 ഇൻപുട്ടുകൾ ഒരു വരിയിൽ
+  form.style.gridTemplateColumns = "repeat(3, 1fr)";
   form.style.gap = "15px";
   form.style.width = "100%";
 
-  // Extract unique values for suggestions from tableData
   const uniqueSites = [
     ...new Set(tableData.map((r) => r.site_name).filter(Boolean)),
   ].sort();
@@ -1244,16 +1305,13 @@ function openAddVehicleModal() {
   const uniqueSiteCos = [
     ...new Set(tableData.map((r) => r.site_co).filter(Boolean)),
   ].sort();
-  // NEW: Vehicle Type suggestions
   const uniqueVehicleTypes = [
     ...new Set(tableData.map((r) => r.vehicle_type).filter(Boolean)),
   ].sort();
-  // NEW: Owner Name suggestions
   const uniqueOwnerNames = [
     ...new Set(tableData.map((r) => r.owner_name).filter(Boolean)),
   ].sort();
 
-  // Handle flexible database column names safely
   const wrkOrderCol =
     dynamicCols.find(
       (c) =>
@@ -1267,7 +1325,6 @@ function openAddVehicleModal() {
         c.toLowerCase() === "invoice info",
     ) || "invoice_info";
 
-  // Build HTML with datalists for auto-suggestions
   let html = `
     <datalist id="siteNameList">${uniqueSites.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
     <datalist id="fieldCoList">${uniqueFieldCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
@@ -1304,7 +1361,7 @@ function openAddVehicleModal() {
     `;
   }
 
-  // Row: Owner Name | Owner Mobile | Vehicle Type
+  // Row: Owner Details
   html += `
     <div class="form-group"><label>Owner Name</label><input type="text" id="new_owner_name" list="ownerNameList" class="modal-input" style="margin-bottom:0;"></div>
     <div class="form-group"><label>Owner Mobile</label><input type="text" id="new_owner_mobile" class="modal-input" style="margin-bottom:0;"></div>
@@ -1322,14 +1379,14 @@ function openAddVehicleModal() {
   html += `
     <div class="form-group"><label style="color:#8b5cf6;">Field CO</label><input type="text" id="new_field_co" list="fieldCoList" class="modal-input titlecase-input" style="margin-bottom:0;"></div>
     <div class="form-group"><label style="color:#8b5cf6;">Site CO</label><input type="text" id="new_site_co" list="siteCoList" class="modal-input titlecase-input" style="margin-bottom:0;"></div>
-    <div class="form-group"></div> `;
+    <div class="form-group"></div>
+  `;
 
-  // Row: Invoice Info (Full Width Textarea)
+  // Row: Invoice Info
   html += `
     <div class="form-group" style="grid-column: 1 / -1;"><label>Invoice Info</label><textarea id="new_${invoiceCol}" class="modal-input" style="height: 60px; margin-bottom:0;"></textarea></div>
   `;
 
-  // Any other completely unexpected columns that might be added later dynamically
   dynamicCols.forEach((col) => {
     let safeColName = col.toLowerCase();
     if (
@@ -1348,6 +1405,9 @@ function openAddVehicleModal() {
         "work_order_no",
         "wrk_order_no",
         "vat",
+        "vat_no",
+        "company_display_name_",
+        "company_display_name",
         "invoice_info",
         "invoice info",
       ].includes(safeColName)
@@ -1413,6 +1473,7 @@ async function submitNewVehicle() {
       }
     }
 
+    // Site & Rate Sync
     if (dynamicCols.includes("site_name")) {
       let sName = document.getElementById("new_site_name").value.trim();
       let sRate = document.getElementById("new_site_rate").value.trim();
@@ -1444,21 +1505,28 @@ async function submitNewVehicle() {
             site_co: sCo,
           }),
         });
-        await safeFetch("/timesheet/api/db/update-cell", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + token,
-          },
-          body: JSON.stringify({
-            plate_no: plate,
-            col_name: "site_name",
-            value: sName,
-          }),
-        });
+
+        if (sRate) {
+          await safeFetch("/timesheet/api/update-rate-log", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({
+              plate_no: plate,
+              site_name: sName,
+              rate: sRate,
+              work_start_date: sStart || null,
+              work_end_date: null,
+              status: "Running",
+            }),
+          });
+        }
       }
     }
 
+    // Driver Sync
     if (dynamicCols.includes("driver_name")) {
       let dName = document.getElementById("new_driver_name").value.trim();
       let dMobEl = document.getElementById("new_driver_mobile");
@@ -1479,33 +1547,33 @@ async function submitNewVehicle() {
             work_end_date: null,
           }),
         });
-        await safeFetch("/timesheet/api/db/update-cell", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + token,
-          },
-          body: JSON.stringify({
-            plate_no: plate,
-            col_name: "driver_name",
-            value: dName,
-          }),
-        });
-        if (dynamicCols.includes("driver_mobile"))
-          await safeFetch("/timesheet/api/db/update-cell", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token,
-            },
-            body: JSON.stringify({
-              plate_no: plate,
-              col_name: "driver_mobile",
-              value: dMob,
-            }),
-          });
       }
     }
+
+    // Owner Sync
+    let oNameEl = document.getElementById("new_owner_name");
+    let oMobEl = document.getElementById("new_owner_mobile");
+    let oVatEl = document.getElementById("new_vat");
+    if (oNameEl && oNameEl.value.trim()) {
+      await safeFetch("/timesheet/api/update-owner-log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          plate_no: plate,
+          owner_name: oNameEl.value.trim(),
+          owner_mobile: oMobEl ? oMobEl.value.trim() : "",
+          vat: oVatEl ? oVatEl.value : "No",
+          vat_no: "",
+          company_display_name: "",
+          work_start_date: null, // Will automatically fetch earliest site date in backend
+          status: "Running",
+        }),
+      });
+    }
+
     closeModal("addVehicleModal");
     customAlert("Success", "Vehicle and initial logs created successfully!");
     initDB();
@@ -1529,11 +1597,17 @@ function toggleSlEnd() {
     val === "Released" || val === "Replaced" ? "block" : "none";
   document.getElementById("slReasonGroup").style.display =
     val === "Released" || val === "Replaced" ? "block" : "none";
-  // The Old/New Vehicle group remains visible at all times now.
 }
+function toggleOlEnd() {
+  const val = document.getElementById("olEnd").value;
+  document.getElementById("olReasonGroup").style.display = val ? "block" : "none";
+}
+
 function closeLogModals() {
   document.getElementById("driverLogModal").style.display = "none";
   document.getElementById("siteLogModal").style.display = "none";
+  document.getElementById("ownerLogModal").style.display = "none";
+  document.getElementById("rateLogModal").style.display = "none";
 }
 
 function clearDriverForm() {
@@ -1569,6 +1643,33 @@ function clearSiteForm() {
   toggleSlEnd();
   document.getElementById("slName").focus();
 }
+function clearOwnerForm() {
+  document.getElementById("olId").value = "";
+  document.getElementById("olName").value = "";
+  document.getElementById("olMob").value = "";
+  document.getElementById("olVat").value = "No";
+  document.getElementById("olVatNo").value = "";
+  document.getElementById("olCompany").value = "";
+  document.getElementById("olStart").value = "";
+  document.getElementById("olEnd").value = "";
+  if (document.getElementById("olReason"))
+    document.getElementById("olReason").value = "";
+  document.getElementById("olSaveBtn").innerText = "Save New Log";
+  document.getElementById("olSaveBtn").className = "btn btn-success";
+  toggleOlEnd();
+  document.getElementById("olName").focus();
+}
+function clearRateForm() {
+  document.getElementById("rlId").value = "";
+  document.getElementById("rlRate").value = "";
+  document.getElementById("rlStart").value = "";
+  document.getElementById("rlEnd").value = "";
+  if (document.getElementById("rlReason"))
+    document.getElementById("rlReason").value = "";
+  document.getElementById("rlSaveBtn").innerText = "Save New Rate";
+  document.getElementById("rlSaveBtn").className = "btn btn-success";
+  document.getElementById("rlRate").focus();
+}
 
 async function openDriverLog(e, plate) {
   if (!plate) return;
@@ -1584,6 +1685,21 @@ async function openSiteLog(e, plate) {
   document.getElementById("siteLogModal").style.display = "flex";
   await fetchLogs(plate, "site");
 }
+async function openOwnerLog(e, plate) {
+  if (!plate) return;
+  document.getElementById("olPlate").innerText = plate;
+  clearOwnerForm();
+  document.getElementById("ownerLogModal").style.display = "flex";
+  await fetchLogs(plate, "owner");
+}
+function openRateLogModal(plate, siteName) {
+  if (!plate) return;
+  document.getElementById("rlPlate").innerText = plate;
+  document.getElementById("rlSite").value = siteName || "";
+  clearRateForm();
+  document.getElementById("rateLogModal").style.display = "flex";
+  fetchLogs(plate, "rate");
+}
 
 async function fetchLogs(plate, type) {
   const res = await safeFetch(`/timesheet/api/vehicle-logs?plate=${plate}`, {
@@ -1593,7 +1709,7 @@ async function fetchLogs(plate, type) {
     if (type === "driver") {
       let dlHtml =
         '<tr><th style="min-width: 120px;">Driver Name</th><th>Mobile No</th><th>Start Date</th><th>End Date</th><th>Status</th><th style="width: 30px;"></th></tr>';
-      res.drivers.forEach((d) => {
+      (res.drivers || []).forEach((d) => {
         let badge =
           d.status === "Running"
             ? '<span class="status-badge bg-run">RUN</span>'
@@ -1602,21 +1718,21 @@ async function fetchLogs(plate, type) {
         let end = d.work_end_date ? d.work_end_date.split("T")[0] : "-";
         let delBtnHtml =
           userRole === "Super Admin" || userRole === "Editor"
-            ? `<button class="btn-delete-icon" onclick="deleteLogEntry(event, 'driver', ${d.id}, '${plate}')" title="Delete Log">🗑️</button>`
+            ? `<button class="btn-delete-icon" onclick="deleteLogEntry(event, 'driver', ${d.id}, '${plate}')" title="Delete Log">&#x1F5D1;&#xFE0F;</button>`
             : "";
         let escapedReasonD = escapeHTML(d.reason || "").replace(/'/g, "\\'");
         dlHtml += `<tr style="cursor:pointer;" onclick="editDriverLog(${d.id}, '${escapeHTML(d.driver_name)}', '${escapeHTML(d.driver_mobile)}', '${start}', '${end}', '${escapedReasonD}')">
-                <td><span style="font-weight:600; color:#0d6efd;">${escapeHTML(d.driver_name)}</span><br><span style="font-size:10px; color:#888;">Tap to edit ✎</span></td>
+                <td><span style="font-weight:600; color:#0d6efd;">${escapeHTML(d.driver_name)}</span><br><span style="font-size:10px; color:#888;">Tap to edit &#x270E;</span></td>
                 <td><span style="font-weight:bold; color:#475569;">${escapeHTML(d.driver_mobile || "-")}</span></td><td>${start}</td><td>${end}</td><td>${badge}</td>
                 <td class="action-cell" onclick="event.stopPropagation()">${delBtnHtml}</td></tr>`;
       });
       document.getElementById("dlHistory").innerHTML =
-        res.drivers.length > 0
+        (res.drivers && res.drivers.length > 0)
           ? dlHtml
           : '<tr><td colspan="6" style="color:#888;">No driver logs found.</td></tr>';
 
       let masterRow = tableData.find((x) => x.plate_no === plate);
-      let activeD = res.drivers.find((d) => d.status === "Running");
+      let activeD = (res.drivers || []).find((d) => d.status === "Running");
       if (activeD)
         editDriverLog(
           activeD.id,
@@ -1631,10 +1747,11 @@ async function fetchLogs(plate, type) {
         document.getElementById("dlMob").value = masterRow.driver_mobile || "";
       }
     }
+
     if (type === "site") {
       let slHtml =
         '<tr><th style="min-width: 120px;">Site Name</th><th>Rate</th><th>WO No</th><th>Start</th><th>End</th><th>Status</th><th style="width: 30px;"></th></tr>';
-      res.sites.forEach((s) => {
+      (res.sites || []).forEach((s) => {
         let badge =
           s.status === "Running"
             ? '<span class="status-badge bg-run">RUN</span>'
@@ -1645,22 +1762,22 @@ async function fetchLogs(plate, type) {
         let end = s.work_end_date ? s.work_end_date.split("T")[0] : "-";
         let delBtnHtml =
           userRole === "Super Admin" || userRole === "Editor"
-            ? `<button class="btn-delete-icon" onclick="deleteLogEntry(event, 'site', ${s.id}, '${plate}')" title="Delete Log">🗑️</button>`
+            ? `<button class="btn-delete-icon" onclick="deleteLogEntry(event, 'site', ${s.id}, '${plate}')" title="Delete Log">&#x1F5D1;&#xFE0F;</button>`
             : "";
         let escapedReasonS = escapeHTML(s.reason || "").replace(/'/g, "\\'");
         slHtml += `<tr style="cursor:pointer;" onclick="editSiteLog(${s.id}, '${escapeHTML(s.site_name)}', '${start}', '${end}', '${s.status}', '${escapeHTML(s.old_vehicle_no)}', '${escapeHTML(s.new_vehicle_no)}', '${escapeHTML(s.asset_code)}', '${escapeHTML(s.work_order_no)}', '${escapeHTML(s.rate)}', '${escapeHTML(s.field_co)}', '${escapeHTML(s.site_co)}', '${escapedReasonS}')">
-                <td><span style="font-weight:600; color:#0d6efd;">${escapeHTML(s.site_name)}</span><br><span style="font-size:10px; color:#888;">Tap to edit ✎</span></td>
+                <td><span style="font-weight:600; color:#0d6efd;">${escapeHTML(s.site_name)}</span><br><span style="font-size:10px; color:#888;">Tap to edit &#x270E;</span></td>
                 <td><span style="font-weight:bold; color:#000000;">${escapeHTML(s.rate || "-")}</span></td>
                 <td><span style="font-weight:bold; color:#475569;">${escapeHTML(s.work_order_no || "-")}</span></td><td>${start}</td><td>${end}</td><td>${badge}</td>
                 <td class="action-cell" onclick="event.stopPropagation()">${delBtnHtml}</td></tr>`;
       });
       document.getElementById("slHistory").innerHTML =
-        res.sites.length > 0
+        (res.sites && res.sites.length > 0)
           ? slHtml
           : '<tr><td colspan="7" style="color:#888;">No site logs found.</td></tr>';
 
       let masterRow = tableData.find((x) => x.plate_no === plate);
-      let activeS = res.sites.find((s) => s.status === "Running");
+      let activeS = (res.sites || []).find((s) => s.status === "Running");
       if (activeS)
         editSiteLog(
           activeS.id,
@@ -1680,6 +1797,110 @@ async function fetchLogs(plate, type) {
       else if (masterRow && masterRow.site_name) {
         document.getElementById("slName").value = masterRow.site_name;
       }
+    }
+
+    if (type === "owner") {
+      let olHtml = `
+        <thead>
+          <tr>
+            <th>Owner Name</th>
+            <th>Mobile</th>
+            <th style="text-align:center;">VAT</th>
+            <th>VAT NO</th>
+            <th>Company Name</th>
+            <th style="text-align:center;">Start</th>
+            <th style="text-align:center;">End</th>
+            <th style="text-align:center;">Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+      (res.owners || []).forEach((o) => {
+        let badge =
+          o.status === "Running"
+            ? '<span class="status-badge bg-run">RUN</span>'
+            : '<span class="status-badge bg-rel">REL</span>';
+        let start = o.work_start_date ? o.work_start_date.split("T")[0] : "-";
+        let end = o.work_end_date ? o.work_end_date.split("T")[0] : "-";
+        let delBtnHtml =
+          userRole === "Super Admin" || userRole === "Editor"
+            ? `<button type="button" class="btn-delete-icon" onclick="deleteLogEntry(event, 'owner', ${o.id}, '${plate}')" title="Delete Log">&#x1F5D1;&#xFE0F;</button>`
+            : "";
+        let escapedReasonO = escapeHTML(o.reason || "").replace(/'/g, "\\'");
+        
+        olHtml += `
+          <tr style="cursor:pointer;" onclick="editOwnerLog(${o.id}, '${escapeHTML(o.owner_name)}', '${escapeHTML(o.owner_mobile)}', '${escapeHTML(o.vat)}', '${escapeHTML(o.vat_no)}', '${escapeHTML(o.company_display_name)}', '${start}', '${end}', '${escapedReasonO}')">
+            <td>
+              <span style="font-weight:600; color:#0d6efd;">${escapeHTML(o.owner_name || "-")}</span><br>
+              <span style="font-size:10px; color:#888;">Tap to edit &#x270E;</span>
+            </td>
+            <td style="white-space:nowrap;">${escapeHTML(o.owner_mobile || "-")}</td>
+            <td style="text-align:center; font-weight:600;">${escapeHTML(o.vat || "-")}</td>
+            <td style="font-weight:600; color:#0f172a; word-break:break-all;">${escapeHTML(o.vat_no || "-")}</td>
+            <td style="font-size:11px; line-height:1.3;">${escapeHTML(o.company_display_name || "-")}</td>
+            <td style="text-align:center; white-space:nowrap;">${start}</td>
+            <td style="text-align:center; white-space:nowrap;">${end}</td>
+            <td style="text-align:center;">${badge}</td>
+            <td class="action-cell" onclick="event.stopPropagation()">${delBtnHtml}</td>
+          </tr>
+        `;
+      });
+      olHtml += `</tbody>`;
+
+      document.getElementById("olHistory").innerHTML =
+        (res.owners && res.owners.length > 0)
+          ? olHtml
+          : '<tr><td colspan="9" style="color:#888; text-align:center; padding:20px;">No owner logs found.</td></tr>';
+
+      let masterRow = tableData.find((x) => x.plate_no === plate);
+      let activeO = (res.owners || []).find((o) => o.status === "Running");
+      if (activeO) {
+        editOwnerLog(
+          activeO.id,
+          activeO.owner_name,
+          activeO.owner_mobile,
+          activeO.vat,
+          activeO.vat_no,
+          activeO.company_display_name,
+          activeO.work_start_date ? activeO.work_start_date.split("T")[0] : "",
+          activeO.work_end_date ? activeO.work_end_date.split("T")[0] : "",
+          activeO.reason,
+        );
+      } else if (masterRow && masterRow.owner_name) {
+        document.getElementById("olName").value = masterRow.owner_name || "";
+        document.getElementById("olMob").value = masterRow.owner_mobile || "";
+        document.getElementById("olVat").value = (masterRow.vat === "Yes" || masterRow.vat === "true" || masterRow.vat === "15") ? "Yes" : "No";
+        document.getElementById("olVatNo").value = masterRow.vat_no || "";
+        document.getElementById("olCompany").value = masterRow.company_display_name_ || masterRow.company_display_name || "";
+      }
+    }
+
+    if (type === "rate") {
+      let rlHtml =
+        '<tr><th>Site Name</th><th>Rate</th><th>Start Date</th><th>End Date</th><th>Status</th><th style="width: 30px;"></th></tr>';
+      (res.rates || []).forEach((r) => {
+        let badge =
+          r.status === "Running"
+            ? '<span class="status-badge bg-run">RUN</span>'
+            : '<span class="status-badge bg-rel">REL</span>';
+        let start = r.work_start_date ? r.work_start_date.split("T")[0] : "-";
+        let end = r.work_end_date ? r.work_end_date.split("T")[0] : "-";
+        let delBtnHtml =
+          userRole === "Super Admin" || userRole === "Editor"
+            ? `<button class="btn-delete-icon" onclick="deleteLogEntry(event, 'rate', ${r.id}, '${plate}')" title="Delete Log">&#x1F5D1;&#xFE0F;</button>`
+            : "";
+        let escapedReasonR = escapeHTML(r.reason || "").replace(/'/g, "\\'");
+        rlHtml += `<tr style="cursor:pointer;" onclick="editRateLog(${r.id}, '${escapeHTML(r.site_name)}', '${r.rate}', '${start}', '${end}', '${escapedReasonR}')">
+                <td><b>${escapeHTML(r.site_name)}</b></td>
+                <td><b style="color:#10b981;">${escapeHTML(r.rate || "-")}</b></td>
+                <td>${start}</td><td>${end}</td><td>${badge}</td>
+                <td class="action-cell" onclick="event.stopPropagation()">${delBtnHtml}</td></tr>`;
+      });
+      document.getElementById("rlHistory").innerHTML =
+        (res.rates && res.rates.length > 0)
+          ? rlHtml
+          : '<tr><td colspan="6" style="color:#888;">No rate logs found.</td></tr>';
     }
   }
 }
@@ -1705,9 +1926,15 @@ async function deleteLogEntry(event, type, id, plate) {
       if (type === "driver") {
         clearDriverForm();
         await fetchLogs(plate, "driver");
-      } else {
+      } else if (type === "site") {
         clearSiteForm();
         await fetchLogs(plate, "site");
+      } else if (type === "owner") {
+        clearOwnerForm();
+        await fetchLogs(plate, "owner");
+      } else if (type === "rate") {
+        clearRateForm();
+        await fetchLogs(plate, "rate");
       }
     } else {
       customAlert("Error", res.message);
@@ -1869,6 +2096,119 @@ async function saveSiteLog() {
   }
 }
 
+// 🟢 Owner Log Functions
+function editOwnerLog(id, name, mob, vat, vat_no, comp, start, end, reason) {
+  document.getElementById("olId").value = id;
+  document.getElementById("olName").value = name !== "null" && name ? name : "";
+  document.getElementById("olMob").value = mob !== "null" && mob ? mob : "";
+  document.getElementById("olVat").value = (vat === "Yes" || vat === "true" || vat === "15") ? "Yes" : "No";
+  document.getElementById("olVatNo").value = vat_no !== "null" && vat_no ? vat_no : "";
+  document.getElementById("olCompany").value = comp !== "null" && comp ? comp : "";
+  document.getElementById("olStart").value = start !== "-" ? start : "";
+  document.getElementById("olEnd").value = end !== "-" ? end : "";
+  if (document.getElementById("olReason"))
+    document.getElementById("olReason").value = reason !== "null" && reason ? reason : "";
+  toggleOlEnd();
+  document.getElementById("olSaveBtn").innerText = "Update Log";
+  document.getElementById("olSaveBtn").className = "btn btn-primary";
+}
+
+async function saveOwnerLog() {
+  const payload = {
+    id: document.getElementById("olId").value,
+    plate_no: document.getElementById("olPlate").innerText,
+    owner_name: document.getElementById("olName").value,
+    owner_mobile: document.getElementById("olMob").value,
+    vat: document.getElementById("olVat").value,
+    vat_no: document.getElementById("olVatNo").value,
+    company_display_name: document.getElementById("olCompany").value,
+    work_start_date: document.getElementById("olStart").value,
+    work_end_date: document.getElementById("olEnd").value,
+    reason: document.getElementById("olReason")
+      ? document.getElementById("olReason").value
+      : "",
+  };
+
+  showStatus("Saving...", "saving");
+  try {
+    const res = await safeFetch("/timesheet/api/update-owner-log", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.success) {
+      showStatus("✓ Saved", "saved");
+      customAlert("Success", "Owner log updated successfully!");
+      await initDB();
+      fetchLogs(payload.plate_no, "owner");
+      clearOwnerForm();
+    } else {
+      showStatus("Error", "error");
+      customAlert("Error", res.message || "Failed to save owner log.");
+    }
+  } catch (e) {
+    showStatus("Error", "error");
+    customAlert("Error", "Network error occurred.");
+  }
+}
+
+// 🟢 Rate Log Functions
+function editRateLog(id, site, rate, start, end, reason) {
+  document.getElementById("rlId").value = id;
+  document.getElementById("rlSite").value = site;
+  document.getElementById("rlRate").value = rate && rate !== "null" ? rate : "";
+  document.getElementById("rlStart").value = start !== "-" ? start : "";
+  document.getElementById("rlEnd").value = end !== "-" ? end : "";
+  if (document.getElementById("rlReason"))
+    document.getElementById("rlReason").value = reason !== "null" && reason ? reason : "";
+  document.getElementById("rlSaveBtn").innerText = "Update Rate";
+  document.getElementById("rlSaveBtn").className = "btn btn-primary";
+}
+
+async function saveRateLog() {
+  const payload = {
+    id: document.getElementById("rlId").value,
+    plate_no: document.getElementById("rlPlate").innerText,
+    site_name: document.getElementById("rlSite").value,
+    rate: document.getElementById("rlRate").value,
+    work_start_date: document.getElementById("rlStart").value,
+    work_end_date: document.getElementById("rlEnd").value,
+    reason: document.getElementById("rlReason")
+      ? document.getElementById("rlReason").value
+      : "",
+  };
+
+  showStatus("Saving...", "saving");
+  try {
+    const res = await safeFetch("/timesheet/api/update-rate-log", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.success) {
+      showStatus("✓ Saved", "saved");
+      customAlert("Success", "Rate log updated successfully!");
+      await initDB();
+      fetchLogs(payload.plate_no, "rate");
+      clearRateForm();
+    } else {
+      showStatus("Error", "error");
+      customAlert("Error", res.message || "Failed to save rate log.");
+    }
+  } catch (e) {
+    showStatus("Error", "error");
+    customAlert("Error", "Network error occurred.");
+  }
+}
+
 function s2ab(s) {
   var buf = new ArrayBuffer(s.length);
   var view = new Uint8Array(buf);
@@ -1878,6 +2218,43 @@ function s2ab(s) {
 
 async function exportExcel() {
   var wb = XLSX.utils.book_new();
+
+  // Common UI Styles for Excel
+  const headerStyle = {
+    fill: { fgColor: { rgb: "1E293B" } },
+    font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
+    alignment: { horizontal: "center", vertical: "center", wrapText: true },
+    border: {
+      top: { style: "thin", color: { rgb: "CBD5E1" } },
+      bottom: { style: "medium", color: { rgb: "0F172A" } },
+      left: { style: "thin", color: { rgb: "CBD5E1" } },
+      right: { style: "thin", color: { rgb: "CBD5E1" } },
+    },
+  };
+
+  const cellStyleCenter = {
+    font: { name: "Calibri", sz: 10 },
+    alignment: { horizontal: "center", vertical: "center" },
+    border: {
+      top: { style: "thin", color: { rgb: "E2E8F0" } },
+      bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+      left: { style: "thin", color: { rgb: "E2E8F0" } },
+      right: { style: "thin", color: { rgb: "E2E8F0" } },
+    },
+  };
+
+  const cellStyleLeft = {
+    font: { name: "Calibri", sz: 10 },
+    alignment: { horizontal: "left", vertical: "center" },
+    border: {
+      top: { style: "thin", color: { rgb: "E2E8F0" } },
+      bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+      left: { style: "thin", color: { rgb: "E2E8F0" } },
+      right: { style: "thin", color: { rgb: "E2E8F0" } },
+    },
+  };
+
+  // 1. Master DB Sheet
   let ws_data = [];
   let headers = ["Sl No"];
   customColOrder.forEach((colId) => {
@@ -1885,14 +2262,13 @@ async function exportExcel() {
     headers.push(colLabels[colId] || colId.replace(/_/g, " ").toUpperCase());
   });
   ws_data.push(headers);
+
   tableData.forEach((row, idx) => {
     let rowData = [idx + 1];
     customColOrder.forEach((colId) => {
       if (hiddenColumns.includes(colId)) return;
       if (colId === "vat") {
-        let v = String(row.vat || "")
-          .trim()
-          .toLowerCase();
+        let v = String(row.vat || "").trim().toLowerCase();
         rowData.push(v === "yes" || v === "true" || v === "15" ? "Yes" : "No");
       } else {
         rowData.push(row[colId] || "");
@@ -1900,35 +2276,37 @@ async function exportExcel() {
     });
     ws_data.push(rowData);
   });
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.aoa_to_sheet(ws_data),
-    "Master DB",
-  );
 
+  let ws_master = XLSX.utils.aoa_to_sheet(ws_data);
+  applySheetDesign(ws_master, headerStyle, cellStyleLeft, cellStyleCenter);
+  XLSX.utils.book_append_sheet(wb, ws_master, "Master DB");
+
+  // Fetch all logs from backend
   const logRes = await safeFetch("/timesheet/api/all-logs", {
     headers: { Authorization: "Bearer " + token },
   });
+
   if (logRes.success) {
+    // 2. Driver Logs Sheet
     let dData = [
-      ["Plate No", "Driver Name", "Mobile", "Start Date", "End Date", "Status"],
+      ["Plate No", "Driver Name", "Mobile No", "Start Date", "End Date", "Status", "Reason"],
     ];
-    logRes.drivers.forEach((d) =>
+    (logRes.drivers || []).forEach((d) =>
       dData.push([
-        d.plate_no,
-        d.driver_name,
-        d.driver_mobile,
-        d.start_date,
-        d.end_date,
-        d.status,
+        d.plate_no || "",
+        d.driver_name || "",
+        d.driver_mobile || "",
+        d.start_date || "-",
+        d.end_date || "-",
+        d.status || "",
+        d.reason || "",
       ]),
     );
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.aoa_to_sheet(dData),
-      "Driver Logs",
-    );
+    let ws_driver = XLSX.utils.aoa_to_sheet(dData);
+    applySheetDesign(ws_driver, headerStyle, cellStyleLeft, cellStyleCenter);
+    XLSX.utils.book_append_sheet(wb, ws_driver, "Driver Logs");
 
+    // 3. Site Logs Sheet
     let sData = [
       [
         "Plate No",
@@ -1943,31 +2321,84 @@ async function exportExcel() {
         "New Vehicle No",
         "Asset Code",
         "Work Order No",
+        "Reason",
       ],
     ];
-    logRes.sites.forEach((s) =>
+    (logRes.sites || []).forEach((s) =>
       sData.push([
-        s.plate_no,
-        s.site_name,
+        s.plate_no || "",
+        s.site_name || "",
         s.rate || "",
         s.field_co || "",
         s.site_co || "",
-        s.start_date,
-        s.end_date,
-        s.status,
+        s.start_date || "-",
+        s.end_date || "-",
+        s.status || "",
         s.old_vehicle_no || "",
         s.new_vehicle_no || "",
         s.asset_code || "",
         s.work_order_no || "",
+        s.reason || "",
       ]),
     );
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.aoa_to_sheet(sData),
-      "Site Logs",
+    let ws_site = XLSX.utils.aoa_to_sheet(sData);
+    applySheetDesign(ws_site, headerStyle, cellStyleLeft, cellStyleCenter);
+    XLSX.utils.book_append_sheet(wb, ws_site, "Site Logs");
+
+    // 4. Rate Logs Sheet (NEW)
+    let rData = [
+      ["Plate No", "Site Name", "Rate", "Start Date", "End Date", "Status", "Reason / Note"],
+    ];
+    (logRes.rates || []).forEach((r) =>
+      rData.push([
+        r.plate_no || "",
+        r.site_name || "",
+        r.rate || "",
+        r.start_date || "-",
+        r.end_date || "-",
+        r.status || "",
+        r.reason || "",
+      ]),
     );
+    let ws_rate = XLSX.utils.aoa_to_sheet(rData);
+    applySheetDesign(ws_rate, headerStyle, cellStyleLeft, cellStyleCenter);
+    XLSX.utils.book_append_sheet(wb, ws_rate, "Rate Logs");
+
+    // 5. Owner Logs Sheet (NEW)
+    let oData = [
+      [
+        "Plate No",
+        "Owner Name",
+        "Owner Mobile",
+        "VAT (Yes/No)",
+        "VAT NO",
+        "Company Display Name",
+        "Start Date",
+        "End Date",
+        "Status",
+        "Reason / Note",
+      ],
+    ];
+    (logRes.owners || []).forEach((o) =>
+      oData.push([
+        o.plate_no || "",
+        o.owner_name || "",
+        o.owner_mobile || "",
+        o.vat || "No",
+        o.vat_no || "",
+        o.company_display_name || "",
+        o.start_date || "-",
+        o.end_date || "-",
+        o.status || "",
+        o.reason || "",
+      ]),
+    );
+    let ws_owner = XLSX.utils.aoa_to_sheet(oData);
+    applySheetDesign(ws_owner, headerStyle, cellStyleLeft, cellStyleCenter);
+    XLSX.utils.book_append_sheet(wb, ws_owner, "Owner Logs");
   }
 
+  // Generate and download Excel
   var wbout = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
   let blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
   let url = window.URL.createObjectURL(blob);
@@ -1977,6 +2408,78 @@ async function exportExcel() {
   a.download = `Master_Vehicles_DB_Logs.xlsx`;
   a.click();
   document.body.removeChild(a);
+}
+
+// Helper Function: Apply First Row Freeze, AutoFilter & UI Styling
+function applySheetDesign(ws, headerStyle, cellStyleLeft, cellStyleCenter) {
+  if (!ws || !ws["!ref"]) return;
+
+  // 1. AutoFilter for the first row
+  ws["!autofilter"] = { ref: ws["!ref"] };
+
+  // 2. Freeze the first row (Header)
+  ws["!views"] = [
+    {
+      state: "frozen",
+      xSplit: 0,
+      ySplit: 1,
+      topLeftCell: "A2",
+      activePane: "bottomLeft",
+    },
+  ];
+  ws["!freeze"] = {
+    xSplit: "0",
+    ySplit: "1",
+    topLeftCell: "A2",
+    activePane: "bottomLeft",
+    state: "frozen",
+  };
+
+  // 3. Styling Cells & Auto Column Widths
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  let colWidths = [];
+
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    let maxWidth = 12;
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      const cell_address = XLSX.utils.encode_cell({ c: C, r: R });
+      const cell = ws[cell_address];
+      if (!cell) continue;
+
+      let valStr = String(cell.v || "");
+      if (valStr.length > maxWidth) maxWidth = Math.min(valStr.length + 3, 35);
+
+      if (R === 0) {
+        cell.s = headerStyle;
+      } else {
+        const isCenterCol = [
+          "SL NO", "START DATE", "END DATE", "STATUS", "VAT", "RATE", "LAST DAY", "OLD", "NEW"
+        ].some((h) => String(ws[XLSX.utils.encode_cell({ c: C, r: 0 })]?.v || "").toUpperCase().includes(h));
+
+        cell.s = (C === 0 || isCenterCol) ? cellStyleCenter : cellStyleLeft;
+      }
+    }
+    colWidths.push({ wch: Math.max(maxWidth, 12) });
+  }
+
+  ws["!cols"] = colWidths;
+}
+
+// Helper Function to apply styled borders and headers to any sheet
+function applySheetDesign(ws, headerStyle, cellStyleLeft, cellStyleCenter) {
+  if (!ws["!ref"]) return;
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cell_address = XLSX.utils.encode_cell({ c: C, r: R });
+      if (!ws[cell_address]) continue;
+      if (R === 0) {
+        ws[cell_address].s = headerStyle;
+      } else {
+        ws[cell_address].s = C === 0 ? cellStyleCenter : cellStyleLeft;
+      }
+    }
+  }
 }
 
 async function importExcel() {
@@ -2037,12 +2540,10 @@ async function importExcel() {
 
 initDB();
 
-// Function to handle Plate Number Editing inline without reloading the DB
 async function editPlateNo() {
   const oldPlate = activeRowPlate;
   document.getElementById("rowContextMenu").style.display = "none";
 
-  // Ask user for the new plate number
   const newPlate = await customPrompt(
     "Edit Plate No",
     `Enter new Plate No for ${oldPlate}:`,
@@ -2053,7 +2554,7 @@ async function editPlateNo() {
     newPlate.trim() === "" ||
     newPlate.trim().toUpperCase() === oldPlate.toUpperCase()
   ) {
-    return; // Do nothing if cancelled or unchanged
+    return;
   }
 
   showStatus("Updating...", "saving");
@@ -2070,19 +2571,15 @@ async function editPlateNo() {
 
     if (res.success) {
       const finalNewPlate = res.new_plate_no;
-
-      // 1. Update the internal JS array
       let rowData = tableData.find((x) => x.plate_no === oldPlate);
       if (rowData) {
         rowData.plate_no = finalNewPlate;
       }
 
-      // 2. Update the DOM inline
       const plateInput = document.querySelector(
         `input.primary-col[value="${oldPlate}"]`,
       );
       if (plateInput) {
-        // Update the main Plate No input value and its attributes
         plateInput.value = finalNewPlate;
         plateInput.setAttribute("value", finalNewPlate);
         plateInput.setAttribute(
@@ -2090,16 +2587,12 @@ async function editPlateNo() {
           `openRowMenu(event, '${finalNewPlate}')`,
         );
 
-        // Find the parent row (tr)
         const tr = plateInput.closest("tr");
-
-        // Update all data-plate attributes in this row (used by textboxes/selects)
         const elementsWithDataPlate = tr.querySelectorAll("[data-plate]");
         elementsWithDataPlate.forEach((el) => {
           el.setAttribute("data-plate", finalNewPlate);
         });
 
-        // Update the onclick functions for the Log Modal buttons (📝)
         const logButtons = tr.querySelectorAll(".cell-log-btn");
         logButtons.forEach((btn) => {
           const currentOnclick = btn.getAttribute("onclick");
@@ -2112,7 +2605,6 @@ async function editPlateNo() {
           }
         });
 
-        // Update fastUpdateLog inline calls on date inputs
         const inputsWithOnchange = tr.querySelectorAll(
           '[onchange*="fastUpdateLog"]',
         );
@@ -2142,14 +2634,13 @@ async function editPlateNo() {
     showStatus("Error", "error");
   }
 }
-// --- Dark Mode Logic ---
+
 function toggleDarkMode() {
   const isDark = document.body.classList.toggle("dark-mode");
   localStorage.setItem("timesheetTheme", isDark ? "dark" : "light");
   document.getElementById("userDropdownMenu").style.display = "none";
 }
 
-// Check saved theme on page load
 document.addEventListener("DOMContentLoaded", () => {
   const savedTheme = localStorage.getItem("timesheetTheme");
   if (savedTheme === "dark") {
