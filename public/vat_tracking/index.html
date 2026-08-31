@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VAT Tracking - Timesheet ERP</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; font-size: 13px; }
@@ -55,6 +55,14 @@
         .login-box button { width: 100%; background: #10b981; color: white; border: none; padding: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 15px; }
         .login-box button:hover { background: #059669; }
         #loginError { color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none; }
+        .clip-text {
+            max-width: 130px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -134,6 +142,18 @@
     </div>
 
     <script>
+        const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        let rawData = [];
+        let currentYear = new Date().getFullYear();
+        document.getElementById("yearFilter").value = currentYear;
+
+        let activeCol = "";
+        let sortConfig = { col: null, dir: null };
+        let activeFilters = { company: [], supplier: [], vat_no: [], display_name: [], site_name: [], bill_no: [] };
+        
+        let isBulkMode = false;
+        let pendingChanges = [];
+
         let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
 
         // Login Check
@@ -160,18 +180,6 @@
             document.getElementById("vatAccessCode").value = "";
             document.getElementById("vatAccessCode").focus();
         }
-
-        const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        let rawData = [];
-        let currentYear = new Date().getFullYear();
-        document.getElementById("yearFilter").value = currentYear;
-
-        let activeCol = "";
-        let sortConfig = { col: null, dir: null };
-        let activeFilters = { company: [], supplier: [], vat_no: [], display_name: [], site_name: [], bill_no: [] };
-        
-        let isBulkMode = false;
-        let pendingChanges = [];
 
         async function fetchData() {
             currentYear = document.getElementById("yearFilter").value;
@@ -243,19 +251,18 @@
             let head1 = `<tr>
                 <th rowspan="2">SN</th>
                 <th rowspan="2">Company <span class="filter-icon" onclick="openFilter(event, 'company')">▼</span></th>
+                <th rowspan="2" style="min-width: 130px; max-width: 130px;">Display Name <span class="filter-icon" onclick="openFilter(event, 'display_name')">▼</span></th>
                 <th rowspan="2">Supplier <span class="filter-icon" onclick="openFilter(event, 'supplier')">▼</span></th>
                 <th rowspan="2">Vat No <span class="filter-icon" onclick="openFilter(event, 'vat_no')">▼</span></th>
-                <th rowspan="2" style="min-width: 150px; max-width: 150px;">Display Name <span class="filter-icon" onclick="openFilter(event, 'display_name')">▼</span></th>
                 <th rowspan="2">Site <span class="filter-icon" onclick="openFilter(event, 'site_name')">▼</span></th>`;
             let head2 = `<tr>`;
 
             for (let i = startMonth; i <= endMonth; i++) {
                 let mName = monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2);
-                head1 += `<th colspan="4">${mName}</th>`;
+                head1 += `<th colspan="3">${mName}</th>`;
                 head2 += `<th class="sub-head">Bill No <span class="filter-icon" onclick="openFilter(event, 'bill_no')">▼</span></th>
-                          <th class="sub-head">Status</th>
                           <th class="sub-head">Amount</th>
-                          <th class="sub-head" style="background: #0f766e;">ERP Total</th>`;
+                          <th class="sub-head" style="background: #0f766e;">Vendor TS</th>`;
             }
             head1 += `</tr>`;
             head2 += `</tr>`;
@@ -276,15 +283,15 @@
                     if (sIdx === 0) {
                         tbody += `<td rowspan="${siteCount}" class="merged-cell">${sn++}</td>
                                   <td rowspan="${siteCount}" class="merged-cell">${escapeHTML(group.company)}</td>
+                                  <td rowspan="${siteCount}" class="merged-cell" style="max-width: 130px;"><span class="clip-text" title="${escapeHTML(group.display_name)}">${escapeHTML(group.display_name)}</span></td>
                                   <td rowspan="${siteCount}" class="merged-cell" style="max-width: 150px;">${escapeHTML(group.supplier)}</td>
-                                  <td rowspan="${siteCount}" class="merged-cell" title="Right click to copy" oncontextmenu="copyVat(event, '${escapeQuotes(group.vat_no)}')" style="cursor: pointer;">${escapeHTML(group.vat_no)}</td>
-                                  <td rowspan="${siteCount}" class="merged-cell" style="max-width: 150px; white-space: normal; word-break: break-word;">${escapeHTML(group.display_name)}</td>`;
+                                  <td rowspan="${siteCount}" class="merged-cell" title="Right click to copy" oncontextmenu="copyVat(event, '${escapeQuotes(group.vat_no)}')" style="cursor: pointer;">${escapeHTML(group.vat_no)}</td>`;
                     }
 
                     tbody += `<td style="text-align: left; font-weight: 500; max-width:140px;">${escapeHTML(siteData.site_name)}</td>`;
 
                     for (let i = startMonth; i <= endMonth; i++) {
-                        let bill = siteData.billing[i] || { bill_no: "", status: "", amount: "", erp_total: "" };
+                        let bill = siteData.billing[i] || { bill_no: "", amount: "", erp_total: "" };
                         let isActive = siteData.active_months[i]; 
                         
                         let cellClass = isActive ? "" : "inactive-cell";
@@ -293,14 +300,12 @@
                         let baseArgsStr = `this, 'FIELD_PLACEHOLDER', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}`;
                         
                         let actionBillNo = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})"` : "";
-                        let actionStatus = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'status')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'status')})"` : "";
                         let actionAmount = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'amount')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'amount')})"` : "";
 
                         let erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
 
                         tbody += `
                             <td class="${cellClass}" ${actionBillNo}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_no)}</span></td>
-                            <td class="${cellClass}" ${actionStatus}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.status)}</span></td>
                             <td class="${cellClass}" ${actionAmount}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.amount)}</span></td>
                             <td class="${cellClass}" style="font-weight: 600; color: #0f766e;"><span>${erpVal}</span></td>
                         `;
@@ -605,13 +610,13 @@
             const ws = wb.addWorksheet("VAT Tracking", { views: [{ state: 'frozen', ySplit: 2, xSplit: 6 }] });
 
             // 1. Generate Headers Arrays First
-            let row1 = ["SN", "Company", "Supplier", "Vat No", "Display Name", "Site"];
+            let row1 = ["SN", "Company", "Display Name", "Supplier", "Vat No", "Site"];
             let row2 = ["", "", "", "", "", ""];
             
             for (let i = startMonth; i <= endMonth; i++) {
                 let mName = monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2);
-                row1.push(mName, "", "", "");
-                row2.push("Bill No", "Status", "Amount", "ERP Total");
+                row1.push(mName, "", "");
+                row2.push("Bill No", "Amount", "Vendor TS");
             }
 
             // 2. Add Headers to Worksheet
@@ -628,8 +633,8 @@
             
             let colIndex = 7;
             for (let i = startMonth; i <= endMonth; i++) {
-                ws.mergeCells(1, colIndex, 1, colIndex + 3);
-                colIndex += 4;
+                ws.mergeCells(1, colIndex, 1, colIndex + 2);
+                colIndex += 3;
             }
 
             // 4. Style Headers
@@ -644,7 +649,7 @@
             
             ws.getRow(2).eachCell((cell, colNumber) => {
                 if (colNumber > 6) {
-                    let isERP = ((colNumber - 6) % 4 === 0);
+                    let isERP = ((colNumber - 6) % 3 === 0);
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isERP ? 'FF0F766E' : 'FF334155' } };
                     cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 11 };
                     cell.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -667,7 +672,7 @@
                 group.sites.forEach((siteData, sIdx) => {
                     let rowData = [];
                     if (sIdx === 0) {
-                        rowData.push(sn++, group.company, group.supplier, group.vat_no, group.display_name);
+                        rowData.push(sn++, group.company, group.display_name, group.supplier, group.vat_no);
                     } else {
                         rowData.push("", "", "", "", "");
                     }
@@ -677,19 +682,18 @@
                     let cIdx = 7;
                     
                     for (let i = startMonth; i <= endMonth; i++) {
-                        let bill = siteData.billing[i] || { bill_no: "", status: "", amount: "", erp_total: "" };
+                        let bill = siteData.billing[i] || { bill_no: "", amount: "", erp_total: "" };
                         if (siteData.active_months[i]) {
                             rowData.push(
                                 bill.bill_no || "", 
-                                bill.status || "", 
                                 safeNumber(bill.amount), 
                                 safeNumber(bill.erp_total)
                             );
                         } else {
-                            rowData.push("", "", "", "");
-                            inactiveColumns.push(cIdx, cIdx + 1, cIdx + 2, cIdx + 3);
+                            rowData.push("", "", "");
+                            inactiveColumns.push(cIdx, cIdx + 1, cIdx + 2);
                         }
-                        cIdx += 4;
+                        cIdx += 3;
                     }
 
                     let row = ws.addRow(rowData);
@@ -707,12 +711,12 @@
                             cell.fill = { type: 'pattern', pattern: 'lightGray', fgColor: { argb: 'FFCBD5E1' }, bgColor: { argb: 'FFE2E8F0' } };
                         }
                         
-                        if (colNumber > 6 && (colNumber - 6) % 4 === 0 && !inactiveColumns.includes(colNumber)) {
+                        if (colNumber > 6 && (colNumber - 6) % 3 === 0 && !inactiveColumns.includes(colNumber)) {
                             cell.font = { bold: true, color: { argb: 'FF0F766E' } };
                         }
 
-                        let isAmountCol = colNumber > 6 && (colNumber - 6) % 4 === 3;
-                        let isERPCol = colNumber > 6 && (colNumber - 6) % 4 === 0;
+                        let isAmountCol = colNumber > 6 && (colNumber - 6) % 3 === 2;
+                        let isERPCol = colNumber > 6 && (colNumber - 6) % 3 === 0;
                         if ((isAmountCol || isERPCol) && typeof cell.value === 'number') {
                             cell.numFmt = '#,##0.00';
                         }
@@ -731,8 +735,8 @@
             ws.getColumn(1).width = 5;
             ws.getColumn(2).width = 18;
             ws.getColumn(3).width = 25;
-            ws.getColumn(4).width = 15;
-            ws.getColumn(5).width = 30;
+            ws.getColumn(4).width = 25;
+            ws.getColumn(5).width = 15;
             ws.getColumn(6).width = 25;
             
             let totalCols = ws.columnCount;
@@ -762,13 +766,13 @@
             const ws = wb.addWorksheet("Compact VAT", { views: [{ state: 'frozen', ySplit: 2, xSplit: 6 }] });
 
             // 1. Generate Headers Arrays First
-            let row1 = ["SN", "Company", "Supplier", "Vat No", "Display Name", "Site"];
+            let row1 = ["SN", "Company", "Display Name", "Supplier", "Vat No", "Site"];
             let row2 = ["", "", "", "", "", ""];
             
             for (let i = startMonth; i <= endMonth; i++) {
                 let mName = monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2);
                 row1.push(mName, "");
-                row2.push("Amount", "ERP Total");
+                row2.push("Amount", "Vendor TS");
             }
 
             // 2. Add Headers to Worksheet
@@ -824,7 +828,7 @@
                 group.sites.forEach((siteData, sIdx) => {
                     let rowData = [];
                     if (sIdx === 0) {
-                        rowData.push(sn++, group.company, group.supplier, group.vat_no, group.display_name);
+                        rowData.push(sn++, group.company, group.display_name, group.supplier, group.vat_no);
                     } else {
                         rowData.push("", "", "", "", "");
                     }
@@ -884,8 +888,8 @@
             ws.getColumn(1).width = 5;
             ws.getColumn(2).width = 18;
             ws.getColumn(3).width = 25;
-            ws.getColumn(4).width = 15;
-            ws.getColumn(5).width = 30;
+            ws.getColumn(4).width = 25;
+            ws.getColumn(5).width = 15;
             ws.getColumn(6).width = 25;
             
             let totalCols = ws.columnCount;
