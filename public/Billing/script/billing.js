@@ -2644,9 +2644,13 @@ async function copyCardAndWhatsApp(cardId, ownerName) {
 
           document.getElementById("loader").style.display = "none";
 
-          // Open WhatsApp Desktop / Web link
+          // Get selected month text
+          const currentMonth = document.getElementById("selectedMonthText")?.innerText.trim() || "";
+          const msgText = encodeURIComponent(`*${currentMonth} Bill*`);
+
+          // Open WhatsApp Desktop / Web link with prefilled month text
           setTimeout(() => {
-            window.open(`whatsapp://send?phone=${mobile}`, "_self");
+            window.open(`whatsapp://send?phone=${mobile}&text=${msgText}`, "_self");
           }, 1000);
         } catch (err) {
           document.getElementById("loader").style.display = "none";
