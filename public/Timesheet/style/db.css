@@ -902,3 +902,47 @@ body.dark-mode select.modal-input {
   background-color: var(--input-bg);
   color: var(--text-main);
 }
+
+
+/* Floating Bottom-Right Toast */
+.bottom-toast {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.bottom-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.bottom-toast.toast-success {
+  background-color: #059669;
+  border-left: 4px solid #34d399;
+}
+
+.bottom-toast.toast-error {
+  background-color: #dc2626;
+  border-left: 4px solid #f87171;
+}
+
+.bottom-toast.toast-saving {
+  background-color: #2563eb;
+  border-left: 4px solid #60a5fa;
+}

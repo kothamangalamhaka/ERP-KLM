@@ -422,25 +422,6 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const { id, plate_no, owner_name, owner_mobile, vat, nop, company_display_name, work_start_date, work_end_date, status, reason } = req.body;
-    const calculatedStatus = work_end_date ? "Released" : (status || "Running");
-
-    if (id) {
-      await client.query(
-        `UPDATE vehicle_owner_log SET owner_name=$1, owner_mobile=$2, vat=$3, nop=$4, company_display_name=$5, work_start_date=$6, work_end_date=$7, status=$8, reason=$9 WHERE id=$10`,
-        [owner_name, owner_mobile, vat, nop, company_display_name, work_start_date || null, work_end_date || null, calculatedStatus, reason || null, id]
-      );
-    } else {
-      await client.query(
-        `INSERT INTO vehicle_owner_log (plate_no, owner_name, owner_mobile, vat, nop, company_display_name, work_start_date, work_end_date, status, reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [plate_no, owner_name, owner_mobile, vat, nop, company_display_name, work_start_date || null, work_end_date || null, calculatedStatus, reason || null]
-      );
-    }
-
-    router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
     const { id, plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason } = req.body;
     const calculatedStatus = work_end_date ? "Released" : (status || "Running");
 
@@ -471,17 +452,6 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
         [owner_name, owner_mobile, vat, vat_no || null, company_display_name, plate_no]
       );
     }
-
-    await logAudit(req.user, "OWNER_LOG_UPDATE", `Updated owner log for ${plate_no}`);
-    await client.query("COMMIT");
-    res.json({ success: true });
-  } catch (error) {
-    await client.query("ROLLBACK");
-    res.json({ success: false, message: error.message });
-  } finally {
-    client.release();
-  }
-});
 
     await logAudit(req.user, "OWNER_LOG_UPDATE", `Updated owner log for ${plate_no}`);
     await client.query("COMMIT");

@@ -1215,14 +1215,33 @@ function initColumnResizer() {
   });
 }
 
+let toastTimer = null;
 function showStatus(msg, type) {
+  // 1. Update top bar indicator
   const s = document.getElementById("saveStatus");
-  s.innerText = msg;
-  s.className = `save-indicator status-${type}`;
-  if (type === "saved" || type === "error")
-    setTimeout(() => {
-      s.className = "save-indicator";
+  if (s) {
+    s.innerText = msg;
+    s.className = `save-indicator status-${type}`;
+    if (type === "saved" || type === "error") {
+      setTimeout(() => {
+        s.className = "save-indicator";
+      }, 3000);
+    }
+  }
+
+  // 2. Trigger Bottom-Right Floating Toast
+  const t = document.getElementById("toast");
+  if (t) {
+    if (toastTimer) clearTimeout(toastTimer);
+    
+    t.innerText = msg;
+    let toastTypeClass = type === "saved" ? "toast-success" : (type === "error" ? "toast-error" : "toast-saving");
+    t.className = `bottom-toast show ${toastTypeClass}`;
+    
+    toastTimer = setTimeout(() => {
+      t.className = "bottom-toast";
     }, 3000);
+  }
 }
 
 async function updateCell(inputEl) {
@@ -1921,7 +1940,7 @@ async function deleteLogEntry(event, type, id, plate) {
       body: JSON.stringify({ type: type, id: id }),
     });
     if (res.success) {
-      customAlert("Success", "Log entry deleted.");
+      showStatus("✓ Log Deleted", "saved");
       await initDB();
       if (type === "driver") {
         clearDriverForm();
@@ -1937,10 +1956,10 @@ async function deleteLogEntry(event, type, id, plate) {
         await fetchLogs(plate, "rate");
       }
     } else {
-      customAlert("Error", res.message);
+      customAlert(res.message, "Error");
     }
   } catch (e) {
-    customAlert("Error", "Failed to delete log.");
+    customAlert("Failed to delete log.", "Error");
   }
 }
 
@@ -1984,18 +2003,17 @@ async function saveDriverLog() {
     });
 
     if (res.success) {
-      showStatus("✓ Saved", "saved");
-      customAlert("Success", "Driver log saved successfully!");
+      showStatus("✓ Driver Log Saved", "saved");
       await initDB();
       fetchLogs(payload.plate_no, "driver");
       clearDriverForm();
     } else {
       showStatus("Error", "error");
-      customAlert("Error", res.message || "Failed to save driver log.");
+      customAlert(res.message || "Failed to save driver log.", "Error");
     }
   } catch (e) {
     showStatus("Error", "error");
-    customAlert("Error", "Network error occurred.");
+    customAlert("Network error occurred.", "Error");
   }
 }
 
@@ -2081,18 +2099,17 @@ async function saveSiteLog() {
     });
 
     if (res.success) {
-      showStatus("✓ Saved", "saved");
-      customAlert("Success", "Site log saved successfully!");
+      showStatus("✓ Site Log Saved", "saved");
       await initDB();
       fetchLogs(payload.plate_no, "site");
       clearSiteForm();
     } else {
       showStatus("Error", "error");
-      customAlert("Error", res.message || "Failed to save site log.");
+      customAlert(res.message || "Failed to save site log.", "Error");
     }
   } catch (e) {
     showStatus("Error", "error");
-    customAlert("Error", "Network error occurred.");
+    customAlert("Network error occurred.", "Error");
   }
 }
 
@@ -2141,18 +2158,17 @@ async function saveOwnerLog() {
     });
 
     if (res.success) {
-      showStatus("✓ Saved", "saved");
-      customAlert("Success", "Owner log updated successfully!");
+      showStatus("✓ Owner Log Saved", "saved");
       await initDB();
       fetchLogs(payload.plate_no, "owner");
       clearOwnerForm();
     } else {
       showStatus("Error", "error");
-      customAlert("Error", res.message || "Failed to save owner log.");
+      customAlert(res.message || "Failed to save owner log.", "Error");
     }
   } catch (e) {
     showStatus("Error", "error");
-    customAlert("Error", "Network error occurred.");
+    customAlert("Network error occurred.", "Error");
   }
 }
 
@@ -2194,18 +2210,17 @@ async function saveRateLog() {
     });
 
     if (res.success) {
-      showStatus("✓ Saved", "saved");
-      customAlert("Success", "Rate log updated successfully!");
+      showStatus("✓ Rate Log Saved", "saved");
       await initDB();
       fetchLogs(payload.plate_no, "rate");
       clearRateForm();
     } else {
       showStatus("Error", "error");
-      customAlert("Error", res.message || "Failed to save rate log.");
+      customAlert(res.message || "Failed to save rate log.", "Error");
     }
   } catch (e) {
     showStatus("Error", "error");
-    customAlert("Error", "Network error occurred.");
+    customAlert("Network error occurred.", "Error");
   }
 }
 
