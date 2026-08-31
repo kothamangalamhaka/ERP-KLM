@@ -1135,7 +1135,7 @@ async function exportToPDF() {
     .then(() => toggleLoad(false));
 }
 
-async function createA4Images(groupName, dataSubset, m, y) {
+async function createA4Images(groupName, dataSubset, m, y, mode = "All") {
   const ROWS_PER_PAGE = 35;
   let images = [];
 
@@ -1152,15 +1152,42 @@ async function createA4Images(groupName, dataSubset, m, y) {
     container.style.left = "-9999px";
     container.style.fontFamily = "Arial, sans-serif";
 
+    // Owner mode-ൽ ടൈറ്റിലിൽ നിന്ന് ഓണറുടെ പേര് ഒഴിവാക്കി ജനറൽ ഹെഡർ നൽകുന്നു
     let title =
-      groupName === "All"
-        ? `Pending Logs - ${m} ${y}`
+      mode === "Owner" || groupName === "All"
+        ? `Pending Logs (${m} ${y})`
         : `${groupName} - Pending Logs (${m} ${y})`;
     if (totalPages > 1) title += ` - Page ${pageNum}`;
 
     let html = `
         <h2 style="text-align: center; color: #e67e22; margin-bottom: 20px;">${title}</h2>
         <table style="width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed;">
+    `;
+
+    if (mode === "Owner") {
+      // 🟢 Owner Mode: Driver Name, Plate No, Pending Dates മാത്രം
+      html += `
+            <thead>
+                <tr>
+                    <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: left; width: 30%;">Driver Name</th>
+                    <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: center; width: 25%;">Plate No</th>
+                    <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: left; width: 45%;">Pending Dates</th>
+                </tr>
+            </thead>
+            <tbody>
+      `;
+      chunk.forEach((row) => {
+        html += `
+            <tr>
+                <td style="border: 1px solid #000; padding: 8px; word-wrap: break-word; white-space: normal;">${row.driver}</td>
+                <td style="border: 1px solid #000; padding: 8px; white-space: nowrap; font-weight: bold; text-align: center;">${row.plate}</td>
+                <td style="border: 1px solid #000; padding: 8px; color: #b91c1c; word-wrap: break-word; white-space: normal; line-height: 1.5;">${row.pendingDates}</td>
+            </tr>
+        `;
+      });
+    } else {
+      // 🟢 മറ്റ് മോഡുകൾക്കുള്ള ഡിഫോൾട്ട് ടേബിൾ
+      html += `
             <thead>
                 <tr>
                     <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: center; width: 5%;">SN</th>
@@ -1173,9 +1200,9 @@ async function createA4Images(groupName, dataSubset, m, y) {
                 </tr>
             </thead>
             <tbody>
-    `;
-    chunk.forEach((row) => {
-      html += `
+      `;
+      chunk.forEach((row) => {
+        html += `
             <tr>
                 <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">${row.sn}</td>
                 <td style="border: 1px solid #000; padding: 8px; word-wrap: break-word; white-space: normal;">${row.owner}</td>
@@ -1186,7 +1213,9 @@ async function createA4Images(groupName, dataSubset, m, y) {
                 <td style="border: 1px solid #000; padding: 8px; color: #b91c1c; word-wrap: break-word; white-space: normal; line-height: 1.5;">${row.pendingDates}</td>
             </tr>
         `;
-    });
+      });
+    }
+
     html += `</tbody></table>`;
     container.innerHTML = html;
     document.body.appendChild(container);
@@ -1248,18 +1277,18 @@ async function exportToPNGZip(mode) {
         allImages.push(...imgs);
       }
     } else if (mode === "Owner") {
-      const groups = {};
-      data.forEach((row) => {
-        const key =
-          row.owner.replace(/[^a-zA-Z0-9_ ]/g, "").trim() || "Unknown";
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(row);
-      });
-      for (const [gName, subset] of Object.entries(groups)) {
-        let imgs = await createA4Images(gName, subset, m, y);
-        allImages.push(...imgs);
-      }
-    }
+  const groups = {};
+  data.forEach((row) => {
+    const key =
+      row.owner.replace(/[^a-zA-Z0-9_ ]/g, "").trim() || "Unknown";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(row);
+  });
+  for (const [gName, subset] of Object.entries(groups)) {
+    let imgs = await createA4Images(gName, subset, m, y, "Owner");
+    allImages.push(...imgs);
+  }
+}
 
     if (allImages.length === 1) {
       saveAs(allImages[0].blob, allImages[0].name);
