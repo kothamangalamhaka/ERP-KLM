@@ -45,12 +45,12 @@ router.get("/verify-session", (req, res) => {
   res.status(200).json({ success: true, message: "Session is valid" });
 });
 
-// 1. Fetch Vehicle Data (100% FIXED: RELEASED VEHICLES & MULTIPLE SITES LOGIC)
+// 1. Fetch Vehicle Data (100% FIXED: RELEASED VEHICLES, MULTIPLE SITES, MONTH-WISE RATE & OWNER LOGS)
 router.get("/vehicles", async (req, res) => {
   try {
     const { month } = req.query;
 
-    // Fetch Timesheet DB
+    // Fetch Timesheet DB & All Logs
     const tsVehiclesResult = await pool.query(
       "SELECT * FROM timesheet_vehicles",
     );
@@ -59,6 +59,12 @@ router.get("/vehicles", async (req, res) => {
     );
     const siteLogs = await pool.query(
       "SELECT plate_no, site_name, rate, work_start_date, work_end_date FROM vehicle_site_log",
+    );
+    const rateLogs = await pool.query(
+      "SELECT plate_no, site_name, rate, work_start_date, work_end_date FROM vehicle_rate_log",
+    );
+    const ownerLogs = await pool.query(
+      "SELECT plate_no, owner_name, owner_mobile, vat, work_start_date, work_end_date FROM vehicle_owner_log",
     );
 
     let savedResult = { rows: [] };
@@ -100,6 +106,9 @@ router.get("/vehicles", async (req, res) => {
       processedPlates.add(plate);
 
       let correctDriver = (tsItem.driver_name || "").trim();
+      let correctOwner = (tsItem.owner_name || tsItem.owner || "").trim();
+      let correctOwnerMobile = (tsItem.owner_mobile || "").trim();
+      let correctVat = String(tsItem.vat || tsItem.vat_bill || tsItem["vat (yes/no)"] || "No").trim();
 
       if (targetStart && targetEnd) {
         // --- DRIVER LOGIC ---
@@ -128,6 +137,32 @@ router.get("/vehicles", async (req, res) => {
           correctDriver = [...new Set(driverNames)].join(" / ");
         }
 
+        // --- OWNER LOGIC (Month-wise lookup from vehicle_owner_log) ---
+        let oLogs = ownerLogs.rows.filter(
+          (l) => (l.plate_no || "").toUpperCase() === plate,
+        );
+        let validOLogs = oLogs.filter((l) => {
+          let st = l.work_start_date
+            ? new Date(l.work_start_date)
+            : new Date("2000-01-01");
+          let ed = l.work_end_date
+            ? new Date(l.work_end_date)
+            : new Date("2099-01-01");
+          return st <= targetEnd && ed >= targetStart;
+        });
+
+        if (validOLogs.length > 0) {
+          validOLogs.sort(
+            (a, b) =>
+              new Date(b.work_start_date || "2000-01-01") -
+              new Date(a.work_start_date || "2000-01-01"),
+          );
+          let activeOwnerLog = validOLogs[0];
+          if (activeOwnerLog.owner_name) correctOwner = activeOwnerLog.owner_name.trim();
+          if (activeOwnerLog.owner_mobile) correctOwnerMobile = activeOwnerLog.owner_mobile.trim();
+          if (activeOwnerLog.vat) correctVat = String(activeOwnerLog.vat).trim();
+        }
+
         // --- SITE LOGIC ---
         let sLogs = siteLogs.rows.filter(
           (l) => (l.plate_no || "").toUpperCase() === plate,
@@ -142,34 +177,50 @@ router.get("/vehicles", async (req, res) => {
           return st <= targetEnd && ed >= targetStart;
         });
 
-        // 🟢 BUG FIX 1: ആ മാസം വണ്ടിക്ക് ആക്ടീവ് സൈറ്റ് ലോഗ് ഇല്ലെങ്കിൽ (അതായത് മുമ്പേ റിലീസ് ആയെങ്കിൽ) ഒഴിവാക്കുക!
+        // ആ മാസം വണ്ടിക്ക് ആക്ടീവ് സൈറ്റ് ലോഗ് ഇല്ലെങ്കിൽ ഒഴിവാക്കുക
         if (validSLogs.length === 0) return;
 
-        // 🟢 BUG FIX 2: ഒരു വണ്ടി രണ്ട് സൈറ്റിൽ ഓടിയാൽ, രണ്ട് റെക്കോർഡ് ആയിട്ട് തന്നെ വരാൻ!
+        // --- RATE LOGS FILTERING FOR TARGET MONTH ---
+        let rLogs = rateLogs.rows.filter(
+          (l) => (l.plate_no || "").toUpperCase() === plate,
+        );
+
         let uniqueSitesMap = new Map();
         validSLogs.forEach((s) => {
           if (s.site_name) uniqueSitesMap.set(s.site_name, s.rate);
         });
 
-        uniqueSitesMap.forEach((rate, siteName) => {
-          let activeSiteRate = parseFloat(rate) || parseFloat(tsItem.rate) || 0;
-          pushVehicle(plate, tsItem, correctDriver, siteName, activeSiteRate);
+        uniqueSitesMap.forEach((sLogRate, siteName) => {
+          let validRLogs = rLogs.filter((r) => {
+            let matchesSite = !r.site_name || r.site_name.trim() === "" || r.site_name.trim().toUpperCase() === siteName.trim().toUpperCase();
+            let st = r.work_start_date ? new Date(r.work_start_date) : new Date("2000-01-01");
+            let ed = r.work_end_date ? new Date(r.work_end_date) : new Date("2099-01-01");
+            return matchesSite && st <= targetEnd && ed >= targetStart;
+          });
+
+          let finalRateVal = 0;
+          if (validRLogs.length > 0) {
+            validRLogs.sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"));
+            finalRateVal = parseFloat(validRLogs[0].rate) || 0;
+          }
+
+          if (!finalRateVal) {
+            finalRateVal = parseFloat(sLogRate) || parseFloat(tsItem.rate) || 0;
+          }
+
+          pushVehicle(plate, tsItem, correctDriver, siteName, finalRateVal, correctOwner, correctOwnerMobile, correctVat);
         });
       } else {
-        // ഒരു പ്രത്യേക മാസവും തിരഞ്ഞെടുത്തല്ലെങ്കിൽ (All)
+        // All മോഡ്
         let defaultSite = (tsItem.site_name || "N/A").trim();
         let defaultRate = parseFloat(tsItem.rate) || 0;
-        pushVehicle(plate, tsItem, correctDriver, defaultSite, defaultRate);
+        pushVehicle(plate, tsItem, correctDriver, defaultSite, defaultRate, correctOwner, correctOwnerMobile, correctVat);
       }
 
-      function pushVehicle(pPlate, pItem, pDriver, pSite, pRate) {
+      function pushVehicle(pPlate, pItem, pDriver, pSite, pRate, pOwner, pOwnerMobile, pVat) {
         let vtype =
           pItem.vehicle_type || pItem.vtype || pItem["vehicle type"] || "";
-        let vatRaw = String(
-          pItem.vat || pItem.vat_bill || pItem["vat (yes/no)"] || "No",
-        )
-          .trim()
-          .toLowerCase();
+        let vatRaw = String(pVat || "No").trim().toLowerCase();
         let isVatBill =
           vatRaw === "yes" ||
           vatRaw === "true" ||
@@ -177,9 +228,6 @@ router.get("/vehicles", async (req, res) => {
           vatRaw === "15%"
             ? "Yes"
             : "No";
-        let ownerName = (pItem.owner_name || pItem.owner || "").trim();
-        // 🟢 Fetch Owner Mobile
-        let ownerMobile = (pItem.owner_mobile || "").trim();
 
         validVehicles.push({
           plate_number: pPlate,
@@ -187,8 +235,8 @@ router.get("/vehicles", async (req, res) => {
           rate: pRate,
           nrate: pRate / 260,
           otrate: (pRate / 260) * 0.7,
-          owner: ownerName,
-          owner_mobile: ownerMobile, // 🟢 Add to validVehicles
+          owner: pOwner,
+          owner_mobile: pOwnerMobile,
           site: pSite,
           driver_name: pDriver,
           vat_bill: isVatBill,
@@ -376,7 +424,7 @@ router.get("/export-excel", async (req, res) => {
   }
 });
 
-// 🟢 5. Combined Multi-Month Bill Generator API for a Specific Vehicle
+// 🟢 5. Combined Multi-Month Bill Generator API for a Specific Vehicle (WITH RATE LOG & SITE LOG HISTORICAL CHECK)
 router.get("/combined-bill", async (req, res) => {
   try {
     const { plate_no, from_month, from_year, to_month, to_year } = req.query;
@@ -425,13 +473,18 @@ router.get("/combined-bill", async (req, res) => {
       [cleanPlate, targetMonths]
     );
 
-    // Also fetch vehicle master info
-    const tsVehicleRes = await pool.query(
-      `SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`,
-      [cleanPlate]
-    );
+    // Also fetch vehicle master info, rate logs, site logs and owner logs
+    const [tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes] = await Promise.all([
+      pool.query(`SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`, [cleanPlate]),
+      pool.query(`SELECT * FROM vehicle_rate_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate]),
+      pool.query(`SELECT * FROM vehicle_site_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate]),
+      pool.query(`SELECT * FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate])
+    ]);
 
     const vehicleInfo = tsVehicleRes.rows[0] || {};
+    const rateLogs = rateLogRes.rows || [];
+    const siteLogs = siteLogRes.rows || [];
+    const ownerLogs = ownerLogRes.rows || [];
 
     let combinedRows = [];
     let totals = { nhr: 0, othr: 0, rent: 0, vat_amount: 0, total: 0, adjusted_amount: 0, after_adjustment: 0 };
@@ -441,6 +494,39 @@ router.get("/combined-bill", async (req, res) => {
 
       const [mName, yStr] = mStr.split(" ");
       const shortDate = mName.substring(0, 3) + " " + (yStr ? yStr.substring(2, 4) : "");
+
+      const mIdxCur = monthNames.indexOf(mName);
+      const mStart = new Date(parseInt(yStr), mIdxCur, 1);
+      const mEnd = new Date(parseInt(yStr), mIdxCur + 1, 0);
+
+      // Find historical rate from vehicle_rate_log for this specific month
+      let matchedRateLog = rateLogs.find((r) => {
+        let st = r.work_start_date ? new Date(r.work_start_date) : new Date("2000-01-01");
+        let ed = r.work_end_date ? new Date(r.work_end_date) : new Date("2099-01-01");
+        return st <= mEnd && ed >= mStart;
+      });
+
+      let historicalBaseRate = matchedRateLog ? parseFloat(matchedRateLog.rate) : 0;
+      
+      if (!historicalBaseRate) {
+        let matchedSiteLog = siteLogs.find((s) => {
+          let st = s.work_start_date ? new Date(s.work_start_date) : new Date("2000-01-01");
+          let ed = s.work_end_date ? new Date(s.work_end_date) : new Date("2099-01-01");
+          return st <= mEnd && ed >= mStart;
+        });
+        historicalBaseRate = matchedSiteLog ? parseFloat(matchedSiteLog.rate) : (parseFloat(vehicleInfo.rate) || 0);
+      }
+
+      let fallbackNRate = historicalBaseRate ? (historicalBaseRate / 260) : 0;
+      let fallbackOTRate = historicalBaseRate ? ((historicalBaseRate / 260) * 0.7) : 0;
+
+      // Find historical owner from vehicle_owner_log for this specific month
+      let matchedOwnerLog = ownerLogs.find((o) => {
+        let st = o.work_start_date ? new Date(o.work_start_date) : new Date("2000-01-01");
+        let ed = o.work_end_date ? new Date(o.work_end_date) : new Date("2099-01-01");
+        return st <= mEnd && ed >= mStart;
+      });
+      let fallbackOwnerName = matchedOwnerLog?.owner_name || vehicleInfo.owner_name || "COMPANY VEHICLE";
 
       if (savedRow) {
         let nhr = parseFloat(savedRow.nhr) || 0;
@@ -459,6 +545,9 @@ router.get("/combined-bill", async (req, res) => {
         totals.adjusted_amount += adjAmt;
         totals.after_adjustment += afterAdj;
 
+        let rowNRate = (savedRow.nrate !== null && parseFloat(savedRow.nrate) > 0) ? parseFloat(savedRow.nrate) : fallbackNRate;
+        let rowOTRate = (savedRow.otrate !== null && parseFloat(savedRow.otrate) > 0) ? parseFloat(savedRow.otrate) : fallbackOTRate;
+
         combinedRows.push({
           billing_month: mStr,
           date: savedRow.date || shortDate,
@@ -469,9 +558,9 @@ router.get("/combined-bill", async (req, res) => {
           driver: savedRow.driver || vehicleInfo.driver_name || "N/A",
           plate_no: cleanPlate,
           nhr: nhr,
-          nrate: parseFloat(savedRow.nrate) || 0,
+          nrate: rowNRate,
           othr: othr,
-          otrate: parseFloat(savedRow.otrate) || 0,
+          otrate: rowOTRate,
           rent: rent,
           vat_percent: parseFloat(savedRow.vat_percent) || 0,
           vat_amount: vatAmt,
@@ -492,9 +581,9 @@ router.get("/combined-bill", async (req, res) => {
           driver: vehicleInfo.driver_name || "N/A",
           plate_no: cleanPlate,
           nhr: 0,
-          nrate: parseFloat(vehicleInfo.rate) || 0,
+          nrate: fallbackNRate,
           othr: 0,
-          otrate: (parseFloat(vehicleInfo.rate) || 0) * 0.7,
+          otrate: fallbackOTRate,
           rent: 0,
           vat_percent: 0,
           vat_amount: 0,

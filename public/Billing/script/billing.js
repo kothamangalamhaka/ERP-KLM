@@ -1901,7 +1901,13 @@ async function downloadAllAsZip() {
   }
 
   zip.generateAsync({ type: "blob" }).then(function (content) {
-    saveAs(content, `Haka_Bulk_Bills_${shortDate}.zip`);
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(content);
+    link.download = `Haka_Bulk_Bills_${shortDate}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
     document.getElementById("loader").style.display = "none";
     showToast("ZIP Downloaded Successfully!");
   });
