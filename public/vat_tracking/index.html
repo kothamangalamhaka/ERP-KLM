@@ -197,48 +197,9 @@
             } catch (err) { alert("Network error."); }
         }
 
-        // Apply filters & sort logic
-        function getFilteredData() {
-            let result = JSON.parse(JSON.stringify(rawData)); 
-            const globalSearch = document.getElementById("searchInput").value.toLowerCase();
 
-            result = result.filter(group => {
-                if (activeFilters.company.length && !activeFilters.company.includes(group.company)) return false;
-                if (activeFilters.supplier.length && !activeFilters.supplier.includes(group.supplier)) return false;
-                if (activeFilters.vat_no.length && !activeFilters.vat_no.includes(group.vat_no)) return false;
-                if (activeFilters.display_name.length && !activeFilters.display_name.includes(group.display_name)) return false;
-                
-                group.sites = group.sites.filter(site => {
-                    if (activeFilters.site_name.length && !activeFilters.site_name.includes(site.site_name)) return false;
-                    if (activeFilters.bill_no.length > 0) {
-                        let hasBill = false;
-                        for (let i = 0; i < 12; i++) {
-                            if (activeFilters.bill_no.includes(site.billing[i].bill_no)) hasBill = true;
-                        }
-                        if (!hasBill) return false;
-                    }
-                    return true;
-                });
-
-                if (globalSearch && group.sites.length > 0) {
-                    const searchStr = `${group.company} ${group.supplier} ${group.vat_no} ${group.display_name} ${group.sites.map(s=>s.site_name).join(" ")}`.toLowerCase();
-                    if (!searchStr.includes(globalSearch)) return false;
-                }
-                
-                return group.sites.length > 0;
-            });
-
-            if (sortConfig.col) {
-                result.sort((a, b) => {
-                    let valA = sortConfig.col === 'site_name' ? (a.sites[0]?.site_name || "") : (a[sortConfig.col] || "");
-                    let valB = sortConfig.col === 'site_name' ? (b.sites[0]?.site_name || "") : (b[sortConfig.col] || "");
-                    return sortConfig.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                });
-            }
-            return result;
-        }
-
-        function renderTable() {
+        
+function renderTable() {
             const displayData = getFilteredData();
             const quarter = document.getElementById("quarterFilter").value;
             let startMonth = 0, endMonth = 11;
@@ -249,20 +210,20 @@
             else if (quarter === "Q4") { startMonth = 9; endMonth = 11; }
 
             let head1 = `<tr>
-                <th rowspan="2">SN</th>
-                <th rowspan="2">Company <span class="filter-icon" onclick="openFilter(event, 'company')">▼</span></th>
-                <th rowspan="2" style="min-width: 130px; max-width: 130px;">Display Name <span class="filter-icon" onclick="openFilter(event, 'display_name')">▼</span></th>
-                <th rowspan="2">Supplier <span class="filter-icon" onclick="openFilter(event, 'supplier')">▼</span></th>
-                <th rowspan="2">Vat No <span class="filter-icon" onclick="openFilter(event, 'vat_no')">▼</span></th>
-                <th rowspan="2">Site <span class="filter-icon" onclick="openFilter(event, 'site_name')">▼</span></th>`;
+                <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'sn')">SN</th>
+                <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'company')">Company <span class="filter-icon" onclick="openFilter(event, 'company')">▼</span></th>
+                <th rowspan="2" style="min-width: 130px; max-width: 130px;" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'display_name')">Display Name <span class="filter-icon" onclick="openFilter(event, 'display_name')">▼</span></th>
+                <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'supplier')">Supplier <span class="filter-icon" onclick="openFilter(event, 'supplier')">▼</span></th>
+                <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'vat_no')">Vat No <span class="filter-icon" onclick="openFilter(event, 'vat_no')">▼</span></th>
+                <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'site_name')">Site <span class="filter-icon" onclick="openFilter(event, 'site_name')">▼</span></th>`;
             let head2 = `<tr>`;
 
             for (let i = startMonth; i <= endMonth; i++) {
                 let mName = monthsFull[i].substring(0, 3) + "-" + currentYear.toString().slice(-2);
                 head1 += `<th colspan="3">${mName}</th>`;
-                head2 += `<th class="sub-head">Bill No <span class="filter-icon" onclick="openFilter(event, 'bill_no')">▼</span></th>
-                          <th class="sub-head">Amount</th>
-                          <th class="sub-head" style="background: #0f766e;">Vendor TS</th>`;
+                head2 += `<th class="sub-head" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'bill_no', ${i})">Bill No <span class="filter-icon" onclick="openFilter(event, 'bill_no')">▼</span></th>
+                          <th class="sub-head" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'amount', ${i})">Amount</th>
+                          <th class="sub-head" style="background: #0f766e;" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'erp_total', ${i})">Vendor TS</th>`;
             }
             head1 += `</tr>`;
             head2 += `</tr>`;
@@ -361,6 +322,47 @@
             fetchData(); // Fetch fresh original data from the server to wipe out unsaved local changes
         }
 
+       function getFilteredData(excludeCol = null) {
+            let result = JSON.parse(JSON.stringify(rawData)); 
+            const globalSearch = document.getElementById("searchInput").value.toLowerCase();
+
+            result = result.filter(group => {
+                if (excludeCol !== 'company' && activeFilters.company.length && !activeFilters.company.includes(group.company || "")) return false;
+                if (excludeCol !== 'display_name' && activeFilters.display_name.length && !activeFilters.display_name.includes(group.display_name || "")) return false;
+                if (excludeCol !== 'supplier' && activeFilters.supplier.length && !activeFilters.supplier.includes(group.supplier || "")) return false;
+                if (excludeCol !== 'vat_no' && activeFilters.vat_no.length && !activeFilters.vat_no.includes(group.vat_no || "")) return false;
+                
+                group.sites = group.sites.filter(site => {
+                    if (excludeCol !== 'site_name' && activeFilters.site_name.length && !activeFilters.site_name.includes(site.site_name || "")) return false;
+                    if (excludeCol !== 'bill_no' && activeFilters.bill_no.length > 0) {
+                        let hasBill = false;
+                        for (let i = 0; i < 12; i++) {
+                            let bNo = site.billing[i] ? (site.billing[i].bill_no || "") : "";
+                            if (activeFilters.bill_no.includes(bNo)) hasBill = true;
+                        }
+                        if (!hasBill) return false;
+                    }
+                    return true;
+                });
+
+                if (globalSearch && group.sites.length > 0) {
+                    const searchStr = `${group.company} ${group.supplier} ${group.vat_no} ${group.display_name} ${group.sites.map(s=>s.site_name).join(" ")}`.toLowerCase();
+                    if (!searchStr.includes(globalSearch)) return false;
+                }
+                
+                return group.sites.length > 0;
+            });
+
+            if (sortConfig.col) {
+                result.sort((a, b) => {
+                    let valA = sortConfig.col === 'site_name' ? (a.sites[0]?.site_name || "") : (a[sortConfig.col] || "");
+                    let valB = sortConfig.col === 'site_name' ? (b.sites[0]?.site_name || "") : (b[sortConfig.col] || "");
+                    return sortConfig.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                });
+            }
+            return result;
+        }
+
         /* Filter Menu Logic */
         function openFilter(e, colName) {
             e.stopPropagation();
@@ -378,18 +380,30 @@
                 document.getElementById("sortDivider").style.display = "block";
             }
 
+            // മറ്റുള്ള ആക്ടീവ് ഫിൽട്ടറുകൾ പ്രകാരം ഫിൽട്ടർ ചെയ്യപ്പെട്ട ഡാറ്റയിൽ നിന്ന് മാത്രം യൂണീക് വാല്യൂസ് എടുക്കുന്നു
+            const contextualData = getFilteredData(colName);
+
             let uniqueVals = new Set();
-            rawData.forEach(g => {
+            let hasBlank = false;
+            contextualData.forEach(g => {
                 if (colName === 'site_name') {
-                    g.sites.forEach(s => uniqueVals.add(s.site_name));
+                    g.sites.forEach(s => {
+                        let val = s.site_name || "";
+                        if (val === "") hasBlank = true;
+                        else uniqueVals.add(val);
+                    });
                 } else if (colName === 'bill_no') {
                     g.sites.forEach(s => {
                         for(let i = 0; i < 12; i++) {
-                            if (s.billing[i] && s.billing[i].bill_no) uniqueVals.add(s.billing[i].bill_no);
+                            let bNo = s.billing[i] ? (s.billing[i].bill_no || "") : "";
+                            if (bNo === "") hasBlank = true;
+                            else uniqueVals.add(bNo);
                         }
                     });
                 } else {
-                    uniqueVals.add(g[colName]);
+                    let val = g[colName] || "";
+                    if (val === "") hasBlank = true;
+                    else uniqueVals.add(val);
                 }
             });
             
@@ -399,12 +413,18 @@
                                 (Select All)
                             </label>`;
             
-            Array.from(uniqueVals).sort().forEach(val => {
-                if (val !== "") {
-                    let isChecked = isAllChecked || activeFilters[colName].includes(val) ? "checked" : "";
-                    listHtml += `<label class="f-item"><input type="checkbox" class="filter-cb" value="${escapeHTML(val)}" ${isChecked} onchange="checkIfAllSelected()"> ${escapeHTML(val)}</label>`;
-                }
+            let sortedVals = Array.from(uniqueVals).sort((a, b) => a.toString().localeCompare(b.toString(), undefined, { numeric: true, sensitivity: 'base' }));
+
+            sortedVals.forEach(val => {
+                let isChecked = isAllChecked || activeFilters[colName].includes(val) ? "checked" : "";
+                listHtml += `<label class="f-item"><input type="checkbox" class="filter-cb" value="${escapeHTML(val)}" ${isChecked} onchange="checkIfAllSelected()"> ${escapeHTML(val)}</label>`;
             });
+
+            if (hasBlank) {
+                let isChecked = isAllChecked || activeFilters[colName].includes("") ? "checked" : "";
+                listHtml += `<label class="f-item" style="color: #64748b; font-style: italic;"><input type="checkbox" class="filter-cb" value="" ${isChecked} onchange="checkIfAllSelected()"> (Blanks)</label>`;
+            }
+
             document.getElementById("filterCheckboxList").innerHTML = listHtml;
         }
 
@@ -908,6 +928,49 @@
         function escapeQuotes(str) { return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; }
 
         fetchData();
+
+function copyColumnValues(e, colName, monthIndex = null) {
+            e.preventDefault();
+            const displayData = getFilteredData();
+            let valuesToCopy = [];
+            let currentSn = 1;
+
+            displayData.forEach(group => {
+                const groupSn = currentSn++;
+                // ഓരോ ഗ്രൂപ്പിലെയും എല്ലാ സൈറ്റ് വരികൾക്കും പാരന്റ് ഡാറ്റ (Company, Display Name, etc.) ഓട്ടോഫിൽ ആയി നൽകുന്നു
+                group.sites.forEach(siteData => {
+                    let val = "";
+                    if (colName === 'sn') {
+                        val = groupSn;
+                    } else if (colName === 'company') {
+                        val = group.company;
+                    } else if (colName === 'display_name') {
+                        val = group.display_name;
+                    } else if (colName === 'supplier') {
+                        val = group.supplier;
+                    } else if (colName === 'vat_no') {
+                        val = group.vat_no;
+                    } else if (colName === 'site_name') {
+                        val = siteData.site_name;
+                    } else if (monthIndex !== null) {
+                        let bill = siteData.billing[monthIndex] || {};
+                        if (colName === 'bill_no') val = bill.bill_no;
+                        else if (colName === 'amount') val = bill.amount;
+                        else if (colName === 'erp_total') val = bill.erp_total;
+                    }
+                    valuesToCopy.push(val !== undefined && val !== null ? String(val).trim() : "");
+                });
+            });
+
+            if (valuesToCopy.length > 0) {
+                navigator.clipboard.writeText(valuesToCopy.join("\n")).then(() => {
+                    showStatus(`Copied ${valuesToCopy.length} rows to clipboard!`, "saved");
+                }).catch(err => {
+                    showStatus("Failed to copy", "error");
+                });
+            }
+        }
+
     </script>
 </body>
 </html>
