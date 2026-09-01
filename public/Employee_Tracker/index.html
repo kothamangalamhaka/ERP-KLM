@@ -76,10 +76,9 @@ function navigateBack() {
     
     if (redirectUrl) {
         window.location.replace(redirectUrl);
-    } else if (document.referrer && !document.referrer.includes(window.location.pathname)) {
-        window.location.replace(document.referrer);
     } else {
-        window.location.replace('/Employee_Tracker/Dashboard');
+        // ലോഗിൻ ആയിട്ടുണ്ടെങ്കിൽ നേരിട്ട് ഡാഷ്‌ബോർഡിലേക്ക് റീഡയറക്റ്റ് ചെയ്യുന്നു
+        window.location.replace('/Employee_Tracker/Dashboard/');
     }
 }
 
