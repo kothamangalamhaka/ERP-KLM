@@ -732,12 +732,6 @@ module.exports = function (pool, middlewares, helpers) {
       if (req.user.role === "Viewer")
         throw new Error("Viewers cannot add rows.");
       let { rowDataObj } = req.body;
-      let sn = parseInt(rowDataObj[COLUMNS.SN] || 1, 10);
-      let plate = formatPlateNumber(rowDataObj[COLUMNS.PLATE_NUMBER] || "");
-      let site = rowDataObj[COLUMNS.SITE] || "";
-
-      let calculatedUpdates = calculateDependentFields(rowDataObj);
-      Object.assign(rowDataObj, calculatedUpdates);
 
       const getColName = (matchStr) =>
         Object.keys(rowDataObj).find((k) =>
@@ -746,6 +740,18 @@ module.exports = function (pool, middlewares, helpers) {
             .toUpperCase()
             .includes(matchStr.replace(/\s+/g, "").toUpperCase()),
         );
+
+      let snCol = getColName("SN");
+      let plateCol = getColName("PLATENUMBER") || getColName("PLATENO");
+      let siteCol = getColName("SITE");
+
+      let sn = parseInt((snCol ? rowDataObj[snCol] : rowDataObj[COLUMNS.SN]) || 1, 10);
+      let plate = formatPlateNumber((plateCol ? rowDataObj[plateCol] : rowDataObj[COLUMNS.PLATE_NUMBER]) || "");
+      let site = (siteCol ? rowDataObj[siteCol] : rowDataObj[COLUMNS.SITE]) || "";
+
+      let calculatedUpdates = calculateDependentFields(rowDataObj);
+      Object.assign(rowDataObj, calculatedUpdates);
+
       let wsColNew = getColName(COLUMNS.WORK_START);
       let wsValNew = wsColNew ? rowDataObj[wsColNew] : null;
       await autoClosePreviousRecord(pool, plate, wsValNew);
@@ -758,9 +764,68 @@ module.exports = function (pool, middlewares, helpers) {
         "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'ADD_ROW', $2)",
         [req.user.username, JSON.stringify({ plate: plate, site: site })],
       );
-      await sendActivityTelegramMessage(
-        `➕ <b>NEW VEHICLE ADDED</b>\n\n<b>Plate:</b> ${plate}\n<b>Site:</b> ${site || "N/A"}\n<b>Added by:</b> @${req.user.username}`,
-      );
+
+      // 🟢 തീയതികളും എക്സ്പയറി അലർട്ടുകളും ഉൾപ്പെടുത്തിക്കൊണ്ടുള്ള ടെലിഗ്രാം മെസ്സേജ് നിർമ്മാണം
+      const timeStr = new Date().toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
+
+      let alertDetails = [
+        `🚚 <b>PLATE NO:</b> [ <code>${plate || "N/A"}</code> ]`,
+        `📍 <b>Site:</b> ${site || "N/A"}`
+      ];
+
+      let compCol = getColName("COMPANY");
+      if (compCol && rowDataObj[compCol]) alertDetails.push(`🏢 <b>Company:</b> ${rowDataObj[compCol]}`);
+
+      let custCol = getColName("CUSTOMER");
+      if (custCol && rowDataObj[custCol]) alertDetails.push(`🤝 <b>Customer:</b> ${rowDataObj[custCol]}`);
+
+      let statusCol = getColName("STATUS");
+      if (statusCol && rowDataObj[statusCol]) alertDetails.push(`⚡ <b>Status:</b> ${rowDataObj[statusCol]}`);
+
+      let drvCol = getColName("DRIVERNAME");
+      let mobCol = getColName("MOBILE");
+      if (drvCol && rowDataObj[drvCol]) {
+        alertDetails.push(`👤 <b>Driver:</b> ${rowDataObj[drvCol]} ${mobCol && rowDataObj[mobCol] ? `(${rowDataObj[mobCol]})` : ""}`);
+      }
+
+      // തീയതികളും എക്സ്പയറി അലർട്ടുകളും കണ്ടെത്തുന്നു
+      let dateAlerts = [];
+      if (wsColNew && rowDataObj[wsColNew]) dateAlerts.push(`📅 <b>Work Start:</b> ${rowDataObj[wsColNew]}`);
+
+      let mobReachedCol = getColName("EQUIPMENTREACHEDATSITE");
+      if (mobReachedCol && rowDataObj[mobReachedCol]) dateAlerts.push(`🚛 <b>Mobilization:</b> ${rowDataObj[mobReachedCol]}`);
+
+      let iqamaExpCol = getColName("IQAMAEXPIREDATE") || getColName("IQAMAEXPIRE");
+      if (iqamaExpCol && rowDataObj[iqamaExpCol]) dateAlerts.push(`🪪 <b>Iqama Expire:</b> <code>${rowDataObj[iqamaExpCol]}</code>`);
+
+      let licExpCol = getColName("LICENSEEXPIREDATE") || getColName("LICENCEEXPIREDATE") || getColName("LICENSEEXPIRE");
+      if (licExpCol && rowDataObj[licExpCol]) dateAlerts.push(`💳 <b>License Expire:</b> <code>${rowDataObj[licExpCol]}</code>`);
+
+      let insExpCol = getColName("EQINSURAN");
+      if (insExpCol && rowDataObj[insExpCol]) dateAlerts.push(`🛡️ <b>Insurance Expire:</b> <code>${rowDataObj[insExpCol]}</code>`);
+
+      let fahsExpCol = getColName("FAHSMVPI");
+      if (fahsExpCol && rowDataObj[fahsExpCol]) dateAlerts.push(`🔍 <b>Fahs MVPI Expire:</b> <code>${rowDataObj[fahsExpCol]}</code>`);
+
+      if (dateAlerts.length > 0) {
+        alertDetails.push(`-----------------------------------\n<b>📌 DATE & EXPIRY DETAILS:</b>\n` + dateAlerts.join("\n"));
+      }
+
+      const telegramMsg =
+        `➕ <b>NEW VEHICLE / ENTRY ADDED</b>\n\n` +
+        `👤 <b>Added By:</b> @${req.user.username}\n` +
+        `⏰ <b>Time:</b> ${timeStr}\n` +
+        `-----------------------------------\n` +
+        alertDetails.join("\n");
+
+      await sendActivityTelegramMessage(telegramMsg).catch((e) => console.error("Telegram Error:", e));
+
       res.json({ success: true });
     } catch (error) {
       handleError(res, error, req.user.role, "ADD_ROW");

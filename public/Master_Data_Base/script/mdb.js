@@ -1257,13 +1257,36 @@ function attachContextMenus() {
     .off("contextmenu", "td")
     .on("contextmenu", "td", function (e) {
       if ($(this).hasClass("sn-column")) {
-         e.preventDefault();
-         e.stopPropagation();
-         contextRowDbId = $(this).closest("tr").data("sheetrow");
-         $("#rowContextMenu")
-           .css({ top: e.pageY + "px", left: e.pageX + "px" })
-           .fadeIn(200);
-         return;
+          e.preventDefault();
+          e.stopPropagation();
+          let $row = $(this).closest("tr");
+          contextRowDbId = $row.data("sheetrow");
+          contextDriverDbId = contextRowDbId;
+
+          let plateIdx = cachedHeaders.findIndex(
+            (h) => h.trim().toLowerCase() === "plate number",
+          );
+          contextDriverPlate = plateIdx !== -1 ? $row.find("td").eq(plateIdx).text().trim() : "";
+          
+          let getCellVal = (matchStr) => {
+            let foundH = cachedHeaders.find((h) => h.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase());
+            return foundH ? $row.find(`td[data-colname="${foundH}"]`).text().trim() : "";
+          };
+
+          contextDriverName = getCellVal("DRIVERNAME");
+          contextDriverMob = getCellVal("MOBILE");
+          contextDriverStart = getCellVal("DRIVERSTARTDATE") || getCellVal("DRIVERSTART") || "";
+          contextDriverIqamaNo = getCellVal("IQAMANUMBER") || getCellVal("IQAMANO");
+          contextDriverIqamaExp = getCellVal("IQAMAEXPIREDATE") || getCellVal("IQAMAEXPIRE");
+          contextDriverLicenceExp = getCellVal("LICENSEEXPIREDATE") || getCellVal("LICENCEEXPIREDATE") || getCellVal("LICENSEEXPIRE") || getCellVal("LICENCEEXPIRE");
+          contextDriverIqamaNote = getCellVal("IQAMANOTE");
+          contextDriverLicenceNote = getCellVal("LICENCENOTE") || getCellVal("LICENSENOTE");
+          contextDriverNationality = getCellVal("NATIONALITY");
+
+          $("#rowContextMenu")
+            .css({ top: e.pageY + "px", left: e.pageX + "px" })
+            .fadeIn(200);
+          return;
       }
 
       let colName = $(this).data("colname");
@@ -1374,6 +1397,11 @@ async function handleMenuAction(action) {
       });
     }
   }
+}
+
+function handleDriverActionFromRow(action) {
+   $("#rowContextMenu").hide();
+   handleDriverAction(action);
 }
 
 function openEditRowModal() {
@@ -2780,11 +2808,22 @@ function openAddEntryModal(dbId = null) {
     $(".entry-input").each(function () {
       let colName = $(this).data("colname");
       if (colName === "SN") return;
+      let colUpper = String(colName).replace(/\s+/g, "").toUpperCase();
+
       let val = $row.find(`td[data-colname="${colName}"]`).text().trim();
       if ($(this).attr("type") === "date" && val) {
          $(this).val(convertToInputDate(val));
       } else {
          $(this).val(val);
+      }
+
+      // 🟢 Lock Driver Name & Mobile in Edit Entire Row to protect driver history
+      if (colUpper === "DRIVERNAME" || colUpper === "MOBILE" || colUpper === "MOBILES") {
+         $(this).prop("readonly", true).css({
+            "background-color": "#f1f5f9",
+            "cursor": "not-allowed",
+            "border": "1px solid #cbd5e1"
+         }).attr("title", "Please update driver details via Driver Management (Right-click Driver Name or SN)");
       }
     });
     let snVal = $row.find(`td[data-colname="SN"]`).text().trim() || $row.find("td.sn-column").text().trim();

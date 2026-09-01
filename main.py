@@ -25,7 +25,6 @@ from routers import monthly_list_summary
 
 
 
-
 load_dotenv()
 
 app = FastAPI(title="Haka ERP Python Engine")
@@ -49,7 +48,6 @@ app.include_router(we1_own_eq_data_base.router)
 app.include_router(Staff_salary_export.router, prefix="/py", tags=["Salary Export"])
 app.include_router(klm_staff_payroll.router, prefix="/api/py-payroll", tags=["Payroll Export"])
 app.include_router(monthly_list_summary.router)
-
 
 
 

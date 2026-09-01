@@ -19,15 +19,15 @@
 
     <link
       rel="stylesheet"
-      href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"
+      href="/node_xlsx_scripts/jquery.dataTables.min.css"
     />
     <link
       rel="stylesheet"
-      href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css"
+      href="/node_xlsx_scripts/buttons.dataTables.min.css"
     />
     <link
       rel="stylesheet"
-      href="https://cdn.datatables.net/colreorder/1.7.0/css/colReorder.dataTables.min.css"
+      href="/node_xlsx_scripts/colReorder.dataTables.min.css"
     />
 
     <link rel="stylesheet" href="style/mdb.css" />
@@ -56,14 +56,14 @@
       }
     </style>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
-    <script src="https://cdn.datatables.net/colreorder/1.7.0/js/dataTables.colReorder.min.js"></script>
+    <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
+    <script src="/node_xlsx_scripts/jquery-3.7.0.min.js"></script>
+    <script src="/node_xlsx_scripts/jquery.dataTables.min.js"></script>
+    <script src="/node_xlsx_scripts/dataTables.buttons.min.js"></script>
+    <script src="/node_xlsx_scripts/jszip.min.js"></script>
+    <script src="/node_xlsx_scripts/buttons.html5.min.js"></script>
+    <script src="/node_xlsx_scripts/buttons.colVis.min.js"></script>
+    <script src="/node_xlsx_scripts/dataTables.colReorder.min.js"></script>
   </head>
 
   <body>
@@ -344,6 +344,15 @@
       <div class="menu-item" onclick="openEditRowModal()">
         <i class="material-icons" style="color: var(--primary)">edit_square</i>
         Edit Entire Row
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" onclick="handleDriverActionFromRow('update')">
+        <i class="material-icons" style="color: var(--success)">manage_accounts</i>
+        Update Driver
+      </div>
+      <div class="menu-item" onclick="handleDriverActionFromRow('view_log')">
+        <i class="material-icons" style="color: var(--primary)">history</i>
+        View Driver Log
       </div>
       <div class="menu-divider admin-only-menu"></div>
       <div
