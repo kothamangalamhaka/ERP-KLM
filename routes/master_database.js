@@ -1468,12 +1468,20 @@ router.post("/update-driver", verifyToken, async (req, res) => {
     }
   });
 
-  // 🟢 GET RECYCLE BIN ROWS
+  // 🟢 GET RECYCLE BIN ROWS WITH HEADERS
   router.get("/admin/recycle-bin/rows", verifyToken, async (req, res) => {
     try {
       if (req.user.role !== "Super Admin") return res.json({ success: false, message: "Access Denied." });
-      const result = await pool.query("SELECT id, plate_number, record_data, deleted_at FROM erp_records WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC");
-      res.json({ success: true, rows: result.rows });
+      
+      const headerRes = await pool.query(
+        "SELECT header_name FROM erp_headers WHERE deleted_at IS NULL ORDER BY col_order ASC"
+      );
+      const headers = headerRes.rows.map(h => h.header_name);
+
+      const result = await pool.query(
+        "SELECT id, plate_number, record_data, deleted_at FROM erp_records WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+      );
+      res.json({ success: true, headers: headers, rows: result.rows });
     } catch (error) {
       handleError(res, error, req.user.role, "GET_RECYCLE_BIN_ROWS");
     }

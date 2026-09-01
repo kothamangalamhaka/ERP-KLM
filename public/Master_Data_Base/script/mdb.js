@@ -444,10 +444,14 @@ setInterval(() => {
     $(".edit-input").length === 0 &&
     saveQueue.length === 0 &&
     $(".modal-overlay:visible").length === 0 &&
-    $("#excelFilterMenu").css("display") === "none"
-  )
+    $("#excelFilterMenu").css("display") === "none" &&
+    document.visibilityState === "visible" &&
+    !isProcessingQueue
+  ) {
+    // യൂസർ പേജിൽ ആക്റ്റീവ് ആണെങ്കിൽ മാത്രം ബാക്ക്ഗ്രൗണ്ട് സിങ്ക് ചെയ്യുക
     fetchData(true);
-}, 15000);
+  }
+}, 30000); // 15 സെക്കൻഡിന് പകരം 30 സെക്കൻഡ് ആക്കി ബ്രൗസർ ലോഡ് പകുതിയായി കുറയ്ക്കുന്നു
 fetchData();
 
 $.fn.dataTable.ext.search.push(
@@ -1847,7 +1851,9 @@ function renderTable(response) {
   tableEl.innerHTML = theadHtml + tbodyHtml;
 
   erpDataTable = $("#erpTable").DataTable({
-    deferRender: true,
+    deferRender: true, // സ്ക്രീനിൽ കാണുന്ന വരികൾ മാത്രം DOM-ലേക്ക് വരയ്ക്കുന്നു
+    bDestroy: true,
+    processing: true,
     dom: '<"top-ribbon"<"ribbon-left"B> f <"right-controls"l i p>><"table-scroll-wrapper"t>',
     ordering: true,
     order: [],
@@ -1860,13 +1866,15 @@ function renderTable(response) {
       info: "_START_ - _END_ of _TOTAL_",
       paginate: { previous: "Prev", next: "Next" },
     },
-    lengthMenu: [
+lengthMenu: [
       [50, 100, 200, 500, 1000, 2500, 5000],
       ["50", "100", "200", "500", "1000", "2500", "5000"],
     ],
-    pageLength: 50,
+    pageLength: 50, // പേജ് സൈസ് 50 ആയി നിലനിർത്തുന്നത് മെമ്മറി ക്രാഷ് ഒഴിവാക്കും
     autoWidth: false,
-    stateSave: true,
+    stateSave: false, // ബ്രൗസർ ലോക്കൽ സ്റ്റോറേജ് ഓവർഫ്ലോ ആയി ക്രാഷ് ആവാതിരിക്കാൻ stateSave ഒഴിവാക്കുന്നു
+    
+   
     rowCallback: function (row, data) {
       if (data._dbId) $(row).attr("data-sheetrow", data._dbId);
 
@@ -3647,18 +3655,15 @@ document.addEventListener("visibilitychange", function() {
 function updateTableDataSmoothly(newRows) {
     if (!erpDataTable) return;
 
+    // യൂസർ എന്തെങ്കിലും എഡിറ്റ് ചെയ്തുകൊണ്ടിരിക്കുകയാണെങ്കിൽ ബാക്ക്ഗ്രൗണ്ട് അപ്ഡേറ്റ് ഒഴിവാക്കുന്നു
+    if ($(".edit-input").length > 0 || saveQueue.length > 0) return;
+
     let existingRows = {};
+    let hasChanges = false;
     
-    // ടേബിളിലുള്ള പഴയ വരികളുടെ ID കൾ കൃത്യമായി എടുക്കുന്നു
     erpDataTable.rows().every(function () {
         let node = this.node();
-        let dbId;
-        if (node) {
-            dbId = $(node).attr("data-sheetrow");
-        } else {
-            let rowData = this.data();
-            if (rowData._dbId) dbId = rowData._dbId;
-        }
+        let dbId = node ? $(node).attr("data-sheetrow") : (this.data()._dbId || null);
         if (dbId) existingRows[String(dbId)] = this.index();
     });
 
@@ -3666,37 +3671,39 @@ function updateTableDataSmoothly(newRows) {
 
     newRows.forEach(newRow => {
         let dbId = String(newRow[newRow.length - 1]);
-        
         let rowDataForTable = [...newRow];
-        rowDataForTable.pop(); // ടേബിളിൽ ഡിസ്പ്ലേ ചെയ്യാൻ ID റിമൂവ് ചെയ്യുന്നു
-        rowDataForTable._dbId = dbId; // ഡാറ്റ നഷ്ടപ്പെടാതിരിക്കാൻ ഒളിപ്പിച്ചു വെക്കുന്നു
+        rowDataForTable.pop();
+        rowDataForTable._dbId = dbId;
 
         if (existingRows.hasOwnProperty(dbId)) {
             let rowIndex = existingRows[dbId];
             let oldRowData = erpDataTable.row(rowIndex).data();
             
-            let oldClean = Array.from(oldRowData);
-            let newClean = Array.from(rowDataForTable);
-            
-            if (JSON.stringify(oldClean) !== JSON.stringify(newClean)) {
+            if (JSON.stringify(oldRowData) !== JSON.stringify(rowDataForTable)) {
                 erpDataTable.row(rowIndex).data(rowDataForTable);
                 let node = erpDataTable.row(rowIndex).node();
                 if (node) $(node).attr("data-sheetrow", dbId);
+                hasChanges = true;
             }
             delete existingRows[dbId];
         } else {
             let addedRow = erpDataTable.row.add(rowDataForTable);
             let node = addedRow.node();
             if (node) $(node).attr("data-sheetrow", dbId);
+            hasChanges = true;
         }
     });
 
-    Object.keys(existingRows).forEach(dbId => {
+    for (let dbId in existingRows) {
         erpDataTable.row(existingRows[dbId]).remove();
-    });
+        hasChanges = true;
+    }
 
-    erpDataTable.draw(false);
-    $('.table-scroll-wrapper').scrollTop(currentScroll);
+    // മാറ്റങ്ങൾ ഉണ്ടെങ്കിൽ മാത്രം ബ്രൗസർ റീ-ഡ്രോ ചെയ്യുക (CPU യൂസേജ് ഗണ്യമായി കുറയും)
+    if (hasChanges) {
+        erpDataTable.draw(false);
+        $('.table-scroll-wrapper').scrollTop(currentScroll);
+    }
 }
 
 // 🟢 Helper for Add New Company in Modal
