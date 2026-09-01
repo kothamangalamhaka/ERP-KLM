@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Monthly Staff Salary & Cash Flow Report</title>
+
+    <!-- Local JS Libs -->
+    <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+
     <style>
       * {
         box-sizing: border-box;
@@ -29,27 +35,31 @@
         align-items: center;
         margin-bottom: 20px;
         gap: 10px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
       }
       .ctrl-group {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 6px;
+        flex-wrap: nowrap;
       }
       .ctrl-group select,
       .ctrl-group input {
-        padding: 8px 12px;
-        font-size: 15px;
+        padding: 8px 10px;
+        font-size: 14px;
         border: 1px solid #cbd5e1;
         border-radius: 5px;
       }
       .btn {
-        padding: 8px 16px;
+        padding: 8px 14px;
         border: none;
         border-radius: 4px;
         cursor: pointer;
         font-weight: bold;
         font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
       .btn-fetch {
         background: #0284c7;
@@ -58,6 +68,23 @@
       .btn-back {
         background: #000000;
         color: white;
+      }
+      .btn-nav {
+        background: #475569;
+        color: white;
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+      .btn-nav:hover {
+        background: #334155;
+      }
+      .btn-lock {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        font-size: 18px;
+        padding: 4px 10px;
+        cursor: pointer;
+        border-radius: 4px;
       }
 
       /* Table with Black Border */
@@ -69,7 +96,7 @@
         border: 2px solid #000;
       }
 
-      .sheet-table th{
+      .sheet-table th {
         font-size: 17px;
       }
 
@@ -82,7 +109,7 @@
         background: #000000;
         color: #facc15;
         text-align: center;
-        font-size: 33px !important;
+        font-size: 30px !important;
         font-weight: 900;
         letter-spacing: 2px;
         padding: 14px 10px;
@@ -99,7 +126,7 @@
         color: #000;
         font-weight: bold;
         text-align: center;
-        font-size: 20px;
+        font-size: 18px;
       }
       .sub-section-title {
         font-weight: bold;
@@ -175,7 +202,7 @@
         text-align: right;
         font-family: inherit;
         font-size: inherit;
-        color: #000000
+        color: #000000;
         pointer-events: none;
       }
 
@@ -218,7 +245,7 @@
         border-radius: 8px;
         border: 1px solid rgba(0, 206, 209, 0.3);
         text-align: center;
-        width: 320px;
+        width: 340px;
       }
       .pin-box h3 {
         color: #00ced1;
@@ -253,26 +280,53 @@
         display: none;
         font-weight: bold;
         z-index: 10000;
-        transition: background 0.3s;
       }
-      @media print {
-        .sheet-table {
-          width: 100% !important;
-          max-width: 100% !important;
-        }
 
-        .sheet-table th,
-        .sheet-table td {
-          overflow-wrap: break-word;
-          word-wrap: break-word;
-        }
+      /* Dropdown Button Styles */
+      .dropdown {
+        position: relative;
+        display: inline-block;
+      }
+      .btn-pdf {
+        background: #e11d48;
+        color: white;
+      }
+      .btn-excel {
+        background: #16a34a;
+        color: white;
+      }
+      .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f9fafb;
+        min-width: 150px;
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        border-radius: 4px;
+        overflow: hidden;
+        right: 0;
+      }
+      .dropdown-content a {
+        color: #1e293b;
+        padding: 10px 14px;
+        text-decoration: none;
+        display: block;
+        font-size: 13.5px;
+        cursor: pointer;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .dropdown-content a:hover {
+        background-color: #cbd5e1;
+      }
+      .dropdown:hover .dropdown-content {
+        display: block;
       }
     </style>
   </head>
   <body>
     <div id="saveIndicator">Typing...</div>
 
-    <!-- Security Modal -->
+    <!-- Security PIN Modal -->
     <div id="pinModal" class="modal-overlay">
       <div class="pin-box">
         <h3>🔒 Salary Lock</h3>
@@ -299,69 +353,33 @@
       </div>
     </div>
 
-    <!-- Include html2pdf library for HQ PDF Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-    <style>
-      /* Dropdown Button Styles */
-      .dropdown {
-        position: relative;
-        display: inline-block;
-      }
-      .btn-pdf {
-        background: #e11d48;
-        color: white;
-        margin-right: 5px;
-      }
-      .btn-excel {
-        background: #16a34a;
-        color: white;
-      }
-      .dropdown-content {
-        display: none;
-        position: absolute;
-        background-color: #f9fafb;
-        min-width: 140px;
-        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-        z-index: 1000;
-        border-radius: 4px;
-        overflow: hidden;
-        right: 0;
-      }
-      .dropdown-content a {
-        color: #1e293b;
-        padding: 10px 14px;
-        text-decoration: none;
-        display: block;
-        font-size: 13.5px;
-        cursor: pointer;
-        border-bottom: 1px solid #e2e8f0;
-      }
-      .dropdown-content a:hover {
-        background-color: #cbd5e1;
-      }
-      .dropdown:hover .dropdown-content {
-        display: block;
-      }
-    </style>
-
     <div class="container" id="mainContainer" style="display: none">
       <div class="top-controls">
         <div class="ctrl-group">
           <button class="btn btn-back" onclick="goBack()">⬅ Back</button>
+          <button class="btn btn-nav" onclick="changeMonth(-1)">◀ Prev</button>
           <select id="monthSelect"></select>
           <select id="yearSelect" onchange="updateMonthDropdown()"></select>
+          <button class="btn btn-nav" onclick="changeMonth(1)">Next ▶</button>
           <button class="btn btn-fetch" onclick="fetchPayrollData()">
-            Fetch Report
+            Fetch
           </button>
         </div>
 
-        <!-- Export Buttons -->
+        <!-- Action Controls -->
         <div class="ctrl-group">
+          <button
+            id="lockToggleBtn"
+            class="btn btn-lock"
+            onclick="handleLockClick()"
+            title="Lock / Unlock Status"
+          >
+            🔓
+          </button>
           <div class="dropdown">
             <button class="btn btn-pdf">PDF 🢓</button>
             <div class="dropdown-content">
-              <a onclick="exportPDF('single')">Single PDF (No Page Break)</a>
+              <a onclick="exportPDF('single')">Single PDF</a>
               <a onclick="exportPDF('a4')">Page as A4</a>
             </div>
           </div>
@@ -395,26 +413,63 @@
           >
             <div style="flex: 1">
               <label style="color: white; font-size: 13px">From</label>
-              <div style="display: flex; gap: 5px; margin-top: 5px;">
-                <select id="batchFromMonth" class="pin-input" style="width: 60%; margin: 0; font-size: 14px; padding: 8px; letter-spacing: normal; cursor: pointer;"></select>
-                <select id="batchFromYear" class="pin-input" style="width: 40%; margin: 0; font-size: 14px; padding: 8px; letter-spacing: normal; cursor: pointer;"></select>
+              <div style="display: flex; gap: 5px; margin-top: 5px">
+                <select
+                  id="batchFromMonth"
+                  class="pin-input"
+                  style="
+                    width: 60%;
+                    margin: 0;
+                    font-size: 14px;
+                    padding: 8px;
+                    letter-spacing: normal;
+                  "
+                ></select>
+                <select
+                  id="batchFromYear"
+                  class="pin-input"
+                  style="
+                    width: 40%;
+                    margin: 0;
+                    font-size: 14px;
+                    padding: 8px;
+                    letter-spacing: normal;
+                  "
+                ></select>
               </div>
             </div>
             <div style="flex: 1">
               <label style="color: white; font-size: 13px">To</label>
-              <div style="display: flex; gap: 5px; margin-top: 5px;">
-                <select id="batchToMonth" class="pin-input" style="width: 60%; margin: 0; font-size: 14px; padding: 8px; letter-spacing: normal; cursor: pointer;"></select>
-                <select id="batchToYear" class="pin-input" style="width: 40%; margin: 0; font-size: 14px; padding: 8px; letter-spacing: normal; cursor: pointer;"></select>
+              <div style="display: flex; gap: 5px; margin-top: 5px">
+                <select
+                  id="batchToMonth"
+                  class="pin-input"
+                  style="
+                    width: 60%;
+                    margin: 0;
+                    font-size: 14px;
+                    padding: 8px;
+                    letter-spacing: normal;
+                  "
+                ></select>
+                <select
+                  id="batchToYear"
+                  class="pin-input"
+                  style="
+                    width: 40%;
+                    margin: 0;
+                    font-size: 14px;
+                    padding: 8px;
+                    letter-spacing: normal;
+                  "
+                ></select>
               </div>
             </div>
           </div>
           <div class="modal-btns">
             <button
               class="btn btn-back"
-              onclick="
-                document.getElementById('batchExportModal').style.display =
-                  'none'
-              "
+              onclick="document.getElementById('batchExportModal').style.display='none'"
             >
               Cancel
             </button>
@@ -439,19 +494,19 @@
           </tr>
         </thead>
         <tbody>
-            
           <tr>
             <td colspan="3" class="section-header">Cash Balances</td>
           </tr>
           <tr>
-            <td>Cash In hand C/F</td>
+            <td>Opening Balance B/D</td>
             <td>
               <input
-                type="number"
-                class="editable-input"
+                type="text"
+                class="readonly-input"
                 id="cashInHandCF"
                 value="0.00"
-                oninput="triggerAutoSave()"
+                data-raw="0"
+                readonly
               />
             </td>
             <td></td>
@@ -475,7 +530,9 @@
             <td class="text-right" id="dispTotalCashA">0.00</td>
           </tr>
 
-          <tr><td colspan="3"></td></tr>
+          <tr>
+            <td colspan="3"></td>
+          </tr>
 
           <tr>
             <td colspan="3" class="section-header">Staff Salary</td>
@@ -497,7 +554,11 @@
           <tr>
             <td colspan="3" class="section-header">
               Office Expense :: Current Period
-              <button class="add-row-btn" onclick="addCurrentExpenseRow()">
+              <button
+                class="add-row-btn"
+                id="btnAddCurExp"
+                onclick="addCurrentExpenseRow()"
+              >
                 + Add
               </button>
             </td>
@@ -518,8 +579,36 @@
             <td colspan="3"></td>
           </tr>
 
+          <tr>
+            <td colspan="3" class="section-header">
+              Other Expenses
+              <button
+                class="add-row-btn"
+                id="btnAddOtherExp"
+                onclick="addOtherExpenseRow()"
+              >
+                + Add
+              </button>
+            </td>
+          </tr>
+        </tbody>
+
+        <tbody id="otherExpensesBody"></tbody>
+
+        <tbody>
+          <tr class="subtotal-row">
+            <td><strong>Total Other Expenses</strong></td>
+            <td></td>
+            <td class="text-right" id="dispTotalOtherExp">0.00</td>
+          </tr>
+          <tr class="blank-row">
+            <td colspan="3"></td>
+          </tr>
+
           <tr class="highlight-red-row">
-            <td><strong>Cash Available in Hand</strong></td>
+            <td id="lblCashAvailable">
+              <strong>Cash Balance Available in Hand for this Month C/F</strong>
+            </td>
             <td></td>
             <td class="text-right" id="dispCashAvailable">0.00</td>
           </tr>
@@ -530,7 +619,11 @@
           <tr>
             <td colspan="3" class="section-header">
               Office Expense :: Upcoming Period
-              <button class="add-row-btn" onclick="addUpcomingExpenseRow()">
+              <button
+                class="add-row-btn"
+                id="btnAddUpExp"
+                onclick="addUpcomingExpenseRow()"
+              >
                 + Add
               </button>
             </td>
@@ -550,7 +643,9 @@
             <td colspan="3"></td>
           </tr>
           <tr class="highlight-maroon-row">
-            <td><strong>Expected Cash in Hand</strong></td>
+            <td id="lblExpectedCash">
+              <strong>Expected Cash in Hand</strong>
+            </td>
             <td></td>
             <td class="text-right" id="dispExpectedCashInHand">0.00</td>
           </tr>
@@ -564,7 +659,16 @@
     <script>
       let staffData = [];
       let staffAdjustments = {};
+      let isSheetLocked = false;
       let autoSaveTimer = null;
+
+      const Toast = Swal.mixin({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2500,
+        timerProgressBar: true,
+      });
 
       const allMonths = [
         { val: "01", name: "January" },
@@ -588,8 +692,6 @@
         const currentVal = monthSelect.value;
 
         monthSelect.innerHTML = "";
-
-        // 2026 ആണെങ്കിൽ May (05) മുതൽ മാത്രം കാണിക്കുന്നു
         const availableMonths =
           selectedYear === 2026
             ? allMonths.filter((m) => parseInt(m.val) >= 5)
@@ -609,26 +711,52 @@
         }
       }
 
-      document.addEventListener("DOMContentLoaded", () => {
+      function changeMonth(delta) {
         const yearSelect = document.getElementById("yearSelect");
+        const monthSelect = document.getElementById("monthSelect");
+        let y = parseInt(yearSelect.value);
+        let m = parseInt(monthSelect.value) + delta;
 
-        // 2026 മുതൽ 2055 വരെയുള്ള വർഷങ്ങൾ മാത്രം ആഡ് ചെയ്യുന്നു
-        for (let i = 2026; i <= 2055; i++) {
-          let opt = document.createElement("option");
-          opt.value = i;
-          opt.text = i;
-          yearSelect.appendChild(opt);
+        if (m < 1) {
+          m = 12;
+          y -= 1;
+        } else if (m > 12) {
+          m = 1;
+          y += 1;
         }
 
-       const currentDate = new Date();
-        const currentYear = currentDate.getFullYear().toString();
-        const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+        if (y < 2026 || (y === 2026 && m < 5)) {
+          Toast.fire({
+            icon: "warning",
+            title: "Cannot go earlier than May 2026",
+          });
+          return;
+        }
 
-        yearSelect.value = currentYear;
+        yearSelect.value = y;
         updateMonthDropdown();
-        document.getElementById("monthSelect").value = currentMonth;
+        monthSelect.value = String(m).padStart(2, "0");
+        fetchPayrollData();
+      }
 
-        // Populate Batch Export Dropdowns
+      document.addEventListener("DOMContentLoaded", () => {
+        const yearSelect = document.getElementById("yearSelect");
+        for (let i = 2026; i <= 2055; i++) {
+          yearSelect.appendChild(new Option(i, i));
+        }
+
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear().toString();
+        const currentMonth = String(currentDate.getMonth() + 1).padStart(
+          2,
+          "0",
+        );
+
+        yearSelect.value = currentYear >= "2026" ? currentYear : "2026";
+        updateMonthDropdown();
+        document.getElementById("monthSelect").value =
+          currentMonth >= "05" ? currentMonth : "05";
+
         const bFromM = document.getElementById("batchFromMonth");
         const bFromY = document.getElementById("batchFromYear");
         const bToM = document.getElementById("batchToMonth");
@@ -638,15 +766,15 @@
           bFromY.appendChild(new Option(i, i));
           bToY.appendChild(new Option(i, i));
         }
-        allMonths.forEach(m => {
+        allMonths.forEach((m) => {
           bFromM.appendChild(new Option(m.name, m.val));
           bToM.appendChild(new Option(m.name, m.val));
         });
 
-        bFromY.value = currentYear;
-        bToY.value = currentYear;
-        bFromM.value = currentMonth;
-        bToM.value = currentMonth;
+        bFromY.value = yearSelect.value;
+        bToY.value = yearSelect.value;
+        bFromM.value = document.getElementById("monthSelect").value;
+        bToM.value = document.getElementById("monthSelect").value;
 
         if (sessionStorage.getItem("sal_token")) {
           document.getElementById("pinModal").style.display = "none";
@@ -662,7 +790,7 @@
       document.addEventListener("keydown", function (e) {
         if (e.target && e.target.classList.contains("editable-input")) {
           if (["ArrowUp", "ArrowDown"].includes(e.key)) {
-            e.preventDefault(); // Prevents cursor movement and value change
+            e.preventDefault();
             const inputs = Array.from(
               document.querySelectorAll(".editable-input"),
             );
@@ -697,9 +825,19 @@
             document.getElementById("pinModal").style.display = "none";
             document.getElementById("mainContainer").style.display = "block";
             fetchPayrollData();
-          } else alert("Invalid Security PIN");
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Access Denied",
+              text: "Invalid Security PIN",
+            });
+          }
         } catch (e) {
-          alert("Server error");
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Server connection failed",
+          });
         }
       }
 
@@ -732,8 +870,17 @@
           staffData = data.staff || [];
           const summary = data.summary || {};
 
-          document.getElementById("cashInHandCF").value =
-            summary.cash_in_hand_cf || 0;
+          isSheetLocked = !!summary.is_locked;
+          updateLockUI();
+
+          const rawOpening = parseFloat(summary.cash_in_hand_cf) || 0;
+          const cfInput = document.getElementById("cashInHandCF");
+          cfInput.dataset.raw = rawOpening;
+          cfInput.value =
+            rawOpening < 0
+              ? `(${Math.abs(rawOpening).toFixed(2)})`
+              : rawOpening.toFixed(2);
+
           document.getElementById("cashFromAjil").value =
             summary.cash_from_ajil || 0;
           staffAdjustments = summary.staff_adjustments || {};
@@ -741,26 +888,170 @@
           renderStaffSection();
 
           let curExp = summary.current_expenses || [];
-          if (curExp.length === 0 || curExp[0].desc !== "Office Rent")
-            curExp.unshift({ desc: "Office Rent", amt: 6000, fixed: true });
-
+          let otherExp = summary.other_expenses || [];
           let upExp = summary.upcoming_expenses || [];
-          if (
-            upExp.length === 0 ||
-            upExp[0].desc !== "GST Filing & Professional Charges"
-          )
-            upExp.unshift({
-              desc: "GST Filing & Professional Charges",
-              amt: 3100,
-              fixed: true,
-            });
 
           renderExpenseList("currentExpensesBody", curExp);
+          renderExpenseList("otherExpensesBody", otherExp);
           renderExpenseList("upcomingExpensesBody", upExp);
 
-          calculateAll(); // Calculate without saving on initial load
+          calculateAll();
+          applyLockStateToInputs();
+
+          if (isSheetLocked) {
+            Toast.fire({
+              icon: "info",
+              title: "This month is Read-Only (Locked)",
+            });
+          }
         } catch (err) {
           console.error(err);
+        }
+      }
+
+      function updateLockUI() {
+        const lockBtn = document.getElementById("lockToggleBtn");
+        if (isSheetLocked) {
+          lockBtn.innerText = "🔒";
+          lockBtn.title = "Locked (Click to Unlock)";
+          lockBtn.style.background = "#fee2e2";
+        } else {
+          lockBtn.innerText = "🔓";
+          lockBtn.title = "Unlocked (Click to Lock)";
+          lockBtn.style.background = "#f0fdf4";
+        }
+      }
+
+      function applyLockStateToInputs() {
+        const inputs = document.querySelectorAll(".editable-input");
+        const actionBtns = document.querySelectorAll(".add-row-btn, .del-btn");
+
+        inputs.forEach((inp) => {
+          if (isSheetLocked) {
+            inp.setAttribute("readonly", "true");
+            inp.style.pointerEvents = "none";
+          } else {
+            inp.removeAttribute("readonly");
+            inp.style.pointerEvents = "auto";
+          }
+        });
+
+        actionBtns.forEach((btn) => {
+          btn.style.display = isSheetLocked ? "none" : "inline-block";
+        });
+      }
+
+      async function handleLockClick() {
+        const token = sessionStorage.getItem("sal_token");
+        const selectedMo = document.getElementById("monthSelect").value;
+        const selectedYr = document.getElementById("yearSelect").value;
+        const month_year = `${selectedYr}-${selectedMo}`;
+
+        if (!isSheetLocked) {
+          const result = await Swal.fire({
+            title: "Lock Payroll Sheet?",
+            text: "This will make this month's data read-only!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#dc2626",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "Yes, Lock It!",
+          });
+
+          if (result.isConfirmed) {
+            const res = await fetch("/api/payroll/toggle-lock", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ month_year, lock: true }),
+            });
+            if (res.ok) {
+              isSheetLocked = true;
+              updateLockUI();
+              applyLockStateToInputs();
+              Swal.fire(
+                "Locked!",
+                "Payroll sheet is now read-only.",
+                "success",
+              );
+            }
+          }
+        } else {
+          const confirmOtp = await Swal.fire({
+            title: "Unlock Payroll Sheet",
+            text: "A 6-digit OTP will be sent to the registered email. Proceed?",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#0284c7",
+            confirmButtonText: "Send OTP",
+          });
+
+          if (confirmOtp.isConfirmed) {
+            Swal.fire({
+              title: "Sending OTP...",
+              allowOutsideClick: false,
+              didOpen: () => Swal.showLoading(),
+            });
+
+            const sendRes = await fetch("/api/payroll/send-unlock-otp", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            const sendData = await sendRes.json();
+
+            if (sendData.success) {
+              const { value: enteredOtp } = await Swal.fire({
+                title: "Enter 6-Digit OTP",
+                input: "text",
+                inputLabel: "Check your email for the OTP",
+                inputPlaceholder: "Enter 6-digit OTP",
+                showCancelButton: true,
+                inputValidator: (value) => {
+                  if (!value || value.length !== 6)
+                    return "Please enter a valid 6-digit OTP!";
+                },
+              });
+
+              if (enteredOtp) {
+                const verifyRes = await fetch(
+                  "/api/payroll/verify-unlock-otp",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ otp: enteredOtp, month_year }),
+                  },
+                );
+                const verifyData = await verifyRes.json();
+
+                if (verifyData.success) {
+                  isSheetLocked = false;
+                  updateLockUI();
+                  applyLockStateToInputs();
+                  Swal.fire("Unlocked!", "Sheet is now editable.", "success");
+                } else {
+                  Swal.fire(
+                    "Failed",
+                    verifyData.message || "Invalid OTP",
+                    "error",
+                  );
+                }
+              }
+            } else {
+              Swal.fire(
+                "Error",
+                sendData.message || "Failed to send OTP",
+                "error",
+              );
+            }
+          }
         }
       }
 
@@ -844,7 +1135,8 @@
           const isFixed =
             item.fixed ||
             item.desc === "Office Rent" ||
-            item.desc.includes("GST Filing");
+            item.desc.includes("GST Filing") ||
+            item.desc.includes("Wifi Recharge");
           const delBtn = isFixed
             ? `<span style="display:inline-block; width:15px;"></span>`
             : `<button class="del-btn" onclick="this.closest('tr').remove(); triggerAutoSave();">✖</button>`;
@@ -866,36 +1158,55 @@
       }
 
       function addCurrentExpenseRow() {
+        if (isSheetLocked) return;
         document.getElementById("currentExpensesBody").insertAdjacentHTML(
           "beforeend",
-          `
-    <tr>
-      <td><input type="text" class="editable-input exp-desc" style="text-align: left; width: 85%;" placeholder="Expense Description" oninput="triggerAutoSave()"><button class="del-btn" onclick="this.closest('tr').remove(); triggerAutoSave();">✖</button></td>
-      <td><input type="number" class="editable-input exp-amt" value="0" oninput="triggerAutoSave()"></td>
-      <td></td>
-    </tr>`,
+          `<tr>
+            <td><input type="text" class="editable-input exp-desc" style="text-align: left; width: 85%;" placeholder="Expense Description" oninput="triggerAutoSave()"><button class="del-btn" onclick="this.closest('tr').remove(); triggerAutoSave();">✖</button></td>
+            <td><input type="number" class="editable-input exp-amt" value="0" oninput="triggerAutoSave()"></td>
+            <td></td>
+          </tr>`,
+        );
+      }
+
+      function addOtherExpenseRow() {
+        if (isSheetLocked) return;
+        document.getElementById("otherExpensesBody").insertAdjacentHTML(
+          "beforeend",
+          `<tr>
+            <td><input type="text" class="editable-input exp-desc" style="text-align: left; width: 85%;" placeholder="Other Expense Description" oninput="triggerAutoSave()"><button class="del-btn" onclick="this.closest('tr').remove(); triggerAutoSave();">✖</button></td>
+            <td><input type="number" class="editable-input exp-amt" value="0" oninput="triggerAutoSave()"></td>
+            <td></td>
+          </tr>`,
         );
       }
 
       function addUpcomingExpenseRow() {
+        if (isSheetLocked) return;
         document.getElementById("upcomingExpensesBody").insertAdjacentHTML(
           "beforeend",
-          `
-    <tr>
-      <td><input type="text" class="editable-input exp-desc" style="text-align: left; width: 85%;" placeholder="Upcoming Expense Description" oninput="triggerAutoSave()"><button class="del-btn" onclick="this.closest('tr').remove(); triggerAutoSave();">✖</button></td>
-      <td><input type="number" class="editable-input exp-amt" value="0" oninput="triggerAutoSave()"></td>
-      <td></td>
-    </tr>`,
+          `<tr>
+            <td><input type="text" class="editable-input exp-desc" style="text-align: left; width: 85%;" placeholder="Upcoming Expense Description" oninput="triggerAutoSave()"><button class="del-btn" onclick="this.closest('tr').remove(); triggerAutoSave();">✖</button></td>
+            <td><input type="number" class="editable-input exp-amt" value="0" oninput="triggerAutoSave()"></td>
+            <td></td>
+          </tr>`,
         );
       }
 
       function calculateAll() {
+        const cfInput = document.getElementById("cashInHandCF");
         const cf =
-          parseFloat(document.getElementById("cashInHandCF").value) || 0;
+          parseFloat(cfInput.dataset.raw) ||
+          parseFloat(cfInput.value.replace(/[()]/g, "")) ||
+          0;
         const ajil =
           parseFloat(document.getElementById("cashFromAjil").value) || 0;
         const totalA = cf + ajil;
-        document.getElementById("dispTotalCashA").innerText = totalA.toFixed(2);
+
+        document.getElementById("dispTotalCashA").innerText =
+          totalA < 0
+            ? `(${Math.abs(totalA).toFixed(2)})`
+            : totalA.toFixed(2);
 
         let totalSalaryB = 0;
         staffData.forEach((st) => {
@@ -921,9 +1232,30 @@
         document.getElementById("dispTotalExpC").innerText =
           totalExpC.toFixed(2);
 
-        const cashAvailable = totalA - (totalSalaryB + totalExpC);
-        document.getElementById("dispCashAvailable").innerText =
-          cashAvailable.toFixed(2);
+        let totalOther = 0;
+        document
+          .querySelectorAll("#otherExpensesBody .exp-amt")
+          .forEach((inp) => {
+            totalOther += parseFloat(inp.value) || 0;
+          });
+        document.getElementById("dispTotalOtherExp").innerText =
+          totalOther.toFixed(2);
+
+        const cashAvailable = totalA - (totalSalaryB + totalExpC + totalOther);
+        const dispAvailNode = document.getElementById("dispCashAvailable");
+        const lblAvailNode = document.getElementById("lblCashAvailable");
+
+        dispAvailNode.dataset.val = cashAvailable.toFixed(2);
+
+        if (cashAvailable < 0) {
+          lblAvailNode.innerHTML =
+            "<strong>Cash Required to Meet Expenses C/F</strong>";
+          dispAvailNode.innerText = `(${Math.abs(cashAvailable).toFixed(2)})`;
+        } else {
+          lblAvailNode.innerHTML =
+            "<strong>Cash Balance Available in Hand for this Month C/F</strong>";
+          dispAvailNode.innerText = cashAvailable.toFixed(2);
+        }
 
         let totalExpD = 0;
         document
@@ -935,30 +1267,50 @@
           totalExpD.toFixed(2);
 
         const expectedCash = cashAvailable - totalExpD;
-        document.getElementById("dispExpectedCashInHand").innerText =
-          expectedCash.toFixed(2);
+        const dispExpCashNode = document.getElementById(
+          "dispExpectedCashInHand",
+        );
+        const lblExpCashNode = document.getElementById("lblExpectedCash");
+
+        if (expectedCash < 0) {
+          lblExpCashNode.innerHTML =
+            "<strong>Expected Cash Required</strong>";
+          dispExpCashNode.innerText = `(${Math.abs(expectedCash).toFixed(2)})`;
+        } else {
+          lblExpCashNode.innerHTML =
+            "<strong>Expected Cash in Hand</strong>";
+          dispExpCashNode.innerText = expectedCash.toFixed(2);
+        }
       }
 
       function triggerAutoSave() {
+        if (isSheetLocked) {
+          Toast.fire({
+            icon: "error",
+            title: "Locked! Changes cannot be saved.",
+          });
+          return;
+        }
         calculateAll();
         clearTimeout(autoSaveTimer);
 
         const ind = document.getElementById("saveIndicator");
-        ind.style.background = "#f59e0b"; // Yellow for typing
+        ind.style.background = "#f59e0b";
         ind.innerText = "Typing...";
         ind.style.display = "block";
 
         autoSaveTimer = setTimeout(() => {
           saveSummaryData();
-        }, 1200); // Wait for 1.2 seconds after user stops typing
+        }, 1200);
       }
 
       async function saveSummaryData() {
+        if (isSheetLocked) return;
         const token = sessionStorage.getItem("sal_token");
         if (!token) return;
 
         const ind = document.getElementById("saveIndicator");
-        ind.style.background = "#0284c7"; // Blue for saving
+        ind.style.background = "#0284c7";
         ind.innerText = "Saving Data...";
 
         const adjustments = {};
@@ -1006,7 +1358,9 @@
                     desc,
                     amt,
                     fixed:
-                      desc === "Office Rent" || desc.includes("GST Filing"),
+                      desc === "Office Rent" ||
+                      desc.includes("GST Filing") ||
+                      desc.includes("Wifi Recharge"),
                   }
                 : null;
             })
@@ -1014,19 +1368,20 @@
 
         const selectedMo = document.getElementById("monthSelect").value;
         const selectedYr = document.getElementById("yearSelect").value;
+        const cfInput = document.getElementById("cashInHandCF");
 
         const payload = {
           month_year: `${selectedYr}-${selectedMo}`,
-          cash_in_hand_cf:
-            parseFloat(document.getElementById("cashInHandCF").value) || 0,
+          cash_in_hand_cf: parseFloat(cfInput.dataset.raw) || 0,
           cash_from_ajil:
             parseFloat(document.getElementById("cashFromAjil").value) || 0,
           staff_adjustments: adjustments,
           current_expenses: getExp("currentExpensesBody"),
+          other_expenses: getExp("otherExpensesBody"),
           upcoming_expenses: getExp("upcomingExpensesBody"),
           closing_balance:
             parseFloat(
-              document.getElementById("dispCashAvailable").innerText,
+              document.getElementById("dispCashAvailable").dataset.val,
             ) || 0,
         };
 
@@ -1040,91 +1395,133 @@
             body: JSON.stringify(payload),
           });
           if (res.ok) {
-            ind.style.background = "#16a34a"; // Green for success
+            ind.style.background = "#16a34a";
             ind.innerText = "Saved Successfully!";
             setTimeout(() => (ind.style.display = "none"), 1500);
           } else throw new Error();
         } catch (e) {
-          ind.style.background = "#dc2626"; // Red for error
+          ind.style.background = "#dc2626";
           ind.innerText = "Save Failed!";
-          setTimeout(() => {
-            ind.style.display = "none";
-          }, 2500);
+          setTimeout(() => (ind.style.display = "none"), 2500);
         }
       }
 
-function exportPDF(format) {
-  const element = document.getElementById('payrollTable');
-  const monthStr = document.getElementById('sheetMonthHeader')
-    .innerText.replace(/\s+/g, '_');
+      async function exportPDF(format) {
+        const table = document.getElementById("payrollTable");
+        const monthStr = document
+          .getElementById("sheetMonthHeader")
+          .innerText.replace(/\s+/g, "_");
+        const { jsPDF } = window.jspdf;
 
-  if (format === 'single') {
+        Swal.fire({
+          title: "Generating PDF...",
+          text: "Please wait a moment",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
 
-    const pxToMm = 25.4 / 96;
-    const pdfWidth  = (element.offsetWidth  * pxToMm) + 10;
-    const pdfHeight = (element.offsetHeight * pxToMm) + 10;
+        try {
+          if (format === "single") {
+            // Single continuous page
+            const canvas = await html2canvas(table, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+            });
+            const imgData = canvas.toDataURL("image/jpeg", 1.0);
+            const pxToMm = 25.4 / 96;
+            const pdfWidth = table.offsetWidth * pxToMm + 10;
+            const pdfHeight = table.offsetHeight * pxToMm + 10;
 
-    const opt = {
-      margin: 5,
-      filename: `Payroll_${monthStr}.pdf`,
-      image: { type: 'jpeg', quality: 1 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        windowWidth: document.documentElement.scrollWidth,  // ← screen width, table touch ചെയ്യേണ്ട
-        windowHeight: document.documentElement.scrollHeight
-      },
-      jsPDF: {
-        unit: 'mm',
-        format: [pdfWidth, pdfHeight],
-        orientation: 'portrait',
-        compress: true
-      },
-      pagebreak: { mode: [] }
-    };
+            const singlePdf = new jsPDF("p", "mm", [pdfWidth, pdfHeight]);
+            singlePdf.addImage(imgData, "JPEG", 5, 5, pdfWidth - 10, pdfHeight - 10);
+            singlePdf.save(`Payroll_${monthStr}.pdf`);
+          } else {
+            // Smart A4 Multi-page: Rows മുറിയാതെ കൃത്യമായി പുതിയ പേജിലേക്ക് വിഭജിക്കുന്ന ലോജിക്
+            const pdf = new jsPDF("p", "mm", "a4");
+            const topBottomMargin = 10; // 10mm Top and Bottom Padding
+            const leftRightMargin = 8;
+            const maxPageHeightPx = 1060; // Increased limit so Over Time & essential rows fit on page 1
 
-    html2pdf()
-      .set(opt)
-      .from(element)
-      .toPdf()
-      .get('pdf')
-      .then(pdf => {
-        while (pdf.internal.getNumberOfPages() > 1) {
-          pdf.deletePage(pdf.internal.getNumberOfPages());
+            const originalRows = Array.from(table.querySelectorAll("tr"));
+            const pages = [];
+            let currentPageRows = [];
+            let currentHeight = 0;
+
+            // Header row reference
+            const titleHeaderHtml = table.querySelector("thead tr:nth-child(1)")?.outerHTML || "";
+            const colHeaderHtml = table.querySelector("thead tr:nth-child(2)")?.outerHTML || "";
+
+            originalRows.forEach((row, index) => {
+              // skip thead rows from normal looping
+              if (row.closest("thead")) return;
+
+              const rowHeight = row.offsetHeight || 35;
+              if (currentHeight + rowHeight > maxPageHeightPx && currentPageRows.length > 0) {
+                pages.push(currentPageRows);
+                currentPageRows = [];
+                currentHeight = 0;
+              }
+              currentPageRows.push(row.outerHTML);
+              currentHeight += rowHeight;
+            });
+
+            if (currentPageRows.length > 0) {
+              pages.push(currentPageRows);
+            }
+
+            // Render each page into pdf
+            for (let i = 0; i < pages.length; i++) {
+              const tempContainer = document.createElement("div");
+              tempContainer.style.position = "absolute";
+              tempContainer.style.left = "-9999px";
+              tempContainer.style.top = "0";
+              tempContainer.style.width = `${table.offsetWidth}px`;
+              tempContainer.style.background = "#fff";
+
+              // Clean table structure with preserved styles & classes
+              let pageHtml = `<table class="sheet-table" style="width:100%; border:2px solid #000; border-collapse:collapse;">`;
+              if (i === 0) {
+                pageHtml += `<thead>${titleHeaderHtml}${colHeaderHtml}</thead>`;
+              } else {
+                pageHtml += `<thead>${colHeaderHtml}</thead>`; // Repeat column headers on next pages
+              }
+              pageHtml += `<tbody>${pages[i].join("")}</tbody></table>`;
+              tempContainer.innerHTML = pageHtml;
+              document.body.appendChild(tempContainer);
+
+              const pageCanvas = await html2canvas(tempContainer, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+              });
+
+              document.body.removeChild(tempContainer);
+
+              const pageImg = pageCanvas.toDataURL("image/jpeg", 1.0);
+              const imgWidth = 210 - leftRightMargin * 2;
+              const imgHeight = (pageCanvas.height * imgWidth) / pageCanvas.width;
+
+              if (i > 0) pdf.addPage();
+              pdf.addImage(pageImg, "JPEG", leftRightMargin, topBottomMargin, imgWidth, imgHeight);
+            }
+
+            pdf.save(`Payroll_${monthStr}.pdf`);
+          }
+
+          Swal.close();
+        } catch (error) {
+          console.error("PDF Export Error:", error);
+          Swal.fire("Error", "Failed to generate PDF", "error");
         }
-      })
-      .save();
+      }
 
-  } else {
-    const opt = {
-      margin: [8, 8, 8, 8],
-      filename: `Payroll_${monthStr}.pdf`,
-      image: { type: 'jpeg', quality: 1 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        windowWidth: document.documentElement.scrollWidth,
-        windowHeight: document.documentElement.scrollHeight
-      },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-      pagebreak: { mode: ['css', 'legacy'] }
-    };
-    html2pdf().set(opt).from(element).save();
-  }
-}
-      
-      // Excel Export via Python Backend
       function exportExcel(type) {
         const token = sessionStorage.getItem("sal_token");
         if (type === "current") {
           const selectedMo = document.getElementById("monthSelect").value;
           const selectedYr = document.getElementById("yearSelect").value;
           const month = `${selectedYr}-${selectedMo}`;
-          // Changed port from 8000 to 8001
           window.open(
             `http://localhost:8001/api/py-payroll/export/excel?type=current&month=${month}&token=${token}`,
             "_blank",
@@ -1141,18 +1538,20 @@ function exportPDF(format) {
         const fromY = document.getElementById("batchFromYear").value;
         const toM = document.getElementById("batchToMonth").value;
         const toY = document.getElementById("batchToYear").value;
-        
         const from = `${fromY}-${fromM}`;
         const to = `${toY}-${toM}`;
         const token = sessionStorage.getItem("sal_token");
 
-        // Validation check
         if (from > to) {
-            return alert("Invalid Date Range: 'From' date cannot be later than 'To' date.");
+          Toast.fire({
+            icon: "error",
+            title:
+              "Invalid Date Range: 'From' date cannot be later than 'To' date.",
+          });
+          return;
         }
 
         document.getElementById("batchExportModal").style.display = "none";
-        // Changed port from 8000 to 8001
         window.open(
           `http://localhost:8001/api/py-payroll/export/excel?type=batch&from=${from}&to=${to}&token=${token}`,
           "_blank",
