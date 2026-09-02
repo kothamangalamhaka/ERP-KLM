@@ -119,7 +119,7 @@ const erpQuery = `
                 billing_month, 
                 ROUND(SUM(COALESCE(after_adjustment::numeric, 0)), 2) as erp_total 
             FROM billing_records 
-            WHERE billing_month LIKE $1 
+            WHERE billing_month LIKE $1  
             GROUP BY TRIM(owner), TRIM(site_name), billing_month
         `;
         const erpResult = await pool.query(erpQuery, [`%${currentYear}`]);
