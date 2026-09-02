@@ -1052,8 +1052,9 @@ function generateRowHTML(
             <td class="date-cell">${date}</td>
             <td><input type="text" class="vtype" value="${vtype || ""}"></td>
             <td><input type="text" class="driver" value="${driver || ""}"></td>
-            <td class="site-col"><input type="text" class="site" value="${site || ""}"></td> <td class="autocomplete-wrapper">
-                <input type="text" class="plate" value="${plate || ""}" oninput="showSuggestions(this)" onkeydown="handleGlobalKeyDown(event, this)" onblur="handlePlateBlur(this)" autocomplete="off">
+            <td class="site-col"><input type="text" class="site" value="${site || ""}"></td> 
+            <td class="autocomplete-wrapper">
+                <input type="text" class="plate" value="${plate || ""}" onpaste="handlePlatePaste(event, this)" oninput="showSuggestions(this)" onkeydown="handleGlobalKeyDown(event, this)" onblur="handlePlateBlur(this)" autocomplete="off">
                 <div class="suggestion-box"></div>
             </td>
             <td><input type="number" step="any" class="nhr" value="${nhr}" oninput="calculateRow(this)"></td>
@@ -1298,6 +1299,72 @@ function handlePlateBlur(input) {
     if (box) box.style.display = "none";
     if (!input.classList.contains("adj-plate")) autoFill(input);
   }, 200);
+}
+
+function handlePlatePaste(e, input) {
+  const clipboardData = e.clipboardData || window.clipboardData;
+  const pastedText = clipboardData.getData("text");
+
+  if (!pastedText) return;
+
+  // പുതിയ ലൈനുകളോ കോമകളോ ഉള്ള ഒന്നിലധികം പ്ലേറ്റ് നമ്പറുകൾ ഉണ്ടോ എന്ന് പരിശോധിക്കുന്നു
+  const plates = pastedText
+    .split(/[\r\n,]+/)
+    .map((p) => p.trim().toUpperCase())
+    .filter((p) => p.length > 0);
+
+  // ഒന്നിൽ കൂടുതൽ പ്ലേറ്റ് നമ്പറുകൾ ഉണ്ടെങ്കിൽ മാത്രം ബൾക്ക് ആയി കൈകാര്യം ചെയ്യുക
+  if (plates.length > 1) {
+    e.preventDefault(); // സിംഗിൾ ഇൻപുട്ടിലേക്ക് എല്ലാം കൂടി ഒന്നിച്ച് പേസ്റ്റ് ആകുന്നത് തടയുന്നു
+
+    const card = input.closest(".bill-card");
+    const cardId = card.id.replace("billCard_", "");
+    const tbody = card.querySelector(".tableBody");
+    const currentRow = input.closest("tr");
+
+    // 1. ആദ്യത്തെ പ്ലേറ്റ് നമ്പർ നിലവിലെ വരിയിൽ നൽകുന്നു
+    input.value = plates[0];
+    autoFill(input);
+
+    let nextRow = currentRow.nextElementSibling;
+
+    // 2. ബാക്കിയുള്ള പ്ലേറ്റ് നമ്പറുകൾ ഓരോ വരികളിലായി ചേർക്കുന്നു
+    for (let i = 1; i < plates.length; i++) {
+      let targetRow = nextRow;
+
+      // തൊട്ടടുത്ത വരി ഒഴിഞ്ഞതാണെങ്കിൽ അവിടെ നൽകുക, ഇല്ലെങ്കിൽ പുതിയ വരി ഉണ്ടാക്കുക
+      if (
+        !targetRow ||
+        (targetRow.querySelector(".plate") &&
+          targetRow.querySelector(".plate").value.trim() !== "")
+      ) {
+        addDynamicRow(cardId);
+        targetRow = tbody.lastElementChild;
+      }
+
+      const plateInput = targetRow.querySelector(".plate");
+      plateInput.value = plates[i];
+      autoFill(plateInput);
+
+      nextRow = targetRow.nextElementSibling;
+    }
+
+    // അവസാന വരി പൂരിപ്പിച്ചതാണെങ്കിൽ പുതിയൊരു ബ്ലാങ്ക് വരി കൂടി താഴെ ചേർക്കുന്നു
+    if (
+      tbody.lastElementChild &&
+      tbody.lastElementChild.querySelector(".plate").value.trim() !== ""
+    ) {
+      addDynamicRow(cardId);
+    }
+
+    // സീരിയൽ നമ്പറുകളും കാർഡ് ടോട്ടലുകളും പുനഃക്രമീകരിക്കുന്നു
+    Array.from(tbody.rows).forEach(
+      (r, idx) => (r.querySelector(".row-num").innerText = idx + 1),
+    );
+    updateCardTotals(card);
+
+    showToast(`${plates.length} vehicles pasted & data fetched!`);
+  }
 }
 
 function handleGlobalKeyDown(e, input) {
