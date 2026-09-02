@@ -1260,7 +1260,11 @@ async function updateCell(inputEl) {
     });
     if (data.success) {
       let r = tableData.find((x) => x.plate_no === plate);
-      if (r) r[col] = val;
+      if (r) {
+        r[col] = val;
+        if (col === "company_display_name_") r.company_display_name = val;
+        if (col === "company_display_name") r.company_display_name_ = val;
+      }
       showStatus("✓ Saved", "saved");
     } else {
       showStatus("Error", "error");

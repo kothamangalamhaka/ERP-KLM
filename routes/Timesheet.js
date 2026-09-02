@@ -1257,6 +1257,30 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
       );
     }
 
+    // 4. Auto-Sync to Active Owner Log (if applicable)
+    if (["owner_name", "owner_mobile", "vat", "vat_no", "company_display_name", "company_display_name_"].includes(cleanCol)) {
+      let targetCol = cleanCol === "company_display_name_" ? "company_display_name" : cleanCol;
+      
+      // Check if an active running owner log exists
+      const checkActive = await pool.query(
+        `SELECT id FROM vehicle_owner_log WHERE UPPER(plate_no) = UPPER($1) AND status = 'Running' ORDER BY id DESC LIMIT 1`,
+        [plate_no]
+      );
+
+      if (checkActive.rows.length > 0) {
+        await pool.query(
+          `UPDATE vehicle_owner_log SET "${targetCol}" = $1 WHERE id = $2`,
+          [value, checkActive.rows[0].id]
+        );
+      } else {
+        // If no running owner log exists, create an initial running owner log entry automatically
+        await pool.query(
+          `INSERT INTO vehicle_owner_log (plate_no, "${targetCol}", status) VALUES ($1, $2, 'Running')`,
+          [plate_no.trim().toUpperCase(), value]
+        );
+      }
+    }
+
     res.json({ success: true });
   } catch (error) {
     res.json({ success: false, message: error.message });
