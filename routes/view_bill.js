@@ -896,10 +896,16 @@ router.post("/save-active-bill", verifyViewBillUser, async (req, res) => {
       const othr = parseFloat(row.othr) || 0;
       const nrate = parseFloat(row.nrate) || 0;
       const otrate = parseFloat(row.otrate) || 0;
-      const rent = parseFloat(row.rent) || 0;
-      const vatAmt = parseFloat(row.vat_amount) || 0;
-      const total = parseFloat(row.total) || (rent + vatAmt);
       const remark = (row.remark || "").trim();
+      const vatPercent = parseFloat(row.vat_percent) || (row.vat_percent === 0 ? 0 : 15);
+
+      const rent = parseFloat(row.rent) || 0;
+
+      // 🟢 കൃത്യമായ റൗണ്ടിംഗ്
+      const exactRent = (nhr * nrate) + (othr * otrate);
+      const calculatedRent = exactRent > 0 ? Number(exactRent.toFixed(2)) : rent;
+      const total = Number((exactRent * (1 + (vatPercent / 100))).toFixed(2));
+      const vatAmt = Number((total - calculatedRent).toFixed(2));
 
       const check = await client.query(
         `SELECT id FROM billing_records WHERE UPPER(TRIM(plate_no)) = $1 AND billing_month = $2 AND site_name = $3`,
@@ -951,14 +957,26 @@ router.post("/save-bill", verifyViewBillUser, async (req, res) => {
     for (let row of items) {
       const cleanPlate = (row.plate || row.plate_no || "").trim().toUpperCase();
       const nhr = parseFloat(row.nhr) || 0;
+      const nrate = parseFloat(row.nrate) || 0;
       const othr = parseFloat(row.othr) || 0;
-      const rent = parseFloat(row.rent) || 0;
+      const otrate = parseFloat(row.otrate) || 0;
       const adjAmt = parseFloat(row.adjusted_amount) || 0;
       const remark = (row.remark || "").trim();
+      const vatPercent = parseFloat(row.vat_percent) || (row.vat_percent === 0 ? 0 : 15);
+
+      const rent = parseFloat(row.rent) || 0;
 
       if (nhr === 0 && othr === 0 && rent === 0 && adjAmt === 0 && remark === "") {
         continue;
       }
+
+      // 🟢 ഫുൾ പ്രിസിഷൻ കാൽക്കുലേഷൻ & കൃത്യമായ റൗണ്ടിംഗ്
+      const exactRent = (nhr * nrate) + (othr * otrate);
+      const calculatedRent = exactRent > 0 ? Number(exactRent.toFixed(2)) : rent;
+      
+      const total = Number((exactRent * (1 + (vatPercent / 100))).toFixed(2));
+      const vat_amount = Number((total - calculatedRent).toFixed(2));
+      const after_adjustment = Number((total + adjAmt).toFixed(2));
 
       await client.query(
         `DELETE FROM billing_records WHERE billing_month = $1 AND UPPER(TRIM(plate_no)) = $2 AND site_name = $3`,
@@ -971,8 +989,8 @@ router.post("/save-bill", verifyViewBillUser, async (req, res) => {
 
       await client.query(query, [
         billing_period, row.date, row.company, row.owner, row.site_name, row.vtype, row.driver, cleanPlate,
-        nhr, row.nrate, othr, row.otrate, rent, row.vat_percent, row.vat_amount, row.total,
-        row.adjustment_desc || "", adjAmt, row.after_adjustment, remark
+        nhr, row.nrate, othr, row.otrate, calculatedRent, vatPercent, vat_amount, total,
+        row.adjustment_desc || "", adjAmt, after_adjustment, remark
       ]);
     }
     await client.query("COMMIT");

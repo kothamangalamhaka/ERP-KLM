@@ -28,7 +28,7 @@ function getCompanyFromSite(siteName) {
     return "Haka";
 }
 
-// GET DATA for VAT Tracking
+// GET DATA for VAT Tracking (With vehicle_owner_log mapping)
 router.get("/data", verifyVatCode, async (req, res) => {
     try {
         const { year } = req.query;
@@ -39,15 +39,15 @@ router.get("/data", verifyVatCode, async (req, res) => {
         const colCheck = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='timesheet_vehicles'");
         const dbCols = colCheck.rows.map(r => r.column_name.toLowerCase());
 
-        // Dynamic column mapping (Case Insensitive & Space Insensitive)
+        // Dynamic column mapping
         const getCol = (possibleNames) => {
-            const normalizedDbCols = dbCols.map(c => c.replace(/[_ ]/g, '')); // Remove spaces and underscores
+            const normalizedDbCols = dbCols.map(c => c.replace(/[_ ]/g, ''));
             for (let name of possibleNames) {
                 const normName = name.replace(/[_ ]/g, '');
                 const idx = normalizedDbCols.indexOf(normName);
                 if (idx !== -1) return `"${dbCols[idx]}"`;
             }
-            return "''"; // Return empty string alias if column not found
+            return "''";
         };
 
         let displayCol = getCol(['company_display_name', 'display_name', 'company display name']);
@@ -61,12 +61,44 @@ router.get("/data", verifyVatCode, async (req, res) => {
             WHERE LOWER(TRIM(vat)) IN ('yes', 'true', '15')
         `;
         const vehicleResult = await pool.query(vehicleQuery);
-        const vehicles = vehicleResult.rows.filter(v => v.supplier && v.supplier.trim() !== "" && v.supplier.trim() !== "Unknown");
-        
-        if (vehicles.length === 0) return res.json({ success: true, data: [] });
+        if (vehicleResult.rows.length === 0) return res.json({ success: true, data: [] });
+
+        const vehicles = vehicleResult.rows;
         const plates = vehicles.map(v => v.plate_no);
 
-        // 3. Fetch SITE LOGS history (Calculates exact active months)
+        // 2.1 Fetch Owner Logs to handle vehicles sold / transferred across owners
+        const ownerLogQuery = `
+            SELECT plate_no, owner_name, start_date, end_date 
+            FROM vehicle_owner_log 
+            WHERE plate_no = ANY($1) 
+            ORDER BY start_date ASC
+        `;
+        let ownerLogs = [];
+        try {
+            const ownerLogRes = await pool.query(ownerLogQuery, [plates]);
+            ownerLogs = ownerLogRes.rows;
+        } catch (e) {
+            console.warn("vehicle_owner_log check skipped or table missing:", e.message);
+        }
+
+        // Helper to determine accurate owner for a specific month
+        const getOwnerForMonth = (plateNo, mIdx, fallbackOwner) => {
+            const mStart = new Date(currentYear, mIdx, 1);
+            const mEnd = new Date(currentYear, mIdx + 1, 0);
+
+            const matched = ownerLogs.find(l => {
+                if (l.plate_no !== plateNo) return false;
+                const sDate = l.start_date ? new Date(l.start_date) : new Date(2000, 0, 1);
+                const eDate = l.end_date ? new Date(l.end_date) : new Date(2100, 11, 31);
+                return sDate <= mEnd && eDate >= mStart;
+            });
+
+            return (matched && matched.owner_name && matched.owner_name.trim()) 
+                ? matched.owner_name.trim() 
+                : fallbackOwner;
+        };
+
+        // 3. Fetch SITE LOGS history (Calculates active months)
         const siteLogQuery = `
             SELECT plate_no, site_name, work_start_date, work_end_date, status 
             FROM vehicle_site_log 
@@ -80,25 +112,26 @@ router.get("/data", verifyVatCode, async (req, res) => {
         const billingResult = await pool.query(billingQuery, [currentYear]);
         const billingData = billingResult.rows;
 
-        // Fetch aggregated ERP totals from billing_records for the selected year
-        const erpQuery = `
-            SELECT owner, site_name, billing_month, SUM(after_adjustment) as erp_total 
+const erpQuery = `
+            SELECT 
+                TRIM(owner) as owner, 
+                TRIM(site_name) as site_name, 
+                billing_month, 
+                ROUND(SUM(COALESCE(after_adjustment::numeric, 0)), 2) as erp_total 
             FROM billing_records 
             WHERE billing_month LIKE $1 
-            GROUP BY owner, site_name, billing_month
+            GROUP BY TRIM(owner), TRIM(site_name), billing_month
         `;
         const erpResult = await pool.query(erpQuery, [`%${currentYear}`]);
         const erpData = erpResult.rows;
-        
+
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-        // 5. Process and Group Data
-        const groupedData = {};
-
-        // PRE-PROCESS: ഒരു സപ്ലെയറുടെ ഏതെങ്കിലും വണ്ടിയിൽ display name ഉണ്ടെങ്കിൽ അത് മുഴുവൻ വണ്ടികൾക്കും നൽകാൻ
+        // 5. Pre-process supplier master metadata (Vat No & Display Name)
         const supplierInfo = {};
         vehicles.forEach(v => {
-            const sup = v.supplier.trim();
+            const sup = (v.supplier || "").trim();
+            if (!sup) return;
             if (!supplierInfo[sup]) {
                 supplierInfo[sup] = { vat_no: v.vat_no || "", display_name: v.display_name || "" };
             } else {
@@ -107,55 +140,67 @@ router.get("/data", verifyVatCode, async (req, res) => {
             }
         });
 
+        // 6. Process and Group Data using Month-wise Accurate Owner
+        const groupedData = {};
+
         siteLogResult.rows.forEach(log => {
             const vehicle = vehicles.find(v => v.plate_no === log.plate_no);
             if (!vehicle) return;
 
+            const defaultOwner = (vehicle.supplier || "").trim();
             const company = getCompanyFromSite(log.site_name);
-            const supplier = vehicle.supplier.trim();
             const site = log.site_name.trim();
-            const groupKey = `${company}_${supplier}`;
 
-            if (!groupedData[groupKey]) {
-                groupedData[groupKey] = {
-                    company: company,
-                    supplier: supplier,
-                    vat_no: supplierInfo[supplier].vat_no,
-                    display_name: supplierInfo[supplier].display_name,
-                    sites: {}
-                };
-            }
-
-            if (!groupedData[groupKey].sites[site]) {
-                groupedData[groupKey].sites[site] = {
-                    site_name: site,
-                    active_months: Array(12).fill(false),
-                    billing: {}
-                };
-            }
-
-            // Month calculation based on Start & End Date
             let sd = log.work_start_date ? new Date(log.work_start_date) : new Date(2000, 0, 1);
             let ed = log.work_end_date ? new Date(log.work_end_date) : (log.status === 'Running' ? new Date(2100, 11, 31) : new Date(sd));
 
             for (let m = 0; m < 12; m++) {
                 let mStart = new Date(currentYear, m, 1);
-                let mEnd = new Date(currentYear, m + 1, 0); 
-                
+                let mEnd = new Date(currentYear, m + 1, 0);
+
                 if (sd <= mEnd && ed >= mStart) {
+                    const actualSupplier = getOwnerForMonth(log.plate_no, m, defaultOwner);
+                    if (!actualSupplier || actualSupplier === "Unknown") continue;
+
+                    const groupKey = `${company}_${actualSupplier}`;
+
+                    if (!groupedData[groupKey]) {
+                        const meta = supplierInfo[actualSupplier] || supplierInfo[defaultOwner] || { vat_no: "", display_name: "" };
+                        groupedData[groupKey] = {
+                            company: company,
+                            supplier: actualSupplier,
+                            vat_no: meta.vat_no || vehicle.vat_no || "",
+                            display_name: meta.display_name || vehicle.display_name || "",
+                            sites: {}
+                        };
+                    }
+
+                    if (!groupedData[groupKey].sites[site]) {
+                        groupedData[groupKey].sites[site] = {
+                            site_name: site,
+                            active_months: Array(12).fill(false),
+                            billing: {}
+                        };
+                    }
+
                     groupedData[groupKey].sites[site].active_months[m] = true;
                 }
             }
         });
 
-        // Convert object to array and attach billing
+        // 7. Convert object to array and attach billing & ERP Totals
         Object.values(groupedData).forEach(group => {
-            group.sites = Object.values(group.sites).filter(s => s.active_months.includes(true)); 
-            
+            group.sites = Object.values(group.sites).filter(s => s.active_months.includes(true));
+
             group.sites.forEach(siteObj => {
                 for (let i = 0; i < 12; i++) {
-                    const bill = billingData.find(b => b.company === group.company && b.supplier === group.supplier && b.site_name === siteObj.site_name && b.month_index === i);
-                    
+                    const bill = billingData.find(b => 
+                        b.company === group.company && 
+                        b.supplier === group.supplier && 
+                        b.site_name === siteObj.site_name && 
+                        b.month_index === i
+                    );
+
                     const monthString = `${monthNames[i]} ${currentYear}`;
                     const erpRecord = erpData.find(e => 
                         (e.site_name || "").trim() === siteObj.site_name && 
@@ -164,7 +209,6 @@ router.get("/data", verifyVatCode, async (req, res) => {
                     );
                     const erpTotal = erpRecord ? erpRecord.erp_total : "";
 
-                    // Changed bill_date to status
                     siteObj.billing[i] = bill 
                         ? { bill_no: bill.bill_no, status: bill.status, amount: bill.amount, erp_total: erpTotal } 
                         : { bill_no: "", status: "", amount: "", erp_total: erpTotal };
@@ -173,8 +217,8 @@ router.get("/data", verifyVatCode, async (req, res) => {
         });
 
         const finalArray = Object.values(groupedData)
-                            .filter(g => g.sites.length > 0)
-                            .sort((a, b) => a.company.localeCompare(b.company) || a.supplier.localeCompare(b.supplier));
+            .filter(g => g.sites.length > 0)
+            .sort((a, b) => a.company.localeCompare(b.company) || a.supplier.localeCompare(b.supplier));
 
         res.json({ success: true, data: finalArray });
     } catch (error) {
