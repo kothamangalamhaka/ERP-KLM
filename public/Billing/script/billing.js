@@ -478,9 +478,14 @@ function rearrangeScreenData() {
       let nrate = parseFloat(row.querySelector(".nrate").value) || 0;
       let othr = parseFloat(row.querySelector(".othr").value) || 0;
       let otrate = parseFloat(row.querySelector(".otrate").value) || 0;
+      let masterMatch = masterData.find(
+        (m) => (m.plate_number || m.plate || "").toUpperCase() === plate,
+      );
       let vatSelect = row.querySelector(".vat-rate");
-      let vatPerc = vatSelect ? parseFloat(vatSelect.value) || 0 : 0;
-      let isVat = vatPerc > 0 ? "Yes" : "No";
+      let vatPerc = vatSelect 
+        ? parseFloat(vatSelect.value) 
+        : (masterMatch && (masterMatch.vat_bill === "Yes" || masterMatch.vat === "Yes") ? 15 : 0);
+      let isVat = (vatPerc === 15 || (masterMatch && (masterMatch.vat_bill === "Yes" || masterMatch.vat === "Yes"))) ? "Yes" : "No";
 
       if (!plate && !site && nhr === 0 && othr === 0) return;
 
@@ -912,13 +917,15 @@ function createBillCard(group, id) {
       otrate = parseFloat(saved.otrate);
     }
 
-    // 🟢 FIX: Payment Report വഴി സേവ് ചെയ്ത ഡാറ്റയാണെങ്കിൽ (nrate = 0/null), Master Data-യിലെ VAT ഫ്രഷ് ആയി എടുക്കും.
-    let vatPerc = item.vat_bill === "Yes" ? 15 : 0; 
-    if (saved && saved.vat_percent !== null && saved.vat_percent !== undefined) {
-        // Billing Screen വഴി സേവ് ചെയ്തതാണോ എന്ന് നോക്കാൻ nrate > 0 അല്ലെങ്കിൽ rent > 0 ആണോ എന്ന് നോക്കുന്നു.
-        if (parseFloat(saved.nrate) > 0 || parseFloat(saved.rent) > 0) {
-            vatPerc = parseFloat(saved.vat_percent);
-        }
+    // 🟢 Owner Log / Master പ്രകാരമുള്ള VAT തന്നെ അടിസ്ഥാനമായി എടുക്കുന്നു
+    let isVatVehicle = (item.vat_bill === "Yes" || item.vat === "Yes" || item.vat === "15" || item.vat === true);
+    let vatPerc = isVatVehicle ? 15 : 0;
+
+    // മുൻപ് ബില്ലിംഗിൽ എഡിറ്റ് ചെയ്തു സേവ് ചെയ്ത റെക്കോർഡ് ഉണ്ടെങ്കിൽ മാത്രം അത് പരിഗണിക്കുക, അല്ലെങ്കിൽ വെഹിക്കിൾ ലോഗ് തുക തന്നെ നിൽക്കണം
+    if (saved && saved.vat_percent !== null && saved.vat_percent !== undefined && (parseFloat(saved.nrate) > 0 || parseFloat(saved.rent) > 0)) {
+        vatPerc = parseFloat(saved.vat_percent);
+    } else {
+        vatPerc = isVatVehicle ? 15 : 0;
     }
     let driverName = item.driver_name || item.driver || "";
     if (saved && saved.driver) driverName = saved.driver;
@@ -1222,6 +1229,7 @@ function addDynamicRow(cardId) {
   let vatDisplay = ""; // Always visible on UI
   const tr = document.createElement("tr");
 
+  // 🟢 പുതിയ ബ്ലാങ്ക് വരിക്ക് 15-ന് പകരം ഡിഫോൾട്ട് ആയി 0% നൽകുന്നു (വണ്ടി തിരഞ്ഞെടുക്കുമ്പോൾ ലോഗ് അനുസരിച്ച് തനിയെ മാറും)
   tr.innerHTML = generateRowHTML(
     index,
     getShortDate(),
@@ -1233,7 +1241,7 @@ function addDynamicRow(cardId) {
     0,
     0,
     0,
-    15,
+    0,
     vatDisplay,
     "",
   );
@@ -1468,23 +1476,24 @@ function applyAutoFillData(input, match, addBlankRow = true) {
   }
 
   let vatSelect = row.querySelector(".vat-rate");
-if (vatSelect) {
+  if (vatSelect) {
     let saved = savedBillingData.find(
-        (s) =>
-            (s.plate_no || "").trim().toUpperCase() ===
-                (match.plate_number || match.plate || "").trim().toUpperCase() &&
-            (s.site_name || "").trim().toUpperCase() ===
-                (match.site || match.site_name || "").trim().toUpperCase()
+      (s) =>
+        (s.plate_no || "").trim().toUpperCase() ===
+          (match.plate_number || match.plate || "").trim().toUpperCase() &&
+        (s.site_name || "").trim().toUpperCase() ===
+          (match.site || match.site_name || "").trim().toUpperCase()
     );
-    let vatVal = match.vat_bill === "Yes" ? "15" : "0"; // Default from Master
-    if (saved && saved.vat_percent !== null && saved.vat_percent !== undefined) {
-        // Billing Screen വഴി സേവ് ചെയ്തതാണോ എന്ന് നോക്കുന്നു (nrate > 0 or rent > 0)
-        if (parseFloat(saved.nrate) > 0 || parseFloat(saved.rent) > 0) {
-            vatVal = String(parseFloat(saved.vat_percent));
-        }
+    
+    // 🟢 വണ്ടിക്ക് VAT ഉണ്ടോ ഇല്ലയോ എന്ന് കൃത്യമായി വേർതിരിക്കുന്നു
+    let isVat = (match.vat_bill === "Yes" || match.vat === "Yes" || match.vat === "15" || match.vat === true);
+    let vatVal = isVat ? "15" : "0";
+
+    if (saved && saved.vat_percent !== null && saved.vat_percent !== undefined && (parseFloat(saved.nrate) > 0 || parseFloat(saved.rent) > 0)) {
+      vatVal = String(parseFloat(saved.vat_percent));
     }
     vatSelect.value = vatVal;
-}
+  }
 
   calculateRow(input);
 

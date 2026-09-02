@@ -263,32 +263,22 @@ router.post("/save", async (req, res) => {
 
     for (let row of items) {
       await client.query(
-        `DELETE FROM billing_records WHERE billing_month = $1 AND plate_no = $2 AND site_name = $3`,
-        [billing_period, row.plate, row.site_name],
+        `DELETE FROM billing_records 
+         WHERE billing_month = $1 
+           AND UPPER(TRIM(plate_no)) = UPPER(TRIM($2))`,
+        [billing_period, row.plate],
       );
 
+      // 🟢 ZERO ROW PROTECTION (Updated to allow remarks)
       const nhr = parseFloat(row.nhr) || 0;
-      const nrate = parseFloat(row.nrate) || 0;
       const othr = parseFloat(row.othr) || 0;
-      const otrate = parseFloat(row.otrate) || 0;
+      const rent = parseFloat(row.rent) || 0;
       const adjAmt = parseFloat(row.adjusted_amount) || 0;
       const remark = (row.remark || "").trim();
-      const vatPercent = parseFloat(row.vat_percent) || 15;
-
-      const rent = parseFloat(row.rent) || 0;
 
       if (nhr === 0 && othr === 0 && rent === 0 && adjAmt === 0 && remark === "") {
-        continue; 
+        continue; // Skip saving empty row ONLY if remark is also empty
       }
-
-      // 🟢 ഫുൾ പ്രിസിഷൻ വെച്ച് കൃത്യമായി കാൽക്കുലേറ്റ് ചെയ്ത് റൗണ്ട് ചെയ്യുന്നു
-      const exactRent = (nhr * nrate) + (othr * otrate);
-      const calculatedRent = exactRent > 0 ? Number(exactRent.toFixed(2)) : rent;
-      
-      // വാറ്റ് തുകയും ടോട്ടലും കൃത്യമായി 2 ഡെസിമലിലേക്ക് റൗണ്ട് ചെയ്യുന്നു
-      const total = Number((exactRent * (1 + (vatPercent / 100))).toFixed(2));
-      const vat_amount = Number((total - calculatedRent).toFixed(2));
-      const after_adjustment = Number((total + adjAmt).toFixed(2));
 
       const query = `INSERT INTO billing_records 
                 (billing_month, date, company, owner, site_name, db_rate, vtype, driver, plate_no, nhr, nrate, othr, otrate, rent, vat_percent, vat_amount, total, adjustment_desc, adjusted_amount, after_adjustment, remark) 
@@ -308,13 +298,13 @@ router.post("/save", async (req, res) => {
         row.nrate,
         othr,
         row.otrate,
-        calculatedRent,
-        vatPercent,
-        vat_amount,
-        total,
+        rent,
+        row.vat_percent,
+        row.vat_amount,
+        row.total,
         row.adjustment_desc,
         adjAmt,
-        after_adjustment,
+        row.after_adjustment,
         row.remark
       ]);
     }
