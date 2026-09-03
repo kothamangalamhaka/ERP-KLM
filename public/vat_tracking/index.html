@@ -4,37 +4,40 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VAT Tracking - Timesheet ERP</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="/node_xlsx_scripts/exceljs.min.js"></script>
+    <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; font-size: 13px; }
         .navbar { background: #0f2027; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
         .table-responsive { width: 100%; overflow-x: auto; max-height: calc(100vh - 65px); }
-        .nav-tools { display: flex; gap: 15px; align-items: center; font-size: 13px; }
+        .nav-tools { display: flex; gap: 12px; align-items: center; font-size: 13px; }
         .nav-tools label { color: #cbd5e1; }
-        .btn-success { background: #10b981; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        .btn-success { background: #10b981; color: white; padding: 7px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; text-decoration: none; display: inline-flex; align-items: center; }
         .btn-success:hover { filter: brightness(1.1); }
+        
+        .btn-nav-link { color: white; padding: 7px 12px; border-radius: 4px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; font-size: 12px; transition: opacity 0.2s; }
+        .btn-nav-link:hover { opacity: 0.9; }
+        .btn-dash { background: #3b82f6; }
+        .btn-mini { background: #f59e0b; color: #0f172a; }
+
         .input-box, .select-box { padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Inter'; }
         
-        table { border-collapse: collapse; width: max-content; background: white; }
-        th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: center; }
+        table { border-collapse: separate; border-spacing: 0; width: max-content; background: white; }
+        th, td { border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; padding: 8px 12px; text-align: center; }
         th { background: #1e293b; color: white; position: sticky; top: 0; z-index: 10; font-size: 12px; }
         th.sub-head { top: 33px; background: #334155; }
         
         .merged-cell { vertical-align: middle; font-weight: 600; color: #334155; background: #f8fafc; }
         .editable { cursor: pointer; min-width: 60px; height: 20px; display: inline-block; width: 100%; }
         .editable:hover { background-color: #e2e8f0; }
-        .edit-input { width: 90%; padding: 4px; font-size: 12px; border: 1px solid #0d6efd; border-radius: 3px; text-align: center; outline: none; }
         
-        /* Shaded Inactive Month Cells */
         .inactive-cell { 
             background: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 5px, #e2e8f0 5px, #e2e8f0 10px) !important; 
             pointer-events: none; 
             color: transparent;
         }
 
-        /* Filter Styles */
         .filter-icon { cursor: pointer; color: #94a3b8; font-size: 10px; margin-left: 5px; display: inline-block; }
         .filter-icon:hover { color: #fff; }
         .filter-menu { position: absolute; background: white; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; color: #0f2027; display: none; min-width: 150px; text-align: left; }
@@ -47,7 +50,6 @@
         .status-saved { color: #10b981; }
         .status-error { color: #ef4444; }
         
-        /* Login Modal Styles */
         .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 32, 39, 0.95); display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; width: 300px; }
         .login-box h2 { margin-top: 0; color: #0f2027; }
@@ -55,88 +57,86 @@
         .login-box button { width: 100%; background: #10b981; color: white; border: none; padding: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 15px; }
         .login-box button:hover { background: #059669; }
         #loginError { color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none; }
-        .clip-text {
-            max-width: 130px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: inline-block;
-            vertical-align: middle;
-        }
+        .clip-text { max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle; }
     </style>
 </head>
 <body>
 
-    <!-- Quick Entry Modal Styles & HTML -->
-<style>
-    .quick-modal-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(15, 23, 42, 0.7); display: none;
-        justify-content: center; align-items: center; z-index: 10000;
-    }
-    .quick-modal-content {
-        background: white; border-radius: 8px; width: 620px; max-width: 95%;
-        max-height: 90vh; display: flex; flex-direction: column;
-        box-shadow: 0 15px 30px rgba(0,0,0,0.3); overflow: hidden;
-    }
-    .quick-modal-header {
-        background: #1e293b; color: white; padding: 12px 20px;
-        display: flex; justify-content: space-between; align-items: center;
-    }
-    .quick-modal-body {
-        padding: 15px 20px; overflow-y: auto;
-    }
-    .quick-modal-footer {
-        padding: 10px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;
-        display: flex; justify-content: flex-end; gap: 10px;
-    }
-    .quick-table {
-        width: 100%; border-collapse: collapse; margin-top: 10px;
-    }
-    .quick-table th {
-        background: #334155; color: white; padding: 6px; font-size: 12px;
-    }
-    .quick-table td {
-        border: 1px solid #cbd5e1; padding: 4px 6px; font-size: 12px; text-align: center;
-    }
-    .quick-input {
-        width: 95%; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center;
-    }
-    .quick-input:focus { border-color: #0284c7; outline: none; background: #f0f9ff; }
-</style>
+    <!-- Compact, Responsive & Multi-Site Quick Entry Modal -->
+    <style>
+        .quick-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.75); display: none;
+            justify-content: center; align-items: center; z-index: 10000;
+        }
+        .quick-modal-content {
+            background: white; border-radius: 8px; width: fit-content; max-width: 98vw;
+            max-height: 92vh; display: flex; flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4); overflow: hidden;
+        }
+        .quick-modal-header {
+            background: #1e293b; color: white; padding: 10px 18px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .quick-modal-body {
+            padding: 10px 15px; overflow-x: auto; overflow-y: auto; flex: 1;
+        }
+        .quick-modal-footer {
+            padding: 8px 18px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+            display: flex; justify-content: flex-end; gap: 8px;
+        }
+        .quick-table {
+            border-collapse: separate; border-spacing: 0; width: max-content;
+        }
+        .quick-table th {
+            position: sticky; top: 0; z-index: 10;
+        }
+        .quick-table th.qm-head-row2 {
+            top: 27px; z-index: 10;
+        }
+        .quick-table th.qm-month-header {
+            position: sticky; top: 0; left: 0; z-index: 30 !important;
+            background: #0f172a; color: white; min-width: 75px;
+        }
+        .quick-table td.qm-month-cell {
+            position: sticky; left: 0; z-index: 5;
+            background: #f8fafc; font-weight: 600; min-width: 75px;
+            border-right: 2px solid #cbd5e1;
+        }
+        .quick-table th, .quick-table td {
+            border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; 
+            padding: 4px 6px; font-size: 11px; text-align: center;
+        }
+        .quick-input {
+            width: 100%; max-width: 72px; padding: 3px 2px; 
+            border: 1px solid #cbd5e1; border-radius: 3px; 
+            text-align: center; font-size: 11px; font-family: 'Inter';
+            box-sizing: border-box;
+        }
+        .quick-input:focus { border-color: #0284c7; outline: none; background: #f0f9ff; }
+    </style>
 
-<div id="quickEntryModal" class="quick-modal-overlay">
-    <div class="quick-modal-content">
-        <div class="quick-modal-header">
-            <div>
-                <h3 id="qmSupplierTitle" style="margin: 0; font-size: 15px;">Quick VAT Data Entry</h3>
-                <span id="qmVatSubtitle" style="font-size: 12px; color: #94a3b8;"></span>
+    <div id="quickEntryModal" class="quick-modal-overlay">
+        <div class="quick-modal-content">
+            <div class="quick-modal-header">
+                <div>
+                    <h3 id="qmSupplierTitle" style="margin: 0; font-size: 14px;">Supplier Quick Data Entry</h3>
+                    <span id="qmVatSubtitle" style="font-size: 11px; color: #94a3b8;"></span>
+                </div>
+                <button onclick="closeQuickModal()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">✕</button>
             </div>
-            <button onclick="closeQuickModal()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">✕</button>
-        </div>
-        <div class="quick-modal-body">
-            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-                <label><b>Select Site:</b></label>
-                <select id="qmSiteSelect" class="select-box" style="flex: 1;" onchange="loadQuickTable()"></select>
+            <div class="quick-modal-body">
+                <table class="quick-table">
+                    <thead id="quickTableHead"></thead>
+                    <tbody id="quickTableBody"></tbody>
+                </table>
             </div>
-            <table class="quick-table">
-                <thead>
-                    <tr>
-                        <th style="width: 25%;">Month</th>
-                        <th style="width: 25%;">Bill No</th>
-                        <th style="width: 25%;">Amount</th>
-                        <th style="width: 25%; background: #0f766e;">Vendor TS</th>
-                    </tr>
-                </thead>
-                <tbody id="quickTableBody"></tbody>
-            </table>
-        </div>
-        <div class="quick-modal-footer">
-            <button onclick="closeQuickModal()" style="padding: 7px 15px; border: none; background: #94a3b8; color: white; border-radius: 4px; cursor: pointer;">Cancel</button>
-            <button onclick="saveQuickEntry()" class="btn-success">Save & Apply</button>
+            <div class="quick-modal-footer">
+                <button onclick="closeQuickModal()" style="padding: 6px 14px; border: none; background: #94a3b8; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;">Cancel</button>
+                <button onclick="saveQuickEntry()" class="btn-success" style="padding: 6px 14px; font-size: 12px;">Save & Apply All</button>
+            </div>
         </div>
     </div>
-</div>
 
     <!-- Login Modal -->
     <div id="loginModal" class="login-overlay">
@@ -162,6 +162,9 @@
                 <button id="cancelBulkBtn" class="btn-success" onclick="cancelBulkEdit()" style="display: none; background: #ef4444;">Cancel</button>
             </div>
 
+            <a href="dashboard.html" class="btn-nav-link btn-dash" title="View Full Month Grid">📊 Dashboard</a>
+            <a href="mini_dashboard.html" class="btn-nav-link btn-mini" title="View Missing Bills Overview">📋 Mini Dashboard</a>
+
             <div style="display: flex; align-items: center; gap: 5px;">
                 <label><b>Year:</b></label>
                 <input type="number" id="yearFilter" class="input-box" style="width: 60px;" onchange="fetchData()">
@@ -177,9 +180,10 @@
                     <option value="Q4">Q4 (Oct - Dec)</option>
                 </select>
             </div>
-<div style="display: flex; align-items: center; gap: 5px;">
+
+            <div style="display: flex; align-items: center; gap: 5px;">
                 <label><b>Search:</b></label>
-                <input type="text" id="searchInput" class="input-box" placeholder="Global search..." onkeyup="renderTable()" style="width: 150px;">
+                <input type="text" id="searchInput" class="input-box" placeholder="Global search..." onkeyup="renderTable()" style="width: 140px;">
             </div>
 
             <button class="btn-success" onclick="exportCompactExcel()" style="background: #0284c7;">⬇ Compact Excel</button>
@@ -197,7 +201,6 @@
         <input type="text" class="input-box" placeholder="Search..." onkeyup="searchFilterItems(this)" style="width: 100%; box-sizing:border-box; margin-bottom: 8px;">
         <div id="filterCheckboxList" style="max-height: 50vh; overflow-y: auto;"></div>
         
-        <!-- Buttons container -->
         <div style="display: flex; gap: 5px; margin-top: 8px;">
             <button style="flex: 1; padding: 6px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;" onclick="clearColumnFilter()">Clear</button>
             <button class="btn-success" style="flex: 1; padding: 6px; border-radius: 4px;" onclick="applyColumnFilter()">Apply</button>
@@ -228,8 +231,6 @@
 
         let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
 
-        // Login Check
-        // Login Check - If code already exists in session, fetch data. Otherwise, show modal without error text.
         if (vatCode) {
             document.getElementById("loginModal").style.display = "none";
             fetchData();
@@ -273,9 +274,7 @@
             } catch (err) { alert("Network error."); }
         }
 
-
-        
-function renderTable() {
+        function renderTable() {
             const displayData = getFilteredData();
             const quarter = document.getElementById("quarterFilter").value;
             let startMonth = 0, endMonth = 11;
@@ -330,10 +329,7 @@ function renderTable() {
                     for (let i = startMonth; i <= endMonth; i++) {
                         let bill = siteData.billing[i] || { bill_no: "", amount: "", erp_total: "" };
                         let isActive = siteData.active_months[i]; 
-                        
                         let cellClass = isActive ? "" : "inactive-cell";
-                        
-                        // 100% Safe way to assign fields without causing String Replace bugs
                         let baseArgsStr = `this, 'FIELD_PLACEHOLDER', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}`;
                         
                         let actionBillNo = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})"` : "";
@@ -353,16 +349,207 @@ function renderTable() {
             document.getElementById("tableBody").innerHTML = tbody;
         }
 
-        function copyVat(e, text) {
+        /* ------------------------------------------------------------------
+           QUICK ENTRY MODAL (WITH HAKA -> ALJODA -> MASAR -> WE1 & EARLIEST MONTH SORT)
+        ------------------------------------------------------------------ */
+        let qmActiveSites = [];
+
+        function openQuickEntryModal(e, company, supplier) {
             e.preventDefault();
-            if (text) {
-                navigator.clipboard.writeText(text).then(() => {
-                    showStatus("Vat No Copied!", "saved");
+            
+            const matchingGroups = rawData.filter(g => (g.supplier === supplier) || (g.company === company && g.supplier === supplier));
+            if (matchingGroups.length === 0) return;
+
+            const primaryGroup = matchingGroups.find(g => g.company === company) || matchingGroups[0];
+            
+            document.getElementById("qmSupplierTitle").innerText = `${primaryGroup.supplier}`;
+            document.getElementById("qmVatSubtitle").innerText = `VAT No: ${primaryGroup.vat_no || 'N/A'} | Display: ${primaryGroup.display_name || 'N/A'}`;
+
+            qmActiveSites = [];
+            matchingGroups.forEach(grp => {
+                grp.sites.forEach(st => {
+                    qmActiveSites.push({
+                        group: grp,
+                        site: st
+                    });
                 });
+            });
+
+            // Company rank logic: Haka (1) -> Al Joda (2) -> Masar Wheels (3) -> We1 (4) -> Others (5)
+            function getCompanyRank(compName, siteName) {
+                const s = (siteName || "").toLowerCase();
+                const c = (compName || "").toLowerCase();
+                
+                if (s.includes("aljoda") || s.includes("al joda") || s.includes("al-joda") || c.includes("al joda") || c.includes("aljoda")) {
+                    return { rank: 2, name: "Al Joda" };
+                }
+                if (s.includes("masar") || c.includes("masar")) {
+                    return { rank: 3, name: "Masar Wheels" };
+                }
+                if (s.includes("we1") || c.includes("we1")) {
+                    return { rank: 4, name: "We1" };
+                }
+                if (c.includes("haka") || s.includes("haka")) {
+                    return { rank: 1, name: "Haka" };
+                }
+                if (!c || c === "haka") return { rank: 1, name: "Haka" };
+                return { rank: 5, name: compName };
             }
+
+            // Earliest active or billed month detection (0 = Jan, 11 = Dec)
+            function getEarliestActiveMonth(site) {
+                for (let m = 0; m < 12; m++) {
+                    const isActive = site.active_months && site.active_months[m];
+                    const bill = site.billing && site.billing[m];
+                    const hasData = bill && (bill.bill_no || bill.amount || bill.erp_total);
+                    if (isActive || hasData) return m;
+                }
+                return 99;
+            }
+
+            // Perform strict sorting
+            qmActiveSites.sort((a, b) => {
+                const compA = getCompanyRank(a.group.company, a.site.site_name);
+                const compB = getCompanyRank(b.group.company, b.site.site_name);
+
+                // 1. Sort by Company Rank
+                if (compA.rank !== compB.rank) {
+                    return compA.rank - compB.rank;
+                }
+                if (compA.rank === 5 && compA.name !== compB.name) {
+                    return compA.name.localeCompare(compB.name);
+                }
+
+                // 2. Sort by Earliest Month
+                const monthA = getEarliestActiveMonth(a.site);
+                const monthB = getEarliestActiveMonth(b.site);
+                if (monthA !== monthB) {
+                    return monthA - monthB;
+                }
+
+                // 3. Alphabetical fallback
+                return a.site.site_name.localeCompare(b.site.site_name);
+            });
+
+            // 1. Build Header: Month with Top & Left Freeze
+            let headRow1 = `<tr><th rowspan="2" class="qm-month-header">Month</th>`;
+            let headRow2 = `<tr>`;
+
+            qmActiveSites.forEach(item => {
+                headRow1 += `<th colspan="3" style="background: #1e293b; color: white; border-left: 2px solid #64748b; font-size: 11px; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(item.site.site_name)}">${escapeHTML(item.site.site_name)}</th>`;
+                headRow2 += `<th class="qm-head-row2" style="background: #334155; color: white; width: 75px; min-width: 75px; border-left: 2px solid #64748b;">Bill No</th>
+                             <th class="qm-head-row2" style="background: #334155; color: white; width: 75px; min-width: 75px;">Amount</th>
+                             <th class="qm-head-row2" style="background: #0f766e; color: white; width: 68px; min-width: 68px;">Vendor TS</th>`;
+            });
+            headRow1 += `</tr>`;
+            headRow2 += `</tr>`;
+            document.getElementById("quickTableHead").innerHTML = headRow1 + headRow2;
+
+            // 2. Build 12 Months Rows
+            let bodyHtml = "";
+            const shortYear = currentYear.toString().slice(-2);
+
+            for (let m = 0; m < 12; m++) {
+                const monthLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
+                bodyHtml += `<tr><td class="qm-month-cell">${monthLabel}</td>`;
+
+                qmActiveSites.forEach((item, sIdx) => {
+                    const st = item.site;
+                    const isActive = st.active_months[m];
+                    const bill = st.billing[m] || { bill_no: "", amount: "", erp_total: "" };
+                    const erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
+
+                    if (isActive) {
+                        bodyHtml += `
+                            <td style="border-left: 2px solid #cbd5e1;"><input type="text" class="quick-input qm-cell-input" data-siteidx="${sIdx}" data-month="${m}" data-field="bill_no" value="${escapeHTML(bill.bill_no || '')}"></td>
+                            <td><input type="text" class="quick-input qm-cell-input" data-siteidx="${sIdx}" data-month="${m}" data-field="amount" value="${escapeHTML(bill.amount || '')}"></td>
+                            <td style="background: #f0fdfa; font-weight: 600; color: #0f766e; font-size: 10.5px;">${erpVal}</td>
+                        `;
+                    } else {
+                        bodyHtml += `
+                            <td colspan="3" class="inactive-cell" style="border-left: 2px solid #cbd5e1;" title="Inactive Month"></td>
+                        `;
+                    }
+                });
+
+                bodyHtml += `</tr>`;
+            }
+            document.getElementById("quickTableBody").innerHTML = bodyHtml;
+            document.getElementById("quickEntryModal").style.display = "flex";
         }
 
-        // Bulk Edit Logic
+        function closeQuickModal() {
+            document.getElementById("quickEntryModal").style.display = "none";
+            qmActiveSites = [];
+        }
+
+        async function saveQuickEntry() {
+            if (qmActiveSites.length === 0) return;
+
+            const inputs = document.querySelectorAll(".qm-cell-input");
+            const updates = [];
+
+            inputs.forEach(input => {
+                const siteIdx = parseInt(input.dataset.siteidx);
+                const m = parseInt(input.dataset.month);
+                const field = input.dataset.field;
+                let newVal = input.value.trim();
+
+                const item = qmActiveSites[siteIdx];
+                const oldVal = item.site.billing[m] ? (item.site.billing[m][field] || "") : "";
+
+                if (field === 'amount' && newVal !== "") {
+                    let expr = newVal.startsWith("=") ? newVal.substring(1) : newVal;
+                    expr = expr.replace(/,/g, "");
+                    if (/^[0-9+\-*/().\s]+$/.test(expr)) {
+                        try {
+                            let calculated = new Function("return " + expr)();
+                            if (isFinite(calculated)) newVal = Number(calculated.toFixed(2)).toString();
+                        } catch (e) {}
+                    }
+                }
+
+                if (newVal !== oldVal) {
+                    if (!item.site.billing[m]) item.site.billing[m] = {};
+                    item.site.billing[m][field] = newVal;
+
+                    updates.push({
+                        year: currentYear,
+                        company: item.group.company,
+                        supplier: item.group.supplier,
+                        vat_no: item.group.vat_no,
+                        display_name: item.group.display_name,
+                        site_name: item.site.site_name,
+                        month_index: m,
+                        field: field,
+                        value: newVal
+                    });
+                }
+            });
+
+            if (updates.length > 0) {
+                showStatus("Saving all site changes...", "saving");
+                try {
+                    const res = await fetch(`/timesheet/api/vat-tracking/update-bulk`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
+                        body: JSON.stringify({ changes: updates })
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                        showStatus("✓ Saved successfully", "saved");
+                    } else {
+                        showStatus("Error saving", "error");
+                    }
+                } catch (e) {
+                    showStatus("Network Error", "error");
+                }
+            }
+
+            closeQuickModal();
+            renderTable();
+        }
+
         function toggleBulkEdit() {
             if (document.activeElement && document.activeElement.isContentEditable) {
                 document.activeElement.blur();
@@ -386,19 +573,16 @@ function renderTable() {
             if (document.activeElement && document.activeElement.isContentEditable) {
                 document.activeElement.blur();
             }
-            
             isBulkMode = false;
-            pendingChanges = []; // Clear unsaved changes
-            
+            pendingChanges = [];
             document.getElementById("bulkEditBtn").innerText = "Bulk Edit";
             document.getElementById("bulkEditBtn").style.background = "#10b981";
             document.getElementById("cancelBulkBtn").style.display = "none";
-            
             showStatus("Changes Cancelled", "error");
-            fetchData(); // Fetch fresh original data from the server to wipe out unsaved local changes
+            fetchData();
         }
 
-       function getFilteredData(excludeCol = null) {
+        function getFilteredData(excludeCol = null) {
             let result = JSON.parse(JSON.stringify(rawData)); 
             const globalSearch = document.getElementById("searchInput").value.toLowerCase();
 
@@ -439,7 +623,6 @@ function renderTable() {
             return result;
         }
 
-        /* Filter Menu Logic */
         function openFilter(e, colName) {
             e.stopPropagation();
             activeCol = colName;
@@ -456,9 +639,7 @@ function renderTable() {
                 document.getElementById("sortDivider").style.display = "block";
             }
 
-            // മറ്റുള്ള ആക്ടീവ് ഫിൽട്ടറുകൾ പ്രകാരം ഫിൽട്ടർ ചെയ്യപ്പെട്ട ഡാറ്റയിൽ നിന്ന് മാത്രം യൂണീക് വാല്യൂസ് എടുക്കുന്നു
             const contextualData = getFilteredData(colName);
-
             let uniqueVals = new Set();
             let hasBlank = false;
             contextualData.forEach(g => {
@@ -554,15 +735,13 @@ function renderTable() {
             }
         });
 
-        /* Edit and Save Logic */
         function editCell(td, field, company, supplier, vat_no, display_name, site_name, month_index) {
             if (td.classList.contains("inactive-cell")) return; 
             const span = td.querySelector("span");
-            if (span.isContentEditable) return; // Prevent re-triggering if already editing
+            if (span.isContentEditable) return;
 
             const currentValue = span.innerText.trim();
             
-            // Make span directly editable without injecting <input>
             span.contentEditable = "true";
             span.style.outline = "none"; 
             span.style.background = "transparent";
@@ -570,7 +749,6 @@ function renderTable() {
             span.style.minWidth = "50px";
             span.focus();
 
-            // Set cursor to the end of the text
             let range = document.createRange();
             let sel = window.getSelection();
             if(span.childNodes.length > 0) {
@@ -587,12 +765,8 @@ function renderTable() {
 
                 let newValue = this.innerText.trim();
 
-                // 🟢 Excel-like Math Calculation (Amount കോളത്തിന് മാത്രം)
                 if (field === 'amount' && newValue !== "") {
-                    let mathExpr = newValue;
-                    if (mathExpr.startsWith('=')) {
-                        mathExpr = mathExpr.substring(1);
-                    }
+                    let mathExpr = newValue.startsWith('=') ? newValue.substring(1) : newValue;
                     mathExpr = mathExpr.replace(/,/g, ''); 
 
                     if (/^[0-9+\-*/().\s]+$/.test(mathExpr)) {
@@ -601,13 +775,11 @@ function renderTable() {
                             if (isFinite(calculated)) {
                                 newValue = Number(calculated.toFixed(2)).toString(); 
                             }
-                        } catch (e) { 
-                            console.log("Invalid math expression"); 
-                        }
+                        } catch (e) {}
                     }
                 }
 
-                this.innerText = newValue; // Math calculation കഴിഞ്ഞുള്ള വാല്യൂ span-ൽ തിരികെ സെറ്റ് ചെയ്യുന്നു
+                this.innerText = newValue;
                 
                 if (newValue !== currentValue) {
                     const grp = rawData.find(g => g.company === company && g.supplier === supplier);
@@ -631,7 +803,6 @@ function renderTable() {
                 }
             };
 
-            // Enter അടിച്ചാൽ എഡിറ്റിംഗ് സേവ് ആവാൻ വേണ്ടി
             span.onkeydown = function(e) { 
                 if (e.key === "Enter") {
                     e.preventDefault(); 
@@ -691,7 +862,6 @@ function renderTable() {
             if (type === "saved" || type === "error") setTimeout(() => s.innerText = "", 3000);
         }
 
-        /* EXPORT EXCEL WITH STYLES (EXCELJS) - FIXED ROW HEIGHT & WRAP */
         async function exportExcel() {
             showStatus("Exporting...", "saving");
             const displayData = getFilteredData();
@@ -705,7 +875,6 @@ function renderTable() {
             const wb = new ExcelJS.Workbook();
             const ws = wb.addWorksheet("VAT Tracking", { views: [{ state: 'frozen', ySplit: 2, xSplit: 6 }] });
 
-            // 1. Generate Headers Arrays First
             let row1 = ["SN", "Company", "Display Name", "Supplier", "Vat No", "Site"];
             let row2 = ["", "", "", "", "", ""];
             
@@ -715,17 +884,12 @@ function renderTable() {
                 row2.push("Bill No", "Amount", "Vendor TS");
             }
 
-            // 2. Add Headers to Worksheet
             ws.addRow(row1);
             ws.addRow(row2);
-
             ws.getRow(1).height = 25;
             ws.getRow(2).height = 25;
 
-            // 3. Apply Merges
-            for (let c = 1; c <= 6; c++) {
-                ws.mergeCells(1, c, 2, c);
-            }
+            for (let c = 1; c <= 6; c++) ws.mergeCells(1, c, 2, c);
             
             let colIndex = 7;
             for (let i = startMonth; i <= endMonth; i++) {
@@ -733,7 +897,6 @@ function renderTable() {
                 colIndex += 3;
             }
 
-            // 4. Style Headers
             const borderStyle = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             
             ws.getRow(1).eachCell(cell => {
@@ -759,7 +922,6 @@ function renderTable() {
                 return isNaN(num) ? val : num; 
             };
 
-            // 5. Add Data
             let rowIndex = 3; 
             let sn = 1;
 
@@ -780,11 +942,7 @@ function renderTable() {
                     for (let i = startMonth; i <= endMonth; i++) {
                         let bill = siteData.billing[i] || { bill_no: "", amount: "", erp_total: "" };
                         if (siteData.active_months[i]) {
-                            rowData.push(
-                                bill.bill_no || "", 
-                                safeNumber(bill.amount), 
-                                safeNumber(bill.erp_total)
-                            );
+                            rowData.push(bill.bill_no || "", safeNumber(bill.amount), safeNumber(bill.erp_total));
                         } else {
                             rowData.push("", "", "");
                             inactiveColumns.push(cIdx, cIdx + 1, cIdx + 2);
@@ -796,11 +954,7 @@ function renderTable() {
                     row.height = 25;
                     
                     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                        cell.alignment = { 
-                            vertical: 'middle', 
-                            horizontal: 'center', 
-                            wrapText: colNumber > 6 
-                        };
+                        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: colNumber > 6 };
                         cell.border = borderStyle;
                         
                         if (inactiveColumns.includes(colNumber)) {
@@ -822,9 +976,7 @@ function renderTable() {
 
                 if (group.sites.length > 1) {
                     let endRow = rowIndex - 1;
-                    for (let c = 1; c <= 5; c++) {
-                        ws.mergeCells(startRow, c, endRow, c);
-                    }
+                    for (let c = 1; c <= 5; c++) ws.mergeCells(startRow, c, endRow, c);
                 }
             });
 
@@ -834,20 +986,14 @@ function renderTable() {
             ws.getColumn(4).width = 25;
             ws.getColumn(5).width = 15;
             ws.getColumn(6).width = 25;
-            
-            let totalCols = ws.columnCount;
-            for(let c = 7; c <= totalCols; c++) {
-                 ws.getColumn(c).width = 12;
-            }
+            for(let c = 7; c <= ws.columnCount; c++) ws.getColumn(c).width = 12;
 
             const buffer = await wb.xlsx.writeBuffer();
             const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
             saveAs(blob, `VAT_Tracking_${currentYear}_${quarter}.xlsx`);
-            
             showStatus("Export Success!", "saved");
         }
 
-        /* COMPACT EXCEL EXPORT - EXACT AS IMAGE (SUPPLIER-WISE CONSOLIDATED TAB) */
         async function exportCompactExcel() {
             showStatus("Exporting Compact...", "saving");
             const displayData = getFilteredData();
@@ -867,7 +1013,6 @@ function renderTable() {
                 return isNaN(num) ? val : num; 
             };
 
-            // 1. ഒരേ സപ്ലയർക്ക് കീഴിലുള്ള എല്ലാ സൈറ്റുകളെയും (വ്യത്യസ്ത കമ്പനികളിൽ ആണെങ്കിലും) ഒരുമിച്ച് കൊണ്ടുവരുന്നു
             const consolidatedSuppliers = {};
             displayData.forEach(group => {
                 const supKey = (group.supplier || "Unknown").trim();
@@ -884,12 +1029,10 @@ function renderTable() {
                 }
 
                 group.sites.forEach(st => {
-                    // സൈറ്റുകൾ ഡ്യൂപ്ലിക്കേറ്റ് വരാതിരിക്കാൻ ചെക്ക് ചെയ്യുന്നു
                     const existingSite = consolidatedSuppliers[supKey].sites.find(s => s.site_name === st.site_name);
                     if (!existingSite) {
                         consolidatedSuppliers[supKey].sites.push(JSON.parse(JSON.stringify(st)));
                     } else {
-                        // നിലവിൽ ഉള്ള സൈറ്റാണെങ്കിൽ ബില്ലിംഗും ആക്ടീവ് മന്ത്സും മെർജ് ചെയ്യുന്നു
                         for (let m = 0; m < 12; m++) {
                             if (st.active_months[m]) existingSite.active_months[m] = true;
                             if (st.billing[m]?.bill_no) existingSite.billing[m].bill_no = st.billing[m].bill_no;
@@ -903,7 +1046,6 @@ function renderTable() {
             const usedSheetNames = new Set();
 
             Object.values(consolidatedSuppliers).forEach(supData => {
-                // Excel Sheet Name ക്രമീകരിക്കുന്നു (പരമാവധി 28 അക്ഷരം, അസാധുവായ ചിഹ്നങ്ങൾ നീക്കം ചെയ്യുന്നു)
                 let sheetName = (supData.supplier || "Supplier").replace(/[*?:/\\\[\]]/g, '').trim().substring(0, 28);
                 if (!sheetName) sheetName = "Supplier";
 
@@ -914,21 +1056,17 @@ function renderTable() {
                 }
                 usedSheetNames.add(uniqueSheetName.toLowerCase());
 
-                // ഫസ്റ്റ് കോളം ഫ്രീസ് ചെയ്യുന്നില്ല (xSplit: 0), ടോപ്പ് ഹെഡറുകൾ മാത്രം ഫ്രീസ് ചെയ്യുന്നു (ySplit: 5)
                 const ws = wb.addWorksheet(uniqueSheetName, { views: [{ state: 'frozen', ySplit: 5, xSplit: 0 }] });
 
-                // Row 1: Supplier Name
                 let r1 = ws.addRow(["Supplier", supData.supplier || ""]);
                 r1.getCell(1).font = { bold: true };
                 r1.getCell(2).font = { bold: true };
 
-                // Row 2: VAT No
                 let r2 = ws.addRow(["Vat No", supData.vat_no ? String(supData.vat_no) : ""]);
                 r2.getCell(1).font = { bold: true };
                 r2.getCell(2).font = { bold: true };
-                r2.getCell(2).numFmt = '@'; // ടെക്സ്റ്റ് ഫോർമാറ്റായി നിലനിർത്തുന്നു
+                r2.getCell(2).numFmt = '@';
 
-                // Row 3: Display Name
                 let r3 = ws.addRow(["Display Name", supData.display_name || ""]);
                 r3.getCell(1).font = { bold: true };
                 r3.getCell(2).font = { bold: true };
@@ -937,7 +1075,6 @@ function renderTable() {
                 ws.getRow(2).height = 20;
                 ws.getRow(3).height = 20;
 
-                // Row 4: Site Names Headers & Row 5: Sub-headers (Month, Bill No, Amount, Vendor TS)
                 let row4 = ["Month"];
                 let row5 = [""];
 
@@ -946,23 +1083,19 @@ function renderTable() {
                     row5.push("Bill No", "Amount", "Vendor TS");
                 });
 
-                ws.addRow(row4); // Row 4
-                ws.addRow(row5); // Row 5
-
+                ws.addRow(row4);
+                ws.addRow(row5);
                 ws.getRow(4).height = 26;
                 ws.getRow(5).height = 24;
 
-                // Month കോളം വെർട്ടിക്കലായി മെർജ് ചെയ്യുന്നു (Row 4 & 5)
                 ws.mergeCells(4, 1, 5, 1);
 
-                // ഓരോ സൈറ്റിന്റെയും 3 കോളങ്ങൾക്ക് മുകളിൽ സൈറ്റിന്റെ പേര് ഹൊറിസോണ്ടലായി മെർജ് ചെയ്യുന്നു
                 let colIdx = 2;
                 supData.sites.forEach(() => {
                     ws.mergeCells(4, colIdx, 4, colIdx + 2);
                     colIdx += 3;
                 });
 
-                // Row 4 Header Styling (Site Name Headers & Month)
                 ws.getRow(4).eachCell({ includeEmpty: true }, (cell, colNumber) => {
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
                     cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 11 };
@@ -970,7 +1103,6 @@ function renderTable() {
                     cell.border = borderStyle;
                 });
 
-                // Row 5 Header Styling (Bill No, Amount, Vendor TS)
                 ws.getRow(5).eachCell({ includeEmpty: true }, (cell, colNumber) => {
                     if (colNumber > 1) {
                         let isERP = ((colNumber - 1) % 3 === 0);
@@ -981,7 +1113,6 @@ function renderTable() {
                     }
                 });
 
-                // Row 6 മുതൽ ഡാറ്റ വരികൾ ചേർക്കുന്നു
                 for (let m = startMonth; m <= endMonth; m++) {
                     let mName = monthsFull[m].substring(0, 3) + " - " + currentYear.toString().slice(-2);
                     let rowData = [mName];
@@ -993,11 +1124,7 @@ function renderTable() {
                         const bill = site.billing[m] || { bill_no: "", amount: "", erp_total: "" };
 
                         if (isActive) {
-                            rowData.push(
-                                bill.bill_no || "",
-                                safeNumber(bill.amount),
-                                safeNumber(bill.erp_total)
-                            );
+                            rowData.push(bill.bill_no || "", safeNumber(bill.amount), safeNumber(bill.erp_total));
                         } else {
                             rowData.push("", "", "");
                             inactiveCells.push(currCol, currCol + 1, currCol + 2);
@@ -1019,11 +1146,9 @@ function renderTable() {
                             if (inactiveCells.includes(colNumber)) {
                                 cell.fill = { type: 'pattern', pattern: 'lightGray', fgColor: { argb: 'FFCBD5E1' }, bgColor: { argb: 'FFE2E8F0' } };
                             } else {
-                                // Vendor TS കോളം ഗ്രീൻ കളർ ഫോണ്ട്
                                 if ((colNumber - 1) % 3 === 0) {
                                     cell.font = { bold: true, color: { argb: 'FF0F766E' } };
                                 }
-                                // Amount & Vendor TS നമ്പറുകൾക്ക് കറൻസി/ഡെസിമൽ ഫോർമാറ്റിംഗ്
                                 let isAmt = (colNumber - 1) % 3 === 2;
                                 let isERP = (colNumber - 1) % 3 === 0;
                                 if ((isAmt || isERP) && typeof cell.value === 'number') {
@@ -1034,27 +1159,21 @@ function renderTable() {
                     });
                 }
 
-                // Column Width ക്രമീകരിക്കുന്നു
                 ws.getColumn(1).width = 16;
                 let totalColumns = ws.columnCount;
-                for (let c = 2; c <= totalColumns; c++) {
-                    ws.getColumn(c).width = 14;
-                }
+                for (let c = 2; c <= totalColumns; c++) ws.getColumn(c).width = 14;
             });
 
             const buffer = await wb.xlsx.writeBuffer();
             const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
             saveAs(blob, `Compact_VAT_${currentYear}_${quarter}.xlsx`);
-
             showStatus("Compact Export Success!", "saved");
         }
         
         function escapeHTML(str) { return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; }
         function escapeQuotes(str) { return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; }
 
-       
-
-function copyColumnValues(e, colName, monthIndex = null) {
+        function copyColumnValues(e, colName, monthIndex = null) {
             e.preventDefault();
             const displayData = getFilteredData();
             let valuesToCopy = [];
@@ -1062,22 +1181,15 @@ function copyColumnValues(e, colName, monthIndex = null) {
 
             displayData.forEach(group => {
                 const groupSn = currentSn++;
-                // ഓരോ ഗ്രൂപ്പിലെയും എല്ലാ സൈറ്റ് വരികൾക്കും പാരന്റ് ഡാറ്റ (Company, Display Name, etc.) ഓട്ടോഫിൽ ആയി നൽകുന്നു
                 group.sites.forEach(siteData => {
                     let val = "";
-                    if (colName === 'sn') {
-                        val = groupSn;
-                    } else if (colName === 'company') {
-                        val = group.company;
-                    } else if (colName === 'display_name') {
-                        val = group.display_name;
-                    } else if (colName === 'supplier') {
-                        val = group.supplier;
-                    } else if (colName === 'vat_no') {
-                        val = group.vat_no;
-                    } else if (colName === 'site_name') {
-                        val = siteData.site_name;
-                    } else if (monthIndex !== null) {
+                    if (colName === 'sn') val = groupSn;
+                    else if (colName === 'company') val = group.company;
+                    else if (colName === 'display_name') val = group.display_name;
+                    else if (colName === 'supplier') val = group.supplier;
+                    else if (colName === 'vat_no') val = group.vat_no;
+                    else if (colName === 'site_name') val = siteData.site_name;
+                    else if (monthIndex !== null) {
                         let bill = siteData.billing[monthIndex] || {};
                         if (colName === 'bill_no') val = bill.bill_no;
                         else if (colName === 'amount') val = bill.amount;
@@ -1095,175 +1207,6 @@ function copyColumnValues(e, colName, monthIndex = null) {
                 });
             }
         }
-
-        let currentQuickSites = []; // Holds all sites mapped with their parent group data
-
-function openQuickEntryModal(e, company, supplier) {
-    e.preventDefault();
-    
-    // Find all groups matching the same supplier (or same VAT No if supplier names vary slightly)
-    const matchingGroups = rawData.filter(g => (g.supplier === supplier) || (g.company === company && g.supplier === supplier));
-    if (matchingGroups.length === 0) return;
-
-    const primaryGroup = matchingGroups.find(g => g.company === company) || matchingGroups[0];
-    
-    document.getElementById("qmSupplierTitle").innerText = primaryGroup.supplier;
-    document.getElementById("qmVatSubtitle").innerText = `VAT No: ${primaryGroup.vat_no || 'N/A'} | Display: ${primaryGroup.display_name || 'N/A'}`;
-
-    // Flatten all sites from matching groups across different companies
-    currentQuickSites = [];
-    matchingGroups.forEach(grp => {
-        grp.sites.forEach(st => {
-            currentQuickSites.push({
-                group: grp,
-                site: st
-            });
-        });
-    });
-
-    const siteSelect = document.getElementById("qmSiteSelect");
-    siteSelect.innerHTML = "";
-    
-    currentQuickSites.forEach((item, index) => {
-        // Show site name directly in the dropdown
-        siteSelect.innerHTML += `<option value="${index}">${escapeHTML(item.site.site_name)}</option>`;
-    });
-
-    loadQuickTable();
-    document.getElementById("quickEntryModal").style.display = "flex";
-}
-
-function loadQuickTable() {
-    if (!currentQuickSites || currentQuickSites.length === 0) return;
-    const selectedIdx = parseInt(document.getElementById("qmSiteSelect").value);
-    const target = currentQuickSites[selectedIdx];
-    if (!target) return;
-
-    const siteObj = target.site;
-    let html = "";
-    for (let i = 0; i < 12; i++) {
-        const isActive = siteObj.active_months[i];
-        const bill = siteObj.billing[i] || { bill_no: "", amount: "", erp_total: "" };
-        const monthLabel = monthsFull[i].substring(0, 3) + " - " + currentYear.toString().slice(-2);
-        const erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
-
-        if (isActive) {
-            html += `
-                <tr>
-                    <td style="font-weight: 600; background: #f8fafc;">${monthLabel}</td>
-                    <td><input type="text" class="quick-input qm-bill" data-month="${i}" value="${escapeHTML(bill.bill_no || '')}"></td>
-                    <td><input type="text" class="quick-input qm-amt" data-month="${i}" value="${escapeHTML(bill.amount || '')}"></td>
-                    <td style="background: #f0fdfa; font-weight: 600; color: #0f766e;">${erpVal}</td>
-                </tr>
-            `;
-        } else {
-            html += `
-                <tr style="background: #f1f5f9; color: #94a3b8;">
-                    <td>${monthLabel}</td>
-                    <td colspan="3" style="font-style: italic; font-size: 11px;">Inactive Month</td>
-                </tr>
-            `;
-        }
-    }
-    document.getElementById("quickTableBody").innerHTML = html;
-}
-
-function closeQuickModal() {
-    document.getElementById("quickEntryModal").style.display = "none";
-    currentQuickSites = [];
-}
-
-async function saveQuickEntry() {
-    if (!currentQuickSites || currentQuickSites.length === 0) return;
-    const selectedIdx = parseInt(document.getElementById("qmSiteSelect").value);
-    const target = currentQuickSites[selectedIdx];
-    if (!target) return;
-
-    const currentGrp = target.group;
-    const siteObj = target.site;
-    const selectedSiteName = siteObj.site_name;
-
-    const billInputs = document.querySelectorAll(".qm-bill");
-    const amtInputs = document.querySelectorAll(".qm-amt");
-    const updates = [];
-
-    billInputs.forEach(input => {
-        const m = parseInt(input.dataset.month);
-        const newBill = input.value.trim();
-        const oldBill = siteObj.billing[m]?.bill_no || "";
-
-        if (newBill !== oldBill) {
-            siteObj.billing[m].bill_no = newBill;
-            updates.push({
-                year: currentYear,
-                company: currentGrp.company,
-                supplier: currentGrp.supplier,
-                vat_no: currentGrp.vat_no,
-                display_name: currentGrp.display_name,
-                site_name: selectedSiteName,
-                month_index: m,
-                field: "bill_no",
-                value: newBill
-            });
-        }
-    });
-
-    amtInputs.forEach(input => {
-        const m = parseInt(input.dataset.month);
-        let newAmt = input.value.trim();
-
-        // Formula Calculation support (=100+20)
-        if (newAmt !== "") {
-            let expr = newAmt.startsWith("=") ? newAmt.substring(1) : newAmt;
-            expr = expr.replace(/,/g, "");
-            if (/^[0-9+\-*/().\s]+$/.test(expr)) {
-                try {
-                    let calculated = new Function("return " + expr)();
-                    if (isFinite(calculated)) newAmt = Number(calculated.toFixed(2)).toString();
-                } catch (e) {}
-            }
-        }
-
-        const oldAmt = siteObj.billing[m]?.amount || "";
-        if (newAmt !== oldAmt) {
-            siteObj.billing[m].amount = newAmt;
-            updates.push({
-                year: currentYear,
-                company: currentGrp.company,
-                supplier: currentGrp.supplier,
-                vat_no: currentGrp.vat_no,
-                display_name: currentGrp.display_name,
-                site_name: selectedSiteName,
-                month_index: m,
-                field: "amount",
-                value: newAmt
-            });
-        }
-    });
-
-    if (updates.length > 0) {
-        showStatus("Saving Quick Changes...", "saving");
-        try {
-            const res = await fetch(`/timesheet/api/vat-tracking/update-bulk`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
-                body: JSON.stringify({ changes: updates })
-            });
-            const json = await res.json();
-            if (json.success) {
-                showStatus("✓ Saved successfully", "saved");
-            } else {
-                showStatus("Error saving", "error");
-            }
-        } catch (e) {
-            showStatus("Network Error", "error");
-        }
-    }
-
-    closeQuickModal();
-    renderTable(); 
-}
-
     </script>
 </body>
 </html>

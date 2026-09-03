@@ -2036,7 +2036,9 @@ function submitBulkData() {
       if (plate) {
         let rentVal = parseFloat(row.querySelector(".rent").value) || 0;
         let vatAmt = parseFloat(row.querySelector(".vat")?.innerText || 0);
-        let totalVal = rentVal + vatAmt;
+        
+        // 🟢 FIX: സ്ക്രീനിൽ കാണുന്ന കൃത്യമായ റൗണ്ടഡ് ടോട്ടൽ തന്നെ എടുക്കുന്നു (0.01 പൈസ വ്യത്യാസം വരാതിരിക്കാൻ)
+        let totalVal = parseFloat(row.querySelector(".total")?.innerText) || Number((rentVal + vatAmt).toFixed(2));
 
         // 🟢 BUG FIX: Match Adjustment Plate dynamically
         let rowAdjs = adjDataArray.filter((a) => {
@@ -2092,7 +2094,7 @@ function submitBulkData() {
           total: totalVal,
           adjustment_desc: rowAdjDescStr,
           adjusted_amount: rowAdjAmtTotal,
-          after_adjustment: totalVal + rowAdjAmtTotal,
+          after_adjustment: Number((totalVal + rowAdjAmtTotal).toFixed(2)),
           remark: row.querySelector(".remark") ? row.querySelector(".remark").value.trim() : "",
         });
       }
@@ -2281,7 +2283,9 @@ function submitSingleCard(cardId) {
     if (plate) {
       let rentVal = parseFloat(row.querySelector(".rent").value) || 0;
       let vatAmt = parseFloat(row.querySelector(".vat")?.innerText || 0);
-      let totalVal = rentVal + vatAmt;
+      
+      // 🟢 FIX: സ്ക്രീനിൽ കാണുന്ന കൃത്യമായ റൗണ്ടഡ് ടോട്ടൽ തന്നെ എടുക്കുന്നു (0.01 പൈസ വ്യത്യാസം വരാതിരിക്കാൻ)
+      let totalVal = parseFloat(row.querySelector(".total")?.innerText) || Number((rentVal + vatAmt).toFixed(2));
 
       // 🟢 BUG FIX: Match Adjustment Plate dynamically for single card
       let rowAdjs = adjDataArray.filter((a) => {
@@ -2332,7 +2336,7 @@ function submitSingleCard(cardId) {
         total: totalVal,
         adjustment_desc: rowAdjDescStr,
         adjusted_amount: rowAdjAmtTotal,
-        after_adjustment: totalVal + rowAdjAmtTotal,
+        after_adjustment: Number((totalVal + rowAdjAmtTotal).toFixed(2)),
         remark: row.querySelector(".remark")
           ? row.querySelector(".remark").value.trim()
           : "",

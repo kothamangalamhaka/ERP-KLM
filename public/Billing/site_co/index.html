@@ -2456,14 +2456,14 @@
 
           // Rent, VAT, Total എന്നിവ ടെക്സ്റ്റിൽ നിന്നോ ഫോർമുലയിൽ നിന്നോ കൃത്യമായി കണക്കാക്കുന്നു
           const calculatedRent = nhr * nrate + othr * otrate;
-          const rent = parseFloat(r.querySelector(".rent-cell")?.innerText) || calculatedRent || 0;
+          const rent = parseFloat(r.querySelector(".rent-cell")?.innerText) || Number(calculatedRent.toFixed(2)) || 0;
           
           const vatPercent = findVatPercentForPlate(plate);
           const calculatedVat = rent * (vatPercent / 100);
-          const vatAmount = parseFloat(r.querySelector(".vat-cell")?.innerText) || calculatedVat || 0;
+          const vatAmount = parseFloat(r.querySelector(".vat-cell")?.innerText) || Number(calculatedVat.toFixed(2)) || 0;
           
-          const calculatedTotal = rent + vatAmount;
-          const total = parseFloat(r.querySelector(".total-cell")?.innerText) || calculatedTotal || 0;
+          // 🟢 FIX: സ്ക്രീനിൽ കാണുന്ന കൃത്യമായ റൗണ്ടഡ് ടോട്ടൽ തന്നെ എടുക്കുന്നു
+          const total = parseFloat(r.querySelector(".total-cell")?.innerText) || Number((rent + vatAmount).toFixed(2));
 
           const site = r.getAttribute("data-site") || r.children[3]?.innerText?.trim() || "N/A";
           const driver = r.children[4]?.innerText?.trim() || "";
@@ -3994,7 +3994,9 @@
           const otrate = parseFloat(cells[1]?.querySelector(".otrate-field")?.value || cells[1]?.querySelector(".view-number-text")?.innerText || 0);
           const rent = parseFloat(r.querySelector(".rent-cell")?.innerText || 0);
           const vat = parseFloat(r.querySelector(".vat-cell")?.innerText || 0);
-          const total = parseFloat(r.querySelector(".total-cell")?.innerText || 0);
+          
+          // 🟢 FIX: സ്ക്രീനിൽ കാണുന്ന കൃത്യമായ റൗണ്ടഡ് ടോട്ടൽ തന്നെ എടുക്കുന്നു
+          const total = parseFloat(r.querySelector(".total-cell")?.innerText) || Number((rent + vat).toFixed(2));
           const remark = r.querySelector(".remark-column-cell")?.innerText?.trim() || "";
           const owner = r.getAttribute("data-owner") || "COMPANY VEHICLE";
           const site = r.getAttribute("data-site") || r.children[3]?.innerText?.trim() || "N/A";
