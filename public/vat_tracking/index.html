@@ -177,7 +177,8 @@
             </div>
             <div class="quick-modal-footer">
                 <button onclick="closeQuickModal()" style="padding: 6px 14px; border: none; background: #94a3b8; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;">Cancel</button>
-                <button onclick="saveQuickEntry()" class="btn-success" style="padding: 6px 14px; font-size: 12px;">Save & Apply All</button>
+                <button onclick="saveQuickEntry(false)" class="btn-success" style="padding: 6px 14px; font-size: 12px;">Save & Apply All</button>
+                <button onclick="saveQuickEntry(true)" class="btn-success" style="padding: 6px 14px; font-size: 12px; background: #3b82f6;">Save & Next ⏭</button>
             </div>
         </div>
     </div>
@@ -449,10 +450,15 @@
            QUICK ENTRY MODAL (WITH HAKA -> ALJODA -> MASAR -> WE1 & EARLIEST MONTH SORT)
         ------------------------------------------------------------------ */
         let qmActiveSites = [];
+        let currentModalSupplier = "";
+        let currentModalCompany = "";
 
         function openQuickEntryModal(e, company, supplier) {
-            e.preventDefault();
+            if (e && e.preventDefault) e.preventDefault();
             
+            currentModalSupplier = supplier;
+            currentModalCompany = company;
+
             const matchingGroups = rawData.filter(g => (g.supplier === supplier) || (g.company === company && g.supplier === supplier));
             if (matchingGroups.length === 0) return;
 
@@ -605,7 +611,7 @@
             qmActiveSites = [];
         }
 
-        async function saveQuickEntry() {
+        async function saveQuickEntry(goToNext = false) {
             if (qmActiveSites.length === 0) return;
 
             const inputs = document.querySelectorAll(".qm-cell-input");
@@ -668,8 +674,37 @@
                 }
             }
 
-            closeQuickModal();
             renderTable();
+
+            if (goToNext) {
+                const displayData = getFilteredData();
+                
+                // Get ordered unique suppliers list as visible on the UI
+                const supplierMap = new Map();
+                displayData.forEach(g => {
+                    const sKey = (g.supplier || "").trim();
+                    if (!supplierMap.has(sKey)) {
+                        supplierMap.set(sKey, { supplier: g.supplier, company: g.company });
+                    }
+                });
+
+                const sortedSupplierList = Array.from(supplierMap.values()).sort((a, b) => 
+                    (a.supplier || "").localeCompare(b.supplier || "")
+                );
+
+                const currentIdx = sortedSupplierList.findIndex(s => s.supplier === currentModalSupplier);
+
+                if (currentIdx !== -1 && currentIdx + 1 < sortedSupplierList.length) {
+                    const nextSupplier = sortedSupplierList[currentIdx + 1];
+                    openQuickEntryModal(null, nextSupplier.company, nextSupplier.supplier);
+                    showStatus(`Moved to: ${nextSupplier.supplier}`, "saved");
+                } else {
+                    closeQuickModal();
+                    showStatus("All filtered suppliers completed!", "saved");
+                }
+            } else {
+                closeQuickModal();
+            }
         }
 
         function toggleBulkEdit() {
