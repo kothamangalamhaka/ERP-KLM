@@ -114,13 +114,14 @@ router.get("/data", verifyVatCode, async (req, res) => {
 
 const erpQuery = `
             SELECT 
-                TRIM(owner) as owner, 
-                TRIM(site_name) as site_name, 
+                LOWER(REPLACE(TRIM(COALESCE(company, '')), ' ', '')) as norm_company,
+                LOWER(TRIM(owner)) as norm_owner, 
+                LOWER(TRIM(site_name)) as norm_site, 
                 billing_month, 
                 ROUND(SUM(COALESCE(after_adjustment::numeric, 0)), 2) as erp_total 
             FROM billing_records 
             WHERE billing_month LIKE $1  
-            GROUP BY TRIM(owner), TRIM(site_name), billing_month
+            GROUP BY LOWER(REPLACE(TRIM(COALESCE(company, '')), ' ', '')), LOWER(TRIM(owner)), LOWER(TRIM(site_name)), billing_month
         `;
         const erpResult = await pool.query(erpQuery, [`%${currentYear}`]);
         const erpData = erpResult.rows;
@@ -202,11 +203,27 @@ const erpQuery = `
                     );
 
                     const monthString = `${monthNames[i]} ${currentYear}`;
-                    const erpRecord = erpData.find(e => 
-                        (e.site_name || "").trim() === siteObj.site_name && 
-                        (e.owner || "").trim() === group.supplier && 
+                    const normSite = siteObj.site_name.trim().toLowerCase();
+                    const normSupplier = group.supplier.trim().toLowerCase();
+                    const normComp = group.company.replace(/\s+/g, '').trim().toLowerCase();
+
+                    // 🟢 1. ആദ്യ പരിശോധന: കമ്പനി + ഓണർ + സൈറ്റ് + മാസം എന്നിവ കൃത്യമായി ഒത്തുനോക്കുന്നു
+                    let erpRecord = erpData.find(e => 
+                        e.norm_site === normSite && 
+                        e.norm_owner === normSupplier && 
+                        (e.norm_company === normComp || e.norm_company === "") &&
                         e.billing_month === monthString
                     );
+
+                    // 🟢 2. കമ്പനി സ്പെല്ലിംഗ് മാറിയിട്ടുണ്ടെങ്കിൽ: ഓണർ + സൈറ്റ് + മാസം വെച്ച് ബാക്കപ്പ് ലുക്കപ്പ്
+                    if (!erpRecord) {
+                        erpRecord = erpData.find(e => 
+                            e.norm_site === normSite && 
+                            e.norm_owner === normSupplier && 
+                            e.billing_month === monthString
+                        );
+                    }
+
                     const erpTotal = erpRecord ? erpRecord.erp_total : "";
 
                     siteObj.billing[i] = bill 

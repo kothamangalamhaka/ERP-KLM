@@ -8,17 +8,21 @@
     <!-- Local scripts from node_xlsx_scripts -->
     <script src="/node_xlsx_scripts/exceljs.min.js"></script>
     <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; font-size: 13px; color: #1e293b; }
         .navbar { background: #0f2027; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .nav-tools { display: flex; gap: 15px; align-items: center; font-size: 13px; }
+        .nav-tools { display: flex; gap: 10px; align-items: center; font-size: 13px; }
         .input-box { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Inter'; font-size: 13px; outline: none; }
         .input-box:focus { border-color: #0284c7; }
         
-        .btn-export { background: #10b981; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; display: flex; align-items: center; gap: 5px; }
+        .btn-export { background: #10b981; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
         .btn-export:hover { background: #059669; }
+
+        .btn-copy-img { background: #0284c7; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+        .btn-copy-img:hover { background: #0369a1; }
 
         .table-container { width: 100%; max-width: 100%; margin: 15px auto; padding: 0 15px; box-sizing: border-box; overflow-x: auto; max-height: calc(100vh - 75px); }
         table { border-collapse: separate; border-spacing: 0; width: 100%; background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
@@ -103,6 +107,32 @@
             background: #f1f5f9;
         }
 
+        /* Toast notification */
+        #toast {
+            visibility: hidden;
+            min-width: 260px;
+            background-color: #0f172a;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 12px 18px;
+            position: fixed;
+            z-index: 100000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+        }
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.3s, fadeout 0.3s 2.7s;
+        }
+        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
         /* Login Modal Styles */
         .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 32, 39, 0.95); display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; width: 320px; }
@@ -134,12 +164,13 @@
         <div class="nav-tools">
             <label style="color: #94a3b8; font-weight: 500;">Year:</label>
             <input type="number" id="yearFilter" class="input-box" style="width: 75px;" onchange="fetchMiniData()">
-            <input type="text" id="searchInput" class="input-box" placeholder="Search Supplier or Site..." onkeyup="renderMiniTable()" style="width: 220px;">
+            <input type="text" id="searchInput" class="input-box" placeholder="Search Supplier or Site..." onkeyup="renderMiniTable()" style="width: 200px;">
             
             <label style="display: flex; align-items: center; gap: 5px; color: #cbd5e1; cursor: pointer; user-select: none;">
                 <input type="checkbox" id="pendingOnlyToggle" onchange="renderMiniTable()" checked> Only Pending
             </label>
 
+            <button class="btn-copy-img" onclick="copyMiniDashboardHQImage()" title="Copy High Quality PNG to Clipboard">📋 Copy HD Image</button>
             <button class="btn-export" onclick="exportMiniExcel()">⬇ Export Excel</button>
         </div>
     </div>
@@ -156,14 +187,16 @@
         </div>
     </div>
 
-    <div class="table-container">
-        <table>
+    <div class="table-container" id="miniTableContainer">
+        <table id="miniDashboardTable">
             <thead id="miniHead"></thead>
             <tbody id="miniBody">
                 <tr><td colspan="20" style="text-align: center; padding: 20px;">Loading data...</td></tr>
             </tbody>
         </table>
     </div>
+
+    <div id="toast"></div>
 
     <script>
         const monthShortNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -276,7 +309,6 @@
                     const matchPending = !onlyPending || s.hasPending;
                     if (!matchSearch || !matchPending) return false;
 
-                    // Month Column Filters check (Pending vs Blanks)
                     for (const mIdx in activeMonthFilters) {
                         const selectedValues = activeMonthFilters[mIdx];
                         if (selectedValues && selectedValues.length > 0) {
@@ -305,7 +337,6 @@
             const list = getProcessedData();
             const shortYear = currentYear.toString().slice(-2);
 
-            // 1. പെൻഡിംഗ് ഉള്ള മാസങ്ങൾ മാത്രം ഡൈനാമിക് ആയി കണ്ടെത്തുന്നു
             const activePendingMonthIndices = [];
             for (let m = 0; m < 12; m++) {
                 let hasAnyPending = false;
@@ -327,7 +358,6 @@
                 }
             }
 
-            // 2. ഉയരമുള്ള ഹെഡറും ഫിൽട്ടർ ഐക്കണും
             let theadHtml = `<tr>
                 <th style="width: 50px; text-align: center;">SN</th>
                 <th style="width: 280px; text-align: left; padding-left: 14px;">Supplier Name</th>
@@ -360,7 +390,6 @@
                 return;
             }
 
-            // 3. ടേബിൾ ബോഡി നിർമ്മിക്കുന്നു
             let tbody = "";
             let sn = 1;
 
@@ -396,6 +425,64 @@
             document.getElementById("miniBody").innerHTML = tbody;
         }
 
+        /* ----------------------------------------------------
+           HIGH QUALITY (HD) IMAGE COPY / EXPORT
+        ---------------------------------------------------- */
+        async function copyMiniDashboardHQImage() {
+            const table = document.getElementById("miniDashboardTable");
+            if (!table) return;
+
+            showToast("Generating Ultra HD Image...");
+
+            // Temporarily hide filter icons for a clean professional report screenshot
+            const filterIcons = table.querySelectorAll(".filter-icon");
+            filterIcons.forEach(icon => icon.style.display = "none");
+
+            try {
+                // scale: 4 provides ultra high resolution suitable for extreme zoom without pixelation
+                const canvas = await html2canvas(table, {
+                    scale: 4,
+                    useCORS: true,
+                    backgroundColor: "#ffffff",
+                    logging: false,
+                    windowWidth: table.scrollWidth + 50,
+                    onclone: (clonedDoc) => {
+                        const clonedTable = clonedDoc.getElementById("miniDashboardTable");
+                        if (clonedTable) {
+                            clonedTable.style.width = "max-content";
+                            clonedTable.style.boxShadow = "none";
+                        }
+                    }
+                });
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        showToast("Failed to generate image.");
+                        return;
+                    }
+
+                    try {
+                        if (navigator.clipboard && window.isSecureContext && typeof ClipboardItem !== "undefined") {
+                            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+                            showToast("✓ High Quality Image Copied to Clipboard!");
+                        } else {
+                            // Direct download fallback if clipboard API is restricted on network/HTTP
+                            saveAs(blob, `Pending_VAT_Bills_${currentYear}_HQ.png`);
+                            showToast("Image Downloaded in Ultra HD!");
+                        }
+                    } catch (clipErr) {
+                        saveAs(blob, `Pending_VAT_Bills_${currentYear}_HQ.png`);
+                        showToast("Image Downloaded in Ultra HD!");
+                    }
+                }, "image/png", 1.0);
+
+            } catch (err) {
+                showToast("Error generating image.");
+            } finally {
+                filterIcons.forEach(icon => icon.style.display = "inline-block");
+            }
+        }
+
         async function exportMiniExcel() {
             const list = getProcessedData();
             if (list.length === 0) {
@@ -416,7 +503,6 @@
                 right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
             };
 
-            // 1. കുറഞ്ഞത് ഒരു പെൻഡിംഗ് എങ്കിലും ഉള്ള മാസങ്ങളെ മാത്രം കണ്ടെത്തുന്നു
             const activePendingMonthIndices = [];
             for (let m = 0; m < 12; m++) {
                 let hasAnyPending = false;
@@ -438,7 +524,6 @@
                 }
             }
 
-            // 2. Header
             const headers = ["SN", "Supplier Name", "Site Name"];
             activePendingMonthIndices.forEach(m => {
                 headers.push(`${monthShortNames[m]} - ${shortYear}`);
@@ -456,7 +541,6 @@
                 cell.border = borderStyle;
             });
 
-            // 3. Data Rows
             let rowIndex = 2;
             let sn = 1;
 
@@ -549,6 +633,13 @@
 
         function escapeHTML(str) {
             return str ? String(str).replace(/[&<>'"]/g, t => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[t] || t) : "";
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.className = "show";
+            setTimeout(() => { t.className = ""; }, 3000);
         }
 
         function openMonthFilter(e, monthIdx) {
