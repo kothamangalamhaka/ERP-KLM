@@ -101,6 +101,10 @@
             max-height: 92vh; display: flex; flex-direction: column;
             box-shadow: 0 20px 40px rgba(0,0,0,0.4); overflow: hidden;
         }
+        .quick-modal-content.single-site {
+            width: 540px;
+            max-width: 95vw;
+        }
         .quick-modal-header {
             background: #1e293b; color: white; padding: 10px 18px;
             display: flex; justify-content: space-between; align-items: center;
@@ -113,7 +117,10 @@
             display: flex; justify-content: flex-end; gap: 8px;
         }
         .quick-table {
-            border-collapse: separate; border-spacing: 0; width: max-content;
+            border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%;
+        }
+        .single-site .quick-table {
+            width: 100%;
         }
         .quick-table th {
             position: sticky; top: 0; z-index: 10;
@@ -133,14 +140,24 @@
         .quick-table th, .quick-table td {
             border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; 
             padding: 4px 6px; font-size: 11px; text-align: center;
+            vertical-align: middle;
         }
         .quick-input {
-            width: 100%; max-width: 72px; padding: 3px 2px; 
+            width: 100%; padding: 4px; 
             border: 1px solid #cbd5e1; border-radius: 3px; 
             text-align: center; font-size: 11px; font-family: 'Inter';
             box-sizing: border-box;
         }
         .quick-input:focus { border-color: #0284c7; outline: none; background: #f0f9ff; }
+        .quick-textarea {
+            width: 100%; min-height: 24px; height: 24px; padding: 3px 4px;
+            border: 1px solid #cbd5e1; border-radius: 3px;
+            text-align: center; font-size: 11px; font-family: 'Inter';
+            box-sizing: border-box; resize: none; line-height: 1.3;
+            white-space: pre-wrap; word-break: break-word; overflow-y: hidden;
+            display: block;
+        }
+        .quick-textarea:focus { border-color: #0284c7; outline: none; background: #f0f9ff; }
     </style>
 
     <div id="quickEntryModal" class="quick-modal-overlay">
@@ -320,10 +337,10 @@
 
             let head1 = `<tr>
                 <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'sn')">SN</th>
-                <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'company')">Company <span class="filter-icon" onclick="openFilter(event, 'company')">▼</span></th>
                 <th rowspan="2" style="min-width: 130px; max-width: 130px;" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'display_name')">Display Name <span class="filter-icon" onclick="openFilter(event, 'display_name')">▼</span></th>
                 <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'supplier')">Supplier <span class="filter-icon" onclick="openFilter(event, 'supplier')">▼</span></th>
                 <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'vat_no')">Vat No <span class="filter-icon" onclick="openFilter(event, 'vat_no')">▼</span></th>
+                <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'company')">Company <span class="filter-icon" onclick="openFilter(event, 'company')">▼</span></th>
                 <th rowspan="2" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'site_name')">Site <span class="filter-icon" onclick="openFilter(event, 'site_name')">▼</span></th>`;
             let head2 = `<tr>`;
 
@@ -338,48 +355,93 @@
             head2 += `</tr>`;
             document.getElementById("tableHead").innerHTML = head1 + head2;
 
-            let tbody = "";
             if (displayData.length === 0) {
                 document.getElementById("tableBody").innerHTML = `<tr><td colspan="20">No matching data found.</td></tr>`;
                 return;
             }
 
-            let sn = 1;
+            // 🟢 1. Supplier-wise Grouping for UI Display to avoid repeating Supplier, VAT, Display Name
+            const supplierGroupMap = new Map();
             displayData.forEach(group => {
-                const siteCount = group.sites.length;
-                group.sites.forEach((siteData, sIdx) => {
-                    tbody += `<tr>`;
-                    
-                    if (sIdx === 0) {
-                        tbody += `<td rowspan="${siteCount}" class="merged-cell">${sn++}</td>
-                                  <td rowspan="${siteCount}" class="merged-cell">${escapeHTML(group.company)}</td>
-                                  <td rowspan="${siteCount}" class="merged-cell" style="max-width: 130px;"><span class="clip-text" title="${escapeHTML(group.display_name)}">${escapeHTML(group.display_name)}</span></td>
-                                  <td rowspan="${siteCount}" class="merged-cell" style="max-width: 150px;">${escapeHTML(group.supplier)}</td>
-                                  <td rowspan="${siteCount}" class="merged-cell" title="Right-click for Quick Entry" oncontextmenu="openQuickEntryModal(event, '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}')" style="cursor: pointer; font-weight: bold; color: #0284c7;">${escapeHTML(group.vat_no)}</td>`;
-                    }
+                const supKey = (group.supplier || "").trim();
+                if (!supplierGroupMap.has(supKey)) {
+                    supplierGroupMap.set(supKey, {
+                        supplier: group.supplier,
+                        display_name: group.display_name,
+                        vat_no: group.vat_no,
+                        companyRecords: []
+                    });
+                }
+                const supObj = supplierGroupMap.get(supKey);
+                if (!supObj.display_name && group.display_name) supObj.display_name = group.display_name;
+                if (!supObj.vat_no && group.vat_no) supObj.vat_no = group.vat_no;
+                supObj.companyRecords.push(group);
+            });
 
-                    tbody += `<td style="text-align: left; font-weight: 500; max-width:140px;">${escapeHTML(siteData.site_name)}</td>`;
+            // 🟢 2. Sort by Supplier Name (A-Z)
+            const sortedSuppliers = Array.from(supplierGroupMap.values()).sort((a, b) => 
+                (a.supplier || "").localeCompare(b.supplier || "")
+            );
 
-                    for (let i = startMonth; i <= endMonth; i++) {
-                        let bill = siteData.billing[i] || { bill_no: "", amount: "", erp_total: "" };
-                        let isActive = siteData.active_months[i]; 
-                        let cellClass = isActive ? "" : "inactive-cell";
-                        let baseArgsStr = `this, 'FIELD_PLACEHOLDER', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}`;
-                        
-                        let actionBillNo = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})"` : "";
-                        let actionAmount = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'amount')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'amount')})"` : "";
+            let tbody = "";
+            let sn = 1;
 
-                        let erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
+            sortedSuppliers.forEach(supGroup => {
+                // Calculate total row height for this supplier
+                let totalSupplierRows = 0;
+                supGroup.companyRecords.forEach(cRec => {
+                    totalSupplierRows += cRec.sites.length;
+                });
 
-                        tbody += `
-                            <td class="${cellClass}" ${actionBillNo}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_no)}</span></td>
-                            <td class="${cellClass}" ${actionAmount}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.amount)}</span></td>
-                            <td class="${cellClass}" style="font-weight: 600; color: #0f766e;"><span>${erpVal}</span></td>
-                        `;
-                    }
-                    tbody += `</tr>`;
+                let isFirstSupplierRow = true;
+
+                supGroup.companyRecords.forEach(group => {
+                    const siteCount = group.sites.length;
+
+                    group.sites.forEach((siteData, sIdx) => {
+                        tbody += `<tr>`;
+
+                        // Supplier-level merge (SN, Display Name, Supplier, VAT No)
+                        if (isFirstSupplierRow) {
+                            tbody += `<td rowspan="${totalSupplierRows}" class="merged-cell">${sn++}</td>
+                                      <td rowspan="${totalSupplierRows}" class="merged-cell" style="max-width: 130px;"><span class="clip-text" title="${escapeHTML(supGroup.display_name)}">${escapeHTML(supGroup.display_name)}</span></td>
+                                      <td rowspan="${totalSupplierRows}" class="merged-cell" style="max-width: 150px;">${escapeHTML(supGroup.supplier)}</td>
+                                      <td rowspan="${totalSupplierRows}" class="merged-cell" title="Right-click for Quick Entry" oncontextmenu="openQuickEntryModal(event, '${escapeQuotes(group.company)}', '${escapeQuotes(supGroup.supplier)}')" style="cursor: pointer; font-weight: bold; color: #0284c7;">${escapeHTML(supGroup.vat_no)}</td>`;
+                            isFirstSupplierRow = false;
+                        }
+
+                        // Company-level merge
+                        if (sIdx === 0) {
+                            tbody += `<td rowspan="${siteCount}" class="merged-cell">${escapeHTML(group.company)}</td>`;
+                        }
+
+                        // Site Cell
+                        tbody += `<td style="text-align: left; font-weight: 500; max-width:140px;">${escapeHTML(siteData.site_name)}</td>`;
+
+                        // Month Columns
+                        for (let i = startMonth; i <= endMonth; i++) {
+                            let bill = siteData.billing[i] || { bill_no: "", amount: "", erp_total: "" };
+                            let isActive = siteData.active_months[i]; 
+                            let cellClass = isActive ? "" : "inactive-cell";
+                            let baseArgsStr = `this, 'FIELD_PLACEHOLDER', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}`;
+                            
+                            let actionBillNo = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'bill_no')})"` : "";
+                            let actionAmount = isActive ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'amount')})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace('FIELD_PLACEHOLDER', 'amount')})"` : "";
+
+                            let erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
+
+                            tbody += `
+                                <td class="${cellClass}" ${actionBillNo}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.bill_no)}</span></td>
+                                <td class="${cellClass}" ${actionAmount}><span class="${isActive ? 'editable' : ''}">${escapeHTML(bill.amount)}</span></td>
+                                <td class="${cellClass}" style="font-weight: 600; color: #0f766e;"><span>${erpVal}</span></td>
+                            `;
+                        }
+
+                        tbody += `</tr>`;
+                    });
                 });
             });
+
             document.getElementById("tableBody").innerHTML = tbody;
         }
 
@@ -397,7 +459,13 @@
             const primaryGroup = matchingGroups.find(g => g.company === company) || matchingGroups[0];
             
             document.getElementById("qmSupplierTitle").innerText = `${primaryGroup.supplier}`;
-            document.getElementById("qmVatSubtitle").innerText = `VAT No: ${primaryGroup.vat_no || 'N/A'} | Display: ${primaryGroup.display_name || 'N/A'}`;
+            
+            const rawVatNo = (primaryGroup.vat_no || "").trim();
+            const copyBtnHtml = rawVatNo 
+                ? `<span style="cursor:pointer; margin-left:4px; font-size:12px;" title="Copy VAT No" onclick="copyVatNumber(event, '${escapeQuotes(rawVatNo)}')">🗒️</span>` 
+                : "";
+
+            document.getElementById("qmVatSubtitle").innerHTML = `VAT No: <span>${escapeHTML(rawVatNo || 'N/A')}</span>${copyBtnHtml} | Display: ${escapeHTML(primaryGroup.display_name || 'N/A')}`;
 
             qmActiveSites = [];
             matchingGroups.forEach(grp => {
@@ -465,15 +533,23 @@
                 return a.site.site_name.localeCompare(b.site.site_name);
             });
 
+            const modalContent = document.querySelector("#quickEntryModal .quick-modal-content");
+            const isSingle = qmActiveSites.length === 1;
+            if (isSingle) {
+                modalContent.classList.add("single-site");
+            } else {
+                modalContent.classList.remove("single-site");
+            }
+
             // 1. Build Header: Month with Top & Left Freeze
-            let headRow1 = `<tr><th rowspan="2" class="qm-month-header">Month</th>`;
+            let headRow1 = `<tr><th rowspan="2" class="qm-month-header" style="${isSingle ? 'width: 22%;' : ''}">Month</th>`;
             let headRow2 = `<tr>`;
 
             qmActiveSites.forEach(item => {
-                headRow1 += `<th colspan="3" style="background: #1e293b; color: white; border-left: 2px solid #64748b; font-size: 11px; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(item.site.site_name)}">${escapeHTML(item.site.site_name)}</th>`;
-                headRow2 += `<th class="qm-head-row2" style="background: #334155; color: white; width: 75px; min-width: 75px; border-left: 2px solid #64748b;">Bill No</th>
-                             <th class="qm-head-row2" style="background: #334155; color: white; width: 75px; min-width: 75px;">Amount</th>
-                             <th class="qm-head-row2" style="background: #0f766e; color: white; width: 68px; min-width: 68px;">Vendor TS</th>`;
+                headRow1 += `<th colspan="3" style="background: #1e293b; color: white; border-left: 2px solid #64748b; font-size: 11px; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(item.site.site_name)}">${escapeHTML(item.site.site_name)}</th>`;
+                headRow2 += `<th class="qm-head-row2" style="background: #334155; color: white; ${isSingle ? 'width: 32%;' : 'width: 120px; min-width: 120px;'} border-left: 2px solid #64748b;">Bill No</th>
+                             <th class="qm-head-row2" style="background: #334155; color: white; ${isSingle ? 'width: 26%;' : 'width: 85px; min-width: 85px;'}">Amount</th>
+                             <th class="qm-head-row2" style="background: #0f766e; color: white; ${isSingle ? 'width: 20%;' : 'width: 75px; min-width: 75px;'}">Vendor TS</th>`;
             });
             headRow1 += `</tr>`;
             headRow2 += `</tr>`;
@@ -492,12 +568,16 @@
                     const isActive = st.active_months[m];
                     const bill = st.billing[m] || { bill_no: "", amount: "", erp_total: "" };
                     const erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
+                    const billNoVal = escapeHTML(bill.bill_no || '');
+                    const amtVal = escapeHTML(bill.amount || '');
 
                     if (isActive) {
                         bodyHtml += `
-                            <td style="border-left: 2px solid #cbd5e1;"><input type="text" class="quick-input qm-cell-input" data-siteidx="${sIdx}" data-month="${m}" data-field="bill_no" value="${escapeHTML(bill.bill_no || '')}"></td>
-                            <td><input type="text" class="quick-input qm-cell-input" data-siteidx="${sIdx}" data-month="${m}" data-field="amount" value="${escapeHTML(bill.amount || '')}"></td>
-                            <td style="background: #f0fdfa; font-weight: 600; color: #0f766e; font-size: 10.5px;">${erpVal}</td>
+                            <td style="border-left: 2px solid #cbd5e1; ${isSingle ? '' : 'width: 120px; min-width: 120px; max-width: 140px;'}">
+                                <textarea class="quick-textarea qm-cell-input" rows="1" data-siteidx="${sIdx}" data-month="${m}" data-field="bill_no" title="${billNoVal}" oninput="this.title = this.value; autoResizeQmTextarea(this);">${billNoVal}</textarea>
+                            </td>
+                            <td style="${isSingle ? '' : 'width: 85px; min-width: 85px;'}"><input type="text" class="quick-input qm-cell-input" data-siteidx="${sIdx}" data-month="${m}" data-field="amount" value="${amtVal}" title="${amtVal}" oninput="this.title = this.value"></td>
+                            <td style="background: #f0fdfa; font-weight: 600; color: #0f766e; font-size: 10.5px; ${isSingle ? '' : 'width: 75px; min-width: 75px;'}">${erpVal}</td>
                         `;
                     } else {
                         bodyHtml += `
@@ -510,6 +590,14 @@
             }
             document.getElementById("quickTableBody").innerHTML = bodyHtml;
             document.getElementById("quickEntryModal").style.display = "flex";
+            
+            // ഓപ്പൺ ചെയ്യുമ്പോൾ തന്നെ നിലവിലുള്ള ടെക്സ്റ്റിനനുസരിച്ച് ഹൈറ്റ് തനിയെ അഡ്ജസ്റ്റ് ചെയ്യുക
+            document.querySelectorAll("#quickTableBody .quick-textarea").forEach(tx => autoResizeQmTextarea(tx));
+        }
+
+        function autoResizeQmTextarea(el) {
+            el.style.height = "auto";
+            el.style.height = Math.max(24, el.scrollHeight) + "px";
         }
 
         function closeQuickModal() {
@@ -1254,6 +1342,24 @@
                 menu.classList.remove("show");
             }
         });
+
+        function copyVatNumber(e, text) {
+            e.stopPropagation();
+            if (!text) return;
+            const targetEl = e.currentTarget;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalEmoji = targetEl.innerText;
+                targetEl.innerText = "✓";
+                targetEl.style.color = "#10b981";
+                showStatus("VAT No Copied!", "saved");
+                setTimeout(() => {
+                    targetEl.innerText = originalEmoji;
+                    targetEl.style.color = "";
+                }, 1500);
+            }).catch(err => {
+                showStatus("Failed to copy", "error");
+            });
+        }
     </script>
 </body>
 </html>
