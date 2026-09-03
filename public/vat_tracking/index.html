@@ -9,19 +9,46 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; font-size: 13px; }
-        .navbar { background: #0f2027; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar { background: #0f2027; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: relative; }
         .table-responsive { width: 100%; overflow-x: auto; max-height: calc(100vh - 65px); }
-        .nav-tools { display: flex; gap: 12px; align-items: center; font-size: 13px; }
+        .nav-tools { display: flex; gap: 10px; align-items: center; font-size: 13px; }
         .nav-tools label { color: #cbd5e1; }
-        .btn-success { background: #10b981; color: white; padding: 7px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; text-decoration: none; display: inline-flex; align-items: center; }
+        .btn-success { background: #10b981; color: white; padding: 7px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
         .btn-success:hover { filter: brightness(1.1); }
         
-        .btn-nav-link { color: white; padding: 7px 12px; border-radius: 4px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; font-size: 12px; transition: opacity 0.2s; }
+        .btn-nav-link { color: white; padding: 7px 12px; border-radius: 4px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; transition: opacity 0.2s; }
         .btn-nav-link:hover { opacity: 0.9; }
         .btn-dash { background: #3b82f6; }
         .btn-mini { background: #f59e0b; color: #0f172a; }
 
         .input-box, .select-box { padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Inter'; }
+
+        /* 🟢 Responsive Hamburger/User Action Menu for Screens <= 13 Inch (1366px) */
+        .nav-action-btn-group { display: flex; align-items: center; gap: 8px; }
+        .mobile-menu-btn { display: none; background: #1e293b; color: white; border: 1px solid #475569; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 16px; align-items: center; gap: 6px; }
+        .mobile-menu-btn:hover { background: #334155; }
+
+        @media screen and (max-width: 1366px) {
+            .mobile-menu-btn { display: inline-flex; }
+            .nav-action-btn-group {
+                display: none;
+                position: absolute;
+                top: 55px;
+                right: 15px;
+                background: #1e293b;
+                border: 1px solid #475569;
+                border-radius: 8px;
+                padding: 12px;
+                flex-direction: column;
+                gap: 10px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+                z-index: 1000;
+                min-width: 190px;
+            }
+            .nav-action-btn-group.show { display: flex; }
+            .nav-action-btn-group .btn-success,
+            .nav-action-btn-group .btn-nav-link { width: 100%; box-sizing: border-box; text-align: center; }
+        }
         
         table { border-collapse: separate; border-spacing: 0; width: max-content; background: white; }
         th, td { border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; padding: 8px 12px; text-align: center; }
@@ -157,14 +184,7 @@
         </div>
 
         <div class="nav-tools">
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <button id="bulkEditBtn" class="btn-success" onclick="toggleBulkEdit()">Bulk Edit</button>
-                <button id="cancelBulkBtn" class="btn-success" onclick="cancelBulkEdit()" style="display: none; background: #ef4444;">Cancel</button>
-            </div>
-
-            <a href="dashboard.html" class="btn-nav-link btn-dash" title="View Full Month Grid">📊 Dashboard</a>
-            <a href="mini_dashboard.html" class="btn-nav-link btn-mini" title="View Missing Bills Overview">📋 Mini Dashboard</a>
-
+            <!-- Filter Inputs remain always accessible -->
             <div style="display: flex; align-items: center; gap: 5px;">
                 <label><b>Year:</b></label>
                 <input type="number" id="yearFilter" class="input-box" style="width: 60px;" onchange="fetchData()">
@@ -183,11 +203,25 @@
 
             <div style="display: flex; align-items: center; gap: 5px;">
                 <label><b>Search:</b></label>
-                <input type="text" id="searchInput" class="input-box" placeholder="Global search..." onkeyup="renderTable()" style="width: 140px;">
+                <input type="text" id="searchInput" class="input-box" placeholder="Search..." onkeyup="renderTable()" style="width: 130px;">
             </div>
 
-            <button class="btn-success" onclick="exportCompactExcel()" style="background: #0284c7;">⬇ Compact Excel</button>
-            <button class="btn-success" onclick="exportExcel()">⬇ Export Excel</button>
+            <!-- 🟢 Action Menu Toggle Button (Visible <= 1366px) -->
+            <button class="mobile-menu-btn" onclick="toggleNavActionsMenu(event)" title="Actions Menu">
+                ⚙️
+            </button>
+
+            <!-- 🟢 Action Buttons Group (Desktop: Inline, <= 1366px: Dropdown) -->
+            <div class="nav-action-btn-group" id="navActionsMenu">
+                <button id="bulkEditBtn" class="btn-success" onclick="toggleBulkEdit()">Bulk Edit</button>
+                <button id="cancelBulkBtn" class="btn-success" onclick="cancelBulkEdit()" style="display: none; background: #ef4444;">Cancel</button>
+
+                <a href="dashboard.html" class="btn-nav-link btn-dash" title="View Full Month Grid">📊 Dashboard</a>
+                <a href="mini_dashboard.html" class="btn-nav-link btn-mini" title="View Missing Bills Overview">📋 Mini Dashboard</a>
+
+                <button class="btn-success" onclick="exportCompactExcel()" style="background: #0284c7;">⬇ Compact Excel</button>
+                <button class="btn-success" onclick="exportExcel()">⬇ Export Excel</button>
+            </div>
         </div>
     </div>
 
@@ -1207,6 +1241,19 @@
                 });
             }
         }
+
+        function toggleNavActionsMenu(e) {
+            e.stopPropagation();
+            const menu = document.getElementById("navActionsMenu");
+            menu.classList.toggle("show");
+        }
+
+        document.addEventListener("click", function(e) {
+            const menu = document.getElementById("navActionsMenu");
+            if (menu && menu.classList.contains("show") && !e.target.closest("#navActionsMenu") && !e.target.closest(".mobile-menu-btn")) {
+                menu.classList.remove("show");
+            }
+        });
     </script>
 </body>
 </html>
