@@ -1096,21 +1096,37 @@ function copyColumnValues(e, colName, monthIndex = null) {
             }
         }
 
-        let currentQuickGroup = null;
+        let currentQuickSites = []; // Holds all sites mapped with their parent group data
 
 function openQuickEntryModal(e, company, supplier) {
-    e.preventDefault(); // സിസ്റ്റം റൈറ്റ് ക്ലിക്ക് മെനു തടയുന്നു
-    const grp = rawData.find(g => g.company === company && g.supplier === supplier);
-    if (!grp) return;
+    e.preventDefault();
+    
+    // Find all groups matching the same supplier (or same VAT No if supplier names vary slightly)
+    const matchingGroups = rawData.filter(g => (g.supplier === supplier) || (g.company === company && g.supplier === supplier));
+    if (matchingGroups.length === 0) return;
 
-    currentQuickGroup = grp;
-    document.getElementById("qmSupplierTitle").innerText = `${grp.supplier} (${grp.company})`;
-    document.getElementById("qmVatSubtitle").innerText = `VAT No: ${grp.vat_no || 'N/A'} | Display: ${grp.display_name || 'N/A'}`;
+    const primaryGroup = matchingGroups.find(g => g.company === company) || matchingGroups[0];
+    
+    document.getElementById("qmSupplierTitle").innerText = primaryGroup.supplier;
+    document.getElementById("qmVatSubtitle").innerText = `VAT No: ${primaryGroup.vat_no || 'N/A'} | Display: ${primaryGroup.display_name || 'N/A'}`;
+
+    // Flatten all sites from matching groups across different companies
+    currentQuickSites = [];
+    matchingGroups.forEach(grp => {
+        grp.sites.forEach(st => {
+            currentQuickSites.push({
+                group: grp,
+                site: st
+            });
+        });
+    });
 
     const siteSelect = document.getElementById("qmSiteSelect");
     siteSelect.innerHTML = "";
-    grp.sites.forEach((s, idx) => {
-        siteSelect.innerHTML += `<option value="${escapeHTML(s.site_name)}">${escapeHTML(s.site_name)}</option>`;
+    
+    currentQuickSites.forEach((item, index) => {
+        // Show site name directly in the dropdown
+        siteSelect.innerHTML += `<option value="${index}">${escapeHTML(item.site.site_name)}</option>`;
     });
 
     loadQuickTable();
@@ -1118,11 +1134,12 @@ function openQuickEntryModal(e, company, supplier) {
 }
 
 function loadQuickTable() {
-    if (!currentQuickGroup) return;
-    const selectedSiteName = document.getElementById("qmSiteSelect").value;
-    const siteObj = currentQuickGroup.sites.find(s => s.site_name === selectedSiteName);
-    if (!siteObj) return;
+    if (!currentQuickSites || currentQuickSites.length === 0) return;
+    const selectedIdx = parseInt(document.getElementById("qmSiteSelect").value);
+    const target = currentQuickSites[selectedIdx];
+    if (!target) return;
 
+    const siteObj = target.site;
     let html = "";
     for (let i = 0; i < 12; i++) {
         const isActive = siteObj.active_months[i];
@@ -1153,14 +1170,18 @@ function loadQuickTable() {
 
 function closeQuickModal() {
     document.getElementById("quickEntryModal").style.display = "none";
-    currentQuickGroup = null;
+    currentQuickSites = [];
 }
 
 async function saveQuickEntry() {
-    if (!currentQuickGroup) return;
-    const selectedSiteName = document.getElementById("qmSiteSelect").value;
-    const siteObj = currentQuickGroup.sites.find(s => s.site_name === selectedSiteName);
-    if (!siteObj) return;
+    if (!currentQuickSites || currentQuickSites.length === 0) return;
+    const selectedIdx = parseInt(document.getElementById("qmSiteSelect").value);
+    const target = currentQuickSites[selectedIdx];
+    if (!target) return;
+
+    const currentGrp = target.group;
+    const siteObj = target.site;
+    const selectedSiteName = siteObj.site_name;
 
     const billInputs = document.querySelectorAll(".qm-bill");
     const amtInputs = document.querySelectorAll(".qm-amt");
@@ -1175,10 +1196,10 @@ async function saveQuickEntry() {
             siteObj.billing[m].bill_no = newBill;
             updates.push({
                 year: currentYear,
-                company: currentQuickGroup.company,
-                supplier: currentQuickGroup.supplier,
-                vat_no: currentQuickGroup.vat_no,
-                display_name: currentQuickGroup.display_name,
+                company: currentGrp.company,
+                supplier: currentGrp.supplier,
+                vat_no: currentGrp.vat_no,
+                display_name: currentGrp.display_name,
                 site_name: selectedSiteName,
                 month_index: m,
                 field: "bill_no",
@@ -1208,10 +1229,10 @@ async function saveQuickEntry() {
             siteObj.billing[m].amount = newAmt;
             updates.push({
                 year: currentYear,
-                company: currentQuickGroup.company,
-                supplier: currentQuickGroup.supplier,
-                vat_no: currentQuickGroup.vat_no,
-                display_name: currentQuickGroup.display_name,
+                company: currentGrp.company,
+                supplier: currentGrp.supplier,
+                vat_no: currentGrp.vat_no,
+                display_name: currentGrp.display_name,
                 site_name: selectedSiteName,
                 month_index: m,
                 field: "amount",
