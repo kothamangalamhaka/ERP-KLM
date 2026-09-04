@@ -201,23 +201,17 @@
 
       </div>
     </main>
-
-    <!-- Service Worker Registration -->
+    
+<!-- Unregister Existing Service Workers -->
     <script>
       if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    // ലോക്കൽ ഐപി ആണെങ്കിൽ ടെസ്റ്റിing സ്കിപ്പ് ചെയ്യാൻ അല്ലെങ്കിൽ കൺസോൾ ക്ലീൻ വെക്കാൻ
-    const isLocalIP = window.location.hostname.startsWith('192.168.') || window.location.hostname === 'localhost';
-    
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('SW Registered'))
-      .catch(err => {
-        if (isLocalIP) {
-          console.warn('Local IP SSL restriction: Service Worker bypassed for testing.');
-        }
-      });
-  });
-}
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log('Old Service Worker Unregistered successfully.');
+          }
+        });
+      }
     </script>
   </body>
 </html>
