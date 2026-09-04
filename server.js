@@ -990,11 +990,13 @@ const httpolyglot = require("httpolyglot");
 const PORT = process.env.PORT || 5000;
 
 const sslOptions = {
-  key: fs.readFileSync('./erp-key.pem'), 
-  cert: fs.readFileSync('./erp-cert.pem')
+  key: fs.readFileSync('./fefei.tail129892.ts.net.key'), 
+  cert: fs.readFileSync('./fefei.tail129892.ts.net.crt')
 };
 
-// httpolyglot handles both HTTP and HTTPS on the same port
-httpolyglot.createServer(sslOptions, app).listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 ERP Server running on both HTTP and HTTPS at Port ${PORT}`);
+// Handles HTTP (Tailscale proxy & local HTTP) and HTTPS (Local secure access)
+const server = httpolyglot.createServer(sslOptions, app);
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 ERP Server running on Port ${PORT} (HTTP for Tailscale & Local HTTPS)`);
 });

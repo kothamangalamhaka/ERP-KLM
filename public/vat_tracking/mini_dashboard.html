@@ -24,40 +24,112 @@
         .btn-copy-img { background: #0284c7; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
         .btn-copy-img:hover { background: #0369a1; }
 
-        .table-container { width: 100%; max-width: 100%; margin: 15px auto; padding: 0 15px; box-sizing: border-box; overflow-x: auto; max-height: calc(100vh - 75px); }
-        table { border-collapse: separate; border-spacing: 0; width: 100%; background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        th, td { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+        .table-container { 
+            width: 100%; 
+            max-width: 100%; 
+            margin: 10px 0; 
+            padding: 0 15px; 
+            box-sizing: border-box; 
+            overflow: auto; 
+            height: calc(100vh - 65px); 
+        }
+        table { 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            width: max-content; 
+            min-width: 100%; 
+            background: white; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+        }
+        th, td { 
+            border-right: 1px solid #e2e8f0; 
+            border-bottom: 1px solid #e2e8f0; 
+            padding: 8px 12px; 
+            text-align: left; 
+        }
         
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
         th { 
             background: #1e293b; 
             color: #f8fafc; 
             position: sticky; 
             top: 0; 
-            z-index: 10; 
+            z-index: 100; 
             font-size: 12px; 
             font-weight: 600; 
             letter-spacing: 0.5px; 
             text-align: center;
-            height: 44px;
-            padding: 12px 10px;
+            height: 46px;
+            padding: 10px 8px;
             box-sizing: border-box;
             vertical-align: middle;
+            white-space: nowrap;
         }
-        
+
+        /* 🟢 Sticky Columns (Left Freeze for SN, Supplier, Site) */
+        .sticky-col-sn {
+            position: sticky;
+            left: 0px;
+            width: 50px;
+            min-width: 50px;
+            max-width: 50px;
+            box-sizing: border-box;
+        }
+        .sticky-col-supplier {
+            position: sticky;
+            left: 50px;
+            width: 260px;
+            min-width: 260px;
+            max-width: 260px;
+            box-sizing: border-box;
+        }
+        .sticky-col-site {
+            position: sticky;
+            left: 310px;
+            width: 240px;
+            min-width: 240px;
+            max-width: 240px;
+            box-sizing: border-box;
+            border-right: 2px solid #94a3b8 !important;
+        }
+
+        /* 🟢 Top-Left Intersecting Header Cells */
+        th.sticky-col-sn,
+        th.sticky-col-supplier,
+        th.sticky-col-site {
+            top: 0;
+            z-index: 150 !important;
+            background: #0f172a;
+        }
+
+        td.sticky-col-sn {
+            background: #ffffff;
+            z-index: 40;
+            text-align: center;
+        }
+        td.sticky-col-supplier {
+            background: #ffffff;
+            z-index: 40;
+        }
+        td.sticky-col-site {
+            background: #f8fafc;
+            z-index: 40;
+        }
+
         .merged-supplier { 
             vertical-align: middle; 
             font-weight: 600; 
             color: #0f172a; 
-            background: #ffffff; 
-            border-right: 2px solid #cbd5e1;
             text-align: left;
         }
         
         .site-cell { 
             font-weight: 500; 
             color: #334155; 
-            background: #f8fafc;
-            min-width: 180px;
             text-align: left;
         }
 
@@ -160,6 +232,7 @@
         <div style="display: flex; align-items: center; gap: 12px;">
             <a href="javascript:history.back()" style="color: white; text-decoration: none; font-size: 18px;">🔙</a>
             <span style="font-size: 16px; font-weight: 600;">VAT Missing Bills Overview</span>
+            <span id="pendingCountBadge" style="display: none; background: #ef4444; color: white; padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 700;">0 Pending</span>
         </div>
         <div class="nav-tools">
             <label style="color: #94a3b8; font-weight: 500;">Year:</label>
@@ -358,10 +431,29 @@
                 }
             }
 
+// 🟢 ഓരോ മാസത്തിലെയും ആകെ പെൻഡിംഗ് എണ്ണം കണക്കാക്കുന്നു
+            const monthWisePendingCounts = {};
+            activePendingMonthIndices.forEach(m => {
+                let countForThisMonth = 0;
+                list.forEach(sup => {
+                    sup.sites.forEach(siteData => {
+                        const bill = siteData.billing[m] || {};
+                        const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
+                        const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
+                        const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                        if (hasErpTotal && !hasBillNo) {
+                            countForThisMonth++;
+                        }
+                    });
+                });
+                monthWisePendingCounts[m] = countForThisMonth;
+            });
+
+            // 2. ഉയരമുള്ള ഹെഡർ, മാസത്തിന് മുന്നിലെ കൗണ്ട് (), ഫിൽട്ടർ ഐക്കൺ + 2D Freeze ക്ളാസ്സുകൾ
             let theadHtml = `<tr>
-                <th style="width: 50px; text-align: center;">SN</th>
-                <th style="width: 280px; text-align: left; padding-left: 14px;">Supplier Name</th>
-                <th style="width: 250px; text-align: left; padding-left: 14px;">Site Name</th>`;
+                <th class="sticky-col-sn">SN</th>
+                <th class="sticky-col-supplier" style="text-align: left; padding-left: 14px;">Supplier Name</th>
+                <th class="sticky-col-site" style="text-align: left; padding-left: 14px;">Site Name</th>`;
 
             if (activePendingMonthIndices.length === 0) {
                 theadHtml += `<th style="text-align: center;">Status</th>`;
@@ -369,8 +461,9 @@
                 activePendingMonthIndices.forEach(m => {
                     const isFiltered = activeMonthFilters[m] && activeMonthFilters[m].length > 0;
                     const filterColor = isFiltered ? "#38bdf8" : "#94a3b8";
-                    theadHtml += `<th style="min-width: 105px; text-align: center;">
-                        ${monthShortNames[m]} - ${shortYear}
+                    const mCount = monthWisePendingCounts[m] || 0;
+                    theadHtml += `<th style="min-width: 110px; text-align: center;">
+                        <span style="color: #f87171; font-weight: 700; margin-right: 3px;">(${mCount})</span>${monthShortNames[m]} - ${shortYear}
                         <span class="filter-icon" style="color: ${filterColor};" onclick="openMonthFilter(event, ${m})">▼</span>
                     </th>`;
                 });
@@ -390,8 +483,10 @@
                 return;
             }
 
+// 3. ടേബിൾ ബോഡി നിർമ്മിക്കുന്നു + Sticky Left Classes
             let tbody = "";
             let sn = 1;
+            let totalPendingBillsCount = 0;
 
             list.forEach(sup => {
                 const siteCount = sup.sites.length;
@@ -399,11 +494,11 @@
                     tbody += `<tr>`;
 
                     if (idx === 0) {
-                        tbody += `<td rowspan="${siteCount}" class="merged-supplier" style="text-align: center; width: 50px;">${sn++}</td>`;
-                        tbody += `<td rowspan="${siteCount}" class="merged-supplier" style="padding-left: 14px;">${escapeHTML(sup.supplier)}</td>`;
+                        tbody += `<td rowspan="${siteCount}" class="sticky-col-sn merged-supplier">${sn++}</td>`;
+                        tbody += `<td rowspan="${siteCount}" class="sticky-col-supplier merged-supplier" style="padding-left: 14px;">${escapeHTML(sup.supplier)}</td>`;
                     }
 
-                    tbody += `<td class="site-cell" style="padding-left: 14px;">${escapeHTML(siteData.site_name)}</td>`;
+                    tbody += `<td class="sticky-col-site site-cell" style="padding-left: 14px;">${escapeHTML(siteData.site_name)}</td>`;
 
                     activePendingMonthIndices.forEach(m => {
                         const bill = siteData.billing[m] || {};
@@ -412,6 +507,7 @@
                         const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
 
                         if (hasErpTotal && !hasBillNo) {
+                            totalPendingBillsCount++;
                             tbody += `<td style="text-align: center;"><span class="pending-badge">Pending</span></td>`;
                         } else {
                             tbody += `<td style="text-align: center; color: #94a3b8;">-</td>`;
@@ -421,6 +517,19 @@
                     tbody += `</tr>`;
                 });
             });
+
+            // 🟢 പെൻഡിംഗ് കൗണ്ട് ബാഡ്ജ് അപ്ഡേറ്റ് ചെയ്യുന്നു
+            const countBadge = document.getElementById("pendingCountBadge");
+            if (countBadge) {
+                if (totalPendingBillsCount > 0) {
+                    countBadge.innerText = `${totalPendingBillsCount} Pending`;
+                    countBadge.style.display = "inline-block";
+                } else {
+                    countBadge.innerText = `0 Pending`;
+                    countBadge.style.background = "#10b981";
+                    countBadge.style.display = "inline-block";
+                }
+            }
 
             document.getElementById("miniBody").innerHTML = tbody;
         }
