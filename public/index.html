@@ -22,7 +22,8 @@
     <main>
       <div class="connect-wrapper">
         <a
-          href="https://fefei.tail129892.ts.net:8443"
+          id="connectBtn"
+          href="https://fefei.tail129892.ts.net:10000"
           class="connect-btn animate animate-connect"
         >
           Connect with Us
@@ -209,6 +210,25 @@
           }
         });
       }
+
+      // Automatically switch Connect URL based on current network access
+      (function() {
+        const hostname = window.location.hostname;
+        const connectBtn = document.getElementById('connectBtn');
+
+        if (connectBtn) {
+          // Check if accessed locally via LAN IP or localhost
+          const isLocal = hostname.startsWith('192.168.') || hostname === 'localhost' || hostname === '127.0.0.1';
+
+          if (isLocal) {
+            connectBtn.href = 'https://192.168.1.15:8443';
+          } else {
+            connectBtn.href = 'https://fefei.tail129892.ts.net:10000';
+          }
+        }
+      })();
+
+      
     </script>
   </body>
 </html>

@@ -911,22 +911,36 @@
 
       <div class="container">
         <div class="controls-card">
-          <div class="form-group" style="width: 120px">
+          <div class="form-group" style="width: 165px">
             <label>Month</label>
-            <select id="selMonth">
-              <option value="January">January</option>
-              <option value="February">February</option>
-              <option value="March">March</option>
-              <option value="April">April</option>
-              <option value="May">May</option>
-              <option value="June">June</option>
-              <option value="July">July</option>
-              <option value="August">August</option>
-              <option value="September">September</option>
-              <option value="October">October</option>
-              <option value="November">November</option>
-              <option value="December">December</option>
-            </select>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <button 
+                type="button" 
+                onclick="prevMonthReport()" 
+                title="Previous Month"
+                style="padding: 6px 9px; border: 1px solid var(--border-color); background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; color: #475569;"
+              >◀</button>
+              <select id="selMonth" style="flex: 1;">
+                <option value="January">January</option>
+                <option value="February">February</option>
+                <option value="March">March</option>
+                <option value="April">April</option>
+                <option value="May">May</option>
+                <option value="June">June</option>
+                <option value="July">July</option>
+                <option value="August">August</option>
+                <option value="September">September</option>
+                <option value="October">October</option>
+                <option value="November">November</option>
+                <option value="December">December</option>
+              </select>
+              <button 
+                type="button" 
+                onclick="nextMonthReport()" 
+                title="Next Month"
+                style="padding: 6px 9px; border: 1px solid var(--border-color); background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; color: #475569;"
+              >▶</button>
+            </div>
           </div>
           <div class="form-group" style="width: 80px">
             <label>Year</label>
@@ -1752,6 +1766,42 @@
         "November",
         "December",
       ];
+
+      function prevMonthReport() {
+        const mSelect = document.getElementById("selMonth");
+        const yInput = document.getElementById("selYear");
+        let curIdx = months.indexOf(mSelect.value);
+        let curYear = parseInt(yInput.value, 10);
+
+        if (curIdx === 0) {
+          curIdx = 11;
+          curYear -= 1;
+        } else {
+          curIdx -= 1;
+        }
+
+        mSelect.value = months[curIdx];
+        yInput.value = curYear;
+        fetchAndRenderUI();
+      }
+
+      function nextMonthReport() {
+        const mSelect = document.getElementById("selMonth");
+        const yInput = document.getElementById("selYear");
+        let curIdx = months.indexOf(mSelect.value);
+        let curYear = parseInt(yInput.value, 10);
+
+        if (curIdx === 11) {
+          curIdx = 0;
+          curYear += 1;
+        } else {
+          curIdx += 1;
+        }
+
+        mSelect.value = months[curIdx];
+        yInput.value = curYear;
+        fetchAndRenderUI();
+      }
 
       let masterData = [];
       let headerFilters = {};
