@@ -272,11 +272,18 @@ router.post("/save", async (req, res) => {
     const { billing_period, items } = req.body;
 
     for (let row of items) {
+      const plateNo = (row.plate || "").trim();
+      const siteName = (row.site_name || "").trim();
+
+      if (!plateNo || !siteName) continue;
+
+      // 🟢 FIX: billing_month, plate_no, site_name മൂന്നും വെച്ച് ഡിലീറ്റ് ചെയ്യുന്നു (മറ്റ് സൈറ്റുകൾ ഡിലീറ്റ് ആവില്ല)
       await client.query(
         `DELETE FROM billing_records 
          WHERE billing_month = $1 
-           AND UPPER(TRIM(plate_no)) = UPPER(TRIM($2))`,
-        [billing_period, row.plate],
+           AND UPPER(TRIM(plate_no)) = UPPER(TRIM($2))
+           AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))`,
+        [billing_period, plateNo, siteName],
       );
 
       // 🟢 ZERO ROW PROTECTION (Updated to allow remarks)

@@ -902,6 +902,22 @@
             });
         }
 
+        // Right Click on Bill No Cell: Copy Bill Number directly
+        function handleBillNoRightClick(event, billNoVal) {
+            event.preventDefault();
+            const val = String(billNoVal || '').trim();
+            if (!val) {
+                showStatus("No bill number to copy", "saved");
+                return;
+            }
+
+            navigator.clipboard.writeText(val).then(() => {
+                showStatus(`Copied Bill No: "${val}"`, "saved");
+            }).catch(() => {
+                showStatus("Copy failed!", "error");
+            });
+        }
+
         async function openTsDetailsModal(siteName, monthIdx) {
             if (!selectedSupplierKey) return;
             const mName = monthsFull[monthIdx];
@@ -1013,7 +1029,11 @@
                             `;
                         } else {
                             bodyHtml += `
-                                <td class="qc-highlight-target ${hlClass}"><div class="cell-content" style="font-size: 11px; white-space: pre-wrap; word-break: break-word; color: #1e293b;">${billVal}</div></td>
+                                <td class="qc-highlight-target ${hlClass}" style="cursor: pointer;" 
+                                    title="Right click to copy Bill No" 
+                                    oncontextmenu="handleBillNoRightClick(event, '${escapeQuotes(billVal)}')">
+                                    <div class="cell-content" style="font-size: 11px; white-space: pre-wrap; word-break: break-word; color: #1e293b;">${billVal}</div>
+                                </td>
                                 <td class="amount-cell qc-highlight-target ${hlClass}" style="cursor: pointer;" 
                                     title="Right click to copy amount"
                                     oncontextmenu="handleAmountRightClick(event, '${escapeQuotes(amtVal)}')">
