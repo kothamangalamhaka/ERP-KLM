@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QC Pending Dashboard - VAT Tracking</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- SheetJS for clean Excel export -->
+    <script src="../node_xlsx_scripts/xlsx.bundle.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; 
+            margin: 0; 
+            padding: 0; 
+            font-size: 13px; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+
+        /* Top Navigation */
+        .navbar { 
+            background: #0f2027; 
+            color: white; 
+            padding: 10px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            height: 54px; 
+            flex-shrink: 0; 
+            z-index: 100;
+        }
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .nav-tools { display: flex; gap: 12px; align-items: center; }
+
+        .year-control { 
+            display: flex; 
+            align-items: center; 
+            background: #1e293b; 
+            border-radius: 5px; 
+            border: 1px solid #475569; 
+            overflow: hidden; 
+        }
+        .year-btn { 
+            background: transparent; 
+            color: white; 
+            border: none; 
+            padding: 6px 12px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: bold; 
+        }
+        .year-btn:hover { background: #334155; }
+        .year-select { 
+            background: transparent; 
+            color: white; 
+            border: none; 
+            font-size: 13px; 
+            font-weight: 600; 
+            padding: 5px 8px; 
+            outline: none; 
+            cursor: pointer; 
+            text-align: center; 
+        }
+        .year-select option { background: #1e293b; color: white; }
+
+        .search-box { 
+            padding: 6px 12px; 
+            border: 1px solid #475569; 
+            border-radius: 5px; 
+            background: #1e293b; 
+            color: white; 
+            font-family: 'Inter'; 
+            outline: none; 
+            width: 220px; 
+            font-size: 12px; 
+        }
+        .search-box:focus { border-color: #38bdf8; }
+
+        .btn-action { 
+            background: #3b82f6; 
+            color: white; 
+            padding: 6px 14px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            text-decoration: none; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            font-size: 12px; 
+        }
+        .btn-action:hover { filter: brightness(1.1); }
+        .btn-export { background: #10b981; }
+
+        /* KPI Banner */
+        .kpi-banner {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 20px;
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .kpi-item { display: flex; flex-direction: column; }
+        .kpi-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+        .kpi-value { font-size: 18px; font-weight: 700; color: #0f172a; }
+        .kpi-alert { color: #dc2626; }
+
+        /* Main Table Container */
+        .main-container { flex: 1; overflow: auto; padding: 15px; }
+        .dashboard-table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .dashboard-table th, .dashboard-table td {
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 9px 12px;
+            vertical-align: middle;
+        }
+        .dashboard-table th {
+            background: #1e293b;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .dashboard-table th.month-head {
+            text-align: center;
+            min-width: 85px;
+        }
+        .dashboard-table tbody tr:hover { background-color: #f8fafc; }
+
+        .pending-badge {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+            text-align: center;
+        }
+
+        /* Login Modal */
+        .login-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(15, 32, 39, 0.95); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 10000; 
+        }
+        .login-box { background: white; padding: 30px; border-radius: 8px; width: 300px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-overlay">
+        <div class="login-box">
+            <h2 style="margin-top:0;">Access Control</h2>
+            <p style="font-size:12px; color:#64748b;">Please enter the secure access code.</p>
+            <input type="password" id="vatAccessCode" placeholder="Access Code" style="width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center;" onkeydown="if(event.key==='Enter') verifyLogin()">
+            <div id="loginError" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;">Invalid Access Code</div>
+            <button onclick="verifyLogin()" class="btn-action" style="width: 100%; justify-content: center; padding: 10px; background: #10b981;">Unlock</button>
+        </div>
+    </div>
+
+    <!-- Top Ribbon -->
+    <div class="navbar">
+        <div class="nav-left">
+            <a href="index.html" style="color:white; text-decoration:none; font-size: 18px;" title="Back to Main">🔙</a>
+            <span style="font-size: 16px; font-weight: 600;">QC Pending Dashboard</span>
+        </div>
+
+        <div class="nav-tools">
+            <input type="text" id="searchInput" class="search-box" placeholder="Search Owner, Site..." onkeyup="renderDashboard()">
+
+            <div class="year-control">
+                <button class="year-btn" onclick="switchYear(-1)">◀</button>
+                <select id="yearSelect" class="year-select" onchange="fetchData()"></select>
+                <button class="year-btn" onclick="switchYear(1)">▶</button>
+            </div>
+
+            <button class="btn-action btn-export" onclick="exportToExcel()" title="Export this table to Excel">⬇ Export Excel</button>
+            <a href="QC_Entry.html" class="btn-action" style="background:#8b5cf6;">⚡ QC Entry</a>
+            <a href="index.html" class="btn-action">📋 Main View</a>
+        </div>
+    </div>
+
+    <!-- KPI Summary Bar -->
+    <div class="kpi-banner">
+        <div class="kpi-item">
+            <span class="kpi-label">Suppliers with Issues</span>
+            <span class="kpi-value kpi-alert" id="kpiSupplierCount">0</span>
+        </div>
+        <div class="kpi-item">
+            <span class="kpi-label">Sites Affected</span>
+            <span class="kpi-value" id="kpiSiteCount">0</span>
+        </div>
+        <div class="kpi-item">
+            <span class="kpi-label">Total Pending Months</span>
+            <span class="kpi-value kpi-alert" id="kpiPendingCount">0</span>
+        </div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="main-container">
+        <table class="dashboard-table" id="pendingTable">
+            <thead id="dashboardHead">
+                <tr>
+                    <th style="width: 50px; text-align: center;">SL</th>
+                    <th style="width: 250px;">Owner / Supplier</th>
+                    <th style="width: 220px;">Site Name</th>
+                    <th style="width: 110px; text-align: center;">Total Pending</th>
+                </tr>
+            </thead>
+            <tbody id="dashboardBody">
+                <tr><td colspan="4" style="text-align: center; color: #64748b; padding: 30px;">Loading QC Records...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const monthsShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let rawData = [];
+        let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
+        let currentYear = new Date().getFullYear();
+        let visibleMonthIndices = []; // Holds only months having pending entries
+
+        function initYearOptions() {
+            const select = document.getElementById("yearSelect");
+            select.innerHTML = "";
+            for (let y = currentYear - 3; y <= currentYear + 2; y++) {
+                let opt = document.createElement("option");
+                opt.value = y;
+                opt.textContent = y;
+                if (y === currentYear) opt.selected = true;
+                select.appendChild(opt);
+            }
+        }
+        initYearOptions();
+
+        if (vatCode) {
+            document.getElementById("loginModal").style.display = "none";
+            fetchData();
+        } else {
+            document.getElementById("loginModal").style.display = "flex";
+        }
+
+        function verifyLogin() {
+            const inputCode = document.getElementById("vatAccessCode").value.trim();
+            if (!inputCode) return;
+            vatCode = inputCode;
+            sessionStorage.setItem("vatTrackerCode", vatCode);
+            document.getElementById("loginModal").style.display = "none";
+            fetchData();
+        }
+
+        function triggerLoginError() {
+            sessionStorage.removeItem("vatTrackerCode");
+            vatCode = "";
+            document.getElementById("loginModal").style.display = "flex";
+            document.getElementById("loginError").style.display = "block";
+        }
+
+        function switchYear(step) {
+            const select = document.getElementById("yearSelect");
+            let targetYear = parseInt(select.value) + step;
+            let options = Array.from(select.options).map(o => parseInt(o.value));
+            if (options.includes(targetYear)) {
+                select.value = targetYear;
+                fetchData();
+            }
+        }
+
+        async function fetchData() {
+            currentYear = parseInt(document.getElementById("yearSelect").value);
+            const tbody = document.getElementById("dashboardBody");
+            tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; color: #64748b; padding: 30px;">Fetching records for ${currentYear}...</td></tr>`;
+
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/data?year=${currentYear}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                if (res.status === 401) return triggerLoginError();
+                const json = await res.json();
+                if (json.success) {
+                    rawData = json.data;
+                    renderDashboard();
+                } else {
+                    alert("Error: " + json.message);
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; color: #ef4444; padding: 30px;">Network error loading dashboard.</td></tr>`;
+            }
+        }
+
+        // Logic check: QC Checked is TRUE AND (Bill No is missing OR Amount is missing)
+        function checkIsPending(billing) {
+            if (!billing) return false;
+            const isQcChecked = billing.qc_checked === true || billing.qc_checked === 'true';
+            const billNo = billing.bill_no ? String(billing.bill_no).trim() : "";
+            const amount = billing.amount ? String(billing.amount).trim() : "";
+            return isQcChecked && (!billNo || !amount);
+        }
+
+        function renderDashboard() {
+            const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+            const thead = document.getElementById("dashboardHead");
+            const tbody = document.getElementById("dashboardBody");
+            const shortYear = currentYear.toString().slice(-2);
+
+            // 1. Identify which months actually have pending records (Columns to display)
+            const activeMonthSet = new Set();
+            let parsedRows = [];
+
+            rawData.forEach(group => {
+                const supplierName = group.supplier || "Unknown";
+
+                group.sites.forEach(site => {
+                    const siteName = site.site_name;
+                    let pendingMonthMap = {};
+                    let sitePendingCount = 0;
+
+                    for (let m = 0; m < 12; m++) {
+                        const isActive = site.active_months && site.active_months[m];
+                        if (!isActive) continue;
+
+                        const billing = site.billing && site.billing[m] ? site.billing[m] : {};
+                        if (checkIsPending(billing)) {
+                            pendingMonthMap[m] = true;
+                            activeMonthSet.add(m);
+                            sitePendingCount++;
+                        }
+                    }
+
+                    if (sitePendingCount > 0) {
+                        parsedRows.push({
+                            supplierName,
+                            siteName,
+                            pendingCount: sitePendingCount,
+                            pendingMonthMap
+                        });
+                    }
+                });
+            });
+
+            // Sort active month indices chronologically
+            visibleMonthIndices = Array.from(activeMonthSet).sort((a, b) => a - b);
+
+            // 2. Build Dynamic Table Header (Hides entire month column if completely blank)
+            let headHtml = `
+                <tr>
+                    <th style="width: 50px; text-align: center;">SL</th>
+                    <th style="width: 250px;">Owner / Supplier</th>
+                    <th style="width: 220px;">Site Name</th>
+                    <th style="width: 110px; text-align: center;">Total Pending</th>
+            `;
+
+            visibleMonthIndices.forEach(m => {
+                headHtml += `<th class="month-head">${monthsShort[m]} - ${shortYear}</th>`;
+            });
+            headHtml += `</tr>`;
+            thead.innerHTML = headHtml;
+
+            // 3. Render Table Rows
+            tbody.innerHTML = "";
+            let affectedSuppliers = new Set();
+            let affectedSites = 0;
+            let totalPendingCount = 0;
+            let sl = 1;
+
+            const filteredRows = parsedRows.filter(r => 
+                r.supplierName.toLowerCase().includes(searchTerm) ||
+                r.siteName.toLowerCase().includes(searchTerm)
+            );
+
+            filteredRows.forEach(r => {
+                affectedSuppliers.add(r.supplierName);
+                affectedSites++;
+                totalPendingCount += r.pendingCount;
+
+                let tr = document.createElement("tr");
+                let rowHtml = `
+                    <td style="text-align: center; font-weight: 600; color: #64748b;">${sl++}</td>
+                    <td style="font-weight: 600; color: #0f172a;">${escapeHTML(r.supplierName)}</td>
+                    <td style="color: #334155;">${escapeHTML(r.siteName)}</td>
+                    <td style="text-align: center; font-weight: 700; color: #dc2626;">${r.pendingCount}</td>
+                `;
+
+                // Month Columns
+                visibleMonthIndices.forEach(m => {
+                    if (r.pendingMonthMap[m]) {
+                        rowHtml += `<td style="text-align: center;"><span class="pending-badge">Pending</span></td>`;
+                    } else {
+                        rowHtml += `<td></td>`;
+                    }
+                });
+
+                tr.innerHTML = rowHtml;
+                tbody.appendChild(tr);
+            });
+
+            // Update KPIs
+            document.getElementById("kpiSupplierCount").innerText = affectedSuppliers.size;
+            document.getElementById("kpiSiteCount").innerText = affectedSites;
+            document.getElementById("kpiPendingCount").innerText = totalPendingCount;
+
+            if (filteredRows.length === 0) {
+                const colSpan = 4 + visibleMonthIndices.length;
+                tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; color: #10b981; padding: 40px; font-weight: 600;">✓ No QC pending issues found for ${currentYear}!</td></tr>`;
+            }
+        }
+
+        // Clean Excel Export Function
+        function exportToExcel() {
+            const table = document.getElementById("pendingTable");
+            if (!table) return;
+
+            // Clone table to format for export
+            const clone = table.cloneNode(true);
+
+            // Clean pending badge text inside clone
+            clone.querySelectorAll(".pending-badge").forEach(b => {
+                b.replaceWith("Pending");
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(clone);
+
+            // Auto column widths
+            const range = XLSX.utils.decode_range(ws['!ref'] || "A1");
+            const colWidths = [];
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                colWidths.push({ wch: 18 });
+            }
+            colWidths[0] = { wch: 6 }; // SL
+            colWidths[1] = { wch: 28 }; // Supplier
+            colWidths[2] = { wch: 26 }; // Site
+            colWidths[3] = { wch: 15 }; // Total Pending
+            ws['!cols'] = colWidths;
+
+            XLSX.utils.book_append_sheet(wb, ws, "QC_Pending");
+            XLSX.writeFile(wb, `QC_Pending_Dashboard_${currentYear}.xlsx`);
+        }
+
+        function escapeHTML(str) { 
+            return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; 
+        }
+    </script>
+</body>
+</html>
