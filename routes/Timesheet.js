@@ -1257,13 +1257,13 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
       );
     }
 
-    // 4. Auto-Sync to Active Owner Log (if applicable)
+    // 4. Auto-Sync to Active Owner Log & Billing Records
     if (["owner_name", "owner_mobile", "vat", "vat_no", "company_display_name", "company_display_name_"].includes(cleanCol)) {
       let targetCol = cleanCol === "company_display_name_" ? "company_display_name" : cleanCol;
       
       // Check if an active running owner log exists
       const checkActive = await pool.query(
-        `SELECT id FROM vehicle_owner_log WHERE UPPER(plate_no) = UPPER($1) AND status = 'Running' ORDER BY id DESC LIMIT 1`,
+        `SELECT id FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) AND status = 'Running' ORDER BY id DESC LIMIT 1`,
         [plate_no]
       );
 
@@ -1273,10 +1273,17 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
           [value, checkActive.rows[0].id]
         );
       } else {
-        // If no running owner log exists, create an initial running owner log entry automatically
         await pool.query(
           `INSERT INTO vehicle_owner_log (plate_no, "${targetCol}", status) VALUES ($1, $2, 'Running')`,
           [plate_no.trim().toUpperCase(), value]
+        );
+      }
+
+      // 🟢 Modify billing_records directly if owner_name is corrected
+      if (cleanCol === "owner_name" && value && value.trim()) {
+        await pool.query(
+          `UPDATE billing_records SET owner = $1 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($2))`,
+          [value.trim(), plate_no.trim().toUpperCase()]
         );
       }
     }
@@ -1727,45 +1734,72 @@ router.post("/api/db/update-plate-no", verifyEditor, async (req, res) => {
 
     await client.query("BEGIN");
 
-    // 1. Update Master Table
+    // 1. Update Master Vehicles Table
     await client.query(
-      `UPDATE timesheet_vehicles SET plate_no = $1 WHERE UPPER(plate_no) = $2`,
+      `UPDATE timesheet_vehicles SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
       [newPlate, oldPlate],
     );
 
     // 2. Update Driver Logs
     await client.query(
-      `UPDATE vehicle_driver_log SET plate_no = $1 WHERE UPPER(plate_no) = $2`,
+      `UPDATE vehicle_driver_log SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
       [newPlate, oldPlate],
     );
 
     // 3. Update Site Logs
     await client.query(
-      `UPDATE vehicle_site_log SET plate_no = $1 WHERE UPPER(plate_no) = $2`,
+      `UPDATE vehicle_site_log SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
       [newPlate, oldPlate],
     );
 
     // 4. Update Grid/Daily Records
     await client.query(
-      `UPDATE timesheet_daily_records SET plate_no = $1 WHERE UPPER(plate_no) = $2`,
+      `UPDATE timesheet_daily_records SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
+      [newPlate, oldPlate],
+    );
+
+    // 5. Update Owner Logs
+    await client.query(
+      `UPDATE vehicle_owner_log SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
+      [newPlate, oldPlate],
+    );
+
+    // 6. Update Rate Logs
+    await client.query(
+      `UPDATE vehicle_rate_log SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
+      [newPlate, oldPlate],
+    );
+
+    // 7. 🟢 Crucial: Update Billing Records (Prevents Calculation & Invoice Duplication!)
+    await client.query(
+      `UPDATE billing_records SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
+      [newPlate, oldPlate],
+    );
+
+    // 8. Update Replacement fields in site logs if referenced
+    await client.query(
+      `UPDATE vehicle_site_log SET old_vehicle_no = $1 WHERE UPPER(TRIM(old_vehicle_no)) = $2`,
+      [newPlate, oldPlate],
+    );
+    await client.query(
+      `UPDATE vehicle_site_log SET new_vehicle_no = $1 WHERE UPPER(TRIM(new_vehicle_no)) = $2`,
       [newPlate, oldPlate],
     );
 
     await logAudit(
       req.user,
       "PLATE_NO_UPDATE",
-      `Changed plate no from ${oldPlate} to ${newPlate} across all logs`,
+      `Changed plate no from ${oldPlate} to ${newPlate} across all database records and billing logs`,
     );
     await client.query("COMMIT");
 
     res.json({ success: true, new_plate_no: newPlate });
   } catch (error) {
     await client.query("ROLLBACK");
-    // Handle unique constraint error if the new plate number already exists
     if (error.code === "23505") {
       res.json({
         success: false,
-        message: "New Plate No already exists in the database.",
+        message: "New Plate No already exists in the database. Merge or use a unique plate.",
       });
     } else {
       res.json({ success: false, message: error.message });
