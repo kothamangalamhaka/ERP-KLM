@@ -838,13 +838,24 @@
             return [];
         }
 
-        // Format vehicle breakdown string with Mmm-yy (Jan-26 Rent Bill (...))
-        function formatPlateDetails(plates, monthIdx) {
+        // Helper to extract clean site first name (skipping leading 'Z' or 'z')
+        function getSiteFirstWord(siteName) {
+            if (!siteName) return "";
+            // Remove starting Z/z followed by space, hyphen or underscore
+            let cleaned = siteName.trim().replace(/^z[\s\-_]+/i, '').trim();
+            // Pick the first word
+            return cleaned.split(/[\s\-_]+/)[0] || "";
+        }
+
+        // Format vehicle breakdown string with Mmm-yy + Site Name (e.g. Jan-26 Afif Rent Bill (...))
+        function formatPlateDetails(plates, monthIdx, siteName) {
             const shortM = monthsFull[monthIdx].substring(0, 3);
             const shortY = currentYear.toString().slice(-2);
-            const label = `${shortM}-${shortY}`;
+            const siteWord = getSiteFirstWord(siteName);
+            const sitePrefix = siteWord ? `${siteWord} ` : "";
+            const label = `${shortM}-${shortY} ${sitePrefix}Rent Bill`;
 
-            if (!plates || plates.length === 0) return `${label} Rent Bill`;
+            if (!plates || plates.length === 0) return label;
             
             const parts = plates.map(p => {
                 const nrPart = `NR ${p.nr}`;
@@ -852,13 +863,13 @@
                 return `${p.plate} [${nrPart}${otPart}]`;
             });
             
-            return `${label} Rent Bill (${parts.join(", ")})`;
+            return `${label} (${parts.join(", ")})`;
         }
 
         async function loadCellTooltip(tdEl, siteName, monthIdx) {
             if (!selectedSupplierKey) return;
             const plates = await fetchVehicleBreakdown(selectedSupplierKey, siteName, monthIdx);
-            tdEl.title = formatPlateDetails(plates, monthIdx);
+            tdEl.title = formatPlateDetails(plates, monthIdx, siteName);
         }
 
         async function handleTsRightClick(event, siteName, monthIdx) {
@@ -867,7 +878,7 @@
 
             showStatus("Preparing text...", "saving");
             const plates = await fetchVehicleBreakdown(selectedSupplierKey, siteName, monthIdx);
-            const textToCopy = formatPlateDetails(plates, monthIdx);
+            const textToCopy = formatPlateDetails(plates, monthIdx, siteName);
 
             navigator.clipboard.writeText(textToCopy).then(() => {
                 showStatus(`Copied: "${textToCopy}"`, "saved");
@@ -981,7 +992,9 @@
                         const sNameAttr = escapeQuotes(site.site_name);
                         const rowUniqueId = `row_${sNameAttr}_${m}`;
                         const shortM = monthsFull[m].substring(0, 3);
-                        const initialLabel = `${shortM}-${shortYear} Rent Bill`;
+                        const siteWord = getSiteFirstWord(site.site_name);
+                        const sitePrefix = siteWord ? `${siteWord} ` : "";
+                        const initialLabel = `${shortM}-${shortYear} ${sitePrefix}Rent Bill`;
 
                         if (isEditMode) {
                             bodyHtml += `
