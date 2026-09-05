@@ -317,4 +317,60 @@ router.post("/update-bulk", verifyVatCode, async (req, res) => {
     }
 });
 
+// Vendor TS breakdown - using exact billing_records columns (nhr, othr, plate_no)
+router.get("/vendor-breakdown", verifyVatCode, async (req, res) => {
+    try {
+        const { supplier, site, year, month } = req.query;
+        if (!supplier || !site || !year || !month) {
+            return res.status(400).json({ success: false, message: "Missing required query params" });
+        }
+
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const mIdx = parseInt(month) - 1;
+        const monthString = `${monthNames[mIdx]} ${year}`;
+
+        // Exact match with billing_records using plate_no, nhr, othr, after_adjustment
+        const query = `
+            SELECT 
+                COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
+                ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
+                ROUND(COALESCE(SUM(othr::numeric), 0), 2) AS ot_hours,
+                ROUND(COALESCE(SUM(after_adjustment::numeric), 0), 2) AS total_amount
+            FROM billing_records
+            WHERE LOWER(TRIM(owner)) = LOWER(TRIM($1))
+              AND LOWER(TRIM(site_name)) = LOWER(TRIM($2))
+              AND billing_month = $3
+            GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
+            ORDER BY plate_no ASC;
+        `;
+        
+        let result = await pool.query(query, [supplier, site, monthString]);
+        let rows = result.rows;
+
+        // Fallback for slight differences in site name spacing
+        if (rows.length === 0) {
+            const fallbackQuery = `
+                SELECT 
+                    COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
+                    ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
+                    ROUND(COALESCE(SUM(othr::numeric), 0), 2) AS ot_hours,
+                    ROUND(COALESCE(SUM(after_adjustment::numeric), 0), 2) AS total_amount
+                FROM billing_records
+                WHERE LOWER(TRIM(owner)) = LOWER(TRIM($1))
+                  AND LOWER(REGEXP_REPLACE(site_name, '[\\s\\-_]', '', 'g')) = LOWER(REGEXP_REPLACE($2, '[\\s\\-_]', '', 'g'))
+                  AND billing_month = $3
+                GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
+                ORDER BY plate_no ASC;
+            `;
+            const fbResult = await pool.query(fallbackQuery, [supplier, site, monthString]);
+            rows = fbResult.rows;
+        }
+
+        res.json({ success: true, data: rows });
+    } catch (err) {
+        console.error("Error in vendor-breakdown:", err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;
