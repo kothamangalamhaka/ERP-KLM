@@ -7,6 +7,16 @@ const bcrypt = require("bcrypt");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+function getCompanyFromSite(siteName, fallback = "Haka") {
+  if (!siteName) return fallback;
+  let s = siteName.toUpperCase().replace(/[\s\-_]/g, "");
+  if (s.includes("ALJODA")) return "Aljoda";
+  if (s.includes("MASARWHEELS") || s.includes("MASAR")) return "Masar Wheels";
+  if (s.includes("WE1TRACK") || s.includes("WE1") || s.includes("WETRACK")) return "We1 Track";
+  if (s.includes("HAKA")) return "Haka";
+  return fallback;
+}
+
 const verifyBillingEditor = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token)
@@ -550,12 +560,15 @@ router.get("/combined-bill", async (req, res) => {
         let rowNRate = (savedRow.nrate !== null && parseFloat(savedRow.nrate) > 0) ? parseFloat(savedRow.nrate) : fallbackNRate;
         let rowOTRate = (savedRow.otrate !== null && parseFloat(savedRow.otrate) > 0) ? parseFloat(savedRow.otrate) : fallbackOTRate;
 
+        let targetSite = savedRow.site_name || vehicleInfo.site_name || "N/A";
+        let resolvedCompany = savedRow.company || getCompanyFromSite(targetSite, vehicleInfo.company);
+
         combinedRows.push({
           billing_month: mStr,
           date: savedRow.date || shortDate,
-          company: savedRow.company || vehicleInfo.company || "Haka",
+          company: resolvedCompany,
           owner: savedRow.owner || vehicleInfo.owner_name || "COMPANY VEHICLE",
-          site_name: savedRow.site_name || vehicleInfo.site_name || "N/A",
+          site_name: targetSite,
           vtype: savedRow.vtype || vehicleInfo.vehicle_type || "N/A",
           driver: savedRow.driver || vehicleInfo.driver_name || "N/A",
           plate_no: cleanPlate,
@@ -573,12 +586,15 @@ router.get("/combined-bill", async (req, res) => {
           remark: savedRow.remark || ""
         });
       } else {
+        let targetSite = vehicleInfo.site_name || "N/A";
+        let resolvedCompany = getCompanyFromSite(targetSite, vehicleInfo.company);
+
         combinedRows.push({
           billing_month: mStr,
           date: shortDate,
-          company: vehicleInfo.company || "Haka",
+          company: resolvedCompany,
           owner: vehicleInfo.owner_name || "COMPANY VEHICLE",
-          site_name: vehicleInfo.site_name || "N/A",
+          site_name: targetSite,
           vtype: vehicleInfo.vehicle_type || "N/A",
           driver: vehicleInfo.driver_name || "N/A",
           plate_no: cleanPlate,

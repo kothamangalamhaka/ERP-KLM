@@ -420,13 +420,14 @@ function populateCheckboxes(isFirstLoad = true, prevOwners = [], prevSites = [])
   updateSelectTexts();
 }
 
-function getCompanyFromSite(siteName) {
-  if (!siteName) return "Haka";
-  let s = siteName.toUpperCase();
+function getCompanyFromSite(siteName, fallbackCompany = "") {
+  if (!siteName) return fallbackCompany || "Haka";
+  let s = siteName.toUpperCase().replace(/[\s\-_]/g, "");
   if (s.includes("ALJODA")) return "Aljoda";
-  if (s.includes("MASAR")) return "Masar Wheels";
-  if (s.includes("WE1") || s.includes("WE 1")) return "We1 Track";
-  return "Haka";
+  if (s.includes("MASARWHEELS") || s.includes("MASAR")) return "Masar Wheels";
+  if (s.includes("WE1TRACK") || s.includes("WE1") || s.includes("WETRACK")) return "We1 Track";
+  if (s.includes("HAKA")) return "Haka";
+  return fallbackCompany || "Haka";
 }
 
 let currentArrangeMode = "split";
@@ -707,7 +708,7 @@ function createManualTable() {
     container.innerHTML = "";
 
   let manualGroup = {
-    company: "Haka",
+    company: "",
     owner: "",
     items: [
       {
@@ -1052,7 +1053,7 @@ function generateRowHTML(
             <td class="date-cell">${date}</td>
             <td><input type="text" class="vtype" value="${vtype || ""}"></td>
             <td><input type="text" class="driver" value="${driver || ""}"></td>
-            <td class="site-col"><input type="text" class="site" value="${site || ""}"></td> 
+            <td class="site-col"><input type="text" class="site" value="${site || ""}" oninput="updateCardTotals(this.closest('.bill-card'))"></td>
             <td class="autocomplete-wrapper">
                 <input type="text" class="plate" value="${plate || ""}" onpaste="handlePlatePaste(event, this)" oninput="showSuggestions(this)" onkeydown="handleGlobalKeyDown(event, this)" onblur="handlePlateBlur(this)" autocomplete="off">
                 <div class="suggestion-box"></div>
@@ -1688,22 +1689,59 @@ function updateCardTotals(card) {
     let ownerName = ownerInput ? ownerInput.value.trim() : card.dataset.owner;
     if (!ownerName) ownerName = "Manual Entry";
 
-    // 🟢 NEW: Make Owner Name Clickable for WhatsApp without changing style
     let cardIdRaw = card.id.replace("billCard_", "");
     let waSpan = `<span style="cursor:pointer;" title="Click to copy & WhatsApp" onclick="copyCardAndWhatsApp('${cardIdRaw}', '${ownerName}')">${ownerName}</span>`;
 
     if (totalValidRows > 0) {
-      const order = ["Haka", "Aljoda", "Masar Wheels", "We1 Track"];
+      const order = ["We1 Track", "Aljoda", "Masar Wheels", "Haka"];
       let compStrings = [];
+      let dominantCompany = "";
+
       order.forEach((comp) => {
         if (companyCounts[comp]) {
           compStrings.push(`${comp} (${companyCounts[comp]})`);
+          if (!dominantCompany) dominantCompany = comp; // കൂടുതൽ വണ്ടികളുള്ള/ആദ്യത്തെ കമ്പനി എടുക്കുന്നു
         }
       });
       titleEl.innerHTML = compStrings.join(" - ") + " | " + waSpan;
+
+      // 🟢 സൈറ്റിന്റെ അടിസ്ഥാനത്തിൽ Header, Seal, Signature തത്സമയം മാറ്റുന്നു
+      if (dominantCompany) {
+        updateCardBranding(card, dominantCompany);
+      }
     } else {
       titleEl.innerHTML = (card.dataset.company || "Haka") + " - " + waSpan;
     }
+  }
+}
+
+function updateCardBranding(card, newCompany) {
+  if (!card || !newCompany) return;
+  const compConfig = companyData[newCompany] || companyData["Haka"];
+  card.dataset.company = newCompany;
+
+  // 1. Header Image
+  const headerImg = card.querySelector(".header-img");
+  if (headerImg && compConfig.header) {
+    headerImg.src = compConfig.header;
+  }
+
+  // 2. Seal Image
+  const sealImg = card.querySelector(".seal");
+  if (sealImg && compConfig.seal) {
+    sealImg.src = compConfig.seal;
+  }
+
+  // 3. Signature Image
+  const sigImg = card.querySelector(".signature-img");
+  if (sigImg && compConfig.signature) {
+    sigImg.src = compConfig.signature;
+  }
+
+  // 4. Text
+  const compText = card.querySelector(".company-text b");
+  if (compText && compConfig.text) {
+    compText.innerText = compConfig.text;
   }
 }
 
@@ -2074,7 +2112,9 @@ function submitBulkData() {
         }
 
         let siteVal = row.querySelector(".site").value.trim();
-        let rowCompany = getCompanyFromSite(siteVal);
+        let cardComp = card.dataset.company || "";
+        let masterComp = masterMatch ? (masterMatch.company || "") : "";
+        let rowCompany = getCompanyFromSite(siteVal, masterComp || cardComp);
 
         dataToUpdate.push({
           date: row.querySelector(".date-cell").innerText.trim(),
@@ -2316,7 +2356,9 @@ function submitSingleCard(cardId) {
       }
 
       let siteVal = row.querySelector(".site").value.trim();
-      let rowCompany = getCompanyFromSite(siteVal);
+      let cardComp = card.dataset.company || "";
+      let masterComp = masterMatch ? (masterMatch.company || "") : "";
+      let rowCompany = getCompanyFromSite(siteVal, masterComp || cardComp);
 
       dataToUpdate.push({
         date: row.querySelector(".date-cell").innerText.trim(),
