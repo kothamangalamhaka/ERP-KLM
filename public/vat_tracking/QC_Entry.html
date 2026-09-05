@@ -202,6 +202,12 @@
             color: #854d0e !important;
         }
 
+        .qc-quick-dice {
+            font-weight: 600;
+            color: #312e81;
+            background: #eef2ff;
+        }
+
         .month-col { 
             position: sticky; 
             left: 0; 
@@ -751,12 +757,14 @@
             }
         }
 
-        // 🟡 Instant Checkbox Toggle & Live Yellow Highlight + DB Persistence
-        async function toggleQcCheck(chkEl, siteName, monthIdx) {
-            const isChecked = chkEl.checked;
-            
-            // 🟢 Reload ചെയ്യാതെ instant ആയി മുൻപിലുള്ള 3 സെല്ലുകൾ (Vendor TS, Amount, Bill No) യെല്ലോ ആക്കുന്നു
-            const currentTd = chkEl.closest('td');
+        // 🟡 Instant Quick Dice Input & Live Yellow Highlight + DB Persistence
+        let diceDebounceTimer = null;
+        function handleLiveQuickDice(inputEl, siteName, monthIdx) {
+            const val = inputEl.value.trim();
+            const hasValue = val !== "";
+
+            // 🟢 Reload ചെയ്യാതെ instant ആയി വരി യെല്ലോ ആക്കുന്നു
+            const currentTd = inputEl.closest('td');
             if (currentTd) {
                 const vendorTsTd = currentTd.previousElementSibling;
                 const amountTd = vendorTsTd ? vendorTsTd.previousElementSibling : null;
@@ -764,7 +772,7 @@
 
                 const cellsToHighlight = [currentTd, vendorTsTd, amountTd, billNoTd].filter(Boolean);
                 cellsToHighlight.forEach(td => {
-                    if (isChecked) {
+                    if (hasValue) {
                         td.classList.add('qc-highlight');
                         td.querySelectorAll('*').forEach(child => child.classList.add('qc-highlight'));
                     } else {
@@ -779,32 +787,42 @@
             if (!supData) return;
             const site = supData.sites.find(s => s.site_name === siteName);
             if (site && site.billing[monthIdx]) {
-                site.billing[monthIdx].qc_checked = isChecked;
+                site.billing[monthIdx].quick_dice = val;
             }
 
-            const origGroup = rawData.find(g => g.supplier === supData.supplier && g.sites.some(s => s.site_name === siteName));
-            const companyName = origGroup ? origGroup.company : supData.company;
+            clearTimeout(diceDebounceTimer);
+            diceDebounceTimer = setTimeout(async () => {
+                const origGroup = rawData.find(g => g.supplier === supData.supplier && g.sites.some(s => s.site_name === siteName));
+                const companyName = origGroup ? origGroup.company : supData.company;
 
-            try {
-                await fetch(`/timesheet/api/vat-tracking/update-cell`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
-                    body: JSON.stringify({
-                        year: currentYear,
-                        company: companyName,
-                        supplier: supData.supplier,
-                        vat_no: supData.vat_no,
-                        display_name: supData.display_name,
-                        site_name: siteName,
-                        month_index: monthIdx,
-                        field: "qc_checked",
-                        value: isChecked
-                    })
-                });
-                showStatus(isChecked ? "QC Verified (Saved)" : "QC Unverified (Saved)", "saved");
-            } catch (e) {
-                showStatus("Sync Error", "error");
-            }
+                try {
+                    await fetch(`/timesheet/api/vat-tracking/update-cell`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
+                        body: JSON.stringify({
+                            year: currentYear,
+                            company: companyName,
+                            supplier: supData.supplier,
+                            vat_no: supData.vat_no,
+                            display_name: supData.display_name,
+                            site_name: siteName,
+                            month_index: monthIdx,
+                            field: "quick_dice",
+                            value: val
+                        })
+                    });
+                    showStatus("Quick Dice Saved", "saved");
+
+                    // 🟢 എഡിറ്റ് മോഡിൽ അല്ലെങ്കിൽ, 0-ന് മുകളിൽ വാല്യൂ സേവ് ചെയ്തുകഴിഞ്ഞാൽ ആ സെൽ ഉടൻ തന്നെ Locked (Read-Only) ആക്കുന്നു
+                    const numVal = parseFloat(val);
+                    const isPositive = !isNaN(numVal) && numVal > 0;
+                    if (!isEditMode && val !== "" && (isPositive || val !== "0")) {
+                        renderTable(supData);
+                    }
+                } catch (e) {
+                    showStatus("Sync Error", "error");
+                }
+            }, 400);
         }
 
         // Fetch Live Vehicle breakdown (Plate No, NR, OT, Total)
@@ -982,7 +1000,7 @@
                     <th class="sub-head" style="width: 120px; min-width: 120px;">Bill No</th>
                     <th class="sub-head" style="width: 85px; min-width: 85px;">Amount</th>
                     <th class="sub-head erp-head" style="width: 85px; min-width: 85px;">Vendor TS</th>
-                    <th class="sub-head qc-chk-head" title="QC Check">QC</th>
+                    <th class="sub-head" style="width: 90px; min-width: 90px; background: #4338ca;">Quick Dice</th>
                 `;
             });
             head1 += `</tr>`;
@@ -991,20 +1009,43 @@
             document.getElementById("qcHead").innerHTML = head1 + head2;
 
             let bodyHtml = "";
+
+            // ടോട്ടലുകൾ കണക്കാക്കാനുള്ള ഒബ്ജക്റ്റുകൾ
+            const siteTotals = supData.sites.map(() => ({
+                amount: 0,
+                vendor_ts: 0,
+                quick_dice_total: 0,
+                quick_dice_count: 0
+            }));
+
             for (let m = 0; m < 12; m++) {
                 let mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
                 bodyHtml += `<tr><td class="month-col"><div class="cell-content">${mLabel}</div></td>`;
 
-                supData.sites.forEach((site) => {
+                supData.sites.forEach((site, sIdx) => {
                     const isActive = site.active_months[m];
-                    const bill = site.billing[m] || { bill_no: "", amount: "", erp_total: "", qc_checked: false };
+                    const bill = site.billing[m] || { bill_no: "", amount: "", erp_total: "", quick_dice: "" };
                     const erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
                     const billVal = escapeHTML(bill.bill_no || '');
                     const amtVal = escapeHTML(bill.amount || '');
-                    const isQcChecked = bill.qc_checked === true || bill.qc_checked === 'true';
-                    const hlClass = isQcChecked ? 'qc-highlight' : '';
+                    const qDiceVal = escapeHTML(bill.quick_dice || '');
+                    const hasValue = qDiceVal.trim() !== "";
+                    const hlClass = hasValue ? 'qc-highlight' : '';
 
                     if (isActive) {
+                        // ടോട്ടൽ കാൽക്കുലേഷൻ
+                        const parsedAmt = parseFloat(String(bill.amount || '').replace(/,/g, ''));
+                        if (!isNaN(parsedAmt)) siteTotals[sIdx].amount += parsedAmt;
+
+                        const parsedErp = parseFloat(String(bill.erp_total || '').replace(/,/g, ''));
+                        if (!isNaN(parsedErp)) siteTotals[sIdx].vendor_ts += parsedErp;
+
+                        if (hasValue) {
+                            siteTotals[sIdx].quick_dice_count += 1;
+                            const parsedDice = parseFloat(String(bill.quick_dice || '').replace(/,/g, ''));
+                            if (!isNaN(parsedDice)) siteTotals[sIdx].quick_dice_total += parsedDice;
+                        }
+
                         const sNameAttr = escapeQuotes(site.site_name);
                         const rowUniqueId = `row_${sNameAttr}_${m}`;
                         const shortM = monthsFull[m].substring(0, 3);
@@ -1013,6 +1054,7 @@
                         const initialLabel = `${shortM}-${shortYear} ${sitePrefix}Rent Bill`;
 
                         if (isEditMode) {
+                            // 🟢 EDIT MODE: ഇവിടുന്ന് മാത്രമാണ് ഡാറ്റ ടൈപ്പ് ചെയ്യാൻ സാധിക്കുക
                             bodyHtml += `
                                 <td id="${rowUniqueId}">
                                     <textarea class="qc-textarea qc-val qc-highlight-target ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="bill_no" oninput="autoResizeTextarea(this)">${billVal}</textarea>
@@ -1024,10 +1066,23 @@
                                     <div class="cell-content qc-highlight-target ${hlClass}" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
                                 </td>
                                 <td>
-                                    <input type="checkbox" class="qc-checkbox" data-site="${sNameAttr}" data-month="${m}" ${isQcChecked ? 'checked' : ''} onchange="toggleQcCheck(this, '${sNameAttr}', ${m})">
+                                    <input type="text" class="qc-input qc-val qc-quick-dice ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="quick_dice" value="${qDiceVal}">
                                 </td>
                             `;
                         } else {
+                            // 🟢 വാല്യൂ 0-ന് മുകളിലാണെങ്കിൽ മാത്രം Locked (Read-Only) ആക്കുന്നു
+                            const isNumericPositive = !isNaN(parseFloat(qDiceVal)) && parseFloat(qDiceVal) > 0;
+                            const isLocked = qDiceVal.trim() !== "" && (isNumericPositive || qDiceVal.trim() !== "0");
+
+                            let diceCellContent = "";
+                            if (isLocked) {
+                                // സേവ് ചെയ്ത വാല്യൂ ഉണ്ടെങ്കിൽ Read-Only ആക്കുന്നു
+                                diceCellContent = `<div class="cell-content" style="font-size: 11px; font-weight: 700; color: #312e81;" title="Locked: Click 'Edit' button to modify">${qDiceVal}</div>`;
+                            } else {
+                                // ബ്ലാങ്ക് അല്ലെങ്കിൽ 0 ആണെങ്കിൽ ആദ്യം തന്നെ Editable input ആയി നൽകുന്നു
+                                diceCellContent = `<input type="text" class="qc-input qc-quick-dice" data-site="${sNameAttr}" data-month="${m}" data-field="quick_dice" value="${qDiceVal === '0' ? '' : qDiceVal}" oninput="handleLiveQuickDice(this, '${sNameAttr}', ${m})">`;
+                            }
+
                             bodyHtml += `
                                 <td class="qc-highlight-target ${hlClass}" style="cursor: pointer;" 
                                     title="Right click to copy Bill No" 
@@ -1046,8 +1101,8 @@
                                     oncontextmenu="handleTsRightClick(event, '${sNameAttr}', ${m})">
                                     <div class="cell-content" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
                                 </td>
-                                <td>
-                                    <input type="checkbox" class="qc-checkbox" data-site="${sNameAttr}" data-month="${m}" ${isQcChecked ? 'checked' : ''} onchange="toggleQcCheck(this, '${sNameAttr}', ${m})">
+                                <td class="qc-highlight-target ${hlClass}">
+                                    ${diceCellContent}
                                 </td>
                             `;
                         }
@@ -1058,6 +1113,58 @@
 
                 bodyHtml += `</tr>`;
             }
+
+            // 🟢 ഡിസംബർ കഴിഞ്ഞുള്ള ടോട്ടൽ വരി (December-ന് താഴെ Total Row)
+            let totalRowHtml = `
+                <tr style="background: #f1f5f9; font-weight: 700; border-top: 2px solid #94a3b8;">
+                    <td class="month-col" style="background: #e2e8f0; color: #0f172a; font-weight: 800;">
+                        <div class="cell-content">TOTAL</div>
+                    </td>
+            `;
+
+            supData.sites.forEach((site, sIdx) => {
+                const tot = siteTotals[sIdx];
+                const amtFormatted = tot.amount > 0 ? tot.amount.toFixed(2) : "";
+                const tsFormatted = tot.vendor_ts > 0 ? tot.vendor_ts.toFixed(2) : "";
+                const qdFormatted = tot.quick_dice_total > 0 ? tot.quick_dice_total.toFixed(2) : (tot.quick_dice_count > 0 ? `${tot.quick_dice_count} Billed` : "");
+
+                // 🟢 Vendor TS Total - Quick Dice Total കാൽക്കുലേഷൻ
+                const diff = Number((tot.vendor_ts - tot.quick_dice_total).toFixed(2));
+                let diffStyle = "background: #f8fafc; color: #64748b;"; // Default 0 or empty
+                let diffText = "";
+
+                if (tot.vendor_ts > 0 || tot.quick_dice_total > 0) {
+                    diffText = diff.toFixed(2);
+                    if (diff > 0) {
+                        // 🟢 Positive: Green Fill, Black Text
+                        diffStyle = "background: #bbf7d0 !important; color: #000000 !important; font-weight: 800;";
+                    } else if (diff < 0) {
+                        // 🔴 Negative: Red Fill, White Text
+                        diffStyle = "background: #ef4444 !important; color: #ffffff !important; font-weight: 800;";
+                    } else {
+                        // 0 ആണെങ്കിൽ
+                        diffStyle = "background: #f1f5f9; color: #10b981; font-weight: 800;";
+                    }
+                }
+
+                totalRowHtml += `
+                    <td style="${diffStyle} font-size: 11px;" title="Vendor TS Total - Quick Dice Total">
+                        <div class="cell-content">${diffText}</div>
+                    </td>
+                    <td style="background: #f8fafc; color: #0f172a; font-weight: 800; font-size: 11px;">
+                        <div class="cell-content">${amtFormatted}</div>
+                    </td>
+                    <td style="background: #ccfbf1; color: #0f766e; font-weight: 800; font-size: 11px;">
+                        <div class="cell-content">${tsFormatted}</div>
+                    </td>
+                    <td style="background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 10.5px;" title="Quick Dice Total">
+                        <div class="cell-content">${qdFormatted}</div>
+                    </td>
+                `;
+            });
+
+            totalRowHtml += `</tr>`;
+            bodyHtml += totalRowHtml;
 
             document.getElementById("qcBody").innerHTML = bodyHtml;
             if (isEditMode) {
@@ -1111,42 +1218,22 @@
                             s.site_name.trim().toLowerCase() === data.site_name.trim().toLowerCase()
                         );
                         if (site && site.billing[data.month_index]) {
-                            site.billing[data.month_index].qc_checked = data.qc_checked;
+                            site.billing[data.month_index][data.field] = data.value;
                         }
                     }
 
-                    // 2. If the current user has this supplier open, update UI immediately
+                    // 2. If currently opened on screen, update UI instantly without reloading
                     if (selectedSupplierKey && selectedSupplierKey.trim().toLowerCase() === data.supplier.trim().toLowerCase()) {
                         if (!isEditMode) {
-                            // 🟢 വ്യൂ മോഡിലാണെങ്കിൽ സ്ക്രീൻ റീലോഡ് ആവാതെ തന്നെ ടേബിൾ തത്സമയം യെല്ലോ കളറോടെ റീ-റെൻഡർ ചെയ്യുന്നു
                             renderTable(consolidatedSuppliers[selectedSupplierKey]);
                         } else {
-                            // എഡിറ്റ് മോഡിലാണെങ്കിൽ ടൈപ്പ് ചെയ്തുകൊണ്ടിരിക്കുന്ന ഡാറ്റ നഷ്ടപ്പെടാതെ ചെക്ക്ബോക്സ് നേരിട്ട് അപ്ഡേറ്റ് ചെയ്യുന്നു
-                            const allCheckboxes = document.querySelectorAll("input.qc-checkbox");
-                            allCheckboxes.forEach(cb => {
-                                const cbSite = (cb.getAttribute("data-site") || "").trim().toLowerCase();
-                                const cbMonth = parseInt(cb.getAttribute("data-month"));
-                                if (cbSite === data.site_name.trim().toLowerCase() && cbMonth === data.month_index) {
-                                    cb.checked = data.qc_checked;
-                                    const currentTd = cb.closest("td");
-                                    if (currentTd) {
-                                        const vendorTsTd = currentTd.previousElementSibling;
-                                        const amountTd = vendorTsTd ? vendorTsTd.previousElementSibling : null;
-                                        const billNoTd = amountTd ? amountTd.previousElementSibling : null;
-
-                                        const cells = [currentTd, vendorTsTd, amountTd, billNoTd].filter(Boolean);
-                                        cells.forEach(td => {
-                                            if (data.qc_checked) {
-                                                td.classList.add("qc-highlight");
-                                                td.querySelectorAll("*").forEach(el => el.classList.add("qc-highlight"));
-                                            } else {
-                                                td.classList.remove("qc-highlight");
-                                                td.querySelectorAll("*").forEach(el => el.classList.remove("qc-highlight"));
-                                            }
-                                        });
-                                    }
+                            const targetInput = document.querySelector(`input[data-site="${escapeQuotes(data.site_name)}"][data-month="${data.month_index}"][data-field="${data.field}"], textarea[data-site="${escapeQuotes(data.site_name)}"][data-month="${data.month_index}"][data-field="${data.field}"]`);
+                            if (targetInput && document.activeElement !== targetInput) {
+                                targetInput.value = data.value;
+                                if (data.field === "quick_dice") {
+                                    handleLiveQuickDice(targetInput, data.site_name, data.month_index);
                                 }
-                            });
+                            }
                         }
                     }
                 } catch (err) {

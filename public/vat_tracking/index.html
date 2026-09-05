@@ -961,10 +961,11 @@
             monthsFull[i].substring(0, 3) +
             "-" +
             currentYear.toString().slice(-2);
-          head1 += `<th colspan="3">${mName}</th>`;
+          head1 += `<th colspan="4">${mName}</th>`;
           head2 += `<th class="sub-head" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'bill_no', ${i})">Bill No <span class="filter-icon" onclick="openFilter(event, 'bill_no')">▼</span></th>
                           <th class="sub-head" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'amount', ${i})">Amount</th>
-                          <th class="sub-head" style="background: #0f766e;" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'erp_total', ${i})">Vendor TS</th>`;
+                          <th class="sub-head" style="background: #0f766e;" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'erp_total', ${i})">Vendor TS</th>
+                          <th class="sub-head" style="background: #4338ca; min-width: 75px;" title="Right-click to copy column" oncontextmenu="copyColumnValues(event, 'quick_dice', ${i})">Quick Dice</th>`;
         }
         head1 += `</tr>`;
         head2 += `</tr>`;
@@ -1041,6 +1042,7 @@
                   bill_no: "",
                   amount: "",
                   erp_total: "",
+                  quick_dice: "",
                 };
                 let isActive = siteData.active_months[i];
                 let cellClass = isActive ? "" : "inactive-cell";
@@ -1051,6 +1053,9 @@
                   : "";
                 let actionAmount = isActive
                   ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace("FIELD_PLACEHOLDER", "amount")})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace("FIELD_PLACEHOLDER", "amount")})"`
+                  : "";
+                let actionQuickDice = isActive
+                  ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace("FIELD_PLACEHOLDER", "quick_dice")})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace("FIELD_PLACEHOLDER", "quick_dice")})"`
                   : "";
 
                 let erpVal = bill.erp_total
@@ -1065,6 +1070,7 @@
     <td class="${cellClass}" ${actionBillNo}><span class="${isActive ? "editable" : ""}">${escapeHTML(bill.bill_no)}</span></td>
     <td class="${cellClass}" ${actionAmount}><span class="${isActive ? "editable" : ""}">${escapeHTML(bill.amount)}</span></td>
     <td ${clickTsAction} style="font-weight: 600; color: #0f766e;" title="Click to view Breakdown"><span>${erpVal}</span></td>
+    <td class="${cellClass}" ${actionQuickDice} style="background: #eef2ff;"><span class="${isActive ? "editable" : ""}" style="font-weight: 600; color: #3730a3;">${escapeHTML(bill.quick_dice || "")}</span></td>
 `;
               }
 
@@ -1199,10 +1205,11 @@
         let headRow2 = `<tr>`;
 
         qmActiveSites.forEach((item) => {
-          headRow1 += `<th colspan="3" style="background: #1e293b; color: white; border-left: 2px solid #64748b; font-size: 11px; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(item.site.site_name)}">${escapeHTML(item.site.site_name)}</th>`;
-          headRow2 += `<th class="qm-head-row2" style="background: #334155; color: white; ${isSingle ? "width: 32%;" : "width: 120px; min-width: 120px;"} border-left: 2px solid #64748b;">Bill No</th>
-                             <th class="qm-head-row2" style="background: #334155; color: white; ${isSingle ? "width: 26%;" : "width: 85px; min-width: 85px;"}">Amount</th>
-                             <th class="qm-head-row2" style="background: #0f766e; color: white; ${isSingle ? "width: 20%;" : "width: 75px; min-width: 75px;"}">Vendor TS</th>`;
+          headRow1 += `<th colspan="4" style="background: #1e293b; color: white; border-left: 2px solid #64748b; font-size: 11px; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(item.site.site_name)}">${escapeHTML(item.site.site_name)}</th>`;
+          headRow2 += `<th class="qm-head-row2" style="background: #334155; color: white; ${isSingle ? "width: 28%;" : "width: 120px; min-width: 120px;"} border-left: 2px solid #64748b;">Bill No</th>
+                             <th class="qm-head-row2" style="background: #334155; color: white; ${isSingle ? "width: 22%;" : "width: 85px; min-width: 85px;"}">Amount</th>
+                             <th class="qm-head-row2" style="background: #0f766e; color: white; ${isSingle ? "width: 18%;" : "width: 75px; min-width: 75px;"}">Vendor TS</th>
+                             <th class="qm-head-row2" style="background: #4338ca; color: white; ${isSingle ? "width: 18%;" : "width: 75px; min-width: 75px;"}">Quick Dice</th>`;
         });
         headRow1 += `</tr>`;
         headRow2 += `</tr>`;
@@ -1231,6 +1238,7 @@
             const billNoVal = escapeHTML(bill.bill_no || "");
             const amtVal = escapeHTML(bill.amount || "");
 
+            const qDiceVal = escapeHTML(bill.quick_dice || "");
             if (isActive) {
               bodyHtml += `
                             <td style="border-left: 2px solid #cbd5e1; ${isSingle ? "" : "width: 120px; min-width: 120px; max-width: 140px;"}">
@@ -1238,10 +1246,11 @@
                             </td>
                             <td style="${isSingle ? "" : "width: 85px; min-width: 85px;"}"><input type="text" class="quick-input qm-cell-input" data-siteidx="${sIdx}" data-month="${m}" data-field="amount" value="${amtVal}" title="${amtVal}" oninput="this.title = this.value"></td>
                             <td style="background: #f0fdfa; font-weight: 600; color: #0f766e; font-size: 10.5px; ${isSingle ? "" : "width: 75px; min-width: 75px;"}">${erpVal}</td>
+                            <td style="${isSingle ? "" : "width: 75px; min-width: 75px;"}"><input type="text" class="quick-input qm-cell-input" data-siteidx="${sIdx}" data-month="${m}" data-field="quick_dice" value="${qDiceVal}" title="${qDiceVal}" placeholder="Dice#" oninput="this.title = this.value"></td>
                         `;
             } else {
               bodyHtml += `
-                            <td colspan="3" class="inactive-cell" style="border-left: 2px solid #cbd5e1;" title="Inactive Month"></td>
+                            <td colspan="4" class="inactive-cell" style="border-left: 2px solid #cbd5e1;" title="Inactive Month"></td>
                         `;
             }
           });
@@ -1877,8 +1886,8 @@
             monthsFull[i].substring(0, 3) +
             "-" +
             currentYear.toString().slice(-2);
-          row1.push(mName, "", "");
-          row2.push("Bill No", "Amount", "Vendor TS");
+          row1.push(mName, "", "", "");
+          row2.push("Bill No", "Amount", "Vendor TS", "Quick Dice");
         }
 
         ws.addRow(row1);
@@ -1890,8 +1899,8 @@
 
         let colIndex = 7;
         for (let i = startMonth; i <= endMonth; i++) {
-          ws.mergeCells(1, colIndex, 1, colIndex + 2);
-          colIndex += 3;
+          ws.mergeCells(1, colIndex, 1, colIndex + 3);
+          colIndex += 4;
         }
 
         const borderStyle = {
@@ -1966,12 +1975,13 @@
                   bill.bill_no || "",
                   safeNumber(bill.amount),
                   safeNumber(bill.erp_total),
+                  bill.quick_dice || ""
                 );
               } else {
-                rowData.push("", "", "");
-                inactiveColumns.push(cIdx, cIdx + 1, cIdx + 2);
+                rowData.push("", "", "", "");
+                inactiveColumns.push(cIdx, cIdx + 1, cIdx + 2, cIdx + 3);
               }
-              cIdx += 3;
+              cIdx += 4;
             }
 
             let row = ws.addRow(rowData);
@@ -2153,8 +2163,8 @@
           let row5 = [""];
 
           supData.sites.forEach((site) => {
-            row4.push(site.site_name, "", "");
-            row5.push("Bill No", "Amount", "Vendor TS");
+            row4.push(site.site_name, "", "", "");
+            row5.push("Bill No", "Amount", "Vendor TS", "Quick Dice");
           });
 
           ws.addRow(row4);
@@ -2166,8 +2176,8 @@
 
           let colIdx = 2;
           supData.sites.forEach(() => {
-            ws.mergeCells(4, colIdx, 4, colIdx + 2);
-            colIdx += 3;
+            ws.mergeCells(4, colIdx, 4, colIdx + 3);
+            colIdx += 4;
           });
 
           ws.getRow(4).eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -2217,12 +2227,13 @@
                   bill.bill_no || "",
                   safeNumber(bill.amount),
                   safeNumber(bill.erp_total),
+                  bill.quick_dice || ""
                 );
               } else {
-                rowData.push("", "", "");
-                inactiveCells.push(currCol, currCol + 1, currCol + 2);
+                rowData.push("", "", "", "");
+                inactiveCells.push(currCol, currCol + 1, currCol + 2, currCol + 3);
               }
-              currCol += 3;
+              currCol += 4;
             });
 
             let dataRow = ws.addRow(rowData);

@@ -232,9 +232,9 @@ const erpQuery = `
                             status: bill.status, 
                             amount: bill.amount, 
                             erp_total: erpTotal, 
-                            qc_checked: bill.qc_checked === true || bill.qc_checked === 'true' 
+                            quick_dice: bill.quick_dice || "" 
                           } 
-                        : { bill_no: "", status: "", amount: "", erp_total: erpTotal, qc_checked: false };
+                        : { bill_no: "", status: "", amount: "", erp_total: erpTotal, quick_dice: "" };
                 }
             });
         });
@@ -255,8 +255,8 @@ router.post("/update-cell", verifyVatCode, async (req, res) => {
     try {
         const { year, company, supplier, vat_no, display_name, site_name, month_index, field, value } = req.body;
         
-        // Changed validFields to accept 'status' instead of 'bill_date'
-        const validFields = ["bill_no", "status", "amount", "qc_checked"];
+        // Changed validFields to accept quick_dice instead of qc_checked
+        const validFields = ["bill_no", "status", "amount", "quick_dice"];
         if (!validFields.includes(field)) throw new Error("Invalid field update");
 
         let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();
@@ -274,14 +274,15 @@ router.post("/update-cell", verifyVatCode, async (req, res) => {
 
         await pool.query(query, [year, company, supplier, vat_no, display_name, site_name, month_index, valToSave]);
         
-        // Broadcast QC check toggle to all other connected clients
-        if (field === "qc_checked") {
+        // Real-time live update for bill_no, amount, and quick_dice to other users without reload
+        if (["bill_no", "amount", "quick_dice"].includes(field)) {
             broadcastQcUpdate({
                 year: parseInt(year),
                 supplier,
                 site_name,
                 month_index: parseInt(month_index),
-                qc_checked: (valToSave === "true" || valToSave === true)
+                field: field,
+                value: valToSave || ""
             });
         }
 
@@ -304,8 +305,8 @@ router.post("/update-bulk", verifyVatCode, async (req, res) => {
             for (let change of changes) {
                 const { year, company, supplier, vat_no, display_name, site_name, month_index, field, value } = change;
                 
-                // Changed validFields to accept 'status' instead of 'bill_date'
-                const validFields = ["bill_no", "status", "amount"];
+               // Changed validFields to accept quick_dice
+                const validFields = ["bill_no", "status", "amount", "quick_dice"];
                 if (!validFields.includes(field)) continue;
 
                 let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();

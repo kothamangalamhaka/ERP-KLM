@@ -97,6 +97,32 @@
         .btn-action:hover { filter: brightness(1.1); }
         .btn-export { background: #10b981; }
 
+        /* View Toggle Switch */
+        .mode-toggle-group {
+            display: inline-flex;
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .mode-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mode-btn.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
         /* KPI Banner */
         .kpi-banner {
             background: white;
@@ -197,6 +223,16 @@
         </div>
 
         <div class="nav-tools">
+            <!-- Mode Switcher Toggle Button -->
+            <div class="mode-toggle-group">
+                <button id="btnModeZoho" class="mode-btn active" onclick="switchDashboardMode('zoho')" title="Quick Dice entered, but Missing Bill No / Amount">
+                    📘 Zoho
+                </button>
+                <button id="btnModeQuickDice" class="mode-btn" onclick="switchDashboardMode('quick_dice')" title="Bill No / Amount present, but Missing Quick Dice">
+                    🎲 Quick Dice
+                </button>
+            </div>
+
             <input type="text" id="searchInput" class="search-box" placeholder="Search Owner, Site..." onkeyup="renderDashboard()">
 
             <div class="year-control">
@@ -250,6 +286,14 @@
         let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
         let currentYear = new Date().getFullYear();
         let visibleMonthIndices = []; // Holds only months having pending entries
+        let currentDashboardMode = "zoho"; // 'zoho' or 'quick_dice'
+
+        function switchDashboardMode(mode) {
+            currentDashboardMode = mode;
+            document.getElementById("btnModeZoho").classList.toggle("active", mode === "zoho");
+            document.getElementById("btnModeQuickDice").classList.toggle("active", mode === "quick_dice");
+            renderDashboard();
+        }
 
         function initYearOptions() {
             const select = document.getElementById("yearSelect");
@@ -319,13 +363,21 @@
             }
         }
 
-        // Logic check: QC Checked is TRUE AND (Bill No is missing OR Amount is missing)
+        // Logic check depending on selected mode
         function checkIsPending(billing) {
             if (!billing) return false;
-            const isQcChecked = billing.qc_checked === true || billing.qc_checked === 'true';
+            const quickDice = billing.quick_dice ? String(billing.quick_dice).trim() : "";
             const billNo = billing.bill_no ? String(billing.bill_no).trim() : "";
             const amount = billing.amount ? String(billing.amount).trim() : "";
-            return isQcChecked && (!billNo || !amount);
+
+            if (currentDashboardMode === "zoho") {
+                // 1. Zoho Mode: Quick Dice ഉണ്ടാവുകയും (Not Blank), Bill No അല്ലെങ്കിൽ Amount ബ്ലാങ്ക് ആവുകയും ചെയ്യുമ്പോൾ
+                return (quickDice !== "") && (!billNo || !amount);
+            } else {
+                // 2. Quick Dice Mode: Bill No അല്ലെങ്കിൽ Amount ഉണ്ടാവുകയും (Not Blank), Quick Dice ബ്ലാങ്ക് ആവുകയും ചെയ്യുമ്പോൾ
+                const hasBillingData = (billNo !== "") || (amount !== "" && amount !== "0");
+                return hasBillingData && (quickDice === "");
+            }
         }
 
         function renderDashboard() {
@@ -465,7 +517,8 @@
             ws['!cols'] = colWidths;
 
             XLSX.utils.book_append_sheet(wb, ws, "QC_Pending");
-            XLSX.writeFile(wb, `QC_Pending_Dashboard_${currentYear}.xlsx`);
+            const filePrefix = currentDashboardMode === "zoho" ? "Zoho_Pending" : "QuickDice_Pending";
+            XLSX.writeFile(wb, `${filePrefix}_Dashboard_${currentYear}.xlsx`);
         }
 
         function escapeHTML(str) { 
