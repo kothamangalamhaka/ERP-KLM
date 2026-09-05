@@ -1014,7 +1014,7 @@
                                     <div class="cell-content" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
                                 </td>
                                 <td>
-                                    <input type="checkbox" class="qc-checkbox" ${isQcChecked ? 'checked' : ''} onchange="toggleQcCheck(this, '${sNameAttr}', ${m})">
+                                    <input type="checkbox" class="qc-checkbox" data-site="${sNameAttr}" data-month="${m}" ${isQcChecked ? 'checked' : ''} onchange="toggleQcCheck(this, '${sNameAttr}', ${m})">
                                 </td>
                             `;
                         }
@@ -1059,43 +1059,61 @@
         function initLiveSync() {
             const evtSource = new EventSource("/timesheet/api/vat-tracking/live-updates");
 
+            evtSource.onopen = function () {
+                console.log("⚡ Live QC Sync Connected");
+            };
+
+            evtSource.onerror = function (err) {
+                console.warn("Live QC Sync connection lost, retrying...", err);
+            };
+
             evtSource.onmessage = function (event) {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.year !== currentYear) return;
 
-                    // Update memory state
+                    // 1. Update In-Memory Cache
                     if (consolidatedSuppliers[data.supplier]) {
-                        const site = consolidatedSuppliers[data.supplier].sites.find(s => s.site_name === data.site_name);
+                        const site = consolidatedSuppliers[data.supplier].sites.find(s => 
+                            s.site_name.trim().toLowerCase() === data.site_name.trim().toLowerCase()
+                        );
                         if (site && site.billing[data.month_index]) {
                             site.billing[data.month_index].qc_checked = data.qc_checked;
                         }
                     }
 
-                    // Update UI live on screen if this supplier is currently opened
-                    if (selectedSupplierKey === data.supplier) {
-                        const sNameAttr = escapeQuotes(data.site_name);
-                        const chkEl = document.querySelector(`input.qc-checkbox[data-site="${sNameAttr}"][data-month="${data.month_index}"]`);
-                        
-                        if (chkEl) {
-                            chkEl.checked = data.qc_checked;
-                            const currentTd = chkEl.closest('td');
-                            if (currentTd) {
-                                const vendorTsTd = currentTd.previousElementSibling;
-                                const amountTd = vendorTsTd ? vendorTsTd.previousElementSibling : null;
-                                const billNoTd = amountTd ? amountTd.previousElementSibling : null;
+                    // 2. If the current user has this supplier open, update UI immediately
+                    if (selectedSupplierKey && selectedSupplierKey.trim().toLowerCase() === data.supplier.trim().toLowerCase()) {
+                        if (!isEditMode) {
+                            // 🟢 വ്യൂ മോഡിലാണെങ്കിൽ സ്ക്രീൻ റീലോഡ് ആവാതെ തന്നെ ടേബിൾ തത്സമയം യെല്ലോ കളറോടെ റീ-റെൻഡർ ചെയ്യുന്നു
+                            renderTable(consolidatedSuppliers[selectedSupplierKey]);
+                        } else {
+                            // എഡിറ്റ് മോഡിലാണെങ്കിൽ ടൈപ്പ് ചെയ്തുകൊണ്ടിരിക്കുന്ന ഡാറ്റ നഷ്ടപ്പെടാതെ ചെക്ക്ബോക്സ് നേരിട്ട് അപ്ഡേറ്റ് ചെയ്യുന്നു
+                            const allCheckboxes = document.querySelectorAll("input.qc-checkbox");
+                            allCheckboxes.forEach(cb => {
+                                const cbSite = (cb.getAttribute("data-site") || "").trim().toLowerCase();
+                                const cbMonth = parseInt(cb.getAttribute("data-month"));
+                                if (cbSite === data.site_name.trim().toLowerCase() && cbMonth === data.month_index) {
+                                    cb.checked = data.qc_checked;
+                                    const currentTd = cb.closest("td");
+                                    if (currentTd) {
+                                        const vendorTsTd = currentTd.previousElementSibling;
+                                        const amountTd = vendorTsTd ? vendorTsTd.previousElementSibling : null;
+                                        const billNoTd = amountTd ? amountTd.previousElementSibling : null;
 
-                                const cellsToHighlight = [currentTd, vendorTsTd, amountTd, billNoTd].filter(Boolean);
-                                cellsToHighlight.forEach(td => {
-                                    if (data.qc_checked) {
-                                        td.classList.add('qc-highlight');
-                                        td.querySelectorAll('*').forEach(child => child.classList.add('qc-highlight'));
-                                    } else {
-                                        td.classList.remove('qc-highlight');
-                                        td.querySelectorAll('*').forEach(child => child.classList.remove('qc-highlight'));
+                                        const cells = [currentTd, vendorTsTd, amountTd, billNoTd].filter(Boolean);
+                                        cells.forEach(td => {
+                                            if (data.qc_checked) {
+                                                td.classList.add("qc-highlight");
+                                                td.querySelectorAll("*").forEach(el => el.classList.add("qc-highlight"));
+                                            } else {
+                                                td.classList.remove("qc-highlight");
+                                                td.querySelectorAll("*").forEach(el => el.classList.remove("qc-highlight"));
+                                            }
+                                        });
                                     }
-                                });
-                            }
+                                }
+                            });
                         }
                     }
                 } catch (err) {
