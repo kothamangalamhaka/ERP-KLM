@@ -273,6 +273,18 @@ router.post("/update-cell", verifyVatCode, async (req, res) => {
         `;
 
         await pool.query(query, [year, company, supplier, vat_no, display_name, site_name, month_index, valToSave]);
+        
+        // Broadcast QC check toggle to all other connected clients
+        if (field === "qc_checked") {
+            broadcastQcUpdate({
+                year: parseInt(year),
+                supplier,
+                site_name,
+                month_index: parseInt(month_index),
+                qc_checked: (valToSave === "true" || valToSave === true)
+            });
+        }
+
         res.json({ success: true });
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -378,5 +390,31 @@ router.get("/vendor-breakdown", verifyVatCode, async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 });
+
+// Keep track of connected clients for live sync
+let sseClients = [];
+
+// SSE Connection Endpoint
+router.get("/live-updates", (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const clientId = Date.now();
+    const newClient = { id: clientId, res };
+    sseClients.push(newClient);
+
+    req.on("close", () => {
+        sseClients = sseClients.filter(c => c.id !== clientId);
+    });
+});
+
+// Helper function to broadcast updates to other users
+function broadcastQcUpdate(payload) {
+    sseClients.forEach(c => {
+        c.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    });
+}
 
 module.exports = router;
