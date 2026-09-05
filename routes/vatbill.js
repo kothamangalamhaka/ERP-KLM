@@ -227,8 +227,14 @@ const erpQuery = `
                     const erpTotal = erpRecord ? erpRecord.erp_total : "";
 
                     siteObj.billing[i] = bill 
-                        ? { bill_no: bill.bill_no, status: bill.status, amount: bill.amount, erp_total: erpTotal } 
-                        : { bill_no: "", status: "", amount: "", erp_total: erpTotal };
+                        ? { 
+                            bill_no: bill.bill_no, 
+                            status: bill.status, 
+                            amount: bill.amount, 
+                            erp_total: erpTotal, 
+                            qc_checked: bill.qc_checked === true || bill.qc_checked === 'true' 
+                          } 
+                        : { bill_no: "", status: "", amount: "", erp_total: erpTotal, qc_checked: false };
                 }
             });
         });
@@ -250,7 +256,7 @@ router.post("/update-cell", verifyVatCode, async (req, res) => {
         const { year, company, supplier, vat_no, display_name, site_name, month_index, field, value } = req.body;
         
         // Changed validFields to accept 'status' instead of 'bill_date'
-        const validFields = ["bill_no", "status", "amount"];
+        const validFields = ["bill_no", "status", "amount", "qc_checked"];
         if (!validFields.includes(field)) throw new Error("Invalid field update");
 
         let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();

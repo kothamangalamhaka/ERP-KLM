@@ -1,1001 +1,923 @@
 <!doctype html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QC Entry - VAT Tracking</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-      * {
-        box-sizing: border-box;
-        text-decoration: none !important;
-      }
-      body {
-        font-family: "Inter", sans-serif;
-        background-color: #f8fafc;
-        margin: 0;
-        padding: 0;
-        font-size: 13px;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
+        * { box-sizing: border-box; text-decoration: none !important; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; 
+            margin: 0; 
+            padding: 0; 
+            font-size: 13px; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+        
+        /* Top Navigation Bar */
+        .navbar { 
+            background: #0f2027; 
+            color: white; 
+            padding: 10px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            height: 54px; 
+            flex-shrink: 0; 
+            z-index: 100;
+        }
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .nav-tools { display: flex; gap: 12px; align-items: center; }
+        
+        .year-control { 
+            display: flex; 
+            align-items: center; 
+            background: #1e293b; 
+            border-radius: 5px; 
+            border: 1px solid #475569; 
+            overflow: hidden; 
+        }
+        .year-btn { 
+            background: transparent; 
+            color: white; 
+            border: none; 
+            padding: 6px 12px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: bold; 
+            transition: background 0.2s; 
+        }
+        .year-btn:hover { background: #334155; }
+        .year-select { 
+            background: transparent; 
+            color: white; 
+            border: none; 
+            font-size: 13px; 
+            font-weight: 600; 
+            padding: 5px 8px; 
+            outline: none; 
+            cursor: pointer; 
+            text-align: center; 
+        }
+        .year-select option { background: #1e293b; color: white; }
 
-      /* Top Navigation Bar */
-      .navbar {
-        background: #0f2027;
-        color: white;
-        padding: 10px 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        height: 54px;
-        flex-shrink: 0;
-        z-index: 100;
-      }
-      .nav-left {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-      .nav-tools {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-      }
+        .search-box { 
+            padding: 6px 12px; 
+            border: 1px solid #475569; 
+            border-radius: 5px; 
+            background: #1e293b; 
+            color: white; 
+            font-family: 'Inter'; 
+            outline: none; 
+            width: 220px; 
+            font-size: 12px; 
+        }
+        .search-box::placeholder { color: #94a3b8; }
+        .search-box:focus { border-color: #38bdf8; }
 
-      .year-control {
-        display: flex;
-        align-items: center;
-        background: #1e293b;
-        border-radius: 5px;
-        border: 1px solid #475569;
-        overflow: hidden;
-      }
-      .year-btn {
-        background: transparent;
-        color: white;
-        border: none;
-        padding: 6px 12px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: bold;
-        transition: background 0.2s;
-      }
-      .year-btn:hover {
-        background: #334155;
-      }
-      .year-select {
-        background: transparent;
-        color: white;
-        border: none;
-        font-size: 13px;
-        font-weight: 600;
-        padding: 5px 8px;
-        outline: none;
-        cursor: pointer;
-        text-align: center;
-      }
-      .year-select option {
-        background: #1e293b;
-        color: white;
-      }
+        .btn-action { 
+            background: #3b82f6; 
+            color: white; 
+            padding: 6px 14px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            font-size: 12px; 
+        }
+        .btn-action:hover { filter: brightness(1.1); }
 
-      .search-box {
-        padding: 6px 12px;
-        border: 1px solid #475569;
-        border-radius: 5px;
-        background: #1e293b;
-        color: white;
-        font-family: "Inter";
-        outline: none;
-        width: 220px;
-        font-size: 12px;
-      }
-      .search-box::placeholder {
-        color: #94a3b8;
-      }
-      .search-box:focus {
-        border-color: #38bdf8;
-      }
+        /* Main Layout */
+        .main-container { display: flex; flex: 1; height: calc(100vh - 54px); overflow: hidden; }
 
-      .btn-action {
-        background: #3b82f6;
-        color: white;
-        padding: 6px 14px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-      }
-      .btn-action:hover {
-        filter: brightness(1.1);
-      }
+        /* Left Sidebar: Owner List */
+        .sidebar { 
+            width: 300px; 
+            background: #ffffff; 
+            border-right: 1px solid #e2e8f0; 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; 
+        }
+        .sidebar-header { 
+            padding: 12px 16px; 
+            background: #f1f5f9; 
+            border-bottom: 1px solid #e2e8f0; 
+            font-weight: 700; 
+            color: #334155; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .owner-count-badge { 
+            background: #e2e8f0; 
+            color: #475569; 
+            font-size: 11px; 
+            padding: 2px 8px; 
+            border-radius: 12px; 
+        }
+        .owner-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+        .owner-item { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: all 0.2s; }
+        .owner-item:hover { background: #f8fafc; }
+        .owner-item.active { background: #e0f2fe; border-left: 4px solid #0284c7; }
+        .owner-item-title { font-weight: 600; color: #0f172a; margin-bottom: 3px; font-size: 13px; }
+        .owner-item-sub { font-size: 11px; color: #64748b; display: flex; justify-content: space-between; }
 
-      /* Main Layout */
-      .main-container {
-        display: flex;
-        flex: 1;
-        height: calc(100vh - 54px);
-        overflow: hidden;
-      }
+        /* Right Content Area */
+        .content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f8fafc; }
+        
+        .supplier-info-card {
+            background: white; 
+            border-bottom: 1px solid #e2e8f0; 
+            padding: 14px 20px;
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03); 
+            flex-shrink: 0;
+        }
+        .info-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 3px; }
+        .info-val { font-size: 13px; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 6px; }
 
-      /* Left Sidebar: Owner List */
-      .sidebar {
-        width: 300px;
-        background: #ffffff;
-        border-right: 1px solid #e2e8f0;
-        display: flex;
-        flex-direction: column;
-        flex-shrink: 0;
-      }
-      .sidebar-header {
-        padding: 12px 16px;
-        background: #f1f5f9;
-        border-bottom: 1px solid #e2e8f0;
-        font-weight: 700;
-        color: #334155;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .owner-count-badge {
-        background: #e2e8f0;
-        color: #475569;
-        font-size: 11px;
-        padding: 2px 8px;
-        border-radius: 12px;
-      }
-      .owner-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        overflow-y: auto;
-        flex: 1;
-      }
-      .owner-item {
-        padding: 12px 16px;
-        border-bottom: 1px solid #f1f5f9;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      .owner-item:hover {
-        background: #f8fafc;
-      }
-      .owner-item.active {
-        background: #e0f2fe;
-        border-left: 4px solid #0284c7;
-      }
-      .owner-item-title {
-        font-weight: 600;
-        color: #0f172a;
-        margin-bottom: 3px;
-        font-size: 13px;
-      }
-      .owner-item-sub {
-        font-size: 11px;
-        color: #64748b;
-        display: flex;
-        justify-content: space-between;
-      }
+        /* Table Container */
+        .table-viewport { flex: 1; overflow: auto; padding: 15px; }
+        .qc-table { 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            width: max-content; 
+            background: white; 
+            border-radius: 6px; 
+            overflow: hidden; 
+            border: 1px solid #cbd5e1; 
+        }
+        .qc-table th, .qc-table td { 
+            border-right: 1px solid #cbd5e1; 
+            border-bottom: 1px solid #cbd5e1; 
+            padding: 8px 10px; 
+            text-align: center; 
+            vertical-align: middle; 
+        }
+        
+        .qc-table tbody tr { height: 38px; }
+        .qc-table tbody td { height: 38px; }
+        .cell-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 24px;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+        }
 
-      /* Right Content Area */
-      .content-area {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        background: #f8fafc;
-      }
+        .qc-table th { background: #1e293b; color: white; font-size: 12px; position: sticky; top: 0; z-index: 10; height: 32px; }
+        .qc-table th.sub-head { top: 32px; background: #334155; font-size: 11px; height: 28px; }
+        .qc-table th.erp-head { background: #0f766e; }
+        .qc-table th.qc-chk-head { background: #4338ca; width: 45px; min-width: 45px; }
+        
+        .vendor-ts-cell:hover {
+            filter: brightness(0.96);
+        }
 
-      .supplier-info-card {
-        background: white;
-        border-bottom: 1px solid #e2e8f0;
-        padding: 14px 20px;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-        flex-shrink: 0;
-      }
-      .info-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: #64748b;
-        text-transform: uppercase;
-        margin-bottom: 3px;
-      }
-      .info-val {
-        font-size: 13px;
-        font-weight: 600;
-        color: #0f172a;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
+        .amount-cell:hover {
+            filter: brightness(0.96);
+        }
 
-      /* Table Container (Compact Excel View) */
-      .table-viewport {
-        flex: 1;
-        overflow: auto;
-        padding: 15px;
-      }
-      .qc-table {
-        border-collapse: separate;
-        border-spacing: 0;
-        width: max-content;
-        background: white;
-        border-radius: 6px;
-        overflow: hidden;
-        border: 1px solid #cbd5e1;
-      }
-      .qc-table th,
-      .qc-table td {
-        border-right: 1px solid #cbd5e1;
-        border-bottom: 1px solid #cbd5e1;
-        padding: 8px 10px;
-        text-align: center;
-        vertical-align: middle;
-      }
+        /* 🟡 Yellow Highlight for checked row cells */
+       /* 🟡 Instant Yellow Highlight */
+        .qc-highlight,
+        td.qc-highlight,
+        td.qc-highlight div,
+        td.qc-highlight textarea,
+        td.qc-highlight input {
+            background-color: #fef08a !important;
+            color: #854d0e !important;
+        }
 
-      .qc-table tbody tr {
-        height: 38px;
-      }
-      .qc-table tbody td {
-        height: 38px;
-      }
-      .cell-content {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 24px;
-        width: 100%;
-        height: 100%;
-        text-align: center;
-      }
+        .month-col { 
+            position: sticky; 
+            left: 0; 
+            z-index: 12; 
+            background: #f8fafc; 
+            font-weight: 600; 
+            width: 90px; 
+            min-width: 90px; 
+            max-width: 90px; 
+            white-space: nowrap; 
+            border-right: 2px solid #94a3b8; 
+            text-align: center;
+        }
+        th.month-col { top: 0; z-index: 25; background: #0f172a; }
 
-      .qc-table th {
-        background: #1e293b;
-        color: white;
-        font-size: 12px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        height: 32px;
-      }
-      .qc-table th.sub-head {
-        top: 32px;
-        background: #334155;
-        font-size: 11px;
-        height: 28px;
-      }
-      .qc-table th.erp-head {
-        background: #0f766e;
-      }
+        .inactive-cell { 
+            background: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 6px, #e2e8f0 6px, #e2e8f0 12px) !important; 
+            pointer-events: none; 
+        }
 
-      .vendor-ts-cell:hover {
-        background-color: #ccfbf1 !important;
-      }
+        /* Inputs when in Edit Mode */
+        .qc-input { 
+            width: 100%; 
+            padding: 4px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 3px; 
+            text-align: center; 
+            font-size: 11px; 
+            font-family: 'Inter'; 
+            box-sizing: border-box; 
+        }
+        .qc-input:focus { border-color: #0284c7; outline: none; background: #f0f9ff; }
+        
+        .qc-textarea { 
+            width: 100%; 
+            min-height: 24px; 
+            height: 24px; 
+            padding: 3px 4px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 3px; 
+            text-align: center; 
+            font-size: 11px; 
+            font-family: 'Inter'; 
+            box-sizing: border-box; 
+            resize: none; 
+            line-height: 1.3; 
+            white-space: pre-wrap; 
+            word-break: break-word; 
+            overflow-y: hidden; 
+            display: block; 
+        }
+        .qc-textarea:focus { border-color: #0284c7; outline: none; background: #f0f9ff; }
 
-      .month-col {
-        position: sticky;
-        left: 0;
-        z-index: 12;
-        background: #f8fafc;
-        font-weight: 600;
-        width: 90px;
-        min-width: 90px;
-        max-width: 90px;
-        white-space: nowrap;
-        border-right: 2px solid #94a3b8;
-        text-align: center;
-      }
-      th.month-col {
-        top: 0;
-        z-index: 25;
-        background: #0f172a;
-      }
+        .qc-checkbox {
+            cursor: pointer;
+            width: 17px;
+            height: 17px;
+            accent-color: #4338ca;
+            margin: 0 auto;
+            display: block;
+        }
 
-      .inactive-cell {
-        background: repeating-linear-gradient(
-          45deg,
-          #f1f5f9,
-          #f1f5f9 6px,
-          #e2e8f0 6px,
-          #e2e8f0 12px
-        ) !important;
-        pointer-events: none;
-      }
+        #saveStatus { font-weight: 600; font-size: 12px; }
+        .status-saving { color: #f59e0b; }
+        .status-saved { color: #10b981; }
+        .status-error { color: #ef4444; }
 
-      #saveStatus {
-        font-weight: 600;
-        font-size: 12px;
-      }
-      .status-saving {
-        color: #f59e0b;
-      }
-      .status-saved {
-        color: #10b981;
-      }
-      .status-error {
-        color: #ef4444;
-      }
+        /* Modal Styles */
+        .modal-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(15, 23, 42, 0.6); 
+            backdrop-filter: blur(2px);
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 9999; 
+        }
+        .modal-content { 
+            background: white; 
+            border-radius: 8px; 
+            width: 620px; 
+            max-width: 90%; 
+            max-height: 85vh; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
+            overflow: hidden; 
+        }
+        .modal-header { 
+            padding: 14px 18px; 
+            background: #0f2027; 
+            color: white; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .modal-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+        .modal-close-btn { 
+            background: none; 
+            border: none; 
+            color: #94a3b8; 
+            font-size: 20px; 
+            cursor: pointer; 
+            line-height: 1; 
+        }
+        .modal-close-btn:hover { color: white; }
+        .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+        
+        .ts-breakdown-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 12px; 
+            border: 1px solid #cbd5e1; 
+        }
+        .ts-breakdown-table th, .ts-breakdown-table td { 
+            border: 1px solid #cbd5e1; 
+            padding: 8px 10px; 
+            text-align: center; 
+        }
+        .ts-breakdown-table th { background: #f1f5f9; color: #334155; font-weight: 600; }
+        .ts-breakdown-table tfoot td { background: #f8fafc; font-weight: 700; color: #0f172a; }
 
-      /* Modal Styles */
-      .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(2px);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-      }
-      .modal-content {
-        background: white;
-        border-radius: 8px;
-        width: 620px;
-        max-width: 90%;
-        max-height: 85vh;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        overflow: hidden;
-      }
-      .modal-header {
-        padding: 14px 18px;
-        background: #0f2027;
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .modal-header h3 {
-        margin: 0;
-        font-size: 14px;
-        font-weight: 600;
-      }
-      .modal-close-btn {
-        background: none;
-        border: none;
-        color: #94a3b8;
-        font-size: 20px;
-        cursor: pointer;
-        line-height: 1;
-      }
-      .modal-close-btn:hover {
-        color: white;
-      }
-      .modal-body {
-        padding: 16px;
-        overflow-y: auto;
-        flex: 1;
-      }
-
-      .ts-breakdown-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12px;
-        border: 1px solid #cbd5e1;
-      }
-      .ts-breakdown-table th,
-      .ts-breakdown-table td {
-        border: 1px solid #cbd5e1;
-        padding: 8px 10px;
-        text-align: center;
-      }
-      .ts-breakdown-table th {
-        background: #f1f5f9;
-        color: #334155;
-        font-weight: 600;
-      }
-      .ts-breakdown-table tfoot td {
-        background: #f8fafc;
-        font-weight: 700;
-        color: #0f172a;
-      }
-
-      /* Login Modal */
-      .login-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(15, 32, 39, 0.95);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-      }
-      .login-box {
-        background: white;
-        padding: 30px;
-        border-radius: 8px;
-        width: 300px;
-        text-align: center;
-      }
-      .amount-cell:hover {
-        background-color: #f1f5f9 !important;
-      }
-
-      /* Inputs when in Edit Mode */
-      .qc-input {
-        width: 100%;
-        padding: 4px;
-        border: 1px solid #cbd5e1;
-        border-radius: 3px;
-        text-align: center;
-        font-size: 11px;
-        font-family: "Inter";
-        box-sizing: border-box;
-      }
-      .qc-input:focus {
-        border-color: #0284c7;
-        outline: none;
-        background: #f0f9ff;
-      }
-
-      .qc-textarea {
-        width: 100%;
-        min-height: 24px;
-        height: 24px;
-        padding: 3px 4px;
-        border: 1px solid #cbd5e1;
-        border-radius: 3px;
-        text-align: center;
-        font-size: 11px;
-        font-family: "Inter";
-        box-sizing: border-box;
-        resize: none;
-        line-height: 1.3;
-        white-space: pre-wrap;
-        word-break: break-word;
-        overflow-y: hidden;
-        display: block;
-      }
-      .qc-textarea:focus {
-        border-color: #0284c7;
-        outline: none;
-        background: #f0f9ff;
-      }
+        /* Login Modal */
+        .login-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(15, 32, 39, 0.95); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 10000; 
+        }
+        .login-box { background: white; padding: 30px; border-radius: 8px; width: 300px; text-align: center; }
     </style>
-  </head>
-  <body>
+</head>
+<body>
+
     <!-- Login Modal -->
     <div id="loginModal" class="login-overlay">
-      <div class="login-box">
-        <h2 style="margin-top: 0">QC Access</h2>
-        <p style="font-size: 12px; color: #64748b">
-          Please enter the secure access code.
-        </p>
-        <input
-          type="password"
-          id="vatAccessCode"
-          placeholder="Access Code"
-          style="
-            width: 100%;
-            padding: 10px;
-            margin: 15px 0;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            text-align: center;
-          "
-          onkeydown="if (event.key === 'Enter') verifyLogin();"
-        />
-        <div
-          id="loginError"
-          style="
-            color: #ef4444;
-            font-size: 12px;
-            margin-bottom: 10px;
-            display: none;
-          "
-        >
-          Invalid Access Code
+        <div class="login-box">
+            <h2 style="margin-top:0;">QC Access</h2>
+            <p style="font-size:12px; color:#64748b;">Please enter the secure access code.</p>
+            <input type="password" id="vatAccessCode" placeholder="Access Code" style="width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center;" onkeydown="if(event.key==='Enter') verifyLogin()">
+            <div id="loginError" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;">Invalid Access Code</div>
+            <button onclick="verifyLogin()" class="btn-action" style="width: 100%; justify-content: center; padding: 10px; background: #10b981;">Unlock</button>
         </div>
-        <button
-          onclick="verifyLogin()"
-          class="btn-action"
-          style="
-            width: 100%;
-            justify-content: center;
-            padding: 10px;
-            background: #10b981;
-          "
-        >
-          Unlock
-        </button>
-      </div>
     </div>
 
     <!-- Vendor TS Details Modal Popup -->
-    <div
-      id="tsDetailsModal"
-      class="modal-overlay"
-      onclick="if (event.target === this) closeTsModal();"
-    >
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 id="tsModalTitle">Vendor Timesheet Breakdown</h3>
-          <button class="modal-close-btn" onclick="closeTsModal()">
-            &times;
-          </button>
+    <div id="tsDetailsModal" class="modal-overlay" onclick="if(event.target===this) closeTsModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="tsModalTitle">Vendor Timesheet Breakdown</h3>
+                <button class="modal-close-btn" onclick="closeTsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <table class="ts-breakdown-table">
+                    <thead>
+                        <tr>
+                            <th>Plate No</th>
+                            <th>NR (Hrs)</th>
+                            <th>OT (Hrs)</th>
+                            <th>Total Amount / TS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tsBreakdownBody"></tbody>
+                    <tfoot id="tsBreakdownFoot"></tfoot>
+                </table>
+            </div>
         </div>
-        <div class="modal-body">
-          <table class="ts-breakdown-table">
-            <thead>
-              <tr>
-                <th>Plate No</th>
-                <th>NR (Hrs)</th>
-                <th>OT (Hrs)</th>
-                <th>Total Amount / TS</th>
-              </tr>
-            </thead>
-            <tbody id="tsBreakdownBody"></tbody>
-            <tfoot id="tsBreakdownFoot"></tfoot>
-          </table>
-        </div>
-      </div>
     </div>
 
     <!-- Top Ribbon -->
     <div class="navbar">
-      <div class="nav-left">
-        <a
-          href="index.html"
-          style="color: white; font-size: 18px"
-          title="Back to Main List"
-          >🔙</a
-        >
-        <span style="font-size: 16px; font-weight: 600">VAT QC Viewer</span>
-        <span id="saveStatus"></span>
-      </div>
-
-      <div class="nav-tools">
-        <input
-          type="text"
-          id="ownerSearch"
-          class="search-box"
-          placeholder="Search Owner / Supplier..."
-          onkeyup="filterOwnerList()"
-        />
-
-        <!-- Year Switcher with Arrows -->
-        <div class="year-control">
-          <button
-            class="year-btn"
-            onclick="switchYear(-1)"
-            title="Previous Year"
-          >
-            ◀
-          </button>
-          <select
-            id="yearSelect"
-            class="year-select"
-            onchange="fetchData()"
-          ></select>
-          <button class="year-btn" onclick="switchYear(1)" title="Next Year">
-            ▶
-          </button>
+        <div class="nav-left">
+            <a href="index.html" style="color:white; font-size: 18px;" title="Back to Main List">🔙</a>
+            <span style="font-size: 16px; font-weight: 600;">VAT QC Viewer</span>
+            <span id="saveStatus"></span>
         </div>
 
-        <!-- Edit Toggle Controls -->
-        <button
-          id="editToggleBtn"
-          class="btn-action"
-          onclick="toggleEditMode()"
-          title="Edit Billing Data"
-          style="background: #f59e0b"
-        >
-          ✏️
-        </button>
-        <button
-          id="saveBtn"
-          class="btn-action"
-          onclick="saveCurrentSupplierChanges()"
-          style="display: none; background: #10b981"
-        >
-          💾 Save
-        </button>
-        <button
-          id="cancelBtn"
-          class="btn-action"
-          onclick="cancelEditMode()"
-          style="display: none; background: #ef4444"
-        >
-          ❌ Cancel
-        </button>
+        <div class="nav-tools">
+            <input type="text" id="ownerSearch" class="search-box" placeholder="Search Owner / Supplier..." onkeyup="filterOwnerList()">
 
-        <a href="index.html" class="btn-action">📋 Main View</a>
-      </div>
+            <!-- Year Switcher with Arrows -->
+            <div class="year-control">
+                <button class="year-btn" onclick="switchYear(-1)" title="Previous Year">◀</button>
+                <select id="yearSelect" class="year-select" onchange="fetchData()"></select>
+                <button class="year-btn" onclick="switchYear(1)" title="Next Year">▶</button>
+            </div>
+
+            <!-- Edit Toggle Controls -->
+            <button id="editToggleBtn" class="btn-action" onclick="toggleEditMode()" title="Edit Billing Data" style="background: #f59e0b;">
+                ✏️ Edit
+            </button>
+            <button id="saveBtn" class="btn-action" onclick="saveCurrentSupplierChanges()" style="display: none; background: #10b981;">
+                💾 Save
+            </button>
+            <button id="cancelBtn" class="btn-action" onclick="cancelEditMode()" style="display: none; background: #ef4444;">
+                ❌ Cancel
+            </button>
+
+            <a href="index.html" class="btn-action">📋 Main View</a>
+        </div>
     </div>
 
     <!-- Main Workspace -->
     <div class="main-container">
-      <!-- Left Side: Owner List -->
-      <div class="sidebar">
-        <div class="sidebar-header">
-          <span>OWNER / SUPPLIER</span>
-          <span id="ownerBadgeCount" class="owner-count-badge">0</span>
-        </div>
-        <ul class="owner-list" id="ownerListContainer">
-          <li style="padding: 15px; color: #94a3b8; text-align: center">
-            Loading suppliers...
-          </li>
-        </ul>
-      </div>
-
-      <!-- Right Side: Compact Table Viewer -->
-      <div class="content-area">
-        <!-- Top Summary Card for Selected Owner -->
-        <div
-          class="supplier-info-card"
-          id="supplierInfoCard"
-          style="display: none"
-        >
-          <div>
-            <div class="info-label">Supplier / Owner</div>
-            <div class="info-val" id="infoOwnerName"></div>
-          </div>
-          <div>
-            <div class="info-label">VAT Number</div>
-            <div class="info-val">
-              <span id="infoVatNo"></span>
-              <button
-                onclick="copyVatNumber()"
-                style="
-                  background: none;
-                  border: none;
-                  cursor: pointer;
-                  font-size: 14px;
-                "
-                title="Copy VAT"
-              >
-                📋
-              </button>
+        <!-- Left Side: Owner List -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <span>OWNER / SUPPLIER</span>
+                <span id="ownerBadgeCount" class="owner-count-badge">0</span>
             </div>
-          </div>
-          <div>
-            <div class="info-label">Display Name</div>
-            <div class="info-val" id="infoDisplayName"></div>
-          </div>
-          <div>
-            <div class="info-label">Active Sites</div>
-            <div class="info-val" id="infoSitesCount">0</div>
-          </div>
+            <ul class="owner-list" id="ownerListContainer">
+                <li style="padding: 15px; color: #94a3b8; text-align: center;">Loading suppliers...</li>
+            </ul>
         </div>
 
-        <!-- Table -->
-        <div class="table-viewport" id="tableViewport">
-          <div
-            id="noSelectionNotice"
-            style="
-              padding: 40px;
-              text-align: center;
-              color: #94a3b8;
-              font-size: 14px;
-            "
-          >
-            Select an Owner / Supplier from the left panel to display the
-            billing records.
-          </div>
-          <table class="qc-table" id="qcTable" style="display: none">
-            <thead id="qcHead"></thead>
-            <tbody id="qcBody"></tbody>
-          </table>
+        <!-- Right Side: Compact Table Viewer -->
+        <div class="content-area">
+            <!-- Top Summary Card for Selected Owner -->
+            <div class="supplier-info-card" id="supplierInfoCard" style="display: none;">
+                <div>
+                    <div class="info-label">Supplier / Owner</div>
+                    <div class="info-val" id="infoOwnerName"></div>
+                </div>
+                <div>
+                    <div class="info-label">VAT Number</div>
+                    <div class="info-val">
+                        <span id="infoVatNo"></span>
+                        <button onclick="copyVatNumber()" style="background:none; border:none; cursor:pointer; font-size:14px;" title="Copy VAT">📋</button>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-label">Display Name</div>
+                    <div class="info-val" id="infoDisplayName"></div>
+                </div>
+                <div>
+                    <div class="info-label">Active Sites</div>
+                    <div class="info-val" id="infoSitesCount">0</div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-viewport" id="tableViewport">
+                <div id="noSelectionNotice" style="padding: 40px; text-align: center; color: #94a3b8; font-size: 14px;">
+                    Select an Owner / Supplier from the left panel to display the billing records.
+                </div>
+                <table class="qc-table" id="qcTable" style="display: none;">
+                    <thead id="qcHead"></thead>
+                    <tbody id="qcBody"></tbody>
+                </table>
+            </div>
         </div>
-      </div>
     </div>
 
     <script>
-      const monthsFull = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-      ];
-      let rawData = [];
-      let consolidatedSuppliers = {};
-      let selectedSupplierKey = null;
-      let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
-      let currentYear = new Date().getFullYear();
-      const tsDetailsCache = {};
+        const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        let rawData = [];
+        let consolidatedSuppliers = {};
+        let selectedSupplierKey = null;
+        let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
+        let currentYear = new Date().getFullYear();
+        const tsDetailsCache = {};
+        let isEditMode = false;
 
-      // Initialize Years Dropdown
-      function initYearOptions() {
-        const select = document.getElementById("yearSelect");
-        select.innerHTML = "";
-        for (let y = currentYear - 3; y <= currentYear + 2; y++) {
-          let opt = document.createElement("option");
-          opt.value = y;
-          opt.textContent = y;
-          if (y === currentYear) opt.selected = true;
-          select.appendChild(opt);
-        }
-      }
-      initYearOptions();
-
-      // Auth Check
-      if (vatCode) {
-        document.getElementById("loginModal").style.display = "none";
-        fetchData();
-      } else {
-        document.getElementById("loginModal").style.display = "flex";
-      }
-
-      function verifyLogin() {
-        const inputCode = document.getElementById("vatAccessCode").value.trim();
-        if (!inputCode) return;
-        vatCode = inputCode;
-        sessionStorage.setItem("vatTrackerCode", vatCode);
-        document.getElementById("loginModal").style.display = "none";
-        fetchData();
-      }
-
-      function triggerLoginError() {
-        sessionStorage.removeItem("vatTrackerCode");
-        vatCode = "";
-        document.getElementById("loginModal").style.display = "flex";
-        document.getElementById("loginError").style.display = "block";
-      }
-
-      function switchYear(step) {
-        const select = document.getElementById("yearSelect");
-        let targetYear = parseInt(select.value) + step;
-        let options = Array.from(select.options).map((o) => parseInt(o.value));
-        if (options.includes(targetYear)) {
-          select.value = targetYear;
-          fetchData();
-        }
-      }
-
-      async function fetchData() {
-        currentYear = parseInt(document.getElementById("yearSelect").value);
-        showStatus("Loading...", "saving");
-
-        try {
-          const res = await fetch(
-            `/timesheet/api/vat-tracking/data?year=${currentYear}`,
-            {
-              headers: { "x-vat-code": vatCode },
-            },
-          );
-          if (res.status === 401) return triggerLoginError();
-          const json = await res.json();
-          if (json.success) {
-            rawData = json.data;
-            processConsolidatedSuppliers();
-            renderOwnerList();
-            showStatus("Ready", "saved");
-          } else {
-            alert("Error: " + json.message);
-          }
-        } catch (err) {
-          console.error("fetchData error:", err);
-          showStatus("Network Error", "error");
-        }
-      }
-
-      // Consolidated Mapping
-      function processConsolidatedSuppliers() {
-        consolidatedSuppliers = {};
-
-        rawData.forEach((group) => {
-          const supKey = (group.supplier || "Unknown").trim();
-          if (!consolidatedSuppliers[supKey]) {
-            consolidatedSuppliers[supKey] = {
-              supplier: supKey,
-              company: group.company,
-              vat_no: group.vat_no || "",
-              display_name: group.display_name || "",
-              sites: [],
-            };
-          } else {
-            if (!consolidatedSuppliers[supKey].vat_no && group.vat_no)
-              consolidatedSuppliers[supKey].vat_no = group.vat_no;
-            if (
-              !consolidatedSuppliers[supKey].display_name &&
-              group.display_name
-            )
-              consolidatedSuppliers[supKey].display_name = group.display_name;
-          }
-
-          group.sites.forEach((st) => {
-            const existingSite = consolidatedSuppliers[supKey].sites.find(
-              (s) => s.site_name === st.site_name,
-            );
-            if (!existingSite) {
-              consolidatedSuppliers[supKey].sites.push(
-                JSON.parse(JSON.stringify(st)),
-              );
-            } else {
-              for (let m = 0; m < 12; m++) {
-                if (st.active_months[m]) existingSite.active_months[m] = true;
-                if (st.billing[m]?.bill_no)
-                  existingSite.billing[m].bill_no = st.billing[m].bill_no;
-                if (st.billing[m]?.amount)
-                  existingSite.billing[m].amount = st.billing[m].amount;
-                if (st.billing[m]?.erp_total)
-                  existingSite.billing[m].erp_total = st.billing[m].erp_total;
-              }
+        // Initialize Years Dropdown
+        function initYearOptions() {
+            const select = document.getElementById("yearSelect");
+            select.innerHTML = "";
+            for (let y = currentYear - 3; y <= currentYear + 2; y++) {
+                let opt = document.createElement("option");
+                opt.value = y;
+                opt.textContent = y;
+                if (y === currentYear) opt.selected = true;
+                select.appendChild(opt);
             }
-          });
-        });
+        }
+        initYearOptions();
 
-        Object.values(consolidatedSuppliers).forEach((sup) => {
-          sup.sites.sort((a, b) => a.site_name.localeCompare(b.site_name));
-        });
-      }
+        // Auth Check
+        if (vatCode) {
+            document.getElementById("loginModal").style.display = "none";
+            fetchData();
+        } else {
+            document.getElementById("loginModal").style.display = "flex";
+        }
 
-      function renderOwnerList() {
-        const listEl = document.getElementById("ownerListContainer");
-        const search = document
-          .getElementById("ownerSearch")
-          .value.toLowerCase();
-        const keys = Object.keys(consolidatedSuppliers).sort((a, b) =>
-          a.localeCompare(b),
-        );
+        function verifyLogin() {
+            const inputCode = document.getElementById("vatAccessCode").value.trim();
+            if(!inputCode) return;
+            vatCode = inputCode;
+            sessionStorage.setItem("vatTrackerCode", vatCode);
+            document.getElementById("loginModal").style.display = "none";
+            fetchData();
+        }
 
-        let html = "";
-        let matchCount = 0;
+        function triggerLoginError() {
+            sessionStorage.removeItem("vatTrackerCode");
+            vatCode = "";
+            document.getElementById("loginModal").style.display = "flex";
+            document.getElementById("loginError").style.display = "block";
+        }
 
-        keys.forEach((k) => {
-          const s = consolidatedSuppliers[k];
-          const matchStr =
-            `${s.supplier} ${s.vat_no} ${s.display_name}`.toLowerCase();
-          if (search && !matchStr.includes(search)) return;
+        function switchYear(step) {
+            const select = document.getElementById("yearSelect");
+            let targetYear = parseInt(select.value) + step;
+            let options = Array.from(select.options).map(o => parseInt(o.value));
+            if (options.includes(targetYear)) {
+                select.value = targetYear;
+                fetchData();
+            }
+        }
 
-          matchCount++;
-          const isActive = k === selectedSupplierKey;
-          html += `
-                    <li class="owner-item ${isActive ? "active" : ""}" onclick="selectSupplier('${escapeQuotes(k)}')">
+        async function fetchData() {
+            currentYear = parseInt(document.getElementById("yearSelect").value);
+            showStatus("Loading...", "saving");
+
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/data?year=${currentYear}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                if (res.status === 401) return triggerLoginError();
+                const json = await res.json();
+                if (json.success) {
+                    rawData = json.data;
+                    processConsolidatedSuppliers();
+                    renderOwnerList();
+                    showStatus("Ready", "saved");
+                } else {
+                    alert("Error: " + json.message);
+                }
+            } catch (err) {
+                console.error("fetchData error:", err);
+                showStatus("Network Error", "error");
+            }
+        }
+
+        // Consolidated Mapping
+        function processConsolidatedSuppliers() {
+            consolidatedSuppliers = {};
+
+            rawData.forEach(group => {
+                const supKey = (group.supplier || "Unknown").trim();
+                if (!consolidatedSuppliers[supKey]) {
+                    consolidatedSuppliers[supKey] = {
+                        supplier: supKey,
+                        company: group.company,
+                        vat_no: group.vat_no || "",
+                        display_name: group.display_name || "",
+                        sites: []
+                    };
+                } else {
+                    if (!consolidatedSuppliers[supKey].vat_no && group.vat_no) consolidatedSuppliers[supKey].vat_no = group.vat_no;
+                    if (!consolidatedSuppliers[supKey].display_name && group.display_name) consolidatedSuppliers[supKey].display_name = group.display_name;
+                }
+
+                group.sites.forEach(st => {
+                    const existingSite = consolidatedSuppliers[supKey].sites.find(s => s.site_name === st.site_name);
+                    if (!existingSite) {
+                        consolidatedSuppliers[supKey].sites.push(JSON.parse(JSON.stringify(st)));
+                    } else {
+                        for (let m = 0; m < 12; m++) {
+                            if (st.active_months[m]) existingSite.active_months[m] = true;
+                            if (st.billing[m]?.bill_no) existingSite.billing[m].bill_no = st.billing[m].bill_no;
+                            if (st.billing[m]?.amount) existingSite.billing[m].amount = st.billing[m].amount;
+                            if (st.billing[m]?.erp_total) existingSite.billing[m].erp_total = st.billing[m].erp_total;
+                            if (st.billing[m]?.qc_checked !== undefined) existingSite.billing[m].qc_checked = st.billing[m].qc_checked;
+                        }
+                    }
+                });
+            });
+
+            Object.values(consolidatedSuppliers).forEach(sup => {
+                sup.sites.sort((a, b) => a.site_name.localeCompare(b.site_name));
+            });
+        }
+
+        function renderOwnerList() {
+            const listEl = document.getElementById("ownerListContainer");
+            const search = document.getElementById("ownerSearch").value.toLowerCase();
+            const keys = Object.keys(consolidatedSuppliers).sort((a, b) => a.localeCompare(b));
+
+            let html = "";
+            let matchCount = 0;
+
+            keys.forEach(k => {
+                const s = consolidatedSuppliers[k];
+                const matchStr = `${s.supplier} ${s.vat_no} ${s.display_name}`.toLowerCase();
+                if (search && !matchStr.includes(search)) return;
+
+                matchCount++;
+                const isActive = (k === selectedSupplierKey);
+                html += `
+                    <li class="owner-item ${isActive ? 'active' : ''}" onclick="selectSupplier('${escapeQuotes(k)}')">
                         <div class="owner-item-title">${escapeHTML(s.supplier)}</div>
                         <div class="owner-item-sub">
-                            <span>${escapeHTML(s.vat_no || "")}</span>
+                            <span>${escapeHTML(s.vat_no || '')}</span>
                             <span>${s.sites.length} Site(s)</span>
                         </div>
                     </li>
                 `;
-        });
+            });
 
-        listEl.innerHTML =
-          html ||
-          `<li style="padding: 15px; color: #94a3b8; text-align: center;">No supplier found</li>`;
-        document.getElementById("ownerBadgeCount").innerText = matchCount;
+            listEl.innerHTML = html || `<li style="padding: 15px; color: #94a3b8; text-align: center;">No supplier found</li>`;
+            document.getElementById("ownerBadgeCount").innerText = matchCount;
 
-        if (selectedSupplierKey && consolidatedSuppliers[selectedSupplierKey]) {
-          selectSupplier(selectedSupplierKey);
-        } else if (keys.length > 0 && !search) {
-          selectSupplier(keys[0]);
-        } else if (matchCount === 0) {
-          document.getElementById("supplierInfoCard").style.display = "none";
-          document.getElementById("qcTable").style.display = "none";
-          document.getElementById("noSelectionNotice").style.display = "block";
-        }
-      }
-
-      function filterOwnerList() {
-        renderOwnerList();
-      }
-
-      function selectSupplier(key) {
-        selectedSupplierKey = key;
-        const supData = consolidatedSuppliers[key];
-        if (!supData) return;
-
-        document
-          .querySelectorAll(".owner-item")
-          .forEach((el) => el.classList.remove("active"));
-        const items = document.querySelectorAll(".owner-item");
-        items.forEach((el) => {
-          if (el.querySelector(".owner-item-title").innerText === key)
-            el.classList.add("active");
-        });
-
-        document.getElementById("supplierInfoCard").style.display = "grid";
-        document.getElementById("infoOwnerName").innerText = supData.supplier;
-        document.getElementById("infoVatNo").innerText = supData.vat_no || "";
-        document.getElementById("infoDisplayName").innerText =
-          supData.display_name || "";
-        document.getElementById("infoSitesCount").innerText =
-          `${supData.sites.length} Sites`;
-
-        document.getElementById("noSelectionNotice").style.display = "none";
-        document.getElementById("qcTable").style.display = "table";
-
-        renderTable(supData);
-      }
-
-      // Fetch Live Vehicle breakdown (Plate No, NR, OT, Total)
-      async function fetchVehicleBreakdown(supplier, siteName, monthIdx) {
-        const cacheKey = `${supplier}_${siteName}_${currentYear}_${monthIdx}`;
-        if (tsDetailsCache[cacheKey]) return tsDetailsCache[cacheKey];
-
-        try {
-          const url = `/timesheet/api/vat-tracking/vendor-breakdown?supplier=${encodeURIComponent(supplier)}&site=${encodeURIComponent(siteName)}&year=${currentYear}&month=${monthIdx + 1}`;
-          const res = await fetch(url, {
-            headers: { "x-vat-code": vatCode },
-          });
-
-          if (res.ok) {
-            const json = await res.json();
-            if (
-              json.success &&
-              Array.isArray(json.data) &&
-              json.data.length > 0
-            ) {
-              const list = json.data.map((v) => ({
-                plate: v.plate_no || "N/A",
-                nr: Number(v.nr_hours || 0),
-                ot: Number(v.ot_hours || 0),
-                total: Number(v.total_amount || 0),
-              }));
-              tsDetailsCache[cacheKey] = list;
-              return list;
+            if (selectedSupplierKey && consolidatedSuppliers[selectedSupplierKey]) {
+                selectSupplier(selectedSupplierKey);
+            } else if (keys.length > 0 && !search) {
+                selectSupplier(keys[0]);
+            } else if (matchCount === 0) {
+                document.getElementById("supplierInfoCard").style.display = "none";
+                document.getElementById("qcTable").style.display = "none";
+                document.getElementById("noSelectionNotice").style.display = "block";
             }
-          }
-        } catch (err) {
-          console.warn("Breakdown fetch error:", err);
         }
 
-        return [];
-      }
+        function filterOwnerList() {
+            renderOwnerList();
+        }
 
-      // Left Click: Open Modal Breakdown Table
-      async function openTsDetailsModal(siteName, monthIdx) {
-        if (!selectedSupplierKey) return;
-        const mName = monthsFull[monthIdx];
+        function selectSupplier(key) {
+            selectedSupplierKey = key;
+            const supData = consolidatedSuppliers[key];
+            if (!supData) return;
 
-        document.getElementById("tsModalTitle").innerText =
-          `${mName} - ${siteName} Breakdown`;
-        const tbody = document.getElementById("tsBreakdownBody");
-        const tfoot = document.getElementById("tsBreakdownFoot");
+            document.querySelectorAll(".owner-item").forEach(el => el.classList.remove("active"));
+            const items = document.querySelectorAll(".owner-item");
+            items.forEach(el => {
+                if (el.querySelector(".owner-item-title").innerText === key) el.classList.add("active");
+            });
 
-        tbody.innerHTML = `<tr><td colspan="4" style="color:#64748b; padding: 20px;">Fetching Plate & Hours data...</td></tr>`;
-        tfoot.innerHTML = "";
-        document.getElementById("tsDetailsModal").style.display = "flex";
+            document.getElementById("supplierInfoCard").style.display = "grid";
+            document.getElementById("infoOwnerName").innerText = supData.supplier;
+            document.getElementById("infoVatNo").innerText = supData.vat_no || "";
+            document.getElementById("infoDisplayName").innerText = supData.display_name || "";
+            document.getElementById("infoSitesCount").innerText = `${supData.sites.length} Sites`;
 
-        const plates = await fetchVehicleBreakdown(
-          selectedSupplierKey,
-          siteName,
-          monthIdx,
-        );
+            document.getElementById("noSelectionNotice").style.display = "none";
+            document.getElementById("qcTable").style.display = "table";
 
-        tbody.innerHTML = "";
-        if (!plates || plates.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" style="color:#94a3b8; padding: 20px;">No vehicles found for this site & month</td></tr>`;
-        } else {
-          let totalNr = 0;
-          let totalOt = 0;
-          let grandTotal = 0;
+            renderTable(supData);
+        }
 
-          plates.forEach((p) => {
-            totalNr += p.nr;
-            totalOt += p.ot;
-            grandTotal += p.total;
+        function toggleEditMode() {
+            if (!selectedSupplierKey) return;
+            isEditMode = true;
+            document.getElementById("editToggleBtn").style.display = "none";
+            document.getElementById("saveBtn").style.display = "inline-flex";
+            document.getElementById("cancelBtn").style.display = "inline-flex";
+            const supData = consolidatedSuppliers[selectedSupplierKey];
+            renderTable(supData);
+        }
 
-            tbody.innerHTML += `
+        function cancelEditMode() {
+            isEditMode = false;
+            document.getElementById("editToggleBtn").style.display = "inline-flex";
+            document.getElementById("saveBtn").style.display = "none";
+            document.getElementById("cancelBtn").style.display = "none";
+            const supData = consolidatedSuppliers[selectedSupplierKey];
+            renderTable(supData);
+            showStatus("Edit cancelled", "saved");
+        }
+
+        async function saveCurrentSupplierChanges() {
+            if (!selectedSupplierKey) return;
+            const supData = consolidatedSuppliers[selectedSupplierKey];
+            if (!supData) return;
+
+            const inputs = document.querySelectorAll(".qc-val");
+            const updates = [];
+
+            inputs.forEach(input => {
+                const siteName = input.dataset.site;
+                const m = parseInt(input.dataset.month);
+                const field = input.dataset.field;
+                let newVal = input.value.trim();
+
+                const site = supData.sites.find(s => s.site_name === siteName);
+                if (!site) return;
+
+                const oldVal = site.billing[m] ? (site.billing[m][field] || "") : "";
+
+                if (field === 'amount' && newVal !== "") {
+                    let expr = newVal.startsWith("=") ? newVal.substring(1) : newVal;
+                    expr = expr.replace(/,/g, "");
+                    if (/^[0-9+\-*/().\s]+$/.test(expr)) {
+                        try {
+                            let calculated = new Function("return " + expr)();
+                            if (isFinite(calculated)) newVal = Number(calculated.toFixed(2)).toString();
+                        } catch (e) {}
+                    }
+                }
+
+                if (newVal !== oldVal) {
+                    if (!site.billing[m]) site.billing[m] = {};
+                    site.billing[m][field] = newVal;
+
+                    const origGroup = rawData.find(g => g.supplier === supData.supplier && g.sites.some(s => s.site_name === siteName));
+                    const companyName = origGroup ? origGroup.company : supData.company;
+
+                    updates.push({
+                        year: currentYear,
+                        company: companyName,
+                        supplier: supData.supplier,
+                        vat_no: supData.vat_no,
+                        display_name: supData.display_name,
+                        site_name: siteName,
+                        month_index: m,
+                        field: field,
+                        value: newVal
+                    });
+                }
+            });
+
+            if (updates.length === 0) {
+                cancelEditMode();
+                showStatus("No changes to save", "saved");
+                return;
+            }
+
+            showStatus("Saving changes...", "saving");
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/update-bulk`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
+                    body: JSON.stringify({ changes: updates })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showStatus("✓ Saved successfully", "saved");
+                    cancelEditMode();
+                } else {
+                    showStatus("Error saving", "error");
+                }
+            } catch (e) {
+                showStatus("Network Error", "error");
+            }
+        }
+
+        // 🟡 Instant Checkbox Toggle & Live Yellow Highlight + DB Persistence
+        async function toggleQcCheck(chkEl, siteName, monthIdx) {
+            const isChecked = chkEl.checked;
+            
+            // 🟢 Reload ചെയ്യാതെ instant ആയി മുൻപിലുള്ള 3 സെല്ലുകൾ (Vendor TS, Amount, Bill No) യെല്ലോ ആക്കുന്നു
+            const currentTd = chkEl.closest('td');
+            if (currentTd) {
+                const vendorTsTd = currentTd.previousElementSibling;
+                const amountTd = vendorTsTd ? vendorTsTd.previousElementSibling : null;
+                const billNoTd = amountTd ? amountTd.previousElementSibling : null;
+
+                const cellsToHighlight = [currentTd, vendorTsTd, amountTd, billNoTd].filter(Boolean);
+                cellsToHighlight.forEach(td => {
+                    if (isChecked) {
+                        td.classList.add('qc-highlight');
+                        td.querySelectorAll('*').forEach(child => child.classList.add('qc-highlight'));
+                    } else {
+                        td.classList.remove('qc-highlight');
+                        td.querySelectorAll('*').forEach(child => child.classList.remove('qc-highlight'));
+                    }
+                });
+            }
+
+            if (!selectedSupplierKey) return;
+            const supData = consolidatedSuppliers[selectedSupplierKey];
+            if (!supData) return;
+            const site = supData.sites.find(s => s.site_name === siteName);
+            if (site && site.billing[monthIdx]) {
+                site.billing[monthIdx].qc_checked = isChecked;
+            }
+
+            const origGroup = rawData.find(g => g.supplier === supData.supplier && g.sites.some(s => s.site_name === siteName));
+            const companyName = origGroup ? origGroup.company : supData.company;
+
+            try {
+                await fetch(`/timesheet/api/vat-tracking/update-cell`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
+                    body: JSON.stringify({
+                        year: currentYear,
+                        company: companyName,
+                        supplier: supData.supplier,
+                        vat_no: supData.vat_no,
+                        display_name: supData.display_name,
+                        site_name: siteName,
+                        month_index: monthIdx,
+                        field: "qc_checked",
+                        value: isChecked
+                    })
+                });
+                showStatus(isChecked ? "QC Verified (Saved)" : "QC Unverified (Saved)", "saved");
+            } catch (e) {
+                showStatus("Sync Error", "error");
+            }
+        }
+
+        // Fetch Live Vehicle breakdown (Plate No, NR, OT, Total)
+        async function fetchVehicleBreakdown(supplier, siteName, monthIdx) {
+            const cacheKey = `${supplier}_${siteName}_${currentYear}_${monthIdx}`;
+            if (tsDetailsCache[cacheKey]) return tsDetailsCache[cacheKey];
+
+            try {
+                const url = `/timesheet/api/vat-tracking/vendor-breakdown?supplier=${encodeURIComponent(supplier)}&site=${encodeURIComponent(siteName)}&year=${currentYear}&month=${monthIdx + 1}`;
+                const res = await fetch(url, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+                        const list = json.data.map(v => ({
+                            plate: v.plate_no || "N/A",
+                            nr: Number(v.nr_hours || 0),
+                            ot: Number(v.ot_hours || 0),
+                            total: Number(v.total_amount || 0)
+                        }));
+                        tsDetailsCache[cacheKey] = list;
+                        return list;
+                    }
+                }
+            } catch (err) {
+                console.warn("Breakdown fetch error:", err);
+            }
+
+            return [];
+        }
+
+        // Format vehicle breakdown string with Mmm-yy (Jan-26 Rent Bill (...))
+        function formatPlateDetails(plates, monthIdx) {
+            const shortM = monthsFull[monthIdx].substring(0, 3);
+            const shortY = currentYear.toString().slice(-2);
+            const label = `${shortM}-${shortY}`;
+
+            if (!plates || plates.length === 0) return `${label} Rent Bill`;
+            
+            const parts = plates.map(p => {
+                const nrPart = `NR ${p.nr}`;
+                const otPart = (Number(p.ot) > 0) ? `  OT ${p.ot}` : '';
+                return `${p.plate} [${nrPart}${otPart}]`;
+            });
+            
+            return `${label} Rent Bill (${parts.join(", ")})`;
+        }
+
+        async function loadCellTooltip(tdEl, siteName, monthIdx) {
+            if (!selectedSupplierKey) return;
+            const plates = await fetchVehicleBreakdown(selectedSupplierKey, siteName, monthIdx);
+            tdEl.title = formatPlateDetails(plates, monthIdx);
+        }
+
+        async function handleTsRightClick(event, siteName, monthIdx) {
+            event.preventDefault();
+            if (!selectedSupplierKey) return;
+
+            showStatus("Preparing text...", "saving");
+            const plates = await fetchVehicleBreakdown(selectedSupplierKey, siteName, monthIdx);
+            const textToCopy = formatPlateDetails(plates, monthIdx);
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showStatus(`Copied: "${textToCopy}"`, "saved");
+            }).catch(() => {
+                showStatus("Copy failed!", "error");
+            });
+        }
+
+        function handleAmountRightClick(event, amtVal) {
+            event.preventDefault();
+            const val = String(amtVal || '').trim();
+            if (!val) {
+                showStatus("No amount to copy", "saved");
+                return;
+            }
+
+            navigator.clipboard.writeText(val).then(() => {
+                showStatus(`Copied Amount: "${val}"`, "saved");
+            }).catch(() => {
+                showStatus("Copy failed!", "error");
+            });
+        }
+
+        async function openTsDetailsModal(siteName, monthIdx) {
+            if (!selectedSupplierKey) return;
+            const mName = monthsFull[monthIdx];
+
+            document.getElementById("tsModalTitle").innerText = `${mName} - ${siteName} Breakdown`;
+            const tbody = document.getElementById("tsBreakdownBody");
+            const tfoot = document.getElementById("tsBreakdownFoot");
+            
+            tbody.innerHTML = `<tr><td colspan="4" style="color:#64748b; padding: 20px;">Fetching Plate & Hours data...</td></tr>`;
+            tfoot.innerHTML = "";
+            document.getElementById("tsDetailsModal").style.display = "flex";
+
+            const plates = await fetchVehicleBreakdown(selectedSupplierKey, siteName, monthIdx);
+
+            tbody.innerHTML = "";
+            if (!plates || plates.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color:#94a3b8; padding: 20px;">No vehicles found for this site & month</td></tr>`;
+            } else {
+                let totalNr = 0;
+                let totalOt = 0;
+                let grandTotal = 0;
+
+                plates.forEach(p => {
+                    totalNr += p.nr;
+                    totalOt += p.ot;
+                    grandTotal += p.total;
+
+                    tbody.innerHTML += `
                         <tr>
                             <td style="font-weight: 600; color: #1e293b;">${escapeHTML(p.plate)}</td>
                             <td>${p.nr}</td>
@@ -1003,9 +925,9 @@
                             <td style="font-weight: 600; color: #0f766e;">${p.total > 0 ? p.total.toFixed(2) : ""}</td>
                         </tr>
                     `;
-          });
+                });
 
-          tfoot.innerHTML = `
+                tfoot.innerHTML = `
                     <tr>
                         <td>Total</td>
                         <td>${totalNr.toFixed(2)}</td>
@@ -1013,317 +935,124 @@
                         <td style="color: #0f766e;">${grandTotal > 0 ? grandTotal.toFixed(2) : ""}</td>
                     </tr>
                 `;
-        }
-      }
-
-      function closeTsModal() {
-        document.getElementById("tsDetailsModal").style.display = "none";
-      }
-
-      // Helper to format vehicle breakdown string with Mmm-yy (e.g. Jan-26 Rent Bill (...))
-      function formatPlateDetails(plates, monthIdx) {
-        const shortM = monthsFull[monthIdx].substring(0, 3);
-        const shortY = currentYear.toString().slice(-2);
-        const label = `${shortM}-${shortY}`;
-
-        if (!plates || plates.length === 0) return `${label} Rent Bill`;
-
-        const parts = plates.map((p) => {
-          const nrPart = `NR ${p.nr}`;
-          const otPart = Number(p.ot) > 0 ? `  OT ${p.ot}` : "";
-          return `${p.plate} [${nrPart}${otPart}]`;
-        });
-
-        return `${label} Rent Bill (${parts.join(", ")})`;
-      }
-
-      // On Mouse Enter: Preload & Show dynamic tooltip text with Mmm-yy
-      async function loadCellTooltip(tdEl, siteName, monthIdx) {
-        if (!selectedSupplierKey) return;
-        const plates = await fetchVehicleBreakdown(
-          selectedSupplierKey,
-          siteName,
-          monthIdx,
-        );
-        tdEl.title = formatPlateDetails(plates, monthIdx);
-      }
-
-      // Right Click on Vendor TS: Copy Formatted Text to Clipboard
-      async function handleTsRightClick(event, siteName, monthIdx) {
-        event.preventDefault();
-        if (!selectedSupplierKey) return;
-
-        showStatus("Preparing text...", "saving");
-        const plates = await fetchVehicleBreakdown(
-          selectedSupplierKey,
-          siteName,
-          monthIdx,
-        );
-        const textToCopy = formatPlateDetails(plates, monthIdx);
-
-        navigator.clipboard
-          .writeText(textToCopy)
-          .then(() => {
-            showStatus(`Copied: "${textToCopy}"`, "saved");
-          })
-          .catch(() => {
-            showStatus("Copy failed!", "error");
-          });
-      }
-
-      // Right Click on Amount Cell: Copy Amount value directly
-      function handleAmountRightClick(event, amtVal) {
-        event.preventDefault();
-        const val = String(amtVal || "").trim();
-        if (!val) {
-          showStatus("No amount to copy", "saved");
-          return;
-        }
-
-        navigator.clipboard
-          .writeText(val)
-          .then(() => {
-            showStatus(`Copied Amount: "${val}"`, "saved");
-          })
-          .catch(() => {
-            showStatus("Copy failed!", "error");
-          });
-      }
-
-      let isEditMode = false;
-
-      function toggleEditMode() {
-        if (!selectedSupplierKey) return;
-        isEditMode = true;
-        document.getElementById("editToggleBtn").style.display = "none";
-        document.getElementById("saveBtn").style.display = "inline-flex";
-        document.getElementById("cancelBtn").style.display = "inline-flex";
-        const supData = consolidatedSuppliers[selectedSupplierKey];
-        renderTable(supData);
-      }
-
-      function cancelEditMode() {
-        isEditMode = false;
-        document.getElementById("editToggleBtn").style.display = "inline-flex";
-        document.getElementById("saveBtn").style.display = "none";
-        document.getElementById("cancelBtn").style.display = "none";
-        const supData = consolidatedSuppliers[selectedSupplierKey];
-        renderTable(supData);
-        showStatus("Edit cancelled", "saved");
-      }
-
-      async function saveCurrentSupplierChanges() {
-        if (!selectedSupplierKey) return;
-        const supData = consolidatedSuppliers[selectedSupplierKey];
-        if (!supData) return;
-
-        const inputs = document.querySelectorAll(".qc-val");
-        const updates = [];
-
-        inputs.forEach((input) => {
-          const siteName = input.dataset.site;
-          const m = parseInt(input.dataset.month);
-          const field = input.dataset.field;
-          let newVal = input.value.trim();
-
-          const site = supData.sites.find((s) => s.site_name === siteName);
-          if (!site) return;
-
-          const oldVal = site.billing[m] ? site.billing[m][field] || "" : "";
-
-          // Amount formula support (e.g. =1000+500)
-          if (field === "amount" && newVal !== "") {
-            let expr = newVal.startsWith("=") ? newVal.substring(1) : newVal;
-            expr = expr.replace(/,/g, "");
-            if (/^[0-9+\-*/().\s]+$/.test(expr)) {
-              try {
-                let calculated = new Function("return " + expr)();
-                if (isFinite(calculated))
-                  newVal = Number(calculated.toFixed(2)).toString();
-              } catch (e) {}
             }
-          }
-
-          if (newVal !== oldVal) {
-            if (!site.billing[m]) site.billing[m] = {};
-            site.billing[m][field] = newVal;
-
-            const origGroup = rawData.find(
-              (g) =>
-                g.supplier === supData.supplier &&
-                g.sites.some((s) => s.site_name === siteName),
-            );
-            const companyName = origGroup ? origGroup.company : supData.company;
-
-            updates.push({
-              year: currentYear,
-              company: companyName,
-              supplier: supData.supplier,
-              vat_no: supData.vat_no,
-              display_name: supData.display_name,
-              site_name: siteName,
-              month_index: m,
-              field: field,
-              value: newVal,
-            });
-          }
-        });
-
-        if (updates.length === 0) {
-          cancelEditMode();
-          showStatus("No changes to save", "saved");
-          return;
         }
 
-        showStatus("Saving changes...", "saving");
-        try {
-          const res = await fetch(`/timesheet/api/vat-tracking/update-bulk`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-vat-code": vatCode,
-            },
-            body: JSON.stringify({ changes: updates }),
-          });
-          const json = await res.json();
-          if (json.success) {
-            showStatus("✓ Saved successfully", "saved");
-            cancelEditMode();
-          } else {
-            showStatus("Error saving", "error");
-          }
-        } catch (e) {
-          showStatus("Network Error", "error");
+        function closeTsModal() {
+            document.getElementById("tsDetailsModal").style.display = "none";
         }
-      }
 
-      // Render Table (Switches between Edit inputs & Read-Only views seamlessly)
-      function renderTable(supData) {
-        const shortYear = currentYear.toString().slice(-2);
-        let head1 = `<tr><th rowspan="2" class="month-col">Month</th>`;
-        let head2 = `<tr>`;
+        // Render Table with QC Checkbox column per site
+        function renderTable(supData) {
+            const shortYear = currentYear.toString().slice(-2);
+            let head1 = `<tr><th rowspan="2" class="month-col">Month</th>`;
+            let head2 = `<tr>`;
 
-        supData.sites.forEach((site) => {
-          head1 += `<th colspan="3" title="${escapeHTML(site.site_name)}">${escapeHTML(site.site_name)}</th>`;
-          head2 += `
+            supData.sites.forEach(site => {
+                head1 += `<th colspan="4" title="${escapeHTML(site.site_name)}">${escapeHTML(site.site_name)}</th>`;
+                head2 += `
                     <th class="sub-head" style="width: 120px; min-width: 120px;">Bill No</th>
                     <th class="sub-head" style="width: 85px; min-width: 85px;">Amount</th>
                     <th class="sub-head erp-head" style="width: 85px; min-width: 85px;">Vendor TS</th>
+                    <th class="sub-head qc-chk-head" title="QC Check">QC</th>
                 `;
-        });
-        head1 += `</tr>`;
-        head2 += `</tr>`;
+            });
+            head1 += `</tr>`;
+            head2 += `</tr>`;
 
-        document.getElementById("qcHead").innerHTML = head1 + head2;
+            document.getElementById("qcHead").innerHTML = head1 + head2;
 
-        let bodyHtml = "";
-        for (let m = 0; m < 12; m++) {
-          let mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
-          bodyHtml += `<tr><td class="month-col"><div class="cell-content">${mLabel}</div></td>`;
+            let bodyHtml = "";
+            for (let m = 0; m < 12; m++) {
+                let mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
+                bodyHtml += `<tr><td class="month-col"><div class="cell-content">${mLabel}</div></td>`;
 
-          supData.sites.forEach((site) => {
-            const isActive = site.active_months[m];
-            const bill = site.billing[m] || {
-              bill_no: "",
-              amount: "",
-              erp_total: "",
-            };
-            const erpVal = bill.erp_total
-              ? Number(bill.erp_total).toFixed(2)
-              : "";
-            const billVal = escapeHTML(bill.bill_no || "");
-            const amtVal = escapeHTML(bill.amount || "");
+                supData.sites.forEach((site) => {
+                    const isActive = site.active_months[m];
+                    const bill = site.billing[m] || { bill_no: "", amount: "", erp_total: "", qc_checked: false };
+                    const erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
+                    const billVal = escapeHTML(bill.bill_no || '');
+                    const amtVal = escapeHTML(bill.amount || '');
+                    const isQcChecked = bill.qc_checked === true || bill.qc_checked === 'true';
+                    const hlClass = isQcChecked ? 'qc-highlight' : '';
 
-            if (isActive) {
-              const sNameAttr = escapeQuotes(site.site_name);
-              if (isEditMode) {
-                // Edit Mode: Input Fields
-                bodyHtml += `
-                                <td>
-                                    <textarea class="qc-textarea qc-val" data-site="${sNameAttr}" data-month="${m}" data-field="bill_no" oninput="autoResizeTextarea(this)">${billVal}</textarea>
+                    if (isActive) {
+                        const sNameAttr = escapeQuotes(site.site_name);
+                        const rowUniqueId = `row_${sNameAttr}_${m}`;
+                        const shortM = monthsFull[m].substring(0, 3);
+                        const initialLabel = `${shortM}-${shortYear} Rent Bill`;
+
+                        if (isEditMode) {
+                            bodyHtml += `
+                                <td id="${rowUniqueId}">
+                                    <textarea class="qc-textarea qc-val qc-highlight-target ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="bill_no" oninput="autoResizeTextarea(this)">${billVal}</textarea>
                                 </td>
                                 <td>
-                                    <input type="text" class="qc-input qc-val" data-site="${sNameAttr}" data-month="${m}" data-field="amount" value="${amtVal}">
+                                    <input type="text" class="qc-input qc-val qc-highlight-target ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="amount" value="${amtVal}">
                                 </td>
                                 <td style="background: #f0fdfa;">
-                                    <div class="cell-content" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
+                                    <div class="cell-content qc-highlight-target ${hlClass}" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
+                                </td>
+                                <td>
+                                    <input type="checkbox" class="qc-checkbox" ${isQcChecked ? 'checked' : ''} onchange="toggleQcCheck(this, '${sNameAttr}', ${m})">
                                 </td>
                             `;
-              } else {
-                // View Mode: Clean Plain Text + Click/Right-Click Features
-                bodyHtml += `
-                                <td><div class="cell-content" style="font-size: 11px; white-space: pre-wrap; word-break: break-word; color: #1e293b;">${billVal}</div></td>
-                                <td class="amount-cell" style="cursor: pointer;" 
+                        } else {
+                            bodyHtml += `
+                                <td class="qc-highlight-target ${hlClass}"><div class="cell-content" style="font-size: 11px; white-space: pre-wrap; word-break: break-word; color: #1e293b;">${billVal}</div></td>
+                                <td class="amount-cell qc-highlight-target ${hlClass}" style="cursor: pointer;" 
                                     title="Right click to copy amount"
                                     oncontextmenu="handleAmountRightClick(event, '${escapeQuotes(amtVal)}')">
                                     <div class="cell-content" style="font-size: 11px; font-weight: 500; color: #0f172a;">${amtVal}</div>
                                 </td>
-                                <td class="vendor-ts-cell" style="background: #f0fdfa; cursor: pointer;" 
-                                    title="${monthsFull[m]} Rent Bill"
+                                <td class="vendor-ts-cell qc-highlight-target ${hlClass}" style="background: #f0fdfa; cursor: pointer;" 
+                                    title="${initialLabel}"
                                     onmouseenter="loadCellTooltip(this, '${sNameAttr}', ${m})"
                                     onclick="openTsDetailsModal('${sNameAttr}', ${m})"
                                     oncontextmenu="handleTsRightClick(event, '${sNameAttr}', ${m})">
                                     <div class="cell-content" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
                                 </td>
+                                <td>
+                                    <input type="checkbox" class="qc-checkbox" ${isQcChecked ? 'checked' : ''} onchange="toggleQcCheck(this, '${sNameAttr}', ${m})">
+                                </td>
                             `;
-              }
-            } else {
-              bodyHtml += `<td colspan="3" class="inactive-cell" title="Inactive Month"></td>`;
+                        }
+                    } else {
+                        bodyHtml += `<td colspan="4" class="inactive-cell" title="Inactive Month"></td>`;
+                    }
+                });
+
+                bodyHtml += `</tr>`;
             }
-          });
 
-          bodyHtml += `</tr>`;
+            document.getElementById("qcBody").innerHTML = bodyHtml;
+            if (isEditMode) {
+                document.querySelectorAll("#qcBody .qc-textarea").forEach(tx => autoResizeTextarea(tx));
+            }
         }
 
-        document.getElementById("qcBody").innerHTML = bodyHtml;
-        if (isEditMode) {
-          document
-            .querySelectorAll("#qcBody .qc-textarea")
-            .forEach((tx) => autoResizeTextarea(tx));
+        function autoResizeTextarea(el) {
+            el.style.height = "auto";
+            el.style.height = Math.max(24, el.scrollHeight) + "px";
         }
-      }
 
-      function autoResizeTextarea(el) {
-        el.style.height = "auto";
-        el.style.height = Math.max(24, el.scrollHeight) + "px";
-      }
+        function copyVatNumber() {
+            const vat = document.getElementById("infoVatNo").innerText.trim();
+            if (!vat) return;
+            navigator.clipboard.writeText(vat).then(() => {
+                showStatus("VAT Copied!", "saved");
+            });
+        }
 
-      function copyVatNumber() {
-        const vat = document.getElementById("infoVatNo").innerText.trim();
-        if (!vat) return;
-        navigator.clipboard.writeText(vat).then(() => {
-          showStatus("VAT Copied!", "saved");
-        });
-      }
+        function showStatus(msg, type) {
+            const s = document.getElementById("saveStatus");
+            s.innerText = msg;
+            s.className = `status-${type}`;
+            if (type === "saved" || type === "error") setTimeout(() => s.innerText = "", 4000);
+        }
 
-      function showStatus(msg, type) {
-        const s = document.getElementById("saveStatus");
-        s.innerText = msg;
-        s.className = `status-${type}`;
-        if (type === "saved" || type === "error")
-          setTimeout(() => (s.innerText = ""), 4000);
-      }
-
-      function escapeHTML(str) {
-        return str
-          ? String(str).replace(
-              /[&<>'"]/g,
-              (t) =>
-                ({
-                  "&": "&amp;",
-                  "<": "&lt;",
-                  ">": "&gt;",
-                  "'": "&#39;",
-                  '"': "&quot;",
-                })[t] || t,
-            )
-          : "";
-      }
-      function escapeQuotes(str) {
-        return str
-          ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;")
-          : "";
-      }
+        function escapeHTML(str) { return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; }
+        function escapeQuotes(str) { return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; }
     </script>
-  </body>
+</body>
 </html>
