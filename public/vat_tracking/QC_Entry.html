@@ -430,6 +430,47 @@
       .amount-cell:hover {
         background-color: #f1f5f9 !important;
       }
+
+      /* Inputs when in Edit Mode */
+      .qc-input {
+        width: 100%;
+        padding: 4px;
+        border: 1px solid #cbd5e1;
+        border-radius: 3px;
+        text-align: center;
+        font-size: 11px;
+        font-family: "Inter";
+        box-sizing: border-box;
+      }
+      .qc-input:focus {
+        border-color: #0284c7;
+        outline: none;
+        background: #f0f9ff;
+      }
+
+      .qc-textarea {
+        width: 100%;
+        min-height: 24px;
+        height: 24px;
+        padding: 3px 4px;
+        border: 1px solid #cbd5e1;
+        border-radius: 3px;
+        text-align: center;
+        font-size: 11px;
+        font-family: "Inter";
+        box-sizing: border-box;
+        resize: none;
+        line-height: 1.3;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-y: hidden;
+        display: block;
+      }
+      .qc-textarea:focus {
+        border-color: #0284c7;
+        outline: none;
+        background: #f0f9ff;
+      }
     </style>
   </head>
   <body>
@@ -550,6 +591,33 @@
             ▶
           </button>
         </div>
+
+        <!-- Edit Toggle Controls -->
+        <button
+          id="editToggleBtn"
+          class="btn-action"
+          onclick="toggleEditMode()"
+          title="Edit Billing Data"
+          style="background: #f59e0b"
+        >
+          ✏️
+        </button>
+        <button
+          id="saveBtn"
+          class="btn-action"
+          onclick="saveCurrentSupplierChanges()"
+          style="display: none; background: #10b981"
+        >
+          💾 Save
+        </button>
+        <button
+          id="cancelBtn"
+          class="btn-action"
+          onclick="cancelEditMode()"
+          style="display: none; background: #ef4444"
+        >
+          ❌ Cancel
+        </button>
 
         <a href="index.html" class="btn-action">📋 Main View</a>
       </div>
@@ -1022,7 +1090,114 @@
           });
       }
 
-      // Render Table
+      let isEditMode = false;
+
+      function toggleEditMode() {
+        if (!selectedSupplierKey) return;
+        isEditMode = true;
+        document.getElementById("editToggleBtn").style.display = "none";
+        document.getElementById("saveBtn").style.display = "inline-flex";
+        document.getElementById("cancelBtn").style.display = "inline-flex";
+        const supData = consolidatedSuppliers[selectedSupplierKey];
+        renderTable(supData);
+      }
+
+      function cancelEditMode() {
+        isEditMode = false;
+        document.getElementById("editToggleBtn").style.display = "inline-flex";
+        document.getElementById("saveBtn").style.display = "none";
+        document.getElementById("cancelBtn").style.display = "none";
+        const supData = consolidatedSuppliers[selectedSupplierKey];
+        renderTable(supData);
+        showStatus("Edit cancelled", "saved");
+      }
+
+      async function saveCurrentSupplierChanges() {
+        if (!selectedSupplierKey) return;
+        const supData = consolidatedSuppliers[selectedSupplierKey];
+        if (!supData) return;
+
+        const inputs = document.querySelectorAll(".qc-val");
+        const updates = [];
+
+        inputs.forEach((input) => {
+          const siteName = input.dataset.site;
+          const m = parseInt(input.dataset.month);
+          const field = input.dataset.field;
+          let newVal = input.value.trim();
+
+          const site = supData.sites.find((s) => s.site_name === siteName);
+          if (!site) return;
+
+          const oldVal = site.billing[m] ? site.billing[m][field] || "" : "";
+
+          // Amount formula support (e.g. =1000+500)
+          if (field === "amount" && newVal !== "") {
+            let expr = newVal.startsWith("=") ? newVal.substring(1) : newVal;
+            expr = expr.replace(/,/g, "");
+            if (/^[0-9+\-*/().\s]+$/.test(expr)) {
+              try {
+                let calculated = new Function("return " + expr)();
+                if (isFinite(calculated))
+                  newVal = Number(calculated.toFixed(2)).toString();
+              } catch (e) {}
+            }
+          }
+
+          if (newVal !== oldVal) {
+            if (!site.billing[m]) site.billing[m] = {};
+            site.billing[m][field] = newVal;
+
+            const origGroup = rawData.find(
+              (g) =>
+                g.supplier === supData.supplier &&
+                g.sites.some((s) => s.site_name === siteName),
+            );
+            const companyName = origGroup ? origGroup.company : supData.company;
+
+            updates.push({
+              year: currentYear,
+              company: companyName,
+              supplier: supData.supplier,
+              vat_no: supData.vat_no,
+              display_name: supData.display_name,
+              site_name: siteName,
+              month_index: m,
+              field: field,
+              value: newVal,
+            });
+          }
+        });
+
+        if (updates.length === 0) {
+          cancelEditMode();
+          showStatus("No changes to save", "saved");
+          return;
+        }
+
+        showStatus("Saving changes...", "saving");
+        try {
+          const res = await fetch(`/timesheet/api/vat-tracking/update-bulk`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-vat-code": vatCode,
+            },
+            body: JSON.stringify({ changes: updates }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            showStatus("✓ Saved successfully", "saved");
+            cancelEditMode();
+          } else {
+            showStatus("Error saving", "error");
+          }
+        } catch (e) {
+          showStatus("Network Error", "error");
+        }
+      }
+
+      // Render Table (Switches between Edit inputs & Read-Only views seamlessly)
       function renderTable(supData) {
         const shortYear = currentYear.toString().slice(-2);
         let head1 = `<tr><th rowspan="2" class="month-col">Month</th>`;
@@ -1061,25 +1236,37 @@
 
             if (isActive) {
               const sNameAttr = escapeQuotes(site.site_name);
-              const shortM = monthsFull[m].substring(0, 3);
-              const shortY = currentYear.toString().slice(-2);
-              const initialLabel = `${shortM}-${shortY} Rent Bill`;
-
-              bodyHtml += `
-                            <td><div class="cell-content" style="font-size: 11px; white-space: pre-wrap; word-break: break-word; color: #1e293b;">${billVal}</div></td>
-                            <td class="amount-cell" style="cursor: pointer;" 
-                                title="Right click to copy amount"
-                                oncontextmenu="handleAmountRightClick(event, '${escapeQuotes(amtVal)}')">
-                                <div class="cell-content" style="font-size: 11px; font-weight: 500; color: #0f172a;">${amtVal}</div>
-                            </td>
-                            <td class="vendor-ts-cell" style="background: #f0fdfa; cursor: pointer;" 
-                                title="${initialLabel}"
-                                onmouseenter="loadCellTooltip(this, '${sNameAttr}', ${m})"
-                                onclick="openTsDetailsModal('${sNameAttr}', ${m})"
-                                oncontextmenu="handleTsRightClick(event, '${sNameAttr}', ${m})">
-                                <div class="cell-content" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
-                            </td>
-                        `;
+              if (isEditMode) {
+                // Edit Mode: Input Fields
+                bodyHtml += `
+                                <td>
+                                    <textarea class="qc-textarea qc-val" data-site="${sNameAttr}" data-month="${m}" data-field="bill_no" oninput="autoResizeTextarea(this)">${billVal}</textarea>
+                                </td>
+                                <td>
+                                    <input type="text" class="qc-input qc-val" data-site="${sNameAttr}" data-month="${m}" data-field="amount" value="${amtVal}">
+                                </td>
+                                <td style="background: #f0fdfa;">
+                                    <div class="cell-content" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
+                                </td>
+                            `;
+              } else {
+                // View Mode: Clean Plain Text + Click/Right-Click Features
+                bodyHtml += `
+                                <td><div class="cell-content" style="font-size: 11px; white-space: pre-wrap; word-break: break-word; color: #1e293b;">${billVal}</div></td>
+                                <td class="amount-cell" style="cursor: pointer;" 
+                                    title="Right click to copy amount"
+                                    oncontextmenu="handleAmountRightClick(event, '${escapeQuotes(amtVal)}')">
+                                    <div class="cell-content" style="font-size: 11px; font-weight: 500; color: #0f172a;">${amtVal}</div>
+                                </td>
+                                <td class="vendor-ts-cell" style="background: #f0fdfa; cursor: pointer;" 
+                                    title="${monthsFull[m]} Rent Bill"
+                                    onmouseenter="loadCellTooltip(this, '${sNameAttr}', ${m})"
+                                    onclick="openTsDetailsModal('${sNameAttr}', ${m})"
+                                    oncontextmenu="handleTsRightClick(event, '${sNameAttr}', ${m})">
+                                    <div class="cell-content" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
+                                </td>
+                            `;
+              }
             } else {
               bodyHtml += `<td colspan="3" class="inactive-cell" title="Inactive Month"></td>`;
             }
@@ -1089,6 +1276,16 @@
         }
 
         document.getElementById("qcBody").innerHTML = bodyHtml;
+        if (isEditMode) {
+          document
+            .querySelectorAll("#qcBody .qc-textarea")
+            .forEach((tx) => autoResizeTextarea(tx));
+        }
+      }
+
+      function autoResizeTextarea(el) {
+        el.style.height = "auto";
+        el.style.height = Math.max(24, el.scrollHeight) + "px";
       }
 
       function copyVatNumber() {
