@@ -128,7 +128,22 @@
         .owner-item { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: all 0.2s; }
         .owner-item:hover { background: #f8fafc; }
         .owner-item.active { background: #e0f2fe; border-left: 4px solid #0284c7; }
-        .owner-item-title { font-weight: 600; color: #0f172a; margin-bottom: 3px; font-size: 13px; }
+        .owner-item-title { font-weight: 600; color: #0f172a; margin-bottom: 3px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .owner-sn-badge {
+            background: #e2e8f0;
+            color: #475569;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 4px;
+            min-width: 18px;
+            text-align: center;
+            display: inline-block;
+        }
+        .owner-item.active .owner-sn-badge {
+            background: #0284c7;
+            color: white;
+        }
         .owner-item-sub { font-size: 11px; color: #64748b; display: flex; justify-content: space-between; }
 
         /* Right Content Area */
@@ -176,6 +191,7 @@
             width: 100%;
             height: 100%;
             text-align: center;
+            color: #000000;
         }
 
         .qc-table th { background: #1e293b; color: white; font-size: 12px; position: sticky; top: 0; z-index: 10; height: 32px; }
@@ -348,6 +364,276 @@
             z-index: 10000; 
         }
         .login-box { background: white; padding: 30px; border-radius: 8px; width: 300px; text-align: center; }
+
+        /* ================================
+   DARK THEME
+   ================================ */
+
+body.dark-theme {
+    background-color: #0f172a;
+    color: #e2e8f0;
+}
+
+/* Main areas */
+body.dark-theme .content-area {
+    background: #0f172a;
+}
+
+body.dark-theme .sidebar {
+    background: #111827;
+    border-right-color: #334155;
+}
+
+body.dark-theme .sidebar-header {
+    background: #1e293b;
+    border-bottom-color: #334155;
+    color: #e2e8f0;
+}
+
+body.dark-theme .owner-item {
+    border-bottom-color: #1e293b;
+    color: #e2e8f0;
+}
+
+body.dark-theme .owner-item:hover {
+    background: #1e293b;
+}
+
+body.dark-theme .owner-item.active {
+    background: #0c4a6e;
+    border-left-color: #38bdf8;
+}
+
+body.dark-theme .owner-item-title {
+    color: #f1f5f9;
+}
+
+body.dark-theme .owner-item-sub {
+    color: #94a3b8;
+}
+
+body.dark-theme .owner-sn-badge {
+    background: #334155;
+    color: #cbd5e1;
+}
+
+body.dark-theme .owner-item.active .owner-sn-badge {
+    background: #0284c7;
+    color: white;
+}
+
+body.dark-theme .owner-count-badge {
+    background: #334155;
+    color: #cbd5e1;
+}
+
+/* Search */
+body.dark-theme .search-box {
+    background: #1e293b;
+    border-color: #475569;
+    color: #f8fafc;
+}
+
+body.dark-theme .search-box::placeholder {
+    color: #64748b;
+}
+
+/* Supplier info */
+body.dark-theme .supplier-info-card {
+    background: #111827;
+    border-bottom-color: #334155;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+body.dark-theme .info-label {
+    color: #94a3b8;
+}
+
+body.dark-theme .info-val {
+    color: #f1f5f9;
+}
+
+/* Table */
+body.dark-theme .qc-table {
+    background: #111827;
+    border-color: #475569;
+}
+
+body.dark-theme .qc-table th,
+body.dark-theme .qc-table td {
+    border-right-color: #475569;
+    border-bottom-color: #475569;
+}
+
+body.dark-theme .qc-table th {
+    background: #020617;
+}
+
+body.dark-theme .qc-table th.sub-head {
+    background: #1e293b;
+}
+
+body.dark-theme .qc-table th.erp-head {
+    background: #115e59;
+}
+
+body.dark-theme .month-col {
+    background: #111827;
+    color: #e2e8f0;
+    border-right-color: #64748b;
+}
+
+body.dark-theme th.month-col {
+    background: #020617;
+}
+
+/* Normal table cells */
+body.dark-theme .cell-content {
+    color: #e2e8f0;
+}
+
+/* Vendor TS */
+body.dark-theme .vendor-ts-cell,
+body.dark-theme td[style*="background: #f0fdfa"] {
+    background: #042f2e !important;
+}
+
+body.dark-theme .vendor-ts-cell .cell-content {
+    color: #5eead4 !important;
+}
+
+/* Quick Dice */
+body.dark-theme .qc-quick-dice {
+    background: #1e1b4b;
+    color: #a5b4fc;
+}
+
+/* Inputs */
+body.dark-theme .qc-input,
+body.dark-theme .qc-textarea {
+    background: #1e293b;
+    color: #f8fafc;
+    border-color: #475569;
+}
+
+body.dark-theme .qc-input:focus,
+body.dark-theme .qc-textarea:focus {
+    background: #0f2a3d;
+    border-color: #38bdf8;
+    color: white;
+}
+
+/* Inactive cells */
+body.dark-theme .inactive-cell {
+    background: repeating-linear-gradient(
+        45deg,
+        #1e293b,
+        #1e293b 6px,
+        #334155 6px,
+        #334155 12px
+    ) !important;
+}
+
+/* QC Highlight - keep yellow */
+body.dark-theme .qc-highlight,
+body.dark-theme td.qc-highlight,
+body.dark-theme td.qc-highlight div,
+body.dark-theme td.qc-highlight textarea,
+body.dark-theme td.qc-highlight input {
+    background-color: #fef08a !important;
+    color: #854d0e !important;
+}
+
+/* Total row */
+body.dark-theme #qcBody tr:last-child {
+    background: #1e293b !important;
+}
+
+body.dark-theme #qcBody tr:last-child .month-col {
+    background: #334155 !important;
+    color: #f8fafc !important;
+}
+
+/* Modal */
+body.dark-theme .modal-content {
+    background: #111827;
+    color: #e2e8f0;
+}
+
+body.dark-theme .modal-body {
+    background: #111827;
+}
+
+body.dark-theme .ts-breakdown-table {
+    border-color: #475569;
+}
+
+body.dark-theme .ts-breakdown-table th,
+body.dark-theme .ts-breakdown-table td {
+    border-color: #475569;
+}
+
+body.dark-theme .ts-breakdown-table th {
+    background: #1e293b;
+    color: #e2e8f0;
+}
+
+body.dark-theme .ts-breakdown-table td {
+    background: #111827;
+    color: #cbd5e1;
+}
+
+body.dark-theme .ts-breakdown-table tfoot td {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+/* Login */
+body.dark-theme .login-box {
+    background: #111827;
+    color: #f1f5f9;
+}
+
+body.dark-theme .login-box p {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme #vatAccessCode {
+    background: #1e293b;
+    color: white;
+    border-color: #475569 !important;
+}
+
+body.dark-theme #vatAccessCode::placeholder {
+    color: #64748b;
+}
+
+/* Scrollbars */
+body.dark-theme ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+body.dark-theme ::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 6px;
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* Dark Mode - Total Row Values */
+body.dark-theme #qcBody tr:last-child td,
+body.dark-theme #qcBody tr:last-child td .cell-content {
+    color: #000000 !important;
+}
+
+        
     </style>
 </head>
 <body>
@@ -416,8 +702,16 @@
                 ❌ Cancel
             </button>
 
+            <button id="themeToggleBtn"
+        class="btn-action"
+        onclick="toggleDarkTheme()"
+        style="background:#475569;">
+    🌙 Dark
+</button>
+
             <a href="index.html" class="btn-action">📋 Main View</a>
             <a href="QC_Bill_Pending_Dashboard.html" class="btn-action" style="background: #dc2626;" title="View QC Verified entries with missing Bill No or Amount">⚠️ QC Issues</a>
+            <a href="non_vat_tracker/index.html" class="btn-action" style="background: #ea580c;" title="Switch to Non-VAT Bill Tracker">📦 Non VAT</a>
         </div>
     </div>
 
@@ -482,19 +776,65 @@
         const tsDetailsCache = {};
         let isEditMode = false;
 
-        // Initialize Years Dropdown
-        function initYearOptions() {
-            const select = document.getElementById("yearSelect");
-            select.innerHTML = "";
-            for (let y = currentYear - 3; y <= currentYear + 2; y++) {
-                let opt = document.createElement("option");
-                opt.value = y;
-                opt.textContent = y;
-                if (y === currentYear) opt.selected = true;
-                select.appendChild(opt);
-            }
-        }
-        initYearOptions();
+// Dark Theme
+const savedTheme = localStorage.getItem("vatTheme");
+
+if (savedTheme === "dark") {
+    document.body.classList.add("dark-theme");
+}
+
+function updateThemeButton() {
+    const btn = document.getElementById("themeToggleBtn");
+    if (!btn) return;
+
+    if (document.body.classList.contains("dark-theme")) {
+        btn.innerHTML = "☀️ Light";
+        btn.style.background = "#f59e0b";
+    } else {
+        btn.innerHTML = "🌙 Dark";
+        btn.style.background = "#475569";
+    }
+}
+
+
+// Initialize Years Dropdown
+function initYearOptions() {
+    const select = document.getElementById("yearSelect");
+    select.innerHTML = "";
+
+    for (let y = currentYear - 3; y <= currentYear + 2; y++) {
+        let opt = document.createElement("option");
+        opt.value = y;
+        opt.textContent = y;
+
+        if (y === currentYear) opt.selected = true;
+
+        select.appendChild(opt);
+    }
+}
+
+initYearOptions();
+
+function toggleDarkTheme() {
+    document.body.classList.toggle("dark-theme");
+
+    const isDark = document.body.classList.contains("dark-theme");
+
+    localStorage.setItem("vatTheme", isDark ? "dark" : "light");
+
+    const btn = document.getElementById("themeToggleBtn");
+
+    if (isDark) {
+        btn.innerHTML = "☀️ Light";
+        btn.style.background = "#f59e0b";
+    } else {
+        btn.innerHTML = "🌙 Dark";
+        btn.style.background = "#475569";
+    }
+}
+
+updateThemeButton();
+
 
         // Auth Check
         if (vatCode) {
@@ -611,7 +951,10 @@
                 const isActive = (k === selectedSupplierKey);
                 html += `
                     <li class="owner-item ${isActive ? 'active' : ''}" onclick="selectSupplier('${escapeQuotes(k)}')">
-                        <div class="owner-item-title">${escapeHTML(s.supplier)}</div>
+                        <div class="owner-item-title">
+                            <span class="owner-sn-badge">${matchCount}</span>
+                            <span>${escapeHTML(s.supplier)}</span>
+                        </div>
                         <div class="owner-item-sub">
                             <span>${escapeHTML(s.vat_no || '')}</span>
                             <span>${s.sites.length} Site(s)</span>
@@ -700,15 +1043,8 @@
 
                 const oldVal = site.billing[m] ? (site.billing[m][field] || "") : "";
 
-                if (field === 'amount' && newVal !== "") {
-                    let expr = newVal.startsWith("=") ? newVal.substring(1) : newVal;
-                    expr = expr.replace(/,/g, "");
-                    if (/^[0-9+\-*/().\s]+$/.test(expr)) {
-                        try {
-                            let calculated = new Function("return " + expr)();
-                            if (isFinite(calculated)) newVal = Number(calculated.toFixed(2)).toString();
-                        } catch (e) {}
-                    }
+                if ((field === 'amount' || field === 'quick_dice') && newVal !== "") {
+                    newVal = evaluateMathExpression(newVal);
                 }
 
                 if (newVal !== oldVal) {
@@ -757,13 +1093,30 @@
             }
         }
 
-        // 🟡 Instant Quick Dice Input & Live Yellow Highlight + DB Persistence
-        let diceDebounceTimer = null;
+        // 🟢 + , - , * , / മാത്സ് ഫോർമുലകൾ കണക്കുകൂട്ടാനുള്ള ഫംഗ്ഷൻ
+        function evaluateMathExpression(rawVal) {
+            if (!rawVal) return "";
+            let expr = String(rawVal).trim();
+            if (expr.startsWith("=")) expr = expr.substring(1);
+            expr = expr.replace(/,/g, "").trim();
+
+            // അക്കങ്ങളും ചിഹ്നങ്ങളും (+, -, *, /, .) മാത്രമാണോ എന്ന് പരിശോധിക്കുന്നു
+            if (/^[0-9+\-*/().\s]+$/.test(expr) && /[+\-*/]/.test(expr)) {
+                try {
+                    let calculated = new Function("return " + expr)();
+                    if (isFinite(calculated) && !isNaN(calculated)) {
+                        return Number(calculated.toFixed(2)).toString();
+                    }
+                } catch (e) {}
+            }
+            return rawVal.trim();
+        }
+
+        // 🟡 ടൈപ്പ് ചെയ്യുമ്പോൾ യാതൊരു സേവിംഗും നടക്കില്ല; യെല്ലോ ഹൈലൈറ്റ് മാത്രം ലൈവായി കാണിക്കും
         function handleLiveQuickDice(inputEl, siteName, monthIdx) {
             const val = inputEl.value.trim();
             const hasValue = val !== "";
 
-            // 🟢 Reload ചെയ്യാതെ instant ആയി വരി യെല്ലോ ആക്കുന്നു
             const currentTd = inputEl.closest('td');
             if (currentTd) {
                 const vendorTsTd = currentTd.previousElementSibling;
@@ -789,40 +1142,54 @@
             if (site && site.billing[monthIdx]) {
                 site.billing[monthIdx].quick_dice = val;
             }
+        }
 
-            clearTimeout(diceDebounceTimer);
-            diceDebounceTimer = setTimeout(async () => {
-                const origGroup = rawData.find(g => g.supplier === supData.supplier && g.sites.some(s => s.site_name === siteName));
-                const companyName = origGroup ? origGroup.company : supData.company;
+        // 🟢 യൂസർ സെല്ലിൽ നിന്ന് മാറുമ്പോൾ (Blur അല്ലെങ്കിൽ Enter) മാത്രം കാൽക്കുലേറ്റ് ചെയ്തു സേവ് ചെയ്യുകയും ലോക്ക് ചെയ്യുകയും ചെയ്യുന്നു
+        async function handleDiceBlur(inputEl, siteName, monthIdx) {
+            // മാത്സ് കാൽക്കുലേഷൻ (+, -, *, /) റൺ ചെയ്ത് ഫൈനൽ റിസൾട്ട് എടുക്കുന്നു
+            let val = evaluateMathExpression(inputEl.value);
+            inputEl.value = val;
 
-                try {
-                    await fetch(`/timesheet/api/vat-tracking/update-cell`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
-                        body: JSON.stringify({
-                            year: currentYear,
-                            company: companyName,
-                            supplier: supData.supplier,
-                            vat_no: supData.vat_no,
-                            display_name: supData.display_name,
-                            site_name: siteName,
-                            month_index: monthIdx,
-                            field: "quick_dice",
-                            value: val
-                        })
-                    });
-                    showStatus("Quick Dice Saved", "saved");
+            if (!selectedSupplierKey) return;
+            const supData = consolidatedSuppliers[selectedSupplierKey];
+            if (!supData) return;
 
-                    // 🟢 എഡിറ്റ് മോഡിൽ അല്ലെങ്കിൽ, 0-ന് മുകളിൽ വാല്യൂ സേവ് ചെയ്തുകഴിഞ്ഞാൽ ആ സെൽ ഉടൻ തന്നെ Locked (Read-Only) ആക്കുന്നു
-                    const numVal = parseFloat(val);
-                    const isPositive = !isNaN(numVal) && numVal > 0;
-                    if (!isEditMode && val !== "" && (isPositive || val !== "0")) {
-                        renderTable(supData);
-                    }
-                } catch (e) {
-                    showStatus("Sync Error", "error");
+            const site = supData.sites.find(s => s.site_name === siteName);
+            if (site && site.billing[monthIdx]) {
+                site.billing[monthIdx].quick_dice = val;
+            }
+
+            const origGroup = rawData.find(g => g.supplier === supData.supplier && g.sites.some(s => s.site_name === siteName));
+            const companyName = origGroup ? origGroup.company : supData.company;
+
+            showStatus("Saving...", "saving");
+            try {
+                await fetch(`/timesheet/api/vat-tracking/update-cell`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
+                    body: JSON.stringify({
+                        year: currentYear,
+                        company: companyName,
+                        supplier: supData.supplier,
+                        vat_no: supData.vat_no,
+                        display_name: supData.display_name,
+                        site_name: siteName,
+                        month_index: monthIdx,
+                        field: "quick_dice",
+                        value: val
+                    })
+                });
+                showStatus("Quick Dice Saved", "saved");
+
+                // വാല്യൂ 0-ന് മുകളിൽ ഉണ്ടെങ്കിൽ സെൽ Read-Only ലോക്ക് ആക്കുന്നു
+                const numVal = parseFloat(val);
+                const isPositive = !isNaN(numVal) && numVal > 0;
+                if (!isEditMode && val !== "" && (isPositive || val !== "0")) {
+                    renderTable(supData);
                 }
-            }, 400);
+            } catch (e) {
+                showStatus("Sync Error", "error");
+            }
         }
 
         // Fetch Live Vehicle breakdown (Plate No, NR, OT, Total)
@@ -965,10 +1332,10 @@
 
                     tbody.innerHTML += `
                         <tr>
-                            <td style="font-weight: 600; color: #1e293b;">${escapeHTML(p.plate)}</td>
+                            <td style="font-weight: 600;">${escapeHTML(p.plate)}</td>
                             <td>${p.nr}</td>
                             <td>${p.ot}</td>
-                            <td style="font-weight: 600; color: #0f766e;">${p.total > 0 ? p.total.toFixed(2) : ""}</td>
+                            <td style="font-weight: 600;">${p.total > 0 ? p.total.toFixed(2) : ""}</td>
                         </tr>
                     `;
                 });
@@ -1063,7 +1430,7 @@
                                     <input type="text" class="qc-input qc-val qc-highlight-target ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="amount" value="${amtVal}">
                                 </td>
                                 <td style="background: #f0fdfa;">
-                                    <div class="cell-content qc-highlight-target ${hlClass}" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
+                                    <div class="cell-content qc-highlight-target ${hlClass}" style="font-weight: 600; font-size: 11px;">${erpVal}</div>
                                 </td>
                                 <td>
                                     <input type="text" class="qc-input qc-val qc-quick-dice ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="quick_dice" value="${qDiceVal}">
@@ -1079,27 +1446,27 @@
                                 // സേവ് ചെയ്ത വാല്യൂ ഉണ്ടെങ്കിൽ Read-Only ആക്കുന്നു
                                 diceCellContent = `<div class="cell-content" style="font-size: 11px; font-weight: 700; color: #312e81;" title="Locked: Click 'Edit' button to modify">${qDiceVal}</div>`;
                             } else {
-                                // ബ്ലാങ്ക് അല്ലെങ്കിൽ 0 ആണെങ്കിൽ ആദ്യം തന്നെ Editable input ആയി നൽകുന്നു
-                                diceCellContent = `<input type="text" class="qc-input qc-quick-dice" data-site="${sNameAttr}" data-month="${m}" data-field="quick_dice" value="${qDiceVal === '0' ? '' : qDiceVal}" oninput="handleLiveQuickDice(this, '${sNameAttr}', ${m})">`;
+                                // 🟢 ടൈപ്പ് ചെയ്യുമ്പോൾ ലോക്ക് ആവാതിരിക്കാനും പുറത്ത് ക്ലിക്ക് ചെയ്യുമ്പോൾ (blur) മാത്രം ലോക്ക് ആവാനും ഉള്ള കോഡ്
+                                diceCellContent = `<input type="text" class="qc-input qc-quick-dice" data-site="${sNameAttr}" data-month="${m}" data-field="quick_dice" value="${qDiceVal === '0' ? '' : qDiceVal}" oninput="handleLiveQuickDice(this, '${sNameAttr}', ${m})" onblur="handleDiceBlur(this, '${sNameAttr}', ${m})" onkeydown="if(event.key==='Enter') this.blur();">`;
                             }
 
                             bodyHtml += `
                                 <td class="qc-highlight-target ${hlClass}" style="cursor: pointer;" 
                                     title="Right click to copy Bill No" 
                                     oncontextmenu="handleBillNoRightClick(event, '${escapeQuotes(billVal)}')">
-                                    <div class="cell-content" style="font-size: 11px; white-space: pre-wrap; word-break: break-word; color: #1e293b;">${billVal}</div>
+                                    <div class="cell-content" style="font-size: 11px; white-space: pre-wrap; word-break: break-word;">${billVal}</div>
                                 </td>
                                 <td class="amount-cell qc-highlight-target ${hlClass}" style="cursor: pointer;" 
                                     title="Right click to copy amount"
                                     oncontextmenu="handleAmountRightClick(event, '${escapeQuotes(amtVal)}')">
-                                    <div class="cell-content" style="font-size: 11px; font-weight: 500; color: #0f172a;">${amtVal}</div>
+                                    <div class="cell-content" style="font-size: 11px; font-weight: 500;">${amtVal}</div>
                                 </td>
                                 <td class="vendor-ts-cell qc-highlight-target ${hlClass}" style="background: #f0fdfa; cursor: pointer;" 
                                     title="${initialLabel}"
                                     onmouseenter="loadCellTooltip(this, '${sNameAttr}', ${m})"
                                     onclick="openTsDetailsModal('${sNameAttr}', ${m})"
                                     oncontextmenu="handleTsRightClick(event, '${sNameAttr}', ${m})">
-                                    <div class="cell-content" style="font-weight: 600; color: #0f766e; font-size: 11px;">${erpVal}</div>
+                                    <div class="cell-content" style="font-weight: 600; font-size: 11px;">${erpVal}</div>
                                 </td>
                                 <td class="qc-highlight-target ${hlClass}">
                                     ${diceCellContent}
@@ -1117,7 +1484,7 @@
             // 🟢 ഡിസംബർ കഴിഞ്ഞുള്ള ടോട്ടൽ വരി (December-ന് താഴെ Total Row)
             let totalRowHtml = `
                 <tr style="background: #f1f5f9; font-weight: 700; border-top: 2px solid #94a3b8;">
-                    <td class="month-col" style="background: #e2e8f0; color: #0f172a; font-weight: 800;">
+                    <td class="month-col" style="background: #e2e8f0; font-weight: 800;">
                         <div class="cell-content">TOTAL</div>
                     </td>
             `;

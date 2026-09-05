@@ -1,0 +1,1374 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Non-VAT Pending Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        * { box-sizing: border-box; 
+        text-decoration: none;}
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; 
+            color: #0f172a;
+            margin: 0; 
+            padding: 0; 
+            font-size: 12px; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* 🌙 Dark Mode Theme Variables & Overrides */
+        body.dark-mode {
+            background-color: #0b1329;
+            color: #f1f5f9;
+        }
+        body.dark-mode .kpi-banner {
+            background: #111e38;
+            border-bottom-color: #1e293b;
+        }
+        body.dark-mode .kpi-label { color: #94a3b8; }
+        body.dark-mode .kpi-value { color: #f8fafc; }
+        body.dark-mode .dashboard-table {
+            background: #111e38;
+            border-color: #1e293b;
+        }
+        body.dark-mode .dashboard-table td {
+            border-color: #1e293b;
+            color: #e2e8f0;
+        }
+        body.dark-mode .cell-sticky-supplier {
+            background: #111e38 !important;
+            color: #f8fafc !important;
+            border-right-color: #334155 !important;
+        }
+        body.dark-mode .cell-sticky-site {
+            background: #111e38 !important;
+            color: #cbd5e1 !important;
+            border-right-color: #334155 !important;
+        }
+        body.dark-mode .completed-cell {
+            background: #1e293b !important;
+            color: #94a3b8 !important;
+        }
+        body.dark-mode .inactive-cell {
+            background: repeating-linear-gradient(45deg, #0b1329, #0b1329 6px, #111e38 6px, #111e38 12px) !important;
+        }
+
+        /* 🟢 Dark Mode Pending Cell & Editor Input Matching (Pure White Text) */
+        body.dark-mode .pending-input {
+            background: rgba(239, 68, 68, 0.15) !important;
+            border: 1px solid rgba(239, 68, 68, 0.45) !important;
+            color: #ffffff !important; /* ⚪ White text */
+            font-family: 'JetBrains Mono', 'Consolas', 'Inter', monospace;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        body.dark-mode .pending-input::placeholder {
+            color: rgba(255, 255, 255, 0.65) !important; /* ⚪ White placeholder */
+        }
+        body.dark-mode .pending-input:focus {
+            background: #0f172a !important;
+            border-color: #f87171 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4) !important;
+        }
+
+        body.dark-mode td.pending-ts-cell {
+            background: rgba(239, 68, 68, 0.18) !important;
+            color: #ffffff !important; /* ⚪ White Vendor TS amount */
+            font-weight: 700;
+        }
+        body.dark-mode td.pending-input-cell {
+            background: rgba(239, 68, 68, 0.08) !important;
+        }
+
+        /* 🟢 Dark Theme Vendor TS Pending Cell & Badge Styling (Pure White Text) */
+        td.pending-vts-cell {
+            background: #fff1f2;
+        }
+        body.dark-mode td.pending-vts-cell {
+            background: rgba(239, 68, 68, 0.08) !important;
+        }
+        body.dark-mode .pending-badge {
+            background: rgba(239, 68, 68, 0.22) !important;
+            color: #ffffff !important; /* ⚪ Pure White 'Pending' Text */
+            border: 1px solid rgba(239, 68, 68, 0.5) !important;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+            font-family: 'JetBrains Mono', 'Consolas', 'Inter', monospace;
+            font-weight: 700;
+        }
+
+        body.dark-mode .filter-menu {
+            background: #1e293b;
+            border-color: #334155;
+            color: #f8fafc;
+        }
+        body.dark-mode .filter-menu label { color: #cbd5e1; }
+        body.dark-mode .filter-menu input[type="text"] {
+            background: #0f172a;
+            border-color: #334155;
+            color: white;
+        }
+
+        .btn-theme-toggle {
+            background: #1e293b;
+            color: #f59e0b;
+            border: 1px solid #475569;
+            padding: 6px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .btn-theme-toggle:hover { background: #334155; }
+        
+        .navbar { 
+            background: #0f2027; 
+            color: white; 
+            padding: 10px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            height: 54px; 
+            flex-shrink: 0; 
+            z-index: 100;
+        }
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .nav-tools { display: flex; gap: 12px; align-items: center; }
+
+        .year-control { 
+            display: flex; 
+            align-items: center; 
+            background: #1e293b; 
+            border-radius: 5px; 
+            border: 1px solid #475569; 
+            overflow: hidden; 
+        }
+        .year-btn { 
+            background: transparent; 
+            color: white; 
+            border: none; 
+            padding: 6px 12px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: bold; 
+        }
+        .year-btn:hover { background: #334155; }
+        .year-select { 
+            background: transparent; 
+            color: white; 
+            border: none; 
+            font-size: 13px; 
+            font-weight: 600; 
+            padding: 5px 8px; 
+            outline: none; 
+            cursor: pointer; 
+        }
+        .year-select option { background: #1e293b; color: white; }
+
+        .search-box { 
+            padding: 6px 12px; 
+            border: 1px solid #475569; 
+            border-radius: 5px; 
+            background: #1e293b; 
+            color: white; 
+            outline: none; 
+            width: 220px; 
+            font-size: 12px; 
+        }
+
+        .btn-action { 
+            background: #3b82f6; 
+            color: white; 
+            padding: 6px 14px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            font-size: 12px; 
+            text-decoration: none;
+        }
+
+        .btn-clear-filters {
+            background: #475569;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .btn-clear-filters:hover { background: #64748b; }
+
+        /* View Toggle Switch */
+        .mode-toggle-group {
+            display: inline-flex;
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .mode-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            padding: 6px 12px;
+            font-size: 11.5px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mode-btn.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .pending-badge {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10.5px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        /* KPI Banner */
+        .kpi-banner {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px 20px;
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .kpi-item { display: flex; flex-direction: column; }
+        .kpi-label { font-size: 10.5px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+        .kpi-value { font-size: 16px; font-weight: 700; color: #0f172a; }
+        .kpi-alert { color: #dc2626; }
+
+        /* Main Table Container */
+        .main-container { flex: 1; overflow: auto; padding: 15px; }
+        .dashboard-table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .dashboard-table th, .dashboard-table td {
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 8px 10px;
+            vertical-align: middle;
+            text-align: center;
+        }
+        .dashboard-table th {
+            background: #1e293b;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            white-space: nowrap;
+        }
+        .dashboard-table th.sub-head { top: 32px; background: #334155; font-size: 10.5px; }
+        /* 🟢 Sticky Positioning Fix for Supplier & Site Columns */
+        .dashboard-table th.head-sticky-supplier { 
+            position: sticky; 
+            left: 0; 
+            z-index: 35 !important; 
+            background: #0f172a !important; 
+            min-width: 220px;
+            max-width: 220px;
+            width: 220px;
+        }
+        .dashboard-table th.head-sticky-site { 
+            position: sticky; 
+            left: 220px; 
+            z-index: 35 !important; 
+            background: #0f172a !important; 
+            min-width: 130px;
+            max-width: 130px;
+            width: 130px;
+            border-right: 2px solid #64748b !important;
+        }
+
+        .cell-sticky-supplier { 
+            position: sticky; 
+            left: 0; 
+            background: #ffffff; 
+            z-index: 15; 
+            text-align: left !important; 
+            font-weight: 700; 
+            color: #0f172a;
+            border-right: 1px solid #cbd5e1 !important; 
+            vertical-align: middle !important;
+            min-width: 220px;
+            max-width: 220px;
+            width: 220px;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .cell-sticky-site { 
+            position: sticky; 
+            left: 220px; 
+            background: #ffffff; 
+            z-index: 12; 
+            text-align: left !important; 
+            font-weight: 600; 
+            border-right: 2px solid #94a3b8 !important; 
+            min-width: 130px;
+            max-width: 130px;
+            width: 130px;
+        }
+
+        body.dark-mode .cell-sticky-supplier {
+            background: #111e38 !important;
+            color: #f8fafc !important;
+            border-right-color: #334155 !important;
+        }
+        body.dark-mode .cell-sticky-site {
+            background: #111e38 !important;
+            color: #cbd5e1 !important;
+            border-right-color: #475569 !important;
+        }
+
+        .sup-sn-badge {
+            background: #0284c7;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 6px;
+            display: inline-block;
+        }
+
+        .vendor-ts-cell {
+            cursor: pointer;
+            transition: filter 0.15s;
+        }
+        .vendor-ts-cell:hover {
+            filter: brightness(0.92);
+        }
+
+        /* Breakdown Modal */
+        .modal-overlay { 
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(15, 23, 42, 0.6); 
+            backdrop-filter: blur(2px);
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 9999; 
+        }
+        .modal-content { 
+            background: white; 
+            border-radius: 8px; 
+            width: 580px; 
+            max-width: 90%; 
+            max-height: 85vh; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
+            overflow: hidden; 
+        }
+        .modal-header { 
+            padding: 12px 18px; 
+            background: #0f2027; 
+            color: white; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .modal-header h3 { margin: 0; font-size: 13px; font-weight: 600; }
+        .modal-close-btn { 
+            background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; line-height: 1;
+        }
+        .modal-close-btn:hover { color: white; }
+        .modal-body { padding: 14px; overflow-y: auto; flex: 1; }
+        
+        .ts-breakdown-table { 
+            width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #cbd5e1; 
+        }
+        .ts-breakdown-table th, .ts-breakdown-table td { 
+            border: 1px solid #cbd5e1; padding: 7px 10px; text-align: center; 
+        }
+        .ts-breakdown-table th { background: #f1f5f9; color: #334155; font-weight: 600; }
+        .ts-breakdown-table tfoot td { background: #f8fafc; font-weight: 700; color: #0f172a; }
+        .cell-sticky-site { 
+            position: sticky; 
+            left: 220px; 
+            background: #ffffff; 
+            z-index: 5; 
+            text-align: left !important; 
+            font-weight: 600; 
+            border-right: 2px solid #cbd5e1 !important; 
+        }
+
+        .filter-icon {
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 10px;
+            margin-left: 5px;
+            display: inline-block;
+        }
+        .filter-icon:hover { color: #38bdf8; }
+        .filter-icon.filtered { color: #38bdf8; font-weight: 900; }
+
+        .pending-input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #f87171;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            background: #fff1f2;
+            color: #991b1b;
+            outline: none;
+        }
+        .pending-input:focus {
+            border-color: #ef4444;
+            background: #ffffff;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        }
+
+        .completed-cell {
+            background: #f1f5f9 !important;
+            color: #475569 !important;
+            font-weight: 600;
+            font-size: 11px;
+            cursor: not-allowed;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .inactive-cell {
+            background: repeating-linear-gradient(45deg, #f8fafc, #f8fafc 6px, #f1f5f9 6px, #f1f5f9 12px) !important;
+            pointer-events: none;
+        }
+
+        /* Filter Popup Menu */
+        .filter-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            color: #0f2027;
+            display: none;
+            min-width: 180px;
+            text-align: left;
+        }
+        .filter-menu label {
+            display: block;
+            padding: 4px 0;
+            font-size: 11.5px;
+            cursor: pointer;
+            color: #334155;
+        }
+        .filter-menu input[type="text"] {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-bottom: 8px;
+            outline: none;
+        }
+
+        #saveStatus { font-weight: 600; font-size: 12px; }
+        .status-saving { color: #f59e0b; }
+        .status-saved { color: #10b981; }
+        .status-error { color: #ef4444; }
+
+        /* Login Modal */
+        .login-overlay { 
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(15, 32, 39, 0.95); 
+            display: flex; justify-content: center; align-items: center; 
+            z-index: 10000; 
+        }
+        .login-box { background: white; padding: 30px; border-radius: 8px; width: 300px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-overlay">
+        <div class="login-box">
+            <h2 style="margin-top:0;">Access Control</h2>
+            <p style="font-size:12px; color:#64748b;">Please enter the secure access code.</p>
+            <input type="password" id="vatAccessCode" placeholder="Access Code" style="width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center;" onkeydown="if(event.key==='Enter') verifyLogin()">
+            <div id="loginError" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;">Invalid Access Code</div>
+            <button onclick="verifyLogin()" class="btn-action" style="width: 100%; justify-content: center; padding: 10px; background: #10b981;">Unlock</button>
+        </div>
+    </div>
+
+    <!-- Vendor TS Details Modal Popup -->
+    <div id="tsDetailsModal" class="modal-overlay" onclick="if(event.target===this) closeTsModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="tsModalTitle">Vendor Breakdown</h3>
+                <button class="modal-close-btn" onclick="closeTsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <table class="ts-breakdown-table">
+                    <thead>
+                        <tr>
+                            <th>Plate No</th>
+                            <th>NR (Hrs)</th>
+                            <th>OT (Hrs)</th>
+                            <th>Total Amount / TS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tsBreakdownBody"></tbody>
+                    <tfoot id="tsBreakdownFoot"></tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Ribbon -->
+    <div class="navbar">
+        <div class="nav-left">
+            <a href="index.html" style="color:white; font-size: 18px;" title="Back to Tracker">🔙</a>
+            <span style="font-size: 16px; font-weight: 600;">Non-VAT Pending Dashboard</span>
+            <span id="saveStatus"></span>
+        </div>
+
+        <div class="nav-tools">
+            <!-- Mode Switcher -->
+            <div class="mode-toggle-group">
+                <button id="btnModeQuickDice" class="mode-btn active" onclick="switchDashboardMode('quick_dice')" title="Vendor TS present, Missing Quick Dice">
+                    🎲 Quick Dice
+                </button>
+                <button id="btnModeVendorTs" class="mode-btn" onclick="switchDashboardMode('vendor_ts')" title="Active Site, Missing Vendor TS">
+                    📊 Vendor TS
+                </button>
+            </div>
+
+            <input type="text" id="searchInput" class="search-box" placeholder="Search Supplier, Site..." onkeyup="renderDashboard()">
+
+            <div class="year-control">
+                <button class="year-btn" onclick="switchYear(-1)">◀</button>
+                <select id="yearSelect" class="year-select" onchange="fetchData()"></select>
+                <button class="year-btn" onclick="switchYear(1)">▶</button>
+            </div>
+
+            <button class="btn-clear-filters" onclick="clearAllFilters()" title="Reset all column filters">Reset Filters</button>
+            <button id="themeToggleBtn" class="btn-theme-toggle" onclick="toggleTheme()" title="Switch Light/Dark Mode">🌙</button>
+            <a href="index.html" class="btn-action" style="background:#0284c7;">⚡ Main View</a>
+        </div>
+    </div>
+
+    <!-- KPI Summary Bar -->
+    <div class="kpi-banner">
+        <div class="kpi-item">
+            <span class="kpi-label">Suppliers with Pending</span>
+            <span class="kpi-value kpi-alert" id="kpiSupplierCount">0</span>
+        </div>
+        <div class="kpi-item">
+            <span class="kpi-label">Sites Pending</span>
+            <span class="kpi-value" id="kpiSiteCount">0</span>
+        </div>
+        <div class="kpi-item">
+            <span class="kpi-label">Latest Bill Month</span>
+            <span class="kpi-value" id="kpiLastMonth" style="color: #0f766e;">-</span>
+        </div>
+    </div>
+
+    <!-- Dropdown Filter Menu Popup -->
+    <div id="filterMenu" class="filter-menu">
+        <input type="text" placeholder="Search values..." onkeyup="searchFilterItems(this)" />
+        <div id="filterCheckboxList" style="max-height: 250px; overflow-y: auto;"></div>
+        <div style="display: flex; gap: 5px; margin-top: 8px;">
+            <button style="flex: 1; padding: 4px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;" onclick="clearCurrentColumnFilter()">Clear</button>
+            <button style="flex: 1; padding: 4px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="applyCurrentColumnFilter()">Apply</button>
+        </div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="main-container">
+        <table class="dashboard-table" id="pendingTable">
+            <thead id="dashboardHead"></thead>
+            <tbody id="dashboardBody">
+                <tr><td colspan="10" style="padding: 30px; text-align: center; color: #64748b;">Loading Pending Records...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        let rawData = [];
+
+        // 🟢 Light / Dark Mode Toggle Logic
+        function initTheme() {
+            const savedTheme = localStorage.getItem("nv_dashboard_theme") || "light";
+            if (savedTheme === "dark") {
+                document.body.classList.add("dark-mode");
+                document.getElementById("themeToggleBtn").innerText = "☀️";
+            } else {
+                document.body.classList.remove("dark-mode");
+                document.getElementById("themeToggleBtn").innerText = "🌙";
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle("dark-mode");
+            localStorage.setItem("nv_dashboard_theme", isDark ? "dark" : "light");
+            document.getElementById("themeToggleBtn").innerText = isDark ? "☀️" : "🌙";
+        }
+        initTheme();
+        let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
+        let currentYear = new Date().getFullYear();
+        let currentDashboardMode = "quick_dice"; // 'quick_dice' or 'vendor_ts'
+
+        function switchDashboardMode(mode) {
+            currentDashboardMode = mode;
+            document.getElementById("btnModeQuickDice").classList.toggle("active", mode === "quick_dice");
+            document.getElementById("btnModeVendorTs").classList.toggle("active", mode === "vendor_ts");
+            // മോഡ് മാറുമ്പോൾ മാസ ഫിൽറ്ററുകൾ ക്ലിയർ ചെയ്യുന്നു
+            Object.keys(activeFilters).forEach(k => {
+                if (k.startsWith("month_")) delete activeFilters[k];
+            });
+            renderDashboard();
+        }
+
+        // 🟢 Column Filter States
+        let activeFilters = {
+            supplier: [],
+            site: []
+        };
+        let activeFilterCol = null;
+
+        function initYearOptions() {
+            const select = document.getElementById("yearSelect");
+            select.innerHTML = "";
+            for (let y = currentYear - 3; y <= currentYear + 2; y++) {
+                let opt = document.createElement("option");
+                opt.value = y;
+                opt.textContent = y;
+                if (y === currentYear) opt.selected = true;
+                select.appendChild(opt);
+            }
+        }
+        initYearOptions();
+
+        if (vatCode) {
+            document.getElementById("loginModal").style.display = "none";
+            fetchData();
+        } else {
+            document.getElementById("loginModal").style.display = "flex";
+        }
+
+        function verifyLogin() {
+            const inputCode = document.getElementById("vatAccessCode").value.trim();
+            if(!inputCode) return;
+            vatCode = inputCode;
+            sessionStorage.setItem("vatTrackerCode", vatCode);
+            document.getElementById("loginModal").style.display = "none";
+            fetchData();
+        }
+
+        function triggerLoginError() {
+            sessionStorage.removeItem("vatTrackerCode");
+            vatCode = "";
+            document.getElementById("loginModal").style.display = "flex";
+            document.getElementById("loginError").style.display = "block";
+        }
+
+        function switchYear(step) {
+            const select = document.getElementById("yearSelect");
+            let targetYear = parseInt(select.value) + step;
+            let options = Array.from(select.options).map(o => parseInt(o.value));
+            if (options.includes(targetYear)) {
+                select.value = targetYear;
+                fetchData();
+            }
+        }
+
+        async function fetchData() {
+            currentYear = parseInt(document.getElementById("yearSelect").value);
+            showStatus("Loading...", "saving");
+
+            try {
+                const res = await fetch(`/timesheet/api/non-vat-tracking/data?year=${currentYear}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                if (res.status === 401) return triggerLoginError();
+                const json = await res.json();
+                if (json.success) {
+                    rawData = json.data;
+                    renderDashboard();
+                    showStatus("Ready", "saved");
+                } else {
+                    alert("Error: " + json.message);
+                }
+            } catch (err) {
+                showStatus("Network Error", "error");
+            }
+        }
+
+        function evaluateMathExpression(rawVal) {
+            if (!rawVal) return "";
+            let expr = String(rawVal).trim();
+            if (expr.startsWith("=")) expr = expr.substring(1);
+            expr = expr.replace(/,/g, "").trim();
+
+            if (/^[0-9+\-*/().\s]+$/.test(expr) && /[+\-*/]/.test(expr)) {
+                try {
+                    let calculated = new Function("return " + expr)();
+                    if (isFinite(calculated) && !isNaN(calculated)) {
+                        return Number(calculated.toFixed(2)).toString();
+                    }
+                } catch (e) {}
+            }
+            return rawVal.trim();
+        }
+
+        function renderDashboard() {
+            const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+            const thead = document.getElementById("dashboardHead");
+            const tbody = document.getElementById("dashboardBody");
+            const shortYear = currentYear.toString().slice(-2);
+
+            // 1. ഏറ്റവും അവസാനത്തെ വെണ്ടർ ടി.എസ് ഉള്ള മാസം കണ്ടെത്തുന്നു
+            let lastBilledMonthIdx = -1;
+            rawData.forEach(sup => {
+                sup.sites.forEach(st => {
+                    for (let m = 11; m >= 0; m--) {
+                        if (st.billing[m] && parseFloat(st.billing[m].vendor_ts || 0) > 0) {
+                            if (m > lastBilledMonthIdx) lastBilledMonthIdx = m;
+                        }
+                    }
+                });
+            });
+
+            if (lastBilledMonthIdx === -1) {
+                thead.innerHTML = "";
+                tbody.innerHTML = `<tr><td style="padding: 40px; text-align: center; color: #10b981; font-weight: 600;">✓ No billing records found for ${currentYear}!</td></tr>`;
+                document.getElementById("kpiSupplierCount").innerText = "0";
+                document.getElementById("kpiSiteCount").innerText = "0";
+                document.getElementById("kpiLastMonth").innerText = "-";
+                return;
+            }
+
+            document.getElementById("kpiLastMonth").innerText = `${monthsFull[lastBilledMonthIdx].substring(0, 3)} - ${shortYear}`;
+
+            // 2. തിരഞ്ഞെടുക്കപ്പെട്ട മോഡ് അനുസരിച്ച് പെൻഡിങ് ഉള്ള മാസങ്ങൾ കണ്ടെത്തുന്നു
+            let visibleMonths = [];
+            for (let m = 0; m <= lastBilledMonthIdx; m++) {
+                let monthHasPending = false;
+                for (let sup of rawData) {
+                    for (let st of sup.sites) {
+                        const b = st.billing[m] || {};
+                        const vTs = parseFloat(b.vendor_ts || 0);
+                        const qDice = String(b.quick_dice || "").trim();
+                        const isActiveMonth = st.active_months && st.active_months[m];
+
+                        if (currentDashboardMode === "quick_dice") {
+                            // Quick Dice Mode: Vendor TS ഉണ്ട് എന്നാൽ Quick Dice ബ്ലാങ്ക് ആണ്
+                            if (vTs > 0 && qDice === "") {
+                                monthHasPending = true;
+                                break;
+                            }
+                        } else {
+                            // Vendor TS Mode: ആക്ടീവ് സൈറ്റ് ആണ് എന്നാൽ Vendor TS ബ്ലാങ്ക് / 0 ആണ്
+                            if (isActiveMonth && vTs === 0) {
+                                monthHasPending = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (monthHasPending) break;
+                }
+                if (monthHasPending) visibleMonths.push(m);
+            }
+
+            // 3. പെൻഡിങ് ഉള്ള ഡാറ്റ സപ്ലയർ ഗ്രൂപ്പ് ആയി തരംതിരിക്കുന്നു
+            let groupedSuppliers = [];
+            let affectedSuppliers = new Set();
+            let affectedSites = 0;
+
+            rawData.forEach(sup => {
+                let pendingSitesForSupplier = [];
+
+                sup.sites.forEach(st => {
+                    let siteHasAnyPending = false;
+                    for (let m of visibleMonths) {
+                        const b = st.billing[m] || {};
+                        const vTs = parseFloat(b.vendor_ts || 0);
+                        const qDice = String(b.quick_dice || "").trim();
+                        const isActiveMonth = st.active_months && st.active_months[m];
+
+                        if (currentDashboardMode === "quick_dice") {
+                            if (vTs > 0 && qDice === "") {
+                                siteHasAnyPending = true;
+                                break;
+                            }
+                        } else {
+                            if (isActiveMonth && vTs === 0) {
+                                siteHasAnyPending = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (siteHasAnyPending) {
+                        pendingSitesForSupplier.push({
+                            site_first_name: st.site_first_name,
+                            billing: st.billing,
+                            active_months: st.active_months
+                        });
+                        affectedSites++;
+                    }
+                });
+
+                if (pendingSitesForSupplier.length > 0) {
+                    groupedSuppliers.push({
+                        supplier: sup.supplier,
+                        sites: pendingSitesForSupplier
+                    });
+                    affectedSuppliers.add(sup.supplier);
+                }
+            });
+
+            // 4. ടേബിൾ ഹെഡർ നിർമ്മാണം
+            const supFilterActive = activeFilters.supplier.length > 0 ? "filtered" : "";
+            const siteFilterActive = activeFilters.site.length > 0 ? "filtered" : "";
+
+            let head1 = "";
+            let head2 = "";
+
+            if (currentDashboardMode === "quick_dice") {
+                head1 = `
+                    <tr>
+                        <th rowspan="2" class="head-sticky-supplier">
+                            Supplier / Owner 
+                            <span class="filter-icon ${supFilterActive}" onclick="openFilterDropdown(event, 'supplier')">▼</span>
+                        </th>
+                        <th rowspan="2" class="head-sticky-site">
+                            Site 
+                            <span class="filter-icon ${siteFilterActive}" onclick="openFilterDropdown(event, 'site')">▼</span>
+                        </th>
+                `;
+                head2 = `<tr>`;
+
+                visibleMonths.forEach(m => {
+                    const mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
+                    const mFilterKey = `month_${m}`;
+                    const mFilterActive = (activeFilters[mFilterKey] && activeFilters[mFilterKey].length > 0) ? "filtered" : "";
+
+                    head1 += `
+                        <th colspan="2">
+                            ${mLabel}
+                            <span class="filter-icon ${mFilterActive}" onclick="openFilterDropdown(event, '${mFilterKey}', ${m})">▼</span>
+                        </th>
+                    `;
+                    head2 += `
+                        <th class="sub-head" style="width: 90px; background: #0f766e;">Vendor TS</th>
+                        <th class="sub-head" style="width: 105px; background: #4338ca;">Quick Dice</th>
+                    `;
+                });
+
+                head1 += `</tr>`;
+                head2 += `</tr>`;
+            } else {
+                // 🟢 VENDOR TS MODE: Month കോളങ്ങൾ സിംഗിൾ കോളം ആയി കാണിക്കുന്നു
+                head1 = `
+                    <tr>
+                        <th class="head-sticky-supplier" style="height: 36px;">
+                            Supplier / Owner 
+                            <span class="filter-icon ${supFilterActive}" onclick="openFilterDropdown(event, 'supplier')">▼</span>
+                        </th>
+                        <th class="head-sticky-site" style="height: 36px;">
+                            Site 
+                            <span class="filter-icon ${siteFilterActive}" onclick="openFilterDropdown(event, 'site')">▼</span>
+                        </th>
+                `;
+
+                visibleMonths.forEach(m => {
+                    const mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
+                    const mFilterKey = `month_${m}`;
+                    const mFilterActive = (activeFilters[mFilterKey] && activeFilters[mFilterKey].length > 0) ? "filtered" : "";
+
+                    head1 += `
+                        <th style="width: 110px; height: 36px;">
+                            ${mLabel}
+                            <span class="filter-icon ${mFilterActive}" onclick="openFilterDropdown(event, '${mFilterKey}', ${m})">▼</span>
+                        </th>
+                    `;
+                });
+
+                head1 += `</tr>`;
+            }
+
+            thead.innerHTML = currentDashboardMode === "quick_dice" ? (head1 + head2) : head1;
+
+            // 5. ടേബിൾ ബോഡി നിർമ്മാണം (With Column Merge & Filters)
+            tbody.innerHTML = "";
+            let renderedSupplierCount = 0;
+            let renderedSiteCount = 0;
+
+            groupedSuppliers.forEach(supObj => {
+                // Supplier Filter & Search Check
+                if (activeFilters.supplier.length > 0 && !activeFilters.supplier.includes(supObj.supplier)) return;
+
+                // Filter sites based on site filter, search, and month filters
+                let filteredSites = supObj.sites.filter(st => {
+                    if (activeFilters.site.length > 0 && !activeFilters.site.includes(st.site_first_name.toUpperCase())) return false;
+                    
+                    if (searchTerm) {
+                        const matchText = `${supObj.supplier} ${st.site_first_name}`.toLowerCase();
+                        if (!matchText.includes(searchTerm)) return false;
+                    }
+
+                    // 🟢 Month Status Filter Check (Mode Aware)
+                    for (let m of visibleMonths) {
+                        const mFilterKey = `month_${m}`;
+                        if (activeFilters[mFilterKey] && activeFilters[mFilterKey].length > 0) {
+                            const b = st.billing[m] || {};
+                            const vTs = parseFloat(b.vendor_ts || 0);
+                            const qDice = String(b.quick_dice || "").trim();
+                            const isActiveMonth = st.active_months && st.active_months[m];
+
+                            let cellStatus = "Inactive / Blank";
+                            if (currentDashboardMode === "quick_dice") {
+                                // 🎲 Quick Dice Mode
+                                if (vTs > 0 && qDice === "") cellStatus = "Pending";
+                                else if (vTs > 0 && qDice !== "") cellStatus = "Completed";
+                            } else {
+                                // 📊 Vendor TS Mode: TS ഇല്ലാത്തവയാണ് പെൻഡിങ്!
+                                if (isActiveMonth && vTs === 0) cellStatus = "Pending";
+                                else if (isActiveMonth && vTs > 0) cellStatus = "Completed";
+                            }
+
+                            if (!activeFilters[mFilterKey].includes(cellStatus)) return false;
+                        }
+                    }
+                    return true;
+                });
+
+                if (filteredSites.length === 0) return;
+
+                renderedSupplierCount++;
+                renderedSiteCount += filteredSites.length;
+
+                // 🟢 SUPPLIER ROW MERGE (rowspan) + SN & Count + Click/Right Click Actions
+                filteredSites.forEach((st, sIdx) => {
+                    let tr = document.createElement("tr");
+                    let rowHtml = "";
+
+                    if (sIdx === 0) {
+                        rowHtml += `
+                            <td rowspan="${filteredSites.length}" class="cell-sticky-supplier">
+                                <span class="sup-sn-badge">${renderedSupplierCount}</span>
+                                <span>${escapeHTML(supObj.supplier)}</span>
+                            </td>
+                        `;
+                    }
+
+                    rowHtml += `<td class="cell-sticky-site">${escapeHTML(st.site_first_name.toUpperCase())}</td>`;
+
+                    visibleMonths.forEach(m => {
+                        const b = st.billing[m] || { vendor_ts: 0, quick_dice: "" };
+                        const vTs = parseFloat(b.vendor_ts || 0);
+                        const qDice = String(b.quick_dice || "").trim();
+                        const vTsFormatted = vTs > 0 ? vTs.toFixed(2) : "";
+                        const isActiveMonth = st.active_months && st.active_months[m];
+
+                        const tsClickActions = vTs > 0 ? `
+                            class="vendor-ts-cell" 
+                            title="Left-click to view Breakdown, Right-click to copy" 
+                            onclick="openTsDetailsModal('${escapeQuotes(supObj.supplier)}', '${escapeQuotes(st.site_first_name)}', ${m})" 
+                            oncontextmenu="handleTsRightClick(event, '${escapeQuotes(supObj.supplier)}', '${escapeQuotes(st.site_first_name)}', ${m})"
+                        ` : '';
+
+                        if (currentDashboardMode === "quick_dice") {
+                            // 🎲 QUICK DICE MODE
+                            if (vTs > 0 && qDice === "") {
+                            // 🔴 PENDING CELL (With Editor Theme Classes)
+                            rowHtml += `
+                                <td class="pending-ts-cell" style="background: #fff1f2; color: #b91c1c; font-weight: 700;" ${tsClickActions}>${vTsFormatted}</td>
+                                <td class="pending-input-cell" style="background: #fff1f2;">
+                                    <input type="text" class="pending-input" 
+                                        data-supplier="${escapeQuotes(supObj.supplier)}" 
+                                        data-site="${escapeQuotes(st.site_first_name)}" 
+                                        data-month="${m}" 
+                                        placeholder="Enter Dice"
+                                        onblur="handlePendingDiceBlur(this)" 
+                                        onkeydown="if(event.key==='Enter') this.blur();">
+                                </td>
+                            `;
+                        } else if (vTs > 0 && qDice !== "") {
+                                rowHtml += `
+                                    <td class="completed-cell" style="cursor: pointer;" ${tsClickActions}>${vTsFormatted}</td>
+                                    <td class="completed-cell" title="Completed (Non-Editable)">${escapeHTML(qDice)}</td>
+                                `;
+                            } else {
+                                rowHtml += `<td colspan="2" class="inactive-cell" title="Inactive"></td>`;
+                            }
+                        } else {
+                            // 📊 VENDOR TS MODE: വാല്യൂ ഉള്ളത് കാണിക്കാതെ പെൻഡിങ് മാത്രം കാണിക്കുന്നു
+                            if (isActiveMonth && vTs === 0) {
+                                // 🔴 Dark/Light Theme ക്ലാസ്സോടെ പെൻഡിങ് ബാഡ്ജ് നൽകുന്നു
+                                rowHtml += `<td class="pending-vts-cell"><span class="pending-badge">Pending</span></td>`;
+                            } else if (isActiveMonth && vTs > 0) {
+                                // 🟢 തുക ഉള്ള സെല്ലുകളിൽ സംഖ്യകൾ കാണിക്കാതെ ക്ലീൻ ആയി വെക്കുന്നു (ക്ലിക്ക് ചെയ്താൽ പോപ്പപ്പ് ലഭിക്കും)
+                                rowHtml += `<td class="completed-cell" style="cursor: pointer;" title="Completed (Click to view breakdown)" ${tsClickActions}></td>`;
+                            } else {
+                                rowHtml += `<td class="inactive-cell" title="Inactive"></td>`;
+                            }
+                        }
+                    });
+
+                    tr.innerHTML = rowHtml;
+                    tbody.appendChild(tr);
+                });
+            });
+
+            document.getElementById("kpiSupplierCount").innerText = renderedSupplierCount;
+            document.getElementById("kpiSiteCount").innerText = renderedSiteCount;
+
+            if (renderedSiteCount === 0) {
+                tbody.innerHTML = `<tr><td colspan="${2 + visibleMonths.length * 2}" style="padding: 40px; text-align: center; color: #10b981; font-weight: 700; font-size: 13px;">✓ No pending records matching the selected filters!</td></tr>`;
+            }
+        }
+
+        // 🟢 DROPDOWN FILTER LOGIC (Only Screen/Pending Records)
+        function openFilterDropdown(e, colKey, monthIdx = null) {
+            e.stopPropagation();
+            activeFilterCol = colKey;
+            const menu = document.getElementById("filterMenu");
+            menu.style.display = "block";
+            menu.style.left = e.pageX + "px";
+            menu.style.top = (e.pageY + 15) + "px";
+
+            let uniqueValues = new Set();
+
+            // 1. അവസാനത്തെ ആക്ടീവ് ബില്ലിംഗ് മാസം കണ്ടെത്തുന്നു
+            let lastBilledMonthIdx = -1;
+            rawData.forEach(sup => {
+                sup.sites.forEach(st => {
+                    for (let m = 11; m >= 0; m--) {
+                        if (st.billing[m] && parseFloat(st.billing[m].vendor_ts || 0) > 0) {
+                            if (m > lastBilledMonthIdx) lastBilledMonthIdx = m;
+                        }
+                    }
+                });
+            });
+
+            // 2. പെൻഡിങ് ഉള്ള ആക്ടീവ് മാസങ്ങൾ കണ്ടെത്തുന്നു
+            let visibleMonths = [];
+            for (let m = 0; m <= lastBilledMonthIdx; m++) {
+                let monthHasPending = false;
+                for (let sup of rawData) {
+                    for (let st of sup.sites) {
+                        const b = st.billing[m] || {};
+                        if (parseFloat(b.vendor_ts || 0) > 0 && String(b.quick_dice || "").trim() === "") {
+                            monthHasPending = true;
+                            break;
+                        }
+                    }
+                    if (monthHasPending) break;
+                }
+                if (monthHasPending) visibleMonths.push(m);
+            }
+
+            // 3. 🟢 സ്ക്രീനിൽ നിലവിൽ പെൻഡിങ് ഉള്ള റെക്കോർഡുകൾ മാത്രം ഫിൽറ്ററിലേക്ക് എടുക്കുന്നു
+            rawData.forEach(sup => {
+                sup.sites.forEach(st => {
+                    let hasPending = visibleMonths.some(m => {
+                        const b = st.billing[m] || {};
+                        return parseFloat(b.vendor_ts || 0) > 0 && String(b.quick_dice || "").trim() === "";
+                    });
+
+                    // നിലവിൽ പെൻഡിങ് ഉള്ള സപ്ലയർ/സൈറ്റുകൾ മാത്രം ലിസ്റ്റിൽ ഉൾപ്പെടുത്തുന്നു
+                    if (hasPending) {
+                        if (colKey === "supplier") {
+                            uniqueValues.add(sup.supplier);
+                        } else if (colKey === "site") {
+                            uniqueValues.add(st.site_first_name.toUpperCase());
+                        } else if (colKey.startsWith("month_") && monthIdx !== null) {
+                            const b = st.billing[monthIdx] || {};
+                            const vTs = parseFloat(b.vendor_ts || 0);
+                            const qDice = String(b.quick_dice || "").trim();
+                            const isActiveMonth = st.active_months && st.active_months[monthIdx];
+
+                            if (currentDashboardMode === "quick_dice") {
+                                if (vTs > 0 && qDice === "") uniqueValues.add("Pending");
+                                else if (vTs > 0 && qDice !== "") uniqueValues.add("Completed");
+                                else uniqueValues.add("Inactive / Blank");
+                            } else {
+                                // 📊 Vendor TS Mode
+                                if (isActiveMonth && vTs === 0) uniqueValues.add("Pending");
+                                else if (isActiveMonth && vTs > 0) uniqueValues.add("Completed");
+                                else uniqueValues.add("Inactive / Blank");
+                            }
+                        }
+                    }
+                });
+            });
+
+            const currentActive = activeFilters[colKey] || [];
+            const isAllChecked = currentActive.length === 0;
+
+            let html = `
+                <label style="font-weight: bold; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 5px;">
+                    <input type="checkbox" id="filterSelectAll" ${isAllChecked ? 'checked' : ''} onchange="toggleFilterSelectAll(this)"> (Select All)
+                </label>
+            `;
+
+            Array.from(uniqueValues).sort().forEach(val => {
+                const checked = isAllChecked || currentActive.includes(val) ? "checked" : "";
+                html += `
+                    <label class="filter-item-label">
+                        <input type="checkbox" class="filter-cb" value="${escapeHTML(val)}" ${checked}> ${escapeHTML(val)}
+                    </label>
+                `;
+            });
+
+            document.getElementById("filterCheckboxList").innerHTML = html;
+        }
+
+        function toggleFilterSelectAll(masterCb) {
+            document.querySelectorAll("#filterCheckboxList .filter-cb").forEach(cb => {
+                if (cb.closest(".filter-item-label").style.display !== "none") {
+                    cb.checked = masterCb.checked;
+                }
+            });
+        }
+
+        function searchFilterItems(input) {
+            const term = input.value.toLowerCase();
+            document.querySelectorAll("#filterCheckboxList .filter-item-label").forEach(lbl => {
+                lbl.style.display = lbl.innerText.toLowerCase().includes(term) ? "block" : "none";
+            });
+        }
+
+        function applyCurrentColumnFilter() {
+            if (!activeFilterCol) return;
+            const cbs = document.querySelectorAll("#filterCheckboxList .filter-cb");
+            let selected = [];
+            cbs.forEach(cb => {
+                if (cb.checked) selected.push(cb.value);
+            });
+
+            if (selected.length === cbs.length) {
+                activeFilters[activeFilterCol] = [];
+            } else {
+                activeFilters[activeFilterCol] = selected;
+            }
+
+            document.getElementById("filterMenu").style.display = "none";
+            renderDashboard();
+        }
+
+        function clearCurrentColumnFilter() {
+            if (!activeFilterCol) return;
+            activeFilters[activeFilterCol] = [];
+            document.getElementById("filterMenu").style.display = "none";
+            renderDashboard();
+        }
+
+        function clearAllFilters() {
+            activeFilters = { supplier: [], site: [] };
+            document.getElementById("searchInput").value = "";
+            renderDashboard();
+        }
+
+        document.addEventListener("click", function (e) {
+            if (!e.target.closest("#filterMenu") && !e.target.closest(".filter-icon")) {
+                document.getElementById("filterMenu").style.display = "none";
+            }
+        });
+
+        // 🟢 SAVE ON BLUR / ENTER
+        async function handlePendingDiceBlur(inputEl) {
+            let val = evaluateMathExpression(inputEl.value);
+            inputEl.value = val;
+
+            if (val === "" || val === "0") return;
+
+            const supName = inputEl.dataset.supplier;
+            const siteFirstName = inputEl.dataset.site;
+            const monthIdx = parseInt(inputEl.dataset.month);
+
+            showStatus("Saving...", "saving");
+            try {
+                const res = await fetch(`/timesheet/api/non-vat-tracking/update-cell`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
+                    body: JSON.stringify({
+                        year: currentYear,
+                        supplier: supName,
+                        site_first_name: siteFirstName,
+                        month_index: monthIdx,
+                        value: val
+                    })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showStatus("Saved & Cleared!", "saved");
+                    
+                    const supObj = rawData.find(s => s.supplier === supName);
+                    if (supObj) {
+                        const siteObj = supObj.sites.find(st => st.site_first_name.toLowerCase() === siteFirstName.toLowerCase());
+                        if (siteObj && siteObj.billing[monthIdx]) {
+                            siteObj.billing[monthIdx].quick_dice = val;
+                        }
+                    }
+
+                    renderDashboard();
+                } else {
+                    showStatus("Error", "error");
+                }
+            } catch (e) {
+                showStatus("Network Error", "error");
+            }
+        }
+
+        // 🟢 Vendor TS Breakdown Modal & Right Click Copy Logic
+        const tsDetailsCache = {};
+
+        async function fetchVehicleBreakdown(supplier, siteFirst, monthIdx) {
+            const cacheKey = `${supplier}_${siteFirst}_${currentYear}_${monthIdx}`;
+            if (tsDetailsCache[cacheKey]) return tsDetailsCache[cacheKey];
+
+            try {
+                const url = `/timesheet/api/non-vat-tracking/vendor-breakdown?supplier=${encodeURIComponent(supplier)}&site_first=${encodeURIComponent(siteFirst)}&year=${currentYear}&month=${monthIdx + 1}`;
+                const res = await fetch(url, { headers: { "x-vat-code": vatCode } });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data)) {
+                        const list = json.data.map(v => ({
+                            plate: v.plate_no || "N/A",
+                            nr: Number(v.nr_hours || 0),
+                            ot: Number(v.ot_hours || 0),
+                            total: Number(v.total_amount || 0)
+                        }));
+                        tsDetailsCache[cacheKey] = list;
+                        return list;
+                    }
+                }
+            } catch (err) {
+                console.warn("Breakdown fetch error:", err);
+            }
+            return [];
+        }
+
+        async function openTsDetailsModal(supplier, siteFirst, monthIdx) {
+            const mName = monthsFull[monthIdx];
+            document.getElementById("tsModalTitle").innerText = `${mName} - ${siteFirst.toUpperCase()} Breakdown (${supplier})`;
+            const tbody = document.getElementById("tsBreakdownBody");
+            const tfoot = document.getElementById("tsBreakdownFoot");
+
+            tbody.innerHTML = `<tr><td colspan="4" style="color:#64748b; padding: 20px;">Fetching Plate & Hours data...</td></tr>`;
+            tfoot.innerHTML = "";
+            document.getElementById("tsDetailsModal").style.display = "flex";
+
+            const plates = await fetchVehicleBreakdown(supplier, siteFirst, monthIdx);
+
+            tbody.innerHTML = "";
+            if (!plates || plates.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color:#94a3b8; padding: 20px;">No vehicles found for this site & month</td></tr>`;
+            } else {
+                let totalNr = 0, totalOt = 0, grandTotal = 0;
+
+                plates.forEach(p => {
+                    totalNr += p.nr;
+                    totalOt += p.ot;
+                    grandTotal += p.total;
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="font-weight: 600; color: #1e293b;">${escapeHTML(p.plate)}</td>
+                            <td>${p.nr}</td>
+                            <td>${p.ot}</td>
+                            <td style="font-weight: 600; color: #0f766e;">${p.total > 0 ? p.total.toFixed(2) : ""}</td>
+                        </tr>
+                    `;
+                });
+
+                tfoot.innerHTML = `
+                    <tr>
+                        <td>Total</td>
+                        <td>${totalNr.toFixed(2)}</td>
+                        <td>${totalOt.toFixed(2)}</td>
+                        <td style="color: #0f766e;">${grandTotal > 0 ? grandTotal.toFixed(2) : ""}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        function closeTsModal() {
+            document.getElementById("tsDetailsModal").style.display = "none";
+        }
+
+        async function handleTsRightClick(event, supplier, siteFirst, monthIdx) {
+            event.preventDefault();
+            showStatus("Preparing text...", "saving");
+            const plates = await fetchVehicleBreakdown(supplier, siteFirst, monthIdx);
+            
+            const shortM = monthsFull[monthIdx].substring(0, 3);
+            const shortY = currentYear.toString().slice(-2);
+            const label = `${shortM}-${shortY} ${siteFirst} Rent Bill`;
+
+            let textToCopy = label;
+            if (plates && plates.length > 0) {
+                const parts = plates.map(p => {
+                    const nrPart = `NR ${p.nr}`;
+                    const otPart = (Number(p.ot) > 0) ? `  OT ${p.ot}` : '';
+                    return `${p.plate} [${nrPart}${otPart}]`;
+                });
+                textToCopy = `${label} (${parts.join(", ")})`;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showStatus(`Copied: "${textToCopy}"`, "saved");
+            }).catch(() => {
+                showStatus("Copy failed!", "error");
+            });
+        }
+
+        function showStatus(msg, type) {
+            const s = document.getElementById("saveStatus");
+            s.innerText = msg;
+            s.className = `status-${type}`;
+            if (type === "saved" || type === "error") setTimeout(() => s.innerText = "", 3000);
+        }
+
+        function escapeHTML(str) { return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; }
+        function escapeQuotes(str) { return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; }
+    </script>
+</body>
+</html>
