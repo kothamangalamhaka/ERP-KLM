@@ -1279,12 +1279,26 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
         );
       }
 
-      // 🟢 Modify billing_records directly if owner_name is corrected
+      // 🟢 Modify billing_records and vat_billing_records directly if owner_name is corrected
       if (cleanCol === "owner_name" && value && value.trim()) {
+        // Fetch old owner name before update to sync vat_billing_records
+        const prevOwnerRes = await pool.query(
+          `SELECT owner_name FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`,
+          [plate_no.trim().toUpperCase()]
+        );
+        const oldOwner = prevOwnerRes.rows[0]?.owner_name;
+
         await pool.query(
           `UPDATE billing_records SET owner = $1 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($2))`,
           [value.trim(), plate_no.trim().toUpperCase()]
         );
+
+        if (oldOwner && oldOwner.trim().toLowerCase() !== value.trim().toLowerCase()) {
+          await pool.query(
+            `UPDATE vat_billing_records SET supplier = $1 WHERE LOWER(TRIM(supplier)) = LOWER(TRIM($2))`,
+            [value.trim(), oldOwner.trim()]
+          );
+        }
       }
     }
 
