@@ -336,7 +336,7 @@ router.post("/update-bulk", verifyVatCode, async (req, res) => {
     }
 });
 
-// Vendor TS breakdown - using exact billing_records columns (nhr, othr, plate_no)
+// Vendor TS breakdown - using flexible matching consistent with /data route
 router.get("/vendor-breakdown", verifyVatCode, async (req, res) => {
     try {
         const { supplier, site, year, month } = req.query;
@@ -348,44 +348,59 @@ router.get("/vendor-breakdown", verifyVatCode, async (req, res) => {
         const mIdx = parseInt(month) - 1;
         const monthString = `${monthNames[mIdx]} ${year}`;
 
-        // Exact match with billing_records using plate_no, nhr, othr, after_adjustment
+        const normSite = site.trim().toLowerCase();
+        const cleanSite = normSite.replace(/[\s\-_]/g, '');
+        const normSupplier = supplier.trim().toLowerCase();
+        const cleanSupplier = normSupplier.replace(/[^a-zA-Z0-9]/g, '');
+
         const query = `
             SELECT 
                 COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
-                ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
-                ROUND(COALESCE(SUM(othr::numeric), 0), 2) AS ot_hours,
-                ROUND(COALESCE(SUM(after_adjustment::numeric), 0), 2) AS total_amount
+                LOWER(TRIM(COALESCE(owner, ''))) AS norm_owner,
+                LOWER(REGEXP_REPLACE(TRIM(COALESCE(owner, '')), '[^a-zA-Z0-9]', '', 'g')) AS clean_owner,
+                LOWER(TRIM(COALESCE(site_name, ''))) AS norm_site,
+                LOWER(REGEXP_REPLACE(TRIM(COALESCE(site_name, '')), '[\\s\\-_]', '', 'g')) AS clean_site,
+                COALESCE(nhr::numeric, 0) AS nhr,
+                COALESCE(othr::numeric, 0) AS othr,
+                COALESCE(after_adjustment::numeric, 0) AS after_adjustment
             FROM billing_records
-            WHERE LOWER(TRIM(owner)) = LOWER(TRIM($1))
-              AND LOWER(TRIM(site_name)) = LOWER(TRIM($2))
-              AND billing_month = $3
-            GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
-            ORDER BY plate_no ASC;
+            WHERE billing_month = $1
         `;
-        
-        let result = await pool.query(query, [supplier, site, monthString]);
-        let rows = result.rows;
 
-        // Fallback for slight differences in site name spacing
-        if (rows.length === 0) {
-            const fallbackQuery = `
-                SELECT 
-                    COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
-                    ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
-                    ROUND(COALESCE(SUM(othr::numeric), 0), 2) AS ot_hours,
-                    ROUND(COALESCE(SUM(after_adjustment::numeric), 0), 2) AS total_amount
-                FROM billing_records
-                WHERE LOWER(TRIM(owner)) = LOWER(TRIM($1))
-                  AND LOWER(REGEXP_REPLACE(site_name, '[\\s\\-_]', '', 'g')) = LOWER(REGEXP_REPLACE($2, '[\\s\\-_]', '', 'g'))
-                  AND billing_month = $3
-                GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
-                ORDER BY plate_no ASC;
-            `;
-            const fbResult = await pool.query(fallbackQuery, [supplier, site, monthString]);
-            rows = fbResult.rows;
-        }
+        const result = await pool.query(query, [monthString]);
+        const plateGroups = {};
 
-        res.json({ success: true, data: rows });
+        result.rows.forEach(row => {
+            const siteMatch = (row.norm_site === normSite) || (row.clean_site === cleanSite);
+            const ownerMatch = (row.norm_owner === normSupplier) || 
+                               (row.clean_owner === cleanSupplier) ||
+                               (cleanSupplier.includes(row.clean_owner) && row.clean_owner.length > 3) ||
+                               (row.clean_owner.includes(cleanSupplier) && cleanSupplier.length > 3);
+
+            if (siteMatch && ownerMatch) {
+                const p = row.plate_no;
+                if (!plateGroups[p]) {
+                    plateGroups[p] = {
+                        plate_no: p,
+                        nr_hours: 0,
+                        ot_hours: 0,
+                        total_amount: 0
+                    };
+                }
+                plateGroups[p].nr_hours += parseFloat(row.nhr || 0);
+                plateGroups[p].ot_hours += parseFloat(row.othr || 0);
+                plateGroups[p].total_amount += parseFloat(row.after_adjustment || 0);
+            }
+        });
+
+        const finalRows = Object.values(plateGroups).map(p => ({
+            plate_no: p.plate_no,
+            nr_hours: Number(p.nr_hours.toFixed(2)),
+            ot_hours: Number(p.ot_hours.toFixed(2)),
+            total_amount: Number(p.total_amount.toFixed(2))
+        })).sort((a, b) => a.plate_no.localeCompare(b.plate_no));
+
+        res.json({ success: true, data: finalRows });
     } catch (err) {
         console.error("Error in vendor-breakdown:", err);
         res.status(500).json({ success: false, message: err.message });

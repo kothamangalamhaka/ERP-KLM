@@ -228,7 +228,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
     }
 });
 
-// 2. Breakdown Route for Popup
+// 2. Breakdown Route for Popup (Matches accurately like /data route)
 router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
     try {
         const { supplier, site_first, year, month } = req.query;
@@ -240,26 +240,99 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
         const mIdx = parseInt(month) - 1;
         const monthString = `${monthNames[mIdx]} ${year}`;
 
+        const normSup = supplier.trim().toLowerCase();
+        const cleanSup = normSup.replace(/[^a-zA-Z0-9]/g, '');
+        const targetSiteFirst = site_first.trim().toLowerCase();
+
+        // എല്ലാ മാച്ചിംഗ് റെക്കോർഡുകളും എടുക്കുന്നു
         const query = `
             SELECT 
                 COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
-                ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
-                ROUND(COALESCE(SUM(othr::numeric), 0), 2) AS ot_hours,
-                ROUND(COALESCE(SUM(after_adjustment::numeric), 0), 2) AS total_amount
+                LOWER(TRIM(COALESCE(owner, ''))) AS norm_owner,
+                LOWER(REGEXP_REPLACE(TRIM(COALESCE(owner, '')), '[^a-zA-Z0-9]', '', 'g')) AS clean_owner,
+                site_name,
+                COALESCE(nhr::numeric, 0) AS nhr,
+                COALESCE(othr::numeric, 0) AS othr,
+                COALESCE(after_adjustment::numeric, 0) AS after_adjustment
             FROM billing_records
-            WHERE LOWER(TRIM(owner)) = LOWER(TRIM($1))
-              AND billing_month = $2
-              AND LOWER(REGEXP_REPLACE(site_name, '^z[\\s\\-_]*', '', 'i')) LIKE LOWER($3)
-            GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
-            ORDER BY plate_no ASC;
+            WHERE billing_month = $1
         `;
         
-        const result = await pool.query(query, [supplier, monthString, `${site_first.trim().toLowerCase()}%`]);
-        res.json({ success: true, data: result.rows });
+        const result = await pool.query(query, [monthString]);
+        
+        // /data റൂട്ടിൽ ഉപയോഗിച്ച അതേ ലോജിക് വെച്ച് ഇവിടെയും ഫിൽറ്റർ ചെയ്യുന്നു
+        const plateGroups = {};
+
+        result.rows.forEach(row => {
+            if (isZSite(row.site_name)) return;
+
+            const rowSiteFirst = getSiteFirstName(row.site_name).toLowerCase();
+            const siteMatched = (rowSiteFirst === targetSiteFirst) ||
+                                (targetSiteFirst.includes(rowSiteFirst) && rowSiteFirst.length > 2) ||
+                                (rowSiteFirst.includes(targetSiteFirst) && targetSiteFirst.length > 2);
+
+            if (!siteMatched) return;
+
+            const isOwnerMatch = (row.norm_owner === normSup) ||
+                                 (row.clean_owner === cleanSup) ||
+                                 (cleanSup.includes(row.clean_owner) && row.clean_owner.length > 3) ||
+                                 (row.clean_owner.includes(cleanSup) && cleanSup.length > 3);
+
+            if (isOwnerMatch) {
+                const p = row.plate_no;
+                if (!plateGroups[p]) {
+                    plateGroups[p] = {
+                        plate_no: p,
+                        nr_hours: 0,
+                        ot_hours: 0,
+                        total_amount: 0
+                    };
+                }
+                plateGroups[p].nr_hours += parseFloat(row.nhr || 0);
+                plateGroups[p].ot_hours += parseFloat(row.othr || 0);
+                plateGroups[p].total_amount += parseFloat(row.after_adjustment || 0);
+            }
+        });
+
+        const finalRows = Object.values(plateGroups).map(p => ({
+            plate_no: p.plate_no,
+            nr_hours: Number(p.nr_hours.toFixed(2)),
+            ot_hours: Number(p.ot_hours.toFixed(2)),
+            total_amount: Number(p.total_amount.toFixed(2))
+        })).sort((a, b) => a.plate_no.localeCompare(b.plate_no));
+
+        res.json({ success: true, data: finalRows });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
 });
+
+// Keep track of connected SSE clients for Non-VAT live sync
+let sseNonVatClients = [];
+
+// SSE Connection Endpoint
+router.get("/live-updates", (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    const clientId = Date.now();
+    const newClient = { id: clientId, res };
+    sseNonVatClients.push(newClient);
+
+    req.on("close", () => {
+        sseNonVatClients = sseNonVatClients.filter(c => c.id !== clientId);
+    });
+});
+
+// Broadcast changes to all connected users
+function broadcastNonVatUpdate(payload) {
+    sseNonVatClients.forEach(c => {
+        c.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    });
+}
 
 // 3. UPSERT Quick Dice for Non-VAT per Site
 router.post("/update-cell", verifyAccessCode, async (req, res) => {
@@ -279,6 +352,16 @@ router.post("/update-cell", verifyAccessCode, async (req, res) => {
         `;
 
         await pool.query(query, [parseInt(year), supplier, site_first_name.trim().toLowerCase(), parseInt(month_index), valToSave]);
+
+        // 🟢 Broadcast live update to other users
+        broadcastNonVatUpdate({
+            year: parseInt(year),
+            supplier: supplier,
+            site_first_name: site_first_name.trim().toLowerCase(),
+            month_index: parseInt(month_index),
+            value: valToSave || ""
+        });
+
         res.json({ success: true });
     } catch (error) {
         res.json({ success: false, message: error.message });

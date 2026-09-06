@@ -484,9 +484,16 @@
             <a href="non_vat_pending_dashboard.html" class="btn-action" style="background: #dc2626;" title="View Non-VAT Pending Quick Dice Entries">
                 ⚠️ Pending
             </a>
+            <button class="btn-action" onclick="exportToExcelAllOwners()" style="background: #16a34a;" title="Export all owners and site tables to Excel">
+                📊 Export Excel
+            </button>
             <button id="themeToggleBtn" class="btn-theme-toggle" onclick="toggleTheme()" title="Switch Light/Dark Mode">🌙</button>
         </div>
     </div>
+
+    <!-- ExcelJS & FileSaver Local Scripts -->
+    <script src="../../node_xlsx_scripts/exceljs.min.js"></script>
+    <script src="../../node_xlsx_scripts/FileSaver.min.js"></script>
 
     <!-- Main Container -->
     <div class="main-container">
@@ -969,6 +976,265 @@
 
         function escapeHTML(str) { return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; }
         function escapeQuotes(str) { return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; }
+
+        // 🟢 Export All Owners to Excel (Each Owner in a Tab, 3 Site Tables per Row)
+        async function exportToExcelAllOwners() {
+            if (!rawData || rawData.length === 0) {
+                alert("എക്സ്പോർട്ട് ചെയ്യാൻ ഡാറ്റ ലഭ്യമല്ല!");
+                return;
+            }
+
+            if (typeof ExcelJS === "undefined" || typeof saveAs === "undefined") {
+                alert("ExcelJS അല്ലെങ്കിൽ FileSaver ലൈബ്രറി ലോഡ് ആയിട്ടില്ല!");
+                return;
+            }
+
+            showStatus("Generating Excel...", "saving");
+
+            try {
+                const workbook = new ExcelJS.Workbook();
+                const shortYear = currentYear.toString().slice(-2);
+                const usedSheetNames = new Set();
+
+                rawData.forEach(supData => {
+                    // Excel ടാബ് പേരുകൾക്ക് പരമാവധി 31 ക്യാരക്ടറും പ്രത്യേക ചിഹ്നങ്ങൾ ഒഴിവാക്കലും
+                    let sheetName = supData.supplier.replace(/[\\/*?:[\]]/g, '').trim().substring(0, 28) || "Sheet";
+                    let uniqueName = sheetName;
+                    let counter = 1;
+                    while (usedSheetNames.has(uniqueName.toLowerCase())) {
+                        uniqueName = `${sheetName.substring(0, 26)}_${counter++}`;
+                    }
+                    usedSheetNames.add(uniqueName.toLowerCase());
+
+                    const worksheet = workbook.addWorksheet(uniqueName, {
+                        views: [{ showGridLines: true }]
+                    });
+
+                    // Owner Header Title Banner
+                    worksheet.mergeCells('A1:K1');
+                    const bannerCell = worksheet.getCell('A1');
+                    bannerCell.value = `NON-VAT Supplier - ${supData.supplier.toUpperCase()} (${currentYear})`;
+                    bannerCell.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
+                    bannerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F2027' } };
+                    bannerCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    worksheet.getRow(1).height = 28;
+
+                    const sites = supData.sites || [];
+                    const tablesPerRow = 3; // ഒരേ റോയിൽ 3 ടേബിളുകൾ
+                    const colsPerTable = 3;  // Month, Vendor TS, Quick Dice
+                    const gapCols = 1;       // ടേബിളുകൾക്കിടയിൽ 1 കോളം സ്പേസ്
+
+                    sites.forEach((siteObj, idx) => {
+                        const rowBlock = Math.floor(idx / tablesPerRow);
+                        const colBlock = idx % tablesPerRow;
+
+                        // Start Row and Start Column (1-based index)
+                        const startRow = 3 + (rowBlock * 18); // 1 banner + 1 head + 12 months + 1 total + 3 space
+                        const startCol = 1 + (colBlock * (colsPerTable + gapCols));
+
+                        const sFirstName = siteObj.site_first_name.toUpperCase();
+
+                        // Site Title Row (Merge 3 columns)
+                        worksheet.mergeCells(startRow, startCol, startRow, startCol + 2);
+                        const titleCell = worksheet.getCell(startRow, startCol);
+                        titleCell.value = `SITE: ${sFirstName}`;
+                        titleCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+                        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+                        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+                        // Table Column Headers
+                        const headerRow = startRow + 1;
+                        const headers = ["Month", "Vendor TS", "Quick Dice"];
+                        const headerColors = ['FF334155', 'FF0F766E', 'FF4338CA'];
+
+                        headers.forEach((hText, hIdx) => {
+                            const hCell = worksheet.getCell(headerRow, startCol + hIdx);
+                            hCell.value = hText;
+                            hCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+                            hCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: headerColors[hIdx] } };
+                            hCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                            hCell.border = {
+                                top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                                left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                                bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                                right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+                            };
+                        });
+
+                        // 12 Months Data Rows
+                        let totVendorTs = 0;
+                        let totQuickDice = 0;
+
+                        for (let m = 0; m < 12; m++) {
+                            const curRow = startRow + 2 + m;
+                            const mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
+                            const isActive = siteObj.active_months[m];
+                            const bill = siteObj.billing[m] || { vendor_ts: 0, quick_dice: "" };
+
+                            const mCell = worksheet.getCell(curRow, startCol);
+                            const vCell = worksheet.getCell(curRow, startCol + 1);
+                            const qCell = worksheet.getCell(curRow, startCol + 2);
+
+                            mCell.value = mLabel;
+                            mCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                            mCell.font = { name: 'Arial', size: 9, bold: true };
+
+                            if (isActive) {
+                                const vVal = bill.vendor_ts ? Number(bill.vendor_ts) : 0;
+                                const qVal = bill.quick_dice ? parseFloat(String(bill.quick_dice).replace(/,/g, '')) : null;
+
+                                totVendorTs += vVal;
+                                if (!isNaN(qVal) && qVal !== null) totQuickDice += qVal;
+
+                                vCell.value = vVal > 0 ? vVal : "";
+                                vCell.numFmt = '#,##0.00';
+                                vCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                                vCell.font = { name: 'Arial', size: 9, color: { argb: 'FF0F766E' }, bold: true };
+                                vCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0FDFA' } };
+
+                                qCell.value = (qVal !== null && !isNaN(qVal)) ? qVal : (bill.quick_dice || "");
+                                if (!isNaN(qVal) && qVal !== null) qCell.numFmt = '#,##0.00';
+                                qCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                                qCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF312E81' } };
+
+                                // Quick Dice വാല്യൂ ഉണ്ടെങ്കിൽ മഞ്ഞ നിറം നൽകുന്നു
+                                if (bill.quick_dice && String(bill.quick_dice).trim() !== "") {
+                                    [mCell, vCell, qCell].forEach(c => {
+                                        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF08A' } };
+                                        c.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF854D0E' } };
+                                    });
+                                }
+                            } else {
+                                // Inactive Month
+                                worksheet.mergeCells(curRow, startCol + 1, curRow, startCol + 2);
+                                const inactCell = worksheet.getCell(curRow, startCol + 1);
+                                inactCell.value = "-";
+                                inactCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                                inactCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+                                inactCell.font = { color: { argb: 'FF94A3B8' } };
+                            }
+
+                            [mCell, vCell, qCell].forEach(c => {
+                                c.border = {
+                                    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                                    left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                                    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                                    right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+                                };
+                            });
+                        }
+
+                        // Total Row (With Difference Highlight)
+                        const totalRow = startRow + 14;
+                        const diff = Number((totVendorTs - totQuickDice).toFixed(2));
+
+                        const totMCell = worksheet.getCell(totalRow, startCol);
+                        const totVCell = worksheet.getCell(totalRow, startCol + 1);
+                        const totQCell = worksheet.getCell(totalRow, startCol + 2);
+
+                        totMCell.value = (totVendorTs > 0 || totQuickDice > 0) ? `DIFF: ${diff.toFixed(2)}` : "TOTAL";
+                        totMCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                        totMCell.font = { name: 'Arial', size: 9, bold: true };
+
+                        if (totVendorTs > 0 || totQuickDice > 0) {
+                            if (diff > 0) {
+                                totMCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBBF7D0' } }; // പച്ച
+                                totMCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF000000' } };
+                            } else if (diff < 0) {
+                                totMCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEF4444' } }; // ചുവപ്പ്
+                                totMCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+                            }
+                        }
+
+                        totVCell.value = totVendorTs > 0 ? totVendorTs : "";
+                        totVCell.numFmt = '#,##0.00';
+                        totVCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF0F766E' } };
+                        totVCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCCFBF1' } };
+                        totVCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+                        totQCell.value = totQuickDice > 0 ? totQuickDice : "";
+                        totQCell.numFmt = '#,##0.00';
+                        totQCell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF3730A3' } };
+                        totQCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E7FF' } };
+                        totQCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+                        [totMCell, totVCell, totQCell].forEach(c => {
+                            c.border = {
+                                top: { style: 'medium', color: { argb: 'FF94A3B8' } },
+                                left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                                bottom: { style: 'medium', color: { argb: 'FF94A3B8' } },
+                                right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+                            };
+                        });
+
+                        // കോളം വിഡ്ത് ഭംഗിയായി സെറ്റ് ചെയ്യുന്നു
+                        worksheet.getColumn(startCol).width = 13;
+                        worksheet.getColumn(startCol + 1).width = 15;
+                        worksheet.getColumn(startCol + 2).width = 15;
+                        worksheet.getColumn(startCol + 3).width = 4; // gap
+                    });
+                });
+
+                // ഫയൽ ഡൗൺലോഡ് ട്രിഗർ ചെയ്യുക
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                saveAs(blob, `Non_VAT_Bill_Tracker_${currentYear}.xlsx`);
+
+                showStatus("✓ Exported Successfully", "saved");
+            } catch (err) {
+                console.error("Excel Export Error:", err);
+                showStatus("Export Error", "error");
+                alert("എക്സ്പോർട്ട് ചെയ്യുന്നതിൽ തകരാർ സംഭവിച്ചു: " + err.message);
+            }
+        }
+
+        // 🟢 Connect to Server-Sent Events (Live Sync without reloading)
+        function initLiveSync() {
+            const evtSource = new EventSource("/timesheet/api/non-vat-tracking/live-updates");
+
+            evtSource.onopen = function () {
+                console.log("⚡ Live Non-VAT Sync Connected");
+            };
+
+            evtSource.onerror = function (err) {
+                console.warn("Live Non-VAT Sync connection lost, retrying...", err);
+            };
+
+            evtSource.onmessage = function (event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.year !== currentYear) return;
+
+                    // 1. In-memory rawData cache update ചെയ്യുക
+                    const targetSupplier = rawData.find(s => s.supplier.trim().toLowerCase() === data.supplier.trim().toLowerCase());
+                    if (targetSupplier) {
+                        const targetSite = targetSupplier.sites.find(site => site.site_first_name.trim().toLowerCase() === data.site_first_name.trim().toLowerCase());
+                        if (targetSite && targetSite.billing[data.month_index]) {
+                            targetSite.billing[data.month_index].quick_dice = data.value;
+                        }
+                    }
+
+                    // 2. നിലവിൽ സ്‌ക്രീനിൽ ആ സപ്ലയർ സെലക്ട് ചെയ്തിട്ടുണ്ടെങ്കിൽ UI തത്സമയം അപ്ഡേറ്റ് ചെയ്യുക
+                    if (selectedSupplier && selectedSupplier.trim().toLowerCase() === data.supplier.trim().toLowerCase()) {
+                        if (!isEditMode) {
+                            renderSiteTables(targetSupplier);
+                        } else {
+                            const inputSelector = `input[data-site="${escapeQuotes(data.site_first_name)}"][data-month="${data.month_index}"]`;
+                            const targetInput = document.querySelector(inputSelector);
+                            if (targetInput && document.activeElement !== targetInput) {
+                                targetInput.value = data.value;
+                                handleLiveHighlight(targetInput);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Live sync parse error:", err);
+                }
+            };
+        }
+
+        // Initialize live sync listener
+        initLiveSync();
     </script>
 </body>
 </html>

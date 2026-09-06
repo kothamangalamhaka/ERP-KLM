@@ -950,10 +950,10 @@ updateThemeButton();
                 matchCount++;
                 const isActive = (k === selectedSupplierKey);
                 html += `
-                    <li class="owner-item ${isActive ? 'active' : ''}" onclick="selectSupplier('${escapeQuotes(k)}')">
+                    <li class="owner-item ${isActive ? 'active' : ''}" data-supplier="${escapeHTML(k)}" onclick="selectSupplier('${escapeQuotes(k)}')">
                         <div class="owner-item-title">
                             <span class="owner-sn-badge">${matchCount}</span>
-                            <span>${escapeHTML(s.supplier)}</span>
+                            <span class="owner-name-text">${escapeHTML(s.supplier)}</span>
                         </div>
                         <div class="owner-item-sub">
                             <span>${escapeHTML(s.vat_no || '')}</span>
@@ -986,10 +986,13 @@ updateThemeButton();
             const supData = consolidatedSuppliers[key];
             if (!supData) return;
 
-            document.querySelectorAll(".owner-item").forEach(el => el.classList.remove("active"));
-            const items = document.querySelectorAll(".owner-item");
-            items.forEach(el => {
-                if (el.querySelector(".owner-item-title").innerText === key) el.classList.add("active");
+            // 🟢 കൃത്യമായി data-supplier വെച്ച് ലെഫ്റ്റ് പാനലിൽ ആക്റ്റീവ് ഹൈലൈറ്റ് നൽകുന്നു
+            document.querySelectorAll(".owner-item").forEach(el => {
+                if (el.getAttribute("data-supplier") === key) {
+                    el.classList.add("active");
+                } else {
+                    el.classList.remove("active");
+                }
             });
 
             document.getElementById("supplierInfoCard").style.display = "grid";
