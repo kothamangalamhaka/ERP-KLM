@@ -164,10 +164,11 @@ router.get("/data", verifyAccessCode, async (req, res) => {
     ];
     const shortYear = currentYear.toString().slice(-2);
 
-    // 🟢 billing_records-ൽ നിന്ന് rent, total, after_adjustment കോളങ്ങളിൽ ഉള്ള തുക സുരക്ഷിതമായി എടുക്കുന്നു
+    // 🟢 billing_records-ൽ നിന്ന് പ്ലേറ്റ് നമ്പർ ഉൾപ്പെടെ എടുക്കുന്നു (VAT പരിശോധിക്കാൻ)
     const erpResult = await pool.query(
       `
             SELECT 
+                COALESCE(NULLIF(TRIM(plate_no), ''), '') as plate_no,
                 LOWER(REGEXP_REPLACE(TRIM(COALESCE(owner, '')), '[^a-zA-Z0-9]', '', 'g')) as clean_owner,
                 LOWER(TRIM(COALESCE(owner, ''))) as norm_owner,
                 LOWER(TRIM(COALESCE(site_name, ''))) as clean_site_name,
@@ -287,11 +288,18 @@ router.get("/data", verifyAccessCode, async (req, res) => {
             const isSiteMatch = (eSiteFirst === sFirst) || e.clean_site_name.includes(sFirst);
 
             if (isMonthMatch && isSiteMatch && !isZSite(e.clean_site_name)) {
-              // 🟢 പേര് പൂർണ്ണമായി കൃത്യമാണെങ്കിൽ മാത്രം (Strict Exact Match - സബ്സ്ട്രിംഗ് ഒഴിവാക്കി)
+              // 🟢 പേര് പൂർണ്ണമായി കൃത്യമാണെങ്കിൽ മാത്രം (Strict Exact Match)
               const isOwnerMatch = (e.norm_owner === normSup) || (e.clean_owner === cleanSup);
 
               if (isOwnerMatch) {
-                monthTsTotal += parseFloat(e.row_total || 0);
+                // 🟢 ഈ വണ്ടി ആ മാസം VAT 'Yes' ആണെങ്കിൽ Non-VAT തുകയിൽ കൂട്ടരുത്
+                const rowVeh = vehicles.find(v => (v.plate_no || "").trim().toUpperCase() === (e.plate_no || "").trim().toUpperCase());
+                const ownerInfo = getMonthOwnerInfo(e.plate_no, m, (rowVeh ? rowVeh.owner_name : ""), (rowVeh ? rowVeh.vat : ""));
+                const isVatVeh = ["yes", "true", "15"].includes(ownerInfo.vat);
+
+                if (!isVatVeh) {
+                  monthTsTotal += parseFloat(e.row_total || 0);
+                }
               }
             }
           });
@@ -336,6 +344,20 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
         .status(400)
         .json({ success: false, message: "Missing required query params" });
     }
+
+    // 🟢 വാഹനം VAT ആണോ എന്ന് പരിശോധിക്കാൻ ഡാറ്റ എടുക്കുന്നു
+    const vRes = await pool.query(`SELECT plate_no, owner_name, vat FROM timesheet_vehicles`);
+    const allVehs = vRes.rows;
+    const allPlates = allVehs.map(v => v.plate_no);
+
+    let oLogs = [];
+    try {
+      const oRes = await pool.query(
+        `SELECT plate_no, owner_name, vat, work_start_date, work_end_date FROM vehicle_owner_log WHERE plate_no = ANY($1)`,
+        [allPlates]
+      );
+      oLogs = oRes.rows;
+    } catch(err) {}
 
     const monthNames = [
       "January",
@@ -400,6 +422,28 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
 
       if (isOwnerMatch) {
         const p = row.plate_no;
+
+        // 🟢 ആ മാസം ഈ വാഹനം VAT ആണോ എന്ന് കൃത്യമായി പരിശോധിക്കുന്നു
+        const mStart = new Date(parseInt(year), mIdx, 1);
+        const mEnd = new Date(parseInt(year), mIdx + 1, 0);
+        const matched = oLogs.filter(l => {
+          if ((l.plate_no || '').trim().toUpperCase() !== (p || '').trim().toUpperCase()) return false;
+          const s = l.work_start_date ? new Date(l.work_start_date) : new Date(2000, 0, 1);
+          const e = l.work_end_date ? new Date(l.work_end_date) : new Date(2099, 11, 31);
+          return s <= mEnd && e >= mStart;
+        });
+
+        let curVat = "";
+        if (matched.length > 0) {
+          curVat = String(matched[matched.length - 1].vat || '').trim().toLowerCase();
+        } else {
+          const vObj = allVehs.find(v => (v.plate_no || '').trim().toUpperCase() === (p || '').trim().toUpperCase());
+          curVat = String(vObj ? vObj.vat : '').trim().toLowerCase();
+        }
+
+        // 🟢 VAT ഉള്ള വാഹനം ആണെങ്കിൽ Non-VAT ബ്രേക്ക്ഡൗണിൽ ഉൾപ്പെടുത്തില്ല
+        if (['yes', 'true', '15'].includes(curVat)) return;
+
         if (!plateGroups[p]) {
           plateGroups[p] = {
             plate_no: p,
