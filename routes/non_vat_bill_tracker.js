@@ -287,14 +287,8 @@ router.get("/data", verifyAccessCode, async (req, res) => {
             const isSiteMatch = (eSiteFirst === sFirst) || e.clean_site_name.includes(sFirst);
 
             if (isMonthMatch && isSiteMatch && !isZSite(e.clean_site_name)) {
-              // 🟢 ഓണർ ഒത്തുനോക്കൽ
-              const isOwnerMatch =
-                e.norm_owner === normSup ||
-                e.clean_owner === cleanSup ||
-                (cleanSup.length >= 6 &&
-                  e.clean_owner.length >= 6 &&
-                  (cleanSup.includes(e.clean_owner) ||
-                    e.clean_owner.includes(cleanSup)));
+              // 🟢 പേര് പൂർണ്ണമായി കൃത്യമാണെങ്കിൽ മാത്രം (Strict Exact Match - സബ്സ്ട്രിംഗ് ഒഴിവാക്കി)
+              const isOwnerMatch = (e.norm_owner === normSup) || (e.clean_owner === cleanSup);
 
               if (isOwnerMatch) {
                 monthTsTotal += parseFloat(e.row_total || 0);
@@ -401,14 +395,8 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
 
       if (!siteMatched) return;
 
-      // 🟢 ഓണർ ഒത്തുനോക്കൽ
-      const isOwnerMatch =
-        row.norm_owner === normSup ||
-        row.clean_owner === cleanSup ||
-        (cleanSup.length >= 6 &&
-          row.clean_owner.length >= 6 &&
-          (cleanSup.includes(row.clean_owner) ||
-            row.clean_owner.includes(cleanSup)));
+      // 🟢 പേര് പൂർണ്ണമായി കൃത്യമാണെങ്കിൽ മാത്രം (Strict Exact Match - സബ്സ്ട്രിംഗ് ഒഴിവാക്കി)
+      const isOwnerMatch = (row.norm_owner === normSup) || (row.clean_owner === cleanSup);
 
       if (isOwnerMatch) {
         const p = row.plate_no;

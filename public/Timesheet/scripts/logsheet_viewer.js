@@ -444,8 +444,17 @@ async function generatePdfFromFiles(
   btnElement.innerHTML = `Processing...`;
 
   try {
-    const { PDFDocument } = PDFLib;
-    const { jsPDF } = window.jspdf;
+    const pdfLibObj = window.PDFLib || (typeof PDFLib !== "undefined" ? PDFLib : null);
+    if (!pdfLibObj || !pdfLibObj.PDFDocument) {
+      throw new Error("PDF-Lib library not loaded. Please verify /node_xlsx_scripts/pdf-lib.min.js");
+    }
+
+    const { PDFDocument } = pdfLibObj;
+    const jsPdfLib = window.jspdf ? (window.jspdf.jsPDF || window.jspdf) : (typeof jsPDF !== "undefined" ? jsPDF : null);
+    if (!jsPdfLib) {
+      throw new Error("jsPDF library not loaded. Please verify /node_xlsx_scripts/jspdf.umd.min.js");
+    }
+    const jsPDF = jsPdfLib;
 
     // ഇമേജുകൾ ചേർക്കാൻ ഒരു താൽക്കാലിക മാസ്റ്റർ PDF ഉണ്ടാക്കുന്നു
     const mergedPdf = await PDFDocument.create();
