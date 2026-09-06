@@ -66,19 +66,33 @@ router.get("/data", verifyVatCode, async (req, res) => {
         const vehicles = vehicleResult.rows;
         const plates = vehicles.map(v => v.plate_no);
 
-        // 2.1 Fetch Owner Logs to handle vehicles sold / transferred across owners
-        const ownerLogQuery = `
-            SELECT plate_no, owner_name, start_date, end_date 
-            FROM vehicle_owner_log 
-            WHERE plate_no = ANY($1) 
-            ORDER BY start_date ASC
-        `;
+        // 2.1 Fetch Owner Logs with safe fallback for column names
         let ownerLogs = [];
         try {
-            const ownerLogRes = await pool.query(ownerLogQuery, [plates]);
+            const ownerLogRes = await pool.query(`
+                SELECT 
+                    plate_no, 
+                    owner_name, 
+                    COALESCE(work_start_date, start_date) as start_date, 
+                    COALESCE(work_end_date, end_date) as end_date 
+                FROM vehicle_owner_log 
+                WHERE plate_no = ANY($1) 
+                ORDER BY COALESCE(work_start_date, start_date, '2000-01-01') ASC
+            `, [plates]);
             ownerLogs = ownerLogRes.rows;
         } catch (e) {
-            console.warn("vehicle_owner_log check skipped or table missing:", e.message);
+            // Fallback if work_start_date or start_date doesn't exist together
+            try {
+                const fbRes = await pool.query(`SELECT * FROM vehicle_owner_log WHERE plate_no = ANY($1)`, [plates]);
+                ownerLogs = fbRes.rows.map(r => ({
+                    plate_no: r.plate_no,
+                    owner_name: r.owner_name,
+                    start_date: r.work_start_date || r.start_date,
+                    end_date: r.work_end_date || r.end_date
+                }));
+            } catch (err) {
+                console.warn("vehicle_owner_log query warning:", err.message);
+            }
         }
 
         // Helper to determine accurate owner for a specific month
@@ -86,16 +100,19 @@ router.get("/data", verifyVatCode, async (req, res) => {
             const mStart = new Date(currentYear, mIdx, 1);
             const mEnd = new Date(currentYear, mIdx + 1, 0);
 
-            const matched = ownerLogs.find(l => {
-                if (l.plate_no !== plateNo) return false;
+            const matchedLogs = ownerLogs.filter(l => {
+                if ((l.plate_no || "").trim().toUpperCase() !== plateNo.trim().toUpperCase()) return false;
                 const sDate = l.start_date ? new Date(l.start_date) : new Date(2000, 0, 1);
-                const eDate = l.end_date ? new Date(l.end_date) : new Date(2100, 11, 31);
+                const eDate = l.end_date ? new Date(l.end_date) : new Date(2099, 11, 31);
                 return sDate <= mEnd && eDate >= mStart;
             });
 
-            return (matched && matched.owner_name && matched.owner_name.trim()) 
-                ? matched.owner_name.trim() 
-                : fallbackOwner;
+            if (matchedLogs.length > 0) {
+                const active = matchedLogs[matchedLogs.length - 1];
+                return (active.owner_name && active.owner_name.trim()) ? active.owner_name.trim() : fallbackOwner;
+            }
+
+            return fallbackOwner;
         };
 
         // 3. Fetch SITE LOGS history (Calculates active months)
@@ -115,13 +132,14 @@ router.get("/data", verifyVatCode, async (req, res) => {
 const erpQuery = `
             SELECT 
                 LOWER(REPLACE(TRIM(COALESCE(company, '')), ' ', '')) as norm_company,
-                LOWER(TRIM(owner)) as norm_owner, 
-                LOWER(TRIM(site_name)) as norm_site, 
+                LOWER(TRIM(COALESCE(owner, ''))) as norm_owner,
+                LOWER(REGEXP_REPLACE(TRIM(COALESCE(owner, '')), '[^a-zA-Z0-9]', '', 'g')) as clean_owner, 
+                LOWER(TRIM(COALESCE(site_name, ''))) as norm_site, 
                 billing_month, 
                 ROUND(SUM(COALESCE(after_adjustment::numeric, 0)), 2) as erp_total 
             FROM billing_records 
             WHERE billing_month LIKE $1  
-            GROUP BY LOWER(REPLACE(TRIM(COALESCE(company, '')), ' ', '')), LOWER(TRIM(owner)), LOWER(TRIM(site_name)), billing_month
+            GROUP BY LOWER(REPLACE(TRIM(COALESCE(company, '')), ' ', '')), norm_owner, clean_owner, norm_site, billing_month
         `;
         const erpResult = await pool.query(erpQuery, [`%${currentYear}`]);
         const erpData = erpResult.rows;
@@ -205,21 +223,22 @@ const erpQuery = `
                     const monthString = `${monthNames[i]} ${currentYear}`;
                     const normSite = siteObj.site_name.trim().toLowerCase();
                     const normSupplier = group.supplier.trim().toLowerCase();
+                    const cleanSupplier = normSupplier.replace(/[^a-zA-Z0-9]/g, '');
                     const normComp = group.company.replace(/\s+/g, '').trim().toLowerCase();
 
-                    // 🟢 1. ആദ്യ പരിശോധന: കമ്പനി + ഓണർ + സൈറ്റ് + മാസം എന്നിവ കൃത്യമായി ഒത്തുനോക്കുന്നു
+                    // 🟢 1. കമ്പനി + ഓണർ (Exact Match) + സൈറ്റ് + മാസം
                     let erpRecord = erpData.find(e => 
                         e.norm_site === normSite && 
-                        e.norm_owner === normSupplier && 
+                        (e.norm_owner === normSupplier || e.clean_owner === cleanSupplier) && 
                         (e.norm_company === normComp || e.norm_company === "") &&
                         e.billing_month === monthString
                     );
 
-                    // 🟢 2. കമ്പനി സ്പെല്ലിംഗ് മാറിയിട്ടുണ്ടെങ്കിൽ: ഓണർ + സൈറ്റ് + മാസം വെച്ച് ബാക്കപ്പ് ലുക്കപ്പ്
+                    // 🟢 2. കമ്പനി പേരില്ലെങ്കിൽ ബാക്കപ്പ് ലുക്കപ്പ് (Exact Match Only)
                     if (!erpRecord) {
                         erpRecord = erpData.find(e => 
                             e.norm_site === normSite && 
-                            e.norm_owner === normSupplier && 
+                            (e.norm_owner === normSupplier || e.clean_owner === cleanSupplier) && 
                             e.billing_month === monthString
                         );
                     }
@@ -336,7 +355,7 @@ router.post("/update-bulk", verifyVatCode, async (req, res) => {
     }
 });
 
-// Vendor TS breakdown - using flexible matching consistent with /data route
+// Vendor TS breakdown - using exact billing_records columns (nhr, othr, plate_no)
 router.get("/vendor-breakdown", verifyVatCode, async (req, res) => {
     try {
         const { supplier, site, year, month } = req.query;
@@ -348,59 +367,44 @@ router.get("/vendor-breakdown", verifyVatCode, async (req, res) => {
         const mIdx = parseInt(month) - 1;
         const monthString = `${monthNames[mIdx]} ${year}`;
 
-        const normSite = site.trim().toLowerCase();
-        const cleanSite = normSite.replace(/[\s\-_]/g, '');
-        const normSupplier = supplier.trim().toLowerCase();
-        const cleanSupplier = normSupplier.replace(/[^a-zA-Z0-9]/g, '');
-
+        // Exact match with billing_records using plate_no, nhr, othr, after_adjustment
         const query = `
             SELECT 
                 COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
-                LOWER(TRIM(COALESCE(owner, ''))) AS norm_owner,
-                LOWER(REGEXP_REPLACE(TRIM(COALESCE(owner, '')), '[^a-zA-Z0-9]', '', 'g')) AS clean_owner,
-                LOWER(TRIM(COALESCE(site_name, ''))) AS norm_site,
-                LOWER(REGEXP_REPLACE(TRIM(COALESCE(site_name, '')), '[\\s\\-_]', '', 'g')) AS clean_site,
-                COALESCE(nhr::numeric, 0) AS nhr,
-                COALESCE(othr::numeric, 0) AS othr,
-                COALESCE(after_adjustment::numeric, 0) AS after_adjustment
+                ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
+                ROUND(COALESCE(SUM(othr::numeric), 0), 2) AS ot_hours,
+                ROUND(COALESCE(SUM(after_adjustment::numeric), 0), 2) AS total_amount
             FROM billing_records
-            WHERE billing_month = $1
+            WHERE LOWER(TRIM(owner)) = LOWER(TRIM($1))
+              AND LOWER(TRIM(site_name)) = LOWER(TRIM($2))
+              AND billing_month = $3
+            GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
+            ORDER BY plate_no ASC;
         `;
+        
+        let result = await pool.query(query, [supplier, site, monthString]);
+        let rows = result.rows;
 
-        const result = await pool.query(query, [monthString]);
-        const plateGroups = {};
+        // Fallback for slight differences in site name spacing
+        if (rows.length === 0) {
+            const fallbackQuery = `
+                SELECT 
+                    COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
+                    ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
+                    ROUND(COALESCE(SUM(othr::numeric), 0), 2) AS ot_hours,
+                    ROUND(COALESCE(SUM(after_adjustment::numeric), 0), 2) AS total_amount
+                FROM billing_records
+                WHERE LOWER(TRIM(owner)) = LOWER(TRIM($1))
+                  AND LOWER(REGEXP_REPLACE(site_name, '[\\s\\-_]', '', 'g')) = LOWER(REGEXP_REPLACE($2, '[\\s\\-_]', '', 'g'))
+                  AND billing_month = $3
+                GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
+                ORDER BY plate_no ASC;
+            `;
+            const fbResult = await pool.query(fallbackQuery, [supplier, site, monthString]);
+            rows = fbResult.rows;
+        }
 
-        result.rows.forEach(row => {
-            const siteMatch = (row.norm_site === normSite) || (row.clean_site === cleanSite);
-            const ownerMatch = (row.norm_owner === normSupplier) || 
-                               (row.clean_owner === cleanSupplier) ||
-                               (cleanSupplier.includes(row.clean_owner) && row.clean_owner.length > 3) ||
-                               (row.clean_owner.includes(cleanSupplier) && cleanSupplier.length > 3);
-
-            if (siteMatch && ownerMatch) {
-                const p = row.plate_no;
-                if (!plateGroups[p]) {
-                    plateGroups[p] = {
-                        plate_no: p,
-                        nr_hours: 0,
-                        ot_hours: 0,
-                        total_amount: 0
-                    };
-                }
-                plateGroups[p].nr_hours += parseFloat(row.nhr || 0);
-                plateGroups[p].ot_hours += parseFloat(row.othr || 0);
-                plateGroups[p].total_amount += parseFloat(row.after_adjustment || 0);
-            }
-        });
-
-        const finalRows = Object.values(plateGroups).map(p => ({
-            plate_no: p.plate_no,
-            nr_hours: Number(p.nr_hours.toFixed(2)),
-            ot_hours: Number(p.ot_hours.toFixed(2)),
-            total_amount: Number(p.total_amount.toFixed(2))
-        })).sort((a, b) => a.plate_no.localeCompare(b.plate_no));
-
-        res.json({ success: true, data: finalRows });
+        res.json({ success: true, data: rows });
     } catch (err) {
         console.error("Error in vendor-breakdown:", err);
         res.status(500).json({ success: false, message: err.message });

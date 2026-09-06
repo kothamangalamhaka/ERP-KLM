@@ -8,7 +8,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <!-- 🟢 Localized Script -->
+    <script src="../node_xlsx_scripts/xlsx.bundle.js"></script>
     <style>
       :root {
         --primary: #0ea5e9;
@@ -3466,7 +3467,15 @@
         return m;
       }
 
-     function createSheetFromData(dataArray) {
+     // 🟢 Moved to shared scope so both Single & Master export functions can access it
+      function cleanExportRate(val) {
+        if (!val || val === "-") return "-";
+        let num = parseFloat(val);
+        if (isNaN(num)) return val;
+        return num % 1 !== 0 ? num : Math.round(num);
+      }
+
+      function createSheetFromData(dataArray) {
         let aoa = [
           [
             "VEHICLE INFO", "", "", "", "", "",
@@ -3491,13 +3500,6 @@
             "NR", "OT" // 🟢 ALT ഒഴിവാക്കി കൃത്യമായി NR, OT എന്ന് നൽകി
           ],
         ];
-
-        function cleanExportRate(val) {
-          if (!val || val === "-") return "-";
-          let num = parseFloat(val);
-          if (isNaN(num)) return val;
-          return num % 1 !== 0 ? num : Math.round(num);
-        }
 
         dataArray.forEach((r) => {
           aoa.push([
