@@ -226,18 +226,18 @@ const erpQuery = `
                     const cleanSupplier = normSupplier.replace(/[^a-zA-Z0-9]/g, '');
                     const normComp = group.company.replace(/\s+/g, '').trim().toLowerCase();
 
-                    // 🟢 1. കമ്പനി + ഓണർ (Exact Match) + സൈറ്റ് + മാസം
+                    // 🟢 1. കമ്പനി + ഓണർ + സൈറ്റ് + മാസം (Exact / Flexible Match)
                     let erpRecord = erpData.find(e => 
-                        e.norm_site === normSite && 
+                        (e.norm_site === normSite || e.norm_site.replace(/[\s\-_]/g, '') === normSite.replace(/[\s\-_]/g, '')) && 
                         (e.norm_owner === normSupplier || e.clean_owner === cleanSupplier) && 
-                        (e.norm_company === normComp || e.norm_company === "") &&
+                        (e.norm_company === normComp || e.norm_company === "" || normComp === "") &&
                         e.billing_month === monthString
                     );
 
-                    // 🟢 2. കമ്പനി പേരില്ലെങ്കിൽ ബാക്കപ്പ് ലുക്കപ്പ് (Exact Match Only)
+                    // 🟢 2. കമ്പനി മാച്ച് ആയില്ലെങ്കിലും ഓണറും സൈറ്റും മാസവും മാച്ച് ആണെങ്കിൽ സ്വീകരിക്കുക
                     if (!erpRecord) {
                         erpRecord = erpData.find(e => 
-                            e.norm_site === normSite && 
+                            (e.norm_site === normSite || e.norm_site.replace(/[\s\-_]/g, '') === normSite.replace(/[\s\-_]/g, '')) && 
                             (e.norm_owner === normSupplier || e.clean_owner === cleanSupplier) && 
                             e.billing_month === monthString
                         );

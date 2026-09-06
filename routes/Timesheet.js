@@ -1281,22 +1281,29 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
 
       // 🟢 Modify billing_records and vat_billing_records directly if owner_name is corrected
       if (cleanCol === "owner_name" && value && value.trim()) {
-        // Fetch old owner name before update to sync vat_billing_records
-        const prevOwnerRes = await pool.query(
-          `SELECT owner_name FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1))`,
-          [plate_no.trim().toUpperCase()]
-        );
-        const oldOwner = prevOwnerRes.rows[0]?.owner_name;
+        const cleanPlate = plate_no.trim().toUpperCase();
+        const newOwner = value.trim();
 
+        // 1. Update billing_records for this vehicle
         await pool.query(
-          `UPDATE billing_records SET owner = $1 WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($2))`,
-          [value.trim(), plate_no.trim().toUpperCase()]
+          `UPDATE billing_records SET owner = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
+          [newOwner, cleanPlate]
         );
 
-        if (oldOwner && oldOwner.trim().toLowerCase() !== value.trim().toLowerCase()) {
+        // 2. Find which site this vehicle is currently allocated to
+        const vehicleSiteRes = await pool.query(
+          `SELECT site_name FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = $1`,
+          [cleanPlate]
+        );
+        const currentSite = vehicleSiteRes.rows[0]?.site_name;
+
+        // 3. Sync vat_billing_records: move the billing for this site to the new supplier
+        if (currentSite && currentSite.trim()) {
           await pool.query(
-            `UPDATE vat_billing_records SET supplier = $1 WHERE LOWER(TRIM(supplier)) = LOWER(TRIM($2))`,
-            [value.trim(), oldOwner.trim()]
+            `UPDATE vat_billing_records 
+             SET supplier = $1 
+             WHERE LOWER(TRIM(site_name)) = LOWER(TRIM($2))`,
+            [newOwner, currentSite.trim()]
           );
         }
       }
