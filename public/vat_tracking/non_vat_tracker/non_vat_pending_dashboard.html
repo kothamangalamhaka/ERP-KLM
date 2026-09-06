@@ -761,32 +761,50 @@
             const tbody = document.getElementById("dashboardBody");
             const shortYear = currentYear.toString().slice(-2);
 
-            // 1. ഏറ്റവും അവസാനത്തെ വെണ്ടർ ടി.എസ് ഉള്ള മാസം കണ്ടെത്തുന്നു
-            let lastBilledMonthIdx = -1;
-            rawData.forEach(sup => {
-                sup.sites.forEach(st => {
-                    for (let m = 11; m >= 0; m--) {
-                        if (st.billing[m] && parseFloat(st.billing[m].vendor_ts || 0) > 0) {
-                            if (m > lastBilledMonthIdx) lastBilledMonthIdx = m;
-                        }
-                    }
-                });
-            });
+            // 1. പരിശോധിക്കേണ്ട അവസാന മാസം നിർണ്ണയിക്കുന്നു
+            const now = new Date();
+            const realCurrentYear = now.getFullYear();
+            const realCurrentMonthIdx = now.getMonth(); // 0 = Jan, 8 = Sep ...
 
-            if (lastBilledMonthIdx === -1) {
+            let maxCheckMonthIdx = 11;
+            if (currentDashboardMode === "vendor_ts") {
+                // 🟢 Vendor TS മോഡിൽ: ഈ വർഷമാണെങ്കിൽ Current Month - 1 വരെ മാത്രം
+                if (currentYear === realCurrentYear) {
+                    maxCheckMonthIdx = realCurrentMonthIdx - 1;
+                } else if (currentYear > realCurrentYear) {
+                    maxCheckMonthIdx = -1; // ഭാവി വർഷമാണെങ്കിൽ ചെക്ക് ചെയ്യേണ്ടതില്ല
+                } else {
+                    maxCheckMonthIdx = 11; // കഴിഞ്ഞ വർഷങ്ങളാണെങ്കിൽ December വരെ
+                }
+            } else {
+                // 🎲 Quick Dice മോഡിൽ: അവസാനമായി TS വന്ന മാസം വരെ
+                let lastBilledMonthIdx = -1;
+                rawData.forEach(sup => {
+                    sup.sites.forEach(st => {
+                        for (let m = 11; m >= 0; m--) {
+                            if (st.billing[m] && parseFloat(st.billing[m].vendor_ts || 0) > 0) {
+                                if (m > lastBilledMonthIdx) lastBilledMonthIdx = m;
+                            }
+                        }
+                    });
+                });
+                maxCheckMonthIdx = lastBilledMonthIdx;
+            }
+
+            if (maxCheckMonthIdx < 0) {
                 thead.innerHTML = "";
-                tbody.innerHTML = `<tr><td style="padding: 40px; text-align: center; color: #10b981; font-weight: 600;">✓ No billing records found for ${currentYear}!</td></tr>`;
+                tbody.innerHTML = `<tr><td style="padding: 40px; text-align: center; color: #10b981; font-weight: 600;">✓ No pending checks applicable for this period!</td></tr>`;
                 document.getElementById("kpiSupplierCount").innerText = "0";
                 document.getElementById("kpiSiteCount").innerText = "0";
                 document.getElementById("kpiLastMonth").innerText = "-";
                 return;
             }
 
-            document.getElementById("kpiLastMonth").innerText = `${monthsFull[lastBilledMonthIdx].substring(0, 3)} - ${shortYear}`;
+            document.getElementById("kpiLastMonth").innerText = `${monthsFull[maxCheckMonthIdx].substring(0, 3)} - ${shortYear}`;
 
             // 2. തിരഞ്ഞെടുക്കപ്പെട്ട മോഡ് അനുസരിച്ച് പെൻഡിങ് ഉള്ള മാസങ്ങൾ കണ്ടെത്തുന്നു
             let visibleMonths = [];
-            for (let m = 0; m <= lastBilledMonthIdx; m++) {
+            for (let m = 0; m <= maxCheckMonthIdx; m++) {
                 let monthHasPending = false;
                 for (let sup of rawData) {
                     for (let st of sup.sites) {
@@ -802,8 +820,8 @@
                                 break;
                             }
                         } else {
-                            // Vendor TS Mode: ആക്ടീവ് സൈറ്റ് ആണ് എന്നാൽ Vendor TS ബ്ലാങ്ക് / 0 ആണ്
-                            if (isActiveMonth && vTs === 0) {
+                            // 🟢 Vendor TS Mode (Current Month - 1 വരെ): സൈറ്റ് ആക്ടീവ് ആണ് എന്നാൽ Vendor TS ഇല്ല (0 അല്ലെങ്കിൽ blank)
+                            if (isActiveMonth && (!vTs || vTs === 0)) {
                                 monthHasPending = true;
                                 break;
                             }
@@ -1075,33 +1093,60 @@
 
             let uniqueValues = new Set();
 
-            // 1. അവസാനത്തെ ആക്ടീവ് ബില്ലിംഗ് മാസം കണ്ടെത്തുന്നു
-            let lastBilledMonthIdx = -1;
-            rawData.forEach(sup => {
-                sup.sites.forEach(st => {
-                    for (let m = 11; m >= 0; m--) {
-                        if (st.billing[m] && parseFloat(st.billing[m].vendor_ts || 0) > 0) {
-                            if (m > lastBilledMonthIdx) lastBilledMonthIdx = m;
-                        }
-                    }
-                });
-            });
+            const now = new Date();
+            const realCurrentYear = now.getFullYear();
+            const realCurrentMonthIdx = now.getMonth();
 
-            // 2. പെൻഡിങ് ഉള്ള ആക്ടീവ് മാസങ്ങൾ കണ്ടെത്തുന്നു
-            let visibleMonths = [];
-            for (let m = 0; m <= lastBilledMonthIdx; m++) {
-                let monthHasPending = false;
-                for (let sup of rawData) {
-                    for (let st of sup.sites) {
-                        const b = st.billing[m] || {};
-                        if (parseFloat(b.vendor_ts || 0) > 0 && String(b.quick_dice || "").trim() === "") {
-                            monthHasPending = true;
-                            break;
-                        }
-                    }
-                    if (monthHasPending) break;
+            let maxCheckMonthIdx = 11;
+            if (currentDashboardMode === "vendor_ts") {
+                if (currentYear === realCurrentYear) {
+                    maxCheckMonthIdx = realCurrentMonthIdx - 1;
+                } else if (currentYear > realCurrentYear) {
+                    maxCheckMonthIdx = -1;
+                } else {
+                    maxCheckMonthIdx = 11;
                 }
-                if (monthHasPending) visibleMonths.push(m);
+            } else {
+                let lastBilledMonthIdx = -1;
+                rawData.forEach(sup => {
+                    sup.sites.forEach(st => {
+                        for (let m = 11; m >= 0; m--) {
+                            if (st.billing[m] && parseFloat(st.billing[m].vendor_ts || 0) > 0) {
+                                if (m > lastBilledMonthIdx) lastBilledMonthIdx = m;
+                            }
+                        }
+                    });
+                });
+                maxCheckMonthIdx = lastBilledMonthIdx;
+            }
+
+            let visibleMonths = [];
+            if (maxCheckMonthIdx >= 0) {
+                for (let m = 0; m <= maxCheckMonthIdx; m++) {
+                    let monthHasPending = false;
+                    for (let sup of rawData) {
+                        for (let st of sup.sites) {
+                            const b = st.billing[m] || {};
+                            const vTs = parseFloat(b.vendor_ts || 0);
+                            const qDice = String(b.quick_dice || "").trim();
+                            const isActiveMonth = st.active_months && st.active_months[m];
+
+                            if (currentDashboardMode === "quick_dice") {
+                                if (vTs > 0 && qDice === "") {
+                                    monthHasPending = true;
+                                    break;
+                                }
+                            } else {
+                                if (isActiveMonth && (!vTs || vTs === 0)) {
+                                    monthHasPending = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (monthHasPending) break;
+                    }
+                    if (monthHasPending) visibleMonths.push(m);
+                }
             }
 
             // 3. 🟢 സ്ക്രീനിൽ നിലവിൽ പെൻഡിങ് ഉള്ള റെക്കോർഡുകൾ മാത്രം ഫിൽറ്ററിലേക്ക് എടുക്കുന്നു
