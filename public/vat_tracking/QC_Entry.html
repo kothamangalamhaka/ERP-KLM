@@ -1,1337 +1,1703 @@
 <!doctype html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QC Entry - VAT Tracking</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        * { box-sizing: border-box; text-decoration: none !important; }
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #f8fafc; 
-            margin: 0; 
-            padding: 0; 
-            font-size: 13px; 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden; 
-        }
-        
-        /* Top Navigation Bar */
-        .navbar { 
-            background: #0f2027; 
-            color: white; 
-            padding: 10px 20px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            height: 54px; 
-            flex-shrink: 0; 
-            z-index: 100;
-        }
-        .nav-left { display: flex; align-items: center; gap: 15px; }
-        .nav-tools { display: flex; gap: 12px; align-items: center; }
-        
-        .year-control { 
-            display: flex; 
-            align-items: center; 
-            background: #1e293b; 
-            border-radius: 5px; 
-            border: 1px solid #475569; 
-            overflow: hidden; 
-        }
-        .year-btn { 
-            background: transparent; 
-            color: white; 
-            border: none; 
-            padding: 6px 12px; 
-            cursor: pointer; 
-            font-size: 14px; 
-            font-weight: bold; 
-            transition: background 0.2s; 
-        }
-        .year-btn:hover { background: #334155; }
-        .year-select { 
-            background: transparent; 
-            color: white; 
-            border: none; 
-            font-size: 13px; 
-            font-weight: 600; 
-            padding: 5px 8px; 
-            outline: none; 
-            cursor: pointer; 
-            text-align: center; 
-        }
-        .year-select option { background: #1e293b; color: white; }
+      * {
+        box-sizing: border-box;
+        text-decoration: none !important;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f8fafc;
+        margin: 0;
+        padding: 0;
+        font-size: 13px;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
 
-        .search-box { 
-            padding: 6px 12px; 
-            border: 1px solid #475569; 
-            border-radius: 5px; 
-            background: #1e293b; 
-            color: white; 
-            font-family: 'Inter'; 
-            outline: none; 
-            width: 220px; 
-            font-size: 12px; 
-        }
-        .search-box::placeholder { color: #94a3b8; }
-        .search-box:focus { border-color: #38bdf8; }
+      /* Top Navigation Bar */
+      .navbar {
+        background: #0f2027;
+        color: white;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: 54px;
+        flex-shrink: 0;
+        z-index: 100;
+      }
+      .nav-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .nav-tools {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
 
-        .btn-action { 
-            background: #3b82f6; 
-            color: white; 
-            padding: 6px 14px; 
-            border: none; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 6px; 
-            font-size: 12px; 
-        }
-        .btn-action:hover { filter: brightness(1.1); }
+      .year-control {
+        display: flex;
+        align-items: center;
+        background: #1e293b;
+        border-radius: 5px;
+        border: 1px solid #475569;
+        overflow: hidden;
+      }
+      .year-btn {
+        background: transparent;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        transition: background 0.2s;
+      }
+      .year-btn:hover {
+        background: #334155;
+      }
+      .year-select {
+        background: transparent;
+        color: white;
+        border: none;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 5px 8px;
+        outline: none;
+        cursor: pointer;
+        text-align: center;
+      }
+      .year-select option {
+        background: #1e293b;
+        color: white;
+      }
 
-        /* Main Layout */
-        .main-container { display: flex; flex: 1; height: calc(100vh - 54px); overflow: hidden; }
+      .search-box {
+        padding: 6px 12px;
+        border: 1px solid #475569;
+        border-radius: 5px;
+        background: #1e293b;
+        color: white;
+        font-family: "Inter";
+        outline: none;
+        width: 220px;
+        font-size: 12px;
+      }
+      .search-box::placeholder {
+        color: #94a3b8;
+      }
+      .search-box:focus {
+        border-color: #38bdf8;
+      }
 
-        /* Left Sidebar: Owner List */
-        .sidebar { 
-            width: 300px; 
-            background: #ffffff; 
-            border-right: 1px solid #e2e8f0; 
-            display: flex; 
-            flex-direction: column; 
-            flex-shrink: 0; 
-        }
-        .sidebar-header { 
-            padding: 12px 16px; 
-            background: #f1f5f9; 
-            border-bottom: 1px solid #e2e8f0; 
-            font-weight: 700; 
-            color: #334155; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-        }
-        .owner-count-badge { 
-            background: #e2e8f0; 
-            color: #475569; 
-            font-size: 11px; 
-            padding: 2px 8px; 
-            border-radius: 12px; 
-        }
-        .owner-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
-        .owner-item { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: all 0.2s; }
-        .owner-item:hover { background: #f8fafc; }
-        .owner-item.active { background: #e0f2fe; border-left: 4px solid #0284c7; }
-        .owner-item-title { font-weight: 600; color: #0f172a; margin-bottom: 3px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
-        .owner-sn-badge {
-            background: #e2e8f0;
-            color: #475569;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 1px 5px;
-            border-radius: 4px;
-            min-width: 18px;
-            text-align: center;
-            display: inline-block;
-        }
-        .owner-item.active .owner-sn-badge {
-            background: #0284c7;
-            color: white;
-        }
-        .owner-item-sub { font-size: 11px; color: #64748b; display: flex; justify-content: space-between; }
+      .btn-action {
+        background: #3b82f6;
+        color: white;
+        padding: 6px 14px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+      }
+      .btn-action:hover {
+        filter: brightness(1.1);
+      }
 
-        /* Right Content Area */
-        .content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f8fafc; }
-        
-        .supplier-info-card {
-            background: white; 
-            border-bottom: 1px solid #e2e8f0; 
-            padding: 14px 20px;
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 15px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03); 
-            flex-shrink: 0;
-        }
-        .info-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 3px; }
-        .info-val { font-size: 13px; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 6px; }
+      /* Main Layout */
+      .main-container {
+        display: flex;
+        flex: 1;
+        height: calc(100vh - 54px);
+        overflow: hidden;
+      }
 
-        /* Table Container */
-        .table-viewport { flex: 1; overflow: auto; padding: 0; }
-        .qc-table { 
-            border-collapse: separate; 
-            border-spacing: 0; 
-            width: max-content; 
-            background: white; 
-            border: 1px solid #cbd5e1; 
-        }
-        .qc-table th, .qc-table td { 
-            border-right: 1px solid #cbd5e1; 
-            border-bottom: 1px solid #cbd5e1; 
-            padding: 8px 10px; 
-            text-align: center; 
-            vertical-align: middle; 
-        }
-        
-        .qc-table tbody tr { height: 38px; }
-        .qc-table tbody td { height: 38px; }
-        .cell-content {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 24px;
-            width: 100%;
-            height: 100%;
-            text-align: center;
-            color: #000000;
-        }
+      /* Left Sidebar: Owner List */
+      .sidebar {
+        width: 300px;
+        background: #ffffff;
+        border-right: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+      }
+      .sidebar-header {
+        padding: 12px 16px;
+        background: #f1f5f9;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 700;
+        color: #334155;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .owner-count-badge {
+        background: #e2e8f0;
+        color: #475569;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 12px;
+      }
+      .owner-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .owner-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .owner-item:hover {
+        background: #f8fafc;
+      }
+      .owner-item.active {
+        background: #e0f2fe;
+        border-left: 4px solid #0284c7;
+      }
+      .owner-item-title {
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 3px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .owner-sn-badge {
+        background: #e2e8f0;
+        color: #475569;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 4px;
+        min-width: 18px;
+        text-align: center;
+        display: inline-block;
+      }
+      .owner-item.active .owner-sn-badge {
+        background: #0284c7;
+        color: white;
+      }
+      .owner-item-sub {
+        font-size: 11px;
+        color: #64748b;
+        display: flex;
+        justify-content: space-between;
+      }
 
-        .qc-table th { background: #1e293b; color: white; font-size: 12px; position: sticky; top: 0; z-index: 10; height: 32px; }
-        .qc-table th.sub-head { top: 32px; background: #334155; font-size: 11px; height: 28px; }
-        .qc-table th.erp-head { background: #0f766e; }
-        .qc-table th.qc-chk-head { background: #4338ca; width: 45px; min-width: 45px; }
-        
-        .vendor-ts-cell:hover {
-            filter: brightness(0.96);
-        }
+      /* Right Content Area */
+      .content-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: #f8fafc;
+      }
 
-        .amount-cell:hover {
-            filter: brightness(0.96);
-        }
+      .supplier-info-card {
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 14px 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        flex-shrink: 0;
+      }
+      .info-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+      }
+      .info-val {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
 
-        /* 🟡 Yellow Highlight for checked row cells */
-       /* 🟡 Instant Yellow Highlight */
-        .qc-highlight,
-        td.qc-highlight,
-        td.qc-highlight div,
-        td.qc-highlight textarea,
-        td.qc-highlight input {
-            background-color: #fef08a !important;
-            color: #854d0e !important;
-        }
+      /* Table Container */
+      .table-viewport {
+        flex: 1;
+        overflow: auto;
+        padding: 0;
+      }
+      .qc-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: max-content;
+        background: white;
+        border: 1px solid #cbd5e1;
+      }
+      .qc-table th,
+      .qc-table td {
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 1px solid #cbd5e1;
+        padding: 8px 10px;
+        text-align: center;
+        vertical-align: middle;
+      }
 
-        .qc-quick-dice {
-            font-weight: 600;
-            color: #312e81;
-            background: #eef2ff;
-        }
+      .qc-table tbody tr {
+        height: 38px;
+      }
+      .qc-table tbody td {
+        height: 38px;
+      }
+      .cell-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 24px;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        color: #000000;
+      }
 
-        .month-col { 
-            position: sticky; 
-            left: 0; 
-            z-index: 12; 
-            background: #f8fafc; 
-            font-weight: 600; 
-            width: 90px; 
-            min-width: 90px; 
-            max-width: 90px; 
-            white-space: nowrap; 
-            border-right: 2px solid #94a3b8; 
-            text-align: center;
-        }
-        th.month-col { top: 0; z-index: 25; background: #0f172a; }
+      .qc-table th {
+        background: #1e293b;
+        color: white;
+        font-size: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        height: 32px;
+      }
+      .qc-table th.sub-head {
+        top: 32px;
+        background: #334155;
+        font-size: 11px;
+        height: 28px;
+      }
+      .qc-table th.erp-head {
+        background: #0f766e;
+      }
+      .qc-table th.qc-chk-head {
+        background: #4338ca;
+        width: 45px;
+        min-width: 45px;
+      }
 
-        .inactive-cell { 
-            background: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 6px, #e2e8f0 6px, #e2e8f0 12px) !important; 
-            pointer-events: none; 
-        }
+      .vendor-ts-cell:hover {
+        filter: brightness(0.96);
+      }
 
-        /* Inputs when in Edit Mode */
-        .qc-input { 
-            width: 100%; 
-            padding: 4px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 3px; 
-            text-align: center; 
-            font-size: 11px; 
-            font-family: 'Inter'; 
-            box-sizing: border-box; 
-        }
-        .qc-input:focus { border-color: #0284c7; outline: none; background: #f0f9ff; }
-        
-        .qc-textarea { 
-            width: 100%; 
-            min-height: 24px; 
-            height: 24px; 
-            padding: 3px 4px; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 3px; 
-            text-align: center; 
-            font-size: 11px; 
-            font-family: 'Inter'; 
-            box-sizing: border-box; 
-            resize: none; 
-            line-height: 1.3; 
-            white-space: pre-wrap; 
-            word-break: break-word; 
-            overflow-y: hidden; 
-            display: block; 
-        }
-        .qc-textarea:focus { border-color: #0284c7; outline: none; background: #f0f9ff; }
+      .amount-cell:hover {
+        filter: brightness(0.96);
+      }
 
-        .qc-checkbox {
-            cursor: pointer;
-            width: 17px;
-            height: 17px;
-            accent-color: #4338ca;
-            margin: 0 auto;
-            display: block;
-        }
+      /* 🟡 Yellow Highlight for checked row cells */
+      /* 🟡 Instant Yellow Highlight */
+      .qc-highlight,
+      td.qc-highlight,
+      td.qc-highlight div,
+      td.qc-highlight textarea,
+      td.qc-highlight input {
+        background-color: #fef08a !important;
+        color: #854d0e !important;
+      }
 
-        #saveStatus { font-weight: 600; font-size: 12px; }
-        .status-saving { color: #f59e0b; }
-        .status-saved { color: #10b981; }
-        .status-error { color: #ef4444; }
+      .qc-quick-dice {
+        font-weight: 600;
+        color: #312e81;
+        background: #eef2ff;
+      }
 
-        /* Modal Styles */
-        .modal-overlay { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: rgba(15, 23, 42, 0.6); 
-            backdrop-filter: blur(2px);
-            display: none; 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 9999; 
-        }
-        .modal-content { 
-            background: white; 
-            border-radius: 8px; 
-            width: 620px; 
-            max-width: 90%; 
-            max-height: 85vh; 
-            display: flex; 
-            flex-direction: column; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
-            overflow: hidden; 
-        }
-        .modal-header { 
-            padding: 14px 18px; 
-            background: #0f2027; 
-            color: white; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-        }
-        .modal-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
-        .modal-close-btn { 
-            background: none; 
-            border: none; 
-            color: #94a3b8; 
-            font-size: 20px; 
-            cursor: pointer; 
-            line-height: 1; 
-        }
-        .modal-close-btn:hover { color: white; }
-        .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
-        
-        .ts-breakdown-table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            font-size: 12px; 
-            border: 1px solid #cbd5e1; 
-        }
-        .ts-breakdown-table th, .ts-breakdown-table td { 
-            border: 1px solid #cbd5e1; 
-            padding: 8px 10px; 
-            text-align: center; 
-        }
-        .ts-breakdown-table th { background: #f1f5f9; color: #334155; font-weight: 600; }
-        .ts-breakdown-table tfoot td { background: #f8fafc; font-weight: 700; color: #0f172a; }
+      .month-col {
+        position: sticky;
+        left: 0;
+        z-index: 12;
+        background: #f8fafc;
+        font-weight: 600;
+        width: 90px;
+        min-width: 90px;
+        max-width: 90px;
+        white-space: nowrap;
+        border-right: 2px solid #94a3b8;
+        text-align: center;
+      }
+      th.month-col {
+        top: 0;
+        z-index: 25;
+        background: #0f172a;
+      }
 
-        /* Login Modal */
-        .login-overlay { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: rgba(15, 32, 39, 0.95); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 10000; 
-        }
-        .login-box { background: white; padding: 30px; border-radius: 8px; width: 300px; text-align: center; }
+      .inactive-cell {
+        background: repeating-linear-gradient(
+          45deg,
+          #f1f5f9,
+          #f1f5f9 6px,
+          #e2e8f0 6px,
+          #e2e8f0 12px
+        ) !important;
+        pointer-events: none;
+      }
 
-        /* ================================
+      /* Inputs when in Edit Mode */
+      .qc-input {
+        width: 100%;
+        padding: 4px;
+        border: 1px solid #cbd5e1;
+        border-radius: 3px;
+        text-align: center;
+        font-size: 11px;
+        font-family: "Inter";
+        box-sizing: border-box;
+      }
+      .qc-input:focus {
+        border-color: #0284c7;
+        outline: none;
+        background: #f0f9ff;
+      }
+
+      .qc-textarea {
+        width: 100%;
+        min-height: 24px;
+        height: 24px;
+        padding: 3px 4px;
+        border: 1px solid #cbd5e1;
+        border-radius: 3px;
+        text-align: center;
+        font-size: 11px;
+        font-family: "Inter";
+        box-sizing: border-box;
+        resize: none;
+        line-height: 1.3;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-y: hidden;
+        display: block;
+      }
+      .qc-textarea:focus {
+        border-color: #0284c7;
+        outline: none;
+        background: #f0f9ff;
+      }
+
+      .qc-checkbox {
+        cursor: pointer;
+        width: 17px;
+        height: 17px;
+        accent-color: #4338ca;
+        margin: 0 auto;
+        display: block;
+      }
+
+      #saveStatus {
+        font-weight: 600;
+        font-size: 12px;
+      }
+      .status-saving {
+        color: #f59e0b;
+      }
+      .status-saved {
+        color: #10b981;
+      }
+      .status-error {
+        color: #ef4444;
+      }
+
+      /* Modal Styles */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(2px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+      .modal-content {
+        background: white;
+        border-radius: 8px;
+        width: 620px;
+        max-width: 90%;
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
+      .modal-header {
+        padding: 14px 18px;
+        background: #0f2027;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .modal-header h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .modal-close-btn {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 20px;
+        cursor: pointer;
+        line-height: 1;
+      }
+      .modal-close-btn:hover {
+        color: white;
+      }
+      .modal-body {
+        padding: 16px;
+        overflow-y: auto;
+        flex: 1;
+      }
+
+      .ts-breakdown-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        border: 1px solid #cbd5e1;
+      }
+      .ts-breakdown-table th,
+      .ts-breakdown-table td {
+        border: 1px solid #cbd5e1;
+        padding: 8px 10px;
+        text-align: center;
+      }
+      .ts-breakdown-table th {
+        background: #f1f5f9;
+        color: #334155;
+        font-weight: 600;
+      }
+      .ts-breakdown-table tfoot td {
+        background: #f8fafc;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      /* Login Modal */
+      .login-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 32, 39, 0.95);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+      }
+      .login-box {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        width: 300px;
+        text-align: center;
+      }
+
+      /* ================================
    DARK THEME
    ================================ */
 
-body.dark-theme {
-    background-color: #0f172a;
-    color: #e2e8f0;
-}
+      body.dark-theme {
+        background-color: #0f172a;
+        color: #e2e8f0;
+      }
 
-/* Main areas */
-body.dark-theme .content-area {
-    background: #0f172a;
-}
+      /* Main areas */
+      body.dark-theme .content-area {
+        background: #0f172a;
+      }
 
-body.dark-theme .sidebar {
-    background: #111827;
-    border-right-color: #334155;
-}
+      body.dark-theme .sidebar {
+        background: #111827;
+        border-right-color: #334155;
+      }
 
-body.dark-theme .sidebar-header {
-    background: #1e293b;
-    border-bottom-color: #334155;
-    color: #e2e8f0;
-}
+      body.dark-theme .sidebar-header {
+        background: #1e293b;
+        border-bottom-color: #334155;
+        color: #e2e8f0;
+      }
 
-body.dark-theme .owner-item {
-    border-bottom-color: #1e293b;
-    color: #e2e8f0;
-}
+      body.dark-theme .owner-item {
+        border-bottom-color: #1e293b;
+        color: #e2e8f0;
+      }
 
-body.dark-theme .owner-item:hover {
-    background: #1e293b;
-}
+      body.dark-theme .owner-item:hover {
+        background: #1e293b;
+      }
 
-body.dark-theme .owner-item.active {
-    background: #0c4a6e;
-    border-left-color: #38bdf8;
-}
+      body.dark-theme .owner-item.active {
+        background: #0c4a6e;
+        border-left-color: #38bdf8;
+      }
 
-body.dark-theme .owner-item-title {
-    color: #f1f5f9;
-}
+      body.dark-theme .owner-item-title {
+        color: #f1f5f9;
+      }
 
-body.dark-theme .owner-item-sub {
-    color: #94a3b8;
-}
+      body.dark-theme .owner-item-sub {
+        color: #94a3b8;
+      }
 
-body.dark-theme .owner-sn-badge {
-    background: #334155;
-    color: #cbd5e1;
-}
+      body.dark-theme .owner-sn-badge {
+        background: #334155;
+        color: #cbd5e1;
+      }
 
-body.dark-theme .owner-item.active .owner-sn-badge {
-    background: #0284c7;
-    color: white;
-}
+      body.dark-theme .owner-item.active .owner-sn-badge {
+        background: #0284c7;
+        color: white;
+      }
 
-body.dark-theme .owner-count-badge {
-    background: #334155;
-    color: #cbd5e1;
-}
+      body.dark-theme .owner-count-badge {
+        background: #334155;
+        color: #cbd5e1;
+      }
 
-/* Search */
-body.dark-theme .search-box {
-    background: #1e293b;
-    border-color: #475569;
-    color: #f8fafc;
-}
+      /* Search */
+      body.dark-theme .search-box {
+        background: #1e293b;
+        border-color: #475569;
+        color: #f8fafc;
+      }
 
-body.dark-theme .search-box::placeholder {
-    color: #64748b;
-}
+      body.dark-theme .search-box::placeholder {
+        color: #64748b;
+      }
 
-/* Supplier info */
-body.dark-theme .supplier-info-card {
-    background: #111827;
-    border-bottom-color: #334155;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-}
+      /* Supplier info */
+      body.dark-theme .supplier-info-card {
+        background: #111827;
+        border-bottom-color: #334155;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      }
 
-body.dark-theme .info-label {
-    color: #94a3b8;
-}
+      body.dark-theme .info-label {
+        color: #94a3b8;
+      }
 
-body.dark-theme .info-val {
-    color: #f1f5f9;
-}
+      body.dark-theme .info-val {
+        color: #f1f5f9;
+      }
 
-/* Table */
-body.dark-theme .qc-table {
-    background: #111827;
-    border-color: #475569;
-}
+      /* Table */
+      body.dark-theme .qc-table {
+        background: #111827;
+        border-color: #475569;
+      }
 
-body.dark-theme .qc-table th,
-body.dark-theme .qc-table td {
-    border-right-color: #475569;
-    border-bottom-color: #475569;
-}
+      body.dark-theme .qc-table th,
+      body.dark-theme .qc-table td {
+        border-right-color: #475569;
+        border-bottom-color: #475569;
+      }
 
-body.dark-theme .qc-table th {
-    background: #020617;
-}
+      body.dark-theme .qc-table th {
+        background: #020617;
+      }
 
-body.dark-theme .qc-table th.sub-head {
-    background: #1e293b;
-}
+      body.dark-theme .qc-table th.sub-head {
+        background: #1e293b;
+      }
 
-body.dark-theme .qc-table th.erp-head {
-    background: #115e59;
-}
+      body.dark-theme .qc-table th.erp-head {
+        background: #115e59;
+      }
 
-body.dark-theme .month-col {
-    background: #111827;
-    color: #e2e8f0;
-    border-right-color: #64748b;
-}
+      body.dark-theme .month-col {
+        background: #111827;
+        color: #e2e8f0;
+        border-right-color: #64748b;
+      }
 
-body.dark-theme th.month-col {
-    background: #020617;
-}
+      body.dark-theme th.month-col {
+        background: #020617;
+      }
 
-/* Normal table cells */
-body.dark-theme .cell-content {
-    color: #e2e8f0;
-}
+      /* Normal table cells */
+      body.dark-theme .cell-content {
+        color: #e2e8f0;
+      }
 
-/* Vendor TS */
-body.dark-theme .vendor-ts-cell,
-body.dark-theme td[style*="background: #f0fdfa"] {
-    background: #042f2e !important;
-}
+      /* Vendor TS */
+      body.dark-theme .vendor-ts-cell,
+      body.dark-theme td[style*="background: #f0fdfa"] {
+        background: #042f2e !important;
+      }
 
-body.dark-theme .vendor-ts-cell .cell-content {
-    color: #5eead4 !important;
-}
+      body.dark-theme .vendor-ts-cell .cell-content {
+        color: #5eead4 !important;
+      }
 
-/* Quick Dice */
-body.dark-theme .qc-quick-dice {
-    background: #1e1b4b;
-    color: #a5b4fc;
-}
+      /* Quick Dice */
+      body.dark-theme .qc-quick-dice {
+        background: #1e1b4b;
+        color: #a5b4fc;
+      }
 
-/* Inputs */
-body.dark-theme .qc-input,
-body.dark-theme .qc-textarea {
-    background: #1e293b;
-    color: #f8fafc;
-    border-color: #475569;
-}
+      /* Inputs */
+      body.dark-theme .qc-input,
+      body.dark-theme .qc-textarea {
+        background: #1e293b;
+        color: #f8fafc;
+        border-color: #475569;
+      }
 
-body.dark-theme .qc-input:focus,
-body.dark-theme .qc-textarea:focus {
-    background: #0f2a3d;
-    border-color: #38bdf8;
-    color: white;
-}
+      body.dark-theme .qc-input:focus,
+      body.dark-theme .qc-textarea:focus {
+        background: #0f2a3d;
+        border-color: #38bdf8;
+        color: white;
+      }
 
-/* Inactive cells */
-body.dark-theme .inactive-cell {
-    background: repeating-linear-gradient(
-        45deg,
-        #1e293b,
-        #1e293b 6px,
-        #334155 6px,
-        #334155 12px
-    ) !important;
-}
+      /* Inactive cells */
+      body.dark-theme .inactive-cell {
+        background: repeating-linear-gradient(
+          45deg,
+          #1e293b,
+          #1e293b 6px,
+          #334155 6px,
+          #334155 12px
+        ) !important;
+      }
 
-/* QC Highlight - keep yellow */
-body.dark-theme .qc-highlight,
-body.dark-theme td.qc-highlight,
-body.dark-theme td.qc-highlight div,
-body.dark-theme td.qc-highlight textarea,
-body.dark-theme td.qc-highlight input {
-    background-color: #fef08a !important;
-    color: #854d0e !important;
-}
+      /* QC Highlight - keep yellow */
+      body.dark-theme .qc-highlight,
+      body.dark-theme td.qc-highlight,
+      body.dark-theme td.qc-highlight div,
+      body.dark-theme td.qc-highlight textarea,
+      body.dark-theme td.qc-highlight input {
+        background-color: #fef08a !important;
+        color: #854d0e !important;
+      }
 
-/* Total row */
-body.dark-theme #qcBody tr:last-child {
-    background: #1e293b !important;
-}
+      /* Total row */
+      body.dark-theme #qcBody tr:last-child {
+        background: #1e293b !important;
+      }
 
-body.dark-theme #qcBody tr:last-child .month-col {
-    background: #334155 !important;
-    color: #f8fafc !important;
-}
+      body.dark-theme #qcBody tr:last-child .month-col {
+        background: #334155 !important;
+        color: #f8fafc !important;
+      }
 
-/* Modal */
-body.dark-theme .modal-content {
-    background: #111827;
-    color: #e2e8f0;
-}
+      /* Modal */
+      body.dark-theme .modal-content {
+        background: #111827;
+        color: #e2e8f0;
+      }
 
-body.dark-theme .modal-body {
-    background: #111827;
-}
+      body.dark-theme .modal-body {
+        background: #111827;
+      }
 
-body.dark-theme .ts-breakdown-table {
-    border-color: #475569;
-}
+      body.dark-theme .ts-breakdown-table {
+        border-color: #475569;
+      }
 
-body.dark-theme .ts-breakdown-table th,
-body.dark-theme .ts-breakdown-table td {
-    border-color: #475569;
-}
+      body.dark-theme .ts-breakdown-table th,
+      body.dark-theme .ts-breakdown-table td {
+        border-color: #475569;
+      }
 
-body.dark-theme .ts-breakdown-table th {
-    background: #1e293b;
-    color: #e2e8f0;
-}
+      body.dark-theme .ts-breakdown-table th {
+        background: #1e293b;
+        color: #e2e8f0;
+      }
 
-body.dark-theme .ts-breakdown-table td {
-    background: #111827;
-    color: #cbd5e1;
-}
+      body.dark-theme .ts-breakdown-table td {
+        background: #111827;
+        color: #cbd5e1;
+      }
 
-body.dark-theme .ts-breakdown-table tfoot td {
-    background: #1e293b;
-    color: #f1f5f9;
-}
+      body.dark-theme .ts-breakdown-table tfoot td {
+        background: #1e293b;
+        color: #f1f5f9;
+      }
 
-/* Login */
-body.dark-theme .login-box {
-    background: #111827;
-    color: #f1f5f9;
-}
+      /* Login */
+      body.dark-theme .login-box {
+        background: #111827;
+        color: #f1f5f9;
+      }
 
-body.dark-theme .login-box p {
-    color: #94a3b8 !important;
-}
+      body.dark-theme .login-box p {
+        color: #94a3b8 !important;
+      }
 
-body.dark-theme #vatAccessCode {
-    background: #1e293b;
-    color: white;
-    border-color: #475569 !important;
-}
+      body.dark-theme #vatAccessCode {
+        background: #1e293b;
+        color: white;
+        border-color: #475569 !important;
+      }
 
-body.dark-theme #vatAccessCode::placeholder {
-    color: #64748b;
-}
+      body.dark-theme #vatAccessCode::placeholder {
+        color: #64748b;
+      }
 
-/* Scrollbars */
-body.dark-theme ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
+      /* Scrollbars */
+      body.dark-theme ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
 
-body.dark-theme ::-webkit-scrollbar-track {
-    background: #0f172a;
-}
+      body.dark-theme ::-webkit-scrollbar-track {
+        background: #0f172a;
+      }
 
-body.dark-theme ::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 6px;
-}
+      body.dark-theme ::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 6px;
+      }
 
-body.dark-theme ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
-}
+      body.dark-theme ::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+      }
 
-/* Dark Mode - Total Row Values */
-body.dark-theme #qcBody tr:last-child td,
-body.dark-theme #qcBody tr:last-child td .cell-content {
-    color: #000000 !important;
-}
-
-        
+      /* Dark Mode - Total Row Values */
+      body.dark-theme #qcBody tr:last-child td,
+      body.dark-theme #qcBody tr:last-child td .cell-content {
+        color: #000000 !important;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <!-- Login Modal -->
     <div id="loginModal" class="login-overlay">
-        <div class="login-box">
-            <h2 style="margin-top:0;">QC Access</h2>
-            <p style="font-size:12px; color:#64748b;">Please enter the secure access code.</p>
-            <input type="password" id="vatAccessCode" placeholder="Access Code" style="width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center;" onkeydown="if(event.key==='Enter') verifyLogin()">
-            <div id="loginError" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;">Invalid Access Code</div>
-            <button onclick="verifyLogin()" class="btn-action" style="width: 100%; justify-content: center; padding: 10px; background: #10b981;">Unlock</button>
+      <div class="login-box">
+        <h2 style="margin-top: 0">QC Access</h2>
+        <p style="font-size: 12px; color: #64748b">
+          Please enter the secure access code.
+        </p>
+        <input
+          type="password"
+          id="vatAccessCode"
+          placeholder="Access Code"
+          style="
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            text-align: center;
+          "
+          onkeydown="if (event.key === 'Enter') verifyLogin();"
+        />
+        <div
+          id="loginError"
+          style="
+            color: #ef4444;
+            font-size: 12px;
+            margin-bottom: 10px;
+            display: none;
+          "
+        >
+          Invalid Access Code
         </div>
+        <button
+          onclick="verifyLogin()"
+          class="btn-action"
+          style="
+            width: 100%;
+            justify-content: center;
+            padding: 10px;
+            background: #10b981;
+          "
+        >
+          Unlock
+        </button>
+      </div>
     </div>
 
     <!-- Vendor TS Details Modal Popup -->
-    <div id="tsDetailsModal" class="modal-overlay" onclick="if(event.target===this) closeTsModal()">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="tsModalTitle">Vendor Timesheet Breakdown</h3>
-                <button class="modal-close-btn" onclick="closeTsModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <table class="ts-breakdown-table">
-                    <thead>
-                        <tr>
-                            <th>Plate No</th>
-                            <th>NR (Hrs)</th>
-                            <th>OT (Hrs)</th>
-                            <th>Total Amount / TS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tsBreakdownBody"></tbody>
-                    <tfoot id="tsBreakdownFoot"></tfoot>
-                </table>
-            </div>
+    <div
+      id="tsDetailsModal"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeTsModal();"
+    >
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="tsModalTitle">Vendor Timesheet Breakdown</h3>
+          <button class="modal-close-btn" onclick="closeTsModal()">
+            &times;
+          </button>
         </div>
+        <div class="modal-body">
+          <table class="ts-breakdown-table">
+            <thead>
+              <tr>
+                <th>Plate No</th>
+                <th>NR (Hrs)</th>
+                <th>OT (Hrs)</th>
+                <th>Total Amount / TS</th>
+              </tr>
+            </thead>
+            <tbody id="tsBreakdownBody"></tbody>
+            <tfoot id="tsBreakdownFoot"></tfoot>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Top Ribbon -->
     <div class="navbar">
-        <div class="nav-left">
-            <a href="index.html" style="color:white; font-size: 18px;" title="Back to Main List">🔙</a>
-            <span style="font-size: 16px; font-weight: 600;">VAT QC Viewer</span>
-            <span id="saveStatus"></span>
+      <div class="nav-left">
+        <a
+          href="index.html"
+          style="color: white; font-size: 18px"
+          title="Back to Main List"
+          >🔙</a
+        >
+        <span style="font-size: 16px; font-weight: 600">VAT QC Viewer</span>
+        <span id="saveStatus"></span>
+      </div>
+
+      <div class="nav-tools">
+        <input
+          type="text"
+          id="ownerSearch"
+          class="search-box"
+          placeholder="Search Owner / Supplier..."
+          onkeyup="filterOwnerList()"
+        />
+
+        <!-- Year Switcher with Arrows -->
+        <div class="year-control">
+          <button
+            class="year-btn"
+            onclick="switchYear(-1)"
+            title="Previous Year"
+          >
+            ◀
+          </button>
+          <select
+            id="yearSelect"
+            class="year-select"
+            onchange="fetchData()"
+          ></select>
+          <button class="year-btn" onclick="switchYear(1)" title="Next Year">
+            ▶
+          </button>
         </div>
 
-        <div class="nav-tools">
-            <input type="text" id="ownerSearch" class="search-box" placeholder="Search Owner / Supplier..." onkeyup="filterOwnerList()">
+        <!-- Edit Toggle Controls -->
+        <button
+          id="editToggleBtn"
+          class="btn-action"
+          onclick="toggleEditMode()"
+          title="Edit Billing Data"
+          style="background: #f59e0b"
+        >
+          ✏️ Edit
+        </button>
+        <button
+          id="saveBtn"
+          class="btn-action"
+          onclick="saveCurrentSupplierChanges()"
+          style="display: none; background: #10b981"
+        >
+          💾 Save
+        </button>
+        <button
+          id="cancelBtn"
+          class="btn-action"
+          onclick="cancelEditMode()"
+          style="display: none; background: #ef4444"
+        >
+          ❌ Cancel
+        </button>
 
-            <!-- Year Switcher with Arrows -->
-            <div class="year-control">
-                <button class="year-btn" onclick="switchYear(-1)" title="Previous Year">◀</button>
-                <select id="yearSelect" class="year-select" onchange="fetchData()"></select>
-                <button class="year-btn" onclick="switchYear(1)" title="Next Year">▶</button>
-            </div>
+        <button
+          id="themeToggleBtn"
+          class="btn-action"
+          onclick="toggleDarkTheme()"
+          style="background: #475569"
+        >
+          🌙 Dark
+        </button>
 
-            <!-- Edit Toggle Controls -->
-            <button id="editToggleBtn" class="btn-action" onclick="toggleEditMode()" title="Edit Billing Data" style="background: #f59e0b;">
-                ✏️ Edit
-            </button>
-            <button id="saveBtn" class="btn-action" onclick="saveCurrentSupplierChanges()" style="display: none; background: #10b981;">
-                💾 Save
-            </button>
-            <button id="cancelBtn" class="btn-action" onclick="cancelEditMode()" style="display: none; background: #ef4444;">
-                ❌ Cancel
-            </button>
-
-            <button id="themeToggleBtn"
-        class="btn-action"
-        onclick="toggleDarkTheme()"
-        style="background:#475569;">
-    🌙 Dark
-</button>
-
-            <a href="index.html" class="btn-action">📋 Main View</a>
-            <a href="QC_Bill_Pending_Dashboard.html" class="btn-action" style="background: #dc2626;" title="View QC Verified entries with missing Bill No or Amount">⚠️ QC Issues</a>
-            <a href="non_vat_tracker/index.html" class="btn-action" style="background: #ea580c;" title="Switch to Non-VAT Bill Tracker">📦 Non VAT</a>
-        </div>
+        <a href="index.html" class="btn-action">📋 Main View</a>
+        <a
+          href="QC_Bill_Pending_Dashboard.html"
+          class="btn-action"
+          style="background: #dc2626"
+          title="View QC Verified entries with missing Bill No or Amount"
+          >⚠️ QC Issues</a
+        >
+        <a
+          href="non_vat_tracker/index.html"
+          class="btn-action"
+          style="background: #ea580c"
+          title="Switch to Non-VAT Bill Tracker"
+          >📦 Non VAT</a
+        >
+      </div>
     </div>
 
     <!-- Main Workspace -->
     <div class="main-container">
-        <!-- Left Side: Owner List -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <span>OWNER / SUPPLIER</span>
-                <span id="ownerBadgeCount" class="owner-count-badge">0</span>
+      <!-- Left Side: Owner List -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <span>OWNER / SUPPLIER</span>
+          <span id="ownerBadgeCount" class="owner-count-badge">0</span>
+        </div>
+        <ul class="owner-list" id="ownerListContainer">
+          <li style="padding: 15px; color: #94a3b8; text-align: center">
+            Loading suppliers...
+          </li>
+        </ul>
+      </div>
+
+      <!-- Right Side: Compact Table Viewer -->
+      <div class="content-area">
+        <!-- Top Summary Card for Selected Owner -->
+        <div
+          class="supplier-info-card"
+          id="supplierInfoCard"
+          style="display: none"
+        >
+          <div>
+            <div class="info-label">Supplier / Owner</div>
+            <div class="info-val" id="infoOwnerName"></div>
+          </div>
+          <div>
+            <div class="info-label">VAT Number</div>
+            <div class="info-val">
+              <span id="infoVatNo"></span>
+              <button
+                onclick="copyVatNumber()"
+                style="
+                  background: none;
+                  border: none;
+                  cursor: pointer;
+                  font-size: 14px;
+                "
+                title="Copy VAT"
+              >
+                📋
+              </button>
             </div>
-            <ul class="owner-list" id="ownerListContainer">
-                <li style="padding: 15px; color: #94a3b8; text-align: center;">Loading suppliers...</li>
-            </ul>
+          </div>
+          <div>
+            <div class="info-label">Display Name</div>
+            <div class="info-val" id="infoDisplayName"></div>
+          </div>
+          <div>
+            <div class="info-label">Active Sites</div>
+            <div class="info-val" id="infoSitesCount">0</div>
+          </div>
         </div>
 
-        <!-- Right Side: Compact Table Viewer -->
-        <div class="content-area">
-            <!-- Top Summary Card for Selected Owner -->
-            <div class="supplier-info-card" id="supplierInfoCard" style="display: none;">
-                <div>
-                    <div class="info-label">Supplier / Owner</div>
-                    <div class="info-val" id="infoOwnerName"></div>
-                </div>
-                <div>
-                    <div class="info-label">VAT Number</div>
-                    <div class="info-val">
-                        <span id="infoVatNo"></span>
-                        <button onclick="copyVatNumber()" style="background:none; border:none; cursor:pointer; font-size:14px;" title="Copy VAT">📋</button>
-                    </div>
-                </div>
-                <div>
-                    <div class="info-label">Display Name</div>
-                    <div class="info-val" id="infoDisplayName"></div>
-                </div>
-                <div>
-                    <div class="info-label">Active Sites</div>
-                    <div class="info-val" id="infoSitesCount">0</div>
-                </div>
-            </div>
-
-            <!-- Table -->
-            <div class="table-viewport" id="tableViewport">
-                <div id="noSelectionNotice" style="padding: 40px; text-align: center; color: #94a3b8; font-size: 14px;">
-                    Select an Owner / Supplier from the left panel to display the billing records.
-                </div>
-                <table class="qc-table" id="qcTable" style="display: none;">
-                    <thead id="qcHead"></thead>
-                    <tbody id="qcBody"></tbody>
-                </table>
-            </div>
+        <!-- Table -->
+        <div class="table-viewport" id="tableViewport">
+          <div
+            id="noSelectionNotice"
+            style="
+              padding: 40px;
+              text-align: center;
+              color: #94a3b8;
+              font-size: 14px;
+            "
+          >
+            Select an Owner / Supplier from the left panel to display the
+            billing records.
+          </div>
+          <table class="qc-table" id="qcTable" style="display: none">
+            <thead id="qcHead"></thead>
+            <tbody id="qcBody"></tbody>
+          </table>
         </div>
+      </div>
     </div>
 
     <script>
-        const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        let rawData = [];
-        let consolidatedSuppliers = {};
-        let selectedSupplierKey = null;
-        let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
-        let currentYear = new Date().getFullYear();
-        const tsDetailsCache = {};
-        let isEditMode = false;
+      const monthsFull = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      let rawData = [];
+      let consolidatedSuppliers = {};
+      let selectedSupplierKey = null;
+      let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
+      let currentYear = new Date().getFullYear();
+      const tsDetailsCache = {};
+      let isEditMode = false;
 
-// Dark Theme
-const savedTheme = localStorage.getItem("vatTheme");
+      // Dark Theme
+      const savedTheme = localStorage.getItem("vatTheme");
 
-if (savedTheme === "dark") {
-    document.body.classList.add("dark-theme");
-}
+      if (savedTheme === "dark") {
+        document.body.classList.add("dark-theme");
+      }
 
-function updateThemeButton() {
-    const btn = document.getElementById("themeToggleBtn");
-    if (!btn) return;
+      function updateThemeButton() {
+        const btn = document.getElementById("themeToggleBtn");
+        if (!btn) return;
 
-    if (document.body.classList.contains("dark-theme")) {
-        btn.innerHTML = "☀️ Light";
-        btn.style.background = "#f59e0b";
-    } else {
-        btn.innerHTML = "🌙 Dark";
-        btn.style.background = "#475569";
-    }
-}
-
-
-// Initialize Years Dropdown
-function initYearOptions() {
-    const select = document.getElementById("yearSelect");
-    select.innerHTML = "";
-
-    for (let y = currentYear - 3; y <= currentYear + 2; y++) {
-        let opt = document.createElement("option");
-        opt.value = y;
-        opt.textContent = y;
-
-        if (y === currentYear) opt.selected = true;
-
-        select.appendChild(opt);
-    }
-}
-
-initYearOptions();
-
-function toggleDarkTheme() {
-    document.body.classList.toggle("dark-theme");
-
-    const isDark = document.body.classList.contains("dark-theme");
-
-    localStorage.setItem("vatTheme", isDark ? "dark" : "light");
-
-    const btn = document.getElementById("themeToggleBtn");
-
-    if (isDark) {
-        btn.innerHTML = "☀️ Light";
-        btn.style.background = "#f59e0b";
-    } else {
-        btn.innerHTML = "🌙 Dark";
-        btn.style.background = "#475569";
-    }
-}
-
-updateThemeButton();
-
-
-        // Auth Check
-        if (vatCode) {
-            document.getElementById("loginModal").style.display = "none";
-            fetchData();
+        if (document.body.classList.contains("dark-theme")) {
+          btn.innerHTML = "☀️ Light";
+          btn.style.background = "#f59e0b";
         } else {
-            document.getElementById("loginModal").style.display = "flex";
+          btn.innerHTML = "🌙 Dark";
+          btn.style.background = "#475569";
         }
+      }
 
-        function verifyLogin() {
-            const inputCode = document.getElementById("vatAccessCode").value.trim();
-            if(!inputCode) return;
-            vatCode = inputCode;
-            sessionStorage.setItem("vatTrackerCode", vatCode);
-            document.getElementById("loginModal").style.display = "none";
-            fetchData();
+      // Initialize Years Dropdown
+      function initYearOptions() {
+        const select = document.getElementById("yearSelect");
+        select.innerHTML = "";
+
+        for (let y = currentYear - 3; y <= currentYear + 2; y++) {
+          let opt = document.createElement("option");
+          opt.value = y;
+          opt.textContent = y;
+
+          if (y === currentYear) opt.selected = true;
+
+          select.appendChild(opt);
         }
+      }
 
-        function triggerLoginError() {
-            sessionStorage.removeItem("vatTrackerCode");
-            vatCode = "";
-            document.getElementById("loginModal").style.display = "flex";
-            document.getElementById("loginError").style.display = "block";
+      initYearOptions();
+
+      function toggleDarkTheme() {
+        document.body.classList.toggle("dark-theme");
+
+        const isDark = document.body.classList.contains("dark-theme");
+
+        localStorage.setItem("vatTheme", isDark ? "dark" : "light");
+
+        const btn = document.getElementById("themeToggleBtn");
+
+        if (isDark) {
+          btn.innerHTML = "☀️ Light";
+          btn.style.background = "#f59e0b";
+        } else {
+          btn.innerHTML = "🌙 Dark";
+          btn.style.background = "#475569";
         }
+      }
 
-        function switchYear(step) {
-            const select = document.getElementById("yearSelect");
-            let targetYear = parseInt(select.value) + step;
-            let options = Array.from(select.options).map(o => parseInt(o.value));
-            if (options.includes(targetYear)) {
-                select.value = targetYear;
-                fetchData();
+      updateThemeButton();
+
+      // Auth Check
+      if (vatCode) {
+        document.getElementById("loginModal").style.display = "none";
+        fetchData();
+      } else {
+        document.getElementById("loginModal").style.display = "flex";
+      }
+
+      function verifyLogin() {
+        const inputCode = document.getElementById("vatAccessCode").value.trim();
+        if (!inputCode) return;
+        vatCode = inputCode;
+        sessionStorage.setItem("vatTrackerCode", vatCode);
+        document.getElementById("loginModal").style.display = "none";
+        fetchData();
+      }
+
+      function triggerLoginError() {
+        sessionStorage.removeItem("vatTrackerCode");
+        vatCode = "";
+        document.getElementById("loginModal").style.display = "flex";
+        document.getElementById("loginError").style.display = "block";
+      }
+
+      function switchYear(step) {
+        const select = document.getElementById("yearSelect");
+        let targetYear = parseInt(select.value) + step;
+        let options = Array.from(select.options).map((o) => parseInt(o.value));
+        if (options.includes(targetYear)) {
+          select.value = targetYear;
+          fetchData();
+        }
+      }
+
+      async function fetchData() {
+        currentYear = parseInt(document.getElementById("yearSelect").value);
+        showStatus("Loading...", "saving");
+
+        try {
+          const res = await fetch(
+            `/timesheet/api/vat-tracking/data?year=${currentYear}`,
+            {
+              headers: { "x-vat-code": vatCode },
+            },
+          );
+          if (res.status === 401) return triggerLoginError();
+          const json = await res.json();
+          if (json.success) {
+            rawData = json.data;
+            processConsolidatedSuppliers();
+            renderOwnerList();
+            showStatus("Ready", "saved");
+          } else {
+            alert("Error: " + json.message);
+          }
+        } catch (err) {
+          console.error("fetchData error:", err);
+          showStatus("Network Error", "error");
+        }
+      }
+
+      // Consolidated Mapping
+      function processConsolidatedSuppliers() {
+        consolidatedSuppliers = {};
+
+        rawData.forEach((group) => {
+          const supKey = (group.supplier || "Unknown").trim();
+          if (!consolidatedSuppliers[supKey]) {
+            consolidatedSuppliers[supKey] = {
+              supplier: supKey,
+              company: group.company,
+              vat_no: group.vat_no || "",
+              display_name: group.display_name || "",
+              sites: [],
+            };
+          } else {
+            if (!consolidatedSuppliers[supKey].vat_no && group.vat_no)
+              consolidatedSuppliers[supKey].vat_no = group.vat_no;
+            if (
+              !consolidatedSuppliers[supKey].display_name &&
+              group.display_name
+            )
+              consolidatedSuppliers[supKey].display_name = group.display_name;
+          }
+
+          group.sites.forEach((st) => {
+            const existingSite = consolidatedSuppliers[supKey].sites.find(
+              (s) => s.site_name === st.site_name,
+            );
+            if (!existingSite) {
+              consolidatedSuppliers[supKey].sites.push(
+                JSON.parse(JSON.stringify(st)),
+              );
+            } else {
+              for (let m = 0; m < 12; m++) {
+                if (st.active_months[m]) existingSite.active_months[m] = true;
+                if (st.billing[m]?.bill_no)
+                  existingSite.billing[m].bill_no = st.billing[m].bill_no;
+                if (st.billing[m]?.amount)
+                  existingSite.billing[m].amount = st.billing[m].amount;
+                if (st.billing[m]?.erp_total)
+                  existingSite.billing[m].erp_total = st.billing[m].erp_total;
+                if (st.billing[m]?.qc_checked !== undefined)
+                  existingSite.billing[m].qc_checked = st.billing[m].qc_checked;
+              }
             }
-        }
+          });
+        });
 
-        async function fetchData() {
-            currentYear = parseInt(document.getElementById("yearSelect").value);
-            showStatus("Loading...", "saving");
+        Object.values(consolidatedSuppliers).forEach((sup) => {
+          sup.sites.sort((a, b) => a.site_name.localeCompare(b.site_name));
+        });
+      }
 
-            try {
-                const res = await fetch(`/timesheet/api/vat-tracking/data?year=${currentYear}`, {
-                    headers: { "x-vat-code": vatCode }
-                });
-                if (res.status === 401) return triggerLoginError();
-                const json = await res.json();
-                if (json.success) {
-                    rawData = json.data;
-                    processConsolidatedSuppliers();
-                    renderOwnerList();
-                    showStatus("Ready", "saved");
-                } else {
-                    alert("Error: " + json.message);
-                }
-            } catch (err) {
-                console.error("fetchData error:", err);
-                showStatus("Network Error", "error");
-            }
-        }
+      function renderOwnerList() {
+        const listEl = document.getElementById("ownerListContainer");
+        const search = document
+          .getElementById("ownerSearch")
+          .value.toLowerCase();
+        const keys = Object.keys(consolidatedSuppliers).sort((a, b) =>
+          a.localeCompare(b),
+        );
 
-        // Consolidated Mapping
-        function processConsolidatedSuppliers() {
-            consolidatedSuppliers = {};
+        let html = "";
+        let matchCount = 0;
 
-            rawData.forEach(group => {
-                const supKey = (group.supplier || "Unknown").trim();
-                if (!consolidatedSuppliers[supKey]) {
-                    consolidatedSuppliers[supKey] = {
-                        supplier: supKey,
-                        company: group.company,
-                        vat_no: group.vat_no || "",
-                        display_name: group.display_name || "",
-                        sites: []
-                    };
-                } else {
-                    if (!consolidatedSuppliers[supKey].vat_no && group.vat_no) consolidatedSuppliers[supKey].vat_no = group.vat_no;
-                    if (!consolidatedSuppliers[supKey].display_name && group.display_name) consolidatedSuppliers[supKey].display_name = group.display_name;
-                }
+        keys.forEach((k) => {
+          const s = consolidatedSuppliers[k];
+          const matchStr =
+            `${s.supplier} ${s.vat_no} ${s.display_name}`.toLowerCase();
+          if (search && !matchStr.includes(search)) return;
 
-                group.sites.forEach(st => {
-                    const existingSite = consolidatedSuppliers[supKey].sites.find(s => s.site_name === st.site_name);
-                    if (!existingSite) {
-                        consolidatedSuppliers[supKey].sites.push(JSON.parse(JSON.stringify(st)));
-                    } else {
-                        for (let m = 0; m < 12; m++) {
-                            if (st.active_months[m]) existingSite.active_months[m] = true;
-                            if (st.billing[m]?.bill_no) existingSite.billing[m].bill_no = st.billing[m].bill_no;
-                            if (st.billing[m]?.amount) existingSite.billing[m].amount = st.billing[m].amount;
-                            if (st.billing[m]?.erp_total) existingSite.billing[m].erp_total = st.billing[m].erp_total;
-                            if (st.billing[m]?.qc_checked !== undefined) existingSite.billing[m].qc_checked = st.billing[m].qc_checked;
-                        }
-                    }
-                });
-            });
-
-            Object.values(consolidatedSuppliers).forEach(sup => {
-                sup.sites.sort((a, b) => a.site_name.localeCompare(b.site_name));
-            });
-        }
-
-        function renderOwnerList() {
-            const listEl = document.getElementById("ownerListContainer");
-            const search = document.getElementById("ownerSearch").value.toLowerCase();
-            const keys = Object.keys(consolidatedSuppliers).sort((a, b) => a.localeCompare(b));
-
-            let html = "";
-            let matchCount = 0;
-
-            keys.forEach(k => {
-                const s = consolidatedSuppliers[k];
-                const matchStr = `${s.supplier} ${s.vat_no} ${s.display_name}`.toLowerCase();
-                if (search && !matchStr.includes(search)) return;
-
-                matchCount++;
-                const isActive = (k === selectedSupplierKey);
-                html += `
-                    <li class="owner-item ${isActive ? 'active' : ''}" data-supplier="${escapeHTML(k)}" onclick="selectSupplier('${escapeQuotes(k)}')">
+          matchCount++;
+          const isActive = k === selectedSupplierKey;
+          html += `
+                    <li class="owner-item ${isActive ? "active" : ""}" data-supplier="${escapeHTML(k)}" onclick="selectSupplier('${escapeQuotes(k)}')">
                         <div class="owner-item-title">
                             <span class="owner-sn-badge">${matchCount}</span>
                             <span class="owner-name-text">${escapeHTML(s.supplier)}</span>
                         </div>
                         <div class="owner-item-sub">
-                            <span>${escapeHTML(s.vat_no || '')}</span>
+                            <span>${escapeHTML(s.vat_no || "")}</span>
                             <span>${s.sites.length} Site(s)</span>
                         </div>
                     </li>
                 `;
-            });
+        });
 
-            listEl.innerHTML = html || `<li style="padding: 15px; color: #94a3b8; text-align: center;">No supplier found</li>`;
-            document.getElementById("ownerBadgeCount").innerText = matchCount;
+        listEl.innerHTML =
+          html ||
+          `<li style="padding: 15px; color: #94a3b8; text-align: center;">No supplier found</li>`;
+        document.getElementById("ownerBadgeCount").innerText = matchCount;
 
-            if (selectedSupplierKey && consolidatedSuppliers[selectedSupplierKey]) {
-                selectSupplier(selectedSupplierKey);
-            } else if (keys.length > 0 && !search) {
-                selectSupplier(keys[0]);
-            } else if (matchCount === 0) {
-                document.getElementById("supplierInfoCard").style.display = "none";
-                document.getElementById("qcTable").style.display = "none";
-                document.getElementById("noSelectionNotice").style.display = "block";
-            }
+        if (selectedSupplierKey && consolidatedSuppliers[selectedSupplierKey]) {
+          selectSupplier(selectedSupplierKey);
+        } else if (keys.length > 0 && !search) {
+          selectSupplier(keys[0]);
+        } else if (matchCount === 0) {
+          document.getElementById("supplierInfoCard").style.display = "none";
+          document.getElementById("qcTable").style.display = "none";
+          document.getElementById("noSelectionNotice").style.display = "block";
         }
+      }
 
-        function filterOwnerList() {
-            renderOwnerList();
-        }
+      function filterOwnerList() {
+        renderOwnerList();
+      }
 
-        function selectSupplier(key) {
-            selectedSupplierKey = key;
-            const supData = consolidatedSuppliers[key];
-            if (!supData) return;
+      function selectSupplier(key) {
+        selectedSupplierKey = key;
+        const supData = consolidatedSuppliers[key];
+        if (!supData) return;
 
-            // 🟢 കൃത്യമായി data-supplier വെച്ച് ലെഫ്റ്റ് പാനലിൽ ആക്റ്റീവ് ഹൈലൈറ്റ് നൽകുന്നു
-            document.querySelectorAll(".owner-item").forEach(el => {
-                if (el.getAttribute("data-supplier") === key) {
-                    el.classList.add("active");
-                } else {
-                    el.classList.remove("active");
-                }
-            });
+        // 🟢 കൃത്യമായി data-supplier വെച്ച് ലെഫ്റ്റ് പാനലിൽ ആക്റ്റീവ് ഹൈലൈറ്റ് നൽകുന്നു
+        document.querySelectorAll(".owner-item").forEach((el) => {
+          if (el.getAttribute("data-supplier") === key) {
+            el.classList.add("active");
+          } else {
+            el.classList.remove("active");
+          }
+        });
 
-            document.getElementById("supplierInfoCard").style.display = "grid";
-            document.getElementById("infoOwnerName").innerText = supData.supplier;
-            document.getElementById("infoVatNo").innerText = supData.vat_no || "";
-            document.getElementById("infoDisplayName").innerText = supData.display_name || "";
-            document.getElementById("infoSitesCount").innerText = `${supData.sites.length} Sites`;
+        document.getElementById("supplierInfoCard").style.display = "grid";
+        document.getElementById("infoOwnerName").innerText = supData.supplier;
+        document.getElementById("infoVatNo").innerText = supData.vat_no || "";
+        document.getElementById("infoDisplayName").innerText =
+          supData.display_name || "";
+        document.getElementById("infoSitesCount").innerText =
+          `${supData.sites.length} Sites`;
 
-            document.getElementById("noSelectionNotice").style.display = "none";
-            document.getElementById("qcTable").style.display = "table";
+        document.getElementById("noSelectionNotice").style.display = "none";
+        document.getElementById("qcTable").style.display = "table";
 
-            renderTable(supData);
-        }
+        renderTable(supData);
+      }
 
-        function toggleEditMode() {
-            if (!selectedSupplierKey) return;
-            isEditMode = true;
-            document.getElementById("editToggleBtn").style.display = "none";
-            document.getElementById("saveBtn").style.display = "inline-flex";
-            document.getElementById("cancelBtn").style.display = "inline-flex";
-            const supData = consolidatedSuppliers[selectedSupplierKey];
-            renderTable(supData);
-        }
+      function toggleEditMode() {
+        if (!selectedSupplierKey) return;
+        isEditMode = true;
+        document.getElementById("editToggleBtn").style.display = "none";
+        document.getElementById("saveBtn").style.display = "inline-flex";
+        document.getElementById("cancelBtn").style.display = "inline-flex";
+        const supData = consolidatedSuppliers[selectedSupplierKey];
+        renderTable(supData);
+      }
 
-        function cancelEditMode() {
-            isEditMode = false;
-            document.getElementById("editToggleBtn").style.display = "inline-flex";
-            document.getElementById("saveBtn").style.display = "none";
-            document.getElementById("cancelBtn").style.display = "none";
-            const supData = consolidatedSuppliers[selectedSupplierKey];
-            renderTable(supData);
-            showStatus("Edit cancelled", "saved");
-        }
+      function cancelEditMode() {
+        isEditMode = false;
+        document.getElementById("editToggleBtn").style.display = "inline-flex";
+        document.getElementById("saveBtn").style.display = "none";
+        document.getElementById("cancelBtn").style.display = "none";
+        const supData = consolidatedSuppliers[selectedSupplierKey];
+        renderTable(supData);
+        showStatus("Edit cancelled", "saved");
+      }
 
-        async function saveCurrentSupplierChanges() {
-            if (!selectedSupplierKey) return;
-            const supData = consolidatedSuppliers[selectedSupplierKey];
-            if (!supData) return;
+      async function saveCurrentSupplierChanges() {
+        if (!selectedSupplierKey) return;
+        const supData = consolidatedSuppliers[selectedSupplierKey];
+        if (!supData) return;
 
-            const inputs = document.querySelectorAll(".qc-val");
-            const updates = [];
+        const inputs = document.querySelectorAll(".qc-val");
+        const updates = [];
 
-            inputs.forEach(input => {
-                const siteName = input.dataset.site;
-                const m = parseInt(input.dataset.month);
-                const field = input.dataset.field;
-                let newVal = input.value.trim();
+        inputs.forEach((input) => {
+          const siteName = input.dataset.site;
+          const m = parseInt(input.dataset.month);
+          const field = input.dataset.field;
+          let newVal = input.value.trim();
 
-                const site = supData.sites.find(s => s.site_name === siteName);
-                if (!site) return;
+          const site = supData.sites.find((s) => s.site_name === siteName);
+          if (!site) return;
 
-                const oldVal = site.billing[m] ? (site.billing[m][field] || "") : "";
+          const oldVal = site.billing[m] ? site.billing[m][field] || "" : "";
 
-                if ((field === 'amount' || field === 'quick_dice') && newVal !== "") {
-                    newVal = evaluateMathExpression(newVal);
-                }
+          if ((field === "amount" || field === "quick_dice") && newVal !== "") {
+            newVal = evaluateMathExpression(newVal);
+          }
 
-                if (newVal !== oldVal) {
-                    if (!site.billing[m]) site.billing[m] = {};
-                    site.billing[m][field] = newVal;
+          if (newVal !== oldVal) {
+            if (!site.billing[m]) site.billing[m] = {};
+            site.billing[m][field] = newVal;
 
-                    const origGroup = rawData.find(g => g.supplier === supData.supplier && g.sites.some(s => s.site_name === siteName));
-                    const companyName = origGroup ? origGroup.company : supData.company;
-
-                    updates.push({
-                        year: currentYear,
-                        company: companyName,
-                        supplier: supData.supplier,
-                        vat_no: supData.vat_no,
-                        display_name: supData.display_name,
-                        site_name: siteName,
-                        month_index: m,
-                        field: field,
-                        value: newVal
-                    });
-                }
-            });
-
-            if (updates.length === 0) {
-                cancelEditMode();
-                showStatus("No changes to save", "saved");
-                return;
-            }
-
-            showStatus("Saving changes...", "saving");
-            try {
-                const res = await fetch(`/timesheet/api/vat-tracking/update-bulk`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
-                    body: JSON.stringify({ changes: updates })
-                });
-                const json = await res.json();
-                if (json.success) {
-                    showStatus("✓ Saved successfully", "saved");
-                    cancelEditMode();
-                } else {
-                    showStatus("Error saving", "error");
-                }
-            } catch (e) {
-                showStatus("Network Error", "error");
-            }
-        }
-
-        // 🟢 + , - , * , / മാത്സ് ഫോർമുലകൾ കണക്കുകൂട്ടാനുള്ള ഫംഗ്ഷൻ
-        function evaluateMathExpression(rawVal) {
-            if (!rawVal) return "";
-            let expr = String(rawVal).trim();
-            if (expr.startsWith("=")) expr = expr.substring(1);
-            expr = expr.replace(/,/g, "").trim();
-
-            // അക്കങ്ങളും ചിഹ്നങ്ങളും (+, -, *, /, .) മാത്രമാണോ എന്ന് പരിശോധിക്കുന്നു
-            if (/^[0-9+\-*/().\s]+$/.test(expr) && /[+\-*/]/.test(expr)) {
-                try {
-                    let calculated = new Function("return " + expr)();
-                    if (isFinite(calculated) && !isNaN(calculated)) {
-                        return Number(calculated.toFixed(2)).toString();
-                    }
-                } catch (e) {}
-            }
-            return rawVal.trim();
-        }
-
-        // 🟡 ടൈപ്പ് ചെയ്യുമ്പോൾ യാതൊരു സേവിംഗും നടക്കില്ല; യെല്ലോ ഹൈലൈറ്റ് മാത്രം ലൈവായി കാണിക്കും
-        function handleLiveQuickDice(inputEl, siteName, monthIdx) {
-            const val = inputEl.value.trim();
-            const hasValue = val !== "";
-
-            const currentTd = inputEl.closest('td');
-            if (currentTd) {
-                const vendorTsTd = currentTd.previousElementSibling;
-                const amountTd = vendorTsTd ? vendorTsTd.previousElementSibling : null;
-                const billNoTd = amountTd ? amountTd.previousElementSibling : null;
-
-                const cellsToHighlight = [currentTd, vendorTsTd, amountTd, billNoTd].filter(Boolean);
-                cellsToHighlight.forEach(td => {
-                    if (hasValue) {
-                        td.classList.add('qc-highlight');
-                        td.querySelectorAll('*').forEach(child => child.classList.add('qc-highlight'));
-                    } else {
-                        td.classList.remove('qc-highlight');
-                        td.querySelectorAll('*').forEach(child => child.classList.remove('qc-highlight'));
-                    }
-                });
-            }
-
-            if (!selectedSupplierKey) return;
-            const supData = consolidatedSuppliers[selectedSupplierKey];
-            if (!supData) return;
-            const site = supData.sites.find(s => s.site_name === siteName);
-            if (site && site.billing[monthIdx]) {
-                site.billing[monthIdx].quick_dice = val;
-            }
-        }
-
-        // 🟢 യൂസർ സെല്ലിൽ നിന്ന് മാറുമ്പോൾ (Blur അല്ലെങ്കിൽ Enter) മാത്രം കാൽക്കുലേറ്റ് ചെയ്തു സേവ് ചെയ്യുകയും ലോക്ക് ചെയ്യുകയും ചെയ്യുന്നു
-        async function handleDiceBlur(inputEl, siteName, monthIdx) {
-            // മാത്സ് കാൽക്കുലേഷൻ (+, -, *, /) റൺ ചെയ്ത് ഫൈനൽ റിസൾട്ട് എടുക്കുന്നു
-            let val = evaluateMathExpression(inputEl.value);
-            inputEl.value = val;
-
-            if (!selectedSupplierKey) return;
-            const supData = consolidatedSuppliers[selectedSupplierKey];
-            if (!supData) return;
-
-            const site = supData.sites.find(s => s.site_name === siteName);
-            if (site && site.billing[monthIdx]) {
-                site.billing[monthIdx].quick_dice = val;
-            }
-
-            const origGroup = rawData.find(g => g.supplier === supData.supplier && g.sites.some(s => s.site_name === siteName));
+            const origGroup = rawData.find(
+              (g) =>
+                g.supplier === supData.supplier &&
+                g.sites.some((s) => s.site_name === siteName),
+            );
             const companyName = origGroup ? origGroup.company : supData.company;
 
-            showStatus("Saving...", "saving");
-            try {
-                await fetch(`/timesheet/api/vat-tracking/update-cell`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
-                    body: JSON.stringify({
-                        year: currentYear,
-                        company: companyName,
-                        supplier: supData.supplier,
-                        vat_no: supData.vat_no,
-                        display_name: supData.display_name,
-                        site_name: siteName,
-                        month_index: monthIdx,
-                        field: "quick_dice",
-                        value: val
-                    })
-                });
-                showStatus("Quick Dice Saved", "saved");
-
-                // വാല്യൂ 0-ന് മുകളിൽ ഉണ്ടെങ്കിൽ സെൽ Read-Only ലോക്ക് ആക്കുന്നു
-                const numVal = parseFloat(val);
-                const isPositive = !isNaN(numVal) && numVal > 0;
-                if (!isEditMode && val !== "" && (isPositive || val !== "0")) {
-                    renderTable(supData);
-                }
-            } catch (e) {
-                showStatus("Sync Error", "error");
-            }
-        }
-
-        // Fetch Live Vehicle breakdown (Plate No, NR, OT, Total)
-        async function fetchVehicleBreakdown(supplier, siteName, monthIdx) {
-            const cacheKey = `${supplier}_${siteName}_${currentYear}_${monthIdx}`;
-            if (tsDetailsCache[cacheKey]) return tsDetailsCache[cacheKey];
-
-            try {
-                const url = `/timesheet/api/vat-tracking/vendor-breakdown?supplier=${encodeURIComponent(supplier)}&site=${encodeURIComponent(siteName)}&year=${currentYear}&month=${monthIdx + 1}`;
-                const res = await fetch(url, {
-                    headers: { "x-vat-code": vatCode }
-                });
-                
-                if (res.ok) {
-                    const json = await res.json();
-                    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-                        const list = json.data.map(v => ({
-                            plate: v.plate_no || "N/A",
-                            nr: Number(v.nr_hours || 0),
-                            ot: Number(v.ot_hours || 0),
-                            total: Number(v.total_amount || 0)
-                        }));
-                        tsDetailsCache[cacheKey] = list;
-                        return list;
-                    }
-                }
-            } catch (err) {
-                console.warn("Breakdown fetch error:", err);
-            }
-
-            return [];
-        }
-
-        // Helper to extract clean site first name (skipping leading 'Z' or 'z')
-        function getSiteFirstWord(siteName) {
-            if (!siteName) return "";
-            // Remove starting Z/z followed by space, hyphen or underscore
-            let cleaned = siteName.trim().replace(/^z[\s\-_]+/i, '').trim();
-            // Pick the first word
-            return cleaned.split(/[\s\-_]+/)[0] || "";
-        }
-
-        // Format vehicle breakdown string with Mmm-yy + Site Name (e.g. Jan-26 Afif Rent Bill (...))
-        function formatPlateDetails(plates, monthIdx, siteName) {
-            const shortM = monthsFull[monthIdx].substring(0, 3);
-            const shortY = currentYear.toString().slice(-2);
-            const siteWord = getSiteFirstWord(siteName);
-            const sitePrefix = siteWord ? `${siteWord} ` : "";
-            const label = `${shortM}-${shortY} ${sitePrefix}Rent Bill`;
-
-            if (!plates || plates.length === 0) return label;
-            
-            const parts = plates.map(p => {
-                const nrPart = `NR ${p.nr}`;
-                const otPart = (Number(p.ot) > 0) ? `  OT ${p.ot}` : '';
-                return `${p.plate} [${nrPart}${otPart}]`;
+            updates.push({
+              year: currentYear,
+              company: companyName,
+              supplier: supData.supplier,
+              vat_no: supData.vat_no,
+              display_name: supData.display_name,
+              site_name: siteName,
+              month_index: m,
+              field: field,
+              value: newVal,
             });
-            
-            return `${label} (${parts.join(", ")})`;
+          }
+        });
+
+        if (updates.length === 0) {
+          cancelEditMode();
+          showStatus("No changes to save", "saved");
+          return;
         }
 
-        async function loadCellTooltip(tdEl, siteName, monthIdx) {
-            if (!selectedSupplierKey) return;
-            const plates = await fetchVehicleBreakdown(selectedSupplierKey, siteName, monthIdx);
-            tdEl.title = formatPlateDetails(plates, monthIdx, siteName);
+        showStatus("Saving changes...", "saving");
+        try {
+          const res = await fetch(`/timesheet/api/vat-tracking/update-bulk`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-vat-code": vatCode,
+            },
+            body: JSON.stringify({ changes: updates }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            showStatus("✓ Saved successfully", "saved");
+            cancelEditMode();
+          } else {
+            showStatus("Error saving", "error");
+          }
+        } catch (e) {
+          showStatus("Network Error", "error");
         }
+      }
 
-        async function handleTsRightClick(event, siteName, monthIdx) {
-            event.preventDefault();
-            if (!selectedSupplierKey) return;
+      // 🟢 + , - , * , / മാത്സ് ഫോർമുലകൾ കണക്കുകൂട്ടാനുള്ള ഫംഗ്ഷൻ
+      function evaluateMathExpression(rawVal) {
+        if (!rawVal) return "";
+        let expr = String(rawVal).trim();
+        if (expr.startsWith("=")) expr = expr.substring(1);
+        expr = expr.replace(/,/g, "").trim();
 
-            showStatus("Preparing text...", "saving");
-            const plates = await fetchVehicleBreakdown(selectedSupplierKey, siteName, monthIdx);
-            const textToCopy = formatPlateDetails(plates, monthIdx, siteName);
-
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                showStatus(`Copied: "${textToCopy}"`, "saved");
-            }).catch(() => {
-                showStatus("Copy failed!", "error");
-            });
-        }
-
-        function handleAmountRightClick(event, amtVal) {
-            event.preventDefault();
-            const val = String(amtVal || '').trim();
-            if (!val) {
-                showStatus("No amount to copy", "saved");
-                return;
+        // അക്കങ്ങളും ചിഹ്നങ്ങളും (+, -, *, /, .) മാത്രമാണോ എന്ന് പരിശോധിക്കുന്നു
+        if (/^[0-9+\-*/().\s]+$/.test(expr) && /[+\-*/]/.test(expr)) {
+          try {
+            let calculated = new Function("return " + expr)();
+            if (isFinite(calculated) && !isNaN(calculated)) {
+              return Number(calculated.toFixed(2)).toString();
             }
-
-            navigator.clipboard.writeText(val).then(() => {
-                showStatus(`Copied Amount: "${val}"`, "saved");
-            }).catch(() => {
-                showStatus("Copy failed!", "error");
-            });
+          } catch (e) {}
         }
+        return rawVal.trim();
+      }
 
-        // Right Click on Bill No Cell: Copy Bill Number directly
-        function handleBillNoRightClick(event, billNoVal) {
-            event.preventDefault();
-            const val = String(billNoVal || '').trim();
-            if (!val) {
-                showStatus("No bill number to copy", "saved");
-                return;
-            }
+      // 🟡 ടൈപ്പ് ചെയ്യുമ്പോൾ യാതൊരു സേവിംഗും നടക്കില്ല; യെല്ലോ ഹൈലൈറ്റ് മാത്രം ലൈവായി കാണിക്കും
+      function handleLiveQuickDice(inputEl, siteName, monthIdx) {
+        const val = inputEl.value.trim();
+        const hasValue = val !== "";
 
-            navigator.clipboard.writeText(val).then(() => {
-                showStatus(`Copied Bill No: "${val}"`, "saved");
-            }).catch(() => {
-                showStatus("Copy failed!", "error");
-            });
-        }
+        const currentTd = inputEl.closest("td");
+        if (currentTd) {
+          const vendorTsTd = currentTd.previousElementSibling;
+          const amountTd = vendorTsTd
+            ? vendorTsTd.previousElementSibling
+            : null;
+          const billNoTd = amountTd ? amountTd.previousElementSibling : null;
 
-        async function openTsDetailsModal(siteName, monthIdx) {
-            if (!selectedSupplierKey) return;
-            const mName = monthsFull[monthIdx];
-
-            document.getElementById("tsModalTitle").innerText = `${mName} - ${siteName} Breakdown`;
-            const tbody = document.getElementById("tsBreakdownBody");
-            const tfoot = document.getElementById("tsBreakdownFoot");
-            
-            tbody.innerHTML = `<tr><td colspan="4" style="color:#64748b; padding: 20px;">Fetching Plate & Hours data...</td></tr>`;
-            tfoot.innerHTML = "";
-            document.getElementById("tsDetailsModal").style.display = "flex";
-
-            const plates = await fetchVehicleBreakdown(selectedSupplierKey, siteName, monthIdx);
-
-            tbody.innerHTML = "";
-            if (!plates || plates.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="color:#94a3b8; padding: 20px;">No vehicles found for this site & month</td></tr>`;
+          const cellsToHighlight = [
+            currentTd,
+            vendorTsTd,
+            amountTd,
+            billNoTd,
+          ].filter(Boolean);
+          cellsToHighlight.forEach((td) => {
+            if (hasValue) {
+              td.classList.add("qc-highlight");
+              td.querySelectorAll("*").forEach((child) =>
+                child.classList.add("qc-highlight"),
+              );
             } else {
-                let totalNr = 0;
-                let totalOt = 0;
-                let grandTotal = 0;
+              td.classList.remove("qc-highlight");
+              td.querySelectorAll("*").forEach((child) =>
+                child.classList.remove("qc-highlight"),
+              );
+            }
+          });
+        }
 
-                plates.forEach(p => {
-                    totalNr += p.nr;
-                    totalOt += p.ot;
-                    grandTotal += p.total;
+        if (!selectedSupplierKey) return;
+        const supData = consolidatedSuppliers[selectedSupplierKey];
+        if (!supData) return;
+        const site = supData.sites.find((s) => s.site_name === siteName);
+        if (site && site.billing[monthIdx]) {
+          site.billing[monthIdx].quick_dice = val;
+        }
+      }
 
-                    tbody.innerHTML += `
+      // 🟢 യൂസർ സെല്ലിൽ നിന്ന് മാറുമ്പോൾ (Blur അല്ലെങ്കിൽ Enter) മാത്രം കാൽക്കുലേറ്റ് ചെയ്തു സേവ് ചെയ്യുകയും ലോക്ക് ചെയ്യുകയും ചെയ്യുന്നു
+      async function handleDiceBlur(inputEl, siteName, monthIdx) {
+        // മാത്സ് കാൽക്കുലേഷൻ (+, -, *, /) റൺ ചെയ്ത് ഫൈനൽ റിസൾട്ട് എടുക്കുന്നു
+        let val = evaluateMathExpression(inputEl.value);
+        inputEl.value = val;
+
+        if (!selectedSupplierKey) return;
+        const supData = consolidatedSuppliers[selectedSupplierKey];
+        if (!supData) return;
+
+        const site = supData.sites.find((s) => s.site_name === siteName);
+        if (site && site.billing[monthIdx]) {
+          site.billing[monthIdx].quick_dice = val;
+        }
+
+        const origGroup = rawData.find(
+          (g) =>
+            g.supplier === supData.supplier &&
+            g.sites.some((s) => s.site_name === siteName),
+        );
+        const companyName = origGroup ? origGroup.company : supData.company;
+
+        showStatus("Saving...", "saving");
+        try {
+          await fetch(`/timesheet/api/vat-tracking/update-cell`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-vat-code": vatCode,
+            },
+            body: JSON.stringify({
+              year: currentYear,
+              company: companyName,
+              supplier: supData.supplier,
+              vat_no: supData.vat_no,
+              display_name: supData.display_name,
+              site_name: siteName,
+              month_index: monthIdx,
+              field: "quick_dice",
+              value: val,
+            }),
+          });
+          showStatus("Quick Dice Saved", "saved");
+
+          // വാല്യൂ 0-ന് മുകളിൽ ഉണ്ടെങ്കിൽ സെൽ Read-Only ലോക്ക് ആക്കുന്നു
+          const numVal = parseFloat(val);
+          const isPositive = !isNaN(numVal) && numVal > 0;
+          if (!isEditMode && val !== "" && (isPositive || val !== "0")) {
+            renderTable(supData);
+          }
+        } catch (e) {
+          showStatus("Sync Error", "error");
+        }
+      }
+
+      // Fetch Live Vehicle breakdown (Plate No, NR, OT, Total)
+      async function fetchVehicleBreakdown(supplier, siteName, monthIdx) {
+        const cacheKey = `${supplier}_${siteName}_${currentYear}_${monthIdx}`;
+        if (tsDetailsCache[cacheKey]) return tsDetailsCache[cacheKey];
+
+        try {
+          const url = `/timesheet/api/vat-tracking/vendor-breakdown?supplier=${encodeURIComponent(supplier)}&site=${encodeURIComponent(siteName)}&year=${currentYear}&month=${monthIdx + 1}`;
+          const res = await fetch(url, {
+            headers: { "x-vat-code": vatCode },
+          });
+
+          if (res.ok) {
+            const json = await res.json();
+            if (
+              json.success &&
+              Array.isArray(json.data) &&
+              json.data.length > 0
+            ) {
+              const list = json.data.map((v) => ({
+                plate: v.plate_no || "N/A",
+                nr: Number(v.nr_hours || 0),
+                ot: Number(v.ot_hours || 0),
+                total: Number(v.total_amount || 0),
+              }));
+              tsDetailsCache[cacheKey] = list;
+              return list;
+            }
+          }
+        } catch (err) {
+          console.warn("Breakdown fetch error:", err);
+        }
+
+        return [];
+      }
+
+      // Helper to extract clean site first name (skipping leading 'Z' or 'z')
+      function getSiteFirstWord(siteName) {
+        if (!siteName) return "";
+        // Remove starting Z/z followed by space, hyphen or underscore
+        let cleaned = siteName
+          .trim()
+          .replace(/^z[\s\-_]+/i, "")
+          .trim();
+        // Pick the first word
+        return cleaned.split(/[\s\-_]+/)[0] || "";
+      }
+
+      // Format vehicle breakdown string with Mmm-yy + Site Name (e.g. Jan-26 Afif Rent Bill (...))
+      function formatPlateDetails(plates, monthIdx, siteName) {
+        const shortM = monthsFull[monthIdx].substring(0, 3);
+        const shortY = currentYear.toString().slice(-2);
+        const siteWord = getSiteFirstWord(siteName);
+        const sitePrefix = siteWord ? `${siteWord} ` : "";
+        const label = `${shortM}-${shortY} ${sitePrefix}Rent Bill`;
+
+        if (!plates || plates.length === 0) return label;
+
+        const parts = plates.map((p) => {
+          const nrPart = `NR ${p.nr}`;
+          const otPart = Number(p.ot) > 0 ? `  OT ${p.ot}` : "";
+          return `${p.plate} [${nrPart}${otPart}]`;
+        });
+
+        return `${label} (${parts.join(", ")})`;
+      }
+
+      async function loadCellTooltip(tdEl, siteName, monthIdx) {
+        if (!selectedSupplierKey) return;
+        const plates = await fetchVehicleBreakdown(
+          selectedSupplierKey,
+          siteName,
+          monthIdx,
+        );
+        tdEl.title = formatPlateDetails(plates, monthIdx, siteName);
+      }
+
+      async function handleTsRightClick(event, siteName, monthIdx) {
+        event.preventDefault();
+        if (!selectedSupplierKey) return;
+
+        showStatus("Preparing text...", "saving");
+        const plates = await fetchVehicleBreakdown(
+          selectedSupplierKey,
+          siteName,
+          monthIdx,
+        );
+        const textToCopy = formatPlateDetails(plates, monthIdx, siteName);
+
+        navigator.clipboard
+          .writeText(textToCopy)
+          .then(() => {
+            showStatus(`Copied: "${textToCopy}"`, "saved");
+          })
+          .catch(() => {
+            showStatus("Copy failed!", "error");
+          });
+      }
+
+      function handleAmountRightClick(event, amtVal) {
+        event.preventDefault();
+        const val = String(amtVal || "").trim();
+        if (!val) {
+          showStatus("No amount to copy", "saved");
+          return;
+        }
+
+        navigator.clipboard
+          .writeText(val)
+          .then(() => {
+            showStatus(`Copied Amount: "${val}"`, "saved");
+          })
+          .catch(() => {
+            showStatus("Copy failed!", "error");
+          });
+      }
+
+      // Right Click on Bill No Cell: Copy Bill Number directly
+      function handleBillNoRightClick(event, billNoVal) {
+        event.preventDefault();
+        const val = String(billNoVal || "").trim();
+        if (!val) {
+          showStatus("No bill number to copy", "saved");
+          return;
+        }
+
+        navigator.clipboard
+          .writeText(val)
+          .then(() => {
+            showStatus(`Copied Bill No: "${val}"`, "saved");
+          })
+          .catch(() => {
+            showStatus("Copy failed!", "error");
+          });
+      }
+
+      async function openTsDetailsModal(siteName, monthIdx) {
+        if (!selectedSupplierKey) return;
+        const mName = monthsFull[monthIdx];
+
+        document.getElementById("tsModalTitle").innerText =
+          `${mName} - ${siteName} Breakdown`;
+        const tbody = document.getElementById("tsBreakdownBody");
+        const tfoot = document.getElementById("tsBreakdownFoot");
+
+        tbody.innerHTML = `<tr><td colspan="4" style="color:#64748b; padding: 20px;">Fetching Plate & Hours data...</td></tr>`;
+        tfoot.innerHTML = "";
+        document.getElementById("tsDetailsModal").style.display = "flex";
+
+        const plates = await fetchVehicleBreakdown(
+          selectedSupplierKey,
+          siteName,
+          monthIdx,
+        );
+
+        tbody.innerHTML = "";
+        if (!plates || plates.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="color:#94a3b8; padding: 20px;">No vehicles found for this site & month</td></tr>`;
+        } else {
+          let totalNr = 0;
+          let totalOt = 0;
+          let grandTotal = 0;
+
+          plates.forEach((p) => {
+            totalNr += p.nr;
+            totalOt += p.ot;
+            grandTotal += p.total;
+
+            tbody.innerHTML += `
                         <tr>
                             <td style="font-weight: 600;">${escapeHTML(p.plate)}</td>
                             <td>${p.nr}</td>
@@ -1339,9 +1705,9 @@ updateThemeButton();
                             <td style="font-weight: 600;">${p.total > 0 ? p.total.toFixed(2) : ""}</td>
                         </tr>
                     `;
-                });
+          });
 
-                tfoot.innerHTML = `
+          tfoot.innerHTML = `
                     <tr>
                         <td>Total</td>
                         <td>${totalNr.toFixed(2)}</td>
@@ -1349,81 +1715,95 @@ updateThemeButton();
                         <td style="color: #0f766e;">${grandTotal > 0 ? grandTotal.toFixed(2) : ""}</td>
                     </tr>
                 `;
-            }
         }
+      }
 
-        function closeTsModal() {
-            document.getElementById("tsDetailsModal").style.display = "none";
-        }
+      function closeTsModal() {
+        document.getElementById("tsDetailsModal").style.display = "none";
+      }
 
-        // Render Table with QC Checkbox column per site
-        function renderTable(supData) {
-            const shortYear = currentYear.toString().slice(-2);
-            let head1 = `<tr><th rowspan="2" class="month-col">Month</th>`;
-            let head2 = `<tr>`;
+      // Render Table with QC Checkbox column per site
+      function renderTable(supData) {
+        const shortYear = currentYear.toString().slice(-2);
+        let head1 = `<tr><th rowspan="2" class="month-col">Month</th>`;
+        let head2 = `<tr>`;
 
-            supData.sites.forEach(site => {
-                head1 += `<th colspan="4" title="${escapeHTML(site.site_name)}">${escapeHTML(site.site_name)}</th>`;
-                head2 += `
+        supData.sites.forEach((site) => {
+          head1 += `<th colspan="4" title="${escapeHTML(site.site_name)}">${escapeHTML(site.site_name)}</th>`;
+          head2 += `
                     <th class="sub-head" style="width: 120px; min-width: 120px;">Bill No</th>
                     <th class="sub-head" style="width: 85px; min-width: 85px;">Amount</th>
                     <th class="sub-head erp-head" style="width: 85px; min-width: 85px;">Vendor TS</th>
                     <th class="sub-head" style="width: 90px; min-width: 90px; background: #4338ca;">Quick Dice</th>
                 `;
-            });
-            head1 += `</tr>`;
-            head2 += `</tr>`;
+        });
+        head1 += `</tr>`;
+        head2 += `</tr>`;
 
-            document.getElementById("qcHead").innerHTML = head1 + head2;
+        document.getElementById("qcHead").innerHTML = head1 + head2;
 
-            let bodyHtml = "";
+        let bodyHtml = "";
 
-            // ടോട്ടലുകൾ കണക്കാക്കാനുള്ള ഒബ്ജക്റ്റുകൾ
-            const siteTotals = supData.sites.map(() => ({
-                amount: 0,
-                vendor_ts: 0,
-                quick_dice_total: 0,
-                quick_dice_count: 0
-            }));
+        // ടോട്ടലുകൾ കണക്കാക്കാനുള്ള ഒബ്ജക്റ്റുകൾ
+        const siteTotals = supData.sites.map(() => ({
+          amount: 0,
+          vendor_ts: 0,
+          quick_dice_total: 0,
+          quick_dice_count: 0,
+        }));
 
-            for (let m = 0; m < 12; m++) {
-                let mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
-                bodyHtml += `<tr><td class="month-col"><div class="cell-content">${mLabel}</div></td>`;
+        for (let m = 0; m < 12; m++) {
+          let mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
+          bodyHtml += `<tr><td class="month-col"><div class="cell-content">${mLabel}</div></td>`;
 
-                supData.sites.forEach((site, sIdx) => {
-                    const isActive = site.active_months[m];
-                    const bill = site.billing[m] || { bill_no: "", amount: "", erp_total: "", quick_dice: "" };
-                    const erpVal = bill.erp_total ? Number(bill.erp_total).toFixed(2) : "";
-                    const billVal = escapeHTML(bill.bill_no || '');
-                    const amtVal = escapeHTML(bill.amount || '');
-                    const qDiceVal = escapeHTML(bill.quick_dice || '');
-                    const hasValue = qDiceVal.trim() !== "";
-                    const hlClass = hasValue ? 'qc-highlight' : '';
+          supData.sites.forEach((site, sIdx) => {
+            const isActive = site.active_months[m];
+            const bill = site.billing[m] || {
+              bill_no: "",
+              amount: "",
+              erp_total: "",
+              quick_dice: "",
+            };
+            const erpVal = bill.erp_total
+              ? Number(bill.erp_total).toFixed(2)
+              : "";
+            const billVal = escapeHTML(bill.bill_no || "");
+            const amtVal = escapeHTML(bill.amount || "");
+            const qDiceVal = escapeHTML(bill.quick_dice || "");
+            const hasValue = qDiceVal.trim() !== "";
+            const hlClass = hasValue ? "qc-highlight" : "";
 
-                    if (isActive) {
-                        // ടോട്ടൽ കാൽക്കുലേഷൻ
-                        const parsedAmt = parseFloat(String(bill.amount || '').replace(/,/g, ''));
-                        if (!isNaN(parsedAmt)) siteTotals[sIdx].amount += parsedAmt;
+            if (isActive) {
+              // ടോട്ടൽ കാൽക്കുലേഷൻ
+              const parsedAmt = parseFloat(
+                String(bill.amount || "").replace(/,/g, ""),
+              );
+              if (!isNaN(parsedAmt)) siteTotals[sIdx].amount += parsedAmt;
 
-                        const parsedErp = parseFloat(String(bill.erp_total || '').replace(/,/g, ''));
-                        if (!isNaN(parsedErp)) siteTotals[sIdx].vendor_ts += parsedErp;
+              const parsedErp = parseFloat(
+                String(bill.erp_total || "").replace(/,/g, ""),
+              );
+              if (!isNaN(parsedErp)) siteTotals[sIdx].vendor_ts += parsedErp;
 
-                        if (hasValue) {
-                            siteTotals[sIdx].quick_dice_count += 1;
-                            const parsedDice = parseFloat(String(bill.quick_dice || '').replace(/,/g, ''));
-                            if (!isNaN(parsedDice)) siteTotals[sIdx].quick_dice_total += parsedDice;
-                        }
+              if (hasValue) {
+                siteTotals[sIdx].quick_dice_count += 1;
+                const parsedDice = parseFloat(
+                  String(bill.quick_dice || "").replace(/,/g, ""),
+                );
+                if (!isNaN(parsedDice))
+                  siteTotals[sIdx].quick_dice_total += parsedDice;
+              }
 
-                        const sNameAttr = escapeQuotes(site.site_name);
-                        const rowUniqueId = `row_${sNameAttr}_${m}`;
-                        const shortM = monthsFull[m].substring(0, 3);
-                        const siteWord = getSiteFirstWord(site.site_name);
-                        const sitePrefix = siteWord ? `${siteWord} ` : "";
-                        const initialLabel = `${shortM}-${shortYear} ${sitePrefix}Rent Bill`;
+              const sNameAttr = escapeQuotes(site.site_name);
+              const rowUniqueId = `row_${sNameAttr}_${m}`;
+              const shortM = monthsFull[m].substring(0, 3);
+              const siteWord = getSiteFirstWord(site.site_name);
+              const sitePrefix = siteWord ? `${siteWord} ` : "";
+              const initialLabel = `${shortM}-${shortYear} ${sitePrefix}Rent Bill`;
 
-                        if (isEditMode) {
-                            // 🟢 EDIT MODE: ഇവിടുന്ന് മാത്രമാണ് ഡാറ്റ ടൈപ്പ് ചെയ്യാൻ സാധിക്കുക
-                            bodyHtml += `
+              if (isEditMode) {
+                // 🟢 EDIT MODE: ഇവിടുന്ന് മാത്രമാണ് ഡാറ്റ ടൈപ്പ് ചെയ്യാൻ സാധിക്കുക
+                bodyHtml += `
                                 <td id="${rowUniqueId}">
                                     <textarea class="qc-textarea qc-val qc-highlight-target ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="bill_no" oninput="autoResizeTextarea(this)">${billVal}</textarea>
                                 </td>
@@ -1437,21 +1817,24 @@ updateThemeButton();
                                     <input type="text" class="qc-input qc-val qc-quick-dice ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="quick_dice" value="${qDiceVal}">
                                 </td>
                             `;
-                        } else {
-                            // 🟢 വാല്യൂ 0-ന് മുകളിലാണെങ്കിൽ മാത്രം Locked (Read-Only) ആക്കുന്നു
-                            const isNumericPositive = !isNaN(parseFloat(qDiceVal)) && parseFloat(qDiceVal) > 0;
-                            const isLocked = qDiceVal.trim() !== "" && (isNumericPositive || qDiceVal.trim() !== "0");
+              } else {
+                // 🟢 വാല്യൂ 0-ന് മുകളിലാണെങ്കിൽ മാത്രം Locked (Read-Only) ആക്കുന്നു
+                const isNumericPositive =
+                  !isNaN(parseFloat(qDiceVal)) && parseFloat(qDiceVal) > 0;
+                const isLocked =
+                  qDiceVal.trim() !== "" &&
+                  (isNumericPositive || qDiceVal.trim() !== "0");
 
-                            let diceCellContent = "";
-                            if (isLocked) {
-                                // സേവ് ചെയ്ത വാല്യൂ ഉണ്ടെങ്കിൽ Read-Only ആക്കുന്നു
-                                diceCellContent = `<div class="cell-content" style="font-size: 11px; font-weight: 700; color: #312e81;" title="Locked: Click 'Edit' button to modify">${qDiceVal}</div>`;
-                            } else {
-                                // 🟢 ടൈപ്പ് ചെയ്യുമ്പോൾ ലോക്ക് ആവാതിരിക്കാനും പുറത്ത് ക്ലിക്ക് ചെയ്യുമ്പോൾ (blur) മാത്രം ലോക്ക് ആവാനും ഉള്ള കോഡ്
-                                diceCellContent = `<input type="text" class="qc-input qc-quick-dice" data-site="${sNameAttr}" data-month="${m}" data-field="quick_dice" value="${qDiceVal === '0' ? '' : qDiceVal}" oninput="handleLiveQuickDice(this, '${sNameAttr}', ${m})" onblur="handleDiceBlur(this, '${sNameAttr}', ${m})" onkeydown="if(event.key==='Enter') this.blur();">`;
-                            }
+                let diceCellContent = "";
+                if (isLocked) {
+                  // സേവ് ചെയ്ത വാല്യൂ ഉണ്ടെങ്കിൽ Read-Only ആക്കുന്നു
+                  diceCellContent = `<div class="cell-content" style="font-size: 11px; font-weight: 700; color: #312e81;" title="Locked: Click 'Edit' button to modify">${qDiceVal}</div>`;
+                } else {
+                  // 🟢 ടൈപ്പ് ചെയ്യുമ്പോൾ ലോക്ക് ആവാതിരിക്കാനും പുറത്ത് ക്ലിക്ക് ചെയ്യുമ്പോൾ (blur) മാത്രം ലോക്ക് ആവാനും ഉള്ള കോഡ്
+                  diceCellContent = `<input type="text" class="qc-input qc-quick-dice" data-site="${sNameAttr}" data-month="${m}" data-field="quick_dice" value="${qDiceVal === "0" ? "" : qDiceVal}" oninput="handleLiveQuickDice(this, '${sNameAttr}', ${m})" onblur="handleDiceBlur(this, '${sNameAttr}', ${m})" onkeydown="if(event.key==='Enter') this.blur();">`;
+                }
 
-                            bodyHtml += `
+                bodyHtml += `
                                 <td class="qc-highlight-target ${hlClass}" style="cursor: pointer;" 
                                     title="Right click to copy Bill No" 
                                     oncontextmenu="handleBillNoRightClick(event, '${escapeQuotes(billVal)}')">
@@ -1473,52 +1856,60 @@ updateThemeButton();
                                     ${diceCellContent}
                                 </td>
                             `;
-                        }
-                    } else {
-                        bodyHtml += `<td colspan="4" class="inactive-cell" title="Inactive Month"></td>`;
-                    }
-                });
-
-                bodyHtml += `</tr>`;
+              }
+            } else {
+              bodyHtml += `<td colspan="4" class="inactive-cell" title="Inactive Month"></td>`;
             }
+          });
 
-            // 🟢 ഡിസംബർ കഴിഞ്ഞുള്ള ടോട്ടൽ വരി (December-ന് താഴെ Total Row)
-            let totalRowHtml = `
+          bodyHtml += `</tr>`;
+        }
+
+        // 🟢 ഡിസംബർ കഴിഞ്ഞുള്ള ടോട്ടൽ വരി (December-ന് താഴെ Total Row)
+        let totalRowHtml = `
                 <tr style="background: #f1f5f9; font-weight: 700; border-top: 2px solid #94a3b8;">
                     <td class="month-col" style="background: #e2e8f0; font-weight: 800;">
                         <div class="cell-content">TOTAL</div>
                     </td>
             `;
 
-            supData.sites.forEach((site, sIdx) => {
-                const tot = siteTotals[sIdx];
-                const amtFormatted = tot.amount > 0 ? tot.amount.toFixed(2) : "";
-                const tsFormatted = tot.vendor_ts > 0 ? tot.vendor_ts.toFixed(2) : "";
-                const qdFormatted = tot.quick_dice_total > 0 ? tot.quick_dice_total.toFixed(2) : (tot.quick_dice_count > 0 ? `${tot.quick_dice_count} Billed` : "");
+        supData.sites.forEach((site, sIdx) => {
+          const tot = siteTotals[sIdx];
+          const amtFormatted = tot.amount > 0 ? tot.amount.toFixed(2) : "";
+          const tsFormatted = tot.vendor_ts > 0 ? tot.vendor_ts.toFixed(2) : "";
+          const qdFormatted =
+            tot.quick_dice_total > 0
+              ? tot.quick_dice_total.toFixed(2)
+              : tot.quick_dice_count > 0
+                ? `${tot.quick_dice_count} Billed`
+                : "";
 
-                // 🟢 Vendor TS Total - Quick Dice Total കാൽക്കുലേഷൻ
-                const diff = Number((tot.vendor_ts - tot.quick_dice_total).toFixed(2));
-                let diffStyle = "background: #f8fafc; color: #64748b;"; // Default 0 or empty
-                let diffText = "";
+          // 🟢 Bill Amount (Amount Total) - Quick Dice Total കാൽക്കുലേഷൻ
+          const diff = Number((tot.amount - tot.quick_dice_total).toFixed(2));
+          let diffStyle = "background: #f8fafc; color: #64748b;"; // Default 0 or empty
+          let diffText = "";
 
-                if (tot.vendor_ts > 0 || tot.quick_dice_total > 0) {
-                    diffText = diff.toFixed(2);
-                    if (diff > 0) {
-                        // 🟢 Positive: Green Fill, Black Text
-                        diffStyle = "background: #bbf7d0 !important; color: #000000 !important; font-weight: 800;";
-                    } else if (diff < 0) {
-                        // 🔴 Negative: Red Fill, White Text
-                        diffStyle = "background: #ef4444 !important; color: #ffffff !important; font-weight: 800;";
-                    } else {
-                        // 0 ആണെങ്കിൽ
-                        diffStyle = "background: #f1f5f9; color: #10b981; font-weight: 800;";
-                    }
-                }
+          if (tot.amount > 0 || tot.quick_dice_total > 0) {
+            diffText = diff.toFixed(2);
+            if (diff > 0) {
+              // 🟢 Positive: Green Fill, Black Text
+              diffStyle =
+                "background: #bbf7d0 !important; color: #000000 !important; font-weight: 800;";
+            } else if (diff < 0) {
+              // 🔴 Negative: Red Fill, White Text
+              diffStyle =
+                "background: #ef4444 !important; color: #ffffff !important; font-weight: 800;";
+            } else {
+              // 0 ആണെങ്കിൽ
+              diffStyle =
+                "background: #f1f5f9; color: #10b981; font-weight: 800;";
+            }
+          }
 
-                totalRowHtml += `
-                    <td style="${diffStyle} font-size: 11px;" title="Vendor TS Total - Quick Dice Total">
-                        <div class="cell-content">${diffText}</div>
-                    </td>
+          totalRowHtml += `
+    <td style="${diffStyle} font-size: 11px;" title="Bill Amount Total - Quick Dice Total">
+        <div class="cell-content">${diffText}</div>
+    </td>
                     <td style="background: #f8fafc; color: #0f172a; font-weight: 800; font-size: 11px;">
                         <div class="cell-content">${amtFormatted}</div>
                     </td>
@@ -1529,90 +1920,124 @@ updateThemeButton();
                         <div class="cell-content">${qdFormatted}</div>
                     </td>
                 `;
-            });
+        });
 
-            totalRowHtml += `</tr>`;
-            bodyHtml += totalRowHtml;
+        totalRowHtml += `</tr>`;
+        bodyHtml += totalRowHtml;
 
-            document.getElementById("qcBody").innerHTML = bodyHtml;
-            if (isEditMode) {
-                document.querySelectorAll("#qcBody .qc-textarea").forEach(tx => autoResizeTextarea(tx));
+        document.getElementById("qcBody").innerHTML = bodyHtml;
+        if (isEditMode) {
+          document
+            .querySelectorAll("#qcBody .qc-textarea")
+            .forEach((tx) => autoResizeTextarea(tx));
+        }
+      }
+
+      function autoResizeTextarea(el) {
+        el.style.height = "auto";
+        el.style.height = Math.max(24, el.scrollHeight) + "px";
+      }
+
+      function copyVatNumber() {
+        const vat = document.getElementById("infoVatNo").innerText.trim();
+        if (!vat) return;
+        navigator.clipboard.writeText(vat).then(() => {
+          showStatus("VAT Copied!", "saved");
+        });
+      }
+
+      function showStatus(msg, type) {
+        const s = document.getElementById("saveStatus");
+        s.innerText = msg;
+        s.className = `status-${type}`;
+        if (type === "saved" || type === "error")
+          setTimeout(() => (s.innerText = ""), 4000);
+      }
+
+      function escapeHTML(str) {
+        return str
+          ? String(str).replace(
+              /[&<>'"]/g,
+              (t) =>
+                ({
+                  "&": "&amp;",
+                  "<": "&lt;",
+                  ">": "&gt;",
+                  "'": "&#39;",
+                  '"': "&quot;",
+                })[t] || t,
+            )
+          : "";
+      }
+      function escapeQuotes(str) {
+        return str
+          ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;")
+          : "";
+      }
+
+      // 🟢 Connect to Server-Sent Events (Live Sync without reloading)
+      function initLiveSync() {
+        const evtSource = new EventSource(
+          "/timesheet/api/vat-tracking/live-updates",
+        );
+
+        evtSource.onopen = function () {
+          console.log("⚡ Live QC Sync Connected");
+        };
+
+        evtSource.onerror = function (err) {
+          console.warn("Live QC Sync connection lost, retrying...", err);
+        };
+
+        evtSource.onmessage = function (event) {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.year !== currentYear) return;
+
+            // 1. Update In-Memory Cache
+            if (consolidatedSuppliers[data.supplier]) {
+              const site = consolidatedSuppliers[data.supplier].sites.find(
+                (s) =>
+                  s.site_name.trim().toLowerCase() ===
+                  data.site_name.trim().toLowerCase(),
+              );
+              if (site && site.billing[data.month_index]) {
+                site.billing[data.month_index][data.field] = data.value;
+              }
             }
-        }
 
-        function autoResizeTextarea(el) {
-            el.style.height = "auto";
-            el.style.height = Math.max(24, el.scrollHeight) + "px";
-        }
-
-        function copyVatNumber() {
-            const vat = document.getElementById("infoVatNo").innerText.trim();
-            if (!vat) return;
-            navigator.clipboard.writeText(vat).then(() => {
-                showStatus("VAT Copied!", "saved");
-            });
-        }
-
-        function showStatus(msg, type) {
-            const s = document.getElementById("saveStatus");
-            s.innerText = msg;
-            s.className = `status-${type}`;
-            if (type === "saved" || type === "error") setTimeout(() => s.innerText = "", 4000);
-        }
-
-        function escapeHTML(str) { return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; }
-        function escapeQuotes(str) { return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; }
-
-        // 🟢 Connect to Server-Sent Events (Live Sync without reloading)
-        function initLiveSync() {
-            const evtSource = new EventSource("/timesheet/api/vat-tracking/live-updates");
-
-            evtSource.onopen = function () {
-                console.log("⚡ Live QC Sync Connected");
-            };
-
-            evtSource.onerror = function (err) {
-                console.warn("Live QC Sync connection lost, retrying...", err);
-            };
-
-            evtSource.onmessage = function (event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.year !== currentYear) return;
-
-                    // 1. Update In-Memory Cache
-                    if (consolidatedSuppliers[data.supplier]) {
-                        const site = consolidatedSuppliers[data.supplier].sites.find(s => 
-                            s.site_name.trim().toLowerCase() === data.site_name.trim().toLowerCase()
-                        );
-                        if (site && site.billing[data.month_index]) {
-                            site.billing[data.month_index][data.field] = data.value;
-                        }
-                    }
-
-                    // 2. If currently opened on screen, update UI instantly without reloading
-                    if (selectedSupplierKey && selectedSupplierKey.trim().toLowerCase() === data.supplier.trim().toLowerCase()) {
-                        if (!isEditMode) {
-                            renderTable(consolidatedSuppliers[selectedSupplierKey]);
-                        } else {
-                            const targetInput = document.querySelector(`input[data-site="${escapeQuotes(data.site_name)}"][data-month="${data.month_index}"][data-field="${data.field}"], textarea[data-site="${escapeQuotes(data.site_name)}"][data-month="${data.month_index}"][data-field="${data.field}"]`);
-                            if (targetInput && document.activeElement !== targetInput) {
-                                targetInput.value = data.value;
-                                if (data.field === "quick_dice") {
-                                    handleLiveQuickDice(targetInput, data.site_name, data.month_index);
-                                }
-                            }
-                        }
-                    }
-                } catch (err) {
-                    console.error("Live sync parse error:", err);
+            // 2. If currently opened on screen, update UI instantly without reloading
+            if (
+              selectedSupplierKey &&
+              selectedSupplierKey.trim().toLowerCase() ===
+                data.supplier.trim().toLowerCase()
+            ) {
+              if (!isEditMode) {
+                renderTable(consolidatedSuppliers[selectedSupplierKey]);
+              } else {
+                const targetInput = document.querySelector(
+                  `input[data-site="${escapeQuotes(data.site_name)}"][data-month="${data.month_index}"][data-field="${data.field}"], textarea[data-site="${escapeQuotes(data.site_name)}"][data-month="${data.month_index}"][data-field="${data.field}"]`,
+                );
+                if (targetInput && document.activeElement !== targetInput) {
+                  targetInput.value = data.value;
+                  if (data.field === "quick_dice") {
+                    handleLiveQuickDice(
+                      targetInput,
+                      data.site_name,
+                      data.month_index,
+                    );
+                  }
                 }
-            };
-        }
+              }
+            }
+          } catch (err) {
+            console.error("Live sync parse error:", err);
+          }
+        };
+      }
 
-        // Initialize listener
-        initLiveSync();
-
+      // Initialize listener
+      initLiveSync();
     </script>
-</body>
+  </body>
 </html>
