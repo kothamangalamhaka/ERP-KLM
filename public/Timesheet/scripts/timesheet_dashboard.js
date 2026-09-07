@@ -337,6 +337,7 @@ function applyGridFilters(tableId = "dashboardTable") {
     let tDriver = tds[3].textContent.toUpperCase();
     let tSite = tds[5].textContent.trim();
     let tPlate = tds[6].textContent.trim();
+    let masterPlateAttr = tds[6].getAttribute("data-master-plate") || tPlate;
     let rowText = row.textContent.toUpperCase();
 
     let matchesFilters = true;
@@ -348,7 +349,7 @@ function applyGridFilters(tableId = "dashboardTable") {
       matchesFilters = false;
     if (activeFilters.site.length > 0 && !activeFilters.site.includes(tSite))
       matchesFilters = false;
-    if (activeFilters.plate.length > 0 && !activeFilters.plate.includes(tPlate))
+    if (activeFilters.plate.length > 0 && !activeFilters.plate.includes(tPlate) && !activeFilters.plate.includes(masterPlateAttr))
       matchesFilters = false;
 
     let matchesGlobal = globalSearch === "" || rowText.includes(globalSearch);
@@ -695,12 +696,42 @@ function getTableHTMLString(
   let monthStart = new Date(y, mIdx, 1);
   let monthEnd = new Date(y, mIdx + 1, 0);
 
+  let curYearInt = parseInt(y);
+  let pLogs = data.logs.plates || [];
+
   let processedVehicles = data.vehicles.map((v) => {
     const plate = v.plate_no;
     v.vRecords = data.records.filter((r) => r.plate_no === plate);
     v.dLogs = (data.logs.drivers || []).filter((l) => l.plate_no === plate);
     v.sLogs = (data.logs.sites || []).filter((l) => l.plate_no === plate);
     v.oLogs = (data.logs.owners || []).filter((l) => l.plate_no === plate);
+
+    // 🟢 മാസത്തിനനുസരിച്ചുള്ള യഥാർത്ഥ പ്ലേറ്റ് നമ്പർ (പഴയത് അല്ലെങ്കിൽ പുതിയത്) കണ്ടുപിടിക്കുന്നു
+    let masterPlate = (v.plate_no || "").trim().toUpperCase();
+    let displayPlate = masterPlate;
+
+    let vPlateChanges = pLogs.filter(
+      (pl) =>
+        (pl.old_plate_no || "").trim().toUpperCase() === masterPlate ||
+        (pl.new_plate_no || "").trim().toUpperCase() === masterPlate
+    );
+
+    if (vPlateChanges.length > 0) {
+      for (let pl of vPlateChanges) {
+        if (!pl.change_date) continue;
+        let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+        let cDate = new Date(cYear, cMonth - 1, cDay);
+
+        if (cYear === curYearInt && (cMonth - 1) === mIdx) {
+          displayPlate = `${pl.old_plate_no.trim().toUpperCase()} ➔ ${pl.new_plate_no.trim().toUpperCase()}`;
+        } else if (monthEnd < cDate) {
+          displayPlate = pl.old_plate_no.trim().toUpperCase();
+        } else if (monthStart >= cDate) {
+          displayPlate = pl.new_plate_no.trim().toUpperCase();
+        }
+      }
+    }
+    v.displayPlate = displayPlate;
 
     let activeDrivers = v.dLogs.filter((d) => {
       let st = parseLogDate(d.work_start_date, new Date("2000-01-01"));
@@ -767,7 +798,7 @@ function getTableHTMLString(
             <td class="wrap-cell">${v.currDriver}</td>
             <td>${v.currMobile}</td>
             <td class="col-site">${v.currSite}</td>
-            <td class="col-plate">${v.plate_no}</td>
+            <td class="col-plate" data-master-plate="${v.plate_no}">${v.displayPlate}</td>
     `;
 
     let sumNormal = 0,

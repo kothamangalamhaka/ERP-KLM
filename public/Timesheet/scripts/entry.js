@@ -1205,9 +1205,12 @@ window.addEventListener("pagehide", function () {
 });
 
 async function saveCellData(rowIdx, colName, colValue) {
-  // 🟢 ആ വരിയിലെ കൃത്യമായ പ്ലേറ്റ് നമ്പർ (പഴയതോ പുതിയതോ) തന്നെ സേവ് ചെയ്യാൻ എടുക്കുന്നു
-  const rowPlateInput = document.querySelector(`#gridBody tr:nth-child(${rowIdx}) td:first-child input`);
-  const plate = rowPlateInput ? rowPlateInput.value.trim().toUpperCase() : document.getElementById("selPlate").value.trim().toUpperCase();
+  const mainPlateInput = document.getElementById("selPlate");
+  let p = mainPlateInput.dataset.actualPlate || mainPlateInput.value.trim().toUpperCase();
+  if (p.includes("➔")) p = p.split("➔").pop().trim();
+  else if (p.includes("->")) p = p.split("->").pop().trim();
+
+  const plate = p;
   if (!plate || !colName) return;
 
   pendingSaves++; 

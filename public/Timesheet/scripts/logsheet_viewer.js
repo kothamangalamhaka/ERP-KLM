@@ -28,6 +28,35 @@ async function openLogsheetViewer(passedPlate = "") {
     return;
   }
 
+  // 🟢 3 possible candidate formats check (Old plate, New plate, Arrow format)
+  let plateCandidates = [plate];
+  let cleanP = plate;
+  if (cleanP.includes("➔")) cleanP = cleanP.split("➔").pop().trim();
+  else if (cleanP.includes("->")) cleanP = cleanP.split("->").pop().trim();
+
+  try {
+    currentToken = localStorage.getItem("timesheetToken");
+    const logRes = await fetch(`/timesheet/api/vehicle-logs?plate=${encodeURIComponent(cleanP)}`, {
+      headers: { Authorization: "Bearer " + currentToken }
+    });
+    const logData = await logRes.json();
+    if (logData.success && logData.plateChanges && logData.plateChanges.length > 0) {
+      logData.plateChanges.forEach(pl => {
+        let oP = (pl.old_plate_no || "").trim().toUpperCase();
+        let nP = (pl.new_plate_no || "").trim().toUpperCase();
+        if (oP && !plateCandidates.includes(oP)) plateCandidates.push(oP);
+        if (nP && !plateCandidates.includes(nP)) plateCandidates.push(nP);
+        let arrowFormat1 = `${oP} ➔ ${nP}`;
+        let arrowFormat2 = `${oP} -> ${nP}`;
+        if (!plateCandidates.includes(arrowFormat1)) plateCandidates.push(arrowFormat1);
+        if (!plateCandidates.includes(arrowFormat2)) plateCandidates.push(arrowFormat2);
+      });
+    }
+  } catch (e) {
+    console.warn("Could not fetch plate logs for folder resolution", e);
+  }
+  if (!plateCandidates.includes(cleanP)) plateCandidates.push(cleanP);
+
   const inlineLogsheet = document.getElementById("inlineLogsheet");
   const title = document.getElementById("logsheetTitle");
   const sidebar = document.getElementById("logsheetFileList");
@@ -106,20 +135,30 @@ async function openLogsheetViewer(passedPlate = "") {
 
   try {
     currentToken = localStorage.getItem("timesheetToken");
-
-    // 🟢 Fix: Ensure token is strictly passed to prevent 401
     const reqHeaders = {
       "Content-Type": "application/json",
       Authorization: "Bearer " + currentToken,
     };
 
-    const response = await fetch("/timesheet/api/logsheets/list", {
-      method: "POST",
-      headers: reqHeaders,
-      body: JSON.stringify({ month, year, plate_no: plate }),
-    });
+    let foundData = null;
+    for (let cand of plateCandidates) {
+      try {
+        const response = await fetch("/timesheet/api/logsheets/list", {
+          method: "POST",
+          headers: reqHeaders,
+          body: JSON.stringify({ month, year, plate_no: cand }),
+        });
+        const data = await response.json();
+        if (data.success && data.files && data.files.length > 0) {
+          foundData = data;
+          break;
+        } else if (data.success && !foundData) {
+          foundData = data;
+        }
+      } catch (err) {}
+    }
 
-    const data = await response.json();
+    const data = foundData || { success: false, message: "No files found." };
 
     if (!data.success) {
       sidebar.innerHTML = `<div style="color:#ef4444; font-weight:bold; padding:10px;">${data.message}</div>`;

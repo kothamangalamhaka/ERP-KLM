@@ -1084,10 +1084,10 @@ router.get("/api/grid-data", verifyToken, async (req, res) => {
       const cleanPlate = plate.trim().toUpperCase();
       allRelatedPlates.push(cleanPlate);
 
-      // 🟢 ഫെച്ച് ചെയ്യുന്ന പ്ലേറ്റിന്റെ പഴയ/പുതിയ പ്ലേറ്റ് ഹിസ്റ്ററി എടുക്കുന്നു
+      // Fetch all plate change history where this plate is involved as old or new
       const pLogs = await pool.query(
         `SELECT * FROM vehicle_plate_log 
-         WHERE UPPER(old_plate_no) = $1 OR UPPER(new_plate_no) = $1
+         WHERE UPPER(TRIM(old_plate_no)) = $1 OR UPPER(TRIM(new_plate_no)) = $1
          ORDER BY change_date ASC, id ASC`,
         [cleanPlate]
       );
@@ -1100,7 +1100,16 @@ router.get("/api/grid-data", verifyToken, async (req, res) => {
         if (nP && !allRelatedPlates.includes(nP)) allRelatedPlates.push(nP);
       });
 
-      query += " AND UPPER(plate_no) = ANY($3)";
+      // Also check if master vehicle table references this
+      const masterCheck = await pool.query(
+        `SELECT plate_no FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = $1`,
+        [cleanPlate]
+      );
+      if (masterCheck.rows.length > 0 && !allRelatedPlates.includes(cleanPlate)) {
+        allRelatedPlates.push(cleanPlate);
+      }
+
+      query += " AND UPPER(TRIM(plate_no)) = ANY($3::text[])";
       params.push(allRelatedPlates);
     }
 
@@ -1707,7 +1716,6 @@ router.post("/api/public/view-report", async (req, res) => {
     if (filterValue) {
       if (filterType === "Plate No") {
         paramCount++;
-        // 🟢 പഴയ പ്ലേറ്റോ പുതിയ പ്ലേറ്റോ അടിച്ചാൽ മാസ്റ്റർ ടേബിളും പ്ലേറ്റ് ചേഞ്ച് ലോഗും ഒന്നിച്ച് തിരയുന്നു
         vQuery += ` AND (
           tv.plate_no ILIKE $${paramCount}
           OR EXISTS (

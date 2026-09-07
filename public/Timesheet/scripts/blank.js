@@ -375,7 +375,6 @@ async function generatePendingReport() {
     '<div style="color: #64748b; margin-top: 50px; text-align:center;">Analyzing blank cells...</div>';
 
   try {
-    // Reset filters on new fetch
     activeFilters = {
       owner: [],
       driver: [],
@@ -397,11 +396,40 @@ async function generatePendingReport() {
 
     let pendingList = [];
     let mIdx = months.indexOf(m);
+    let curYearInt = parseInt(y);
     let monthStart = new Date(y, mIdx, 1);
-    let monthEnd = new Date(y, mIdx + 1, 0);
+    let monthEnd = new Date(y, mIdx + 1, 0, 23, 59, 59, 999);
+    let pLogs = data.logs.plates || [];
 
     data.vehicles.forEach((v) => {
       const plate = v.plate_no;
+
+      // 🟢 മാസത്തിനനുസരിച്ചുള്ള യഥാർത്ഥ പ്ലേറ്റ് നമ്പർ (പഴയത് അല്ലെങ്കിൽ പുതിയത്) കണ്ടുപിടിക്കുന്നു
+      let masterPlate = (plate || "").trim().toUpperCase();
+      let displayPlate = masterPlate;
+
+      let vPlateChanges = pLogs.filter(
+        (pl) =>
+          (pl.old_plate_no || "").trim().toUpperCase() === masterPlate ||
+          (pl.new_plate_no || "").trim().toUpperCase() === masterPlate
+      );
+
+      if (vPlateChanges.length > 0) {
+        for (let pl of vPlateChanges) {
+          if (!pl.change_date) continue;
+          let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+          let cDate = new Date(cYear, cMonth - 1, cDay);
+
+          if (cYear === curYearInt && (cMonth - 1) === mIdx) {
+            displayPlate = `${pl.old_plate_no.trim().toUpperCase()} ➔ ${pl.new_plate_no.trim().toUpperCase()}`;
+          } else if (monthEnd < cDate) {
+            displayPlate = pl.old_plate_no.trim().toUpperCase();
+          } else if (monthStart >= cDate) {
+            displayPlate = pl.new_plate_no.trim().toUpperCase();
+          }
+        }
+      }
+
       const vRecords = data.records.filter((r) => r.plate_no === plate);
       const dLogs = data.logs.drivers.filter((l) => l.plate_no === plate);
       const sLogs = data.logs.sites.filter((l) => l.plate_no === plate);
@@ -442,8 +470,6 @@ async function generatePendingReport() {
       let blankDays = [];
 
       for (let i = 1; i <= upToDay; i++) {
-        let dayName = getDayName(i, m, y);
-
         let checkDate = new Date(y, mIdx, i);
 
         if (isVehicleActiveOnDate(checkDate, sLogs, dLogs)) {
@@ -474,7 +500,7 @@ async function generatePendingReport() {
           driverMob: driverMob,
           site: currSite,
           vehicleType: vType,
-          plate: plate,
+          plate: displayPlate, // 🟢 മാസത്തിനനുസരിച്ചുള്ള പ്ലേറ്റ് നമ്പർ നൽകുന്നു
           pendingDates: blankDays.join(", "),
         });
       }
