@@ -1646,14 +1646,21 @@ router.post("/api/db/bulk-import", verifyEditor, async (req, res) => {
 // ==========================================
 
 // ==========================================
-// PUBLIC VEHICLE DATA FOR SUGGESTIONS
+// PUBLIC VEHICLE DATA FOR SUGGESTIONS (WITH PLATE LOGS)
 // ==========================================
 router.get("/api/public/vehicles", async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT plate_no, owner_name, asset_code, site_name FROM timesheet_vehicles ORDER BY plate_no ASC",
     );
-    res.json({ success: true, data: result.rows });
+    const plateLogsRes = await pool.query(
+      "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC"
+    );
+    res.json({ 
+      success: true, 
+      data: result.rows,
+      plateLogs: plateLogsRes.rows 
+    });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
@@ -1700,7 +1707,15 @@ router.post("/api/public/view-report", async (req, res) => {
     if (filterValue) {
       if (filterType === "Plate No") {
         paramCount++;
-        vQuery += ` AND tv.plate_no ILIKE $${paramCount}`;
+        // 🟢 പഴയ പ്ലേറ്റോ പുതിയ പ്ലേറ്റോ അടിച്ചാൽ മാസ്റ്റർ ടേബിളും പ്ലേറ്റ് ചേഞ്ച് ലോഗും ഒന്നിച്ച് തിരയുന്നു
+        vQuery += ` AND (
+          tv.plate_no ILIKE $${paramCount}
+          OR EXISTS (
+            SELECT 1 FROM vehicle_plate_log vpl 
+            WHERE (UPPER(vpl.old_plate_no) = UPPER(tv.plate_no) OR UPPER(vpl.new_plate_no) = UPPER(tv.plate_no))
+              AND (vpl.old_plate_no ILIKE $${paramCount} OR vpl.new_plate_no ILIKE $${paramCount})
+          )
+        )`;
         vParams.push(`%${filterValue}%`);
       } else if (filterType === "Owner Name") {
         paramCount++;
@@ -1770,6 +1785,9 @@ router.post("/api/public/view-report", async (req, res) => {
       "SELECT * FROM vehicle_rate_log WHERE plate_no = ANY($1)",
       [plates],
     );
+    const plateLogs = await pool.query(
+      "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC"
+    );
 
     res.json({
       success: true,
@@ -1779,7 +1797,8 @@ router.post("/api/public/view-report", async (req, res) => {
         drivers: driverLogs.rows, 
         sites: siteLogs.rows, 
         owners: ownerLogs.rows, 
-        rates: rateLogs.rows 
+        rates: rateLogs.rows,
+        plates: plateLogs.rows
       },
     });
   } catch (error) {
