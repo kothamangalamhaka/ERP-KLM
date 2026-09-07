@@ -2274,12 +2274,16 @@
 
             // മാസ്റ്റർ പ്ലേറ്റും ലോഗിലുള്ള എല്ലാ അനുബന്ധ പ്ലേറ്റുകളും ഒന്നിച്ച് നോക്കുന്നു
             let relatedCleanPlates = [pClean];
-            (data.plateChanges || []).forEach(pl => {
-              let oP = cleanPlate(pl.old_plate_no);
-              let nP = cleanPlate(pl.new_plate_no);
-              if (oP === pClean && !relatedCleanPlates.includes(nP)) relatedCleanPlates.push(nP);
-              if (nP === pClean && !relatedCleanPlates.includes(oP)) relatedCleanPlates.push(oP);
-            });
+          (data.plateChanges || []).forEach(pl => {
+            let oP = cleanPlate(pl.old_plate_no);
+            let nP = cleanPlate(pl.new_plate_no);
+            if (oP === pClean && !relatedCleanPlates.includes(nP)) relatedCleanPlates.push(nP);
+            if (nP === pClean && !relatedCleanPlates.includes(oP)) relatedCleanPlates.push(oP);
+          });
+
+          let vInvoices = (data.invoices || []).filter(
+            (i) => relatedCleanPlates.includes(cleanPlate(i.plate_no)),
+          );
 
             // ഏറ്റവും അവസാനം സേവ് ചെയ്ത റെക്കോർഡ് എടുക്കാൻ id DESC ക്രമത്തിൽ സോർട്ട് ചെയ്യുന്നു
             let sortedBilling = [...(data.billing || [])].sort((a, b) => (b.id || 0) - (a.id || 0));
