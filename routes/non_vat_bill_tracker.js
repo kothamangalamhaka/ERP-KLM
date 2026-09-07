@@ -1,5 +1,6 @@
 const express = require("express");
 const pool = require("../config/db");
+const { getPlateForMonth } = require("../utils/plateHistory");
 const router = express.Router();
 
 const verifyAccessCode = (req, res, next) => {
@@ -366,6 +367,19 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
       oLogs = oRes.rows;
     } catch(err) {}
 
+    let plateLogs = [];
+    try {
+      const plateLogRes = await pool.query(`
+        SELECT old_plate_no, new_plate_no,
+               TO_CHAR(change_date, 'YYYY-MM-DD') AS change_date
+        FROM vehicle_plate_log
+        ORDER BY change_date ASC, id ASC
+      `);
+      plateLogs = plateLogRes.rows;
+    } catch (err) {
+      console.warn("vehicle_plate_log query warning:", err.message);
+    }
+
     const monthNames = [
       "January",
       "February",
@@ -451,11 +465,18 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
         // 🟢 VAT ഉള്ള വാഹനം ആണെങ്കിൽ Non-VAT ബ്രേക്ക്ഡൗണിൽ ഉൾപ്പെടുത്തില്ല
         if (['yes', 'true', '15'].includes(curVat)) return;
 
+        const displayPlate = getPlateForMonth(
+          p,
+          parseInt(year, 10),
+          mIdx,
+          plateLogs,
+        );
+
         // 🟢 ഒരേ വണ്ടി തന്നെ വീണ്ടും വന്നാൽ മാത്രം സ്കിപ്പ് ചെയ്യുന്നു, വ്യത്യസ്ത വണ്ടികളാണെങ്കിൽ എല്ലാം ലിസ്റ്റിൽ ഉൾപ്പെടുത്തുന്നു
         const uniqueKey = p !== 'N/A' ? p : `${p}_${row.after_adjustment}_${Math.random()}`;
         if (!plateGroups[uniqueKey]) {
           plateGroups[uniqueKey] = {
-            plate_no: p,
+            plate_no: displayPlate,
             nr_hours: parseFloat(row.nhr || 0),
             ot_hours: parseFloat(row.othr || 0),
             total_amount: parseFloat(row.after_adjustment || 0),
