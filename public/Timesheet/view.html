@@ -331,7 +331,7 @@
       .info-row {
         display: flex;
         font-size: 12.5px;
-        align-items: flex-start; /* 🟢 ടെക്സ്റ്റ് താഴേക്ക് പോകുമ്പോഴും അലൈൻമെന്റ് കൃത്യമാക്കാൻ */
+        align-items: flex-start; 
       }
       .info-lbl {
         width: 65px;
@@ -781,11 +781,13 @@
         </button>
 
         <!-- 🟢 Extra DIV removed. All buttons are in the same line now -->
-        <button class="hm" onclick="toggleDarkMode()" style="background-color: #334155; color: white; cursor:pointer; white-space: nowrap; margin-left: 15px;">🌗 Theme</button>
+        <button class="hm" onclick="toggleDarkMode()" style="background-color: #334155; color: white; cursor:pointer; white-space: nowrap; margin-left: 15px;">🌗</button>
         <button class="btn-pdf" onclick="downloadAllPDF()" id="btnPdf">
           <span class="loader" id="pdfLoader"></span> 📄 PDF
         </button>
-        <button class="hm" style="background-color: #0d2d5e;"><a href="LTview.html">LT View</a></button>
+        <button type="button" id="btnToggleLtView" class="hm" onclick="toggleTimesheetMode()" style="background-color: #0d2d5e; cursor: pointer; white-space: nowrap; color: white; font-weight: 600;">
+          🔄️ LT View
+        </button>
         <button class="hm"><a href="index.html">Home</a></button>
         <button class="tsdb"><a href="./entry.html">Data Entry</a></button>
     </div>
@@ -894,6 +896,21 @@
       let selectedSites = [];
       let selectedSecondarySites = [];
       let specialRulesCache = [];
+      let isLtMode = false; // 🟢 Toggle flag for Normal vs LT View
+
+      function toggleTimesheetMode() {
+        isLtMode = !isLtMode;
+        const btn = document.getElementById("btnToggleLtView");
+        if (btn) {
+          btn.innerText = isLtMode ? "🔄 Normal View" : "🔄 LT View";
+          btn.style.backgroundColor = isLtMode ? "#8b5cf6" : "#0d2d5e";
+        }
+        // സ്ക്രീനിൽ നിലവിൽ കാർഡുകൾ ഉണ്ടെങ്കിൽ റീ-റെൻഡർ ചെയ്യുന്നു
+        const area = document.getElementById("reportArea");
+        if (area && area.querySelector(".ts-card")) {
+          generateReport();
+        }
+      }
 
       const dDate = new Date();
       document.getElementById("selYear").value = dDate.getFullYear();
@@ -913,7 +930,12 @@
       ];
       document.getElementById("selMonth").value = months[dDate.getMonth()];
 
-      // 🟢 തന്നിരിക്കുന്ന മാസത്തിന് അനുയോജ്യമായ പ്ലേറ്റ് നമ്പർ കണ്ടെത്താനുള്ള ഫംഗ്ഷൻ
+      function cleanSiteNameDisplay(siteStr) {
+        if (!siteStr || siteStr === "N/A" || siteStr === "-") return siteStr || "N/A";
+        let s = siteStr.trim();
+        return s.replace(/^[zZ][\s\-_]*/, "").trim();
+      }
+
       function getEffectivePlateForMonth(masterPlate, targetMonthStr, targetYearStr) {
         if (!masterPlate) return "";
         let mClean = masterPlate.trim().toUpperCase();
@@ -1144,11 +1166,11 @@
           div.className = "multi-select-box";
           let chk = document.createElement("input");
           chk.type = "checkbox";
-          chk.value = site;
+          chk.value = site; // API-യിലേക്ക് യഥാർത്ഥ പേര് തന്നെ അയക്കുന്നു
           chk.onchange = updateSelectedSites;
           div.appendChild(chk);
           let span = document.createElement("span");
-          span.innerText = site;
+          span.innerText = cleanSiteNameDisplay(site); // ഡിസ്പ്ലേയിൽ Z ഒഴിവാക്കുന്നു
           div.appendChild(span);
           ms.appendChild(div);
         });
@@ -1531,10 +1553,13 @@
         let prevDriver =
           activeDrivers.length > 1 ? activeDrivers[1].driver_name : "";
 
-        let currSite = activeSites[0]
+        let rawCurrSite = activeSites[0]
           ? activeSites[0].site_name
           : vehicle.site_name || "N/A";
-        let prevSite = activeSites.length > 1 ? activeSites[1].site_name : "";
+        let currSite = cleanSiteNameDisplay(rawCurrSite);
+
+        let rawPrevSite = activeSites.length > 1 ? activeSites[1].site_name : "";
+        let prevSite = cleanSiteNameDisplay(rawPrevSite);
 
         let bottomBoxTextArr = [];
         if (activeSites.length > 0) {
@@ -1544,7 +1569,7 @@
               : "";
             let endStr = s.work_end_date ? formatDate(s.work_end_date) : "";
             let replaceStr = s.replaced_by ? s.replaced_by : "";
-            let siteStr = s.site_name || "Site";
+            let siteStr = cleanSiteNameDisplay(s.site_name || "Site");
 
             let line = `▶ <b style="color:#b91c1c;">${siteStr}</b> :: `;
             let details = [];
@@ -1614,7 +1639,8 @@
               r.dates.includes(formattedDate),
           );
 
-          let isFullOT = dayName === "Fri" || i === 31;
+          // 🟢 LT View-ൽ വെള്ളിയാഴ്ച മാത്രമേ ഫുൾ OT വരൂ (31-ാം തീയതി Normal ആയി കണക്കാക്കും)
+          let isFullOT = isLtMode ? (dayName === "Fri") : (dayName === "Fri" || i === 31);
           if (specialRule && specialRule.rule_type === "FULL_OT")
             isFullOT = true;
 
@@ -1742,7 +1768,7 @@
                 
                 <div class="info-col">
                     <div class="info-row"><div class="info-lbl">Site</div><div class="info-colon">:</div><div class="info-val">${currSite}</div></div>
-                    ${prevSite ? `<div class="info-row"><div class="info-lbl" style="color:#64748b;">Prev Site</div><div class="info-colon" style="color:#64748b;">:</div><div class="info-val" style="color:#64748b;">${prevSite}</div></div>` : ""}
+                    ${prevSite && prevSite !== "N/A" && prevSite !== currSite ? `<div class="info-row"><div class="info-lbl" style="color:#64748b;">Prev Site</div><div class="info-colon" style="color:#64748b;">:</div><div class="info-val" style="color:#64748b;">${prevSite}</div></div>` : ""}
                     <div class="info-row"><div class="info-lbl">Vehicle</div><div class="info-colon">:</div><div class="info-val">${dispVType}</div></div>
                 </div>
             </div>
@@ -1767,6 +1793,7 @@
                 </div>
             </div>
 
+            ${!isLtMode ? `
             <div class="ts-owner-details">
                 <div>Owner :: ${dispOName} ${dispOMob ? "(" + dispOMob + ")" : ""}</div>
                 <div class="co-details"><span>Field Co :: ${dispFieldCo}</span><span>Site Co :: ${dispSiteCo}</span></div>
@@ -1774,6 +1801,7 @@
             </div>
 
             <div class="red-border-box-bottom">${bottomBoxTextHTML}</div>
+            ` : ""}
             
             <div class="card-actions-wrapper" style="position: absolute; bottom: 10mm; right: 12mm; display: flex; gap: 8px;">
                 <button class="card-dl-btn" style="position: relative; bottom: auto; right: auto;" onclick="copyCardImage(this)" title="Copy Image">📋</button>
