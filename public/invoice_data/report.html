@@ -1998,6 +1998,53 @@
         }
       }
 
+         async function fetchBatchReportDataAPI(monthQueries) {
+        const token = localStorage.getItem("timesheetToken");
+        try {
+          const res = await fetch("/payment/master-report-data-batch", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              months: monthQueries.map((query) => ({
+                month: query.m,
+                year: Number(query.y),
+              })),
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            if (data.message && data.message.includes("token")) executeLogout();
+            throw new Error(data.message || "Could not load batch report data.");
+          }
+
+          return monthQueries.map((query) => {
+            const fullMonth = `${query.m} ${query.y}`;
+            const monthData = {
+              ...data,
+              timesheets: (data.timesheets || []).filter(
+                (row) =>
+                  row.month === query.m &&
+                  String(row.year) === String(query.y),
+              ),
+              invoices: (data.invoices || []).filter(
+                (row) => row.month === fullMonth,
+              ),
+              billing: (data.billing || []).filter(
+                (row) => row.billing_month === fullMonth,
+              ),
+            };
+            return processDataLogic(monthData, query.m, query.y);
+          });
+        } catch (error) {
+          console.error(error);
+          window.alert("Batch report data could not be loaded. Please try again.");
+          return monthQueries.map(() => []);
+        }
+      }
+
       function getDayName(dayNum, monthStr, year) {
         const dateObj = new Date(`${monthStr} ${dayNum}, ${year}`);
         return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
@@ -2724,6 +2771,7 @@
             '<tr><td colspan="32" style="padding: 20px;">No data found.</td></tr>';
           return;
         }
+         const fragment = document.createDocumentFragment();
         data.forEach((row) => {
           const tr = document.createElement("tr");
           tr.dataset.site = row.site;
@@ -2768,8 +2816,9 @@
             <td class="col-gen-nr" style="font-weight: 600; color: #166534;">${row.alt_nr}</td>
             <td class="col-gen-nr" style="font-weight: 600; color: #166534;">${row.alt_ot > 0 ? row.alt_ot : ""}</td>
           `;
-          tbody.appendChild(tr);
+          fragment.appendChild(tr);
         });
+         tbody.appendChild(fragment);
       }
 
       function requestEditMode() {
@@ -3297,9 +3346,7 @@
           current.setMonth(current.getMonth() + 1);
         }
 
-        let results = await Promise.all(
-          monthQueries.map(q => fetchReportDataAPI(q.m, q.y))
-        );
+        let results = await fetchBatchReportDataAPI(monthQueries);
 
         let sheetsArray = [];
         results.forEach((data, idx) => {
@@ -3357,9 +3404,7 @@
           current.setMonth(current.getMonth() + 1);
         }
 
-        let results = await Promise.all(
-          monthQueries.map(q => fetchReportDataAPI(q.m, q.y))
-        );
+        let results = await fetchBatchReportDataAPI(monthQueries);
 
         let combinedData = [];
         results.forEach((data, idx) => {
@@ -3806,16 +3851,16 @@
 
         await ensureSpecialRules();
         
-        let fetchPromises = [];
+        let monthQueries = [];
         let current = new Date(start);
         while (current <= end) {
           let m = months[current.getMonth()],
             y = current.getFullYear();
-          fetchPromises.push(fetchReportDataAPI(m, y));
+          monthQueries.push({ m, y });
           current.setMonth(current.getMonth() + 1);
         }
 
-        let resultsArray = await Promise.all(fetchPromises);
+          let resultsArray = await fetchBatchReportDataAPI(monthQueries);
         let combinedData = resultsArray.flat().filter(Boolean);
 
         masterData = combinedData;

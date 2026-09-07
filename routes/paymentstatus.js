@@ -191,6 +191,94 @@ router.get("/master-report-data", async (req, res) => {
   }
 });
 
+// Fetch several report months in one request. The vehicle and history tables are
+// shared by every month, so reading and transferring them once avoids flooding
+// the database pool when the batch report screen is opened.
+router.post("/master-report-data-batch", async (req, res) => {
+  try {
+    const validMonths = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
+    ];
+    const requestedMonths = Array.isArray(req.body?.months)
+      ? req.body.months
+      : [];
+
+    if (requestedMonths.length === 0 || requestedMonths.length > 24) {
+      return res.status(400).json({
+        success: false,
+        message: "Select between 1 and 24 months.",
+      });
+    }
+
+    const normalizedMonths = requestedMonths.map((item) => ({
+      month: String(item.month || "").trim(),
+      year: Number(item.year),
+    }));
+    const hasInvalidMonth = normalizedMonths.some(
+      (item) =>
+        !validMonths.includes(item.month) ||
+        !Number.isInteger(item.year) ||
+        item.year < 2000 ||
+        item.year > 2100,
+    );
+
+    if (hasInvalidMonth) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid month or year in batch request.",
+      });
+    }
+
+    const uniqueMonths = Array.from(
+      new Map(
+        normalizedMonths.map((item) => [`${item.month} ${item.year}`, item]),
+      ).values(),
+    );
+    const timesheetParams = [];
+    const timesheetConditions = uniqueMonths.map((item, index) => {
+      timesheetParams.push(item.month, item.year);
+      return `(month=$${index * 2 + 1} AND year=$${index * 2 + 2})`;
+    });
+    const fullMonths = uniqueMonths.map(
+      (item) => `${item.month} ${item.year}`,
+    );
+
+    const [vehicles, sites, drivers, timesheets, invoices, billing, owners, rates, plateChanges] = await Promise.all([
+      pool.query("SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles"),
+      pool.query("SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co FROM vehicle_site_log"),
+      pool.query("SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log"),
+      pool.query(
+        `SELECT plate_no, record_date, calc_time, bd, month, year
+         FROM timesheet_daily_records
+         WHERE ${timesheetConditions.join(" OR ")}`,
+        timesheetParams,
+      ),
+      pool.query("SELECT * FROM invoice_records WHERE month = ANY($1::text[])", [fullMonths]),
+      pool.query("SELECT * FROM billing_records WHERE billing_month = ANY($1::text[])", [fullMonths]),
+      pool.query("SELECT plate_no, owner_name, vat, work_start_date, work_end_date, status FROM vehicle_owner_log"),
+      pool.query("SELECT plate_no, site_name, rate, work_start_date, work_end_date, status FROM vehicle_rate_log"),
+      pool.query("SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC"),
+    ]);
+
+    res.json({
+      success: true,
+      vehicles: vehicles.rows,
+      sites: sites.rows,
+      drivers: drivers.rows,
+      timesheets: timesheets.rows,
+      invoices: invoices.rows,
+      billing: billing.rows,
+      owners: owners.rows,
+      rates: rates.rows,
+      plateChanges: plateChanges.rows,
+    });
+  } catch (err) {
+    console.error("Batch master report error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // 🟢 Save Accounts Note via Double Click
 router.post("/save-accounts-note", async (req, res) => {
   try {

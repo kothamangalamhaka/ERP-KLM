@@ -559,7 +559,10 @@ if (!resolvedSearchMatch) return;
         if (activeOwnerLog.vat) effectiveVat = String(activeOwnerLog.vat).trim();
       }
 
-      let isEffectiveVatYes = effectiveVat.toLowerCase().includes("yes") || effectiveVat.toLowerCase() === "true" || effectiveVat === "15" ? "Yes" : "No";
+      const normalizedVat = effectiveVat.toLowerCase().replace(/\s+/g, "");
+      let isEffectiveVatYes = normalizedVat.includes("yes") || ["true", "15", "15%"].includes(normalizedVat)
+        ? "Yes"
+        : "No";
 
       let calculatedNRate = baseRate ? (baseRate / 260) : 0;
       let calculatedOTRate = baseRate ? ((baseRate / 260) * 0.7) : 0;
@@ -1050,7 +1053,8 @@ router.post("/save-active-bill", verifyViewBillUser, async (req, res) => {
       const nrate = parseFloat(row.nrate) || 0;
       const otrate = parseFloat(row.otrate) || 0;
       const remark = (row.remark || "").trim();
-      const vatPercent = parseFloat(row.vat_percent) || (row.vat_percent === 0 ? 0 : 15);
+       const parsedVatPercent = parseFloat(row.vat_percent);
+      const vatPercent = Number.isFinite(parsedVatPercent) ? parsedVatPercent : 15;
 
       const rent = parseFloat(row.rent) || 0;
 
@@ -1115,7 +1119,8 @@ router.post("/save-bill", verifyViewBillUser, async (req, res) => {
       const otrate = parseFloat(row.otrate) || 0;
       const adjAmt = parseFloat(row.adjusted_amount) || 0;
       const remark = (row.remark || "").trim();
-      const vatPercent = parseFloat(row.vat_percent) || (row.vat_percent === 0 ? 0 : 15);
+     const parsedVatPercent = parseFloat(row.vat_percent);
+      const vatPercent = Number.isFinite(parsedVatPercent) ? parsedVatPercent : 15;
 
       const rent = parseFloat(row.rent) || 0;
 
