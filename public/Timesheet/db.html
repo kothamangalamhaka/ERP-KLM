@@ -31,6 +31,7 @@
 
     <div id="rowContextMenu" class="context-menu">
       <button onclick="editPlateNo()">✏️ Edit Plate No</button>
+      <button onclick="openPlateLogModal(event, activeRowPlate)">🔄 Plate Change Log</button>
       <button onclick="openOwnerLog(event, activeRowPlate)">👤 Owner Log</button>
       <button onclick="rowAbout()">ℹ️ About Vehicle</button>
       <button id="rcm-delete" class="text-danger" onclick="rowDelete()">
@@ -65,18 +66,18 @@
       </div>
     </div>
 
-    <div class="navbar">
-      <div style="display: flex; align-items: center">
+    <div class="navbar" style="gap: 15px; padding: 6px 16px;">
+      <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
         <a href="Timesheet.html"
           ><img src="../icons/dd.png" class="dd" alt="Menu"
         /></a>
         <a href="../Master_Data_Base/Database.html">
           <span
             style="
-              font-size: 16px;
+              font-size: 15px;
               font-weight: 600;
-              margin-left: 20px;
               letter-spacing: 0.5px;
+              white-space: nowrap;
             "
             >Timesheet Database</span
           ></a
@@ -84,100 +85,82 @@
         <span id="saveStatus" class="save-indicator">✓ Saved</span>
       </div>
 
-      <div class="user-profile-container">
-        <div
-          id="userInfo"
-          class="user-info-btn"
-          onclick="toggleUserMenu(event)"
-        >
-          <span class="user-icon">👤</span
-          ><span class="user-text">Loading...</span>
-        </div>
-        <div id="userDropdownMenu" class="user-context-menu">
-          <button onclick="toggleDarkMode()">🌗 Theme</button>
-          <div class="menu-divider"></div>
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end;">
+        <button class="btn btn-primary" onclick="exportExcel()" style="font-size: 12px; padding: 6px 12px; white-space: nowrap;">
+          ⬇ Export Excel
+        </button>
 
-          <button onclick="openColumnAlter()">⚙️ Column Alter</button>
-          <button onclick="openAuditLogModal()">📜 Log Data</button>
-          <div class="menu-divider"></div>
-          <button class="text-danger" onclick="executeLogout()">
-            🚪 Logout
-          </button>
+        <div style="display: flex; gap: 4px; align-items: center; max-width: 320px; width: 100%;">
+          <select
+            id="searchType"
+            onchange="applyGridFilters()"
+            style="
+              padding: 6px 8px;
+              border-radius: 4px;
+              border: 1px solid #475569;
+              font-size: 12px;
+              outline: none;
+              background: #1e293b;
+              color: white;
+              cursor: pointer;
+            "
+          >
+            <option value="general">General</option>
+            <option value="plate">Plate No</option>
+          </select>
+          <div style="position: relative; flex: 1;">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search data..."
+              onkeyup="applyGridFilters()"
+              style="
+                width: 100%;
+                padding: 6px 10px 6px 28px;
+                background: #1e293b;
+                border: 1px solid #475569;
+                border-radius: 4px;
+                color: white;
+                font-size: 12px;
+                outline: none;
+                box-sizing: border-box;
+              "
+            />
+            <span style="position: absolute; left: 8px; top: 6px; font-size: 12px; opacity: 0.7;">🔍</span>
+          </div>
+        </div>
+
+        <button id="adminAddVehicleBtn" class="btn btn-primary" onclick="openAddVehicleModal()" style="display: none; font-size: 12px; padding: 6px 14px; background: #2563eb; white-space: nowrap; font-weight: 600;">
+          + Add Vehicle
+        </button>
+
+        <div class="user-profile-container" style="margin-left: 5px;">
+          <div
+            id="userInfo"
+            class="user-info-btn"
+            onclick="toggleUserMenu(event)"
+            style="padding: 5px 10px; font-size: 12px;"
+          >
+            <span class="user-icon">👤</span
+            ><span class="user-text">Loading...</span>
+          </div>
+          <div id="userDropdownMenu" class="user-context-menu">
+            <button onclick="toggleDarkMode()">🌗 Theme</button>
+            <div class="menu-divider"></div>
+
+            <button onclick="openColumnAlter()">⚙️ Column Alter</button>
+            <button onclick="openAuditLogModal()">📜 Log Data</button>
+            <div class="menu-divider"></div>
+            <button class="text-danger" onclick="executeLogout()">
+              🚪 Logout
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="main-wrapper">
+    <div class="main-wrapper" style="padding-top: 8px;">
       <div id="errorBanner"></div>
-      <div class="card">
-        <div class="toolbar">
-          <div class="toolbar-group">
-            <button class="btn btn-primary" onclick="exportExcel()">
-              ⬇ Export DB (Excel)
-            </button>
-            <input
-              type="file"
-              id="excelFile"
-              accept=".xlsx, .xls"
-              style="
-                padding: 5px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 12px;
-              "
-            />
-            <button class="btn btn-success" onclick="importExcel()">
-              ⬆ Import & Sync (Replace)
-            </button>
-          </div>
-          <div class="toolbar-group">
-            <div
-              class="search-wrapper"
-              style="display: flex; gap: 8px; align-items: center; width: 100%"
-            >
-              <select
-                id="searchType"
-                onchange="applyGridFilters()"
-                style="
-                  padding: 8px;
-                  border-radius: 5px;
-                  border: 1px solid var(--border-color, #cbd5e1);
-                  font-size: 13px;
-                  outline: none;
-                  background: var(--input-bg, #fff);
-                  color: var(--text-main, #333);
-                  cursor: pointer;
-                "
-              >
-                <option value="general">General</option>
-                <option value="plate">Plate No</option>
-              </select>
-              <div
-                style="
-                  position: relative;
-                  display: flex;
-                  align-items: center;
-                  flex: 1;
-                "
-              >
-                <span class="search-icon">🔍</span>
-                <input
-                  type="text"
-                  id="searchInput"
-                  placeholder="Search data..."
-                  onkeyup="applyGridFilters()"
-                  style="width: 100%"
-                />
-              </div>
-            </div>
-          </div>
-          <div class="toolbar-group" id="adminTools" style="display: none">
-            <button class="btn btn-primary" onclick="openAddVehicleModal()">
-              + Add Vehicle
-            </button>
-          </div>
-        </div>
-      </div>
 
       <div class="table-responsive">
         <table id="dbTable">
@@ -441,6 +424,13 @@
             </h4>
             <table class="log-table">
               <tbody id="abtOwnerLogs"></tbody>
+            </table>
+
+            <h4 style="margin-top: 15px; color: #0f2027; margin-bottom: 8px">
+              Plate Number Change Logs
+            </h4>
+            <table class="log-table">
+              <tbody id="abtPlateLogs"></tbody>
             </table>
           </div>
         </div>
@@ -771,6 +761,55 @@
           <div class="modal-history-side">
             <table class="log-table">
               <tbody id="rlHistory"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLATE NUMBER CHANGE LOG MODAL -->
+    <div id="plateLogModal" class="modal-overlay" style="z-index: 2200;">
+      <div class="modal-box modal-wide" style="max-width: 850px;">
+        <h3>
+          Plate Number Change History - <span id="plPlateCurrent" style="color: #0d6efd"></span>
+          <button class="close-btn" style="color: #64748b" onclick="closeModal('plateLogModal')">✖</button>
+        </h3>
+        <div class="modal-split">
+          <div class="modal-form-side">
+            <span class="edit-hint">Change plate number and auto-sync records across all periods.</span>
+            <div class="form-group">
+              <label>Current Plate No</label>
+              <input type="text" id="plOldInput" class="modal-input" readonly style="font-weight: bold; background: #f1f5f9;" />
+            </div>
+            <div class="form-group">
+              <label style="color: #0d6efd;">New Plate No</label>
+              <input type="text" id="plNewInput" class="modal-input uppercase-input" placeholder="e.g. 1677 ENA -1" style="border-color: #0d6efd; font-weight: bold;" />
+            </div>
+            <div class="form-group">
+              <label>Effective Date</label>
+              <input type="date" id="plDateInput" class="modal-input" />
+            </div>
+            <div class="form-group">
+              <label>Reason / Note</label>
+              <textarea id="plReasonInput" class="modal-input" style="height: 55px; resize: none;" placeholder="e.g. Istimara renewal, physical plate swap"></textarea>
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-secondary" onclick="closeModal('plateLogModal')">Close</button>
+              <button class="btn btn-primary" id="plSaveBtn" onclick="submitPlateChangeFromModal()">Apply Plate Change</button>
+            </div>
+          </div>
+          <div class="modal-history-side">
+            <h4 style="margin-top: 0; color: #0f2027; margin-bottom: 8px">Change Logs</h4>
+            <table class="log-table">
+              <thead>
+                <tr>
+                  <th>Old ➔ New Plate</th>
+                  <th>Change Date</th>
+                  <th>Reason</th>
+                  <th>Changed By</th>
+                </tr>
+              </thead>
+              <tbody id="plHistoryBody"></tbody>
             </table>
           </div>
         </div>

@@ -297,6 +297,10 @@ router.get("/suggestions", verifyViewBillUser, async (req, res) => {
       params
     );
 
+    const plateLogRes = await pool.query(
+      `SELECT DISTINCT old_plate_no, new_plate_no FROM vehicle_plate_log`
+    );
+
     let allowedPlates = new Set();
     let allowedOwners = new Set();
     let allowedSites = new Set();
@@ -304,6 +308,16 @@ router.get("/suggestions", verifyViewBillUser, async (req, res) => {
     vehiclesRes.rows.forEach((r) => {
       if (r.plate_no) allowedPlates.add(r.plate_no.trim().toUpperCase());
       if (r.owner_name) allowedOwners.add(r.owner_name.trim().toUpperCase());
+      if (r.site_name) allowedSites.add(r.site_name.trim());
+    });
+
+    plateLogRes.rows.forEach((pl) => {
+      if (pl.old_plate_no) allowedPlates.add(pl.old_plate_no.trim().toUpperCase());
+      if (pl.new_plate_no) allowedPlates.add(pl.new_plate_no.trim().toUpperCase());
+    });
+
+    siteLogRes.rows.forEach((r) => {
+      if (r.plate_no) allowedPlates.add(r.plate_no.trim().toUpperCase());
       if (r.site_name) allowedSites.add(r.site_name.trim());
     });
 
@@ -337,7 +351,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
     const yearStr = year.trim();
     const fullMonth = `${monthStr} ${yearStr}`;
 
-    const [vehiclesRes, sitesRes, driversRes, timesheetsRes, invoicesRes, billingRes, specialRulesRes, ratesRes, ownersRes] = await Promise.all([
+    const [vehiclesRes, sitesRes, driversRes, timesheetsRes, invoicesRes, billingRes, specialRulesRes, ratesRes, ownersRes, plateLogsRes] = await Promise.all([
       pool.query("SELECT plate_no, owner_name, owner_mobile, site_name, vehicle_type, vat, driver_name, driver_mobile, field_co, site_co, rate FROM timesheet_vehicles"),
       pool.query("SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co, status FROM vehicle_site_log"),
       pool.query("SELECT plate_no, driver_name, driver_mobile, work_start_date, work_end_date, status FROM vehicle_driver_log"),
@@ -346,7 +360,8 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       pool.query("SELECT * FROM billing_records WHERE billing_month=$1", [fullMonth]),
       pool.query("SELECT * FROM special_days_rules WHERE is_active = true"),
       pool.query("SELECT plate_no, site_name, rate, work_start_date, work_end_date FROM vehicle_rate_log"),
-      pool.query("SELECT plate_no, owner_name, owner_mobile, vat, work_start_date, work_end_date FROM vehicle_owner_log")
+      pool.query("SELECT plate_no, owner_name, owner_mobile, vat, work_start_date, work_end_date FROM vehicle_owner_log"),
+      pool.query("SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC")
     ]);
 
     let vehicles = vehiclesRes.rows;
@@ -356,6 +371,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
     let timesheets = timesheetsRes.rows;
     let invoices = invoicesRes.rows;
     let billing = billingRes.rows;
+    let plateLogs = plateLogsRes.rows;
 
     const monthNames = [
       "January", "February", "March", "April", "May", "June",
@@ -379,9 +395,44 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
     let reportData = [];
 
     vehicles.forEach((v) => {
-      let displayPlate = (v.plate_no || "").trim().toUpperCase();
+      let masterPlate = (v.plate_no || "").trim().toUpperCase();
       let normPlate = cleanPlate(v.plate_no);
       if (!normPlate) return;
+
+      // 🟢 ഈ വണ്ടിയുടെ അനുബന്ധ പ്ലേറ്റ് ലോഗുകൾ എടുക്കുന്നു
+      let vPlateChanges = plateLogs.filter(
+        (pl) =>
+          cleanPlate(pl.old_plate_no) === normPlate ||
+          cleanPlate(pl.new_plate_no) === normPlate
+      );
+
+      let effectivePlate = masterPlate;
+      let allRelatedNorms = [normPlate];
+
+      vPlateChanges.forEach((pl) => {
+        let oNorm = cleanPlate(pl.old_plate_no);
+        let nNorm = cleanPlate(pl.new_plate_no);
+        if (oNorm && !allRelatedNorms.includes(oNorm)) allRelatedNorms.push(oNorm);
+        if (nNorm && !allRelatedNorms.includes(nNorm)) allRelatedNorms.push(nNorm);
+      });
+
+      if (vPlateChanges.length > 0) {
+        for (let pl of vPlateChanges) {
+          if (!pl.change_date) continue;
+          let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+          let cDate = new Date(cYear, cMonth - 1, cDay);
+
+          if (cYear === parseInt(yearStr) && (cMonth - 1) === mIdx) {
+            effectivePlate = `${pl.old_plate_no.trim().toUpperCase()} ➔ ${pl.new_plate_no.trim().toUpperCase()}`;
+          } else if (monthEnd < cDate) {
+            effectivePlate = pl.old_plate_no.trim().toUpperCase();
+          } else if (monthStart >= cDate) {
+            effectivePlate = pl.new_plate_no.trim().toUpperCase();
+          }
+        }
+      }
+
+      let displayPlate = effectivePlate;
 
       // 🟢 ഈ മാസത്തിൽ ഈ വണ്ടിക്ക് ബാധകമായ സൈറ്റ് ലോഗ് (vehicle_site_log) മാത്രം കണ്ടുപിടിക്കുന്നു
       let vSiteLogs = siteLogs.filter((s) => cleanPlate(s.plate_no) === normPlate);
@@ -404,20 +455,35 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         }
       }
 
-      // 🟢 സർച്ച് ഫിൽട്ടർ പരിശോധന
+      // 🟢 സർച്ച് ഫിൽട്ടർ പരിശോധന (പഴയ പ്ലേറ്റ് അടിച്ചു സെർച്ച് ചെയ്താലും വണ്ടി കൃത്യമായി കിട്ടാൻ)
+      let resolvedSearchMatch = true;
       if (search_value && search_value.trim() !== "") {
         const cleanVal = search_value.trim().toUpperCase();
         let match = false;
-        if (search_type === "plate" && displayPlate.includes(cleanVal)) match = true;
+        let plateMatchesSearch = displayPlate.toUpperCase().includes(cleanVal) || 
+                                 masterPlate.toUpperCase().includes(cleanVal) || 
+                                 allRelatedNorms.some(rn => rn.includes(cleanVal)) ||
+                                 vPlateChanges.some(pl => (pl.old_plate_no || "").toUpperCase().includes(cleanVal) || (pl.new_plate_no || "").toUpperCase().includes(cleanVal));
+
+        if (search_type === "plate" && plateMatchesSearch) match = true;
         else if (search_type === "owner" && (v.owner_name || "").trim().toUpperCase().includes(cleanVal)) match = true;
         else if (!search_type || search_type === "all") {
-          if (displayPlate.includes(cleanVal) || (v.owner_name || "").trim().toUpperCase().includes(cleanVal)) match = true;
+          if (plateMatchesSearch || (v.owner_name || "").trim().toUpperCase().includes(cleanVal)) match = true;
         }
-        if (!match) return;
+        resolvedSearchMatch = match;
       }
 
-      let saved = billing.find((b) => cleanPlate(b.plate_no) === normPlate && (b.site_name || "").trim().toLowerCase() === currentSiteName.toLowerCase());
-      let vInvs = invoices.filter((i) => cleanPlate(i.plate_no) === normPlate);
+      // ഒരു പ്രത്യേക പ്ലേറ്റ് നമ്പർ മാത്രമായി സെർച്ച് ചെയ്യുമ്പോൾ, ആ മാസത്തിന് അനുയോജ്യമായ പ്ലേറ്റ് തന്നെയാണോ എന്ന് ഉറപ്പുവരുത്തുകയോ അല്ലെങ്കിൽ വണ്ടിയെ ലോഡ് ചെയ്യുകയോ ചെയ്യാം
+      if (search_value && search_value.trim() !== "" && search_type === "plate") {
+        const cleanVal = search_value.trim().toUpperCase();
+        let isPlateTargeted = masterPlate.includes(cleanVal) || allRelatedNorms.some(rn => rn.includes(cleanVal));
+        if (!isPlateTargeted) resolvedSearchMatch = false;
+      }
+
+      if (!resolvedSearchMatch) return;
+
+      let saved = billing.find((b) => allRelatedNorms.includes(cleanPlate(b.plate_no)) && (b.site_name || "").trim().toLowerCase() === currentSiteName.toLowerCase());
+      let vInvs = invoices.filter((i) => allRelatedNorms.includes(cleanPlate(i.plate_no)));
       let invData = vInvs[0] || {};
 
       // 🟢 Driver Log Lookup for specific month
@@ -494,6 +560,8 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         driver: effectiveDriver,
         site: currentSiteName,
         plate_no: displayPlate,
+        master_plate: masterPlate,
+        plate_logs: vPlateChanges,
         owner: effectiveOwner,
         nhr,
         othr,
@@ -676,24 +744,39 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
       curDate.setMonth(curDate.getMonth() + 1);
     }
 
-    const [savedResult, tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes] = await Promise.all([
+    // 🟢 പ്ലേറ്റ് നമ്പർ പഴയതോ പുതിയതോ ഏത് കൊടുത്താലും മാസ്റ്റർ റെക്കോർഡും ബില്ലിംഗ് ഹിസ്റ്ററിയും കണ്ടെത്താൻ
+    const masterPlateQuery = await pool.query(
+      `SELECT plate_no FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) 
+       UNION 
+       SELECT (SELECT plate_no FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM(new_plate_no))) FROM vehicle_plate_log WHERE UPPER(TRIM(old_plate_no)) = UPPER(TRIM($1))
+       UNION 
+       SELECT (SELECT plate_no FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM(old_plate_no))) FROM vehicle_plate_log WHERE UPPER(TRIM(new_plate_no)) = UPPER(TRIM($1))
+       LIMIT 1`,
+      [cleanPlate]
+    );
+
+    const actualMasterPlate = masterPlateQuery.rows[0]?.plate_no ? masterPlateQuery.rows[0].plate_no.trim().toUpperCase() : cleanPlate;
+
+    const [savedResult, tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes, plateLogRes] = await Promise.all([
       pool.query(
         `SELECT * FROM billing_records 
-         WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) 
+         WHERE (UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(plate_no)) IN (SELECT UPPER(TRIM(old_plate_no)) FROM vehicle_plate_log WHERE UPPER(TRIM(new_plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(new_plate_no)) = UPPER(TRIM($3))))
            AND billing_month = ANY($2::text[])
          ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id ASC`,
-        [cleanPlate, targetMonths]
+        [cleanPlate, targetMonths, actualMasterPlate]
       ),
-      pool.query(`SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`, [cleanPlate]),
-      pool.query(`SELECT * FROM vehicle_rate_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate]),
-      pool.query(`SELECT * FROM vehicle_site_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate]),
-      pool.query(`SELECT * FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate])
+      pool.query(`SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`, [actualMasterPlate]),
+      pool.query(`SELECT * FROM vehicle_rate_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(plate_no)) = UPPER(TRIM($2)) ORDER BY id DESC`, [cleanPlate, actualMasterPlate]),
+      pool.query(`SELECT * FROM vehicle_site_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(plate_no)) = UPPER(TRIM($2)) ORDER BY id DESC`, [cleanPlate, actualMasterPlate]),
+      pool.query(`SELECT * FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(plate_no)) = UPPER(TRIM($2)) ORDER BY id DESC`, [cleanPlate, actualMasterPlate]),
+      pool.query(`SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log WHERE UPPER(TRIM(old_plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(new_plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(old_plate_no)) = UPPER(TRIM($2)) ORDER BY change_date ASC`, [cleanPlate, actualMasterPlate])
     ]);
 
     const vehicleInfo = tsVehicleRes.rows[0] || {};
     const rateLogs = rateLogRes.rows || [];
     const siteLogs = siteLogRes.rows || [];
     const ownerLogs = ownerLogRes.rows || [];
+    const plateLogs = plateLogRes.rows || [];
 
     let combinedRows = [];
     let totals = { nhr: 0, othr: 0, rent: 0, vat_amount: 0, total: 0, adjusted_amount: 0, after_adjustment: 0 };
@@ -705,8 +788,27 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
       const shortDate = mName.substring(0, 3) + " " + (yStr ? yStr.substring(2, 4) : "");
 
       const mIdxCur = monthNames.indexOf(mName);
-      const mStart = new Date(parseInt(yStr), mIdxCur, 1);
-      const mEnd = new Date(parseInt(yStr), mIdxCur + 1, 0);
+      const curYearInt = parseInt(yStr);
+      const mStart = new Date(curYearInt, mIdxCur, 1);
+      const mEnd = new Date(curYearInt, mIdxCur + 1, 0);
+
+      // 🟢 ആ മാസത്തെ ശരിയായ പ്ലേറ്റ് നമ്പർ കണ്ടെത്തുന്നു
+      let rowPlateNo = cleanPlate;
+      if (plateLogs.length > 0) {
+        for (let pl of plateLogs) {
+          if (!pl.change_date) continue;
+          let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+          let cDate = new Date(cYear, cMonth - 1, cDay);
+
+          if (cYear === curYearInt && (cMonth - 1) === mIdxCur) {
+            rowPlateNo = `${pl.old_plate_no.trim().toUpperCase()} ➔ ${pl.new_plate_no.trim().toUpperCase()}`;
+          } else if (mEnd < cDate) {
+            rowPlateNo = pl.old_plate_no.trim().toUpperCase();
+          } else if (mStart >= cDate) {
+            rowPlateNo = pl.new_plate_no.trim().toUpperCase();
+          }
+        }
+      }
 
       // Find historical rate from vehicle_rate_log for this specific month
       let matchedRateLog = rateLogs.find((r) => {
@@ -772,7 +874,7 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
           site_name: rowSite,
           vtype: savedRow.vtype || vehicleInfo.vehicle_type || "N/A",
           driver: savedRow.driver || vehicleInfo.driver_name || "N/A",
-          plate_no: cleanPlate,
+          plate_no: rowPlateNo, // 🟢 മാസത്തിനനുസരിച്ചുള്ള യഥാർത്ഥ പ്ലേറ്റ് നൽകുന്നു
           nhr: nhr,
           nrate: rowNRate,
           othr: othr,
@@ -802,7 +904,7 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
           site_name: activeSite,
           vtype: vehicleInfo.vehicle_type || "N/A",
           driver: vehicleInfo.driver_name || "N/A",
-          plate_no: cleanPlate,
+          plate_no: rowPlateNo, // 🟢 മാസത്തിനനുസരിച്ചുള്ള യഥാർത്ഥ പ്ലേറ്റ് നൽകുന്നു
           nhr: 0,
           nrate: fallbackNRate,
           otrate: fallbackOTRate,

@@ -13,8 +13,10 @@ if (userStr) {
   userRole = u.role;
   document.getElementById("userInfo").innerHTML =
     `<span class="user-icon">👤</span><span class="user-text">${u.username} (${u.role})</span>`;
-  if (userRole === "Super Admin" || userRole === "Editor")
-    document.getElementById("adminTools").style.display = "inline-flex";
+  const addBtn = document.getElementById("adminAddVehicleBtn");
+  if (addBtn && (userRole === "Super Admin" || userRole === "Editor")) {
+    addBtn.style.display = "inline-flex";
+  }
 }
 
 function escapeHTML(str) {
@@ -754,6 +756,8 @@ async function rowAbout() {
     "<tr><td>Loading...</td></tr>";
   document.getElementById("abtOwnerLogs").innerHTML =
     "<tr><td>Loading...</td></tr>";
+  document.getElementById("abtPlateLogs").innerHTML =
+    "<tr><td>Loading...</td></tr>";
   document.getElementById("aboutModal").style.display = "flex";
 
   const res = await safeFetch(`/timesheet/api/vehicle-logs?plate=${plate}`, {
@@ -839,6 +843,21 @@ async function rowAbout() {
       (res.owners && res.owners.length > 0)
         ? olHtml
         : '<tr><td colspan="6" style="color:#888;">No owner logs found.</td></tr>';
+
+    // 5. Plate Change Logs
+    let plHtml = "";
+    (res.plateChanges || []).forEach((p) => {
+      let cDate = p.change_date ? p.change_date.split("T")[0] : "-";
+      plHtml += `<tr>
+        <td><b>${escapeHTML(p.old_plate_no)} ➔ ${escapeHTML(p.new_plate_no)}</b></td>
+        <td>${cDate}</td>
+        <td><span style="font-size:11px; color:#64748b;">${escapeHTML(p.reason || "-")}</span></td>
+      </tr>`;
+    });
+    document.getElementById("abtPlateLogs").innerHTML =
+      (res.plateChanges && res.plateChanges.length > 0)
+        ? plHtml
+        : '<tr><td colspan="3" style="color:#888;">No plate change logs recorded.</td></tr>';
   }
 }
 
@@ -1631,6 +1650,98 @@ function closeLogModals() {
   document.getElementById("siteLogModal").style.display = "none";
   document.getElementById("ownerLogModal").style.display = "none";
   document.getElementById("rateLogModal").style.display = "none";
+  const pModal = document.getElementById("plateLogModal");
+  if (pModal) pModal.style.display = "none";
+}
+
+async function openPlateLogModal(e, plate) {
+  if (e) e.preventDefault();
+  const menu = document.getElementById("rowContextMenu");
+  if (menu) menu.style.display = "none";
+
+  const targetPlate = plate || activeRowPlate;
+  if (!targetPlate) return;
+
+  document.getElementById("plPlateCurrent").innerText = targetPlate;
+  document.getElementById("plOldInput").value = targetPlate;
+  document.getElementById("plNewInput").value = "";
+  document.getElementById("plDateInput").value = new Date().toISOString().split("T")[0];
+  document.getElementById("plReasonInput").value = "";
+  document.getElementById("plHistoryBody").innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading logs...</td></tr>';
+  document.getElementById("plateLogModal").style.display = "flex";
+
+  try {
+    const res = await safeFetch(`/timesheet/api/vehicle-logs?plate=${encodeURIComponent(targetPlate)}`, {
+      headers: { Authorization: "Bearer " + token },
+    });
+    if (res.success && res.plateChanges) {
+      let html = "";
+      res.plateChanges.forEach((p) => {
+        let cDate = p.change_date ? p.change_date.split("T")[0] : "-";
+        html += `<tr>
+          <td><b>${escapeHTML(p.old_plate_no)} ➔ ${escapeHTML(p.new_plate_no)}</b></td>
+          <td>${cDate}</td>
+          <td><span style="font-size:11px; color:#475569;">${escapeHTML(p.reason || "-")}</span></td>
+          <td><span style="font-size:11px; color:#64748b;">${escapeHTML(p.changed_by || "-")}</span></td>
+        </tr>`;
+      });
+      document.getElementById("plHistoryBody").innerHTML = html || '<tr><td colspan="4" style="color:#888; text-align:center;">No plate changes recorded.</td></tr>';
+    }
+  } catch (err) {
+    document.getElementById("plHistoryBody").innerHTML = '<tr><td colspan="4" style="color:#ef4444; text-align:center;">Failed to load logs.</td></tr>';
+  }
+}
+
+async function submitPlateChangeFromModal() {
+  const oldPlate = document.getElementById("plOldInput").value.trim().toUpperCase();
+  const newPlate = document.getElementById("plNewInput").value.trim().toUpperCase();
+  const changeDate = document.getElementById("plDateInput").value || new Date().toISOString().split("T")[0];
+  const reason = document.getElementById("plReasonInput").value.trim();
+
+  if (!newPlate) {
+    return customAlert("Warning", "Please enter a valid new Plate Number.");
+  }
+  if (oldPlate === newPlate) {
+    return customAlert("Warning", "New Plate No cannot be the same as current Plate No.");
+  }
+
+  const btn = document.getElementById("plSaveBtn");
+  btn.disabled = true;
+  btn.innerText = "Applying...";
+
+  showStatus("Updating Plate Across System...", "saving");
+
+  try {
+    const res = await safeFetch("/timesheet/api/db/update-plate-no", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        old_plate_no: oldPlate,
+        new_plate_no: newPlate,
+        change_date: changeDate,
+        reason: reason,
+      }),
+    });
+
+    if (res.success) {
+      showStatus("✓ Saved", "saved");
+      closeModal("plateLogModal");
+      await initDB();
+      customAlert("Success", `Plate No successfully updated to ${newPlate} and synced across all tables.`);
+    } else {
+      showStatus("Error", "error");
+      customAlert("Error", res.message || "Failed to update plate number.");
+    }
+  } catch (e) {
+    showStatus("Error", "error");
+    customAlert("Error", "Network error occurred.");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Apply Plate Change";
+  }
 }
 
 function clearDriverForm() {
@@ -2576,6 +2687,17 @@ async function editPlateNo() {
     return;
   }
 
+  const changeReason = await customPrompt(
+    "Reason for Change",
+    "Enter reason (e.g., Istimara renewal, Plate replacement):",
+  );
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const changeDate = await customPrompt(
+    "Effective Change Date (YYYY-MM-DD)",
+    `Effective date:`,
+  ) || todayStr;
+
   showStatus("Updating...", "saving");
 
   try {
@@ -2585,7 +2707,12 @@ async function editPlateNo() {
         "Content-Type": "application/json",
         Authorization: "Bearer " + token,
       },
-      body: JSON.stringify({ old_plate_no: oldPlate, new_plate_no: newPlate }),
+      body: JSON.stringify({
+        old_plate_no: oldPlate,
+        new_plate_no: newPlate,
+        change_date: changeDate,
+        reason: changeReason || ""
+      }),
     });
 
     if (res.success) {

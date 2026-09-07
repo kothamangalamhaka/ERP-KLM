@@ -386,7 +386,27 @@ router.get("/api/vehicle-info", async (req, res) => {
       params = [`%${plate}%`];
     }
     const result = await pool.query(query, params);
-    res.json({ success: true, data: plate ? result.rows[0] : result.rows });
+
+    // 🟢 എല്ലാ പ്ലേറ്റ് മാറ്റങ്ങളുടെയും ലോഗുകൾ എടുത്ത് അയക്കുന്നു
+    const plateLogsRes = await pool.query(
+      "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC"
+    );
+    const plateLogs = plateLogsRes.rows;
+
+    let vehicles = result.rows.map((v) => {
+      let vPlate = (v.plate_no || "").trim().toUpperCase();
+      let matchedLogs = plateLogs.filter(
+        (pl) =>
+          (pl.new_plate_no || "").trim().toUpperCase() === vPlate ||
+          (pl.old_plate_no || "").trim().toUpperCase() === vPlate
+      );
+      return {
+        ...v,
+        plate_logs: matchedLogs,
+      };
+    });
+
+    res.json({ success: true, data: plate ? vehicles[0] : vehicles });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
@@ -398,11 +418,12 @@ router.get("/api/vehicle-info", async (req, res) => {
 router.get("/api/vehicle-logs", verifyToken, async (req, res) => {
   try {
     const { plate } = req.query;
-    const [driverLogs, siteLogs, ownerLogs, rateLogs] = await Promise.all([
+    const [driverLogs, siteLogs, ownerLogs, rateLogs, plateLogs] = await Promise.all([
       pool.query(`SELECT * FROM vehicle_driver_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
       pool.query(`SELECT * FROM vehicle_site_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
       pool.query(`SELECT * FROM vehicle_owner_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
-      pool.query(`SELECT * FROM vehicle_rate_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate])
+      pool.query(`SELECT * FROM vehicle_rate_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
+      pool.query(`SELECT * FROM vehicle_plate_log WHERE UPPER(new_plate_no)=UPPER($1) OR UPPER(old_plate_no)=UPPER($1) ORDER BY change_date DESC, id DESC`, [plate])
     ]);
 
     res.json({
@@ -410,7 +431,8 @@ router.get("/api/vehicle-logs", verifyToken, async (req, res) => {
       drivers: driverLogs.rows,
       sites: siteLogs.rows,
       owners: ownerLogs.rows,
-      rates: rateLogs.rows
+      rates: rateLogs.rows,
+      plateChanges: plateLogs.rows
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -1055,17 +1077,44 @@ router.get("/api/grid-data", verifyToken, async (req, res) => {
     let query =
       "SELECT * FROM timesheet_daily_records WHERE month=$1 AND year=$2";
     let params = [month, year];
+    let allRelatedPlates = [];
+    let plateLogs = [];
+
     if (plate) {
-      query += " AND plate_no=$3";
-      params.push(plate);
+      const cleanPlate = plate.trim().toUpperCase();
+      allRelatedPlates.push(cleanPlate);
+
+      // 🟢 ഫെച്ച് ചെയ്യുന്ന പ്ലേറ്റിന്റെ പഴയ/പുതിയ പ്ലേറ്റ് ഹിസ്റ്ററി എടുക്കുന്നു
+      const pLogs = await pool.query(
+        `SELECT * FROM vehicle_plate_log 
+         WHERE UPPER(old_plate_no) = $1 OR UPPER(new_plate_no) = $1
+         ORDER BY change_date ASC, id ASC`,
+        [cleanPlate]
+      );
+      plateLogs = pLogs.rows;
+
+      plateLogs.forEach((pl) => {
+        const oP = (pl.old_plate_no || "").trim().toUpperCase();
+        const nP = (pl.new_plate_no || "").trim().toUpperCase();
+        if (oP && !allRelatedPlates.includes(oP)) allRelatedPlates.push(oP);
+        if (nP && !allRelatedPlates.includes(nP)) allRelatedPlates.push(nP);
+      });
+
+      query += " AND UPPER(plate_no) = ANY($3)";
+      params.push(allRelatedPlates);
     }
+
     const result = await pool.query(query, params);
     let sortedData = result.rows.sort((a, b) => {
-      if (a.plate_no !== b.plate_no)
-        return a.plate_no.localeCompare(b.plate_no);
       return parseInt(a.record_date || 0) - parseInt(b.record_date || 0);
     });
-    res.json({ success: true, data: sortedData });
+
+    res.json({ 
+      success: true, 
+      data: sortedData, 
+      plateLogs: plateLogs, 
+      relatedPlates: allRelatedPlates 
+    });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
@@ -1743,61 +1792,70 @@ router.post("/api/public/view-report", async (req, res) => {
 router.post("/api/db/update-plate-no", verifyEditor, async (req, res) => {
   const client = await pool.connect();
   try {
-    const { old_plate_no, new_plate_no } = req.body;
+    const { old_plate_no, new_plate_no, change_date, reason } = req.body;
     if (!old_plate_no || !new_plate_no)
       throw new Error("Missing plate numbers");
 
     const oldPlate = old_plate_no.trim().toUpperCase();
     const newPlate = new_plate_no.trim().toUpperCase();
+    const effectiveDate = change_date ? change_date : new Date().toISOString().split('T')[0];
+    const username = req.user ? req.user.username : 'Editor';
 
     if (oldPlate === newPlate)
       return res.json({ success: true, new_plate_no: newPlate });
 
     await client.query("BEGIN");
 
-    // 1. Update Master Vehicles Table
+    // 1. Insert into Plate Change Log Table
+    await client.query(
+      `INSERT INTO vehicle_plate_log (old_plate_no, new_plate_no, change_date, reason, changed_by)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [oldPlate, newPlate, effectiveDate, reason || null, username]
+    );
+
+    // 2. Update Master Vehicles Table
     await client.query(
       `UPDATE timesheet_vehicles SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
       [newPlate, oldPlate],
     );
 
-    // 2. Update Driver Logs
+    // 3. Update Driver Logs
     await client.query(
       `UPDATE vehicle_driver_log SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
       [newPlate, oldPlate],
     );
 
-    // 3. Update Site Logs
+    // 4. Update Site Logs
     await client.query(
       `UPDATE vehicle_site_log SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
       [newPlate, oldPlate],
     );
 
-    // 4. Update Grid/Daily Records
+    // 5. Update Grid/Daily Records
     await client.query(
       `UPDATE timesheet_daily_records SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
       [newPlate, oldPlate],
     );
 
-    // 5. Update Owner Logs
+    // 6. Update Owner Logs
     await client.query(
       `UPDATE vehicle_owner_log SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
       [newPlate, oldPlate],
     );
 
-    // 6. Update Rate Logs
+    // 7. Update Rate Logs
     await client.query(
       `UPDATE vehicle_rate_log SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
       [newPlate, oldPlate],
     );
 
-    // 7. 🟢 Crucial: Update Billing Records (Prevents Calculation & Invoice Duplication!)
+    // 8. Update Billing Records
     await client.query(
       `UPDATE billing_records SET plate_no = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
       [newPlate, oldPlate],
     );
 
-    // 8. Update Replacement fields in site logs if referenced
+    // 9. Update Replacement fields in site logs if referenced
     await client.query(
       `UPDATE vehicle_site_log SET old_vehicle_no = $1 WHERE UPPER(TRIM(old_vehicle_no)) = $2`,
       [newPlate, oldPlate],
@@ -1810,7 +1868,7 @@ router.post("/api/db/update-plate-no", verifyEditor, async (req, res) => {
     await logAudit(
       req.user,
       "PLATE_NO_UPDATE",
-      `Changed plate no from ${oldPlate} to ${newPlate} across all database records and billing logs`,
+      `Changed plate no from ${oldPlate} to ${newPlate} (Date: ${effectiveDate}, Reason: ${reason || "N/A"})`,
     );
     await client.query("COMMIT");
 

@@ -156,13 +156,13 @@ router.post("/save-inline-edits", async (req, res) => {
   }
 });
  
-// 🟢 Fetch Master Report Data (With Owner & Rate Logs)
+// 🟢 Fetch Master Report Data (With Owner, Rate & Plate Change Logs)
 router.get("/master-report-data", async (req, res) => {
   try {
     const { month, year } = req.query;
     const fullMonth = `${month} ${year}`;
 
-    const [vehicles, sites, drivers, timesheets, invoices, billing, owners, rates] = await Promise.all([
+    const [vehicles, sites, drivers, timesheets, invoices, billing, owners, rates, plateChanges] = await Promise.all([
       pool.query("SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles"),
       pool.query("SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co FROM vehicle_site_log"),
       pool.query("SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log"),
@@ -170,7 +170,8 @@ router.get("/master-report-data", async (req, res) => {
       pool.query("SELECT * FROM invoice_records WHERE month=$1", [fullMonth]),
       pool.query("SELECT * FROM billing_records WHERE billing_month=$1", [fullMonth]),
       pool.query("SELECT plate_no, owner_name, vat, work_start_date, work_end_date, status FROM vehicle_owner_log"),
-      pool.query("SELECT plate_no, site_name, rate, work_start_date, work_end_date, status FROM vehicle_rate_log")
+      pool.query("SELECT plate_no, site_name, rate, work_start_date, work_end_date, status FROM vehicle_rate_log"),
+      pool.query("SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC")
     ]);
 
     res.json({
@@ -182,7 +183,8 @@ router.get("/master-report-data", async (req, res) => {
       invoices: invoices.rows,
       billing: billing.rows,
       owners: owners.rows,
-      rates: rates.rows
+      rates: rates.rows,
+      plateChanges: plateChanges.rows
     });
   } catch (err) {
     res.json({ success: false, message: err.message });

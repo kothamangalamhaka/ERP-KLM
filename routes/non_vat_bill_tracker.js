@@ -275,30 +275,37 @@ router.get("/data", verifyAccessCode, async (req, res) => {
 
           let monthTsTotal = 0;
           const cleanSup = normSup.replace(/[^a-zA-Z0-9]/g, "");
+          const processedPlates = new Set();
 
+          // 🟢 ഒരേ ഓണറുടെ ഒന്നിലധികം വണ്ടികൾ വെവ്വേറെ സേവ് ചെയ്താലും ആ മാസത്തെ മൊത്തം തുക കൃത്യമായി കൂട്ടിയെടുക്കുന്നു
           erpData.forEach((e) => {
             const bMonth = (e.raw_billing_month || "").trim().toLowerCase();
-
-            // 🟢 മാസം ഒത്തുനോക്കൽ: bMonth-ൽ shortM (feb, mar, apr) അടങ്ങിയിട്ടുണ്ടോ എന്ന് പരിശോധിക്കുന്നു
-            const isMonthMatch =
-              bMonth.includes(shortM) || bMonth.includes(fullM);
-
-            // 🟢 സൈറ്റ് ഒത്തുനോക്കൽ (getSiteFirstName വഴി കൃത്യമായി സൈറ്റ് കണ്ടെത്തുന്നു)
+            const isMonthMatch = bMonth.includes(shortM) || bMonth.includes(fullM);
             const eSiteFirst = getSiteFirstName(e.clean_site_name);
             const isSiteMatch = (eSiteFirst === sFirst) || e.clean_site_name.includes(sFirst);
 
             if (isMonthMatch && isSiteMatch && !isZSite(e.clean_site_name)) {
-              // 🟢 പേര് പൂർണ്ണമായി കൃത്യമാണെങ്കിൽ മാത്രം (Strict Exact Match)
               const isOwnerMatch = (e.norm_owner === normSup) || (e.clean_owner === cleanSup);
 
               if (isOwnerMatch) {
-                // 🟢 ഈ വണ്ടി ആ മാസം VAT 'Yes' ആണെങ്കിൽ Non-VAT തുകയിൽ കൂട്ടരുത്
-                const rowVeh = vehicles.find(v => (v.plate_no || "").trim().toUpperCase() === (e.plate_no || "").trim().toUpperCase());
-                const ownerInfo = getMonthOwnerInfo(e.plate_no, m, (rowVeh ? rowVeh.owner_name : ""), (rowVeh ? rowVeh.vat : ""));
-                const isVatVeh = ["yes", "true", "15"].includes(ownerInfo.vat);
+                const pKey = (e.plate_no || "").trim().toUpperCase();
+
+                let isVatVeh = false;
+                if (pKey) {
+                  const rowVeh = vehicles.find(v => (v.plate_no || "").trim().toUpperCase() === pKey);
+                  const ownerInfo = getMonthOwnerInfo(pKey, m, (rowVeh ? rowVeh.owner_name : ""), (rowVeh ? rowVeh.vat : ""));
+                  isVatVeh = ["yes", "true", "15"].includes(ownerInfo.vat);
+                }
 
                 if (!isVatVeh) {
-                  monthTsTotal += parseFloat(e.row_total || 0);
+                  if (pKey) {
+                    if (!processedPlates.has(pKey)) {
+                      processedPlates.add(pKey);
+                      monthTsTotal += parseFloat(e.row_total || 0);
+                    }
+                  } else {
+                    monthTsTotal += parseFloat(e.row_total || 0);
+                  }
                 }
               }
             }
@@ -444,17 +451,16 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
         // 🟢 VAT ഉള്ള വാഹനം ആണെങ്കിൽ Non-VAT ബ്രേക്ക്ഡൗണിൽ ഉൾപ്പെടുത്തില്ല
         if (['yes', 'true', '15'].includes(curVat)) return;
 
-        if (!plateGroups[p]) {
-          plateGroups[p] = {
+        // 🟢 ഒരേ വണ്ടി തന്നെ വീണ്ടും വന്നാൽ മാത്രം സ്കിപ്പ് ചെയ്യുന്നു, വ്യത്യസ്ത വണ്ടികളാണെങ്കിൽ എല്ലാം ലിസ്റ്റിൽ ഉൾപ്പെടുത്തുന്നു
+        const uniqueKey = p !== 'N/A' ? p : `${p}_${row.after_adjustment}_${Math.random()}`;
+        if (!plateGroups[uniqueKey]) {
+          plateGroups[uniqueKey] = {
             plate_no: p,
-            nr_hours: 0,
-            ot_hours: 0,
-            total_amount: 0,
+            nr_hours: parseFloat(row.nhr || 0),
+            ot_hours: parseFloat(row.othr || 0),
+            total_amount: parseFloat(row.after_adjustment || 0),
           };
         }
-        plateGroups[p].nr_hours += parseFloat(row.nhr || 0);
-        plateGroups[p].ot_hours += parseFloat(row.othr || 0);
-        plateGroups[p].total_amount += parseFloat(row.after_adjustment || 0);
       }
     });
 

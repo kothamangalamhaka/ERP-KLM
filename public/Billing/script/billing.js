@@ -1270,10 +1270,20 @@ function showSuggestions(input) {
 
   let selectedSites = getSelectedCheckboxes("siteList");
   let filteredData = selectedSites.length > 0 ? masterData.filter(d => selectedSites.includes(d.site || "N/A")) : masterData;
-  const plates = [...new Set(filteredData.map((r) => r.plate_number || r.plate))];
-  const matches = plates.filter(
-    (p) => p && p.toUpperCase().replace(/\s+/g, "").includes(val),
-  );
+  
+  let matches = [];
+  filteredData.forEach(r => {
+    let p = r.plate_number || r.plate || "";
+    let matchFound = false;
+
+    if (p && p.toUpperCase().replace(/\s+/g, "").includes(val)) matchFound = true;
+    if (r.master_plate && r.master_plate.toUpperCase().replace(/\s+/g, "").includes(val)) matchFound = true;
+    if (Array.isArray(r.related_plates) && r.related_plates.some(rp => rp.toUpperCase().replace(/\s+/g, "").includes(val))) matchFound = true;
+
+    if (matchFound && !matches.includes(p)) {
+      matches.push(p);
+    }
+  });
 
   if (matches.length > 0) {
     box.innerHTML = "";
@@ -1425,9 +1435,16 @@ function autoFill(input) {
   if (!val) return;
 
   let selectedSites = getSelectedCheckboxes("siteList");
-  let matches = masterData.filter(
-    (d) => (d.plate_number || d.plate || "").toUpperCase() === val && (selectedSites.length === 0 || selectedSites.includes(d.site || "N/A"))
-  );
+  let matches = masterData.filter((d) => {
+    let p = (d.plate_number || d.plate || "").toUpperCase();
+    let mp = (d.master_plate || "").toUpperCase();
+    let rp = Array.isArray(d.related_plates) ? d.related_plates.map(x => x.toUpperCase()) : [];
+
+    let isPlateMatch = (p === val || mp === val || rp.includes(val) || p.includes(val));
+    let isSiteMatch = (selectedSites.length === 0 || selectedSites.includes(d.site || "N/A"));
+
+    return isPlateMatch && isSiteMatch;
+  });
 
   if (matches.length === 0) return;
 

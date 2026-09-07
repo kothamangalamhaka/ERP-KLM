@@ -2382,22 +2382,61 @@
               diff_st = "";
             }
 
-            let display_inv_nr =
-              inv_nr_raw !== null && inv_nr_raw !== ""
-                ? calc_inv_nr.toString()
-                : "";
-            let display_inv_ot = "";
-            if (calc_inv_nr > 0 || calc_inv_ot > 0)
-              display_inv_ot = calc_inv_ot.toString();
+            // 🟢 പ്ലേറ്റ് നമ്പർ ചേഞ്ച് ആ മാസത്തിൽ നടന്നിട്ടുണ്ടോ എന്ന് കണ്ടെത്തുന്നു
+          let effectivePlate = originalPlate;
+          let relatedPlatesList = [originalPlate];
 
-            processedArray.push({
-              report_date: shortDate,
-              raw_month: monthStr,
-              raw_year: yearStr,
-              plate: originalPlate,
-              owner,
-              vat,
-              site: sName,
+          let vPlateLogs = (data.plateChanges || []).filter(pl => {
+            let oP = cleanPlate(pl.old_plate_no);
+            let nP = cleanPlate(pl.new_plate_no);
+            return oP === pClean || nP === pClean;
+          });
+
+          vPlateLogs.forEach(pl => {
+            if (pl.old_plate_no && !relatedPlatesList.includes(pl.old_plate_no)) relatedPlatesList.push(pl.old_plate_no);
+            if (pl.new_plate_no && !relatedPlatesList.includes(pl.new_plate_no)) relatedPlatesList.push(pl.new_plate_no);
+          });
+
+          if (vPlateLogs.length > 0) {
+            for (let pl of vPlateLogs) {
+              if (!pl.change_date) continue;
+              let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+              let cDate = new Date(cYear, cMonth - 1, cDay);
+
+              let curMonthStart = new Date(parseInt(yearStr), mIdx, 1, 0, 0, 0, 0);
+              let curMonthEnd = new Date(parseInt(yearStr), mIdx + 1, 0, 23, 59, 59, 999);
+
+              if (cYear === parseInt(yearStr) && (cMonth - 1) === mIdx) {
+                // ആ മാസത്തിൽ തന്നെയാണ് മാറ്റം വന്നതെങ്കിൽ 2380 XSB ➔ 1999 NTA
+                effectivePlate = `${pl.old_plate_no} ➔ ${pl.new_plate_no}`;
+              } else if (curMonthEnd < cDate) {
+                // ചേഞ്ച് ഡേറ്റിന് മുൻപുള്ള മാസങ്ങളിൽ പഴയ പ്ലേറ്റ് നമ്പർ മാത്രം
+                effectivePlate = pl.old_plate_no;
+              } else if (curMonthStart >= cDate) {
+                // ചേഞ്ച് ഡേറ്റിന് ശേഷമുള്ള മാസങ്ങളിൽ പുതിയ പ്ലേറ്റ് നമ്പർ മാത്രം
+                effectivePlate = pl.new_plate_no;
+              }
+            }
+          }
+
+          let display_inv_nr =
+            inv_nr_raw !== null && inv_nr_raw !== ""
+              ? calc_inv_nr.toString()
+              : "";
+          let display_inv_ot = "";
+          if (calc_inv_nr > 0 || calc_inv_ot > 0)
+            display_inv_ot = calc_inv_ot.toString();
+
+          processedArray.push({
+            report_date: shortDate,
+            raw_month: monthStr,
+            raw_year: yearStr,
+            plate: effectivePlate,
+            master_plate: originalPlate,
+            related_plates: relatedPlatesList,
+            owner,
+            vat,
+            site: sName,
               rate: siteDataMap[sName].rate,
               ts_nr: calc_ts_nr.toString(),
               ts_ot: calc_ts_ot > 0 ? calc_ts_ot.toString() : "",
@@ -2573,9 +2612,11 @@
             let matchO =
               fOwner === "ALL" || owner.includes(fOwner.toUpperCase());
             let matchS = fSite === "ALL" || site === fSite;
+            let relatedStr = (tr.dataset.relatedPlates || "").toUpperCase();
             let matchP =
               fPlate === "" ||
               plate.includes(fPlate) ||
+              relatedStr.includes(fPlate) ||
               owner.includes(fPlate) ||
               inv_no.includes(fPlate) ||
               bill_no.includes(fPlate);
@@ -2610,7 +2651,9 @@
           let matchS = fSite === "ALL" || d.site === fSite;
           let matchP =
             fPlate === "" ||
-            d.plate.includes(fPlate) ||
+            d.plate.toUpperCase().includes(fPlate) ||
+            (d.master_plate && d.master_plate.toUpperCase().includes(fPlate)) ||
+            (Array.isArray(d.related_plates) && d.related_plates.some(rp => rp.toUpperCase().includes(fPlate))) ||
             d.owner.toUpperCase().includes(fPlate) ||
             (d.inv_no && d.inv_no.toUpperCase().includes(fPlate)) ||
             (d.bill_no && d.bill_no.toUpperCase().includes(fPlate));
@@ -2669,6 +2712,8 @@
           const tr = document.createElement("tr");
           tr.dataset.site = row.site;
           tr.dataset.plate = row.plate;
+          tr.dataset.masterPlate = row.master_plate || row.plate;
+          tr.dataset.relatedPlates = (row.related_plates || []).join(",");
           tr.dataset.month = row.raw_month;
           tr.dataset.year = row.raw_year;
           tr.innerHTML = `
@@ -3201,7 +3246,9 @@
         }
         
         let sheetObj = createSheetFromData(filtered);
-        let fileName = `Invoice_Report_${document.getElementById("selMonth").value}.xlsx`;
+        let curM = document.getElementById("selMonth").value;
+        let curY = document.getElementById("selYear").value;
+        let fileName = `${curM} ${curY} - Invoice & Payment Analysis Report.xlsx`;
         downloadExcelViaPython(fileName, [sheetObj]);
       }
 
@@ -3254,7 +3301,8 @@
           return;
         }
 
-        downloadExcelViaPython("Batch_Report.xlsx", sheetsArray);
+        let fileName = `Batch ${fromM} ${fromY} to ${toM} ${toY} - Invoice & Payment Analysis Report.xlsx`;
+        downloadExcelViaPython(fileName, sheetsArray);
       }
 
       function openSingleExcelModal() {
@@ -3332,7 +3380,8 @@
         let sheetObj = createSingleSheetFromData(combinedData);
         sheetObj.sheet_name = "Master_Analysis";
         sheetObj.is_analysis = true;
-        downloadExcelViaPython("Haka_Analysis_Report.xlsx", [sheetObj]);
+        let fileName = `Single ${fromM} ${fromY} to ${toM} ${toY} - Invoice & Payment Analysis Report.xlsx`;
+        downloadExcelViaPython(fileName, [sheetObj]);
       }
 
       function applyExcelHeaderStyles(
@@ -3518,7 +3567,7 @@
             r.alt_nr, r.alt_ot > 0 ? r.alt_ot : "",
           ]);
         });
-
+ 
         // 🟢 കൃത്യമായ Merges (Total 37 columns: 0 to 36)
         let merges = [
           { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },   // VEHICLE INFO (0..5)

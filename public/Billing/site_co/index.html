@@ -1476,7 +1476,12 @@
           pool = [...new Set([...suggestionPlates, ...suggestionOwners])];
         }
 
-        let matches = pool.filter((p) => p.toUpperCase().includes(val));
+        // 🟢 പഴയ പ്ലേറ്റും പുതിയ പ്ലേറ്റും തിരഞ്ഞാലും മാച്ച് ലഭിക്കുന്നു
+        let matches = pool.filter((p) => {
+          let cleanVal = val.replace(/\s+/g, "");
+          let cleanP = p.toUpperCase().replace(/\s+/g, "");
+          return cleanP.includes(cleanVal);
+        });
 
         if (matches.length > 0) {
           box.innerHTML = "";
@@ -1604,9 +1609,60 @@
           const data = await res.json();
 
           if (data.success) {
-            fetchedRowsCache = data.rows || [];
+            fetchedRowsCache = (data.rows || []).map(r => {
+              // 🟢 പ്ലേറ്റ് നമ്പർ മാറ്റം ആ മാസത്തിൽ വന്നിട്ടുണ്ടോ എന്ന് നിർണ്ണയിക്കുന്നു
+              if (r.plate_logs && r.plate_logs.length > 0) {
+                const curMonthIdx = ALL_MONTHS ? ALL_MONTHS.indexOf(month) : new Date(`${month} 1, ${year}`).getMonth();
+                const curYearInt = parseInt(year);
+                const curMonthStart = new Date(curYearInt, curMonthIdx, 1);
+                const curMonthEnd = new Date(curYearInt, curMonthIdx + 1, 0);
 
-            fetchedReportCache = data.reportData || [];
+                for (let pl of r.plate_logs) {
+                  if (!pl.change_date) continue;
+                  let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+                  let cDate = new Date(cYear, cMonth - 1, cDay);
+
+                  let oPlate = (pl.old_plate_no || "").trim().toUpperCase();
+                  let nPlate = (pl.new_plate_no || "").trim().toUpperCase();
+
+                  if (cYear === curYearInt && (cMonth - 1) === curMonthIdx) {
+                    r.plate_no = `${oPlate} ➔ ${nPlate}`;
+                  } else if (curMonthEnd < cDate) {
+                    r.plate_no = oPlate;
+                  } else if (curMonthStart >= cDate) {
+                    r.plate_no = nPlate;
+                  }
+                }
+              }
+              return r;
+            });
+
+            fetchedReportCache = (data.reportData || []).map(r => {
+              if (r.plate_logs && r.plate_logs.length > 0) {
+                const curMonthIdx = ALL_MONTHS ? ALL_MONTHS.indexOf(month) : new Date(`${month} 1, ${year}`).getMonth();
+                const curYearInt = parseInt(year);
+                const curMonthStart = new Date(curYearInt, curMonthIdx, 1);
+                const curMonthEnd = new Date(curYearInt, curMonthIdx + 1, 0);
+
+                for (let pl of r.plate_logs) {
+                  if (!pl.change_date) continue;
+                  let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+                  let cDate = new Date(cYear, cMonth - 1, cDay);
+
+                  let oPlate = (pl.old_plate_no || "").trim().toUpperCase();
+                  let nPlate = (pl.new_plate_no || "").trim().toUpperCase();
+
+                  if (cYear === curYearInt && (cMonth - 1) === curMonthIdx) {
+                    r.plate = `${oPlate} ➔ ${nPlate}`;
+                  } else if (curMonthEnd < cDate) {
+                    r.plate = oPlate;
+                  } else if (curMonthStart >= cDate) {
+                    r.plate = nPlate;
+                  }
+                }
+              }
+              return r;
+            });
 
             activeFilters = {};
 

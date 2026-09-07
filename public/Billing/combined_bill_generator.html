@@ -663,7 +663,8 @@
           }
         });
         const link = document.createElement("a");
-        link.download = `${plateNo}_${dateStr.replace(/\s+/g, '_')}_Bill.png`;
+        let safePlate = String(plateNo).replace(/[\u2794➔->]/g, '_').replace(/\s+/g, '_');
+        link.download = `${safePlate}_${dateStr.replace(/\s+/g, '_')}_Bill.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
       }

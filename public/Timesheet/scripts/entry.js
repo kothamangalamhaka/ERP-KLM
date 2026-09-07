@@ -183,24 +183,70 @@ function searchPlate() {
   sug.style.maxHeight = "250px";
   sug.style.overflowY = "auto";
 
-  const matches = vehiclesCache.filter(
-    (v) =>
-      (v.plate_no && v.plate_no.toUpperCase().includes(val)) ||
-      (v.asset_code && v.asset_code.toUpperCase().includes(val)) ||
-      (v.wrk_order_no && v.wrk_order_no.toUpperCase().includes(val)) ||
-      (v.driver_name && v.driver_name.toUpperCase().includes(val)),
-  );
+  const selMonthName = document.getElementById("selMonth").value;
+  const selYearNum = parseInt(document.getElementById("selYear").value);
+  const selMonthIdx = months.indexOf(selMonthName);
+  const selMonthStart = new Date(selYearNum, selMonthIdx, 1);
+  const selMonthEnd = new Date(selYearNum, selMonthIdx + 1, 0);
+
+  const getVehicleDisplayPlate = (v) => {
+    let currentPlate = (v.plate_no || "").trim().toUpperCase();
+    if (!v.plate_logs || v.plate_logs.length === 0) return currentPlate;
+
+    for (let log of v.plate_logs) {
+      if (!log.change_date) continue;
+      let [cYear, cMonth, cDay] = log.change_date.split("-").map(Number);
+      let cDate = new Date(cYear, cMonth - 1, cDay);
+
+      let oPlate = (log.old_plate_no || "").trim().toUpperCase();
+      let nPlate = (log.new_plate_no || "").trim().toUpperCase();
+
+      if (cYear === selYearNum && (cMonth - 1) === selMonthIdx) {
+        return `${oPlate} ➔ ${nPlate}`;
+      } else if (selMonthEnd < cDate) {
+        return oPlate;
+      } else if (selMonthStart >= cDate) {
+        return nPlate;
+      }
+    }
+    return currentPlate;
+  };
+
+  const matches = vehiclesCache.filter((v) => {
+    let dispPlate = getVehicleDisplayPlate(v);
+    let allRelated = [dispPlate, v.plate_no];
+    if (v.plate_logs) {
+      v.plate_logs.forEach((pl) => {
+        allRelated.push(pl.old_plate_no);
+        allRelated.push(pl.new_plate_no);
+      });
+    }
+
+    let plateMatch = allRelated.some((p) => p && p.toUpperCase().includes(val));
+    let assetMatch = v.asset_code && v.asset_code.toUpperCase().includes(val);
+    let woMatch = v.wrk_order_no && v.wrk_order_no.toUpperCase().includes(val);
+    let driverMatch = v.driver_name && v.driver_name.toUpperCase().includes(val);
+
+    return plateMatch || assetMatch || woMatch || driverMatch;
+  });
 
   if (matches.length > 0) {
     sug.style.display = "block";
     matches.forEach((m) => {
       let div = document.createElement("div");
-      let displayText = m.plate_no;
-      if (m.asset_code && m.asset_code.toUpperCase().includes(val)) displayText += ` (${m.asset_code})`;
-      else if (m.wrk_order_no && m.wrk_order_no.toUpperCase().includes(val)) displayText += ` [${m.wrk_order_no}]`;
-      else if (m.driver_name && m.driver_name.toUpperCase().includes(val)) displayText += ` - ${m.driver_name}`;
+      let resolvedPlate = getVehicleDisplayPlate(m);
+      let displayText = resolvedPlate;
+
+      if (m.asset_code && m.asset_code.toUpperCase().includes(val)) {
+        displayText += ` (${m.asset_code})`;
+      } else if (m.wrk_order_no && m.wrk_order_no.toUpperCase().includes(val)) {
+        displayText += ` [${m.wrk_order_no}]`;
+      } else if (m.driver_name && m.driver_name.toUpperCase().includes(val)) {
+        displayText += ` - ${m.driver_name}`;
+      }
+
       div.innerText = displayText;
-      div.onclick = () => selectPlate(m);
+      div.onclick = () => selectPlate(m, resolvedPlate);
       sug.appendChild(div);
     });
   } else {
@@ -208,8 +254,11 @@ function searchPlate() {
   }
 }
 
-function selectPlate(vObj) {
-  document.getElementById("selPlate").value = vObj.plate_no.toUpperCase();
+function selectPlate(vObj, resolvedPlate) {
+  // 🟢 ഇൻപുട്ടിൽ കാണാൻ മാത്രം resolvedPlate, എന്നാൽ യഥാർത്ഥ പ്ലേറ്റ് dataset-ൽ സൂക്ഷിക്കുന്നു
+  const inputEl = document.getElementById("selPlate");
+  inputEl.value = (resolvedPlate || vObj.plate_no).toUpperCase();
+  inputEl.dataset.actualPlate = vObj.plate_no.toUpperCase();
   document.getElementById("plateSuggestions").style.display = "none";
 }
 
@@ -309,8 +358,17 @@ function formatDateUI(dStr) {
 }
 
 async function triggerFetch() {
-  const p = document.getElementById("selPlate").value.trim().toUpperCase();
-  document.getElementById("selPlate").value = p;
+  const inputEl = document.getElementById("selPlate");
+  let rawVal = inputEl.value.trim().toUpperCase();
+  
+  // 🟢 "2380 XSB ➔ 1999 NTA" എന്നതിൽ നിന്ന് അവസാനത്തെ മാസ്റ്റർ പ്ലേറ്റ് (1999 NTA) വേർതിരിച്ചെടുക്കുന്നു
+  let p = inputEl.dataset.actualPlate || rawVal;
+  if (p.includes("➔")) {
+    p = p.split("➔").pop().trim();
+  } else if (p.includes("->")) {
+    p = p.split("->").pop().trim();
+  }
+
   document.getElementById("plateSuggestions").style.display = "none";
 
   if (!p) {
@@ -554,9 +612,10 @@ async function triggerFetch() {
     .catch(e => console.log("Error fetching logsheet count:", e));
 
     let existingData = data.success ? data.data : [];
+    let pLogsForGrid = data.plateLogs || (logs.plateChanges || []);
     
     try {
-        renderGrid(m, y, p, existingData, sStartVal, sEndVal, logs);
+        renderGrid(m, y, p, existingData, sStartVal, sEndVal, logs, pLogsForGrid);
         await applyLockStatus(m, y, false);
         
         if(typeof startRecordPoll === "function") {
@@ -669,6 +728,7 @@ function renderGrid(
   siteStart,
   siteEnd,
   logs = { drivers: [], sites: [] },
+  plateLogs = []
 ) {
   const tbody = document.getElementById("gridBody");
   tbody.innerHTML = "";
@@ -680,11 +740,49 @@ function renderGrid(
   const cleanVal = (val) =>
     val === null || val === "null" || val === undefined ? "" : val;
 
+  // 🟢 ആ മാസത്തിൽ പ്ലേറ്റ് നമ്പർ ചേഞ്ച് നടന്നിട്ടുണ്ടോ എന്ന് പരിശോധിക്കുന്നു
+  let activeMonthChanges = [];
+  if (plateLogs && plateLogs.length > 0) {
+    activeMonthChanges = plateLogs.filter(pl => {
+      if (!pl.change_date) return false;
+      let cDate = new Date(pl.change_date);
+      return cDate.getFullYear() === parseInt(year) && cDate.getMonth() === mIdx;
+    });
+  }
+
+  // 🟢 ശുദ്ധമായ മാസ്റ്റർ പ്ലേറ്റ് നമ്പർ എടുക്കുന്നു (Arrow ചിഹ്നങ്ങൾ പൂർണ്ണമായി ഒഴിവാക്കുന്നു)
+  let cleanMasterPlate = plate;
+  if (cleanMasterPlate.includes("➔")) cleanMasterPlate = cleanMasterPlate.split("➔").pop().trim();
+  else if (cleanMasterPlate.includes("->")) cleanMasterPlate = cleanMasterPlate.split("->").pop().trim();
+
   for (let i = 1; i <= days; i++) {
     const rowData =
       existingData.find((r) => parseInt(r.record_date) === i) || {};
     let dbDist = cleanVal(rowData.calc_distance);
     if (dbDist !== "") dbDist = parseFloat(dbDist).toFixed(1);
+
+    // 🟢 ടേബിളിൽ കൃത്യമായ ഒരൊറ്റ പ്ലേറ്റ് നമ്പർ മാത്രം വരുന്നു
+    let dayPlate = cleanMasterPlate;
+    let curDateObj = new Date(parseInt(year), mIdx, i);
+    curDateObj.setHours(0, 0, 0, 0);
+
+    if (plateLogs && plateLogs.length > 0) {
+      for (let pl of plateLogs) {
+        if (!pl.change_date) continue;
+        let cParts = String(pl.change_date).split("T")[0].split("-").map(Number);
+        let cDate = new Date(cParts[0], cParts[1] - 1, cParts[2]);
+        cDate.setHours(0, 0, 0, 0);
+
+        let oPlate = String(pl.old_plate_no || "").trim().toUpperCase();
+        let nPlate = String(pl.new_plate_no || "").trim().toUpperCase();
+
+        if (curDateObj < cDate) {
+          dayPlate = oPlate;
+        } else {
+          dayPlate = nPlate;
+        }
+      }
+    }
 
     let dayName = getDayName(i, month, year);
     let rowClass = dayName === "Fri" ? "row-friday" : "";
@@ -743,7 +841,7 @@ function renderGrid(
     let tr = document.createElement("tr");
     tr.className = rowClass;
     tr.innerHTML = `
-      <td><input type="text" class="grid-readonly" value="${plate}" tabindex="-1" readonly></td>
+      <td><input type="text" class="grid-readonly" value="${dayPlate}" tabindex="-1" readonly style="font-weight:600; color:#0f172a; text-align:center;"></td>
       <td><input type="text" class="grid-readonly" value="${i}" tabindex="-1" readonly></td>
       <td><input type="text" class="grid-readonly" value="${dayName}" tabindex="-1" readonly style="color:#64748b;"></td>
       <td><input type="text" class="grid-input" data-col="wrk_start" data-row="${i}" value="${ws}" ${disabledAttr}></td>
@@ -1107,7 +1205,9 @@ window.addEventListener("pagehide", function () {
 });
 
 async function saveCellData(rowIdx, colName, colValue) {
-  const plate = document.getElementById("selPlate").value.trim().toUpperCase();
+  // 🟢 ആ വരിയിലെ കൃത്യമായ പ്ലേറ്റ് നമ്പർ (പഴയതോ പുതിയതോ) തന്നെ സേവ് ചെയ്യാൻ എടുക്കുന്നു
+  const rowPlateInput = document.querySelector(`#gridBody tr:nth-child(${rowIdx}) td:first-child input`);
+  const plate = rowPlateInput ? rowPlateInput.value.trim().toUpperCase() : document.getElementById("selPlate").value.trim().toUpperCase();
   if (!plate || !colName) return;
 
   pendingSaves++; 
