@@ -556,8 +556,8 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
 
       resultRows.push({
         date: monthStr.substring(0, 3) + " " + yearStr.substring(2, 4),
-        vtype: v.vehicle_type || "N/A",
-        driver: effectiveDriver,
+        vtype: (saved && saved.vtype) ? saved.vtype : (v.vehicle_type || "N/A"),
+        driver: (saved && saved.driver) ? saved.driver : effectiveDriver,
         site: currentSiteName,
         plate_no: displayPlate,
         master_plate: masterPlate,

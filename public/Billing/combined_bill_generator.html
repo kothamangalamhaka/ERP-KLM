@@ -246,7 +246,7 @@
         if (!username || !password) return showToast("Enter credentials");
 
         try {
-          const res = await fetch("/api/login", {
+          const res = await fetch("/api/invoice-auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password }),
@@ -326,8 +326,19 @@
 
         if (!val) { box.style.display = "none"; return; }
 
-        const plates = [...new Set(vehiclesMaster.map((r) => r.plate_number || r.plate))];
-        const matches = plates.filter((p) => p && p.toUpperCase().replace(/\s+/g, "").includes(val));
+        let allPlateOptions = [];
+        vehiclesMaster.forEach(r => {
+          let mainP = r.plate_number || r.plate || "";
+          if (mainP && !allPlateOptions.includes(mainP)) allPlateOptions.push(mainP);
+          if (r.master_plate && !allPlateOptions.includes(r.master_plate)) allPlateOptions.push(r.master_plate);
+          if (Array.isArray(r.related_plates)) {
+            r.related_plates.forEach(rp => {
+              if (rp && !allPlateOptions.includes(rp)) allPlateOptions.push(rp);
+            });
+          }
+        });
+
+        const matches = allPlateOptions.filter((p) => p && p.toUpperCase().replace(/\s+/g, "").includes(val));
 
         if (matches.length > 0) {
           box.innerHTML = "";
@@ -338,7 +349,9 @@
             div.innerText = m;
             div.onmousedown = function (e) {
               e.preventDefault();
-              input.value = m;
+              // സെർച്ച് ചെയ്യുമ്പോൾ മാസ്റ്റർ പ്ലേറ്റ് അല്ലെങ്കിൽ ഏറ്റവും പുതിയ പ്ലേറ്റ് ഓട്ടോമാറ്റിക് ആയി എടുക്കാൻ
+              let matchedVehicle = vehiclesMaster.find(v => (v.plate_number === m || v.master_plate === m || (Array.isArray(v.related_plates) && v.related_plates.includes(m))));
+              input.value = matchedVehicle ? (matchedVehicle.master_plate || matchedVehicle.plate_number || m) : m;
               box.style.display = "none";
               fetchCombinedBill();
             };
@@ -663,7 +676,7 @@
           }
         });
         const link = document.createElement("a");
-        let safePlate = String(plateNo).replace(/[\u2794➔->]/g, '_').replace(/\s+/g, '_');
+        let safePlate = String(plateNo).replace(/[\u2794\u2192\->]/g, '_').replace(/\s+/g, '_');
         link.download = `${safePlate}_${dateStr.replace(/\s+/g, '_')}_Bill.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();

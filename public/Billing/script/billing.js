@@ -791,11 +791,12 @@ function createBillCard(group, id) {
     parsedAdjs = group.manual_adjustments;
   } else {
     for (let item of group.items) {
+      let itemPlates = Array.isArray(item.related_plates) ? item.related_plates : [(item.plate_number || item.plate || "").trim().toUpperCase()];
       let saved = savedBillingData.find(
         (s) =>
-          (s.plate_no || "").toUpperCase() ===
-            (item.plate_number || item.plate || "").toUpperCase() &&
-          (s.site_name || "").trim() === (item.site || "").trim(),
+          itemPlates.includes((s.plate_no || "").trim().toUpperCase()) &&
+          (s.site_name || "").trim().toUpperCase() ===
+            (item.site || "").trim().toUpperCase(),
       );
       if (saved && saved.adjustment_desc) {
         try {
@@ -896,11 +897,11 @@ function createBillCard(group, id) {
     `;
 
   group.items.forEach((item, index) => {
-    // 🟢 FIX: Improved matching logic for Plate No and Site Name (Ignores spaces & case)
+    // 🟢 പ്ലേറ്റ് മാറ്റങ്ങൾ കണക്കിലെടുത്ത് related_plates വഴിയും സൈറ്റ് വഴിയും കൃത്യമായി മാച്ച് ചെയ്യുന്നു
+    let itemPlates = Array.isArray(item.related_plates) ? item.related_plates : [(item.plate_number || item.plate || "").trim().toUpperCase()];
     let saved = savedBillingData.find(
       (s) =>
-        (s.plate_no || "").trim().toUpperCase() ===
-          (item.plate_number || item.plate || "").trim().toUpperCase() &&
+        itemPlates.includes((s.plate_no || "").trim().toUpperCase()) &&
         (s.site_name || "").trim().toUpperCase() ===
           (item.site || "").trim().toUpperCase(),
     );
@@ -1527,12 +1528,12 @@ function applyAutoFillData(input, match, addBlankRow = true) {
   if (match.otrate)
     row.querySelector(".otrate").value = parseFloat(match.otrate);
 
+  let matchPlates = Array.isArray(match.related_plates) ? match.related_plates : [(match.plate_number || match.plate || "").trim().toUpperCase()];
   let saved = savedBillingData.find(
     (s) =>
-      (s.plate_no || "").toUpperCase() ===
-        (match.plate_number || match.plate || "").toUpperCase() &&
-      (s.site_name || "").trim() ===
-        (match.site || match.site_name || "").trim(),
+      matchPlates.includes((s.plate_no || "").trim().toUpperCase()) &&
+      (s.site_name || "").trim().toUpperCase() ===
+        (match.site || match.site_name || "").trim().toUpperCase(),
   );
 
   if (saved) {
@@ -1562,10 +1563,10 @@ function applyAutoFillData(input, match, addBlankRow = true) {
 
   let vatSelect = row.querySelector(".vat-rate");
   if (vatSelect) {
+    let matchPlates = Array.isArray(match.related_plates) ? match.related_plates : [(match.plate_number || match.plate || "").trim().toUpperCase()];
     let saved = savedBillingData.find(
       (s) =>
-        (s.plate_no || "").trim().toUpperCase() ===
-          (match.plate_number || match.plate || "").trim().toUpperCase() &&
+        matchPlates.includes((s.plate_no || "").trim().toUpperCase()) &&
         (s.site_name || "").trim().toUpperCase() ===
           (match.site || match.site_name || "").trim().toUpperCase()
     );

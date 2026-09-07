@@ -162,9 +162,9 @@ router.get("/vehicles", async (req, res) => {
       let correctVat = String(tsItem.vat || tsItem.vat_bill || tsItem["vat (yes/no)"] || "No").trim();
 
       if (targetStart && targetEnd) {
-        // --- DRIVER LOGIC ---
+        // --- DRIVER LOGIC (Related plates ഉൾപ്പെടെ പരിശോധിക്കുന്നു) ---
         let dLogs = driverLogs.rows.filter(
-          (l) => (l.plate_no || "").toUpperCase() === plate,
+          (l) => relatedPlates.includes((l.plate_no || "").trim().toUpperCase()),
         );
         let validDLogs = dLogs.filter((l) => {
           let st = l.work_start_date
@@ -186,6 +186,8 @@ router.get("/vehicles", async (req, res) => {
             .map((l) => l.driver_name)
             .filter(Boolean);
           correctDriver = [...new Set(driverNames)].join(" / ");
+        } else if (!correctDriver) {
+          correctDriver = (tsItem.driver_name || tsItem.driver || "N/A").trim();
         }
 
         // --- OWNER LOGIC (Month-wise lookup from vehicle_owner_log) ---
@@ -270,7 +272,11 @@ router.get("/vehicles", async (req, res) => {
 
       function pushVehicle(pPlate, pItem, pDriver, pSite, pRate, pOwner, pOwnerMobile, pVat) {
         let vtype =
-          pItem.vehicle_type || pItem.vtype || pItem["vehicle type"] || "";
+          pItem.vehicle_type || pItem.vtype || pItem["vehicle type"] || pItem.vehicleType || "N/A";
+        
+        // ഡ്രൈവർ പേര് എംപ്റ്റി ആണെങ്കിൽ മാസ്റ്റർ ടേബിളിൽ ഉള്ളത് എടുക്കുന്നു
+        let finalDriver = pDriver || pItem.driver_name || pItem.driver || "N/A";
+
         let vatRaw = String(pVat || "No").trim().toLowerCase();
         let isVatBill =
           vatRaw === "yes" ||
@@ -281,7 +287,7 @@ router.get("/vehicles", async (req, res) => {
             : "No";
 
         validVehicles.push({
-          plate_number: effectivePlate, // 🟢 ആ മാസത്തെ ശരിയായ പ്ലേറ്റ് നമ്പർ നൽകുന്നു
+          plate_number: effectivePlate,
           master_plate: masterPlate,
           related_plates: relatedPlates,
           vehicle_type: vtype,
@@ -291,7 +297,7 @@ router.get("/vehicles", async (req, res) => {
           owner: pOwner,
           owner_mobile: pOwnerMobile,
           site: pSite,
-          driver_name: pDriver,
+          driver_name: finalDriver, // 🟢 ഡ്രൈവർ പേര് ഉറപ്പാക്കുന്നു
           vat_bill: isVatBill,
         });
       }
@@ -526,22 +532,37 @@ router.get("/combined-bill", async (req, res) => {
 
     const cleanPlate = plate_no.trim().toUpperCase();
 
-    // Query saved billing records
-    const savedResult = await pool.query(
-      `SELECT * FROM billing_records 
-       WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) 
-         AND billing_month = ANY($2::text[])
-       ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id ASC`,
-      [cleanPlate, targetMonths]
+    // 🟢 ഈ വണ്ടിയുടെ എല്ലാ അനുബന്ധ പ്ലേറ്റ് നമ്പറുകളും (പഴയതും പുതിയതും) കണ്ടെത്തുന്നു
+    let relatedPlates = [cleanPlate];
+    const plateChangesQuery = await pool.query(
+      `SELECT old_plate_no, new_plate_no FROM vehicle_plate_log 
+       WHERE UPPER(TRIM(old_plate_no)) = $1 OR UPPER(TRIM(new_plate_no)) = $1`,
+      [cleanPlate]
     );
 
-    // Also fetch vehicle master info, rate logs, site logs, owner logs, and plate change logs
+    plateChangesQuery.rows.forEach(pl => {
+      let op = (pl.old_plate_no || "").trim().toUpperCase();
+      let np = (pl.new_plate_no || "").trim().toUpperCase();
+      if (op && !relatedPlates.includes(op)) relatedPlates.push(op);
+      if (np && !relatedPlates.includes(np)) relatedPlates.push(np);
+    });
+
+    // Query saved billing records across all related plates
+    const savedResult = await pool.query(
+      `SELECT * FROM billing_records 
+       WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) 
+         AND billing_month = ANY($2::text[])
+       ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id ASC`,
+      [relatedPlates, targetMonths]
+    );
+
+    // 🟢 എല്ലാ അനുബന്ധ പ്ലേറ്റുകളും (പഴയതും പുതിയതും) ഉപയോഗിച്ച് മാസ്റ്റർ വിവരങ്ങളും ലോഗുകളും ഫെച്ച് ചെയ്യുന്നു
     const [tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes, plateLogRes] = await Promise.all([
-      pool.query(`SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`, [cleanPlate]),
-      pool.query(`SELECT * FROM vehicle_rate_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate]),
-      pool.query(`SELECT * FROM vehicle_site_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate]),
-      pool.query(`SELECT * FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) ORDER BY id DESC`, [cleanPlate]),
-      pool.query(`SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log WHERE UPPER(TRIM(old_plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(new_plate_no)) = UPPER(TRIM($1)) ORDER BY change_date ASC`, [cleanPlate])
+      pool.query(`SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) LIMIT 1`, [relatedPlates]),
+      pool.query(`SELECT * FROM vehicle_rate_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`, [relatedPlates]),
+      pool.query(`SELECT * FROM vehicle_site_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`, [relatedPlates]),
+      pool.query(`SELECT * FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`, [relatedPlates]),
+      pool.query(`SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log WHERE UPPER(TRIM(old_plate_no)) = ANY($1::text[]) OR UPPER(TRIM(new_plate_no)) = ANY($1::text[]) ORDER BY change_date ASC`, [relatedPlates])
     ]);
 
     const vehicleInfo = tsVehicleRes.rows[0] || {};
@@ -554,7 +575,11 @@ router.get("/combined-bill", async (req, res) => {
     let totals = { nhr: 0, othr: 0, rent: 0, vat_amount: 0, total: 0, adjusted_amount: 0, after_adjustment: 0 };
 
     targetMonths.forEach((mStr) => {
-      let savedRow = savedResult.rows.find((r) => r.billing_month === mStr);
+      let savedRow = savedResult.rows.find((r) => {
+        let bMonthMatch = r.billing_month === mStr;
+        let bPlate = (r.plate_no || "").trim().toUpperCase();
+        return bMonthMatch && relatedPlates.includes(bPlate);
+      });
 
       const [mName, yStr] = mStr.split(" ");
       const shortDate = mName.substring(0, 3) + " " + (yStr ? yStr.substring(2, 4) : "");
@@ -634,15 +659,19 @@ router.get("/combined-bill", async (req, res) => {
         let targetSite = savedRow.site_name || vehicleInfo.site_name || "N/A";
         let resolvedCompany = savedRow.company || getCompanyFromSite(targetSite, vehicleInfo.company);
 
+        // 🟢 savedRow-ൽ vtype അല്ലെങ്കിൽ driver ഇല്ലെങ്കിൽ vehicleInfo-ൽ നിന്ന് എടുത്തു നൽകുന്നു
+        let rowVType = savedRow.vtype && savedRow.vtype !== "N/A" ? savedRow.vtype : (vehicleInfo.vehicle_type || "N/A");
+        let rowDriver = savedRow.driver && savedRow.driver !== "N/A" ? savedRow.driver : (vehicleInfo.driver_name || "N/A");
+
         combinedRows.push({
           billing_month: mStr,
           date: savedRow.date || shortDate,
           company: resolvedCompany,
-          owner: savedRow.owner || vehicleInfo.owner_name || "COMPANY VEHICLE",
+          owner: savedRow.owner || fallbackOwnerName,
           site_name: targetSite,
-          vtype: savedRow.vtype || vehicleInfo.vehicle_type || "N/A",
-          driver: savedRow.driver || vehicleInfo.driver_name || "N/A",
-          plate_no: rowPlateNumber, // 🟢 ചരിത്രപരമായ പ്ലേറ്റ് നമ്പർ അസൈൻ ചെയ്യുന്നു
+          vtype: rowVType,
+          driver: rowDriver,
+          plate_no: rowPlateNumber,
           nhr: nhr,
           nrate: rowNRate,
           othr: othr,
@@ -664,11 +693,11 @@ router.get("/combined-bill", async (req, res) => {
           billing_month: mStr,
           date: shortDate,
           company: resolvedCompany,
-          owner: vehicleInfo.owner_name || "COMPANY VEHICLE",
+          owner: fallbackOwnerName,
           site_name: targetSite,
           vtype: vehicleInfo.vehicle_type || "N/A",
           driver: vehicleInfo.driver_name || "N/A",
-          plate_no: rowPlateNumber, // 🟢 ചരിത്രപരമായ പ്ലേറ്റ് നമ്പർ അസൈൻ ചെയ്യുന്നു
+          plate_no: rowPlateNumber,
           nhr: 0,
           nrate: fallbackNRate,
           othr: 0,
