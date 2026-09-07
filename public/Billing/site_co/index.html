@@ -1882,19 +1882,12 @@
         let sumInvNr = 0;
         let sumInvOt = 0;
 
-        const hasVat = rows.some((r) => {
-          const reportRow = findMatchingPlateRecord(fetchedReportCache, r);
-          const vatFlag = String(reportRow?.vat || "").trim().toLowerCase();
-
-          return (
+        // A saved 0% VAT selection overrides the vehicle's master VAT flag.
+        const hasVat = rows.some(
+          (r) =>
             parseFloat(r.vat_amount || 0) > 0 ||
-            parseFloat(r.vat_percent || 0) > 0 ||
-            vatFlag === "yes" ||
-            vatFlag === "true" ||
-            vatFlag === "15" ||
-            vatFlag === "15%"
-          );
-        });
+           parseFloat(r.vat_percent || 0) > 0,
+        );
 
         rows.forEach((r, idx) => {
           const nhrVal = parseFloat(r.nhr || 0);
@@ -3781,6 +3774,9 @@
           )
           .forEach((el) => (el.style.display = "none"));
 
+        const vatColumnsHidden = hideZeroVatColumnsForExport(card);
+
+
         // Site കോളം ഡൗൺലോഡ്/കോപ്പി സമയത്ത് മാത്രം ഹൈഡ് ചെയ്യാൻ
         card
           .querySelectorAll(".site-column-cell")
@@ -3822,6 +3818,8 @@
             .querySelectorAll(".site-column-cell")
             .forEach((el) => (el.style.display = ""));
 
+          if (vatColumnsHidden) restoreVatColumnsAfterExport(card);
+
           if (grandTotalCell) {
             grandTotalCell.setAttribute("colspan", "6");
           }
@@ -3858,6 +3856,8 @@
         card
           .querySelectorAll(".site-column-cell")
           .forEach((el) => (el.style.display = "none"));
+
+          const vatColumnsHidden = hideZeroVatColumnsForExport(card);
 
         // കോപ്പി ചെയ്യുന്ന സമയത്ത് colspan 6 എന്നത് 5 ആക്കി മാറ്റാൻ
         const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
@@ -3911,11 +3911,47 @@
             .querySelectorAll(".site-column-cell")
             .forEach((el) => (el.style.display = ""));
 
+          if (vatColumnsHidden) restoreVatColumnsAfterExport(card);
+
           if (grandTotalCell) {
             grandTotalCell.setAttribute("colspan", "6");
           }
         }
       }
+
+      function hideZeroVatColumnsForExport(card) {
+        const vatPercentFields = [
+          ...card.querySelectorAll(".vat-percent-field"),
+        ];
+        const vatAmountCells = [...card.querySelectorAll(".vat-cell")];
+        const hasNoVatPercentage =
+          vatPercentFields.length > 0 &&
+          vatPercentFields.every(
+            (field) => (parseFloat(field.value) || 0) === 0,
+          );
+        const hasNoVatAmount =
+          vatAmountCells.length > 0 &&
+          vatAmountCells.every(
+            (cell) => (parseFloat(cell.innerText) || 0) === 0,
+          );
+
+        const shouldHideVatColumns = vatPercentFields.length > 0
+          ? hasNoVatPercentage
+          : hasNoVatAmount;
+        if (!shouldHideVatColumns) return false;
+
+        card
+          .querySelectorAll(".vat-percent-column, .vat-amount-column")
+          .forEach((column) => (column.style.display = "none"));
+        return true;
+      }
+
+      function restoreVatColumnsAfterExport(card) {
+        card
+          .querySelectorAll(".vat-percent-column, .vat-amount-column")
+          .forEach((column) => (column.style.display = ""));
+      }
+
 
       /*
        * ============================================================
