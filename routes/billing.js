@@ -313,7 +313,7 @@ router.get("/vehicles", async (req, res) => {
   }
 });
 
-// 2. Save Billing Data (WITH ZERO-ROW PROTECTION)
+// 2. Save Billing Data (WITH ZERO-ROW PROTECTION & RELATED PLATES CLEANUP)
 router.post("/save", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -326,13 +326,26 @@ router.post("/save", async (req, res) => {
 
       if (!plateNo || !siteName) continue;
 
-      // 🟢 FIX: billing_month, plate_no, site_name മൂന്നും വെച്ച് ഡിലീറ്റ് ചെയ്യുന്നു (മറ്റ് സൈറ്റുകൾ ഡിലീറ്റ് ആവില്ല)
+      // Find all related plates (old & new) for clean deletion
+      const pCheck = await client.query(
+        `SELECT old_plate_no, new_plate_no FROM vehicle_plate_log 
+         WHERE UPPER(TRIM(old_plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(new_plate_no)) = UPPER(TRIM($1))`,
+        [plateNo]
+      );
+      let cleanupPlates = [plateNo.toUpperCase()];
+      pCheck.rows.forEach(pl => {
+        let op = (pl.old_plate_no || "").trim().toUpperCase();
+        let np = (pl.new_plate_no || "").trim().toUpperCase();
+        if (op && !cleanupPlates.includes(op)) cleanupPlates.push(op);
+        if (np && !cleanupPlates.includes(np)) cleanupPlates.push(np);
+      });
+
       await client.query(
         `DELETE FROM billing_records 
          WHERE billing_month = $1 
-           AND UPPER(TRIM(plate_no)) = UPPER(TRIM($2))
+           AND UPPER(TRIM(plate_no)) = ANY($2::text[])
            AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))`,
-        [billing_period, plateNo, siteName],
+        [billing_period, cleanupPlates, siteName],
       );
 
       // 🟢 ZERO ROW PROTECTION (Updated to allow remarks)
@@ -547,12 +560,12 @@ router.get("/combined-bill", async (req, res) => {
       if (np && !relatedPlates.includes(np)) relatedPlates.push(np);
     });
 
-    // Query saved billing records across all related plates
+    // Query saved billing records across all related plates (id DESC ensures latest edited record is taken)
     const savedResult = await pool.query(
       `SELECT * FROM billing_records 
        WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) 
          AND billing_month = ANY($2::text[])
-       ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id ASC`,
+       ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id DESC`,
       [relatedPlates, targetMonths]
     );
 

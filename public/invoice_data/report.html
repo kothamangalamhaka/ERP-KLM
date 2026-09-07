@@ -2272,15 +2272,27 @@
             let ts_nr = siteDataMap[sName].ts_nr;
             let ts_ot = siteDataMap[sName].ts_ot;
 
-            let billData = (data.billing || []).find(
+            // മാസ്റ്റർ പ്ലേറ്റും ലോഗിലുള്ള എല്ലാ അനുബന്ധ പ്ലേറ്റുകളും ഒന്നിച്ച് നോക്കുന്നു
+            let relatedCleanPlates = [pClean];
+            (data.plateChanges || []).forEach(pl => {
+              let oP = cleanPlate(pl.old_plate_no);
+              let nP = cleanPlate(pl.new_plate_no);
+              if (oP === pClean && !relatedCleanPlates.includes(nP)) relatedCleanPlates.push(nP);
+              if (nP === pClean && !relatedCleanPlates.includes(oP)) relatedCleanPlates.push(oP);
+            });
+
+            // ഏറ്റവും അവസാനം സേവ് ചെയ്ത റെക്കോർഡ് എടുക്കാൻ id DESC ക്രമത്തിൽ സോർട്ട് ചെയ്യുന്നു
+            let sortedBilling = [...(data.billing || [])].sort((a, b) => (b.id || 0) - (a.id || 0));
+
+            let billData = sortedBilling.find(
               (b) =>
-                cleanPlate(b.plate_no) === pClean &&
+                relatedCleanPlates.includes(cleanPlate(b.plate_no)) &&
                 (b.site_name || "").trim() === sName,
             );
             if (!billData && sName !== "N/A") {
-              billData = (data.billing || []).find(
+              billData = sortedBilling.find(
                 (b) =>
-                  cleanPlate(b.plate_no) === pClean &&
+                  relatedCleanPlates.includes(cleanPlate(b.plate_no)) &&
                   (!b.site_name || b.site_name === "N/A"),
               );
             }

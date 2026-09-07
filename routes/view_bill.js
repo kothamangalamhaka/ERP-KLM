@@ -806,7 +806,7 @@ const [savedResult, tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes, plateLogR
     `SELECT * FROM billing_records 
      WHERE UPPER(TRIM(plate_no)) = ANY($1::text[])
        AND billing_month = ANY($2::text[])
-     ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id ASC`,
+     ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id DESC`,
     [allRelatedPlates, targetMonths]
   ),
   pool.query(`SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`, [actualMasterPlate]),
@@ -1131,9 +1131,22 @@ router.post("/save-bill", verifyViewBillUser, async (req, res) => {
       const vat_amount = Number((total - calculatedRent).toFixed(2));
       const after_adjustment = Number((total + adjAmt).toFixed(2));
 
+      const pCheck = await client.query(
+        `SELECT old_plate_no, new_plate_no FROM vehicle_plate_log 
+         WHERE UPPER(TRIM(old_plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(new_plate_no)) = UPPER(TRIM($1))`,
+        [cleanPlate]
+      );
+      let cleanupPlates = [cleanPlate];
+      pCheck.rows.forEach(pl => {
+        let op = (pl.old_plate_no || "").trim().toUpperCase();
+        let np = (pl.new_plate_no || "").trim().toUpperCase();
+        if (op && !cleanupPlates.includes(op)) cleanupPlates.push(op);
+        if (np && !cleanupPlates.includes(np)) cleanupPlates.push(np);
+      });
+
       await client.query(
-        `DELETE FROM billing_records WHERE billing_month = $1 AND UPPER(TRIM(plate_no)) = $2 AND site_name = $3`,
-        [billing_period, cleanPlate, row.site_name]
+        `DELETE FROM billing_records WHERE billing_month = $1 AND UPPER(TRIM(plate_no)) = ANY($2::text[]) AND site_name = $3`,
+        [billing_period, cleanupPlates, row.site_name]
       );
 
       const query = `INSERT INTO billing_records 
