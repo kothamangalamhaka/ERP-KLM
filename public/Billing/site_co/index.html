@@ -1462,7 +1462,7 @@
         currentFocusIndex = -1;
 
         if (!val) {
-          box.style.display = "none";
+          box.style.display = "none"; 
           return;
         }
 
@@ -1609,14 +1609,15 @@
           const data = await res.json();
 
           if (data.success) {
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const curMonthIdx = monthNames.indexOf(month);
+            const curYearInt = parseInt(year);
+            const curMonthStart = new Date(curYearInt, curMonthIdx, 1);
+            const curMonthEnd = new Date(curYearInt, curMonthIdx + 1, 0);
+
             fetchedRowsCache = (data.rows || []).map(r => {
               // 🟢 പ്ലേറ്റ് നമ്പർ മാറ്റം ആ മാസത്തിൽ വന്നിട്ടുണ്ടോ എന്ന് നിർണ്ണയിക്കുന്നു
               if (r.plate_logs && r.plate_logs.length > 0) {
-                const curMonthIdx = ALL_MONTHS ? ALL_MONTHS.indexOf(month) : new Date(`${month} 1, ${year}`).getMonth();
-                const curYearInt = parseInt(year);
-                const curMonthStart = new Date(curYearInt, curMonthIdx, 1);
-                const curMonthEnd = new Date(curYearInt, curMonthIdx + 1, 0);
-
                 for (let pl of r.plate_logs) {
                   if (!pl.change_date) continue;
                   let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
@@ -1639,11 +1640,6 @@
 
             fetchedReportCache = (data.reportData || []).map(r => {
               if (r.plate_logs && r.plate_logs.length > 0) {
-                const curMonthIdx = ALL_MONTHS ? ALL_MONTHS.indexOf(month) : new Date(`${month} 1, ${year}`).getMonth();
-                const curYearInt = parseInt(year);
-                const curMonthStart = new Date(curYearInt, curMonthIdx, 1);
-                const curMonthEnd = new Date(curYearInt, curMonthIdx + 1, 0);
-
                 for (let pl of r.plate_logs) {
                   if (!pl.change_date) continue;
                   let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);

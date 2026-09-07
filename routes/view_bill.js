@@ -110,8 +110,9 @@ router.post("/signup", async (req, res) => {
       : "Registration successful! Awaiting Admin Approval.";
 
     res.json({ success: true, message: msg });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    } catch (error) {
+    console.error("VIEW BILL /data ERROR:", error);
+    res.status(500).json({ success: false, message: error.message, stack: error.stack });
   }
 });
 
@@ -399,24 +400,30 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       let normPlate = cleanPlate(v.plate_no);
       if (!normPlate) return;
 
-      // 🟢 ഈ വണ്ടിയുടെ അനുബന്ധ പ്ലേറ്റ് ലോഗുകൾ എടുക്കുന്നു
+      // 🟢 billing.js-ലെ മാതൃകയിൽ എല്ലാ അനുബന്ധ പ്ലേറ്റുകളും (പഴയതും പുതിയതും) കൃത്യമായി കണ്ടെത്തുന്നു
+      let effectivePlate = masterPlate;
+      let relatedPlates = [masterPlate];
+      let allRelatedNorms = [normPlate];
+
       let vPlateChanges = plateLogs.filter(
         (pl) =>
           cleanPlate(pl.old_plate_no) === normPlate ||
           cleanPlate(pl.new_plate_no) === normPlate
       );
 
-      let effectivePlate = masterPlate;
-      let allRelatedNorms = [normPlate];
-
       vPlateChanges.forEach((pl) => {
-        let oNorm = cleanPlate(pl.old_plate_no);
-        let nNorm = cleanPlate(pl.new_plate_no);
+        let op = (pl.old_plate_no || "").trim().toUpperCase();
+        let np = (pl.new_plate_no || "").trim().toUpperCase();
+        let oNorm = cleanPlate(op);
+        let nNorm = cleanPlate(np);
+
+        if (op && !relatedPlates.includes(op)) relatedPlates.push(op);
+        if (np && !relatedPlates.includes(np)) relatedPlates.push(np);
         if (oNorm && !allRelatedNorms.includes(oNorm)) allRelatedNorms.push(oNorm);
         if (nNorm && !allRelatedNorms.includes(nNorm)) allRelatedNorms.push(nNorm);
       });
 
-      if (vPlateChanges.length > 0) {
+      if (monthStart && monthEnd && vPlateChanges.length > 0) {
         for (let pl of vPlateChanges) {
           if (!pl.change_date) continue;
           let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
@@ -435,7 +442,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       let displayPlate = effectivePlate;
 
       // 🟢 ഈ മാസത്തിൽ ഈ വണ്ടിക്ക് ബാധകമായ സൈറ്റ് ലോഗ് (vehicle_site_log) മാത്രം കണ്ടുപിടിക്കുന്നു
-      let vSiteLogs = siteLogs.filter((s) => cleanPlate(s.plate_no) === normPlate);
+      let vSiteLogs = siteLogs.filter((s) => allRelatedNorms.includes(cleanPlate(s.plate_no)));
       let activeSiteLog = vSiteLogs.find((s) => {
         let st = s.work_start_date ? new Date(s.work_start_date) : new Date(2000, 0, 1);
         let ed = s.work_end_date ? new Date(s.work_end_date) : new Date(2100, 11, 31);
@@ -443,10 +450,25 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         return st <= monthEnd && ed >= monthStart;
       });
 
-      // ഈ മാസത്തിൽ ആക്ടീവ് സൈറ്റ് ലോഗ് ഇല്ലെങ്കിൽ ഒഴിവാക്കുന്നു
-      if (!activeSiteLog) return;
+      let currentSiteName = "";
+      if (activeSiteLog && activeSiteLog.site_name) {
+        currentSiteName = activeSiteLog.site_name.trim();
+      } else if (v.site_name) {
+        currentSiteName = v.site_name.trim();
+      } else {
+        let savedCheck = billing.find((b) => relatedPlates.includes((b.plate_no || "").trim().toUpperCase()));
+        if (savedCheck && savedCheck.site_name) {
+          currentSiteName = savedCheck.site_name.trim();
+        } else {
+          currentSiteName = "N/A";
+        }
+      }
 
-      let currentSiteName = (activeSiteLog.site_name || v.site_name || "N/A").trim();
+      if (!currentSiteName || currentSiteName === "N/A") {
+        let hasTsOrBilling = timesheets.some(t => allRelatedNorms.includes(cleanPlate(t.plate_no))) || billing.some(b => relatedPlates.includes((b.plate_no || "").trim().toUpperCase()));
+        if (!hasTsOrBilling) return;
+        currentSiteName = v.site_name || "N/A";
+      }
 
       // 🟢 Site Co പെർമിഷൻ പരിശോധന (ലോഗ് ലുള്ള സൈറ്റ് യൂസർക്ക് ആക്സസ് ഉണ്ടോ എന്ന് നോക്കുന്നു)
       if (user.role === "Site Co") {
@@ -457,37 +479,35 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
 
       // 🟢 സർച്ച് ഫിൽട്ടർ പരിശോധന (പഴയ പ്ലേറ്റ് അടിച്ചു സെർച്ച് ചെയ്താലും വണ്ടി കൃത്യമായി കിട്ടാൻ)
       let resolvedSearchMatch = true;
-      if (search_value && search_value.trim() !== "") {
-        const cleanVal = search_value.trim().toUpperCase();
-        let match = false;
-        let plateMatchesSearch = displayPlate.toUpperCase().includes(cleanVal) || 
-                                 masterPlate.toUpperCase().includes(cleanVal) || 
-                                 allRelatedNorms.some(rn => rn.includes(cleanVal)) ||
-                                 vPlateChanges.some(pl => (pl.old_plate_no || "").toUpperCase().includes(cleanVal) || (pl.new_plate_no || "").toUpperCase().includes(cleanVal));
+if (search_value && search_value.trim() !== "") {
+  const cleanVal = search_value.trim().toUpperCase();
+  const cleanValNorm = cleanPlate(search_value);
+  let match = false;
 
-        if (search_type === "plate" && plateMatchesSearch) match = true;
-        else if (search_type === "owner" && (v.owner_name || "").trim().toUpperCase().includes(cleanVal)) match = true;
-        else if (!search_type || search_type === "all") {
-          if (plateMatchesSearch || (v.owner_name || "").trim().toUpperCase().includes(cleanVal)) match = true;
-        }
-        resolvedSearchMatch = match;
-      }
+  // 🟢 Old plate / new plate / master plate ഏതുകൊടുത്താലും match ആകും
+  let plateMatchesSearch = 
+    allRelatedNorms.some(rn => rn.includes(cleanValNorm)) ||
+    relatedPlates.some(rp => rp.replace(/[^A-Z0-9]/g, "").includes(cleanValNorm)) ||
+    displayPlate.toUpperCase().replace(/[^A-Z0-9➔ ]/g, "").includes(cleanVal);
 
-      // ഒരു പ്രത്യേക പ്ലേറ്റ് നമ്പർ മാത്രമായി സെർച്ച് ചെയ്യുമ്പോൾ, ആ മാസത്തിന് അനുയോജ്യമായ പ്ലേറ്റ് തന്നെയാണോ എന്ന് ഉറപ്പുവരുത്തുകയോ അല്ലെങ്കിൽ വണ്ടിയെ ലോഡ് ചെയ്യുകയോ ചെയ്യാം
-      if (search_value && search_value.trim() !== "" && search_type === "plate") {
-        const cleanVal = search_value.trim().toUpperCase();
-        let isPlateTargeted = masterPlate.includes(cleanVal) || allRelatedNorms.some(rn => rn.includes(cleanVal));
-        if (!isPlateTargeted) resolvedSearchMatch = false;
-      }
+  if (search_type === "plate") {
+    match = plateMatchesSearch;
+  } else if (search_type === "owner") {
+    match = (v.owner_name || "").trim().toUpperCase().includes(cleanVal);
+  } else {
+    match = plateMatchesSearch || (v.owner_name || "").trim().toUpperCase().includes(cleanVal);
+  }
+  resolvedSearchMatch = match;
+}
 
-      if (!resolvedSearchMatch) return;
+if (!resolvedSearchMatch) return;
 
-      let saved = billing.find((b) => allRelatedNorms.includes(cleanPlate(b.plate_no)) && (b.site_name || "").trim().toLowerCase() === currentSiteName.toLowerCase());
-      let vInvs = invoices.filter((i) => allRelatedNorms.includes(cleanPlate(i.plate_no)));
+      let saved = billing.find((b) => relatedPlates.includes((b.plate_no || "").trim().toUpperCase()) && (b.site_name || "").trim().toLowerCase() === currentSiteName.toLowerCase());
+      let vInvs = invoices.filter((i) => relatedPlates.includes((i.plate_no || "").trim().toUpperCase()));
       let invData = vInvs[0] || {};
 
       // 🟢 Driver Log Lookup for specific month
-      let vDriverLogs = driversRes.rows.filter((d) => cleanPlate(d.plate_no) === normPlate);
+      let vDriverLogs = driversRes.rows.filter((d) => allRelatedNorms.includes(cleanPlate(d.plate_no)));
       let validDLogs = vDriverLogs.filter((d) => {
         let st = d.work_start_date ? new Date(d.work_start_date) : new Date(2000, 0, 1);
         let ed = d.work_end_date ? new Date(d.work_end_date) : new Date(2100, 11, 31);
@@ -504,7 +524,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       }
 
       // 🟢 Rate Log Lookup for specific month
-      let vRateLogs = rateLogs.filter((r) => cleanPlate(r.plate_no) === normPlate);
+      let vRateLogs = rateLogs.filter((r) => allRelatedNorms.includes(cleanPlate(r.plate_no)));
       let activeRateLog = vRateLogs.find((r) => {
         let matchesSite = !r.site_name || r.site_name.trim() === "" || r.site_name.trim().toLowerCase() === currentSiteName.toLowerCase();
         let st = r.work_start_date ? new Date(r.work_start_date) : new Date(2000, 0, 1);
@@ -522,7 +542,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       }
 
       // 🟢 Owner Log Lookup for specific month
-      let vOwnerLogs = ownerLogs.filter((o) => cleanPlate(o.plate_no) === normPlate);
+      let vOwnerLogs = ownerLogs.filter((o) => allRelatedNorms.includes(cleanPlate(o.plate_no)));
       let validOLogs = vOwnerLogs.filter((o) => {
         let st = o.work_start_date ? new Date(o.work_start_date) : new Date(2000, 0, 1);
         let ed = o.work_end_date ? new Date(o.work_end_date) : new Date(2100, 11, 31);
@@ -578,7 +598,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
 
       // 🟢 Logsheet calculations
       let ts_nr = 0, ts_ot = 0;
-      let vTs = timesheets.filter((t) => cleanPlate(t.plate_no) === normPlate);
+      let vTs = timesheets.filter((t) => allRelatedNorms.includes(cleanPlate(t.plate_no)));
 
       for (let i = 1; i <= daysInMonth; i++) {
         let checkDate = new Date(parseInt(yearStr), mIdx, i);
@@ -654,6 +674,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         owner: effectiveOwner,
         driver_name: effectiveDriver,
         plate: displayPlate,
+        plate_logs: vPlateChanges,
         ts_nr: ts_nr > 0 ? ts_nr : "",
         ts_ot: ts_ot > 0 ? ts_ot : "",
         inv_nr: inv_nr > 0 ? inv_nr : "",
@@ -757,20 +778,50 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
 
     const actualMasterPlate = masterPlateQuery.rows[0]?.plate_no ? masterPlateQuery.rows[0].plate_no.trim().toUpperCase() : cleanPlate;
 
-    const [savedResult, tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes, plateLogRes] = await Promise.all([
-      pool.query(
-        `SELECT * FROM billing_records 
-         WHERE (UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(plate_no)) IN (SELECT UPPER(TRIM(old_plate_no)) FROM vehicle_plate_log WHERE UPPER(TRIM(new_plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(new_plate_no)) = UPPER(TRIM($3))))
-           AND billing_month = ANY($2::text[])
-         ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id ASC`,
-        [cleanPlate, targetMonths, actualMasterPlate]
-      ),
-      pool.query(`SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`, [actualMasterPlate]),
-      pool.query(`SELECT * FROM vehicle_rate_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(plate_no)) = UPPER(TRIM($2)) ORDER BY id DESC`, [cleanPlate, actualMasterPlate]),
-      pool.query(`SELECT * FROM vehicle_site_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(plate_no)) = UPPER(TRIM($2)) ORDER BY id DESC`, [cleanPlate, actualMasterPlate]),
-      pool.query(`SELECT * FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(plate_no)) = UPPER(TRIM($2)) ORDER BY id DESC`, [cleanPlate, actualMasterPlate]),
-      pool.query(`SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log WHERE UPPER(TRIM(old_plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(new_plate_no)) = UPPER(TRIM($1)) OR UPPER(TRIM(old_plate_no)) = UPPER(TRIM($2)) ORDER BY change_date ASC`, [cleanPlate, actualMasterPlate])
-    ]);
+    // 🟢 FIX: എല്ലാ related plates-ഉം (old + new) കൃത്യമായി collect ചെയ്ത് billing records fetch ചെയ്യുന്നു
+const plateLogForRelated = await pool.query(
+  `SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date 
+   FROM vehicle_plate_log 
+   WHERE UPPER(TRIM(old_plate_no)) = UPPER(TRIM($1)) 
+      OR UPPER(TRIM(new_plate_no)) = UPPER(TRIM($1))
+      OR UPPER(TRIM(old_plate_no)) = UPPER(TRIM($2))
+      OR UPPER(TRIM(new_plate_no)) = UPPER(TRIM($2))
+   ORDER BY change_date ASC`,
+  [cleanPlate, actualMasterPlate]
+);
+
+let allRelatedPlates = [cleanPlate];
+if (actualMasterPlate && actualMasterPlate !== cleanPlate) {
+  allRelatedPlates.push(actualMasterPlate);
+}
+plateLogForRelated.rows.forEach(pl => {
+  let op = (pl.old_plate_no || "").trim().toUpperCase();
+  let np = (pl.new_plate_no || "").trim().toUpperCase();
+  if (op && !allRelatedPlates.includes(op)) allRelatedPlates.push(op);
+  if (np && !allRelatedPlates.includes(np)) allRelatedPlates.push(np);
+});
+
+const [savedResult, tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes, plateLogRes] = await Promise.all([
+  pool.query(
+    `SELECT * FROM billing_records 
+     WHERE UPPER(TRIM(plate_no)) = ANY($1::text[])
+       AND billing_month = ANY($2::text[])
+     ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id ASC`,
+    [allRelatedPlates, targetMonths]
+  ),
+  pool.query(`SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) LIMIT 1`, [actualMasterPlate]),
+  pool.query(`SELECT * FROM vehicle_rate_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`, [allRelatedPlates]),
+  pool.query(`SELECT * FROM vehicle_site_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`, [allRelatedPlates]),
+  pool.query(`SELECT * FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`, [allRelatedPlates]),
+  pool.query(
+    `SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date 
+     FROM vehicle_plate_log 
+     WHERE UPPER(TRIM(old_plate_no)) = ANY($1::text[]) 
+        OR UPPER(TRIM(new_plate_no)) = ANY($1::text[]) 
+     ORDER BY change_date ASC`,
+    [allRelatedPlates]
+  )
+]);
 
     const vehicleInfo = tsVehicleRes.rows[0] || {};
     const rateLogs = rateLogRes.rows || [];
