@@ -14,6 +14,7 @@
     />
     <link rel="stylesheet" href="style/mdb_issues.css" />
     <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
   </head>
   <body>
     <header class="topbar">
@@ -33,7 +34,7 @@
         </button>
       </div>
     </header>
-
+ 
     <main>
       <nav class="issue-ribbon" aria-label="Issue categories">
         <button class="ribbon-button active" type="button" data-panel="workStartPanel">
@@ -52,42 +53,55 @@
           <span class="material-icons">notification_important</span> Expiry <span class="count" id="expiryCount">0</span>
         </button>
       </nav>
-
+ 
       <div class="screen-note">
         <span class="material-icons">filter_alt</span>
-        Use the inputs below each column header to filter. Every table can be copied as a high-quality PNG.
+        Click a column’s filter icon for Excel-style value selection. Use 📋 for HQ PNG and 📄 for an A4 PDF.
       </div>
-
+ 
       <section class="issue-panel active" id="workStartPanel">
         <div id="workStartTables"></div>
       </section>
-
+ 
       <section class="issue-panel" id="ownerPanel">
         <div class="responsive-pair">
           <div id="plateOwnerTable"></div>
           <div id="mobileOwnerTable"></div>
         </div>
       </section>
-
+ 
       <section class="issue-panel" id="siteEndPanel">
         <div id="siteEndTables"></div>
       </section>
-
+ 
       <section class="issue-panel" id="noOwnerPanel">
         <div id="noOwnerTables"></div>
       </section>
-
+ 
       <section class="issue-panel" id="expiryPanel">
         <div class="expiry-grid" id="expiryTables"></div>
       </section>
     </main>
-
+ 
     <div class="loading-overlay" id="loadingOverlay">
       <div class="spinner"></div>
       <strong>Checking Master Database…</strong>
     </div>
+    <div class="excel-filter-popup" id="excelFilterPopup">
+      <div class="excel-filter-title" id="excelFilterTitle">Filter</div>
+      <input id="excelFilterSearch" type="search" placeholder="Search values…" oninput="searchExcelFilterOptions(this.value)" />
+      <label class="excel-select-all">
+        <input id="excelFilterSelectAll" type="checkbox" onchange="toggleExcelFilterOptions(this.checked)" />
+        Select All
+      </label>
+      <div class="excel-filter-options" id="excelFilterOptions"></div>
+      <div class="excel-filter-actions">
+        <button type="button" onclick="clearActiveExcelFilter()">Clear</button>
+        <button type="button" class="apply" onclick="applyActiveExcelFilter()">Apply</button>
+      </div>
+    </div>
     <div id="toast" role="status" aria-live="polite"></div>
-
+ 
     <script src="script/mdb_issues.js"></script>
   </body>
 </html>
