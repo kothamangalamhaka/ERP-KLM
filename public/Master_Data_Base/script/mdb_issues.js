@@ -6,7 +6,7 @@ const EXCLUDED_OWNER_MOBILES = new Set([
   "553610195",
   "0553610195",
 ]);
- 
+
 const issueToken = localStorage.getItem("erpToken");
 const issueUser = JSON.parse(localStorage.getItem("erpUser") || "null");
 let issueRecords = [];
@@ -243,11 +243,13 @@ function buildWorkStartIssues() {
 function buildOwnerIssues() {
   const plateGroups = groupBy(issueRecords, (record) => normalizeKey(record.plate));
   const mobileGroups = groupBy(issueRecords, (record) => normalizeMobile(record.ownerMobile));
+  const ownerGroups = groupBy(issueRecords, (record) => normalizeName(record.owner));
  
   const byPlate = buildPlateOwnerConflicts(plateGroups);
   const byMobile = buildMobileOwnerConflicts(mobileGroups);
+  const byOwner = buildOwnerMobileConflicts(ownerGroups);
  
-  return { byPlate, byMobile };
+ return { byPlate, byMobile, byOwner };
 }
  
 function buildPlateOwnerConflicts(groups) {
@@ -297,33 +299,47 @@ function groupBy(rows, keyGetter) {
 }
  
 function buildMobileOwnerConflicts(groups) {
-  const ownerGroups = new Map();
+  const output = [];
   groups.forEach((rows) => {
     const eligible = rows.filter((record) => {
       const mobile = normalizeMobile(record.ownerMobile);
       return Boolean(mobile && !EXCLUDED_OWNER_MOBILES.has(mobile) && normalizeName(record.owner));
     });
-    const distinctOwners = new Set(eligible.map((record) => normalizeName(record.owner)));
-    if (distinctOwners.size < 2) return;
- 
+    const owners = new Map();
     eligible.forEach((record) => {
       const ownerKey = normalizeName(record.owner);
-      if (!ownerGroups.has(ownerKey)) {
-        ownerGroups.set(ownerKey, { owner: record.owner, mobiles: new Map() });
-      }
-      ownerGroups.get(ownerKey).mobiles.set(normalizeMobile(record.ownerMobile), record.ownerMobile);
+       if (!owners.has(ownerKey)) owners.set(ownerKey, record.owner);
+    });
+    if (owners.size < 2) return;
+
+    output.push({
+      mobile: eligible[0].ownerMobile,
+      owners: [...owners.values()].sort((a, b) => normalizeName(a).localeCompare(normalizeName(b))),
     });
   });
-  return [...ownerGroups.values()]
-    .map((group) => ({
-      owner: group.owner,
-      mobiles: [...group.mobiles.values()].sort((a, b) => normalizeMobile(a).localeCompare(normalizeMobile(b))),
-    }))
-    .sort((a, b) => normalizeName(a.owner).localeCompare(normalizeName(b.owner)));
+  return output.sort((a, b) => normalizeMobile(a.mobile).localeCompare(normalizeMobile(b.mobile)));
+}
+
+function buildOwnerMobileConflicts(groups) {
+  const output = [];
+  groups.forEach((rows) => {
+    const mobiles = new Map();
+    rows.forEach((record) => {
+      const mobileKey = normalizeMobile(record.ownerMobile);
+      if (mobileKey && !mobiles.has(mobileKey)) mobiles.set(mobileKey, record.ownerMobile);
+    });
+    if (mobiles.size < 2) return;
+
+    output.push({
+      owner: rows[0].owner,
+      mobiles: [...mobiles.values()].sort((a, b) => normalizeMobile(a).localeCompare(normalizeMobile(b))),
+    });
+  });
+  return output.sort((a, b) => normalizeName(a.owner).localeCompare(normalizeName(b.owner)));
 }
  
 function getOpenOwnerIssueCount(issues) {
-  return issues.byPlate.filter((row) => !row.cleared).length + issues.byMobile.length;
+  return issues.byPlate.filter((row) => !row.cleared).length + issues.byMobile.length + issues.byOwner.length;
 }
  
 function buildSiteEndIssues() {
@@ -456,13 +472,18 @@ function renderWorkStartIssues(rows) {
  
 function renderOwnerIssues(issues) {
   const canEdit = issueUser.role !== "Viewer";
-  const ownerColumnCount = Math.max(1, ...issues.byPlate.map((row) => row.owners.length));
-  const mobileColumnCount = Math.max(1, ...issues.byMobile.map((row) => row.mobiles.length));
-  const ownerColumns = Array.from({ length: ownerColumnCount }, (_, index) => ({
+  const plateOwnerColumnCount = Math.max(1, ...issues.byPlate.map((row) => row.owners.length));
+  const mobileOwnerColumnCount = Math.max(1, ...issues.byMobile.map((row) => row.owners.length));
+  const ownerMobileColumnCount = Math.max(1, ...issues.byOwner.map((row) => row.mobiles.length));
+  const plateOwnerColumns = Array.from({ length: plateOwnerColumnCount }, (_, index) => ({
     label: `Owner Name ${index + 1}`,
     value: (row) => row.owners[index] || "",
   }));
-  const mobileColumns = Array.from({ length: mobileColumnCount }, (_, index) => ({
+  const mobileOwnerColumns = Array.from({ length: mobileOwnerColumnCount }, (_, index) => ({
+    label: `Name ${index + 1}`,
+    value: (row) => row.owners[index] || "",
+  }));
+  const ownerMobileColumns = Array.from({ length: ownerMobileColumnCount }, (_, index) => ({
     label: `Mobile ${index + 1}`,
     value: (row) => row.mobiles[index] || "",
   }));
@@ -473,7 +494,7 @@ function renderOwnerIssues(issues) {
      subtitle: "Each plate is shown once. Blank owner cells are kept when another plate needs more owner columns.",
     columns: [
       textColumn("Plate No", "plate"),
-      ...ownerColumns,
+     ...plateOwnerColumns,
       {
         label: "Check",
         value: (row) => row.cleared ? "Cleared" : "Open",
@@ -492,16 +513,28 @@ function renderOwnerIssues(issues) {
   document.getElementById("mobileOwnerTable").innerHTML = tableCardMarkup({
     id: "mobile-owner-issues",
     title: "Same Mobile · Different Owner",
-   subtitle: "Owners involved in a shared-mobile conflict are listed once with their conflicting mobile numbers.",
+  subtitle: "Each mobile number is shown once with all of its different owner names.",
     columns: [
-      textColumn("Owner Name", "owner"),
-       ...mobileColumns,
+     textColumn("Mobile No", "mobile"),
+      ...mobileOwnerColumns,
     ],
     rows: issues.byMobile,
+  });
+
+  document.getElementById("ownerMobileTable").innerHTML = tableCardMarkup({
+    id: "owner-mobile-issues",
+    title: "Same Owner · Different Mobile",
+    subtitle: "Each owner name is shown once with all of its different mobile numbers.",
+    columns: [
+      textColumn("Owner Name", "owner"),
+      ...ownerMobileColumns,
+    ],
+    rows: issues.byOwner,
   });
  
   applyTableExcelFilters("plate-owner-issues");
   applyTableExcelFilters("mobile-owner-issues");
+  applyTableExcelFilters("owner-mobile-issues");
 }
  
 function renderSiteEndIssues(rows) {
