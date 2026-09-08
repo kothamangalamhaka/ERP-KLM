@@ -52,6 +52,8 @@ const payrollRouter = require("./routes/klm_emp_payroll");
 const monthly_summary = require("./routes/monthly_list_summary");
 const { checkAndSendOwnEqAlerts } = require("./services/ownEqExpiryAlert");
 const nonVatRouter = require("./routes/non_vat_bill_tracker");
+const driverBillingRoutes = require("./routes/driver_billing");
+
 
 
 
@@ -91,6 +93,7 @@ app.use('/api', require('./routes/zoho_download_inv'));
 app.use("/api/payroll", payrollRouter);
 app.use("/api/monthly-summary", monthly_summary);
 app.use("/timesheet/api/non-vat-tracking", nonVatRouter);
+app.use("/driver-billing", driverBillingRoutes);
 
 
 
