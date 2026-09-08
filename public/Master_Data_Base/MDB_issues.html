@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MDB Issues | Haka ERP</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style/mdb_issues.css" />
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <button class="icon-button" type="button" onclick="window.location.href='./Database.html'" title="Back to Master Database">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <div>
+          <h1>Master Database Issues</h1>
+          <p>Data quality, timeline and expiry audit</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="user-chip"><span class="material-icons">account_circle</span><span id="currentUserName"></span></span>
+        <button class="refresh-button" type="button" onclick="loadIssueData()">
+          <span class="material-icons">refresh</span> Refresh
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <nav class="issue-ribbon" aria-label="Issue categories">
+        <button class="ribbon-button active" type="button" data-panel="workStartPanel">
+          <span class="material-icons">date_range</span> Work Start Issue <span class="count" id="workStartCount">0</span>
+        </button>
+        <button class="ribbon-button" type="button" data-panel="ownerPanel">
+          <span class="material-icons">group</span> Owner <span class="count" id="ownerCount">0</span>
+        </button>
+        <button class="ribbon-button" type="button" data-panel="siteEndPanel">
+          <span class="material-icons">event_busy</span> Site End <span class="count" id="siteEndCount">0</span>
+        </button>
+        <button class="ribbon-button" type="button" data-panel="noOwnerPanel">
+          <span class="material-icons">person_off</span> No Owner Data <span class="count" id="noOwnerCount">0</span>
+        </button>
+        <button class="ribbon-button" type="button" data-panel="expiryPanel">
+          <span class="material-icons">notification_important</span> Expiry <span class="count" id="expiryCount">0</span>
+        </button>
+      </nav>
+
+      <div class="screen-note">
+        <span class="material-icons">filter_alt</span>
+        Use the inputs below each column header to filter. Every table can be copied as a high-quality PNG.
+      </div>
+
+      <section class="issue-panel active" id="workStartPanel">
+        <div id="workStartTables"></div>
+      </section>
+
+      <section class="issue-panel" id="ownerPanel">
+        <div class="responsive-pair">
+          <div id="plateOwnerTable"></div>
+          <div id="mobileOwnerTable"></div>
+        </div>
+      </section>
+
+      <section class="issue-panel" id="siteEndPanel">
+        <div id="siteEndTables"></div>
+      </section>
+
+      <section class="issue-panel" id="noOwnerPanel">
+        <div id="noOwnerTables"></div>
+      </section>
+
+      <section class="issue-panel" id="expiryPanel">
+        <div class="expiry-grid" id="expiryTables"></div>
+      </section>
+    </main>
+
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <strong>Checking Master Database…</strong>
+    </div>
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <script src="script/mdb_issues.js"></script>
+  </body>
+</html>

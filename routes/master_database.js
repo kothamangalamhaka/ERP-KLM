@@ -573,6 +573,113 @@ module.exports = function (pool, middlewares, helpers) {
     }
   });
 
+   // Master Database issue-audit screen. Returns the same role-scoped records as
+  // the main grid, including the hidden JSONB review metadata.
+  router.get("/mdb-issues", verifyToken, async (req, res) => {
+    try {
+      const { role, site } = req.user;
+      let query = `
+        SELECT id, sn, plate_number, site, record_data
+        FROM erp_records
+        WHERE deleted_at IS NULL
+        ORDER BY sn ASC
+      `;
+      let params = [];
+
+      if (role !== "Admin" && role !== "Super Admin" && role !== "Viewer") {
+        query = `
+          SELECT id, sn, plate_number, site, record_data
+          FROM erp_records
+          WHERE deleted_at IS NULL
+            AND TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($1))
+          ORDER BY sn ASC
+        `;
+        params = [site];
+      }
+
+      const result = await pool.query(query, params);
+      res.json({
+        success: true,
+        records: result.rows.map((row) => ({
+          id: row.id,
+          sn: row.sn,
+          plate_number: row.plate_number || "",
+          site: row.site || "",
+          record_data: row.record_data || {},
+        })),
+      });
+    } catch (error) {
+      handleError(res, error, req.user.role, "GET_MDB_ISSUES");
+    }
+  });
+
+  router.post("/mdb-issues/review", verifyToken, async (req, res) => {
+    try {
+      if (req.user.role === "Viewer") {
+        return res.status(403).json({
+          success: false,
+          message: "Viewers cannot update issue reviews.",
+        });
+      }
+
+      const recordId = Number.parseInt(req.body.recordId, 10);
+      const issueKey = String(req.body.issueKey || "").trim();
+      const allowedIssueKeys = new Set(["work_start_gap"]);
+      const remark = String(req.body.remark || "").trim().slice(0, 2000);
+      const review = {
+        cleared: Boolean(req.body.cleared),
+        remark,
+        updatedBy: req.user.username,
+        updatedAt: new Date().toISOString(),
+      };
+      const canReviewAllSites = req.user.role === "Admin" || req.user.role === "Super Admin";
+
+      if (!Number.isInteger(recordId) || recordId <= 0 || !allowedIssueKeys.has(issueKey)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid issue review data.",
+        });
+      }
+
+      const result = await pool.query(
+        `UPDATE erp_records
+         SET record_data = jsonb_set(
+           COALESCE(record_data, '{}'::jsonb),
+           '{_MDB_ISSUE_REVIEWS}',
+           (CASE
+             WHEN jsonb_typeof(record_data->'_MDB_ISSUE_REVIEWS') = 'object'
+               THEN record_data->'_MDB_ISSUE_REVIEWS'
+             ELSE '{}'::jsonb
+           END) || jsonb_build_object($1::text, $2::jsonb),
+           true
+         ),
+         updated_at = CURRENT_TIMESTAMP
+         WHERE id = $3
+           AND deleted_at IS NULL
+           AND (
+             $4::boolean = true
+             OR TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($5))
+           )
+         RETURNING id`,
+        [issueKey, JSON.stringify(review), recordId, canReviewAllSites, req.user.site || ""],
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ success: false, message: "Record not found." });
+      }
+
+      await pool.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'MDB_ISSUE_REVIEW', $2)",
+        [req.user.username, JSON.stringify({ recordId, issueKey, cleared: review.cleared })],
+      );
+
+      res.json({ success: true, review });
+    } catch (error) {
+      handleError(res, error, req.user.role, "SAVE_MDB_ISSUE_REVIEW");
+    }
+  });
+
+
   // ==========================================
   // 🟢 NEW CODE: DYNAMIC COMPANIES LIST API
   // ==========================================
