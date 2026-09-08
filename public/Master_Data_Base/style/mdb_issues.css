@@ -195,8 +195,7 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
 .issue-table td {
   padding: 8px 7px;
   text-align: center;
-  border-right: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
+  border: 1px solid #c7c8dd;
   background: #fff;
   vertical-align: middle;
 }
@@ -204,6 +203,27 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
 .issue-table tbody tr:hover td { background: #f5f9ff; }
 .issue-table tbody tr.review-cleared td { background: #dcfce7; color: #14532d; }
 .issue-table tbody tr.review-cleared:hover td { background: #bbf7d0; }
+ 
+.owner-detail-cell { min-width: 170px; text-align: left; }
+.owner-detail-name {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--navy);
+  font-size: 12px;
+}
+.owner-site-list { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; }
+.owner-site-group {
+  flex: 1 1 120px;
+  min-width: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--blue);
+  border-radius: 6px;
+}
+.owner-site-name { display: block; color: var(--blue); font-weight: 800; }
+.owner-plate-list { display: block; margin-top: 3px; color: #334155; line-height: 1.45; }
+.review-cleared .owner-detail-name,
+.review-cleared .owner-site-name,
+.review-cleared .owner-plate-list { color: inherit; }
  
 .review-checkbox { width: 17px; height: 17px; accent-color: #16a34a; cursor: pointer; }
 .review-remark {
@@ -335,4 +355,3 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
   .ribbon-button { flex-basis: 135px; font-size: 12px; }
   .table-card-header { align-items: flex-start; }
 }
- 

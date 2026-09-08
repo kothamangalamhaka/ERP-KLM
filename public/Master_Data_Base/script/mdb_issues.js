@@ -272,8 +272,8 @@ function buildPlateOwnerConflicts(groups) {
     const record = reviewRecord || rows.reduce((first, row) => row.id < first.id ? row : first);
     const review = reviewRecord?.reviews.plate_owner_conflict || {};
     const owners = [...ownerGroups.values()]
-      .map((ownerRows) => ownerRows[0].owner)
-      .sort((a, b) => normalizeName(a).localeCompare(normalizeName(b)));
+      .map((ownerRows) => buildOwnerDetail(ownerRows))
+      .sort((a, b) => normalizeName(a.name).localeCompare(normalizeName(b.name)));
     output.push({
       recordId: record.id,
       plate: record.plate,
@@ -301,6 +301,37 @@ function groupBy(rows, keyGetter) {
   return groups;
 }
  
+function buildOwnerDetail(rows, includePlates = false) {
+  const siteGroups = new Map();
+  rows.forEach((row) => {
+    const siteKey = normalizeName(row.site) || "NO SITE";
+    if (!siteGroups.has(siteKey)) {
+      siteGroups.set(siteKey, {
+        name: row.site || "No Site",
+        plates: new Map(),
+      });
+    }
+    if (includePlates) {
+      const plateKey = normalizeKey(row.plate);
+      if (plateKey && !siteGroups.get(siteKey).plates.has(plateKey)) {
+        siteGroups.get(siteKey).plates.set(plateKey, row.plate);
+      }
+    }
+  });
+
+  return {
+    name: rows[0]?.owner || "",
+    sites: [...siteGroups.values()]
+      .map((site) => ({
+        name: site.name,
+        plates: [...site.plates.values()].sort((a, b) =>
+          normalizeKey(a).localeCompare(normalizeKey(b), undefined, { numeric: true }),
+        ),
+      }))
+      .sort((a, b) => normalizeName(a.name).localeCompare(normalizeName(b.name))),
+  };
+}
+
 function buildMobileOwnerConflicts(groups) {
   const output = [];
   groups.forEach((rows) => {
@@ -311,13 +342,16 @@ function buildMobileOwnerConflicts(groups) {
     const owners = new Map();
     eligible.forEach((record) => {
       const ownerKey = normalizeName(record.owner);
-       if (!owners.has(ownerKey)) owners.set(ownerKey, record.owner);
+        if (!owners.has(ownerKey)) owners.set(ownerKey, []);
+      owners.get(ownerKey).push(record);
     });
     if (owners.size < 2) return;
 
     output.push({
       mobile: eligible[0].ownerMobile,
-      owners: [...owners.values()].sort((a, b) => normalizeName(a).localeCompare(normalizeName(b))),
+       owners: [...owners.values()]
+        .map((ownerRows) => buildOwnerDetail(ownerRows, true))
+        .sort((a, b) => normalizeName(a.name).localeCompare(normalizeName(b.name))),
     });
   });
   return output.sort((a, b) => normalizeMobile(a.mobile).localeCompare(normalizeMobile(b.mobile)));
@@ -482,11 +516,13 @@ function renderOwnerIssues(issues) {
   const ownerMobileColumnCount = Math.max(1, ...issues.byOwner.map((row) => row.mobiles.length));
   const plateOwnerColumns = Array.from({ length: plateOwnerColumnCount }, (_, index) => ({
     label: `Owner Name ${index + 1}`,
-    value: (row) => row.owners[index] || "",
+    value: (row) => ownerDetailText(row.owners[index]),
+    render: (row) => ownerDetailMarkup(row.owners[index]),
   }));
   const mobileOwnerColumns = Array.from({ length: mobileOwnerColumnCount }, (_, index) => ({
     label: `Name ${index + 1}`,
-    value: (row) => row.owners[index] || "",
+    value: (row) => ownerDetailText(row.owners[index], true),
+    render: (row) => ownerDetailMarkup(row.owners[index], true),
   }));
   const ownerMobileColumns = Array.from({ length: ownerMobileColumnCount }, (_, index) => ({
     label: `Mobile ${index + 1}`,
@@ -496,7 +532,7 @@ function renderOwnerIssues(issues) {
   document.getElementById("plateOwnerTable").innerHTML = tableCardMarkup({
     id: "plate-owner-issues",
     title: "Same Plate · Different Owner",
-     subtitle: "Each plate is shown once. Blank owner cells are kept when another plate needs more owner columns.",
+      subtitle: "Each owner cell includes the owner name and all associated sites. Excel keeps the details in one cell.",
     columns: [
       textColumn("Plate No", "plate"),
      ...plateOwnerColumns,
@@ -518,7 +554,7 @@ function renderOwnerIssues(issues) {
   document.getElementById("mobileOwnerTable").innerHTML = tableCardMarkup({
     id: "mobile-owner-issues",
     title: "Same Mobile · Different Owner",
-  subtitle: "Each mobile number is shown once with all of its different owner names.",
+   subtitle: "Each owner cell groups plate numbers by site. Excel keeps the full group in one cell.",
     columns: [
      textColumn("Mobile No", "mobile"),
       ...mobileOwnerColumns,
@@ -542,6 +578,31 @@ function renderOwnerIssues(issues) {
   applyTableExcelFilters("owner-mobile-issues");
 }
  
+function ownerDetailText(detail, includePlates = false) {
+  if (!detail) return "";
+  const siteLines = detail.sites.map((site) => {
+    if (!includePlates) return site.name;
+    return `${site.name} ::${site.plates.length ? `\n${site.plates.join("\n")}` : " -"}`;
+  });
+  return [detail.name, ...siteLines].join("\n");
+}
+
+function ownerDetailMarkup(detail, includePlates = false) {
+  if (!detail) return "";
+  const sites = detail.sites.map((site) => `
+    <div class="owner-site-group">
+      <span class="owner-site-name">${escapeHtml(site.name)}${includePlates ? " ::" : ""}</span>
+      ${includePlates ? `<span class="owner-plate-list">${site.plates.length ? site.plates.map(escapeHtml).join("<br>") : "-"}</span>` : ""}
+    </div>
+  `).join("");
+  return `
+    <div class="owner-detail-cell">
+      <strong class="owner-detail-name">${escapeHtml(detail.name)}</strong>
+      <div class="owner-site-list">${sites}</div>
+    </div>
+  `;
+}
+
 function renderSiteEndIssues(rows) {
   const columns = [
     textColumn("Site A Work End", "lastWorking"),
