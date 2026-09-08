@@ -6,6 +6,9 @@ const EXCLUDED_OWNER_MOBILES = new Set([
   "553610195",
   "0553610195",
 ]);
+const EXCLUDED_OWNER_MOBILE_NAMES = new Set([
+  "DRIVER IS THE OWNER",
+]);
 
 const issueToken = localStorage.getItem("erpToken");
 const issueUser = JSON.parse(localStorage.getItem("erpUser") || "null");
@@ -322,7 +325,9 @@ function buildMobileOwnerConflicts(groups) {
 
 function buildOwnerMobileConflicts(groups) {
   const output = [];
-  groups.forEach((rows) => {
+  groups.forEach((rows, ownerKey) => {
+    if (EXCLUDED_OWNER_MOBILE_NAMES.has(ownerKey)) return;
+
     const mobiles = new Map();
     rows.forEach((record) => {
       const mobileKey = normalizeMobile(record.ownerMobile);
