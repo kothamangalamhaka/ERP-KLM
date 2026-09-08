@@ -624,7 +624,7 @@ module.exports = function (pool, middlewares, helpers) {
 
       const recordId = Number.parseInt(req.body.recordId, 10);
       const issueKey = String(req.body.issueKey || "").trim();
-      const allowedIssueKeys = new Set(["work_start_gap"]);
+       const allowedIssueKeys = new Set(["work_start_gap", "plate_owner_conflict"]);
       const remark = String(req.body.remark || "").trim().slice(0, 2000);
       const review = {
         cleared: Boolean(req.body.cleared),

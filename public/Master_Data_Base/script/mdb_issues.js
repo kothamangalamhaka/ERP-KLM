@@ -13,6 +13,7 @@ let issueRecords = [];
 let toastTimer;
 let activeExcelFilter = null;
 const tableExcelFilters = new Map();
+const tableSorts = new Map();
  
 const FIELD_ALIASES = {
   plate: ["PLATE NUMBER", "PLATE NO"],
@@ -92,6 +93,7 @@ async function loadIssueData() {
  
     issueRecords = (data.records || []).map(normalizeRecord);
     tableExcelFilters.clear();
+    tableSorts.clear();
     renderAllIssues();
     showToast(`Checked ${issueRecords.length} Master Database records.`);
   } catch (error) {
@@ -197,7 +199,15 @@ function renderAllIssues() {
   const workStartIssues = buildWorkStartIssues();
   const ownerIssues = buildOwnerIssues();
   const siteEndIssues = buildSiteEndIssues();
-  const noOwnerIssues = issueRecords.filter((record) => !record.owner || !record.ownerMobile);
+  const noOwnerIssues = issueRecords
+    .filter((record) => !record.owner || !record.ownerMobile)
+    .sort((a, b) => {
+      const aOwner = normalizeName(a.owner);
+      const bOwner = normalizeName(b.owner);
+      if (!aOwner && bOwner) return 1;
+      if (aOwner && !bOwner) return -1;
+      return aOwner.localeCompare(bOwner) || normalizeKey(a.plate).localeCompare(normalizeKey(b.plate));
+    });
   const expiryIssues = buildExpiryIssues();
  
   renderWorkStartIssues(workStartIssues);
@@ -206,8 +216,8 @@ function renderAllIssues() {
   renderNoOwnerIssues(noOwnerIssues);
   renderExpiryIssues(expiryIssues);
  
-  setCount("workStartCount", workStartIssues.length);
-  setCount("ownerCount", ownerIssues.byPlate.length + ownerIssues.byMobile.length);
+  setCount("workStartCount", workStartIssues.filter((row) => !row.cleared).length);
+  setCount("ownerCount", getOpenOwnerIssueCount(ownerIssues));
   setCount("siteEndCount", siteEndIssues.length);
   setCount("noOwnerCount", noOwnerIssues.length);
   setCount("expiryCount", Object.values(expiryIssues).reduce((sum, rows) => sum + rows.length, 0));
@@ -235,14 +245,7 @@ function buildOwnerIssues() {
   const mobileGroups = groupBy(issueRecords, (record) => normalizeMobile(record.ownerMobile));
  
   const byPlate = buildPlateOwnerConflicts(plateGroups);
-  const byMobile = flattenConflicts(
-    mobileGroups,
-    (record) => normalizeName(record.owner),
-    (record) => {
-      const mobile = normalizeMobile(record.ownerMobile);
-      return Boolean(mobile && !EXCLUDED_OWNER_MOBILES.has(mobile) && normalizeName(record.owner));
-    },
-  );
+  const byMobile = buildMobileOwnerConflicts(mobileGroups);
  
   return { byPlate, byMobile };
 }
@@ -260,25 +263,25 @@ function buildPlateOwnerConflicts(groups) {
     });
     if (ownerGroups.size < 2) return;
  
-    const referenceRows = [...ownerGroups.values()].sort((a, b) => b.length - a.length)[0];
-    const referenceOwner = referenceRows[0].owner;
-    ownerGroups.forEach((ownerRows, ownerKey) => {
-      const first = ownerRows[0];
-      const sites = [...new Set(ownerRows.map((row) => row.site).filter(Boolean))].sort();
-      output.push({
-        ...first,
-        site: sites.join(", "),
-        referenceOwner,
-        isReferenceOwner: ownerKey === normalizeName(referenceOwner),
-      });
+   const reviewRecord = rows.find((row) => row.reviews.plate_owner_conflict);
+    const record = reviewRecord || rows.reduce((first, row) => row.id < first.id ? row : first);
+    const review = reviewRecord?.reviews.plate_owner_conflict || {};
+    const owners = [...ownerGroups.values()]
+      .map((ownerRows) => ownerRows[0].owner)
+      .sort((a, b) => normalizeName(a).localeCompare(normalizeName(b)));
+    output.push({
+      recordId: record.id,
+      plate: record.plate,
+      owners,
+      review,
+      cleared: review.cleared === true,
     });
   });
  
   return output.sort(
     (a, b) =>
-      normalizeKey(a.plate).localeCompare(normalizeKey(b.plate)) ||
-      Number(b.isReferenceOwner) - Number(a.isReferenceOwner) ||
-      normalizeName(a.owner).localeCompare(normalizeName(b.owner)),
+      Number(a.cleared) - Number(b.cleared) ||
+      normalizeKey(a.plate).localeCompare(normalizeKey(b.plate)),
   );
 }
  
@@ -293,19 +296,34 @@ function groupBy(rows, keyGetter) {
   return groups;
 }
  
-function flattenConflicts(groups, distinctValueGetter, eligibilityGetter) {
-  const output = [];
+function buildMobileOwnerConflicts(groups) {
+  const ownerGroups = new Map();
   groups.forEach((rows) => {
-    const eligible = rows.filter(eligibilityGetter);
-    const distinctValues = new Set(eligible.map(distinctValueGetter).filter(Boolean));
-    if (distinctValues.size > 1) output.push(...eligible);
+    const eligible = rows.filter((record) => {
+      const mobile = normalizeMobile(record.ownerMobile);
+      return Boolean(mobile && !EXCLUDED_OWNER_MOBILES.has(mobile) && normalizeName(record.owner));
+    });
+    const distinctOwners = new Set(eligible.map((record) => normalizeName(record.owner)));
+    if (distinctOwners.size < 2) return;
+
+    eligible.forEach((record) => {
+      const ownerKey = normalizeName(record.owner);
+      if (!ownerGroups.has(ownerKey)) {
+        ownerGroups.set(ownerKey, { owner: record.owner, mobiles: new Map() });
+      }
+      ownerGroups.get(ownerKey).mobiles.set(normalizeMobile(record.ownerMobile), record.ownerMobile);
+    });
   });
-  return output.sort(
-    (a, b) =>
-      normalizeMobile(a.ownerMobile).localeCompare(normalizeMobile(b.ownerMobile)) ||
-      normalizeName(a.owner).localeCompare(normalizeName(b.owner)) ||
-      normalizeKey(a.plate).localeCompare(normalizeKey(b.plate)),
-  );
+  return [...ownerGroups.values()]
+    .map((group) => ({
+      owner: group.owner,
+      mobiles: [...group.mobiles.values()].sort((a, b) => normalizeMobile(a).localeCompare(normalizeMobile(b))),
+    }))
+    .sort((a, b) => normalizeName(a.owner).localeCompare(normalizeName(b.owner)));
+}
+
+function getOpenOwnerIssueCount(issues) {
+  return issues.byPlate.filter((row) => !row.cleared).length + issues.byMobile.length;
 }
  
 function buildSiteEndIssues() {
@@ -437,40 +455,59 @@ function renderWorkStartIssues(rows) {
 }
  
 function renderOwnerIssues(issues) {
+  const canEdit = issueUser.role !== "Viewer";
+  const ownerColumnCount = Math.max(1, ...issues.byPlate.map((row) => row.owners.length));
+  const mobileColumnCount = Math.max(1, ...issues.byMobile.map((row) => row.mobiles.length));
+  const ownerColumns = Array.from({ length: ownerColumnCount }, (_, index) => ({
+    label: `Owner Name ${index + 1}`,
+    value: (row) => row.owners[index] || "",
+  }));
+  const mobileColumns = Array.from({ length: mobileColumnCount }, (_, index) => ({
+    label: `Mobile ${index + 1}`,
+    value: (row) => row.mobiles[index] || "",
+  }));
+
   document.getElementById("plateOwnerTable").innerHTML = tableCardMarkup({
     id: "plate-owner-issues",
     title: "Same Plate · Different Owner",
-    subtitle: "Plate formatting, spaces and letter case are ignored.",
+     subtitle: "Each plate is shown once. Blank owner cells are kept when another plate needs more owner columns.",
     columns: [
       textColumn("Plate No", "plate"),
+      ...ownerColumns,
       {
-        label: "Owner Name",
-        value: (row) => row.owner,
-        render: (row) => highlightOwnerDifference(row.owner, row.referenceOwner, row.isReferenceOwner),
+        label: "Check",
+        value: (row) => row.cleared ? "Cleared" : "Open",
+        render: (row) => `<input class="review-checkbox" type="checkbox" ${row.cleared ? "checked" : ""} ${canEdit ? "" : "disabled"} aria-label="Mark owner conflict cleared" onchange="savePlateOwnerReview(${row.recordId}, this.checked, this.closest('tr').querySelector('.review-remark').value)" />`,
       },
-      textColumn("Site Name", "site"),
-    ],
+      {
+       label: "Owner Change Remark",
+        value: (row) => row.review.remark || "",
+        render: (row) => `<textarea class="review-remark" maxlength="2000" placeholder="Owner change reason…" ${canEdit ? "" : "disabled"} onblur="savePlateOwnerReview(${row.recordId}, this.closest('tr').querySelector('.review-checkbox').checked, this.value)">${escapeHtml(row.review.remark || "")}</textarea>`,
+      },
+      ],
     rows: issues.byPlate,
+    rowClass: (row) => row.cleared ? "review-cleared" : "",
   });
  
   document.getElementById("mobileOwnerTable").innerHTML = tableCardMarkup({
     id: "mobile-owner-issues",
     title: "Same Mobile · Different Owner",
-    subtitle: "Conflicting owners are grouped by mobile; designated own-equipment numbers are excluded.",
+   subtitle: "Owners involved in a shared-mobile conflict are listed once with their conflicting mobile numbers.",
     columns: [
-      textColumn("Plate No", "plate"),
-      textColumn("Site", "site"),
       textColumn("Owner Name", "owner"),
-      textColumn("Owner Mobile No", "ownerMobile"),
+       ...mobileColumns,
     ],
     rows: issues.byMobile,
   });
+
+  applyTableExcelFilters("plate-owner-issues");
+  applyTableExcelFilters("mobile-owner-issues");
 }
  
 function renderSiteEndIssues(rows) {
   const columns = [
-    textColumn("Work Start", "workStart"),
-    textColumn("Last Working Day", "lastWorking"),
+    textColumn("Site A Work End", "lastWorking"),
+    textColumn("Site B Work Start", "workStart"),
     textColumn("Plate No", "plate"),
     textColumn("Site", "site"),
     {
@@ -483,7 +520,7 @@ function renderSiteEndIssues(rows) {
   document.getElementById("siteEndTables").innerHTML = tableCardMarkup({
     id: "site-end-issues",
     title: "Site End Timeline",
-    subtitle: "Only overlapping site periods are listed: the next Work Start occurs before the previous Last Working Day.",
+   subtitle: "Only overlapping site periods are listed: Site B starts before Site A ends.",
     columns,
     rows,
   });
@@ -636,7 +673,7 @@ function tableCardMarkup({ id, title, subtitle, columns, rows, rowClass = () => 
       <div class="copy-area" id="copy-${escapeAttribute(id)}">
         <div class="table-card-header">
           <div>
-            <h2>${escapeHtml(title)} · <span class="table-count">${rows.length}</span></h2>
+            <h2>${escapeHtml(title)} · <span class="table-count" data-total-count="${rows.length}">${rows.length}</span></h2>
             <p>${escapeHtml(subtitle)}</p>
           </div>
           <div class="export-actions" data-html2canvas-ignore="true">
@@ -662,55 +699,7 @@ function relationText(gap) {
   if (gap === 0) return "Same day";
   return `Starts after ${gap} days`;
 }
- 
-function highlightOwnerDifference(owner, referenceOwner, isReference) {
-  if (isReference || normalizeName(owner) === normalizeName(referenceOwner)) {
-    return `<span class="owner-reference">${escapeHtml(owner)}</span>`;
-  }
- 
-  const source = String(owner || "");
-  const reference = String(referenceOwner || "");
-  const sourceCompare = source.toUpperCase();
-  const referenceCompare = reference.toUpperCase();
-  const rows = sourceCompare.length + 1;
-  const columns = referenceCompare.length + 1;
-  const matrix = Array.from({ length: rows }, () => new Uint16Array(columns));
- 
-  for (let sourceIndex = 1; sourceIndex < rows; sourceIndex++) {
-    for (let referenceIndex = 1; referenceIndex < columns; referenceIndex++) {
-      matrix[sourceIndex][referenceIndex] = sourceCompare[sourceIndex - 1] === referenceCompare[referenceIndex - 1]
-        ? matrix[sourceIndex - 1][referenceIndex - 1] + 1
-        : Math.max(matrix[sourceIndex - 1][referenceIndex], matrix[sourceIndex][referenceIndex - 1]);
-    }
-  }
- 
-  const sharedIndexes = new Set();
-  let sourceIndex = sourceCompare.length;
-  let referenceIndex = referenceCompare.length;
-  while (sourceIndex > 0 && referenceIndex > 0) {
-    if (sourceCompare[sourceIndex - 1] === referenceCompare[referenceIndex - 1]) {
-      sharedIndexes.add(sourceIndex - 1);
-      sourceIndex--;
-      referenceIndex--;
-    } else if (matrix[sourceIndex - 1][referenceIndex] >= matrix[sourceIndex][referenceIndex - 1]) {
-      sourceIndex--;
-    } else {
-      referenceIndex--;
-    }
-  }
- 
-  let output = "";
-  let highlighted = false;
-  for (let index = 0; index < source.length; index++) {
-    const shouldHighlight = !sharedIndexes.has(index) && !/\s/.test(source[index]);
-    if (shouldHighlight && !highlighted) output += '<mark class="owner-diff">';
-    if (!shouldHighlight && highlighted) output += "</mark>";
-    output += escapeHtml(source[index]);
-    highlighted = shouldHighlight;
-  }
-  if (highlighted) output += "</mark>";
-  return output;
-}
+
  
 function relationBadge(gap) {
   const className = gap < 0 ? "overlap" : gap === 0 ? "same-day" : "after-end";
@@ -728,8 +717,11 @@ function openExcelFilter(event, tableId, columnIndex, label) {
   const filterKey = `${tableId}:${columnIndex}`;
   const selected = tableExcelFilters.get(filterKey) || new Set(values);
   activeExcelFilter = { tableId, columnIndex, filterKey, values };
+  const activeSort = tableSorts.get(tableId);
  
   document.getElementById("excelFilterTitle").innerText = `Filter: ${label}`;
+  document.getElementById("excelSortAsc").classList.toggle("active", activeSort?.columnIndex === columnIndex && activeSort.direction === "asc");
+  document.getElementById("excelSortDesc").classList.toggle("active", activeSort?.columnIndex === columnIndex && activeSort.direction === "desc");
   document.getElementById("excelFilterSearch").value = "";
   document.getElementById("excelFilterOptions").innerHTML = values.map((value) => `
     <label class="excel-option">
@@ -742,7 +734,7 @@ function openExcelFilter(event, tableId, columnIndex, label) {
   const popup = document.getElementById("excelFilterPopup");
   popup.classList.add("show");
   const left = Math.min(event.clientX, window.innerWidth - 275);
-  const top = Math.min(event.clientY + 8, window.innerHeight - 390);
+  const top = Math.min(event.clientY + 8, window.innerHeight - 430);
   popup.style.left = `${Math.max(8, left)}px`;
   popup.style.top = `${Math.max(8, top)}px`;
   document.getElementById("excelFilterSearch").focus();
@@ -786,19 +778,49 @@ function clearActiveExcelFilter() {
   document.getElementById("excelFilterPopup").classList.remove("show");
 }
  
+function sortActiveExcelColumn(direction) {
+  if (!activeExcelFilter || !["asc", "desc"].includes(direction)) return;
+  tableSorts.set(activeExcelFilter.tableId, {
+    columnIndex: activeExcelFilter.columnIndex,
+    direction,
+  });
+  applyTableExcelFilters(activeExcelFilter.tableId);
+  document.getElementById("excelFilterPopup").classList.remove("show");
+}
+ 
 function applyTableExcelFilters(tableId) {
   const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
   if (!card) return;
   const filters = [...tableExcelFilters.entries()]
     .filter(([key]) => key.startsWith(`${tableId}:`))
     .map(([key, selected]) => ({ column: Number(key.split(":").pop()), selected }));
-  card.querySelectorAll("tbody .data-row").forEach((row) => {
+   const body = card.querySelector("tbody");
+  const rows = [...body.querySelectorAll(".data-row")];
+  const activeSort = tableSorts.get(tableId);
+  if (activeSort) {
+    const direction = activeSort.direction === "asc" ? 1 : -1;
+    rows.sort((a, b) => {
+      const aValue = a.cells[activeSort.columnIndex]?.dataset.filterValue || "";
+      const bValue = b.cells[activeSort.columnIndex]?.dataset.filterValue || "";
+      return aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: "base" }) * direction;
+    });
+    rows.forEach((row) => body.appendChild(row));
+  }
+
+  let visibleCount = 0;
+  rows.forEach((row) => {
     row.style.display = filters.every((filter) => filter.selected.has(row.cells[filter.column]?.dataset.filterValue || "")) ? "" : "none";
+    if (row.style.display !== "none") visibleCount++;
   });
   card.querySelectorAll(".excel-filter-button").forEach((button) => {
     const key = button.dataset.filterButton.replace(`${tableId}-`, `${tableId}:`);
     button.classList.toggle("active", tableExcelFilters.has(key));
   });
+  const count = card.querySelector(".table-count");
+  if (count) {
+    const totalCount = Number(count.dataset.totalCount) || 0;
+    count.innerText = filters.length > 0 ? `${visibleCount}/${totalCount}` : totalCount;
+  }
 }
  
 async function saveWorkStartReview(recordId, cleared, remark) {
@@ -824,7 +846,9 @@ async function saveWorkStartReview(recordId, cleared, remark) {
     const data = await response.json();
     if (!response.ok || !data.success) throw new Error(data.message || "Unable to save review.");
     record.reviews.work_start_gap = data.review;
-    renderWorkStartIssues(buildWorkStartIssues());
+    const workStartIssues = buildWorkStartIssues();
+    renderWorkStartIssues(workStartIssues);
+    setCount("workStartCount", workStartIssues.filter((row) => !row.cleared).length);
     showToast(cleared ? "Issue marked as cleared." : "Issue review updated.");
   } catch (error) {
     renderWorkStartIssues(buildWorkStartIssues());
@@ -833,7 +857,42 @@ async function saveWorkStartReview(recordId, cleared, remark) {
     setLoading(false);
   }
 }
- 
+
+async function savePlateOwnerReview(recordId, cleared, remark) {
+  if (issueUser.role === "Viewer") return;
+  const record = issueRecords.find((item) => item.id === recordId);
+  if (!record) return;
+
+  setLoading(true);
+  try {
+    const response = await fetch("/api/mdb-issues/review", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${issueToken}`,
+      },
+      body: JSON.stringify({
+        recordId,
+        issueKey: "plate_owner_conflict",
+        cleared,
+        remark,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.message || "Unable to save owner review.");
+    record.reviews.plate_owner_conflict = data.review;
+    const ownerIssues = buildOwnerIssues();
+    renderOwnerIssues(ownerIssues);
+    setCount("ownerCount", getOpenOwnerIssueCount(ownerIssues));
+    showToast(cleared ? "Owner issue marked as cleared." : "Owner review updated.");
+  } catch (error) {
+    renderOwnerIssues(buildOwnerIssues());
+    showToast(error.message || "Unable to save owner review.", true);
+  } finally {
+    setLoading(false);
+  }
+} 
+
 async function copyIssueTable(tableId) {
   const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
   if (!card || typeof html2canvas !== "function") {

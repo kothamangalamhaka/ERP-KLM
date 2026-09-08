@@ -10,7 +10,6 @@
   --danger: #be123c;
   --success: #047857;
 }
- 
 * { box-sizing: border-box; }
  
 body {
@@ -108,8 +107,8 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
  
 .issue-panel { display: none; }
 .issue-panel.active { display: block; }
-.responsive-pair, .expiry-grid { display: grid; gap: 16px; align-items: start; }
-.responsive-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.owner-table-stack, .expiry-grid { display: grid; gap: 16px; align-items: start; }
+.owner-table-stack { grid-template-columns: minmax(0, 1fr); }
 .expiry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  
 .table-card {
@@ -232,15 +231,6 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
 .issue-table td.expiry-future-cell { background: #fef3c7; color: #92400e; font-weight: 800; }
 .issue-table td.expiry-expired-cell { background: #ffe4e6; color: #9f1239; font-weight: 800; }
  
-.owner-diff {
-  padding: 1px 2px;
-  border-radius: 3px;
-  background: #fef08a;
-  color: #854d0e;
-  font-weight: 900;
-}
-.owner-reference { color: #475569; }
- 
 .excel-filter-popup {
   position: fixed;
   z-index: 200;
@@ -254,6 +244,18 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
 }
 .excel-filter-popup.show { display: block; }
 .excel-filter-title { margin-bottom: 8px; color: var(--navy); font-size: 12px; font-weight: 800; }
+.excel-sort-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.excel-sort-actions button {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+.excel-sort-actions button:hover, .excel-sort-actions button.active { border-color: var(--purple); background: #f5f3ff; color: var(--purple); }
 #excelFilterSearch {
   width: 100%;
   height: 32px;
@@ -321,7 +323,7 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
 #toast.error { background: var(--danger); }
  
 @media (max-width: 1100px) {
-  .responsive-pair, .expiry-grid { grid-template-columns: 1fr; }
+  .expiry-grid { grid-template-columns: 1fr; }
 }
  
 @media (max-width: 700px) {

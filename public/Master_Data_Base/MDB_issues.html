@@ -64,7 +64,7 @@
       </section>
  
       <section class="issue-panel" id="ownerPanel">
-        <div class="responsive-pair">
+       <div class="owner-table-stack">
           <div id="plateOwnerTable"></div>
           <div id="mobileOwnerTable"></div>
         </div>
@@ -89,6 +89,10 @@
     </div>
     <div class="excel-filter-popup" id="excelFilterPopup">
       <div class="excel-filter-title" id="excelFilterTitle">Filter</div>
+      <div class="excel-sort-actions">
+        <button id="excelSortAsc" type="button" onclick="sortActiveExcelColumn('asc')">A → Z</button>
+        <button id="excelSortDesc" type="button" onclick="sortActiveExcelColumn('desc')">Z → A</button>
+      </div>
       <input id="excelFilterSearch" type="search" placeholder="Search values…" oninput="searchExcelFilterOptions(this.value)" />
       <label class="excel-select-all">
         <input id="excelFilterSelectAll" type="checkbox" onchange="toggleExcelFilterOptions(this.checked)" />
