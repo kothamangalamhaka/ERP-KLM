@@ -17,6 +17,49 @@ function getCompanyFromSite(siteName, fallback = "Haka") {
   return fallback;
 }
 
+function calculateLogHours(records, monthIndex, year, siteName, specialRules) {
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const normalizedSite = String(siteName || "").split("&")[0].trim().toUpperCase();
+  let nhr = 0;
+  let othr = 0;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const record = records.find((item) => parseInt(item.record_date, 10) === day);
+    const workHours = record ? parseFloat(record.calc_time) || 0 : 0;
+    let status = record ? String(record.bd || "").trim().toUpperCase() : "";
+    const formattedDate = new Date(year, monthIndex, day)
+      .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    const specialRule = specialRules.find(
+      (rule) =>
+        Array.isArray(rule.sites) &&
+        Array.isArray(rule.dates) &&
+        (rule.sites.includes("ALL") || rule.sites.includes(normalizedSite)) &&
+        rule.dates.includes(formattedDate),
+    );
+
+    if (!record && specialRule && specialRule.rule_type !== "FULL_OT") {
+      status = specialRule.rule_type;
+    }
+
+    const isFullOt = new Date(year, monthIndex, day).getDay() === 5 ||
+      day === 31 ||
+      specialRule?.rule_type === "FULL_OT";
+
+    if (["ID", "NP", "W", "P"].includes(status)) {
+      if (isFullOt) othr += 10;
+      else nhr += 10;
+    } else if (!["B", "H", "A", "L", "S"].includes(status) && workHours > 0) {
+      if (isFullOt) othr += workHours;
+      else {
+        nhr += Math.min(workHours, 10);
+        othr += Math.max(workHours - 10, 0);
+      }
+    }
+  }
+
+  return { nhr, othr };
+}
+
 const verifyBillingEditor = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token)
@@ -81,6 +124,9 @@ router.get("/vehicles", async (req, res) => {
     );
 
     let savedResult = { rows: [] };
+    let timesheetRows = [];
+    let invoiceRows = [];
+    let specialRules = [];
     let targetStart, targetEnd;
     let targetMonthIdx = -1, targetYearNum = 0;
 
@@ -110,6 +156,23 @@ router.get("/vehicles", async (req, res) => {
         targetMonthIdx = mIdx;
         targetStart = new Date(targetYearNum, mIdx, 1);
         targetEnd = new Date(targetYearNum, mIdx + 1, 0);
+
+        const [timesheetsResult, invoicesResult, specialRulesResult] = await Promise.all([
+          pool.query(
+            "SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month = $1 AND year = $2",
+            [mName, yStr],
+          ),
+          pool.query(
+            "SELECT plate_no, site_name, bill_nr, bill_ot FROM invoice_records WHERE month = $1",
+            [month],
+          ),
+          pool.query(
+            "SELECT sites, dates, rule_type FROM special_days_rules WHERE is_active = true",
+          ),
+        ]);
+        timesheetRows = timesheetsResult.rows;
+        invoiceRows = invoicesResult.rows;
+        specialRules = specialRulesResult.rows;
       }
     }
 
@@ -285,6 +348,21 @@ router.get("/vehicles", async (req, res) => {
           vatRaw === "15%"
             ? "Yes"
             : "No";
+        const relatedPlateSet = new Set(
+          relatedPlates.map((relatedPlate) => String(relatedPlate || "").trim().toUpperCase()),
+        );
+        const vehicleTimesheets = timesheetRows.filter((timesheet) =>
+          relatedPlateSet.has(String(timesheet.plate_no || "").trim().toUpperCase()),
+        );
+        const logHours = targetMonthIdx >= 0
+          ? calculateLogHours(vehicleTimesheets, targetMonthIdx, targetYearNum, pSite, specialRules)
+          : { nhr: 0, othr: 0 };
+        const matchingInvoices = invoiceRows.filter((invoice) =>
+          relatedPlateSet.has(String(invoice.plate_no || "").trim().toUpperCase()),
+        );
+        const invoice = matchingInvoices.find(
+          (item) => String(item.site_name || "").trim().toUpperCase() === String(pSite || "").trim().toUpperCase(),
+        ) || matchingInvoices[0];
 
         validVehicles.push({
           plate_number: effectivePlate,
@@ -299,6 +377,10 @@ router.get("/vehicles", async (req, res) => {
           site: pSite,
           driver_name: finalDriver, // 🟢 ഡ്രൈവർ പേര് ഉറപ്പാക്കുന്നു
           vat_bill: isVatBill,
+          log_nhr: logHours.nhr,
+          log_othr: logHours.othr,
+          bill_nhr: parseFloat(invoice?.bill_nr) || 0,
+          bill_othr: parseFloat(invoice?.bill_ot) || 0,
         });
       }
     });

@@ -515,6 +515,10 @@ function rearrangeScreenData() {
         otrate: otrate,
         vat_bill: isVat,
         owner: itemOwner,
+        log_nhr: parseFloat(row.querySelector(".log-nr")?.innerText) || 0,
+        log_othr: parseFloat(row.querySelector(".log-ot")?.innerText) || 0,
+        bill_nhr: parseFloat(row.querySelector(".bill-nr")?.innerText) || 0,
+        bill_othr: parseFloat(row.querySelector(".bill-ot")?.innerText) || 0,
         temp_nhr: nhr,
         temp_othr: othr,
         temp_remark: row.querySelector(".remark")
@@ -890,6 +894,10 @@ function createBillCard(group, id) {
                         <th class="col-money vat-col" style="display:${vatDisplay};">VAT Amt</th>
                         <th class="col-money total-col" style="display:${vatDisplay};">Total</th>
                         <th class="col-remark no-export-col" style="width: 12%;">Remark</th>
+                        <th class="col-small no-export">Log NR</th>
+                        <th class="col-small no-export">Log OT</th>
+                        <th class="col-small no-export">Bill NR</th>
+                        <th class="col-small no-export">Bill OT</th>
                         <th class="col-action no-export">Act</th>
                     </tr>
                 </thead>
@@ -947,6 +955,10 @@ function createBillCard(group, id) {
       vatPerc,
       vatDisplay,
       rowRemark,
+      item.log_nhr,
+      item.log_othr,
+      item.bill_nhr,
+      item.bill_othr,
     );
   });
 
@@ -964,6 +976,10 @@ function createBillCard(group, id) {
                         <td class="grandVat vat-col" style="display:${vatDisplay};">0</td>
                         <td class="grandTotal total-col" style="display:${vatDisplay};">0</td>
                         <td class="no-export-col"></td>
+                        <td class="no-export"></td>
+                        <td class="no-export"></td>
+                        <td class="no-export"></td>
+                        <td class="no-export"></td>
                         <td class="no-export" style="text-align: center;">
                             <button type="button" class="btn-add-circle" onclick="addDynamicRow('${id}')">+</button>
                         </td>
@@ -1047,6 +1063,10 @@ function generateRowHTML(
   vatPerc,
   vatDisplay,
   remark = "",
+  logNhr = 0,
+  logOthr = 0,
+  billNhr = 0,
+  billOthr = 0,
 ) {
   return `
         <tr>
@@ -1073,6 +1093,10 @@ function generateRowHTML(
             <td class="vat vat-col" style="display:${vatDisplay};">0</td>
             <td class="total total-col" style="display:${vatDisplay};">0</td>
             <td class="no-export-col"><input type="text" class="remark" value="${remark}" placeholder=" " style="text-align: left; padding-left: 5px;"></td>
+            <td class="no-export log-nr">${logNhr}</td>
+            <td class="no-export log-ot">${logOthr}</td>
+            <td class="no-export bill-nr">${billNhr}</td>
+            <td class="no-export bill-ot">${billOthr}</td>
             <td class="no-export"><button type="button" class="btn-remove" onclick="removeDynamicRow(this)">✖</button></td>
         </tr>
     `;
@@ -1132,6 +1156,10 @@ window.arrangeSingleCard = function (cardId) {
       otrate: otrate,
       vat_bill: isVat,
       owner: itemOwner,
+      log_nhr: parseFloat(row.querySelector(".log-nr")?.innerText) || 0,
+      log_othr: parseFloat(row.querySelector(".log-ot")?.innerText) || 0,
+      bill_nhr: parseFloat(row.querySelector(".bill-nr")?.innerText) || 0,
+      bill_othr: parseFloat(row.querySelector(".bill-ot")?.innerText) || 0,
       temp_nhr: nhr,
       temp_othr: othr,
       temp_remark: row.querySelector(".remark")
@@ -1527,6 +1555,11 @@ function applyAutoFillData(input, match, addBlankRow = true) {
   if (match.nrate) row.querySelector(".nrate").value = parseFloat(match.nrate);
   if (match.otrate)
     row.querySelector(".otrate").value = parseFloat(match.otrate);
+
+  row.querySelector(".log-nr").innerText = match.log_nhr || 0;
+  row.querySelector(".log-ot").innerText = match.log_othr || 0;
+  row.querySelector(".bill-nr").innerText = match.bill_nhr || 0;
+  row.querySelector(".bill-ot").innerText = match.bill_othr || 0;
 
   let matchPlates = Array.isArray(match.related_plates) ? match.related_plates : [(match.plate_number || match.plate || "").trim().toUpperCase()];
   let saved = savedBillingData.find(
