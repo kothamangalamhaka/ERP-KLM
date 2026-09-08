@@ -269,7 +269,7 @@
       }
       thead tr:nth-child(2) th {
         position: sticky;
-        top: 36px; 
+        top: 36px;
         z-index: 11;
       }
       th {
@@ -416,7 +416,7 @@
         outline: none;
       }
       .edit-active:focus {
-    background-color: #fef08a !important;
+        background-color: #fef08a !important;
         border: 1px solid #ca8a04;
       }
       .edit-active.formula-error {
@@ -440,7 +440,6 @@
         font-weight: bold;
         color: var(--primary);
       }
-
       .modal-overlay {
         display: none;
         position: fixed;
@@ -815,37 +814,64 @@
           onkeypress="if (event.key === 'Enter') executeLogin();"
         />
         <button onclick="executeLogin()">Secure Login</button>
-        <div style="margin-top: 15px; font-size: 14px;">
-            <a href="#" onclick="toggleAuthView('signupBox')" style="color: #0ea5e9; text-decoration: none;">Create Account</a> | 
-            <a href="#" onclick="toggleAuthView('forgotBox')" style="color: #0ea5e9; text-decoration: none;">Forgot Password?</a>
+        <div style="margin-top: 15px; font-size: 14px">
+          <a
+            href="#"
+            onclick="toggleAuthView('signupBox')"
+            style="color: #0ea5e9; text-decoration: none"
+            >Create Account</a
+          >
+          |
+          <a
+            href="#"
+            onclick="toggleAuthView('forgotBox')"
+            style="color: #0ea5e9; text-decoration: none"
+            >Forgot Password?</a
+          >
         </div>
       </div>
 
-      <div class="login-box" id="signupBox" style="display: none;">
+      <div class="login-box" id="signupBox" style="display: none">
         <h2>Create Account</h2>
-        <input type="text" id="regName" placeholder="Display Name">
-        <input type="text" id="regUser" placeholder="Username">
-        <input type="email" id="regEmail" placeholder="Email">
-        <input type="password" id="regPass" placeholder="Password">
-        <button onclick="executeSignup()" style="background: #10b981;">Sign Up</button>
-        <div style="margin-top: 15px; font-size: 14px;">
-            <a href="#" onclick="toggleAuthView('loginBox')" style="color: #64748b; text-decoration: none;">Back to Login</a>
+        <input type="text" id="regName" placeholder="Display Name" />
+        <input type="text" id="regUser" placeholder="Username" />
+        <input type="email" id="regEmail" placeholder="Email" />
+        <input type="password" id="regPass" placeholder="Password" />
+        <button onclick="executeSignup()" style="background: #10b981">
+          Sign Up
+        </button>
+        <div style="margin-top: 15px; font-size: 14px">
+          <a
+            href="#"
+            onclick="toggleAuthView('loginBox')"
+            style="color: #64748b; text-decoration: none"
+            >Back to Login</a
+          >
         </div>
       </div>
 
-      <div class="login-box" id="forgotBox" style="display: none;">
+      <div class="login-box" id="forgotBox" style="display: none">
         <h2>Reset Password</h2>
         <div id="otpRequestSection">
-            <input type="email" id="forgotEmail" placeholder="Enter your Email">
-            <button onclick="requestOtp()" style="background: #f59e0b;">Send OTP to Email</button>
+          <input type="email" id="forgotEmail" placeholder="Enter your Email" />
+          <button onclick="requestOtp()" style="background: #f59e0b">
+            Send OTP to Email
+          </button>
         </div>
-        <div id="otpVerifySection" style="display: none;">
-            <input type="text" id="resetOtp" placeholder="Enter OTP from Email">
-            <input type="password" id="newPass" placeholder="New Password">
-            <button onclick="resetPassword()" style="background: #ef4444;">Reset Password</button>
+        <div id="otpVerifySection" style="display: none">
+          <input type="text" id="resetOtp" placeholder="Enter OTP from Email" />
+          <input type="password" id="newPass" placeholder="New Password" />
+          <button onclick="resetPassword()" style="background: #ef4444">
+            Reset Password
+          </button>
         </div>
-        <div style="margin-top: 15px; font-size: 14px;">
-            <a href="#" onclick="toggleAuthView('loginBox')" style="color: #64748b; text-decoration: none;">Back to Login</a>
+        <div style="margin-top: 15px; font-size: 14px">
+          <a
+            href="#"
+            onclick="toggleAuthView('loginBox')"
+            style="color: #64748b; text-decoration: none"
+            >Back to Login</a
+          >
         </div>
       </div>
     </div>
@@ -930,14 +956,25 @@
         <div class="controls-card">
           <div class="form-group" style="width: 165px">
             <label>Month</label>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <button 
-                type="button" 
-                onclick="prevMonthReport()" 
+            <div style="display: flex; align-items: center; gap: 4px">
+              <button
+                type="button"
+                onclick="prevMonthReport()"
                 title="Previous Month"
-                style="padding: 6px 9px; border: 1px solid var(--border-color); background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; color: #475569;"
-              >◀</button>
-              <select id="selMonth" style="flex: 1;">
+                style="
+                  padding: 6px 9px;
+                  border: 1px solid var(--border-color);
+                  background: white;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-size: 11px;
+                  font-weight: bold;
+                  color: #475569;
+                "
+              >
+                ◀
+              </button>
+              <select id="selMonth" style="flex: 1">
                 <option value="January">January</option>
                 <option value="February">February</option>
                 <option value="March">March</option>
@@ -951,12 +988,23 @@
                 <option value="November">November</option>
                 <option value="December">December</option>
               </select>
-              <button 
-                type="button" 
-                onclick="nextMonthReport()" 
+              <button
+                type="button"
+                onclick="nextMonthReport()"
                 title="Next Month"
-                style="padding: 6px 9px; border: 1px solid var(--border-color); background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; color: #475569;"
-              >▶</button>
+                style="
+                  padding: 6px 9px;
+                  border: 1px solid var(--border-color);
+                  background: white;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-size: 11px;
+                  font-weight: bold;
+                  color: #475569;
+                "
+              >
+                ▶
+              </button>
             </div>
           </div>
           <div class="form-group" style="width: 80px">
@@ -1070,8 +1118,8 @@
               <col class="col-grp-amt" style="width: 90px" />
               <col class="col-grp-inv-red" style="width: 100px" />
               <col class="col-grp-inv-red" style="width: 100px" />
-              <col class="col-grp-extra" style="width: 120px" />
-              <col class="col-grp-extra" style="width: 120px" />
+              <col class="col-grp-inv-red" style="width: 120px" />
+              <col class="col-grp-inv-red" style="width: 120px" />
               <col class="col-grp-extra" style="width: 120px" />
               <col class="col-grp-extra" style="width: 120px" />
               <col class="col-grp-extra" style="width: 150px" />
@@ -1091,8 +1139,8 @@
                 <th colspan="2" class="th-driver">For Driver</th>
                 <th colspan="5" class="th-diff">DIFFERENCE</th>
                 <th colspan="5" class="th-amt">AMOUNT</th>
-                <th colspan="2" class="th-inv-red">INVOICE</th>
-                <th colspan="6" class="th-extra">EXTRA DETAILS</th>
+                <th colspan="4" class="th-inv-red">INVOICE</th>
+                <th colspan="4" class="th-extra">EXTRA DETAILS</th>
                 <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
                 <th colspan="2" class="th-gen-nr th-gen">
                   31 Considered as NR
@@ -1220,7 +1268,6 @@
                   <span class="filter-icon" data-key="driver_amount">▼</span>
                 </th>
 
-
                 <th
                   class="th-diff"
                   data-col-key="diff_nr"
@@ -1307,7 +1354,7 @@
                 </th>
 
                 <th
-                  class="th-extra"
+                  class="th-inv-red"
                   style="width: 120px"
                   data-col-key="inv_no"
                   onclick="openExcelFilterMenu(event, 'inv_no')"
@@ -1316,7 +1363,7 @@
                   <span class="filter-icon" data-key="inv_no">▼</span>
                 </th>
                 <th
-                  class="th-extra"
+                  class="th-inv-red"
                   style="width: 120px"
                   data-col-key="bill_no"
                   onclick="openExcelFilterMenu(event, 'bill_no')"
@@ -1371,10 +1418,18 @@
                 <th class="th-gen" style="width: 120px" data-col-key="site_co">
                   Site Co
                 </th>
-                <th class="th-gen-nr th-gen" style="width: 60px" data-col-key="alt_nr">
+                <th
+                  class="th-gen-nr th-gen"
+                  style="width: 60px"
+                  data-col-key="alt_nr"
+                >
                   NR
                 </th>
-                <th class="th-gen-nr th-gen" style="width: 60px" data-col-key="alt_ot">
+                <th
+                  class="th-gen-nr th-gen"
+                  style="width: 60px"
+                  data-col-key="alt_ot"
+                >
                   OT
                 </th>
               </tr>
@@ -1854,7 +1909,10 @@
       document.addEventListener("DOMContentLoaded", () => {
         if (localStorage.getItem("invoiceToken")) {
           // Re-map it to timesheetToken so the rest of the file's API calls work without breaking
-          localStorage.setItem("timesheetToken", localStorage.getItem("invoiceToken"));
+          localStorage.setItem(
+            "timesheetToken",
+            localStorage.getItem("invoiceToken"),
+          );
           loadApp();
         } else {
           document.getElementById("loginUserId").focus();
@@ -1862,10 +1920,10 @@
       });
 
       function toggleAuthView(viewId) {
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('signupBox').style.display = 'none';
-        document.getElementById('forgotBox').style.display = 'none';
-        document.getElementById(viewId).style.display = 'block';
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("signupBox").style.display = "none";
+        document.getElementById("forgotBox").style.display = "none";
+        document.getElementById(viewId).style.display = "block";
       }
 
       async function executeSignup() {
@@ -1874,53 +1932,61 @@
         const email = document.getElementById("regEmail").value;
         const password = document.getElementById("regPass").value;
 
-        if (!username || !email || !password) return window.alert("Fill all required fields");
+        if (!username || !email || !password)
+          return window.alert("Fill all required fields");
 
         try {
-            const res = await fetch("/api/invoice-auth/signup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ displayName, username, email, password })
-            });
-            const data = await res.json();
-            window.alert(data.message);
-            if (data.success) toggleAuthView('loginBox');
-        } catch (err) { window.alert("Server Error"); }
+          const res = await fetch("/api/invoice-auth/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ displayName, username, email, password }),
+          });
+          const data = await res.json();
+          window.alert(data.message);
+          if (data.success) toggleAuthView("loginBox");
+        } catch (err) {
+          window.alert("Server Error");
+        }
       }
 
       async function requestOtp() {
         const email = document.getElementById("forgotEmail").value;
         if (!email) return window.alert("Enter email");
         try {
-            const res = await fetch("/api/invoice-auth/forgot-password", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email })
-            });
-            const data = await res.json();
-            window.alert(data.message);
-            if (data.success) {
-                document.getElementById("otpRequestSection").style.display = "none";
-                document.getElementById("otpVerifySection").style.display = "block";
-            }
-        } catch (err) { window.alert("Server Error"); }
+          const res = await fetch("/api/invoice-auth/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          const data = await res.json();
+          window.alert(data.message);
+          if (data.success) {
+            document.getElementById("otpRequestSection").style.display = "none";
+            document.getElementById("otpVerifySection").style.display = "block";
+          }
+        } catch (err) {
+          window.alert("Server Error");
+        }
       }
 
       async function resetPassword() {
         const email = document.getElementById("forgotEmail").value;
         const otp = document.getElementById("resetOtp").value;
         const newPassword = document.getElementById("newPass").value;
-        if (!otp || !newPassword) return window.alert("Enter OTP and new password");
+        if (!otp || !newPassword)
+          return window.alert("Enter OTP and new password");
         try {
-            const res = await fetch("/api/invoice-auth/reset-password", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, otp, newPassword })
-            });
-            const data = await res.json();
-            window.alert(data.message);
-            if (data.success) toggleAuthView('loginBox');
-        } catch (err) { window.alert("Server Error"); }
+          const res = await fetch("/api/invoice-auth/reset-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, otp, newPassword }),
+          });
+          const data = await res.json();
+          window.alert(data.message);
+          if (data.success) toggleAuthView("loginBox");
+        } catch (err) {
+          window.alert("Server Error");
+        }
       }
 
       async function executeLogin() {
@@ -2034,7 +2100,7 @@
         }
       }
 
-         async function fetchBatchReportDataAPI(monthQueries) {
+      async function fetchBatchReportDataAPI(monthQueries) {
         const token = localStorage.getItem("timesheetToken");
         try {
           const res = await fetch("/payment/master-report-data-batch", {
@@ -2053,7 +2119,9 @@
           const data = await res.json();
           if (!res.ok || !data.success) {
             if (data.message && data.message.includes("token")) executeLogout();
-            throw new Error(data.message || "Could not load batch report data.");
+            throw new Error(
+              data.message || "Could not load batch report data.",
+            );
           }
 
           return monthQueries.map((query) => {
@@ -2062,8 +2130,7 @@
               ...data,
               timesheets: (data.timesheets || []).filter(
                 (row) =>
-                  row.month === query.m &&
-                  String(row.year) === String(query.y),
+                  row.month === query.m && String(row.year) === String(query.y),
               ),
               invoices: (data.invoices || []).filter(
                 (row) => row.month === fullMonth,
@@ -2076,7 +2143,9 @@
           });
         } catch (error) {
           console.error(error);
-          window.alert("Batch report data could not be loaded. Please try again.");
+          window.alert(
+            "Batch report data could not be loaded. Please try again.",
+          );
           return monthQueries.map(() => []);
         }
       }
@@ -2142,12 +2211,24 @@
           if (activeOwners.length === 0 && vOwners.length > 0) {
             activeOwners = vOwners.filter((o) => o.status === "Running");
             if (activeOwners.length === 0) {
-              activeOwners = [[...vOwners].sort((a, b) => safeDate(b.work_start_date || "2000-01-01") - safeDate(a.work_start_date || "2000-01-01"))[0]];
+              activeOwners = [
+                [...vOwners].sort(
+                  (a, b) =>
+                    safeDate(b.work_start_date || "2000-01-01") -
+                    safeDate(a.work_start_date || "2000-01-01"),
+                )[0],
+              ];
             }
           }
 
-          let owner = activeOwners.length > 0 ? (activeOwners[0].owner_name || v.owner_name || "N/A") : (v.owner_name || "N/A");
-          let vat = activeOwners.length > 0 ? (activeOwners[0].vat || v.vat || "No") : (v.vat || "No");
+          let owner =
+            activeOwners.length > 0
+              ? activeOwners[0].owner_name || v.owner_name || "N/A"
+              : v.owner_name || "N/A";
+          let vat =
+            activeOwners.length > 0
+              ? activeOwners[0].vat || v.vat || "No"
+              : v.vat || "No";
 
           let vSites = (data.sites || []).filter(
             (s) => cleanPlate(s.plate_no) === pClean,
@@ -2357,19 +2438,23 @@
 
             // മാസ്റ്റർ പ്ലേറ്റും ലോഗിലുള്ള എല്ലാ അനുബന്ധ പ്ലേറ്റുകളും ഒന്നിച്ച് നോക്കുന്നു
             let relatedCleanPlates = [pClean];
-          (data.plateChanges || []).forEach(pl => {
-            let oP = cleanPlate(pl.old_plate_no);
-            let nP = cleanPlate(pl.new_plate_no);
-            if (oP === pClean && !relatedCleanPlates.includes(nP)) relatedCleanPlates.push(nP);
-            if (nP === pClean && !relatedCleanPlates.includes(oP)) relatedCleanPlates.push(oP);
-          });
+            (data.plateChanges || []).forEach((pl) => {
+              let oP = cleanPlate(pl.old_plate_no);
+              let nP = cleanPlate(pl.new_plate_no);
+              if (oP === pClean && !relatedCleanPlates.includes(nP))
+                relatedCleanPlates.push(nP);
+              if (nP === pClean && !relatedCleanPlates.includes(oP))
+                relatedCleanPlates.push(oP);
+            });
 
-          let vInvoices = (data.invoices || []).filter(
-            (i) => relatedCleanPlates.includes(cleanPlate(i.plate_no)),
-          );
+            let vInvoices = (data.invoices || []).filter((i) =>
+              relatedCleanPlates.includes(cleanPlate(i.plate_no)),
+            );
 
             // ഏറ്റവും അവസാനം സേവ് ചെയ്ത റെക്കോർഡ് എടുക്കാൻ id DESC ക്രമത്തിൽ സോർട്ട് ചെയ്യുന്നു
-            let sortedBilling = [...(data.billing || [])].sort((a, b) => (b.id || 0) - (a.id || 0));
+            let sortedBilling = [...(data.billing || [])].sort(
+              (a, b) => (b.id || 0) - (a.id || 0),
+            );
 
             let billData = sortedBilling.find(
               (b) =>
@@ -2486,60 +2571,86 @@
             }
 
             // 🟢 പ്ലേറ്റ് നമ്പർ ചേഞ്ച് ആ മാസത്തിൽ നടന്നിട്ടുണ്ടോ എന്ന് കണ്ടെത്തുന്നു
-          let effectivePlate = originalPlate;
-          let relatedPlatesList = [originalPlate];
+            let effectivePlate = originalPlate;
+            let relatedPlatesList = [originalPlate];
 
-          let vPlateLogs = (data.plateChanges || []).filter(pl => {
-            let oP = cleanPlate(pl.old_plate_no);
-            let nP = cleanPlate(pl.new_plate_no);
-            return oP === pClean || nP === pClean;
-          });
+            let vPlateLogs = (data.plateChanges || []).filter((pl) => {
+              let oP = cleanPlate(pl.old_plate_no);
+              let nP = cleanPlate(pl.new_plate_no);
+              return oP === pClean || nP === pClean;
+            });
 
-          vPlateLogs.forEach(pl => {
-            if (pl.old_plate_no && !relatedPlatesList.includes(pl.old_plate_no)) relatedPlatesList.push(pl.old_plate_no);
-            if (pl.new_plate_no && !relatedPlatesList.includes(pl.new_plate_no)) relatedPlatesList.push(pl.new_plate_no);
-          });
+            vPlateLogs.forEach((pl) => {
+              if (
+                pl.old_plate_no &&
+                !relatedPlatesList.includes(pl.old_plate_no)
+              )
+                relatedPlatesList.push(pl.old_plate_no);
+              if (
+                pl.new_plate_no &&
+                !relatedPlatesList.includes(pl.new_plate_no)
+              )
+                relatedPlatesList.push(pl.new_plate_no);
+            });
 
-          if (vPlateLogs.length > 0) {
-            for (let pl of vPlateLogs) {
-              if (!pl.change_date) continue;
-              let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
-              let cDate = new Date(cYear, cMonth - 1, cDay);
+            if (vPlateLogs.length > 0) {
+              for (let pl of vPlateLogs) {
+                if (!pl.change_date) continue;
+                let [cYear, cMonth, cDay] = pl.change_date
+                  .split("-")
+                  .map(Number);
+                let cDate = new Date(cYear, cMonth - 1, cDay);
 
-              let curMonthStart = new Date(parseInt(yearStr), mIdx, 1, 0, 0, 0, 0);
-              let curMonthEnd = new Date(parseInt(yearStr), mIdx + 1, 0, 23, 59, 59, 999);
+                let curMonthStart = new Date(
+                  parseInt(yearStr),
+                  mIdx,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                );
+                let curMonthEnd = new Date(
+                  parseInt(yearStr),
+                  mIdx + 1,
+                  0,
+                  23,
+                  59,
+                  59,
+                  999,
+                );
 
-              if (cYear === parseInt(yearStr) && (cMonth - 1) === mIdx) {
-                // ആ മാസത്തിൽ തന്നെയാണ് മാറ്റം വന്നതെങ്കിൽ 2380 XSB ➔ 1999 NTA
-                effectivePlate = `${pl.old_plate_no} ➔ ${pl.new_plate_no}`;
-              } else if (curMonthEnd < cDate) {
-                // ചേഞ്ച് ഡേറ്റിന് മുൻപുള്ള മാസങ്ങളിൽ പഴയ പ്ലേറ്റ് നമ്പർ മാത്രം
-                effectivePlate = pl.old_plate_no;
-              } else if (curMonthStart >= cDate) {
-                // ചേഞ്ച് ഡേറ്റിന് ശേഷമുള്ള മാസങ്ങളിൽ പുതിയ പ്ലേറ്റ് നമ്പർ മാത്രം
-                effectivePlate = pl.new_plate_no;
+                if (cYear === parseInt(yearStr) && cMonth - 1 === mIdx) {
+                  // ആ മാസത്തിൽ തന്നെയാണ് മാറ്റം വന്നതെങ്കിൽ 2380 XSB ➔ 1999 NTA
+                  effectivePlate = `${pl.old_plate_no} ➔ ${pl.new_plate_no}`;
+                } else if (curMonthEnd < cDate) {
+                  // ചേഞ്ച് ഡേറ്റിന് മുൻപുള്ള മാസങ്ങളിൽ പഴയ പ്ലേറ്റ് നമ്പർ മാത്രം
+                  effectivePlate = pl.old_plate_no;
+                } else if (curMonthStart >= cDate) {
+                  // ചേഞ്ച് ഡേറ്റിന് ശേഷമുള്ള മാസങ്ങളിൽ പുതിയ പ്ലേറ്റ് നമ്പർ മാത്രം
+                  effectivePlate = pl.new_plate_no;
+                }
               }
             }
-          }
 
-          let display_inv_nr =
-            inv_nr_raw !== null && inv_nr_raw !== ""
-              ? calc_inv_nr.toString()
-              : "";
-          let display_inv_ot = "";
-          if (calc_inv_nr > 0 || calc_inv_ot > 0)
-            display_inv_ot = calc_inv_ot.toString();
+            let display_inv_nr =
+              inv_nr_raw !== null && inv_nr_raw !== ""
+                ? calc_inv_nr.toString()
+                : "";
+            let display_inv_ot = "";
+            if (calc_inv_nr > 0 || calc_inv_ot > 0)
+              display_inv_ot = calc_inv_ot.toString();
 
-          processedArray.push({
-            report_date: shortDate,
-            raw_month: monthStr,
-            raw_year: yearStr,
-            plate: effectivePlate,
-            master_plate: originalPlate,
-            related_plates: relatedPlatesList,
-            owner,
-            vat,
-            site: sName,
+            processedArray.push({
+              report_date: shortDate,
+              raw_month: monthStr,
+              raw_year: yearStr,
+              plate: effectivePlate,
+              master_plate: originalPlate,
+              related_plates: relatedPlatesList,
+              owner,
+              vat,
+              site: sName,
               rate: siteDataMap[sName].rate,
               ts_nr: calc_ts_nr.toString(),
               ts_ot: calc_ts_ot > 0 ? calc_ts_ot.toString() : "",
@@ -2759,7 +2870,10 @@
             fPlate === "" ||
             d.plate.toUpperCase().includes(fPlate) ||
             (d.master_plate && d.master_plate.toUpperCase().includes(fPlate)) ||
-            (Array.isArray(d.related_plates) && d.related_plates.some(rp => rp.toUpperCase().includes(fPlate))) ||
+            (Array.isArray(d.related_plates) &&
+              d.related_plates.some((rp) =>
+                rp.toUpperCase().includes(fPlate),
+              )) ||
             d.owner.toUpperCase().includes(fPlate) ||
             (d.inv_no && d.inv_no.toUpperCase().includes(fPlate)) ||
             (d.bill_no && d.bill_no.toUpperCase().includes(fPlate));
@@ -2811,10 +2925,10 @@
         tbody.innerHTML = "";
         if (data.length === 0) {
           tbody.innerHTML =
-           '<tr><td colspan="38" style="padding: 20px;">No data found.</td></tr>';
+            '<tr><td colspan="38" style="padding: 20px;">No data found.</td></tr>';
           return;
         }
-         const fragment = document.createDocumentFragment();
+        const fragment = document.createDocumentFragment();
         data.forEach((row) => {
           const tr = document.createElement("tr");
           tr.dataset.site = row.site;
@@ -2849,8 +2963,8 @@
             <td class="col-amt" style="font-weight: 700;">${row.rent_total ? Number(row.rent_total).toFixed(2) : ""}</td>
             <td class="col-inv-red editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_subtotal ? Number(row.inv_subtotal).toFixed(2) : ""}</td>
             <td class="col-inv-red" style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
-            <td class="col-extra editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
-            <td class="col-extra editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
+            <td class="col-inv-red editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
+            <td class="col-inv-red editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
             <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
             <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'erp')">${row.erp}</td>
             <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'payment_status')">${row.payment_status}</td>
@@ -2863,7 +2977,7 @@
           `;
           fragment.appendChild(tr);
         });
-         tbody.appendChild(fragment);
+        tbody.appendChild(fragment);
       }
 
       function requestEditMode() {
@@ -2936,7 +3050,7 @@
           window.alert("Server Connection Error.");
         }
       }
-function evaluateInvoiceAmountFormula(input) {
+      function evaluateInvoiceAmountFormula(input) {
         let expression = input.trim().replace(/,/g, "");
         if (expression.startsWith("=")) expression = expression.slice(1);
 
@@ -3045,7 +3159,6 @@ function evaluateInvoiceAmountFormula(input) {
         }
       }
 
-
       function activateEditModeCells() {
         document.querySelectorAll(".editable-field").forEach((td) => {
           td.classList.add("edit-active");
@@ -3101,7 +3214,6 @@ function evaluateInvoiceAmountFormula(input) {
             }
           }
         });
-
       async function saveInlineEdits() {
         let updates = [];
         let hasInvalidFormula = false;
@@ -3134,7 +3246,7 @@ function evaluateInvoiceAmountFormula(input) {
           let inv_ot =
             inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
 
-         const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
+          const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
           const parsedAmount = normalizeInvoiceAmountCell(invAmountCell);
           if (!parsedAmount.valid) hasInvalidFormula = true;
           const inv_amount = parsedAmount.value;
@@ -3179,11 +3291,13 @@ function evaluateInvoiceAmountFormula(input) {
             btn.innerHTML = "✏️ Edit Data";
             btn.style.backgroundColor = "#2563eb";
             document.getElementById("btnCancelEdit").style.display = "none";
-            
+
             if (isBatchViewActive) executeBatchView(true);
             else fetchAndRenderUI(true);
           } else {
-            window.alert("Error: " + (data.detail || data.message || "Unknown error"));
+            window.alert(
+              "Error: " + (data.detail || data.message || "Unknown error"),
+            );
           }
         } catch (err) {
           window.alert("Server Connection Error.");
@@ -3220,7 +3334,6 @@ function evaluateInvoiceAmountFormula(input) {
             d.raw_year === rYear,
         );
         if (rowObj) rowObj[fieldName] = newVal || "-";
-
         const preciseMonth = `${rMonth} ${rYear}`;
         const token = localStorage.getItem("timesheetToken");
         try {
@@ -3418,7 +3531,7 @@ function evaluateInvoiceAmountFormula(input) {
           const res = await fetch("/py/payment-export/generate-excel", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ file_name: fileName, sheets: sheetsData })
+            body: JSON.stringify({ file_name: fileName, sheets: sheetsData }),
           });
           if (!res.ok) throw new Error("Python Server Export Error");
           const blob = await res.blob();
@@ -3433,7 +3546,9 @@ function evaluateInvoiceAmountFormula(input) {
           showToast("✓ Excel generated & downloaded via Python!");
         } catch (err) {
           console.error("Export Error:", err);
-          window.alert("Export failed. Please ensure Python server (Port 8001) is running.");
+          window.alert(
+            "Export failed. Please ensure Python server (Port 8001) is running.",
+          );
         }
         document.getElementById("loader").style.display = "none";
       }
@@ -3473,7 +3588,7 @@ function evaluateInvoiceAmountFormula(input) {
           window.alert("No data.");
           return;
         }
-        
+
         let sheetObj = createSheetFromData(filtered);
         let curM = document.getElementById("selMonth").value;
         let curY = document.getElementById("selYear").value;
@@ -3506,7 +3621,10 @@ function evaluateInvoiceAmountFormula(input) {
         let monthQueries = [];
         let current = new Date(start);
         while (current <= end) {
-          monthQueries.push({ m: months[current.getMonth()], y: current.getFullYear() });
+          monthQueries.push({
+            m: months[current.getMonth()],
+            y: current.getFullYear(),
+          });
           current.setMonth(current.getMonth() + 1);
         }
 
@@ -3515,7 +3633,8 @@ function evaluateInvoiceAmountFormula(input) {
         let sheetsArray = [];
         results.forEach((data, idx) => {
           if (data && data.length > 0) {
-            let label = `${monthQueries[idx].m} ${monthQueries[idx].y}`.substring(0, 31);
+            let label =
+              `${monthQueries[idx].m} ${monthQueries[idx].y}`.substring(0, 31);
             let sheetObj = createSheetFromData(data);
             sheetObj.sheet_name = label;
             sheetsArray.push(sheetObj);
@@ -3560,10 +3679,10 @@ function evaluateInvoiceAmountFormula(input) {
         let monthQueries = [];
         let current = new Date(start);
         while (current <= end) {
-          monthQueries.push({ 
-            m: months[current.getMonth()], 
+          monthQueries.push({
+            m: months[current.getMonth()],
             y: current.getFullYear(),
-            monthIndex: current.getMonth()
+            monthIndex: current.getMonth(),
           });
           current.setMonth(current.getMonth() + 1);
         }
@@ -3733,17 +3852,17 @@ function evaluateInvoiceAmountFormula(input) {
         for (let i = 6; i <= 7; i++) m[i + offset] = COL.ts;
         for (let i = 8; i <= 9; i++) m[i + offset] = COL.inv;
         for (let i = 10; i <= 11; i++) m[i + offset] = COL.bill;
-       for (let i = 12; i <= 13; i++) m[i + offset] = COL.driver;
+        for (let i = 12; i <= 13; i++) m[i + offset] = COL.driver;
         for (let i = 14; i <= 18; i++) m[i + offset] = COL.diff;
         for (let i = 19; i <= 23; i++) m[i + offset] = COL.amt;
         for (let i = 24; i <= 27; i++) m[i + offset] = "B91C1C";
-        for (let i = 28; i <= 32; i++) m[i + offset] = COL.extra;
-        for (let i = 33; i <= 36; i++) m[i + offset] = COL.vehicle;
-        for (let i = 37; i <= 38; i++) m[i + offset] = COL.ts;
+        for (let i = 28; i <= 31; i++) m[i + offset] = COL.extra;
+        for (let i = 32; i <= 35; i++) m[i + offset] = COL.vehicle;
+        for (let i = 36; i <= 37; i++) m[i + offset] = COL.ts;
         return m;
       }
 
-     // 🟢 Moved to shared scope so both Single & Master export functions can access it
+      // 🟢 Moved to shared scope so both Single & Master export functions can access it
       function cleanExportRate(val) {
         if (!val || val === "-") return "-";
         let num = parseFloat(val);
@@ -3754,52 +3873,133 @@ function evaluateInvoiceAmountFormula(input) {
       function createSheetFromData(dataArray) {
         let aoa = [
           [
-           "VEHICLE INFO", "", "", "", "", "", "", "", "", "",
-            "Logsheet Collected", "",
-            "Bill Summary", "",
-            "To Supplier", "",
-            "For Driver", "",
-            "DIFFERENCE", "", "", "", "",
-            "AMOUNT", "", "", "", "",
-            "INVOICE", "", "", "",
-            "EXTRA DETAILS", "", "", "", "",
-            "31 Considered as NR", ""
+            "VEHICLE INFO",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Logsheet Collected",
+            "",
+            "Bill Summary",
+            "",
+            "To Supplier",
+            "",
+            "For Driver",
+            "",
+            "DIFFERENCE",
+            "",
+            "",
+            "",
+            "",
+            "AMOUNT",
+            "",
+            "",
+            "",
+            "",
+            "INVOICE",
+            "",
+            "",
+            "",
+            "EXTRA DETAILS",
+            "",
+            "",
+            "",
+            "31 Considered as NR",
+            "",
           ],
           [
-            "Date", "Site", "Rate", "VAT", "Owner Name",
-            "Driver Name", "Field Co", "Site Co", "Vehicle Type", "Plate No",
-            "NR", "OT", "NR", "OT", "NR", "OT",
-            "OT", "AMT",
-            "NR", "OT", "IDN", "Clear", "V.Bill Notes",
-            "NR Rate", "OT Rate", "Rent", "VAT", "Total",
-            "Subtotal", "Total",
-            "Invoice No", "Bill No", "V.Bill Notes", "PWAS", "ERP", "Payment Status", "Accounts Note",
-             "NR", "OT"
+            "Date",
+            "Site",
+            "Rate",
+            "VAT",
+            "Owner Name",
+            "Driver Name",
+            "Field Co",
+            "Site Co",
+            "Vehicle Type",
+            "Plate No",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "OT",
+            "AMT",
+            "NR",
+            "OT",
+            "IDN",
+            "Clear",
+            "V.Bill Notes",
+            "NR Rate",
+            "OT Rate",
+            "Rent",
+            "VAT",
+            "Total",
+            "Subtotal",
+            "Total",
+            "Invoice No",
+            "Bill No",
+            "PWAS",
+            "ERP",
+            "Payment Status",
+            "Accounts Note",
+            "NR",
+            "OT",
           ],
         ];
 
         dataArray.forEach((r) => {
           aoa.push([
-            r.report_date, r.site, cleanExportRate(r.rate),
+            r.report_date,
+            r.site,
+            cleanExportRate(r.rate),
             r.vat.toLowerCase().includes("yes") ? "Yes" : "",
-            r.owner, r.driver_name, r.field_co, r.site_co, r.vehicle_type, r.plate,
-            r.ts_nr, r.ts_ot,
-            r.inv_nr || "", r.inv_ot || "",
-            r.bill_db_nr || "", r.bill_db_ot || "",
-            r.driver_ot || "", r.driver_amount || "",
-            r.diff_nr, r.diff_ot, r.diff_st, r.diff_clear, r.vbill_notes || "-",
-            r.bill_nrate || "", r.bill_otrate || "", r.bill_rent || "",
-            r.rent_vat || "", r.rent_total || "",
-            r.inv_subtotal || "", r.inv_total || "",
-            r.inv_no, r.bill_no, r.vbill_notes || "-", r.pwas || "-", r.erp || "-",
-            r.payment_status || "-", r.accounts_note || "-",
-            r.alt_nr, r.alt_ot > 0 ? r.alt_ot : "",
+            r.owner,
+            r.driver_name,
+            r.field_co,
+            r.site_co,
+            r.vehicle_type,
+            r.plate,
+            r.ts_nr,
+            r.ts_ot,
+            r.inv_nr || "",
+            r.inv_ot || "",
+            r.bill_db_nr || "",
+            r.bill_db_ot || "",
+            r.driver_ot || "",
+            r.driver_amount || "",
+            r.diff_nr,
+            r.diff_ot,
+            r.diff_st,
+            r.diff_clear,
+            r.vbill_notes || "-",
+            r.bill_nrate || "",
+            r.bill_otrate || "",
+            r.bill_rent || "",
+            r.rent_vat || "",
+            r.rent_total || "",
+            r.inv_subtotal || "",
+            r.inv_total || "",
+            r.inv_no,
+            r.bill_no,
+            r.pwas || "-",
+            r.erp || "-",
+            r.payment_status || "-",
+            r.accounts_note || "-",
+            r.alt_nr,
+            r.alt_ot > 0 ? r.alt_ot : "",
           ]);
         });
- 
-        // Total 39 columns (0 to 38).
+
+        // Total 38 columns (0 to 37).
         let merges = [
-          { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },   // VEHICLE INFO (0..9)
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }, // VEHICLE INFO (0..9)
           { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, // TS (10..11)
           { s: { r: 0, c: 12 }, e: { r: 0, c: 13 } }, // INV (12..13)
           { s: { r: 0, c: 14 }, e: { r: 0, c: 15 } }, // BILL (14..15)
@@ -3807,65 +4007,150 @@ function evaluateInvoiceAmountFormula(input) {
           { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFF (18..22)
           { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMT (23..27)
           { s: { r: 0, c: 28 }, e: { r: 0, c: 31 } }, // INVOICE (28..31)
-          { s: { r: 0, c: 32 }, e: { r: 0, c: 36 } }, // EXTRA DETAILS (32..36)
-          { s: { r: 0, c: 37 }, e: { r: 0, c: 38 } }, // 31 Considered as NR (37..38)
+          { s: { r: 0, c: 32 }, e: { r: 0, c: 35 } }, // EXTRA DETAILS (32..35)
+          { s: { r: 0, c: 36 }, e: { r: 0, c: 37 } }, // 31 Considered as NR (36..37)
         ];
-
-        return { sheet_name: "Report", aoa: aoa, merges: merges, is_analysis: false };
+        return {
+          sheet_name: "Report",
+          aoa: aoa,
+          merges: merges,
+          is_analysis: false,
+        };
       }
 
       function createSingleSheetFromData(dataArray) {
         let aoa = [
           [
             "REPORT MONTH",
-              "VEHICLE INFO", "", "", "", "", "", "", "", "", "",
-            "Logsheet Collected", "",
-            "Bill Summary", "",
-            "To Supplier", "",
-            "For Driver", "",
-            "DIFFERENCE", "", "", "", "",
-            "AMOUNT", "", "", "", "",
-            "INVOICE", "", "", "",
-            "EXTRA DETAILS", "", "", "", "",
-            "31 Considered as NR", ""
+            "VEHICLE INFO",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Logsheet Collected",
+            "",
+            "Bill Summary",
+            "",
+            "To Supplier",
+            "",
+            "For Driver",
+            "",
+            "DIFFERENCE",
+            "",
+            "",
+            "",
+            "",
+            "AMOUNT",
+            "",
+            "",
+            "",
+            "",
+            "INVOICE",
+            "",
+            "",
+            "",
+            "EXTRA DETAILS",
+            "",
+            "",
+            "",
+            "31 Considered as NR",
+            "",
           ],
           [
             "Month",
-            "Date", "Site", "Rate", "VAT", "Owner Name",
-            "Driver Name", "Field Co", "Site Co", "Vehicle Type", "Plate No",
-            "NR", "OT", "NR", "OT", "NR", "OT",
-            "OT", "AMT",
-            "NR", "OT", "IDN", "Clear", "V.Bill Notes",
-            "NR Rate", "OT Rate", "Rent", "VAT", "Total",
-            "Subtotal", "Total",
-            "Invoice No", "Bill No", "V.Bill Notes", "PWAS", "ERP", "Payment Status", "Accounts Note",
-            "NR", "OT"
+            "Date",
+            "Site",
+            "Rate",
+            "VAT",
+            "Owner Name",
+            "Driver Name",
+            "Field Co",
+            "Site Co",
+            "Vehicle Type",
+            "Plate No",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "OT",
+            "AMT",
+            "NR",
+            "OT",
+            "IDN",
+            "Clear",
+            "V.Bill Notes",
+            "NR Rate",
+            "OT Rate",
+            "Rent",
+            "VAT",
+            "Total",
+            "Subtotal",
+            "Total",
+            "Invoice No",
+            "Bill No",
+            "PWAS",
+            "ERP",
+            "Payment Status",
+            "Accounts Note",
+            "NR",
+            "OT",
           ],
         ];
 
         dataArray.forEach((r) => {
           aoa.push([
             r.report_month,
-            r.report_date, r.site, cleanExportRate(r.rate),
+            r.report_date,
+            r.site,
+            cleanExportRate(r.rate),
             r.vat.toLowerCase().includes("yes") ? "Yes" : "",
-            r.owner, r.driver_name, r.field_co, r.site_co, r.vehicle_type, r.plate,
-            r.ts_nr, r.ts_ot,
-            r.inv_nr || "", r.inv_ot || "",
-            r.bill_db_nr || "", r.bill_db_ot || "",
-            r.driver_ot || "", r.driver_amount || "",
-            r.diff_nr, r.diff_ot, r.diff_st, r.diff_clear, r.vbill_notes || "-",
-            r.bill_nrate || "", r.bill_otrate || "", r.bill_rent || "",
-            r.rent_vat || "", r.rent_total || "",
-            r.inv_subtotal || "", r.inv_total || "",
-            r.inv_no, r.bill_no, r.vbill_notes || "-", r.pwas || "-", r.erp || "-",
-            r.payment_status || "-", r.accounts_note || "-",
-            r.alt_nr, r.alt_ot > 0 ? r.alt_ot : "",
+            r.owner,
+            r.driver_name,
+            r.field_co,
+            r.site_co,
+            r.vehicle_type,
+            r.plate,
+            r.ts_nr,
+            r.ts_ot,
+            r.inv_nr || "",
+            r.inv_ot || "",
+            r.bill_db_nr || "",
+            r.bill_db_ot || "",
+            r.driver_ot || "",
+            r.driver_amount || "",
+            r.diff_nr,
+            r.diff_ot,
+            r.diff_st,
+            r.diff_clear,
+            r.vbill_notes || "-",
+            r.bill_nrate || "",
+            r.bill_otrate || "",
+            r.bill_rent || "",
+            r.rent_vat || "",
+            r.rent_total || "",
+            r.inv_subtotal || "",
+            r.inv_total || "",
+            r.inv_no,
+            r.bill_no,
+            r.pwas || "-",
+            r.erp || "-",
+            r.payment_status || "-",
+            r.accounts_note || "-",
+            r.alt_nr,
+            r.alt_ot > 0 ? r.alt_ot : "",
           ]);
         });
 
-         // Merges shifted by +1 because of "REPORT MONTH" (40 columns: 0 to 39).
+        // Merges shifted by +1 because of "REPORT MONTH" (39 columns: 0 to 38).
         let merges = [
-          { s: { r: 0, c: 1 }, e: { r: 0, c: 10 } },  // Vehicle Info (1..10)
+          { s: { r: 0, c: 1 }, e: { r: 0, c: 10 } }, // Vehicle Info (1..10)
           { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // TS (11..12)
           { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } }, // INV (13..14)
           { s: { r: 0, c: 15 }, e: { r: 0, c: 16 } }, // BILL (15..16)
@@ -3873,11 +4158,16 @@ function evaluateInvoiceAmountFormula(input) {
           { s: { r: 0, c: 19 }, e: { r: 0, c: 23 } }, // DIFF (19..23)
           { s: { r: 0, c: 24 }, e: { r: 0, c: 28 } }, // AMT (24..28)
           { s: { r: 0, c: 29 }, e: { r: 0, c: 32 } }, // INVOICE (29..32)
-          { s: { r: 0, c: 33 }, e: { r: 0, c: 37 } }, // EXTRA DETAILS (33..37)
-          { s: { r: 0, c: 38 }, e: { r: 0, c: 39 } }, // 31 Considered as NR (38..39)
+          { s: { r: 0, c: 33 }, e: { r: 0, c: 36 } }, // EXTRA DETAILS (33..36)
+          { s: { r: 0, c: 37 }, e: { r: 0, c: 38 } }, // 31 Considered as NR (37..38)
         ];
 
-        return { sheet_name: "Master_Analysis", aoa: aoa, merges: merges, is_analysis: true };
+        return {
+          sheet_name: "Master_Analysis",
+          aoa: aoa,
+          merges: merges,
+          is_analysis: true,
+        };
       }
 
       function fallbackCopyTextToClipboard(text) {
@@ -3912,7 +4202,6 @@ function evaluateInvoiceAmountFormula(input) {
           },
         );
       }
-
       function showToast(msg) {
         let toast = document.getElementById("toastMsg");
         toast.innerText = msg;
@@ -4020,7 +4309,7 @@ function evaluateInvoiceAmountFormula(input) {
         }
 
         await ensureSpecialRules();
-        
+
         let monthQueries = [];
         let current = new Date(start);
         while (current <= end) {
@@ -4030,7 +4319,7 @@ function evaluateInvoiceAmountFormula(input) {
           current.setMonth(current.getMonth() + 1);
         }
 
-          let resultsArray = await fetchBatchReportDataAPI(monthQueries);
+        let resultsArray = await fetchBatchReportDataAPI(monthQueries);
         let combinedData = resultsArray.flat().filter(Boolean);
 
         masterData = combinedData;
@@ -4108,7 +4397,7 @@ function evaluateInvoiceAmountFormula(input) {
             "Failed to save Zoho status. Please check your connection.",
           );
         }
-      } 
+      }
 
       function closeSpecialPrompt() {
         document.getElementById("specialPrompt").style.display = "none";
@@ -4141,7 +4430,7 @@ function evaluateInvoiceAmountFormula(input) {
           .forEach((cb) => (cb.disabled = false));
 
         document
-         .querySelectorAll(
+          .querySelectorAll(
             ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell",
           )
           .forEach((td) => {
@@ -4180,7 +4469,6 @@ function evaluateInvoiceAmountFormula(input) {
           window.alert("Server Connection Error.");
         }
       }
-
       function lockSpecialEditMode() {
         isSpecialEditMode = false;
         document.getElementById("btnSpecialEditMode").innerHTML = "✏️";
@@ -4188,7 +4476,7 @@ function evaluateInvoiceAmountFormula(input) {
           .querySelectorAll(".clear-checkbox")
           .forEach((cb) => (cb.disabled = true));
         document
-         .querySelectorAll(
+          .querySelectorAll(
             ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell",
           )
           .forEach((td) => {
@@ -4233,8 +4521,7 @@ function evaluateInvoiceAmountFormula(input) {
             .replace(/,/g, "");
           nrVal = nrVal === "" ? null : parseFloat(nrVal);
           otVal = otVal === "" ? null : parseFloat(otVal);
-          driverOtVal =
-            driverOtVal === "" ? null : parseFloat(driverOtVal);
+          driverOtVal = driverOtVal === "" ? null : parseFloat(driverOtVal);
           driverAmountVal =
             driverAmountVal === "" ? null : parseFloat(driverAmountVal);
 
@@ -4262,7 +4549,7 @@ function evaluateInvoiceAmountFormula(input) {
           });
           const data = await res.json();
           if (data.success) {
-          showToast("✓ Special edits saved successfully!");
+            showToast("✓ Special edits saved successfully!");
             lockSpecialEditMode();
             if (isBatchViewActive) executeBatchView(true);
             else fetchAndRenderUI(true);
