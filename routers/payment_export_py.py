@@ -59,21 +59,22 @@ async def generate_excel(payload: ExportRequest):
 
             # 3. ഹെഡ്ഡർ നിറങ്ങൾ (Exact Colors)
             col_colors = [
-                "1E293B", "1E293B", "1E293B", "1E293B", "1E293B", "1E293B",
+                "1E293B", "1E293B", "1E293B", "1E293B", "1E293B",
+                "1E293B", "1E293B", "1E293B", "1E293B", "1E293B",
                 "166534", "166534", 
                 "1E40AF", "1E40AF", 
                 "6B21A8", "6B21A8", 
+                "A16207", "A16207",
                 "BE123C", "BE123C", "BE123C", "BE123C", "BE123C", 
                 "059669", "059669", "059669", "059669", "059669", 
                 "B91C1C", "B91C1C", 
                 "334155", "334155", "334155", "334155", "334155", "334155", "334155", 
-                "1E293B", "1E293B", "1E293B", "1E293B", 
                 "166534", "166534"  
             ]
             if sheet_data.is_analysis:
                 col_colors.insert(0, "0F2027")
 
-            max_cols = len(col_colors)
+            max_cols = max((len(row) for row in sheet_data.aoa), default=len(col_colors))
 
             # 4. ഹെഡ്ഡർ സ്റ്റൈൽ (Rows 1 & 2)
             ws.row_dimensions[1].height = 28
@@ -102,13 +103,13 @@ async def generate_excel(payload: ExportRequest):
                     cell.border = thin_border
                     cell.alignment = Alignment(horizontal="center", vertical="center")
 
-                    if c_idx in [7 + offset, 8 + offset]:
+                    if c_idx in [11 + offset, 12 + offset]:
                         cell.fill = fill_nr
-                    elif c_idx in [9 + offset, 10 + offset]:
+                    elif c_idx in [13 + offset, 14 + offset]:
                         cell.fill = fill_ot
-                    elif c_idx in [11 + offset, 12 + offset]:
+                    elif c_idx in [15 + offset, 16 + offset]:
                         cell.fill = fill_bill
-                    elif c_idx in [13 + offset, 14 + offset] and cell.value:
+                    elif c_idx in [17 + offset, 18 + offset] and cell.value:
                         cell.fill = fill_diff_black
                         cell.font = bold_data_font
 

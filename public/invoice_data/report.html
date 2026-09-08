@@ -416,8 +416,12 @@
         outline: none;
       }
       .edit-active:focus {
-        background-color: #fef08a !important;
+    background-color: #fef08a !important;
         border: 1px solid #ca8a04;
+      }
+      .edit-active.formula-error {
+        background-color: #fee2e2 !important;
+        border: 1px solid #dc2626;
       }
       tbody tr:hover {
         background-color: #f1f5f9;
@@ -2932,6 +2936,115 @@
           window.alert("Server Connection Error.");
         }
       }
+function evaluateInvoiceAmountFormula(input) {
+        let expression = input.trim().replace(/,/g, "");
+        if (expression.startsWith("=")) expression = expression.slice(1);
+
+        let position = 0;
+        const skipSpaces = () => {
+          while (/\s/.test(expression[position] || "")) position++;
+        };
+
+        const parsePrimary = () => {
+          skipSpaces();
+          if (expression[position] === "(") {
+            position++;
+            const value = parseExpression();
+            skipSpaces();
+            if (expression[position] !== ")") {
+              throw new Error("Missing closing bracket");
+            }
+            position++;
+            return value;
+          }
+
+          const match = expression
+            .slice(position)
+            .match(/^(?:\d+(?:\.\d*)?|\.\d+)/);
+          if (!match) throw new Error("Invalid number or operator");
+          position += match[0].length;
+          return Number(match[0]);
+        };
+
+        const parseFactor = () => {
+          skipSpaces();
+          if (expression[position] === "+" || expression[position] === "-") {
+            const sign = expression[position++];
+            const value = parseFactor();
+            return sign === "-" ? -value : value;
+          }
+
+          let value = parsePrimary();
+          skipSpaces();
+          while (expression[position] === "%") {
+            value /= 100;
+            position++;
+            skipSpaces();
+          }
+          return value;
+        };
+
+        const parseTerm = () => {
+          let value = parseFactor();
+          while (true) {
+            skipSpaces();
+            const operator = expression[position];
+            if (operator !== "*" && operator !== "/") break;
+            position++;
+            const operand = parseFactor();
+            if (operator === "/" && operand === 0) {
+              throw new Error("Cannot divide by zero");
+            }
+            value = operator === "*" ? value * operand : value / operand;
+          }
+          return value;
+        };
+
+        const parseExpression = () => {
+          let value = parseTerm();
+          while (true) {
+            skipSpaces();
+            const operator = expression[position];
+            if (operator !== "+" && operator !== "-") break;
+            position++;
+            const operand = parseTerm();
+            value = operator === "+" ? value + operand : value - operand;
+          }
+          return value;
+        };
+
+        if (!expression.trim()) throw new Error("Formula is empty");
+        const result = parseExpression();
+        skipSpaces();
+        if (position !== expression.length || !Number.isFinite(result)) {
+          throw new Error("Invalid formula");
+        }
+        return Number(result.toFixed(10));
+      }
+
+      function parseInvoiceAmountInput(input) {
+        const value = input.trim().replace(/,/g, "");
+        if (value === "") return null;
+        if (/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)) {
+          return Number(value);
+        }
+        return evaluateInvoiceAmountFormula(value);
+      }
+
+      function normalizeInvoiceAmountCell(cell) {
+        try {
+          const value = parseInvoiceAmountInput(cell.innerText);
+          if (value !== null) cell.innerText = String(value);
+          cell.classList.remove("formula-error");
+          cell.removeAttribute("title");
+          return { valid: true, value };
+        } catch (error) {
+          cell.classList.add("formula-error");
+          cell.title = error.message;
+          return { valid: false, value: null };
+        }
+      }
+
 
       function activateEditModeCells() {
         document.querySelectorAll(".editable-field").forEach((td) => {
@@ -2940,6 +3053,18 @@
           td.addEventListener("input", function () {
             this.closest("tr").classList.add("row-edited");
           });
+          if (td.dataset.field === "inv_amount" && !td.dataset.formulaEnabled) {
+            td.dataset.formulaEnabled = "true";
+            td.addEventListener("blur", function () {
+              normalizeInvoiceAmountCell(this);
+            });
+            td.addEventListener("keydown", function (event) {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                this.blur();
+              }
+            });
+          }
         });
       }
 
@@ -2979,6 +3104,7 @@
 
       async function saveInlineEdits() {
         let updates = [];
+        let hasInvalidFormula = false;
         const rows = document.querySelectorAll("#reportBody tr.row-edited");
         if (rows.length === 0) {
           window.alert("No changes detected to save!");
@@ -3008,13 +3134,10 @@
           let inv_ot =
             inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
 
-          let inv_amt_text = tr
-            .querySelector('[data-field="inv_amount"]')
-            .innerText.trim()
-            .replace(/,/g, "");
-          let parsed_amt = parseFloat(inv_amt_text);
-          let inv_amount =
-            inv_amt_text === "" ? null : isNaN(parsed_amt) ? null : parsed_amt;
+         const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
+          const parsedAmount = normalizeInvoiceAmountCell(invAmountCell);
+          if (!parsedAmount.valid) hasInvalidFormula = true;
+          const inv_amount = parsedAmount.value;
 
           let inv_no = tr
             .querySelector('[data-field="inv_no"]')
@@ -3631,7 +3754,7 @@
       function createSheetFromData(dataArray) {
         let aoa = [
           [
-            "VEHICLE INFO", "", "", "", "", "",
+           "VEHICLE INFO", "", "", "", "", "", "", "", "", "",
             "Logsheet Collected", "",
             "Bill Summary", "",
             "To Supplier", "",
@@ -3640,19 +3763,18 @@
             "AMOUNT", "", "", "", "",
             "INVOICE", "",
             "EXTRA DETAILS", "", "", "", "", "", "",
-            "GENERAL VEHICLE INFO", "", "", "",
-            "31 Considered as NR", "" // 🟢 കൃത്യമായ ഹെഡ്ഡർ പേര്
+            "31 Considered as NR", ""
           ],
           [
-            "Date", "Site", "Rate", "VAT", "Owner Name", "Plate No",
+            "Date", "Site", "Rate", "VAT", "Owner Name",
+            "Driver Name", "Field Co", "Site Co", "Vehicle Type", "Plate No",
             "NR", "OT", "NR", "OT", "NR", "OT",
             "OT", "AMT",
             "NR", "OT", "IDN", "Clear", "V.Bill Notes",
             "NR Rate", "OT Rate", "Rent", "VAT", "Total",
             "Subtotal", "Total",
             "Invoice No", "Bill No", "V.Bill Notes", "PWAS", "ERP", "Payment Status", "Accounts Note",
-            "Driver Name", "Vehicle Type", "Field Co", "Site Co",
-            "NR", "OT" // 🟢 ALT ഒഴിവാക്കി കൃത്യമായി NR, OT എന്ന് നൽകി
+             "NR", "OT"
           ],
         ];
 
@@ -3660,7 +3782,8 @@
           aoa.push([
             r.report_date, r.site, cleanExportRate(r.rate),
             r.vat.toLowerCase().includes("yes") ? "Yes" : "",
-            r.owner, r.plate, r.ts_nr, r.ts_ot,
+            r.owner, r.driver_name, r.field_co, r.site_co, r.vehicle_type, r.plate,
+            r.ts_nr, r.ts_ot,
             r.inv_nr || "", r.inv_ot || "",
             r.bill_db_nr || "", r.bill_db_ot || "",
             r.driver_ot || "", r.driver_amount || "",
@@ -3670,23 +3793,21 @@
             r.inv_subtotal || "", r.inv_total || "",
             r.inv_no, r.bill_no, r.vbill_notes || "-", r.pwas || "-", r.erp || "-",
             r.payment_status || "-", r.accounts_note || "-",
-            r.driver_name, r.vehicle_type, r.field_co, r.site_co,
             r.alt_nr, r.alt_ot > 0 ? r.alt_ot : "",
           ]);
         });
  
-        // 🟢 കൃത്യമായ Merges (Total 39 columns: 0 to 38)
+        // Total 39 columns (0 to 38).
         let merges = [
-          { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },   // VEHICLE INFO (0..5)
-          { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },   // TS (6..7)
-          { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },   // INV (8..9)
-          { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, // BILL (10..11)
-           { s: { r: 0, c: 12 }, e: { r: 0, c: 13 } }, // DRIVER (12..13)
-          { s: { r: 0, c: 14 }, e: { r: 0, c: 18 } }, // DIFF (14..18)
-          { s: { r: 0, c: 19 }, e: { r: 0, c: 23 } }, // AMT (19..23)
-          { s: { r: 0, c: 24 }, e: { r: 0, c: 25 } }, // INV RED (24..25)
-          { s: { r: 0, c: 26 }, e: { r: 0, c: 32 } }, // EXTRA DETAILS (26..32)
-          { s: { r: 0, c: 33 }, e: { r: 0, c: 36 } }, // GENERAL VEHICLE INFO (33..36)
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },   // VEHICLE INFO (0..9)
+          { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, // TS (10..11)
+          { s: { r: 0, c: 12 }, e: { r: 0, c: 13 } }, // INV (12..13)
+          { s: { r: 0, c: 14 }, e: { r: 0, c: 15 } }, // BILL (14..15)
+          { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }, // DRIVER (16..17)
+          { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFF (18..22)
+          { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMT (23..27)
+          { s: { r: 0, c: 28 }, e: { r: 0, c: 29 } }, // INV RED (28..29)
+          { s: { r: 0, c: 30 }, e: { r: 0, c: 36 } }, // EXTRA DETAILS (30..36)
           { s: { r: 0, c: 37 }, e: { r: 0, c: 38 } }, // 31 Considered as NR (37..38)
         ];
 
@@ -3697,7 +3818,7 @@
         let aoa = [
           [
             "REPORT MONTH",
-            "VEHICLE INFO", "", "", "", "", "",
+              "VEHICLE INFO", "", "", "", "", "", "", "", "", "",
             "Logsheet Collected", "",
             "Bill Summary", "",
             "To Supplier", "",
@@ -3706,29 +3827,29 @@
             "AMOUNT", "", "", "", "",
             "INVOICE", "",
             "EXTRA DETAILS", "", "", "", "", "", "",
-            "GENERAL VEHICLE INFO", "", "", "",
-            "31 Considered as NR", "" // 🟢 കൃത്യമായ ഹെഡ്ഡർ പേര്
+            "31 Considered as NR", ""
           ],
           [
             "Month",
-            "Site", "Rate", "VAT", "Owner Name", "Plate No",
+            "Date", "Site", "Rate", "VAT", "Owner Name",
+            "Driver Name", "Field Co", "Site Co", "Vehicle Type", "Plate No",
             "NR", "OT", "NR", "OT", "NR", "OT",
             "OT", "AMT",
             "NR", "OT", "IDN", "Clear", "V.Bill Notes",
             "NR Rate", "OT Rate", "Rent", "VAT", "Total",
             "Subtotal", "Total",
             "Invoice No", "Bill No", "V.Bill Notes", "PWAS", "ERP", "Payment Status", "Accounts Note",
-            "Driver Name", "Vehicle Type", "Field Co", "Site Co",
-            "NR", "OT" // 🟢 ALT ഒഴിവാക്കി കൃത്യമായി NR, OT എന്ന് നൽകി
+            "NR", "OT"
           ],
         ];
 
         dataArray.forEach((r) => {
           aoa.push([
             r.report_month,
-            r.site, cleanExportRate(r.rate),
+            r.report_date, r.site, cleanExportRate(r.rate),
             r.vat.toLowerCase().includes("yes") ? "Yes" : "",
-            r.owner, r.plate, r.ts_nr, r.ts_ot,
+            r.owner, r.driver_name, r.field_co, r.site_co, r.vehicle_type, r.plate,
+            r.ts_nr, r.ts_ot,
             r.inv_nr || "", r.inv_ot || "",
             r.bill_db_nr || "", r.bill_db_ot || "",
             r.driver_ot || "", r.driver_amount || "",
@@ -3738,23 +3859,21 @@
             r.inv_subtotal || "", r.inv_total || "",
             r.inv_no, r.bill_no, r.vbill_notes || "-", r.pwas || "-", r.erp || "-",
             r.payment_status || "-", r.accounts_note || "-",
-            r.driver_name, r.vehicle_type, r.field_co, r.site_co,
             r.alt_nr, r.alt_ot > 0 ? r.alt_ot : "",
           ]);
         });
 
-        // 🟢 Merges shifted by +1 because of "REPORT MONTH" column (Total 40 columns: 0 to 39)
+         // Merges shifted by +1 because of "REPORT MONTH" (40 columns: 0 to 39).
         let merges = [
-          { s: { r: 0, c: 1 }, e: { r: 0, c: 6 } },   // Vehicle Info (1..6)
-          { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },   // TS (7..8)
-          { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } },  // INV (9..10)
-          { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // BILL (11..12)
-         { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } }, // DRIVER (13..14)
-          { s: { r: 0, c: 15 }, e: { r: 0, c: 19 } }, // DIFF (15..19)
-          { s: { r: 0, c: 20 }, e: { r: 0, c: 24 } }, // AMT (20..24)
-          { s: { r: 0, c: 25 }, e: { r: 0, c: 26 } }, // INV RED (25..26)
-          { s: { r: 0, c: 27 }, e: { r: 0, c: 33 } }, // EXTRA (27..33)
-          { s: { r: 0, c: 34 }, e: { r: 0, c: 37 } }, // GEN (34..37)
+          { s: { r: 0, c: 1 }, e: { r: 0, c: 10 } },  // Vehicle Info (1..10)
+          { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // TS (11..12)
+          { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } }, // INV (13..14)
+          { s: { r: 0, c: 15 }, e: { r: 0, c: 16 } }, // BILL (15..16)
+          { s: { r: 0, c: 17 }, e: { r: 0, c: 18 } }, // DRIVER (17..18)
+          { s: { r: 0, c: 19 }, e: { r: 0, c: 23 } }, // DIFF (19..23)
+          { s: { r: 0, c: 24 }, e: { r: 0, c: 28 } }, // AMT (24..28)
+          { s: { r: 0, c: 29 }, e: { r: 0, c: 30 } }, // INV RED (29..30)
+          { s: { r: 0, c: 31 }, e: { r: 0, c: 37 } }, // EXTRA (31..37)
           { s: { r: 0, c: 38 }, e: { r: 0, c: 39 } }, // 31 Considered as NR (38..39)
         ];
 
