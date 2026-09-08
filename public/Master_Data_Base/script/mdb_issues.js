@@ -305,7 +305,7 @@ function buildMobileOwnerConflicts(groups) {
     });
     const distinctOwners = new Set(eligible.map((record) => normalizeName(record.owner)));
     if (distinctOwners.size < 2) return;
-
+ 
     eligible.forEach((record) => {
       const ownerKey = normalizeName(record.owner);
       if (!ownerGroups.has(ownerKey)) {
@@ -321,7 +321,7 @@ function buildMobileOwnerConflicts(groups) {
     }))
     .sort((a, b) => normalizeName(a.owner).localeCompare(normalizeName(b.owner)));
 }
-
+ 
 function getOpenOwnerIssueCount(issues) {
   return issues.byPlate.filter((row) => !row.cleared).length + issues.byMobile.length;
 }
@@ -466,7 +466,7 @@ function renderOwnerIssues(issues) {
     label: `Mobile ${index + 1}`,
     value: (row) => row.mobiles[index] || "",
   }));
-
+ 
   document.getElementById("plateOwnerTable").innerHTML = tableCardMarkup({
     id: "plate-owner-issues",
     title: "Same Plate · Different Owner",
@@ -499,7 +499,7 @@ function renderOwnerIssues(issues) {
     ],
     rows: issues.byMobile,
   });
-
+ 
   applyTableExcelFilters("plate-owner-issues");
   applyTableExcelFilters("mobile-owner-issues");
 }
@@ -677,6 +677,7 @@ function tableCardMarkup({ id, title, subtitle, columns, rows, rowClass = () => 
             <p>${escapeHtml(subtitle)}</p>
           </div>
           <div class="export-actions" data-html2canvas-ignore="true">
+            <button class="excel-export-button" type="button" onclick="downloadIssueTableExcel('${escapeAttribute(id)}')" title="Export visible rows to themed Excel">📊</button>
             <button class="copy-button" type="button" onclick="copyIssueTable('${escapeAttribute(id)}')" title="Copy table as HQ PNG">📋</button>
             <button class="pdf-button" type="button" onclick="downloadIssueTablePdf('${escapeAttribute(id)}')" title="Download print-ready A4 PDF">📄</button>
           </div>
@@ -693,13 +694,13 @@ function tableCardMarkup({ id, title, subtitle, columns, rows, rowClass = () => 
     </article>
   `;
 }
-
+ 
 function relationText(gap) {
   if (gap < 0) return `Overlap ${Math.abs(gap)} days`;
   if (gap === 0) return "Same day";
   return `Starts after ${gap} days`;
 }
-
+ 
  
 function relationBadge(gap) {
   const className = gap < 0 ? "overlap" : gap === 0 ? "same-day" : "after-end";
@@ -806,7 +807,7 @@ function applyTableExcelFilters(tableId) {
     });
     rows.forEach((row) => body.appendChild(row));
   }
-
+ 
   let visibleCount = 0;
   rows.forEach((row) => {
     row.style.display = filters.every((filter) => filter.selected.has(row.cells[filter.column]?.dataset.filterValue || "")) ? "" : "none";
@@ -857,12 +858,12 @@ async function saveWorkStartReview(recordId, cleared, remark) {
     setLoading(false);
   }
 }
-
+ 
 async function savePlateOwnerReview(recordId, cleared, remark) {
   if (issueUser.role === "Viewer") return;
   const record = issueRecords.find((item) => item.id === recordId);
   if (!record) return;
-
+ 
   setLoading(true);
   try {
     const response = await fetch("/api/mdb-issues/review", {
@@ -892,7 +893,7 @@ async function savePlateOwnerReview(recordId, cleared, remark) {
     setLoading(false);
   }
 } 
-
+ 
 async function copyIssueTable(tableId) {
   const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
   if (!card || typeof html2canvas !== "function") {
@@ -956,6 +957,132 @@ async function copyIssueTable(tableId) {
     copyArea.remove();
     setLoading(false);
   }
+}
+ 
+async function downloadIssueTableExcel(tableId) {
+  const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
+  if (!card || typeof ExcelJS === "undefined" || typeof saveAs !== "function") {
+    showToast("Excel export library is unavailable.", true);
+    return;
+  }
+ 
+  const table = card.querySelector("table");
+  const headers = [...table.querySelectorAll("thead th")].map((cell) =>
+    cell.querySelector(".table-header-content > span")?.innerText.trim() || cell.innerText.trim(),
+  );
+  const rowElements = [...table.querySelectorAll("tbody .data-row")]
+    .filter((row) => row.style.display !== "none");
+  if (rowElements.length === 0) {
+    showToast("No visible rows to export.", true);
+    return;
+  }
+ 
+  const title = card.querySelector("h2")?.childNodes[0]?.textContent.trim() || "MDB Issues";
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Haka ERP";
+  workbook.created = new Date();
+  const worksheet = workbook.addWorksheet(getExcelSheetName(title), {
+    views: [{ state: "frozen", ySplit: 2, xSplit: 0 }],
+  });
+  const border = {
+    top: { style: "thin", color: { argb: "FFD7E0EA" } },
+    left: { style: "thin", color: { argb: "FFD7E0EA" } },
+    bottom: { style: "thin", color: { argb: "FFD7E0EA" } },
+    right: { style: "thin", color: { argb: "FFD7E0EA" } },
+  };
+ 
+  worksheet.mergeCells(1, 1, 1, headers.length);
+  const titleCell = worksheet.getCell("A1");
+  titleCell.value = title;
+  titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F2942" } };
+  titleCell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 14 };
+  titleCell.alignment = { horizontal: "left", vertical: "middle" };
+  worksheet.getRow(1).height = 25;
+ 
+  const headerRow = worksheet.addRow(headers);
+  headerRow.height = 24;
+  headerRow.eachCell((cell) => {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1A4D80" } };
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    cell.border = border;
+  });
+ 
+  const exportedRows = rowElements.map((row) => [...row.cells].map((cell) => ({
+    value: cell.dataset.filterValue || cell.innerText.trim(),
+    className: [cell.className, ...[...cell.querySelectorAll("[class]")].map((element) => element.className)].join(" "),
+  })));
+  exportedRows.forEach((cells, index) => {
+    const excelRow = worksheet.addRow(cells.map((cell) => cell.value));
+    const isCleared = rowElements[index].classList.contains("review-cleared");
+    excelRow.eachCell((cell, columnIndex) => {
+      const sourceCell = cells[columnIndex - 1];
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+      cell.border = border;
+      const theme = getExcelExportCellTheme(sourceCell.className, isCleared);
+      if (theme) Object.assign(cell, theme);
+    });
+  });
+ 
+  worksheet.autoFilter = { from: { row: 2, column: 1 }, to: { row: 2, column: headers.length } };
+  headers.forEach((header, index) => {
+    const longestValue = Math.max(
+      header.length,
+      ...exportedRows.map((row) => String(row[index]?.value || "").length),
+    );
+    worksheet.getColumn(index + 1).width = Math.min(36, Math.max(12, longestValue + 2));
+  });
+ 
+  setLoading(true);
+  try {
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(blob, `${getExcelFileName(title)}.xlsx`);
+    showToast(`Exported ${exportedRows.length} visible row${exportedRows.length === 1 ? "" : "s"} to Excel.`);
+  } catch (error) {
+    showToast(error.message || "Unable to create Excel export.", true);
+  } finally {
+    setLoading(false);
+  }
+}
+ 
+function getExcelSheetName(title) {
+  return String(title || "MDB Issues").replace(/[\\\\/*?:\[\]]/g, " ").trim().substring(0, 31) || "MDB Issues";
+}
+ 
+function getExcelFileName(title) {
+  return String(title || "MDB_Issues").replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g, "") || "MDB_Issues";
+}
+ 
+function getExcelExportCellTheme(className, isCleared) {
+  const classes = String(className || "");
+  if (/(expiry-expired-cell|gap-negative|expired|overlap)/.test(classes)) {
+    return {
+      fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFE4E6" } },
+      font: { bold: true, color: { argb: "FF9F1239" } },
+    };
+  }
+  if (/(expiry-future-cell|gap-positive|future)/.test(classes)) {
+    return {
+      fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEF3C7" } },
+      font: { bold: true, color: { argb: "FF92400E" } },
+    };
+  }
+  if (/same-day/.test(classes)) {
+    return {
+      fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFE0F2FE" } },
+      font: { bold: true, color: { argb: "FF075985" } },
+    };
+  }
+  if (/after-end/.test(classes) || isCleared) {
+    return {
+      fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCFCE7" } },
+      font: { color: { argb: "FF14532D" } },
+    };
+  }
+  return null;
 }
  
 function downloadIssueTablePdf(tableId) {
