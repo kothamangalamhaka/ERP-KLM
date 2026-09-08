@@ -307,6 +307,13 @@
       .th-bill:hover {
         background-color: #7e22ce;
       }
+      .th-driver {
+        background-color: #a16207;
+        color: white;
+      }
+      .th-driver:hover {
+        background-color: #854d0e;
+      }
       .th-amt {
         background-color: #059669;
         color: white;
@@ -351,6 +358,11 @@
       .col-bill {
         background-color: rgba(107, 33, 168, 0.03);
         font-weight: 600;
+      }
+      .col-driver-billing {
+        background-color: rgba(161, 98, 7, 0.04);
+        font-weight: 600;
+        color: #854d0e;
       }
       .col-amt {
         background-color: rgba(5, 150, 105, 0.03);
@@ -1040,6 +1052,8 @@
               <col class="col-grp-inv" style="width: 60px" />
               <col class="col-grp-bill" style="width: 60px" />
               <col class="col-grp-bill" style="width: 60px" />
+              <col class="col-grp-driver" style="width: 60px" />
+              <col class="col-grp-driver" style="width: 80px" />
               <col class="col-grp-diff" style="width: 60px" />
               <col class="col-grp-diff" style="width: 60px" />
               <col class="col-grp-diff" style="width: 70px" />
@@ -1070,6 +1084,7 @@
                 <th colspan="2" class="th-ts">Logsheet Collected</th>
                 <th colspan="2" class="th-inv">Bill Summary</th>
                 <th colspan="2" class="th-bill">Supplier</th>
+                <th colspan="2" class="th-driver">For Driver</th>
                 <th colspan="5" class="th-diff">DIFFERENCE</th>
                 <th colspan="5" class="th-amt">AMOUNT</th>
                 <th colspan="2" class="th-inv-red">INVOICE</th>
@@ -1184,6 +1199,23 @@
                 >
                   OT <span class="filter-icon" data-key="bill_db_ot">▼</span>
                 </th>
+
+                <th
+                  class="th-driver"
+                  data-col-key="driver_ot"
+                  onclick="openExcelFilterMenu(event, 'driver_ot')"
+                >
+                  OT <span class="filter-icon" data-key="driver_ot">▼</span>
+                </th>
+                <th
+                  class="th-driver"
+                  data-col-key="driver_amount"
+                  onclick="openExcelFilterMenu(event, 'driver_amount')"
+                >
+                  AMT
+                  <span class="filter-icon" data-key="driver_amount">▼</span>
+                </th>
+
 
                 <th
                   class="th-diff"
@@ -1345,7 +1377,7 @@
             </thead>
             <tbody id="reportBody">
               <tr>
-                <td colspan="36" style="padding: 30px; color: #64748b">
+                <td colspan="38" style="padding: 30px; color: #64748b">
                   Click "Load Data" to fetch reports.
                 </td>
               </tr>
@@ -2350,6 +2382,10 @@
 
             let bill_db_nr = billData ? parseFloat(billData.nhr) || 0 : 0;
             let bill_db_ot = billData ? parseFloat(billData.othr) || 0 : 0;
+            let driver_ot = billData ? parseFloat(billData.driver_ot) || 0 : 0;
+            let driver_amount = billData
+              ? parseFloat(billData.driver_amount) || 0
+              : 0;
             let bill_nrate = billData ? parseFloat(billData.nrate) || 0 : 0;
             let bill_otrate = billData ? parseFloat(billData.otrate) || 0 : 0;
             let bill_rent = billData ? parseFloat(billData.rent) || 0 : 0;
@@ -2507,6 +2543,9 @@
               inv_ot: calc_inv_ot > 0 ? calc_inv_ot.toString() : "",
               bill_db_nr: bill_db_nr > 0 ? bill_db_nr.toString() : "",
               bill_db_ot: bill_db_ot > 0 ? bill_db_ot.toString() : "",
+              driver_ot: driver_ot > 0 ? driver_ot.toString() : "",
+              driver_amount:
+                driver_amount !== 0 ? driver_amount.toFixed(2) : "",
               bill_nrate:
                 bill_nrate > 0 ? parseFloat(bill_nrate).toFixed(2) : "",
               bill_otrate:
@@ -2768,7 +2807,7 @@
         tbody.innerHTML = "";
         if (data.length === 0) {
           tbody.innerHTML =
-            '<tr><td colspan="32" style="padding: 20px;">No data found.</td></tr>';
+           '<tr><td colspan="38" style="padding: 20px;">No data found.</td></tr>';
           return;
         }
          const fragment = document.createDocumentFragment();
@@ -2793,6 +2832,8 @@
             <td class="col-inv editable-field" data-field="inv_ot">${row.inv_ot}</td>
             <td class="col-bill bill-nr-cell" style="color:#6b21a8; font-weight:500;">${row.bill_db_nr}</td>
             <td class="col-bill bill-ot-cell" style="color:#6b21a8; font-weight:500;">${row.bill_db_ot}</td>
+            <td class="col-driver-billing driver-ot-cell">${row.driver_ot}</td>
+            <td class="col-driver-billing driver-amount-cell">${row.driver_amount}</td>
             <td class="col-diff">${row.diff_nr}</td><td class="col-diff">${row.diff_ot}</td><td class="col-diff" style="font-weight: bold;">${row.diff_st}</td>
             <td class="col-diff" style="text-align: center;">
               <input type="checkbox" class="clear-checkbox" ${row.diff_clear === "Yes" ? "checked" : ""} ${isSpecialEditMode ? "" : "disabled"} onchange="toggleDiffClear(this, '${row.plate}', '${row.site}', '${row.raw_month}', '${row.raw_year}')" style="cursor:pointer;" />
@@ -3554,6 +3595,7 @@
           ts: "166534",
           inv: "1E40AF",
           bill: "6B21A8",
+          driver: "A16207",
           amt: "059669",
           diff: "BE123C",
           extra: "334155",
@@ -3568,12 +3610,13 @@
         for (let i = 6; i <= 7; i++) m[i + offset] = COL.ts;
         for (let i = 8; i <= 9; i++) m[i + offset] = COL.inv;
         for (let i = 10; i <= 11; i++) m[i + offset] = COL.bill;
-        for (let i = 12; i <= 16; i++) m[i + offset] = COL.diff;
-        for (let i = 17; i <= 21; i++) m[i + offset] = COL.amt;
-        for (let i = 22; i <= 23; i++) m[i + offset] = "B91C1C";
-        for (let i = 24; i <= 30; i++) m[i + offset] = COL.extra; // 🟢 7 Extra Columns (24..30)
-        for (let i = 31; i <= 34; i++) m[i + offset] = COL.vehicle; // 🟢 4 Gen Columns (31..34)
-        for (let i = 35; i <= 36; i++) m[i + offset] = COL.ts; // 🟢 2 '31st as NR' Columns (35..36)
+       for (let i = 12; i <= 13; i++) m[i + offset] = COL.driver;
+        for (let i = 14; i <= 18; i++) m[i + offset] = COL.diff;
+        for (let i = 19; i <= 23; i++) m[i + offset] = COL.amt;
+        for (let i = 24; i <= 25; i++) m[i + offset] = "B91C1C";
+        for (let i = 26; i <= 32; i++) m[i + offset] = COL.extra;
+        for (let i = 33; i <= 36; i++) m[i + offset] = COL.vehicle;
+        for (let i = 37; i <= 38; i++) m[i + offset] = COL.ts;
         return m;
       }
 
@@ -3592,6 +3635,7 @@
             "Logsheet Collected", "",
             "Bill Summary", "",
             "To Supplier", "",
+            "For Driver", "",
             "DIFFERENCE", "", "", "", "",
             "AMOUNT", "", "", "", "",
             "INVOICE", "",
@@ -3602,6 +3646,7 @@
           [
             "Date", "Site", "Rate", "VAT", "Owner Name", "Plate No",
             "NR", "OT", "NR", "OT", "NR", "OT",
+            "OT", "AMT",
             "NR", "OT", "IDN", "Clear", "V.Bill Notes",
             "NR Rate", "OT Rate", "Rent", "VAT", "Total",
             "Subtotal", "Total",
@@ -3618,6 +3663,7 @@
             r.owner, r.plate, r.ts_nr, r.ts_ot,
             r.inv_nr || "", r.inv_ot || "",
             r.bill_db_nr || "", r.bill_db_ot || "",
+            r.driver_ot || "", r.driver_amount || "",
             r.diff_nr, r.diff_ot, r.diff_st, r.diff_clear, r.vbill_notes || "-",
             r.bill_nrate || "", r.bill_otrate || "", r.bill_rent || "",
             r.rent_vat || "", r.rent_total || "",
@@ -3629,18 +3675,19 @@
           ]);
         });
  
-        // 🟢 കൃത്യമായ Merges (Total 37 columns: 0 to 36)
+        // 🟢 കൃത്യമായ Merges (Total 39 columns: 0 to 38)
         let merges = [
           { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },   // VEHICLE INFO (0..5)
           { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },   // TS (6..7)
           { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } },   // INV (8..9)
           { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, // BILL (10..11)
-          { s: { r: 0, c: 12 }, e: { r: 0, c: 16 } }, // DIFF (12..16)
-          { s: { r: 0, c: 17 }, e: { r: 0, c: 21 } }, // AMT (17..21)
-          { s: { r: 0, c: 22 }, e: { r: 0, c: 23 } }, // INV RED (22..23)
-          { s: { r: 0, c: 24 }, e: { r: 0, c: 30 } }, // EXTRA DETAILS (24..30)
-          { s: { r: 0, c: 31 }, e: { r: 0, c: 34 } }, // GENERAL VEHICLE INFO (31..34)
-          { s: { r: 0, c: 35 }, e: { r: 0, c: 36 } }, // 31 Considered as NR (35..36)
+           { s: { r: 0, c: 12 }, e: { r: 0, c: 13 } }, // DRIVER (12..13)
+          { s: { r: 0, c: 14 }, e: { r: 0, c: 18 } }, // DIFF (14..18)
+          { s: { r: 0, c: 19 }, e: { r: 0, c: 23 } }, // AMT (19..23)
+          { s: { r: 0, c: 24 }, e: { r: 0, c: 25 } }, // INV RED (24..25)
+          { s: { r: 0, c: 26 }, e: { r: 0, c: 32 } }, // EXTRA DETAILS (26..32)
+          { s: { r: 0, c: 33 }, e: { r: 0, c: 36 } }, // GENERAL VEHICLE INFO (33..36)
+          { s: { r: 0, c: 37 }, e: { r: 0, c: 38 } }, // 31 Considered as NR (37..38)
         ];
 
         return { sheet_name: "Report", aoa: aoa, merges: merges, is_analysis: false };
@@ -3654,6 +3701,7 @@
             "Logsheet Collected", "",
             "Bill Summary", "",
             "To Supplier", "",
+            "For Driver", "",
             "DIFFERENCE", "", "", "", "",
             "AMOUNT", "", "", "", "",
             "INVOICE", "",
@@ -3665,6 +3713,7 @@
             "Month",
             "Site", "Rate", "VAT", "Owner Name", "Plate No",
             "NR", "OT", "NR", "OT", "NR", "OT",
+            "OT", "AMT",
             "NR", "OT", "IDN", "Clear", "V.Bill Notes",
             "NR Rate", "OT Rate", "Rent", "VAT", "Total",
             "Subtotal", "Total",
@@ -3682,6 +3731,7 @@
             r.owner, r.plate, r.ts_nr, r.ts_ot,
             r.inv_nr || "", r.inv_ot || "",
             r.bill_db_nr || "", r.bill_db_ot || "",
+            r.driver_ot || "", r.driver_amount || "",
             r.diff_nr, r.diff_ot, r.diff_st, r.diff_clear, r.vbill_notes || "-",
             r.bill_nrate || "", r.bill_otrate || "", r.bill_rent || "",
             r.rent_vat || "", r.rent_total || "",
@@ -3693,18 +3743,19 @@
           ]);
         });
 
-        // 🟢 Merges shifted by +1 because of "REPORT MONTH" column (Total 38 columns: 0 to 37)
+        // 🟢 Merges shifted by +1 because of "REPORT MONTH" column (Total 40 columns: 0 to 39)
         let merges = [
           { s: { r: 0, c: 1 }, e: { r: 0, c: 6 } },   // Vehicle Info (1..6)
           { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },   // TS (7..8)
           { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } },  // INV (9..10)
           { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // BILL (11..12)
-          { s: { r: 0, c: 13 }, e: { r: 0, c: 17 } }, // DIFF (13..17)
-          { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // AMT (18..22)
-          { s: { r: 0, c: 23 }, e: { r: 0, c: 24 } }, // INV RED (23..24)
-          { s: { r: 0, c: 25 }, e: { r: 0, c: 31 } }, // EXTRA (25..31)
-          { s: { r: 0, c: 32 }, e: { r: 0, c: 35 } }, // GEN (32..35)
-          { s: { r: 0, c: 36 }, e: { r: 0, c: 37 } }, // 31 Considered as NR (36..37)
+         { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } }, // DRIVER (13..14)
+          { s: { r: 0, c: 15 }, e: { r: 0, c: 19 } }, // DIFF (15..19)
+          { s: { r: 0, c: 20 }, e: { r: 0, c: 24 } }, // AMT (20..24)
+          { s: { r: 0, c: 25 }, e: { r: 0, c: 26 } }, // INV RED (25..26)
+          { s: { r: 0, c: 27 }, e: { r: 0, c: 33 } }, // EXTRA (27..33)
+          { s: { r: 0, c: 34 }, e: { r: 0, c: 37 } }, // GEN (34..37)
+          { s: { r: 0, c: 38 }, e: { r: 0, c: 39 } }, // 31 Considered as NR (38..39)
         ];
 
         return { sheet_name: "Master_Analysis", aoa: aoa, merges: merges, is_analysis: true };
@@ -3938,7 +3989,7 @@
             "Failed to save Zoho status. Please check your connection.",
           );
         }
-      }
+      } 
 
       function closeSpecialPrompt() {
         document.getElementById("specialPrompt").style.display = "none";
@@ -3971,7 +4022,9 @@
           .forEach((cb) => (cb.disabled = false));
 
         document
-          .querySelectorAll(".vbill-cell, .bill-nr-cell, .bill-ot-cell")
+         .querySelectorAll(
+            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell",
+          )
           .forEach((td) => {
             td.setAttribute("contenteditable", "true");
             td.classList.add("edit-active");
@@ -4016,7 +4069,9 @@
           .querySelectorAll(".clear-checkbox")
           .forEach((cb) => (cb.disabled = true));
         document
-          .querySelectorAll(".vbill-cell, .bill-nr-cell, .bill-ot-cell")
+         .querySelectorAll(
+            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell",
+          )
           .forEach((td) => {
             td.removeAttribute("contenteditable");
             td.classList.remove("edit-active");
@@ -4044,6 +4099,8 @@
           let vbillTd = tr.querySelector(".vbill-cell");
           let billNrTd = tr.querySelector(".bill-nr-cell");
           let billOtTd = tr.querySelector(".bill-ot-cell");
+          let driverOtTd = tr.querySelector(".driver-ot-cell");
+          let driverAmountTd = tr.querySelector(".driver-amount-cell");
 
           let newNote = vbillTd.innerText.trim();
           if (newNote === "") newNote = "-";
@@ -4051,8 +4108,16 @@
           // NR, OT നമ്പറുകൾ കറക്റ്റ് ആയി എടുക്കാൻ
           let nrVal = billNrTd.innerText.trim().replace(/,/g, "");
           let otVal = billOtTd.innerText.trim().replace(/,/g, "");
+          let driverOtVal = driverOtTd.innerText.trim().replace(/,/g, "");
+          let driverAmountVal = driverAmountTd.innerText
+            .trim()
+            .replace(/,/g, "");
           nrVal = nrVal === "" ? null : parseFloat(nrVal);
           otVal = otVal === "" ? null : parseFloat(otVal);
+          driverOtVal =
+            driverOtVal === "" ? null : parseFloat(driverOtVal);
+          driverAmountVal =
+            driverAmountVal === "" ? null : parseFloat(driverAmountVal);
 
           updates.push({
             plate_no: vbillTd.dataset.plate,
@@ -4061,6 +4126,8 @@
             remark: newNote,
             bill_nr: isNaN(nrVal) ? null : nrVal,
             bill_ot: isNaN(otVal) ? null : otVal,
+            driver_ot: isNaN(driverOtVal) ? null : driverOtVal,
+            driver_amount: isNaN(driverAmountVal) ? null : driverAmountVal,
           });
         });
 
@@ -4076,7 +4143,7 @@
           });
           const data = await res.json();
           if (data.success) {
-            window.alert("V.Bill Notes Saved Successfully!");
+           window.alert("Special edits saved successfully!");
             lockSpecialEditMode();
             if (isBatchViewActive) executeBatchView(true);
             else fetchAndRenderUI(true);

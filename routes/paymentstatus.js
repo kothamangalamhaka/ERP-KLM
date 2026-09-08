@@ -305,7 +305,7 @@ router.post("/save-accounts-note", async (req, res) => {
   }
 });
 
-// 🟢 Save Bulk Special Edits (V.Bill Notes, Supplier NR & OT) - Safe Logic
+// 🟢 Save Bulk Special Edits (V.Bill Notes, Supplier and Driver values)
 router.post("/save-bulk-vbill-notes", async (req, res) => {
   let client;
   try {
@@ -324,13 +324,35 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
 
       if (checkBill.rows.length > 0) {
         await client.query(
-          "UPDATE billing_records SET remark=$1, nhr=$5, othr=$6 WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4",
-          [row.remark, row.plate_no, row.month, row.site_name, row.bill_nr, row.bill_ot]
+         `UPDATE billing_records
+           SET remark=$1, nhr=$5, othr=$6, driver_ot=$7, driver_amount=$8
+           WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4`,
+          [
+            row.remark,
+            row.plate_no,
+            row.month,
+            row.site_name,
+            row.bill_nr,
+            row.bill_ot,
+            row.driver_ot,
+            row.driver_amount,
+          ]
         );
       } else {
         await client.query(
-          "INSERT INTO billing_records (plate_no, billing_month, site_name, remark, nhr, othr) VALUES ($1, $2, $3, $4, $5, $6)",
-          [row.plate_no, row.month, row.site_name, row.remark, row.bill_nr, row.bill_ot]
+           `INSERT INTO billing_records
+           (plate_no, billing_month, site_name, remark, nhr, othr, driver_ot, driver_amount)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            row.plate_no,
+            row.month,
+            row.site_name,
+            row.remark,
+            row.bill_nr,
+            row.bill_ot,
+            row.driver_ot,
+            row.driver_amount,
+          ]
         );
       }
     }
@@ -380,4 +402,4 @@ router.post("/save-text-note", async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = router; 

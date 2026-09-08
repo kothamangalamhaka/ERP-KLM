@@ -435,15 +435,25 @@ router.post("/save", async (req, res) => {
       const othr = parseFloat(row.othr) || 0;
       const rent = parseFloat(row.rent) || 0;
       const adjAmt = parseFloat(row.adjusted_amount) || 0;
+      const driverOt = parseFloat(row.driver_ot) || 0;
+      const driverAmount = parseFloat(row.driver_amount) || 0;
       const remark = (row.remark || "").trim();
 
-      if (nhr === 0 && othr === 0 && rent === 0 && adjAmt === 0 && remark === "") {
-        continue; // Skip saving empty row ONLY if remark is also empty
+      if (
+        nhr === 0 &&
+        othr === 0 &&
+        rent === 0 &&
+        adjAmt === 0 &&
+        driverOt === 0 &&
+        driverAmount === 0 &&
+        remark === ""
+      ) {
+        continue;
       }
 
       const query = `INSERT INTO billing_records 
-                (billing_month, date, company, owner, site_name, db_rate, vtype, driver, plate_no, nhr, nrate, othr, otrate, rent, vat_percent, vat_amount, total, adjustment_desc, adjusted_amount, after_adjustment, remark) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`;
+               (billing_month, date, company, owner, site_name, db_rate, vtype, driver, plate_no, nhr, nrate, othr, otrate, rent, vat_percent, vat_amount, total, adjustment_desc, adjusted_amount, after_adjustment, remark, driver_ot, driver_amount)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`;
 
       await client.query(query, [
         billing_period,
@@ -466,7 +476,9 @@ router.post("/save", async (req, res) => {
         row.adjustment_desc,
         adjAmt,
         row.after_adjustment,
-        row.remark
+      row.remark,
+        driverOt,
+        driverAmount,
       ]);
     }
     await client.query("COMMIT");
@@ -483,7 +495,7 @@ router.post("/save", async (req, res) => {
 router.get("/dashboard-data", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT * FROM billing_records WHERE rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0 OR (remark IS NOT NULL AND remark != '') ORDER BY TO_DATE(billing_month, 'Month YYYY') DESC, id ASC`,
+      `SELECT * FROM billing_records WHERE rent > 0 OR nhr > 0 OR othr > 0 OR adjusted_amount != 0 OR driver_ot != 0 OR driver_amount != 0 OR (remark IS NOT NULL AND remark != '') ORDER BY TO_DATE(billing_month, 'Month YYYY') DESC, id ASC`,
     );
 
     const tsRes = await pool.query(

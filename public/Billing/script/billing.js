@@ -519,6 +519,8 @@ function rearrangeScreenData() {
         log_othr: parseFloat(row.querySelector(".log-ot")?.innerText) || 0,
         bill_nhr: parseFloat(row.querySelector(".bill-nr")?.innerText) || 0,
         bill_othr: parseFloat(row.querySelector(".bill-ot")?.innerText) || 0,
+        driver_ot: parseFloat(row.querySelector(".driver-ot")?.innerText) || 0,
+        driver_amount: parseFloat(row.dataset.driverAmount) || 0,
         temp_nhr: nhr,
         temp_othr: othr,
         temp_remark: row.querySelector(".remark")
@@ -894,6 +896,7 @@ function createBillCard(group, id) {
                         <th class="col-money vat-col" style="display:${vatDisplay};">VAT Amt</th>
                         <th class="col-money total-col" style="display:${vatDisplay};">Total</th>
                         <th class="col-remark no-export-col" style="width: 12%;">Remark</th>
+                        <th class="col-small no-export">Dr OT</th>
                         <th class="col-small no-export">Log NR</th>
                         <th class="col-small no-export">Log OT</th>
                         <th class="col-small no-export">Bill NR</th>
@@ -940,6 +943,12 @@ function createBillCard(group, id) {
     let driverName = item.driver_name || item.driver || "";
     if (saved && saved.driver) driverName = saved.driver;
     let rowRemark = saved && saved.remark ? saved.remark : "";
+    let driverOt = saved
+      ? parseFloat(saved.driver_ot) || 0
+      : parseFloat(item.driver_ot) || 0;
+    let driverAmount = saved
+      ? parseFloat(saved.driver_amount) || 0
+      : parseFloat(item.driver_amount) || 0;
 
     html += generateRowHTML(
       index + 1,
@@ -955,6 +964,8 @@ function createBillCard(group, id) {
       vatPerc,
       vatDisplay,
       rowRemark,
+      driverOt,
+      driverAmount,
       item.log_nhr,
       item.log_othr,
       item.bill_nhr,
@@ -976,6 +987,7 @@ function createBillCard(group, id) {
                         <td class="grandVat vat-col" style="display:${vatDisplay};">0</td>
                         <td class="grandTotal total-col" style="display:${vatDisplay};">0</td>
                         <td class="no-export-col"></td>
+                        <td class="no-export"></td>
                         <td class="no-export"></td>
                         <td class="no-export"></td>
                         <td class="no-export"></td>
@@ -1063,13 +1075,15 @@ function generateRowHTML(
   vatPerc,
   vatDisplay,
   remark = "",
+  driverOt = 0,
+  driverAmount = 0,
   logNhr = 0,
   logOthr = 0,
   billNhr = 0,
   billOthr = 0,
 ) {
   return `
-        <tr>
+        <tr data-driver-amount="${driverAmount}">
             <td class="row-num">${index}</td>
             <td class="date-cell">${date}</td>
             <td><input type="text" class="vtype" value="${vtype || ""}"></td>
@@ -1093,6 +1107,7 @@ function generateRowHTML(
             <td class="vat vat-col" style="display:${vatDisplay};">0</td>
             <td class="total total-col" style="display:${vatDisplay};">0</td>
             <td class="no-export-col"><input type="text" class="remark" value="${remark}" placeholder=" " style="text-align: left; padding-left: 5px;"></td>
+             <td class="no-export driver-ot">${driverOt}</td>
             <td class="no-export log-nr">${logNhr}</td>
             <td class="no-export log-ot">${logOthr}</td>
             <td class="no-export bill-nr">${billNhr}</td>
@@ -1160,6 +1175,8 @@ window.arrangeSingleCard = function (cardId) {
       log_othr: parseFloat(row.querySelector(".log-ot")?.innerText) || 0,
       bill_nhr: parseFloat(row.querySelector(".bill-nr")?.innerText) || 0,
       bill_othr: parseFloat(row.querySelector(".bill-ot")?.innerText) || 0,
+      driver_ot: parseFloat(row.querySelector(".driver-ot")?.innerText) || 0,
+      driver_amount: parseFloat(row.dataset.driverAmount) || 0,
       temp_nhr: nhr,
       temp_othr: othr,
       temp_remark: row.querySelector(".remark")
@@ -1560,6 +1577,8 @@ function applyAutoFillData(input, match, addBlankRow = true) {
   row.querySelector(".log-ot").innerText = match.log_othr || 0;
   row.querySelector(".bill-nr").innerText = match.bill_nhr || 0;
   row.querySelector(".bill-ot").innerText = match.bill_othr || 0;
+  row.querySelector(".driver-ot").innerText = match.driver_ot || 0;
+  row.dataset.driverAmount = match.driver_amount || 0;
 
   let matchPlates = Array.isArray(match.related_plates) ? match.related_plates : [(match.plate_number || match.plate || "").trim().toUpperCase()];
   let saved = savedBillingData.find(
@@ -1570,11 +1589,13 @@ function applyAutoFillData(input, match, addBlankRow = true) {
   );
 
   if (saved) {
+   row.querySelector(".driver-ot").innerText = saved.driver_ot || 0;
+    row.dataset.driverAmount = saved.driver_amount || 0;
     row.querySelector(".nhr").value = saved.nhr || 0;
     row.querySelector(".othr").value = saved.othr || 0;
-    if (row.querySelector(".remark") && saved.remark) {
+    if (row.querySelector(".remark") && saved.remark) {      
       row.querySelector(".remark").value = saved.remark;
-    }
+    } 
 
     let fillNrate = match.nrate || 0;
     if (saved.nrate !== null && saved.nrate !== undefined) {
@@ -2186,6 +2207,8 @@ function submitBulkData() {
           adjustment_desc: rowAdjDescStr,
           adjusted_amount: rowAdjAmtTotal,
           after_adjustment: Number((totalVal + rowAdjAmtTotal).toFixed(2)),
+          driver_ot: parseFloat(row.querySelector(".driver-ot")?.innerText) || 0,
+          driver_amount: parseFloat(row.dataset.driverAmount) || 0,
           remark: row.querySelector(".remark") ? row.querySelector(".remark").value.trim() : "",
         });
       }
@@ -2430,6 +2453,8 @@ function submitSingleCard(cardId) {
         adjustment_desc: rowAdjDescStr,
         adjusted_amount: rowAdjAmtTotal,
         after_adjustment: Number((totalVal + rowAdjAmtTotal).toFixed(2)),
+        driver_ot: parseFloat(row.querySelector(".driver-ot")?.innerText) || 0,
+        driver_amount: parseFloat(row.dataset.driverAmount) || 0,
         remark: row.querySelector(".remark")
           ? row.querySelector(".remark").value.trim()
           : "",
