@@ -40,7 +40,7 @@ button, input, textarea { font: inherit; }
 .brand-block { gap: 12px; }
 .brand-block h1 { margin: 0; font-size: 20px; }
 .brand-block p { margin: 4px 0 0; color: #cbd5e1; font-size: 12px; }
-.top-actions { gap: 10px; }
+.top-actions { position: relative; gap: 10px; }
  
 .icon-button, .refresh-button {
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -110,23 +110,7 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
 .owner-table-stack { grid-template-columns: minmax(0, 1fr); }
 .expiry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  
-.expiry-export-toolbar {
-  position: relative;
-  z-index: 15;
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border: 1px solid #bbf7d0;
-  border-radius: 12px;
-  background: #f0fdf4;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-.expiry-export-toolbar > div:first-child { display: grid; gap: 3px; }
-.expiry-export-toolbar strong { color: #14532d; font-size: 14px; }
-.expiry-export-toolbar span { color: #4b6353; font-size: 11px; }
-.expiry-export-control { position: relative; flex: 0 0 auto; }
+.expiry-export-control { position: relative; z-index: 30; flex: 0 0 auto; }
 .expiry-workbook-button {
   min-height: 40px;
   padding: 8px 11px;
@@ -422,8 +406,10 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
   .issue-ribbon { position: static; }
   .ribbon-button { flex-basis: 135px; font-size: 12px; }
   .table-card-header { align-items: flex-start; }
-  .expiry-export-toolbar { align-items: flex-start; flex-direction: column; }
-  .expiry-export-control, .expiry-workbook-button { width: 100%; }
-  .expiry-workbook-button { justify-content: center; }
-  .expiry-export-menu { left: 0; right: auto; }
+ .expiry-workbook-button { padding-inline: 9px; }
+}
+
+@media (max-width: 520px) {
+  .expiry-workbook-button .expiry-export-arrow { display: none; }
+  .expiry-export-menu { position: fixed; top: 68px; right: 10px; }
 }

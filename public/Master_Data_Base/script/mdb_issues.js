@@ -9,7 +9,23 @@ const EXCLUDED_OWNER_MOBILES = new Set([
 const EXCLUDED_OWNER_MOBILE_NAMES = new Set([
   "DRIVER IS THE OWNER",
 ]);
-
+const ACTIVE_RECORD_STATUSES = new Set(["RUNNING", "MOBILIZING", "MOBILISING"]);
+const NO_DATA_FIELD_KEYS = [
+  "plate",
+  "site",
+  "iqamaNo",
+  "iqamaExpiry",
+  "licenceExpiry",
+  "insuranceExpiry",
+  "fahsExpiry",
+  "eqTuvExpiry",
+  "operatorTuvExpiry",
+  "driver",
+  "driverMobile",
+  "owner",
+  "ownerMobile",
+];
+ 
 const issueToken = localStorage.getItem("erpToken");
 const issueUser = JSON.parse(localStorage.getItem("erpUser") || "null");
 let issueRecords = [];
@@ -22,7 +38,7 @@ const tableSorts = new Map();
   fieldCo: { label: "Field CO", columnLabel: "Field Co" },
   siteCo: { label: "Site CO", columnLabel: "Site Co" },
 };
-
+ 
 const FIELD_ALIASES = {
   plate: ["PLATE NUMBER", "PLATE NO"],
   workStart: ["WORK START"],
@@ -36,6 +52,7 @@ const FIELD_ALIASES = {
   owner: ["OWNER NAME", "OWNER"],
   ownerMobile: ["OWNER NUMBER", "MOBILE (OWNER)", "OWNER MOBILE", "OWNER MOBILE NO"],
   driver: ["DRIVER NAME", "DRIVER"],
+  driverMobile: ["MOBILE", "MOBILE (DRIVER)", "DRIVER MOBILE", "DRIVER MOBILE NO", "DRIVER NUMBER"],
   iqamaNo: ["IQAMA NUMBER", "IQAMA NO"],
   iqamaExpiry: ["IQAMA EXPIRE DATE", "IQAMA EXPIRE"],
   licenceExpiry: [
@@ -51,6 +68,20 @@ const FIELD_ALIASES = {
     "EQ INSURANCE",
   ],
   fahsExpiry: ["FAHS MVPI EXPIRE", "FAHS MVPI", "FAHS MVPI EXPIRE DATE"],
+  operatorTuvExpiry: [
+    "OPERATOR TUV EXPIRE DATE",
+    "OPERATOR TUV EXPIRY DATE",
+    "OPERATOR TUV EXPIRE",
+    "OPERATOR TUV EXPIRY",
+    "OPERATOR TUV",
+  ],
+  eqTuvExpiry: [
+    "EQ TUV EXPIRE DATE",
+    "EQ TUV EXPIRY DATE",
+    "EQ TUV EXPIRE",
+    "EQ TUV EXPIRY",
+    "EQ TUV",
+  ],
   fieldCo: ["FIELD COORDINATOR", "FIELD CO"],
   siteCo: ["SITE COORDINATOR", "SITE CO"],
 };
@@ -82,7 +113,7 @@ function initializeIssueScreen() {
       closeExpiryExportMenu();
     }
   });
-
+ 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeExpiryExportMenu();
   });
@@ -143,11 +174,14 @@ function normalizeRecord(record) {
     owner: getField(data, FIELD_ALIASES.owner),
     ownerMobile: getField(data, FIELD_ALIASES.ownerMobile),
     driver: getField(data, FIELD_ALIASES.driver),
+    driverMobile: getField(data, FIELD_ALIASES.driverMobile),
     iqamaNo: getField(data, FIELD_ALIASES.iqamaNo),
     iqamaExpiry: getField(data, FIELD_ALIASES.iqamaExpiry),
     licenceExpiry: getField(data, FIELD_ALIASES.licenceExpiry),
     insuranceExpiry: getField(data, FIELD_ALIASES.insuranceExpiry),
     fahsExpiry: getField(data, FIELD_ALIASES.fahsExpiry),
+    operatorTuvExpiry: getField(data, FIELD_ALIASES.operatorTuvExpiry),
+    eqTuvExpiry: getField(data, FIELD_ALIASES.eqTuvExpiry),
     fieldCo: getField(data, FIELD_ALIASES.fieldCo),
     siteCo: getField(data, FIELD_ALIASES.siteCo),
   };
@@ -225,18 +259,21 @@ function renderAllIssues() {
       return aOwner.localeCompare(bOwner) || normalizeKey(a.plate).localeCompare(normalizeKey(b.plate));
     });
   const expiryIssues = buildExpiryIssues();
+  const noDataIssues = buildNoDataIssues();
  
   renderWorkStartIssues(workStartIssues);
   renderOwnerIssues(ownerIssues);
   renderSiteEndIssues(siteEndIssues);
   renderNoOwnerIssues(noOwnerIssues);
   renderExpiryIssues(expiryIssues);
+  renderNoDataIssues(noDataIssues);
  
   setCount("workStartCount", workStartIssues.filter((row) => !row.cleared).length);
   setCount("ownerCount", getOpenOwnerIssueCount(ownerIssues));
   setCount("siteEndCount", siteEndIssues.length);
   setCount("noOwnerCount", noOwnerIssues.length);
-  setCount("expiryCount", Object.values(expiryIssues).reduce((sum, rows) => sum + rows.length, 0));
+  setCount("expiryCount", getExpiryIssueCount(expiryIssues));
+  setCount("noDataCount", noDataIssues.length);
 }
  
 function buildWorkStartIssues() {
@@ -331,7 +368,7 @@ function buildOwnerDetail(rows, includePlates = false) {
       }
     }
   });
-
+ 
   return {
     name: rows[0]?.owner || "",
     sites: [...siteGroups.values()]
@@ -344,7 +381,7 @@ function buildOwnerDetail(rows, includePlates = false) {
       .sort((a, b) => normalizeName(a.name).localeCompare(normalizeName(b.name))),
   };
 }
-
+ 
 function buildMobileOwnerConflicts(groups) {
   const output = [];
   groups.forEach((rows) => {
@@ -359,7 +396,7 @@ function buildMobileOwnerConflicts(groups) {
       owners.get(ownerKey).push(record);
     });
     if (owners.size < 2) return;
-
+ 
     output.push({
       mobile: eligible[0].ownerMobile,
        owners: [...owners.values()]
@@ -369,19 +406,19 @@ function buildMobileOwnerConflicts(groups) {
   });
   return output.sort((a, b) => normalizeMobile(a.mobile).localeCompare(normalizeMobile(b.mobile)));
 }
-
+ 
 function buildOwnerMobileConflicts(groups) {
   const output = [];
   groups.forEach((rows, ownerKey) => {
     if (EXCLUDED_OWNER_MOBILE_NAMES.has(ownerKey)) return;
-
+ 
     const mobiles = new Map();
     rows.forEach((record) => {
       const mobileKey = normalizeMobile(record.ownerMobile);
       if (mobileKey && !mobiles.has(mobileKey)) mobiles.set(mobileKey, record.ownerMobile);
     });
     if (mobiles.size < 2) return;
-
+ 
     output.push({
       owner: rows[0].owner,
       mobiles: [...mobiles.values()].sort((a, b) => normalizeMobile(a).localeCompare(normalizeMobile(b))),
@@ -447,16 +484,21 @@ function buildExpiryIssues() {
     insuranceOnly: [],
     fahsOnly: [],
     insuranceAndFahs: [],
+    operatorTuv: [],
+    eqTuv: [],
+    combined: [],
   };
+  const combinedByPlate = new Map();
  
   issueRecords.forEach((record) => {
-    const status = normalizeName(record.status).toLowerCase();
-    if (!["running", "mobilizing", "mobilising"].includes(status)) return;
+    if (!isActiveRecord(record)) return;
  
     const iqama = getExpiryState(record.iqamaExpiry);
     const licence = getExpiryState(record.licenceExpiry);
     const insurance = getExpiryState(record.insuranceExpiry);
     const fahs = getExpiryState(record.fahsExpiry);
+    const operatorTuv = getExpiryState(record.operatorTuvExpiry);
+    const eqTuv = getExpiryState(record.eqTuvExpiry);
  
     if (iqama && licence) categories.iqamaAndLicence.push({ ...record, iqama, licence });
     else if (iqama) categories.iqamaOnly.push({ ...record, expiry: iqama });
@@ -465,15 +507,73 @@ function buildExpiryIssues() {
     if (insurance && fahs) categories.insuranceAndFahs.push({ ...record, insurance, fahs });
     else if (insurance) categories.insuranceOnly.push({ ...record, expiry: insurance });
     else if (fahs) categories.fahsOnly.push({ ...record, expiry: fahs });
+ 
+    if (operatorTuv) categories.operatorTuv.push({ ...record, expiry: operatorTuv });
+    if (eqTuv) categories.eqTuv.push({ ...record, expiry: eqTuv });
+ 
+    const expiryStates = { iqama, licence, insurance, fahs, operatorTuv, eqTuv };
+    if (Object.values(expiryStates).some(Boolean)) {
+      const plateKey = normalizeKey(record.plate) || `RECORD-${record.id}`;
+      const existing = combinedByPlate.get(plateKey);
+      if (!existing) {
+        combinedByPlate.set(plateKey, { ...record, ...expiryStates });
+      } else {
+        ["site", "iqamaNo", "driver", "driverMobile", "owner", "ownerMobile", "fieldCo", "siteCo"].forEach((key) => {
+          existing[key] = mergeDisplayValues(existing[key], record[key]);
+        });
+        Object.entries(expiryStates).forEach(([key, state]) => {
+          existing[key] = selectRelevantExpiryState(existing[key], state);
+        });
+      }
+    }
   });
+ 
+  categories.combined = [...combinedByPlate.values()];
  
   Object.values(categories).forEach((rows) => rows.sort(expiryRowComparator));
   return categories;
 }
  
+function isActiveRecord(record) {
+  return ACTIVE_RECORD_STATUSES.has(normalizeName(record.status));
+}
+ 
+function selectRelevantExpiryState(current, candidate) {
+  if (!candidate) return current;
+  if (!current) return candidate;
+  const currentExpired = current.days < 0;
+  const candidateExpired = candidate.days < 0;
+  if (currentExpired !== candidateExpired) return currentExpired ? candidate : current;
+  if (currentExpired) return candidate.days > current.days ? candidate : current;
+  return candidate.days < current.days ? candidate : current;
+}
+ 
+function mergeDisplayValues(current, candidate) {
+  const values = String(current || "").split(" • ").filter(Boolean);
+  if (candidate && !values.some((value) => normalizeName(value) === normalizeName(candidate))) {
+    values.push(candidate);
+  }
+  return values.join(" • ");
+}
+ 
+function buildNoDataIssues() {
+  return issueRecords
+    .filter((record) => isActiveRecord(record) && NO_DATA_FIELD_KEYS.some((key) => !record[key]))
+    .sort((a, b) =>
+      normalizeName(a.site).localeCompare(normalizeName(b.site)) ||
+      normalizeKey(a.plate).localeCompare(normalizeKey(b.plate), undefined, { numeric: true }),
+    );
+}
+ 
+function getExpiryIssueCount(issues) {
+  return Object.entries(issues)
+    .filter(([category]) => category !== "combined")
+    .reduce((sum, [, rows]) => sum + rows.length, 0);
+}
+ 
 function expiryRowComparator(a, b) {
-  const aDays = a.expiry?.days ?? Math.min(a.iqama?.days ?? Infinity, a.licence?.days ?? Infinity, a.insurance?.days ?? Infinity, a.fahs?.days ?? Infinity);
-  const bDays = b.expiry?.days ?? Math.min(b.iqama?.days ?? Infinity, b.licence?.days ?? Infinity, b.insurance?.days ?? Infinity, b.fahs?.days ?? Infinity);
+  const aDays = a.expiry?.days ?? Math.min(a.iqama?.days ?? Infinity, a.licence?.days ?? Infinity, a.insurance?.days ?? Infinity, a.fahs?.days ?? Infinity, a.operatorTuv?.days ?? Infinity, a.eqTuv?.days ?? Infinity);
+  const bDays = b.expiry?.days ?? Math.min(b.iqama?.days ?? Infinity, b.licence?.days ?? Infinity, b.insurance?.days ?? Infinity, b.fahs?.days ?? Infinity, b.operatorTuv?.days ?? Infinity, b.eqTuv?.days ?? Infinity);
   const aExpired = aDays < 0;
   const bExpired = bDays < 0;
   if (aExpired !== bExpired) return aExpired ? 1 : -1;
@@ -574,7 +674,7 @@ function renderOwnerIssues(issues) {
     ],
     rows: issues.byMobile,
   });
-
+ 
   document.getElementById("ownerMobileTable").innerHTML = tableCardMarkup({
     id: "owner-mobile-issues",
     title: "Same Owner · Different Mobile",
@@ -591,6 +691,7 @@ function renderOwnerIssues(issues) {
   applyTableExcelFilters("owner-mobile-issues");
 }
  
+ 
 function ownerDetailText(detail, includePlates = false) {
   if (!detail) return "";
   const siteLines = detail.sites.map((site) => {
@@ -599,7 +700,7 @@ function ownerDetailText(detail, includePlates = false) {
   });
   return [detail.name, ...siteLines].join("\n");
 }
-
+ 
 function ownerDetailMarkup(detail, includePlates = false) {
   if (!detail) return "";
   const sites = detail.sites.map((site) => `
@@ -615,7 +716,7 @@ function ownerDetailMarkup(detail, includePlates = false) {
     </div>
   `;
 }
-
+ 
 function renderSiteEndIssues(rows) {
   const columns = [
     textColumn("Site A Work End", "lastWorking"),
@@ -652,6 +753,30 @@ function renderNoOwnerIssues(rows) {
     rows,
   });
 }
+ function renderNoDataIssues(rows) {
+  document.getElementById("noDataTables").innerHTML = tableCardMarkup({
+    id: "missing-master-data",
+    title: "Missing Master Data",
+    subtitle: "Running and mobilizing equipment with one or more blank data fields.",
+    columns: [
+      textColumn("Plate No", "plate", "Missing"),
+      textColumn("Site Name", "site", "Missing"),
+      textColumn("Iqama No", "iqamaNo", "Missing"),
+      textColumn("Iqama Expiry", "iqamaExpiry", "Missing"),
+      textColumn("Licence Expiry", "licenceExpiry", "Missing"),
+      textColumn("Insurance Expiry", "insuranceExpiry", "Missing"),
+      textColumn("FAHS / MVPI Expiry", "fahsExpiry", "Missing"),
+      textColumn("EQ TUV Expiry", "eqTuvExpiry", "Missing"),
+      textColumn("Operator TUV Expiry", "operatorTuvExpiry", "Missing"),
+      textColumn("Driver Name", "driver", "Missing"),
+      textColumn("Driver Mobile", "driverMobile", "Missing"),
+      textColumn("Owner Name", "owner", "Missing"),
+      textColumn("Owner Mobile", "ownerMobile", "Missing"),
+    ],
+    rows,
+  });
+}
+ 
  function renderExpiryIssues(issues) {
   const driverBase = [
     textColumn("Plate No", "plate"),
@@ -725,6 +850,62 @@ function renderNoOwnerIssues(rows) {
       ],
       rows: issues.insuranceAndFahs,
     }),
+    tableCardMarkup({
+      id: "operator-tuv-expiry",
+      title: "Operator TUV Expire Date",
+      subtitle: "Operator TUV alerts due within 30 days or already expired.",
+      columns: [
+        textColumn("Plate No", "plate"),
+        textColumn("Driver Name", "driver"),
+        textColumn("Driver Mobile", "driverMobile"),
+        siteColumn,
+        expiryDateColumn("Operator TUV Expire Date", "expiry"),
+        expiryGapColumn("expiry"),
+        ...coordinators,
+      ],
+      rows: issues.operatorTuv,
+    }),
+    tableCardMarkup({
+      id: "eq-tuv-expiry",
+      title: "EQ TUV Expire Date",
+      subtitle: "Equipment TUV alerts due within 30 days or already expired.",
+      columns: [
+        ...equipmentBase,
+        siteColumn,
+        expiryDateColumn("EQ TUV Expire Date", "expiry"),
+        expiryGapColumn("expiry"),
+        ...coordinators,
+      ],
+      rows: issues.eqTuv,
+    }),
+    tableCardMarkup({
+      id: "combined-expiry",
+      title: "Combined",
+      subtitle: "All due expiry data combined into one row per plate number.",
+      columns: [
+        textColumn("Plate No", "plate"),
+        siteColumn,
+        textColumn("Driver Name", "driver"),
+        textColumn("Driver Mobile", "driverMobile"),
+        textColumn("Iqama No", "iqamaNo"),
+        textColumn("Owner Name", "owner"),
+        textColumn("Owner Mobile", "ownerMobile"),
+        expiryDateColumn("Iqama Expiry", "iqama"),
+        expiryGapColumn("iqama", "Iqama Gap"),
+        expiryDateColumn("Licence Expiry", "licence"),
+        expiryGapColumn("licence", "Licence Gap"),
+        expiryDateColumn("Insurance Expiry", "insurance"),
+        expiryGapColumn("insurance", "Insurance Gap"),
+        expiryDateColumn("FAHS Expiry", "fahs"),
+        expiryGapColumn("fahs", "FAHS Gap"),
+        expiryDateColumn("Operator TUV Expire Date", "operatorTuv"),
+        expiryGapColumn("operatorTuv", "Operator TUV Gap"),
+        expiryDateColumn("EQ TUV Expire Date", "eqTuv"),
+        expiryGapColumn("eqTuv", "EQ TUV Gap"),
+        ...coordinators,
+      ],
+      rows: issues.combined,
+    }),
   ];
  
   document.getElementById("expiryTables").innerHTML = cards.join("");
@@ -751,7 +932,6 @@ function expiryGapColumn(key, label = "Days Gap") {
     cellClass: (row) => row[key]?.days < 0 ? "expiry-expired-cell" : "expiry-future-cell",
   };
 }
- 
 function tableCardMarkup({ id, title, subtitle, columns, rows, rowClass = () => "" }) {
   const headerCells = columns.map((column, index) => `
     <th>
@@ -944,7 +1124,7 @@ function toggleExpiryExportMenu(event) {
   menu.classList.toggle("show", willOpen);
   button.setAttribute("aria-expanded", String(willOpen));
 }
-
+ 
 function closeExpiryExportMenu() {
   const menu = document.getElementById("expiryExportMenu");
   const button = document.getElementById("expiryWorkbookButton");
@@ -952,7 +1132,7 @@ function closeExpiryExportMenu() {
   menu.classList.remove("show");
   button.setAttribute("aria-expanded", "false");
 }
-
+ 
 function selectExpiryExportScope(event, scopeKey) {
   event.stopPropagation();
   if (scopeKey === "all") {
@@ -960,20 +1140,20 @@ function selectExpiryExportScope(event, scopeKey) {
     downloadExpiryWorkbook({ scopeKey: "all", value: "All" });
     return;
   }
-
+ 
   const scope = EXPIRY_EXPORT_SCOPES[scopeKey];
   if (!scope) return;
   document.querySelectorAll("[data-expiry-scope]").forEach((button) => {
     button.classList.toggle("active", button.dataset.expiryScope === scopeKey);
   });
-
+ 
   const values = getExpiryExportScopeValues(scope.columnLabel);
   const valuesPanel = document.getElementById("expiryExportValues");
   const valuesList = document.getElementById("expiryExportValueList");
   document.getElementById("expiryExportValuesTitle").innerText = `Choose ${scope.label}`;
   valuesPanel.hidden = false;
   valuesList.replaceChildren();
-
+ 
   if (values.length === 0) {
     const empty = document.createElement("div");
     empty.className = "expiry-export-empty";
@@ -981,7 +1161,7 @@ function selectExpiryExportScope(event, scopeKey) {
     valuesList.appendChild(empty);
     return;
   }
-
+ 
   values.forEach((value) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -993,7 +1173,7 @@ function selectExpiryExportScope(event, scopeKey) {
       closeExpiryExportMenu();
       downloadExpiryWorkbook({ scopeKey, value });
     });
-
+ 
     valuesList.appendChild(button);
   });
 }
@@ -1005,17 +1185,23 @@ function getExpiryExportScopeValues(columnLabel) {
     if (columnIndex < 0) return;
     card.querySelectorAll("tbody .data-row").forEach((row) => {
       const value = (row.cells[columnIndex]?.dataset.filterValue || "").trim();
-      const normalized = normalizeName(value);
-      if (normalized && value !== "-" && !uniqueValues.has(normalized)) {
-        uniqueValues.set(normalized, value);
-      }
+      getMergedDisplayValues(value).forEach((displayValue) => {
+        const normalized = normalizeName(displayValue);
+        if (normalized && displayValue !== "-" && !uniqueValues.has(normalized)) {
+          uniqueValues.set(normalized, displayValue);
+        }
+      });
     });
   });
   return [...uniqueValues.values()].sort((a, b) =>
     a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
   );
 }
-
+ 
+function getMergedDisplayValues(value) {
+  return String(value || "").split(" • ").map((item) => item.trim()).filter(Boolean);
+}
+ 
 async function saveWorkStartReview(recordId, cleared, remark) {
   if (issueUser.role === "Viewer") return;
   const record = issueRecords.find((item) => item.id === recordId);
@@ -1156,7 +1342,7 @@ function getIssueTableHeaders(card) {
     cell.querySelector(".table-header-content > span")?.innerText.trim() || cell.innerText.trim(),
   );
 }
-
+ 
 function getIssueTableExportData(card, rowPredicate = () => true) {
   const headers = getIssueTableHeaders(card);
   const rowElements = [...card.querySelectorAll("tbody .data-row")]
@@ -1172,7 +1358,7 @@ function getIssueTableExportData(card, rowPredicate = () => true) {
     rows,
   };
 }
-
+ 
 function addIssueWorksheet(workbook, tableData) {
   const { title, headers, rowElements, rows } = tableData;
   const worksheet = workbook.addWorksheet(getUniqueExcelSheetName(workbook, title), {
@@ -1225,20 +1411,20 @@ function addIssueWorksheet(workbook, tableData) {
   });
    return worksheet;
 }
-
+ 
 async function downloadIssueTableExcel(tableId) {
   const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
   if (!card || typeof ExcelJS === "undefined" || typeof saveAs !== "function") {
     showToast("Excel export library is unavailable.", true);
     return;
   }
-
+ 
   const tableData = getIssueTableExportData(card, (row) => row.style.display !== "none");
   if (tableData.rows.length === 0) {
     showToast("No visible rows to export.", true);
     return;
   }
-
+ 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Haka ERP";
   workbook.created = new Date();
@@ -1263,7 +1449,7 @@ async function downloadExpiryWorkbook({ scopeKey, value }) {
     showToast("Excel export library is unavailable.", true);
     return;
   }
-
+ 
   const scope = EXPIRY_EXPORT_SCOPES[scopeKey];
   const selectedValue = normalizeName(value);
   const cards = [...document.querySelectorAll("#expiryTables .table-card")];
@@ -1271,20 +1457,21 @@ async function downloadExpiryWorkbook({ scopeKey, value }) {
     if (scopeKey === "all") return true;
     const columnIndex = headers.indexOf(scope?.columnLabel);
     if (columnIndex < 0) return false;
-    return normalizeName(row.cells[columnIndex]?.dataset.filterValue || "") === selectedValue;
+    return getMergedDisplayValues(row.cells[columnIndex]?.dataset.filterValue || "")
+      .some((displayValue) => normalizeName(displayValue) === selectedValue);
   }));
   const totalRows = tables.reduce((sum, table) => sum + table.rows.length, 0);
-
+ 
   if (cards.length === 0 || totalRows === 0) {
     showToast("No matching expiry rows to export.", true);
     return;
   }
-
+ 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Haka ERP";
   workbook.created = new Date();
   tables.forEach((table) => addIssueWorksheet(workbook, table));
-
+ 
   const scopeName = scopeKey === "all" ? "All" : `${scope.label}_${value}`;
   setLoading(true);
   try {
@@ -1304,7 +1491,7 @@ async function downloadExpiryWorkbook({ scopeKey, value }) {
 function getExcelSheetName(title) {
   return String(title || "MDB Issues").replace(/[\\\\/*?:\[\]]/g, " ").trim().substring(0, 31) || "MDB Issues";
 }
-
+ 
 function getUniqueExcelSheetName(workbook, title) {
   const baseName = getExcelSheetName(title);
   let sheetName = baseName;
@@ -1421,6 +1608,7 @@ function downloadIssueTablePdf(tableId) {
         drawRow(headers, true);
       }
  
+ 
       let cursorX = margin;
       lines.forEach((lineSet, index) => {
         const sourceCell = cells[index];
@@ -1490,3 +1678,4 @@ function escapeHtml(value) {
 function escapeAttribute(value) {
   return escapeHtml(value).replace(/`/g, "&#96;");
 }
+ 
