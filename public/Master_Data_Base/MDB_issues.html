@@ -82,6 +82,39 @@
       </section>
  
       <section class="issue-panel" id="expiryPanel">
+        <div class="expiry-export-toolbar">
+          <div>
+            <strong>Expiry Excel Report</strong>
+            <span>Export every expiry table as a separate sheet in one workbook.</span>
+          </div>
+          <div class="expiry-export-control" id="expiryExportControl">
+            <button
+              class="expiry-workbook-button"
+              id="expiryWorkbookButton"
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              onclick="toggleExpiryExportMenu(event)"
+            >
+              <span class="material-icons">table_view</span>
+              Export Excel
+              <span class="material-icons expiry-export-arrow">arrow_drop_down</span>
+            </button>
+            <div class="expiry-export-menu" id="expiryExportMenu" role="menu" aria-label="Expiry Excel export options">
+              <div class="expiry-export-menu-title">Export expiry data</div>
+              <div class="expiry-export-scope-list">
+                <button type="button" role="menuitem" data-expiry-scope="site" onclick="selectExpiryExportScope(event, 'site')">By Site</button>
+                <button type="button" role="menuitem" data-expiry-scope="fieldCo" onclick="selectExpiryExportScope(event, 'fieldCo')">By Field CO</button>
+                <button type="button" role="menuitem" data-expiry-scope="siteCo" onclick="selectExpiryExportScope(event, 'siteCo')">By Site CO</button>
+                <button type="button" role="menuitem" data-expiry-scope="all" onclick="selectExpiryExportScope(event, 'all')">All</button>
+              </div>
+              <div class="expiry-export-values" id="expiryExportValues" hidden>
+                <div class="expiry-export-values-title" id="expiryExportValuesTitle"></div>
+                <div class="expiry-export-value-list" id="expiryExportValueList"></div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="expiry-grid" id="expiryTables"></div>
       </section>
     </main>

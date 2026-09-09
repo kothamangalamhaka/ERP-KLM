@@ -17,7 +17,12 @@ let toastTimer;
 let activeExcelFilter = null;
 const tableExcelFilters = new Map();
 const tableSorts = new Map();
- 
+ const EXPIRY_EXPORT_SCOPES = {
+  site: { label: "Site", columnLabel: "Site" },
+  fieldCo: { label: "Field CO", columnLabel: "Field Co" },
+  siteCo: { label: "Site CO", columnLabel: "Site Co" },
+};
+
 const FIELD_ALIASES = {
   plate: ["PLATE NUMBER", "PLATE NO"],
   workStart: ["WORK START"],
@@ -72,6 +77,14 @@ function initializeIssueScreen() {
     if (!event.target.closest("#excelFilterPopup") && !event.target.closest(".excel-filter-button")) {
       popup.classList.remove("show");
     }
+    
+    if (!event.target.closest("#expiryExportControl")) {
+      closeExpiryExportMenu();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeExpiryExportMenu();
   });
  
   loadIssueData();
@@ -923,6 +936,86 @@ function applyTableExcelFilters(tableId) {
   }
 }
  
+function toggleExpiryExportMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById("expiryExportMenu");
+  const button = document.getElementById("expiryWorkbookButton");
+  const willOpen = !menu.classList.contains("show");
+  menu.classList.toggle("show", willOpen);
+  button.setAttribute("aria-expanded", String(willOpen));
+}
+
+function closeExpiryExportMenu() {
+  const menu = document.getElementById("expiryExportMenu");
+  const button = document.getElementById("expiryWorkbookButton");
+  if (!menu || !button) return;
+  menu.classList.remove("show");
+  button.setAttribute("aria-expanded", "false");
+}
+
+function selectExpiryExportScope(event, scopeKey) {
+  event.stopPropagation();
+  if (scopeKey === "all") {
+    closeExpiryExportMenu();
+    downloadExpiryWorkbook({ scopeKey: "all", value: "All" });
+    return;
+  }
+
+  const scope = EXPIRY_EXPORT_SCOPES[scopeKey];
+  if (!scope) return;
+  document.querySelectorAll("[data-expiry-scope]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.expiryScope === scopeKey);
+  });
+
+  const values = getExpiryExportScopeValues(scope.columnLabel);
+  const valuesPanel = document.getElementById("expiryExportValues");
+  const valuesList = document.getElementById("expiryExportValueList");
+  document.getElementById("expiryExportValuesTitle").innerText = `Choose ${scope.label}`;
+  valuesPanel.hidden = false;
+  valuesList.replaceChildren();
+
+  if (values.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "expiry-export-empty";
+    empty.innerText = `No ${scope.label} values found in expiry issues.`;
+    valuesList.appendChild(empty);
+    return;
+  }
+
+  values.forEach((value) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "expiry-export-value-button";
+    button.title = value;
+    button.innerText = value;
+    button.addEventListener("click", (clickEvent) => {
+      clickEvent.stopPropagation();
+      closeExpiryExportMenu();
+      downloadExpiryWorkbook({ scopeKey, value });
+    });
+
+    valuesList.appendChild(button);
+  });
+}
+function getExpiryExportScopeValues(columnLabel) {
+  const uniqueValues = new Map();
+  document.querySelectorAll("#expiryTables .table-card").forEach((card) => {
+    const headers = getIssueTableHeaders(card);
+    const columnIndex = headers.indexOf(columnLabel);
+    if (columnIndex < 0) return;
+    card.querySelectorAll("tbody .data-row").forEach((row) => {
+      const value = (row.cells[columnIndex]?.dataset.filterValue || "").trim();
+      const normalized = normalizeName(value);
+      if (normalized && value !== "-" && !uniqueValues.has(normalized)) {
+        uniqueValues.set(normalized, value);
+      }
+    });
+  });
+  return [...uniqueValues.values()].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
+  );
+}
+
 async function saveWorkStartReview(recordId, cleared, remark) {
   if (issueUser.role === "Viewer") return;
   const record = issueRecords.find((item) => item.id === recordId);
@@ -1058,29 +1151,32 @@ async function copyIssueTable(tableId) {
   }
 }
  
-async function downloadIssueTableExcel(tableId) {
-  const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
-  if (!card || typeof ExcelJS === "undefined" || typeof saveAs !== "function") {
-    showToast("Excel export library is unavailable.", true);
-    return;
-  }
- 
-  const table = card.querySelector("table");
-  const headers = [...table.querySelectorAll("thead th")].map((cell) =>
+function getIssueTableHeaders(card) {
+  return [...card.querySelectorAll("thead th")].map((cell) =>
     cell.querySelector(".table-header-content > span")?.innerText.trim() || cell.innerText.trim(),
   );
-  const rowElements = [...table.querySelectorAll("tbody .data-row")]
-    .filter((row) => row.style.display !== "none");
-  if (rowElements.length === 0) {
-    showToast("No visible rows to export.", true);
-    return;
-  }
- 
-  const title = card.querySelector("h2")?.childNodes[0]?.textContent.trim() || "MDB Issues";
-  const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Haka ERP";
-  workbook.created = new Date();
-  const worksheet = workbook.addWorksheet(getExcelSheetName(title), {
+}
+
+function getIssueTableExportData(card, rowPredicate = () => true) {
+  const headers = getIssueTableHeaders(card);
+  const rowElements = [...card.querySelectorAll("tbody .data-row")]
+    .filter((row) => rowPredicate(row, headers));
+  const rows = rowElements.map((row) => [...row.cells].map((cell) => ({
+    value: cell.dataset.filterValue || cell.innerText.trim(),
+    className: [cell.className, ...[...cell.querySelectorAll("[class]")].map((element) => element.className)].join(" "),
+  })));
+  return {
+    title: card.querySelector("h2")?.childNodes[0]?.textContent.replace(/\s*·\s*$/, "").trim() || "MDB Issues",
+    headers,
+    rowElements,
+    rows,
+  };
+}
+
+function addIssueWorksheet(workbook, tableData) {
+  const { title, headers, rowElements, rows } = tableData;
+  const worksheet = workbook.addWorksheet(getUniqueExcelSheetName(workbook, title), {
+  
     views: [{ state: "frozen", ySplit: 2, xSplit: 0 }],
   });
   const border = {
@@ -1107,11 +1203,7 @@ async function downloadIssueTableExcel(tableId) {
     cell.border = border;
   });
  
-  const exportedRows = rowElements.map((row) => [...row.cells].map((cell) => ({
-    value: cell.dataset.filterValue || cell.innerText.trim(),
-    className: [cell.className, ...[...cell.querySelectorAll("[class]")].map((element) => element.className)].join(" "),
-  })));
-  exportedRows.forEach((cells, index) => {
+  rows.forEach((cells, index) => {
     const excelRow = worksheet.addRow(cells.map((cell) => cell.value));
     const isCleared = rowElements[index].classList.contains("review-cleared");
     excelRow.eachCell((cell, columnIndex) => {
@@ -1127,10 +1219,30 @@ async function downloadIssueTableExcel(tableId) {
   headers.forEach((header, index) => {
     const longestValue = Math.max(
       header.length,
-      ...exportedRows.map((row) => String(row[index]?.value || "").length),
+       ...rows.map((row) => String(row[index]?.value || "").length),
     );
     worksheet.getColumn(index + 1).width = Math.min(36, Math.max(12, longestValue + 2));
   });
+   return worksheet;
+}
+
+async function downloadIssueTableExcel(tableId) {
+  const card = document.querySelector(`[data-table-id="${cssEscape(tableId)}"]`);
+  if (!card || typeof ExcelJS === "undefined" || typeof saveAs !== "function") {
+    showToast("Excel export library is unavailable.", true);
+    return;
+  }
+
+  const tableData = getIssueTableExportData(card, (row) => row.style.display !== "none");
+  if (tableData.rows.length === 0) {
+    showToast("No visible rows to export.", true);
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Haka ERP";
+  workbook.created = new Date();
+  addIssueWorksheet(workbook, tableData);
  
   setLoading(true);
   try {
@@ -1138,13 +1250,71 @@ async function downloadIssueTableExcel(tableId) {
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-    saveAs(blob, `${getExcelFileName(title)}.xlsx`);
-    showToast(`Exported ${exportedRows.length} visible row${exportedRows.length === 1 ? "" : "s"} to Excel.`);
+    saveAs(blob, `${getExcelFileName(tableData.title)}.xlsx`);
+    showToast(`Exported ${tableData.rows.length} visible row${tableData.rows.length === 1 ? "" : "s"} to Excel.`);
   } catch (error) {
     showToast(error.message || "Unable to create Excel export.", true);
   } finally {
     setLoading(false);
   }
+}
+async function downloadExpiryWorkbook({ scopeKey, value }) {
+  if (typeof ExcelJS === "undefined" || typeof saveAs !== "function") {
+    showToast("Excel export library is unavailable.", true);
+    return;
+  }
+
+  const scope = EXPIRY_EXPORT_SCOPES[scopeKey];
+  const selectedValue = normalizeName(value);
+  const cards = [...document.querySelectorAll("#expiryTables .table-card")];
+  const tables = cards.map((card) => getIssueTableExportData(card, (row, headers) => {
+    if (scopeKey === "all") return true;
+    const columnIndex = headers.indexOf(scope?.columnLabel);
+    if (columnIndex < 0) return false;
+    return normalizeName(row.cells[columnIndex]?.dataset.filterValue || "") === selectedValue;
+  }));
+  const totalRows = tables.reduce((sum, table) => sum + table.rows.length, 0);
+
+  if (cards.length === 0 || totalRows === 0) {
+    showToast("No matching expiry rows to export.", true);
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Haka ERP";
+  workbook.created = new Date();
+  tables.forEach((table) => addIssueWorksheet(workbook, table));
+
+  const scopeName = scopeKey === "all" ? "All" : `${scope.label}_${value}`;
+  setLoading(true);
+  try {
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(blob, `${getExcelFileName(`MDB_Expiry_${scopeName}`)}.xlsx`);
+    showToast(`Exported ${totalRows} expiry row${totalRows === 1 ? "" : "s"} across ${tables.length} Excel sheets.`);
+  } catch (error) {
+    showToast(error.message || "Unable to create expiry Excel export.", true);
+  } finally {
+    setLoading(false);
+  }
+}
+ 
+function getExcelSheetName(title) {
+  return String(title || "MDB Issues").replace(/[\\\\/*?:\[\]]/g, " ").trim().substring(0, 31) || "MDB Issues";
+}
+
+function getUniqueExcelSheetName(workbook, title) {
+  const baseName = getExcelSheetName(title);
+  let sheetName = baseName;
+  let suffix = 2;
+  while (workbook.getWorksheet(sheetName)) {
+    const suffixText = ` ${suffix}`;
+    sheetName = `${baseName.substring(0, 31 - suffixText.length)}${suffixText}`;
+    suffix++;
+  }
+  return sheetName;
 }
  
 function getExcelSheetName(title) {

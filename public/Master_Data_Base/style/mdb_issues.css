@@ -110,6 +110,74 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
 .owner-table-stack { grid-template-columns: minmax(0, 1fr); }
 .expiry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  
+.expiry-export-toolbar {
+  position: relative;
+  z-index: 15;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  background: #f0fdf4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.expiry-export-toolbar > div:first-child { display: grid; gap: 3px; }
+.expiry-export-toolbar strong { color: #14532d; font-size: 14px; }
+.expiry-export-toolbar span { color: #4b6353; font-size: 11px; }
+.expiry-export-control { position: relative; flex: 0 0 auto; }
+.expiry-workbook-button {
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid #16a34a;
+  border-radius: 9px;
+  background: #15803d;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-weight: 800;
+}
+.expiry-workbook-button:hover, .expiry-workbook-button[aria-expanded="true"] { background: #166534; }
+.expiry-workbook-button .material-icons { color: inherit; font-size: 19px; }
+.expiry-workbook-button .expiry-export-arrow { margin-left: 2px; font-size: 18px; }
+.expiry-export-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  display: none;
+  width: min(310px, calc(100vw - 28px));
+  padding: 9px;
+  border: 1px solid #a7d7b5;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(15, 41, 66, 0.2);
+}
+.expiry-export-menu.show { display: block; }
+.expiry-export-menu-title { padding: 3px 4px 9px; color: var(--navy); font-size: 12px; font-weight: 800; }
+.expiry-export-scope-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.expiry-export-scope-list button, .expiry-export-value-button {
+  padding: 8px 9px;
+  border: 1px solid #d7e0ea;
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+}
+.expiry-export-scope-list button:hover,
+.expiry-export-scope-list button.active,
+.expiry-export-value-button:hover { border-color: #16a34a; background: #f0fdf4; color: #166534; }
+.expiry-export-values { margin-top: 9px; padding-top: 9px; border-top: 1px solid #e2e8f0; }
+.expiry-export-values-title { margin-bottom: 6px; color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.expiry-export-value-list { max-height: 240px; overflow: auto; display: grid; gap: 5px; }
+.expiry-export-value-button { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expiry-export-empty { padding: 16px 8px; color: var(--muted); text-align: center; font-size: 11px; }
+ 
 .table-card {
   min-width: 0;
   margin-bottom: 16px;
@@ -354,4 +422,8 @@ main { width: min(1800px, 100%); margin: 0 auto; padding: 18px; }
   .issue-ribbon { position: static; }
   .ribbon-button { flex-basis: 135px; font-size: 12px; }
   .table-card-header { align-items: flex-start; }
+  .expiry-export-toolbar { align-items: flex-start; flex-direction: column; }
+  .expiry-export-control, .expiry-workbook-button { width: 100%; }
+  .expiry-workbook-button { justify-content: center; }
+  .expiry-export-menu { left: 0; right: auto; }
 }
