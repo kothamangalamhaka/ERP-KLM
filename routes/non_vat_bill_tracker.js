@@ -182,6 +182,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
                 ), 2) as row_total
             FROM billing_records
             WHERE billing_month ILIKE $1 OR billing_month ILIKE $2
+            ORDER BY id DESC
         `,
       [`%${currentYear}%`, `%${shortYear}%`],
     );
@@ -420,6 +421,7 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
                 ), 2) AS after_adjustment
             FROM billing_records
             WHERE billing_month ILIKE $1 OR billing_month ILIKE $2
+            ORDER BY id DESC
         `;
 
     const result = await pool.query(query, [
