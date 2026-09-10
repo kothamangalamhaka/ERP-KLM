@@ -390,12 +390,14 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
     const allPlates = allVehs.map(v => v.plate_no);
 
     let oLogs = [];
+    let sLogs = [];
     try {
-      const oRes = await pool.query(
-        `SELECT plate_no, owner_name, vat, work_start_date, work_end_date FROM vehicle_owner_log WHERE plate_no = ANY($1)`,
-        [allPlates]
-      );
+      const [oRes, sRes] = await Promise.all([
+        pool.query(`SELECT plate_no, owner_name, vat, work_start_date, work_end_date FROM vehicle_owner_log WHERE plate_no = ANY($1)`, [allPlates]),
+        pool.query(`SELECT plate_no, site_name, work_start_date, work_end_date FROM vehicle_site_log WHERE plate_no = ANY($1)`, [allPlates])
+      ]);
       oLogs = oRes.rows;
+      sLogs = sRes.rows;
     } catch(err) {}
 
     let plateLogs = [];
@@ -507,13 +509,28 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
 
         // 🟢 ഒരേ വണ്ടി തന്നെ വീണ്ടും വന്നാൽ മാത്രം സ്കിപ്പ് ചെയ്യുന്നു, വ്യത്യസ്ത വണ്ടികളാണെങ്കിൽ എല്ലാം ലിസ്റ്റിൽ ഉൾപ്പെടുത്തുന്നു
         const uniqueKey = p !== 'N/A' ? p : `${p}_${row.after_adjustment}_${Math.random()}`;
+        // 🟢 row.company നോക്കാതെ, ആ മാസത്തെ site_log നേരിട്ട് പരിശോധിച്ച് കമ്പനി നിർണ്ണയിക്കുന്നു
+        const matchedSiteLog = sLogs.find(l => {
+          if ((l.plate_no || "").trim().toUpperCase() !== (p || "").trim().toUpperCase()) return false;
+          const s = l.work_start_date ? new Date(l.work_start_date) : new Date(2000, 0, 1);
+          const e = l.work_end_date ? new Date(l.work_end_date) : new Date(2099, 11, 31);
+          return s <= mEnd && e >= mStart;
+        });
+
+        const activeSiteName = (matchedSiteLog && matchedSiteLog.site_name) 
+          ? matchedSiteLog.site_name 
+          : (row.site_name || "");
+
+        // Khushaibi L&T പോലെയുള്ള സൈറ്റുകളിൽ We1 ഇല്ലാത്തതിനാൽ അത് We1 ആയി മാറില്ല
+        const monthCompany = getCompanyFromSite(activeSiteName, "Haka");
+
         if (!plateGroups[uniqueKey]) {
           plateGroups[uniqueKey] = {
             plate_no: displayPlate,
             nr_hours: parseFloat(row.nhr || 0),
             ot_hours: parseFloat(row.othr || 0),
             total_amount: parseFloat(row.after_adjustment || 0),
-            company: row.company ? getCompanyFromSite(row.company) : getCompanyFromSite(row.site_name),
+            company: monthCompany,
           };
         }
       }
