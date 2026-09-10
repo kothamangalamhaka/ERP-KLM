@@ -58,6 +58,17 @@ function isZSite(siteName) {
   return /^z(\s*[-_]?\s*(site|dummy|closed|na|none|$))/i.test(clean);
 }
 
+// 🟢 ഇവിടെയാണ് ഈ ഫംഗ്ഷൻ പേസ്റ്റ് ചെയ്യേണ്ടത് 👇
+function getCompanyFromSite(siteName, fallback = "Haka") {
+  if (!siteName) return fallback;
+  let s = siteName.toUpperCase().replace(/[\s\-_]/g, "");
+  if (s.includes("ALJODA")) return "Aljoda";
+  if (s.includes("MASARWHEELS") || s.includes("MASAR")) return "Masar Wheels";
+  if (s.includes("WE1TRACK") || s.includes("WE1") || s.includes("WETRACK")) return "We1 Track";
+  if (s.includes("HAKA")) return "Haka";
+  return fallback;
+}
+
 router.get("/data", verifyAccessCode, async (req, res) => {
   try {
     const { year } = req.query;
@@ -251,6 +262,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
               site_first_name: siteFirst,
               active_months: Array(12).fill(false),
               billing: {},
+              plateCompanies: {}, // 🟢 കമ്പനി ട്രാക്ക് ചെയ്യാൻ
             };
             for (let i = 0; i < 12; i++) {
               suppliersMap[supName].sites[siteFirst].billing[i] = {
@@ -261,6 +273,11 @@ router.get("/data", verifyAccessCode, async (req, res) => {
           }
 
           suppliersMap[supName].sites[siteFirst].active_months[m] = true;
+          // 🟢 വണ്ടിയുടെ കമ്പനി രേഖപ്പെടുത്തുന്നു
+          const pKeyLog = (log.plate_no || "").trim().toUpperCase();
+          if (pKeyLog) {
+            suppliersMap[supName].sites[siteFirst].plateCompanies[pKeyLog] = getCompanyFromSite(log.site_name);
+          }
         }
       }
     });
@@ -337,6 +354,19 @@ router.get("/data", verifyAccessCode, async (req, res) => {
     const finalArray = Object.values(suppliersMap)
       .filter((s) => s.sites.length > 0)
       .sort((a, b) => a.supplier.localeCompare(b.supplier));
+      // 🟢 ഓരോ സൈറ്റിലെയും കമ്പനി തിരിച്ചുള്ള വണ്ടികളുടെ എണ്ണം കണക്കാക്കുന്നു
+    Object.values(suppliersMap).forEach((sup) => {
+      Object.values(sup.sites).forEach((siteObj) => {
+        const companyCounts = {};
+        if (siteObj.plateCompanies) {
+          Object.values(siteObj.plateCompanies).forEach((comp) => {
+            companyCounts[comp] = (companyCounts[comp] || 0) + 1;
+          });
+        }
+        delete siteObj.plateCompanies;
+        siteObj.company_counts = companyCounts;
+      });
+    });
 
     res.json({ success: true, data: finalArray });
   } catch (error) {
