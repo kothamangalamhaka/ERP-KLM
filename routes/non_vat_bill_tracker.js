@@ -441,6 +441,7 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
                 LOWER(REGEXP_REPLACE(TRIM(COALESCE(owner, '')), '[^a-zA-Z0-9]', '', 'g')) AS clean_owner,
                 TRIM(COALESCE(billing_month, '')) AS billing_month,
                 site_name,
+                COALESCE(TRIM(company), '') AS company,
                 COALESCE(nhr::numeric, 0) AS nhr,
                 COALESCE(othr::numeric, 0) AS othr,
                 ROUND(COALESCE(
@@ -512,6 +513,7 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
             nr_hours: parseFloat(row.nhr || 0),
             ot_hours: parseFloat(row.othr || 0),
             total_amount: parseFloat(row.after_adjustment || 0),
+            company: row.company ? getCompanyFromSite(row.company) : getCompanyFromSite(row.site_name),
           };
         }
       }
@@ -523,6 +525,7 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
         nr_hours: Number(p.nr_hours.toFixed(2)),
         ot_hours: Number(p.ot_hours.toFixed(2)),
         total_amount: Number(p.total_amount.toFixed(2)),
+        company: p.company || "Haka",
       }))
       .sort((a, b) => a.plate_no.localeCompare(b.plate_no));
 

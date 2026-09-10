@@ -437,9 +437,13 @@
     <!-- Vendor TS Details Modal -->
     <div id="tsDetailsModal" class="modal-overlay" onclick="if(event.target===this) closeTsModal()">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="tsModalTitle">Vendor Breakdown</h3>
-                <button class="modal-close-btn" onclick="closeTsModal()">&times;</button>
+            <div class="modal-header" style="display: flex; flex-direction: column; align-items: flex-start; gap: 5px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <h3 id="tsModalTitle" style="margin: 0;">Vendor Breakdown</h3>
+                    <button class="modal-close-btn" onclick="closeTsModal()">&times;</button>
+                </div>
+                <!-- 🟢 Month-ന് താഴെ കമ്പനി വിവരങ്ങൾ കാണിക്കാനുള്ള ലൈൻ 👇 -->
+                <div id="tsModalCompanySubtitle" style="font-size: 11px; font-weight: 600; color: #38bdf8; display: none;"></div>
             </div>
             <div class="modal-body">
                 <table class="ts-breakdown-table">
@@ -901,7 +905,8 @@
                             plate: v.plate_no || "N/A",
                             nr: Number(v.nr_hours || 0),
                             ot: Number(v.ot_hours || 0),
-                            total: Number(v.total_amount || 0)
+                            total: Number(v.total_amount || 0),
+                            company: v.company || "Haka"
                         }));
                         tsDetailsCache[cacheKey] = list;
                         return list;
@@ -918,12 +923,37 @@
             document.getElementById("tsModalTitle").innerText = `${mName} - ${siteFirst.toUpperCase()} Breakdown (${supplier})`;
             const tbody = document.getElementById("tsBreakdownBody");
             const tfoot = document.getElementById("tsBreakdownFoot");
+            const subTitleEl = document.getElementById("tsModalCompanySubtitle");
 
+            subTitleEl.style.display = "none";
             tbody.innerHTML = `<tr><td colspan="4" style="color:#64748b; padding: 20px;">Fetching Plate & Hours data...</td></tr>`;
             tfoot.innerHTML = "";
             document.getElementById("tsDetailsModal").style.display = "flex";
 
             const plates = await fetchVehicleBreakdown(supplier, siteFirst, monthIdx);
+
+            // 🟢 ആ മാസത്തിലെ വണ്ടികളുടെ കമ്പനി എണ്ണം കണക്കാക്കി Month-ന് താഴെ ലൈനായി കാണിക്കുന്നു
+            if (plates && plates.length > 0) {
+                const compCounts = {};
+                plates.forEach(p => {
+                    const comp = p.company || "Haka";
+                    compCounts[comp] = (compCounts[comp] || 0) + 1;
+                });
+
+                const order = ["We1 Track", "Aljoda", "Masar Wheels", "Haka"];
+                let compParts = [];
+                order.forEach(comp => {
+                    if (compCounts[comp]) compParts.push(`${comp} (${compCounts[comp]})`);
+                });
+                Object.keys(compCounts).forEach(comp => {
+                    if (!order.includes(comp) && compCounts[comp]) compParts.push(`${comp} (${compCounts[comp]})`);
+                });
+
+                if (compParts.length > 0) {
+                    subTitleEl.innerHTML = compParts.join(" &nbsp;|&nbsp; ");
+                    subTitleEl.style.display = "block";
+                }
+            }
 
             tbody.innerHTML = "";
             if (!plates || plates.length === 0) {
