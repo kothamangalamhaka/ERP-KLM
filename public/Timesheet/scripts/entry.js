@@ -132,7 +132,10 @@ async function init() {
 }
 
 function searchPlate() {
-  const val = document.getElementById("selPlate").value.trim().toUpperCase();
+  const inputEl = document.getElementById("selPlate");
+  delete inputEl.dataset.actualPlate; // 🟢 ടൈപ്പ് ചെയ്യുമ്പോൾ പഴയ പ്ലേറ്റ് നമ്പർ മെമ്മറിയിൽ നിന്ന് മായ്ക്കുന്നു
+
+  const val = inputEl.value.trim().toUpperCase();
   const sug = document.getElementById("plateSuggestions");
   sug.innerHTML = ""; 
   currentFocus = -1;
