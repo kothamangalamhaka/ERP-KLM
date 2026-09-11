@@ -2818,12 +2818,12 @@
                 : ""
             ).toUpperCase();
 
-            // inv_no, bill_no cells - column index 22 = inv_no, 23 = bill_no
-            let inv_no = tr.cells[22]
-              ? tr.cells[22].innerText.toUpperCase()
+            // inv_no, bill_no cells - column index 27 = inv_no, 28 = bill_no
+            let inv_no = tr.cells[27]
+              ? tr.cells[27].innerText.toUpperCase()
               : "";
-            let bill_no = tr.cells[23]
-              ? tr.cells[23].innerText.toUpperCase()
+            let bill_no = tr.cells[28]
+              ? tr.cells[28].innerText.toUpperCase()
               : "";
 
             let matchO =
@@ -4588,11 +4588,11 @@
         let tr = cb.closest("tr");
         if (tr) {
           // 🟢 റീലോഡ് ഒഴിവാക്കി, സെല്ലുകൾ നേരിട്ട് അപ്ഡേറ്റ് ചെയ്യുന്നു
-          tr.cells[13].innerText =
-            newVal === "Yes" ? "" : rowObj ? rowObj.orig_diff_nr : "";
-          tr.cells[14].innerText =
-            newVal === "Yes" ? "" : rowObj ? rowObj.orig_diff_ot : "";
           tr.cells[15].innerText =
+            newVal === "Yes" ? "" : rowObj ? rowObj.orig_diff_nr : "";
+          tr.cells[16].innerText =
+            newVal === "Yes" ? "" : rowObj ? rowObj.orig_diff_ot : "";
+          tr.cells[17].innerText =
             newVal === "Yes" ? "" : rowObj ? rowObj.orig_diff_st : "";
         }
 
