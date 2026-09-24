@@ -37,6 +37,13 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDashboardData();
   startActiveUserTracking();
 
+  // 🟢 Number inputs-il mouse wheel scroll cheythu value maarunnath prevent cheyyunnu
+  document.addEventListener("wheel", (e) => {
+    if (document.activeElement.type === "number") {
+      document.activeElement.blur();
+    }
+  });
+
   const modalInputs = document.querySelectorAll("#dataModal input[type='number']");
   modalInputs.forEach((input, index) => {
     input.addEventListener("keydown", (e) => {
