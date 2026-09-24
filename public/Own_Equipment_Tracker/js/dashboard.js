@@ -853,15 +853,18 @@ function populateExpenseTable() {
   const y = Number(document.getElementById("filterYear").value);
   let html = "";
   
+  // 🟢 0 അല്ലെങ്കിൽ 0.0 ആണെങ്കിൽ Blank ആക്കുന്ന ഹെൽപ്പർ
+  const cleanZero = (val) => (!val || Number(val) === 0) ? "" : val;
+
   for (let m = 1; m <= 12; m++) {
     const log = getBaseLog(eqId, y, m);
     html += `<tr>
       <td style="font-weight: bold; background: #fafafa; text-align: center;">${fullMonthNames[m-1]} ${y}</td>
-      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="1" id="exp_maint_${m}" value="${log.maintenance_cost || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="2" id="exp_santook_${m}" value="${log.santook_rent || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="3" id="exp_debit_${m}" value="${log.debit || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="4" id="exp_pwas_${m}" value="${log.pwas || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="5" id="exp_other_${m}" value="${log.other_expense || ''}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="1" id="exp_maint_${m}" value="${cleanZero(log.maintenance_cost)}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="2" id="exp_santook_${m}" value="${cleanZero(log.santook_rent)}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="3" id="exp_debit_${m}" value="${cleanZero(log.debit)}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="4" id="exp_pwas_${m}" value="${cleanZero(log.pwas)}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="5" id="exp_other_${m}" value="${cleanZero(log.other_expense)}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
     </tr>`;
   }
   document.getElementById("expenseTableBody").innerHTML = html;
