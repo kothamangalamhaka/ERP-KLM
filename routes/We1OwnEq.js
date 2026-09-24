@@ -22,10 +22,12 @@ router.get("/data", verifyToken, async (req, res) => {
         m.*,
         d.iqama_no,
         d.iqama_expiry,
-        d.licence_expiry
+        d.licence_expiry,
+        d.passport_no,
+        d.passport_expiry
       FROM we1_own_eq_master m
       LEFT JOIN LATERAL (
-        SELECT iqama_no, iqama_expiry, licence_expiry
+        SELECT iqama_no, iqama_expiry, licence_expiry, passport_no, passport_expiry
         FROM we1_driver_log
         WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM(m.plate_no))
         ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
@@ -133,7 +135,7 @@ router.post("/log/save", verifyEditor, async (req, res) => {
       }
     } else if (type === "DriverLog") {
       const latest = await client.query(
-        `SELECT driver_name, driver_mobile, join_date, salary, iqama_no, iqama_expiry, licence_expiry FROM we1_driver_log WHERE plate_no = $1 ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
+        `SELECT driver_name, driver_mobile, join_date, salary, iqama_no, iqama_expiry, licence_expiry, passport_no, passport_expiry FROM we1_driver_log WHERE plate_no = $1 ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC LIMIT 1`,
         [plate_no],
       );
       if (latest.rows.length > 0) {
@@ -209,6 +211,8 @@ router.post("/add", verifyEditor, async (req, res) => {
       iqama_no,
       iqama_expiry,
       licence_expiry,
+      passport_no,
+      passport_expiry,
       chassis_no,
       serial_no,
       eq_insurance_exp,
@@ -291,7 +295,7 @@ router.post("/add", verifyEditor, async (req, res) => {
     );
 
     await client.query(
-      `INSERT INTO we1_driver_log (plate_no, driver_name, driver_mobile, join_date, salary, iqama_no, iqama_expiry, licence_expiry) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      `INSERT INTO we1_driver_log (plate_no, driver_name, driver_mobile, join_date, salary, iqama_no, iqama_expiry, licence_expiry, passport_no, passport_expiry) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [
         cleanPlate,
         val(driver_name),
@@ -300,7 +304,9 @@ router.post("/add", verifyEditor, async (req, res) => {
         val(salary),
         val(iqama_no),
         val(iqama_expiry),
-        val(licence_expiry)
+        val(licence_expiry),
+        val(passport_no),
+        val(passport_expiry)
       ],
     );
 

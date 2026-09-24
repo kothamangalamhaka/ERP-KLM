@@ -1017,12 +1017,19 @@
             <th oncontextmenu="copyColumnToClipboard(event, 'licence_expiry_ui', 'Licence Exp')" title="Right click to copy column">
               <div class="th-content">
                 <span>Licence Exp</span>
-                <button
-                  class="filter-btn"
-                  onclick="openExcelFilter(event, 'licence_expiry_ui')"
-                >
-                  ▼
-                </button>
+                <button class="filter-btn" onclick="openExcelFilter(event, 'licence_expiry_ui')">▼</button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'passport_no', 'Passport No')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Passport No.</span>
+                <button class="filter-btn" onclick="openExcelFilter(event, 'passport_no')">▼</button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'passport_expiry_ui', 'Passport Exp')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Passport Exp</span>
+                <button class="filter-btn" onclick="openExcelFilter(event, 'passport_expiry_ui')">▼</button>
               </div>
             </th>
             <th oncontextmenu="copyColumnToClipboard(event, 'chassis_no', 'Chassis No')" title="Right click to copy column">
@@ -1357,6 +1364,7 @@
             const joining_date_ui = formatUIDate(row.joining_date);
             const iqama_expiry_ui = formatUIDate(row.iqama_expiry);
             const licence_expiry_ui = formatUIDate(row.licence_expiry);
+            const passport_expiry_ui = formatUIDate(row.passport_expiry);
             const eq_insurance_exp_ui = formatUIDate(row.eq_insurance_exp);
             const fahs_mvpi_exp_ui = formatUIDate(row.fahs_mvpi_exp);
             const op_card_exp_ui = formatUIDate(row.op_card_exp);
@@ -1402,6 +1410,8 @@
               chassis_no: cleanVal(row.chassis_no),
               serial_no: cleanVal(row.serial_no),
               iqama_no: cleanVal(row.iqama_no),
+              passport_no: cleanVal(row.passport_no),
+              passport_expiry_ui
             };
           });
 
@@ -1531,6 +1541,8 @@
                     <td>${row.iqama_no || ''}</td>
                     <td style="${getCellExpiryStyle(row.iqama_expiry)}">${row.iqama_expiry_ui || formatUIDate(row.iqama_expiry)}</td>
                     <td style="${getCellExpiryStyle(row.licence_expiry)}">${row.licence_expiry_ui || formatUIDate(row.licence_expiry)}</td>
+                    <td>${row.passport_no || ''}</td>
+                    <td style="${getCellExpiryStyle(row.passport_expiry)}">${row.passport_expiry_ui || formatUIDate(row.passport_expiry)}</td>
                     <td>${row.chassis_no || ''}</td>
                     <td>${row.serial_no || ''}</td>
                     <td style="${getCellExpiryStyle(row.eq_insurance_exp)}">${row.eq_insurance_exp_ui || formatUIDate(row.eq_insurance_exp)}</td>
@@ -2281,19 +2293,19 @@ function onCheckboxChange(cb) {
             type: "text",
             placeholder: "Enter IQAMA No",
           },
+          // NEW CODE
           {
             type: "row",
             fields: [
-              {
-                id: "f_iqama_expiry",
-                label: "IQAMA Expiry",
-                type: "date",
-              },
-              {
-                id: "f_licence_expiry",
-                label: "Licence Expiry",
-                type: "date",
-              },
+              { id: "f_iqama_expiry", label: "IQAMA Expiry", type: "date" },
+              { id: "f_licence_expiry", label: "Licence Expiry", type: "date" },
+            ],
+          },
+          {
+            type: "row",
+            fields: [
+              { id: "f_passport_no", label: "Passport No.", type: "text", placeholder: "Enter Passport No" },
+              { id: "f_passport_expiry", label: "Passport Expiry", type: "date" },
             ],
           },
         ],
@@ -2481,6 +2493,8 @@ function onCheckboxChange(cb) {
             "IQAMA No.",
             "IQAMA Exp",
             "Licence Exp",
+            "Passport No",
+            "Passport Exp",
             "Edit",
           ];
         else if (type === "VehicleTypeLog")
@@ -2598,7 +2612,7 @@ function onCheckboxChange(cb) {
 
                 tdHtml = `<td>${r.site_name || "-"}</td><td>${formatUIDate(r.mob_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${formatUIDate(r.replaced_date)}</td><td>${r.old_eq || "-"}</td><td>${r.new_eq || "-"}</td><td>${status}</td>`;
               } else if (type === "DriverLog") {
-                tdHtml = `<td>${r.driver_name || "-"}</td><td>${r.driver_mobile || r.mobile || "-"}</td><td>${formatUIDate(r.join_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${r.salary || "-"}</td><td>${r.iqama_no || "-"}</td><td>${formatUIDate(r.iqama_expiry)}</td><td>${formatUIDate(r.licence_expiry)}</td>`;
+                tdHtml = `<td>${r.driver_name || "-"}</td><td>${r.driver_mobile || r.mobile || "-"}</td><td>${formatUIDate(r.join_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${r.salary || "-"}</td><td>${r.iqama_no || "-"}</td><td>${formatUIDate(r.iqama_expiry)}</td><td>${formatUIDate(r.licence_expiry)}</td><td>${r.passport_no || "-"}</td><td>${formatUIDate(r.passport_expiry)}</td>`;
               } else if (type === "OwnerLog") {
                 tdHtml = `<td>${r.owner_name || "-"}</td><td>${formatUIDate(r.start_date)}</td><td>${formatUIDate(r.end_date)}</td>`;
               }
@@ -2920,9 +2934,18 @@ function onCheckboxChange(cb) {
                     <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">IQAMA Expiry</label>
                     <input type="date" id="newIqamaExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
+                // NEW CODE
                 <div class="form-group">
                     <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Licence Expiry</label>
                     <input type="date" id="newLicenceExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Passport No.</label>
+                    <input type="text" id="newPassportNo" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Passport Number">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Passport Expiry</label>
+                    <input type="date" id="newPassportExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
                 </div>
                 <div class="form-group">
                     <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Chassis No</label>
@@ -3002,6 +3025,8 @@ function onCheckboxChange(cb) {
           iqama_no: document.getElementById("newIqamaNo").value.trim(),
           iqama_expiry: document.getElementById("newIqamaExp").value || null,
           licence_expiry: document.getElementById("newLicenceExp").value || null,
+          passport_no: document.getElementById("newPassportNo").value.trim(),
+          passport_expiry: document.getElementById("newPassportExp").value || null,
           chassis_no: document.getElementById("newChassisNo").value.trim(),
           serial_no: document.getElementById("newSerialNo").value.trim(),
           eq_insurance_exp: document.getElementById("newEqInsuranceExp").value || null,

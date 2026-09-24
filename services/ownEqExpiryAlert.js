@@ -149,10 +149,12 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
         m.isthimaara_exp,
         d.iqama_no,
         d.iqama_expiry,
-        d.licence_expiry
+        d.licence_expiry,
+        d.passport_no,
+        d.passport_expiry
       FROM we1_own_eq_master m
       LEFT JOIN LATERAL (
-        SELECT iqama_no, iqama_expiry, licence_expiry
+        SELECT iqama_no, iqama_expiry, licence_expiry, passport_no, passport_expiry
         FROM we1_driver_log
         WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM(m.plate_no))
         ORDER BY COALESCE(join_date, '1970-01-01'::date) DESC, id DESC
@@ -173,6 +175,7 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
     for (const row of rows) {
       const iqamaDays = getDaysRemaining(row.iqama_expiry);
       const licenceDays = getDaysRemaining(row.licence_expiry);
+      const passportDays = getDaysRemaining(row.passport_expiry);
       const insuranceDays = getDaysRemaining(row.eq_insurance_exp);
       const fahsDays = getDaysRemaining(row.fahs_mvpi_exp);
       const opCardDays = getDaysRemaining(row.op_card_exp);
@@ -182,6 +185,7 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
       const hasAlert = 
         (iqamaDays !== null && iqamaDays <= 30) ||
         (licenceDays !== null && licenceDays <= 30) ||
+        (passportDays !== null && passportDays <= 30) ||
         (insuranceDays !== null && insuranceDays <= 30) ||
         (fahsDays !== null && fahsDays <= 30) ||
         (opCardDays !== null && opCardDays <= 30) ||
@@ -193,6 +197,7 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
         ...row,
         iqamaDays,
         licenceDays,
+        passportDays,
         insuranceDays,
         fahsDays,
         opCardDays,
@@ -200,7 +205,7 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
       });
 
       // Email Rule: Trigger ONLY if at least one item hits 5, 10, 15, 20, 25, or 30 days
-      [iqamaDays, licenceDays, insuranceDays, fahsDays, opCardDays, isthimaaraDays].forEach((d) => {
+      [iqamaDays, licenceDays, passportDays, insuranceDays, fahsDays, opCardDays, isthimaaraDays].forEach((d) => {
         if (d !== null && (emailMilestoneDays.includes(d) || (isTest && d <= 30))) {
           shouldTriggerEmail = true;
         }
@@ -239,6 +244,15 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
             ? `(EXPIRED ${Math.abs(item.licenceDays)} days ago)`
             : `(${item.licenceDays} days count)`;
         msg += `Licence Exp :: ${formatDate(item.licence_expiry)} ${tag}\n`;
+      }
+
+      if (item.passportDays !== null && item.passportDays <= 30) {
+        const tag =
+          item.passportDays < 0
+            ? `(EXPIRED ${Math.abs(item.passportDays)} days ago)`
+            : `(${item.passportDays} days count)`;
+        msg += `Passport Exp :: ${formatDate(item.passport_expiry)} ${tag}\n`;
+        msg += `Passport No :: ${item.passport_no || "-"}\n`;
       }
 
       let eqSection = "";
@@ -306,6 +320,8 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
             <th>IQAMA No</th>
             <th>IQAMA Exp</th>
             <th>License Expiry</th>
+            <th>Passport No</th>
+            <th>Passport Exp</th>
             <th>Chassis No</th>
             <th>Serial No</th>
             <th>EQ Insurance Exp</th>
@@ -326,6 +342,8 @@ async function checkAndSendOwnEqAlerts(isTest = false) {
             <td>${r.iqama_no || "-"}</td>
             <td style="${getExpiryCellStyle(r.iqamaDays)}">${formatDate(r.iqama_expiry)}</td>
             <td style="${getExpiryCellStyle(r.licenceDays)}">${formatDate(r.licence_expiry)}</td>
+            <td>${r.passport_no || "-"}</td>
+            <td style="${getExpiryCellStyle(r.passportDays)}">${formatDate(r.passport_expiry)}</td>
             <td>${r.chassis_no || "-"}</td>
             <td>${r.serial_no || "-"}</td>
             <td style="${getExpiryCellStyle(r.insuranceDays)}">${formatDate(r.eq_insurance_exp)}</td>
