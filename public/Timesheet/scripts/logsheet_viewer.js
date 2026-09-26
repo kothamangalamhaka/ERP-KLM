@@ -788,8 +788,9 @@ async function triggerFileRename() {
       file.basename = newBaseName;
       file.filename = newFullPath;
 
-      // 2. സൈഡ്‌ബാറിലെ ഫയൽ ടെക്സ്റ്റ് മാത്രം മാറ്റുന്നു
-      const fileRow = document.getElementById(`ls-file-${contextSelectedFileIndex}`);
+      // 2. സൈഡ്‌ബാറിലെ DOM element clean aayi sync cheyyunnu
+      const targetIndex = contextSelectedFileIndex;
+      const fileRow = document.getElementById(`ls-file-${targetIndex}`);
       if (fileRow) {
         const spanEl = fileRow.querySelector("span");
         if (spanEl) {
@@ -798,7 +799,13 @@ async function triggerFileRename() {
         }
       }
 
-      // 3. വിജയകരമായ കാര്യം ചെറിയൊരു ടോസ്റ്റ് ആയി കാണിക്കുന്നു
+      // 3. Title text-il ithu thanne open aayi irikkukayaanenkil peru sync cheyyunnu
+      if (currentFileIndex === targetIndex) {
+        const openImg = document.querySelector("#zoomContent img");
+        if (openImg) openImg.alt = newBaseName;
+      }
+
+      // 4. വിജയകരമായ കാര്യം ചെറിയൊരു ടോസ്റ്റ് ആയി കാണിക്കുന്നു
       Swal.fire({
         toast: true,
         position: "top-end",
@@ -916,26 +923,10 @@ async function saveCurrentRotation() {
     const data = await res.json();
 
     if (data.success) {
-      // റൊട്ടേഷൻ ഡിഗ്രി പൂജ്യമാക്കുന്നു
+      // 🟢 TRUE SILENT ROTATE SAVE: Veendum image network vazhi download aakki loading kanikkenda aavashyamilla!
+      // Server-il already rotate aayi save aayi. Frontend-il current visual rotation zero reset cheythu button disable cheythal mathi.
       currentRotation = 0;
-      applyTransform();
-      updateSaveRotationBtnState(); // 🟢 സേവ് ചെയ്ത ശേഷം ബട്ടൺ വീണ്ടും ഇൻആക്ടീവ് ആക്കുന്നു
-
-      // 🟢 SILENT RELOAD: പേജോ ലിസ്റ്റോ റീലോഡ് ചെയ്യാതെ നിലവിലെ ചിത്രം മാത്രം റീ-റെൻഡർ ചെയ്യുന്നു
-      const zoomContent = document.getElementById("zoomContent");
-      const img = zoomContent ? zoomContent.querySelector("img") : null;
-      if (img) {
-        // കാഷെ ബൈപാസ് ചെയ്ത് പുതിയ ഇമേജ് കൊണ്ടുവരുന്നു
-        const activeToken = localStorage.getItem("timesheetToken");
-        const freshRes = await fetch(`/timesheet/api/logsheets/file?path=${encodeURIComponent(file.filename)}&_t=${Date.now()}`, {
-          headers: { Authorization: "Bearer " + activeToken }
-        });
-        const freshBlob = await freshRes.blob();
-        img.src = URL.createObjectURL(freshBlob);
-      } else {
-        // PDF ആണെങ്കിൽ ഉള്ളടക്കം മാത്രം സൈലന്റ് ആയി റീലോഡ് ചെയ്യുന്നു
-        loadViewerContent(file.filename, file.mime, activeToken);
-      }
+      updateSaveRotationBtnState();
 
       Swal.fire({
         toast: true,
@@ -943,7 +934,7 @@ async function saveCurrentRotation() {
         icon: "success",
         title: "Saved silently! ✓",
         showConfirmButton: false,
-        timer: 1800,
+        timer: 1500,
       });
     } else {
       await customAlert(data.message || "Failed to save rotation", "Error");

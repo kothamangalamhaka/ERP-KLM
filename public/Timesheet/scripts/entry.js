@@ -889,12 +889,28 @@ function renderGrid(
       })
       .replace(/ /g, " ");
 
-    let specialRule = specialRulesCache.find(
-      (r) =>
-        r.is_active &&
-        (r.sites.includes("ALL") || r.sites.includes(currentSiteStr)) &&
-        r.dates.includes(formattedDate),
-    );
+    const monthShortNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const padDay = String(i).padStart(2, "0");
+    const formattedDateStd = `${padDay} ${monthShortNames[mIdx]} ${year}`;
+    const altDateStd = `${i} ${monthShortNames[mIdx]} ${year}`;
+
+    let specialRule = specialRulesCache.find((r) => {
+      if (!r.is_active) return false;
+      let sitesArr = Array.isArray(r.sites) ? r.sites : [];
+      if (typeof r.sites === "string") {
+        try { sitesArr = JSON.parse(r.sites); } catch (e) { sitesArr = [r.sites]; }
+      }
+      let datesArr = Array.isArray(r.dates) ? r.dates : [];
+      if (typeof r.dates === "string") {
+        try { datesArr = JSON.parse(r.dates); } catch (e) { datesArr = [r.dates]; }
+      }
+      const siteMatch = sitesArr.includes("ALL") || sitesArr.some(s => s && currentSiteStr.includes(String(s).trim().toUpperCase()));
+      const dateMatch = datesArr.some(d => {
+        let dStr = String(d).trim();
+        return dStr === formattedDateStd || dStr === altDateStd || dStr === formattedDate;
+      });
+      return siteMatch && dateMatch;
+    });
 
     let displayBd = cleanVal(rowData.bd).toUpperCase();
     if (displayBd === "B") displayBd = "BD";
@@ -913,12 +929,12 @@ function renderGrid(
     }
 
     let statusCode = getGapStatus(currentDateObj, siteLogs, driverLogs);
-    let hasData = displayBd !== "" || ws !== "" || hmr !== "";
+    let hasData = (displayBd !== "" && displayBd !== null) || (ws !== "" && we !== "") || hmr !== "";
 
     if (!hasData) {
       if (specialRule && specialRule.rule_type !== "FULL_OT") {
         displayBd = specialRule.rule_type;
-        rowRemark = specialRule.reason || "";
+        if (!rowRemark) rowRemark = specialRule.reason || "";
       } else if (statusCode !== "ACTIVE") {
         displayBd = statusCode;
       }
@@ -1576,16 +1592,33 @@ function customPrompt(message, isPassword = false, title = "Input Required") {
     inputEl.type = isPassword ? "password" : "text";
     inputEl.value = "";
     document.getElementById("customPromptModal").style.display = "flex";
-    inputEl.focus();
-    window.submitCustomPrompt = function () {
+
+    const submitAction = () => {
       const val = inputEl.value;
+      inputEl.onkeydown = null;
       document.getElementById("customPromptModal").style.display = "none";
       resolve(val);
     };
-    window.closeCustomPrompt = function () {
+
+    const cancelAction = () => {
+      inputEl.onkeydown = null;
       document.getElementById("customPromptModal").style.display = "none";
       resolve(null);
     };
+
+    inputEl.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        submitAction();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelAction();
+      }
+    };
+
+    window.submitCustomPrompt = submitAction;
+    window.closeCustomPrompt = cancelAction;
+    setTimeout(() => inputEl.focus(), 50);
   });
 }
 
