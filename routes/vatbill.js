@@ -67,13 +67,14 @@ router.get("/data", verifyVatCode, async (req, res) => {
         const vehicles = vehicleResult.rows;
         const plates = vehicles.map(v => v.plate_no);
  
-        // 2.1 Fetch Owner Logs with safe fallback for column names
+        // 2.1 Fetch Owner Logs with VAT status and safe fallback
         let ownerLogs = [];
         try {
             const ownerLogRes = await pool.query(`
                 SELECT 
                     plate_no, 
                     owner_name, 
+                    vat,
                     COALESCE(work_start_date, start_date) as start_date, 
                     COALESCE(work_end_date, end_date) as end_date 
                 FROM vehicle_owner_log 
@@ -82,12 +83,12 @@ router.get("/data", verifyVatCode, async (req, res) => {
             `, [plates]);
             ownerLogs = ownerLogRes.rows;
         } catch (e) {
-            // Fallback if work_start_date or start_date doesn't exist together
             try {
                 const fbRes = await pool.query(`SELECT * FROM vehicle_owner_log WHERE plate_no = ANY($1)`, [plates]);
                 ownerLogs = fbRes.rows.map(r => ({
                     plate_no: r.plate_no,
                     owner_name: r.owner_name,
+                    vat: r.vat,
                     start_date: r.work_start_date || r.start_date,
                     end_date: r.work_end_date || r.end_date
                 }));
@@ -95,25 +96,27 @@ router.get("/data", verifyVatCode, async (req, res) => {
                 console.warn("vehicle_owner_log query warning:", err.message);
             }
         }
- 
-        // Helper to determine accurate owner for a specific month
-        const getOwnerForMonth = (plateNo, mIdx, fallbackOwner) => {
+
+        // Helper to determine accurate owner and VAT status for a specific month
+        const getOwnerLogForMonth = (plateNo, mIdx, fallbackOwner, fallbackVat) => {
             const mStart = new Date(currentYear, mIdx, 1);
             const mEnd = new Date(currentYear, mIdx + 1, 0);
- 
+
             const matchedLogs = ownerLogs.filter(l => {
                 if ((l.plate_no || "").trim().toUpperCase() !== plateNo.trim().toUpperCase()) return false;
                 const sDate = l.start_date ? new Date(l.start_date) : new Date(2000, 0, 1);
                 const eDate = l.end_date ? new Date(l.end_date) : new Date(2099, 11, 31);
                 return sDate <= mEnd && eDate >= mStart;
             });
- 
+
             if (matchedLogs.length > 0) {
                 const active = matchedLogs[matchedLogs.length - 1];
-                return (active.owner_name && active.owner_name.trim()) ? active.owner_name.trim() : fallbackOwner;
+                const oName = (active.owner_name && active.owner_name.trim()) ? active.owner_name.trim() : fallbackOwner;
+                const isVat = active.vat ? ['yes', 'true', '15'].includes(String(active.vat).trim().toLowerCase()) : fallbackVat;
+                return { owner: oName, isVat: isVat };
             }
- 
-            return fallbackOwner;
+
+            return { owner: fallbackOwner, isVat: fallbackVat };
         };
  
         // 3. Fetch SITE LOGS history (Calculates active months)
@@ -174,16 +177,25 @@ const erpQuery = `
             let sd = log.work_start_date ? new Date(log.work_start_date) : new Date(2000, 0, 1);
             let ed = log.work_end_date ? new Date(log.work_end_date) : (log.status === 'Running' ? new Date(2100, 11, 31) : new Date(sd));
  
+            const defaultIsVat = vehicle.vat ? ['yes', 'true', '15'].includes(String(vehicle.vat).trim().toLowerCase()) : true;
+
             for (let m = 0; m < 12; m++) {
                 let mStart = new Date(currentYear, m, 1);
                 let mEnd = new Date(currentYear, m + 1, 0);
- 
+
                 if (sd <= mEnd && ed >= mStart) {
-                    const actualSupplier = getOwnerForMonth(log.plate_no, m, defaultOwner);
+                    const ownerInfo = getOwnerLogForMonth(log.plate_no, m, defaultOwner, defaultIsVat);
+                    
+                    // 🟢 STRICT CHECK: ആ പ്രത്യേക മാസത്തിൽ വാഹനം VAT അല്ലെങ്കിൽ VAT ട്രാക്കിംഗിൽ ചേർക്കില്ല!
+                    if (!ownerInfo.isVat) {
+                        continue;
+                    }
+
+                    const actualSupplier = ownerInfo.owner;
                     if (!actualSupplier || actualSupplier === "Unknown") continue;
- 
+
                     const groupKey = `${company}_${actualSupplier}`;
- 
+
                     if (!groupedData[groupKey]) {
                         const meta = supplierInfo[actualSupplier] || supplierInfo[defaultOwner] || { vat_no: "", display_name: "" };
                         groupedData[groupKey] = {
@@ -194,7 +206,7 @@ const erpQuery = `
                             sites: {}
                         };
                     }
- 
+
                     if (!groupedData[groupKey].sites[site]) {
                         groupedData[groupKey].sites[site] = {
                             site_name: site,
@@ -202,7 +214,7 @@ const erpQuery = `
                             billing: {}
                         };
                     }
- 
+
                     groupedData[groupKey].sites[site].active_months[m] = true;
                 }
             }
