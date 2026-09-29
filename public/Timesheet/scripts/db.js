@@ -1551,7 +1551,10 @@ async function submitNewVehicle() {
       }
     }
 
-    // Site & Rate Sync
+    // Site & Rate Sync (Including Vehicle Type Sync)
+    const vehTypeEl = document.getElementById("new_vehicle_type");
+    const newVehicleTypeVal = vehTypeEl ? vehTypeEl.value.trim() : "";
+
     if (dynamicCols.includes("site_name")) {
       let sName = document.getElementById("new_site_name").value.trim();
       let sRate = document.getElementById("new_site_rate").value.trim();
@@ -1581,6 +1584,7 @@ async function submitNewVehicle() {
             new_vehicle_no: null,
             field_co: fCo,
             site_co: sCo,
+            vehicle_type: newVehicleTypeVal || null,
           }),
         });
 
@@ -1794,10 +1798,16 @@ function clearDriverForm() {
   document.getElementById("dlName").focus();
 }
 function clearSiteForm() {
+  const currentPlate = document.getElementById("slPlate") ? document.getElementById("slPlate").innerText : "";
+  const masterRow = tableData.find((x) => x.plate_no === currentPlate);
+  const fallbackType = masterRow && masterRow.vehicle_type ? masterRow.vehicle_type : "";
+
   document.getElementById("slId").value = "";
   document.getElementById("slName").value = "";
   document.getElementById("slRate").value = "";
-  if (document.getElementById("slVehicleType")) document.getElementById("slVehicleType").value = "";
+  if (document.getElementById("slVehicleType")) {
+    document.getElementById("slVehicleType").value = fallbackType;
+  }
   document.getElementById("slFieldCo").value = "";
   document.getElementById("slSiteCo").value = "";
   document.getElementById("slOldVehicle").value = "";
@@ -2651,23 +2661,6 @@ function applySheetDesign(ws, headerStyle, cellStyleLeft, cellStyleCenter) {
   }
 
   ws["!cols"] = colWidths;
-}
-
-// Helper Function to apply styled borders and headers to any sheet
-function applySheetDesign(ws, headerStyle, cellStyleLeft, cellStyleCenter) {
-  if (!ws["!ref"]) return;
-  const range = XLSX.utils.decode_range(ws["!ref"]);
-  for (let R = range.s.r; R <= range.e.r; ++R) {
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cell_address = XLSX.utils.encode_cell({ c: C, r: R });
-      if (!ws[cell_address]) continue;
-      if (R === 0) {
-        ws[cell_address].s = headerStyle;
-      } else {
-        ws[cell_address].s = C === 0 ? cellStyleCenter : cellStyleLeft;
-      }
-    }
-  }
 }
 
 async function importExcel() {

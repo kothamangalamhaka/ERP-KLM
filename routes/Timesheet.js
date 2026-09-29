@@ -439,19 +439,20 @@ router.get("/api/vehicle-logs", verifyToken, async (req, res) => {
   }
 });
 
-// Update Owner Log
+// Update Owner Log (With Period-splitting and auto-closure for existing active logs)
 router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const { id, plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason } = req.body;
+    const cleanPlate = plate_no ? plate_no.trim().toUpperCase() : "";
     const calculatedStatus = work_end_date ? "Released" : (status || "Running");
 
     let finalStartDate = work_start_date || null;
     if (!finalStartDate && !id) {
       const minSiteRes = await client.query(
         `SELECT MIN(work_start_date) as first_start FROM vehicle_site_log WHERE UPPER(plate_no) = UPPER($1) AND work_start_date IS NOT NULL`,
-        [plate_no]
+        [cleanPlate]
       );
       finalStartDate = minSiteRes.rows[0]?.first_start || null;
     }
@@ -462,20 +463,31 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
         [owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, id]
       );
     } else {
+      if (calculatedStatus === "Running") {
+        let prevEnd = finalStartDate || new Date().toISOString().split("T")[0];
+        await client.query(
+          `UPDATE vehicle_owner_log 
+           SET status = 'Released', 
+               work_end_date = COALESCE(work_end_date, $1::date)
+           WHERE UPPER(plate_no) = UPPER($2) AND status = 'Running'`,
+          [prevEnd, cleanPlate]
+        );
+      }
+
       await client.query(
         `INSERT INTO vehicle_owner_log (plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [plate_no, owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null]
+        [cleanPlate, owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null]
       );
     }
 
     if (calculatedStatus === "Running") {
       await client.query(
         `UPDATE timesheet_vehicles SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name_=$5 WHERE UPPER(plate_no)=UPPER($6)`,
-        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, plate_no]
+        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, cleanPlate]
       );
     }
 
-    await logAudit(req.user, "OWNER_LOG_UPDATE", `Updated owner log for ${plate_no}`);
+    await logAudit(req.user, "OWNER_LOG_UPDATE", `Updated owner log for ${cleanPlate}`);
     await client.query("COMMIT");
     res.json({ success: true });
   } catch (error) {
@@ -911,8 +923,13 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
     }
 
     if (status === "Running") {
-      let tsUpdates = ["site_name=$1", "rate=$2", "field_co=$3", "site_co=$4", "vehicle_type=$5"];
-      let tsVals = [site_name, rate || null, field_co || null, site_co || null, vehicle_type || null];
+      let tsUpdates = ["site_name=$1", "rate=$2", "field_co=$3", "site_co=$4"];
+      let tsVals = [site_name, rate || null, field_co || null, site_co || null];
+
+      if (vehicle_type && vehicle_type.trim() !== "") {
+        tsUpdates.push(`vehicle_type=$${tsVals.length + 1}`);
+        tsVals.push(vehicle_type.trim());
+      }
 
       if (asset_code !== undefined) {
         tsUpdates.push(`asset_code=$${tsVals.length + 1}`);
