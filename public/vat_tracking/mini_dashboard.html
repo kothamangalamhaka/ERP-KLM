@@ -357,12 +357,14 @@
                 sup.sites.forEach(site => {
                     const pendingList = [];
                     for (let m = 0; m < 12; m++) {
+                        const isActiveMonth = site.active_months && site.active_months[m];
                         const bill = site.billing[m] || {};
                         const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
                         const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
                         const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
 
-                        if (hasErpTotal && !hasBillNo) {
+                        // Check isActiveMonth to ensure Non-VAT months are completely excluded from VAT Pending
+                        if (isActiveMonth && hasErpTotal && !hasBillNo) {
                             pendingList.push(monthShortNames[m]);
                         }
                     }
@@ -415,11 +417,12 @@
                 let hasAnyPending = false;
                 for (const sup of list) {
                     for (const siteData of sup.sites) {
+                        const isActiveMonth = siteData.active_months && siteData.active_months[m];
                         const bill = siteData.billing[m] || {};
                         const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
                         const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
                         const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
-                        if (hasErpTotal && !hasBillNo) {
+                        if (isActiveMonth && hasErpTotal && !hasBillNo) {
                             hasAnyPending = true;
                             break;
                         }
@@ -431,17 +434,18 @@
                 }
             }
 
-// 🟢 ഓരോ മാസത്തിലെയും ആകെ പെൻഡിംഗ് എണ്ണം കണക്കാക്കുന്നു
+            // 🟢 ഓരോ മാസത്തിലെയും ആകെ പെൻഡിംഗ് എണ്ണം കണക്കാക്കുന്നു (Only Active VAT Months)
             const monthWisePendingCounts = {};
             activePendingMonthIndices.forEach(m => {
                 let countForThisMonth = 0;
                 list.forEach(sup => {
                     sup.sites.forEach(siteData => {
+                        const isActiveMonth = siteData.active_months && siteData.active_months[m];
                         const bill = siteData.billing[m] || {};
                         const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
                         const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
                         const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
-                        if (hasErpTotal && !hasBillNo) {
+                        if (isActiveMonth && hasErpTotal && !hasBillNo) {
                             countForThisMonth++;
                         }
                     });
@@ -491,31 +495,32 @@
             list.forEach(sup => {
                 const siteCount = sup.sites.length;
                 sup.sites.forEach((siteData, idx) => {
-                    tbody += `<tr>`;
+                        tbody += `<tr>`;
 
-                    if (idx === 0) {
-                        tbody += `<td rowspan="${siteCount}" class="sticky-col-sn merged-supplier">${sn++}</td>`;
-                        tbody += `<td rowspan="${siteCount}" class="sticky-col-supplier merged-supplier" style="padding-left: 14px;">${escapeHTML(sup.supplier)}</td>`;
-                    }
-
-                    tbody += `<td class="sticky-col-site site-cell" style="padding-left: 14px;">${escapeHTML(siteData.site_name)}</td>`;
-
-                    activePendingMonthIndices.forEach(m => {
-                        const bill = siteData.billing[m] || {};
-                        const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
-                        const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
-                        const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
-
-                        if (hasErpTotal && !hasBillNo) {
-                            totalPendingBillsCount++;
-                            tbody += `<td style="text-align: center;"><span class="pending-badge">Pending</span></td>`;
-                        } else {
-                            tbody += `<td style="text-align: center; color: #94a3b8;">-</td>`;
+                        if (idx === 0) {
+                            tbody += `<td rowspan="${siteCount}" class="sticky-col-sn merged-supplier">${sn++}</td>`;
+                            tbody += `<td rowspan="${siteCount}" class="sticky-col-supplier merged-supplier" style="padding-left: 14px;">${escapeHTML(sup.supplier)}</td>`;
                         }
-                    });
 
-                    tbody += `</tr>`;
-                });
+                        tbody += `<td class="sticky-col-site site-cell" style="padding-left: 14px;">${escapeHTML(siteData.site_name)}</td>`;
+
+                        activePendingMonthIndices.forEach(m => {
+                            const isActiveMonth = siteData.active_months && siteData.active_months[m];
+                            const bill = siteData.billing[m] || {};
+                            const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
+                            const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
+                            const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+
+                            if (isActiveMonth && hasErpTotal && !hasBillNo) {
+                                totalPendingBillsCount++;
+                                tbody += `<td style="text-align: center;"><span class="pending-badge">Pending</span></td>`;
+                            } else {
+                                tbody += `<td style="text-align: center; color: #94a3b8;">-</td>`;
+                            }
+                        });
+
+                        tbody += `</tr>`;
+                    });
             });
 
             // 🟢 പെൻഡിംഗ് കൗണ്ട് ബാഡ്ജ് അപ്ഡേറ്റ് ചെയ്യുന്നു
@@ -617,11 +622,12 @@
                 let hasAnyPending = false;
                 for (const sup of list) {
                     for (const siteData of sup.sites) {
+                        const isActiveMonth = siteData.active_months && siteData.active_months[m];
                         const bill = siteData.billing[m] || {};
                         const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
                         const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
                         const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
-                        if (hasErpTotal && !hasBillNo) {
+                        if (isActiveMonth && hasErpTotal && !hasBillNo) {
                             hasAnyPending = true;
                             break;
                         }
