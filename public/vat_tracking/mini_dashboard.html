@@ -144,6 +144,18 @@
             font-size: 11.5px;
         }
 
+        .ended-badge {
+            color: #64748b;
+            font-weight: 600;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px dashed #cbd5e1;
+            display: inline-block;
+            font-size: 10.5px;
+            white-space: nowrap;
+        }
+
         .filter-icon {
             cursor: pointer;
             color: #94a3b8;
@@ -358,13 +370,18 @@
                     const pendingList = [];
                     for (let m = 0; m < 12; m++) {
                         const isActiveMonth = site.active_months && site.active_months[m];
+                        if (!isActiveMonth) continue;
+
                         const bill = site.billing[m] || {};
                         const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
                         const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
                         const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                        const hasQuickDice = bill.quick_dice && String(bill.quick_dice).trim() !== "";
 
-                        // Check isActiveMonth to ensure Non-VAT months are completely excluded from VAT Pending
-                        if (isActiveMonth && hasErpTotal && !hasBillNo) {
+                        // 1. Pending: TS undu, Bill No illa
+                        // 2. Bill Received: Bill No undu, Quick Dice illa
+                        // 3. Bill Not Generated: TS, Bill No, Quick Dice moonnum illa
+                        if ((hasErpTotal && !hasBillNo) || (hasBillNo && !hasQuickDice) || (!hasErpTotal && !hasBillNo && !hasQuickDice)) {
                             pendingList.push(monthShortNames[m]);
                         }
                     }
@@ -510,12 +527,21 @@
                             const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
                             const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
                             const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                            const hasQuickDice = bill.quick_dice && String(bill.quick_dice).trim() !== "";
 
-                            if (isActiveMonth && hasErpTotal && !hasBillNo) {
+                            if (!isActiveMonth) {
+                                tbody += `<td style="text-align: center;"><span class="ended-badge" title="No VAT Bill or Work Ended on this site">No Vat Bill or Work Ended</span></td>`;
+                            } else if (hasErpTotal && !hasBillNo) {
                                 totalPendingBillsCount++;
                                 tbody += `<td style="text-align: center;"><span class="pending-badge">Pending</span></td>`;
+                            } else if (hasBillNo && !hasQuickDice) {
+                                totalPendingBillsCount++;
+                                tbody += `<td style="text-align: center;"><span class="pending-badge" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5;">Bill Received</span></td>`;
+                            } else if (!hasErpTotal && !hasBillNo && !hasQuickDice) {
+                                tbody += `<td style="text-align: center;"><span style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:600; display:inline-block;">Bill Not Generated</span></td>`;
                             } else {
-                                tbody += `<td style="text-align: center; color: #94a3b8;">-</td>`;
+                                // Full complete aayathu mathram clean aayi nilkkum
+                                tbody += `<td style="text-align: center; color: #10b981; font-weight: bold;">✔</td>`;
                             }
                         });
 
@@ -673,16 +699,25 @@
                     const pendingCols = [];
 
                     activePendingMonthIndices.forEach((m, mIdx) => {
+                        const isActiveMonth = siteData.active_months && siteData.active_months[m];
                         const bill = siteData.billing[m] || {};
                         const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
                         const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
                         const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                        const hasQuickDice = bill.quick_dice && String(bill.quick_dice).trim() !== "";
 
-                        if (hasErpTotal && !hasBillNo) {
+                        if (!isActiveMonth) {
+                            rowData.push("No Vat Bill or Work Ended");
+                        } else if (hasErpTotal && !hasBillNo) {
                             rowData.push("Pending");
                             pendingCols.push(mIdx + 4);
+                        } else if (hasBillNo && !hasQuickDice) {
+                            rowData.push("Bill Received");
+                            pendingCols.push(mIdx + 4);
+                        } else if (!hasErpTotal && !hasBillNo && !hasQuickDice) {
+                            rowData.push("Bill Not Generated");
                         } else {
-                            rowData.push("");
+                            rowData.push("Completed");
                         }
                     });
 
