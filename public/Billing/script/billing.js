@@ -3142,3 +3142,27 @@ async function executeReLoginAndResume() {
     errDiv.innerText = "Connection error. Try again.";
   }
 }
+
+/* ==========================================================
+   🟢 BLOCK MOUSE WHEEL VALUE CHANGES ON NUMBER INPUTS
+   ========================================================== */
+document.addEventListener(
+  "wheel",
+  function (e) {
+    if (
+      document.activeElement &&
+      document.activeElement.type === "number" &&
+      document.activeElement.tagName === "INPUT"
+    ) {
+      document.activeElement.blur();
+    }
+  },
+  { passive: true }
+);
+
+// Prevent wheel scrolling on any number input directly
+document.addEventListener("wheel", function (e) {
+  if (e.target && e.target.tagName === "INPUT" && e.target.type === "number") {
+    e.preventDefault();
+  }
+}, { passive: false });
