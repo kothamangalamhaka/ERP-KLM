@@ -648,15 +648,20 @@
 
         function renderOwnerList() {
             const listEl = document.getElementById("ownerListContainer");
-            const search = document.getElementById("ownerSearch").value.toLowerCase();
+            const search = document.getElementById("ownerSearch").value.toLowerCase().trim();
 
             let html = "";
             let matchCount = 0;
+            let firstMatchedSupplier = null;
 
             rawData.forEach(s => {
                 if (search && !s.supplier.toLowerCase().includes(search)) return;
 
                 matchCount++;
+                if (!firstMatchedSupplier) {
+                    firstMatchedSupplier = s.supplier;
+                }
+
                 const isActive = (s.supplier === selectedSupplier);
                 html += `
                     <li class="owner-item ${isActive ? 'active' : ''}" onclick="selectSupplier('${escapeQuotes(s.supplier)}')">
@@ -671,7 +676,10 @@
             listEl.innerHTML = html || `<li style="padding: 15px; color: #94a3b8; text-align: center;">No non-vat suppliers found</li>`;
             document.getElementById("ownerBadgeCount").innerText = matchCount;
 
-            if (selectedSupplier && rawData.some(s => s.supplier === selectedSupplier)) {
+            // 🟢 സെർച്ച് ചെയ്യുമ്പോൾ ആദ്യത്തെ സപ്ലയറെ തനിയെ സ്ക്രീനിൽ ലോഡ് ചെയ്യുന്നു
+            if (search && firstMatchedSupplier) {
+                selectSupplier(firstMatchedSupplier);
+            } else if (selectedSupplier && rawData.some(s => s.supplier === selectedSupplier)) {
                 selectSupplier(selectedSupplier);
             } else if (rawData.length > 0 && !search) {
                 selectSupplier(rawData[0].supplier);

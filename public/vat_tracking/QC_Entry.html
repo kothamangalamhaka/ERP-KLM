@@ -1245,13 +1245,14 @@
         const listEl = document.getElementById("ownerListContainer");
         const search = document
           .getElementById("ownerSearch")
-          .value.toLowerCase();
+          .value.toLowerCase().trim();
         const keys = Object.keys(consolidatedSuppliers).sort((a, b) =>
           a.localeCompare(b),
         );
 
         let html = "";
         let matchCount = 0;
+        let firstMatchedKey = null;
 
         keys.forEach((k) => {
           const s = consolidatedSuppliers[k];
@@ -1260,6 +1261,10 @@
           if (search && !matchStr.includes(search)) return;
 
           matchCount++;
+          if (!firstMatchedKey) {
+            firstMatchedKey = k;
+          }
+
           const isActive = k === selectedSupplierKey;
           html += `
                     <li class="owner-item ${isActive ? "active" : ""}" data-supplier="${escapeHTML(k)}" onclick="selectSupplier('${escapeQuotes(k)}')">
@@ -1280,7 +1285,10 @@
           `<li style="padding: 15px; color: #94a3b8; text-align: center;">No supplier found</li>`;
         document.getElementById("ownerBadgeCount").innerText = matchCount;
 
-        if (selectedSupplierKey && consolidatedSuppliers[selectedSupplierKey]) {
+        // 🟢 സെർച്ച് ചെയ്യുമ്പോൾ ആദ്യത്തെ റിസൾട്ടിലുള്ള ആളെ തനിയെ സ്ക്രീനിൽ ലോഡ് ചെയ്യുന്നു
+        if (search && firstMatchedKey) {
+          selectSupplier(firstMatchedKey);
+        } else if (selectedSupplierKey && consolidatedSuppliers[selectedSupplierKey]) {
           selectSupplier(selectedSupplierKey);
         } else if (keys.length > 0 && !search) {
           selectSupplier(keys[0]);
