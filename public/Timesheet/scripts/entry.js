@@ -1120,7 +1120,11 @@ function attachGridEvents() {
       const col = this.getAttribute("data-col");
       let currentVal = this.type === "checkbox" ? this.checked : this.value;
       
-      if (String(this.dataset.oldVal) !== String(currentVal)) {
+      // Check if this row actually exists in DB or if modified_by is empty
+      const modUser = document.getElementById(`mod_${row}`)?.value || "";
+      const isUnsavedAutoValue = !modUser && currentVal !== "";
+
+      if (String(this.dataset.oldVal) !== String(currentVal) || isUnsavedAutoValue) {
         calculateRow(row); 
         const finalVal = this.type === "checkbox" ? this.checked : this.value; 
         saveCellData(row, col, finalVal);
