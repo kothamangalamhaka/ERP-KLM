@@ -1067,16 +1067,17 @@
                 let erpVal = bill.erp_total
                   ? Number(bill.erp_total).toFixed(2)
                   : "";
+                let displayErp = isActive ? erpVal : "";
                 let clickTsAction =
                   isActive && erpVal
-                    ? `class="${cellClass} vendor-ts-cell" onclick="openTsDetailsModal('${escapeQuotes(group.supplier)}', '${escapeQuotes(siteData.site_name)}', ${i})"`
+                    ? `class="vendor-ts-cell" style="font-weight: 600; color: #0f766e; cursor: pointer;" onclick="openTsDetailsModal('${escapeQuotes(group.supplier)}', '${escapeQuotes(siteData.site_name)}', ${i})"`
                     : `class="${cellClass}"`;
 
                 tbody += `
-    <td class="${cellClass}" ${actionBillNo}><span class="${isActive ? "editable" : ""}">${escapeHTML(bill.bill_no)}</span></td>
-    <td class="${cellClass}" ${actionAmount}><span class="${isActive ? "editable" : ""}">${escapeHTML(bill.amount)}</span></td>
-    <td ${clickTsAction} style="font-weight: 600; color: #0f766e;" title="Click to view Breakdown"><span>${erpVal}</span></td>
-    <td class="${cellClass}" ${actionQuickDice} style="background: #eef2ff;"><span class="${isActive ? "editable" : ""}" style="font-weight: 600; color: #3730a3;">${escapeHTML(bill.quick_dice || "")}</span></td>
+    <td class="${cellClass}" ${actionBillNo}><span class="${isActive ? "editable" : ""}">${isActive ? escapeHTML(bill.bill_no) : ""}</span></td>
+    <td class="${cellClass}" ${actionAmount}><span class="${isActive ? "editable" : ""}">${isActive ? escapeHTML(bill.amount) : ""}</span></td>
+    <td ${clickTsAction} title="${isActive && erpVal ? 'Click to view Breakdown' : ''}"><span>${displayErp}</span></td>
+    <td class="${cellClass}" ${actionQuickDice} style="${isActive ? 'background: #eef2ff;' : ''}"><span class="${isActive ? "editable" : ""}" style="${isActive ? 'font-weight: 600; color: #3730a3;' : ''}">${isActive ? escapeHTML(bill.quick_dice || "") : ""}</span></td>
 `;
               }
 
@@ -1976,7 +1977,8 @@
                 amount: "",
                 erp_total: "",
               };
-              if (siteData.active_months[i]) {
+              const isActive = siteData.active_months && siteData.active_months[i];
+              if (isActive) {
                 rowData.push(
                   bill.bill_no || "",
                   safeNumber(bill.amount),
@@ -2221,7 +2223,7 @@
             let currCol = 2;
 
             supData.sites.forEach((site) => {
-              const isActive = site.active_months[m];
+              const isActive = site.active_months && site.active_months[m];
               const bill = site.billing[m] || {
                 bill_no: "",
                 amount: "",
