@@ -923,7 +923,13 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       insertVals.push(work_order_no || null);
     }
 
+    let previousSiteName = null;
     if (id) {
+      const prevRes = await client.query(`SELECT site_name FROM vehicle_site_log WHERE id = $1`, [id]);
+      if (prevRes.rows.length > 0) {
+        previousSiteName = prevRes.rows[0].site_name ? prevRes.rows[0].site_name.trim() : null;
+      }
+
       updateVals.push(id);
       await client.query(
         `UPDATE vehicle_site_log SET ${updateCols.join(", ")} WHERE id=$${updateVals.length}`,
@@ -934,6 +940,49 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       await client.query(
         `INSERT INTO vehicle_site_log (${insertCols.join(", ")}) VALUES (${placeholders})`,
         insertVals,
+      );
+    }
+
+    // 🟢 Cascade site_name change to billing_records, invoice_records, and vat_billing_records for this period
+    if (id && previousSiteName && site_name && previousSiteName.toLowerCase() !== site_name.trim().toLowerCase()) {
+      const cleanPlate = plate_no ? plate_no.trim().toUpperCase() : "";
+      const sDate = work_start_date ? new Date(work_start_date) : new Date(2000, 0, 1);
+      const eDate = work_end_date ? new Date(work_end_date) : new Date(2099, 11, 31);
+      const newSite = site_name.trim();
+
+      // 1. Update billing_records
+      await client.query(
+        `UPDATE billing_records 
+         SET site_name = $1 
+         WHERE UPPER(TRIM(plate_no)) = $2 
+           AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))
+           AND TO_DATE(billing_month, 'Month YYYY') >= DATE_TRUNC('month', $4::date)
+           AND TO_DATE(billing_month, 'Month YYYY') <= DATE_TRUNC('month', $5::date)`,
+        [newSite, cleanPlate, previousSiteName, sDate, eDate]
+      );
+
+      // 2. Update invoice_records
+      await client.query(
+        `UPDATE invoice_records 
+         SET site_name = $1 
+         WHERE UPPER(TRIM(plate_no)) = $2 AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))`,
+        [newSite, cleanPlate, previousSiteName]
+      );
+
+      // 3. Update vehicle_rate_log
+      await client.query(
+        `UPDATE vehicle_rate_log 
+         SET site_name = $1 
+         WHERE UPPER(TRIM(plate_no)) = $2 AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))`,
+        [newSite, cleanPlate, previousSiteName]
+      );
+
+      // 4. Update vat_billing_records
+      await client.query(
+        `UPDATE vat_billing_records 
+         SET site_name = $1 
+         WHERE LOWER(TRIM(site_name)) = LOWER(TRIM($2))`,
+        [newSite, previousSiteName]
       );
     }
 
@@ -1438,12 +1487,78 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
       );
     }
 
-    // 3. Auto-Sync to Active Site Log (if applicable)
+    // 3. Auto-Sync to Active Site Log & Cascading Period Sync to Billing, Invoices and VAT Records
     if (["site_name", "rate", "field_co", "site_co", "asset_code", "work_order_no", "old_vehicle_no", "new_vehicle_no"].includes(cleanCol)) {
+      // Find the old site name before updating
+      let oldSiteName = null;
+      let siteStartDate = null;
+      let siteEndDate = null;
+
+      if (cleanCol === "site_name") {
+        const curSiteLogRes = await pool.query(
+          `SELECT site_name, work_start_date, work_end_date 
+           FROM vehicle_site_log 
+           WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) AND status = 'Running' 
+           ORDER BY id DESC LIMIT 1`,
+          [plate_no]
+        );
+        if (curSiteLogRes.rows.length > 0) {
+          oldSiteName = curSiteLogRes.rows[0].site_name ? curSiteLogRes.rows[0].site_name.trim() : null;
+          siteStartDate = curSiteLogRes.rows[0].work_start_date ? new Date(curSiteLogRes.rows[0].work_start_date) : new Date(2000, 0, 1);
+          siteEndDate = curSiteLogRes.rows[0].work_end_date ? new Date(curSiteLogRes.rows[0].work_end_date) : new Date(2099, 11, 31);
+        }
+      }
+
       await pool.query(
         `UPDATE vehicle_site_log SET ${cleanCol} = $1 WHERE UPPER(plate_no) = UPPER($2) AND status = 'Running'`,
         [value, plate_no]
       );
+
+      // 🟢 Cascade update site_name across billing_records, invoice_records, vat_billing_records, and rate logs
+      if (cleanCol === "site_name" && value && value.trim()) {
+        const cleanPlate = plate_no.trim().toUpperCase();
+        const newSite = value.trim();
+
+        if (oldSiteName && oldSiteName.toLowerCase() !== newSite.toLowerCase()) {
+          const sDate = siteStartDate || new Date(2000, 0, 1);
+          const eDate = siteEndDate || new Date(2099, 11, 31);
+
+          // 1. Update billing_records for this vehicle and period
+          await pool.query(
+            `UPDATE billing_records 
+             SET site_name = $1 
+             WHERE UPPER(TRIM(plate_no)) = $2 
+               AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))
+               AND TO_DATE(billing_month, 'Month YYYY') >= DATE_TRUNC('month', $4::date)
+               AND TO_DATE(billing_month, 'Month YYYY') <= DATE_TRUNC('month', $5::date)`,
+            [newSite, cleanPlate, oldSiteName, sDate, eDate]
+          );
+
+          // 2. Update invoice_records for this vehicle
+          await pool.query(
+            `UPDATE invoice_records 
+             SET site_name = $1 
+             WHERE UPPER(TRIM(plate_no)) = $2 AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))`,
+            [newSite, cleanPlate, oldSiteName]
+          );
+
+          // 3. Update vehicle_rate_log for this vehicle
+          await pool.query(
+            `UPDATE vehicle_rate_log 
+             SET site_name = $1 
+             WHERE UPPER(TRIM(plate_no)) = $2 AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))`,
+            [newSite, cleanPlate, oldSiteName]
+          );
+
+          // 4. Update vat_billing_records
+          await pool.query(
+            `UPDATE vat_billing_records 
+             SET site_name = $1 
+             WHERE LOWER(TRIM(site_name)) = LOWER(TRIM($2))`,
+            [newSite, oldSiteName]
+          );
+        }
+      }
     }
 
     // 4. Auto-Sync to Active Owner Log & Billing Records
