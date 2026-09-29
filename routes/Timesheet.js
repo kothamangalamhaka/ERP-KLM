@@ -986,7 +986,17 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       );
     }
 
-    if (status === "Running") {
+    // 🟢 Check if this log is the latest site log for this vehicle
+    const latestLogCheck = await client.query(
+      `SELECT id FROM vehicle_site_log 
+       WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) 
+       ORDER BY COALESCE(work_start_date, '1970-01-01') DESC, id DESC LIMIT 1`,
+      [plate_no]
+    );
+    const isLatestLog = latestLogCheck.rows.length === 0 || latestLogCheck.rows[0].id === parseInt(id || 0);
+
+    // Update timesheet_vehicles if Running OR if it's the latest site log
+    if (status === "Running" || isLatestLog) {
       let tsUpdates = ["site_name=$1", "rate=$2", "field_co=$3", "site_co=$4"];
       let tsVals = [site_name, rate || null, field_co || null, site_co || null];
 

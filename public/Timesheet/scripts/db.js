@@ -922,6 +922,11 @@ async function initDB() {
           sLog && sLog.start_date !== "-" ? sLog.start_date : "";
         row.site_end_date = sLog && sLog.end_date !== "-" ? sLog.end_date : "";
 
+        // 🟢 ലേറ്റസ്റ്റ് സൈറ്റ് ലോഗിലുള്ള ശരിയായ പേര് തന്നെ മെയിൻ ടേബിളിൽ കാണിക്കുക
+        if (sLog && sLog.site_name) {
+          row.site_name = sLog.site_name;
+        }
+
         // 🟢 ലേറ്റസ്റ്റ് റേറ്റ് കണ്ടെത്തുന്നു: ആദ്യം ആക്ടീവ് Rate Log നോക്കും, ഇല്ലെങ്കിൽ Site Log അല്ലെങ്കിൽ Master
         let curSiteName = (sLog && sLog.site_name) ? sLog.site_name.trim().toUpperCase() : "";
         let rLog = rates.find((r) => {
