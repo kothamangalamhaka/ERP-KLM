@@ -1117,55 +1117,82 @@ async function exportToPDF() {
   const y = document.getElementById("selYear").value;
 
   const container = document.createElement("div");
-  container.style.width = "100%";
+  container.style.position = "absolute";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.style.width = "1123px"; // Standard A4 Landscape pixel width
+  container.style.padding = "25px";
+  container.style.background = "#ffffff";
   container.style.fontFamily = "Arial, sans-serif";
 
   let html = `
-    <h2 style="text-align: center; color: #e67e22; margin-bottom: 20px; font-family: sans-serif;">Pending Logs - ${m} ${y}</h2>
-    <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; font-family: sans-serif;">
+    <h2 style="text-align: center; color: #e67e22; margin-bottom: 20px;">Pending Logs - ${m} ${y}</h2>
+    <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;">
         <thead>
             <tr>
-                <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: center; width: 5%;">SN</th>
-                <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: left; width: 15%;">Owner Name</th>
-                <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: left; width: 15%;">Driver Name</th>
-                <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: left; width: 15%;">Site Name</th>
-                <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: center; width: 12%;">Vehicle Type</th>
-                <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: center; width: 10%;">Plate No</th>
-                <th style="border: 1px solid #000; padding: 10px; background-color: #e67e22; color: #fff; text-align: left; width: 28%;">Pending Dates</th>
+                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: center; width: 5%;">SN</th>
+                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: left; width: 16%;">Owner Name</th>
+                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: left; width: 16%;">Driver Name</th>
+                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: left; width: 15%;">Site Name</th>
+                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: center; width: 11%;">Vehicle Type</th>
+                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: center; width: 10%;">Plate No</th>
+                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: left; width: 27%;">Pending Dates</th>
             </tr>
         </thead>
         <tbody>
-`;
+  `;
+
   data.forEach((row) => {
     html += `
         <tr>
-            <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">${row.sn}</td>
-            <td style="border: 1px solid #000; padding: 8px; word-wrap: break-word; white-space: normal;">${row.owner}</td>
-            <td style="border: 1px solid #000; padding: 8px; word-wrap: break-word; white-space: normal;">${row.driver}</td>
-            <td style="border: 1px solid #000; padding: 8px; word-wrap: break-word; white-space: normal;">${row.site}</td>
-            <td style="border: 1px solid #000; padding: 8px; word-wrap: break-word; white-space: normal; text-align: center;">${row.vehicleType}</td>
-            <td style="border: 1px solid #000; padding: 8px; white-space: nowrap; font-weight: bold; text-align: center;">${row.plate}</td>
-            <td style="border: 1px solid #000; padding: 8px; color: #b91c1c; word-wrap: break-word; white-space: normal; line-height: 1.5;">${row.pendingDates}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">${row.sn}</td>
+            <td style="border: 1px solid #000; padding: 6px; word-wrap: break-word;">${row.owner}</td>
+            <td style="border: 1px solid #000; padding: 6px; word-wrap: break-word;">${row.driver}</td>
+            <td style="border: 1px solid #000; padding: 6px; word-wrap: break-word;">${row.site}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${row.vehicleType}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; white-space: nowrap;">${row.plate}</td>
+            <td style="border: 1px solid #000; padding: 6px; color: #b91c1c; word-wrap: break-word; line-height: 1.4;">${row.pendingDates}</td>
         </tr>
     `;
   });
+
   html += `</tbody></table>`;
   container.innerHTML = html;
+  document.body.appendChild(container);
 
-  const opt = {
-    margin: 10,
-    filename: `Pending_Logs_${m}_${y}.pdf`,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-    pagebreak: { mode: ["css", "legacy"], avoid: "tr" },
-  };
+  try {
+    const canvas = await html2canvas(container, { scale: 2, useCORS: true });
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
 
-  html2pdf()
-    .set(opt)
-    .from(container)
-    .save()
-    .then(() => toggleLoad(false));
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const imgHeight = (canvasHeight * pageWidth) / canvasWidth;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, "JPEG", 0, position, pageWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "JPEG", 0, position, pageWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save(`Pending_Logs_${m}_${y}.pdf`);
+  } catch (err) {
+    await customAlert("Error", "Failed to generate PDF: " + err.message);
+  } finally {
+    document.body.removeChild(container);
+    toggleLoad(false);
+  }
 }
 
 async function createA4Images(groupName, dataSubset, m, y, mode = "All") {
