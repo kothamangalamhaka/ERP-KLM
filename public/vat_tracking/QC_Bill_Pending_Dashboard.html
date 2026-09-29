@@ -555,20 +555,59 @@
             }
         }
 
-        // Logic check depending on selected mode
+        // Consolidated Data Mapping (Matches QC_Entry.html logic perfectly)
+        function getConsolidatedData() {
+            const consolidated = {};
+            rawData.forEach(group => {
+                const supKey = (group.supplier || "Unknown").trim();
+                if (!consolidated[supKey]) {
+                    consolidated[supKey] = {
+                        supplier: supKey,
+                        company: group.company,
+                        vat_no: group.vat_no || "",
+                        display_name: group.display_name || "",
+                        sites: []
+                    };
+                } else {
+                    if (!consolidated[supKey].vat_no && group.vat_no) consolidated[supKey].vat_no = group.vat_no;
+                    if (!consolidated[supKey].display_name && group.display_name) consolidated[supKey].display_name = group.display_name;
+                }
+
+                group.sites.forEach(st => {
+                    const existingSite = consolidated[supKey].sites.find(s => s.site_name === st.site_name);
+                    if (!existingSite) {
+                        consolidated[supKey].sites.push(JSON.parse(JSON.stringify(st)));
+                    } else {
+                        for (let m = 0; m < 12; m++) {
+                            if (st.active_months && st.active_months[m]) existingSite.active_months[m] = true;
+                            if (!existingSite.billing[m]) existingSite.billing[m] = {};
+                            if (st.billing[m]?.bill_no) existingSite.billing[m].bill_no = st.billing[m].bill_no;
+                            if (st.billing[m]?.amount) existingSite.billing[m].amount = st.billing[m].amount;
+                            if (st.billing[m]?.erp_total) existingSite.billing[m].erp_total = st.billing[m].erp_total;
+                            if (st.billing[m]?.quick_dice) existingSite.billing[m].quick_dice = st.billing[m].quick_dice;
+                        }
+                    }
+                });
+            });
+            return Object.values(consolidated);
+        }
+
+        // Logic check depending on selected mode (Strict Null/Zero/Empty validation)
         function checkIsPending(billing) {
             if (!billing) return false;
             const quickDice = billing.quick_dice ? String(billing.quick_dice).trim() : "";
             const billNo = billing.bill_no ? String(billing.bill_no).trim() : "";
             const amount = billing.amount ? String(billing.amount).trim() : "";
 
+            const isDiceEmpty = !quickDice || quickDice === "0" || quickDice.toLowerCase() === "null";
+
             if (currentDashboardMode === "zoho") {
-                // 1. Zoho Mode: Quick Dice ഉണ്ടാവുകയും (Not Blank), Bill No അല്ലെങ്കിൽ Amount ബ്ലാങ്ക് ആവുകയും ചെയ്യുമ്പോൾ
-                return (quickDice !== "") && (!billNo || !amount);
+                // 1. Zoho Mode: Quick Dice ഉണ്ടാവുകയും, Bill No അല്ലെങ്കിൽ Amount ബ്ലാങ്ക് ആവുകയും ചെയ്യുമ്പോൾ
+                return (!isDiceEmpty) && (!billNo || !amount || amount === "0");
             } else {
-                // 2. Quick Dice Mode: Bill No അല്ലെങ്കിൽ Amount ഉണ്ടാവുകയും (Not Blank), Quick Dice ബ്ലാങ്ക് ആവുകയും ചെയ്യുമ്പോൾ
+                // 2. Quick Dice Mode: Bill No അല്ലെങ്കിൽ Amount ഉണ്ടാവുകയും, Quick Dice ബ്ലാങ്ക് ആവുകയും ചെയ്യുമ്പോൾ
                 const hasBillingData = (billNo !== "") || (amount !== "" && amount !== "0");
-                return hasBillingData && (quickDice === "");
+                return hasBillingData && isDiceEmpty;
             }
         }
 
@@ -578,11 +617,12 @@
             const tbody = document.getElementById("dashboardBody");
             const shortYear = currentYear.toString().slice(-2);
 
-            // 1. Identify which months actually have pending records (Columns to display)
+            // 1. Identify which months actually have pending records using Consolidated Data
             const activeMonthSet = new Set();
             let parsedRows = [];
+            const consolidatedList = getConsolidatedData();
 
-            rawData.forEach(group => {
+            consolidatedList.forEach(group => {
                 const supplierName = group.supplier || "Unknown";
 
                 group.sites.forEach(site => {
@@ -631,7 +671,7 @@
             headHtml += `</tr>`;
             thead.innerHTML = headHtml;
 
-            // 3. Render Table Rows
+            // 3. Render Table Rows with Merged Supplier and SL (Rowspan Logic)
             tbody.innerHTML = "";
             let affectedSuppliers = new Set();
             let affectedSites = 0;
@@ -643,32 +683,53 @@
                 r.siteName.toLowerCase().includes(searchTerm)
             );
 
+            // Group by supplier name
+            const supplierRowsMap = new Map();
             filteredRows.forEach(r => {
                 affectedSuppliers.add(r.supplierName);
                 affectedSites++;
                 totalPendingCount += r.pendingCount;
 
-                let tr = document.createElement("tr");
-                let rowHtml = `
-                    <td style="text-align: center; font-weight: 600; color: #64748b;">${sl++}</td>
-                    <td style="font-weight: 600; color: #0f172a;">${escapeHTML(r.supplierName)}</td>
-                    <td style="color: #334155;">${escapeHTML(r.siteName)}</td>
-                    <td style="text-align: center; font-weight: 700; color: #dc2626;">${r.pendingCount}</td>
-                `;
+                if (!supplierRowsMap.has(r.supplierName)) {
+                    supplierRowsMap.set(r.supplierName, []);
+                }
+                supplierRowsMap.get(r.supplierName).push(r);
+            });
 
-                // Month Columns
-                visibleMonthIndices.forEach(m => {
-                    if (r.pendingMonthMap[m]) {
-                        rowHtml += `<td style="text-align: center;">
-                            <span class="pending-badge clickable" title="Click to view & edit QC entry" onclick="openQcModal('${escapeQuotes(r.supplierName)}', '${escapeQuotes(r.siteName)}', ${m})">Pending</span>
-                        </td>`;
-                    } else {
-                        rowHtml += `<td></td>`;
+            supplierRowsMap.forEach((sitesList, supplierName) => {
+                const rowSpanCount = sitesList.length;
+
+                sitesList.forEach((r, idx) => {
+                    let tr = document.createElement("tr");
+                    let rowHtml = "";
+
+                    // Merge SL and Supplier Name for the first site row
+                    if (idx === 0) {
+                        rowHtml += `
+                            <td rowspan="${rowSpanCount}" style="text-align: center; font-weight: 700; color: #64748b; vertical-align: middle; background: #ffffff;">${sl++}</td>
+                            <td rowspan="${rowSpanCount}" style="font-weight: 700; color: #0f172a; vertical-align: middle; background: #ffffff; padding-left: 14px;">${escapeHTML(supplierName)}</td>
+                        `;
                     }
-                });
 
-                tr.innerHTML = rowHtml;
-                tbody.appendChild(tr);
+                    rowHtml += `
+                        <td style="color: #334155; font-weight: 500;">${escapeHTML(r.siteName)}</td>
+                        <td style="text-align: center; font-weight: 700; color: #dc2626;">${r.pendingCount}</td>
+                    `;
+
+                    // Month Columns
+                    visibleMonthIndices.forEach(m => {
+                        if (r.pendingMonthMap[m]) {
+                            rowHtml += `<td style="text-align: center;">
+                                <span class="pending-badge clickable" title="Click to view & edit QC entry" onclick="openQcModal('${escapeQuotes(r.supplierName)}', '${escapeQuotes(r.siteName)}', ${m})">Pending</span>
+                            </td>`;
+                        } else {
+                            rowHtml += `<td></td>`;
+                        }
+                    });
+
+                    tr.innerHTML = rowHtml;
+                    tbody.appendChild(tr);
+                });
             });
 
             // Update KPIs
@@ -682,7 +743,7 @@
             }
         }
 
-        // Clean Excel Export Function
+        // Clean Excel Export Function (Preserving Merged Cells)
         function exportToExcel() {
             const table = document.getElementById("pendingTable");
             if (!table) return;
@@ -696,7 +757,7 @@
             });
 
             const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.table_to_sheet(clone);
+            const ws = XLSX.utils.table_to_sheet(clone, { raw: true });
 
             // Auto column widths
             const range = XLSX.utils.decode_range(ws['!ref'] || "A1");
@@ -743,16 +804,10 @@
 
         let activeModalRecord = null;
 
-        // Modal തുറക്കുന്നു
+        // Modal തുറക്കുന്നു (Consolidated Data ഉപയോഗിച്ച്)
         function openQcModal(supplierName, siteName, monthIdx) {
-            // 🟢 ആ സൈറ്റ് ഉൾക്കൊള്ളുന്ന ശരിയായ ഗ്രൂപ്പ് കൃത്യമായി കണ്ടുപിടിക്കുന്നു
-            let targetGroup = rawData.find(g => 
-                (g.supplier || "").trim() === supplierName.trim() &&
-                g.sites.some(s => (s.site_name || "").trim() === siteName.trim())
-            );
-            if (!targetGroup) {
-                targetGroup = rawData.find(g => (g.supplier || "").trim() === supplierName.trim());
-            }
+            const consolidatedList = getConsolidatedData();
+            let targetGroup = consolidatedList.find(g => (g.supplier || "").trim() === supplierName.trim());
             if (!targetGroup) return;
 
             let targetSite = targetGroup.sites.find(s => (s.site_name || "").trim() === siteName.trim());
@@ -760,8 +815,15 @@
 
             let billing = targetSite.billing && targetSite.billing[monthIdx] ? targetSite.billing[monthIdx] : {};
 
+            // Find matching original raw group for company mapping
+            const origRawGroup = rawData.find(g => 
+                (g.supplier || "").trim() === supplierName.trim() &&
+                g.sites.some(s => (s.site_name || "").trim() === siteName.trim())
+            );
+            const compName = origRawGroup ? origRawGroup.company : targetGroup.company;
+
             activeModalRecord = {
-                company: targetGroup.company,
+                company: compName,
                 supplier: targetGroup.supplier,
                 vat_no: targetGroup.vat_no,
                 display_name: targetGroup.display_name,

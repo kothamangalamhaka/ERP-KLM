@@ -487,7 +487,22 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
       );
     }
 
-    await logAudit(req.user, "OWNER_LOG_UPDATE", `Updated owner log for ${cleanPlate}`);
+    // 🟢 Sync past billing records for the edited owner period
+    if (finalStartDate) {
+      const periodStart = new Date(finalStartDate);
+      const periodEnd = work_end_date ? new Date(work_end_date) : new Date(2099, 11, 31);
+
+      await client.query(
+        `UPDATE billing_records 
+         SET owner = $1 
+         WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($2))
+           AND TO_DATE(billing_month, 'Month YYYY') >= DATE_TRUNC('month', $3::date)
+           AND TO_DATE(billing_month, 'Month YYYY') <= DATE_TRUNC('month', $4::date)`,
+        [owner_name.trim(), cleanPlate, periodStart, periodEnd]
+      );
+    }
+
+    await logAudit(req.user, "OWNER_LOG_UPDATE", `Updated owner log for ${cleanPlate} to ${owner_name}`);
     await client.query("COMMIT");
     res.json({ success: true });
   } catch (error) {
@@ -1453,31 +1468,50 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
         );
       }
 
-      // 🟢 Modify billing_records and vat_billing_records directly if owner_name is corrected
+      // 🟢 Period-Aware Sync for Owner Name across Billing and VAT records
       if (cleanCol === "owner_name" && value && value.trim()) {
         const cleanPlate = plate_no.trim().toUpperCase();
         const newOwner = value.trim();
 
-        // 1. Update billing_records for this vehicle
-        await pool.query(
-          `UPDATE billing_records SET owner = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
-          [newOwner, cleanPlate]
-        );
-
-        // 2. Find which site this vehicle is currently allocated to
-        const vehicleSiteRes = await pool.query(
-          `SELECT site_name FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = $1`,
+        // 1. Find the active running owner log period
+        const activeLogRes = await pool.query(
+          `SELECT owner_name, work_start_date, work_end_date 
+           FROM vehicle_owner_log 
+           WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) AND status = 'Running' 
+           ORDER BY id DESC LIMIT 1`,
           [cleanPlate]
         );
-        const currentSite = vehicleSiteRes.rows[0]?.site_name;
 
-        // 3. Sync vat_billing_records: move the billing for this site to the new supplier
-        if (currentSite && currentSite.trim()) {
+        if (activeLogRes.rows.length > 0) {
+          const activeLog = activeLogRes.rows[0];
+          const oldOwnerName = activeLog.owner_name ? activeLog.owner_name.trim() : null;
+          const startDate = activeLog.work_start_date ? new Date(activeLog.work_start_date) : new Date(2000, 0, 1);
+          const endDate = activeLog.work_end_date ? new Date(activeLog.work_end_date) : new Date(2099, 11, 31);
+
+          // Update billing_records belonging strictly to this date period
           await pool.query(
-            `UPDATE vat_billing_records 
-             SET supplier = $1 
-             WHERE LOWER(TRIM(site_name)) = LOWER(TRIM($2))`,
-            [newOwner, currentSite.trim()]
+            `UPDATE billing_records 
+             SET owner = $1 
+             WHERE UPPER(TRIM(plate_no)) = $2 
+               AND TO_DATE(billing_month, 'Month YYYY') >= DATE_TRUNC('month', $3::date)
+               AND TO_DATE(billing_month, 'Month YYYY') <= DATE_TRUNC('month', $4::date)`,
+            [newOwner, cleanPlate, startDate, endDate]
+          );
+
+          // Sync vat_billing_records for matching periods and supplier names
+          if (oldOwnerName) {
+            await pool.query(
+              `UPDATE vat_billing_records 
+               SET supplier = $1 
+               WHERE LOWER(TRIM(supplier)) = LOWER(TRIM($2))`,
+              [newOwner, oldOwnerName]
+            );
+          }
+        } else {
+          // Fallback: update running vehicle billing if no specific log found
+          await pool.query(
+            `UPDATE billing_records SET owner = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
+            [newOwner, cleanPlate]
           );
         }
       }
