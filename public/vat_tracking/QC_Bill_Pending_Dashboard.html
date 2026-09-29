@@ -907,17 +907,44 @@
             return [];
         }
 
-        function getSiteFirstWord(siteName) {
+        // Helper to extract site name according to Z-prefix rule, company & L&T filtering
+        function getCleanSiteForDescription(siteName) {
             if (!siteName) return "";
-            let cleaned = siteName.trim().replace(/^z[\s\-_]+/i, '').trim();
-            return cleaned.split(/[\s\-_]+/)[0] || "";
+            let trimmed = siteName.trim();
+            let startsWithZ = /^z[\s\-_]+/i.test(trimmed);
+
+            const stripCompaniesAndLT = (str) => {
+                return str
+                    .replace(/l\s*&\s*t/gi, "")
+                    .replace(/\bmasar\s+wheels\b/gi, "")
+                    .replace(/\bmasar\b/gi, "")
+                    .replace(/\bal\s*joda\b/gi, "")
+                    .replace(/\baljoda\b/gi, "")
+                    .replace(/\bwe\s*1\b/gi, "")
+                    .replace(/\bwe1\b/gi, "")
+                    .replace(/\bhaka\b/gi, "")
+                    .replace(/\s+/g, " ")
+                    .trim();
+            };
+
+            if (startsWithZ) {
+                // Remove leading Z/z and then strip all company words and L&T from the full remaining name
+                let withoutZ = trimmed.replace(/^z[\s\-_]+/i, "").trim();
+                return stripCompaniesAndLT(withoutZ);
+            } else {
+                // For standard sites, strip L&T and company words if present in the base name
+                let withoutLT = str => str.replace(/l\s*&\s*t/gi, "").trim();
+                let cleanedName = withoutLT(trimmed);
+                let firstWord = cleanedName.split(/[\s\-_]+/)[0] || "";
+                return stripCompaniesAndLT(firstWord);
+            }
         }
 
         function formatPlateDetails(plates, monthIdx, siteName) {
             const shortM = monthsFull[monthIdx].substring(0, 3);
             const shortY = currentYear.toString().slice(-2);
-            const siteWord = getSiteFirstWord(siteName);
-            const sitePrefix = siteWord ? `${siteWord} ` : "";
+            const cleanSite = getCleanSiteForDescription(siteName);
+            const sitePrefix = cleanSite ? `${cleanSite} ` : "";
             const label = `${shortM}-${shortY} ${sitePrefix}Rent Bill`;
 
             if (!plates || plates.length === 0) return label;
