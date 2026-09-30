@@ -439,13 +439,14 @@ router.get("/api/vehicle-logs", verifyToken, async (req, res) => {
   }
 });
 
-// Update Owner Log (With Period-splitting and auto-closure for existing active logs)
+// Update Owner Log (With Period-splitting and auto-closure for existing active logs including ledger_folio)
 router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const { id, plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason } = req.body;
+    const { id, plate_no, owner_name, owner_mobile, vat, vat_no, ledger_folio, company_display_name, work_start_date, work_end_date, status, reason } = req.body;
     const cleanPlate = plate_no ? plate_no.trim().toUpperCase() : "";
+    const cleanLf = ledger_folio ? ledger_folio.trim() : "";
     const calculatedStatus = work_end_date ? "Released" : (status || "Running");
 
     let finalStartDate = work_start_date || null;
@@ -459,8 +460,8 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
 
     if (id) {
       await client.query(
-        `UPDATE vehicle_owner_log SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name=$5, work_start_date=$6, work_end_date=$7, status=$8, reason=$9 WHERE id=$10`,
-        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, id]
+        `UPDATE vehicle_owner_log SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name=$5, work_start_date=$6, work_end_date=$7, status=$8, reason=$9, ledger_folio=$10 WHERE id=$11`,
+        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, cleanLf, id]
       );
     } else {
       if (calculatedStatus === "Running") {
@@ -475,15 +476,15 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
       }
 
       await client.query(
-        `INSERT INTO vehicle_owner_log (plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [cleanPlate, owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null]
+        `INSERT INTO vehicle_owner_log (plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason, ledger_folio) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [cleanPlate, owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, cleanLf]
       );
     }
 
     if (calculatedStatus === "Running") {
       await client.query(
-        `UPDATE timesheet_vehicles SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name_=$5 WHERE UPPER(plate_no)=UPPER($6)`,
-        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, cleanPlate]
+        `UPDATE timesheet_vehicles SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name_=$5, ledger_folio=$6 WHERE UPPER(plate_no)=UPPER($7)`,
+        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, cleanLf, cleanPlate]
       );
     }
 
@@ -614,8 +615,8 @@ router.get("/api/all-logs", verifyToken, async (req, res) => {
         `);
 
     const ownerLogs = await pool.query(`
-            SELECT id, plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, reason,
-            TO_CHAR(work_start_date, 'YYYY-MM-DD') as start_date,
+            SELECT id, plate_no, owner_name, owner_mobile, vat, vat_no, COALESCE(ledger_folio, '') as ledger_folio, company_display_name, reason,
+            TO_CHAR(work_start_date, 'YYYY-MM-DD') as start_date, 
             TO_CHAR(work_end_date, 'YYYY-MM-DD') as end_date, status
             FROM vehicle_owner_log
             ORDER BY plate_no ASC,
@@ -1497,8 +1498,18 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
       );
     }
 
-    // 3. Auto-Sync to Active Site Log & Cascading Period Sync to Billing, Invoices and VAT Records
-    if (["site_name", "rate", "field_co", "site_co", "asset_code", "work_order_no", "old_vehicle_no", "new_vehicle_no"].includes(cleanCol)) {
+    // 3. Auto-Sync to Active Site Log & Cascading Period Sync to Billing, Invoices and VAT Records (Including vehicle_type)
+    if (["site_name", "rate", "field_co", "site_co", "asset_code", "work_order_no", "old_vehicle_no", "new_vehicle_no", "vehicle_type"].includes(cleanCol)) {
+      await pool.query(
+        `UPDATE vehicle_site_log SET ${cleanCol} = $1 WHERE UPPER(plate_no) = UPPER($2) AND status = 'Running'`,
+        [value, plate_no]
+      );
+      // Also sync to latest site log if no running log exists
+      await pool.query(
+        `UPDATE vehicle_site_log SET ${cleanCol} = $1 
+         WHERE id = (SELECT id FROM vehicle_site_log WHERE UPPER(plate_no) = UPPER($2) ORDER BY COALESCE(work_start_date, '1970-01-01') DESC, id DESC LIMIT 1)`,
+        [value, plate_no]
+      );
       // Find the old site name before updating
       let oldSiteName = null;
       let siteStartDate = null;
@@ -1571,8 +1582,8 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
       }
     }
 
-    // 4. Auto-Sync to Active Owner Log & Billing Records
-    if (["owner_name", "owner_mobile", "vat", "vat_no", "company_display_name", "company_display_name_"].includes(cleanCol)) {
+    // 4. Auto-Sync to Active Owner Log & Billing Records (Including ledger_folio)
+    if (["owner_name", "owner_mobile", "vat", "vat_no", "ledger_folio", "company_display_name", "company_display_name_"].includes(cleanCol)) {
       let targetCol = cleanCol === "company_display_name_" ? "company_display_name" : cleanCol;
       
       // Check if an active running owner log exists

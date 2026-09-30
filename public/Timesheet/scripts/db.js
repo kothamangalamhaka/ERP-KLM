@@ -44,6 +44,7 @@ const colLabels = {
   vehicle_type: "Vehicle Type",
   site_rate: "Rate",
   plate_no: "Plate No (Key)",
+  ledger_folio: "Ledger Folio",
   site_start_date: "Site Start Date",
   site_name: "Site Name",
   site_end_date: "Site End Date",
@@ -965,6 +966,7 @@ async function initDB() {
           row.owner_mobile = oLog.owner_mobile || row.owner_mobile || "";
           row.vat = oLog.vat || row.vat || "No";
           row.vat_no = oLog.vat_no || row.vat_no || "";
+          row.ledger_folio = oLog.ledger_folio !== undefined && oLog.ledger_folio !== null ? oLog.ledger_folio : (row.ledger_folio || "");
           row.company_display_name_ = oLog.company_display_name || row.company_display_name_ || row.company_display_name || "";
           row.company_display_name = row.company_display_name_;
         }
@@ -1836,6 +1838,8 @@ function clearOwnerForm() {
   document.getElementById("olVat").value = "No";
   document.getElementById("olVatNo").value = "";
   document.getElementById("olCompany").value = "";
+  if (document.getElementById("olLedgerFolio"))
+    document.getElementById("olLedgerFolio").value = "";
   document.getElementById("olStart").value = "";
   document.getElementById("olEnd").value = "";
   if (document.getElementById("olReason"))
@@ -2008,6 +2012,7 @@ async function fetchLogs(plate, type) {
             <th>Mobile</th>
             <th style="text-align:center;">VAT</th>
             <th>VAT NO</th>
+            <th>LF</th>
             <th>Company Name</th>
             <th style="text-align:center;">Start</th>
             <th style="text-align:center;">End</th>
@@ -2029,9 +2034,10 @@ async function fetchLogs(plate, type) {
             ? `<button type="button" class="btn-delete-icon" onclick="deleteLogEntry(event, 'owner', ${o.id}, '${plate}')" title="Delete Log">&#x1F5D1;&#xFE0F;</button>`
             : "";
         let escapedReasonO = escapeHTML(o.reason || "").replace(/'/g, "\\'");
+        let escapedLf = escapeHTML(o.ledger_folio || "").replace(/'/g, "\\'");
         
         olHtml += `
-          <tr style="cursor:pointer;" onclick="editOwnerLog(${o.id}, '${escapeHTML(o.owner_name)}', '${escapeHTML(o.owner_mobile)}', '${escapeHTML(o.vat)}', '${escapeHTML(o.vat_no)}', '${escapeHTML(o.company_display_name)}', '${start}', '${end}', '${escapedReasonO}')">
+          <tr style="cursor:pointer;" onclick="editOwnerLog(${o.id}, '${escapeHTML(o.owner_name)}', '${escapeHTML(o.owner_mobile)}', '${escapeHTML(o.vat)}', '${escapeHTML(o.vat_no)}', '${escapeHTML(o.company_display_name)}', '${start}', '${end}', '${escapedReasonO}', '${escapedLf}')">
             <td>
               <span style="font-weight:600; color:#0d6efd;">${escapeHTML(o.owner_name || "-")}</span><br>
               <span style="font-size:10px; color:#888;">Tap to edit &#x270E;</span>
@@ -2039,6 +2045,7 @@ async function fetchLogs(plate, type) {
             <td style="white-space:nowrap;">${escapeHTML(o.owner_mobile || "-")}</td>
             <td style="text-align:center; font-weight:600;">${escapeHTML(o.vat || "-")}</td>
             <td style="font-weight:600; color:#0f172a; word-break:break-all;">${escapeHTML(o.vat_no || "-")}</td>
+            <td style="font-weight:700; color:#0284c7; white-space:nowrap;">${escapeHTML(o.ledger_folio || "-")}</td>
             <td style="font-size:11px; line-height:1.3;">${escapeHTML(o.company_display_name || "-")}</td>
             <td style="text-align:center; white-space:nowrap;">${start}</td>
             <td style="text-align:center; white-space:nowrap;">${end}</td>
@@ -2052,7 +2059,7 @@ async function fetchLogs(plate, type) {
       document.getElementById("olHistory").innerHTML =
         (res.owners && res.owners.length > 0)
           ? olHtml
-          : '<tr><td colspan="9" style="color:#888; text-align:center; padding:20px;">No owner logs found.</td></tr>';
+          : '<tr><td colspan="10" style="color:#888; text-align:center; padding:20px;">No owner logs found.</td></tr>';
 
       let masterRow = tableData.find((x) => x.plate_no === plate);
       let activeO = (res.owners || []).find((o) => o.status === "Running");
@@ -2067,12 +2074,15 @@ async function fetchLogs(plate, type) {
           activeO.work_start_date ? activeO.work_start_date.split("T")[0] : "",
           activeO.work_end_date ? activeO.work_end_date.split("T")[0] : "",
           activeO.reason,
+          activeO.ledger_folio || "",
         );
       } else if (masterRow && masterRow.owner_name) {
         document.getElementById("olName").value = masterRow.owner_name || "";
         document.getElementById("olMob").value = masterRow.owner_mobile || "";
         document.getElementById("olVat").value = (masterRow.vat === "Yes" || masterRow.vat === "true" || masterRow.vat === "15") ? "Yes" : "No";
         document.getElementById("olVatNo").value = masterRow.vat_no || "";
+        if (document.getElementById("olLedgerFolio"))
+          document.getElementById("olLedgerFolio").value = masterRow.ledger_folio || "";
         document.getElementById("olCompany").value = masterRow.company_display_name_ || masterRow.company_display_name || "";
       }
     }
@@ -2302,13 +2312,15 @@ async function saveSiteLog() {
 }
 
 // 🟢 Owner Log Functions
-function editOwnerLog(id, name, mob, vat, vat_no, comp, start, end, reason) {
+function editOwnerLog(id, name, mob, vat, vat_no, comp, start, end, reason, lf = "") {
   document.getElementById("olId").value = id;
   document.getElementById("olName").value = name !== "null" && name ? name : "";
   document.getElementById("olMob").value = mob !== "null" && mob ? mob : "";
   document.getElementById("olVat").value = (vat === "Yes" || vat === "true" || vat === "15") ? "Yes" : "No";
   document.getElementById("olVatNo").value = vat_no !== "null" && vat_no ? vat_no : "";
   document.getElementById("olCompany").value = comp !== "null" && comp ? comp : "";
+  if (document.getElementById("olLedgerFolio"))
+    document.getElementById("olLedgerFolio").value = lf && lf !== "null" ? lf : "";
   document.getElementById("olStart").value = start !== "-" ? start : "";
   document.getElementById("olEnd").value = end !== "-" ? end : "";
   if (document.getElementById("olReason"))
@@ -2327,6 +2339,7 @@ async function saveOwnerLog() {
     vat: document.getElementById("olVat").value,
     vat_no: document.getElementById("olVatNo").value,
     company_display_name: document.getElementById("olCompany").value,
+    ledger_folio: document.getElementById("olLedgerFolio") ? document.getElementById("olLedgerFolio").value.trim() : "",
     work_start_date: document.getElementById("olStart").value,
     work_end_date: document.getElementById("olEnd").value,
     reason: document.getElementById("olReason")

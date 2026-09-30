@@ -908,7 +908,7 @@
             });
         }
 
-        async function handleDiceBlur(inputEl, siteFirstName, monthIdx) {
+        async function handleDiceBlur(inputEl, siteFirstName, lf, monthIdx) {
             let val = evaluateMathExpression(inputEl.value);
             inputEl.value = val;
 
@@ -916,7 +916,11 @@
             const supData = rawData.find(s => s.supplier === selectedSupplier);
             if (!supData) return;
 
-            const siteObj = supData.sites.find(s => s.site_first_name.toLowerCase() === siteFirstName.toLowerCase());
+            const cleanLf = (lf || "").trim();
+            const siteObj = supData.sites.find(s => 
+                s.site_first_name.toLowerCase() === siteFirstName.toLowerCase() &&
+                (s.ledger_folio || "").trim().toLowerCase() === cleanLf.toLowerCase()
+            );
             if (siteObj && siteObj.billing[monthIdx]) {
                 siteObj.billing[monthIdx].quick_dice = val;
             }
@@ -930,6 +934,7 @@
                         year: currentYear,
                         supplier: supData.supplier,
                         site_first_name: siteFirstName,
+                        ledger_folio: cleanLf,
                         month_index: monthIdx,
                         value: val
                     })

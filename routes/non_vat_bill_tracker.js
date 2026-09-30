@@ -89,7 +89,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
     try {
       const ownerLogRes = await pool.query(
         `
-                SELECT plate_no, owner_name, vat, work_start_date, work_end_date 
+                SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio, work_start_date, work_end_date 
                 FROM vehicle_owner_log 
                 WHERE plate_no = ANY($1) 
                 ORDER BY COALESCE(work_start_date, '2000-01-01') ASC
@@ -101,7 +101,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
       console.warn("vehicle_owner_log query warning:", e.message);
     }
 
-    const getMonthOwnerInfo = (plateNo, mIdx, fallbackOwner, fallbackVat) => {
+    const getMonthOwnerInfo = (plateNo, mIdx, fallbackOwner, fallbackVat, fallbackLf = "") => {
       const mStart = new Date(currentYear, mIdx, 1);
       const mEnd = new Date(currentYear, mIdx + 1, 0);
 
@@ -130,6 +130,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
           vat: String(active.vat || "")
             .trim()
             .toLowerCase(),
+          ledger_folio: (active.ledger_folio || "").trim() || fallbackLf,
         };
       }
 
@@ -138,6 +139,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
         vat: String(fallbackVat || "")
           .trim()
           .toLowerCase(),
+        ledger_folio: fallbackLf,
       };
     };
 
@@ -228,11 +230,13 @@ router.get("/data", verifyAccessCode, async (req, res) => {
         let mEnd = new Date(currentYear, m + 1, 0);
 
         if (sd <= mEnd && ed >= mStart) {
+          const defaultLf = (vehicle.ledger_folio || "").trim();
           const ownerInfo = getMonthOwnerInfo(
             log.plate_no,
             m,
             defaultOwner,
             defaultVat,
+            defaultLf
           );
 
           // 🟢 VAT 'Yes', 'True', '15' ഒഴികെയുള്ള എല്ലാ VAT 'No', Blank, NULL റെക്കോർഡുകളും എടുക്കുന്നു
@@ -250,7 +254,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
           const siteFirst = getSiteFirstName(log.site_name);
           if (!siteFirst) continue;
 
-          const lfVal = (vehicle.ledger_folio || "").trim();
+          const lfVal = (ownerInfo.ledger_folio || "").trim();
           const siteGroupKey = `${siteFirst}__${lfVal}`;
 
           if (!suppliersMap[supName]) {
@@ -318,14 +322,18 @@ router.get("/data", verifyAccessCode, async (req, res) => {
                 const pKey = (e.plate_no || "").trim().toUpperCase();
 
                 let isVatVeh = false;
+                let vehicleMonthLf = "";
                 if (pKey) {
                   const rowVeh = vehicles.find(v => (v.plate_no || "").trim().toUpperCase() === pKey);
-                  const ownerInfo = getMonthOwnerInfo(pKey, m, (rowVeh ? rowVeh.owner_name : ""), (rowVeh ? rowVeh.vat : ""));
+                  const ownerInfo = getMonthOwnerInfo(pKey, m, (rowVeh ? rowVeh.owner_name : ""), (rowVeh ? rowVeh.vat : ""), (rowVeh ? rowVeh.ledger_folio : ""));
                   isVatVeh = ["yes", "true", "15"].includes(ownerInfo.vat);
+                  vehicleMonthLf = (ownerInfo.ledger_folio || "").trim().toLowerCase();
                 }
 
-                if (!isVatVeh) {
-                  // ഒരേ സൈറ്റ് നെയിം ഡ്യൂപ്ലിക്കേറ്റ് ആവാതിരിക്കാനും വ്യത്യസ്ത സൈറ്റുകൾ (Aljoda, Masar etc.) കൂട്ടിയെടുക്കാനും കീ പ്ലേറ്റും സൈറ്റും ചേർക്കുന്നു
+                const currentCardLf = (siteObj.ledger_folio || "").trim().toLowerCase();
+
+                if (!isVatVeh && vehicleMonthLf === currentCardLf) {
+                  // ഒരേ സൈറ്റ് നെയിം ഡ്യൂപ്ലിക്കേറ്റ് ആവാതിരിക്കാനും വ്യത്യസ്ത സൈറ്റുകൾ കൂട്ടിയെടുക്കാനും കീ പ്ലേറ്റും സൈറ്റും ചേർക്കുന്നു
                   const uniqueRowKey = `${pKey}_${e.clean_site_name}`;
                   if (!processedPlates.has(uniqueRowKey)) {
                     processedPlates.add(uniqueRowKey);
@@ -336,10 +344,12 @@ router.get("/data", verifyAccessCode, async (req, res) => {
             }
           });
 
+          const currentCardLf = (siteObj.ledger_folio || "").trim().toLowerCase();
           const savedBill = billingData.find(
             (b) =>
               b.supplier.toLowerCase().trim() === normSup &&
               (b.site_name || "").toLowerCase().trim() === sFirst &&
+              (b.ledger_folio || "").trim().toLowerCase() === currentCardLf &&
               b.month_index === m,
           );
 

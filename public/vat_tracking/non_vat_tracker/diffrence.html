@@ -278,6 +278,19 @@
                 <button class="year-btn" onclick="switchYear(1)">▶</button>
             </div>
 
+            <!-- 🟢 Multi-Month Selector Dropdown -->
+            <div class="month-filter-wrapper" style="position: relative; display: inline-block;">
+                <button id="monthDropdownBtn" class="btn-action" style="background: #1e293b; border: 1px solid #475569; color: #f8fafc; font-size: 11.5px; padding: 6px 12px;" onclick="toggleMonthDropdown(event)">
+                    🗓️ <span id="monthSelectLabel">All Months</span> ▾
+                </button>
+                <div id="monthDropdownMenu" class="filter-menu" style="width: 170px; top: 38px; left: 0; padding: 8px;">
+                    <label style="font-weight: bold; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 5px; display: block;">
+                        <input type="checkbox" id="selectAllMonthsCb" checked onchange="toggleSelectAllMonths(this.checked)"> (Select All)
+                    </label>
+                    <div id="monthCheckboxesList" style="max-height: 220px; overflow-y: auto;"></div>
+                </div>
+            </div>
+
             <button class="btn-action" onclick="clearAllFilters()" style="background: #475569;" title="Reset Filters">
                 🔄 Reset Filters
             </button>
@@ -319,6 +332,66 @@
         let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
         let currentYear = new Date().getFullYear();
         let currentViewMode = "individual"; // 'individual' or 'total'
+
+        // 🟢 Selected Months Filter State (Default: All 12 months)
+        let selectedFilterMonths = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+        function initMonthDropdown() {
+            const container = document.getElementById("monthCheckboxesList");
+            if (!container) return;
+            let html = "";
+            monthsFull.forEach((mName, idx) => {
+                const shortM = mName.substring(0, 3);
+                html += `
+                    <label style="display: flex; align-items: center; gap: 6px; padding: 3px 0; cursor: pointer; font-size: 11.5px;">
+                        <input type="checkbox" class="month-filter-cb" value="${idx}" checked onchange="handleSingleMonthChange()">
+                        <span>${shortM} (${mName})</span>
+                    </label>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function toggleMonthDropdown(e) {
+            e.stopPropagation();
+            const menu = document.getElementById("monthDropdownMenu");
+            menu.style.display = menu.style.display === "block" ? "none" : "block";
+        }
+
+        function toggleSelectAllMonths(isChecked) {
+            document.querySelectorAll(".month-filter-cb").forEach(cb => cb.checked = isChecked);
+            updateSelectedMonthsFromUI();
+        }
+
+        function handleSingleMonthChange() {
+            const allCbs = document.querySelectorAll(".month-filter-cb");
+            const checkedCount = document.querySelectorAll(".month-filter-cb:checked").length;
+            const master = document.getElementById("selectAllMonthsCb");
+            if (master) master.checked = (checkedCount === allCbs.length);
+            updateSelectedMonthsFromUI();
+        }
+
+        function updateSelectedMonthsFromUI() {
+            const checked = Array.from(document.querySelectorAll(".month-filter-cb:checked")).map(cb => parseInt(cb.value));
+            selectedFilterMonths = checked;
+
+            const labelEl = document.getElementById("monthSelectLabel");
+            if (checked.length === 12 || checked.length === 0) {
+                labelEl.innerText = "All Months";
+            } else if (checked.length === 1) {
+                labelEl.innerText = monthsFull[checked[0]].substring(0, 3);
+            } else {
+                labelEl.innerText = `${checked.length} Months`;
+            }
+            renderDashboard();
+        }
+
+        document.addEventListener("click", function(e) {
+            if (!e.target.closest(".month-filter-wrapper")) {
+                const m = document.getElementById("monthDropdownMenu");
+                if (m) m.style.display = "none";
+            }
+        });
 
         // 🟢 Column Filter States
         let activeFilters = {
@@ -460,6 +533,7 @@
             }
         }
         initYearOptions();
+        initMonthDropdown();
 
         if (vatCode) {
             document.getElementById("loginModal").style.display = "none";
@@ -533,9 +607,10 @@
             const tbody = document.getElementById("diffTableBody");
             const shortYear = currentYear.toString().slice(-2);
 
-            // 1. ആർക്കെങ്കിലും ഡിഫറൻസ് ഉള്ള മാസങ്ങൾ മാത്രം കണ്ടെത്തുന്നു
+            // 1. യൂസർ തിരഞ്ഞെടുത്തതും ആർക്കെങ്കിലും ഡിഫറൻസ് ഉള്ളതുമായ മാസങ്ങൾ മാത്രം കണ്ടെത്തുന്നു
+            const activeMonthPool = (selectedFilterMonths && selectedFilterMonths.length > 0) ? selectedFilterMonths : [0,1,2,3,4,5,6,7,8,9,10,11];
             const visibleMonths = [];
-            for (let m = 0; m < 12; m++) {
+            for (let m of activeMonthPool) {
                 let monthHasDiff = false;
                 for (let sup of rawData) {
                     for (let st of sup.sites) {
@@ -655,18 +730,20 @@
                     let tr = document.createElement("tr");
                     let rowHtml = "";
 
-                    // Supplier Merge
+                    // Supplier Merge (Clean Flex alignment)
                     if (sIdx === 0) {
                         rowHtml += `
-                            <td rowspan="${sitesToDisplay.length}" class="cell-sticky-supplier">
-                                <span class="sup-sn-badge">${renderedSupplierCount}</span>
-                                <span>${escapeHTML(supObj.supplier)}</span>
+                            <td rowspan="${sitesToDisplay.length}" class="cell-sticky-supplier" style="vertical-align: middle !important;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="sup-sn-badge" style="flex-shrink: 0; min-width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; padding: 0 4px; margin: 0;">${renderedSupplierCount}</span>
+                                    <span style="font-weight: 700; color: inherit; line-height: 1.3;">${escapeHTML(supObj.supplier)}</span>
+                                </div>
                             </td>
                         `;
                     }
 
                     const siteDisplayHtml = st.ledger_folio 
-                        ? `<div style="font-weight: 700;">${escapeHTML(st.site_first_name.toUpperCase())}</div><div style="font-size: 10px; color: #0284c7; font-weight: 600;">LF: ${escapeHTML(st.ledger_folio)}</div>`
+                        ? `<div style="font-weight: 700;">${escapeHTML(st.site_first_name.toUpperCase())}</div><div style="font-size: 10.5px; color: #0284c7; font-weight: 700; letter-spacing: 0.3px;">${escapeHTML(st.ledger_folio)}</div>`
                         : `<div style="font-weight: 700;">${escapeHTML(st.site_first_name.toUpperCase())}</div>`;
                     rowHtml += `<td class="cell-sticky-site">${siteDisplayHtml}</td>`;
 

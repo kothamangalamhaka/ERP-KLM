@@ -62,7 +62,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
     try {
       const ownerLogRes = await pool.query(
         `
-        SELECT plate_no, owner_name, vat, work_start_date, work_end_date 
+        SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio, work_start_date, work_end_date 
         FROM vehicle_owner_log 
         WHERE plate_no = ANY($1) 
         ORDER BY COALESCE(work_start_date, '2000-01-01') ASC
@@ -74,7 +74,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
       console.warn("vehicle_owner_log warning:", e.message);
     }
 
-    const getMonthOwnerInfo = (plateNo, mIdx, fallbackOwner, fallbackVat) => {
+    const getMonthOwnerInfo = (plateNo, mIdx, fallbackOwner, fallbackVat, fallbackLf = "") => {
       const mStart = new Date(currentYear, mIdx, 1);
       const mEnd = new Date(currentYear, mIdx + 1, 0);
 
@@ -90,12 +90,14 @@ router.get("/data", verifyAccessCode, async (req, res) => {
         return {
           owner: active.owner_name && active.owner_name.trim() ? active.owner_name.trim() : fallbackOwner,
           vat: String(active.vat || "").trim().toLowerCase(),
+          ledger_folio: (active.ledger_folio || "").trim() || fallbackLf,
         };
       }
 
       return {
         owner: fallbackOwner,
         vat: String(fallbackVat || "").trim().toLowerCase(),
+        ledger_folio: fallbackLf,
       };
     };
 
@@ -171,7 +173,8 @@ router.get("/data", verifyAccessCode, async (req, res) => {
         let mEnd = new Date(currentYear, m + 1, 0);
 
         if (sd <= mEnd && ed >= mStart) {
-          const ownerInfo = getMonthOwnerInfo(log.plate_no, m, defaultOwner, defaultVat);
+          const defaultLf = (vehicle.ledger_folio || "").trim();
+          const ownerInfo = getMonthOwnerInfo(log.plate_no, m, defaultOwner, defaultVat, defaultLf);
           const isVat = ["yes", "true", "15"].includes(ownerInfo.vat);
           if (isVat) continue;
 
@@ -181,7 +184,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
           const siteFirst = getSiteFirstName(log.site_name);
           if (!siteFirst) continue;
 
-          const lfVal = (vehicle.ledger_folio || "").trim();
+          const lfVal = (ownerInfo.ledger_folio || "").trim();
           const siteGroupKey = `${siteFirst}__${lfVal}`;
 
           if (!suppliersMap[supName]) {
@@ -244,10 +247,11 @@ router.get("/data", verifyAccessCode, async (req, res) => {
                     pKey,
                     m,
                     rowVeh ? rowVeh.owner_name : "",
-                    rowVeh ? rowVeh.vat : ""
+                    rowVeh ? rowVeh.vat : "",
+                    rowVeh ? rowVeh.ledger_folio : ""
                   );
                   isVatVeh = ["yes", "true", "15"].includes(ownerInfo.vat);
-                  vehicleLf = (rowVeh && rowVeh.ledger_folio ? rowVeh.ledger_folio : "").trim().toLowerCase();
+                  vehicleLf = (ownerInfo.ledger_folio || "").trim().toLowerCase();
                 }
 
                 if (!isVatVeh && vehicleLf === siteLf) {
