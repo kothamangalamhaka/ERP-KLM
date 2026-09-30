@@ -55,19 +55,19 @@ router.get("/data", verifyVatCode, async (req, res) => {
         let vatNoCol = getCol(['vat_no', 'vat no']);
         let ownerCol = getCol(['owner_name', 'owner name']);
  
-        // 2. Fetch unique vehicles where VAT is Yes
+        // 2. Fetch unique vehicles where VAT is Yes (Including ledger_folio)
         const vehicleQuery = `
-            SELECT plate_no, ${ownerCol} as supplier, ${vatNoCol} as vat_no, ${displayCol} as display_name 
+            SELECT plate_no, ${ownerCol} as supplier, ${vatNoCol} as vat_no, ${displayCol} as display_name, COALESCE(ledger_folio, '') as ledger_folio 
             FROM timesheet_vehicles 
             WHERE LOWER(TRIM(vat)) IN ('yes', 'true', '15')
         `;
         const vehicleResult = await pool.query(vehicleQuery);
         if (vehicleResult.rows.length === 0) return res.json({ success: true, data: [] });
- 
+
         const vehicles = vehicleResult.rows;
         const plates = vehicles.map(v => v.plate_no);
- 
-        // 2.1 Fetch Owner Logs with VAT status and safe fallback
+
+        // 2.1 Fetch Owner Logs with VAT status, LF and safe fallback
         let ownerLogs = [];
         try {
             const ownerLogRes = await pool.query(`
@@ -75,6 +75,7 @@ router.get("/data", verifyVatCode, async (req, res) => {
                     plate_no, 
                     owner_name, 
                     vat,
+                    COALESCE(ledger_folio, '') as ledger_folio,
                     COALESCE(work_start_date, start_date) as start_date, 
                     COALESCE(work_end_date, end_date) as end_date 
                 FROM vehicle_owner_log 
@@ -84,11 +85,12 @@ router.get("/data", verifyVatCode, async (req, res) => {
             ownerLogs = ownerLogRes.rows;
         } catch (e) {
             try {
-                const fbRes = await pool.query(`SELECT * FROM vehicle_owner_log WHERE plate_no = ANY($1)`, [plates]);
+                const fbRes = await pool.query(`SELECT *, COALESCE(ledger_folio, '') as ledger_folio FROM vehicle_owner_log WHERE plate_no = ANY($1)`, [plates]);
                 ownerLogs = fbRes.rows.map(r => ({
                     plate_no: r.plate_no,
                     owner_name: r.owner_name,
                     vat: r.vat,
+                    ledger_folio: r.ledger_folio || "",
                     start_date: r.work_start_date || r.start_date,
                     end_date: r.work_end_date || r.end_date
                 }));
@@ -97,8 +99,8 @@ router.get("/data", verifyVatCode, async (req, res) => {
             }
         }
 
-        // Helper to determine accurate owner and VAT status for a specific month
-        const getOwnerLogForMonth = (plateNo, mIdx, fallbackOwner, fallbackVat) => {
+        // Helper to determine accurate owner, VAT, and LF status for a specific month
+        const getOwnerLogForMonth = (plateNo, mIdx, fallbackOwner, fallbackVat, fallbackLf = "") => {
             const mStart = new Date(currentYear, mIdx, 1);
             const mEnd = new Date(currentYear, mIdx + 1, 0);
 
@@ -113,10 +115,11 @@ router.get("/data", verifyVatCode, async (req, res) => {
                 const active = matchedLogs[matchedLogs.length - 1];
                 const oName = (active.owner_name && active.owner_name.trim()) ? active.owner_name.trim() : fallbackOwner;
                 const isVat = active.vat ? ['yes', 'true', '15'].includes(String(active.vat).trim().toLowerCase()) : fallbackVat;
-                return { owner: oName, isVat: isVat };
+                const lf = (active.ledger_folio || "").trim() || fallbackLf;
+                return { owner: oName, isVat: isVat, ledger_folio: lf };
             }
 
-            return { owner: fallbackOwner, isVat: fallbackVat };
+            return { owner: fallbackOwner, isVat: fallbackVat, ledger_folio: fallbackLf };
         };
  
         // 3. Fetch SITE LOGS history (Calculates active months)
@@ -184,7 +187,8 @@ const erpQuery = `
                 let mEnd = new Date(currentYear, m + 1, 0);
 
                 if (sd <= mEnd && ed >= mStart) {
-                    const ownerInfo = getOwnerLogForMonth(log.plate_no, m, defaultOwner, defaultIsVat);
+                    const defaultLf = (vehicle.ledger_folio || "").trim();
+                    const ownerInfo = getOwnerLogForMonth(log.plate_no, m, defaultOwner, defaultIsVat, defaultLf);
                     
                     // 🟢 STRICT CHECK: ആ പ്രത്യേക മാസത്തിൽ വാഹനം VAT അല്ലെങ്കിൽ VAT ട്രാക്കിംഗിൽ ചേർക്കില്ല!
                     if (!ownerInfo.isVat) {
@@ -193,6 +197,10 @@ const erpQuery = `
 
                     const actualSupplier = ownerInfo.owner;
                     if (!actualSupplier || actualSupplier === "Unknown") continue;
+
+                    // 🟢 2027 മുതൽ മാത്രം LF വെച്ച് സൈറ്റ് സ്പ്ലിറ്റ് ചെയ്യുക, 2026-ൽ പഴയതുപോലെ ഒരൊറ്റ സൈറ്റ് മാത്രം
+                    const activeLf = currentYear >= 2027 ? (ownerInfo.ledger_folio || "").trim() : "";
+                    const siteKey = (currentYear >= 2027 && activeLf) ? `${site}__${activeLf}` : site;
 
                     const groupKey = `${company}_${actualSupplier}`;
 
@@ -207,15 +215,17 @@ const erpQuery = `
                         };
                     }
 
-                    if (!groupedData[groupKey].sites[site]) {
-                        groupedData[groupKey].sites[site] = {
+                    if (!groupedData[groupKey].sites[siteKey]) {
+                        groupedData[groupKey].sites[siteKey] = {
                             site_name: site,
+                            ledger_folio: activeLf,
+                            site_key: siteKey,
                             active_months: Array(12).fill(false),
                             billing: {}
                         };
                     }
 
-                    groupedData[groupKey].sites[site].active_months[m] = true;
+                    groupedData[groupKey].sites[siteKey].active_months[m] = true;
                 }
             }
         });
@@ -225,11 +235,13 @@ const erpQuery = `
             group.sites = Object.values(group.sites).filter(s => s.active_months.includes(true));
  
             group.sites.forEach(siteObj => {
+                const siteLf = (siteObj.ledger_folio || "").trim().toLowerCase();
                 for (let i = 0; i < 12; i++) {
                     const bill = billingData.find(b => 
                         b.company === group.company && 
                         b.supplier === group.supplier && 
                         b.site_name === siteObj.site_name && 
+                        (currentYear < 2027 || (b.ledger_folio || "").trim().toLowerCase() === siteLf) &&
                         b.month_index === i
                     );
  
@@ -282,29 +294,29 @@ const erpQuery = `
 });
  
  
-// UPSERT Single Billing Cell
+// UPSERT Single Billing Cell (With year >= 2027 ledger_folio support)
 router.post("/update-cell", verifyVatCode, async (req, res) => {
     try {
-        const { year, company, supplier, vat_no, display_name, site_name, month_index, field, value } = req.body;
+        const { year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, field, value } = req.body;
         
-        // Changed validFields to accept quick_dice instead of qc_checked
         const validFields = ["bill_no", "status", "amount", "quick_dice"];
         if (!validFields.includes(field)) throw new Error("Invalid field update");
- 
+
         let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();
- 
+        const cleanLf = parseInt(year) >= 2027 ? (ledger_folio || "").trim() : "";
+
         const query = `
-            INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, month_index, ${field})
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (year, company, supplier, site_name, month_index) 
+            INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, ${field})
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (year, company, supplier, site_name, COALESCE(ledger_folio, ''), month_index) 
             DO UPDATE SET 
                 ${field} = EXCLUDED.${field},
                 vat_no = EXCLUDED.vat_no,
                 display_name = EXCLUDED.display_name,
                 updated_at = CURRENT_TIMESTAMP
         `;
- 
-        await pool.query(query, [year, company, supplier, vat_no, display_name, site_name, month_index, valToSave]);
+
+        await pool.query(query, [year, company, supplier, vat_no, display_name, site_name, cleanLf, month_index, valToSave]);
         
         // Real-time live update for bill_no, amount, and quick_dice to other users without reload
         if (["bill_no", "amount", "quick_dice"].includes(field)) {
@@ -335,25 +347,25 @@ router.post("/update-bulk", verifyVatCode, async (req, res) => {
         try {
             await client.query("BEGIN");
             for (let change of changes) {
-                const { year, company, supplier, vat_no, display_name, site_name, month_index, field, value } = change;
+                const { year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, field, value } = change;
                 
-               // Changed validFields to accept quick_dice
                 const validFields = ["bill_no", "status", "amount", "quick_dice"];
                 if (!validFields.includes(field)) continue;
- 
+
                 let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();
- 
+                const cleanLf = parseInt(year) >= 2027 ? (ledger_folio || "").trim() : "";
+
                 const query = `
-                    INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, month_index, ${field})
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                    ON CONFLICT (year, company, supplier, site_name, month_index) 
+                    INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, ${field})
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    ON CONFLICT (year, company, supplier, site_name, COALESCE(ledger_folio, ''), month_index) 
                     DO UPDATE SET 
                         ${field} = EXCLUDED.${field},
                         vat_no = EXCLUDED.vat_no,
                         display_name = EXCLUDED.display_name,
                         updated_at = CURRENT_TIMESTAMP
                 `;
-                await client.query(query, [year, company, supplier, vat_no, display_name, site_name, month_index, valToSave]);
+                await client.query(query, [year, company, supplier, vat_no, display_name, site_name, cleanLf, month_index, valToSave]);
             }
             await client.query("COMMIT");
         } catch (err) {

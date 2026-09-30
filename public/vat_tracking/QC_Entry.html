@@ -1584,6 +1584,7 @@
               vat_no: supData.vat_no,
               display_name: supData.display_name,
               site_name: siteName,
+              ledger_folio: currentYear >= 2027 ? (site.ledger_folio || "") : "",
               month_index: monthIdx,
               field: "quick_dice",
               value: val,
@@ -1822,7 +1823,8 @@
         let head2 = `<tr>`;
 
         supData.sites.forEach((site) => {
-          head1 += `<th colspan="4" title="${escapeHTML(site.site_name)}">${escapeHTML(site.site_name)}</th>`;
+          const lfTag = (currentYear >= 2027 && site.ledger_folio) ? ` [${escapeHTML(site.ledger_folio)}]` : '';
+          head1 += `<th colspan="4" title="${escapeHTML(site.site_name)}${lfTag}">${escapeHTML(site.site_name)}${lfTag}</th>`;
           head2 += `
                     <th class="sub-head" style="width: 120px; min-width: 120px;">Bill No</th>
                     <th class="sub-head" style="width: 85px; min-width: 85px;">Amount</th>

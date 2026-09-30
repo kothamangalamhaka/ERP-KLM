@@ -1039,8 +1039,11 @@
                 tbody += `<td rowspan="${siteCount}" class="merged-cell">${escapeHTML(group.company)}</td>`;
               }
 
-              // Site Cell
-              tbody += `<td style="text-align: left; font-weight: 500; max-width:140px;">${escapeHTML(siteData.site_name)}</td>`;
+              // Site Cell (Shows LF only from 2027 onwards)
+              const siteDisplayHtml = (currentYear >= 2027 && siteData.ledger_folio)
+                ? `<div style="font-weight: 600;">${escapeHTML(siteData.site_name)}</div><div style="font-size: 10px; color: #0284c7; font-weight: 700;">${escapeHTML(siteData.ledger_folio)}</div>`
+                : `<div style="font-weight: 500;">${escapeHTML(siteData.site_name)}</div>`;
+              tbody += `<td style="text-align: left; max-width:140px;">${siteDisplayHtml}</td>`;
 
               // Month Columns
               for (let i = startMonth; i <= endMonth; i++) {
@@ -1734,6 +1737,7 @@
               if (existingIdx > -1) {
                 pendingChanges[existingIdx].value = newValue;
               } else {
+                const targetSiteObj = sit || {};
                 pendingChanges.push({
                   year: currentYear,
                   company,
@@ -1741,6 +1745,7 @@
                   vat_no,
                   display_name,
                   site_name,
+                  ledger_folio: currentYear >= 2027 ? (targetSiteObj.ledger_folio || "") : "",
                   month_index,
                   field,
                   value: newValue,
