@@ -335,13 +335,18 @@
             menu.style.left = (e.clientX || e.pageX) + "px";
             menu.style.top = ((e.clientY || e.pageY) + 15) + "px";
 
+            function getSiteDisplayLabel(st) {
+                const sName = (st.site_first_name || "").toUpperCase();
+                return st.ledger_folio ? `${sName} [LF: ${st.ledger_folio}]` : sName;
+            }
+
             let uniqueValues = new Set();
             rawData.forEach(sup => {
                 sup.sites.forEach(st => {
                     if (colKey === "supplier") {
                         uniqueValues.add(sup.supplier);
                     } else if (colKey === "site") {
-                        uniqueValues.add(st.site_first_name.toUpperCase());
+                        uniqueValues.add(getSiteDisplayLabel(st));
                     }
                 });
             });
@@ -605,10 +610,11 @@
                 if (activeFilters.supplier.length > 0 && !activeFilters.supplier.includes(supObj.supplier)) return;
 
                 let sitesToDisplay = supObj.sites.filter(st => {
-                    if (activeFilters.site.length > 0 && !activeFilters.site.includes(st.site_first_name.toUpperCase())) return false;
+                    const siteLabel = st.ledger_folio ? `${st.site_first_name.toUpperCase()} [LF: ${st.ledger_folio}]` : st.site_first_name.toUpperCase();
+                    if (activeFilters.site.length > 0 && !activeFilters.site.includes(siteLabel)) return false;
 
                     if (searchTerm) {
-                        const matchText = `${supObj.supplier} ${st.site_first_name}`.toLowerCase();
+                        const matchText = `${supObj.supplier} ${st.site_first_name} ${st.ledger_folio || ''}`.toLowerCase();
                         if (!matchText.includes(searchTerm)) return false;
                     }
 
@@ -659,7 +665,10 @@
                         `;
                     }
 
-                    rowHtml += `<td class="cell-sticky-site">${escapeHTML(st.site_first_name.toUpperCase())}</td>`;
+                    const siteDisplayHtml = st.ledger_folio 
+                        ? `<div style="font-weight: 700;">${escapeHTML(st.site_first_name.toUpperCase())}</div><div style="font-size: 10px; color: #0284c7; font-weight: 600;">LF: ${escapeHTML(st.ledger_folio)}</div>`
+                        : `<div style="font-weight: 700;">${escapeHTML(st.site_first_name.toUpperCase())}</div>`;
+                    rowHtml += `<td class="cell-sticky-site">${siteDisplayHtml}</td>`;
 
                     if (currentViewMode === "individual") {
                         visibleMonths.forEach(m => {
@@ -869,7 +878,9 @@
                             row.height = 20;
 
                             const siteCell = row.getCell(2);
-                            siteCell.value = st.site_first_name.toUpperCase();
+                            siteCell.value = st.ledger_folio 
+                                ? `${st.site_first_name.toUpperCase()} [LF: ${st.ledger_folio}]`
+                                : st.site_first_name.toUpperCase();
                             siteCell.font = { name: 'Arial', size: 9, bold: true };
                             siteCell.alignment = { horizontal: 'center', vertical: 'middle' };
                             siteCell.border = {

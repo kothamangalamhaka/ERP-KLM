@@ -777,7 +777,7 @@
                         if (isLocked) {
                             diceContent = `<div style="font-weight: 700; color: #312e81;" title="Locked: Click 'Edit All' to modify">${qDiceVal}</div>`;
                         } else {
-                            diceContent = `<input type="text" class="qc-input" data-site="${escapeQuotes(sFirstName)}" data-month="${m}" value="${qDiceVal === '0' ? '' : qDiceVal}" oninput="handleLiveHighlight(this)" onblur="handleDiceBlur(this, '${escapeQuotes(sFirstName)}', ${m})" onkeydown="if(event.key==='Enter') this.blur();">`;
+                            diceContent = `<input type="text" class="qc-input" data-site="${escapeQuotes(sFirstName)}" data-lf="${escapeQuotes(siteObj.ledger_folio || '')}" data-month="${m}" value="${qDiceVal === '0' ? '' : qDiceVal}" oninput="handleLiveHighlight(this)" onblur="handleDiceBlur(this, '${escapeQuotes(sFirstName)}', '${escapeQuotes(siteObj.ledger_folio || '')}', ${m})" onkeydown="if(event.key==='Enter') this.blur();">`;
                         }
 
                         bodyHtml += `
@@ -828,10 +828,14 @@
                     </tr>
                 `;
 
+                const lfText = siteObj.ledger_folio ? `LF: ${escapeHTML(siteObj.ledger_folio)}` : '';
                 card.innerHTML = `
-                    <div class="site-card-title">
-                        <span>SITE: ${escapeHTML(sFirstName.toUpperCase())}</span>
-                        <button class="site-refresh-btn" title="Refresh this site table" onclick="refreshSingleSite('${escapeQuotes(supData.supplier)}', '${escapeQuotes(sFirstName)}', this)">🔄</button>
+                    <div class="site-card-title" style="display: flex; align-items: center; justify-content: space-between; position: relative;">
+                        <span style="font-size: 11px; font-weight: 700; color: #38bdf8; min-width: 60px; text-align: left;">${lfText}</span>
+                        <span style="font-size: 13px; font-weight: 800; color: #ffffff; text-align: center; flex: 1; letter-spacing: 0.5px;">${escapeHTML(sFirstName.toUpperCase())}</span>
+                        <div style="min-width: 60px; text-align: right;">
+                            <button class="site-refresh-btn" title="Refresh this site table" onclick="refreshSingleSite('${escapeQuotes(supData.supplier)}', '${escapeQuotes(sFirstName)}', this)">🔄</button>
+                        </div>
                     </div>
                     <table class="qc-table">
                         <thead>

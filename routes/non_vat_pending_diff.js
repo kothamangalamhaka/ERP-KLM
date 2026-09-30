@@ -50,7 +50,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
     const currentYear = parseInt(year);
 
     const vehicleResult = await pool.query(`
-      SELECT plate_no, owner_name, vat 
+      SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio 
       FROM timesheet_vehicles
     `);
     if (vehicleResult.rows.length === 0) return res.json({ success: true, data: [] });
@@ -110,7 +110,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
 
     const billingResult = await pool.query(
       `
-      SELECT supplier, site_name, month_index, quick_dice 
+      SELECT supplier, site_name, COALESCE(ledger_folio, '') as ledger_folio, month_index, quick_dice 
       FROM vat_billing_records 
       WHERE year = $1 AND company = 'NON_VAT'
     `,
@@ -181,25 +181,30 @@ router.get("/data", verifyAccessCode, async (req, res) => {
           const siteFirst = getSiteFirstName(log.site_name);
           if (!siteFirst) continue;
 
+          const lfVal = (vehicle.ledger_folio || "").trim();
+          const siteGroupKey = `${siteFirst}__${lfVal}`;
+
           if (!suppliersMap[supName]) {
             suppliersMap[supName] = { supplier: supName, sites: {} };
           }
 
-          if (!suppliersMap[supName].sites[siteFirst]) {
-            suppliersMap[supName].sites[siteFirst] = {
+          if (!suppliersMap[supName].sites[siteGroupKey]) {
+            suppliersMap[supName].sites[siteGroupKey] = {
               site_first_name: siteFirst,
+              ledger_folio: lfVal,
+              site_group_key: siteGroupKey,
               active_months: Array(12).fill(false),
               billing: {},
             };
             for (let i = 0; i < 12; i++) {
-              suppliersMap[supName].sites[siteFirst].billing[i] = {
+              suppliersMap[supName].sites[siteGroupKey].billing[i] = {
                 vendor_ts: 0,
                 quick_dice: "",
               };
             }
           }
 
-          suppliersMap[supName].sites[siteFirst].active_months[m] = true;
+          suppliersMap[supName].sites[siteGroupKey].active_months[m] = true;
         }
       }
     });
@@ -210,6 +215,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
 
       Object.values(sup.sites).forEach((siteObj) => {
         const sFirst = siteObj.site_first_name.toLowerCase();
+        const siteLf = (siteObj.ledger_folio || "").trim().toLowerCase();
 
         for (let m = 0; m < 12; m++) {
           const shortM = monthNames[m].substring(0, 3).toLowerCase();
@@ -229,6 +235,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
               if (isOwnerMatch) {
                 const pKey = (e.plate_no || "").trim().toUpperCase();
                 let isVatVeh = false;
+                let vehicleLf = "";
                 if (pKey) {
                   const rowVeh = vehicles.find(
                     (v) => (v.plate_no || "").trim().toUpperCase() === pKey
@@ -240,9 +247,10 @@ router.get("/data", verifyAccessCode, async (req, res) => {
                     rowVeh ? rowVeh.vat : ""
                   );
                   isVatVeh = ["yes", "true", "15"].includes(ownerInfo.vat);
+                  vehicleLf = (rowVeh && rowVeh.ledger_folio ? rowVeh.ledger_folio : "").trim().toLowerCase();
                 }
 
-                if (!isVatVeh) {
+                if (!isVatVeh && vehicleLf === siteLf) {
                   const uniqueRowKey = `${pKey}_${e.clean_site_name}`;
                   if (!processedPlates.has(uniqueRowKey)) {
                     processedPlates.add(uniqueRowKey);
@@ -257,6 +265,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
             (b) =>
               b.supplier.toLowerCase().trim() === normSup &&
               (b.site_name || "").toLowerCase().trim() === sFirst &&
+              (b.ledger_folio || "").trim().toLowerCase() === siteLf &&
               b.month_index === m
           );
 

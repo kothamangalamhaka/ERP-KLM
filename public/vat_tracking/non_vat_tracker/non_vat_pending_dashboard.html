@@ -584,6 +584,19 @@
                 <button class="year-btn" onclick="switchYear(1)">▶</button>
             </div>
 
+            <!-- 🟢 Multi-Month Selector Dropdown -->
+            <div class="month-filter-wrapper" style="position: relative; display: inline-block;">
+                <button id="monthDropdownBtn" class="btn-action" style="background: #1e293b; border: 1px solid #475569; color: #f8fafc; font-size: 11.5px; padding: 6px 12px;" onclick="toggleMonthDropdown(event)">
+                    🗓️ <span id="monthSelectLabel">All Months</span> ▾
+                </button>
+                <div id="monthDropdownMenu" class="filter-menu" style="width: 170px; top: 38px; left: 0; padding: 8px;">
+                    <label style="font-weight: bold; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 5px; display: block;">
+                        <input type="checkbox" id="selectAllMonthsCb" checked onchange="toggleSelectAllMonths(this.checked)"> (Select All)
+                    </label>
+                    <div id="monthCheckboxesList" style="max-height: 220px; overflow-y: auto;"></div>
+                </div>
+            </div>
+
             <button class="btn-clear-filters" onclick="clearAllFilters()" title="Reset all column filters">Reset Filters</button>
             <button id="themeToggleBtn" class="btn-theme-toggle" onclick="toggleTheme()" title="Switch Light/Dark Mode">🌙</button>
             <a href="index.html" class="btn-action" style="background:#0284c7;">⚡ Main View</a>
@@ -652,6 +665,66 @@
         let currentYear = new Date().getFullYear();
         let currentDashboardMode = "quick_dice"; // 'quick_dice' or 'vendor_ts'
 
+        // 🟢 Selected Months Filter State (Default: All 12 months)
+        let selectedFilterMonths = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+        function initMonthDropdown() {
+            const container = document.getElementById("monthCheckboxesList");
+            if (!container) return;
+            let html = "";
+            monthsFull.forEach((mName, idx) => {
+                const shortM = mName.substring(0, 3);
+                html += `
+                    <label style="display: flex; align-items: center; gap: 6px; padding: 3px 0; cursor: pointer; font-size: 11.5px;">
+                        <input type="checkbox" class="month-filter-cb" value="${idx}" checked onchange="handleSingleMonthChange()">
+                        <span>${shortM} (${mName})</span>
+                    </label>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function toggleMonthDropdown(e) {
+            e.stopPropagation();
+            const menu = document.getElementById("monthDropdownMenu");
+            menu.style.display = menu.style.display === "block" ? "none" : "block";
+        }
+
+        function toggleSelectAllMonths(isChecked) {
+            document.querySelectorAll(".month-filter-cb").forEach(cb => cb.checked = isChecked);
+            updateSelectedMonthsFromUI();
+        }
+
+        function handleSingleMonthChange() {
+            const allCbs = document.querySelectorAll(".month-filter-cb");
+            const checkedCount = document.querySelectorAll(".month-filter-cb:checked").length;
+            const master = document.getElementById("selectAllMonthsCb");
+            if (master) master.checked = (checkedCount === allCbs.length);
+            updateSelectedMonthsFromUI();
+        }
+
+        function updateSelectedMonthsFromUI() {
+            const checked = Array.from(document.querySelectorAll(".month-filter-cb:checked")).map(cb => parseInt(cb.value));
+            selectedFilterMonths = checked;
+
+            const labelEl = document.getElementById("monthSelectLabel");
+            if (checked.length === 12 || checked.length === 0) {
+                labelEl.innerText = "All Months";
+            } else if (checked.length === 1) {
+                labelEl.innerText = monthsFull[checked[0]].substring(0, 3);
+            } else {
+                labelEl.innerText = `${checked.length} Months`;
+            }
+            renderDashboard();
+        }
+
+        document.addEventListener("click", function(e) {
+            if (!e.target.closest(".month-filter-wrapper")) {
+                const m = document.getElementById("monthDropdownMenu");
+                if (m) m.style.display = "none";
+            }
+        });
+
         function switchDashboardMode(mode) {
             currentDashboardMode = mode;
             document.getElementById("btnModeQuickDice").classList.toggle("active", mode === "quick_dice");
@@ -682,6 +755,7 @@
             }
         }
         initYearOptions();
+        initMonthDropdown();
 
         if (vatCode) {
             document.getElementById("loginModal").style.display = "none";
@@ -802,9 +876,11 @@
 
             document.getElementById("kpiLastMonth").innerText = `${monthsFull[maxCheckMonthIdx].substring(0, 3)} - ${shortYear}`;
 
-            // 2. തിരഞ്ഞെടുക്കപ്പെട്ട മോഡ് അനുസരിച്ച് പെൻഡിങ് ഉള്ള മാസങ്ങൾ കണ്ടെത്തുന്നു
+            // 2. തിരഞ്ഞെടുക്കപ്പെട്ട മോഡ് അനുസരിച്ച് പെൻഡിങ് ഉള്ള മാസങ്ങൾ കണ്ടെത്തുന്നു (User Month Filter Applied)
+            const activeMonthPool = (selectedFilterMonths && selectedFilterMonths.length > 0) ? selectedFilterMonths : [0,1,2,3,4,5,6,7,8,9,10,11];
             let visibleMonths = [];
-            for (let m = 0; m <= maxCheckMonthIdx; m++) {
+            for (let m of activeMonthPool) {
+                if (m > maxCheckMonthIdx) continue;
                 let monthHasPending = false;
                 for (let sup of rawData) {
                     for (let st of sup.sites) {
@@ -864,6 +940,7 @@
                     if (siteHasAnyPending) {
                         pendingSitesForSupplier.push({
                             site_first_name: st.site_first_name,
+                            ledger_folio: st.ledger_folio || "",
                             billing: st.billing,
                             active_months: st.active_months
                         });
@@ -963,10 +1040,11 @@
 
                 // Filter sites based on site filter, search, and month filters
                 let filteredSites = supObj.sites.filter(st => {
-                    if (activeFilters.site.length > 0 && !activeFilters.site.includes(st.site_first_name.toUpperCase())) return false;
+                    let siteLabel = st.ledger_folio ? `${st.site_first_name.toUpperCase()} [LF: ${st.ledger_folio}]` : st.site_first_name.toUpperCase();
+                    if (activeFilters.site.length > 0 && !activeFilters.site.includes(siteLabel)) return false;
                     
                     if (searchTerm) {
-                        const matchText = `${supObj.supplier} ${st.site_first_name}`.toLowerCase();
+                        const matchText = `${supObj.supplier} ${st.site_first_name} ${st.ledger_folio || ''}`.toLowerCase();
                         if (!matchText.includes(searchTerm)) return false;
                     }
 
@@ -1008,14 +1086,20 @@
 
                     if (sIdx === 0) {
                         rowHtml += `
-                            <td rowspan="${filteredSites.length}" class="cell-sticky-supplier">
-                                <span class="sup-sn-badge">${renderedSupplierCount}</span>
-                                <span>${escapeHTML(supObj.supplier)}</span>
+                            <td rowspan="${filteredSites.length}" class="cell-sticky-supplier" style="vertical-align: middle !important;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="sup-sn-badge" style="flex-shrink: 0; min-width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; padding: 0 4px; margin: 0;">${renderedSupplierCount}</span>
+                                    <span style="font-weight: 700; color: inherit; line-height: 1.3;">${escapeHTML(supObj.supplier)}</span>
+                                </div>
                             </td>
                         `;
                     }
 
-                    rowHtml += `<td class="cell-sticky-site">${escapeHTML(st.site_first_name.toUpperCase())}</td>`;
+                    const siteDisplayHtml = st.ledger_folio 
+                        ? `<div style="font-weight: 700;">${escapeHTML(st.site_first_name.toUpperCase())}</div><div style="font-size: 10.5px; color: #0284c7; font-weight: 700; letter-spacing: 0.3px;">${escapeHTML(st.ledger_folio)}</div>`
+                        : `<div style="font-weight: 700;">${escapeHTML(st.site_first_name.toUpperCase())}</div>`;
+
+                    rowHtml += `<td class="cell-sticky-site">${siteDisplayHtml}</td>`;
 
                     visibleMonths.forEach(m => {
                         const b = st.billing[m] || { vendor_ts: 0, quick_dice: "" };
@@ -1041,6 +1125,7 @@
                                     <input type="text" class="pending-input" 
                                         data-supplier="${escapeQuotes(supObj.supplier)}" 
                                         data-site="${escapeQuotes(st.site_first_name)}" 
+                                        data-lf="${escapeQuotes(st.ledger_folio || '')}"
                                         data-month="${m}" 
                                         placeholder="Enter Dice"
                                         onblur="handlePendingDiceBlur(this)" 
@@ -1162,7 +1247,8 @@
                         if (colKey === "supplier") {
                             uniqueValues.add(sup.supplier);
                         } else if (colKey === "site") {
-                            uniqueValues.add(st.site_first_name.toUpperCase());
+                            const siteLabel = st.ledger_folio ? `${st.site_first_name.toUpperCase()} [LF: ${st.ledger_folio}]` : st.site_first_name.toUpperCase();
+                            uniqueValues.add(siteLabel);
                         } else if (colKey.startsWith("month_") && monthIdx !== null) {
                             const b = st.billing[monthIdx] || {};
                             const vTs = parseFloat(b.vendor_ts || 0);
@@ -1266,6 +1352,7 @@
 
             const supName = inputEl.dataset.supplier;
             const siteFirstName = inputEl.dataset.site;
+            const lfVal = (inputEl.dataset.lf || "").trim();
             const monthIdx = parseInt(inputEl.dataset.month);
 
             showStatus("Saving...", "saving");
@@ -1277,6 +1364,7 @@
                         year: currentYear,
                         supplier: supName,
                         site_first_name: siteFirstName,
+                        ledger_folio: lfVal,
                         month_index: monthIdx,
                         value: val
                     })
@@ -1287,7 +1375,10 @@
                     
                     const supObj = rawData.find(s => s.supplier === supName);
                     if (supObj) {
-                        const siteObj = supObj.sites.find(st => st.site_first_name.toLowerCase() === siteFirstName.toLowerCase());
+                        const siteObj = supObj.sites.find(st => 
+                            st.site_first_name.toLowerCase() === siteFirstName.toLowerCase() &&
+                            (st.ledger_folio || "").trim().toLowerCase() === lfVal.toLowerCase()
+                        );
                         if (siteObj && siteObj.billing[monthIdx]) {
                             siteObj.billing[monthIdx].quick_dice = val;
                         }

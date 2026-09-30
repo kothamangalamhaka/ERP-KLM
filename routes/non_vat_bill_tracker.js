@@ -76,7 +76,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
     const currentYear = parseInt(year);
 
     const vehicleResult = await pool.query(`
-            SELECT plate_no, owner_name, vat 
+            SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio 
             FROM timesheet_vehicles
         `);
     if (vehicleResult.rows.length === 0)
@@ -152,7 +152,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
 
     const billingResult = await pool.query(
       `
-            SELECT supplier, site_name, month_index, quick_dice 
+            SELECT supplier, site_name, COALESCE(ledger_folio, '') as ledger_folio, month_index, quick_dice 
             FROM vat_billing_records 
             WHERE year = $1 AND company = 'NON_VAT'
         `,
@@ -250,6 +250,9 @@ router.get("/data", verifyAccessCode, async (req, res) => {
           const siteFirst = getSiteFirstName(log.site_name);
           if (!siteFirst) continue;
 
+          const lfVal = (vehicle.ledger_folio || "").trim();
+          const siteGroupKey = `${siteFirst}__${lfVal}`;
+
           if (!suppliersMap[supName]) {
             suppliersMap[supName] = {
               supplier: supName,
@@ -257,26 +260,31 @@ router.get("/data", verifyAccessCode, async (req, res) => {
             };
           }
 
-          if (!suppliersMap[supName].sites[siteFirst]) {
-            suppliersMap[supName].sites[siteFirst] = {
+          if (!suppliersMap[supName].sites[siteGroupKey]) {
+            suppliersMap[supName].sites[siteGroupKey] = {
               site_first_name: siteFirst,
+              ledger_folio: lfVal,
+              site_group_key: siteGroupKey,
               active_months: Array(12).fill(false),
               billing: {},
-              plateCompanies: {}, // 🟢 കമ്പനി ട്രാക്ക് ചെയ്യാൻ
+              plateCompanies: {},
             };
             for (let i = 0; i < 12; i++) {
-              suppliersMap[supName].sites[siteFirst].billing[i] = {
+              suppliersMap[supName].sites[siteGroupKey].billing[i] = {
                 vendor_ts: 0,
                 quick_dice: "",
               };
             }
           }
 
-          suppliersMap[supName].sites[siteFirst].active_months[m] = true;
-          // 🟢 വണ്ടിയുടെ കമ്പനി രേഖപ്പെടുത്തുന്നു
+          suppliersMap[supName].sites[siteGroupKey].active_months[m] = true;
+          // 🟢 വണ്ടിയുടെ കമ്പനി രേഖപ്പെടുത്തുന്നു (Fixed siteGroupKey)
           const pKeyLog = (log.plate_no || "").trim().toUpperCase();
-          if (pKeyLog) {
-            suppliersMap[supName].sites[siteFirst].plateCompanies[pKeyLog] = getCompanyFromSite(log.site_name);
+          if (pKeyLog && suppliersMap[supName].sites[siteGroupKey]) {
+            if (!suppliersMap[supName].sites[siteGroupKey].plateCompanies) {
+              suppliersMap[supName].sites[siteGroupKey].plateCompanies = {};
+            }
+            suppliersMap[supName].sites[siteGroupKey].plateCompanies[pKeyLog] = getCompanyFromSite(log.site_name);
           }
         }
       }
@@ -586,10 +594,10 @@ function broadcastNonVatUpdate(payload) {
   });
 }
 
-// 3. UPSERT Quick Dice for Non-VAT per Site
+// 3. UPSERT Quick Dice for Non-VAT per Site + Ledger Folio
 router.post("/update-cell", verifyAccessCode, async (req, res) => {
   try {
-    const { year, supplier, site_first_name, month_index, value } = req.body;
+    const { year, supplier, site_first_name, ledger_folio, month_index, value } = req.body;
     if (!year || !supplier || !site_first_name || month_index === undefined)
       throw new Error("Missing parameters");
 
@@ -597,11 +605,12 @@ router.post("/update-cell", verifyAccessCode, async (req, res) => {
       value === null || value === undefined || String(value).trim() === ""
         ? null
         : String(value).trim();
+    const cleanLf = (ledger_folio || "").trim();
 
     const query = `
-            INSERT INTO vat_billing_records (year, company, supplier, site_name, month_index, quick_dice)
-            VALUES ($1, 'NON_VAT', $2, $3, $4, $5)
-            ON CONFLICT (year, company, supplier, site_name, month_index)
+            INSERT INTO vat_billing_records (year, company, supplier, site_name, ledger_folio, month_index, quick_dice)
+            VALUES ($1, 'NON_VAT', $2, $3, $4, $5, $6)
+            ON CONFLICT (year, company, supplier, site_name, COALESCE(ledger_folio, ''), month_index)
             DO UPDATE SET 
                 quick_dice = EXCLUDED.quick_dice,
                 updated_at = CURRENT_TIMESTAMP
@@ -611,15 +620,17 @@ router.post("/update-cell", verifyAccessCode, async (req, res) => {
       parseInt(year),
       supplier,
       site_first_name.trim().toLowerCase(),
+      cleanLf,
       parseInt(month_index),
       valToSave,
     ]);
 
-    // 🟢 Broadcast live update to other users
+    // 🟢 Broadcast live update to other users with ledger_folio
     broadcastNonVatUpdate({
       year: parseInt(year),
       supplier: supplier,
       site_first_name: site_first_name.trim().toLowerCase(),
+      ledger_folio: cleanLf,
       month_index: parseInt(month_index),
       value: valToSave || "",
     });
