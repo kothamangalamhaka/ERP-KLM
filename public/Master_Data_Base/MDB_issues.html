@@ -21,7 +21,12 @@
   <body>
     <header class="topbar">
       <div class="brand-block">
-        <button class="icon-button" type="button" onclick="window.location.href='./Database.html'" title="Back to Master Database">
+        <button
+          class="icon-button"
+          type="button"
+          onclick="window.location.href = './Database.html'"
+          title="Back to Master Database"
+        >
           <span class="material-icons">arrow_back</span>
         </button>
         <div>
@@ -30,7 +35,10 @@
         </div>
       </div>
       <div class="top-actions">
-        <span class="user-chip"><span class="material-icons">account_circle</span><span id="currentUserName"></span></span>
+        <span class="user-chip"
+          ><span class="material-icons">account_circle</span
+          ><span id="currentUserName"></span
+        ></span>
         <div class="expiry-export-control" id="expiryExportControl">
           <button
             class="expiry-workbook-button"
@@ -42,19 +50,60 @@
           >
             <span class="material-icons">table_view</span>
             Export Excel
-            <span class="material-icons expiry-export-arrow">arrow_drop_down</span>
+            <span class="material-icons expiry-export-arrow"
+              >arrow_drop_down</span
+            >
           </button>
-          <div class="expiry-export-menu" id="expiryExportMenu" role="menu" aria-label="Expiry Excel export options">
+          <div
+            class="expiry-export-menu"
+            id="expiryExportMenu"
+            role="menu"
+            aria-label="Expiry Excel export options"
+          >
             <div class="expiry-export-menu-title">Export expiry data</div>
             <div class="expiry-export-scope-list">
-              <button type="button" role="menuitem" data-expiry-scope="site" onclick="selectExpiryExportScope(event, 'site')">By Site</button>
-              <button type="button" role="menuitem" data-expiry-scope="fieldCo" onclick="selectExpiryExportScope(event, 'fieldCo')">By Field CO</button>
-              <button type="button" role="menuitem" data-expiry-scope="siteCo" onclick="selectExpiryExportScope(event, 'siteCo')">By Site CO</button>
-              <button type="button" role="menuitem" data-expiry-scope="all" onclick="selectExpiryExportScope(event, 'all')">All</button>
+              <button
+                type="button"
+                role="menuitem"
+                data-expiry-scope="site"
+                onclick="selectExpiryExportScope(event, 'site')"
+              >
+                By Site
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                data-expiry-scope="fieldCo"
+                onclick="selectExpiryExportScope(event, 'fieldCo')"
+              >
+                By Field CO
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                data-expiry-scope="siteCo"
+                onclick="selectExpiryExportScope(event, 'siteCo')"
+              >
+                By Site CO
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                data-expiry-scope="all"
+                onclick="selectExpiryExportScope(event, 'all')"
+              >
+                All
+              </button>
             </div>
             <div class="expiry-export-values" id="expiryExportValues" hidden>
-              <div class="expiry-export-values-title" id="expiryExportValuesTitle"></div>
-              <div class="expiry-export-value-list" id="expiryExportValueList"></div>
+              <div
+                class="expiry-export-values-title"
+                id="expiryExportValuesTitle"
+              ></div>
+              <div
+                class="expiry-export-value-list"
+                id="expiryExportValueList"
+              ></div>
             </div>
           </div>
         </div>
@@ -63,63 +112,74 @@
         </button>
       </div>
     </header>
- 
+
     <main>
       <nav class="issue-ribbon" aria-label="Issue categories">
-        <button class="ribbon-button active" type="button" data-panel="workStartPanel">
-          <span class="material-icons">date_range</span> Work Start Issue <span class="count" id="workStartCount">0</span>
+        <button
+          class="ribbon-button active"
+          type="button"
+          data-panel="workStartPanel"
+        >
+          <span class="material-icons">date_range</span> Work Start Issue
+          <span class="count" id="workStartCount">0</span>
         </button>
         <button class="ribbon-button" type="button" data-panel="ownerPanel">
-          <span class="material-icons">group</span> Owner <span class="count" id="ownerCount">0</span>
+          <span class="material-icons">group</span> Owner
+          <span class="count" id="ownerCount">0</span>
         </button>
         <button class="ribbon-button" type="button" data-panel="siteEndPanel">
-          <span class="material-icons">event_busy</span> Site End <span class="count" id="siteEndCount">0</span>
+          <span class="material-icons">event_busy</span> Site End
+          <span class="count" id="siteEndCount">0</span>
         </button>
         <button class="ribbon-button" type="button" data-panel="noOwnerPanel">
-          <span class="material-icons">person_off</span> No Owner Data <span class="count" id="noOwnerCount">0</span>
+          <span class="material-icons">person_off</span> No Owner Data
+          <span class="count" id="noOwnerCount">0</span>
         </button>
         <button class="ribbon-button" type="button" data-panel="expiryPanel">
-          <span class="material-icons">notification_important</span> Expiry <span class="count" id="expiryCount">0</span>
+          <span class="material-icons">notification_important</span> Expiry
+          <span class="count" id="expiryCount">0</span>
         </button>
         <button class="ribbon-button" type="button" data-panel="noDataPanel">
-          <span class="material-icons">report_problem</span> No Data <span class="count" id="noDataCount">0</span>
+          <span class="material-icons">report_problem</span> No Data
+          <span class="count" id="noDataCount">0</span>
         </button>
       </nav>
- 
+
       <div class="screen-note">
         <span class="material-icons">filter_alt</span>
-        Click a column’s filter icon for Excel-style value selection. Use 📊 to export visible rows to Excel, 📋 for HQ PNG and 📄 for an A4 PDF.
+        Click a column’s filter icon for Excel-style value selection. Use 📊 to
+        export visible rows to Excel, 📋 for HQ PNG and 📄 for an A4 PDF.
       </div>
- 
+
       <section class="issue-panel active" id="workStartPanel">
         <div id="workStartTables"></div>
       </section>
- 
+
       <section class="issue-panel" id="ownerPanel">
-       <div class="owner-table-stack">
+        <div class="owner-table-stack">
           <div id="plateOwnerTable"></div>
           <div id="mobileOwnerTable"></div>
           <div id="ownerMobileTable"></div>
         </div>
       </section>
- 
+
       <section class="issue-panel" id="siteEndPanel">
         <div id="siteEndTables"></div>
       </section>
- 
+
       <section class="issue-panel" id="noOwnerPanel">
         <div id="noOwnerTables"></div>
       </section>
- 
+
       <section class="issue-panel" id="expiryPanel">
         <div class="expiry-grid" id="expiryTables"></div>
       </section>
-      
+
       <section class="issue-panel" id="noDataPanel">
         <div id="noDataTables"></div>
       </section>
     </main>
- 
+
     <div class="loading-overlay" id="loadingOverlay">
       <div class="spinner"></div>
       <strong>Checking Master Database…</strong>
@@ -127,22 +187,45 @@
     <div class="excel-filter-popup" id="excelFilterPopup">
       <div class="excel-filter-title" id="excelFilterTitle">Filter</div>
       <div class="excel-sort-actions">
-        <button id="excelSortAsc" type="button" onclick="sortActiveExcelColumn('asc')">A → Z</button>
-        <button id="excelSortDesc" type="button" onclick="sortActiveExcelColumn('desc')">Z → A</button>
+        <button
+          id="excelSortAsc"
+          type="button"
+          onclick="sortActiveExcelColumn('asc')"
+        >
+          A → Z
+        </button>
+        <button
+          id="excelSortDesc"
+          type="button"
+          onclick="sortActiveExcelColumn('desc')"
+        >
+          Z → A
+        </button>
       </div>
-      <input id="excelFilterSearch" type="search" placeholder="Search values…" oninput="searchExcelFilterOptions(this.value)" />
+      <input
+        id="excelFilterSearch"
+        type="search"
+        placeholder="Search values…"
+        oninput="searchExcelFilterOptions(this.value)"
+      />
       <label class="excel-select-all">
-        <input id="excelFilterSelectAll" type="checkbox" onchange="toggleExcelFilterOptions(this.checked)" />
+        <input
+          id="excelFilterSelectAll"
+          type="checkbox"
+          onchange="toggleExcelFilterOptions(this.checked)"
+        />
         Select All
       </label>
       <div class="excel-filter-options" id="excelFilterOptions"></div>
       <div class="excel-filter-actions">
         <button type="button" onclick="clearActiveExcelFilter()">Clear</button>
-        <button type="button" class="apply" onclick="applyActiveExcelFilter()">Apply</button>
+        <button type="button" class="apply" onclick="applyActiveExcelFilter()">
+          Apply
+        </button>
       </div>
     </div>
     <div id="toast" role="status" aria-live="polite"></div>
- 
+
     <script src="script/mdb_issues.js"></script>
   </body>
 </html>
