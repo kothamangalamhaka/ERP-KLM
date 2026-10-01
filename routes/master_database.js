@@ -176,52 +176,63 @@ module.exports = function (pool, middlewares, helpers) {
       wsVal = mobVal;
     }
 
-    if (wsVal && lwdVal && daysCol) {
-      const parseDate = (dStr) => {
-        if (!dStr) return null;
-        let parsedDate = new Date(dStr);
-        if (!isNaN(parsedDate.getTime())) return parsedDate;
+    if (daysCol) {
+      if (wsVal && lwdVal && String(lwdVal).trim() !== "") {
+        const parseDate = (dStr) => {
+          if (!dStr) return null;
+          let parsedDate = new Date(dStr);
+          if (!isNaN(parsedDate.getTime())) return parsedDate;
 
-        const p = String(dStr)
-          .trim()
-          .split(/[\/\- \.]/);
-        const mNames = [
-          "JAN",
-          "FEB",
-          "MAR",
-          "APR",
-          "MAY",
-          "JUN",
-          "JUL",
-          "AUG",
-          "SEP",
-          "OCT",
-          "NOV",
-          "DEC",
-        ];
+          const p = String(dStr)
+            .trim()
+            .split(/[\/\- \.]/);
+          const mNames = [
+            "JAN",
+            "FEB",
+            "MAR",
+            "APR",
+            "MAY",
+            "JUN",
+            "JUL",
+            "AUG",
+            "SEP",
+            "OCT",
+            "NOV",
+            "DEC",
+          ];
 
-        if (p.length === 3) {
-          let d = parseInt(p[0], 10);
-          let m = isNaN(parseInt(p[1], 10))
-            ? mNames.indexOf(p[1].toUpperCase().substring(0, 3))
-            : parseInt(p[1], 10) - 1;
-          let y =
-            p[2].length === 2 ? 2000 + parseInt(p[2], 10) : parseInt(p[2], 10);
+          if (p.length === 3) {
+            let d = parseInt(p[0], 10);
+            let m = isNaN(parseInt(p[1], 10))
+              ? mNames.indexOf(p[1].toUpperCase().substring(0, 3))
+              : parseInt(p[1], 10) - 1;
+            let y =
+              p[2].length === 2 ? 2000 + parseInt(p[2], 10) : parseInt(p[2], 10);
 
-          if (!isNaN(d) && m !== -1 && !isNaN(y)) {
-            return new Date(y, m, d);
+            if (!isNaN(d) && m !== -1 && !isNaN(y)) {
+              return new Date(y, m, d);
+            }
           }
+          return null;
+        };
+
+        const d1 = parseDate(wsVal);
+        const d2 = parseDate(lwdVal);
+
+        if (d1 && d2 && !isNaN(d1) && !isNaN(d2)) {
+          const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+          if (diffDays > 0) {
+            updates[daysCol] = String(diffDays);
+          } else {
+            updates[daysCol] = "";
+          }
+        } else {
+          updates[daysCol] = "";
         }
-        return null;
-      };
-
-      const d1 = parseDate(wsVal);
-      const d2 = parseDate(lwdVal);
-
-      if (d1 && d2 && !isNaN(d1) && !isNaN(d2)) {
-        const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-        if (diffDays > 0) {
-          updates[daysCol] = String(diffDays);
+      } else {
+        // Last Working Day അല്ലെങ്കിൽ Work Start ബ്ലാങ്ക് ആയാൽ Days Worked ബ്ലാങ്ക് ആക്കുന്നു
+        if (rowData[daysCol] && String(rowData[daysCol]).trim() !== "") {
+          updates[daysCol] = "";
         }
       }
     }

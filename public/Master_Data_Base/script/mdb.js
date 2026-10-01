@@ -1404,15 +1404,22 @@ async function handleMenuAction(action) {
 }
 
 function handleDriverActionFromRow(action) {
-   $("#rowContextMenu").hide();
-   handleDriverAction(action);
+  $("#rowContextMenu").hide();
+  handleDriverAction(action);
 }
 
 function openEditRowModal() {
-   $("#rowContextMenu").hide();
-   if(contextRowDbId) {
-      openAddEntryModal(contextRowDbId);
-   }
+  $("#rowContextMenu").hide();
+  if (contextRowDbId) {
+    openAddEntryModal(contextRowDbId, false);
+  }
+}
+
+function openCloneRowModal() {
+  $("#rowContextMenu").hide();
+  if (contextRowDbId) {
+    openAddEntryModal(contextRowDbId, true);
+  }
 }
 
 function deleteSelectedRow() {
@@ -2657,14 +2664,22 @@ function filterColVis(keyword) {
 }
 
 let editingRowDbId = null;
-function openAddEntryModal(dbId = null) {
+let isCloneMode = false;
+function openAddEntryModal(dbId = null, clone = false) {
   if (typeof dbId === "object") dbId = null; // Click object block
   document.getElementById("userDropdownMenu").classList.remove("show");
   if (currentUser.role === "Viewer")
     return showToast("Access Denied.", "error");
 
-  editingRowDbId = dbId;
-  if (editingRowDbId) {
+  isCloneMode = Boolean(clone);
+  editingRowDbId = isCloneMode ? null : dbId;
+  const sourceDbId = dbId; // For populating data from the existing row
+
+  if (isCloneMode) {
+    $("#entryModalOverlay h3").text("Clone Record (New Cycle Entry)");
+    $("#entryModalOverlay .btn-primary").show(); // Save & New
+    $("#entryModalOverlay .btn-success").text("Save Cloned Entry");
+  } else if (editingRowDbId) {
     $("#entryModalOverlay h3").text("Edit Entire Row");
     $("#entryModalOverlay .btn-primary").hide(); // Hide 'Save & New' when editing
     $("#entryModalOverlay .btn-success").text("Update Record");
@@ -2720,15 +2735,13 @@ function openAddEntryModal(dbId = null) {
     "DRIVER STATUS REMARK", "OD WRK END", "OLD DRIVER NAME", "OD MOB"
   ];
 
- const priorityOrder = [
+  const priorityOrder = [
     "SN", "WORK START", "PLATE NUMBER", "PLATE NO", "EQUIPMENT REACHED AT SITE",
     "TYPE OF VEHICLE", "RATE", "SITE", "IF SUB", "COMPANY", "CUSTOMER",
-    // നിങ്ങൾ ആവശ്യപ്പെട്ട പുതിയ ക്രമം (Status തൊട്ട് Old Driver / Mobile വരെ):
     "STATUS", "STATUS REMARK", "LAST WORKING DAY", "RELEASE DATE", "REPLACED DATE", 
     "REPLACED NEW VEHICLE", "OLD VEHICLE", "OWNER NAME", "OWNER", "OWNER NUMBER", 
     "MOBILE (OWNER)", "VAT BILL OR NOT", "VAT BILL STATUS", "DRIVER NAME", "MOBILE", 
     "MOBILE (DRIVER)", "OLD DRIVER NAME", "OD MOB",
-    // ബാക്കി ഫീൽഡുകൾ:
     "IQAMA NUMBER", "IQAMA EXPIRE DATE", "IQAMA EXPIRE", "LICENSE EXPIRE DATE", 
     "LICENSE EXPIRE", "LICENCE EXPIRE DATE", "LICENCE EXPIRE", 
     "EQ INSURANSE EXPIRE DATE", "EQ INSURAN", "FAHS MVPI EXPIRE", "FAHS MVPI", 
@@ -2817,31 +2830,68 @@ function openAddEntryModal(dbId = null) {
 
   $("#dynamicFormFields").append(finalHtml);
 
-  if (editingRowDbId) {
-    let $row = $(`#erpTable tbody tr[data-sheetrow="${editingRowDbId}"]`);
+  // If editing an existing row OR cloning an existing row:
+  if (sourceDbId) {
+    let $row =$(`#erpTable tbody tr[data-sheetrow="${sourceDbId}"]`);
+
+    // Strict fields that MUST be wiped clean on clone
+    const cloneBlankCols = [
+      "LASTWORKINGDAY",
+      "RELEASEDATE",
+      "RELEASEDDATE",
+      "REPLACEDDATE",
+      "REPLACEDATE",
+      "DAYSWORKED",
+      "REPLACEDNEWVEHICLE",
+      "OLDVEHICLE",
+      "ODWRKEND",
+      "OLDDRIVERNAME",
+      "ODMOB",
+      "DRIVERSTATUSREMARK",
+      "WORKSTART",
+      "EQUIPMENTREACHEDATSITE"
+    ];
+
     $(".entry-input").each(function () {
       let colName = $(this).data("colname");
       if (colName === "SN") return;
-      let colUpper = String(colName).replace(/\s+/g, "").toUpperCase();
+      let colClean = String(colName).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+
+      if (isCloneMode) {
+        if (colClean === "STATUS") {
+          $(this).val("Running");
+          return;
+        }
+
+        if (cloneBlankCols.includes(colClean)) {
+          $(this).val("");
+          return;
+        }
+      }
 
       let val = $row.find(`td[data-colname="${colName}"]`).text().trim();
       if ($(this).attr("type") === "date" && val) {
-         $(this).val(convertToInputDate(val));
+        $(this).val(convertToInputDate(val));
       } else {
-         $(this).val(val);
+        $(this).val(val);
       }
 
-      // 🟢 Lock Driver Name & Mobile in Edit Entire Row to protect driver history
-      if (colUpper === "DRIVERNAME" || colUpper === "MOBILE" || colUpper === "MOBILES") {
-         $(this).prop("readonly", true).css({
-            "background-color": "#f1f5f9",
-            "cursor": "not-allowed",
-            "border": "1px solid #cbd5e1"
-         }).attr("title", "Please update driver details via Driver Management (Right-click Driver Name or SN)");
+      // Lock Driver Name & Mobile only in normal Edit Entire Row (NOT in Clone)
+      if (!isCloneMode && (colClean === "DRIVERNAME" || colClean === "MOBILE" || colClean === "MOBILES")) {
+        $(this).prop("readonly", true).css({
+          "background-color": "#f1f5f9",
+          "cursor": "not-allowed",
+          "border": "1px solid #cbd5e1"
+        }).attr("title", "Please update driver details via Driver Management (Right-click Driver Name or SN)");
       }
     });
-    let snVal = $row.find(`td[data-colname="SN"]`).text().trim() || $row.find("td.sn-column").text().trim();
-    $(".entry-input[data-colname='SN']").val(snVal);
+
+    if (!isCloneMode) {
+      let snVal = $row.find(`td[data-colname="SN"]`).text().trim() || $row.find("td.sn-column").text().trim();
+      $(".entry-input[data-colname='SN']").val(snVal);
+    } else {
+      $(".entry-input[data-colname='SN']").val(globalNextSN);
+    }
   }
 
   $("#entryModalOverlay").css("display", "flex");
@@ -3089,10 +3139,9 @@ function applyHistoricalState(dbId, colName, value) {
   processQueue();
 }
 
-/* --- NEW CODE --- */
 // 🟢 INSTANT FRONT-END CALCULATION ENGINE
 function autoCalculateRow(dbId) {
-    let $row = $(`#erpTable tbody tr[data-sheetrow="${dbId}"]`);
+    let $row =$(`#erpTable tbody tr[data-sheetrow="${dbId}"]`);
     if (!$row.length) return;
 
     let getVal = (headerMatch) => {
@@ -3105,12 +3154,13 @@ function autoCalculateRow(dbId) {
         let colIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, "").toUpperCase().includes(headerMatch.replace(/\s+/g, "").toUpperCase()));
         if (colIdx === -1) return;
         let colName = cachedHeaders[colIdx];
-        let $td = $row.find(`td[data-colname="${colName}"]`);
+        let $td =$row.find(`td[data-colname="${colName}"]`);
         let oldVal = $td.text().trim();
+        let targetVal = val !== undefined && val !== null ? String(val) : "";
         
-        if (oldVal !== String(val)) {
-            $td.text(val);
-            if (erpDataTable) erpDataTable.cell($td[0]).data(val);
+        if (oldVal !== targetVal) {
+            $td.text(targetVal);
+            if (erpDataTable) erpDataTable.cell($td[0]).data(targetVal);
             
             let plateIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER"));
             let plateNo = plateIdx !== -1 ? $row.find("td").eq(plateIdx).text().trim() : "N/A";
@@ -3119,7 +3169,7 @@ function autoCalculateRow(dbId) {
             saveQueue.push({
                 dbId: dbId,
                 colName: colName,
-                newValue: String(val),
+                newValue: targetVal,
                 plate: plateNo
             });
         }
@@ -3135,15 +3185,22 @@ function autoCalculateRow(dbId) {
         wsVal = mobVal;
     }
 
-    if (wsVal && lwdVal) {
+    if (wsVal && lwdVal && String(lwdVal).trim() !== "") {
         let d1 = parseDateStr(wsVal);
         let d2 = parseDateStr(lwdVal);
         if (d1 && d2 && !isNaN(d1) && !isNaN(d2)) {
             let diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
             if (diffDays > 0) {
                 setVal("DAYSWORKED", diffDays);
+            } else {
+                setVal("DAYSWORKED", "");
             }
+        } else {
+            setVal("DAYSWORKED", "");
         }
+    } else {
+        // Last Working Day ഒഴിവാക്കിയാൽ DAYS WORKED ഉം അപ്പോൾ തന്നെ ക്ലിയർ ആകുന്നു
+        setVal("DAYSWORKED", "");
     }
 
     if (statusVal === "released" && lwdVal) {
