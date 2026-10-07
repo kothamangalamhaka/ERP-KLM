@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recycle Bin | Haka ERP</title>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Uses your existing CSS for seamless design matching -->
+    <link rel="stylesheet" href="style/mdb.css">
+
+    <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
+    <script src="/node_xlsx_scripts/jquery-3.7.0.min.js"></script>
+</head>
+
+<body>
+    <!-- Top Header Bar -->
+    <div class="header-bar">
+        <div class="header-title">
+            <i class="material-icons btn-icon" onclick="window.location.href='./Database.html'"
+                title="Back to Master Data" style="margin-right: 10px; color: var(--primary);">arrow_back</i>
+            <h2 style="color: var(--danger); display: flex; align-items: center; gap: 8px;">
+                <span class="material-icons">delete_sweep</span> Recycle Bin
+            </h2>
+        </div>
+
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="window.location.href='./Database.html'">
+                <span class="material-icons" style="font-size:16px;">table_view</span> Master Database
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper" style="width: 100%; max-width: none; margin: 0; background: #ffffff; padding: 20px; box-sizing: border-box; min-height: calc(100vh - 60px); display: flex; flex-direction: column;">
+
+        <div style="padding: 12px 20px; background: #fff8f8; border-left: 4px solid var(--danger); border-radius: 4px; margin-bottom: 20px;">
+            <p style="font-size: 13px; color: #7f1d1d; margin: 0; font-weight: 500;">
+                <strong style="font-weight: 700;">Note:</strong> Rows & Columns deleted from the Master Database are kept here.
+                You can restore them below.
+            </p>
+        </div>
+
+        <!-- Toggle Tabs -->
+        <div style="display: flex; gap: 0; margin-bottom: 0; border-bottom: 1px solid var(--border-color);">
+            <button id="tabColumns" class="btn" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: var(--primary); color: white; border: 1px solid var(--primary); padding: 10px 20px; font-weight: 600;" onclick="switchTab('columns')">Deleted Columns</button>
+            <button id="tabRows" class="btn" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: white; color: #334155; border: 1px solid var(--border-color); border-bottom: none; padding: 10px 20px; font-weight: 600;" onclick="switchTab('rows')">Deleted Rows</button>
+        </div>
+
+        <!-- COLUMNS TABLE -->
+        <div id="sectionColumns" style="overflow-x: auto; border: 1px solid var(--border-color); border-top: none; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; flex-grow: 1;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead style="background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                    <tr>
+                        <th style="padding: 12px 15px; font-weight: 600; color: #334155; font-size: 13px;">Deleted Column Name</th>
+                        <th style="padding: 12px 15px; font-weight: 600; color: #334155; font-size: 13px;">Deleted Date & Time</th>
+                        <th style="padding: 12px 15px; font-weight: 600; color: #334155; font-size: 13px; text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="recycleBinBody">
+                    <tr><td colspan="3" style="text-align: center; padding: 30px; color: #64748b;">Loading data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ROWS TABLE (FULL MASTER DATABASE GRID UI) -->
+<div id="sectionRows" style="display: none; overflow-x: auto; border: 1px solid var(--border-color); border-top: none; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; flex-grow: 1; max-height: calc(100vh - 200px);">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; font-size: 13px;">
+                <thead id="recycleBinRowsHead" style="background: #000000; color: #ffffff; position: sticky; top: 0; z-index: 5;">
+                    <tr>
+                        <th style="padding: 10px 14px; background: #000; color: #fff; text-align: center;">Action</th>
+                        <th style="padding: 10px 14px; background: #000; color: #fff;">Deleted Time</th>
+                    </tr>
+                </thead>
+                <tbody id="recycleBinRowsBody">
+                    <tr><td colspan="10" style="text-align: center; padding: 30px; color: #64748b;">Loading data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 🟢 SECURITY & AUTHENTICATION CHECK
+        let currentUser = JSON.parse(localStorage.getItem('erpUser'));
+        let token = localStorage.getItem('erpToken');
+
+        if (!token || !currentUser) {
+            window.location.href = './index.html';
+        }
+
+        // Only Super Admin can access the Recycle Bin
+        if (currentUser.role !== 'Super Admin') {
+            Swal.fire('Access Denied', 'Only Super Admins can access the Recycle Bin.', 'error')
+                .then(() => { window.location.href = './Database.html'; });
+        }
+
+        // Apply Theme properly based on settings
+        const savedTheme = localStorage.getItem('erpThemeMaster');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+
+        const savedFont = localStorage.getItem('erpFont');
+        if (savedFont) {
+            document.body.style.fontFamily = savedFont;
+        }
+
+        function switchTab(tab) {
+            if (tab === 'columns') {
+                $("#tabColumns").css({ "background": "var(--primary)", "color": "white", "border-color": "var(--primary)", "border-bottom": "none" });
+                $("#tabRows").css({ "background": "white", "color": "#334155", "border-color": "var(--border-color)", "border-bottom": "none" });
+                $("#sectionColumns").show();
+                $("#sectionRows").hide();
+                fetchDeletedColumns();
+            } else {
+                $("#tabRows").css({ "background": "var(--primary)", "color": "white", "border-color": "var(--primary)", "border-bottom": "none" });
+                $("#tabColumns").css({ "background": "white", "color": "#334155", "border-color": "var(--border-color)", "border-bottom": "none" });
+                $("#sectionRows").show();
+                $("#sectionColumns").hide();
+                fetchDeletedRows();
+            }
+        }
+
+        // 🟢 FETCH DELETED ROWS (WITH ALL HEADERS)
+        async function fetchDeletedRows() {
+            $('#recycleBinRowsBody').html(`<tr><td colspan="10" style="text-align: center; padding: 30px; color: #64748b;">Loading data...</td></tr>`);
+            try {
+                const res = await fetch('/api/admin/recycle-bin/rows', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    renderRecycleBinRows(data.headers || [], data.rows || []);
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                    $('#recycleBinRowsBody').html(`<tr><td colspan="10" style="text-align: center; color: var(--danger); padding: 20px;">Error: ${data.message}</td></tr>`);
+                }
+            } catch (error) {
+                console.error("Fetch Rows Error:", error);
+                $('#recycleBinRowsBody').html(`<tr><td colspan="10" style="text-align: center; color: var(--danger); padding: 20px;">Failed to connect to the server.</td></tr>`);
+            }
+        }
+
+        function renderRecycleBinRows(headers, rows) {
+            const thead = document.getElementById('recycleBinRowsHead');
+            const tbody = document.getElementById('recycleBinRowsBody');
+            
+            // Build Dynamic Table Headers matching Master Database
+            let headHtml = `<tr>
+                <th style="padding: 10px 14px; text-align: center; background: #000; color: #fff; position: sticky; left: 0; z-index: 6;">Action</th>
+                <th style="padding: 10px 14px; background: #000; color: #fff;">Deleted Date & Time</th>`;
+            
+            headers.forEach(h => {
+                headHtml += `<th style="padding: 10px 14px; background: #000; color: #fff;">${h}</th>`;
+            });
+            headHtml += `</tr>`;
+            thead.innerHTML = headHtml;
+
+            tbody.innerHTML = '';
+            if (!rows || rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${headers.length + 2}" style="text-align: center; padding: 40px; color: #64748b;">Recycle Bin is empty. No rows found.</td></tr>`;
+                return;
+            }
+
+            rows.forEach(row => {
+                let dateObj = new Date(row.deleted_at);
+                let formattedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + " " + dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                let recordData = row.record_data || {};
+
+                let tr = document.createElement('tr');
+                tr.style.borderBottom = "1px solid var(--border-color)";
+                tr.className = "hover-row";
+
+                let rowHtml = `
+                    <td style="padding: 8px 12px; text-align: center; background: #ffffff; position: sticky; left: 0; z-index: 2; border-right: 1px solid var(--border-color);">
+                        <div style="display: flex; gap: 6px; justify-content: center;">
+                            <button class="btn btn-success" style="padding: 4px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 2px;" onclick="restoreRow('${row.id}')" title="Restore to Master Database">
+                                <span class="material-icons" style="font-size: 13px;">restore</span> Restore
+                            </button>
+                            <button class="btn" style="background: var(--danger); color: white; padding: 4px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 2px; border: none;" onclick="purgeRow('${row.id}')" title="Permanently Delete">
+                                <span class="material-icons" style="font-size: 13px;">delete_forever</span> Purge
+                            </button>
+                        </div>
+                    </td>
+                    <td style="padding: 8px 14px; font-size: 12px; color: #64748b; font-weight: 500; background: #f8fafc;">${formattedDate}</td>
+                `;
+
+                headers.forEach(h => {
+                    let val = recordData[h];
+                    if (val === undefined) {
+                        let foundKey = Object.keys(recordData).find(k => k.replace(/\s+/g, "").toUpperCase() === h.replace(/\s+/g, "").toUpperCase());
+                        val = foundKey ? recordData[foundKey] : "";
+                    }
+                    val = (val !== null && val !== undefined) ? String(val).trim() : "";
+                    
+                    let alignStyle = "text-align: left;";
+                    let hUpper = h.replace(/\s+/g, "").toUpperCase();
+                    if (["SN", "PLATENUMBER", "SITE", "STATUS", "IFSUB", "COMPANY", "CUSTOMER", "DAYSWORKED"].includes(hUpper) || hUpper.includes("DATE") || hUpper.includes("EXPIRE")) {
+                        alignStyle = "text-align: center;";
+                    }
+
+                    rowHtml += `<td style="padding: 8px 14px; color: var(--text-dark); ${alignStyle}">${val || "-"}</td>`;
+                });
+
+                tr.innerHTML = rowHtml;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function purgeRow(id) {
+            Swal.fire({
+                title: 'Permanently Delete?',
+                text: "This row will be permanently erased. You cannot undo this action!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Purge it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({ title: 'Purging...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    try {
+                        const res = await fetch('/api/admin/recycle-bin/purge-row', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ dbId: id })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            Swal.fire('Purged!', 'Row has been permanently deleted.', 'success');
+                            fetchDeletedRows();
+                        } else Swal.fire('Error', data.message, 'error');
+                    } catch (error) {
+                        Swal.fire('Error', 'Failed to communicate with server.', 'error');
+                    }
+                }
+            });
+        }
+
+        function restoreRow(id) {
+            Swal.fire({
+                title: 'Restore Row?',
+                text: "This row will be restored back to the Master Database.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'Yes, Restore it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({ title: 'Restoring...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    try {
+                        const res = await fetch('/api/admin/recycle-bin/restore-row', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ dbId: id })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            Swal.fire('Restored!', 'Row has been restored.', 'success');
+                            fetchDeletedRows();
+                        } else Swal.fire('Error', data.message, 'error');
+                    } catch (error) {
+                        Swal.fire('Error', 'Failed to communicate with server.', 'error');
+                    }
+                }
+            });
+        }
+
+        // 🟢 FETCH DELETED COLUMNS
+        async function fetchDeletedColumns() {
+            $('#recycleBinBody').html(`<tr><td colspan="3" style="text-align: center; padding: 30px; color: #64748b;">Loading data...</td></tr>`);
+            try {
+                const res = await fetch('/api/admin/recycle-bin/columns', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    renderRecycleBin(data.columns || []);
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                    $('#recycleBinBody').html(`<tr><td colspan="3" style="text-align: center; color: var(--danger); padding: 20px;">Error: ${data.message}</td></tr>`);
+                }
+            } catch (error) {
+                console.error("Fetch Columns Error:", error);
+                $('#recycleBinBody').html(`<tr><td colspan="3" style="text-align: center; color: var(--danger); padding: 20px;">Failed to connect to the server.</td></tr>`);
+            }
+        }
+
+        // 🟢 RENDER TABLE
+        function renderRecycleBin(columns) {
+            const tbody = document.getElementById('recycleBinBody');
+            tbody.innerHTML = '';
+
+            if (!columns || columns.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 40px; color: #64748b;">
+                            <span class="material-icons" style="font-size: 48px; color: #e2e8f0; display:block; margin-bottom:10px;">delete_outline</span>
+                            Recycle Bin is empty. No columns have been deleted recently.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            columns.forEach(col => {
+                let dateObj = new Date(col.deleted_at);
+                let formattedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + " " + dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                let tr = document.createElement('tr');
+                tr.style.borderBottom = "1px solid var(--border-color)";
+                tr.innerHTML = `
+                    <td style="padding: 12px 15px; font-weight: 600; color: var(--text-dark);">${col.header_name}</td>
+                    <td style="padding: 12px 15px; font-size: 13px; color: #64748b;">${formattedDate}</td>
+                    <td style="padding: 12px 15px; text-align: center;">
+                        <div style="display: flex; gap: 8px; justify-content: center;">
+                            <button class="btn btn-success" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" onclick="restoreColumn('${col.header_name}')">
+                                <span class="material-icons" style="font-size: 14px;">restore</span> Restore
+                            </button>
+                            <button class="btn" style="background: var(--danger); color: white; padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; border: none;" onclick="purgeColumn('${col.header_name}')">
+                                <span class="material-icons" style="font-size: 14px;">delete_forever</span> Purge
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 🟢 PURGE COLUMN LOGIC
+        function purgeColumn(colName) {
+            Swal.fire({
+                title: 'Permanently Delete?',
+                text: `Are you sure you want to permanently erase "${colName}"? The column and its data will be lost forever!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Purge it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({ title: 'Purging...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    try {
+                        const res = await fetch('/api/admin/recycle-bin/purge-column', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ colName: colName })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            Swal.fire('Purged!', `"${colName}" has been permanently deleted.`, 'success');
+                            fetchDeletedColumns();
+                        } else Swal.fire('Error', data.message, 'error');
+                    } catch (error) {
+                        Swal.fire('Error', 'Failed to communicate with server.', 'error');
+                    }
+                }
+            });
+        }
+
+        // 🟢 RESTORE COLUMN LOGIC
+        function restoreColumn(colName) {
+            Swal.fire({
+                title: 'Restore Column?',
+                text: `Are you sure you want to restore "${colName}" back to the Master Database? All hidden data will become visible again.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, Restore it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({ title: 'Restoring...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                    try {
+                        const res = await fetch('/api/admin/recycle-bin/restore-column', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ colName: colName })
+                        });
+
+                        const data = await res.json();
+
+                        if (data.success) {
+                            Swal.fire('Restored!', `"${colName}" has been successfully restored.`, 'success');
+                            fetchDeletedColumns(); 
+                        } else {
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    } catch (error) {
+                        Swal.fire('Error', 'Failed to communicate with the server.', 'error');
+                    }
+                }
+            });
+        }
+
+        // Initial Load
+        fetchDeletedColumns();
+    </script>
+</body>
+</html>

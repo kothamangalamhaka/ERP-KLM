@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Voucher Entry - ERP Accounting</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"/>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <style>
+    body{font-family:'Segoe UI',sans-serif;background:#f8f9fa;}
+    .sidebar{min-height:100vh;background:#212529;width:220px;flex-shrink:0;padding-top:20px;}
+    .sidebar .brand{font-weight:700;color:#fff;text-align:center;padding:0 15px 15px;border-bottom:1px solid #444;margin-bottom:10px;}
+    .sidebar a{color:#adb5bd;text-decoration:none;display:flex;align-items:center;gap:8px;padding:10px 20px;margin:2px 8px;border-radius:6px;font-size:.9rem;}
+    .sidebar a:hover,.sidebar a.active{background:#0d6efd;color:#fff;}
+    .sidebar .nav-section{color:#6c757d;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;padding:10px 20px 4px;margin-top:6px;}
+    .main-content{padding:20px;flex:1;}
+    .voucher-card{background:#fff;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.07);padding:24px;}
+
+    /* Entry grid */
+    .lines-table{width:100%;border-collapse:collapse;}
+    .lines-table th{background:#212529;color:#fff;padding:8px 10px;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;}
+    .lines-table td{padding:8px 5px;vertical-align:top;}
+    .lines-table tr:nth-child(even) td{background:#f8f9fa;}
+    .dr-row td{border-left:3px solid #dc3545;}
+    .cr-row td{border-left:3px solid #198754;}
+
+    input.amt-input{width:110px;text-align:right;padding:5px 8px;border:1px solid #dee2e6;border-radius:5px;font-size:.88rem;}
+    input.narr-input{width:100%;padding:5px 8px;border:1px solid #dee2e6;border-radius:5px;font-size:.85rem;}
+    .type-badge{font-size:.75rem;padding:3px 8px;border-radius:12px;font-weight:700;display:inline-block;margin-top:5px;}
+    .dr-badge{background:#fff0f0;color:#dc3545;border:1px solid #f5c6cb;}
+    .cr-badge{background:#f0fff4;color:#198754;border:1px solid #c3e6cb;}
+
+    .balance-bar{background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 16px;font-size:.9rem;}
+    .balance-bar.balanced{background:#d1e7dd;border-color:#198754;color:#155724;}
+    .balance-bar.unbalanced{background:#f8d7da;border-color:#dc3545;color:#721c24;}
+
+    .totals-row td{font-weight:700;background:#e9ecef!important;font-size:.9rem;padding:8px 10px;vertical-align:middle;}
+    .btn-addline{font-size:.82rem;}
+
+    /* Voucher type selector */
+    .vtype-btn{border:2px solid #dee2e6;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.82rem;font-weight:600;background:#fff;transition:all .15s;}
+    .vtype-btn.active{background:#0d6efd;border-color:#0d6efd;color:#fff;}
+    .vtype-btn:hover:not(.active){border-color:#0d6efd;color:#0d6efd;}
+    
+    /* Hide up/down arrows in number input */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { appearance: textfield; -moz-appearance: textfield; }
+    
+    /* Select2 Compact & Searchable Style */
+    .select2-container .select2-selection--single { 
+        height: 38px !important; 
+        padding: 5px !important; 
+        border: 1px solid #dee2e6 !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered { 
+        line-height: 26px !important; 
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow { 
+        height: 36px !important; 
+    }
+    .select2-results__group {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        padding: 5px 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .select2-results__option {
+        padding-left: 20px !important;
+    }
+  </style>
+</head>
+<body>
+<div class="d-flex">
+  <div class="sidebar d-none d-md-flex flex-column">
+    <div class="brand"><i class="bi bi-journal-richtext me-2"></i>ERP Accounts</div>
+    <span class="nav-section">Main Menu</span>
+    <a href="index.html"><i class="bi bi-speedometer2"></i>Dashboard</a>
+    <a href="entry.html" class="active"><i class="bi bi-journal-plus"></i>Voucher Entry</a>
+    <a href="daybook.html"><i class="bi bi-journal-text"></i>Daybook</a>
+    <span class="nav-section">Reports</span>
+    <a href="ledgers.html"><i class="bi bi-book"></i>Chart of Accounts</a>
+    <a href="reports.html"><i class="bi bi-file-earmark-bar-graph"></i>Financial Reports</a>
+    <a href="log.html"><i class="bi bi-shield-lock"></i>Audit Logs</a>
+    <span class="nav-section" id="adminSection" style="display:none;">Admin</span>
+    <a href="admin.html" id="adminLink" style="display:none;"><i class="bi bi-people"></i>Manage Users</a>
+  </div>
+
+  <div class="flex-grow-1 d-flex flex-column">
+    <nav class="navbar bg-white border-bottom px-3 py-2">
+      <span class="fw-bold text-muted small">Voucher Entry</span>
+      <div class="ms-auto d-flex align-items-center gap-3">
+        <span class="fw-bold" id="userNameDisplay">User</span>
+        <button class="btn btn-sm btn-danger" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
+      </div>
+    </nav>
+
+    <div class="main-content">
+      <div class="voucher-card">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h4 class="mb-1 text-primary fw-bold" id="pageTitle"><i class="bi bi-pencil-square me-2"></i>New Voucher Entry</h4>
+            <small class="text-muted" id="pageSubtitle">Multi-line entry — Multiple Dr & Cr</small>
+          </div>
+          <div id="voucherNoDisplay" class="text-muted small text-end"></div>
+        </div>
+
+        <div id="alertBox" class="alert d-none mb-3"></div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold small">Voucher Date</label>
+            <input type="date" class="form-control" id="voucherDate" required/>
+          </div>
+          <div class="col-md-9">
+            <label class="form-label fw-semibold small">Voucher Type</label>
+            <div class="d-flex gap-2 flex-wrap" id="vtypeButtons">
+              <button class="vtype-btn active" data-type="Payment"  onclick="setType(this)">💸 Payment</button>
+              <button class="vtype-btn" data-type="Receipt"  onclick="setType(this)">💰 Receipt</button>
+              <button class="vtype-btn" data-type="Journal"  onclick="setType(this)">📋 Journal</button>
+              <button class="vtype-btn" data-type="Contra"   onclick="setType(this)">🔄 Contra</button>
+              <button class="vtype-btn" data-type="Sales"    onclick="setType(this)">🛒 Sales</button>
+              <button class="vtype-btn" data-type="Purchase" onclick="setType(this)">📦 Purchase</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Narration / Remarks</label>
+          <input type="text" class="form-control" id="narration" placeholder="Being..."/>
+        </div>
+
+        <div class="table-responsive mb-2">
+          <table class="lines-table" id="linesTable">
+            <thead>
+              <tr>
+                <th style="width:60px;">Dr / Cr</th>
+                <th>Account</th>
+                <th style="width:150px;">Amount (₹)</th>
+                <th>Line Narration</th>
+                <th style="width:40px;"></th>
+              </tr>
+            </thead>
+            <tbody id="linesBody">
+              </tbody>
+            <tfoot>
+              <tr class="totals-row">
+                <td colspan="2" class="text-end pe-3">Totals:</td>
+                <td>
+                  <div class="text-danger small">Dr: ₹<span id="totalDr">0.00</span></div>
+                  <div class="text-success small">Cr: ₹<span id="totalCr">0.00</span></div>
+                </td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="d-flex gap-2 mb-3">
+          <button class="btn btn-outline-danger btn-sm btn-addline" onclick="addLine('Dr')">
+            <i class="bi bi-plus-circle me-1"></i>Add Debit Line
+          </button>
+          <button class="btn btn-outline-success btn-sm btn-addline" onclick="addLine('Cr')">
+            <i class="bi bi-plus-circle me-1"></i>Add Credit Line
+          </button>
+        </div>
+
+        <div class="balance-bar unbalanced mb-3" id="balanceBar">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          Voucher not balanced — <span id="balanceDiff">Dr and Cr must be equal</span>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center">
+          <small class="text-muted"><i class="bi bi-info-circle me-1"></i>All entries are audit-logged</small>
+          <div>
+            <button class="btn btn-secondary me-2" onclick="resetForm()">Clear</button>
+            <button class="btn btn-primary px-4" id="submitBtn" onclick="submitVoucher()">
+              <i class="bi bi-check-lg me-1"></i>Save Voucher
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const token = localStorage.getItem("acc_token");
+if (!token) window.location.href = "login.html";
+const userData = JSON.parse(localStorage.getItem("acc_user") || "{}");
+document.getElementById("userNameDisplay").innerText = userData.username || "User";
+if (userData.role === "Admin") {
+  document.getElementById("adminSection").style.display = "";
+  document.getElementById("adminLink").style.display = "";
+}
+function logout() { localStorage.removeItem("acc_token"); localStorage.removeItem("acc_user"); window.location.href = "login.html"; }
+
+document.getElementById("voucherDate").valueAsDate = new Date();
+
+// ── Ledger data & Balances ────────────────────────────────
+let allLedgers = [];
+let ledgerGroups = {};
+let accountBalances = {}; // Stores { id: "₹ 500.00 Dr" }
+let selectedType = "Payment";
+
+async function loadBalances() {
+  try {
+    // Fetch wide range to get accurate cumulative current balances
+    const res = await fetch('/api/oeledger/reports/financials?fromDate=2000-01-01&toDate=2099-12-31', { 
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if(data.success) {
+      data.trial_balance.forEach(l => {
+        let balText = '₹ 0.00';
+        if (l.tb_net_dr > 0) {
+            balText = `₹ ${parseFloat(l.tb_net_dr).toLocaleString("en-IN", {minimumFractionDigits:2})} <span class="text-danger">Dr</span>`;
+        } else if (l.tb_net_cr > 0) {
+            balText = `₹ ${parseFloat(l.tb_net_cr).toLocaleString("en-IN", {minimumFractionDigits:2})} <span class="text-success">Cr</span>`;
+        }
+        accountBalances[l.id] = balText;
+      });
+    }
+  } catch (e) {
+    console.error("Error loading balances:", e);
+  }
+}
+
+async function loadLedgers() {
+  const res = await fetch("/api/oeledger/ledgers", { headers: { Authorization: `Bearer ${token}` } });
+  const data = await res.json();
+  allLedgers = data.ledgers || [];
+  
+  const groups = {};
+  allLedgers.forEach(l => {
+    const key = `${l.main_group} › ${l.sub_group || "General"}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(l);
+  });
+  
+  let html = '<option value="">-- Select Account --</option>';
+  Object.keys(groups).sort().forEach(g => {
+    html += `<optgroup label="${g}">`;
+    groups[g].forEach(l => { html += `<option value="${l.id}">${l.ledger_name}</option>`; });
+    html += `</optgroup>`;
+  });
+  ledgerGroups = html;
+}
+
+// ── Voucher type ──────────────────────────────────────────
+function setType(btn) {
+  document.querySelectorAll(".vtype-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  selectedType = btn.dataset.type;
+  applyTypeTemplate();
+}
+
+const typeTemplates = {
+  Payment:  [{ t:"Dr", hint:"Expense / Asset" }, { t:"Cr", hint:"Cash / Bank" }],
+  Receipt:  [{ t:"Dr", hint:"Cash / Bank" },     { t:"Cr", hint:"Income / Revenue" }],
+  Journal:  [{ t:"Dr", hint:"Account Debited" }, { t:"Cr", hint:"Account Credited" }],
+  Contra:   [{ t:"Dr", hint:"Bank A/c" },        { t:"Cr", hint:"Cash A/c" }],
+  Sales:    [{ t:"Dr", hint:"Cash / Debtor" },   { t:"Cr", hint:"Sales A/c" }],
+  Purchase: [{ t:"Dr", hint:"Purchase A/c" },    { t:"Cr", hint:"Cash / Creditor" }],
+};
+
+function applyTypeTemplate() {
+  const tbody = document.getElementById("linesBody");
+  tbody.innerHTML = "";
+  lineCount = 0;
+  const tmpl = typeTemplates[selectedType] || typeTemplates.Journal;
+  tmpl.forEach(l => addLine(l.t, l.hint));
+  updateTotals();
+}
+
+// ── Line management ───────────────────────────────────────
+let lineCount = 0;
+
+function addLine(type, hint = "") {
+  lineCount++;
+  const id = lineCount;
+  const isdr = type === "Dr";
+  const rowClass = isdr ? "dr-row" : "cr-row";
+  const badge = isdr
+    ? `<span class="type-badge dr-badge">Dr</span>`
+    : `<span class="type-badge cr-badge">Cr</span>`;
+
+  const row = document.createElement("tr");
+  row.className = rowClass;
+  row.id = `line-${id}`;
+  row.dataset.type = type;
+  row.innerHTML = `
+    <td class="text-center">${badge}</td>
+    <td>
+      <select class="acc-select form-control select2-enabled" id="acc-${id}">
+        ${ledgerGroups}
+      </select>
+      <div id="bal-${id}" class="text-muted mt-1 fst-italic" style="font-size:0.75rem;"></div>
+    </td>
+    <td>
+      <input type="number" class="amt-input mt-1" id="amt-${id}" value="" placeholder="0.00" step="0.01" min="0" oninput="updateTotals()"/>
+    </td>
+    <td>
+      <input type="text" class="narr-input mt-1" id="narr-${id}" placeholder="optional..."/>
+    </td>
+    <td class="text-center pt-2">
+      <button class="btn btn-sm btn-outline-danger p-1 lh-1" onclick="removeLine(${id})" title="Remove">
+        <i class="bi bi-x-lg" style="font-size:.75rem;"></i>
+      </button>
+    </td>`;
+
+  const tbody = document.getElementById("linesBody");
+  
+  if (isdr) {
+    const firstCrRow = tbody.querySelector('.cr-row');
+    if (firstCrRow) tbody.insertBefore(row, firstCrRow);
+    else tbody.appendChild(row);
+  } else {
+    tbody.appendChild(row);
+  }
+
+  // Arrow Navigation
+  row.querySelector('.amt-input').addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const all = Array.from(document.querySelectorAll('.amt-input'));
+      const idx = all.indexOf(this);
+      if (e.key === 'ArrowUp' && idx > 0) all[idx - 1].focus();
+      else if (e.key === 'ArrowDown' && idx < all.length - 1) all[idx + 1].focus();
+    }
+  });
+
+  // Select2 initialization with Current Balance Logic
+  $(`#acc-${id}`).select2({ 
+    width: '100%',
+    placeholder: "-- Select Account --",
+    allowClear: true
+  }).on('select2:open', function() {
+    document.querySelector('.select2-search__field').focus();
+  }).on('change', function() {
+    updateTotals();
+    const val = $(this).val();
+    const balDiv = document.getElementById(`bal-${id}`);
+    if(val && accountBalances[val]) {
+      balDiv.innerHTML = `Cur Bal: <strong>${accountBalances[val]}</strong>`;
+    } else {
+      balDiv.innerHTML = '';
+    }
+  });
+  
+  updateTotals();
+}
+
+function removeLine(id) {
+  const rows = document.querySelectorAll("#linesBody tr");
+  if (rows.length <= 2) { showAlert("Minimum 2 lines required.", "warning"); return; }
+  document.getElementById(`line-${id}`)?.remove();
+  updateTotals();
+}
+
+function updateTotals() {
+  let dr = 0, cr = 0;
+  document.querySelectorAll("#linesBody tr").forEach(row => {
+    const id = row.id.replace("line-", "");
+    const amt = parseFloat(document.getElementById(`amt-${id}`)?.value || 0) || 0;
+    if (row.dataset.type === "Dr") dr += amt;
+    else cr += amt;
+  });
+  document.getElementById("totalDr").innerText = dr.toFixed(2);
+  document.getElementById("totalCr").innerText = cr.toFixed(2);
+
+  const bar = document.getElementById("balanceBar");
+  const diff = Math.abs(dr - cr);
+  if (diff < 0.01 && dr > 0) {
+    bar.className = "balance-bar balanced mb-3";
+    bar.innerHTML = `<i class="bi bi-check-circle me-2"></i>Voucher Balanced ✓ — Amount: ₹${dr.toFixed(2)}`;
+  } else {
+    bar.className = "balance-bar unbalanced mb-3";
+    bar.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Not balanced — Dr: ₹${dr.toFixed(2)}, Cr: ₹${cr.toFixed(2)}, Difference: ₹${diff.toFixed(2)}`;
+  }
+}
+
+function showAlert(msg, type) {
+  const a = document.getElementById("alertBox");
+  a.className = `alert alert-${type}`;
+  a.innerHTML = `<i class="bi bi-${type==='success'?'check-circle':'exclamation-triangle'} me-2"></i>${msg}`;
+  setTimeout(() => a.classList.add("d-none"), 6000);
+}
+
+function resetForm() {
+  document.getElementById("narration").value = "";
+  document.getElementById("voucherDate").valueAsDate = new Date();
+  document.getElementById("alertBox").classList.add("d-none");
+  applyTypeTemplate();
+}
+
+// ── Submit ────────────────────────────────────────────────
+async function submitVoucher() {
+  const btn = document.getElementById("submitBtn");
+
+  const lines = [];
+  let valid = true;
+  document.querySelectorAll("#linesBody tr").forEach(row => {
+    const id = row.id.replace("line-", "");
+    const accId = document.getElementById(`acc-${id}`)?.value;
+    const amt = parseFloat(document.getElementById(`amt-${id}`)?.value || 0);
+    const narr = document.getElementById(`narr-${id}`)?.value || "";
+    if (!accId) { valid = false; return; }
+    if (amt <= 0) { valid = false; return; }
+    lines.push({ account_id: accId, entry_type: row.dataset.type, amount: amt, line_narration: narr });
+  });
+
+  if (!valid) { showAlert("Please select account and enter amount for all lines.", "danger"); return; }
+
+  const drTotal = lines.filter(l => l.entry_type === "Dr").reduce((s, l) => s + l.amount, 0);
+  const crTotal = lines.filter(l => l.entry_type === "Cr").reduce((s, l) => s + l.amount, 0);
+  if (Math.abs(drTotal - crTotal) > 0.01) { showAlert(`Voucher not balanced! Dr: ₹${drTotal.toFixed(2)}, Cr: ₹${crTotal.toFixed(2)}`, "danger"); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+  const payload = {
+    voucher_date: document.getElementById("voucherDate").value,
+    voucher_type: selectedType,
+    narration: document.getElementById("narration").value,
+    lines
+  };
+
+  const url = editVoucherId ? `/api/oeledger/vouchers/edit/${editVoucherId}` : "/api/oeledger/vouchers/add";
+  const method = editVoucherId ? "PUT" : "POST";
+
+  try {
+    const res = await fetch(url, {
+      method: method,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      showAlert(`✅ ${data.message} ${data.voucher_no ? '('+data.voucher_no+')' : ''}`, "success");
+      
+      // Update Balances dynamically after save to keep it accurate for next entry
+      await loadBalances();
+      
+      if (editVoucherId) {
+        setTimeout(() => window.location.href = "daybook.html", 1500);
+      } else {
+        resetForm();
+      }
+    } else {
+      showAlert(data.message || "Error saving voucher.", "danger");
+    }
+  } catch { showAlert("Server error. Please try again.", "danger"); }
+  finally { 
+    btn.disabled = false; 
+    btn.innerHTML = editVoucherId ? '<i class="bi bi-save me-1"></i>Update Voucher' : '<i class="bi bi-check-lg me-1"></i>Save Voucher'; 
+  }
+}
+
+let editVoucherId = null;
+
+async function checkEditMode() {
+  const urlParams = new URLSearchParams(window.location.search);
+  editVoucherId = urlParams.get('edit');
+  
+  if (editVoucherId) {
+    document.getElementById("pageTitle").innerHTML = `<i class="bi bi-pencil-square me-2"></i>Edit Voucher (#${editVoucherId})`;
+    document.getElementById("pageSubtitle").innerText = "Update existing voucher details";
+    document.getElementById("submitBtn").innerHTML = '<i class="bi bi-save me-1"></i>Update Voucher';
+    
+    try {
+      const res = await fetch(`/api/oeledger/vouchers/${editVoucherId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        const v = data.voucher;
+        document.getElementById("voucherDate").value = v.voucher_date.split('T')[0];
+        document.getElementById("narration").value = v.narration || "";
+        
+        document.querySelectorAll(".vtype-btn").forEach(b => b.classList.remove("active"));
+        const typeBtn = document.querySelector(`.vtype-btn[data-type="${v.voucher_type}"]`);
+        if (typeBtn) typeBtn.classList.add("active");
+        selectedType = v.voucher_type;
+        
+        document.getElementById("linesBody").innerHTML = "";
+        lineCount = 0;
+        
+        data.lines.forEach(line => {
+          addLine(line.entry_type);
+          // Set values and trigger change to show Current Balance
+          $(`#acc-${lineCount}`).val(line.account_id).trigger('change');
+          document.getElementById(`amt-${lineCount}`).value = parseFloat(line.amount).toFixed(2);
+          document.getElementById(`narr-${lineCount}`).value = line.line_narration || "";
+        });
+        updateTotals();
+      } else {
+        showAlert("Failed to load voucher for editing.", "danger");
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert("Error loading voucher.", "danger");
+    }
+  } else {
+    resetForm();
+  }
+}
+
+async function initPage() {
+  await loadLedgers();
+  await loadBalances(); // Fetch balances before rendering lines
+  await checkEditMode();
+}
+
+initPage();
+</script>
+</body>
+</html>

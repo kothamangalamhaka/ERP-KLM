@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debit Notes Dashboard</title>
+  <script src="../../node_xlsx_scripts/xlsx.bundle.js"></script>
+  </script><script src="../../node_xlsx_scripts/html2canvas.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style/dashboard.css">
+</head>
+<body>
+  <!-- Security Modal -->
+  <div id="securityModal" class="modal-overlay" style="display: flex;">
+    <div class="modal-box" style="text-align: center; max-width: 360px;">
+      <h3 style="margin-bottom: 12px;">Security Verification</h3>
+      <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">
+        Enter VAT Tracker Access Code to continue
+      </p>
+      <input
+        type="password"
+        id="securityCodeInput"
+        class="modal-input"
+        placeholder="Access Code"
+        style="text-align: center; font-size: 16px; letter-spacing: 2px;"
+        onkeydown="if(event.key==='Enter') verifyAccessCode()"
+      />
+      <div style="margin-top: 15px;">
+        <button class="btn btn-primary" style="width: 100%;" onclick="verifyAccessCode()">
+          Unlock Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="nav-left">
+      <a href="../index.html" class="nav-back-icon" title="Back to Table View">
+        <img src="../../icons/dd.png" alt="Back" style="height: 18px;" />
+      </a>
+      <span class="nav-title">Debit Notes Dashboard</span>
+      <span id="syncStatus" class="status-badge">✓ Ready</span>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-success" onclick="exportAllOwnersExcel()">
+        ⬇ Export All (Owner Sheets)
+      </button>
+    </div>
+  </div>
+
+  <div class="dashboard-body">
+    <!-- Top KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-title">TOTAL AMOUNT</div>
+        <div class="kpi-value" id="kpiTotalAmount">SAR 0.00</div>
+        <div class="kpi-sub" id="kpiTotalCount">0 Records</div>
+      </div>
+      <div class="kpi-card card-paid">
+        <div class="kpi-title">PAID TOTAL</div>
+        <div class="kpi-value text-success" id="kpiPaidAmount" style="color: #000b9e;">SAR 0.00</div>
+        <div class="kpi-sub" id="kpiPaidCount">0 Records</div>
+      </div>
+      <div class="kpi-card card-pending">
+        <div class="kpi-title">PENDING TOTAL</div>
+        <div class="kpi-value text-danger" id="kpiPendingAmount" style="color: #fc0000;">SAR 0.00</div>
+        <div class="kpi-sub" id="kpiPendingCount">0 Records</div>
+      </div>
+    </div>
+
+    <!-- Main Content Layout: Left Owners List, Right Selected Owner Table -->
+    <div class="content-layout">
+      <!-- Left: Owners List -->
+      <div class="owner-sidebar">
+        <div class="sidebar-header">
+          <span>Owners</span>
+          <span id="ownerCountBadge" class="badge">0</span>
+        </div>
+        <div class="sidebar-search">
+          <input type="text" id="ownerSearchInput" placeholder="Search owner..." oninput="filterOwnersList()" />
+        </div>
+        <div class="owner-list" id="ownerListContainer">
+          <!-- Dynamic Owners -->
+        </div>
+      </div>
+
+      <!-- Right: Owner Table View -->
+      <div class="owner-detail-panel">
+        <div class="detail-header">
+          <div>
+            <h2 id="selectedOwnerName" class="owner-title">Select an Owner</h2>
+            <div id="selectedOwnerSummary" class="owner-subtitle">Click an owner from the left list to view table</div>
+          </div>
+          <div class="detail-actions" id="detailActionBtns" style="display: none;">
+            <div class="table-search-box">
+              <input type="text" id="ownerTableSearchInput" placeholder="🔍 Search table..." oninput="applyOwnerTableFilters()" />
+            </div>
+            <button class="btn btn-outline" onclick="copyTableAsImage()">
+              📋 Copy
+            </button>
+            <button class="btn btn-primary" onclick="exportSelectedOwnerExcel()">
+              📥 Export
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container" id="captureContainer">
+          <table id="ownerDetailTable">
+            <thead>
+              <tr>
+                <th style="width: 45px; text-align: center;">SN</th>
+                <th data-col="month_year" onclick="openOwnerHeaderFilter(event, 'month_year')">Month ▾</th>
+                <th data-col="received_date" onclick="openOwnerHeaderFilter(event, 'received_date')">Received Date ▾</th>
+                <th data-col="plate_no" style="text-align: center;" onclick="openOwnerHeaderFilter(event, 'plate_no')">Plate No ▾</th>
+                <th data-col="particulars" onclick="openOwnerHeaderFilter(event, 'particulars')">Particulars ▾</th>
+                <th data-col="driver_name" onclick="openOwnerHeaderFilter(event, 'driver_name')">Driver Name ▾</th>
+                <th data-col="total_amount" style="text-align: right;" onclick="openOwnerHeaderFilter(event, 'total_amount')">Total Amount ▾</th>
+                <th data-col="site_name" onclick="openOwnerHeaderFilter(event, 'site_name')">Site Name ▾</th>
+                <th data-col="remark" onclick="openOwnerHeaderFilter(event, 'remark')">Remark ▾</th>
+                <th data-col="status" style="text-align: center;" onclick="openOwnerHeaderFilter(event, 'status')">Status ▾</th>
+              </tr>
+            </thead>
+            <tbody id="ownerTableBody">
+              <tr>
+                <td colspan="10" style="text-align: center; color: #64748b; padding: 30px;">
+                  No owner selected.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Sticky Bottom Summary Line for Selected Owner -->
+        <div id="ownerBottomSummaryBar" class="owner-bottom-bar" style="display: none;">
+          <div class="summary-line-item">
+            <span class="lbl">TOTAL:</span>
+            <span id="btmTotalAmt" class="val text-primary">SAR 0.00</span>
+          </div>
+          <div class="summary-separator">|</div>
+          <div class="summary-line-item">
+            <span class="lbl">PAID TOTAL:</span>
+            <span id="btmPaidAmt" class="val text-success">SAR 0.00</span>
+          </div>
+          <div class="summary-separator">|</div>
+          <div class="summary-line-item">
+            <span class="lbl">REMAINING PENDING TOTAL:</span>
+            <span id="btmPendingAmt" class="val text-danger">SAR 0.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Excel-like Column Filter Popup -->
+  <div id="ownerFilterPopup" class="filter-popup">
+    <div class="filter-header">
+      <span id="ownerFilterTitle" style="font-weight: 700; font-size: 12px;">Filter Column</span>
+    </div>
+    <div class="filter-sort-actions">
+      <button class="btn-sort" onclick="sortOwnerColumn('asc')">🔤 Sort A ➔ Z</button>
+      <button class="btn-sort" onclick="sortOwnerColumn('desc')">🔤 Sort Z ➔ A</button>
+    </div>
+    <input type="text" class="filter-search" id="ownerFilterSearchInput" placeholder="Search values..." onkeyup="searchOwnerFilterList()" />
+    <div class="filter-list" id="ownerFilterList"></div>
+    <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 10px;">
+      <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="clearOwnerColumnFilter()">Clear</button>
+      <button class="btn btn-primary" style="padding: 4px 10px; font-size: 11px; flex: 1;" onclick="applyOwnerColumnFilter()">Apply</button>
+    </div>
+  </div>
+
+  <div id="toast" class="bottom-toast"></div>
+
+  <script src="scripts/dashboard.js"></script>
+</body>
+</html>

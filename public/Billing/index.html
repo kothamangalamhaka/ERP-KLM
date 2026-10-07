@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Haka Bulk Bill Generator</title>
+    <meta name="viewport" content="width=1650" />
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jszip.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style/billing.css" />
+  </head>
+  <body>
+    <div class="loader-overlay" id="loader">
+      <div class="spinner"></div>
+      <h3 id="loaderText" style="margin-top: 20px; color: #1a4d80">
+        Processing Data...
+      </h3>
+    </div>
+
+    <div id="loginScreen">
+      <!-- Login Box -->
+      <div class="login-box" id="loginBox">
+        <h2>Vendor Bill Summary</h2>
+        <input
+          type="text"
+          id="loginUserId"
+          placeholder="Username"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <input
+          type="password"
+          id="loginPass"
+          placeholder="Password"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <button onclick="executeLogin()">Secure Login</button>
+        <div style="margin-top: 15px; font-size: 14px;">
+            <a href="#" onclick="toggleAuthView('signupBox')" style="color: #007bff; text-decoration: none;">Create Account</a> | 
+            <a href="#" onclick="toggleAuthView('forgotBox')" style="color: #007bff; text-decoration: none;">Forgot Password?</a>
+        </div>
+      </div>
+
+      <!-- Signup Box -->
+      <div class="login-box" id="signupBox" style="display: none;">
+        <h2>Create Account</h2>
+        <input type="text" id="regName" placeholder="Display Name">
+        <input type="text" id="regUser" placeholder="Username">
+        <input type="email" id="regEmail" placeholder="Email">
+        <input type="password" id="regPass" placeholder="Password">
+        <button onclick="executeSignup()" style="background: #28a745;">Sign Up</button>
+        <div style="margin-top: 15px; font-size: 14px;">
+            <a href="#" onclick="toggleAuthView('loginBox')" style="color: #6c757d; text-decoration: none;">Back to Login</a>
+        </div>
+      </div>
+
+      <!-- Forgot Password Box -->
+      <div class="login-box" id="forgotBox" style="display: none;">
+        <h2>Reset Password</h2>
+        <div id="otpRequestSection">
+            <input type="email" id="forgotEmail" placeholder="Enter your Email">
+            <button onclick="requestOtp()" style="background: #17a2b8;">Send OTP to Email</button>
+        </div>
+        <div id="otpVerifySection" style="display: none;">
+            <input type="text" id="resetOtp" placeholder="Enter OTP received in Email">
+            <input type="password" id="newPass" placeholder="Enter New Password">
+            <button onclick="resetPassword()" style="background: #ff9800;">Reset Password</button>
+        </div>
+        <div style="margin-top: 15px; font-size: 14px;">
+            <a href="#" onclick="toggleAuthView('loginBox')" style="color: #6c757d; text-decoration: none;">Back to Login</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="mainAppContainer" style="display: none">
+      <div class="top-controls-wrapper">
+        <div class="top-controls">
+          <button
+            type="button"
+            class="btn btn-dash"
+            onclick="goToDashboard()"
+            title="Dashboard"
+          >
+            <i class="material-icons" style="font-size: 20px; color: #007bff"
+              >dashboard</i
+            >
+          </button>
+          <!-- 🟢 Month Selector with ◀ Prev / Next ▶ Buttons -->
+          <div class="selector-wrapper" style="display: flex; align-items: center; gap: 4px;">
+            <button
+              type="button"
+              onclick="prevMonthBilling()"
+              title="Previous Month"
+              style="padding: 4px 7px; border: 1px solid #cbd5e1; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; color: #475569;"
+            >
+              ◀
+            </button>
+            <div
+              class="custom-dropdown"
+              id="monthDropdownContainer"
+              style="width: 85px"
+            >
+              <div
+                class="custom-dropdown-selected"
+                onclick="toggleDropdown('monthOptions')"
+                style="padding: 5px 6px; font-size: 12px; font-weight: bold;"
+              >
+                <span id="selectedMonthText">Loading...</span>
+                <span style="font-size: 10px; margin-left: 2px;">▼</span>
+              </div>
+              <div class="custom-dropdown-options" id="monthOptions" style="width: 140px;"></div>
+            </div>
+            <button
+              type="button"
+              onclick="nextMonthBilling()"
+              title="Next Month"
+              style="padding: 4px 7px; border: 1px solid #cbd5e1; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; color: #475569;"
+            >
+              ▶
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-fetch"
+            onclick="fetchDataFromERP()"
+          >
+            Fetch Data
+          </button>
+
+          <button
+            type="button"
+            class="btn"
+            style="background: #17a2b8"
+            onclick="createManualTable()"
+          >
+            + Manual Entry
+          </button>
+
+          <a href="combined_bill_generator.html" class="btn" style="background: #8b5cf6; text-decoration: none;">
+            + Combined Bill
+          </a>
+          <a href="driverotindex.html" class="btn" style="background: #d97706; text-decoration: none;">
+            Driver OT Bill 🚚
+          </a>
+
+          <div class="selector-wrapper">
+            <label>Owner:</label>
+            <div class="custom-dropdown" style="width: 140px">
+              <div
+                class="custom-dropdown-selected"
+                onclick="toggleDropdown('ownerOptions')"
+              >
+                <span id="ownerSelectText">All Owners</span>
+                <span style="font-size: 10px">▼</span>
+              </div>
+              <div
+                class="custom-dropdown-options"
+                id="ownerOptions"
+                style="width: 250px"
+              >
+                <input
+                  type="text"
+                  class="dropdown-search"
+                  id="ownerSearch"
+                  placeholder="Search Owner..."
+                  onkeyup="filterCheckboxList('ownerSearch', 'ownerList')"
+                />
+                <div class="checkbox-list" id="ownerList">
+                  <label class="check-item"
+                    ><input
+                      type="checkbox"
+                      id="selectAllOwners"
+                      checked
+                      onchange="toggleAllCheckboxes('ownerList', this.checked)"
+                    />
+                    <b>Select All</b></label
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="selector-wrapper">
+            <label>Site:</label>
+            <div class="custom-dropdown" style="width: 140px">
+              <div
+                class="custom-dropdown-selected"
+                onclick="toggleDropdown('siteOptions')"
+              >
+                <span id="siteSelectText">All Sites</span>
+                <span style="font-size: 10px">▼</span>
+              </div>
+              <div
+                class="custom-dropdown-options"
+                id="siteOptions"
+                style="width: 250px"
+              >
+                <input
+                  type="text"
+                  class="dropdown-search"
+                  id="siteSearch"
+                  placeholder="Search Site..."
+                  onkeyup="filterCheckboxList('siteSearch', 'siteList')"
+                />
+                <div class="checkbox-list" id="siteList">
+                  <label class="check-item"
+                    ><input
+                      type="checkbox"
+                      id="selectAllSites"
+                      checked
+                      onchange="toggleAllCheckboxes('siteList', this.checked)"
+                    />
+                    <b>Select All</b></label
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 🟢 Compact Tools & Arrange Actions Dropdown -->
+          <div class="custom-dropdown" style="display: inline-block;">
+            <button
+              type="button"
+              class="btn"
+              style="background: #6f42c1;"
+              onclick="toggleDropdown('toolsDropdownMenu')"
+              title="Arrange & Table Operations"
+            >
+              ⚙️ Tools ▾
+            </button>
+            <div
+              class="custom-dropdown-options"
+              id="toolsDropdownMenu"
+              style="width: 215px; text-align: left; margin-top: 5px; z-index: 10000;"
+            >
+              <div
+                class="custom-dropdown-item"
+                style="font-weight: 600; color: #6f42c1;"
+                onclick="setArrangeMode('owner_comp'); document.getElementById('toolsDropdownMenu').classList.remove('show');"
+              >
+                ✨ Arrange (Company)
+              </div>
+              <div
+                class="custom-dropdown-item"
+                style="font-weight: 600; color: #007bff;"
+                onclick="setArrangeMode('site'); document.getElementById('toolsDropdownMenu').classList.remove('show');"
+              >
+                🏢 Arrange by Site
+              </div>
+              <div
+                class="custom-dropdown-item"
+                style="font-weight: 600; color: #e83e8c;"
+                onclick="setArrangeMode('split'); document.getElementById('toolsDropdownMenu').classList.remove('show');"
+              >
+                👤 Owner: Based on Site
+              </div>
+              <div
+                class="custom-dropdown-item"
+                style="font-weight: 600; color: #ff9800;"
+                onclick="setArrangeMode('owner_all'); document.getElementById('toolsDropdownMenu').classList.remove('show');"
+              >
+                📑 Owner: All in One
+              </div>
+              <div style="border-top: 1px solid #e2e8f0; margin: 4px 0;"></div>
+              <div
+                class="custom-dropdown-item"
+                style="font-weight: 600; color: #17a2b8;"
+                onclick="unhideAll(); document.getElementById('toolsDropdownMenu').classList.remove('show');"
+              >
+                👁️ Unhide All Rows/Cols
+              </div>
+              <div
+                class="custom-dropdown-item"
+                style="font-weight: 600; color: #dc3545;"
+                onclick="downloadAllAsZip(); document.getElementById('toolsDropdownMenu').classList.remove('show');"
+              >
+                📦 Download All ZIP
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-save" onclick="submitBulkData()">
+            Save to ERP 💾
+          </button>
+
+          <button type="button" class="btn btn-reset" onclick="executeLogout()">
+            Logout
+          </button>
+          
+        </div>
+      </div>
+
+      <div
+        id="dynamicBillsContainer"
+        style="
+          display: flex;
+          flex-direction: column;
+          gap: 40px;
+          margin-bottom: 50px;
+        "
+      >
+        <div
+          style="
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            background: white;
+            border-radius: 8px;
+            border: 1px dashed #ccc;
+          "
+        >
+          <h2>No Bills Generated Yet</h2>
+          <p>
+            Click "Fetch Data", select filters, and then click "Arrange ✨".
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <div id="siteSelectionModal" class="modal-overlay" style="display: none">
+      <div class="modal-box">
+        <h3 style="margin-top: 0; color: #1a4d80">Multiple Sites Detected</h3>
+        <p>
+          Vehicle <b id="modalPlateNo"></b> worked in multiple sites. Select the
+          sites to add:
+        </p>
+        <div
+          id="modalSiteList"
+          style="
+            text-align: left;
+            margin: 15px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+          "
+        ></div>
+
+        <div
+          style="
+            background: #e9ecef;
+            padding: 10px 12px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+            text-align: left;
+          "
+        >
+          <input
+            type="checkbox"
+            id="modalSelectAll"
+            onclick="toggleModalSites(this.checked)"
+            style="
+              width: 18px;
+              height: 18px;
+              cursor: pointer;
+              vertical-align: middle;
+              margin: 0; 
+            "
+          />
+          <label
+            for="modalSelectAll"
+            style="
+              font-weight: bold;
+              cursor: pointer;
+              vertical-align: middle;
+              margin-left: 8px;
+              display: inline-block;
+              width: 85%;
+              border: none;
+              padding: 0;
+              background: transparent;
+            "
+          >
+            Select All (Both)
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px">
+          <button
+            type="button"
+            class="btn"
+            style="background: #6c757d"
+            onclick="closeSiteModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn"
+            style="background: #28a745"
+            onclick="applySiteSelection()"
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="contextMenu" class="context-menu" style="display: none;">
+      <div class="context-menu-item" id="hideAction">Hide</div>
+    </div>
+
+    <!-- 🟢 Session Expired Alert Audio -->
+    <audio id="sessionAlertAudio" src="/alert_mp3/billing.mp3" preload="auto"></audio>
+
+    <!-- 🟢 Dynamic Re-login Modal for Preserving Unsaved Work -->
+    <div id="reLoginModal" class="modal-overlay" style="display: none; z-index: 100002; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px);">
+      <div class="modal-box" style="width: 340px; text-align: center; border-radius: 8px; padding: 25px; background: white; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+        <div style="font-size: 36px; margin-bottom: 8px;">⚠️</div>
+        <h3 style="margin: 0 0 8px 0; color: #dc2626;">Session Expired!</h3>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 15px;">
+          Your unsaved work is safe. Please enter your password to resume saving.
+        </p>
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+          <input
+            type="text"
+            id="reLoginUser"
+            placeholder="Username"
+            readonly
+            tabindex="-1"
+            style="width: 100%; max-width: 260px; box-sizing: border-box; padding: 8px 12px; margin-bottom: 8px; border: 1px solid #cbd5e1; border-radius: 5px; text-align: center; font-size: 13px; font-weight: 700; color: #334155; background: #f1f5f9; cursor: not-allowed; outline: none;"
+          />
+          <input
+            type="password"
+            id="reLoginPass"
+            placeholder="Enter Password"
+            style="width: 100%; max-width: 260px; box-sizing: border-box; padding: 8px 12px; margin-bottom: 12px; border: 1.5px solid #0284c7; border-radius: 5px; text-align: center; font-size: 13px; outline: none; background: #ffffff;"
+            onkeydown="if(event.key==='Enter') executeReLoginAndResume();"
+          />
+        </div>
+        <div id="reLoginError" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;"></div>
+        <div style="display: flex; justify-content: center; gap: 10px; width: 100%; max-width: 260px; margin: 0 auto;">
+          <button
+            type="button"
+            class="btn"
+            style="flex: 1; height: 38px; background: #dc2626; color: white; display: inline-flex; align-items: center; justify-content: center; text-align: center; border-radius: 5px; font-size: 13px; font-weight: 600; padding: 0; cursor: pointer;"
+            onclick="executeLogout()"
+            title="Discard changes and Logout"
+          >
+            Logout
+          </button>
+          <button
+            type="button"
+            class="btn"
+            style="flex: 1.4; height: 38px; background: #10b981; color: white; display: inline-flex; align-items: center; justify-content: center; text-align: center; border-radius: 5px; font-size: 13px; font-weight: 600; padding: 0; cursor: pointer;"
+            onclick="executeReLoginAndResume()"
+          >
+            Unlock & Save 💾
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script/billing.js"></script>
+  </body>
+</html>

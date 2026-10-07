@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Office Utility Tools</title>
+    <style>
+      :root {
+        --bg-color: #171f2c;
+        --card-bg: rgba(30, 41, 59, 0.7);
+        --card-border: #2c3e55;
+        --card-hover-border: #00d2d3;
+        --title-color: #ffffff;
+        --heading-cyan: #00e5ff;
+        --text-muted: #8b9bb4;
+        --icon-bg: #00c4cc;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: #fff;
+        padding: 40px 24px;
+        min-height: 100vh;
+      }
+
+      /* Page Header */
+      .header-title {
+        text-align: center;
+        font-size: 2.2rem;
+        font-weight: 700;
+        font-family: Georgia, serif;
+        color: var(--title-color);
+        margin-bottom: 45px;
+        letter-spacing: 0.5px;
+      }
+
+      /* Responsive Grid: Screen size anusarichu 1 muthal 7+ vare dynamic aayi adjust aavum */
+      .tools-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 18px;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+
+      /* Action Card */
+      .action-card {
+        display: flex;
+        align-items: center;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 18px 16px;
+        text-decoration: none;
+        transition: all 0.25s ease-in-out;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .action-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--card-hover-border);
+        box-shadow: 0 6px 20px rgba(0, 229, 255, 0.15);
+        background: rgba(36, 50, 72, 0.9);
+      }
+
+      /* Square Rounded Icon */
+      .card-icon {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        background-color: var(--icon-bg);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-right: 14px;
+        box-shadow: 0 2px 8px rgba(0, 196, 204, 0.4);
+      }
+
+      /* Card Content */
+      .card-content {
+        overflow: hidden;
+      }
+
+      .card-content h3 {
+        font-size: 0.98rem;
+        font-weight: 600;
+        color: var(--heading-cyan);
+        margin-bottom: 5px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+
+      .card-content p {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        line-height: 1.35;
+        font-family:
+          "Courier New", Courier, monospace; /* Screenshot-il ullathupole technical mono font */
+        display: -webkit-box;
+        line-clamp: 2;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="header-title">Office Utility Tools</h1>
+
+    <div class="tools-grid">
+      <!-- PDF Merge & Extract Card -->
+      <a href="pdf/Merge & Extractor/index.html" class="action-card">
+        <div class="card-icon">📑</div>
+        <div class="card-content">
+          <h3>PDF Merge & Extract</h3>
+          <p>Merge multiple files, extract pages, and manage PDF documents.</p>
+        </div>
+      </a>
+      
+
+      <a href="editor/index.html" class="action-card">
+        <div class="card-icon">✏️</div>
+        <div class="card-content">
+          <h3> PDF Viewer & Stamp</h3>
+          <p>Add Stamps and Signatures to your PDFs.</p>
+        </div>
+      </a>
+
+      <!-- Pinne vere tools add cheyyan vendi oru template card (Optional) -->
+      <!--
+    <a href="#" class="action-card">
+      <div class="card-icon">⚙️</div>
+      <div class="card-content">
+        <h3>Tool Name</h3>
+        <p>Short description of the utility tool functionality.</p>
+      </div>
+    </a>
+    --></div>
+  </body>
+</html>

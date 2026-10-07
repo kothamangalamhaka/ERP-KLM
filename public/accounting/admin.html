@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Users - ERP Accounting</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
+    .sidebar { min-height: 100vh; background-color: #212529; color: white; padding-top: 20px; width: 220px; flex-shrink: 0; }
+    .sidebar .brand { font-size: 1rem; font-weight: 700; color: #fff; text-align: center; padding: 0 15px 15px; border-bottom: 1px solid #444; margin-bottom: 10px; }
+    .sidebar a { color: #adb5bd; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 10px 20px; margin: 2px 8px; border-radius: 6px; font-size: 0.9rem; }
+    .sidebar a:hover, .sidebar a.active { background-color: #0d6efd; color: #fff; }
+    .sidebar .nav-section { color: #6c757d; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 20px 4px; margin-top: 6px; }
+    .main-content { padding: 24px; flex: 1; }
+  </style>
+</head>
+<body>
+<div class="d-flex">
+
+  <!-- Sidebar — Admin sees all links + Admin section -->
+  <div class="sidebar d-none d-md-flex flex-column">
+    <div class="brand"><i class="bi bi-journal-richtext me-2"></i>ERP Accounts</div>
+    <span class="nav-section">Main Menu</span>
+    <a href="index.html"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    <a href="entry.html"><i class="bi bi-journal-plus"></i> Voucher Entry</a>
+    <a href="daybook.html"><i class="bi bi-journal-text"></i> Daybook</a>
+    <span class="nav-section">Reports</span>
+    <a href="ledgers.html"><i class="bi bi-book"></i> Chart of Accounts</a>
+    <a href="reports.html"><i class="bi bi-file-earmark-bar-graph"></i> Financial Reports</a>
+    <a href="log.html"><i class="bi bi-shield-lock"></i> Audit Logs</a>
+    <span class="nav-section">Admin</span>
+    <a href="admin.html" class="active"><i class="bi bi-people"></i> Manage Users</a>
+  </div>
+
+  <!-- Main -->
+  <div class="flex-grow-1 d-flex flex-column">
+    <nav class="navbar bg-white border-bottom px-3 py-2">
+      <button class="btn btn-outline-secondary btn-sm d-md-none me-2"><i class="bi bi-list"></i></button>
+      <span class="fw-bold text-muted small">Manage Users</span>
+      <div class="ms-auto d-flex align-items-center gap-3">
+        <span class="fw-bold text-primary" id="userNameDisplay">Admin</span>
+        <button class="btn btn-sm btn-danger" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
+      </div>
+    </nav>
+
+    <div class="main-content">
+      <div class="mb-4">
+        <h4 class="fw-bold mb-0"><i class="bi bi-person-plus me-2 text-primary"></i>Create New User</h4>
+        <small class="text-muted">Create Data Entry Users or other Admins</small>
+      </div>
+
+      <div class="row">
+        <div class="col-md-5">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <form id="addUserForm" autocomplete="off">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Username</label>
+                  <input type="text" class="form-control" id="newUsername" required placeholder="Enter username" />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Password</label>
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="newPassword" required placeholder="Min 6 characters" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="togglePwd()"><i class="bi bi-eye" id="eyeIcon"></i></button>
+                  </div>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">Role</label>
+                  <select class="form-select" id="userRole">
+                    <option value="User">Data Entry User</option>
+                    <option value="Admin">System Admin</option>
+                  </select>
+                  <div class="form-text">Admins can create users and access all features. Users can only enter and view data.</div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-person-check me-1"></i>Create Account</button>
+              </form>
+              <div id="adminAlert" class="alert mt-3 d-none"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-7">
+          <div class="card shadow-sm">
+            <div class="card-header bg-white fw-bold">
+              <i class="bi bi-people me-2"></i>User Access Guidelines
+            </div>
+            <div class="card-body">
+              <table class="table table-sm">
+                <thead class="table-light"><tr><th>Feature</th><th class="text-center">Data Entry User</th><th class="text-center">System Admin</th></tr></thead>
+                <tbody>
+                  <tr><td>View Dashboard</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+                  <tr><td>Voucher Entry</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+                  <tr><td>Daybook / View</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+                  <tr><td>Delete Vouchers</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+                  <tr><td>Financial Reports</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+                  <tr><td>Audit Logs</td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+                  <tr><td>Manage Users</td><td class="text-center text-danger"><i class="bi bi-x-lg"></i></td><td class="text-center text-success"><i class="bi bi-check-lg"></i></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="card shadow-sm">
+            <div class="card-header bg-white fw-bold">
+              <i class="bi bi-list-check me-2 text-primary"></i>Existing Users
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="ps-3" style="width: 80px;">ID</th>
+                      <th>Username</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Created Date</th>
+                      <th class="text-center" style="width: 100px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="userTableBody">
+                    <tr><td colspan="6" class="text-center py-4">Loading users...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const token = localStorage.getItem("acc_token");
+  const userData = JSON.parse(localStorage.getItem("acc_user") || "{}");
+
+  // Admin OR Super Admin Check (FIXED)
+  if (!token || (userData.role !== "Admin" && userData.role !== "Super Admin")) {
+    alert("Access Denied. Admins only.");
+    window.location.href = "index.html";
+  }
+
+  document.getElementById("userNameDisplay").innerText = userData.username + " (" + userData.role + ")";
+
+  function logout() {
+    localStorage.removeItem("acc_token");
+    localStorage.removeItem("acc_user");
+    window.location.href = "login.html";
+  }
+
+  function togglePwd() {
+    const input = document.getElementById("newPassword");
+    const icon = document.getElementById("eyeIcon");
+    if (input.type === "password") { input.type = "text"; icon.className = "bi bi-eye-slash"; }
+    else { input.type = "password"; icon.className = "bi bi-eye"; }
+  }
+
+  document.getElementById("addUserForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const alertBox = document.getElementById("adminAlert");
+    const pwd = document.getElementById("newPassword").value;
+    if (pwd.length < 6) {
+      alertBox.className = "alert mt-3 alert-danger";
+      alertBox.innerText = "Password must be at least 6 characters.";
+      alertBox.classList.remove("d-none");
+      return;
+    }
+
+    const payload = {
+      username: document.getElementById("newUsername").value,
+      password: pwd,
+      role: document.getElementById("userRole").value,
+    };
+
+    try {
+      const res = await fetch("/api/oeledger/users/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      alertBox.className = `alert mt-3 alert-${data.success ? "success" : "danger"}`;
+      alertBox.innerHTML = `<i class="bi bi-${data.success ? 'check-circle' : 'exclamation-triangle'} me-2"></i>${data.message || "User created successfully!"}`;
+      alertBox.classList.remove("d-none");
+      if (data.success) {
+        document.getElementById("addUserForm").reset();
+        loadUsers(); // Refresh table
+      }
+    } catch {
+      alertBox.className = "alert mt-3 alert-danger";
+      alertBox.innerText = "Error creating user.";
+      alertBox.classList.remove("d-none");
+    }
+  });
+
+  async function loadUsers() {
+    const tbody = document.getElementById("userTableBody");
+    try {
+      const res = await fetch("/api/oeledger/users", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        if (data.users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No users found.</td></tr>';
+          return;
+        }
+        
+        tbody.innerHTML = data.users.map(u => {
+          let roleBadge = 'bg-secondary';
+          if (u.role === 'Admin') roleBadge = 'bg-primary';
+          if (u.role === 'Super Admin') roleBadge = 'bg-danger';
+
+          return `
+          <tr>
+            <td class="ps-3 text-muted small">#${u.id}</td>
+            <td class="fw-semibold">${u.username} ${u.username === userData.username ? '<span class="badge bg-info text-dark ms-1">You</span>' : ''}</td>
+            <td><span class="badge ${roleBadge}">${u.role}</span></td>
+            <td><span class="text-success small"><i class="bi bi-circle-fill me-1" style="font-size:0.5rem;"></i>${u.status}</span></td>
+            <td class="small text-muted">${new Date(u.created_at).toLocaleDateString('en-GB')}</td>
+            <td class="text-center">
+              ${u.username !== userData.username ? 
+                `<button class="btn btn-outline-danger btn-sm p-1 lh-1" onclick="deleteUser(${u.id}, '${u.username}')" title="Delete User">
+                  <i class="bi bi-trash" style="font-size:0.8rem;"></i>
+                </button>` : 
+                '<span class="text-muted small">—</span>'}
+            </td>
+          </tr>
+        `}).join("");
+      } else {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">${data.message}</td></tr>`;
+      }
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Error loading users.</td></tr>';
+    }
+  }
+
+  async function deleteUser(id, username) {
+    if (!confirm(`Are you sure you want to permanently delete the user "${username}"?`)) return;
+    
+    try {
+      const res = await fetch(`/api/oeledger/users/delete/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        alert(data.message);
+        loadUsers(); 
+      } else {
+        alert("Error: " + data.message);
+      }
+    } catch (err) {
+      alert("Server Error.");
+    }
+  }
+
+  loadUsers();
+</script>
+</body>
+</html>

@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Timesheet - Live Grid Entry</title>
+    <link rel="stylesheet" href="style/entry.css" />
+   <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
+    <script src="/node_xlsx_scripts/xlsx.bundle.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <script src="/node_xlsx_scripts/pdf.min.js"></script>
+    <script src="/node_xlsx_scripts/pdf-lib.min.js"></script>
+    <script>
+      // Initialize local PDF.js worker using absolute path
+      if (window.pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "/node_xlsx_scripts/pdf.worker.min.js";
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="navbar">
+      <div style="display: flex; align-items: center">
+        <span
+          style="
+            font-size: 16px;
+            font-weight: 600;
+            margin-left: 20px;
+            letter-spacing: 0.5px;
+          "
+        >
+          <a href="Timesheet.html">
+            <span class="pc-title">Monthly Timesheet - Live Grid Entry</span>
+            <span class="mobile-title" style="display: none"
+              >Live Grid Entry</span
+            >
+          </a>
+        </span>
+        <span id="saveStatus" class="save-indicator">✓ Saved</span>
+      </div>
+
+      <div class="user-profile-container">
+        <div
+          id="userInfoBtn"
+          class="user-info-btn"
+          onclick="toggleUserMenu(event)"
+        >
+          <span class="user-icon">👤</span
+          ><span class="user-text" id="userInfo">Loading...</span>
+        </div>
+        <div id="userDropdownMenu" class="user-context-menu">
+          <button onclick="toggleDarkMode()">🌗 Theme</button>
+          <div class="menu-divider"></div>
+          <button>
+            <a
+              href="./entrylog.html"
+              style="
+                color: inherit;
+                text-decoration: none;
+                font-weight: 600;
+                font-family: &quot;Inter&quot;, sans-serif;
+                font-size: 13px;
+              "
+              >🧾 Entry Log</a
+            >
+          </button>
+          <button class="text-danger" onclick="logout()">🚪 Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="card">
+        <div class="top-form">
+          <div class="mobile-single-row">
+            <div class="form-group select-month">
+              <label class="pc-label">Month</label>
+              <div style="display: flex; align-items: center; gap: 5px;">
+                <button class="month-nav-btn" onclick="prevMonth()" title="Previous Month">◀</button>
+                <select id="selMonth" onchange="releaseLock(); if(document.getElementById('selPlate').value) triggerFetch();">
+                  <option value="January">Jan</option>
+                <option value="February">Feb</option>
+                <option value="March">Mar</option>
+                <option value="April">Apr</option>
+                <option value="May">May</option>
+                <option value="June">Jun</option>
+                <option value="July">Jul</option>
+                <option value="August">Aug</option>
+                <option value="September">Sep</option>
+                <option value="October">Oct</option>
+                <option value="November">Nov</option>
+                <option value="December">Dec</option>
+              </select>
+                <button class="month-nav-btn" onclick="nextMonth()" title="Next Month">▶</button>
+              </div>
+            </div>
+
+            <div class="form-group select-year">
+              <label class="pc-label">Year</label>
+              <input type="number" id="selYear" value="2026" />
+            </div>
+
+            <div class="form-group autocomplete-container input-plate">
+              <div style="width: 100%">
+                <label class="pc-label">Plate No (Search)</label>
+                <input
+                  type="text"
+                  id="selPlate"
+                  class="uppercase-input"
+                  autocomplete="off"
+                  oninput="searchPlate()"
+                  placeholder="Type Plate..."
+                />
+                <div
+                  id="plateSuggestions"
+                  class="suggestions"
+                  style="display: none"
+                ></div>
+              </div>
+            </div>
+
+            <div class="form-group btn-fetch-wrapper">
+              <label class="pc-label">&nbsp;</label>
+              <button id="fetchBtn" class="btn-fetch" onclick="triggerFetch()">
+                <div id="fetchLoader" class="loader"></div>
+                <span class="fetch-icon" style="display: none">🔍</span>
+                <span id="fetchText" class="fetch-text">Fetch Data</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="nav-buttons-row">
+            <!-- 🟢 Bell icon & Lock icon adjusted for compact single row display -->
+            <button id="btnRequestEdit" class="req-edit-btn" style="display:none; padding: 6px 10px; font-size: 14px; margin: 0; line-height: 1;" title="Request Edit Access" onclick="requestEditAccess()">🔔</button>     
+            <button id="btnPeriodLock" class="req-edit-btn" style="display:none; padding: 6px 10px; font-size: 14px; margin: 0; line-height: 1; background-color: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer;" title="Period Locked - Click to Unlock" onclick="openPeriodUnlockModal()">🔒</button>
+
+            <!-- 🟢 Wide screenil maathram kaanunna direct buttons -->
+            <div class="wide-nav-buttons">
+              <button class="pendingl"><a href="blank.html">Pending</a></button>
+              <button class="tsm"><a href="Dashboard.html">Timesheet</a></button>
+              <button class="tsm"><a href="view.html">Ts Card</a></button>
+              <button class="tsdb"><a href="./db.html">T S DB</a></button>
+            </div>
+
+            <!-- 🟢 Screen cheruthaakumbool kaanunna Options dropdown button -->
+            <div class="options-dropdown-container" id="optionsDropdownContainer">
+              <button type="button" class="btn-options-dropdown" onclick="toggleOptionsMenu(event)">
+                ⚙️ Options ▾
+              </button>
+              <div id="optionsDropdownMenu" class="options-context-menu" style="display: none;">
+                <a href="blank.html">📋 Pending</a>
+                <a href="Dashboard.html">📊 Timesheet</a>
+                <a href="view.html">💳 Ts Card</a>
+                <a href="./db.html">🗄️ T S DB</a>
+              </div>
+            </div>
+
+            <!-- 🟢 Logsheet button eppozhum visible aayirikkum -->
+            <button class="logsheet-btn" onclick="openLogsheetViewer()">
+              📁 Logsheet
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-content" id="mainLayoutContainer">
+        
+        <div class="inline-logsheet-container" id="inlineLogsheet" style="display: none; position: relative;">
+          <div class="logsheet-main-resizer" id="logsheetMainResizer"></div>
+          
+          <div class="logsheet-header">
+            <h3 id="logsheetTitle">Logsheet Viewer</h3>
+            <div style="display: flex; gap: 10px; align-items: center">
+              <button
+                id="btnDownloadCurrent"
+                onclick="downloadCurrentImage()"
+                style="
+                  background: #e0f2fe;
+                  border: 1px solid #0284c7;
+                  border-radius: 4px;
+                  color: #0284c7;
+                  font-size: 11px;
+                  font-weight: bold;
+                  padding: 4px 8px;
+                  cursor: pointer;
+                  transition: all 0.2s;
+                "
+                title="Download Currently Viewing Image"
+              >
+                ⬇ Current
+              </button>
+              <button
+                id="btnDownloadSelected"
+                onclick="downloadSelectedAsPdf()"
+                style="
+                  background: #fef3c7;
+                  border: 1px solid #d97706;
+                  border-radius: 4px;
+                  color: #d97706;
+                  font-size: 11px;
+                  font-weight: bold;
+                  padding: 4px 8px;
+                  cursor: pointer;
+                  transition: all 0.2s;
+                "
+                title="Download Selected Images as PDF"
+              >
+                Selected
+              </button>
+              <button
+                id="btnDownloadPdf"
+                onclick="downloadAllAsPdf()"
+                style="
+                  background: #fee2e2;
+                  border: 1px solid #ef4444;
+                  border-radius: 4px;
+                  color: #ef4444;
+                  font-size: 12px;
+                  font-weight: bold;
+                  padding: 4px 10px;
+                  cursor: pointer;
+                  transition: all 0.2s;
+                  display: flex;
+                  align-items: center;
+                  gap: 5px;
+                "
+                title="Download all images as a single PDF"
+                onmouseover="this.style.background = '#ef4444'; this.style.color = '#fff';"
+                onmouseout="this.style.background = '#fee2e2'; this.style.color = '#ef4444';"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <polyline points="9 15 12 18 15 15"></polyline>
+                </svg>
+                PDF
+              </button>
+              <button
+                class="close-btn"
+                style="background: none; border: none; font-size: 20px; cursor: pointer; color: #ef4444;"
+                onclick="closeLogsheetViewer()"
+              >
+                ✖
+              </button>
+            </div>
+          </div>
+          <div class="logsheet-body">
+            <div class="logsheet-sidebar" id="logsheetFileList"></div>
+            <div class="sidebar-resizer" id="sidebarResizer"></div>
+            <div class="logsheet-viewer" id="logsheetViewerContainer">
+              <div style="text-align: center; padding: 50px; color: #64748b">
+                Select a file from the list to view
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-center-wrapper" id="tableCenterWrapper">
+          <div class="table-responsive">
+            <table id="gridTable">
+              <thead>
+                <tr>
+                  <th style="width: 80px">Plate No</th>
+                  <th style="width: 40px">Date</th>
+                  <th style="width: 40px">Day</th>
+                  <th style="width: 70px">Wrk Start</th>
+                  <th style="width: 70px">Wrk end</th>
+                  <th style="width: 80px">HMR Start</th>
+                  <th style="width: 80px">HMR End</th>
+                  <th style="width: 55px; min-width: 50px;">Fuel</th>
+                  <th style="width: 55px; min-width: 55px;">BD</th>
+                  <th style="width: 45px; min-width: 45px;">NL</th>
+                  <th style="width: 65px; min-width: 60px;">Distance</th>
+                  <th style="width: 60px">Time</th>
+                  <th style="width: 250px">Remark</th>
+                  <th style="width: 100px">Modified By</th>
+                </tr>
+              </thead>
+              <tbody id="gridBody">
+                <tr class="loading-row">
+                  <td colspan="13">
+                    Please enter a Plate No and click "Fetch Data" to begin.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="right-sidebar">
+          <div class="summary-card">
+            <div class="summary-title">VEHICLE DETAILS</div>
+            <div class="detail-row">
+              <span class="detail-lbl">Vehicle Type</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispVType">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Driver Name</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispDName">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Driver Mobile</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispDMob">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Owner Name</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispOName">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Owner Mobile</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispOMob">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Site Name</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispSite">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Field Co</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispFieldCo">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Site Co</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispSiteCo">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Asset Code</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispAsset">N/A</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Work Order</span
+              ><span class="detail-sep">::</span
+              ><span class="detail-val" id="dispWorkOrder">N/A</span>
+            </div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-title">
+              MONTH SUMMARY
+              <span
+                id="logSheetCount"
+                style="font-size: 14px"
+              ></span>
+              <span id="actualLogsheetCount" style="font-size: 14px; margin-left: 5px;"></span>
+            </div>
+            <div class="summary-item">
+              Normal Time:
+              <span class="summary-value val-normal" id="sumNormal">0</span>
+            </div>
+            <div class="summary-item">
+              OT Hours: <span class="summary-value val-ot" id="sumOT">0</span>
+            </div>
+            <div
+              class="summary-item"
+              style="
+                border-top: 1px dashed #cbd5e1;
+                padding-top: 8px;
+                margin-top: 8px;
+              "
+            >
+              Total Time: <span class="summary-value" id="sumTime">0</span>
+            </div>
+            <div class="summary-item">
+              Total Dist: <span class="summary-value" id="sumDist">0.0</span>
+            </div>
+            <div class="summary-item">
+              Total Fuel: <span class="summary-value" id="sumFuel">0.0</span>
+            </div>
+            <div class="summary-item">
+              Mileage: <span class="summary-value" id="sumMileage">0.00</span>
+            </div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-title" style="color: #861313">
+              SITE LOG DETAILS
+            </div>
+            <div
+              id="dispSiteLogInfo"
+              style="
+                font-size: 12px;
+                font-weight: 500;
+                color: #181717;
+                line-height: 1.6;
+              "
+            >
+              <div class="detail-row">
+                <span class="detail-lbl" style="width: 80px">Work Start</span
+                ><span class="detail-sep">::</span
+                ><span class="detail-val" id="dispSiteStart">N/A</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-lbl" style="width: 80px">Work End</span
+                ><span class="detail-sep">::</span
+                ><span class="detail-val" id="dispSiteEnd">N/A</span>
+              </div>
+              <div id="siteHoursBlock" style="display: none; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+                <div style="font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px; margin-bottom: 6px;">
+                  SITE SUMMARY
+                </div>
+                <div class="summary-item">
+                  Normal Time: <span class="summary-value val-normal" id="dispSiteNR">0</span>
+                </div>
+                <div class="summary-item">
+                  OT Hours: <span class="summary-value val-ot" id="dispSiteOT">0</span>
+                </div>
+                <div class="summary-item" style="border-top: 1px dashed #cbd5e1; padding-top: 4px; margin-top: 4px; font-weight: 700;">
+                  Total Time: <span class="summary-value" id="dispSiteTot">0</span>
+                </div>
+              </div>
+              <div
+                class="detail-row"
+                id="oldVehRow"
+                style="display: none;"
+              >
+                <span class="detail-lbl" style="width: 80px; color: #d97706;"
+                  >Old</span
+                >
+                <span class="detail-sep">::</span>
+                <span
+                  class="detail-val"
+                  id="dispOldVeh"
+                  style="color: #d97706; font-weight: 700;"
+                  >N/A</span
+                >
+              </div>
+              <div
+                class="detail-row"
+                id="newVehRow"
+                style="display: none;"
+              >
+                <span class="detail-lbl" style="width: 80px; color: #0284c7;"
+                  >New</span
+                >
+                <span class="detail-sep">::</span>
+                <span
+                  class="detail-val"
+                  id="dispNewVeh"
+                  style="color: #0284c7; font-weight: 700;"
+                  >N/A</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-title" style="color: #8e44ad">
+              INVOICE ENTRY
+            </div>
+
+            <div class="form-group" style="margin-bottom: 8px">
+              <label style="color: #8e44ad"
+                >Select Site <span style="color: #ef4444">*</span></label
+              >
+              <select
+                id="invSiteSelect"
+                onchange="loadInvoiceForSelectedSite()"
+                style="
+                  height: 28px;
+                  font-size: 12px;
+                  padding: 4px 8px;
+                  border: 1px solid #8e44ad;
+                  font-weight: 600;
+                  color: #0f172a;
+                "
+              >
+                <option value="">Waiting for data...</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 8px">
+              <label style="color: #8e44ad"
+                >Invoice Number <span style="color: #ef4444">*</span></label
+              >
+              <input
+                type="text"
+                id="invNo"
+                placeholder="Enter Invoice No."
+                style="height: 28px; font-size: 12px; padding: 4px 8px"
+              />
+            </div>
+            <div class="form-group" style="margin-bottom: 8px">
+              <label style="color: #8e44ad">Bill Number</label>
+              <input
+                type="text"
+                id="invBillNo"
+                placeholder="Enter Bill No."
+                style="height: 28px; font-size: 12px; padding: 4px 8px"
+              />
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px">
+              <div class="form-group" style="flex: 1; margin-bottom: 0">
+                <label style="color: #8e44ad"
+                  >Bill N.Hr <span style="color: #ef4444">*</span></label
+                >
+                <input
+                  type="number"
+                  id="invNr"
+                  placeholder="Normal Hr"
+                  style="height: 28px; font-size: 12px; padding: 4px 8px"
+                />
+              </div>
+              <div class="form-group" style="flex: 1; margin-bottom: 0">
+                <label style="color: #8e44ad">Bill OT.Hr</label>
+                <input
+                  type="number"
+                  id="invOt"
+                  placeholder="OT Hr"
+                  style="height: 28px; font-size: 12px; padding: 4px 8px"
+                />
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 12px">
+              <label style="color: #8e44ad">Invoice Amount</label>
+              <input
+                type="number"
+                id="invAmt"
+                placeholder="Total Amount"
+                style="height: 28px; font-size: 12px; padding: 4px 8px"
+              />
+            </div>
+            <button
+              class="btn-inv-save"
+              onclick="saveInvoiceData()"
+              style="margin-top: 0; padding: 8px; font-size: 12px"
+            >
+              Save Invoice Data
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="customAlertModal" class="modal-overlay" style="z-index: 3000">
+      <div class="modal-light" style="width: 320px; text-align: center">
+        <h3
+          id="customAlertTitle"
+          style="
+            text-align: center;
+            color: #ef4444;
+            font-size: 16px;
+            border: none;
+            padding: 0;
+            margin-bottom: 10px;
+          "
+        >
+          Notice
+        </h3>
+        <p
+          id="customAlertMessage"
+          style="
+            margin: 15px 0 20px;
+            color: #334155;
+            font-size: 14px;
+            line-height: 1.5;
+          "
+        ></p>
+
+        <input 
+          type="password" 
+          id="gridUnlockInput" 
+          placeholder="Enter OTP or Master Code" 
+          style="display: none; width: 100%; height: 35px; margin-bottom: 15px; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
+        />
+
+        <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
+          <button
+            id="alertRequestOtpBtn"
+            class="btn-inv-save"
+            style="flex: 1 1 45%; margin: 0; padding: 8px 15px; display: none; background-color: #3b82f6; color: white; border: none; font-weight: 600;"
+            onclick="requestOtpFromGrid()"
+          >
+            📩 Req OTP
+          </button>
+          
+          <button
+            id="alertUnlockBtn"
+            class="btn-inv-save"
+            style="flex: 1 1 45%; margin: 0; padding: 8px 15px; display: none; background-color: #f59e0b; color: white; border: none; font-weight: 600;"
+            onclick="triggerGridUnlock()"
+          >
+            🔑 Unlock
+          </button>
+
+          <!-- 🟢 OK Button -->
+          <button
+            id="alertOkBtn"
+            class="btn-inv-save"
+            style="flex: 1 1 100%; margin: 0; padding: 8px 15px; font-weight: 600; background-color: #0ea5e9; color: white; border: none;"
+            onclick="closeCustomAlert()"
+          >
+            OK
+          </button>
+
+          <!-- 🟢 Close Button (Period Lock പോപ്പ്-അപ്പിൽ OK ക്ക് പകരം Close വരും) -->
+          <button
+            id="alertCloseBtn"
+            class="btn-inv-close"
+            style="flex: 1 1 100%; margin: 0; padding: 8px 15px; display: none; background-color: #64748b; color: white; font-weight: 600; border: none; border-radius: 6px; cursor: pointer;"
+            onclick="closeCustomAlert()"
+          >
+            Close
+          </button>
+          
+          <!-- 🟢 Logout Button -->
+          <button
+            id="alertLogoutBtn"
+            class="btn-inv-close"
+            style="flex: 1 1 100%; margin: 0; padding: 8px 15px; display: none; background-color: #ef4444; color: white; font-weight: 600;"
+            onclick="logout()"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="customPromptModal" class="modal-overlay" style="z-index: 3000">
+      <div class="modal-light" style="width: 320px">
+        <h3
+          id="customPromptTitle"
+          style="
+            color: #0ea5e9;
+            font-size: 16px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+          "
+        >
+          Input Required
+        </h3>
+        <p
+          id="customPromptMessage"
+          style="
+            margin: 10px 0 15px;
+            color: #334155;
+            font-size: 13px;
+            font-weight: 500;
+          "
+        ></p>
+        <input type="text" id="customPromptInput" style="margin-bottom: 20px" />
+        <div style="display: flex; gap: 10px">
+          <button
+            class="btn-inv-close"
+            style="margin-top: 0; flex: 1"
+            onclick="closeCustomPrompt()"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn-inv-save"
+            style="margin-top: 0; flex: 1"
+            onclick="submitCustomPrompt()"
+          >
+            Submit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🟢 Custom Right Click Context Menu for Logsheet Files -->
+    <div id="lsContextMenu" style="display: none; position: fixed; z-index: 4000; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); min-width: 170px; overflow: hidden; padding: 4px 0; font-family: 'Inter', sans-serif;">
+      <div id="ctxRenameBtn" style="padding: 8px 14px; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="triggerFileRename()">
+        ✏️ Rename
+      </div>
+      <div id="ctxExtractPdfBtn" style="display: none; padding: 8px 14px; font-size: 13px; font-weight: 600; color: #0284c7; cursor: pointer; border-top: 1px dashed #e2e8f0; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'" onclick="triggerExtractPdf()">
+        📑 Extract as Images
+      </div>
+    </div>
+
+    <!-- 🟢 Timesheet Session Expired Alert Audio -->
+    <audio id="sessionAlertAudio" src="/alert_mp3/entry.mp3" preload="auto"></audio>
+
+    <!-- 🟢 Dynamic Re-login Modal for Preserving Timesheet Data -->
+    <div id="reLoginModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100002; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); justify-content: center; align-items: center;">
+      <div class="modal-box" style="width: 340px; text-align: center; border-radius: 8px; padding: 25px; background: white; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+        <div style="font-size: 36px; margin-bottom: 8px;">⚠️</div>
+        <h3 style="margin: 0 0 8px 0; color: #dc2626; font-family: 'Inter', sans-serif;">Session Expired!</h3>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 15px; font-family: 'Inter', sans-serif;">
+          Your timesheet entries are safe. Please enter your password to resume.
+        </p>
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+          <input
+            type="text"
+            id="reLoginUser"
+            placeholder="Username"
+            readonly
+            tabindex="-1"
+            style="width: 100%; max-width: 260px; box-sizing: border-box; padding: 8px 12px; margin-bottom: 8px; border: 1px solid #cbd5e1; border-radius: 5px; text-align: center; font-size: 13px; font-weight: 700; color: #334155; background: #f1f5f9; cursor: not-allowed; outline: none;"
+          />
+          <input
+            type="password"
+            id="reLoginPass"
+            placeholder="Enter Password"
+            style="width: 100%; max-width: 260px; box-sizing: border-box; padding: 8px 12px; margin-bottom: 12px; border: 1.5px solid #0284c7; border-radius: 5px; text-align: center; font-size: 13px; outline: none; background: #ffffff;"
+            onkeydown="if(event.key==='Enter') executeReLoginAndResume();"
+          />
+        </div>
+        <div id="reLoginError" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;"></div>
+        <div style="display: flex; justify-content: center; gap: 10px; width: 100%; max-width: 260px; margin: 0 auto;">
+          <button
+            type="button"
+            class="btn"
+            style="flex: 1; height: 38px; background: #dc2626; color: white; display: inline-flex; align-items: center; justify-content: center; text-align: center; border-radius: 5px; font-size: 13px; font-weight: 600; padding: 0; cursor: pointer;"
+            onclick="logout()"
+            title="Discard changes and Logout"
+          >
+            Logout
+          </button>
+          <button
+            type="button"
+            class="btn"
+            style="flex: 1.4; height: 38px; background: #10b981; color: white; display: inline-flex; align-items: center; justify-content: center; text-align: center; border-radius: 5px; font-size: 13px; font-weight: 600; padding: 0; cursor: pointer;"
+            onclick="executeReLoginAndResume()"
+          >
+            Unlock & Resume 🔓
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="scripts/entry.js"></script>
+    <script src="scripts/logsheet_viewer.js"></script>
+  </body>
+</html>

@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mini Dashboard - Pending VAT Bills</title>
+    
+    <!-- Local scripts from node_xlsx_scripts -->
+    <script src="/node_xlsx_scripts/exceljs.min.js"></script>
+    <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; font-size: 13px; color: #1e293b; }
+        .navbar { background: #0f2027; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .nav-tools { display: flex; gap: 10px; align-items: center; font-size: 13px; }
+        .input-box { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Inter'; font-size: 13px; outline: none; }
+        .input-box:focus { border-color: #0284c7; }
+        
+        .btn-export { background: #10b981; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+        .btn-export:hover { background: #059669; }
+
+        .btn-copy-img { background: #0284c7; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+        .btn-copy-img:hover { background: #0369a1; }
+
+        .table-container { 
+            width: 100%; 
+            max-width: 100%; 
+            margin: 10px 0; 
+            padding: 0 15px; 
+            box-sizing: border-box; 
+            overflow: auto; 
+            height: calc(100vh - 65px); 
+        }
+        table { 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            width: max-content; 
+            min-width: 100%; 
+            background: white; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+        }
+        th, td { 
+            border-right: 1px solid #e2e8f0; 
+            border-bottom: 1px solid #e2e8f0; 
+            padding: 8px 12px; 
+            text-align: left; 
+        }
+        
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        th { 
+            background: #1e293b; 
+            color: #f8fafc; 
+            position: sticky; 
+            top: 0; 
+            z-index: 100; 
+            font-size: 12px; 
+            font-weight: 600; 
+            letter-spacing: 0.5px; 
+            text-align: center;
+            height: 46px;
+            padding: 10px 8px;
+            box-sizing: border-box;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        /* 🟢 Sticky Columns (Left Freeze for SN, Supplier, Site) */
+        .sticky-col-sn {
+            position: sticky;
+            left: 0px;
+            width: 50px;
+            min-width: 50px;
+            max-width: 50px;
+            box-sizing: border-box;
+        }
+        .sticky-col-supplier {
+            position: sticky;
+            left: 50px;
+            width: 260px;
+            min-width: 260px;
+            max-width: 260px;
+            box-sizing: border-box;
+        }
+        .sticky-col-site {
+            position: sticky;
+            left: 310px;
+            width: 240px;
+            min-width: 240px;
+            max-width: 240px;
+            box-sizing: border-box;
+            border-right: 2px solid #94a3b8 !important;
+        }
+
+        /* 🟢 Top-Left Intersecting Header Cells */
+        th.sticky-col-sn,
+        th.sticky-col-supplier,
+        th.sticky-col-site {
+            top: 0;
+            z-index: 150 !important;
+            background: #0f172a;
+        }
+
+        td.sticky-col-sn {
+            background: #ffffff;
+            z-index: 40;
+            text-align: center;
+        }
+        td.sticky-col-supplier {
+            background: #ffffff;
+            z-index: 40;
+        }
+        td.sticky-col-site {
+            background: #f8fafc;
+            z-index: 40;
+        }
+
+        .merged-supplier { 
+            vertical-align: middle; 
+            font-weight: 600; 
+            color: #0f172a; 
+            text-align: left;
+        }
+        
+        .site-cell { 
+            font-weight: 500; 
+            color: #334155; 
+            text-align: left;
+        }
+
+        .pending-badge {
+            color: #dc2626;
+            font-weight: 700;
+            background: #fef2f2;
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid #fecaca;
+            display: inline-block;
+            font-size: 11.5px;
+        }
+
+        .ended-badge {
+            color: #64748b;
+            font-weight: 600;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px dashed #cbd5e1;
+            display: inline-block;
+            font-size: 10.5px;
+            white-space: nowrap;
+        }
+
+        .filter-icon {
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 10px;
+            margin-left: 5px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .filter-icon:hover {
+            color: #38bdf8;
+        }
+
+        .filter-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            z-index: 10000;
+            color: #0f2027;
+            display: none;
+            min-width: 140px;
+            text-align: left;
+        }
+        .filter-menu label {
+            display: block;
+            padding: 5px 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .filter-menu label:hover {
+            background: #f1f5f9;
+        }
+
+        /* Toast notification */
+        #toast {
+            visibility: hidden;
+            min-width: 260px;
+            background-color: #0f172a;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 12px 18px;
+            position: fixed;
+            z-index: 100000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+        }
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.3s, fadeout 0.3s 2.7s;
+        }
+        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
+        /* Login Modal Styles */
+        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 32, 39, 0.95); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; width: 320px; }
+        .login-box h2 { margin-top: 0; color: #0f2027; font-size: 18px; }
+        .login-box input { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 14px; text-align: center; }
+        .login-box button { width: 100%; background: #10b981; color: white; border: none; padding: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .login-box button:hover { background: #059669; }
+        #loginError { color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-overlay">
+        <div class="login-box">
+            <h2>Mini Dashboard Access</h2>
+            <p style="font-size: 12px; color: #64748b;">Please enter the secure access code.</p>
+            <input type="password" id="vatAccessCode" placeholder="Enter Access Code" onkeydown="if(event.key === 'Enter') verifyLogin()">
+            <div id="loginError">Invalid Access Code. Try again.</div>
+            <button onclick="verifyLogin()">Unlock Dashboard</button>
+        </div>
+    </div>
+
+    <div class="navbar">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <a href="javascript:history.back()" style="color: white; text-decoration: none; font-size: 18px;">🔙</a>
+            <span style="font-size: 16px; font-weight: 600;">VAT Missing Bills Overview</span>
+            <span id="pendingCountBadge" style="display: none; background: #ef4444; color: white; padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 700;">0 Pending</span>
+        </div>
+        <div class="nav-tools">
+            <label style="color: #94a3b8; font-weight: 500;">Year:</label>
+            <input type="number" id="yearFilter" class="input-box" style="width: 75px;" onchange="fetchMiniData()">
+            <input type="text" id="searchInput" class="input-box" placeholder="Search Supplier or Site..." onkeyup="renderMiniTable()" style="width: 200px;">
+            
+            <label style="display: flex; align-items: center; gap: 5px; color: #cbd5e1; cursor: pointer; user-select: none;">
+                <input type="checkbox" id="pendingOnlyToggle" onchange="renderMiniTable()" checked> Only Pending
+            </label>
+
+            <button class="btn-copy-img" onclick="copyMiniDashboardHQImage()" title="Copy High Quality PNG to Clipboard">📋 Copy</button>
+            <button class="btn-export" onclick="exportMiniExcel()">⬇ Export Excel</button>
+        </div>
+    </div>
+
+    <!-- Month Filter Dropdown Menu -->
+    <div id="miniFilterMenu" class="filter-menu">
+        <label style="display: block; font-weight: bold; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 5px;">
+            <input type="checkbox" id="selectAllMiniFilter" checked onchange="toggleAllMiniFilters(this)"> (Select All)
+        </label>
+        <div id="miniFilterCheckboxList"></div>
+        <div style="display: flex; gap: 5px; margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+            <button style="flex: 1; padding: 5px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 11px;" onclick="clearMiniMonthFilter()">Clear</button>
+            <button style="flex: 1; padding: 5px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 11px;" onclick="applyMiniMonthFilter()">Apply</button>
+        </div>
+    </div>
+
+    <div class="table-container" id="miniTableContainer">
+        <table id="miniDashboardTable">
+            <thead id="miniHead"></thead>
+            <tbody id="miniBody">
+                <tr><td colspan="20" style="text-align: center; padding: 20px;">Loading data...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const monthShortNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let rawData = [];
+        let currentYear = new Date().getFullYear();
+        document.getElementById("yearFilter").value = currentYear;
+
+        let activeMonthFilters = {};
+        let currentFilterMonthIndex = null;
+
+        let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
+
+        if (vatCode) {
+            document.getElementById("loginModal").style.display = "none";
+            fetchMiniData();
+        } else {
+            document.getElementById("loginModal").style.display = "flex";
+        }
+
+        function verifyLogin() {
+            const code = document.getElementById("vatAccessCode").value.trim();
+            if (!code) return;
+            vatCode = code;
+            sessionStorage.setItem("vatTrackerCode", vatCode);
+            document.getElementById("loginError").style.display = "none";
+            document.getElementById("loginModal").style.display = "none";
+            fetchMiniData();
+        }
+
+        function triggerLoginError() {
+            sessionStorage.removeItem("vatTrackerCode");
+            vatCode = "";
+            document.getElementById("loginModal").style.display = "flex";
+            document.getElementById("loginError").style.display = "block";
+            document.getElementById("vatAccessCode").value = "";
+            document.getElementById("vatAccessCode").focus();
+        }
+
+        async function fetchMiniData() {
+            currentYear = document.getElementById("yearFilter").value;
+            document.getElementById("miniBody").innerHTML = '<tr><td colspan="20" style="text-align: center; padding: 20px;">Loading data...</td></tr>';
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/data?year=${currentYear}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                if (res.status === 401) return triggerLoginError();
+                const json = await res.json();
+                if (json.success) {
+                    rawData = json.data;
+                    renderMiniTable();
+                } else {
+                    alert("Failed to load: " + json.message);
+                }
+            } catch (err) {
+                alert("Network error.");
+            }
+        }
+
+        function getProcessedData() {
+            const consolidated = {};
+            rawData.forEach(group => {
+                const sup = (group.supplier || "Unknown").trim();
+                if (!consolidated[sup]) {
+                    consolidated[sup] = {
+                        supplier: sup,
+                        sites: []
+                    };
+                }
+
+                group.sites.forEach(st => {
+                    const existing = consolidated[sup].sites.find(s => s.site_name === st.site_name);
+                    if (!existing) {
+                        consolidated[sup].sites.push(JSON.parse(JSON.stringify(st)));
+                    } else {
+                        for (let m = 0; m < 12; m++) {
+                            if (st.active_months[m]) existing.active_months[m] = true;
+                            if (st.billing[m]?.bill_no) existing.billing[m].bill_no = st.billing[m].bill_no;
+                            if (st.billing[m]?.erp_total) existing.billing[m].erp_total = st.billing[m].erp_total;
+                        }
+                    }
+                });
+            });
+
+            Object.values(consolidated).forEach(sup => {
+                sup.sites.forEach(site => {
+                    const pendingList = [];
+                    for (let m = 0; m < 12; m++) {
+                        const isActiveMonth = site.active_months && site.active_months[m];
+                        if (!isActiveMonth) continue;
+
+                        const bill = site.billing[m] || {};
+                        const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
+                        const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
+                        const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                        const hasQuickDice = bill.quick_dice && String(bill.quick_dice).trim() !== "";
+
+                        // 1. Pending: TS undu, Bill No illa
+                        // 2. Bill Received: Bill No undu, Quick Dice illa
+                        // 3. Bill Not Generated: TS, Bill No, Quick Dice moonnum illa
+                        if ((hasErpTotal && !hasBillNo) || (hasBillNo && !hasQuickDice) || (!hasErpTotal && !hasBillNo && !hasQuickDice)) {
+                            pendingList.push(monthShortNames[m]);
+                        }
+                    }
+                    site.pendingMonths = pendingList.join(", ");
+                    site.hasPending = pendingList.length > 0;
+                });
+            });
+
+            const search = document.getElementById("searchInput").value.toLowerCase().trim();
+            const onlyPending = document.getElementById("pendingOnlyToggle").checked;
+            let list = Object.values(consolidated);
+
+            list = list.map(sup => {
+                const supMatch = sup.supplier.toLowerCase().includes(search);
+                const matchingSites = sup.sites.filter(s => {
+                    const matchSearch = supMatch || s.site_name.toLowerCase().includes(search);
+                    const matchPending = !onlyPending || s.hasPending;
+                    if (!matchSearch || !matchPending) return false;
+
+                    for (const mIdx in activeMonthFilters) {
+                        const selectedValues = activeMonthFilters[mIdx];
+                        if (selectedValues && selectedValues.length > 0) {
+                            const bill = s.billing[mIdx] || {};
+                            const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
+                            const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
+                            const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                            const isPending = hasErpTotal && !hasBillNo;
+                            const status = isPending ? "Pending" : "Blanks";
+
+                            if (!selectedValues.includes(status)) {
+                                return false;
+                            }
+                        }
+                    }
+
+                    return true;
+                });
+                return { ...sup, sites: matchingSites };
+            }).filter(sup => sup.sites.length > 0);
+
+            return list;
+        }
+
+        function renderMiniTable() {
+            const list = getProcessedData();
+            const shortYear = currentYear.toString().slice(-2);
+
+            const activePendingMonthIndices = [];
+            for (let m = 0; m < 12; m++) {
+                let hasAnyPending = false;
+                for (const sup of list) {
+                    for (const siteData of sup.sites) {
+                        const isActiveMonth = siteData.active_months && siteData.active_months[m];
+                        const bill = siteData.billing[m] || {};
+                        const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
+                        const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
+                        const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                        if (isActiveMonth && hasErpTotal && !hasBillNo) {
+                            hasAnyPending = true;
+                            break;
+                        }
+                    }
+                    if (hasAnyPending) break;
+                }
+                if (hasAnyPending || (activeMonthFilters[m] && activeMonthFilters[m].length > 0)) {
+                    activePendingMonthIndices.push(m);
+                }
+            }
+
+            // 🟢 ഓരോ മാസത്തിലെയും ആകെ പെൻഡിംഗ് എണ്ണം കണക്കാക്കുന്നു (Only Active VAT Months)
+            const monthWisePendingCounts = {};
+            activePendingMonthIndices.forEach(m => {
+                let countForThisMonth = 0;
+                list.forEach(sup => {
+                    sup.sites.forEach(siteData => {
+                        const isActiveMonth = siteData.active_months && siteData.active_months[m];
+                        const bill = siteData.billing[m] || {};
+                        const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
+                        const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
+                        const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                        if (isActiveMonth && hasErpTotal && !hasBillNo) {
+                            countForThisMonth++;
+                        }
+                    });
+                });
+                monthWisePendingCounts[m] = countForThisMonth;
+            });
+
+            // 2. ഉയരമുള്ള ഹെഡർ, മാസത്തിന് മുന്നിലെ കൗണ്ട് (), ഫിൽട്ടർ ഐക്കൺ + 2D Freeze ക്ളാസ്സുകൾ
+            let theadHtml = `<tr>
+                <th class="sticky-col-sn">SN</th>
+                <th class="sticky-col-supplier" style="text-align: left; padding-left: 14px;">Supplier Name</th>
+                <th class="sticky-col-site" style="text-align: left; padding-left: 14px;">Site Name</th>`;
+
+            if (activePendingMonthIndices.length === 0) {
+                theadHtml += `<th style="text-align: center;">Status</th>`;
+            } else {
+                activePendingMonthIndices.forEach(m => {
+                    const isFiltered = activeMonthFilters[m] && activeMonthFilters[m].length > 0;
+                    const filterColor = isFiltered ? "#38bdf8" : "#94a3b8";
+                    const mCount = monthWisePendingCounts[m] || 0;
+                    theadHtml += `<th style="min-width: 110px; text-align: center;">
+                        <span style="color: #f87171; font-weight: 700; margin-right: 3px;">(${mCount})</span>${monthShortNames[m]} - ${shortYear}
+                        <span class="filter-icon" style="color: ${filterColor};" onclick="openMonthFilter(event, ${m})">▼</span>
+                    </th>`;
+                });
+            }
+            theadHtml += `</tr>`;
+            document.getElementById("miniHead").innerHTML = theadHtml;
+
+            const totalCols = 3 + (activePendingMonthIndices.length || 1);
+
+            if (list.length === 0) {
+                document.getElementById("miniBody").innerHTML = `<tr><td colspan="${totalCols}" style="text-align: center; padding: 25px; color: #64748b;">No matching records found.</td></tr>`;
+                return;
+            }
+
+            if (activePendingMonthIndices.length === 0) {
+                document.getElementById("miniBody").innerHTML = `<tr><td colspan="${totalCols}" style="text-align: center; padding: 25px; color: #10b981; font-weight: 600;">✓ All VAT bills are updated for the selected records!</td></tr>`;
+                return;
+            }
+
+// 3. ടേബിൾ ബോഡി നിർമ്മിക്കുന്നു + Sticky Left Classes
+            let tbody = "";
+            let sn = 1;
+            let totalPendingBillsCount = 0;
+
+            list.forEach(sup => {
+                const siteCount = sup.sites.length;
+                sup.sites.forEach((siteData, idx) => {
+                        tbody += `<tr>`;
+
+                        if (idx === 0) {
+                            tbody += `<td rowspan="${siteCount}" class="sticky-col-sn merged-supplier">${sn++}</td>`;
+                            tbody += `<td rowspan="${siteCount}" class="sticky-col-supplier merged-supplier" style="padding-left: 14px;">${escapeHTML(sup.supplier)}</td>`;
+                        }
+
+                        tbody += `<td class="sticky-col-site site-cell" style="padding-left: 14px;">${escapeHTML(siteData.site_name)}</td>`;
+
+                        activePendingMonthIndices.forEach(m => {
+                            const isActiveMonth = siteData.active_months && siteData.active_months[m];
+                            const bill = siteData.billing[m] || {};
+                            const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
+                            const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
+                            const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                            const hasQuickDice = bill.quick_dice && String(bill.quick_dice).trim() !== "";
+
+                            if (!isActiveMonth) {
+                                tbody += `<td style="text-align: center;"><span class="ended-badge" title="No VAT Bill or Work Ended on this site">No Vat Bill or Work Ended</span></td>`;
+                            } else if (hasErpTotal && !hasBillNo) {
+                                totalPendingBillsCount++;
+                                tbody += `<td style="text-align: center;"><span class="pending-badge">Pending</span></td>`;
+                            } else if (hasBillNo && !hasQuickDice) {
+                                totalPendingBillsCount++;
+                                tbody += `<td style="text-align: center;"><span class="pending-badge" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5;">Bill Received</span></td>`;
+                            } else if (!hasErpTotal && !hasBillNo && !hasQuickDice) {
+                                tbody += `<td style="text-align: center;"><span style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:600; display:inline-block;">Bill Not Generated</span></td>`;
+                            } else {
+                                // Full complete aayathu mathram clean aayi nilkkum
+                                tbody += `<td style="text-align: center; color: #10b981; font-weight: bold;">✔</td>`;
+                            }
+                        });
+
+                        tbody += `</tr>`;
+                    });
+            });
+
+            // 🟢 പെൻഡിംഗ് കൗണ്ട് ബാഡ്ജ് അപ്ഡേറ്റ് ചെയ്യുന്നു
+            const countBadge = document.getElementById("pendingCountBadge");
+            if (countBadge) {
+                if (totalPendingBillsCount > 0) {
+                    countBadge.innerText = `${totalPendingBillsCount} Pending`;
+                    countBadge.style.display = "inline-block";
+                } else {
+                    countBadge.innerText = `0 Pending`;
+                    countBadge.style.background = "#10b981";
+                    countBadge.style.display = "inline-block";
+                }
+            }
+
+            document.getElementById("miniBody").innerHTML = tbody;
+        }
+
+        /* ----------------------------------------------------
+           HIGH QUALITY (HD) IMAGE COPY / EXPORT
+        ---------------------------------------------------- */
+        async function copyMiniDashboardHQImage() {
+            const table = document.getElementById("miniDashboardTable");
+            if (!table) return;
+
+            showToast("Generating Ultra HD Image...");
+
+            // Temporarily hide filter icons for a clean professional report screenshot
+            const filterIcons = table.querySelectorAll(".filter-icon");
+            filterIcons.forEach(icon => icon.style.display = "none");
+
+            try {
+                // scale: 4 provides ultra high resolution suitable for extreme zoom without pixelation
+                const canvas = await html2canvas(table, {
+                    scale: 4,
+                    useCORS: true,
+                    backgroundColor: "#ffffff",
+                    logging: false,
+                    windowWidth: table.scrollWidth + 50,
+                    onclone: (clonedDoc) => {
+                        const clonedTable = clonedDoc.getElementById("miniDashboardTable");
+                        if (clonedTable) {
+                            clonedTable.style.width = "max-content";
+                            clonedTable.style.boxShadow = "none";
+                        }
+                    }
+                });
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        showToast("Failed to generate image.");
+                        return;
+                    }
+
+                    try {
+                        if (navigator.clipboard && window.isSecureContext && typeof ClipboardItem !== "undefined") {
+                            await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+                            showToast("✓ High Quality Image Copied to Clipboard!");
+                        } else {
+                            // Direct download fallback if clipboard API is restricted on network/HTTP
+                            saveAs(blob, `Pending_VAT_Bills_${currentYear}_HQ.png`);
+                            showToast("Image Downloaded in Ultra HD!");
+                        }
+                    } catch (clipErr) {
+                        saveAs(blob, `Pending_VAT_Bills_${currentYear}_HQ.png`);
+                        showToast("Image Downloaded in Ultra HD!");
+                    }
+                }, "image/png", 1.0);
+
+            } catch (err) {
+                showToast("Error generating image.");
+            } finally {
+                filterIcons.forEach(icon => icon.style.display = "inline-block");
+            }
+        }
+
+        async function exportMiniExcel() {
+            const list = getProcessedData();
+            if (list.length === 0) {
+                alert("No data available to export.");
+                return;
+            }
+
+            const shortYear = currentYear.toString().slice(-2);
+            const wb = new ExcelJS.Workbook();
+            const ws = wb.addWorksheet(`Pending ${currentYear}`, {
+                views: [{ state: 'frozen', ySplit: 1, xSplit: 0 }]
+            });
+
+            const borderStyle = {
+                top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+            };
+
+            const activePendingMonthIndices = [];
+            for (let m = 0; m < 12; m++) {
+                let hasAnyPending = false;
+                for (const sup of list) {
+                    for (const siteData of sup.sites) {
+                        const isActiveMonth = siteData.active_months && siteData.active_months[m];
+                        const bill = siteData.billing[m] || {};
+                        const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
+                        const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
+                        const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                        if (isActiveMonth && hasErpTotal && !hasBillNo) {
+                            hasAnyPending = true;
+                            break;
+                        }
+                    }
+                    if (hasAnyPending) break;
+                }
+                if (hasAnyPending) {
+                    activePendingMonthIndices.push(m);
+                }
+            }
+
+            const headers = ["SN", "Supplier Name", "Site Name"];
+            activePendingMonthIndices.forEach(m => {
+                headers.push(`${monthShortNames[m]} - ${shortYear}`);
+            });
+
+            const headerRow = ws.addRow(headers);
+            headerRow.height = 26;
+            headerRow.eachCell((cell, colNumber) => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+                cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 10 };
+                cell.alignment = { 
+                    vertical: 'middle', 
+                    horizontal: (colNumber === 2 || colNumber === 3) ? 'left' : 'center' 
+                };
+                cell.border = borderStyle;
+            });
+
+            let rowIndex = 2;
+            let sn = 1;
+
+            list.forEach(sup => {
+                const siteCount = sup.sites.length;
+                const startRow = rowIndex;
+
+                sup.sites.forEach((siteData, idx) => {
+                    const rowData = [
+                        idx === 0 ? sn++ : "",
+                        idx === 0 ? sup.supplier : "",
+                        siteData.site_name
+                    ];
+
+                    const pendingCols = [];
+
+                    activePendingMonthIndices.forEach((m, mIdx) => {
+                        const isActiveMonth = siteData.active_months && siteData.active_months[m];
+                        const bill = siteData.billing[m] || {};
+                        const erpVal = bill.erp_total ? parseFloat(bill.erp_total) : 0;
+                        const hasErpTotal = !isNaN(erpVal) && erpVal > 0;
+                        const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+                        const hasQuickDice = bill.quick_dice && String(bill.quick_dice).trim() !== "";
+
+                        if (!isActiveMonth) {
+                            rowData.push("No Vat Bill or Work Ended");
+                        } else if (hasErpTotal && !hasBillNo) {
+                            rowData.push("Pending");
+                            pendingCols.push(mIdx + 4);
+                        } else if (hasBillNo && !hasQuickDice) {
+                            rowData.push("Bill Received");
+                            pendingCols.push(mIdx + 4);
+                        } else if (!hasErpTotal && !hasBillNo && !hasQuickDice) {
+                            rowData.push("Bill Not Generated");
+                        } else {
+                            rowData.push("Completed");
+                        }
+                    });
+
+                    const row = ws.addRow(rowData);
+                    row.height = 24;
+
+                    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                        cell.border = borderStyle;
+                        cell.alignment = { 
+                            vertical: 'middle', 
+                            horizontal: (colNumber === 2 || colNumber === 3) ? 'left' : 'center' 
+                        };
+
+                        if (colNumber === 3) {
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+                            cell.font = { color: { argb: 'FF334155' }, bold: true };
+                        }
+
+                        if (colNumber >= 4 && pendingCols.includes(colNumber)) {
+                            cell.font = { color: { argb: 'FFDC2626' }, bold: true, size: 11 };
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF2F2' } };
+                        }
+                    });
+
+                    rowIndex++;
+                });
+
+                if (siteCount > 1) {
+                    const endRow = rowIndex - 1;
+                    ws.mergeCells(startRow, 1, endRow, 1);
+                    ws.mergeCells(startRow, 2, endRow, 2);
+
+                    const snCell = ws.getCell(startRow, 1);
+                    snCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    snCell.font = { bold: true };
+
+                    const supCell = ws.getCell(startRow, 2);
+                    supCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                    supCell.font = { bold: true, color: { argb: 'FF0F172A' } };
+                } else {
+                    ws.getCell(startRow, 1).font = { bold: true };
+                    ws.getCell(startRow, 2).font = { bold: true, color: { argb: 'FF0F172A' } };
+                }
+            });
+
+            ws.getColumn(1).width = 6;
+            ws.getColumn(2).width = 32;
+            ws.getColumn(3).width = 30;
+            const totalCols = headers.length;
+            for (let c = 4; c <= totalCols; c++) {
+                ws.getColumn(c).width = 13;
+            }
+
+            ws.autoFilter = {
+                from: { row: 1, column: 1 },
+                to: { row: rowIndex - 1, column: totalCols }
+            };
+
+            const buffer = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            saveAs(blob, `Pending_VAT_Bills_${currentYear}.xlsx`);
+        }
+
+        function escapeHTML(str) {
+            return str ? String(str).replace(/[&<>'"]/g, t => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[t] || t) : "";
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.className = "show";
+            setTimeout(() => { t.className = ""; }, 3000);
+        }
+
+        function openMonthFilter(e, monthIdx) {
+            e.stopPropagation();
+            currentFilterMonthIndex = monthIdx;
+            const menu = document.getElementById("miniFilterMenu");
+            menu.style.display = "block";
+            menu.style.left = e.pageX + "px";
+            menu.style.top = (e.pageY + 12) + "px";
+
+            const currentSelected = activeMonthFilters[monthIdx] || ["Pending", "Blanks"];
+            const isPendingChecked = currentSelected.includes("Pending") ? "checked" : "";
+            const isBlankChecked = currentSelected.includes("Blanks") ? "checked" : "";
+
+            const html = `
+                <label><input type="checkbox" class="mini-filter-cb" value="Pending" ${isPendingChecked} onchange="checkIfAllMiniSelected()"> Pending</label>
+                <label style="color: #64748b; font-style: italic;"><input type="checkbox" class="mini-filter-cb" value="Blanks" ${isBlankChecked} onchange="checkIfAllMiniSelected()"> (Blanks)</label>
+            `;
+            document.getElementById("miniFilterCheckboxList").innerHTML = html;
+            checkIfAllMiniSelected();
+        }
+
+        function toggleAllMiniFilters(source) {
+            const boxes = document.querySelectorAll("#miniFilterCheckboxList .mini-filter-cb");
+            boxes.forEach(b => b.checked = source.checked);
+        }
+
+        function checkIfAllMiniSelected() {
+            const total = document.querySelectorAll("#miniFilterCheckboxList .mini-filter-cb").length;
+            const checked = document.querySelectorAll("#miniFilterCheckboxList .mini-filter-cb:checked").length;
+            document.getElementById("selectAllMiniFilter").checked = (total > 0 && total === checked);
+        }
+
+        function applyMiniMonthFilter() {
+            const boxes = document.querySelectorAll("#miniFilterCheckboxList .mini-filter-cb:checked");
+            const selected = Array.from(boxes).map(b => b.value);
+
+            if (selected.length === 2 || selected.length === 0) {
+                delete activeMonthFilters[currentFilterMonthIndex];
+            } else {
+                activeMonthFilters[currentFilterMonthIndex] = selected;
+            }
+
+            document.getElementById("miniFilterMenu").style.display = "none";
+            renderMiniTable();
+        }
+
+        function clearMiniMonthFilter() {
+            delete activeMonthFilters[currentFilterMonthIndex];
+            document.getElementById("miniFilterMenu").style.display = "none";
+            renderMiniTable();
+        }
+
+        document.addEventListener("click", function (e) {
+            const menu = document.getElementById("miniFilterMenu");
+            if (menu && !e.target.closest("#miniFilterMenu") && !e.target.closest(".filter-icon")) {
+                menu.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>

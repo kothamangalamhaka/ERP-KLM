@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VAT Billing Dashboard - Timesheet ERP</title>
+    
+    <!-- Local scripts from node_xlsx_scripts -->
+    <script src="/node_xlsx_scripts/exceljs.min.js"></script>
+    <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; font-size: 13px; color: #1e293b; }
+        .navbar { background: #0f2027; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .nav-tools { display: flex; gap: 15px; align-items: center; font-size: 13px; }
+        .input-box { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-family: 'Inter'; font-size: 13px; outline: none; }
+        .input-box:focus { border-color: #0284c7; }
+        .btn-export { background: #10b981; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; display: flex; align-items: center; gap: 5px; }
+        .btn-export:hover { background: #059669; }
+        
+        .table-container { width: 100%; overflow-x: auto; max-height: calc(100vh - 65px); padding: 15px; box-sizing: border-box; }
+        table { border-collapse: separate; border-spacing: 0; width: 100%; background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 10px 12px; text-align: center; }
+        
+        th { background: #1e293b; color: #f8fafc; position: sticky; top: 0; z-index: 10; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; }
+        th.month-col { min-width: 65px; }
+        
+        .merged-supplier { 
+            vertical-align: middle; 
+            font-weight: 600; 
+            color: #0f172a; 
+            background: #ffffff; 
+            text-align: left; 
+            padding-left: 15px;
+            border-right: 2px solid #cbd5e1;
+        }
+        
+        .site-cell { 
+            text-align: left; 
+            font-weight: 500; 
+            color: #334155; 
+            background: #f8fafc;
+            min-width: 180px; 
+            max-width: 250px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tick-mark { 
+            color: #10b981; 
+            font-size: 16px; 
+            font-weight: bold; 
+            display: inline-block;
+        }
+
+        /* Inactive Month Pattern */
+        .inactive-cell { 
+            background: repeating-linear-gradient(45deg, #f8fafc, #f8fafc 4px, #e2e8f0 4px, #e2e8f0 8px) !important; 
+        }
+
+        /* Login Modal Styles */
+        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 32, 39, 0.95); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: center; width: 320px; }
+        .login-box h2 { margin-top: 0; color: #0f2027; font-size: 18px; }
+        .login-box input { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 14px; text-align: center; }
+        .login-box button { width: 100%; background: #10b981; color: white; border: none; padding: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .login-box button:hover { background: #059669; }
+        #loginError { color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-overlay">
+        <div class="login-box">
+            <h2>VAT Dashboard Access</h2>
+            <p style="font-size: 12px; color: #64748b;">Please enter the secure access code.</p>
+            <input type="password" id="vatAccessCode" placeholder="Enter Access Code" onkeydown="if(event.key === 'Enter') verifyLogin()">
+            <div id="loginError">Invalid Access Code. Try again.</div>
+            <button onclick="verifyLogin()">Unlock Dashboard</button>
+        </div>
+    </div>
+
+    <div class="navbar">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <a href="javascript:history.back()" style="color: white; text-decoration: none; font-size: 18px;">🔙</a>
+            <span style="font-size: 16px; font-weight: 600;">VAT Bill Submission Status</span>
+        </div>
+        <div class="nav-tools">
+            <label style="color: #94a3b8; font-weight: 500;">Year:</label>
+            <input type="number" id="yearFilter" class="input-box" style="width: 75px;" onchange="fetchDashboardData()">
+            <input type="text" id="searchInput" class="input-box" placeholder="Search Supplier or Site..." onkeyup="renderDashboardTable()" style="width: 200px;">
+            <button class="btn-export" onclick="exportDashboardExcel()">⬇ Export Excel</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead id="dashHead"></thead>
+            <tbody id="dashBody">
+                <tr><td colspan="15">Loading data...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const monthShortNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let rawData = [];
+        let currentYear = new Date().getFullYear();
+        document.getElementById("yearFilter").value = currentYear;
+
+        let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
+
+        if (vatCode) {
+            document.getElementById("loginModal").style.display = "none";
+            fetchDashboardData();
+        } else {
+            document.getElementById("loginModal").style.display = "flex";
+        }
+
+        function verifyLogin() {
+            const code = document.getElementById("vatAccessCode").value.trim();
+            if (!code) return;
+            vatCode = code;
+            sessionStorage.setItem("vatTrackerCode", vatCode);
+            document.getElementById("loginError").style.display = "none";
+            document.getElementById("loginModal").style.display = "none";
+            fetchDashboardData();
+        }
+
+        function triggerLoginError() {
+            sessionStorage.removeItem("vatTrackerCode");
+            vatCode = "";
+            document.getElementById("loginModal").style.display = "flex";
+            document.getElementById("loginError").style.display = "block";
+            document.getElementById("vatAccessCode").value = "";
+            document.getElementById("vatAccessCode").focus();
+        }
+
+        async function fetchDashboardData() {
+            currentYear = document.getElementById("yearFilter").value;
+            document.getElementById("dashBody").innerHTML = '<tr><td colspan="15">Loading dashboard data...</td></tr>';
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/data?year=${currentYear}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                if (res.status === 401) return triggerLoginError();
+                const json = await res.json();
+                if (json.success) {
+                    rawData = json.data;
+                    renderDashboardTable();
+                } else {
+                    alert("Failed to load: " + json.message);
+                }
+            } catch (err) {
+                alert("Network error.");
+            }
+        }
+
+        function getProcessedData() {
+            const consolidated = {};
+            rawData.forEach(group => {
+                const sup = (group.supplier || "Unknown").trim();
+                if (!consolidated[sup]) {
+                    consolidated[sup] = {
+                        supplier: sup,
+                        sites: []
+                    };
+                }
+
+                group.sites.forEach(st => {
+                    const existing = consolidated[sup].sites.find(s => s.site_name === st.site_name);
+                    if (!existing) {
+                        consolidated[sup].sites.push(JSON.parse(JSON.stringify(st)));
+                    } else {
+                        for (let m = 0; m < 12; m++) {
+                            if (st.active_months[m]) existing.active_months[m] = true;
+                            if (st.billing[m]?.bill_no) existing.billing[m].bill_no = st.billing[m].bill_no;
+                        }
+                    }
+                });
+            });
+
+            const search = document.getElementById("searchInput").value.toLowerCase().trim();
+            let list = Object.values(consolidated);
+
+            if (search) {
+                list = list.map(sup => {
+                    const supMatch = sup.supplier.toLowerCase().includes(search);
+                    const matchingSites = sup.sites.filter(s => supMatch || s.site_name.toLowerCase().includes(search));
+                    return { ...sup, sites: matchingSites };
+                }).filter(sup => sup.sites.length > 0);
+            }
+
+            return list;
+        }
+
+        function renderDashboardTable() {
+            const shortYear = currentYear.toString().slice(-2);
+            
+            let thead = `<tr>
+                <th style="width: 50px;">SN</th>
+                <th style="min-width: 220px; text-align: left; padding-left: 15px;">Supplier Name</th>
+                <th style="text-align: left;">Site Name</th>`;
+            
+            for (let m = 0; m < 12; m++) {
+                thead += `<th class="month-col">${monthShortNames[m]} - ${shortYear}</th>`;
+            }
+            thead += `</tr>`;
+            document.getElementById("dashHead").innerHTML = thead;
+
+            const list = getProcessedData();
+
+            if (list.length === 0) {
+                document.getElementById("dashBody").innerHTML = `<tr><td colspan="15" style="padding: 20px;">No matching records found.</td></tr>`;
+                return;
+            }
+
+            let tbody = "";
+            let sn = 1;
+
+            list.forEach(sup => {
+                const siteCount = sup.sites.length;
+                sup.sites.forEach((siteData, idx) => {
+                    tbody += `<tr>`;
+
+                    if (idx === 0) {
+                        tbody += `<td rowspan="${siteCount}" class="merged-supplier" style="text-align: center; border-right: 1px solid #e2e8f0; width: 50px;">${sn++}</td>`;
+                        tbody += `<td rowspan="${siteCount}" class="merged-supplier">${escapeHTML(sup.supplier)}</td>`;
+                    }
+
+                    tbody += `<td class="site-cell" title="${escapeHTML(siteData.site_name)}">${escapeHTML(siteData.site_name)}</td>`;
+
+                    for (let m = 0; m < 12; m++) {
+                        const isActive = siteData.active_months[m];
+                        const bill = siteData.billing[m] || {};
+                        const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+
+                        if (!isActive) {
+                            tbody += `<td class="inactive-cell" title="Inactive Month"></td>`;
+                        } else if (hasBillNo) {
+                            tbody += `<td title="Bill No: ${escapeHTML(bill.bill_no)}"><span class="tick-mark">✔</span></td>`;
+                        } else {
+                            tbody += `<td></td>`;
+                        }
+                    }
+
+                    tbody += `</tr>`;
+                });
+            });
+
+            document.getElementById("dashBody").innerHTML = tbody;
+        }
+
+        async function exportDashboardExcel() {
+            const list = getProcessedData();
+            if (list.length === 0) {
+                alert("No data available to export.");
+                return;
+            }
+
+            const shortYear = currentYear.toString().slice(-2);
+            const wb = new ExcelJS.Workbook();
+            const ws = wb.addWorksheet(`Status ${currentYear}`, { 
+                views: [{ state: 'frozen', ySplit: 1, xSplit: 3 }] 
+            });
+
+            const borderStyle = {
+                top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+            };
+
+            // 1. Header Row
+            const headers = ["SN", "Supplier Name", "Site Name"];
+            for (let m = 0; m < 12; m++) {
+                headers.push(`${monthShortNames[m]} - ${shortYear}`);
+            }
+
+            const headerRow = ws.addRow(headers);
+            headerRow.height = 26;
+            headerRow.eachCell((cell, colNumber) => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+                cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 10 };
+                cell.alignment = { 
+                    vertical: 'middle', 
+                    horizontal: colNumber <= 3 && colNumber > 1 ? 'left' : 'center' 
+                };
+                cell.border = borderStyle;
+            });
+
+            // 2. Data Rows
+            let rowIndex = 2;
+            let sn = 1;
+
+            list.forEach(sup => {
+                const siteCount = sup.sites.length;
+                const startRow = rowIndex;
+
+                sup.sites.forEach((siteData, idx) => {
+                    const rowData = [
+                        idx === 0 ? sn++ : "",
+                        idx === 0 ? sup.supplier : "",
+                        siteData.site_name
+                    ];
+
+                    const inactiveCols = [];
+
+                    for (let m = 0; m < 12; m++) {
+                        const isActive = siteData.active_months[m];
+                        const bill = siteData.billing[m] || {};
+                        const hasBillNo = bill.bill_no && String(bill.bill_no).trim() !== "";
+
+                        if (!isActive) {
+                            rowData.push("");
+                            inactiveCols.push(m + 4);
+                        } else if (hasBillNo) {
+                            rowData.push("✔");
+                        } else {
+                            rowData.push("");
+                        }
+                    }
+
+                    const row = ws.addRow(rowData);
+                    row.height = 24;
+
+                    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                        cell.border = borderStyle;
+                        cell.alignment = { 
+                            vertical: 'middle', 
+                            horizontal: (colNumber === 2 || colNumber === 3) ? 'left' : 'center' 
+                        };
+
+                        // Styling Site Cell
+                        if (colNumber === 3) {
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+                            cell.font = { color: { argb: 'FF334155' } };
+                        }
+
+                        // Tick marks formatting
+                        if (colNumber >= 4) {
+                            if (inactiveCols.includes(colNumber)) {
+                                cell.fill = { type: 'pattern', pattern: 'lightGray', fgColor: { argb: 'FFCBD5E1' }, bgColor: { argb: 'FFE2E8F0' } };
+                            } else if (cell.value === "✔") {
+                                cell.font = { color: { argb: 'FF10B981' }, bold: true, size: 12 };
+                            }
+                        }
+                    });
+
+                    rowIndex++;
+                });
+
+                // Rowspan Merge for SN & Supplier
+                if (siteCount > 1) {
+                    const endRow = rowIndex - 1;
+                    ws.mergeCells(startRow, 1, endRow, 1);
+                    ws.mergeCells(startRow, 2, endRow, 2);
+
+                    const snCell = ws.getCell(startRow, 1);
+                    snCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    snCell.font = { bold: true };
+
+                    const supCell = ws.getCell(startRow, 2);
+                    supCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                    supCell.font = { bold: true, color: { argb: 'FF0F172A' } };
+                } else {
+                    ws.getCell(startRow, 1).font = { bold: true };
+                    ws.getCell(startRow, 2).font = { bold: true, color: { argb: 'FF0F172A' } };
+                }
+            });
+
+            // Width Configurations
+            ws.getColumn(1).width = 6;
+            ws.getColumn(2).width = 30;
+            ws.getColumn(3).width = 28;
+            for (let c = 4; c <= 15; c++) {
+                ws.getColumn(c).width = 11;
+            }
+
+            // Export to File
+            const buffer = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            saveAs(blob, `VAT_Status_Dashboard_${currentYear}.xlsx`);
+        }
+
+        function escapeHTML(str) {
+            return str ? String(str).replace(/[&<>'"]/g, t => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[t] || t) : "";
+        }
+    </script>
+</body>
+</html>

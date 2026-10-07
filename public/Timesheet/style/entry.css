@@ -1,0 +1,1575 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --secondary: #0f2027;
+  --bg-color: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #f4f7f6;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  color: #333;
+  min-height: 100vh;
+}
+
+/* 🟢 Wider screenil logsheet thurannu nilkkumbol maathram jump aavathe freeze cheyyunnu */
+@media (min-width: 1201px) {
+  body.logsheet-open {
+    height: 100vh;
+    overflow: hidden;
+  }
+}
+
+.navbar {
+  background-color: #0f2027;
+  color: white;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar a {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 20px;
+  font-family: "Times New Roman", Times, serif;
+  transition: color 0.2s;
+}
+
+.navbar a:hover {
+  color: #fff;
+}
+
+.save-indicator {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-left: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.status-saving {
+  background-color: #ffc107;
+  color: #000;
+  opacity: 1;
+}
+
+.status-saved {
+  background-color: #198754;
+  color: #fff;
+  opacity: 1;
+}
+
+.container {
+  padding: 15px;
+  max-width: 1617px; 
+  margin: 0 auto;
+  box-sizing: border-box;
+  transition: padding-right 0.3s ease, max-width 0.3s ease;
+}
+
+/* 🟢 3-Column Layout: Activated when Logsheet is open */
+body.logsheet-open .container {
+  max-width: 100%;
+}
+body.logsheet-open .right-sidebar {
+  order: -1; /* Moves sidebar to the left of the table */
+}
+
+.card {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 15px;
+  border: 1px solid #e2e8f0;
+}
+
+/* PC Layout for Top Form */
+.top-form {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow: visible !important; /* 🟢 Suggestions പുറത്തേക്ക് കട്ടാവാതെ വ്യക്തമായി കാണാൻ */
+  position: relative;
+}
+
+.mobile-single-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex: 1; /* 🟢 ഇടത്തെ റോ ബാക്കിയുള്ള സ്ഥലത്തേക്ക് വികസിക്കും */
+  min-width: 0; /* 🟢 Flexbox ഉള്ളിൽ ഇൻപുട്ടുകൾക്ക് ചുരുങ്ങാൻ അനുവാദം നൽകുന്നു */
+}
+
+.nav-buttons-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  flex-shrink: 0; /* 🟢 ബട്ടണുകൾ ഒരിക്കലും ഞെരിഞ്ഞു പോകില്ല */
+  margin-left: auto; /* വലതു വശത്തേക്ക് ഒതുങ്ങി നിൽക്കാൻ */
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #4b5563;
+  display: block;
+  margin-bottom: 5px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+input,
+select,
+textarea {
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #0d6efd;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+}
+
+.btn-fetch {
+  background-color: #0d6efd;
+  color: white;
+  border: none;
+  padding: 8px 25px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: background 0.2s;
+  height: 35px;
+}
+
+.btn-fetch:hover {
+  background-color: #0b5ed7;
+}
+
+.btn-fetch:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.main-content {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.table-center-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start; /* center മാറി flex-start ആക്കി */
+  min-width: 0;
+}
+
+body.dark-mode .table-responsive {
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: none;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 960px;
+  table-layout: fixed; /* 🟢 Pro look: columns thammil overlap aakilla */
+}
+
+th,
+td {
+  border: 1px solid #e2e8f0;
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+th {
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 8px 4px;
+  font-weight: 600;
+  font-size: 11px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 🟢 Hide scrollbars completely across Chrome, Safari, Firefox & Edge */
+.right-sidebar,
+.table-responsive,
+.logsheet-sidebar,
+.logsheet-viewer {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.right-sidebar::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar,
+.logsheet-sidebar::-webkit-scrollbar,
+.logsheet-viewer::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.row-friday {
+  border-bottom: 2px solid #0004ff !important;
+}
+
+
+td input[type="text"],
+td input[type="number"] {
+  width: 100%;
+  height: 32px;
+  border: none;
+  padding: 4px 8px;
+  text-align: center;
+  box-sizing: border-box;
+  background: transparent;
+  border-radius: 0;
+}
+
+td input:focus {
+  background: #eff6ff;
+  outline: 1px solid #0d6efd;
+}
+
+td textarea {
+  width: 100%;
+  height: 32px;
+  border: none;
+  padding: 6px;
+  resize: vertical;
+  box-sizing: border-box;
+  background: transparent;
+  font-size: 12px;
+}
+
+td textarea:focus {
+  background: #eff6ff;
+  outline: 1px solid #0d6efd;
+}
+
+td input[type="checkbox"] {
+  cursor: pointer;
+  margin: 0 auto;
+  display: block;
+  width: 15px;
+  height: 15px;
+  accent-color: #0284c7;
+}
+
+td input.grid-input[data-col="bd"] {
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+.grid-readonly {
+  font-weight: 400;
+  color: #475569;
+  pointer-events: none;
+}
+
+.summary-card {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.summary-title {
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  color: #0f2027;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+#actualLogsheetCount{
+  color: #ff00c8;
+}
+
+#logSheetCount{
+  color: #001e57;
+}
+
+.detail-row {
+  margin-bottom: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-lbl {
+  font-weight: 600;
+  color: #64748b;
+  width: 100px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.detail-sep {
+  margin: 0 5px;
+  color: #cbd5e1;
+  font-weight: bold;
+}
+
+.detail-val {
+  color: #0f2027;
+  font-weight: 600;
+  flex: 1;
+  word-break: break-word;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.summary-value {
+  color: #0d6efd;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.val-normal {
+  color: #10b981 !important;
+}
+
+.val-ot {
+  color: #f59e0b !important;
+}
+
+.card {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 15px;
+  border: 1px solid #e2e8f0;
+  overflow: visible !important; /* 🟢 Card കണ്ടെയ്‌നറും visible ആക്കുന്നു */
+}
+
+/* 🟢 Year ഇൻപുട്ട് അനാവശ്യമായി സ്ഥലം എടുക്കാതെ കോംപാക്റ്റ് ആക്കുന്നു */
+.select-year {
+  width: 85px;
+  flex-shrink: 0;
+}
+
+.select-year input {
+  text-align: center;
+}
+
+/* 🟢 Plate No Search ബോക്സ് dynamic ആയി ബാക്കിയുള്ള സ്ഥലത്തിനനുസരിച്ച് വികസിക്കുകയും ചുരുങ്ങുകയും ചെയ്യുന്നു */
+.input-plate {
+  flex: 0 1 240px; /* 🟢 Wider screen-il athikam neelam pookilla */
+  min-width: 140px;
+  max-width: 260px;
+}
+
+.autocomplete-container {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 260px;
+  z-index: 1005;
+}
+
+.suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-top: none;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 9999 !important; /* 🟢 ടേബിളിന്റെ മുകളിൽ ഏറ്റവും മുന്നിൽ തെളിയാൻ */
+  border-radius: 0 0 5px 5px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.suggestions div {
+  padding: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.suggestions div:hover {
+  background: #eff6ff;
+  color: #0d6efd;
+}
+
+.suggestion-active {
+  background-color: #eff6ff !important;
+  color: #0d6efd !important;
+  font-weight: 600 !important;
+}
+
+.loader {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid white;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  animation: spin 1s linear infinite;
+  display: none;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-row td {
+  padding: 30px;
+  font-size: 15px;
+  color: #64748b;
+  font-weight: 500;
+  background: #f8fafc;
+}
+
+.uppercase-input {
+  text-transform: uppercase;
+}
+
+.pendingl,
+.tsm,
+.tsdb {
+  background: none;
+  color: white;
+  border: none;
+  padding: 6px 12px; /* 🟢 സ്പേസ് ലാഭിക്കാൻ പാഡിംഗ് ഒതുക്കി */
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.pendingl {
+  border: 2px solid #0d6efd;
+  margin-left: 0; /* 🟢 110px മാർജിൻ മാറ്റി ഫിറ്റ് ആക്കി */
+}
+
+.pendingl > a {
+  color: #630000;
+  text-decoration: none;
+}
+.pendingl:hover {
+  background-color: #56739e;
+  transition: color 0.6s;
+}
+.pendingl:hover > a {
+  color: #fff;
+  transition: color 0.5s;
+}
+
+.tsm {
+  border: 2px solid #b5e700;
+  margin-left: 10px;
+}
+
+.tsm > a {
+  color: #004d00;
+  text-decoration: none;
+}
+.tsm:hover {
+  background-color: #017e01;
+  transition: color 0.6s;
+}
+.tsm:hover > a {
+  color: #fff;
+  transition: color 0.5s;
+}
+
+.tsdb {
+  border: 2px solid #c62828;
+  margin-left: 10px;
+}
+
+.tsdb > a {
+  color: #c62828;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.tsdb:hover {
+  background-color: #c62828;
+}
+.tsdb:hover > a {
+  color: #ffffff;
+}
+
+/* Custom Modal Light Theme Styles */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(2px);
+}
+
+.modal-light {
+  background: #ffffff;
+  color: #334155;
+  padding: 25px;
+  border-radius: 10px;
+  width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  font-family: "Inter", sans-serif;
+  border: 1px solid #e2e8f0;
+}
+
+.modal-light h3 {
+  background: transparent;
+  color: #0f172a;
+  margin-top: 0;
+  border: none;
+  padding: 0;
+  text-align: left;
+}
+
+.modal-light input {
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 10px 12px;
+  border-radius: 5px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.modal-light input:focus {
+  border-color: #0ea5e9;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.btn-inv-save {
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  width: 100%;
+  margin-top: 10px;
+  transition: background 0.2s;
+}
+.btn-inv-save:hover {
+  background: #0284c7;
+}
+
+.btn-inv-close {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  width: 100%;
+  margin-top: 10px;
+  transition: all 0.2s;
+}
+.btn-inv-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.detail-val {
+  text-transform: capitalize;
+  color: #0f2027;
+  font-weight: 600;
+  flex: 1;
+  word-break: break-word;
+}
+
+/* =======================================================
+   DARK MODE & RESPONSIVE CSS
+   ======================================================= */
+
+body.dark-mode {
+  --bg-color: #000000;
+  --card-bg: #000000;
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+}
+body.dark-mode .card,
+body.dark-mode .summary-card,
+body.dark-mode .suggestions,
+body.dark-mode .modal-light {
+  background-color: var(--card-bg);
+  border-color: #334155;
+  color: var(--text-main);
+}
+body.dark-mode .navbar {
+  background-color: #020617;
+}
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background-color: #000000;
+  color: var(--text-main);
+  border-color: #334155;
+}
+body.dark-mode textarea.grid-input,
+body.dark-mode td input {
+  border: 1px solid #181f29;
+}
+
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus {
+  background-color: #1e293b;
+  border-color: #0d6efd;
+}
+body.dark-mode td input:focus,
+body.dark-mode td textarea:focus {
+  background: #151b23;
+}
+body.dark-mode .row-friday {
+  background-color: #ffee00;
+}
+body.dark-mode .summary-title {
+  color: #38bdf8 !important;
+  border-color: #334155;
+}
+
+body.dark-mode #actualLogsheetCount {
+  color: #38bdf8;
+}
+
+body.dark-mode #logSheetCount {
+  color: #38bdf8;
+}
+
+body.dark-mode .detail-lbl {
+  color: var(--text-muted);
+}
+body.dark-mode .detail-val {
+  color: var(--text-main);
+}
+body.dark-mode .suggestions div:hover {
+  background: #334155;
+  color: #38bdf8;
+}
+body.dark-mode .suggestion-active {
+  background: #334155 !important;
+  color: #38bdf8 !important;
+}
+body.dark-mode .loading-row td {
+  background: #1e293b;
+  color: #94a3b8 !important;
+}
+
+/* User Dropdown Styles */
+.user-profile-container {
+  position: relative;
+}
+.user-info-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 15px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 500;
+  font-size: 14px;
+}
+.user-icon {
+  display: none;
+}
+.user-context-menu {
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: none;
+  flex-direction: column;
+  z-index: 5000;
+  min-width: 150px;
+  overflow: hidden;
+}
+body.dark-mode .user-context-menu {
+  background: #1e293b;
+  border-color: #334155;
+}
+.user-context-menu button {
+  background: none;
+  border: none;
+  padding: 12px 15px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+}
+body.dark-mode .user-context-menu button {
+  color: var(--text-main);
+}
+.user-context-menu button:hover {
+  background: #f1f5f9;
+}
+body.dark-mode .user-context-menu button:hover {
+  background: #334155;
+}
+.menu-divider {
+  height: 1px;
+  background: #e2e8f0;
+}
+body.dark-mode .menu-divider {
+  background: #334155;
+}
+
+/* --- Checkbox Styling (Black BG, Yellow Border) --- */
+body.dark-mode td input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  width: 18px;
+  height: 18px;
+
+  background: #000000 !important;
+  border: 2px solid #a2a2a2 !important;
+  border-radius: 4px;
+
+  display: block;
+  margin: auto;
+
+  position: relative;
+  cursor: pointer;
+
+  box-shadow: none !important;
+  outline: none !important;
+}
+body.dark-mode td input[type="checkbox"]:checked {
+  background: #000000 !important;
+  border-color: #979159 !important;
+}
+body.dark-mode input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid #fef08a;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* --- Table Borders & Text (Full Black & White) --- */
+body.dark-mode table,
+body.dark-mode th,
+body.dark-mode td {
+  border-color: #000000 !important; /* Full Black Borders */
+  background-color: #000000 !important; /* Full Black Background */
+}
+
+body.dark-mode th {
+  background-color: #000000;
+  color: #ffffff !important;
+}
+
+body.dark-mode td,
+body.dark-mode td input,
+body.dark-mode td textarea,
+body.dark-mode .grid-readonly {
+  color: #ffffff !important; /* Pure White Text */
+}
+
+/* Button Fixes */
+body.dark-mode .pendingl {
+  border-color: #3b82f6;
+}
+body.dark-mode .pendingl > a {
+  color: #93c5fd;
+}
+body.dark-mode .pendingl:hover {
+  background-color: #1e3a8a;
+}
+body.dark-mode .tsm {
+  border-color: #84cc16;
+}
+body.dark-mode .tsm > a {
+  color: #d9f99d;
+}
+body.dark-mode .tsm:hover {
+  background-color: #360101;
+}
+body.dark-mode .tsdb {
+  border-color: #ef4444;
+}
+body.dark-mode .tsdb > a {
+  color: #fca5a5;
+}
+body.dark-mode .tsdb:hover {
+  background-color: #7f1d1d;
+}
+
+/* Mobile Overrides */
+@media (max-width: 1350px) { /* 🟢 1200px മാറ്റി 1350px ആക്കി, കാർഡുകൾ നേരത്തെ തന്നെ row ആയി മാറാൻ */
+  .main-content {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 20px;
+  }
+  .table-center-wrapper {
+    width: 100% !important;
+    overflow-x: auto;
+  }
+  .right-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 15px !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding-bottom: 20px;
+  }
+  .right-sidebar .card,
+  .right-sidebar .summary-card {
+    flex: 1 1 calc(50% - 15px) !important; /* 🟢 ഉറപ്പായും ഒരു വരിയിൽ 2 കാർഡുകൾ വരും */
+    min-width: 250px !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .pc-title {
+    display: none;
+  }
+  .mobile-title {
+    display: inline !important;
+  }
+  .user-text {
+    display: none;
+  }
+  .user-icon {
+    display: inline;
+    font-size: 18px;
+  }
+  .user-info-btn {
+    padding: 5px 10px;
+  }
+
+  .top-form {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .pc-label {
+    display: none !important;
+  }
+
+  .mobile-single-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 5px;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .select-month {
+    width: 25% !important;
+  }
+  .select-year {
+    width: 20% !important;
+  }
+  .input-plate {
+    width: 40% !important;
+  }
+  .btn-fetch-wrapper {
+    width: 15% !important;
+  }
+  .autocomplete-container {
+    width: 100%;
+  }
+
+  input,
+  select {
+    padding: 6px 4px !important;
+    font-size: 11px !important;
+    height: 32px !important;
+  }
+
+  .fetch-text {
+    display: none;
+  }
+  .fetch-icon {
+    display: inline !important;
+    font-size: 16px;
+  }
+  .btn-fetch {
+    width: 100%;
+    padding: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-buttons-row {
+    justify-content: space-between;
+    margin-top: 5px;
+  }
+  .pendingl {
+    margin-left: 0;
+  }
+  .pendingl,
+  .tsm,
+  .tsdb {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .navbar {
+    padding: 10px 15px;
+  }
+  .navbar span {
+    font-size: 14px !important;
+    margin-left: 5px !important;
+  }
+  .save-indicator {
+    padding: 2px 6px;
+    font-size: 11px;
+    margin-left: 5px;
+  }
+}
+
+/* ==========================================
+   LOGSHEET VIEWER CSS
+   ========================================== */
+.logsheet-btn {
+  background: none;
+  border: 2px solid #8b5cf6;
+  color: #8b5cf6;
+  padding: 8px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  transition: all 0.2s;
+  margin-left: 10px;
+}
+.logsheet-btn:hover {
+  background-color: #8b5cf6;
+  color: #fff;
+}
+body.dark-mode .logsheet-btn {
+  border-color: #a78bfa;
+  color: #c4b5fd;
+}
+body.dark-mode .logsheet-btn:hover {
+  background-color: #8b5cf6;
+  color: #fff;
+}
+
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 300px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.table-center-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  box-sizing: border-box;
+}
+
+/* 🟢 Wider screens-il maathram 3 columns fixed height aayirikkum */
+@media (min-width: 1201px) {
+  body.logsheet-open .right-sidebar {
+    height: calc(100vh - 145px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 50px;
+  }
+
+  body.logsheet-open .table-center-wrapper {
+    height: calc(100vh - 145px);
+    overflow: hidden;
+  }
+
+  body.logsheet-open .table-responsive {
+    height: 100%;
+    overflow-y: auto;
+    padding-bottom: 50px;
+  }
+}
+
+.inline-logsheet-container {
+  flex: 1;
+  min-width: 350px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  height: calc(100vh - 145px);
+  order: 1;
+  margin-top: 0 !important;
+  overflow: hidden;
+  padding-bottom: 50px; /* 🟢 Logsheet കൺട്രോളുകൾക്ക് അടിയിൽ 50px സ്പേസ് */
+  box-sizing: border-box;
+}
+
+body.logsheet-open .right-sidebar {
+  order: -1;
+  width: 240px;
+  height: calc(100vh - 145px);
+  overflow-y: auto;
+  padding-bottom: 50px; /* 🟢 Logsheet തുറക്കുമ്പോഴും 50px സ്പേസ് നിലനിൽക്കും */
+  box-sizing: border-box;
+}
+
+body.dark-mode .inline-logsheet-container {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+/* 🟢 Adjust Layout to fit Table Completely */
+body.logsheet-open .main-content {
+  gap: 10px; /* കോളങ്ങൾ തമ്മിലുള്ള അകലം കുറക്കുന്നു */
+}
+
+body.logsheet-open .right-sidebar {
+  order: -1; /* Summary ബോക്സുകളെ ഇടത്തേക്ക് മാറ്റുന്നു */
+  width: 240px; /* Summary യുടെ വീതി പരമാവധി കുറക്കുന്നു */
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
+}
+
+body.logsheet-open .summary-card {
+  padding: 10px; /* ഉള്ളിലെ ഗ്യാപ്പ് കുറക്കുന്നു */
+}
+
+body.logsheet-open .detail-lbl {
+  width: 75px;
+  font-size: 9px; /* ടെക്സ്റ്റ് സൈസ് ചെറുതാക്കുന്നു */
+}
+
+body.logsheet-open .detail-val,
+body.logsheet-open .summary-item {
+  font-size: 11px;
+}
+
+body.logsheet-open #tableCenterWrapper {
+  flex: 1; /* ലോഗ്ഷീറ്റ് വലുതാകുമ്പോൾ ടേബിൾ ചെറുതാവാൻ ഇത് സഹായിക്കും */
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* 🟢 Logsheet open aavumbol table compress aavaathe neat aayi scroll cheyyaam */
+body.logsheet-open #gridTable {
+  min-width: 960px;
+}
+body.logsheet-open #gridTable th,
+body.logsheet-open #gridTable td {
+  white-space: nowrap;
+}
+body.logsheet-open #gridTable td input[data-col="bd"] {
+  min-width: 45px;
+  font-weight: 400;
+}
+
+/* 🟢 Style for the new Logsheet width drag handle */
+.logsheet-main-resizer {
+  position: absolute;
+  left: -5px;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: ew-resize;
+  z-index: 10;
+  background: transparent;
+  transition: background 0.2s;
+}
+.logsheet-main-resizer:hover,
+.logsheet-main-resizer.active {
+  background: rgba(139, 92, 246, 0.4); /* Slight purple tint on hover */
+}
+
+.logsheet-modal-content {
+  background: #fff;
+  width: 48%; /* Covers right side */
+  min-width: 400px;
+  height: calc(100vh - 80px);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -5px 10px 30px rgba(0, 0, 0, 0.3);
+  position: absolute;
+  right: 15px;
+  top: 65px;
+  pointer-events: auto;
+  position: relative;
+}
+
+/* 🟢 Resizers */
+.modal-resizer-left {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 10;
+}
+.sidebar-resizer {
+  width: 5px;
+  background: #e2e8f0;
+  cursor: col-resize;
+  transition: background 0.2s;
+  z-index: 5;
+}
+.sidebar-resizer:hover,
+.sidebar-resizer.active {
+  background: #8b5cf6;
+}
+body.dark-mode .sidebar-resizer {
+  background: #334155;
+}
+body.dark-mode .sidebar-resizer:hover,
+body.dark-mode .sidebar-resizer.active {
+  background: #a78bfa;
+}
+
+/* 🟢 Dragging & Zoom Image Styles */
+.image-zoom-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Hide scrollbars for drag-to-scroll */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: grab;
+  position: relative;
+}
+.image-zoom-wrapper:active {
+  cursor: grabbing;
+}
+.image-zoom-wrapper img {
+  transform-origin: center center;
+  transition: transform 0.1s ease-out; /* Smooth Zoom */
+  user-select: none;
+  pointer-events: none; /* Let wrapper handle mouse events */
+
+  /* 🟢 സൂം ചെയ്യുമ്പോൾ ടെക്സ്റ്റ് പരമാവധി ഷാർപ്പ് ആക്കാൻ */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+.logsheet-modal-content {
+  background: #fff;
+  width: 48%; /* Covers right side */
+  min-width: 500px;
+  height: calc(100vh - 80px);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: -5px 10px 30px rgba(0, 0, 0, 0.3);
+  position: absolute;
+  right: 15px;
+  top: 65px;
+  pointer-events: auto; /* Catch clicks on the logsheet window */
+}
+
+/* 🟢 Zoom Controls */
+.zoom-controls {
+  position: absolute;
+  bottom: 70px; /* 🟢 Moved up by 50px */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 8px 25px;
+  border-radius: 30px;
+  z-index: 10;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+.zoom-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+  transition:
+    color 0.2s,
+    transform 0.1s;
+}
+.zoom-btn:hover {
+  color: #38bdf8;
+  transform: scale(1.1);
+}
+.image-zoom-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+body.dark-mode .logsheet-modal-content {
+  background: #1e293b;
+  border: 1px solid #334155;
+}
+
+.logsheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+body.dark-mode .logsheet-header {
+  background: #0f172a;
+  border-bottom-color: #334155;
+}
+.logsheet-header h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+body.dark-mode .logsheet-header h3 {
+  color: #f8fafc;
+}
+
+.logsheet-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.logsheet-sidebar {
+  width: 250px;
+  border-right: 1px solid #e2e8f0;
+  background: #f8fafc;
+  overflow-y: auto;
+  padding: 10px;
+}
+body.dark-mode .logsheet-sidebar {
+  background: #0f172a;
+  border-right-color: #334155;
+}
+
+.logsheet-file-item {
+  padding: 10px;
+  margin-bottom: 5px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  word-break: break-all;
+  transition: all 0.2s;
+}
+body.dark-mode .logsheet-file-item {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+.logsheet-file-item:hover,
+.logsheet-file-item.active {
+  border-color: #8b5cf6;
+  background: #f3e8ff;
+  color: #6d28d9;
+}
+body.dark-mode .logsheet-file-item:hover,
+body.dark-mode .logsheet-file-item.active {
+  background: #3b0764;
+  color: #d8b4fe;
+}
+
+.logsheet-viewer {
+  flex: 1;
+  background: #e2e8f0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+body.dark-mode .logsheet-viewer {
+  background: #000;
+}
+/* 🟢 File Size & Empty File Highlight */
+.logsheet-file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.file-size-badge {
+  font-size: 10px;
+  background: #e2e8f0;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+body.dark-mode .file-size-badge {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.empty-file {
+  background-color: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #b91c1c !important;
+}
+.empty-file .file-size-badge {
+  background: #ef4444;
+  color: #fff;
+}
+body.dark-mode .empty-file {
+  background-color: #7f1d1d !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+}
+body.dark-mode .empty-file .file-size-badge {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* 🟢 NEW: Month Navigation Arrows */
+.month-nav-btn {
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  height: 35px;
+  width: 30px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.month-nav-btn:hover {
+  background: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+body.dark-mode .month-nav-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+body.dark-mode .month-nav-btn:hover {
+  background: #0d6efd;
+  color: white;
+}
+
+/* 🟢 NEW: Request Edit Button */
+.req-edit-btn {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  animation: pulse-ring 2s infinite;
+  transition: background 0.2s;
+}
+.req-edit-btn:hover {
+  background: #d97706;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+/* 🟢 Nav Buttons Layout & Responsive Options Dropdown */
+.wide-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.options-dropdown-container {
+  display: none;
+  position: relative;
+}
+
+.btn-options-dropdown {
+  background: #f8fafc;
+  border: 1.5px solid #64748b;
+  color: #334155;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+  height: 34px;
+  box-sizing: border-box;
+}
+
+.btn-options-dropdown:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.options-context-menu {
+  position: absolute;
+  top: 105%;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  z-index: 1000;
+  overflow: hidden;
+  padding: 4px 0;
+}
+
+.options-context-menu a {
+  padding: 8px 14px;
+  text-decoration: none;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+
+.options-context-menu a:hover {
+  background: #f1f5f9;
+  color: #0284c7;
+}
+
+/* 🟢 Responsive trigger: Screen cheruthaakumbool (less than 1400px) buttons hide aayi dropdown varum */
+@media (max-width: 1400px) {
+  .wide-nav-buttons {
+    display: none !important;
+  }
+  .options-dropdown-container {
+    display: inline-block !important;
+  }
+}

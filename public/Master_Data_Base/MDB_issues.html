@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MDB Issues | Haka ERP</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style/mdb_issues.css" />
+    <script src="/node_xlsx_scripts/exceljs.min.js"></script>
+    <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <button
+          class="icon-button"
+          type="button"
+          onclick="window.location.href = './Database.html'"
+          title="Back to Master Database"
+        >
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <div>
+          <h1>Master Database Issues</h1>
+          <p>Data quality, timeline and expiry audit</p>
+        </div>
+        <nav class="issue-ribbon" aria-label="Issue categories">
+          <button
+            class="ribbon-button active"
+            type="button"
+            data-panel="workStartPanel"
+          >
+            <span class="material-icons">date_range</span> Work Start Issue
+            <span class="count" id="workStartCount">0</span>
+          </button>
+          <button class="ribbon-button" type="button" data-panel="ownerPanel">
+            <span class="material-icons">group</span> Owner
+            <span class="count" id="ownerCount">0</span>
+          </button>
+          <button class="ribbon-button" type="button" data-panel="siteEndPanel">
+            <span class="material-icons">event_busy</span> Site End
+            <span class="count" id="siteEndCount">0</span>
+          </button>
+          <button class="ribbon-button" type="button" data-panel="noOwnerPanel">
+            <span class="material-icons">person_off</span> No Owner Data
+            <span class="count" id="noOwnerCount">0</span>
+          </button>
+          <button class="ribbon-button" type="button" data-panel="expiryPanel">
+            <span class="material-icons">notification_important</span> Expiry
+            <span class="count" id="expiryCount">0</span>
+          </button>
+          <button class="ribbon-button" type="button" data-panel="noDataPanel">
+            <span class="material-icons">report_problem</span> No Data
+            <span class="count" id="noDataCount">0</span>
+          </button>
+        </nav>
+      </div>
+      <div class="top-actions">
+        <span class="user-chip"
+          ><span class="material-icons">account_circle</span
+          ><span id="currentUserName"></span
+        ></span>
+        <div class="expiry-export-control" id="expiryExportControl">
+          <button
+            class="expiry-workbook-button"
+            id="expiryWorkbookButton"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded="false"
+            onclick="toggleExpiryExportMenu(event)"
+          >
+            <span class="material-icons">table_view</span>
+            Export Excel
+            <span class="material-icons expiry-export-arrow"
+              >arrow_drop_down</span
+            >
+          </button>
+          <div
+            class="expiry-export-menu"
+            id="expiryExportMenu"
+            role="menu"
+            aria-label="Expiry Excel export options"
+          >
+            <div class="expiry-export-menu-title">Export expiry data</div>
+            <div class="expiry-export-scope-list">
+              <button
+                type="button"
+                role="menuitem"
+                data-expiry-scope="site"
+                onclick="selectExpiryExportScope(event, 'site')"
+              >
+                By Site
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                data-expiry-scope="fieldCo"
+                onclick="selectExpiryExportScope(event, 'fieldCo')"
+              >
+                By Field CO
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                data-expiry-scope="siteCo"
+                onclick="selectExpiryExportScope(event, 'siteCo')"
+              >
+                By Site CO
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                data-expiry-scope="all"
+                onclick="selectExpiryExportScope(event, 'all')"
+              >
+                All
+              </button>
+            </div>
+            <div class="expiry-export-values" id="expiryExportValues" hidden>
+              <div
+                class="expiry-export-values-title"
+                id="expiryExportValuesTitle"
+              ></div>
+              <div
+                class="expiry-export-value-list"
+                id="expiryExportValueList"
+              ></div>
+            </div>
+          </div>
+        </div>
+        <button class="refresh-button" type="button" onclick="loadIssueData()">
+          <span class="material-icons">refresh</span> Refresh
+        </button>
+      </div>
+    </header>
+
+    <main>
+            <section class="issue-panel active" id="workStartPanel">
+        <div id="workStartTables"></div>
+      </section>
+
+      <section class="issue-panel" id="ownerPanel">
+        <div class="owner-sub-bar">
+          <button type="button" class="owner-sub-btn" id="btnTogglePlateOwner" onclick="toggleOwnerTable('plateOwnerTable', this)">
+            🚗 Same Plate · Different Owner <span class="count" id="countPlateOwner">0</span>
+          </button>
+          <button type="button" class="owner-sub-btn" id="btnToggleMobileOwner" onclick="toggleOwnerTable('mobileOwnerTable', this)">
+            📱 Same Mobile · Different Owner <span class="count" id="countMobileOwner">0</span>
+          </button>
+          <button type="button" class="owner-sub-btn" id="btnToggleOwnerMobile" onclick="toggleOwnerTable('ownerMobileTable', this)">
+            👤 Same Owner · Different Mobile <span class="count" id="countOwnerMobile">0</span>
+          </button>
+        </div>
+        <div class="owner-table-stack">
+          <div id="plateOwnerTable" style="display: none;"></div>
+          <div id="mobileOwnerTable" style="display: none;"></div>
+          <div id="ownerMobileTable" style="display: none;"></div>
+        </div>
+      </section>
+
+      <section class="issue-panel" id="siteEndPanel">
+        <div id="siteEndTables"></div>
+      </section>
+
+      <section class="issue-panel" id="noOwnerPanel">
+        <div id="noOwnerTables"></div>
+      </section>
+
+      <section class="issue-panel" id="expiryPanel">
+        <div class="expiry-sub-bar">
+          <button type="button" class="expiry-sub-btn" onclick="toggleExpiryTable('iqama-expiry', this)">
+            🪪 Iqama Expiry <span class="count" id="countIqamaExpiry">0</span>
+          </button>
+          <button type="button" class="expiry-sub-btn" onclick="toggleExpiryTable('licence-expiry', this)">
+            💳 Licence Expiry <span class="count" id="countLicenceExpiry">0</span>
+          </button>
+          <button type="button" class="expiry-sub-btn" onclick="toggleExpiryTable('iqama-licence-expiry', this)">
+            🪪+💳 Iqama & Licence <span class="count" id="countIqamaLicenceExpiry">0</span>
+          </button>
+          <button type="button" class="expiry-sub-btn" onclick="toggleExpiryTable('insurance-expiry', this)">
+            🛡️ Insurance Expiry <span class="count" id="countInsuranceExpiry">0</span>
+          </button>
+          <button type="button" class="expiry-sub-btn" onclick="toggleExpiryTable('fahs-expiry', this)">
+            🔍 FAHS / MVPI Expiry <span class="count" id="countFahsExpiry">0</span>
+          </button>
+          <button type="button" class="expiry-sub-btn" onclick="toggleExpiryTable('insurance-fahs-expiry', this)">
+            🛡️+🔍 Insurance & FAHS <span class="count" id="countInsuranceFahsExpiry">0</span>
+          </button>
+          <button type="button" class="expiry-sub-btn" onclick="toggleExpiryTable('operator-tuv-expiry', this)">
+            👷 Operator TUV <span class="count" id="countOperatorTuvExpiry">0</span>
+          </button>
+          <button type="button" class="expiry-sub-btn" onclick="toggleExpiryTable('eq-tuv-expiry', this)">
+            🚜 EQ TUV <span class="count" id="countEqTuvExpiry">0</span>
+          </button>
+          <button type="button" class="expiry-sub-btn" onclick="toggleExpiryTable('combined-expiry', this)">
+            📑 Combined Expiry <span class="count" id="countCombinedExpiry">0</span>
+          </button>
+        </div>
+        <div class="expiry-grid" id="expiryTables"></div>
+      </section>
+
+      <section class="issue-panel" id="noDataPanel">
+        <div id="noDataTables"></div>
+      </section>
+    </main>
+
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <strong>Checking Master Database…</strong>
+    </div>
+    <div class="excel-filter-popup" id="excelFilterPopup">
+      <div class="excel-filter-title" id="excelFilterTitle">Filter</div>
+      <div class="excel-sort-actions">
+        <button
+          id="excelSortAsc"
+          type="button"
+          onclick="sortActiveExcelColumn('asc')"
+        >
+          A → Z
+        </button>
+        <button
+          id="excelSortDesc"
+          type="button"
+          onclick="sortActiveExcelColumn('desc')"
+        >
+          Z → A
+        </button>
+      </div>
+      <input
+        id="excelFilterSearch"
+        type="search"
+        placeholder="Search values…"
+        oninput="searchExcelFilterOptions(this.value)"
+      />
+      <label class="excel-select-all">
+        <input
+          id="excelFilterSelectAll"
+          type="checkbox"
+          onchange="toggleExcelFilterOptions(this.checked)"
+        />
+        Select All
+      </label>
+      <div class="excel-filter-options" id="excelFilterOptions"></div>
+      <div class="excel-filter-actions">
+        <button type="button" onclick="clearActiveExcelFilter()">Clear</button>
+        <button type="button" class="apply" onclick="applyActiveExcelFilter()">
+          Apply
+        </button>
+      </div>
+    </div>
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <script src="script/mdb_issues.js"></script>
+  </body>
+</html>

@@ -1,0 +1,151 @@
+ssh connection without ssh pass
+
+1. ssh-keygen -t ed25519
+
+cmd ::  type $env:USERPROFILE\.ssh\id_ed25519.pub
+
+
+host device il 
+
+
+1. mkdir -p ~/.ssh
+2. chmod 700 ~/.ssh
+3. nano ~/.ssh/authorized_keys
+4. chmod 600 ~/.ssh/authorized_keys
+
+
+
+
+
+
+Master DB Days worked calculation Manual run
+
+UPDATE erp_records
+SET record_data = record_data || jsonb_build_object(
+    'Days Worked', 
+    ( (record_data->>'Last Working Day')::DATE - (record_data->>'Work Start')::DATE + 1 )::text
+)
+WHERE deleted_at IS NULL
+  AND record_data->>'Work Start' ~ '\d{1,2}-[A-Za-z]{3}-\d{4}'
+  AND record_data->>'Last Working Day' ~ '\d{1,2}-[A-Za-z]{3}-\d{4}';
+
+  
+
+  su - postgres
+
+
+
+  ledger delete button
+
+  <button class="btn btn-sm btn-outline-danger py-0 px-1" title="Delete" onclick="deleteLedger(${l.id})">
+            <i class="bi bi-trash"></i>
+          </button>
+
+
+
+
+python restart
+          systemctl restart haka-python
+
+          source venv/bin/activate   activate venue
+
+
+
+Own EQ DB plate no error rectify   name correction 
+
+BEGIN;
+
+-- 1. Main Master Table Update
+UPDATE we1_own_eq_master 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+-- 2. Site Log Update
+UPDATE we1_site_log 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+-- 3. Driver Log Update
+UPDATE we1_driver_log 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+-- 4. Vehicle Type Log Update
+UPDATE we1_vtype_log 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+-- 5. Owner Log Update
+UPDATE we1_owner_log 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+-- 6. Santhook Log Update
+UPDATE we1_santhook_log 
+SET plate_no = '1494 VXA' 
+WHERE UPPER(TRIM(plate_no)) = '1494';
+
+COMMIT;
+
+
+Delete A Plate no From OWN EQ DB 
+
+BEGIN;
+
+DELETE FROM we1_driver_log WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+DELETE FROM we1_site_log WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+DELETE FROM we1_vtype_log WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+DELETE FROM we1_owner_log WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+DELETE FROM we1_santhook_log WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+DELETE FROM we1_own_eq_master WHERE UPPER(TRIM(plate_no)) = '6099 SLA';
+
+COMMIT;
+
+
+
+
+vat bill il duplicate aayiu amount vannittundoonnu ariyaan 
+
+SELECT id, plate_no, owner, site_name, billing_month, after_adjustment 
+FROM billing_records 
+WHERE billing_month = 'February 2026' 
+  AND TRIM(site_name) = 'Bisha Aljoda L&T'
+  AND TRIM(owner) = 'Mujaid Al Khatani';
+  
+
+DELETE FROM billing_records WHERE id = 3412;
+
+
+
+
+
+ Plate no edit cheyyan sql il 
+
+ 
+BEGIN;
+
+-- 1. Master Vehicle Table
+UPDATE timesheet_vehicles SET plate_no = '6099 SLA' WHERE plate_no = '6099  SLA';
+
+-- 2. Daily Grid Records
+UPDATE timesheet_daily_records SET plate_no = '6099 SLA' WHERE plate_no = '6099  SLA';
+
+-- 3. All Logs
+UPDATE vehicle_driver_log SET plate_no = '6099 SLA' WHERE plate_no = '6099  SLA';
+UPDATE vehicle_site_log SET plate_no = '6099 SLA' WHERE plate_no = '6099  SLA';
+UPDATE vehicle_owner_log SET plate_no = '6099 SLA' WHERE plate_no = '6099  SLA';
+UPDATE vehicle_rate_log SET plate_no = '6099 SLA' WHERE plate_no = '6099  SLA';
+
+-- 4. Billing & Invoices
+UPDATE billing_records SET plate_no = '6099 SLA' WHERE plate_no = '6099  SLA';
+UPDATE invoice_records SET plate_no = '6099 SLA' WHERE plate_no = '6099  SLA';
+
+-- 5. Plate Change History (Old & New columns)
+UPDATE vehicle_plate_log SET old_plate_no = '6099 SLA' WHERE old_plate_no = '6099  SLA';
+UPDATE vehicle_plate_log SET new_plate_no = '6099 SLA' WHERE new_plate_no = '6099  SLA';
+
+-- 6. Site Log Replacement Vehicle Columns
+UPDATE vehicle_site_log SET old_vehicle_no = '6099 SLA' WHERE old_vehicle_no = '6099  SLA';
+UPDATE vehicle_site_log SET new_vehicle_no = '6099 SLA' WHERE new_vehicle_no = '6099  SLA';
+
+COMMIT;

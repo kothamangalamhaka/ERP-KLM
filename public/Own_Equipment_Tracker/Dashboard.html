@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Own Equipment Tracker - Dashboard</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 15px;
+        background-color: #f4f7f6;
+      }
+
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 0;
+      }
+
+      input[type="number"] {
+        appearance: textfield;
+        -moz-appearance: textfield;
+      }
+
+      .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fff;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        margin-bottom: 15px;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .btn-primary {
+        background: #27ae60;
+        color: white;
+      }
+      .btn-blue {
+        background: #2980b9;
+        color: white;
+      }
+      .btn-excel {
+        background: #1e7e34;
+        color: white;
+      }
+      .btn-dark {
+        background: #34495e;
+        color: white;
+      }
+      .btn-logout {
+        background: #e74c3c;
+        color: white;
+        padding: 8px 10px;
+        justify-content: center;
+      }
+      select,
+      input {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .dropdown-check-list {
+        display: inline-block;
+        position: relative;
+        cursor: pointer;
+      }
+      .dropdown-check-list .anchor {
+        padding: 8px 15px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: white;
+        font-size: 13px;
+        display: block;
+        min-width: 150px;
+        font-weight: bold;
+      }
+      .dropdown-check-list .items {
+        display: none;
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 100;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .dropdown-check-list .items li {
+        list-style: none;
+        padding: 8px 10px;
+        border-bottom: 1px solid #f1f1f1;
+        font-size: 13px;
+      }
+      .dropdown-check-list.visible .items {
+        display: block;
+      }
+      .table-container {
+        overflow-x: auto;
+        max-height: calc(100vh - 120px);
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      th,
+      td {
+        border: 1px solid #c0c0c0;
+        padding: 6px 8px;
+        text-align: center;
+      }
+      tbody tr {
+        height: 40px;
+      }
+      tbody td {
+        font-size: 14px;
+        padding: 8px 10px;
+      }
+      /* ==========================================
+         ❄️ FULL HEADER FREEZE (All Top Rows)
+         ========================================== */
+      thead {
+        position: sticky;
+        top: 0;
+        z-index: 4;
+      }
+      th.master-head {
+        background: #d9e1f2;
+        color: #000;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+      th.month-head {
+        background: #d9ebd3;
+        color: #000;
+        font-size: 14px;
+        position: sticky;
+        top: 0;
+        z-index: 4;
+      }
+      th.sub-head {
+        background: #f2f2f2;
+        font-size: 11px;
+        position: sticky;
+        top: 0;
+        z-index: 4;
+      }
+
+      /* ==========================================
+         ❄️ FREEZE SN & PLATE NO COLUMNS (Sticky)
+         ========================================== */
+      /* Freeze SN Column (Column 1) */
+      thead tr:first-child th:nth-child(1),
+      tbody td:nth-child(1) {
+        position: sticky;
+        left: 0;
+        z-index: 3;
+        background: #fff;
+        width: 50px;
+        min-width: 50px;
+        max-width: 50px;
+      }
+      thead tr:first-child th:nth-child(1) {
+        z-index: 6;
+        background: #d9e1f2;
+      }
+
+      /* Freeze Plate No Column (Column 2) */
+      thead tr:first-child th:nth-child(2),
+      tbody td:nth-child(2) {
+        position: sticky;
+        left: 50px;
+        z-index: 3;
+        background: #fff;
+        min-width: 110px;
+        box-shadow: 3px 0 5px rgba(0, 0, 0, 0.08);
+      }
+      thead tr:first-child th:nth-child(2) {
+        z-index: 6;
+        background: #d9e1f2;
+      }
+      .bg-opc {
+        background: #fff2cc;
+      }
+      .bg-total-cost {
+        background: #fce4d6;
+      }
+      .bg-revenue {
+        background: #e2efda;
+      }
+      .bg-gl {
+        background: #edd9ff;
+      }
+      .bg-net {
+        background: #f8cbad;
+        font-weight: bold;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .modal-content {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 450px;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      .modal-content h3 {
+        margin-top: 0;
+        color: #2c3e50;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+      }
+      .form-group {
+        margin-bottom: 12px;
+        text-align: left;
+      }
+      .form-group label {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+      .form-group input,
+      .form-group select {
+        width: 100%;
+      }
+      .form-row {
+        display: flex;
+        gap: 10px;
+      }
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+
+      /* ==========================================
+         🔻 DROPDOWN MENU STYLES FOR BUTTONS
+         ========================================== */
+      .dropdown-btn-group {
+        position: relative;
+        display: inline-block;
+      }
+      .dropdown-btn-group .btn {
+        margin: 0;
+      }
+      .dropdown-content-menu {
+        display: none;
+        position: absolute;
+        background-color: #fff;
+        min-width: 170px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 1000;
+        border-radius: 6px;
+        overflow: hidden;
+        top: 100%;
+        left: 0;
+        border: 1px solid #ddd;
+      }
+      .dropdown-content-menu button {
+        color: #333;
+        padding: 10px 15px;
+        text-decoration: none;
+        display: block;
+        background: none;
+        border: none;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 13px;
+        border-bottom: 1px solid #f1f1f1;
+        transition: background 0.2s;
+      }
+      .dropdown-content-menu button:last-child {
+        border-bottom: none;
+      }
+      .dropdown-content-menu button:hover {
+        background-color: #f1f1f1;
+        color: #000;
+      }
+      .dropdown-btn-group:hover .dropdown-content-menu {
+        display: block;
+      }
+
+
+      /* ==========================================
+         🍞 TOAST NOTIFICATION STYLES
+         ========================================== */
+      #toast-container {
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .toast {
+        min-width: 250px;
+        background-color: #2c3e50;
+        color: #fff;
+        padding: 14px 20px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .toast.success {
+        background-color: #27ae60;
+        border-left: 5px solid #1e8449;
+      }
+      .toast.error {
+        background-color: #e74c3c;
+        border-left: 5px solid #c0392b;
+      }
+
+
+    </style>
+  </head>
+  <body>
+    <div class="top-bar">
+      <div class="controls">
+        <label><b>Year:</b></label>
+        <select id="filterYear" onchange="loadDashboardData()"></select>
+        <label><b>Months:</b></label>
+        <div id="monthSelector" class="dropdown-check-list">
+          <span
+            class="anchor"
+            onclick="
+              document
+                .getElementById('monthSelector')
+                .classList.toggle('visible')
+            "
+            >Select Months ▼</span
+          >
+          <ul class="items" id="monthCheckboxes"></ul>
+        </div>
+        <button class="btn btn-blue" onclick="renderTable()">Apply</button>
+      </div>
+ <div class="controls">
+
+   <!-- Active Users Badge -->
+        <button 
+          id="activeUserBadge" 
+          class="btn" 
+          style="background: #f39c12; color: white; display: none;" 
+          onclick="showActiveUsersModal()"
+        >
+          Loading...
+        </button>
+
+        <!-- Search Bar for Plate No -->
+        <input 
+          type="text" 
+          id="searchPlateNo" 
+          placeholder="🔍 Search Plate No..." 
+          onkeyup="filterByPlateNo()" 
+          style="padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 160px; outline: none;"
+        />
+
+        <button class="btn btn-blue" onclick="window.location.href = 'monthly_list_summary.html'"> Month Summary</button>
+        <button class="btn btn-dark" onclick="window.location.href = 'summary.html'">Summary</button>
+
+        <!-- Group 1: Yearly Data -->
+        <div class="dropdown-btn-group">
+          <button class="btn btn-primary" style="background: #16a085;">📅 Yearly Data ▼</button>
+          <div class="dropdown-content-menu">
+            <button onclick="openRevenueModal()">💰 Revenue</button>
+            <button onclick="openExpenseModal()">🧾 Expense</button>
+            <button onclick="openSalaryModal()">💵 Driver Salary</button>
+            <button onclick="openCommissionModal()">🤝 Commission's</button>
+          </div>
+        </div>
+        
+        <!-- Group 2: Purchase -->
+        <div class="dropdown-btn-group">
+          <button class="btn btn-primary" style="background: #e67e22;">🛒 Purchase ▼</button>
+          <div class="dropdown-content-menu">
+            <button onclick="openEquipmentModal()">✏️ Add New EQ </button>
+            <button onclick="openEditCostModal()">✏️ Edit Purchase Cost</button>
+          </div>
+        </div>
+
+        <!-- Group 3: Edit -->
+        <div class="dropdown-btn-group">
+          <button class="btn btn-primary" style="background: #8e44ad;">📝 Edit ▼</button>
+          <div class="dropdown-content-menu">
+            <button onclick="openDataModal()">✏️ Data Input Popup</button>
+            <button id="btnEditInline" onclick="toggleEditMode()">✏️ Edit All Data</button>
+          </div>
+        </div>
+
+        <button class="btn btn-excel" onclick="exportToExcel()">Export Excel</button>
+        <button class="btn btn-dark" onclick="window.location.href = 'list.html'">List View</button>
+
+       
+
+        <button class="btn btn-logout" onclick="logout()" title="Logout">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="trackerTable">
+        <thead id="tableHeader"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Add Equipment Modal -->
+    <div id="equipmentModal" class="modal">
+      <div class="modal-content">
+        <h3>Add New Equipment</h3>
+        <div class="form-group">
+          <label>Plate No</label><input type="text" id="eqPlateNo" required />
+        </div>
+        <div class="form-group">
+          <label>Purchase Date</label><input type="date" id="eqPurchaseDate" />
+        </div>
+        <div class="form-group">
+          <label>Purchase Cost Paid</label
+          ><input type="number" id="eqPurchaseCost" value="0" />
+        </div>
+        <div class="form-group">
+          <label>Remaining Purchase Cost</label
+          ><input type="number" id="eqRemainingCost" value="0" />
+        </div>
+        <div class="modal-actions">
+          <button class="btn" onclick="closeModal('equipmentModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveEquipment(false)">Save & Close</button>
+          <button class="btn btn-blue" onclick="saveEquipment(true)">Save & Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Purchase Cost Modal -->
+    <div id="editCostModal" class="modal">
+      <div class="modal-content">
+        <h3>Edit Equipment Purchase Cost</h3>
+        <div class="form-group">
+          <label>Select Equipment</label>
+          <select id="editCostEqId" onchange="populateEditCostFields()"></select>
+        </div>
+        <div class="form-group">
+          <label>Purchase Cost Paid</label>
+          <input type="number" id="editCostPaid" value="0" />
+        </div>
+        <div class="form-group">
+          <label>Remaining Purchase Cost</label>
+          <input type="number" id="editCostRemaining" value="0" />
+        </div>
+        <div class="modal-actions">
+          <button class="btn" onclick="closeModal('editCostModal')">Cancel</button>
+          <button class="btn btn-primary" style="background: #e67e22;" onclick="saveEditedCost()">Update & Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Monthly Data Modal -->
+    <div id="dataModal" class="modal">
+      <div class="modal-content">
+        <h3>Input Monthly Data</h3>
+        <div class="form-group">
+          <label>Select Equipment</label>
+          <select
+            id="inputEquipmentId"
+            onchange="populateModalFields()"
+          ></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="flex: 1">
+            <label>Year</label>
+            <select id="inputYear" onchange="populateModalFields()"></select>
+          </div>
+          <div class="form-group" style="flex: 1">
+            <label>Month</label>
+            <select id="inputMonth" onchange="populateModalFields()">
+              <option value="1">Jan</option>
+              <option value="2">Feb</option>
+              <option value="3">Mar</option>
+              <option value="4">Apr</option>
+              <option value="5">May</option>
+              <option value="6">Jun</option>
+              <option value="7">Jul</option>
+              <option value="8">Aug</option>
+              <option value="9">Sep</option>
+              <option value="10">Oct</option>
+              <option value="11">Nov</option>
+              <option value="12">Dec</option>
+            </select>
+          </div>
+        </div>
+        <hr />
+        <div class="form-group">
+          <label>Maintenance Cost</label
+          ><input type="number" id="inputMaint" value="0" />
+        </div>
+        <h4>For Driver</h4>
+        <div class="form-row">
+          <div class="form-group" style="flex: 1">
+            <label>Basic Salary</label
+            ><input type="number" id="inputBasicSalary" value="0" />
+          </div>
+          <div class="form-group" style="flex: 1">
+            <label>Over Time</label
+            ><input type="number" id="inputOT" value="0" />
+          </div>
+          <div class="form-group" style="flex: 1">
+            <label>Penalty & Legal</label
+            ><input type="number" id="inputPenalty" value="0" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Santook Rent</label
+          ><input type="number" id="inputSantook" value="0" />
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="flex: 1">
+            <label>Kafil Commission (%)</label>
+            <input type="number" id="inputKafil" value="0" />
+          </div>
+          <div class="form-group" style="flex: 1">
+            <label>Owner Commission</label>
+            <input type="number" id="inputOwner" value="0" />
+          </div>
+          <div class="form-group" style="flex: 1">
+            <label>Investor Commission</label>
+            <input type="number" id="inputInvestor" value="0" />
+          </div>
+        </div>
+        <h4>Other Expense</h4>
+        <div class="form-row">
+          <div class="form-group" style="flex: 1">
+            <label>Debit</label>
+            <input type="number" id="inputDebit" value="0" />
+          </div>
+          <div class="form-group" style="flex: 1">
+            <label>PWAS</label>
+            <input type="number" id="inputPwas" value="0" />
+          </div>
+          <div class="form-group" style="flex: 1">
+            <label>Other</label>
+            <input type="number" id="inputOtherExpense" value="0" />
+          </div>
+        </div>
+        <hr />
+        <div class="form-group">
+          <label>OP Revenue</label
+          ><input type="number" id="inputRevenue" value="0" />
+        </div>
+        <div class="modal-actions">
+          <button class="btn" onclick="closeModal('dataModal')">Cancel</button>
+
+          <button class="btn btn-blue" onclick="saveMonthlyData()">
+            Save & Close
+          </button>
+
+          <button class="btn btn-primary" onclick="saveAndAddNew()">
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revenue Input Modal -->
+    <div id="revenueModal" class="modal">
+      <div class="modal-content" style="width: 400px; padding: 20px;">
+        <h3 style="margin-bottom: 15px;">Update Operational Revenue</h3>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
+          <select id="revenueEqId" onchange="populateRevenueTable()" style="flex: 1; margin: 0;"></select>
+          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px; color: #333;" onclick="copyRevenuePlateNo()" title="Copy Plate No">📋</button>
+        </div>
+        <div class="table-container" style="max-height: 340px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
+          <table style="width: 100%; table-layout: fixed;">
+            <thead>
+              <tr>
+                <th style="background: #f2f2f2; color: #000; width: 50%; position: sticky; top: 0; z-index: 5;">Month</th>
+                <th style="background: #e2efda; color: #000; width: 50%; position: sticky; top: 0; z-index: 5;">Operational Revenue</th>
+              </tr>
+            </thead>
+            <tbody id="revenueTableBody">
+              <!-- Rows injected by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-actions" style="margin-top: 15px;">
+          <button class="btn" onclick="closeModal('revenueModal')">Cancel</button>
+          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveRevenueData()">Save & Close</button>
+          <button class="btn btn-blue" onclick="saveAndNextRevenue()">Save & Next</button>
+        </div>
+      </div>
+    </div>
+
+<!-- ================= EXPENSE MODAL ================= -->
+    <div id="expenseModal" class="modal">
+      <div class="modal-content" style="width: 800px; padding: 20px;">
+        <h3 style="margin-bottom: 15px;">Update Expenses</h3>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
+          <select id="expenseEqId" onchange="populateExpenseTable()" style="flex: 1; margin: 0;"></select>
+          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px;" onclick="copyModalPlateNo('expenseEqId')" title="Copy Plate No">📋</button>
+        </div>
+        <div class="table-container" style="max-height: 400px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
+          <table style="width: 100%; table-layout: fixed;">
+           <thead>
+              <tr>
+                <th style="background: #f2f2f2; width: 15%; position: sticky; top: 0; z-index: 5;">Month</th>
+                <th style="background: #fce4d6; position: sticky; top: 0; z-index: 5;">EQ Maint</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Santook</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Debit Note</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">PWAS</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Other</th>
+              </tr>
+            </thead>
+            <tbody id="expenseTableBody"></tbody>
+          </table>
+        </div>
+        <div class="modal-actions" style="margin-top: 15px;">
+          <button class="btn" onclick="closeModal('expenseModal')">Cancel</button>
+          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveExpenseData()">Save & Close</button>
+          <button class="btn btn-blue" onclick="saveAndNextExpense()">Save & Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SALARY MODAL ================= -->
+    <div id="salaryModal" class="modal">
+      <div class="modal-content" style="width: 700px; padding: 20px;">
+        <h3 style="margin-bottom: 15px;">Update Salary Details</h3>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
+          <select id="salaryEqId" onchange="populateSalaryTable()" style="flex: 1; margin: 0;"></select>
+          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px;" onclick="copyModalPlateNo('salaryEqId')" title="Copy Plate No">📋</button>
+        </div>
+        <div class="table-container" style="max-height: 400px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
+          <table style="width: 100%; table-layout: fixed;">
+            <thead>
+              <tr>
+                <th style="background: #f2f2f2; width: 20%; position: sticky; top: 0; z-index: 5;">Month</th>
+                <th style="background: #e2efda; position: sticky; top: 0; z-index: 5;">Basic</th>
+                <th style="background: #e2efda; position: sticky; top: 0; z-index: 5;">OT</th>
+                <th style="background: #f8d7da; color: #721c24; position: sticky; top: 0; z-index: 5;">Penalty</th>
+                <th style="background: #d4edda; font-weight: bold; position: sticky; top: 0; z-index: 5;">Net Salary</th>
+              </tr>
+            </thead>
+            <tbody id="salaryTableBody"></tbody>
+          </table>
+        </div>
+        <div class="modal-actions" style="margin-top: 15px;">
+          <button class="btn" onclick="closeModal('salaryModal')">Cancel</button>
+          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveSalaryData()">Save & Close</button>
+          <button class="btn btn-blue" onclick="saveAndNextSalary()">Save & Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= COMMISSION MODAL ================= -->
+    <div id="commissionModal" class="modal">
+      <div class="modal-content" style="width: 600px; padding: 20px;">
+        <h3 style="margin-bottom: 15px;">Update Commission</h3>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <label style="margin: 0; white-space: nowrap;">Plate No:</label>
+          <select id="commissionEqId" onchange="populateCommissionTable()" style="flex: 1; margin: 0;"></select>
+          <button type="button" class="btn" style="padding: 7px 12px; background: #f2f2f2; border: 1px solid #ccc; font-size: 14px;" onclick="copyModalPlateNo('commissionEqId')" title="Copy Plate No">📋</button>
+        </div>
+        <div class="table-container" style="max-height: 400px; margin-top: 10px; border: 1px solid #ccc; box-shadow: none; overflow-y: auto;">
+          <table style="width: 100%; table-layout: fixed;">
+            <thead>
+              <tr>
+                <th style="background: #f2f2f2; width: 25%; position: sticky; top: 0; z-index: 5;">Month</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Kafil</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Owner</th>
+                <th style="background: #fff2cc; position: sticky; top: 0; z-index: 5;">Investor</th>
+              </tr>
+            </thead>
+            <tbody id="commissionTableBody"></tbody>
+          </table>
+        </div>
+        <div class="modal-actions" style="margin-top: 15px;">
+          <button class="btn" onclick="closeModal('commissionModal')">Cancel</button>
+          <button class="btn btn-primary" style="background: #27ae60;" onclick="saveCommissionData()">Save & Close</button>
+          <button class="btn btn-blue" onclick="saveAndNextCommission()">Save & Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export Excel Modal (New) -->
+    <div id="exportModal" class="modal">
+      <div class="modal-content" style="width: 400px; text-align: center">
+        <h3>Export to Excel</h3>
+        <p style="margin-bottom: 20px; font-size: 14px; color: #555">
+          How would you like to export the data?
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <button
+            class="btn btn-blue"
+            onclick="executeExport('single')"
+            style="padding: 12px; font-size: 14px"
+          >
+            Export Current Year & Summary
+          </button>
+          <button
+            class="btn btn-excel"
+            onclick="executeExport('batch')"
+            style="padding: 12px; font-size: 14px"
+          >
+            Export BATCH (All Years & Summary)
+          </button>
+          <button
+            class="btn"
+            onclick="closeModal('exportModal')"
+            style="
+              background: #95a5a6;
+              color: white;
+              padding: 12px;
+              font-size: 14px;
+              margin-top: 10px;
+            "
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Users Modal -->
+    <div id="activeUsersModal" class="modal">
+      <div class="modal-content" style="width: 300px; text-align: center">
+        <h3>Active Users Online</h3>
+        <ul id="activeUsersList" style="list-style: none; padding: 0; margin-top: 15px; font-size: 15px; text-align: left;"></ul>
+        <div class="modal-actions" style="justify-content: center; margin-top: 20px;">
+          <button class="btn" onclick="closeModal('activeUsersModal')" style="background: #95a5a6; color: white; padding: 8px 20px;">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+
+    <div id="toast-container"></div>
+  </body>
+</html>

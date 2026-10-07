@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Viewer & Stamp Editor | Haka ERP</title>
+  <link href="/node_xlsx_scripts/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css">
+  <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
+  <script src="/node_xlsx_scripts/pdf.min.js"></script>
+  <script src="/node_xlsx_scripts/pdf-lib.min.js"></script>
+  <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #0b1120;
+      --panel-bg: #1e293b;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --accent: #2563eb;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    .editor-toolbar {
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .editor-workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .thumb-sidebar {
+      width: 230px;
+      background: #111827;
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .thumb-card {
+      border: 2px solid #1f2937;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #ffffff;
+      padding: 3px;
+      text-align: center;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .thumb-card:hover { border-color: #64748b; transform: translateY(-2px); }
+    .thumb-card.active { border-color: var(--accent); box-shadow: 0 0 10px rgba(37, 99, 235, 0.4); }
+    .thumb-card canvas { width: 100%; height: auto; border-radius: 3px; display: block; }
+    .thumb-label { color: #94a3b8; font-size: 11px; margin-top: 4px; font-weight: 600; }
+
+    .viewport-area {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px;
+      background: #070b14;
+    }
+
+    .page-container {
+      position: relative;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.6);
+      background: white;
+    }
+    
+    .pdf-render-canvas {
+      display: block;
+      background: white;
+    }
+
+    .interactive-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .overlay-element {
+      position: absolute;
+      border: 1.5px dashed #2563eb;
+      cursor: move;
+      user-select: none;
+      pointer-events: auto;
+    }
+    .overlay-element img {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: block;
+    }
+    .resize-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #2563eb;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      right: -6px;
+      bottom: -6px;
+      cursor: nwse-resize;
+    }
+    .delete-btn {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #ef4444;
+      color: white;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    #toastContainer {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 3000;
+    }
+    .custom-toast {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #334155;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="editor-toolbar">
+    <div class="d-flex align-items-center gap-3">
+      <h5 class="mb-0 fw-bold"><i class="fa-solid fa-file-pdf text-danger me-2"></i> PDF Viewer & Stamp</h5>
+      <span class="badge bg-secondary-subtle text-light border border-secondary" id="fileBadge">No File Loaded</span>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <input type="file" id="pdfUploadInput" accept="application/pdf" class="d-none" onchange="loadPdfFile(this.files[0])">
+      <button class="btn btn-sm btn-outline-light" onclick="document.getElementById('pdfUploadInput').click()">
+        <i class="fa-solid fa-folder-open me-1"></i> Open PDF
+      </button>
+
+      <button class="btn btn-sm btn-outline-danger" onclick="closeCurrentPdf()">
+        <i class="fa-solid fa-xmark me-1"></i> Close
+      </button>
+
+      <div class="vr bg-secondary mx-1"></div>
+
+      <input type="file" id="imageUploadInput" accept="image/png,image/jpeg,image/webp" class="d-none" onchange="addSealOrSign(this.files[0])">
+      <button class="btn btn-sm btn-outline-success fw-semibold" onclick="document.getElementById('imageUploadInput').click()">
+        <i class="fa-solid fa-stamp me-1"></i> Add Seal / Sign
+      </button>
+
+      <div class="vr bg-secondary mx-1"></div>
+
+      <button class="btn btn-sm btn-outline-secondary" onclick="zoomChange(-0.15)"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+      <span class="small px-2 fw-semibold" id="zoomLevelText">120%</span>
+      <button class="btn btn-sm btn-outline-secondary" onclick="zoomChange(0.15)"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+    </div>
+
+    <button class="btn btn-sm btn-primary fw-semibold px-3" onclick="saveAndExportPdf()" id="btnSavePdf">
+      <i class="fa-solid fa-floppy-disk me-1"></i> Save PDF
+    </button>
+  </div>
+
+  <div class="editor-workspace">
+    <div class="thumb-sidebar" id="thumbSidebar">
+      <div class="text-center text-muted small py-4">No PDF loaded</div>
+    </div>
+
+    <div class="viewport-area" id="viewportArea">
+      <div id="pageContainer" class="page-container d-none">
+        <canvas id="pdfRenderCanvas" class="pdf-render-canvas"></canvas>
+        <div id="interactiveLayer" class="interactive-layer"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer"></div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/node_xlsx_scripts/pdf.worker.min.js';
+
+    let currentFile = null;
+    let currentRawBuffer = null;
+    let pdfDocObj = null;
+    let totalPagesCount = 0;
+    let currentPageNum = 1;
+    let currentScale = 1.20;
+    let originalPdfDimensions = { width: 0, height: 0 };
+    let pageOverlays = {};
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'custom-toast';
+      const icon = type === 'error' ? 'fa-circle-xmark text-danger' : 'fa-circle-check text-success';
+      toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    async function loadPdfFile(file) {
+      if (!file) return;
+      currentFile = file;
+      document.getElementById('fileBadge').innerText = file.name;
+
+      currentRawBuffer = await file.arrayBuffer();
+      pdfDocObj = await pdfjsLib.getDocument({ data: currentRawBuffer.slice(0) }).promise;
+      totalPagesCount = pdfDocObj.numPages;
+      currentPageNum = 1;
+      pageOverlays = {};
+
+      renderThumbnails();
+      await renderActivePage(currentPageNum);
+      showToast(`Loaded ${file.name}`, "success");
+    }
+
+    async function renderThumbnails() {
+      const sidebar = document.getElementById('thumbSidebar');
+      sidebar.innerHTML = '';
+
+      for (let p = 1; p <= totalPagesCount; p++) {
+        const page = await pdfDocObj.getPage(p);
+        
+        // High quality thumbnail scaling
+        const thumbDpr = 1.5;
+        const viewport = page.getViewport({ scale: 0.25 * thumbDpr });
+        const displayViewport = page.getViewport({ scale: 0.25 });
+
+        const card = document.createElement('div');
+        card.className = `thumb-card ${p === currentPageNum ? 'active' : ''}`;
+        card.dataset.pageNum = p;
+        card.onclick = () => switchPage(p);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        canvas.style.width = `${displayViewport.width}px`;
+        canvas.style.height = `${displayViewport.height}px`;
+
+        const ctx = canvas.getContext('2d', { alpha: false });
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+        const label = document.createElement('div');
+        label.className = 'thumb-label';
+        label.innerText = `Page ${p}`;
+
+        card.appendChild(canvas);
+        card.appendChild(label);
+        sidebar.appendChild(card);
+      }
+    }
+
+    function switchPage(p) {
+      if (p === currentPageNum) return;
+      saveCurrentPageDOMToStore();
+      currentPageNum = p;
+      
+      document.querySelectorAll('.thumb-card').forEach(c => {
+        c.classList.toggle('active', parseInt(c.dataset.pageNum) === p);
+      });
+
+      renderActivePage(p);
+    }
+
+    async function renderActivePage(p) {
+      document.getElementById('pageContainer').classList.remove('d-none');
+      const page = await pdfDocObj.getPage(p);
+
+      // Retina High-DPI 2.0x crystal sharp crisp vector rendering
+      const dpr = 2.0;
+      const renderViewport = page.getViewport({ scale: currentScale * dpr });
+      const displayViewport = page.getViewport({ scale: currentScale });
+
+      originalPdfDimensions.width = displayViewport.width / currentScale;
+      originalPdfDimensions.height = displayViewport.height / currentScale;
+
+      const canvas = document.getElementById('pdfRenderCanvas');
+      canvas.width = renderViewport.width;
+      canvas.height = renderViewport.height;
+      canvas.style.width = `${Math.floor(displayViewport.width)}px`;
+      canvas.style.height = `${Math.floor(displayViewport.height)}px`;
+
+      const ctx = canvas.getContext('2d', { alpha: false });
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
+
+      const layer = document.getElementById('interactiveLayer');
+      layer.style.width = `${displayViewport.width}px`;
+      layer.style.height = `${displayViewport.height}px`;
+      layer.innerHTML = '';
+
+      const items = pageOverlays[p] || [];
+      items.forEach(item => restoreOverlayDOM(item));
+    }
+
+    function zoomChange(delta) {
+      const newScale = Math.min(Math.max(currentScale + delta, 0.6), 2.5);
+      if (newScale === currentScale) return;
+      saveCurrentPageDOMToStore();
+      currentScale = newScale;
+      document.getElementById('zoomLevelText').innerText = `${Math.round(currentScale * 100)}%`;
+      renderActivePage(currentPageNum);
+    }
+
+    function closeCurrentPdf() {
+      if (!currentFile) return;
+      currentFile = null;
+      currentRawBuffer = null;
+      pdfDocObj = null;
+      pageOverlays = {};
+      document.getElementById('fileBadge').innerText = 'No File Loaded';
+      document.getElementById('pageContainer').classList.add('d-none');
+      document.getElementById('thumbSidebar').innerHTML = '<div class="text-center text-muted small py-4">No PDF loaded</div>';
+      document.getElementById('pdfUploadInput').value = '';
+      showToast("Closed document", "info");
+    }
+
+    async function addSealOrSign(file) {
+      if (!file) return;
+      if (!currentFile) return showToast("Open a PDF file first!", "error");
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        const img = new Image();
+        img.onload = function() {
+          let w = img.width > 180 ? 150 : img.width;
+          let h = (img.height / img.width) * w;
+          const id = `seal_${Date.now()}`;
+          const item = {
+            id,
+            dataUrl,
+            x: 80,
+            y: 80,
+            width: w,
+            height: h
+          };
+          restoreOverlayDOM(item);
+          saveCurrentPageDOMToStore();
+          showToast("Seal / Sign placed. Drag to position or resize.", "success");
+        };
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(file);
+      document.getElementById('imageUploadInput').value = '';
+    }
+
+    function restoreOverlayDOM(item) {
+      const layer = document.getElementById('interactiveLayer');
+      const el = document.createElement('div');
+      el.className = 'overlay-element';
+      el.id = item.id;
+      el.style.left = `${item.x}px`;
+      el.style.top = `${item.y}px`;
+      el.style.width = `${item.width}px`;
+      el.style.height = `${item.height}px`;
+
+      const delBtn = document.createElement('div');
+      delBtn.className = 'delete-btn';
+      delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+      delBtn.onclick = () => {
+        el.remove();
+        saveCurrentPageDOMToStore();
+      };
+      el.appendChild(delBtn);
+
+      const img = document.createElement('img');
+      img.src = item.dataUrl;
+      el.appendChild(img);
+
+      const handle = document.createElement('div');
+      handle.className = 'resize-handle';
+      el.appendChild(handle);
+
+      layer.appendChild(el);
+      makeElementDraggable(el);
+      makeElementResizable(el, handle);
+    }
+
+    function makeElementDraggable(el) {
+      let isDragging = false;
+      let startX, startY, initLeft, initTop;
+
+      el.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('delete-btn') || e.target.classList.contains('resize-handle')) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initLeft = el.offsetLeft;
+        initTop = el.offsetTop;
+
+        function onMouseMove(ev) {
+          if (!isDragging) return;
+          el.style.left = `${initLeft + (ev.clientX - startX)}px`;
+          el.style.top = `${initTop + (ev.clientY - startY)}px`;
+        }
+
+        function onMouseUp() {
+          isDragging = false;
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+          saveCurrentPageDOMToStore();
+        }
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
+    }
+
+    function makeElementResizable(el, handle) {
+      let isResizing = false;
+      let startX, startY, startW, startH;
+
+      handle.addEventListener('mousedown', function(e) {
+        e.stopPropagation();
+        isResizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startW = el.offsetWidth;
+        startH = el.offsetHeight;
+
+        function onMouseMove(ev) {
+          if (!isResizing) return;
+          el.style.width = `${Math.max(30, startW + (ev.clientX - startX))}px`;
+          el.style.height = `${Math.max(30, startH + (ev.clientY - startY))}px`;
+        }
+
+        function onMouseUp() {
+          isResizing = false;
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+          saveCurrentPageDOMToStore();
+        }
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
+    }
+
+    function saveCurrentPageDOMToStore() {
+      const layer = document.getElementById('interactiveLayer');
+      const elements = layer.querySelectorAll('.overlay-element');
+      const list = [];
+
+      elements.forEach(el => {
+        list.push({
+          id: el.id,
+          dataUrl: el.querySelector('img').src,
+          x: parseFloat(el.style.left) || 0,
+          y: parseFloat(el.style.top) || 0,
+          width: el.offsetWidth,
+          height: el.offsetHeight
+        });
+      });
+
+      pageOverlays[currentPageNum] = list;
+    }
+
+    async function saveAndExportPdf() {
+      if (!currentFile || !currentRawBuffer) return showToast("No PDF to save!", "error");
+      saveCurrentPageDOMToStore();
+
+      const btn = document.getElementById('btnSavePdf');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...';
+
+      try {
+        const pdfDoc = await PDFLib.PDFDocument.load(currentRawBuffer);
+        const pages = pdfDoc.getPages();
+
+        for (let pNum = 1; pNum <= pages.length; pNum++) {
+          const overlays = pageOverlays[pNum] || [];
+          if (overlays.length === 0) continue;
+
+          const page = pages[pNum - 1];
+          const { width, height } = page.getSize();
+
+          const scaleFactorX = width / (originalPdfDimensions.width * currentScale);
+          const scaleFactorY = height / (originalPdfDimensions.height * currentScale);
+
+          for (const item of overlays) {
+            const pdfX = item.x * scaleFactorX;
+            const pdfY = height - (item.y * scaleFactorY) - (item.height * scaleFactorY);
+            const pdfW = item.width * scaleFactorX;
+            const pdfH = item.height * scaleFactorY;
+
+            let embeddedImg;
+            if (item.dataUrl.startsWith('data:image/png')) {
+              const base64 = item.dataUrl.split(',')[1];
+              const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+              embeddedImg = await pdfDoc.embedPng(bytes);
+            } else {
+              const base64 = item.dataUrl.split(',')[1];
+              const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+              embeddedImg = await pdfDoc.embedJpg(bytes);
+            }
+
+            page.drawImage(embeddedImg, {
+              x: pdfX,
+              y: pdfY,
+              width: pdfW,
+              height: pdfH
+            });
+          }
+        }
+
+        const savedBytes = await pdfDoc.save();
+        const blob = new Blob([savedBytes], { type: "application/pdf" });
+        saveAs(blob, currentFile.name);
+        showToast(`Saved as ${currentFile.name}`, "success");
+      } catch (err) {
+        showToast("Error saving: " + err.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Save PDF';
+      }
+    }
+  </script>
+</body>
+</html>

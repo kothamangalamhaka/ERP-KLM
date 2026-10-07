@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing & Report - Admin Panel</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #cbd5e1; padding: 12px; text-align: left; }
+        th { background-color: #f1f5f9; color: #1e293b; }
+        select { padding: 6px; border-radius: 4px; border: 1px solid #cbd5e1; }
+        button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-update { background-color: #0ea5e9; color: white; }
+        .btn-update:hover { background-color: #0284c7; }
+        .btn-delete { background-color: #ef4444; color: white; }
+        .btn-delete:hover { background-color: #dc2626; }
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px; transform: translateX(-50%); }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>User Management (Billing & Report)</h2>
+            <button onclick="logout()" style="background: #64748b; color: white;">Logout</button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Display Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+                <tr><td colspan="6" style="text-align: center;">Loading users...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const token = localStorage.getItem("invoiceToken"); // Using a unique token name for these screens
+
+        if (!token) {
+            alert("Please login first.");
+            window.location.replace() = "../report.html"; // Adjust path as needed
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.className = "show";
+            setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+        }
+
+        function logout() {
+    localStorage.removeItem("invoiceToken");
+    localStorage.removeItem("timesheetToken"); 
+    window.location.replace("../report.html"); 
+}
+
+        async function fetchUsers() {
+            try {
+                const res = await fetch("/api/invoice-auth/admin/users", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (!data.success) {
+                    alert(data.message);
+                    if(data.message.includes("Super Admin")) {
+                        window.location.replace() = "../report.html";
+                    }
+                    return;
+                }
+
+                const tbody = document.getElementById("userTableBody");
+                tbody.innerHTML = "";
+
+                data.users.forEach(user => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${user.display_name}</td>
+                            <td>${user.username}</td>
+                            <td>${user.email}</td>
+                            <td>
+                                <select id="role_${user.id}">
+                                    <option value="User" ${user.role === 'User' ? 'selected' : ''}>User</option>
+                                    <option value="Super Admin" ${user.role === 'Super Admin' ? 'selected' : ''}>Super Admin</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select id="status_${user.id}">
+                                    <option value="Pending" ${user.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="Approved" ${user.status === 'Approved' ? 'selected' : ''}>Approved</option>
+                                    <option value="Rejected" ${user.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn-update" onclick="updateUser(${user.id})">Save</button>
+                                <button class="btn-delete" onclick="deleteUser(${user.id})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+                alert("Failed to load users.");
+            }
+        }
+
+        async function updateUser(id) {
+            const role = document.getElementById(`role_${id}`).value;
+            const status = document.getElementById(`status_${id}`).value;
+
+            try {
+                const res = await fetch("/api/invoice-auth/admin/update-user", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ userId: id, role, status })
+                });
+                const data = await res.json();
+                showToast(data.message);
+                if (data.success) fetchUsers();
+            } catch (err) {
+                showToast("Update failed.");
+            }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm("Are you sure you want to delete this user?")) return;
+            try {
+                const res = await fetch(`/api/invoice-auth/admin/delete-user/${id}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                const data = await res.json();
+                showToast(data.message);
+                if (data.success) fetchUsers();
+            } catch (err) {
+                showToast("Delete failed.");
+            }
+        }
+
+        fetchUsers();
+    </script>
+</body>
+</html>

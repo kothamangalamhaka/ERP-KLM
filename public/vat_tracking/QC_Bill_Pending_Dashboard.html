@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QC Pending Dashboard - VAT Tracking</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- SheetJS for clean Excel export -->
+    <script src="../node_xlsx_scripts/xlsx.bundle.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; 
+            margin: 0; 
+            padding: 0; 
+            font-size: 13px; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+
+        /* Top Navigation */
+        .navbar { 
+            background: #0f2027; 
+            color: white; 
+            padding: 10px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            height: 54px; 
+            flex-shrink: 0; 
+            z-index: 100;
+        }
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .nav-tools { display: flex; gap: 12px; align-items: center; }
+
+        .year-control { 
+            display: flex; 
+            align-items: center; 
+            background: #1e293b; 
+            border-radius: 5px; 
+            border: 1px solid #475569; 
+            overflow: hidden; 
+        }
+        .year-btn { 
+            background: transparent; 
+            color: white; 
+            border: none; 
+            padding: 6px 12px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: bold; 
+        }
+        .year-btn:hover { background: #334155; }
+        .year-select { 
+            background: transparent; 
+            color: white; 
+            border: none; 
+            font-size: 13px; 
+            font-weight: 600; 
+            padding: 5px 8px; 
+            outline: none; 
+            cursor: pointer; 
+            text-align: center; 
+        }
+        .year-select option { background: #1e293b; color: white; }
+
+        .search-box { 
+            padding: 6px 12px; 
+            border: 1px solid #475569; 
+            border-radius: 5px; 
+            background: #1e293b; 
+            color: white; 
+            font-family: 'Inter'; 
+            outline: none; 
+            width: 220px; 
+            font-size: 12px; 
+        }
+        .search-box:focus { border-color: #38bdf8; }
+
+        .btn-action { 
+            background: #3b82f6; 
+            color: white; 
+            padding: 6px 14px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            text-decoration: none; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            font-size: 12px; 
+        }
+        .btn-action:hover { filter: brightness(1.1); }
+        .btn-export { background: #10b981; }
+
+        /* View Toggle Switch */
+        .mode-toggle-group {
+            display: inline-flex;
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .mode-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mode-btn.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* KPI Banner */
+        .kpi-banner {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 20px;
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .kpi-item { display: flex; flex-direction: column; }
+        .kpi-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+        .kpi-value { font-size: 18px; font-weight: 700; color: #0f172a; }
+        .kpi-alert { color: #dc2626; }
+
+        /* Main Table Container */
+        .main-container { flex: 1; overflow: auto; padding: 15px; }
+        .dashboard-table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .dashboard-table th, .dashboard-table td {
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 9px 12px;
+            vertical-align: middle;
+        }
+        .dashboard-table th {
+            background: #1e293b;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .dashboard-table th.month-head {
+            text-align: center;
+            min-width: 85px;
+        }
+        .dashboard-table tbody tr:hover { background-color: #f8fafc; }
+
+        .pending-badge {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+            text-align: center;
+        }
+
+        /* Login Modal */
+        .login-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(15, 32, 39, 0.95); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 10000; 
+        }
+        .login-box { background: white; padding: 30px; border-radius: 8px; width: 300px; text-align: center; }
+
+        /* QC Edit Popup Modal */
+        .qc-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(3px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .qc-modal-content {
+            background: #ffffff;
+            border-radius: 10px;
+            width: 680px;
+            max-width: 95%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .qc-modal-header {
+            background: #0f2027;
+            color: white;
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .qc-modal-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+        .qc-modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 22px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .qc-modal-close:hover { color: white; }
+        .qc-modal-body {
+            padding: 20px;
+        }
+        .qc-details-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            padding: 10px 14px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .qc-edit-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        .qc-edit-table th, .qc-edit-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 10px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .qc-edit-table th {
+            background: #1e293b;
+            color: white;
+            font-weight: 600;
+        }
+        .qc-input-field {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 12px;
+            font-family: 'Inter';
+            outline: none;
+        }
+        .qc-input-field:focus {
+            border-color: #0284c7;
+            background: #f0f9ff;
+        }
+        .qc-modal-footer {
+            padding: 12px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .pending-badge.clickable {
+            cursor: pointer;
+            transition: transform 0.15s, filter 0.15s;
+        }
+        .pending-badge.clickable:hover {
+            transform: scale(1.05);
+            filter: brightness(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-overlay">
+        <div class="login-box">
+            <h2 style="margin-top:0;">Access Control</h2>
+            <p style="font-size:12px; color:#64748b;">Please enter the secure access code.</p>
+            <input type="password" id="vatAccessCode" placeholder="Access Code" style="width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center;" onkeydown="if(event.key==='Enter') verifyLogin()">
+            <div id="loginError" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;">Invalid Access Code</div>
+            <button onclick="verifyLogin()" class="btn-action" style="width: 100%; justify-content: center; padding: 10px; background: #10b981;">Unlock</button>
+        </div>
+    </div>
+
+    <!-- Top Ribbon -->
+    <div class="navbar">
+        <div class="nav-left">
+            <a href="index.html" style="color:white; text-decoration:none; font-size: 18px;" title="Back to Main">🔙</a>
+            <span style="font-size: 16px; font-weight: 600;">QC Pending Dashboard</span>
+        </div>
+
+        <div class="nav-tools">
+            <!-- Mode Switcher Toggle Button -->
+            <div class="mode-toggle-group">
+                <button id="btnModeZoho" class="mode-btn active" onclick="switchDashboardMode('zoho')" title="Quick Dice entered, but Missing Bill No / Amount">
+                    📘 Zoho
+                </button>
+                <button id="btnModeQuickDice" class="mode-btn" onclick="switchDashboardMode('quick_dice')" title="Bill No / Amount present, but Missing Quick Dice">
+                    🎲 Quick Dice
+                </button>
+            </div>
+
+            <input type="text" id="searchInput" class="search-box" placeholder="Search Owner, Site..." onkeyup="renderDashboard()">
+
+            <div class="year-control">
+                <button class="year-btn" onclick="switchYear(-1)">◀</button>
+                <select id="yearSelect" class="year-select" onchange="fetchData()"></select>
+                <button class="year-btn" onclick="switchYear(1)">▶</button>
+            </div>
+
+            <button class="btn-action btn-export" onclick="exportToExcel()" title="Export this table to Excel">⬇ Export Excel</button>
+            <a href="QC_Entry.html" class="btn-action" style="background:#8b5cf6;">⚡ QC Entry</a>
+            <a href="index.html" class="btn-action">📋 Main View</a>
+        </div>
+    </div>
+
+    <!-- KPI Summary Bar -->
+    <div class="kpi-banner">
+        <div class="kpi-item">
+            <span class="kpi-label">Suppliers with Issues</span>
+            <span class="kpi-value kpi-alert" id="kpiSupplierCount">0</span>
+        </div>
+        <div class="kpi-item">
+            <span class="kpi-label">Sites Affected</span>
+            <span class="kpi-value" id="kpiSiteCount">0</span>
+        </div>
+        <div class="kpi-item">
+            <span class="kpi-label">Total Pending Months</span>
+            <span class="kpi-value kpi-alert" id="kpiPendingCount">0</span>
+        </div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="main-container">
+        <table class="dashboard-table" id="pendingTable">
+            <thead id="dashboardHead">
+                <tr>
+                    <th style="width: 50px; text-align: center;">SL</th>
+                    <th style="width: 250px;">Owner / Supplier</th>
+                    <th style="width: 220px;">Site Name</th>
+                    <th style="width: 110px; text-align: center;">Total Pending</th>
+                </tr>
+            </thead>
+            <tbody id="dashboardBody">
+                <tr><td colspan="4" style="text-align: center; color: #64748b; padding: 30px;">Loading QC Records...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Quick Edit Modal Popup for Zoho Pending -->
+    <div id="qcEditModal" class="qc-modal-overlay" onclick="if(event.target===this) closeQcModal()">
+        <div class="qc-modal-content">
+            <div class="qc-modal-header">
+                <h3 id="modalTitle">Edit QC Entry</h3>
+                <button class="qc-modal-close" onclick="closeQcModal()">&times;</button>
+            </div>
+            <div class="qc-modal-body">
+                <div class="qc-details-bar">
+                    <div><strong>Supplier:</strong> <span id="modalSupplier"></span></div>
+                    <div><strong>Site:</strong> <span id="modalSite"></span></div>
+                    <div><strong>Month:</strong> <span id="modalMonth"></span></div>
+                </div>
+                <table class="qc-edit-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 140px;">Bill No</th>
+                            <th style="width: 120px;">Amount</th>
+                            <th style="width: 120px; background: #0f766e;">Vendor TS</th>
+                            <th style="width: 130px; background: #4338ca;">Quick Dice</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <input type="text" id="modalBillNo" class="qc-input-field" placeholder="Enter Bill No">
+                            </td>
+                            <td>
+                                <input type="text" id="modalAmount" class="qc-input-field" placeholder="Enter Amount">
+                            </td>
+                            <td style="background: #f0fdfa; font-weight: 700; color: #0f766e;" id="modalVendorTs">
+                                0.00
+                            </td>
+                            <td>
+                                <input type="text" id="modalQuickDice" class="qc-input-field" placeholder="Enter Quick Dice" style="font-weight: 700; color: #312e81; background: #eef2ff;">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="modalStatusMsg" style="font-size: 12px; font-weight: 600; text-align: center; min-height: 18px;"></div>
+            </div>
+            <div class="qc-modal-footer">
+                <button class="btn-action" style="background:#64748b;" onclick="closeQcModal()">Cancel</button>
+                <button id="modalSaveBtn" class="btn-action" style="background:#10b981;" onclick="saveQcModalData()">💾 Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendor TS Details Modal Popup inside Dashboard -->
+    <div id="tsDetailsModal" class="qc-modal-overlay" style="z-index: 10001;" onclick="if(event.target===this) closeTsModal()">
+        <div class="qc-modal-content" style="width: 580px;">
+            <div class="qc-modal-header">
+                <h3 id="tsModalTitle">Vendor Timesheet Breakdown</h3>
+                <button class="qc-modal-close" onclick="closeTsModal()">&times;</button>
+            </div>
+            <div class="qc-modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <table class="qc-edit-table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th>Plate No</th>
+                            <th>NR (Hrs)</th>
+                            <th>OT (Hrs)</th>
+                            <th>Total Amount / TS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tsBreakdownBody"></tbody>
+                    <tfoot id="tsBreakdownFoot"></tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const monthsShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let rawData = [];
+        let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
+        let currentYear = new Date().getFullYear();
+        let visibleMonthIndices = []; // Holds only months having pending entries
+        let currentDashboardMode = "zoho"; // 'zoho' or 'quick_dice'
+
+        function switchDashboardMode(mode) {
+            currentDashboardMode = mode;
+            document.getElementById("btnModeZoho").classList.toggle("active", mode === "zoho");
+            document.getElementById("btnModeQuickDice").classList.toggle("active", mode === "quick_dice");
+            renderDashboard();
+        }
+
+        function initYearOptions() {
+            const select = document.getElementById("yearSelect");
+            select.innerHTML = "";
+            for (let y = currentYear - 3; y <= currentYear + 2; y++) {
+                let opt = document.createElement("option");
+                opt.value = y;
+                opt.textContent = y;
+                if (y === currentYear) opt.selected = true;
+                select.appendChild(opt);
+            }
+        }
+        initYearOptions();
+
+        if (vatCode) {
+            document.getElementById("loginModal").style.display = "none";
+            fetchData();
+        } else {
+            document.getElementById("loginModal").style.display = "flex";
+        }
+
+        function verifyLogin() {
+            const inputCode = document.getElementById("vatAccessCode").value.trim();
+            if (!inputCode) return;
+            vatCode = inputCode;
+            sessionStorage.setItem("vatTrackerCode", vatCode);
+            document.getElementById("loginModal").style.display = "none";
+            fetchData();
+        }
+
+        function triggerLoginError() {
+            sessionStorage.removeItem("vatTrackerCode");
+            vatCode = "";
+            document.getElementById("loginModal").style.display = "flex";
+            document.getElementById("loginError").style.display = "block";
+        }
+
+        function switchYear(step) {
+            const select = document.getElementById("yearSelect");
+            let targetYear = parseInt(select.value) + step;
+            let options = Array.from(select.options).map(o => parseInt(o.value));
+            if (options.includes(targetYear)) {
+                select.value = targetYear;
+                fetchData();
+            }
+        }
+
+        async function fetchData() {
+            currentYear = parseInt(document.getElementById("yearSelect").value);
+            const tbody = document.getElementById("dashboardBody");
+            tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; color: #64748b; padding: 30px;">Fetching records for ${currentYear}...</td></tr>`;
+
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/data?year=${currentYear}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                if (res.status === 401) return triggerLoginError();
+                const json = await res.json();
+                if (json.success) {
+                    rawData = json.data;
+                    renderDashboard();
+                } else {
+                    alert("Error: " + json.message);
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; color: #ef4444; padding: 30px;">Network error loading dashboard.</td></tr>`;
+            }
+        }
+
+        // 🟢 സേവ് ചെയ്ത ശേഷം ലോഡിംഗ് സ്ക്രീൻ വരാതെ നിശബ്ദമായി ഡാറ്റ അപ്‌ഡേറ്റ് ചെയ്യാൻ
+        async function fetchDataSilent() {
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/data?year=${currentYear}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success) {
+                        rawData = json.data;
+                        renderDashboard();
+                    }
+                }
+            } catch (e) {
+                renderDashboard();
+            }
+        }
+
+        // Consolidated Data Mapping (Matches QC_Entry.html logic perfectly)
+        function getConsolidatedData() {
+            const consolidated = {};
+            rawData.forEach(group => {
+                const supKey = (group.supplier || "Unknown").trim();
+                if (!consolidated[supKey]) {
+                    consolidated[supKey] = {
+                        supplier: supKey,
+                        company: group.company,
+                        vat_no: group.vat_no || "",
+                        display_name: group.display_name || "",
+                        sites: []
+                    };
+                } else {
+                    if (!consolidated[supKey].vat_no && group.vat_no) consolidated[supKey].vat_no = group.vat_no;
+                    if (!consolidated[supKey].display_name && group.display_name) consolidated[supKey].display_name = group.display_name;
+                }
+
+                group.sites.forEach(st => {
+                    const existingSite = consolidated[supKey].sites.find(s => s.site_name === st.site_name);
+                    if (!existingSite) {
+                        consolidated[supKey].sites.push(JSON.parse(JSON.stringify(st)));
+                    } else {
+                        for (let m = 0; m < 12; m++) {
+                            if (st.active_months && st.active_months[m]) existingSite.active_months[m] = true;
+                            if (!existingSite.billing[m]) existingSite.billing[m] = {};
+                            if (st.billing[m]?.bill_no) existingSite.billing[m].bill_no = st.billing[m].bill_no;
+                            if (st.billing[m]?.amount) existingSite.billing[m].amount = st.billing[m].amount;
+                            if (st.billing[m]?.erp_total) existingSite.billing[m].erp_total = st.billing[m].erp_total;
+                            if (st.billing[m]?.quick_dice) existingSite.billing[m].quick_dice = st.billing[m].quick_dice;
+                        }
+                    }
+                });
+            });
+            return Object.values(consolidated);
+        }
+
+        // Logic check depending on selected mode (Strict Null/Zero/Empty validation)
+        function checkIsPending(billing) {
+            if (!billing) return false;
+            const quickDice = billing.quick_dice ? String(billing.quick_dice).trim() : "";
+            const billNo = billing.bill_no ? String(billing.bill_no).trim() : "";
+            const amount = billing.amount ? String(billing.amount).trim() : "";
+
+            const isDiceEmpty = !quickDice || quickDice === "0" || quickDice.toLowerCase() === "null";
+
+            if (currentDashboardMode === "zoho") {
+                // 1. Zoho Mode: Quick Dice ഉണ്ടാവുകയും, Bill No അല്ലെങ്കിൽ Amount ബ്ലാങ്ക് ആവുകയും ചെയ്യുമ്പോൾ
+                return (!isDiceEmpty) && (!billNo || !amount || amount === "0");
+            } else {
+                // 2. Quick Dice Mode: Bill No അല്ലെങ്കിൽ Amount ഉണ്ടാവുകയും, Quick Dice ബ്ലാങ്ക് ആവുകയും ചെയ്യുമ്പോൾ
+                const hasBillingData = (billNo !== "") || (amount !== "" && amount !== "0");
+                return hasBillingData && isDiceEmpty;
+            }
+        }
+
+        function renderDashboard() {
+            const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+            const thead = document.getElementById("dashboardHead");
+            const tbody = document.getElementById("dashboardBody");
+            const shortYear = currentYear.toString().slice(-2);
+
+            // 1. Identify which months actually have pending records using Consolidated Data
+            const activeMonthSet = new Set();
+            let parsedRows = [];
+            const consolidatedList = getConsolidatedData();
+
+            consolidatedList.forEach(group => {
+                const supplierName = group.supplier || "Unknown";
+
+                group.sites.forEach(site => {
+                    const siteName = site.site_name;
+                    let pendingMonthMap = {};
+                    let sitePendingCount = 0;
+
+                    for (let m = 0; m < 12; m++) {
+                        const isActive = site.active_months && site.active_months[m];
+                        if (!isActive) continue;
+
+                        const billing = site.billing && site.billing[m] ? site.billing[m] : {};
+                        if (checkIsPending(billing)) {
+                            pendingMonthMap[m] = true;
+                            activeMonthSet.add(m);
+                            sitePendingCount++;
+                        }
+                    }
+
+                    if (sitePendingCount > 0) {
+                        parsedRows.push({
+                            supplierName,
+                            siteName,
+                            pendingCount: sitePendingCount,
+                            pendingMonthMap
+                        });
+                    }
+                });
+            });
+
+            // Sort active month indices chronologically
+            visibleMonthIndices = Array.from(activeMonthSet).sort((a, b) => a - b);
+
+            // 2. Build Dynamic Table Header (Hides entire month column if completely blank)
+            let headHtml = `
+                <tr>
+                    <th style="width: 50px; text-align: center;">SL</th>
+                    <th style="width: 250px;">Owner / Supplier</th>
+                    <th style="width: 220px;">Site Name</th>
+                    <th style="width: 110px; text-align: center;">Total Pending</th>
+            `;
+
+            visibleMonthIndices.forEach(m => {
+                headHtml += `<th class="month-head">${monthsShort[m]} - ${shortYear}</th>`;
+            });
+            headHtml += `</tr>`;
+            thead.innerHTML = headHtml;
+
+            // 3. Render Table Rows with Merged Supplier and SL (Rowspan Logic)
+            tbody.innerHTML = "";
+            let affectedSuppliers = new Set();
+            let affectedSites = 0;
+            let totalPendingCount = 0;
+            let sl = 1;
+
+            const filteredRows = parsedRows.filter(r => 
+                r.supplierName.toLowerCase().includes(searchTerm) ||
+                r.siteName.toLowerCase().includes(searchTerm)
+            );
+
+            // Group by supplier name
+            const supplierRowsMap = new Map();
+            filteredRows.forEach(r => {
+                affectedSuppliers.add(r.supplierName);
+                affectedSites++;
+                totalPendingCount += r.pendingCount;
+
+                if (!supplierRowsMap.has(r.supplierName)) {
+                    supplierRowsMap.set(r.supplierName, []);
+                }
+                supplierRowsMap.get(r.supplierName).push(r);
+            });
+
+            supplierRowsMap.forEach((sitesList, supplierName) => {
+                const rowSpanCount = sitesList.length;
+
+                sitesList.forEach((r, idx) => {
+                    let tr = document.createElement("tr");
+                    let rowHtml = "";
+
+                    // Merge SL and Supplier Name for the first site row
+                    if (idx === 0) {
+                        rowHtml += `
+                            <td rowspan="${rowSpanCount}" style="text-align: center; font-weight: 700; color: #64748b; vertical-align: middle; background: #ffffff;">${sl++}</td>
+                            <td rowspan="${rowSpanCount}" style="font-weight: 700; color: #0f172a; vertical-align: middle; background: #ffffff; padding-left: 14px;">${escapeHTML(supplierName)}</td>
+                        `;
+                    }
+
+                    rowHtml += `
+                        <td style="color: #334155; font-weight: 500;">${escapeHTML(r.siteName)}</td>
+                        <td style="text-align: center; font-weight: 700; color: #dc2626;">${r.pendingCount}</td>
+                    `;
+
+                    // Month Columns
+                    visibleMonthIndices.forEach(m => {
+                        if (r.pendingMonthMap[m]) {
+                            rowHtml += `<td style="text-align: center;">
+                                <span class="pending-badge clickable" title="Click to view & edit QC entry" onclick="openQcModal('${escapeQuotes(r.supplierName)}', '${escapeQuotes(r.siteName)}', ${m})">Pending</span>
+                            </td>`;
+                        } else {
+                            rowHtml += `<td></td>`;
+                        }
+                    });
+
+                    tr.innerHTML = rowHtml;
+                    tbody.appendChild(tr);
+                });
+            });
+
+            // Update KPIs
+            document.getElementById("kpiSupplierCount").innerText = affectedSuppliers.size;
+            document.getElementById("kpiSiteCount").innerText = affectedSites;
+            document.getElementById("kpiPendingCount").innerText = totalPendingCount;
+
+            if (filteredRows.length === 0) {
+                const colSpan = 4 + visibleMonthIndices.length;
+                tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; color: #10b981; padding: 40px; font-weight: 600;">✓ No QC pending issues found for ${currentYear}!</td></tr>`;
+            }
+        }
+
+        // Clean Excel Export Function (Preserving Merged Cells)
+        function exportToExcel() {
+            const table = document.getElementById("pendingTable");
+            if (!table) return;
+
+            // Clone table to format for export
+            const clone = table.cloneNode(true);
+
+            // Clean pending badge text inside clone
+            clone.querySelectorAll(".pending-badge").forEach(b => {
+                b.replaceWith("Pending");
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(clone, { raw: true });
+
+            // Auto column widths
+            const range = XLSX.utils.decode_range(ws['!ref'] || "A1");
+            const colWidths = [];
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                colWidths.push({ wch: 18 });
+            }
+            colWidths[0] = { wch: 6 }; // SL
+            colWidths[1] = { wch: 28 }; // Supplier
+            colWidths[2] = { wch: 26 }; // Site
+            colWidths[3] = { wch: 15 }; // Total Pending
+            ws['!cols'] = colWidths;
+
+            XLSX.utils.book_append_sheet(wb, ws, "QC_Pending");
+            const filePrefix = currentDashboardMode === "zoho" ? "Zoho_Pending" : "QuickDice_Pending";
+            XLSX.writeFile(wb, `${filePrefix}_Dashboard_${currentYear}.xlsx`);
+        }
+
+        function escapeHTML(str) { 
+            return str ? String(str).replace(/[&<>'"]/g, t => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[t] || t) : ""; 
+        }
+
+        function escapeQuotes(str) { 
+            return str ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;") : ""; 
+        }
+
+        // Quick Dice / Amount മാത്സ് എക്സ്പ്രഷനുകൾ (+, -, *, /) കാൽക്കുലേറ്റ് ചെയ്യുന്ന ഫംഗ്ഷൻ
+        function evaluateMathExpression(rawVal) {
+            if (!rawVal) return "";
+            let expr = String(rawVal).trim();
+            if (expr.startsWith("=")) expr = expr.substring(1);
+            expr = expr.replace(/,/g, "").trim();
+
+            if (/^[0-9+\-*/().\s]+$/.test(expr) && /[+\-*/]/.test(expr)) {
+                try {
+                    let calculated = new Function("return " + expr)();
+                    if (isFinite(calculated) && !isNaN(calculated)) {
+                        return Number(calculated.toFixed(2)).toString();
+                    }
+                } catch (e) {}
+            }
+            return rawVal.trim();
+        }
+
+        let activeModalRecord = null;
+
+        // Modal തുറക്കുന്നു (Consolidated Data ഉപയോഗിച്ച്)
+        function openQcModal(supplierName, siteName, monthIdx) {
+            const consolidatedList = getConsolidatedData();
+            let targetGroup = consolidatedList.find(g => (g.supplier || "").trim() === supplierName.trim());
+            if (!targetGroup) return;
+
+            let targetSite = targetGroup.sites.find(s => (s.site_name || "").trim() === siteName.trim());
+            if (!targetSite) return;
+
+            let billing = targetSite.billing && targetSite.billing[monthIdx] ? targetSite.billing[monthIdx] : {};
+
+            // Find matching original raw group for company mapping
+            const origRawGroup = rawData.find(g => 
+                (g.supplier || "").trim() === supplierName.trim() &&
+                g.sites.some(s => (s.site_name || "").trim() === siteName.trim())
+            );
+            const compName = origRawGroup ? origRawGroup.company : targetGroup.company;
+
+            activeModalRecord = {
+                company: compName,
+                supplier: targetGroup.supplier,
+                vat_no: targetGroup.vat_no,
+                display_name: targetGroup.display_name,
+                site_name: targetSite.site_name,
+                month_index: monthIdx,
+                billing: billing
+            };
+
+            const modeTitle = currentDashboardMode === "zoho" ? "Zoho Pending - Edit QC Entry" : "Quick Dice Pending - Enter QC Dice";
+            document.getElementById("modalTitle").innerText = modeTitle;
+
+            document.getElementById("modalSupplier").innerText = activeModalRecord.supplier;
+            document.getElementById("modalSite").innerText = activeModalRecord.site_name;
+            document.getElementById("modalMonth").innerText = `${monthsShort[monthIdx]} - ${currentYear}`;
+
+            document.getElementById("modalBillNo").value = billing.bill_no || "";
+            document.getElementById("modalAmount").value = billing.amount || "";
+            
+            const vendorTsEl = document.getElementById("modalVendorTs");
+            vendorTsEl.innerText = billing.erp_total ? Number(billing.erp_total).toFixed(2) : "0.00";
+            vendorTsEl.style.cursor = "pointer";
+            vendorTsEl.title = "Right-click to copy details | Click to view breakdown";
+            
+            // 🟢 Right click വഴി Plate details copy ചെയ്യൽ, Click വഴി Modal, Hover വഴി Tooltip
+            vendorTsEl.oncontextmenu = (e) => handleTsRightClick(e, activeModalRecord.supplier, activeModalRecord.site_name, monthIdx);
+            vendorTsEl.onclick = () => openTsDetailsModal(activeModalRecord.supplier, activeModalRecord.site_name, monthIdx);
+            vendorTsEl.onmouseenter = function() { loadModalCellTooltip(this, activeModalRecord.supplier, activeModalRecord.site_name, monthIdx); };
+
+            // 🟢 Bill No & Amount എന്നിവയിലും Right-click കോപ്പി സാധ്യമാക്കുന്നു
+            document.getElementById("modalBillNo").oncontextmenu = (e) => handleCopyField(e, document.getElementById("modalBillNo").value, "Bill No");
+            document.getElementById("modalAmount").oncontextmenu = (e) => handleCopyField(e, document.getElementById("modalAmount").value, "Amount");
+
+            document.getElementById("modalQuickDice").value = billing.quick_dice || "";
+
+            const statusEl = document.getElementById("modalStatusMsg");
+            statusEl.innerText = "";
+            statusEl.style.color = "";
+
+            document.getElementById("qcEditModal").style.display = "flex";
+
+            // Quick Dice മോഡിലാണെങ്കിൽ നേരെ Quick Dice ഫീൽഡിലേക്ക് ഫോക്കസ് നൽകുന്നു
+            setTimeout(() => {
+                if (currentDashboardMode === "quick_dice") {
+                    document.getElementById("modalQuickDice").focus();
+                } else {
+                    document.getElementById("modalBillNo").focus();
+                }
+            }, 100);
+        }
+
+        // 🟢 Vendor TS Breakdown & Vehicle Copy Logic
+        const tsDetailsCache = {};
+        const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        async function fetchVehicleBreakdown(supplier, siteName, monthIdx) {
+            const cacheKey = `${supplier}_${siteName}_${currentYear}_${monthIdx}`;
+            if (tsDetailsCache[cacheKey]) return tsDetailsCache[cacheKey];
+
+            try {
+                const url = `/timesheet/api/vat-tracking/vendor-breakdown?supplier=${encodeURIComponent(supplier)}&site=${encodeURIComponent(siteName)}&year=${currentYear}&month=${monthIdx + 1}`;
+                const res = await fetch(url, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+                        const list = json.data.map(v => ({
+                            plate: v.plate_no || "N/A",
+                            nr: Number(v.nr_hours || 0),
+                            ot: Number(v.ot_hours || 0),
+                            total: Number(v.total_amount || 0)
+                        }));
+                        tsDetailsCache[cacheKey] = list;
+                        return list;
+                    }
+                }
+            } catch (err) {
+                console.warn("Breakdown fetch error:", err);
+            }
+            return [];
+        }
+
+        // Helper to extract site name according to Z-prefix rule, company & L&T filtering
+        function getCleanSiteForDescription(siteName) {
+            if (!siteName) return "";
+            let trimmed = siteName.trim();
+            let startsWithZ = /^z[\s\-_]+/i.test(trimmed);
+
+            const stripCompaniesAndLT = (str) => {
+                return str
+                    .replace(/l\s*&\s*t/gi, "")
+                    .replace(/\bmasar\s+wheels\b/gi, "")
+                    .replace(/\bmasar\b/gi, "")
+                    .replace(/\bal\s*joda\b/gi, "")
+                    .replace(/\baljoda\b/gi, "")
+                    .replace(/\bwe\s*1\b/gi, "")
+                    .replace(/\bwe1\b/gi, "")
+                    .replace(/\bhaka\b/gi, "")
+                    .replace(/\s+/g, " ")
+                    .trim();
+            };
+
+            if (startsWithZ) {
+                // Remove leading Z/z and then strip all company words and L&T from the full remaining name
+                let withoutZ = trimmed.replace(/^z[\s\-_]+/i, "").trim();
+                return stripCompaniesAndLT(withoutZ);
+            } else {
+                // For standard sites, strip L&T and company words if present in the base name
+                let withoutLT = str => str.replace(/l\s*&\s*t/gi, "").trim();
+                let cleanedName = withoutLT(trimmed);
+                let firstWord = cleanedName.split(/[\s\-_]+/)[0] || "";
+                return stripCompaniesAndLT(firstWord);
+            }
+        }
+
+        function formatPlateDetails(plates, monthIdx, siteName) {
+            const shortM = monthsFull[monthIdx].substring(0, 3);
+            const shortY = currentYear.toString().slice(-2);
+            const cleanSite = getCleanSiteForDescription(siteName);
+            const sitePrefix = cleanSite ? `${cleanSite} ` : "";
+            const label = `${shortM}-${shortY} ${sitePrefix}Rent Bill`;
+
+            if (!plates || plates.length === 0) return label;
+            
+            const parts = plates.map(p => {
+                const nrPart = `NR ${p.nr}`;
+                const otPart = (Number(p.ot) > 0) ? `  OT ${p.ot}` : '';
+                return `${p.plate} [${nrPart}${otPart}]`;
+            });
+            
+            return `${label} (${parts.join(", ")})`;
+        }
+
+        async function loadModalCellTooltip(tdEl, supplier, siteName, monthIdx) {
+            const plates = await fetchVehicleBreakdown(supplier, siteName, monthIdx);
+            tdEl.title = formatPlateDetails(plates, monthIdx, siteName) + " | Click to view breakdown";
+        }
+
+        async function handleTsRightClick(event, supplier, siteName, monthIdx) {
+            event.preventDefault();
+            const statusEl = document.getElementById("modalStatusMsg");
+            statusEl.style.color = "#f59e0b";
+            statusEl.innerText = "Preparing details to copy...";
+
+            const plates = await fetchVehicleBreakdown(supplier, siteName, monthIdx);
+            const textToCopy = formatPlateDetails(plates, monthIdx, siteName);
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                statusEl.style.color = "#10b981";
+                statusEl.innerText = `✓ Copied: "${textToCopy}"`;
+                setTimeout(() => { if (statusEl.innerText.includes("Copied")) statusEl.innerText = ""; }, 4000);
+            }).catch(() => {
+                statusEl.style.color = "#ef4444";
+                statusEl.innerText = "Copy failed!";
+            });
+        }
+
+        function handleCopyField(event, val, fieldName) {
+            event.preventDefault();
+            const cleanVal = String(val || '').trim();
+            const statusEl = document.getElementById("modalStatusMsg");
+            if (!cleanVal) return;
+
+            navigator.clipboard.writeText(cleanVal).then(() => {
+                statusEl.style.color = "#10b981";
+                statusEl.innerText = `✓ Copied ${fieldName}: "${cleanVal}"`;
+                setTimeout(() => { if (statusEl.innerText.includes("Copied")) statusEl.innerText = ""; }, 3000);
+            });
+        }
+
+        async function openTsDetailsModal(supplier, siteName, monthIdx) {
+            const mName = monthsFull[monthIdx];
+            document.getElementById("tsModalTitle").innerText = `${mName} - ${siteName} Breakdown`;
+            const tbody = document.getElementById("tsBreakdownBody");
+            const tfoot = document.getElementById("tsBreakdownFoot");
+            
+            tbody.innerHTML = `<tr><td colspan="4" style="color:#64748b; padding: 20px;">Fetching Plate & Hours data...</td></tr>`;
+            tfoot.innerHTML = "";
+            document.getElementById("tsDetailsModal").style.display = "flex";
+
+            const plates = await fetchVehicleBreakdown(supplier, siteName, monthIdx);
+            tbody.innerHTML = "";
+            if (!plates || plates.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color:#94a3b8; padding: 20px;">No vehicles found for this site & month</td></tr>`;
+            } else {
+                let totalNr = 0, totalOt = 0, grandTotal = 0;
+                plates.forEach(p => {
+                    totalNr += p.nr;
+                    totalOt += p.ot;
+                    grandTotal += p.total;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="font-weight: 600;">${escapeHTML(p.plate)}</td>
+                            <td>${p.nr}</td>
+                            <td>${p.ot}</td>
+                            <td style="font-weight: 600;">${p.total > 0 ? p.total.toFixed(2) : ""}</td>
+                        </tr>
+                    `;
+                });
+                tfoot.innerHTML = `
+                    <tr style="background: #f1f5f9; font-weight: 700;">
+                        <td>Total</td>
+                        <td>${totalNr.toFixed(2)}</td>
+                        <td>${totalOt.toFixed(2)}</td>
+                        <td style="color: #0f766e;">${grandTotal > 0 ? grandTotal.toFixed(2) : ""}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        function closeTsModal() {
+            document.getElementById("tsDetailsModal").style.display = "none";
+        }
+
+        function closeQcModal() {
+            document.getElementById("qcEditModal").style.display = "none";
+            activeModalRecord = null;
+        }
+
+        // മോഡലിൽ എന്റർ ചെയ്ത ഡാറ്റ സേവ് ചെയ്യുന്നു
+        async function saveQcModalData() {
+            if (!activeModalRecord) return;
+
+            const billNoVal = document.getElementById("modalBillNo").value.trim();
+            let amountVal = document.getElementById("modalAmount").value.trim();
+            let quickDiceVal = document.getElementById("modalQuickDice").value.trim();
+
+            if (amountVal !== "") amountVal = evaluateMathExpression(amountVal);
+            if (quickDiceVal !== "") quickDiceVal = evaluateMathExpression(quickDiceVal);
+
+            const statusEl = document.getElementById("modalStatusMsg");
+            statusEl.style.color = "#f59e0b";
+            statusEl.innerText = "Saving changes...";
+
+            const updates = [];
+            const fields = [
+                { field: "bill_no", value: billNoVal, old: activeModalRecord.billing.bill_no || "" },
+                { field: "amount", value: amountVal, old: activeModalRecord.billing.amount || "" },
+                { field: "quick_dice", value: quickDiceVal, old: activeModalRecord.billing.quick_dice || "" }
+            ];
+
+            fields.forEach(f => {
+                if (f.value !== f.old) {
+                    updates.push({
+                        year: currentYear,
+                        company: activeModalRecord.company,
+                        supplier: activeModalRecord.supplier,
+                        vat_no: activeModalRecord.vat_no,
+                        display_name: activeModalRecord.display_name,
+                        site_name: activeModalRecord.site_name,
+                        month_index: activeModalRecord.month_index,
+                        field: f.field,
+                        value: f.value
+                    });
+                }
+            });
+
+            if (updates.length === 0) {
+                statusEl.style.color = "#10b981";
+                statusEl.innerText = "No changes detected.";
+                setTimeout(closeQcModal, 700);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/update-bulk`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
+                    body: JSON.stringify({ changes: updates })
+                });
+
+                const json = await res.json();
+                if (json.success) {
+                    statusEl.style.color = "#10b981";
+                    statusEl.innerText = "✓ Saved successfully!";
+
+                    // 🟢 1. കൃത്യമായ ഗ്രൂപ്പും സൈറ്റും കണ്ടുപിടിച്ച് rawData അപ്‌ഡേറ്റ് ചെയ്യുന്നു
+                    rawData.forEach(group => {
+                        if ((group.supplier || "").trim() === activeModalRecord.supplier.trim()) {
+                            const site = group.sites.find(s => (s.site_name || "").trim() === activeModalRecord.site_name.trim());
+                            if (site) {
+                                if (!site.billing[activeModalRecord.month_index]) {
+                                    site.billing[activeModalRecord.month_index] = {};
+                                }
+                                site.billing[activeModalRecord.month_index].bill_no = billNoVal;
+                                site.billing[activeModalRecord.month_index].amount = amountVal;
+                                site.billing[activeModalRecord.month_index].quick_dice = quickDiceVal;
+                            }
+                        }
+                    });
+
+                    setTimeout(async () => {
+                        closeQcModal();
+                        // 🟢 2. പേജ് റീലോഡ് ചെയ്യാതെ തന്നെ ബാക്ക്-എൻഡിൽ നിന്ന് ഡാറ്റ റിഫ്രഷ് ചെയ്യുന്നു
+                        await fetchDataSilent();
+                    }, 600);
+                } else {
+                    statusEl.style.color = "#ef4444";
+                    statusEl.innerText = "Error: " + (json.message || "Failed to save");
+                }
+            } catch (err) {
+                statusEl.style.color = "#ef4444";
+                statusEl.innerText = "Network Error while saving.";
+            }
+        }
+    </script>
+</body>
+</html>

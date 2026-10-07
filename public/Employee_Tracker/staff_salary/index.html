@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Salary Management</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #eef2f5;
+            margin: 0;
+            padding: 0;
+            font-size: 13px;
+        }
+
+        .ribbon {
+            background: #fff;
+            padding: 15px 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            border-bottom: 1px solid #ccc;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .ribbon h2 {
+            margin: 0;
+            margin-right: auto;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+
+        .ribbon select,
+        .ribbon button {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-edit-all {
+            background: #dc3545;
+            color: white;
+            border: none !important;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-save-all {
+            background: #28a745;
+            color: white;
+            border: none !important;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            border: none !important;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            white-space: nowrap;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .calc-field {
+            font-weight: bold;
+            background: #f8f9fa;
+        }
+
+/* Center alignment class */
+.text-center {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+        /*
+         * Editable cells
+         *
+         * No input box.
+         * No blue border.
+         */
+
+        .editable {
+            cursor: text;
+            background: #fffdf2;
+            outline: none;
+        }
+
+        .editable:focus {
+            background: #fff8d6;
+            outline: none;
+        }
+
+        /*
+         * Numeric editable cells
+         */
+
+        .editable-number {
+            text-align: right;
+        }
+
+        /*
+         * Currency and Status
+         */
+
+        .editable-select {
+            cursor: pointer;
+            font-weight: 600;
+            background: #fffdf2;
+        }
+
+        /*
+         * Dropdown inside table cell
+         */
+
+        .cell-select {
+            width: 100%;
+            min-width: 75px;
+            padding: 4px 6px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background: #fffdf2;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .cell-select:focus {
+            background: #fff8d6;
+            border-color: #999;
+            outline: none;
+        }
+
+        /*
+         * Save / Cancel buttons hidden by default
+         */
+
+        #editControls {
+            display: none;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #normalControls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 12px;
+            position: fixed;
+            right: 30px;
+            bottom: 30px;
+            z-index: 1000;
+        }
+
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein {
+            from {
+                bottom: 0;
+                opacity: 0;
+            }
+
+            to {
+                bottom: 30px;
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeout {
+            from { bottom: 30px; opacity: 1; }
+            to { bottom: 0; opacity: 0; }
+        }
+
+        /* Export Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: #fff; padding: 25px; border-radius: 6px;
+            width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .modal-content h3 { margin-top: 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-group { margin-bottom: 15px; }
+        .modal-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        .modal-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    </style>
+</head>
+
+<body>
+
+<div class="ribbon">
+
+    <h2>Staff Salary Management</h2>
+
+    <label>Month:</label>
+
+    <select id="monthSelect">
+        <option value="01">January</option>
+        <option value="02">February</option>
+        <option value="03">March</option>
+        <option value="04">April</option>
+        <option value="05">May</option>
+        <option value="06">June</option>
+        <option value="07">July</option>
+        <option value="08">August</option>
+        <option value="09">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+    </select>
+
+    <label>Year:</label>
+
+    <select id="yearSelect"></select>
+
+    <button
+        class="btn-primary"
+        onclick="loadSalaryData()">
+        Load Data
+    </button>
+
+    <!-- NORMAL MODE -->
+    <div id="normalControls">
+
+        <button
+            class="btn-edit-all"
+            onclick="enableEditAll()">
+            Edit All
+        </button>
+
+    </div>
+
+
+    <!-- EDIT MODE -->
+    <div id="editControls">
+
+        <button
+            class="btn-save-all"
+            onclick="saveAll()">
+            Save All
+        </button>
+
+        <button
+            class="btn-cancel"
+            onclick="cancelEdit()">
+            Cancel
+        </button>
+
+    </div>
+
+    <button 
+        class="btn-primary" 
+        style="background: #17a2b8; margin-left: 10px; margin-right: 10px;" 
+        onclick="openExportModal()">
+        Export Options
+    </button>
+
+    <button
+        class="action-btn"
+        style="
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-weight: bold;
+        "
+        onclick="logout()">
+        Logout
+    </button>
+
+</div>
+
+
+<div class="container">
+
+    <table id="salaryTable">
+
+        <thead>
+
+            <tr>
+                <th>SN</th>
+                <th>Employee Name</th>
+                <th>Designation</th>
+                <th class="text-center">Basic Salary</th>
+                <th class="text-center">Over Time</th>
+                <th class="text-center">Food Allowance</th>
+                <th class="text-center">Mobile Allowance</th>
+                <th class="text-center">Gross Salary</th>
+                <th class="text-center">Present Days</th>
+                <th class="text-center">Commission</th>
+                <th class="text-center">Staff Remittance</th>
+                <th class="text-center">Deductions</th>
+                <th class="text-center">Total Payable</th>
+                <th class="text-center">Currency</th>
+                <th>Status</th>
+                <th>Remark</th>
+            </tr>
+
+        </thead>
+
+        <tbody id="salaryBody">
+
+            <tr>
+                <td colspan="14"
+                    style="text-align: center; padding: 20px;">
+                    Select Month and Year to load active staff.
+                </td>
+            </tr>
+
+        </tbody>
+
+    </table>
+
+</div>
+
+
+<div id="toast"></div>
+
+<!-- Export Modal UI -->
+<div class="modal-overlay" id="exportModal">
+    <div class="modal-content">
+        <h3>Export Salary Data</h3>
+        <div class="modal-group">
+            <label>Select Export Type</label>
+            <select id="exportType" onchange="toggleBatchOptions()">
+                <option value="single">1. Export Current View Month</option>
+                <option value="batch">2. Batch Export (Custom Period)</option>
+            </select>
+        </div>
+        
+        <div id="batchOptions" style="display: none;">
+            <div class="modal-group">
+                <label>From Period</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="batchStartMonth"></select>
+                    <select id="batchStartYear"></select>
+                </div>
+            </div>
+            <div class="modal-group">
+                <label>To Period</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="batchEndMonth"></select>
+                    <select id="batchEndYear"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" style="padding: 8px 15px;" onclick="closeExportModal()">Close</button>
+            <button class="btn-primary" style="background: #28a745; padding: 8px 15px;" onclick="executeExport()">Download Excel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    /*
+     * Global edit mode
+     */
+
+    let editMode = false;
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+
+        // Check Authentication using correct keys
+        const user = localStorage.getItem('emp_user');
+
+        if (!user) {
+
+            window.location.href =
+                '../index.html?redirect=' +
+                encodeURIComponent(window.location.href);
+
+            return;
+        }
+
+
+        const date = new Date();
+
+        document.getElementById('monthSelect').value =
+            String(date.getMonth() + 1).padStart(2, '0');
+
+
+        const yearSelect =
+            document.getElementById('yearSelect');
+
+        const currentYear =
+            date.getFullYear();
+
+
+        for (
+            let i = currentYear - 2;
+            i <= currentYear + 2;
+            i++
+        ) {
+
+            yearSelect.innerHTML +=
+                `<option value="${i}" ${
+                    i === currentYear
+                        ? 'selected'
+                        : ''
+                }>${i}</option>`;
+
+        }
+
+
+        loadSalaryData();
+
+    });
+
+
+    function logout() {
+
+        localStorage.removeItem('emp_user');
+        localStorage.removeItem('emp_token');
+
+        window.location.href = '../index.html';
+
+    }
+
+
+    function showToast(msg) {
+
+        const t =
+            document.getElementById("toast");
+
+        t.innerText = msg;
+
+        t.className = "show";
+
+        setTimeout(() => {
+            t.className = "";
+        }, 3000);
+
+    }
+
+
+    function cleanNum(val) {
+
+        return parseFloat(val) || 0;
+
+    }
+
+
+    /*
+     * DESIGNATION ORDER
+     *
+     * Required order:
+     *
+     * 1. Managing Director
+     * 2. Co ordinators
+     * 3. Account
+     * 4. Jr. Account
+     * 5. Office Admini
+     *
+     * Other designations will come after these.
+     */
+
+    function getDesignationOrder(designation) {
+
+        const value =
+            String(designation || '')
+                .toLowerCase()
+                .replace(/[.\-_/]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+
+        /*
+         * Managing Director
+         */
+
+        if (
+            value.includes('managing director') ||
+            value.includes('director')
+        ) {
+            return 1;
+        }
+
+
+        /*
+         * Co ordinators
+         *
+         * Supports:
+         * Co ordinator
+         * Co ordinators
+         * Coordinator
+         * Coordinators
+         */
+
+        if (
+            value.includes('co ordinator') ||
+            value.includes('coordinator')
+        ) {
+            return 2;
+        }
+
+
+        /*
+         * Jr. Account
+         *
+         * This check must come BEFORE Account,
+         * otherwise Jr. Account would be treated
+         * as Account.
+         */
+
+        if (
+            value.includes('jr account') ||
+            value.includes('junior account')
+        ) {
+            return 4;
+        }
+
+
+        /*
+         * Account
+         */
+
+        if (
+            value === 'account' ||
+            value.includes('account')
+        ) {
+            return 3;
+        }
+
+
+        /*
+         * Office Admini
+         *
+         * Supports:
+         * Office Admin
+         * Office Admini
+         * Office Administrator
+         */
+
+        if (
+            value.includes('office admin')
+        ) {
+            return 5;
+        }
+
+
+        /*
+         * Any other designation
+         * comes after the required order.
+         */
+
+        return 999;
+
+    }
+
+
+    /*
+     * Sort staff by designation.
+     */
+
+    function sortStaffByDesignation(staffData) {
+
+        return staffData
+            .map((row, originalIndex) => ({
+                row: row,
+                originalIndex: originalIndex
+            }))
+            .sort((a, b) => {
+
+                const orderA =
+                    getDesignationOrder(
+                        a.row.designations
+                    );
+
+                const orderB =
+                    getDesignationOrder(
+                        b.row.designations
+                    );
+
+
+                /*
+                 * If designation priority is different,
+                 * use required designation order.
+                 */
+
+                if (
+                    orderA !== orderB
+                ) {
+
+                    return orderA - orderB;
+
+                }
+
+
+                /*
+                 * If same designation,
+                 * keep original API order.
+                 */
+
+                return a.originalIndex -
+                    b.originalIndex;
+
+            })
+            .map(item => item.row);
+
+    }
+
+
+    /*
+     * LOAD DATA
+     */
+
+    /* Helper function to display empty string if value is 0 */
+    function formatZero(val) {
+        return val === 0 ? '' : val.toFixed(2);
+    }
+
+    async function loadSalaryData() {
+
+        editMode = false;
+
+        setNormalMode();
+
+
+        const month =
+            document.getElementById('monthSelect').value;
+
+        const year =
+            document.getElementById('yearSelect').value;
+
+        const tbody =
+            document.getElementById('salaryBody');
+
+        /* Changed colspan from 14 to 16 because we added Over Time & Remittance */
+        tbody.innerHTML =
+            '<tr><td colspan="16" style="text-align: center;">Loading...</td></tr>';
+
+
+        try {
+
+            const res =
+                await fetch(
+                    `/api/staff-salary/data?month_year=${year}-${month}`
+                );
+
+
+            const data =
+                await res.json();
+
+
+            if (
+                !data.success ||
+                data.data.length === 0
+            ) {
+
+                tbody.innerHTML =
+                    '<tr><td colspan="16" style="text-align: center;">No active staff found for this month.</td></tr>';
+
+                return;
+
+            }
+
+
+            tbody.innerHTML = '';
+
+
+            const sortedData =
+                sortStaffByDesignation(
+                    data.data
+                );
+
+
+            sortedData.forEach((row, index) => {
+
+                const basic = cleanNum(row.basic_salary);
+                const ot = cleanNum(row.over_time);
+                const food = cleanNum(row.food_allowance);
+                const mob = cleanNum(row.mobile_allowance);
+                const gross = basic + ot + food + mob;
+                const days = cleanNum(row.present_days);
+                const comm = cleanNum(row.commission);
+                const remit = cleanNum(row.staff_remittance);
+                const ded = cleanNum(row.deduction);
+                const total = (gross + comm + remit) - ded;
+
+                tbody.innerHTML += `
+                    <tr id="row-${index}">
+                        <td>${index + 1}</td>
+                        <td><b>${row.name}</b><input type="hidden" class="emp_id" value="${row.emp_id}"></td>
+                        <td>${row.designations}</td>
+                        <td class="col-basic text-center" data-value="${basic}">${formatZero(basic)}</td>
+                        <td class="col-ot text-center" data-value="${ot}">${formatZero(ot)}</td>
+                        <td class="col-food text-center" data-value="${food}">${formatZero(food)}</td>
+                        <td class="col-mob text-center" data-value="${mob}">${formatZero(mob)}</td>
+                        <td class="col-gross calc-field text-center">${formatZero(gross)}</td>
+                        <td class="col-days text-center" data-value="${days}">${days === 0 ? '' : days}</td>
+                        <td class="col-comm text-center" data-value="${comm}">${formatZero(comm)}</td>
+                        <td class="col-remit text-center" data-value="${remit}">${formatZero(remit)}</td>
+                        <td class="col-ded text-center" data-value="${ded}">${formatZero(ded)}</td>
+                        <td class="col-total calc-field text-center">${formatZero(total)}</td>
+                        <td class="col-curr text-center" data-value="${row.currency || 'SAR'}">${row.currency || 'SAR'}</td>
+                        <td class="col-status text-center" data-value="${row.status || 'Unpaid'}" style="font-weight: bold; color: ${row.status === 'Paid' ? 'green' : (row.status === 'Hold' ? 'orange' : 'red')}">${row.status || 'Unpaid'}</td>
+                        <td class="col-remark" data-value="${row.remark || ''}">${row.remark || '-'}</td>
+                    </tr>
+                `;
+
+            });
+
+        } catch (e) {
+            tbody.innerHTML =
+                '<tr><td colspan="16" style="color: red; text-align: center;">Failed to load data.</td></tr>';
+        }
+    }
+
+
+    /*
+     * EDIT ALL
+     *
+     * All editable cells become editable.
+     * Currency and Status become dropdowns.
+     */
+
+    function enableEditAll() {
+
+        const rows = document.querySelectorAll('#salaryBody tr[id^="row-"]');
+
+        if (rows.length === 0) {
+            showToast("No staff data available");
+            return;
+        }
+
+        editMode = true;
+
+        rows.forEach((tr) => {
+            makeCellEditable(tr.querySelector('.col-basic'), 'number');
+            makeCellEditable(tr.querySelector('.col-ot'), 'number');
+            makeCellEditable(tr.querySelector('.col-food'), 'number');
+            makeCellEditable(tr.querySelector('.col-mob'), 'number');
+            makeCellEditable(tr.querySelector('.col-days'), 'number');
+            makeCellEditable(tr.querySelector('.col-comm'), 'number');
+            makeCellEditable(tr.querySelector('.col-remit'), 'number');
+            makeCellEditable(tr.querySelector('.col-ded'), 'number');
+            makeCellEditable(tr.querySelector('.col-curr'), 'currency');
+            makeCellEditable(tr.querySelector('.col-status'), 'status');
+            makeCellEditable(tr.querySelector('.col-remark'), 'text');
+        });
+
+        setEditMode();
+        showToast("Edit mode enabled");
+
+    }
+
+
+    /*
+     * Make a table cell editable.
+     *
+     * Number/Text = contenteditable
+     * Currency/Status = dropdown
+     */
+
+    function makeCellEditable(cell, type) {
+
+        if (!cell) {
+            return;
+        }
+
+
+        let value =
+            cell.dataset.value || '';
+
+
+        /*
+         * CURRENCY DROPDOWN
+         */
+
+        if (type === 'currency') {
+
+            cell.contentEditable = "false";
+
+            cell.classList.add('editable-select');
+
+            cell.innerHTML = `
+                <select class="cell-select currency-select">
+                    <option value="SAR">SAR</option>
+                    <option value="INR">INR</option>
+                    <option value="USD">USD</option>
+                </select>
+            `;
+
+
+            const select =
+                cell.querySelector('.currency-select');
+
+
+            if (
+                ['SAR', 'INR', 'USD'].includes(value)
+            ) {
+
+                select.value = value;
+
+            } else {
+
+                select.value = 'SAR';
+
+            }
+
+
+            select.addEventListener(
+                'change',
+                function () {
+
+                    cell.dataset.value =
+                        this.value;
+
+                }
+            );
+
+
+            return;
+
+        }
+
+
+        /*
+         * STATUS DROPDOWN
+         */
+
+        if (type === 'status') {
+
+            cell.contentEditable = "false";
+
+            cell.classList.add('editable-select');
+
+            cell.innerHTML = `
+                <select class="cell-select status-select">
+                    <option value="Unpaid">Unpaid</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Hold">Hold</option>
+                </select>
+            `;
+
+
+            const select =
+                cell.querySelector('.status-select');
+
+
+            if (
+                ['Unpaid', 'Paid', 'Hold'].includes(value)
+            ) {
+
+                select.value = value;
+
+            } else {
+
+                select.value = 'Unpaid';
+
+            }
+
+
+            updateStatusColor(cell);
+
+
+            select.addEventListener(
+                'change',
+                function () {
+
+                    cell.dataset.value =
+                        this.value;
+
+                    updateStatusColor(cell);
+
+                }
+            );
+
+
+            return;
+
+        }
+
+
+        /*
+         * TEXT / NUMBER EDITABLE CELLS
+         */
+
+        if (
+            type === 'text' &&
+            value === ''
+        ) {
+
+            cell.innerText = '';
+
+        } else {
+
+            cell.innerText = value;
+
+        }
+
+
+        cell.contentEditable = "true";
+
+        cell.classList.add('editable');
+
+
+        /*
+         * NUMBER
+         */
+
+        if (
+            type === 'number'
+        ) {
+
+            cell.classList.add(
+                'editable-number'
+            );
+
+
+            cell.addEventListener(
+                'input',
+                function () {
+
+                    /*
+                     * Allow only number-like characters.
+                     */
+
+                    let cleaned =
+                        this.innerText.replace(
+                            /[^0-9.-]/g,
+                            ''
+                        );
+
+
+                    if (
+                        cleaned !== this.innerText
+                    ) {
+
+                        this.innerText =
+                            cleaned;
+
+                        placeCaretAtEnd(this);
+
+                    }
+
+
+                    calculateRow(
+                        cell.closest('tr')
+                    );
+
+                }
+            );
+
+        }
+
+
+        /*
+         * TEXT
+         */
+
+        if (
+            type === 'text'
+        ) {
+
+            cell.addEventListener(
+                'focus',
+                function () {
+
+                    if (
+                        this.innerText.trim() === '-'
+                    ) {
+
+                        this.innerText = '';
+
+                    }
+
+                }
+            );
+
+        }
+
+    }
+
+
+    /*
+     * Put cursor at end of contenteditable cell.
+     */
+
+    function placeCaretAtEnd(el) {
+
+        el.focus();
+
+        const range =
+            document.createRange();
+
+        const selection =
+            window.getSelection();
+
+        range.selectNodeContents(el);
+
+        range.collapse(false);
+
+        selection.removeAllRanges();
+
+        selection.addRange(range);
+
+    }
+
+
+    /*
+     * Calculate Gross Salary and Total Payable.
+     */
+
+    function calculateRow(tr) {
+        if (!tr) return;
+
+        const basic = cleanNum(tr.querySelector('.col-basic').innerText);
+        const ot = cleanNum(tr.querySelector('.col-ot').innerText);
+        const food = cleanNum(tr.querySelector('.col-food').innerText);
+        const mob = cleanNum(tr.querySelector('.col-mob').innerText);
+        const comm = cleanNum(tr.querySelector('.col-comm').innerText);
+        const remit = cleanNum(tr.querySelector('.col-remit').innerText);
+        const ded = cleanNum(tr.querySelector('.col-ded').innerText);
+
+        const gross = basic + ot + food + mob;
+        const total = (gross + comm + remit) - ded;
+
+        tr.querySelector('.col-gross').innerText = formatZero(gross);
+        tr.querySelector('.col-total').innerText = formatZero(total);
+    }
+
+
+    /*
+     * Update status colour.
+     */
+
+    function updateStatusColor(cell) {
+
+        let status = '';
+
+        /*
+         * If dropdown exists, get value from dropdown.
+         */
+
+        const select =
+            cell.querySelector('.status-select');
+
+
+        if (select) {
+
+            status =
+                select.value;
+
+        } else {
+
+            status =
+                cell.innerText.trim();
+
+        }
+
+
+        if (
+            status === 'Paid'
+        ) {
+
+            cell.style.color =
+                'green';
+
+        } else if (
+            status === 'Hold'
+        ) {
+
+            cell.style.color =
+                'orange';
+
+        } else {
+
+            cell.style.color =
+                'red';
+
+        }
+
+    }
+
+
+    /*
+     * SAVE ALL
+     */
+
+    async function saveAll() {
+
+        if (!editMode) {
+
+            showToast(
+                "Click Edit All first"
+            );
+
+            return;
+
+        }
+
+
+        const rows =
+            document.querySelectorAll(
+                '#salaryBody tr[id^="row-"]'
+            );
+
+
+        if (rows.length === 0) {
+
+            showToast(
+                "No staff data available"
+            );
+
+            return;
+
+        }
+
+
+        const saveButton =
+            document.querySelector(
+                '.btn-save-all'
+            );
+
+        const cancelButton =
+            document.querySelector(
+                '.btn-cancel'
+            );
+
+
+        saveButton.disabled = true;
+
+        cancelButton.disabled = true;
+
+
+        let allSuccess = true;
+
+
+        try {
+
+            for (
+                const tr of rows
+            ) {
+
+                const success =
+                    await saveRow(tr);
+
+
+                if (!success) {
+
+                    allSuccess = false;
+
+                    break;
+
+                }
+
+            }
+
+
+            if (allSuccess) {
+
+                showToast(
+                    "All salary records saved successfully"
+                );
+
+
+                await loadSalaryData();
+
+
+            } else {
+
+                showToast(
+                    "Some records could not be saved"
+                );
+
+            }
+
+
+        } catch (e) {
+
+            showToast(
+                "Error while saving all records"
+            );
+
+        } finally {
+
+            saveButton.disabled = false;
+
+            cancelButton.disabled = false;
+
+        }
+
+    }
+
+
+    /*
+     * SAVE ONE ROW INTERNALLY
+     */
+
+    async function saveRow(tr) {
+        const payload = {
+            month_year: `${document.getElementById('yearSelect').value}-${document.getElementById('monthSelect').value}`,
+            emp_id: tr.querySelector('.emp_id').value,
+            basic_salary: getCellValue(tr, '.col-basic'),
+            over_time: getCellValue(tr, '.col-ot'),
+            food_allowance: getCellValue(tr, '.col-food'),
+            mobile_allowance: getCellValue(tr, '.col-mob'),
+            present_days: getCellValue(tr, '.col-days'),
+            commission: getCellValue(tr, '.col-comm'),
+            staff_remittance: getCellValue(tr, '.col-remit'),
+            deduction: getCellValue(tr, '.col-ded'),
+            currency: getCellValue(tr, '.col-curr'),
+            status: getCellValue(tr, '.col-status'),
+            remark: getCellValue(tr, '.col-remark')
+        };
+
+        try {
+            const res = await fetch('/api/staff-salary/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                return true;
+            }
+
+            return false;
+
+        } catch (e) {
+            return false;
+        }
+    }
+
+
+    /*
+     * Get cell value safely.
+     *
+     * Currency / Status dropdown values
+     * are read directly from SELECT.
+     */
+
+    function getCellValue(
+        tr,
+        selector
+    ) {
+
+        const cell =
+            tr.querySelector(selector);
+
+
+        if (!cell) {
+            return '';
+        }
+
+
+        /*
+         * Currency dropdown
+         */
+
+        if (
+            selector === '.col-curr'
+        ) {
+
+            const select =
+                cell.querySelector(
+                    '.currency-select'
+                );
+
+
+            if (select) {
+
+                return select.value;
+
+            }
+
+        }
+
+
+        /*
+         * Status dropdown
+         */
+
+        if (
+            selector === '.col-status'
+        ) {
+
+            const select =
+                cell.querySelector(
+                    '.status-select'
+                );
+
+
+            if (select) {
+
+                return select.value;
+
+            }
+
+        }
+
+
+        let value =
+            cell.innerText.trim();
+
+
+        /*
+         * Remark empty value
+         */
+
+        if (
+            selector === '.col-remark' &&
+            value === '-'
+        ) {
+
+            value = '';
+
+        }
+
+
+        return value;
+
+    }
+
+
+    /*
+     * CANCEL EDIT MODE
+     *
+     * Reloads original server data.
+     */
+
+    function cancelEdit() {
+
+        if (!editMode) {
+
+            return;
+
+        }
+
+
+        editMode = false;
+
+
+        loadSalaryData();
+
+
+        showToast(
+            "Changes cancelled"
+        );
+
+    }
+
+
+    /*
+     * NORMAL MODE
+     */
+
+    function setNormalMode() {
+
+        document.getElementById(
+            'normalControls'
+        ).style.display =
+            'flex';
+
+
+        document.getElementById(
+            'editControls'
+        ).style.display =
+            'none';
+
+    }
+
+
+    /*
+     * EDIT MODE
+     */
+
+    function setEditMode() {
+
+        document.getElementById(
+            'normalControls'
+        ).style.display =
+            'none';
+
+
+        document.getElementById(
+            'editControls'
+        ).style.display =
+            'flex';
+
+    }
+
+
+    /*
+     * EXPORT MODAL & LOGIC
+     */
+    function openExportModal() {
+        const date = new Date();
+        const currentMonth = String(date.getMonth() + 1).padStart(2, '0');
+        const currentYear = date.getFullYear();
+
+        const months = ['01-January','02-February','03-March','04-April','05-May','06-June','07-July','08-August','09-September','10-October','11-November','12-December'];
+        
+        ['batchStartMonth', 'batchEndMonth'].forEach(id => {
+            document.getElementById(id).innerHTML = months.map(m => {
+                let [val, name] = m.split('-');
+                return `<option value="${val}" ${val === currentMonth ? 'selected' : ''}>${name}</option>`;
+            }).join('');
+        });
+
+        ['batchStartYear', 'batchEndYear'].forEach(id => {
+            let sel = document.getElementById(id);
+            sel.innerHTML = '';
+            for(let i = currentYear - 2; i <= currentYear + 2; i++) {
+                sel.innerHTML += `<option value="${i}" ${i === currentYear ? 'selected' : ''}>${i}</option>`;
+            }
+        });
+
+        document.getElementById('exportType').value = 'single';
+        toggleBatchOptions();
+        document.getElementById('exportModal').style.display = 'flex';
+    }
+
+    function closeExportModal() {
+        document.getElementById('exportModal').style.display = 'none';
+    }
+
+    function toggleBatchOptions() {
+        const type = document.getElementById('exportType').value;
+        document.getElementById('batchOptions').style.display = type === 'batch' ? 'block' : 'none';
+    }
+
+    async function executeExport() {
+        const type = document.getElementById('exportType').value;
+        
+        // Routing through your native Node.js /py proxy
+        let url = `/py/export-salary?`;
+        
+        let fileName = 'Own Staff Salary';
+        
+        if (type === 'single') {
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            url += `start_period=${year}-${month}&end_period=${year}-${month}`;
+            fileName += ` - ${year}-${month}.xlsx`;
+        } else {
+            const startM = document.getElementById('batchStartMonth').value;
+            const startY = document.getElementById('batchStartYear').value;
+            const endM = document.getElementById('batchEndMonth').value;
+            const endY = document.getElementById('batchEndYear').value;
+            url += `start_period=${startY}-${startM}&end_period=${endY}-${endM}`;
+            fileName += ` - Batch.xlsx`;
+        }
+
+        try {
+            showToast("Generating Excel file...");
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': localStorage.getItem('emp_token')
+                }
+            });
+
+            if (!response.ok) throw new Error("Export API failed");
+            
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            
+            closeExportModal();
+            showToast("Export Downloaded Successfully");
+            
+        } catch (error) {
+            showToast("Error generating export file");
+            console.error(error);
+        }
+    }
+
+</script>
+
+</body>
+</html>

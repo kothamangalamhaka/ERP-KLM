@@ -1,0 +1,3199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>We1 Own EQ Management</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --text-main: #24292f;
+        --border: #d0d7de;
+        --ribbon-bg: #f6f8fa;
+        --btn-bg: #ffffff;
+        --btn-border: #1b1f2426;
+        --btn-hover: #0969da;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        padding: 0;
+        font-size: 13px;
+      }
+
+      /* Top Ribbon */
+      .ribbon {
+        background-color: var(--ribbon-bg);
+        padding: 12px 20px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .ribbon-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-right: auto;
+        color: #0f172a;
+      }
+
+      .ribbon button {
+        background: var(--btn-bg);
+        border: 1px solid var(--btn-border);
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        color: #24292f;
+        transition: all 0.15s ease-in-out;
+        box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+      }
+
+      .ribbon button:hover {
+        border-color: var(--btn-hover);
+        color: var(--btn-hover);
+      }
+
+      /* Table Container */
+      .container {
+        padding: 20px;
+        overflow-x: auto;
+        min-height: 90vh;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        white-space: nowrap;
+      }
+
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 8px 12px;
+        text-align: left;
+      }
+
+      th {
+        background-color: var(--ribbon-bg);
+        font-weight: 600;
+        color: #57606a;
+        position: relative;
+        user-select: none;
+      }
+
+      .th-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+      }
+
+      .filter-btn {
+        cursor: pointer;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 11px;
+        color: #57606a;
+        border: 1px solid transparent;
+        background: transparent;
+      }
+
+      .filter-btn:hover {
+        background: #e1e4e8;
+        border-color: #d0d7de;
+      }
+
+      .filter-btn.active {
+        color: #0969da;
+        background: #ddf4ff;
+        border-color: #54aeff;
+        font-weight: bold;
+      }
+
+      tbody tr {
+        background-color: #ffffff;
+      }
+
+      tbody tr:hover {
+        background-color: #f3f4f6;
+      }
+
+      /* Modal / Popup Styles */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(2px);
+      }
+
+      .modal-content {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 400px;
+        max-width: 90%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      .modal-header {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 10px;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: #cf222e;
+      }
+
+      /* Split Log Layout CSS */
+      .split-layout {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        width: 100%;
+      }
+      .log-left-form {
+        width: 340px;
+        min-width: 320px;
+        background: #f6f8fa;
+        padding: 15px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        box-sizing: border-box;
+      }
+      .log-right-history {
+        flex: 1;
+        max-height: 480px;
+        overflow-y: auto;
+        overflow-x: visible;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+      }
+      .log-right-history table {
+        width: 100%;
+        border-collapse: collapse;
+        white-space: nowrap;
+      }
+      .log-right-history th {
+        position: sticky;
+        top: 0;
+        background: #e5e7eb;
+        z-index: 10;
+        font-size: 12px;
+      }
+      .log-right-history td,
+      .log-right-history th {
+        padding: 7px 12px;
+        font-size: 12px;
+      }
+      .edit-icon {
+        cursor: pointer;
+        color: #0969da;
+        font-weight: bold;
+      }
+
+      /* 🟢 Sticky Freeze for SN & Plate No Columns */
+      th.sticky-sn, td.sticky-sn {
+        position: sticky;
+        left: 0;
+        background-color: inherit;
+        z-index: 2;
+      }
+      th.sticky-sn {
+        z-index: 12;
+        background-color: var(--ribbon-bg);
+      }
+
+      th.sticky-plate, td.sticky-plate {
+        position: sticky;
+        left: 45px; /* SN കോളത്തിന് ശേഷമുള്ള സ്ഥാനം */
+        background-color: inherit;
+        z-index: 2;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.08); /* സ്ക്രോൾ ചെയ്യുമ്പോൾ വേർതിരിവ് കാണാൻ */
+      }
+      th.sticky-plate {
+        z-index: 12;
+        background-color: var(--ribbon-bg);
+      }
+
+      td.sn-col {
+        color: #6e7781;
+        font-weight: 500;
+        width: 35px;
+        min-width: 35px;
+        text-align: center;
+      }
+
+      td.plate-col {
+        font-weight: 700;
+        color: #000000;
+        cursor: context-menu;
+        min-width: 100px;
+      }
+
+      a {
+        text-decoration: none;
+      }
+
+      .status-running {
+        color: #1a7f37;
+        font-weight: 600;
+      }
+      .status-released {
+        color: #cf222e;
+        font-weight: 600;
+      }
+      .status-mobilizing {
+        color: #d97706;
+        font-weight: 600;
+      }
+
+      /* Excel-like Header Filter Popup with User Resizing */
+      #excelFilterMenu {
+        display: none;
+        position: absolute;
+        background: #ffffff;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+        width: 260px;
+        min-width: 220px;
+        max-width: 500px;
+        min-height: 280px;
+        max-height: 80vh;
+        z-index: 1050;
+        padding: 10px;
+        font-size: 12px;
+        resize: both;
+        overflow: hidden;
+        box-sizing: border-box;
+        flex-direction: column;
+      }
+
+      .sort-btn-group {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      .sort-btn-group button {
+        flex: 1;
+        padding: 6px;
+        background: #f6f8fa;
+        border: 1px solid #d0d7de;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+      }
+
+      .sort-btn-group button:hover {
+        background: #eaeef2;
+        border-color: #0969da;
+        color: #0969da;
+      }
+
+      .filter-search-box {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+        border: 1px solid #d0d7de;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        outline: none;
+      }
+
+      .filter-search-box:focus {
+        border-color: #0969da;
+      }
+
+      .filter-list-container {
+        flex: 1;
+        min-height: 140px;
+        max-height: none;
+        overflow-y: auto;
+        border: 1px solid #e1e4e8;
+        border-radius: 4px;
+        padding: 4px 6px;
+        background: #fafbfc;
+        margin-bottom: 10px;
+      }
+
+      .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 0;
+        cursor: pointer;
+      }
+
+      .filter-item input {
+        cursor: pointer;
+      }
+
+      .filter-actions {
+        display: flex;
+        gap: 6px;
+      }
+
+      .filter-actions button {
+        flex: 1;
+        padding: 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-apply {
+        background: #0969da;
+        color: #fff;
+      }
+      .btn-cancel {
+        background: #e1e4e8;
+        color: #24292f;
+      }
+
+      /* Custom Right-Click Context Menu */
+      #plateContextMenu {
+        display: none;
+        position: absolute;
+        background: #ffffff;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(140, 149, 159, 0.25);
+        width: 200px;
+        z-index: 2100;
+        padding: 4px 0;
+        font-size: 13px;
+      }
+
+      .context-menu-item {
+        padding: 8px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: #24292f;
+        font-weight: 500;
+        transition: background 0.15s;
+      }
+
+      .context-menu-item:hover {
+        background: #0969da;
+        color: #ffffff;
+      }
+
+      /* Quick Log Switcher in Edit Popup */
+      .quick-log-tabs {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        background: #f6f8fa;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        width: 175px;
+        min-width: 165px;
+        box-sizing: border-box;
+      }
+
+      .quick-log-tab-btn {
+        padding: 8px 10px;
+        text-align: left;
+        border: 1px solid var(--border);
+        background: #ffffff;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 12px;
+        color: #24292f;
+        transition: all 0.15s;
+      }
+
+      .quick-log-tab-btn:hover,
+      .quick-log-tab-btn.active {
+        background: #0969da;
+        color: #ffffff;
+        border-color: #0969da;
+      }
+
+      .sub-timeline-card {
+        border: 1px solid #e1e4e8;
+        background: #fafbfc;
+        padding: 6px 10px;
+        border-radius: 4px;
+        margin-bottom: 5px;
+        font-size: 11px;
+        line-height: 1.4;
+      }
+      .sub-timeline-card:last-child {
+        margin-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Global Datalist Container for Live Suggestions -->
+    <div id="globalDatalists">
+      <datalist id="vTypeSuggestions"></datalist>
+      <datalist id="siteSuggestions"></datalist>
+      <datalist id="driverSuggestions"></datalist>
+      <datalist id="ownerSuggestions"></datalist>
+      <datalist id="santhookSuggestions"></datalist>
+      <datalist id="plateSuggestions"></datalist>
+    </div>
+
+    <div class="ribbon">
+        <div class="ribbon-title">We1 Own EQ Data</div>
+
+        <!-- 🟢 Global Search Container -->
+        <div style="display: flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid var(--border); padding: 2px 6px; border-radius: 6px;">
+            <select id="globalSearchType" onchange="onGlobalSearchInput()" style="border: none; background: transparent; font-size: 12px; font-weight: 600; color: #57606a; outline: none; cursor: pointer; padding: 4px;">
+                <option value="general">🌐 General</option>
+                <option value="plate_no">🔢 Plate No</option>
+                <option value="driver_name">👤 Driver</option>
+            </select>
+            <input type="text" id="globalSearchInput" placeholder="Search..." oninput="onGlobalSearchInput()" style="border: none; border-left: 1px solid var(--border); padding: 5px 8px; font-size: 12px; outline: none; width: 170px;">
+        </div>
+
+        <button style="background: #1a7f37; color: white; border: none;" onclick="openAddModal()">➕ Add New</button>
+        <button onclick="openLog('SiteLog')">🏢 Site Log</button>
+      <button onclick="openLog('DriverLog')">👤 Driver Log</button>
+      <button onclick="openLog('VehicleTypeLog')">
+        🚜 Vehicle Type & Santhook
+      </button>
+      <button onclick="openLog('OwnerLog')">📋 Owner Log</button>
+      <button onclick="openLog('Equipment')">🚜 Equipment</button>
+
+      <button
+        class="salary"
+        style="
+          background: #f7c111;
+          color: white;
+          border: none;
+          margin-left: 10px;
+        "
+      >
+        <a href="EQ_Driver_payroll.html" style="color: rgb(5, 5, 5)"
+          >Driver Salary</a
+        >
+      </button>
+      <button
+        id="exportBtn"
+        style="
+          background: #0969da;
+          color: white;
+          border: none;
+          margin-left: 10px;
+        "
+        onclick="exportToExcel()"
+      >
+        📊 Export Excel
+      </button>
+      <button
+        style="
+          background: #cf222e;
+          color: white;
+          border: none;
+          margin-left: 10px;
+        "
+        onclick="logout()"
+      >
+        🚪 Logout
+      </button>
+    </div>
+
+    <!-- Right-Click Context Menu -->
+    <div id="plateContextMenu">
+      <div class="context-menu-item" onclick="triggerContextMenuAction('edit')">
+        <span>✏️</span> <span>Quick Edit Logs</span>
+      </div>
+      <div
+        class="context-menu-item"
+        onclick="triggerContextMenuAction('history')"
+      >
+        <span>📜</span> <span>View Full Timeline</span>
+      </div>
+    </div>
+
+    <!-- Excel Filter Popup Floating Container -->
+    <div id="excelFilterMenu">
+      <div class="sort-btn-group">
+        <button onclick="sortGrid('asc')">🔼 Sort A-Z</button>
+        <button onclick="sortGrid('desc')">🔽 Sort Z-A</button>
+      </div>
+      <input
+        type="text"
+        id="filterSearchInput"
+        class="filter-search-box"
+        placeholder="Search..."
+        oninput="onFilterSearchInput()"
+      />
+      <div class="filter-list-container">
+        <label
+          class="filter-item"
+          style="
+            font-weight: bold;
+            border-bottom: 1px solid #e1e4e8;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+          "
+        >
+          <input
+            type="checkbox"
+            id="selectAllCheckbox"
+            onchange="toggleSelectAll(this)"
+          />
+          (Select All)
+        </label>
+        <div id="filterItemsList"></div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn-apply" onclick="applyCurrentFilter()">Apply</button>
+        <button class="btn-cancel" onclick="closeFilterMenu()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Popup Modal -->
+    <div id="commonModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span id="modalTitle">Title</span>
+          <button class="close-btn" onclick="closeModal()">✖</button>
+        </div>
+        <div id="modalBody" style="font-size: 13px"></div>
+      </div>
+    </div>
+
+    <!-- Plate Selection Modal -->
+    <div id="plateSelectModal" class="modal-overlay" style="z-index: 2000">
+      <div class="modal-content" style="width: 300px">
+        <div class="modal-header">
+          <span>Select Plate for Log</span>
+          <button
+            class="close-btn"
+            onclick="
+              document.getElementById('plateSelectModal').style.display = 'none'
+            "
+          >
+            ✖
+          </button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <input type="hidden" id="tempLogType" />
+          <select
+            id="logPlateDropdown"
+            style="
+              padding: 8px;
+              border: 1px solid #d0d7de;
+              border-radius: 4px;
+              width: 100%;
+            "
+          ></select>
+          <button
+            onclick="fetchLogData()"
+            style="
+              padding: 8px;
+              background: #0969da;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+            "
+          >
+            Fetch Data
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full Chronological History Modal -->
+    <div id="fullHistoryModal" class="modal-overlay" style="z-index: 2050">
+      <div
+        class="modal-content"
+        style="
+          width: 1150px;
+          max-width: 96vw;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+        "
+      >
+        <div class="modal-header">
+          <span id="fullHistoryTitle" style="font-size: 16px; color: #0969da"
+            >📜 Chronological Vehicle Timeline</span
+          >
+          <button
+            class="close-btn"
+            onclick="
+              document.getElementById('fullHistoryModal').style.display = 'none'
+            "
+          >
+            ✖
+          </button>
+        </div>
+        <div
+          style="flex: 1; overflow-y: auto; padding-right: 5px; margin-top: 5px"
+        >
+          <table style="width: 100%; border-collapse: collapse">
+            <thead>
+              <tr
+                style="
+                  background: #e5e7eb;
+                  position: sticky;
+                  top: 0;
+                  z-index: 5;
+                "
+              >
+                <th style="width: 28%">Site Period</th>
+                <th style="width: 26%">Vehicle Type & Santhook</th>
+                <th style="width: 28%">Driver Timeline (In this period)</th>
+                <th style="width: 18%">Ownership Period</th>
+              </tr>
+            </thead>
+            <tbody id="fullHistoryTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Split Log Master Modal -->
+    <div id="splitLogModal" class="modal-overlay">
+      <div
+        class="modal-content"
+        style="
+          width: fit-content;
+          min-width: 900px;
+          max-width: 98vw;
+          box-sizing: border-box;
+        "
+      >
+        <div class="modal-header">
+          <span id="splitLogTitle">Log Details</span>
+          <button
+            class="close-btn"
+            onclick="
+              document.getElementById('splitLogModal').style.display = 'none'
+            "
+          >
+            ✖
+          </button>
+        </div>
+        <div class="split-layout">
+          <!-- Left Quick Selector Bar -->
+          <div
+            id="quickLogSidebar"
+            class="quick-log-tabs"
+            style="display: none"
+          >
+            <div
+              style="
+                font-weight: 700;
+                font-size: 11px;
+                color: #57606a;
+                margin-bottom: 4px;
+                text-transform: uppercase;
+              "
+            >
+              Select Category
+            </div>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('SiteLog', this)"
+            >
+              🏢 Site Log
+            </button>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('DriverLog', this)"
+            >
+              👤 Driver Log
+            </button>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('VehicleTypeLog', this)"
+            >
+              🚜 Type & Santhook
+            </button>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('OwnerLog', this)"
+            >
+              📋 Owner Log
+            </button>
+            <button
+              class="quick-log-tab-btn"
+              onclick="switchQuickLog('Equipment', this)"
+            >
+              🚜 Equipment
+            </button>
+          </div>
+
+          <div class="log-left-form">
+            <input type="hidden" id="editLogId" />
+            <input type="hidden" id="editSanthookLogId" />
+            <input type="hidden" id="activeLogType" />
+            <input type="hidden" id="activeLogPlate" />
+            <div
+              id="dynamicLogForm"
+              style="display: flex; flex-direction: column; gap: 10px"
+            ></div>
+
+            <!-- 🟢 Action Buttons Row with Cancel Button Included -->
+            <div style="display: flex; gap: 8px; margin-top: 15px">
+              <button
+                onclick="cancelLogEdit()"
+                style="
+                  flex: 1;
+                  padding: 8px 6px;
+                  background: #6e7781;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: bold;
+                "
+                title="Clear without saving"
+              >
+                ❌ Cancel
+              </button>
+              <button
+                onclick="saveLogEntry()"
+                style="
+                  flex: 2;
+                  padding: 8px;
+                  background: #1a7f37;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: bold;
+                "
+              >
+                Update Log
+              </button>
+              <button
+                onclick="changePlate()"
+                style="
+                  flex: 1.5;
+                  padding: 8px 6px;
+                  background: #5f4b0f;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: bold;
+                  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+                "
+              >
+                Next Plate ⏭
+              </button>
+            </div>
+          </div>
+          <div class="log-right-history">
+            <table>
+              <thead id="logTableHead"></thead>
+              <tbody id="logTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <table id="eqTable">
+        <thead>
+          <tr>
+            <th class="sticky-sn" oncontextmenu="copyColumnToClipboard(event, 'sn', 'SN')" title="Right click to copy column">SN</th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'mob_date_ui', 'Mobilisation Date')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Mobilisation Date</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'mob_date_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'vehicle_type', 'Vehicle Type')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Vehicle Type</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'vehicle_type')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th class="sticky-plate" oncontextmenu="copyColumnToClipboard(event, 'plate_no', 'Plate No')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Plate No</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'plate_no')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'driver_name', 'Driver Name')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Driver Name</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'driver_name')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'driver_mobile', 'Mobile')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Mobile</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'driver_mobile')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'joining_date_ui', 'Joining Date')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Joining Date</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'joining_date_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'site_name', 'Site Name')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Site Name</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'site_name')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'vehicle_owner', 'Vehicle Owner')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Vehicle Owner</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'vehicle_owner')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'santhook', 'Santhook')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Santhook</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'santhook')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'salary', 'Salary')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Salary</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'salary')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'status', 'Status')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Status</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'status')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th style="min-width: 150px" oncontextmenu="copyColumnToClipboard(event, 'note', 'Note')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Note ✏️</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'note')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'old_eq', 'Old EQ')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Old EQ</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'old_eq')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'new_eq', 'New EQ')" title="Right click to copy column">
+              <div class="th-content">
+                <span>New EQ</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'new_eq')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'iqama_no', 'IQAMA No.')" title="Right click to copy column">
+              <div class="th-content">
+                <span>IQAMA No.</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'iqama_no')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'iqama_expiry_ui', 'IQAMA Exp')" title="Right click to copy column">
+              <div class="th-content">
+                <span>IQAMA Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'iqama_expiry_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'licence_expiry_ui', 'Licence Exp')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Licence Exp</span>
+                <button class="filter-btn" onclick="openExcelFilter(event, 'licence_expiry_ui')">▼</button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'passport_no', 'Passport No')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Passport No.</span>
+                <button class="filter-btn" onclick="openExcelFilter(event, 'passport_no')">▼</button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'passport_expiry_ui', 'Passport Exp')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Passport Exp</span>
+                <button class="filter-btn" onclick="openExcelFilter(event, 'passport_expiry_ui')">▼</button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'chassis_no', 'Chassis No')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Chassis No</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'chassis_no')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'serial_no', 'Serial No')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Serial No</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'serial_no')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'eq_insurance_exp_ui', 'EQ Insurance Exp')" title="Right click to copy column">
+              <div class="th-content">
+                <span>EQ Insurance Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'eq_insurance_exp_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'fahs_mvpi_exp_ui', 'FAHS/MVPI Exp')" title="Right click to copy column">
+              <div class="th-content">
+                <span>FAHS/MVPI Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'fahs_mvpi_exp_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'op_card_exp_ui', 'Operation Card Exp')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Operation Card Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'op_card_exp_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+            <th oncontextmenu="copyColumnToClipboard(event, 'isthimaara_exp_ui', 'Isthimaara Exp')" title="Right click to copy column">
+              <div class="th-content">
+                <span>Isthimaara Exp</span>
+                <button
+                  class="filter-btn"
+                  onclick="openExcelFilter(event, 'isthimaara_exp_ui')"
+                >
+                  ▼
+                </button>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="eqTableBody">
+          <tr>
+            <td
+              colspan="22"
+              style="text-align: center; padding: 20px; color: #57606a"
+            >
+              Fetching data via Load Balancer...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      // 🟢 Header Right-Click Column Data Copy Handler for Excel
+      function copyColumnToClipboard(event, columnKey, headerLabel) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // 1. Get currently visible (filtered & searched) rows in current order
+        let visibleRows = masterTableData.filter((row) => {
+          for (const key in activeFilters) {
+            const allowed = activeFilters[key];
+            const val = String(row[key] ?? "-");
+            if (allowed && !allowed.has(val)) {
+              return false;
+            }
+          }
+
+          if (globalSearchQuery !== "") {
+            if (globalSearchType === "plate_no") {
+              const plate = String(row.plate_no || "").toLowerCase();
+              if (!plate.includes(globalSearchQuery)) return false;
+            } else if (globalSearchType === "driver_name") {
+              const driver = String(row.driver_name || "").toLowerCase();
+              if (!driver.includes(globalSearchQuery)) return false;
+            } else {
+              const allRowValues = Object.values(row)
+                .map((v) => String(v ?? "").toLowerCase())
+                .join(" ");
+              if (!allRowValues.includes(globalSearchQuery)) return false;
+            }
+          }
+          return true;
+        });
+
+        if (visibleRows.length === 0) {
+          alert("No visible rows to copy.");
+          return;
+        }
+
+        // 2. Extract values preserving blank lines for proper Excel cells
+        const columnValues = visibleRows.map((row, index) => {
+          if (columnKey === "sn") {
+            return String(index + 1);
+          }
+          let val = row[columnKey];
+          if (val === null || val === undefined || val === "-" || val === "null" || val === "undefined") {
+            return ""; // Blank string creates empty cell in Excel
+          }
+          return String(val).trim();
+        });
+
+        // 3. Join with newlines (\r\n) for clean vertical paste in Excel
+        const textToCopy = columnValues.join("\r\n");
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          showCopyToast(`📋 Copied ${columnValues.length} rows of "${headerLabel}" to clipboard!`);
+        }).catch((err) => {
+          // Fallback for older browsers
+          const textarea = document.createElement("textarea");
+          textarea.value = textToCopy;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+          showCopyToast(`📋 Copied ${columnValues.length} rows of "${headerLabel}" to clipboard!`);
+        });
+      }
+
+      function showCopyToast(msg) {
+        let toast = document.getElementById("copyToastNotification");
+        if (!toast) {
+          toast = document.createElement("div");
+          toast.id = "copyToastNotification";
+          toast.style.position = "fixed";
+          toast.style.bottom = "24px";
+          toast.style.right = "24px";
+          toast.style.backgroundColor = "#0969da";
+          toast.style.color = "#ffffff";
+          toast.style.padding = "10px 18px";
+          toast.style.borderRadius = "6px";
+          toast.style.fontSize = "13px";
+          toast.style.fontWeight = "600";
+          toast.style.boxShadow = "0 4px 12px rgba(0,0,0,0.18)";
+          toast.style.zIndex = "9999";
+          toast.style.transition = "opacity 0.3s ease-in-out";
+          document.body.appendChild(toast);
+        }
+        toast.innerText = msg;
+        toast.style.opacity = "1";
+        toast.style.display = "block";
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => { toast.style.display = "none"; }, 300);
+        }, 2200);
+      }
+
+      function formatUIDate(dateStr) {
+        if (!dateStr || dateStr === "null" || dateStr === "undefined" || String(dateStr).trim() === "") return "";
+        
+        // തീയതിയിലെ ടൈംസോൺ പ്രശ്നം ഒഴിവാക്കാൻ YYYY-MM-DD നേരിട്ട് പാർസ് ചെയ്യുന്നു
+        const cleanStr = String(dateStr).split("T")[0].trim();
+        const parts = cleanStr.split(/[-/]/);
+        
+        if (parts.length === 3 && parts[0].length === 4) {
+          const year = parts[0].slice(-2);
+          const monthNum = parseInt(parts[1], 10) - 1;
+          const day = String(parts[2]).padStart(2, "0");
+          
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const month = monthNames[monthNum] || parts[1];
+          return `${day}-${month}-${year}`;
+        }
+
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "";
+
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = d.toLocaleString("en-GB", { month: "short" });
+        const year = String(d.getFullYear()).slice(-2);
+
+        return `${day}-${month}-${year}`;
+      }
+
+      function cleanVal(val) {
+        if (val === null || val === undefined || val === "null" || val === "undefined") return "";
+        return String(val).trim();
+      }
+
+      let uniqueVehicleTypes = new Set();
+      let uniqueSiteNames = new Set();
+      let uniqueDriverNames = new Set();
+      let uniqueOwnerNames = new Set();
+      let uniqueSanthookNames = new Set();
+      let uniquePlates = new Set();
+      let globalPlates = [];
+
+      // Grid Master Data & Filter States
+      let masterTableData = [];
+      let activeFilters = {};
+      let currentFilterKey = null;
+      let selectedContextMenuPlate = null;
+      let currentSortColumn = null;
+      let currentSortDirection = null;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const token = localStorage.getItem("emp_token");
+        if (!token) {
+          window.location.href = "login.html";
+          return;
+        }
+        loadTableData();
+      });
+
+      window.addEventListener("pageshow", (event) => {
+        if (
+          event.persisted ||
+          (window.performance && window.performance.navigation.type === 2)
+        ) {
+          const token = localStorage.getItem("emp_token");
+          if (!token) {
+            window.location.replace("login.html");
+          }
+        }
+      });
+
+      document.addEventListener("click", (e) => {
+        const menu = document.getElementById("excelFilterMenu");
+        if (
+          menu.style.display === "flex" &&
+          !menu.contains(e.target) &&
+          !e.target.classList.contains("filter-btn")
+        ) {
+          closeFilterMenu();
+        }
+
+        const contextMenu = document.getElementById("plateContextMenu");
+        if (
+          contextMenu.style.display === "block" &&
+          !contextMenu.contains(e.target)
+        ) {
+          contextMenu.style.display = "none";
+        }
+      });
+
+      function updateGlobalDatalists() {
+        document.getElementById("vTypeSuggestions").innerHTML = Array.from(
+          uniqueVehicleTypes,
+        )
+          .map((v) => `<option value="${v}">`)
+          .join("");
+        document.getElementById("siteSuggestions").innerHTML = Array.from(
+          uniqueSiteNames,
+        )
+          .map((s) => `<option value="${s}">`)
+          .join("");
+        document.getElementById("driverSuggestions").innerHTML = Array.from(
+          uniqueDriverNames,
+        )
+          .map((d) => `<option value="${d}">`)
+          .join("");
+        document.getElementById("ownerSuggestions").innerHTML = Array.from(
+          uniqueOwnerNames,
+        )
+          .map((o) => `<option value="${o}">`)
+          .join("");
+        document.getElementById("santhookSuggestions").innerHTML = Array.from(
+          uniqueSanthookNames,
+        )
+          .map((st) => `<option value="${st}">`)
+          .join("");
+        document.getElementById("plateSuggestions").innerHTML = Array.from(
+          uniquePlates,
+        )
+          .map((p) => `<option value="${p}">`)
+          .join("");
+      }
+
+      async function loadTableData() {
+        const tbody = document.getElementById("eqTableBody");
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/api/we1-own-eq/data", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await res.json();
+
+          if (!data.success) {
+            if (
+              data.message &&
+              (data.message.toLowerCase().includes("session") ||
+                data.message.toLowerCase().includes("token") ||
+                data.message.toLowerCase().includes("unauthorized"))
+            ) {
+              logout();
+              return;
+            }
+            throw new Error(data.message);
+          }
+
+          uniqueVehicleTypes.clear();
+          uniqueSiteNames.clear();
+          uniqueDriverNames.clear();
+          uniqueOwnerNames.clear();
+          uniqueSanthookNames.clear();
+          uniquePlates.clear();
+          globalPlates = [];
+
+          masterTableData = (data.data || []).map((row) => {
+            const mob_date_ui = formatUIDate(row.mob_date);
+            const joining_date_ui = formatUIDate(row.joining_date);
+            const iqama_expiry_ui = formatUIDate(row.iqama_expiry);
+            const licence_expiry_ui = formatUIDate(row.licence_expiry);
+            const passport_expiry_ui = formatUIDate(row.passport_expiry);
+            const eq_insurance_exp_ui = formatUIDate(row.eq_insurance_exp);
+            const fahs_mvpi_exp_ui = formatUIDate(row.fahs_mvpi_exp);
+            const op_card_exp_ui = formatUIDate(row.op_card_exp);
+            const isthimaara_exp_ui = formatUIDate(row.isthimaara_exp);
+
+            if (row.vehicle_type && row.vehicle_type.trim() !== "")
+              uniqueVehicleTypes.add(row.vehicle_type.trim());
+            if (row.site_name && row.site_name.trim() !== "")
+              uniqueSiteNames.add(row.site_name.trim());
+            if (row.driver_name && row.driver_name.trim() !== "")
+              uniqueDriverNames.add(row.driver_name.trim());
+            if (row.vehicle_owner && row.vehicle_owner.trim() !== "")
+              uniqueOwnerNames.add(row.vehicle_owner.trim());
+            if (row.santhook && row.santhook.trim() !== "")
+              uniqueSanthookNames.add(row.santhook.trim());
+            if (row.plate_no && row.plate_no.trim() !== "") {
+              uniquePlates.add(row.plate_no.trim());
+              globalPlates.push(row.plate_no.trim());
+            }
+
+            return {
+              ...row,
+              mob_date_ui,
+              joining_date_ui,
+              iqama_expiry_ui,
+              licence_expiry_ui,
+              eq_insurance_exp_ui,
+              fahs_mvpi_exp_ui,
+              op_card_exp_ui,
+              isthimaara_exp_ui,
+              status: cleanVal(row.status),
+              note: cleanVal(row.note),
+              driver_mobile: cleanVal(row.driver_mobile),
+              vehicle_type: cleanVal(row.vehicle_type),
+              driver_name: cleanVal(row.driver_name),
+              site_name: cleanVal(row.site_name),
+              vehicle_owner: cleanVal(row.vehicle_owner),
+              santhook: cleanVal(row.santhook),
+              salary: cleanVal(row.salary),
+              plate_no: cleanVal(row.plate_no),
+              old_eq: cleanVal(row.old_eq),
+              new_eq: cleanVal(row.new_eq),
+              chassis_no: cleanVal(row.chassis_no),
+              serial_no: cleanVal(row.serial_no),
+              iqama_no: cleanVal(row.iqama_no),
+              passport_no: cleanVal(row.passport_no),
+              passport_expiry_ui
+            };
+          });
+
+          updateGlobalDatalists();
+
+          const thButtons = document.querySelectorAll(".filter-btn");
+          thButtons.forEach((btn) => {
+            const fnStr = btn.getAttribute("onclick") || "";
+            let matchedKey = null;
+            for (const key in activeFilters) {
+              if (fnStr.includes(`'${key}'`)) {
+                matchedKey = key;
+                break;
+              }
+            }
+            if (matchedKey && activeFilters[matchedKey]) {
+              btn.classList.add("active");
+            } else {
+              btn.classList.remove("active");
+            }
+          });
+
+          renderFilteredTable();
+        } catch (error) {
+          tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
+        }
+      }
+
+      let globalSearchQuery = '';
+        let globalSearchType = 'general';
+
+        function onGlobalSearchInput() {
+            const inputElem = document.getElementById('globalSearchInput');
+            const typeElem = document.getElementById('globalSearchType');
+            
+            globalSearchQuery = (inputElem ? inputElem.value : '').trim().toLowerCase();
+            globalSearchType = typeElem ? typeElem.value : 'general';
+            
+            renderFilteredTable();
+        }
+
+        function renderFilteredTable() {
+            const tbody = document.getElementById('eqTableBody');
+            tbody.innerHTML = '';
+
+            let filteredRows = masterTableData.filter(row => {
+                // 1. Column-wise Header Filters
+                for (const key in activeFilters) {
+                    const allowed = activeFilters[key];
+                    const val = String(row[key] ?? '-');
+                    if (allowed && !allowed.has(val)) {
+                        return false;
+                    }
+                }
+
+                // 2. 🟢 Ribbon Global Search Filter
+                if (globalSearchQuery !== '') {
+                    if (globalSearchType === 'plate_no') {
+                        const plate = String(row.plate_no || '').toLowerCase();
+                        if (!plate.includes(globalSearchQuery)) return false;
+                    } else if (globalSearchType === 'driver_name') {
+                        const driver = String(row.driver_name || '').toLowerCase();
+                        if (!driver.includes(globalSearchQuery)) return false;
+                    } else {
+                        // General: എല്ലാ കോളങ്ങളിലെയും വാല്യൂകളിൽ തിരയുന്നു
+                        const allRowValues = Object.values(row).map(v => String(v ?? '').toLowerCase()).join(' ');
+                        if (!allRowValues.includes(globalSearchQuery)) return false;
+                    }
+                }
+
+                return true;
+            });
+
+            if (filteredRows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="19" style="text-align: center; padding: 20px;">No matching records found.</td></tr>';
+                return;
+            }
+
+        const fragment = document.createDocumentFragment();
+
+        function getCellExpiryStyle(dateStr) {
+          if (!dateStr || dateStr === "null" || dateStr === "undefined" || dateStr.trim() === "") return "";
+          const target = new Date(dateStr);
+          if (isNaN(target.getTime())) return "";
+
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          target.setHours(0, 0, 0, 0);
+
+          const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+
+          if (diffDays < 0) {
+            // 🔴 Already Expired: Red background + White bold text
+            return "background-color: #dc3545 !important; color: #ffffff !important; font-weight: bold; text-align: center;";
+          } else if (diffDays <= 30) {
+            // 🟠 Expiring in 30 days: Orange background + Orange text
+            return "background-color: #fff3cd !important; color: #d97706 !important; font-weight: bold; text-align: center;";
+          }
+          return "";
+        }
+
+        filteredRows.forEach((row, index) => {
+          const tr = document.createElement("tr");
+          const statusClass =
+            row.status === "Running"
+              ? "status-running"
+              : row.status === "Mobilizing"
+                ? "status-mobilizing"
+                : "status-released";
+
+          tr.innerHTML = `
+                    <td class="sn-col sticky-sn">${index + 1}</td>
+                    <td>${row.mob_date_ui}</td>
+                    <td>${row.vehicle_type}</td>
+                    <td class="plate-col sticky-plate" oncontextmenu="handlePlateContextMenu(event, '${row.plate_no}')" title="Right-click for options">${row.plate_no}</td>
+                    <td>${row.driver_name}</td>
+                    <td>${row.driver_mobile}</td>
+                    <td>${row.joining_date_ui}</td>
+                    <td>${row.site_name}</td>
+                    <td>${row.vehicle_owner}</td>
+                    <td>${row.santhook}</td>
+                    <td>${row.salary}</td>
+                    <td class="${statusClass}">${row.status}</td>
+                    <td ondblclick="enableNoteEdit(this)" onblur="saveNoteDirect(this, '${row.plate_no}')" data-old="${row.note}" style="white-space: pre-wrap; cursor: pointer; outline: none; min-width: 150px; transition: background 0.3s;" title="Double click to edit">${row.note}</td>
+                    <td>${row.old_eq}</td>
+                    <td>${row.new_eq}</td>
+                    <td>${row.iqama_no || ''}</td>
+                    <td style="${getCellExpiryStyle(row.iqama_expiry)}">${row.iqama_expiry_ui || formatUIDate(row.iqama_expiry)}</td>
+                    <td style="${getCellExpiryStyle(row.licence_expiry)}">${row.licence_expiry_ui || formatUIDate(row.licence_expiry)}</td>
+                    <td>${row.passport_no || ''}</td>
+                    <td style="${getCellExpiryStyle(row.passport_expiry)}">${row.passport_expiry_ui || formatUIDate(row.passport_expiry)}</td>
+                    <td>${row.chassis_no || ''}</td>
+                    <td>${row.serial_no || ''}</td>
+                    <td style="${getCellExpiryStyle(row.eq_insurance_exp)}">${row.eq_insurance_exp_ui || formatUIDate(row.eq_insurance_exp)}</td>
+                    <td style="${getCellExpiryStyle(row.fahs_mvpi_exp)}">${row.fahs_mvpi_exp_ui || formatUIDate(row.fahs_mvpi_exp)}</td>
+                    <td style="${getCellExpiryStyle(row.op_card_exp)}">${row.op_card_exp_ui || formatUIDate(row.op_card_exp)}</td>
+                    <td style="${getCellExpiryStyle(row.isthimaara_exp)}">${row.isthimaara_exp_ui || formatUIDate(row.isthimaara_exp)}</td>
+                `;
+          fragment.appendChild(tr);
+        });
+
+        tbody.appendChild(fragment);
+      }
+
+
+      // 🟢 നിലവിൽ UI ഗ്രിഡിൽ കാണുന്ന (Filtered & Sorted) പ്ലേറ്റുകളുടെ ലിസ്റ്റ് കൃത്യമായ ഓർഡറിൽ എടുക്കുന്നു
+function getCurrentGridPlates() {
+    let filteredRows = masterTableData.filter(row => {
+        for (const key in activeFilters) {
+            const allowed = activeFilters[key];
+            const val = String(row[key] ?? '-');
+            if (allowed && !allowed.has(val)) {
+                return false;
+            }
+        }
+        return true;
+    });
+
+    // നിലവിലെ ഓർഡർ അതേപടി നിലനിർത്തി പ്ലേറ്റുകൾ മാത്രമെടുക്കുന്നു
+    const visiblePlates = filteredRows
+        .map(r => (r.plate_no || '').trim())
+        .filter(p => p !== '' && p !== '-');
+
+    return [...new Set(visiblePlates)];
+}
+
+      function handlePlateContextMenu(e, plateNo) {
+        e.preventDefault();
+        selectedContextMenuPlate = plateNo;
+        const menu = document.getElementById("plateContextMenu");
+        menu.style.top = `${e.pageY}px`;
+        menu.style.left = `${e.pageX}px`;
+        menu.style.display = "block";
+      }
+
+      function triggerContextMenuAction(action) {
+        const contextMenu = document.getElementById("plateContextMenu");
+        contextMenu.style.display = "none";
+
+        if (!selectedContextMenuPlate) return;
+
+        if (action === "edit") {
+          openQuickEditModal(selectedContextMenuPlate);
+        } else if (action === "history") {
+          openChronologicalHistory(selectedContextMenuPlate);
+        }
+      }
+
+      function openQuickEditModal(plateNo) {
+        document.getElementById("quickLogSidebar").style.display = "flex";
+        document.getElementById("splitLogTitle").innerText =
+          `📂 Quick Manage Logs - ${plateNo}`;
+        document.getElementById("activeLogPlate").value = plateNo;
+
+        const firstTab = document.querySelector(".quick-log-tab-btn");
+        switchQuickLog("SiteLog", firstTab);
+        document.getElementById("splitLogModal").style.display = "flex";
+      }
+
+      // 🟢 Auto-Save previous tab data when switching category
+      async function switchQuickLog(type, btnElement) {
+        const prevType = document.getElementById("activeLogType").value;
+        const currentPlate = document.getElementById("activeLogPlate").value;
+
+        if (prevType && prevType !== type && logHasUnsavedData(prevType)) {
+          await saveLogEntry(true); // Auto-save prior category before switching
+        }
+
+        document
+          .querySelectorAll(".quick-log-tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        if (btnElement) btnElement.classList.add("active");
+
+        const plate = document.getElementById("activeLogPlate").value;
+        document.getElementById("activeLogType").value = type;
+        document.getElementById("editLogId").value = "";
+        document.getElementById("editSanthookLogId").value = "";
+
+        renderLogForm(type);
+        loadLogHistory(type, plate);
+      }
+
+      // Helper to check if current form has inputs
+      function logHasUnsavedData(type) {
+        if (!logConfigs[type] || type === "Equipment") return false;
+        let hasData = false;
+        const check = (f) => {
+          const elem = document.getElementById(f.id);
+          if (elem && elem.value.trim() !== "") hasData = true;
+        };
+
+        logConfigs[type].forEach((f) => {
+          if (f.type === "row") f.fields.forEach((subF) => check(subF));
+          else check(f);
+        });
+        return hasData;
+      }
+
+      // 🟢 Cancel / Clear current log input form without saving
+      function cancelLogEdit() {
+        const currentType = document.getElementById("activeLogType").value;
+        const currentPlate = document.getElementById("activeLogPlate").value;
+
+        document.getElementById("editLogId").value = "";
+        document.getElementById("editSanthookLogId").value = "";
+        renderLogForm(currentType);
+        loadLogHistory(currentType, currentPlate);
+      }
+
+      // 🟢 Perfect Sequential Timeline Matching Logic
+      // 🟢 Perfect Accurate Chronological Vehicle Timeline Builder
+      async function openChronologicalHistory(plateNo) {
+        const modal = document.getElementById("fullHistoryModal");
+        const tbody = document.getElementById("fullHistoryTableBody");
+        document.getElementById("fullHistoryTitle").innerText =
+          `📜 Chronological Vehicle Timeline - ${plateNo}`;
+        tbody.innerHTML =
+          '<tr><td colspan="4" style="text-align: center; padding: 20px;">Generating Timeline History...</td></tr>';
+        modal.style.display = "flex";
+
+        try {
+          const token = localStorage.getItem("emp_token");
+          const fetchTypes = [
+            "SiteLog",
+            "DriverLog",
+            "VehicleTypeLog",
+            "OwnerLog",
+            "SanthookLog",
+          ];
+
+          const fetchPromises = fetchTypes.map((type) =>
+            fetch("/api/we1-own-eq/log/history", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+              body: JSON.stringify({ type: type, plate: plateNo }),
+            }).then((r) => r.json()),
+          );
+
+          const [siteRes, driverRes, vtypeRes, ownerRes, santhookRes] =
+            await Promise.all(fetchPromises);
+
+          const sites = (siteRes.success ? siteRes.data : []).sort(
+            (a, b) => new Date(b.mob_date || 0) - new Date(a.mob_date || 0),
+          );
+          const drivers = (driverRes.success ? driverRes.data : []).sort(
+            (a, b) => new Date(b.join_date || 0) - new Date(a.join_date || 0),
+          );
+          const vtypes = (vtypeRes.success ? vtypeRes.data : []).sort(
+            (a, b) => new Date(b.start_date || 0) - new Date(a.start_date || 0),
+          );
+          const owners = (ownerRes.success ? ownerRes.data : []).sort(
+            (a, b) => new Date(b.start_date || 0) - new Date(a.start_date || 0),
+          );
+          const santhooks = (santhookRes.success ? santhookRes.data : []).sort(
+            (a, b) => new Date(b.start_date || 0) - new Date(a.start_date || 0),
+          );
+
+          if (sites.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #57606a;">No historical site log records found for this plate number.</td></tr>';
+            return;
+          }
+
+          const masterCurrent = masterTableData.find(
+            (m) => m.plate_no === plateNo,
+          );
+
+          // Smart Interval Calculator (Start of next is End of current if not specified)
+          const computeSmartIntervals = (list, startKey, endKey) => {
+            return list.map((item, idx) => {
+              const start = item[startKey]
+                ? new Date(item[startKey])
+                : new Date(0);
+              let end = item[endKey] ? new Date(item[endKey]) : null;
+
+              // 🟢 List is sorted DESCENDING (newest first). So the "next" chronological record is at idx - 1.
+              if (!end && idx - 1 >= 0 && list[idx - 1][startKey]) {
+                end = new Date(list[idx - 1][startKey]);
+              } else if (!end) {
+                end = new Date(8640000000000000); // Set to max future date
+              }
+              return { raw: item, start, end };
+            });
+          };
+
+          const computedVTypes = computeSmartIntervals(
+            vtypes,
+            "start_date",
+            "end_date",
+          );
+          const computedSanthooks = computeSmartIntervals(
+            santhooks,
+            "start_date",
+            "end_date",
+          );
+          const computedOwners = computeSmartIntervals(
+            owners,
+            "start_date",
+            "end_date",
+          );
+          const computedDrivers = computeSmartIntervals(
+            drivers,
+            "join_date",
+            "work_end_date",
+          );
+
+          tbody.innerHTML = sites
+            .map((s) => {
+              const sStart = s.mob_date ? new Date(s.mob_date) : new Date(0);
+              const sEnd = s.replaced_date
+                ? new Date(s.replaced_date)
+                : s.work_end_date
+                  ? new Date(s.work_end_date)
+                  : new Date(8640000000000000);
+
+              // 🟢 Strict Non-overlapping Window Filter (end > sStart & start <= sEnd)
+              const matchedDrivers = computedDrivers
+                .filter((d) => d.start <= sEnd && d.end > sStart)
+                .map((d) => d.raw);
+              const matchedVTypes = computedVTypes
+                .filter((v) => v.start <= sEnd && v.end > sStart)
+                .map((d) => d.raw);
+              const matchedSanthooks = computedSanthooks
+                .filter((st) => st.start <= sEnd && st.end > sStart)
+                .map((d) => d.raw);
+              const matchedOwners = computedOwners
+                .filter((o) => o.start <= sEnd && o.end > sStart)
+                .map((d) => d.raw);
+
+              // Build Drivers Card
+              let driverHtml = "-";
+              if (matchedDrivers.length > 0) {
+                driverHtml = matchedDrivers
+                  .map((d) => {
+                    const mobileNum =
+                      d.driver_mobile ||
+                      d.mobile ||
+                      d.driver_mob ||
+                      (masterCurrent &&
+                      masterCurrent.driver_name === d.driver_name
+                        ? masterCurrent.driver_mobile
+                        : "") ||
+                      "-";
+                    return `
+                                <div class="sub-timeline-card">
+                                    <strong>👤 ${d.driver_name || "-"}</strong><br>
+                                    📞 Mobile: ${mobileNum}<br>
+                                    🗓 Period: ${formatUIDate(d.join_date)} to ${formatUIDate(d.work_end_date)}<br>
+                                    💰 Salary: ${d.salary || "-"}
+                                </div>
+                            `;
+                  })
+                  .join("");
+              }
+
+              // Build Vehicle Type & Santhook Card (Properly Merged without ghost duplicates)
+              let vtypeSanthookHtml = "-";
+              const maxCount = Math.max(
+                matchedVTypes.length,
+                matchedSanthooks.length,
+              );
+              if (maxCount > 0) {
+                const uniqueCombos = [];
+                for (let i = 0; i < maxCount; i++) {
+                  const vt =
+                    matchedVTypes[i] ||
+                    (matchedVTypes.length === 1 ? matchedVTypes[0] : {});
+                  const st =
+                    matchedSanthooks[i] ||
+                    (matchedSanthooks.length === 1 ? matchedSanthooks[0] : {});
+
+                  const startDate =
+                    vt.start_date || st.start_date || s.mob_date;
+                  const endDate =
+                    vt.end_date ||
+                    st.end_date ||
+                    s.work_end_date ||
+                    s.replaced_date;
+
+                  uniqueCombos.push(`
+                                <div class="sub-timeline-card">
+                                    <strong>🚜 Type:</strong> ${vt.vehicle_type || "-"}<br>
+                                    <strong>📦 Santhook:</strong> ${st.santhook_name || "-"}<br>
+                                    🗓 Period: ${formatUIDate(startDate)} to ${formatUIDate(endDate)}
+                                </div>
+                            `);
+                }
+                vtypeSanthookHtml = uniqueCombos.join("");
+              }
+
+              // Build Owner Card
+              let ownerHtml =
+                matchedOwners.length > 0
+                  ? matchedOwners
+                      .map(
+                        (o) => `
+                        <div class="sub-timeline-card">
+                            <strong>🏢 ${o.owner_name}</strong><br>
+                            🗓 Period: ${formatUIDate(o.start_date)} to ${formatUIDate(o.end_date)}
+                        </div>
+                    `,
+                      )
+                      .join("")
+                  : "-";
+
+              let siteStatus =
+                '<span style="color:#1a7f37; font-weight:bold;">Running</span>';
+              if (s.replaced_date)
+                siteStatus =
+                  '<span style="color:#cf222e; font-weight:bold;">Replaced</span>';
+              else if (s.work_end_date)
+                siteStatus =
+                  '<span style="color:#d97706; font-weight:bold;">Released</span>';
+
+              let replacementHtml = "";
+              if (s.old_eq || s.new_eq) {
+                replacementHtml = `
+                            <div style="margin-top: 4px; padding: 4px 6px; background: #fff; border: 1px solid #d0d7de; border-radius: 4px; font-size: 11px;">
+                                ${s.old_eq ? `<div><strong>Old EQ:</strong> ${s.old_eq}</div>` : ""}
+                                ${s.new_eq ? `<div><strong>New EQ:</strong> ${s.new_eq}</div>` : ""}
+                            </div>
+                        `;
+              }
+
+              return `
+                        <tr>
+                            <td style="vertical-align: top;">
+                                <div style="font-weight: 700; font-size: 13px; color: #0969da;">${s.site_name || "-"}</div>
+                                <div style="font-size: 11px; color: #57606a; margin-top: 3px;">
+                                    Start: ${formatUIDate(s.mob_date)}<br>
+                                    End: ${formatUIDate(s.work_end_date)}<br>
+                                    Replaced: ${formatUIDate(s.replaced_date)}<br>
+                                    Status: ${siteStatus}
+                                    ${replacementHtml}
+                                </div>
+                            </td>
+                            <td style="vertical-align: top;">${vtypeSanthookHtml}</td>
+                            <td style="vertical-align: top;">${driverHtml}</td>
+                            <td style="vertical-align: top;">${ownerHtml}</td>
+                        </tr>
+                    `;
+            })
+            .join("");
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: red; padding: 20px;">Error generating timeline: ${err.message}</td></tr>`;
+        }
+      }
+
+      let tempFilterSelection = new Set();
+
+function openExcelFilter(event, columnKey) {
+    event.stopPropagation();
+    currentFilterKey = columnKey;
+    
+    const btn = event.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const menu = document.getElementById('excelFilterMenu');
+    
+    menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
+    menu.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 270)}px`;
+    menu.style.display = 'flex';
+
+    const allUnique = [...new Set(masterTableData.map(r => String(r[columnKey] ?? '-')))];
+    // 🟢 നേരത്തെ ഫിൽട്ടർ ചെയ്തിട്ടുണ്ടെങ്കിൽ അത് എടുക്കുന്നു, ഇല്ലെങ്കിൽ എല്ലാം സെലക്ട് ചെയ്യുന്നു
+    tempFilterSelection = activeFilters[columnKey] ? new Set(activeFilters[columnKey]) : new Set(allUnique);
+
+    const searchInput = document.getElementById('filterSearchInput');
+    searchInput.value = '';
+    searchInput.placeholder = 'Search (eg: 5645, 5564)...';
+    populateFilterOptions(columnKey);
+}
+
+      function closeFilterMenu() {
+        document.getElementById("excelFilterMenu").style.display = "none";
+        currentFilterKey = null;
+      }
+
+      function populateFilterOptions(columnKey, searchTerm = '') {
+    const container = document.getElementById('filterItemsList');
+    container.innerHTML = '';
+
+    const uniqueValues = [...new Set(masterTableData.map(r => String(r[columnKey] ?? '-')))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    // 🟢 ഒന്നിലധികം വാക്കുകൾ കോമ (,) അല്ലെങ്കിൽ സ്പേസ് ഇട്ട് സെർച്ച് ചെയ്യാൻ (Multi Search Split)
+    const searchTerms = searchTerm.trim().toLowerCase().split(/[\s,]+/).filter(t => t.length > 0);
+
+    const filteredValues = uniqueValues.filter(val => {
+        if (searchTerms.length === 0) return true;
+        const lowerVal = val.toLowerCase();
+        // സെർച്ച് ചെയ്ത വാക്കുകളിൽ ഏതെങ്കിലും ഒന്നുമായി മാച്ച് ആയാൽ ലിസ്റ്റിൽ കാണിക്കും
+        return searchTerms.some(term => lowerVal.includes(term));
+    });
+
+    filteredValues.forEach(val => {
+        const isChecked = tempFilterSelection.has(val);
+        const label = document.createElement('label');
+        label.className = 'filter-item';
+        label.innerHTML = `
+            <input type="checkbox" class="col-filter-check" value="${val.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''} onchange="onCheckboxChange(this)">
+            <span>${val}</span>
+        `;
+        container.appendChild(label);
+    });
+
+    syncSelectAllCheckbox();
+}
+
+      function onFilterSearchInput() {
+        const query = document.getElementById("filterSearchInput").value;
+        if (currentFilterKey) {
+          populateFilterOptions(currentFilterKey, query);
+        }
+      }
+
+      function toggleSelectAll(masterCb) {
+    const cbs = document.querySelectorAll('.col-filter-check');
+    cbs.forEach(cb => {
+        cb.checked = masterCb.checked;
+        if (masterCb.checked) {
+            tempFilterSelection.add(cb.value);
+        } else {
+            tempFilterSelection.delete(cb.value);
+        }
+    });
+}
+
+function onCheckboxChange(cb) {
+    if (cb.checked) {
+        tempFilterSelection.add(cb.value);
+    } else {
+        tempFilterSelection.delete(cb.value);
+    }
+    syncSelectAllCheckbox();
+}
+
+      function syncSelectAllCheckbox() {
+        const allCbs = document.querySelectorAll(".col-filter-check");
+        const checkedCbs = document.querySelectorAll(
+          ".col-filter-check:checked",
+        );
+        const selectAll = document.getElementById("selectAllCheckbox");
+        if (allCbs.length === 0) {
+          selectAll.checked = false;
+          selectAll.indeterminate = false;
+        } else if (allCbs.length === checkedCbs.length) {
+          selectAll.checked = true;
+          selectAll.indeterminate = false;
+        } else if (checkedCbs.length === 0) {
+          selectAll.checked = false;
+          selectAll.indeterminate = false;
+        } else {
+          selectAll.indeterminate = true;
+        }
+      }
+
+      function applyCurrentFilter() {
+    if (!currentFilterKey) return;
+
+    const allUnique = [...new Set(masterTableData.map(r => String(r[currentFilterKey] ?? '-')))];
+
+    // 🟢 മുഴുവൻ സെലക്ട് ആണെങ്കിൽ ഫിൽട്ടർ ഒഴിവാക്കുന്നു, അല്ലെങ്കിൽ തിരഞ്ഞെടുത്തവ മാത്രം ഫിൽട്ടർ ആക്കുന്നു
+    if (tempFilterSelection.size === allUnique.length) {
+        delete activeFilters[currentFilterKey];
+    } else {
+        activeFilters[currentFilterKey] = new Set(tempFilterSelection);
+    }
+
+    const thButtons = document.querySelectorAll('.filter-btn');
+    thButtons.forEach(btn => {
+        const fnStr = btn.getAttribute('onclick') || '';
+        if (fnStr.includes(`'${currentFilterKey}'`)) {
+            if (activeFilters[currentFilterKey]) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+
+    renderFilteredTable();
+    closeFilterMenu();
+}
+
+      async function loadTableData() {
+        const tbody = document.getElementById("eqTableBody");
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/api/we1-own-eq/data", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          const data = await res.json();
+
+          if (!data.success) {
+            if (
+              data.message &&
+              (data.message.toLowerCase().includes("session") ||
+                data.message.toLowerCase().includes("token") ||
+                data.message.toLowerCase().includes("unauthorized"))
+            ) {
+              logout();
+              return;
+            }
+            throw new Error(data.message);
+          }
+
+          uniqueVehicleTypes.clear();
+          uniqueSiteNames.clear();
+          uniqueDriverNames.clear();
+          uniqueOwnerNames.clear();
+          uniqueSanthookNames.clear();
+          uniquePlates.clear();
+          globalPlates = [];
+
+          masterTableData = (data.data || []).map((row) => {
+            const mob_date_ui = formatUIDate(row.mob_date);
+            const joining_date_ui = formatUIDate(row.joining_date);
+            const eq_insurance_exp_ui = formatUIDate(row.eq_insurance_exp);
+            const fahs_mvpi_exp_ui = formatUIDate(row.fahs_mvpi_exp);
+
+            if (row.vehicle_type && row.vehicle_type.trim() !== "")
+              uniqueVehicleTypes.add(row.vehicle_type.trim());
+            if (row.site_name && row.site_name.trim() !== "")
+              uniqueSiteNames.add(row.site_name.trim());
+            if (row.driver_name && row.driver_name.trim() !== "")
+              uniqueDriverNames.add(row.driver_name.trim());
+            if (row.vehicle_owner && row.vehicle_owner.trim() !== "")
+              uniqueOwnerNames.add(row.vehicle_owner.trim());
+            if (row.santhook && row.santhook.trim() !== "")
+              uniqueSanthookNames.add(row.santhook.trim());
+            if (row.plate_no && row.plate_no.trim() !== "") {
+              uniquePlates.add(row.plate_no.trim());
+              globalPlates.push(row.plate_no.trim());
+            }
+
+            return {
+              ...row,
+              mob_date_ui,
+              joining_date_ui,
+              eq_insurance_exp_ui,
+              fahs_mvpi_exp_ui,
+              status: cleanVal(row.status),
+              note: cleanVal(row.note),
+              driver_mobile: cleanVal(row.driver_mobile),
+              vehicle_type: cleanVal(row.vehicle_type),
+              driver_name: cleanVal(row.driver_name),
+              site_name: cleanVal(row.site_name),
+              vehicle_owner: cleanVal(row.vehicle_owner),
+              santhook: cleanVal(row.santhook),
+              salary: cleanVal(row.salary),
+              plate_no: cleanVal(row.plate_no),
+              old_eq: cleanVal(row.old_eq),
+              new_eq: cleanVal(row.new_eq),
+              chassis_no: cleanVal(row.chassis_no),
+              serial_no: cleanVal(row.serial_no),
+            };
+          });
+
+          updateGlobalDatalists();
+
+          // 🟢 നിലവിലുള്ള Sort റീ-അപ്ലൈ ചെയ്യുന്നു
+          applySortingInternal();
+
+          // ഫിൽട്ടർ ബട്ടണുകളുടെ ആക്ടീവ് ബ്ലൂ കളർ ഹൈലൈറ്റ് നിലനിർത്തുന്നു
+          const thButtons = document.querySelectorAll(".filter-btn");
+          thButtons.forEach((btn) => {
+            const fnStr = btn.getAttribute("onclick") || "";
+            let matchedKey = null;
+            for (const key in activeFilters) {
+              if (fnStr.includes(`'${key}'`)) {
+                matchedKey = key;
+                break;
+              }
+            }
+            if (matchedKey && activeFilters[matchedKey]) {
+              btn.classList.add("active");
+            } else {
+              btn.classList.remove("active");
+            }
+          });
+
+          renderFilteredTable();
+        } catch (error) {
+          tbody.innerHTML = `<tr><td colspan="15" style="text-align: center; color: red;">Error fetching data: ${error.message}</td></tr>`;
+        }
+      }
+
+      // 🟢 3. സോർട്ടിംഗ് ലോജിക്
+      function sortGrid(direction) {
+        if (!currentFilterKey) return;
+        currentSortColumn = currentFilterKey;
+        currentSortDirection = direction;
+
+        applySortingInternal();
+        renderFilteredTable();
+        closeFilterMenu();
+      }
+
+      function applySortingInternal() {
+        if (!currentSortColumn || !currentSortDirection) return;
+
+        masterTableData.sort((a, b) => {
+          let valA = String(a[currentSortColumn] ?? "").toLowerCase();
+          let valB = String(b[currentSortColumn] ?? "").toLowerCase();
+
+          const numA = parseFloat(valA);
+          const numB = parseFloat(valB);
+
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return currentSortDirection === "asc" ? numA - numB : numB - numA;
+          }
+
+          return currentSortDirection === "asc"
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        });
+      }
+
+      function openModal(title, content) {
+        document.getElementById("modalTitle").innerText = title;
+        document.getElementById("modalBody").innerHTML = content;
+        document.getElementById("commonModal").style.display = "flex";
+      }
+
+      function closeModal() {
+        document.getElementById("commonModal").style.display = "none";
+      }
+
+      function openLog(logName) {
+    document.getElementById('quickLogSidebar').style.display = 'none';
+    document.getElementById('tempLogType').value = logName;
+    const drop = document.getElementById('logPlateDropdown');
+    
+    // 🟢 UI-ൽ കാണുന്ന ഫിൽട്ടർ/സോർട്ട് ഓർഡറിലുള്ള പ്ലേറ്റുകൾ ഡ്രോപ്പ്ഡൗണിൽ നൽകുന്നു
+    const currentList = getCurrentGridPlates();
+    const platesToUse = currentList.length > 0 ? currentList : [...new Set(globalPlates)];
+
+    drop.innerHTML = '<option value="">Select Plate No...</option>' + platesToUse.map(p => `<option value="${p}">${p}</option>`).join('');
+    document.getElementById('plateSelectModal').style.display = 'flex';
+}
+
+      function fetchLogData() {
+        const plate = document.getElementById("logPlateDropdown").value;
+        const type = document.getElementById("tempLogType").value;
+        if (!plate) return alert("Please select a Plate No");
+
+        document.getElementById("plateSelectModal").style.display = "none";
+        const titleLabel =
+          type === "VehicleTypeLog"
+            ? "🚜 Vehicle Type & Santhook"
+            : `📂 ${type}`;
+        document.getElementById("splitLogTitle").innerText =
+          `${titleLabel} - ${plate}`;
+        document.getElementById("activeLogType").value = type;
+        document.getElementById("activeLogPlate").value = plate;
+        document.getElementById("editLogId").value = "";
+        document.getElementById("editSanthookLogId").value = "";
+
+        renderLogForm(type);
+        loadLogHistory(type, plate);
+        document.getElementById("splitLogModal").style.display = "flex";
+      }
+
+      const logConfigs = {
+        SiteLog: [
+          {
+            id: "f_site_name",
+            label: "Site Name",
+            type: "text",
+            list: "siteSuggestions",
+          },
+          { id: "f_mob_date", label: "Mobilisation Date", type: "date" },
+          { id: "f_work_end_date", label: "Work End Date", type: "date" },
+          { id: "f_replaced_date", label: "Replaced Date", type: "date" },
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_old_eq",
+                label: "Old EQ",
+                type: "text",
+                placeholder: "Old EQ",
+                list: "plateSuggestions",
+              },
+              {
+                id: "f_new_eq",
+                label: "New EQ",
+                type: "text",
+                placeholder: "New EQ",
+                list: "plateSuggestions",
+              },
+            ],
+          },
+        ],
+        DriverLog: [
+          {
+            id: "f_driver_name",
+            label: "Driver Name",
+            type: "text",
+            list: "driverSuggestions",
+          },
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_driver_mobile",
+                label: "Mobile",
+                type: "text",
+                placeholder: "Mobile Number",
+              },
+              {
+                id: "f_salary",
+                label: "Salary",
+                type: "number",
+                placeholder: "Salary",
+              },
+            ],
+          },
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_join_date",
+                label: "Joining Date",
+                type: "date",
+              },
+              {
+                id: "f_work_end_date",
+                label: "Work End Date",
+                type: "date",
+              },
+            ],
+          },
+          {
+            id: "f_iqama_no",
+            label: "IQAMA No.",
+            type: "text",
+            placeholder: "Enter IQAMA No",
+          },
+          // NEW CODE
+          {
+            type: "row",
+            fields: [
+              { id: "f_iqama_expiry", label: "IQAMA Expiry", type: "date" },
+              { id: "f_licence_expiry", label: "Licence Expiry", type: "date" },
+            ],
+          },
+          {
+            type: "row",
+            fields: [
+              { id: "f_passport_no", label: "Passport No.", type: "text", placeholder: "Enter Passport No" },
+              { id: "f_passport_expiry", label: "Passport Expiry", type: "date" },
+            ],
+          },
+        ],
+        VehicleTypeLog: [
+          {
+            id: "f_vehicle_type",
+            label: "Vehicle Type",
+            type: "text",
+            list: "vTypeSuggestions",
+          },
+          {
+            id: "f_santhook_name",
+            label: "Santhook",
+            type: "text",
+            list: "santhookSuggestions",
+          },
+          { id: "f_start_date", label: "Date :: Start", type: "date" },
+          { id: "f_end_date", label: "Date :: End", type: "date" },
+        ],
+        OwnerLog: [
+          {
+            id: "f_owner_name",
+            label: "Owner Name",
+            type: "text",
+            list: "ownerSuggestions",
+          },
+          { id: "f_start_date", label: "Start Date", type: "date" },
+          { id: "f_end_date", label: "End Date", type: "date" },
+        ],
+        Equipment: [
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_chassis_no",
+                label: "Chassis No",
+                type: "text",
+                placeholder: "Chassis No",
+              },
+              {
+                id: "f_serial_no",
+                label: "Serial No",
+                type: "text",
+                placeholder: "Serial No",
+              },
+            ],
+          },
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_eq_insurance_exp",
+                label: "EQ Insurance Exp",
+                type: "date",
+              },
+              {
+                id: "f_fahs_mvpi_exp",
+                label: "FAHS/MVPI Exp",
+                type: "date",
+              },
+            ],
+          },
+          {
+            type: "row",
+            fields: [
+              {
+                id: "f_op_card_exp",
+                label: "Operation Card Exp",
+                type: "date",
+              },
+              {
+                id: "f_isthimaara_exp",
+                label: "Isthimaara Exp",
+                type: "date",
+              },
+            ],
+          },
+        ],
+      };
+
+      function renderLogForm(type) {
+        const formContainer = document.getElementById("dynamicLogForm");
+        const fields = logConfigs[type];
+
+        formContainer.innerHTML = fields
+          .map((f) => {
+            if (f.type === "row") {
+              return `
+                        <div style="display: flex; gap: 10px;">
+                            ${f.fields
+                              .map(
+                                (subF) => `
+                                <div style="flex: 1;">
+                                    <label style="font-weight:600; font-size:11px; display:block; margin-bottom:3px;">${subF.label}</label>
+                                    <input type="${subF.type}" id="${subF.id}" placeholder="${subF.placeholder || ""}" ${subF.list ? `list="${subF.list}"` : ""} autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px;">
+                                </div>
+                            `,
+                              )
+                              .join("")}
+                        </div>
+                    `;
+            }
+            return `
+                    <div>
+                        <label style="font-weight:600; font-size:11px; display:block; margin-bottom:3px;">${f.label}</label>
+                        <input type="${f.type}" id="${f.id}" ${f.list ? `list="${f.list}"` : ""} autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #d0d7de; border-radius:4px;">
+                    </div>
+                `;
+          })
+          .join("");
+      }
+
+      async function loadLogHistory(type, plate) {
+        const tbody = document.getElementById("logTableBody");
+        const thead = document.getElementById("logTableHead");
+        tbody.innerHTML = '<tr><td colspan="11">Loading...</td></tr>';
+
+        if (type === "Equipment") {
+          thead.innerHTML = `<tr><th>Chassis No</th><th>Serial No</th><th>Insurance Exp</th><th>MVPI Exp</th><th>Op Card Exp</th><th>Isthimaara Exp</th></tr>`;
+          
+          const currentEq = masterTableData.find(
+            (m) => String(m.plate_no || "").toUpperCase().trim() === String(plate || "").toUpperCase().trim()
+          );
+
+          const setVal = (id, val, isDate = false) => {
+            const el = document.getElementById(id);
+            if (el) {
+              if (isDate) {
+                el.value = (val && val !== "-" && val !== "null") ? String(val).split("T")[0] : "";
+              } else {
+                el.value = (val && val !== "-" && val !== "null") ? val : "";
+              }
+            }
+          };
+
+          if (currentEq) {
+            setVal("f_chassis_no", currentEq.chassis_no);
+            setVal("f_serial_no", currentEq.serial_no);
+            setVal("f_eq_insurance_exp", currentEq.eq_insurance_exp, true);
+            setVal("f_fahs_mvpi_exp", currentEq.fahs_mvpi_exp, true);
+            setVal("f_op_card_exp", currentEq.op_card_exp, true);
+            setVal("f_isthimaara_exp", currentEq.isthimaara_exp, true);
+
+            tbody.innerHTML = `
+              <tr>
+                <td>${currentEq.chassis_no && currentEq.chassis_no !== "-" ? currentEq.chassis_no : "-"}</td>
+                <td>${currentEq.serial_no && currentEq.serial_no !== "-" ? currentEq.serial_no : "-"}</td>
+                <td>${formatUIDate(currentEq.eq_insurance_exp)}</td>
+                <td>${formatUIDate(currentEq.fahs_mvpi_exp)}</td>
+                <td>${formatUIDate(currentEq.op_card_exp)}</td>
+                <td>${formatUIDate(currentEq.isthimaara_exp)}</td>
+              </tr>
+            `;
+          } else {
+            setVal("f_chassis_no", "");
+            setVal("f_serial_no", "");
+            setVal("f_eq_insurance_exp", "", true);
+            setVal("f_fahs_mvpi_exp", "", true);
+            setVal("f_op_card_exp", "", true);
+            setVal("f_isthimaara_exp", "", true);
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No Equipment Details Found</td></tr>`;
+          }
+          return;
+        }
+
+        let headers = [];
+        if (type === "SiteLog")
+          headers = [
+            "Site",
+            "Mob Date",
+            "End Date",
+            "Replaced",
+            "Old EQ",
+            "New EQ",
+            "Status",
+            "Edit",
+          ];
+        else if (type === "DriverLog")
+          headers = [
+            "Driver Name",
+            "Mobile",
+            "Join Date",
+            "End Date",
+            "Salary",
+            "IQAMA No.",
+            "IQAMA Exp",
+            "Licence Exp",
+            "Passport No",
+            "Passport Exp",
+            "Edit",
+          ];
+        else if (type === "VehicleTypeLog")
+          headers = [
+            "Vehicle Type",
+            "Santhook Name",
+            "Start Date",
+            "End Date",
+            "Edit",
+          ];
+        else if (type === "OwnerLog")
+          headers = ["Owner Name", "Start Date", "End Date", "Edit"];
+
+        thead.innerHTML = `<tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr>`;
+
+        try {
+          const token = localStorage.getItem("emp_token");
+
+          if (type === "VehicleTypeLog") {
+            const [vRes, sRes] = await Promise.all([
+              fetch("/api/we1-own-eq/log/history", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + token,
+                },
+                body: JSON.stringify({ type: "VehicleTypeLog", plate }),
+              }).then((r) => r.json()),
+              fetch("/api/we1-own-eq/log/history", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + token,
+                },
+                body: JSON.stringify({ type: "SanthookLog", plate }),
+              }).then((r) => r.json()),
+            ]);
+
+            const vList = (vRes.success ? vRes.data : []).sort(
+              (a, b) =>
+                new Date(b.start_date || 0) - new Date(a.start_date || 0),
+            );
+            const sList = (sRes.success ? sRes.data : []).sort(
+              (a, b) =>
+                new Date(b.start_date || 0) - new Date(a.start_date || 0),
+            );
+            const count = Math.max(vList.length, sList.length);
+
+            if (count === 0) {
+              tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center;">No history found</td></tr>`;
+              return;
+            }
+
+            let rowsHtml = "";
+            for (let i = 0; i < count; i++) {
+              const vItem = vList[i] || {};
+              const sItem = sList[i] || {};
+              const mergedItem = {
+                id: vItem.id || null,
+                santhook_log_id: sItem.id || null,
+                vehicle_type: vItem.vehicle_type || "",
+                santhook_name: sItem.santhook_name || "",
+                start_date: vItem.start_date || sItem.start_date || "",
+                end_date: vItem.end_date || sItem.end_date || "",
+              };
+
+              const safeData = JSON.stringify(mergedItem)
+                .replace(/'/g, "&#39;")
+                .replace(/"/g, "&quot;");
+              rowsHtml += `
+                            <tr>
+                                <td>${mergedItem.vehicle_type || "-"}</td>
+                                <td>${mergedItem.santhook_name || "-"}</td>
+                                <td>${formatUIDate(mergedItem.start_date)}</td>
+                                <td>${formatUIDate(mergedItem.end_date)}</td>
+                                <td><span class="edit-icon" onclick="editLogEntry('${safeData}')">✏️</span></td>
+                            </tr>
+                        `;
+            }
+            tbody.innerHTML = rowsHtml;
+            return;
+          }
+
+          const res = await fetch(`/api/we1-own-eq/log/history`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ type: type, plate: plate }),
+          });
+          const data = await res.json();
+
+          if (!data.success) throw new Error("Failed to load");
+
+          if (data.data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center;">No history found</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = data.data
+            .map((r) => {
+              let tdHtml = "";
+              if (type === "SiteLog") {
+                let status = "Running";
+                if (r.replaced_date)
+                  status =
+                    '<span style="color:#cf222e; font-weight:bold;">Replaced</span>';
+                else if (r.work_end_date)
+                  status =
+                    '<span style="color:#d97706; font-weight:bold;">Released</span>';
+                else
+                  status =
+                    '<span style="color:#1a7f37; font-weight:bold;">Running</span>';
+
+                tdHtml = `<td>${r.site_name || "-"}</td><td>${formatUIDate(r.mob_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${formatUIDate(r.replaced_date)}</td><td>${r.old_eq || "-"}</td><td>${r.new_eq || "-"}</td><td>${status}</td>`;
+              } else if (type === "DriverLog") {
+                tdHtml = `<td>${r.driver_name || "-"}</td><td>${r.driver_mobile || r.mobile || "-"}</td><td>${formatUIDate(r.join_date)}</td><td>${formatUIDate(r.work_end_date)}</td><td>${r.salary || "-"}</td><td>${r.iqama_no || "-"}</td><td>${formatUIDate(r.iqama_expiry)}</td><td>${formatUIDate(r.licence_expiry)}</td><td>${r.passport_no || "-"}</td><td>${formatUIDate(r.passport_expiry)}</td>`;
+              } else if (type === "OwnerLog") {
+                tdHtml = `<td>${r.owner_name || "-"}</td><td>${formatUIDate(r.start_date)}</td><td>${formatUIDate(r.end_date)}</td>`;
+              }
+
+              const safeData = JSON.stringify(r)
+                .replace(/'/g, "&#39;")
+                .replace(/"/g, "&quot;");
+              tdHtml += `<td><span class="edit-icon" onclick="editLogEntry('${safeData}')">✏️</span></td>`;
+              return `<tr>${tdHtml}</tr>`;
+            })
+            .join("");
+        } catch (e) {
+          tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; color:red;">Error fetching data</td></tr>`;
+        }
+      }
+
+      function editLogEntry(jsonStr) {
+        const data = JSON.parse(jsonStr);
+        document.getElementById("editLogId").value = data.id || "";
+        document.getElementById("editSanthookLogId").value =
+          data.santhook_log_id || "";
+
+        const type = document.getElementById("activeLogType").value;
+        const fields = logConfigs[type];
+
+        const populateField = (f) => {
+          const dbVal = data[f.id.replace("f_", "")];
+          const elem = document.getElementById(f.id);
+          if (!elem) return;
+          if (f.type === "date" && dbVal) {
+            elem.value = dbVal.split("T")[0];
+          } else {
+            elem.value = dbVal || "";
+          }
+        };
+
+        fields.forEach((f) => {
+          if (f.type === "row") {
+            f.fields.forEach((subF) => populateField(subF));
+          } else {
+            populateField(f);
+          }
+        });
+      }
+
+      async function changePlate() {
+    const currentType = document.getElementById('activeLogType').value;
+    const currentPlate = document.getElementById('activeLogPlate').value;
+    
+    if (logHasUnsavedData(currentType)) {
+        const isSaved = await saveLogEntry(true);
+        if (!isSaved) return;
+    }
+
+    // 🟢 നിലവിൽ ടേബിളിൽ ഉള്ള ഓർഡറിലെ അടുത്ത പ്ലേറ്റ് എടുക്കുന്നു
+    const currentGridPlates = getCurrentGridPlates();
+    const uniquePlatesList = currentGridPlates.length > 0 ? currentGridPlates : [...new Set(globalPlates)];
+    
+    const currentIndex = uniquePlatesList.indexOf(currentPlate);
+    let nextIndex = currentIndex + 1;
+    
+    if (nextIndex >= uniquePlatesList.length) {
+        nextIndex = 0; // അവസാനത്തെ പ്ലേറ്റ് കഴിഞ്ഞാൽ വീണ്ടും ആദ്യത്തേതിലേക്ക്
+    }
+
+    const nextPlate = uniquePlatesList[nextIndex];
+    if (!nextPlate) return;
+    
+    document.getElementById('activeLogPlate').value = nextPlate;
+    const titleLabel = currentType === 'VehicleTypeLog' ? '🚜 Vehicle Type & Santhook' : currentType === 'Equipment' ? '🚜 Equipment' : `📂 ${currentType}`;
+    document.getElementById('splitLogTitle').innerText = `${titleLabel} - ${nextPlate}`;
+    document.getElementById('editLogId').value = '';
+    document.getElementById('editSanthookLogId').value = '';
+    
+    renderLogForm(currentType); 
+    loadLogHistory(currentType, nextPlate); 
+}
+
+      async function saveLogEntry(isAutoSave = false) {
+        const type = document.getElementById("activeLogType").value;
+        const plate = document.getElementById("activeLogPlate").value;
+        const id = document.getElementById("editLogId").value;
+        const token = localStorage.getItem("emp_token");
+
+        if (type === "Equipment") {
+          const payload = {
+            plate_no: plate,
+            chassis_no: (document.getElementById("f_chassis_no")?.value || "").trim(),
+            serial_no: (document.getElementById("f_serial_no")?.value || "").trim(),
+            eq_insurance_exp: document.getElementById("f_eq_insurance_exp")?.value || null,
+            fahs_mvpi_exp: document.getElementById("f_fahs_mvpi_exp")?.value || null,
+            op_card_exp: document.getElementById("f_op_card_exp")?.value || null,
+            isthimaara_exp: document.getElementById("f_isthimaara_exp")?.value || null,
+          };
+
+          try {
+            const res = await fetch("/api/we1-own-eq/equipment/update-specs", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+              body: JSON.stringify(payload),
+            });
+            const responseData = await res.json();
+
+            if (responseData.success) {
+              await loadTableData();
+              if (!isAutoSave) {
+                loadLogHistory(type, plate);
+              }
+              return true;
+            } else {
+              alert("Error: " + responseData.message);
+              return false;
+            }
+          } catch (e) {
+            alert("Network Error while updating Equipment");
+            return false;
+          }
+        }
+
+        if (type === "VehicleTypeLog") {
+          const vTypeVal = document
+            .getElementById("f_vehicle_type")
+            .value.trim();
+          const santhookVal = document
+            .getElementById("f_santhook_name")
+            .value.trim();
+          const startDateVal = document
+            .getElementById("f_start_date")
+            .value.trim();
+          const endDateVal = document.getElementById("f_end_date").value.trim();
+          const santhookLogId =
+            document.getElementById("editSanthookLogId").value;
+
+          const vTypePayload = {
+            type: "VehicleTypeLog",
+            plate_no: plate,
+            id: id || null,
+            data: {
+              vehicle_type: vTypeVal === "" ? null : vTypeVal,
+              start_date: startDateVal === "" ? null : startDateVal,
+            },
+          };
+
+          const santhookPayload = {
+            type: "SanthookLog",
+            plate_no: plate,
+            id: santhookLogId || null,
+            data: {
+              santhook_name: santhookVal === "" ? null : santhookVal,
+              start_date: startDateVal === "" ? null : startDateVal,
+              end_date: endDateVal === "" ? null : endDateVal,
+            },
+          };
+
+          try {
+            const [res1, res2] = await Promise.all([
+              fetch("/api/we1-own-eq/log/save", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + token,
+                },
+                body: JSON.stringify(vTypePayload),
+              }).then((r) => r.json()),
+              fetch("/api/we1-own-eq/log/save", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + token,
+                },
+                body: JSON.stringify(santhookPayload),
+              }).then((r) => r.json()),
+            ]);
+
+            if (res1.success && res2.success) {
+              document.getElementById("editLogId").value = "";
+              document.getElementById("editSanthookLogId").value = "";
+              if (!isAutoSave) {
+                renderLogForm(type);
+                loadLogHistory(type, plate);
+              }
+              loadTableData();
+              return true;
+            } else {
+              alert(
+                "Error saving merged log: " + (res1.message || res2.message),
+              );
+              return false;
+            }
+          } catch (e) {
+            alert("Network Error");
+            return false;
+          }
+        }
+
+        const payload = { type, plate_no: plate, id: id || null, data: {} };
+
+        const extractValue = (f) => {
+          const elem = document.getElementById(f.id);
+          if (elem) {
+            const val = elem.value.trim();
+            payload.data[f.id.replace("f_", "")] = val === "" ? null : val;
+          }
+        };
+
+        logConfigs[type].forEach((f) => {
+          if (f.type === "row") {
+            f.fields.forEach((subF) => extractValue(subF));
+          } else {
+            extractValue(f);
+          }
+        });
+
+        try {
+          const res = await fetch("/api/we1-own-eq/log/save", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify(payload),
+          });
+          const responseData = await res.json();
+
+          if (responseData.success) {
+            document.getElementById("editLogId").value = "";
+
+            if (!isAutoSave) {
+              renderLogForm(type);
+              loadLogHistory(type, plate);
+            }
+            loadTableData();
+            return true;
+          } else {
+            alert("Error: " + responseData.message);
+            return false;
+          }
+        } catch (e) {
+          alert("Network Error");
+          return false;
+        }
+      }
+
+      function openAddModal() {
+        let formHtml = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; max-height: 80vh; overflow-y: auto; padding: 10px 6px;">
+                
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Mobilisation Date</label>
+                    <input type="date" id="newMobDate" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Vehicle Type</label>
+                    <input type="text" id="newVType" list="vTypeSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="e.g. Water Tanker">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 700; font-size: 12px; color: #0969da; display: block; margin-bottom: 5px;">Plate Number <span style="color:red;">*</span></label>
+                    <input type="text" id="newPlateNo" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1.5px solid #0969da; border-radius: 6px; font-size: 13px; text-transform: uppercase; font-weight: 700; outline: none;" placeholder="e.g. 5645 JAA">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Driver Name</label>
+                    <input type="text" id="newDriver" list="driverSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Driver Name">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Mobile</label>
+                    <input type="text" id="newDriverMob" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Mobile Number">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Joining Date</label>
+                    <input type="date" id="newJoinDate" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Site Name</label>
+                    <input type="text" id="newSite" list="siteSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Site Name">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Vehicle Owner</label>
+                    <input type="text" id="newOwner" list="ownerSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Owner Name">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Santhook</label>
+                    <input type="text" id="newSanthook" list="santhookSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Santhook Owner Name">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Salary</label>
+                    <input type="number" id="newSalary" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Status</label>
+                    <select id="newStatus" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none; background: #fff;">
+                        <option value="Running">Running</option>
+                        <option value="Mobilizing">Mobilizing</option>
+                        <option value="Released">Released</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Note</label>
+                    <input type="text" id="newNote" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Enter Note">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Old EQ</label>
+                    <input type="text" id="newOldEq" list="plateSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Old Plate No">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">New EQ</label>
+                    <input type="text" id="newNewEq" list="plateSuggestions" autocomplete="off" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="New Plate No">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">IQAMA No.</label>
+                    <input type="text" id="newIqamaNo" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="IQAMA Number">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">IQAMA Expiry</label>
+                    <input type="date" id="newIqamaExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                // NEW CODE
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Licence Expiry</label>
+                    <input type="date" id="newLicenceExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Passport No.</label>
+                    <input type="text" id="newPassportNo" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Passport Number">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Passport Expiry</label>
+                    <input type="date" id="newPassportExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Chassis No</label>
+                    <input type="text" id="newChassisNo" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Chassis No">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Serial No</label>
+                    <input type="text" id="newSerialNo" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;" placeholder="Serial No">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">EQ Insurance Exp</label>
+                    <input type="date" id="newEqInsuranceExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">FAHS/MVPI Exp</label>
+                    <input type="date" id="newFahsExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Operation Card Exp</label>
+                    <input type="date" id="newOpCardExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 12px; color: #374151; display: block; margin-bottom: 5px;">Isthimaara Exp</label>
+                    <input type="date" id="newIsthimaaraExp" style="width: 100%; height: 36px; box-sizing: border-box; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none;">
+                </div>
+
+                <div class="form-group" style="grid-column: span 2; display: flex; align-items: flex-end;">
+                    <button onclick="saveNewVehicle()" style="width: 100%; height: 36px; background: #1a7f37; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); transition: background 0.2s;">💾 Save Full Equipment Details</button>
+                </div>
+            </div>
+        `;
+        
+        // 🟢 Screen size അനുസരിച്ച് Responsive Width നൽകുന്നു
+        const modalContent = document.querySelector("#commonModal .modal-content");
+        if (modalContent) {
+          modalContent.style.width = "1180px";
+          modalContent.style.maxWidth = "94vw";
+          modalContent.style.padding = "24px";
+          modalContent.style.borderRadius = "10px";
+        }
+        openModal("➕ Add New Equipment Entry", formHtml);
+      }
+
+      function closeModal() {
+        const modalContent = document.querySelector("#commonModal .modal-content");
+        if (modalContent) {
+          modalContent.style.width = "400px";
+          modalContent.style.maxWidth = "90%";
+          modalContent.style.padding = "20px";
+        }
+        document.getElementById("commonModal").style.display = "none";
+      }
+
+      async function saveNewVehicle() {
+        const plate_no = document.getElementById("newPlateNo").value.trim();
+        if (!plate_no) {
+          alert("Please enter a Plate Number.");
+          return;
+        }
+
+        const payload = {
+          plate_no: plate_no,
+          mob_date: document.getElementById("newMobDate").value || null,
+          vehicle_type: document.getElementById("newVType").value.trim(),
+          driver_name: document.getElementById("newDriver").value.trim(),
+          driver_mobile: document.getElementById("newDriverMob").value.trim(),
+          joining_date: document.getElementById("newJoinDate").value || null,
+          site_name: document.getElementById("newSite").value.trim(),
+          vehicle_owner: document.getElementById("newOwner").value.trim(),
+          santhook: document.getElementById("newSanthook").value.trim(),
+          salary: document.getElementById("newSalary").value || null,
+          status: document.getElementById("newStatus").value || "Running",
+          note: document.getElementById("newNote").value.trim(),
+          old_eq: document.getElementById("newOldEq").value.trim(),
+          new_eq: document.getElementById("newNewEq").value.trim(),
+          iqama_no: document.getElementById("newIqamaNo").value.trim(),
+          iqama_expiry: document.getElementById("newIqamaExp").value || null,
+          licence_expiry: document.getElementById("newLicenceExp").value || null,
+          passport_no: document.getElementById("newPassportNo").value.trim(),
+          passport_expiry: document.getElementById("newPassportExp").value || null,
+          chassis_no: document.getElementById("newChassisNo").value.trim(),
+          serial_no: document.getElementById("newSerialNo").value.trim(),
+          eq_insurance_exp: document.getElementById("newEqInsuranceExp").value || null,
+          fahs_mvpi_exp: document.getElementById("newFahsExp").value || null,
+          op_card_exp: document.getElementById("newOpCardExp").value || null,
+          isthimaara_exp: document.getElementById("newIsthimaaraExp").value || null
+        };
+
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/api/we1-own-eq/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            closeModal();
+            if (activeFilters["plate_no"])
+              activeFilters["plate_no"].add(payload.plate_no);
+            if (activeFilters["vehicle_type"] && payload.vehicle_type)
+              activeFilters["vehicle_type"].add(payload.vehicle_type);
+            if (activeFilters["site_name"] && payload.site_name)
+              activeFilters["site_name"].add(payload.site_name);
+            if (activeFilters["status"] && payload.status)
+              activeFilters["status"].add(payload.status);
+
+            await loadTableData();
+          } else {
+            alert("Error: " + data.message);
+          }
+        } catch (error) {
+          alert("Network error occurred.");
+        }
+      }
+
+      function enableNoteEdit(cell) {
+        if (cell.innerText === "-") cell.innerText = "";
+
+        cell.setAttribute("contenteditable", "plaintext-only");
+        cell.style.background = "#eff6ff";
+        cell.style.cursor = "text";
+        cell.focus();
+
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      async function saveNoteDirect(cell, plateNo) {
+        cell.setAttribute("contenteditable", "false");
+        cell.style.background = "transparent";
+        cell.style.cursor = "pointer";
+
+        let newNote = cell.innerText.trim();
+        if (newNote === "-") newNote = "";
+
+        let oldNote = cell.getAttribute("data-old");
+        if (oldNote === "-") oldNote = "";
+
+        if (newNote === oldNote) {
+          if (newNote === "") cell.innerText = "-";
+          return;
+        }
+
+        cell.style.backgroundColor = "#fff3cd";
+
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/api/we1-own-eq/update-note", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ plate_no: plateNo, note: newNote }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            cell.style.backgroundColor = "#d1e7dd";
+            cell.setAttribute("data-old", newNote || "-");
+            if (newNote === "") cell.innerText = "-";
+            setTimeout(
+              () => (cell.style.backgroundColor = "transparent"),
+              1000,
+            );
+          } else {
+            alert("Error saving note: " + data.message);
+            cell.style.backgroundColor = "#f8d7da";
+            cell.innerText = oldNote || "-";
+          }
+        } catch (e) {
+          alert("Network error while saving note");
+          cell.style.backgroundColor = "#f8d7da";
+          cell.innerText = oldNote || "-";
+        }
+      }
+
+      async function exportToExcel() {
+        const btn = document.getElementById("exportBtn");
+        const originalText = btn.innerHTML;
+
+        btn.innerHTML = "⏳ Exporting...";
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+
+        try {
+          const token = localStorage.getItem("emp_token");
+          const res = await fetch("/py/api/we1-own-eq/export", {
+            method: "GET",
+            headers: { Authorization: "Bearer " + token },
+          });
+
+          if (!res.ok)
+            throw new Error("Failed to generate Excel file from server.");
+
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.style.display = "none";
+          a.href = url;
+          a.download = `We1_Own_EQ_Report_${new Date().toISOString().split("T")[0]}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } catch (e) {
+          alert("Failed to export: " + e.message);
+        } finally {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          btn.style.opacity = "1";
+        }
+      }
+
+      function logout() {
+        localStorage.removeItem("emp_token");
+        localStorage.removeItem("emp_user");
+        window.location.href = "login.html";
+      }
+
+      let inactivityTimer;
+      const INACTIVITY_LIMIT = 120 * 60 * 1000;
+
+      function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+          alert(
+            "Session expired due to 2 hours of inactivity. Please login again.",
+          );
+          logout();
+        }, INACTIVITY_LIMIT);
+      }
+
+      ["mousemove", "mousedown", "keypress", "touchmove", "scroll"].forEach(
+        (evt) => document.addEventListener(evt, resetInactivityTimer, true),
+      );
+
+      resetInactivityTimer();
+    </script>
+  </body>
+</html>

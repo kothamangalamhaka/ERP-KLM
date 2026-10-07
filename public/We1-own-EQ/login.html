@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - We1 Own EQ</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f6f8fa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
+        h2 { text-align: center; color: #24292f; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+        input { width: 100%; padding: 10px; border: 1px solid #d0d7de; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #0969da; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #065bbf; }
+        #errorMsg { color: #cf222e; text-align: center; font-size: 13px; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h2>We1 EQ Login</h2>
+    <div class="form-group">
+        <label>Username</label>
+        <!-- Added autocomplete="off" -->
+        <input type="text" id="username" placeholder="Enter username" autocomplete="off" required>
+    </div>
+    <div class="form-group">
+        <label>Password</label>
+        <!-- Added autocomplete="new-password" to trick aggressive password managers -->
+        <input type="password" id="password" placeholder="Enter password" autocomplete="new-password" required>
+    </div>
+    <button onclick="handleLogin()">Login</button>
+    <div id="errorMsg">Invalid credentials!</div>
+</div>
+
+<script>
+
+     window.addEventListener('pageshow', function () {
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+
+        const errorMsg = document.getElementById('errorMsg');
+        errorMsg.innerText = '';
+        errorMsg.style.display = 'none';
+    });
+    
+    async function handleLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorMsg = document.getElementById('errorMsg');
+        errorMsg.style.display = 'none';
+
+        if (!username || !password) {
+            errorMsg.innerText = 'Please enter both fields';
+            errorMsg.style.display = 'block';
+            return;
+        }
+
+        try {
+            // ഈ API റൂട്ട് employloguser ടേബിളിൽ നിന്ന് ഡാറ്റ എടുക്കുന്നതാണ്
+            const res = await fetch('/api/own-equipment/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+
+            if (data.success && data.token) {
+                // Token ഉം User ഡാറ്റയും സേവ് ചെയ്യുന്നു
+                localStorage.setItem('emp_token', data.token);
+                localStorage.setItem('emp_user', JSON.stringify(data.user));
+                
+                // Redirecting to index.html or back to payroll page
+                const params = new URLSearchParams(window.location.search);
+                window.location.href = params.get('redirect') || 'index.html';
+            } else {
+                errorMsg.innerText = data.message || 'Login failed';
+                errorMsg.style.display = 'block';
+            }
+        } catch (err) {
+            errorMsg.innerText = 'Server Error! Please try again.';
+            errorMsg.style.display = 'block';
+        }
+    }
+    
+</script>
+</body>
+</html>

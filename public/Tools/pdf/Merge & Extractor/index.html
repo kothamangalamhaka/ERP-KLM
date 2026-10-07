@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Studio Pro | Haka ERP</title>
+  <link href="/node_xlsx_scripts/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css">
+  <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
+  <script src="/node_xlsx_scripts/pdf.min.js"></script>
+  <script src="/node_xlsx_scripts/pdf-lib.min.js"></script>
+  <script src="/node_xlsx_scripts/Sortable.min.js"></script>
+  <script src="/node_xlsx_scripts/jszip.min.js"></script>
+  <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --toolbar-bg: #ffffff;
+    }
+    body.dark-mode {
+      --bg-color: #0b1120;
+      --card-bg: #1e293b;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --toolbar-bg: #0f172a;
+    }
+    body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.2s; }
+    
+    .top-toolbar {
+      background: var(--toolbar-bg);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .pages-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+    
+    .page-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px;
+      position: relative;
+      cursor: grab;
+      user-select: none;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .page-card:hover { 
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15); 
+      border-color: #3b82f6; 
+    }
+    .page-card:active { cursor: grabbing; }
+    
+    .page-thumb-wrapper {
+      width: 100%;
+      height: 155px;
+      background: rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .page-thumb-wrapper img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
+    .btn-delete-item {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #ef4444;
+      color: white;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      cursor: pointer;
+      border: 2px solid var(--card-bg);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    /* Files List View */
+    .file-item-list {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .file-item-list:hover { border-color: #3b82f6; }
+
+    /* Files Grid View */
+    .files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .file-item-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: grab;
+      user-select: none;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    }
+    .file-item-card:active { cursor: grabbing; }
+    .file-item-card:hover { border-color: #3b82f6; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    
+    #customContextMenu {
+      position: absolute;
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+      z-index: 2000;
+      min-width: 180px;
+      overflow: hidden;
+    }
+    #customContextMenu .menu-item {
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #customContextMenu .menu-item:hover {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+    #customContextMenu .menu-item.danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+    
+    /* Modern Toast Container */
+    #toastContainer {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .custom-toast {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.25s ease-out;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Fullscreen Loading Overlay */
+    #loadingOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: #ffffff;
+    }
+    .progress-box {
+      width: 320px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body onclick="hideContextMenu()">
+
+<!-- Top Toolbar -->
+<div class="top-toolbar px-3 py-2">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+    
+    <!-- Title & Stats -->
+    <div class="d-flex align-items-center gap-3">
+      <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-file-pdf text-danger me-1"></i> PDF Studio</h5>
+      <span class="badge bg-light text-dark border">Files: <b id="statFiles">0</b></span>
+      <span class="badge bg-light text-dark border">Pages: <b id="statPages">0</b></span>
+      <div id="editingBanner" class="badge bg-warning text-dark border d-none">
+        <i class="fa-solid fa-pen-to-square me-1"></i> Editing: <span id="editingFileName"></span>
+      </div>
+    </div>
+
+    <!-- Center Mode Switch & File Layout Toggle -->
+    <div class="d-flex align-items-center gap-2">
+      <div id="viewModeGroup" class="btn-group btn-group-sm" role="group">
+        <input type="radio" class="btn-check" name="viewMode" id="modePages" autocomplete="off" onchange="switchView('pages')">
+        <label class="btn btn-outline-primary px-3 fw-semibold" for="modePages"><i class="fa-solid fa-grip me-1"></i> All Pages</label>
+
+        <input type="radio" class="btn-check" name="viewMode" id="modeFiles" autocomplete="off" checked onchange="switchView('files')">
+        <label class="btn btn-outline-primary px-3 fw-semibold" for="modeFiles"><i class="fa-solid fa-folder me-1"></i> Files View</label>
+      </div>
+
+      <div id="fileLayoutGroup" class="btn-group btn-group-sm" role="group">
+        <button class="btn btn-outline-secondary" id="btnLayoutList" onclick="setFileLayout('list')" title="List View"><i class="fa-solid fa-list"></i></button>
+        <button class="btn btn-outline-secondary active" id="btnLayoutGrid" onclick="setFileLayout('grid')" title="Grid View"><i class="fa-solid fa-border-all"></i></button>
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="d-flex align-items-center gap-2">
+      <button id="btnBackToFiles" class="btn btn-sm btn-outline-dark fw-semibold d-none" onclick="finishSpecificFileEditing()">
+        <i class="fa-solid fa-check me-1"></i> Apply & Back to Files
+      </button>
+
+      <input type="file" id="pdfFileInput" multiple accept="application/pdf,image/png,image/jpeg,image/webp" class="d-none" onchange="onFilesSelected(this.files)">
+      <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="document.getElementById('pdfFileInput').click()">
+        <i class="fa-solid fa-plus me-1"></i> Add Files (PDF / Images)
+      </button>
+      
+      <button class="btn btn-sm btn-outline-success fw-semibold" onclick="promptExtractAll()">
+        <i class="fa-solid fa-file-zipper me-1"></i> Extract Pages
+      </button>
+      
+      <button class="btn btn-sm btn-outline-danger" onclick="clearAllData()">
+        <i class="fa-solid fa-trash me-1"></i> Clear
+      </button>
+      
+      <button class="btn btn-sm btn-outline-secondary" onclick="toggleTheme()" id="btnTheme" title="Toggle Dark/Light Mode">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+      
+      <button class="btn btn-sm btn-primary fw-semibold px-3" id="btnMerge" onclick="executeMerge()">
+        <i class="fa-solid fa-code-merge me-1"></i> Merge & Download
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Main Workspace -->
+<div class="container-fluid p-3">
+  
+  <!-- Empty State -->
+  <div id="emptyContainer" class="text-center py-5">
+    <div class="py-5">
+      <i class="fa-solid fa-cloud-arrow-up fa-3x text-secondary mb-3"></i>
+      <h6 class="fw-bold text-muted">No PDF files added yet</h6>
+      <p class="small text-muted mb-3">Upload your PDF files to arrange, view pages, or extract.</p>
+      <button class="btn btn-primary btn-sm fw-semibold" onclick="document.getElementById('pdfFileInput').click()">
+        <i class="fa-solid fa-folder-open me-1"></i> Select PDF Files
+      </button>
+    </div>
+  </div>
+
+  <!-- Pages View Grid (Drag enabled) -->
+  <div id="pagesContainer" class="pages-grid d-none"></div>
+
+  <!-- Files View List / Grid (Drag enabled) -->
+  <div id="filesContainer" class="files-grid py-2"></div>
+</div>
+
+<!-- Modern Loading Overlay -->
+<div id="loadingOverlay" class="d-none">
+  <div class="progress-box">
+    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+    <h6 class="fw-bold mb-1" id="loadingTitle">Processing Files...</h6>
+    <small class="text-light opacity-75 d-block mb-3" id="loadingSubtitle">Please wait</small>
+    <div class="progress" style="height: 6px; background: rgba(255,255,255,0.2);">
+      <div id="loadingBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 0%"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<!-- Custom Context Menu for Files -->
+<div id="customContextMenu">
+  <div class="menu-item" onclick="contextManagePages()"><i class="fa-solid fa-images text-primary"></i> Edit / Manage Pages</div>
+  <div class="menu-item" onclick="contextExtractFile()"><i class="fa-solid fa-file-zipper text-success"></i> Extract Pages (ZIP)</div>
+  <hr class="my-1 border-secondary opacity-25">
+  <div class="menu-item danger" onclick="contextDeleteFile()"><i class="fa-solid fa-trash text-danger"></i> Remove File</div>
+</div>
+
+<!-- Extract Format Modal -->
+<div class="modal fade" id="extractModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title fw-bold">Extract Pages to ZIP</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center py-3">
+        <p class="small text-muted mb-3">Choose the format for extracted pages:</p>
+        <div class="d-grid gap-2">
+          <button class="btn btn-outline-danger fw-semibold" onclick="startExtraction('pdf')">
+            <i class="fa-solid fa-file-pdf me-2"></i> PDF per Page
+          </button>
+          <button class="btn btn-outline-primary fw-semibold" onclick="startExtraction('png')">
+            <i class="fa-solid fa-image me-2"></i> PNG Images
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/node_xlsx_scripts/pdf.worker.min.js';
+
+  let rawFiles = [];    // File objects
+  let rawBuffers = [];  // Cached ArrayBuffers
+  let pageStore = [];   // { id, fileIndex, pageIndex, pageNum, fileName, imgUrl, pdfRef }
+  let currentView = 'files'; // 'files' | 'pages' | 'single_file_edit'
+  let fileLayout = 'grid'; // Grid is default
+  let activeEditingFileIndex = null;
+  let contextTargetFileIndex = null;
+  let extractScope = 'all';
+
+  function showLoading(title, subtitle, percent = 0) {
+    document.getElementById('loadingOverlay').classList.remove('d-none');
+    document.getElementById('loadingTitle').innerText = title;
+    document.getElementById('loadingSubtitle').innerText = subtitle;
+    document.getElementById('loadingBar').style.width = `${percent}%`;
+  }
+
+  function updateLoading(percent, subtitle) {
+    document.getElementById('loadingBar').style.width = `${percent}%`;
+    if (subtitle) document.getElementById('loadingSubtitle').innerText = subtitle;
+  }
+
+  function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('d-none');
+  }
+
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = 'custom-toast';
+    const icon = type === 'error' ? 'fa-circle-xmark text-danger' : (type === 'success' ? 'fa-circle-check text-success' : 'fa-circle-info text-primary');
+    toast.innerHTML = `<i class="fa-solid ${icon} fa-lg"></i><span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      toast.style.transition = 'all 0.3s';
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+
+  function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    document.getElementById('btnTheme').innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    localStorage.setItem('pdf_theme', isDark ? 'dark' : 'light');
+  }
+
+  if (localStorage.getItem('pdf_theme') === 'dark') {
+    toggleTheme();
+  }
+
+  function setFileLayout(layout) {
+    fileLayout = layout;
+    document.getElementById('btnLayoutList').classList.toggle('active', layout === 'list');
+    document.getElementById('btnLayoutGrid').classList.toggle('active', layout === 'grid');
+    if (currentView === 'files') renderFilesView();
+  }
+
+  // Sortable for Pages Grid
+  const pagesGridEl = document.getElementById('pagesContainer');
+  new Sortable(pagesGridEl, {
+    animation: 150,
+    ghostClass: 'border-primary',
+    onEnd: function () {
+      const newOrderedIds = Array.from(pagesGridEl.children).map(c => c.dataset.id);
+      
+      if (currentView === 'single_file_edit') {
+        const thisPages = [];
+        newOrderedIds.forEach(id => {
+          const found = pageStore.find(p => p.id === id);
+          if (found) thisPages.push(found);
+        });
+        
+        const fileFirstIndex = pageStore.findIndex(p => p.fileIndex === activeEditingFileIndex);
+        if (fileFirstIndex !== -1) {
+          pageStore.splice(fileFirstIndex, pageStore.filter(p => p.fileIndex === activeEditingFileIndex).length, ...thisPages);
+        }
+      } else {
+        const reordered = [];
+        newOrderedIds.forEach(id => {
+          const found = pageStore.find(p => p.id === id);
+          if (found) reordered.push(found);
+        });
+        pageStore = reordered;
+      }
+      updateStats();
+    }
+  });
+
+  // Sortable for Files (Grid & List View)
+  const filesListEl = document.getElementById('filesContainer');
+  new Sortable(filesListEl, {
+    animation: 150,
+    filter: 'button, .btn',
+    preventOnFilter: false,
+    ghostClass: 'border-primary',
+    onEnd: function () {
+      reorderPagesFromFileDOM();
+      showToast("Files reordered successfully", "info");
+    }
+  });
+
+  function reorderPagesFromFileDOM() {
+    const fileOrder = Array.from(filesListEl.children).map(c => parseInt(c.dataset.fileIndex));
+    const newStore = [];
+    fileOrder.forEach(fIdx => {
+      const filePages = pageStore.filter(p => p.fileIndex === fIdx);
+      newStore.push(...filePages);
+    });
+    pageStore = newStore;
+  }
+
+  function moveFileStep(fileIdx, direction) {
+    const uniqueFileIndices = [...new Set(pageStore.map(p => p.fileIndex))];
+    const curPos = uniqueFileIndices.indexOf(fileIdx);
+    if (curPos === -1) return;
+
+    const newPos = curPos + direction;
+    if (newPos < 0 || newPos >= uniqueFileIndices.length) return;
+
+    // Swap positions in unique list
+    const temp = uniqueFileIndices[curPos];
+    uniqueFileIndices[curPos] = uniqueFileIndices[newPos];
+    uniqueFileIndices[newPos] = temp;
+
+    // Rebuild pageStore
+    const newStore = [];
+    uniqueFileIndices.forEach(fIdx => {
+      newStore.push(...pageStore.filter(p => p.fileIndex === fIdx));
+    });
+    pageStore = newStore;
+
+    renderFilesView();
+    showToast("File position moved", "info");
+  }
+
+  async function imageFileToPdfBuffer(file) {
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    const rawArrayBuffer = await file.arrayBuffer();
+    const fileBytes = new Uint8Array(rawArrayBuffer);
+    let embeddedImg;
+
+    const isJpg = file.type === 'image/jpeg' || /\.(jpe?g)$/i.test(file.name);
+    const isPng = file.type === 'image/png' || /\.png$/i.test(file.name);
+
+    if (isJpg) {
+      // 100% Raw bit-by-bit lossless JPEG embed
+      embeddedImg = await pdfDoc.embedJpg(fileBytes);
+    } else if (isPng) {
+      // 100% Raw bit-by-bit lossless PNG embed
+      embeddedImg = await pdfDoc.embedPng(fileBytes);
+    } else {
+      // Fallback for WEBP only (Lossless maximum pixel-ratio canvas conversion)
+      const blobUrl = URL.createObjectURL(file);
+      const canvasImg = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = blobUrl;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasImg.naturalWidth;
+      canvas.height = canvasImg.naturalHeight;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.imageSmoothingEnabled = false; // Zero blur/smoothing
+      ctx.drawImage(canvasImg, 0, 0);
+      URL.revokeObjectURL(blobUrl);
+
+      const losslessPngBlob = await new Promise(r => canvas.toBlob(r, 'image/png', 1.0));
+      const losslessBytes = await losslessPngBlob.arrayBuffer();
+      embeddedImg = await pdfDoc.embedPng(losslessBytes);
+    }
+
+    const { width, height } = embeddedImg.scale(1);
+    // Exact 1:1 original pixel dimension mapping
+    const page = pdfDoc.addPage([width, height]);
+    page.drawImage(embeddedImg, {
+      x: 0,
+      y: 0,
+      width: width,
+      height: height,
+    });
+
+    return await pdfDoc.save();
+  }
+
+  async function onFilesSelected(files) {
+    if (!files || files.length === 0) return;
+
+    showLoading("Reading Files...", `Importing 0 of ${files.length} files`, 5);
+    document.getElementById('emptyContainer').classList.add('d-none');
+
+    const total = files.length;
+    for (let i = 0; i < total; i++) {
+      const f = files[i];
+      const fileIndex = rawFiles.length;
+      rawFiles.push(f);
+
+      let arrayBuffer;
+      const isImg = f.type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(f.name);
+
+      if (isImg) {
+        updateLoading(Math.round(((i) / total) * 100), `Converting ${f.name} to page...`);
+        const pdfBytes = await imageFileToPdfBuffer(f);
+        arrayBuffer = pdfBytes.buffer;
+      } else {
+        arrayBuffer = await f.arrayBuffer();
+      }
+
+      rawBuffers.push(arrayBuffer);
+
+      try {
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const pageId = `p_${fileIndex}_${p - 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+          pageStore.push({
+            id: pageId,
+            fileIndex: fileIndex,
+            pageIndex: p - 1,
+            pageNum: p,
+            fileName: f.name,
+            imgUrl: null,
+            pdfRef: pdf
+          });
+        }
+      } catch (err) {
+        console.error("Skipping corrupted file:", f.name, err);
+      }
+
+      const pct = Math.round(((i + 1) / total) * 100);
+      updateLoading(pct, `Processed ${i + 1} of ${total} files`);
+      await new Promise(r => setTimeout(r, 10));
+    }
+
+    hideLoading();
+    updateStats();
+    if (currentView === 'files') renderFilesView();
+    else renderPagesView(pageStore);
+    document.getElementById('pdfFileInput').value = '';
+    showToast(`Successfully processed ${total} file(s)`, "success");
+  }
+
+  function switchView(mode) {
+    currentView = mode;
+    if (rawFiles.length === 0) return;
+    
+    if (mode === 'pages') {
+      document.getElementById('pagesContainer').classList.remove('d-none');
+      document.getElementById('filesContainer').classList.add('d-none');
+      renderPagesView(pageStore);
+    } else {
+      document.getElementById('pagesContainer').classList.add('d-none');
+      document.getElementById('filesContainer').classList.remove('d-none');
+      renderFilesView();
+    }
+  }
+
+  function renderFilesView() {
+    filesListEl.innerHTML = '';
+    filesListEl.className = fileLayout === 'grid' ? 'files-grid py-2' : 'max-w-4xl mx-auto py-2';
+    const uniqueFileIndices = [...new Set(pageStore.map(p => p.fileIndex))];
+    
+    uniqueFileIndices.forEach((idx, pos) => {
+      const file = rawFiles[idx];
+      const pageCount = pageStore.filter(p => p.fileIndex === idx).length;
+      if (pageCount === 0) return;
+
+      const item = document.createElement('div');
+      item.dataset.fileIndex = idx;
+      
+      item.oncontextmenu = (e) => {
+        e.preventDefault();
+        showContextMenu(e.pageX, e.pageY, idx);
+      };
+      
+      item.ondblclick = () => editSpecificFile(idx);
+
+      const isImg = file.type.startsWith('image/');
+      const fileIcon = isImg ? 'fa-file-image text-primary' : 'fa-file-pdf text-danger';
+
+      if (fileLayout === 'grid') {
+        item.className = 'file-item-card';
+        item.innerHTML = `
+          <div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-grip-vertical opacity-50" title="Drag to reorder"></i>
+                <i class="fa-solid ${fileIcon} fa-xl"></i>
+                <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 11px;">#${pos + 1}</span>
+              </div>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2" title="Move Left" onclick="event.stopPropagation(); moveFileStep(${idx}, -1)" ${pos === 0 ? 'disabled' : ''}>
+                  <i class="fa-solid fa-arrow-left fa-xs"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2" title="Move Right" onclick="event.stopPropagation(); moveFileStep(${idx}, 1)" ${pos === uniqueFileIndices.length - 1 ? 'disabled' : ''}>
+                  <i class="fa-solid fa-arrow-right fa-xs"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-primary py-0 px-2" title="Edit Pages" onclick="event.stopPropagation(); editSpecificFile(${idx})">
+                  <i class="fa-solid fa-pen-to-square fa-xs"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger py-0 px-2 border-0" onclick="event.stopPropagation(); removeFileByIndex(${idx})">
+                  <i class="fa-solid fa-trash fa-xs"></i>
+                </button>
+              </div>
+            </div>
+            <div class="fw-semibold text-truncate mb-1" title="${file.name}">${file.name}</div>
+          </div>
+          <div class="small opacity-75 mt-2 pt-2 border-top">${(file.size / (1024 * 1024)).toFixed(2)} MB &bull; ${pageCount} Pages</div>
+        `;
+      } else {
+        item.className = 'file-item-list';
+        item.innerHTML = `
+          <div class="d-flex align-items-center gap-3">
+            <i class="fa-solid fa-grip-vertical opacity-50" style="cursor: grab;" title="Drag to reorder"></i>
+            <span class="badge bg-secondary-subtle text-secondary border">#${pos + 1}</span>
+            <i class="fa-solid ${fileIcon} fa-lg"></i>
+            <div>
+              <div class="fw-semibold text-truncate" style="max-width: 420px;">${file.name}</div>
+              <div class="small opacity-75">${(file.size / (1024 * 1024)).toFixed(2)} MB &bull; ${pageCount} Pages</div>
+            </div>
+          </div>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-secondary" title="Move Up" onclick="event.stopPropagation(); moveFileStep(${idx}, -1)" ${pos === 0 ? 'disabled' : ''}>
+              <i class="fa-solid fa-arrow-up"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" title="Move Down" onclick="event.stopPropagation(); moveFileStep(${idx}, 1)" ${pos === uniqueFileIndices.length - 1 ? 'disabled' : ''}>
+              <i class="fa-solid fa-arrow-down"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-primary" title="Edit Pages" onclick="event.stopPropagation(); editSpecificFile(${idx})">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); removeFileByIndex(${idx})">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        `;
+      }
+      filesListEl.appendChild(item);
+    });
+  }
+
+  function editSpecificFile(fileIdx) {
+    currentView = 'single_file_edit';
+    activeEditingFileIndex = fileIdx;
+    
+    document.getElementById('viewModeGroup').classList.add('d-none');
+    document.getElementById('btnBackToFiles').classList.remove('d-none');
+    document.getElementById('editingBanner').classList.remove('d-none');
+    document.getElementById('editingFileName').innerText = rawFiles[fileIdx].name;
+
+    document.getElementById('filesContainer').classList.add('d-none');
+    document.getElementById('pagesContainer').classList.remove('d-none');
+
+    const filePages = pageStore.filter(p => p.fileIndex === fileIdx);
+    renderPagesView(filePages);
+  }
+
+  function finishSpecificFileEditing() {
+    currentView = 'files';
+    activeEditingFileIndex = null;
+    
+    document.getElementById('viewModeGroup').classList.remove('d-none');
+    document.getElementById('btnBackToFiles').classList.add('d-none');
+    document.getElementById('editingBanner').classList.add('d-none');
+    document.getElementById('modeFiles').checked = true;
+
+    document.getElementById('pagesContainer').classList.add('d-none');
+    document.getElementById('filesContainer').classList.remove('d-none');
+    renderFilesView();
+  }
+
+  function renderPagesView(itemsToRender) {
+    pagesGridEl.innerHTML = '';
+    
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const card = entry.target;
+          const pageId = card.dataset.id;
+          const pageObj = pageStore.find(p => p.id === pageId);
+          if (pageObj && !pageObj.imgUrl) {
+            renderPageThumbnail(pageObj, card);
+          }
+          obs.unobserve(card);
+        }
+      });
+    }, { rootMargin: '200px' });
+
+    itemsToRender.forEach(page => {
+      const card = document.createElement('div');
+      card.className = 'page-card';
+      card.dataset.id = page.id;
+
+      card.innerHTML = `
+        <div class="btn-delete-item" onclick="removeSinglePage('${page.id}')"><i class="fa-solid fa-xmark"></i></div>
+        <div class="page-thumb-wrapper" id="thumb_${page.id}">
+          ${page.imgUrl ? `<img src="${page.imgUrl}">` : `<i class="fa-solid fa-spinner fa-spin text-secondary"></i>`}
+        </div>
+        <div class="mt-1 text-center" style="font-size: 11px;">
+          <b class="text-dark">P. ${page.pageNum}</b>
+          <div class="text-muted text-truncate" title="${page.fileName}">${page.fileName}</div>
+        </div>
+      `;
+      pagesGridEl.appendChild(card);
+      if (!page.imgUrl) observer.observe(card);
+    });
+  }
+
+  async function renderPageThumbnail(pageObj, cardEl) {
+    try {
+      const page = await pageObj.pdfRef.getPage(pageObj.pageNum);
+      const viewport = page.getViewport({ scale: 0.22 });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+      pageObj.imgUrl = canvas.toDataURL('image/jpeg', 0.6);
+
+      canvas.width = 0;
+      canvas.height = 0;
+
+      const thumbWrapper = cardEl.querySelector(`#thumb_${pageObj.id}`);
+      if (thumbWrapper) thumbWrapper.innerHTML = `<img src="${pageObj.imgUrl}">`;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function showContextMenu(x, y, fileIdx) {
+    contextTargetFileIndex = fileIdx;
+    const menu = document.getElementById('customContextMenu');
+    menu.style.display = 'block';
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+  }
+
+  function hideContextMenu() {
+    document.getElementById('customContextMenu').style.display = 'none';
+  }
+
+  function contextManagePages() {
+    hideContextMenu();
+    if (contextTargetFileIndex !== null) editSpecificFile(contextTargetFileIndex);
+  }
+
+  function contextExtractFile() {
+    hideContextMenu();
+    extractScope = contextTargetFileIndex;
+    new bootstrap.Modal(document.getElementById('extractModal')).show();
+  }
+
+  function contextDeleteFile() {
+    hideContextMenu();
+    if (contextTargetFileIndex !== null) removeFileByIndex(contextTargetFileIndex);
+  }
+
+  function promptExtractAll() {
+    if (pageStore.length === 0) {
+      showToast("No pages to extract!", "error");
+      return;
+    }
+    extractScope = 'all';
+    new bootstrap.Modal(document.getElementById('extractModal')).show();
+  }
+
+  async function startExtraction(format) {
+    bootstrap.Modal.getInstance(document.getElementById('extractModal')).hide();
+    
+    const targets = extractScope === 'all' 
+      ? pageStore 
+      : pageStore.filter(p => p.fileIndex === extractScope);
+
+    if (targets.length === 0) return;
+
+    showLoading("Extracting Pages...", "Creating ZIP archive...", 10);
+    const zip = new JSZip();
+
+    try {
+      if (format === 'png') {
+        for (let i = 0; i < targets.length; i++) {
+          const item = targets[i];
+          const originalFile = rawFiles[item.fileIndex];
+          const isOriginalImg = originalFile.type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(originalFile.name);
+
+          if (isOriginalImg) {
+            // Original image file aanenkil oru compression-um illathe direct raw byte eduthu ZIP-il vekkunnu
+            const rawBytes = await originalFile.arrayBuffer();
+            const ext = originalFile.name.split('.').pop();
+            zip.file(`Page_${i + 1}_${item.fileName.replace(/\.[^/.]+$/, "")}.${ext}`, rawBytes);
+          } else {
+            // PDF page aanenkil Ultra-High Resolution scale (3.0 = 300 DPI print quality) pixel-by-pixel lossless render
+            const page = await item.pdfRef.getPage(item.pageNum);
+            const viewport = page.getViewport({ scale: 3.0 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d', { alpha: false });
+            ctx.imageSmoothingEnabled = false;
+
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            
+            const pngBlob = await new Promise(r => canvas.toBlob(r, 'image/png', 1.0));
+            const pngBytes = await pngBlob.arrayBuffer();
+            zip.file(`Page_${i + 1}_${item.fileName.replace('.pdf', '')}.png`, pngBytes);
+          }
+          updateLoading(Math.round(((i + 1) / targets.length) * 80), `Extracting page ${i + 1}...`);
+        }
+      } else {
+        const loadedDocs = new Map();
+        for (let i = 0; i < targets.length; i++) {
+          const item = targets[i];
+          let srcDoc = loadedDocs.get(item.fileIndex);
+          if (!srcDoc) {
+            srcDoc = await PDFLib.PDFDocument.load(rawBuffers[item.fileIndex]);
+            loadedDocs.set(item.fileIndex, srcDoc);
+          }
+
+          const singlePdf = await PDFLib.PDFDocument.create();
+          const [copiedPage] = await singlePdf.copyPages(srcDoc, [item.pageIndex]);
+          singlePdf.addPage(copiedPage);
+
+          const pdfBytes = await singlePdf.save();
+          zip.file(`Page_${i + 1}_${item.fileName.replace('.pdf', '')}.pdf`, pdfBytes);
+          updateLoading(Math.round(((i + 1) / targets.length) * 80), `Extracting PDF ${i + 1}...`);
+        }
+      }
+
+      updateLoading(90, "Compressing ZIP file...");
+      const zipContent = await zip.generateAsync({ type: "blob" });
+      saveAs(zipContent, `Extracted_Pages_${Date.now()}.zip`);
+      hideLoading();
+      showToast("Pages extracted successfully!", "success");
+    } catch (err) {
+      hideLoading();
+      showToast("Extraction failed: " + err.message, "error");
+    }
+  }
+
+  function removeSinglePage(pageId) {
+    pageStore = pageStore.filter(p => p.id !== pageId);
+    const el = document.querySelector(`.page-card[data-id="${pageId}"]`);
+    if (el) el.remove();
+    updateStats();
+    if (pageStore.length === 0) clearAllData();
+  }
+
+  function removeFileByIndex(fileIdx) {
+    pageStore = pageStore.filter(p => p.fileIndex !== fileIdx);
+    renderFilesView();
+    updateStats();
+    if (pageStore.length === 0) clearAllData();
+  }
+
+  function updateStats() {
+    document.getElementById('statPages').innerText = pageStore.length;
+    const activeFileIndices = new Set(pageStore.map(p => p.fileIndex));
+    document.getElementById('statFiles').innerText = activeFileIndices.size;
+  }
+
+  function clearAllData() {
+    rawFiles = [];
+    rawBuffers = [];
+    pageStore = [];
+    pagesGridEl.innerHTML = '';
+    filesListEl.innerHTML = '';
+    document.getElementById('emptyContainer').classList.remove('d-none');
+    document.getElementById('pagesContainer').classList.add('d-none');
+    document.getElementById('filesContainer').classList.remove('d-none');
+    finishSpecificFileEditing();
+    updateStats();
+  }
+
+  async function executeMerge() {
+    if (pageStore.length === 0) {
+      showToast("Please upload at least one PDF file.", "error");
+      return;
+    }
+
+    showLoading("Merging PDF...", "Initializing high-speed client compiler...", 10);
+    const btnMerge = document.getElementById('btnMerge');
+    btnMerge.disabled = true;
+
+    try {
+      const mergedPdf = await PDFLib.PDFDocument.create();
+      const loadedDocs = new Map();
+      const totalPages = pageStore.length;
+      
+      for (let i = 0; i < totalPages; i++) {
+        const item = pageStore[i];
+        let srcDoc = loadedDocs.get(item.fileIndex);
+        if (!srcDoc) {
+          srcDoc = await PDFLib.PDFDocument.load(rawBuffers[item.fileIndex]);
+          loadedDocs.set(item.fileIndex, srcDoc);
+        }
+
+        const [copiedPage] = await mergedPdf.copyPages(srcDoc, [item.pageIndex]);
+        mergedPdf.addPage(copiedPage);
+
+        if (i % 25 === 0 || i === totalPages - 1) {
+          const progress = Math.round(((i + 1) / totalPages) * 90);
+          updateLoading(progress, `Compiled ${i + 1} of ${totalPages} pages...`);
+          await new Promise(r => setTimeout(r, 5));
+        }
+      }
+
+      updateLoading(95, "Saving output file...");
+      const pdfBytes = await mergedPdf.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      saveAs(blob, `Merged_${totalPages}_Pages_${Date.now()}.pdf`);
+
+      hideLoading();
+      showToast(`Merged ${totalPages} pages successfully!`, "success");
+    } catch (err) {
+      hideLoading();
+      showToast("Merge failed: " + err.message, "error");
+    } finally {
+      btnMerge.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
