@@ -42,6 +42,7 @@ let customColOrder = [];
 
 const colLabels = {
   vehicle_type: "Vehicle Type",
+  project_name: "Project Name",
   site_rate: "Rate",
   plate_no: "Plate No (Key)",
   ledger_folio: "Ledger Folio",
@@ -315,6 +316,11 @@ function syncColumnOrder() {
     "driver_end_date",
   ];
   if (dynamicCols.includes("vehicle_type")) defaultCols.unshift("vehicle_type");
+  if (dynamicCols.includes("project_name")) {
+    let siteIdx = defaultCols.indexOf("site_name");
+    if (siteIdx !== -1) defaultCols.splice(siteIdx + 1, 0, "project_name");
+    else defaultCols.push("project_name");
+  }
   if (dynamicCols.includes("owner_name")) defaultCols.push("owner_name");
   if (dynamicCols.includes("vat")) defaultCols.push("vat");
 
@@ -329,6 +335,7 @@ function syncColumnOrder() {
         "field_co",
         "site_co",
         "owner_name",
+        "company_arabic_name",
       ].includes(c)
     ) {
       defaultCols.push(c);
@@ -797,7 +804,8 @@ async function rowAbout() {
             : '<span class="status-badge bg-rel">REL</span>';
       let start = s.work_start_date ? s.work_start_date.split("T")[0] : "-";
       let end = s.work_end_date ? s.work_end_date.split("T")[0] : "-";
-      slHtml += `<tr><td><b>${escapeHTML(s.site_name)}</b><br><span style="font-size:10px; color:#000;">Rate: ${escapeHTML(s.rate || "-")}</span></td><td>${start}</td><td>${end}</td><td>${badge}</td></tr>`;
+      let projTxt = s.project_name ? `<br><span style="font-size:10px; color:#2563eb;">Project: ${escapeHTML(s.project_name)}</span>` : "";
+      slHtml += `<tr><td><b>${escapeHTML(s.site_name)}</b>${projTxt}<br><span style="font-size:10px; color:#000;">Rate: ${escapeHTML(s.rate || "-")}</span></td><td>${start}</td><td>${end}</td><td>${badge}</td></tr>`;
 
       if (s.reason && s.reason.trim() !== "") {
         slHtml += `<tr><td colspan="4" style="padding-top:0; border-top:none; font-size:11px; color:#64748b; font-style:italic;">Reason: ${escapeHTML(s.reason)}</td></tr>`;
@@ -924,9 +932,12 @@ async function initDB() {
           sLog && sLog.start_date !== "-" ? sLog.start_date : "";
         row.site_end_date = sLog && sLog.end_date !== "-" ? sLog.end_date : "";
 
-        // 🟢 ലേറ്റസ്റ്റ് സൈറ്റ് ലോഗിലുള്ള ശരിയായ പേര് തന്നെ മെയിൻ ടേബിളിൽ കാണിക്കുക
+        // 🟢 ലേറ്റസ്റ്റ് സൈറ്റ് ലോഗിലുള്ള ശരിയായ പേരും പ്രൊജക്റ്റ് നെയിമും മെയിൻ ടേബിളിൽ കാണിക്കുക
         if (sLog && sLog.site_name) {
           row.site_name = sLog.site_name;
+        }
+        if (sLog && sLog.project_name !== undefined) {
+          row.project_name = sLog.project_name || "";
         }
 
         // 🟢 ലേറ്റസ്റ്റ് റേറ്റ് കണ്ടെത്തുന്നു: ആദ്യം ആക്ടീവ് Rate Log നോക്കും, ഇല്ലെങ്കിൽ Site Log അല്ലെങ്കിൽ Master
@@ -993,6 +1004,10 @@ async function initDB() {
             row.company_display_name ||
             "";
           row.company_display_name = row.company_display_name_;
+          row.company_arabic_name =
+            oLog.company_arabic_name ||
+            row.company_arabic_name ||
+            "";
         }
 
         return row;
@@ -1029,6 +1044,9 @@ function updateGlobalDatalists() {
   const uniqueSites = [
     ...new Set(tableData.map((r) => r.site_name).filter(Boolean)),
   ].sort();
+  const uniqueProjects = [
+    ...new Set(tableData.map((r) => r.project_name).filter(Boolean)),
+  ].sort();
   const uniqueFieldCos = [
     ...new Set(tableData.map((r) => r.field_co).filter(Boolean)),
   ].sort();
@@ -1045,6 +1063,7 @@ function updateGlobalDatalists() {
 
   datalistContainer.innerHTML = `
     <datalist id="globalSiteNameList">${uniqueSites.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
+    <datalist id="globalProjectNameList">${uniqueProjects.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
     <datalist id="globalFieldCoList">${uniqueFieldCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
     <datalist id="globalSiteCoList">${uniqueSiteCos.map((v) => `<option value="${escapeHTML(v)}">`).join("")}</datalist>
   `;
@@ -1918,6 +1937,9 @@ function clearSiteForm() {
   if (document.getElementById("slVehicleType")) {
     document.getElementById("slVehicleType").value = fallbackType;
   }
+  if (document.getElementById("slProjectName")) {
+    document.getElementById("slProjectName").value = "";
+  }
   document.getElementById("slFieldCo").value = "";
   document.getElementById("slSiteCo").value = "";
   document.getElementById("slOldVehicle").value = "";
@@ -1941,6 +1963,8 @@ function clearOwnerForm() {
   document.getElementById("olVat").value = "No";
   document.getElementById("olVatNo").value = "";
   document.getElementById("olCompany").value = "";
+  if (document.getElementById("olCompanyArabic"))
+    document.getElementById("olCompanyArabic").value = "";
   if (document.getElementById("olLedgerFolio"))
     document.getElementById("olLedgerFolio").value = "";
   document.getElementById("olStart").value = "";
@@ -2043,7 +2067,7 @@ async function fetchLogs(plate, type) {
 
     if (type === "site") {
       let slHtml =
-        '<tr><th style="min-width: 120px;">Site Name</th><th>Rate</th><th>WO No</th><th>Start</th><th>End</th><th>Status</th><th style="width: 30px;"></th></tr>';
+        '<tr><th style="min-width: 110px;">Site Name</th><th style="min-width: 100px;">Project Name</th><th>Rate</th><th>WO No</th><th>Start</th><th>End</th><th>Status</th><th style="width: 30px;"></th></tr>';
       (res.sites || []).forEach((s) => {
         let badge =
           s.status === "Running"
@@ -2058,8 +2082,10 @@ async function fetchLogs(plate, type) {
             ? `<button class="btn-delete-icon" onclick="deleteLogEntry(event, 'site', ${s.id}, '${plate}')" title="Delete Log">&#x1F5D1;&#xFE0F;</button>`
             : "";
         let escapedReasonS = escapeHTML(s.reason || "").replace(/'/g, "\\'");
-        slHtml += `<tr style="cursor:pointer;" onclick="editSiteLog(${s.id}, '${escapeHTML(s.site_name)}', '${start}', '${end}', '${s.status}', '${escapeHTML(s.old_vehicle_no)}', '${escapeHTML(s.new_vehicle_no)}', '${escapeHTML(s.asset_code)}', '${escapeHTML(s.work_order_no)}', '${escapeHTML(s.rate)}', '${escapeHTML(s.field_co)}', '${escapeHTML(s.site_co)}', '${escapedReasonS}', '${escapeHTML(s.vehicle_type || "")}')">
+        let escapedProjS = escapeHTML(s.project_name || "").replace(/'/g, "\\'");
+        slHtml += `<tr style="cursor:pointer;" onclick="editSiteLog(${s.id}, '${escapeHTML(s.site_name)}', '${start}', '${end}', '${s.status}', '${escapeHTML(s.old_vehicle_no)}', '${escapeHTML(s.new_vehicle_no)}', '${escapeHTML(s.asset_code)}', '${escapeHTML(s.work_order_no)}', '${escapeHTML(s.rate)}', '${escapeHTML(s.field_co)}', '${escapeHTML(s.site_co)}', '${escapedReasonS}', '${escapeHTML(s.vehicle_type || "")}', '${escapedProjS}')">
                 <td><span style="font-weight:600; color:#0d6efd;">${escapeHTML(s.site_name)}</span><br><span style="font-size:10px; color:#888;">Tap to edit &#x270E;</span></td>
+                <td><span style="font-weight:600; color:#2563eb;">${escapeHTML(s.project_name || "-")}</span></td>
                 <td><span style="font-weight:bold; color:#000000;">${escapeHTML(s.rate || "-")}</span></td>
                 <td><span style="font-weight:bold; color:#475569;">${escapeHTML(s.work_order_no || "-")}</span></td><td>${start}</td><td>${end}</td><td>${badge}</td>
                 <td class="action-cell" onclick="event.stopPropagation()">${delBtnHtml}</td></tr>`;
@@ -2067,7 +2093,7 @@ async function fetchLogs(plate, type) {
       document.getElementById("slHistory").innerHTML =
         res.sites && res.sites.length > 0
           ? slHtml
-          : '<tr><td colspan="7" style="color:#888;">No site logs found.</td></tr>';
+          : '<tr><td colspan="8" style="color:#888;">No site logs found.</td></tr>';
 
       let masterRow = tableData.find((x) => x.plate_no === plate);
       let activeS = (res.sites || []).find((s) => s.status === "Running");
@@ -2104,6 +2130,7 @@ async function fetchLogs(plate, type) {
           activeS.site_co,
           activeS.reason,
           activeS.vehicle_type,
+          activeS.project_name || "",
         );
       } else if (masterRow && masterRow.site_name) {
         document.getElementById("slName").value = masterRow.site_name;
@@ -2141,9 +2168,10 @@ async function fetchLogs(plate, type) {
             : "";
         let escapedReasonO = escapeHTML(o.reason || "").replace(/'/g, "\\'");
         let escapedLf = escapeHTML(o.ledger_folio || "").replace(/'/g, "\\'");
+        let escapedArabic = escapeHTML(o.company_arabic_name || "").replace(/'/g, "\\'");
 
         olHtml += `
-          <tr style="cursor:pointer;" onclick="editOwnerLog(${o.id}, '${escapeHTML(o.owner_name)}', '${escapeHTML(o.owner_mobile)}', '${escapeHTML(o.vat)}', '${escapeHTML(o.vat_no)}', '${escapeHTML(o.company_display_name)}', '${start}', '${end}', '${escapedReasonO}', '${escapedLf}')">
+          <tr style="cursor:pointer;" onclick="editOwnerLog(${o.id}, '${escapeHTML(o.owner_name)}', '${escapeHTML(o.owner_mobile)}', '${escapeHTML(o.vat)}', '${escapeHTML(o.vat_no)}', '${escapeHTML(o.company_display_name)}', '${start}', '${end}', '${escapedReasonO}', '${escapedLf}', '${escapedArabic}')">
             <td>
               <span style="font-weight:600; color:#0d6efd;">${escapeHTML(o.owner_name || "-")}</span><br>
               <span style="font-size:10px; color:#888;">Tap to edit &#x270E;</span>
@@ -2152,7 +2180,10 @@ async function fetchLogs(plate, type) {
             <td style="text-align:center; font-weight:600;">${escapeHTML(o.vat || "-")}</td>
             <td style="font-weight:600; color:#0f172a; word-break:break-all;">${escapeHTML(o.vat_no || "-")}</td>
             <td style="font-weight:700; color:#0284c7; white-space:nowrap;">${escapeHTML(o.ledger_folio || "-")}</td>
-            <td style="font-size:11px; line-height:1.3;">${escapeHTML(o.company_display_name || "-")}</td>
+            <td style="font-size:11px; line-height:1.3;">
+              ${escapeHTML(o.company_display_name || "-")}
+              ${o.company_arabic_name ? `<br><span style="color:#059669; font-size:10px;">${escapeHTML(o.company_arabic_name)}</span>` : ""}
+            </td>
             <td style="text-align:center; white-space:nowrap;">${start}</td>
             <td style="text-align:center; white-space:nowrap;">${end}</td>
             <td style="text-align:center;">${badge}</td>
@@ -2181,6 +2212,7 @@ async function fetchLogs(plate, type) {
           activeO.work_end_date ? activeO.work_end_date.split("T")[0] : "",
           activeO.reason,
           activeO.ledger_folio || "",
+          activeO.company_arabic_name || "",
         );
       } else if (masterRow && masterRow.owner_name) {
         document.getElementById("olName").value = masterRow.owner_name || "";
@@ -2199,6 +2231,9 @@ async function fetchLogs(plate, type) {
           masterRow.company_display_name_ ||
           masterRow.company_display_name ||
           "";
+        if (document.getElementById("olCompanyArabic"))
+          document.getElementById("olCompanyArabic").value =
+            masterRow.company_arabic_name || "";
       }
     }
 
@@ -2339,11 +2374,15 @@ function editSiteLog(
   siteCo,
   reason,
   vehicleType,
+  projectName = "",
 ) {
   document.getElementById("slId").value = id;
   if (document.getElementById("slVehicleType"))
     document.getElementById("slVehicleType").value =
       vehicleType && vehicleType !== "null" ? vehicleType : "";
+  if (document.getElementById("slProjectName"))
+    document.getElementById("slProjectName").value =
+      projectName && projectName !== "null" ? projectName : "";
   document.getElementById("slName").value = name;
   document.getElementById("slRate").value = rate && rate !== "null" ? rate : "";
   document.getElementById("slFieldCo").value =
@@ -2399,6 +2438,9 @@ async function saveSiteLog() {
     vehicle_type: document.getElementById("slVehicleType")
       ? document.getElementById("slVehicleType").value.trim()
       : "",
+    project_name: document.getElementById("slProjectName")
+      ? document.getElementById("slProjectName").value.trim()
+      : "",
   };
 
   showStatus("Saving...", "saving");
@@ -2439,6 +2481,7 @@ function editOwnerLog(
   end,
   reason,
   lf = "",
+  arabicName = "",
 ) {
   document.getElementById("olId").value = id;
   document.getElementById("olName").value = name !== "null" && name ? name : "";
@@ -2449,6 +2492,9 @@ function editOwnerLog(
     vat_no !== "null" && vat_no ? vat_no : "";
   document.getElementById("olCompany").value =
     comp !== "null" && comp ? comp : "";
+  if (document.getElementById("olCompanyArabic"))
+    document.getElementById("olCompanyArabic").value =
+      arabicName !== "null" && arabicName ? arabicName : "";
   if (document.getElementById("olLedgerFolio"))
     document.getElementById("olLedgerFolio").value =
       lf && lf !== "null" ? lf : "";
@@ -2471,6 +2517,9 @@ async function saveOwnerLog() {
     vat: document.getElementById("olVat").value,
     vat_no: document.getElementById("olVatNo").value,
     company_display_name: document.getElementById("olCompany").value,
+    company_arabic_name: document.getElementById("olCompanyArabic")
+      ? document.getElementById("olCompanyArabic").value.trim()
+      : "",
     ledger_folio: document.getElementById("olLedgerFolio")
       ? document.getElementById("olLedgerFolio").value.trim()
       : "",

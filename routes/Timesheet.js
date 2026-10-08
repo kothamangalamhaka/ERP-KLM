@@ -444,9 +444,10 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const { id, plate_no, owner_name, owner_mobile, vat, vat_no, ledger_folio, company_display_name, work_start_date, work_end_date, status, reason } = req.body;
+    const { id, plate_no, owner_name, owner_mobile, vat, vat_no, ledger_folio, company_display_name, company_arabic_name, work_start_date, work_end_date, status, reason } = req.body;
     const cleanPlate = plate_no ? plate_no.trim().toUpperCase() : "";
     const cleanLf = ledger_folio ? ledger_folio.trim() : "";
+    const cleanArabic = company_arabic_name ? company_arabic_name.trim() : "";
     const calculatedStatus = work_end_date ? "Released" : (status || "Running");
 
     let finalStartDate = work_start_date || null;
@@ -460,8 +461,8 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
 
     if (id) {
       await client.query(
-        `UPDATE vehicle_owner_log SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name=$5, work_start_date=$6, work_end_date=$7, status=$8, reason=$9, ledger_folio=$10 WHERE id=$11`,
-        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, cleanLf, id]
+        `UPDATE vehicle_owner_log SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name=$5, work_start_date=$6, work_end_date=$7, status=$8, reason=$9, ledger_folio=$10, company_arabic_name=$11 WHERE id=$12`,
+        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, cleanLf, cleanArabic || null, id]
       );
     } else {
       if (calculatedStatus === "Running") {
@@ -476,15 +477,15 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
       }
 
       await client.query(
-        `INSERT INTO vehicle_owner_log (plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason, ledger_folio) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-        [cleanPlate, owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, cleanLf]
+        `INSERT INTO vehicle_owner_log (plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason, ledger_folio, company_arabic_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [cleanPlate, owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, cleanLf, cleanArabic || null]
       );
     }
 
     if (calculatedStatus === "Running") {
       await client.query(
-        `UPDATE timesheet_vehicles SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name_=$5, ledger_folio=$6 WHERE UPPER(plate_no)=UPPER($7)`,
-        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, cleanLf, cleanPlate]
+        `UPDATE timesheet_vehicles SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name_=$5, ledger_folio=$6, company_arabic_name=$7 WHERE UPPER(plate_no)=UPPER($8)`,
+        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, cleanLf, cleanArabic || null, cleanPlate]
       );
     }
 
@@ -601,7 +602,7 @@ router.get("/api/all-logs", verifyToken, async (req, res) => {
     );
 
     let selectCols =
-      "id, plate_no, site_name, rate, old_vehicle_no, new_vehicle_no, field_co, site_co, reason, TO_CHAR(work_start_date, 'YYYY-MM-DD') as start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') as end_date, status, replaced_by, vehicle_type";
+      "id, plate_no, site_name, rate, old_vehicle_no, new_vehicle_no, field_co, site_co, reason, TO_CHAR(work_start_date, 'YYYY-MM-DD') as start_date, TO_CHAR(work_end_date, 'YYYY-MM-DD') as end_date, status, replaced_by, vehicle_type, project_name";
     if (siteColCheck.rows.length > 0) {
       selectCols += ", asset_code, work_order_no";
     }
@@ -615,7 +616,7 @@ router.get("/api/all-logs", verifyToken, async (req, res) => {
         `);
 
     const ownerLogs = await pool.query(`
-            SELECT id, plate_no, owner_name, owner_mobile, vat, vat_no, COALESCE(ledger_folio, '') as ledger_folio, company_display_name, reason,
+            SELECT id, plate_no, owner_name, owner_mobile, vat, vat_no, COALESCE(ledger_folio, '') as ledger_folio, company_display_name, COALESCE(company_arabic_name, '') as company_arabic_name, reason,
             TO_CHAR(work_start_date, 'YYYY-MM-DD') as start_date, 
             TO_CHAR(work_end_date, 'YYYY-MM-DD') as end_date, status
             FROM vehicle_owner_log
@@ -881,6 +882,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       site_co,
       reason,
       vehicle_type,
+      project_name,
     } = req.body;
 
     let updateCols = [
@@ -896,6 +898,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       "site_co=$10",
       "reason=$11",
       "vehicle_type=$12",
+      "project_name=$13",
     ];
     let updateVals = [
       site_name,
@@ -910,6 +913,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       site_co || null,
       reason || null,
       vehicle_type || null,
+      project_name || null,
     ];
 
     let insertCols = [
@@ -926,6 +930,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       "site_co",
       "reason",
       "vehicle_type",
+      "project_name",
     ];
     let insertVals = [
       plate_no,
@@ -941,6 +946,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       site_co || null,
       reason || null,
       vehicle_type || null,
+      project_name || null,
     ];
 
     if (asset_code !== undefined) {
@@ -1081,6 +1087,11 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       if (vehicle_type && vehicle_type.trim() !== "") {
         tsUpdates.push(`vehicle_type=$${tsVals.length + 1}`);
         tsVals.push(vehicle_type.trim());
+      }
+
+      if (project_name !== undefined) {
+        tsUpdates.push(`project_name=$${tsVals.length + 1}`);
+        tsVals.push(project_name ? project_name.trim() : null);
       }
 
       if (asset_code !== undefined) {
@@ -1575,8 +1586,8 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
       );
     }
 
-    // 3. Auto-Sync to Active Site Log & Cascading Period Sync to Billing, Invoices and VAT Records (Including vehicle_type)
-    if (["site_name", "rate", "field_co", "site_co", "asset_code", "work_order_no", "old_vehicle_no", "new_vehicle_no", "vehicle_type"].includes(cleanCol)) {
+    // 3. Auto-Sync to Active Site Log & Cascading Period Sync to Billing, Invoices and VAT Records (Including vehicle_type & project_name)
+    if (["site_name", "rate", "field_co", "site_co", "asset_code", "work_order_no", "old_vehicle_no", "new_vehicle_no", "vehicle_type", "project_name"].includes(cleanCol)) {
       await pool.query(
         `UPDATE vehicle_site_log SET ${cleanCol} = $1 WHERE UPPER(plate_no) = UPPER($2) AND status = 'Running'`,
         [value, plate_no]
@@ -1659,8 +1670,8 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
       }
     }
 
-    // 4. Auto-Sync to Active Owner Log & Billing Records (Including ledger_folio)
-    if (["owner_name", "owner_mobile", "vat", "vat_no", "ledger_folio", "company_display_name", "company_display_name_"].includes(cleanCol)) {
+    // 4. Auto-Sync to Active Owner Log & Billing Records (Including ledger_folio & company_arabic_name)
+    if (["owner_name", "owner_mobile", "vat", "vat_no", "ledger_folio", "company_display_name", "company_display_name_", "company_arabic_name"].includes(cleanCol)) {
       let targetCol = cleanCol === "company_display_name_" ? "company_display_name" : cleanCol;
       
       // Check if an active running owner log exists
@@ -1959,12 +1970,13 @@ router.post("/api/db/bulk-import", verifyEditor, async (req, res) => {
         let rate = row["Rate"] || row["rate"];
         let fCo = row["Field CO"] || row["field_co"];
         let sCo = row["Site CO"] || row["site_co"];
+        let pName = row["Project Name"] || row["project_name"] || null;
 
         st = st && st !== "-" && String(st).trim() !== "" ? st : null;
         ed = ed && ed !== "-" && String(ed).trim() !== "" ? ed : null;
 
         await client.query(
-          `INSERT INTO vehicle_site_log (plate_no, site_name, work_start_date, work_end_date, status, old_vehicle_no, new_vehicle_no, asset_code, work_order_no, rate, field_co, site_co) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          `INSERT INTO vehicle_site_log (plate_no, site_name, work_start_date, work_end_date, status, old_vehicle_no, new_vehicle_no, asset_code, work_order_no, rate, field_co, site_co, project_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
           [
             String(pNo).trim().toUpperCase(),
             sName,
@@ -1978,6 +1990,7 @@ router.post("/api/db/bulk-import", verifyEditor, async (req, res) => {
             rate || null,
             fCo || null,
             sCo || null,
+            pName || null,
           ],
         );
       }
