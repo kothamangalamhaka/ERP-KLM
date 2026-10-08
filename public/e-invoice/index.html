@@ -6,13 +6,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <style>
       body {
         margin: 0;
         padding: 20px;
         background: #334155;
-        font-family: 'Inter', 'Cairo', sans-serif;
+        font-family: "Inter", "Tajawal", sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -30,9 +33,13 @@
         justify-content: space-between;
         align-items: center;
         box-sizing: border-box;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
       }
-      .ribbon-group { display: flex; align-items: center; gap: 6px; }
+      .ribbon-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
       .ribbon-select {
         padding: 6px 10px;
         border-radius: 5px;
@@ -57,13 +64,32 @@
         transition: all 0.2s ease;
         white-space: nowrap;
       }
-      .btn-pdf { background: #10b981; color: white; }
-      .btn-pdf:hover { background: #059669; }
-      .btn-seal { background: #8b5cf6; color: white; }
-      .btn-seal.active { background: #dc2626; }
-      .btn-lang { background: #0284c7; color: white; }
-      .btn-dash { background: #475569; color: white; text-decoration: none; }
-      .btn-dash:hover { background: #334155; }
+      .btn-pdf {
+        background: #10b981;
+        color: white;
+      }
+      .btn-pdf:hover {
+        background: #059669;
+      }
+      .btn-seal {
+        background: #8b5cf6;
+        color: white;
+      }
+      .btn-seal.active {
+        background: #dc2626;
+      }
+      .btn-lang {
+        background: #0284c7;
+        color: white;
+      }
+      .btn-dash {
+        background: #475569;
+        color: white;
+        text-decoration: none;
+      }
+      .btn-dash:hover {
+        background: #334155;
+      }
 
       /* A4 Printable Sheet */
       .invoice-page {
@@ -71,27 +97,32 @@
         min-height: 1180px;
         background: #ffffff;
         position: relative;
-        padding: 35px 40px;
+        padding: 40px 45px;
         box-sizing: border-box;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
       }
 
-      /* Watermark Logo */
+      /* 🟢 Watermark Logo (Very soft subtle opacity) */
       .watermark-logo {
         position: absolute;
-        top: 35%;
+        top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 440px;
-        opacity: 0.08;
+        width: 450px;
+        opacity: 0.06; /* Reduced to very subtle level */
         pointer-events: none;
         z-index: 0;
       }
 
-      .content-wrapper { position: relative; z-index: 1; }
+      .content-wrapper {
+        position: relative;
+        z-index: 1;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
 
       /* Top Header */
       .invoice-header {
@@ -101,9 +132,43 @@
         border-bottom: 2px solid #0f172a;
         padding-bottom: 12px;
       }
-      .comp-en { text-align: left; direction: ltr; font-size: 13px; color: #1e3a8a; line-height: 1.4; width: 33%; }
-      .comp-ar { text-align: right; direction: rtl; font-family: 'Cairo', sans-serif; font-size: 14px; color: #1e3a8a; line-height: 1.4; width: 33%; }
-      .comp-logo { max-height: 80px; max-width: 140px; object-fit: contain; }
+      .comp-en {
+        text-align: left;
+        direction: ltr;
+        font-size: 15px;
+        color: #1e3a8a;
+        line-height: 1.4;
+        width: 33%;
+      }
+      .comp-en b {
+        font-family: 'Aptos', 'Plus Jakarta Sans', sans-serif;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        color: #0f172a;
+        display: inline-block;
+        margin-bottom: 3px;
+        text-transform: uppercase;
+      }
+      .comp-ar {
+        text-align: right;
+        direction: rtl;
+        font-family: "Tajawal", sans-serif;
+        font-size: 16px;
+        color: #1e3a8a;
+        line-height: 1.4;
+        width: 33%;
+      }
+      .comp-ar b {
+        font-size: 18px;
+        display: inline-block;
+        margin-bottom: 2px;
+      }
+      .comp-logo {
+        max-height: 95px;
+        max-width: 170px;
+        object-fit: contain;
+      }
 
       /* Invoice Date Bar */
       .date-time-bar {
@@ -111,43 +176,71 @@
         justify-content: space-between;
         align-items: center;
         margin-top: 10px;
+        margin-bottom: 28px; /* 🟢 2 line gap after invoice date */
         font-size: 12px;
         font-weight: 700;
         color: #0f172a;
       }
-      .date-left-ar { direction: rtl; font-family: 'Cairo', sans-serif; }
-      .date-right-en { direction: ltr; }
+      .date-left-ar {
+        direction: rtl;
+        font-family: "Tajawal", sans-serif;
+      }
+      .date-right-en {
+        direction: ltr;
+      }
 
-      /* Titles Container */
+      /* 🟢 Titles Container with True 3-Column Center Grid */
       .title-container {
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
         align-items: center;
-        margin-top: 12px;
+        margin-top: 0;
+        margin-bottom: 16px;
+        width: 100%;
+      }
+      .title-left {
+        justify-self: start;
+      }
+      .title-center {
+        justify-self: center;
+        text-align: center;
+      }
+      .title-right {
+        justify-self: end;
       }
       .inv-number-box {
-        background: #e2e8f0;
-        padding: 6px 16px;
+        background: #e0f2fe;
+        color: #0369a1;
+        padding: 7px 16px;
         font-weight: 800;
         font-size: 14px;
-        border-radius: 4px;
+        border-radius: 5px;
         letter-spacing: 1px;
-        font-family: 'Inter', monospace;
+        font-family: "Inter", monospace;
+        border: 1px solid #bae6fd;
+        display: inline-block;
       }
+      /* 🟢 Arabic title with bold black line positioned in absolute center */
       .inv-title {
-        font-size: 22px;
+        font-size: 24px;
         font-weight: 800;
         color: #0f172a;
-        text-decoration: underline;
-        text-underline-offset: 6px;
-        font-family: 'Cairo', sans-serif;
+        font-family: "Tajawal", sans-serif;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        border-bottom: 3.5px solid #000000;
+        padding-bottom: 6px;
+        line-height: 1.2;
       }
       .inv-month-box {
-        background: #e2e8f0;
-        padding: 6px 18px;
+        background: #e0f2fe;
+        color: #0369a1;
+        padding: 7px 18px;
         font-weight: 700;
         font-size: 13px;
-        border-radius: 4px;
+        border-radius: 5px;
+        border: 1px solid #bae6fd;
+        display: inline-block;
       }
 
       /* Party Details Grid */
@@ -159,16 +252,38 @@
       }
       .party-box {
         border: 1.5px solid #0f172a;
-        background: #f8fafc;
+        background: transparent; /* 🟢 വാട്ടർമാർക്ക് മറയാതിരിക്കാൻ transparent ആക്കി */
         padding: 8px 12px;
         font-size: 13px;
         line-height: 1.6;
         border-radius: 4px;
       }
-      .party-box-sender { text-align: right; direction: rtl; font-family: 'Cairo', sans-serif; }
-      .party-box-receiver { text-align: left; direction: ltr; }
+      .party-box-sender {
+        text-align: right;
+        direction: rtl;
+        font-family: "Tajawal", sans-serif;
+      }
+      .party-box-receiver {
+        text-align: left;
+        direction: ltr;
+      }
 
-      /* LTR Items Table */
+      /* 🟢 Gap between Company Name and VAT No */
+      .party-name {
+        display: block;
+        margin-bottom: 8px; /* Company name-um VAT no-yum thammil neat gap */
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.3;
+      }
+      .party-vat {
+        display: block;
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+      }
+
+      /* 🟢 LTR Items Table with Transparent Background for Watermark Visibility */
       .items-table {
         width: 100%;
         border-collapse: collapse;
@@ -176,20 +291,38 @@
         text-align: center;
         font-size: 12px;
         direction: ltr;
+        background: transparent;
       }
-      .items-table th, .items-table td {
-        border: 1.5px solid #0f172a;
-        padding: 7px 5px;
+      .items-table th,
+      .items-table td {
+        border: 1.5px solid #0369a1;
+        padding: 8px 6px;
+        background: transparent; /* 🟢 Row cells transparent aakki */
       }
-      .items-table th { background: #cbd5e1; font-weight: 800; color: #0f172a; }
-      .summary-title { font-weight: 700; text-align: center; background: #f1f5f9; }
+      .items-table th {
+        background: #0284c7; /* Header maathram solid blue */
+        font-weight: 800;
+        color: #ffffff;
+        font-size: 12px;
+        letter-spacing: 0.3px;
+      }
+      /* 🟢 Clean soft backdrop for summary rows to avoid watermark interference */
+      .summary-title {
+        font-weight: 700;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.78) !important;
+        color: #0369a1;
+      }
+      .items-table tfoot td {
+        background: rgba(255, 255, 255, 0.78) !important;
+      }
 
-      /* Bottom Row: QR on Left, Stamp & Signature on Right */
+      /* 🟢 Exactly 3 line gap below the items table (Not pushed to bottom) */
       .bottom-section {
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        margin-top: 25px;
+        margin-top: 48px; /* ~3 line gap */
         direction: ltr;
       }
       .qr-wrapper {
@@ -200,32 +333,57 @@
         min-width: 105px;
         min-height: 105px;
       }
+      /* 🟢 Seal & Sign alpam left-lekku maati, alpam valuthakkunnu */
       .seal-sign-group {
         display: flex;
         align-items: flex-end;
-        gap: 15px;
+        gap: 20px;
+        margin-right: 35px; /* Right end-il ninnu alpam left-lekku neekki */
       }
-      .stamp-img { max-height: 90px; object-fit: contain; }
-      .sign-img { max-height: 70px; object-fit: contain; }
+      .stamp-img {
+        max-height: 105px; /* Alpam valuthakki */
+        object-fit: contain;
+      }
+      .sign-img {
+        max-height: 85px; /* Alpam valuthakki */
+        object-fit: contain;
+      }
 
       .invoice-footer {
         border-top: 2px solid #0f172a;
-        padding-top: 8px;
-        margin-top: 20px;
+        padding-top: 10px;
+        margin-top: auto;
         font-size: 11px;
         text-align: center;
         line-height: 1.5;
         direction: ltr;
+        width: 100%;
       }
 
-      /* Attached Billing Card (Without Seal & Sign) */
-      .attached-billing-section {
-        margin-top: 40px;
-        border-top: 2px dashed #94a3b8;
-        padding-top: 30px;
-        direction: ltr;
-        page-break-before: always;
+      /* 🟢 Dynamic Card Container (Clean Natural Size, No A4 Compression) */
+      .card-natural-wrapper {
+        width: 100%;
+        margin-top: 25px;
+        box-sizing: border-box;
       }
+
+      /* Separate Page mode ആകുമ്പോഴുള്ള independent clean styling */
+      .card-natural-wrapper.separate-mode {
+        width: max-content;
+        min-width: 860px;
+        max-width: 1350px;
+        background: #ffffff;
+        padding: 25px 30px;
+        border-radius: 6px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        margin-top: 30px;
+      }
+
+      .card-natural-wrapper.inline-mode {
+        border-top: 2px dashed #94a3b8;
+        padding-top: 20px;
+      }
+
       .attach-title {
         text-align: center;
         font-size: 15px;
@@ -233,22 +391,49 @@
         color: #1a4d80;
         margin-bottom: 12px;
       }
+
       .attach-table {
         width: 100%;
         border-collapse: collapse;
         text-align: center;
         font-size: 12px;
+        direction: ltr;
       }
-      .attach-table th, .attach-table td {
-        border: 1px solid #0f172a;
-        padding: 6px 4px;
+
+      .attach-table th,
+      .attach-table td {
+        border: 1.5px solid #0f172a;
+        padding: 8px 8px;
       }
+
       .attach-table th {
         background: #007bff;
         color: white;
         font-weight: 700;
         font-size: 11px;
       }
+
+      .attach-table td.driver-cell {
+        text-align: left;
+        white-space: nowrap;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      .attach-table .th-plate, .attach-table .td-plate {
+        width: 125px;
+        min-width: 120px;
+        font-family: monospace;
+        letter-spacing: 0.5px;
+      }
+
+      .attach-table .th-hour, .attach-table .td-hour {
+        width: 65px;
+        min-width: 60px;
+        padding-left: 4px;
+        padding-right: 4px;
+      }
+
       .attach-table tfoot td {
         font-weight: 700;
         background: #f8fafc;
@@ -259,28 +444,58 @@
     <!-- Compact Top Ribbon -->
     <div class="top-ribbon">
       <div class="ribbon-group">
-        <label style="font-size:12px; font-weight:600;">Company:</label>
-        <select id="companySelect" class="ribbon-select" onchange="onCompanySelectChange()">
+        <label style="font-size: 12px; font-weight: 600">Company:</label>
+        <select
+          id="companySelect"
+          class="ribbon-select"
+          onchange="onCompanySelectChange()"
+        >
           <option value="">-- Choose Company --</option>
         </select>
-        <button id="langToggleBtn" class="btn-ribbon btn-lang" onclick="toggleLanguage()">English</button>
-        <button id="sealToggleBtn" class="btn-ribbon btn-seal" onclick="toggleSealEngagement()">Seal & Sign</button>
+        <button
+          id="langToggleBtn"
+          class="btn-ribbon btn-lang"
+          onclick="toggleLanguage()"
+        >
+          English
+        </button>
+        <button
+          id="sealToggleBtn"
+          class="btn-ribbon btn-seal"
+          onclick="toggleSealEngagement()"
+        >
+          Seal & Sign
+        </button>
       </div>
       <div class="ribbon-group">
         <a href="dashboard.html" class="btn-ribbon btn-dash">Dashboard</a>
-        <button class="btn-ribbon btn-pdf" onclick="downloadAndSaveInvoice()">PDF ⬇️</button>
+        <button class="btn-ribbon btn-pdf" onclick="downloadAndSaveInvoice()">
+          PDF ⬇️
+        </button>
       </div>
     </div>
 
     <!-- Printable Sheet -->
     <div class="invoice-page" id="printableInvoice">
-      <img id="watermarkLogo" class="watermark-logo" src="" alt="" style="display:none;" />
+      <img
+        id="watermarkLogo"
+        class="watermark-logo"
+        src=""
+        alt=""
+        style="display: none"
+      />
 
       <div class="content-wrapper">
         <!-- 1. Top Header -->
         <div class="invoice-header">
           <div class="comp-en" id="headerCompEn"></div>
-          <img id="headerLogo" class="comp-logo" src="" alt="" style="display:none;" />
+          <img
+            id="headerLogo"
+            class="comp-logo"
+            src=""
+            alt=""
+            style="display: none"
+          />
           <div class="comp-ar" id="headerCompAr"></div>
         </div>
 
@@ -290,25 +505,31 @@
           <div class="date-right-en" id="dateTimeEn">Invoice Date: -</div>
         </div>
 
-        <!-- 3. Titles -->
+        <!-- 3. Titles (Absolute Center Alignment) -->
         <div class="title-container">
-          <div class="inv-number-box" id="invNoDisplay">------</div>
-          <div class="inv-title">فـــاتـــورة ضــريـبـيــة</div>
-          <div class="inv-month-box" id="invMonthDisplay">Month -</div>
+          <div class="title-left">
+            <div class="inv-number-box" id="invNoDisplay">------</div>
+          </div>
+          <div class="title-center">
+            <div class="inv-title">فـــاتـــورة ضــريـبـيــة</div>
+          </div>
+          <div class="title-right">
+            <div class="inv-month-box" id="invMonthDisplay">Month -</div>
+          </div>
         </div>
 
         <!-- 4. Party Details Grid -->
         <div class="party-details-grid">
           <!-- Left: Receiver -->
           <div class="party-box party-box-receiver" id="buyerBox">
-            <b style="font-size: 14px;" id="buyerNameDisplay">-</b><br />
-            <span style="font-weight: 600;" id="buyerVatDisplay">-</span>
+            <span class="party-name" id="buyerNameDisplay">-</span>
+            <span class="party-vat" id="buyerVatDisplay">-</span>
           </div>
 
           <!-- Right: Seller -->
           <div class="party-box party-box-sender" id="sellerBox">
-            <b style="font-size: 14px;" id="sellerNameDisplay">-</b><br />
-            <span style="font-weight: 600;" id="sellerVatDisplay">-</span>
+            <span class="party-name" id="sellerNameDisplay">-</span>
+            <span class="party-vat" id="sellerVatDisplay">-</span>
           </div>
         </div>
 
@@ -316,7 +537,7 @@
         <table class="items-table" id="itemsTable">
           <thead>
             <tr id="tableHeaderRow">
-              <th style="width: 35px;">SN</th>
+              <th style="width: 35px">SN</th>
               <th>Vehicle Type</th>
               <th>Plate No</th>
               <th>Normal Hr</th>
@@ -329,16 +550,27 @@
           <tbody id="invoiceItemsBody"></tbody>
           <tfoot>
             <tr>
-              <td colspan="7" class="summary-title" id="lblSubtotal">Total Before VAT (الإجمالي قبل الضريبة)</td>
-              <td id="subtotalDisplay" style="font-weight:bold;">0.00</td>
+              <td colspan="7" class="summary-title" id="lblSubtotal">
+                Total Before VAT (الإجمالي قبل الضريبة)
+              </td>
+              <td id="subtotalDisplay" style="font-weight: bold">0.00</td>
             </tr>
             <tr>
-              <td colspan="7" class="summary-title" id="lblVat">VAT 15% (قيمة الضريبة المضافة)</td>
-              <td id="vatAmountDisplay" style="font-weight:bold;">0.00</td>
+              <td colspan="7" class="summary-title" id="lblVat">
+                VAT 15% (قيمة الضريبة المضافة)
+              </td>
+              <td id="vatAmountDisplay" style="font-weight: bold">0.00</td>
             </tr>
             <tr>
-              <td colspan="7" class="summary-title" id="lblGrandTotal">Grand Total (إجمالي المبلغ المطلوب)</td>
-              <td id="grandTotalDisplay" style="font-weight:800; font-size:14px;">0.00</td>
+              <td colspan="7" class="summary-title" id="lblGrandTotal">
+                Grand Total (إجمالي المبلغ المطلوب)
+              </td>
+              <td
+                id="grandTotalDisplay"
+                style="font-weight: 800; font-size: 14px"
+              >
+                0.00
+              </td>
             </tr>
           </tfoot>
         </table>
@@ -352,53 +584,71 @@
 
           <!-- Right Seal & Signature -->
           <div class="seal-sign-group">
-            <img id="stampImage" class="stamp-img" src="" alt="Seal" style="display:none;" />
-            <img id="signImage" class="sign-img" src="" alt="Signature" style="display:none;" />
+            <img
+              id="stampImage"
+              class="stamp-img"
+              src=""
+              alt="Seal"
+              style="display: none"
+            />
+            <img
+              id="signImage"
+              class="sign-img"
+              src=""
+              alt="Signature"
+              style="display: none"
+            />
           </div>
         </div>
       </div>
 
-      <!-- 7. Bottom Address Footer -->
+      <!-- 7. Bottom Address Footer (Clean without extra pipe) -->
       <div class="invoice-footer">
-        <span id="footerAddrAr"></span> &nbsp;|&nbsp;
-        <span id="footerAddrEn"></span><br />
-        <span id="footerEmail"></span>
+        <span id="footerAddrContainer"></span>
+        <div id="footerEmail" style="margin-top: 2px;"></div>
       </div>
 
-      <!-- 8. Attached Billing Card (Without Seal & Sign & No Header) -->
-      <div class="attached-billing-section" id="attachedBillingCard">
-        <div class="attach-title">Bill Summary for Each Month ملخص فاتورة الشهر</div>
-        
-        <table class="attach-table">
-          <thead>
-            <tr>
-              <th style="width: 30px;">#</th>
-              <th>Date</th>
-              <th>Vehicle Type</th>
-              <th>Driver</th>
-              <th>Plate No</th>
-              <th>N.Hr</th>
-              <th>OT Hr</th>
-              <th>Rent</th>
-              <th>VAT %</th>
-              <th>VAT Amt</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody id="attachTableBody"></tbody>
-          <tfoot>
-            <tr>
-              <td colspan="5" style="text-align: right; padding-right: 15px;">Grand Total:</td>
-              <td id="attachGrandNhr">0</td>
-              <td id="attachGrandOthr">0</td>
-              <td id="attachGrandRent">0.00</td>
-              <td>15%</td>
-              <td id="attachGrandVat">0.00</td>
-              <td id="attachGrandTotal">0.00</td>
-            </tr>
-          </tfoot>
-        </table>
+      <!-- 🟢 Dynamic Card Placement Placeholder inside Invoice Sheet -->
+      <div id="inlineCardSlot"></div>
+    </div>
+
+    <!-- 🟢 Detached Card Container (used when Driver name is long or rows are large) -->
+    <div id="cardNaturalContainer" class="card-natural-wrapper inline-mode">
+      <div class="attach-title">
+        Bill Summary for Each Month ملخص فاتورة الشهر
       </div>
+
+      <table class="attach-table">
+        <thead>
+          <tr>
+            <th style="width: 32px">#</th>
+            <th style="width: 95px">Date</th>
+            <th style="width: 140px">Vehicle Type</th>
+            <th>Driver</th>
+            <th class="th-plate">Plate No</th>
+            <th class="th-hour">N.Hr</th>
+            <th class="th-hour">OT Hr</th>
+            <th style="width: 95px">Rent</th>
+            <th style="width: 60px">VAT %</th>
+            <th style="width: 85px">VAT Amt</th>
+            <th style="width: 100px">Total</th>
+          </tr>
+        </thead>
+        <tbody id="attachTableBody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="5" style="text-align: right; padding-right: 15px">
+              Grand Total:
+            </td>
+            <td id="attachGrandNhr" class="td-hour">0</td>
+            <td id="attachGrandOthr" class="td-hour">0</td>
+            <td id="attachGrandRent">0.00</td>
+            <td>15%</td>
+            <td id="attachGrandVat">0.00</td>
+            <td id="attachGrandTotal">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
 
     <script>
@@ -420,7 +670,7 @@
           lblSubtotal: "Total Before VAT (الإجمالي قبل الضريبة)",
           lblVat: "VAT 15% (قيمة الضريبة المضافة)",
           lblGrandTotal: "Grand Total (إجمالي المبلغ المطلوب)",
-          buttonLabel: "English"
+          buttonLabel: "English",
         },
         ar: {
           thSN: "م",
@@ -434,8 +684,8 @@
           lblSubtotal: "الإجمالي قبل الضريبة",
           lblVat: "قيمة الضريبة 15%",
           lblGrandTotal: "إجمالي المبلغ المطلوب",
-          buttonLabel: "عربي"
-        }
+          buttonLabel: "عربي",
+        },
       };
 
       async function initEInvoice() {
@@ -446,8 +696,8 @@
 
         if (data.success && data.companies.length > 0) {
           companiesList = data.companies;
-          companiesList.forEach(c => {
-            sel.innerHTML += `<option value="${c.id}">${c.company_name_en} (${c.company_name_ar || ''})</option>`;
+          companiesList.forEach((c) => {
+            sel.innerHTML += `<option value="${c.id}">${c.company_name_en} (${c.company_name_ar || ""})</option>`;
           });
         }
 
@@ -456,25 +706,121 @@
       }
 
       async function fetchNextNumber(compId) {
-        const url = compId ? `/e-invoice/api/next-invoice-no?company_id=${compId}` : `/e-invoice/api/next-invoice-no`;
+        const url = compId
+          ? `/e-invoice/api/next-invoice-no?company_id=${compId}`
+          : `/e-invoice/api/next-invoice-no`;
         const numRes = await fetch(url);
         const numData = await numRes.json();
         if (numData.success) {
-          document.getElementById("invNoDisplay").innerText = numData.invoice_no;
+          document.getElementById("invNoDisplay").innerText =
+            numData.invoice_no;
         }
       }
 
+      // 🟢 Gregorian and Official Umm al-Qura Hijri Date
       function setupDateTime() {
         const now = new Date();
         const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, '0');
-        const d = String(now.getDate()).padStart(2, '0');
+        const m = String(now.getMonth() + 1).padStart(2, "0");
+        const d = String(now.getDate()).padStart(2, "0");
 
-        document.getElementById("dateTimeEn").innerText = `Invoice Date: ${y}-${m}-${d}`;
-        document.getElementById("dateTimeAr").innerText = `تاريخ الفاتورة: ${d} / ${m} / ${y}م`;
+        document.getElementById("dateTimeEn").innerText =
+          `Invoice Date: ${y}-${m}-${d}`;
+
+        try {
+          // 'ar-SA' ഒപ്പം '-nu-arab' നൽകി Eastern Arabic അക്കങ്ങൾ നിർബന്ധമാക്കുന്നു
+          const formatter = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-arab', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          });
+
+          const parts = formatter.formatToParts(now);
+          const hDay = parts.find(p => p.type === 'day')?.value;
+          const hMonth = parts.find(p => p.type === 'month')?.value;
+          const hYear = parts.find(p => p.type === 'year')?.value;
+
+          // അറബിക് അക്കങ്ങളിൽ തിയതി കൃത്യമായി സെറ്റ് ചെയ്യുന്നു
+          document.getElementById("dateTimeAr").innerText =
+            `تاريخ الفاتورة: ${hYear}/${hMonth}/${hDay}`;
+        } catch (e) {
+          // Fallback conversion to Arabic numerals
+          const toArDigits = (numStr) =>
+            numStr.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[d]);
+
+          document.getElementById("dateTimeAr").innerText =
+            `تاريخ الفاتورة: ${toArDigits(`${y}/${m}/${d}`)}`;
+        }
       }
 
-      // Table-only language switcher
+      // Vehicle type Arabic mapping and spelling/space normalization
+      function getArabicVehicleType(name) {
+        if (!name) return "-";
+        // Space, case, extra symbols normalize cheyyunnu
+        const clean = name.toLowerCase().replace(/[\-_]/g, " ").replace(/\s+/g, " ").trim();
+
+        const vehicleMap = {
+          "water tanker": "وايت ماء",
+          "water tanker 18kl": "وايت ماء 18 طن",
+          "water tanker 18 kl": "وايت ماء 18 طن",
+          "water tanker 32kl": "وايت ماء 32 طن",
+          "dump truck 16": "قلاب 16 م",
+          "dump truck 24": "قلاب 24 م",
+          "dump truck 24 single": "قلاب 24 م مفرد",
+          "flatbed trailor": "تريلا سطحة",
+          "flatbed trailer": "تريلا سطحة",
+          "flat bed trailer": "تريلا سطحة",
+          "lowbed trailor": "تريلا لوبد",
+          "lowbed trailer": "تريلا لوبد",
+          "dyna truck": "دينا نقل",
+          "dyna 5 t": "دينا 5 طن",
+          "dyna truck 10t": "دينا 10 طن",
+          "sewage tanker": "وايت صرف صحي",
+          "rigger": "فني ريجر",
+          "excavator": "حفار",
+          "excavator 550t": "حفار 550",
+          "excavator 495t": "حفار 495",
+          "fire truck": "سيارة إطفاء",
+          "telihandler": "تلي هاندلر (رافعة تلسكوبية)",
+          "telehandler": "تلي هاندلر (رافعة تلسكوبية)",
+          "wheel loader": "شيول",
+          "backhoe loader": "بوكلين حفر",
+          "roller": "رصاصة / هراس",
+          "boom truck": "بوم ترك (شاحنة رافعة)"
+        };
+
+        return vehicleMap[clean] || name;
+      }
+
+      function renderInvoiceItemsTable() {
+        const tbody = document.getElementById("invoiceItemsBody");
+        tbody.innerHTML = "";
+
+        if (currentPayload && Array.isArray(currentPayload.rows) && currentPayload.rows.length > 0) {
+          currentPayload.rows.forEach((r, idx) => {
+            const rawVtype = r.vtype ? r.vtype.trim() : "-";
+            const displayVtype = currentLang === "ar" ? getArabicVehicleType(rawVtype) : rawVtype;
+            const nRate = r.nrate ? parseFloat(r.nrate).toFixed(2) : "0.00";
+            const otRate = r.otrate ? parseFloat(r.otrate).toFixed(2) : "0.00";
+            const rowAmount = r.rent ? parseFloat(r.rent).toFixed(2) : "0.00";
+
+            tbody.innerHTML += `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>${displayVtype}</td>
+                <td style="font-weight:700; font-family:monospace;">${r.plate || "-"}</td>
+                <td>${r.nhr || 0}</td>
+                <td>${nRate}</td>
+                <td>${r.othr || 0}</td>
+                <td>${otRate}</td>
+                <td style="font-weight:600;">${rowAmount}</td>
+              </tr>
+            `;
+          });
+        }
+      }
+
+      // Table language toggle cheyyumbozh items table koodi re-render cheyyunnu
       function toggleLanguage() {
         currentLang = currentLang === "en" ? "ar" : "en";
         const t = tableTranslations[currentLang];
@@ -496,19 +842,26 @@
         document.getElementById("lblSubtotal").innerText = t.lblSubtotal;
         document.getElementById("lblVat").innerText = t.lblVat;
         document.getElementById("lblGrandTotal").innerText = t.lblGrandTotal;
+
+        // Arabic aakkiyappol vehicle types Arabic aayi maattunnu
+        renderInvoiceItemsTable();
       }
 
       function toggleSealEngagement() {
         const selId = document.getElementById("companySelect").value;
         if (!selId) return alert("Please select an Issuer Company first!");
 
-        const comp = companiesList.find(c => String(c.id) === String(selId));
+        const comp = companiesList.find((c) => String(c.id) === String(selId));
         if (!comp || (!comp.seal_url && !comp.signature_url)) {
-          return alert("This company has no Seal or Signature uploaded in Settings!");
+          return alert(
+            "This company has no Seal or Signature uploaded in Settings!",
+          );
         }
 
         if (!isSealEngaged) {
-          const sure = confirm("⚠️ Are you sure you want to engage Seal & Sign on this invoice?");
+          const sure = confirm(
+            "⚠️ Are you sure you want to engage Seal & Sign on this invoice?",
+          );
           if (!sure) return;
 
           isSealEngaged = true;
@@ -538,8 +891,7 @@
           document.getElementById("watermarkLogo").style.display = "none";
           document.getElementById("sellerNameDisplay").innerText = "-";
           document.getElementById("sellerVatDisplay").innerText = "-";
-          document.getElementById("footerAddrAr").innerText = "";
-          document.getElementById("footerAddrEn").innerText = "";
+          document.getElementById("footerAddrContainer").innerText = "";
           document.getElementById("footerEmail").innerText = "";
           document.getElementById("stampImage").style.display = "none";
           document.getElementById("signImage").style.display = "none";
@@ -550,11 +902,22 @@
           return;
         }
 
-        const comp = companiesList.find(c => String(c.id) === String(selId));
+        const comp = companiesList.find((c) => String(c.id) === String(selId));
         if (!comp) return;
 
-        document.getElementById("headerCompEn").innerHTML = `<b>${comp.company_name_en}</b><br>For contracting<br>C.R. : ${comp.cr_number || '-'}`;
-        document.getElementById("headerCompAr").innerHTML = `<b>${comp.company_name_ar}</b><br>للمقاولات العامة<br>س ت : ${comp.cr_number || '-'}`;
+        // English digits-ne Arabic numerals-ilekku maattaanulla helper function
+        const toArDigits = (val) => {
+          if (!val) return "-";
+          return String(val).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[d]);
+        };
+
+        // Header English section
+        document.getElementById("headerCompEn").innerHTML =
+          `<b>${comp.company_name_en}</b><br>C.R. : ${comp.cr_number || "-"}<br>VAT No : ${comp.vat_number || "-"}`;
+
+        // Header Arabic section (CR-um VAT-um Arabic digits-il)
+        document.getElementById("headerCompAr").innerHTML =
+          `<b>${comp.company_name_ar}</b><br>س ت : ${toArDigits(comp.cr_number)}<br>الرقم الضريبي : ${toArDigits(comp.vat_number)}`;
 
         if (comp.logo_url) {
           document.getElementById("headerLogo").src = comp.logo_url;
@@ -563,12 +926,24 @@
           document.getElementById("watermarkLogo").style.display = "block";
         }
 
-        document.getElementById("sellerNameDisplay").innerText = comp.company_name_ar || comp.company_name_en;
-        document.getElementById("sellerVatDisplay").innerText = comp.vat_number || "-";
+        // Seller Party Box-ilum Arabic numbers nalkunnu
+        document.getElementById("sellerNameDisplay").innerText =
+          comp.company_name_ar || comp.company_name_en;
+        document.getElementById("sellerVatDisplay").innerText =
+          toArDigits(comp.vat_number);
 
-        document.getElementById("footerAddrAr").innerText = comp.address_line_ar || "";
-        document.getElementById("footerAddrEn").innerText = comp.address_line_en || "";
-        document.getElementById("footerEmail").innerText = comp.email ? `E-mail: ${comp.email}` : "";
+        const addrParts = [];
+        if (comp.address_line_ar && comp.address_line_ar.trim()) {
+          addrParts.push(comp.address_line_ar.trim());
+        }
+        if (comp.address_line_en && comp.address_line_en.trim()) {
+          addrParts.push(comp.address_line_en.trim());
+        }
+        document.getElementById("footerAddrContainer").innerText = addrParts.join(" | ");
+
+        document.getElementById("footerEmail").innerText = comp.email
+          ? `E-mail: ${comp.email}`
+          : "";
 
         // Reset seal on company change
         isSealEngaged = false;
@@ -576,10 +951,13 @@
         document.getElementById("stampImage").style.display = "none";
         document.getElementById("signImage").style.display = "none";
 
-        const numRes = await fetch(`/e-invoice/api/next-invoice-no?company_id=${comp.id}`);
+        const numRes = await fetch(
+          `/e-invoice/api/next-invoice-no?company_id=${comp.id}`,
+        );
         const numData = await numRes.json();
         if (numData.success) {
-          document.getElementById("invNoDisplay").innerText = numData.invoice_no;
+          document.getElementById("invNoDisplay").innerText =
+            numData.invoice_no;
         }
 
         generateZatcaQrAuto();
@@ -594,74 +972,69 @@
           currentPayload = data;
 
           if (data.billingMonth) {
-            document.getElementById("invMonthDisplay").innerText = data.billingMonth;
+            document.getElementById("invMonthDisplay").innerText =
+              data.billingMonth;
           }
 
           // 🟢 പ്രയോറിറ്റി: Arabic Name ഉണ്ടെങ്കിൽ അത് -> ഇല്ലെങ്കിൽ English Company Display Name -> രണ്ടും ഇല്ലെങ്കിൽ Blank
           let buyerName = "";
           if (data.vendorArabicName && data.vendorArabicName.trim() !== "") {
             buyerName = data.vendorArabicName.trim();
-          } else if (data.vendorDisplayName && data.vendorDisplayName.trim() !== "") {
+          } else if (
+            data.vendorDisplayName &&
+            data.vendorDisplayName.trim() !== ""
+          ) {
             buyerName = data.vendorDisplayName.trim();
           }
 
           document.getElementById("buyerNameDisplay").innerText = buyerName;
-          document.getElementById("buyerVatDisplay").innerText = data.vendorVatNo ? data.vendorVatNo.trim() : "";
+          document.getElementById("buyerVatDisplay").innerText =
+            data.vendorVatNo ? data.vendorVatNo.trim() : "";
 
           const tbody = document.getElementById("invoiceItemsBody");
           tbody.innerHTML = "";
 
-          if (Array.isArray(data.rows) && data.rows.length > 0) {
-            data.rows.forEach((r, idx) => {
-              const vtypeOnly = r.vtype ? r.vtype.trim() : "-";
-              const nRate = r.nrate ? parseFloat(r.nrate).toFixed(2) : "0.00";
-              const otRate = r.otrate ? parseFloat(r.otrate).toFixed(2) : "0.00";
-              const rowAmount = r.rent ? parseFloat(r.rent).toFixed(2) : "0.00";
+          // loadPassedBillingData()-il items rendering call maattuka:
+      renderInvoiceItemsTable();
 
-              tbody.innerHTML += `
-                <tr>
-                  <td>${idx + 1}</td>
-                  <td>${vtypeOnly}</td>
-                  <td style="font-weight:700; font-family:monospace;">${r.plate || "-"}</td>
-                  <td>${r.nhr || 0}</td>
-                  <td>${nRate}</td>
-                  <td>${r.othr || 0}</td>
-                  <td>${otRate}</td>
-                  <td style="font-weight:600;">${rowAmount}</td>
-                </tr>
-              `;
-            });
-          }
-
-          document.getElementById("subtotalDisplay").innerText = (data.grandRent || 0).toFixed(2);
-          document.getElementById("vatAmountDisplay").innerText = (data.grandVat || 0).toFixed(2);
-          document.getElementById("grandTotalDisplay").innerText = (data.grandTotal || 0).toFixed(2);
+          document.getElementById("subtotalDisplay").innerText = (
+            data.grandRent || 0
+          ).toFixed(2);
+          document.getElementById("vatAmountDisplay").innerText = (
+            data.grandVat || 0
+          ).toFixed(2);
+          document.getElementById("grandTotalDisplay").innerText = (
+            data.grandTotal || 0
+          ).toFixed(2);
 
           const attachTbody = document.getElementById("attachTableBody");
           attachTbody.innerHTML = "";
 
-          let totNhr = 0, totOthr = 0;
+          let totNhr = 0,
+            totOthr = 0;
           if (Array.isArray(data.rows) && data.rows.length > 0) {
             data.rows.forEach((r, idx) => {
-              totNhr += (parseFloat(r.nhr) || 0);
-              totOthr += (parseFloat(r.othr) || 0);
+              totNhr += parseFloat(r.nhr) || 0;
+              totOthr += parseFloat(r.othr) || 0;
               const rowVat = r.vat ? parseFloat(r.vat).toFixed(2) : "0.00";
               const rowRent = r.rent ? parseFloat(r.rent).toFixed(2) : "0.00";
-              const rowTotal = r.total ? parseFloat(r.total).toFixed(2) : "0.00";
+              const rowTotal = r.total
+                ? parseFloat(r.total).toFixed(2)
+                : "0.00";
 
               attachTbody.innerHTML += `
                 <tr>
                   <td>${idx + 1}</td>
                   <td>${data.billingMonth || "-"}</td>
                   <td>${r.vtype || "-"}</td>
-                  <td>${r.driver || "-"}</td>
-                  <td style="font-weight:700; font-family:monospace;">${r.plate || "-"}</td>
-                  <td>${r.nhr || 0}</td>
-                  <td>${r.othr || 0}</td>
+                  <td class="driver-cell">${r.driver || "-"}</td>
+                  <td class="td-plate" style="font-weight:700;">${r.plate || "-"}</td>
+                  <td class="td-hour">${r.nhr || 0}</td>
+                  <td class="td-hour">${r.othr || 0}</td>
                   <td>${rowRent}</td>
                   <td>15%</td>
                   <td>${rowVat}</td>
-                  <td style="font-weight:600;">${rowTotal}</td>
+                  <td style="font-weight:700;">${rowTotal}</td>
                 </tr>
               `;
             });
@@ -669,9 +1042,38 @@
 
           document.getElementById("attachGrandNhr").innerText = totNhr;
           document.getElementById("attachGrandOthr").innerText = totOthr;
-          document.getElementById("attachGrandRent").innerText = (data.grandRent || 0).toFixed(2);
-          document.getElementById("attachGrandVat").innerText = (data.grandVat || 0).toFixed(2);
-          document.getElementById("attachGrandTotal").innerText = (data.grandTotal || 0).toFixed(2);
+          document.getElementById("attachGrandRent").innerText = (
+            data.grandRent || 0
+          ).toFixed(2);
+          document.getElementById("attachGrandVat").innerText = (
+            data.grandVat || 0
+          ).toFixed(2);
+          document.getElementById("attachGrandTotal").innerText = (
+            data.grandTotal || 0
+          ).toFixed(2);
+
+          // 🟢 Check if Driver names are long (> 18 chars) or row count > 2
+          const isDriverNameLong = (data.rows || []).some(r => (r.driver || "").trim().length > 18);
+          const isRowLarge = (data.rows || []).length > 2;
+          const shouldSeparate = isDriverNameLong || isRowLarge;
+
+          const cardEl = document.getElementById("cardNaturalContainer");
+          const inlineSlot = document.getElementById("inlineCardSlot");
+          const invoicePage = document.getElementById("printableInvoice");
+
+          if (shouldSeparate) {
+            // 🟢 Move card outside Page 1 as an independent custom-sized sheet
+            cardEl.className = "card-natural-wrapper separate-mode";
+            document.body.appendChild(cardEl);
+            document.querySelector(".bottom-section").style.marginTop = "48px";
+            document.querySelector(".bottom-section").style.marginBottom = "0px";
+          } else {
+            // 🟢 Keep card inside Page 1 as a compact bottom section
+            cardEl.className = "card-natural-wrapper inline-mode";
+            inlineSlot.appendChild(cardEl);
+            document.querySelector(".bottom-section").style.marginTop = "48px";
+            document.querySelector(".bottom-section").style.marginBottom = "0px";
+          }
 
           // If payload had seal active (e.g. from dashboard view)
           if (data.has_seal) {
@@ -690,8 +1092,10 @@
         const qrContainer = document.getElementById("zatcaQrContainer");
         qrContainer.innerHTML = "";
 
-        let sellerName = document.getElementById("sellerNameDisplay")?.innerText || "";
-        let vatNo = document.getElementById("sellerVatDisplay")?.innerText || "";
+        let sellerName =
+          document.getElementById("sellerNameDisplay")?.innerText || "";
+        let vatNo =
+          document.getElementById("sellerVatDisplay")?.innerText || "";
 
         if (!sellerName || sellerName === "-") {
           sellerName = currentPayload?.companyName || "Company";
@@ -700,8 +1104,10 @@
           vatNo = currentPayload?.vendorVatNo || "300000000000003";
         }
 
-        const total = document.getElementById("grandTotalDisplay")?.innerText || "0.00";
-        const vatTotal = document.getElementById("vatAmountDisplay")?.innerText || "0.00";
+        const total =
+          document.getElementById("grandTotalDisplay")?.innerText || "0.00";
+        const vatTotal =
+          document.getElementById("vatAmountDisplay")?.innerText || "0.00";
         const timestamp = new Date().toISOString();
 
         try {
@@ -713,8 +1119,8 @@
               vat_number: vatNo,
               timestamp: timestamp,
               total_with_vat: total,
-              vat_total: vatTotal
-            })
+              vat_total: vatTotal,
+            }),
           });
           const data = await res.json();
           if (data.success && data.base64) {
@@ -722,7 +1128,7 @@
               text: data.base64,
               width: 105,
               height: 105,
-              correctLevel: QRCode.CorrectLevel.M
+              correctLevel: QRCode.CorrectLevel.M,
             });
           }
         } catch (e) {
@@ -737,7 +1143,7 @@
         }
 
         const selId = document.getElementById("companySelect").value;
-        const comp = companiesList.find(c => String(c.id) === String(selId));
+        const comp = companiesList.find((c) => String(c.id) === String(selId));
 
         // 1. Save to Database First
         const body = {
@@ -747,16 +1153,23 @@
           vendor_name: document.getElementById("buyerNameDisplay").innerText,
           billing_month: document.getElementById("invMonthDisplay").innerText,
           invoice_time: new Date().toLocaleTimeString(),
-          subtotal: parseFloat(document.getElementById("subtotalDisplay").innerText) || 0,
-          vat_amount: parseFloat(document.getElementById("vatAmountDisplay").innerText) || 0,
-          grand_total: parseFloat(document.getElementById("grandTotalDisplay").innerText) || 0,
+          subtotal:
+            parseFloat(document.getElementById("subtotalDisplay").innerText) ||
+            0,
+          vat_amount:
+            parseFloat(document.getElementById("vatAmountDisplay").innerText) ||
+            0,
+          grand_total:
+            parseFloat(
+              document.getElementById("grandTotalDisplay").innerText,
+            ) || 0,
           has_seal: isSealEngaged,
           raw_payload: {
             ...currentPayload,
             has_seal: isSealEngaged,
             company_id: selId,
             selected_company: comp,
-            invoice_no: invNo
+            invoice_no: invNo,
           },
         };
 
@@ -770,18 +1183,43 @@
           console.error("Auto-save failed", err);
         }
 
-        // 2. Generate and Download PDF
-        const el = document.getElementById("printableInvoice");
-        const canvas = await html2canvas(el, { scale: 2.5, useCORS: true });
-        const imgData = canvas.toDataURL("image/png");
+        // 2. Smart Multi/Single Page PDF Generator with Natural Aspect Ratio
+        const cardEl = document.getElementById("cardNaturalContainer");
+        const isSeparated = cardEl.classList.contains("separate-mode");
+        const invoiceEl = document.getElementById("printableInvoice");
 
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF("p", "pt", "a4");
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
 
-        pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
-        pdf.save(`${invNo}.pdf`);
+        if (!isSeparated) {
+          // 🟢 SINGLE PAGE A4 (കാർഡ് ചെറുതായതിനാൽ ഒരൊറ്റ പേജിൽ ഒതുങ്ങുന്നു)
+          const canvas = await html2canvas(invoiceEl, { scale: 2.5, useCORS: true });
+          const imgData = canvas.toDataURL("image/png");
+          const pdf = new jsPDF("p", "pt", "a4");
+          pdf.addImage(imgData, "PNG", 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+          pdf.save(`${invNo}.pdf`);
+        } else {
+          // 🟢 2-PAGE HYBRID (Page 1 is Standard A4, Page 2 matches Exact Card Dimensions)
+          const canvas1 = await html2canvas(invoiceEl, { scale: 2.5, useCORS: true });
+          const imgData1 = canvas1.toDataURL("image/png");
+
+          const canvas2 = await html2canvas(cardEl, { scale: 2.5, useCORS: true });
+          const imgData2 = canvas2.toDataURL("image/png");
+
+          // Page 1: Standard A4
+          const pdf = new jsPDF("p", "pt", "a4");
+          const a4Width = pdf.internal.pageSize.getWidth();
+          const a4Height = pdf.internal.pageSize.getHeight();
+          pdf.addImage(imgData1, "PNG", 0, 0, a4Width, a4Height);
+
+          // Page 2: Custom Card Size (ഒട്ടും ഞെങ്ങാതെ കാർഡിന്റെ ഒറിജിനൽ വീതിയിലും നീളത്തിലും)
+          const cardPtWidth = (canvas2.width / 2.5) * 0.75;
+          const cardPtHeight = (canvas2.height / 2.5) * 0.75;
+
+          pdf.addPage([cardPtWidth, cardPtHeight], cardPtWidth > cardPtHeight ? "l" : "p");
+          pdf.addImage(imgData2, "PNG", 0, 0, cardPtWidth, cardPtHeight);
+
+          pdf.save(`${invNo}.pdf`);
+        }
       }
 
       setupDateTime();
