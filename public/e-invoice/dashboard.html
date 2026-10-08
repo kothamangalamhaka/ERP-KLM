@@ -93,15 +93,34 @@
       }
 
       async function viewInvoice(id) {
-        const res = await fetch(`/e-invoice/api/invoice/${id}`);
-        const data = await res.json();
-        if (data.success && data.invoice) {
-          const payload = data.invoice.raw_payload || {};
-          payload.has_seal = payload.has_seal || false;
-          payload.invoice_no = data.invoice.invoice_no;
-          payload.saved_company_id = data.invoice.company_id;
-          sessionStorage.setItem("activeEInvoiceData", JSON.stringify(payload));
-          window.open("index.html", "_blank");
+        try {
+          const res = await fetch(`/e-invoice/api/invoice/${id}`);
+          const data = await res.json();
+          if (data.success && data.invoice) {
+            const inv = data.invoice;
+            let rawData = {};
+            if (typeof inv.raw_payload === "object" && inv.raw_payload !== null) {
+              rawData = inv.raw_payload;
+            } else if (typeof inv.raw_payload === "string") {
+              try { rawData = JSON.parse(inv.raw_payload); } catch(e) { rawData = {}; }
+            }
+
+            // 🟢 Pass company_id, invoice_no, and has_seal clearly to index.html
+            const payload = {
+              ...rawData,
+              invoice_no: inv.invoice_no,
+              company_id: inv.company_id || rawData.company_id || rawData.selected_company?.id,
+              company_name: inv.company_name || rawData.company_name,
+              has_seal: inv.has_seal === true || rawData.has_seal === true
+            };
+
+            sessionStorage.setItem("activeEInvoiceData", JSON.stringify(payload));
+            window.open("index.html", "_blank");
+          } else {
+            alert("Failed to load invoice details");
+          }
+        } catch (e) {
+          alert("Server error connecting to invoice API");
         }
       }
 

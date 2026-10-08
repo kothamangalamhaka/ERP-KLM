@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <title>E-Invoice - فاتورة ضريبية</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<link
+    <script src="/node_xlsx_scripts/qrcode.min.js"></script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
@@ -141,7 +141,7 @@
         width: 33%;
       }
       .comp-en b {
-        font-family: 'Aptos', 'Plus Jakarta Sans', sans-serif;
+        font-family: "Aptos", "Plus Jakarta Sans", sans-serif;
         font-size: 18px;
         font-weight: 800;
         letter-spacing: 0.5px;
@@ -400,38 +400,74 @@
         direction: ltr;
       }
 
+      /* 🟢 Common table cell styling */
       .attach-table th,
       .attach-table td {
         border: 1.5px solid #0f172a;
-        padding: 8px 8px;
+        padding: 6px 5px;
+        white-space: nowrap; /* 🟢 Text orikkalum 2 line aayi break aavaruthu */
       }
 
       .attach-table th {
         background: #007bff;
         color: white;
         font-weight: 700;
-        font-size: 11px;
+        font-size: 11.5px;
+        white-space: nowrap;
       }
 
       .attach-table td.driver-cell {
         text-align: left;
         white-space: nowrap;
-        padding-left: 10px;
-        padding-right: 10px;
+        padding-left: 8px;
+        padding-right: 8px;
+        font-weight: 600;
       }
 
-      .attach-table .th-plate, .attach-table .td-plate {
-        width: 125px;
-        min-width: 120px;
+      .attach-table .th-plate,
+      .attach-table .td-plate {
         font-family: monospace;
         letter-spacing: 0.5px;
+        font-weight: 700;
+        white-space: nowrap;
       }
 
-      .attach-table .th-hour, .attach-table .td-hour {
-        width: 65px;
-        min-width: 60px;
-        padding-left: 4px;
-        padding-right: 4px;
+      /* 🟢 Inline Mode (Same Page): Krithyam clean width, Plate No pottilla */
+      .card-natural-wrapper.inline-mode .attach-table th,
+      .card-natural-wrapper.inline-mode .attach-table td {
+        padding: 6px 4px;
+        font-size: 11.5px;
+      }
+      .card-natural-wrapper.inline-mode .attach-table .th-plate,
+      .card-natural-wrapper.inline-mode .attach-table .td-plate {
+        min-width: 85px;
+        width: 90px;
+      }
+      .card-natural-wrapper.inline-mode .attach-table .th-hour,
+      .card-natural-wrapper.inline-mode .attach-table .td-hour {
+        min-width: 48px;
+        width: 50px;
+      }
+
+      /* 🟢 Separate Page Mode: Nalla spacious wide look */
+      .card-natural-wrapper.separate-mode .attach-table th,
+      .card-natural-wrapper.separate-mode .attach-table td {
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+      .card-natural-wrapper.separate-mode .attach-table td.driver-cell {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      .card-natural-wrapper.separate-mode .attach-table .th-plate,
+      .card-natural-wrapper.separate-mode .attach-table .td-plate {
+        min-width: 120px;
+        width: 125px;
+      }
+      .card-natural-wrapper.separate-mode .attach-table .th-hour,
+      .card-natural-wrapper.separate-mode .attach-table .td-hour {
+        min-width: 62px;
+        width: 68px;
       }
 
       .attach-table tfoot td {
@@ -605,7 +641,7 @@
       <!-- 7. Bottom Address Footer (Clean without extra pipe) -->
       <div class="invoice-footer">
         <span id="footerAddrContainer"></span>
-        <div id="footerEmail" style="margin-top: 2px;"></div>
+        <div id="footerEmail" style="margin-top: 2px"></div>
       </div>
 
       <!-- 🟢 Dynamic Card Placement Placeholder inside Invoice Sheet -->
@@ -701,8 +737,88 @@
           });
         }
 
-        // കമ്പനി തിരഞ്ഞെടുത്തിട്ടില്ലെങ്കിൽ NV നമ്പർ ലോഡ് ചെയ്യുന്നു
-        await fetchNextNumber(null);
+        // 🟢 Check if this is a View/Download from Dashboard with a previously selected company
+        const raw = sessionStorage.getItem("activeEInvoiceData");
+        let restoredCompanyId = null;
+        let prevInvoiceNo = null;
+
+        if (raw) {
+          try {
+            const passed = JSON.parse(raw);
+            restoredCompanyId =
+              passed.company_id || passed.selected_company?.id || null;
+            prevInvoiceNo = passed.invoice_no || null;
+          } catch (e) {}
+        }
+
+        if (
+          restoredCompanyId &&
+          companiesList.some((c) => String(c.id) === String(restoredCompanyId))
+        ) {
+          sel.value = String(restoredCompanyId);
+          // കമ്പനി ഡീറ്റെയിൽസ്, ലോഗോ, വാറ്റ്, അഡ്രസ്സ് എന്നിവ പൂർണ്ണമായി സ്ക്രീനിലേക്ക് റീസ്റ്റോർ ചെയ്യുന്നു
+          await applyCompanyDetailsToView(restoredCompanyId, prevInvoiceNo);
+        } else {
+          // പുതിയ ഇൻവോയ്സ് ആണെങ്കിൽ മാത്രം പുതിയ NV നമ്പർ ലോഡ് ചെയ്യുന്നു
+          await fetchNextNumber(null);
+        }
+      }
+
+      // 🟢 Helper to apply company details without overwriting the saved invoice number
+      async function applyCompanyDetailsToView(compId, existingInvNo) {
+        const comp = companiesList.find((c) => String(c.id) === String(compId));
+        if (!comp) return;
+
+        document.getElementById("headerCompEn").innerHTML =
+          `<b>${comp.company_name_en}</b><br>C.R. : ${comp.cr_number || "-"}<br>VAT No : ${comp.vat_number || "-"}`;
+        document.getElementById("headerCompAr").innerHTML =
+          `<b>${comp.company_name_ar}</b><br>س ت : ${comp.cr_number || "-"}<br>الرقم الضريبي : ${comp.vat_number || "-"}`;
+
+        if (comp.logo_url) {
+          document.getElementById("headerLogo").src = comp.logo_url;
+          document.getElementById("headerLogo").style.display = "block";
+          document.getElementById("watermarkLogo").src = comp.logo_url;
+          document.getElementById("watermarkLogo").style.display = "block";
+        }
+
+        document.getElementById("sellerNameDisplay").innerText =
+          comp.company_name_ar || comp.company_name_en;
+        document.getElementById("sellerVatDisplay").innerText =
+          comp.vat_number || "-";
+
+        const addrParts = [];
+        if (comp.address_line_ar && comp.address_line_ar.trim())
+          addrParts.push(comp.address_line_ar.trim());
+        if (comp.address_line_en && comp.address_line_en.trim())
+          addrParts.push(comp.address_line_en.trim());
+        document.getElementById("footerAddrContainer").innerText =
+          addrParts.join(" | ");
+        document.getElementById("footerEmail").innerText = comp.email
+          ? `E-mail: ${comp.email}`
+          : "";
+
+        // 🟢 Restore Seal & Signature images if it was engaged
+        if (isSealEngaged) {
+          if (comp.seal_url) {
+            document.getElementById("stampImage").src = comp.seal_url;
+            document.getElementById("stampImage").style.display = "block";
+          }
+          if (comp.signature_url) {
+            document.getElementById("signImage").src = comp.signature_url;
+            document.getElementById("signImage").style.display = "block";
+          }
+        } else {
+          document.getElementById("stampImage").style.display = "none";
+          document.getElementById("signImage").style.display = "none";
+        }
+
+        if (existingInvNo) {
+          document.getElementById("invNoDisplay").innerText = existingInvNo;
+        } else {
+          await fetchNextNumber(comp.id);
+        }
+
+        generateZatcaQrAuto();
       }
 
       async function fetchNextNumber(compId) {
@@ -729,16 +845,19 @@
 
         try {
           // 'ar-SA' ഒപ്പം '-nu-arab' നൽകി Eastern Arabic അക്കങ്ങൾ നിർബന്ധമാക്കുന്നു
-          const formatter = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-arab', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          });
+          const formatter = new Intl.DateTimeFormat(
+            "ar-SA-u-ca-islamic-umalqura-nu-arab",
+            {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            },
+          );
 
           const parts = formatter.formatToParts(now);
-          const hDay = parts.find(p => p.type === 'day')?.value;
-          const hMonth = parts.find(p => p.type === 'month')?.value;
-          const hYear = parts.find(p => p.type === 'year')?.value;
+          const hDay = parts.find((p) => p.type === "day")?.value;
+          const hMonth = parts.find((p) => p.type === "month")?.value;
+          const hYear = parts.find((p) => p.type === "year")?.value;
 
           // അറബിക് അക്കങ്ങളിൽ തിയതി കൃത്യമായി സെറ്റ് ചെയ്യുന്നു
           document.getElementById("dateTimeAr").innerText =
@@ -757,7 +876,11 @@
       function getArabicVehicleType(name) {
         if (!name) return "-";
         // Space, case, extra symbols normalize cheyyunnu
-        const clean = name.toLowerCase().replace(/[\-_]/g, " ").replace(/\s+/g, " ").trim();
+        const clean = name
+          .toLowerCase()
+          .replace(/[\-_]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
 
         const vehicleMap = {
           "water tanker": "وايت ماء",
@@ -776,17 +899,17 @@
           "dyna 5 t": "دينا 5 طن",
           "dyna truck 10t": "دينا 10 طن",
           "sewage tanker": "وايت صرف صحي",
-          "rigger": "فني ريجر",
-          "excavator": "حفار",
+          rigger: "فني ريجر",
+          excavator: "حفار",
           "excavator 550t": "حفار 550",
           "excavator 495t": "حفار 495",
           "fire truck": "سيارة إطفاء",
-          "telihandler": "تلي هاندلر (رافعة تلسكوبية)",
-          "telehandler": "تلي هاندلر (رافعة تلسكوبية)",
+          telihandler: "تلي هاندلر (رافعة تلسكوبية)",
+          telehandler: "تلي هاندلر (رافعة تلسكوبية)",
           "wheel loader": "شيول",
           "backhoe loader": "بوكلين حفر",
-          "roller": "رصاصة / هراس",
-          "boom truck": "بوم ترك (شاحنة رافعة)"
+          roller: "رصاصة / هراس",
+          "boom truck": "بوم ترك (شاحنة رافعة)",
         };
 
         return vehicleMap[clean] || name;
@@ -796,10 +919,15 @@
         const tbody = document.getElementById("invoiceItemsBody");
         tbody.innerHTML = "";
 
-        if (currentPayload && Array.isArray(currentPayload.rows) && currentPayload.rows.length > 0) {
+        if (
+          currentPayload &&
+          Array.isArray(currentPayload.rows) &&
+          currentPayload.rows.length > 0
+        ) {
           currentPayload.rows.forEach((r, idx) => {
             const rawVtype = r.vtype ? r.vtype.trim() : "-";
-            const displayVtype = currentLang === "ar" ? getArabicVehicleType(rawVtype) : rawVtype;
+            const displayVtype =
+              currentLang === "ar" ? getArabicVehicleType(rawVtype) : rawVtype;
             const nRate = r.nrate ? parseFloat(r.nrate).toFixed(2) : "0.00";
             const otRate = r.otrate ? parseFloat(r.otrate).toFixed(2) : "0.00";
             const rowAmount = r.rent ? parseFloat(r.rent).toFixed(2) : "0.00";
@@ -929,8 +1057,9 @@
         // Seller Party Box-ilum Arabic numbers nalkunnu
         document.getElementById("sellerNameDisplay").innerText =
           comp.company_name_ar || comp.company_name_en;
-        document.getElementById("sellerVatDisplay").innerText =
-          toArDigits(comp.vat_number);
+        document.getElementById("sellerVatDisplay").innerText = toArDigits(
+          comp.vat_number,
+        );
 
         const addrParts = [];
         if (comp.address_line_ar && comp.address_line_ar.trim()) {
@@ -939,7 +1068,8 @@
         if (comp.address_line_en && comp.address_line_en.trim()) {
           addrParts.push(comp.address_line_en.trim());
         }
-        document.getElementById("footerAddrContainer").innerText = addrParts.join(" | ");
+        document.getElementById("footerAddrContainer").innerText =
+          addrParts.join(" | ");
 
         document.getElementById("footerEmail").innerText = comp.email
           ? `E-mail: ${comp.email}`
@@ -995,7 +1125,7 @@
           tbody.innerHTML = "";
 
           // loadPassedBillingData()-il items rendering call maattuka:
-      renderInvoiceItemsTable();
+          renderInvoiceItemsTable();
 
           document.getElementById("subtotalDisplay").innerText = (
             data.grandRent || 0
@@ -1053,7 +1183,9 @@
           ).toFixed(2);
 
           // 🟢 Check if Driver names are long (> 18 chars) or row count > 2
-          const isDriverNameLong = (data.rows || []).some(r => (r.driver || "").trim().length > 18);
+          const isDriverNameLong = (data.rows || []).some(
+            (r) => (r.driver || "").trim().length > 18,
+          );
           const isRowLarge = (data.rows || []).length > 2;
           const shouldSeparate = isDriverNameLong || isRowLarge;
 
@@ -1066,19 +1198,29 @@
             cardEl.className = "card-natural-wrapper separate-mode";
             document.body.appendChild(cardEl);
             document.querySelector(".bottom-section").style.marginTop = "48px";
-            document.querySelector(".bottom-section").style.marginBottom = "0px";
+            document.querySelector(".bottom-section").style.marginBottom =
+              "0px";
           } else {
             // 🟢 Keep card inside Page 1 as a compact bottom section
             cardEl.className = "card-natural-wrapper inline-mode";
             inlineSlot.appendChild(cardEl);
             document.querySelector(".bottom-section").style.marginTop = "48px";
-            document.querySelector(".bottom-section").style.marginBottom = "0px";
+            document.querySelector(".bottom-section").style.marginBottom =
+              "0px";
           }
 
-          // If payload had seal active (e.g. from dashboard view)
+          // 🟢 Restore Saved Invoice Number if coming from Dashboard
+          if (data.invoice_no) {
+            document.getElementById("invNoDisplay").innerText = data.invoice_no;
+          }
+
+          // 🟢 Restore Saved Seal & Sign state
           if (data.has_seal) {
             isSealEngaged = true;
             document.getElementById("sealToggleBtn").classList.add("active");
+          } else {
+            isSealEngaged = false;
+            document.getElementById("sealToggleBtn").classList.remove("active");
           }
 
           generateZatcaQrAuto();
@@ -1192,17 +1334,33 @@
 
         if (!isSeparated) {
           // 🟢 SINGLE PAGE A4 (കാർഡ് ചെറുതായതിനാൽ ഒരൊറ്റ പേജിൽ ഒതുങ്ങുന്നു)
-          const canvas = await html2canvas(invoiceEl, { scale: 2.5, useCORS: true });
+          const canvas = await html2canvas(invoiceEl, {
+            scale: 2.5,
+            useCORS: true,
+          });
           const imgData = canvas.toDataURL("image/png");
           const pdf = new jsPDF("p", "pt", "a4");
-          pdf.addImage(imgData, "PNG", 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
+          pdf.addImage(
+            imgData,
+            "PNG",
+            0,
+            0,
+            pdf.internal.pageSize.getWidth(),
+            pdf.internal.pageSize.getHeight(),
+          );
           pdf.save(`${invNo}.pdf`);
         } else {
           // 🟢 2-PAGE HYBRID (Page 1 is Standard A4, Page 2 matches Exact Card Dimensions)
-          const canvas1 = await html2canvas(invoiceEl, { scale: 2.5, useCORS: true });
+          const canvas1 = await html2canvas(invoiceEl, {
+            scale: 2.5,
+            useCORS: true,
+          });
           const imgData1 = canvas1.toDataURL("image/png");
 
-          const canvas2 = await html2canvas(cardEl, { scale: 2.5, useCORS: true });
+          const canvas2 = await html2canvas(cardEl, {
+            scale: 2.5,
+            useCORS: true,
+          });
           const imgData2 = canvas2.toDataURL("image/png");
 
           // Page 1: Standard A4
@@ -1215,7 +1373,10 @@
           const cardPtWidth = (canvas2.width / 2.5) * 0.75;
           const cardPtHeight = (canvas2.height / 2.5) * 0.75;
 
-          pdf.addPage([cardPtWidth, cardPtHeight], cardPtWidth > cardPtHeight ? "l" : "p");
+          pdf.addPage(
+            [cardPtWidth, cardPtHeight],
+            cardPtWidth > cardPtHeight ? "l" : "p",
+          );
           pdf.addImage(imgData2, "PNG", 0, 0, cardPtWidth, cardPtHeight);
 
           pdf.save(`${invNo}.pdf`);
