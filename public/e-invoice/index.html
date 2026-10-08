@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>E-Invoice - فاتورة ضريبية</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        background: #334155;
+        font-family: 'Inter', 'Cairo', sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* Compact Modern Top Ribbon */
+      .top-ribbon {
+        width: 860px;
+        background: #0f172a;
+        color: white;
+        padding: 8px 14px;
+        border-radius: 8px;
+        margin-bottom: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-sizing: border-box;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      }
+      .ribbon-group { display: flex; align-items: center; gap: 6px; }
+      .ribbon-select {
+        padding: 6px 10px;
+        border-radius: 5px;
+        border: 1px solid #475569;
+        background: #1e293b;
+        color: white;
+        font-size: 12px;
+        outline: none;
+        cursor: pointer;
+        max-width: 220px;
+      }
+      .btn-ribbon {
+        padding: 6px 12px;
+        border-radius: 5px;
+        border: none;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+      .btn-pdf { background: #10b981; color: white; }
+      .btn-pdf:hover { background: #059669; }
+      .btn-seal { background: #8b5cf6; color: white; }
+      .btn-seal.active { background: #dc2626; }
+      .btn-lang { background: #0284c7; color: white; }
+      .btn-dash { background: #475569; color: white; text-decoration: none; }
+      .btn-dash:hover { background: #334155; }
+
+      /* A4 Printable Sheet */
+      .invoice-page {
+        width: 860px;
+        min-height: 1180px;
+        background: #ffffff;
+        position: relative;
+        padding: 35px 40px;
+        box-sizing: border-box;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      /* Watermark Logo */
+      .watermark-logo {
+        position: absolute;
+        top: 35%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 440px;
+        opacity: 0.08;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .content-wrapper { position: relative; z-index: 1; }
+
+      /* Top Header */
+      .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #0f172a;
+        padding-bottom: 12px;
+      }
+      .comp-en { text-align: left; direction: ltr; font-size: 13px; color: #1e3a8a; line-height: 1.4; width: 33%; }
+      .comp-ar { text-align: right; direction: rtl; font-family: 'Cairo', sans-serif; font-size: 14px; color: #1e3a8a; line-height: 1.4; width: 33%; }
+      .comp-logo { max-height: 80px; max-width: 140px; object-fit: contain; }
+
+      /* Invoice Date Bar */
+      .date-time-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .date-left-ar { direction: rtl; font-family: 'Cairo', sans-serif; }
+      .date-right-en { direction: ltr; }
+
+      /* Titles Container */
+      .title-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+      }
+      .inv-number-box {
+        background: #e2e8f0;
+        padding: 6px 16px;
+        font-weight: 800;
+        font-size: 14px;
+        border-radius: 4px;
+        letter-spacing: 1px;
+        font-family: 'Inter', monospace;
+      }
+      .inv-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: #0f172a;
+        text-decoration: underline;
+        text-underline-offset: 6px;
+        font-family: 'Cairo', sans-serif;
+      }
+      .inv-month-box {
+        background: #e2e8f0;
+        padding: 6px 18px;
+        font-weight: 700;
+        font-size: 13px;
+        border-radius: 4px;
+      }
+
+      /* Party Details Grid */
+      .party-details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-top: 15px;
+      }
+      .party-box {
+        border: 1.5px solid #0f172a;
+        background: #f8fafc;
+        padding: 8px 12px;
+        font-size: 13px;
+        line-height: 1.6;
+        border-radius: 4px;
+      }
+      .party-box-sender { text-align: right; direction: rtl; font-family: 'Cairo', sans-serif; }
+      .party-box-receiver { text-align: left; direction: ltr; }
+
+      /* LTR Items Table */
+      .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        text-align: center;
+        font-size: 12px;
+        direction: ltr;
+      }
+      .items-table th, .items-table td {
+        border: 1.5px solid #0f172a;
+        padding: 7px 5px;
+      }
+      .items-table th { background: #cbd5e1; font-weight: 800; color: #0f172a; }
+      .summary-title { font-weight: 700; text-align: center; background: #f1f5f9; }
+
+      /* Bottom Row: QR on Left, Stamp & Signature on Right */
+      .bottom-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-top: 25px;
+        direction: ltr;
+      }
+      .qr-wrapper {
+        border: 2px solid #0f172a;
+        padding: 5px;
+        background: white;
+        display: inline-block;
+        min-width: 105px;
+        min-height: 105px;
+      }
+      .seal-sign-group {
+        display: flex;
+        align-items: flex-end;
+        gap: 15px;
+      }
+      .stamp-img { max-height: 90px; object-fit: contain; }
+      .sign-img { max-height: 70px; object-fit: contain; }
+
+      .invoice-footer {
+        border-top: 2px solid #0f172a;
+        padding-top: 8px;
+        margin-top: 20px;
+        font-size: 11px;
+        text-align: center;
+        line-height: 1.5;
+        direction: ltr;
+      }
+
+      /* Attached Billing Card (Without Seal & Sign) */
+      .attached-billing-section {
+        margin-top: 40px;
+        border-top: 2px dashed #94a3b8;
+        padding-top: 30px;
+        direction: ltr;
+        page-break-before: always;
+      }
+      .attach-title {
+        text-align: center;
+        font-size: 15px;
+        font-weight: 700;
+        color: #1a4d80;
+        margin-bottom: 12px;
+      }
+      .attach-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: center;
+        font-size: 12px;
+      }
+      .attach-table th, .attach-table td {
+        border: 1px solid #0f172a;
+        padding: 6px 4px;
+      }
+      .attach-table th {
+        background: #007bff;
+        color: white;
+        font-weight: 700;
+        font-size: 11px;
+      }
+      .attach-table tfoot td {
+        font-weight: 700;
+        background: #f8fafc;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Compact Top Ribbon -->
+    <div class="top-ribbon">
+      <div class="ribbon-group">
+        <label style="font-size:12px; font-weight:600;">Company:</label>
+        <select id="companySelect" class="ribbon-select" onchange="onCompanySelectChange()">
+          <option value="">-- Choose Company --</option>
+        </select>
+        <button id="langToggleBtn" class="btn-ribbon btn-lang" onclick="toggleLanguage()">English</button>
+        <button id="sealToggleBtn" class="btn-ribbon btn-seal" onclick="toggleSealEngagement()">Seal & Sign</button>
+      </div>
+      <div class="ribbon-group">
+        <a href="dashboard.html" class="btn-ribbon btn-dash">Dashboard</a>
+        <button class="btn-ribbon btn-pdf" onclick="downloadAndSaveInvoice()">PDF ⬇️</button>
+      </div>
+    </div>
+
+    <!-- Printable Sheet -->
+    <div class="invoice-page" id="printableInvoice">
+      <img id="watermarkLogo" class="watermark-logo" src="" alt="" style="display:none;" />
+
+      <div class="content-wrapper">
+        <!-- 1. Top Header -->
+        <div class="invoice-header">
+          <div class="comp-en" id="headerCompEn"></div>
+          <img id="headerLogo" class="comp-logo" src="" alt="" style="display:none;" />
+          <div class="comp-ar" id="headerCompAr"></div>
+        </div>
+
+        <!-- 2. Bilingual Invoice Date Bar -->
+        <div class="date-time-bar">
+          <div class="date-left-ar" id="dateTimeAr">تاريخ الفاتورة: -</div>
+          <div class="date-right-en" id="dateTimeEn">Invoice Date: -</div>
+        </div>
+
+        <!-- 3. Titles -->
+        <div class="title-container">
+          <div class="inv-number-box" id="invNoDisplay">------</div>
+          <div class="inv-title">فـــاتـــورة ضــريـبـيــة</div>
+          <div class="inv-month-box" id="invMonthDisplay">Month -</div>
+        </div>
+
+        <!-- 4. Party Details Grid -->
+        <div class="party-details-grid">
+          <!-- Left: Receiver -->
+          <div class="party-box party-box-receiver" id="buyerBox">
+            <b style="font-size: 14px;" id="buyerNameDisplay">-</b><br />
+            <span style="font-weight: 600;" id="buyerVatDisplay">-</span>
+          </div>
+
+          <!-- Right: Seller -->
+          <div class="party-box party-box-sender" id="sellerBox">
+            <b style="font-size: 14px;" id="sellerNameDisplay">-</b><br />
+            <span style="font-weight: 600;" id="sellerVatDisplay">-</span>
+          </div>
+        </div>
+
+        <!-- 5. LTR Items Table -->
+        <table class="items-table" id="itemsTable">
+          <thead>
+            <tr id="tableHeaderRow">
+              <th style="width: 35px;">SN</th>
+              <th>Vehicle Type</th>
+              <th>Plate No</th>
+              <th>Normal Hr</th>
+              <th>Rate</th>
+              <th>Over Time</th>
+              <th>Rate</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody id="invoiceItemsBody"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="7" class="summary-title" id="lblSubtotal">Total Before VAT (الإجمالي قبل الضريبة)</td>
+              <td id="subtotalDisplay" style="font-weight:bold;">0.00</td>
+            </tr>
+            <tr>
+              <td colspan="7" class="summary-title" id="lblVat">VAT 15% (قيمة الضريبة المضافة)</td>
+              <td id="vatAmountDisplay" style="font-weight:bold;">0.00</td>
+            </tr>
+            <tr>
+              <td colspan="7" class="summary-title" id="lblGrandTotal">Grand Total (إجمالي المبلغ المطلوب)</td>
+              <td id="grandTotalDisplay" style="font-weight:800; font-size:14px;">0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <!-- 6. Bottom Row: Left QR Code | Right Seal & Signature together -->
+        <div class="bottom-section">
+          <!-- Left QR Code -->
+          <div class="qr-wrapper">
+            <div id="zatcaQrContainer"></div>
+          </div>
+
+          <!-- Right Seal & Signature -->
+          <div class="seal-sign-group">
+            <img id="stampImage" class="stamp-img" src="" alt="Seal" style="display:none;" />
+            <img id="signImage" class="sign-img" src="" alt="Signature" style="display:none;" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Bottom Address Footer -->
+      <div class="invoice-footer">
+        <span id="footerAddrAr"></span> &nbsp;|&nbsp;
+        <span id="footerAddrEn"></span><br />
+        <span id="footerEmail"></span>
+      </div>
+
+      <!-- 8. Attached Billing Card (Without Seal & Sign & No Header) -->
+      <div class="attached-billing-section" id="attachedBillingCard">
+        <div class="attach-title">Bill Summary for Each Month ملخص فاتورة الشهر</div>
+        
+        <table class="attach-table">
+          <thead>
+            <tr>
+              <th style="width: 30px;">#</th>
+              <th>Date</th>
+              <th>Vehicle Type</th>
+              <th>Driver</th>
+              <th>Plate No</th>
+              <th>N.Hr</th>
+              <th>OT Hr</th>
+              <th>Rent</th>
+              <th>VAT %</th>
+              <th>VAT Amt</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="attachTableBody"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" style="text-align: right; padding-right: 15px;">Grand Total:</td>
+              <td id="attachGrandNhr">0</td>
+              <td id="attachGrandOthr">0</td>
+              <td id="attachGrandRent">0.00</td>
+              <td>15%</td>
+              <td id="attachGrandVat">0.00</td>
+              <td id="attachGrandTotal">0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      let companiesList = [];
+      let currentPayload = null;
+      let isSealEngaged = false;
+      let currentLang = "en"; // 'en' or 'ar'
+
+      const tableTranslations = {
+        en: {
+          thSN: "SN",
+          thVtype: "Vehicle Type",
+          thPlate: "Plate No",
+          thNhr: "Normal Hr",
+          thNrate: "Rate",
+          thOthr: "Over Time",
+          thOtrate: "Rate",
+          thAmount: "Amount",
+          lblSubtotal: "Total Before VAT (الإجمالي قبل الضريبة)",
+          lblVat: "VAT 15% (قيمة الضريبة المضافة)",
+          lblGrandTotal: "Grand Total (إجمالي المبلغ المطلوب)",
+          buttonLabel: "English"
+        },
+        ar: {
+          thSN: "م",
+          thVtype: "نوع المعدة",
+          thPlate: "رقم اللوحة",
+          thNhr: "الساعات العادية",
+          thNrate: "القيمة",
+          thOthr: "الساعات الإضافية",
+          thOtrate: "قيمة الإضافي",
+          thAmount: "المبلغ المطلوب",
+          lblSubtotal: "الإجمالي قبل الضريبة",
+          lblVat: "قيمة الضريبة 15%",
+          lblGrandTotal: "إجمالي المبلغ المطلوب",
+          buttonLabel: "عربي"
+        }
+      };
+
+      async function initEInvoice() {
+        const res = await fetch("/e-invoice/api/companies");
+        const data = await res.json();
+        const sel = document.getElementById("companySelect");
+        sel.innerHTML = '<option value="">-- Choose Company --</option>';
+
+        if (data.success && data.companies.length > 0) {
+          companiesList = data.companies;
+          companiesList.forEach(c => {
+            sel.innerHTML += `<option value="${c.id}">${c.company_name_en} (${c.company_name_ar || ''})</option>`;
+          });
+        }
+
+        // കമ്പനി തിരഞ്ഞെടുത്തിട്ടില്ലെങ്കിൽ NV നമ്പർ ലോഡ് ചെയ്യുന്നു
+        await fetchNextNumber(null);
+      }
+
+      async function fetchNextNumber(compId) {
+        const url = compId ? `/e-invoice/api/next-invoice-no?company_id=${compId}` : `/e-invoice/api/next-invoice-no`;
+        const numRes = await fetch(url);
+        const numData = await numRes.json();
+        if (numData.success) {
+          document.getElementById("invNoDisplay").innerText = numData.invoice_no;
+        }
+      }
+
+      function setupDateTime() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+
+        document.getElementById("dateTimeEn").innerText = `Invoice Date: ${y}-${m}-${d}`;
+        document.getElementById("dateTimeAr").innerText = `تاريخ الفاتورة: ${d} / ${m} / ${y}م`;
+      }
+
+      // Table-only language switcher
+      function toggleLanguage() {
+        currentLang = currentLang === "en" ? "ar" : "en";
+        const t = tableTranslations[currentLang];
+
+        document.getElementById("langToggleBtn").innerText = t.buttonLabel;
+
+        const headerRow = document.getElementById("tableHeaderRow");
+        headerRow.innerHTML = `
+          <th style="width: 35px;">${t.thSN}</th>
+          <th>${t.thVtype}</th>
+          <th>${t.thPlate}</th>
+          <th>${t.thNhr}</th>
+          <th>${t.thNrate}</th>
+          <th>${t.thOthr}</th>
+          <th>${t.thOtrate}</th>
+          <th>${t.thAmount}</th>
+        `;
+
+        document.getElementById("lblSubtotal").innerText = t.lblSubtotal;
+        document.getElementById("lblVat").innerText = t.lblVat;
+        document.getElementById("lblGrandTotal").innerText = t.lblGrandTotal;
+      }
+
+      function toggleSealEngagement() {
+        const selId = document.getElementById("companySelect").value;
+        if (!selId) return alert("Please select an Issuer Company first!");
+
+        const comp = companiesList.find(c => String(c.id) === String(selId));
+        if (!comp || (!comp.seal_url && !comp.signature_url)) {
+          return alert("This company has no Seal or Signature uploaded in Settings!");
+        }
+
+        if (!isSealEngaged) {
+          const sure = confirm("⚠️ Are you sure you want to engage Seal & Sign on this invoice?");
+          if (!sure) return;
+
+          isSealEngaged = true;
+          document.getElementById("sealToggleBtn").classList.add("active");
+          if (comp.seal_url) {
+            document.getElementById("stampImage").src = comp.seal_url;
+            document.getElementById("stampImage").style.display = "block";
+          }
+          if (comp.signature_url) {
+            document.getElementById("signImage").src = comp.signature_url;
+            document.getElementById("signImage").style.display = "block";
+          }
+        } else {
+          isSealEngaged = false;
+          document.getElementById("sealToggleBtn").classList.remove("active");
+          document.getElementById("stampImage").style.display = "none";
+          document.getElementById("signImage").style.display = "none";
+        }
+      }
+
+      async function onCompanySelectChange() {
+        const selId = document.getElementById("companySelect").value;
+        if (!selId) {
+          document.getElementById("headerCompEn").innerHTML = "";
+          document.getElementById("headerCompAr").innerHTML = "";
+          document.getElementById("headerLogo").style.display = "none";
+          document.getElementById("watermarkLogo").style.display = "none";
+          document.getElementById("sellerNameDisplay").innerText = "-";
+          document.getElementById("sellerVatDisplay").innerText = "-";
+          document.getElementById("footerAddrAr").innerText = "";
+          document.getElementById("footerAddrEn").innerText = "";
+          document.getElementById("footerEmail").innerText = "";
+          document.getElementById("stampImage").style.display = "none";
+          document.getElementById("signImage").style.display = "none";
+          isSealEngaged = false;
+          document.getElementById("sealToggleBtn").classList.remove("active");
+          await fetchNextNumber(null); // NV നമ്പർ സെറ്റ് ചെയ്യുന്നു
+          generateZatcaQrAuto();
+          return;
+        }
+
+        const comp = companiesList.find(c => String(c.id) === String(selId));
+        if (!comp) return;
+
+        document.getElementById("headerCompEn").innerHTML = `<b>${comp.company_name_en}</b><br>For contracting<br>C.R. : ${comp.cr_number || '-'}`;
+        document.getElementById("headerCompAr").innerHTML = `<b>${comp.company_name_ar}</b><br>للمقاولات العامة<br>س ت : ${comp.cr_number || '-'}`;
+
+        if (comp.logo_url) {
+          document.getElementById("headerLogo").src = comp.logo_url;
+          document.getElementById("headerLogo").style.display = "block";
+          document.getElementById("watermarkLogo").src = comp.logo_url;
+          document.getElementById("watermarkLogo").style.display = "block";
+        }
+
+        document.getElementById("sellerNameDisplay").innerText = comp.company_name_ar || comp.company_name_en;
+        document.getElementById("sellerVatDisplay").innerText = comp.vat_number || "-";
+
+        document.getElementById("footerAddrAr").innerText = comp.address_line_ar || "";
+        document.getElementById("footerAddrEn").innerText = comp.address_line_en || "";
+        document.getElementById("footerEmail").innerText = comp.email ? `E-mail: ${comp.email}` : "";
+
+        // Reset seal on company change
+        isSealEngaged = false;
+        document.getElementById("sealToggleBtn").classList.remove("active");
+        document.getElementById("stampImage").style.display = "none";
+        document.getElementById("signImage").style.display = "none";
+
+        const numRes = await fetch(`/e-invoice/api/next-invoice-no?company_id=${comp.id}`);
+        const numData = await numRes.json();
+        if (numData.success) {
+          document.getElementById("invNoDisplay").innerText = numData.invoice_no;
+        }
+
+        generateZatcaQrAuto();
+      }
+
+      function loadPassedBillingData() {
+        const raw = sessionStorage.getItem("activeEInvoiceData");
+        if (!raw) return;
+
+        try {
+          const data = JSON.parse(raw);
+          currentPayload = data;
+
+          if (data.billingMonth) {
+            document.getElementById("invMonthDisplay").innerText = data.billingMonth;
+          }
+
+          // 🟢 പ്രയോറിറ്റി: Arabic Name ഉണ്ടെങ്കിൽ അത് -> ഇല്ലെങ്കിൽ English Company Display Name -> രണ്ടും ഇല്ലെങ്കിൽ Blank
+          let buyerName = "";
+          if (data.vendorArabicName && data.vendorArabicName.trim() !== "") {
+            buyerName = data.vendorArabicName.trim();
+          } else if (data.vendorDisplayName && data.vendorDisplayName.trim() !== "") {
+            buyerName = data.vendorDisplayName.trim();
+          }
+
+          document.getElementById("buyerNameDisplay").innerText = buyerName;
+          document.getElementById("buyerVatDisplay").innerText = data.vendorVatNo ? data.vendorVatNo.trim() : "";
+
+          const tbody = document.getElementById("invoiceItemsBody");
+          tbody.innerHTML = "";
+
+          if (Array.isArray(data.rows) && data.rows.length > 0) {
+            data.rows.forEach((r, idx) => {
+              const vtypeOnly = r.vtype ? r.vtype.trim() : "-";
+              const nRate = r.nrate ? parseFloat(r.nrate).toFixed(2) : "0.00";
+              const otRate = r.otrate ? parseFloat(r.otrate).toFixed(2) : "0.00";
+              const rowAmount = r.rent ? parseFloat(r.rent).toFixed(2) : "0.00";
+
+              tbody.innerHTML += `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td>${vtypeOnly}</td>
+                  <td style="font-weight:700; font-family:monospace;">${r.plate || "-"}</td>
+                  <td>${r.nhr || 0}</td>
+                  <td>${nRate}</td>
+                  <td>${r.othr || 0}</td>
+                  <td>${otRate}</td>
+                  <td style="font-weight:600;">${rowAmount}</td>
+                </tr>
+              `;
+            });
+          }
+
+          document.getElementById("subtotalDisplay").innerText = (data.grandRent || 0).toFixed(2);
+          document.getElementById("vatAmountDisplay").innerText = (data.grandVat || 0).toFixed(2);
+          document.getElementById("grandTotalDisplay").innerText = (data.grandTotal || 0).toFixed(2);
+
+          const attachTbody = document.getElementById("attachTableBody");
+          attachTbody.innerHTML = "";
+
+          let totNhr = 0, totOthr = 0;
+          if (Array.isArray(data.rows) && data.rows.length > 0) {
+            data.rows.forEach((r, idx) => {
+              totNhr += (parseFloat(r.nhr) || 0);
+              totOthr += (parseFloat(r.othr) || 0);
+              const rowVat = r.vat ? parseFloat(r.vat).toFixed(2) : "0.00";
+              const rowRent = r.rent ? parseFloat(r.rent).toFixed(2) : "0.00";
+              const rowTotal = r.total ? parseFloat(r.total).toFixed(2) : "0.00";
+
+              attachTbody.innerHTML += `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td>${data.billingMonth || "-"}</td>
+                  <td>${r.vtype || "-"}</td>
+                  <td>${r.driver || "-"}</td>
+                  <td style="font-weight:700; font-family:monospace;">${r.plate || "-"}</td>
+                  <td>${r.nhr || 0}</td>
+                  <td>${r.othr || 0}</td>
+                  <td>${rowRent}</td>
+                  <td>15%</td>
+                  <td>${rowVat}</td>
+                  <td style="font-weight:600;">${rowTotal}</td>
+                </tr>
+              `;
+            });
+          }
+
+          document.getElementById("attachGrandNhr").innerText = totNhr;
+          document.getElementById("attachGrandOthr").innerText = totOthr;
+          document.getElementById("attachGrandRent").innerText = (data.grandRent || 0).toFixed(2);
+          document.getElementById("attachGrandVat").innerText = (data.grandVat || 0).toFixed(2);
+          document.getElementById("attachGrandTotal").innerText = (data.grandTotal || 0).toFixed(2);
+
+          // If payload had seal active (e.g. from dashboard view)
+          if (data.has_seal) {
+            isSealEngaged = true;
+            document.getElementById("sealToggleBtn").classList.add("active");
+          }
+
+          generateZatcaQrAuto();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      // Automatic Reliable ZATCA Phase 1 TLV QR Generator
+      async function generateZatcaQrAuto() {
+        const qrContainer = document.getElementById("zatcaQrContainer");
+        qrContainer.innerHTML = "";
+
+        let sellerName = document.getElementById("sellerNameDisplay")?.innerText || "";
+        let vatNo = document.getElementById("sellerVatDisplay")?.innerText || "";
+
+        if (!sellerName || sellerName === "-") {
+          sellerName = currentPayload?.companyName || "Company";
+        }
+        if (!vatNo || vatNo === "-") {
+          vatNo = currentPayload?.vendorVatNo || "300000000000003";
+        }
+
+        const total = document.getElementById("grandTotalDisplay")?.innerText || "0.00";
+        const vatTotal = document.getElementById("vatAmountDisplay")?.innerText || "0.00";
+        const timestamp = new Date().toISOString();
+
+        try {
+          const res = await fetch("/e-invoice/api/generate-zatca-qr", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              seller_name: sellerName,
+              vat_number: vatNo,
+              timestamp: timestamp,
+              total_with_vat: total,
+              vat_total: vatTotal
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.base64) {
+            new QRCode(qrContainer, {
+              text: data.base64,
+              width: 105,
+              height: 105,
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          }
+        } catch (e) {
+          console.error("QR Generation error", e);
+        }
+      }
+
+      async function downloadAndSaveInvoice() {
+        const invNo = document.getElementById("invNoDisplay").innerText;
+        if (!invNo || invNo === "------") {
+          return alert("Please select an Issuer Company before downloading!");
+        }
+
+        const selId = document.getElementById("companySelect").value;
+        const comp = companiesList.find(c => String(c.id) === String(selId));
+
+        // 1. Save to Database First
+        const body = {
+          invoice_no: invNo,
+          company_id: selId,
+          company_name: comp ? comp.company_name_en : "",
+          vendor_name: document.getElementById("buyerNameDisplay").innerText,
+          billing_month: document.getElementById("invMonthDisplay").innerText,
+          invoice_time: new Date().toLocaleTimeString(),
+          subtotal: parseFloat(document.getElementById("subtotalDisplay").innerText) || 0,
+          vat_amount: parseFloat(document.getElementById("vatAmountDisplay").innerText) || 0,
+          grand_total: parseFloat(document.getElementById("grandTotalDisplay").innerText) || 0,
+          has_seal: isSealEngaged,
+          raw_payload: {
+            ...currentPayload,
+            has_seal: isSealEngaged,
+            company_id: selId,
+            selected_company: comp,
+            invoice_no: invNo
+          },
+        };
+
+        try {
+          await fetch("/e-invoice/api/save-invoice-record", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+        } catch (err) {
+          console.error("Auto-save failed", err);
+        }
+
+        // 2. Generate and Download PDF
+        const el = document.getElementById("printableInvoice");
+        const canvas = await html2canvas(el, { scale: 2.5, useCORS: true });
+        const imgData = canvas.toDataURL("image/png");
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF("p", "pt", "a4");
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
+        pdf.save(`${invNo}.pdf`);
+      }
+
+      setupDateTime();
+      loadPassedBillingData();
+      initEInvoice();
+    </script>
+  </body>
+</html>

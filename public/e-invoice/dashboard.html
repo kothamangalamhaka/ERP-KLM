@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>E-Invoice Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body { font-family: 'Inter', sans-serif; background: #f8fafc; margin: 0; padding: 25px; color: #1e293b; }
+      .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+      .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+      h2 { margin: 0; color: #0f172a; font-size: 20px; }
+      .btn { padding: 8px 16px; border-radius: 5px; font-weight: 600; cursor: pointer; border: none; font-size: 13px; text-decoration: none; }
+      .btn-primary { background: #2563eb; color: white; }
+      .btn-outline { background: transparent; border: 1px solid #cbd5e1; color: #475569; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 15px; }
+      th, td { border: 1px solid #e2e8f0; padding: 10px 12px; text-align: left; }
+      th { background: #1e293b; color: white; font-weight: 600; font-size: 12px; }
+      tr:hover { background: #f1f5f9; }
+      .inv-tag { font-family: monospace; font-weight: 700; color: #2563eb; }
+      .btn-action { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
+      .btn-view { background: #0284c7; color: white; }
+      .btn-dl { background: #10b981; color: white; }
+    </style>
+  </head>
+  <body>
+    <!-- 🟢 Security Lock Overlay -->
+    <div id="securityOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#0f172a; z-index:99999; display:flex; align-items:center; justify-content:center;">
+      <div style="background:white; padding:30px; border-radius:10px; width:340px; text-align:center; box-shadow:0 15px 30px rgba(0,0,0,0.3);">
+        <div style="font-size:42px; margin-bottom:10px;">🔒</div>
+        <h3 style="margin:0 0 10px 0; color:#1e293b;">Security Verification</h3>
+        <p style="font-size:12px; color:#64748b; margin-bottom:18px;">Enter the VAT Tracker Security Code to access this dashboard.</p>
+        <input type="password" id="secCodeInput" placeholder="Enter Security Code" style="width:100%; box-sizing:border-box; padding:10px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:14px; text-align:center; outline:none; margin-bottom:12px;" onkeydown="if(event.key==='Enter') verifyDashboardAccess();" />
+        <div id="secErrorMsg" style="color:#ef4444; font-size:12px; margin-bottom:10px; display:none;"></div>
+        <button class="btn btn-primary" style="width:100%; padding:10px; font-size:13px;" onclick="verifyDashboardAccess()">Unlock Dashboard 🔓</button>
+      </div>
+    </div>
+
+    <div class="container" id="mainContent" style="display:none;">
+      <div class="header-bar">
+        <h2>🧾 E-Invoices Dashboard</h2>
+        <div style="display: flex; gap: 10px;">
+          <a href="../Billing/index.html" class="btn btn-primary">Admin</a>
+          <a href="../Billing/site_co/index.html" class="btn btn-primary">Generate Invoice</a>
+          <a href="companydata.html" class="btn btn-outline">⚙️ Company Data</a>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Invoice No</th>
+            <th>Company Name</th>
+            <th>Vendor Name</th>
+            <th>Month</th>
+            <th>Date</th>
+            <th>Grand Total</th>
+            <th style="width: 140px; text-align: center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="invoicesListBody">
+          <tr><td colspan="7" style="text-align: center;">Loading dashboard data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      async function loadDashboardInvoices() {
+        const res = await fetch("/e-invoice/api/dashboard-invoices");
+        const data = await res.json();
+        const tbody = document.getElementById("invoicesListBody");
+        tbody.innerHTML = "";
+
+        if (data.success && data.invoices.length > 0) {
+          data.invoices.forEach(inv => {
+            tbody.innerHTML += `
+              <tr>
+                <td><span class="inv-tag">${inv.invoice_no}</span></td>
+                <td><b>${inv.company_name || '-'}</b></td>
+                <td>${inv.vendor_name || '-'}</td>
+                <td>${inv.billing_month || '-'}</td>
+                <td>${inv.invoice_date || '-'}</td>
+                <td style="font-weight:700;">${parseFloat(inv.grand_total || 0).toFixed(2)}</td>
+                <td style="text-align: center; display: flex; gap: 6px; justify-content: center;">
+                  <button class="btn-action btn-view" onclick="viewInvoice(${inv.id})">👁️ View</button>
+                  <button class="btn-action btn-dl" onclick="downloadInvoiceDirect(${inv.id})">⬇️ Download</button>
+                </td>
+              </tr>
+            `;
+          });
+        } else {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">No saved invoices found. Generate one and click "Save to DB".</td></tr>';
+        }
+      }
+
+      async function viewInvoice(id) {
+        const res = await fetch(`/e-invoice/api/invoice/${id}`);
+        const data = await res.json();
+        if (data.success && data.invoice) {
+          const payload = data.invoice.raw_payload || {};
+          payload.has_seal = payload.has_seal || false;
+          payload.invoice_no = data.invoice.invoice_no;
+          payload.saved_company_id = data.invoice.company_id;
+          sessionStorage.setItem("activeEInvoiceData", JSON.stringify(payload));
+          window.open("index.html", "_blank");
+        }
+      }
+
+      async function downloadInvoiceDirect(id) {
+        await viewInvoice(id);
+      }
+
+      async function verifyDashboardAccess() {
+        const inputEl = document.getElementById("secCodeInput");
+        const code = inputEl ? inputEl.value.trim() : "";
+        const errEl = document.getElementById("secErrorMsg");
+
+        if (!code) {
+          errEl.innerText = "Please enter the security code.";
+          errEl.style.display = "block";
+          return;
+        }
+
+        try {
+          const res = await fetch("/e-invoice/api/verify-security", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: code }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            sessionStorage.setItem("vat_tracker_auth", "true");
+            document.getElementById("securityOverlay").style.display = "none";
+            document.getElementById("mainContent").style.display = "block";
+            loadDashboardInvoices();
+          } else {
+            errEl.innerText = "Invalid Security Code. Access Denied!";
+            errEl.style.display = "block";
+            if (inputEl) inputEl.value = "";
+          }
+        } catch (e) {
+          errEl.innerText = "Server verification failed.";
+          errEl.style.display = "block";
+        }
+      }
+
+      // Check if already authenticated in this session
+      if (sessionStorage.getItem("vat_tracker_auth") === "true") {
+        document.getElementById("securityOverlay").style.display = "none";
+        document.getElementById("mainContent").style.display = "block";
+        loadDashboardInvoices();
+      } else {
+        document.getElementById("securityOverlay").style.display = "flex";
+        setTimeout(() => document.getElementById("secCodeInput")?.focus(), 200);
+      }
+    </script>
+  </body>
+</html>

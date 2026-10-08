@@ -975,6 +975,7 @@ function createBillCard(group, id) {
                 <button class="icon-btn" title="Adjustments" style="background:#6c757d;" onclick="toggleCardAdjustments('${id}')"><i class="material-icons">settings</i></button>
             </div>
             <div style="display:flex; gap:10px;">
+                <button class="icon-btn" title="Open E-Invoice" style="background:#059669;" onclick="openEInvoiceForCard('${id}')"><i class="material-icons">receipt</i></button>
                 <button class="icon-btn" title="Download Image" style="background:#007bff;" onclick="exportSingleImage('${id}')"><i class="material-icons">download</i></button>
 <button class="icon-btn" title="Copy High Quality Image" style="background:#17a2b8;" onclick="copyHighQualityCard('${id}')"><i class="material-icons">content_copy</i></button>
                 <button class="icon-btn" title="Share WhatsApp" style="background:#25D366;" onclick="shareSingleWhatsApp('${id}')"><i class="material-icons">chat</i></button>
@@ -3166,3 +3167,88 @@ document.addEventListener("wheel", function (e) {
     e.preventDefault();
   }
 }, { passive: false });
+
+function openEInvoiceForCard(cardId) {
+  const card = document.getElementById(`billCard_${cardId}`);
+  if (!card) return showToast("Card not found!");
+
+  const textEl = document.getElementById("selectedMonthText");
+  const billingMonth = (textEl.dataset.fullMonth || textEl.innerText).trim();
+
+  const ownerInput = card.querySelector(".owner-input");
+  const ownerName = ownerInput ? ownerInput.value.trim() : (card.dataset.owner || "");
+  const companyName = card.dataset.company || "Haka";
+
+  // Timesheet DB masterData-il ninnum owner details (VAT No, Arabic Name, Company Name) fetch cheyyunnu
+  let matchedOwnerInfo = null;
+  card.querySelectorAll(".tableBody tr").forEach((tr) => {
+    if (matchedOwnerInfo) return;
+    const plate = tr.querySelector(".plate") ? tr.querySelector(".plate").value.trim().toUpperCase() : "";
+    if (plate) {
+      const match = masterData.find((m) => {
+        const p1 = (m.plate_number || m.plate || "").toUpperCase();
+        const p2 = (m.master_plate || "").toUpperCase();
+        return p1 === plate || p2 === plate || (Array.isArray(m.related_plates) && m.related_plates.map(x=>x.toUpperCase()).includes(plate));
+      });
+      if (match) matchedOwnerInfo = match;
+    }
+  });
+
+  const vendorArabicName = matchedOwnerInfo?.company_arabic_name ? matchedOwnerInfo.company_arabic_name.trim() : "";
+  const vendorDisplayName = matchedOwnerInfo?.company_display_name ? matchedOwnerInfo.company_display_name.trim() : "";
+  const vendorVatNo = matchedOwnerInfo?.vat_no ? matchedOwnerInfo.vat_no.trim() : "";
+
+  const rows = [];
+  card.querySelectorAll(".tableBody tr").forEach((tr) => {
+    const plate = tr.querySelector(".plate") ? tr.querySelector(".plate").value.trim() : "";
+    const vtype = tr.querySelector(".vtype") ? tr.querySelector(".vtype").value.trim() : "";
+    const driver = tr.querySelector(".driver") ? tr.querySelector(".driver").value.trim() : "";
+    const site = tr.querySelector(".site") ? tr.querySelector(".site").value.trim() : "";
+    const nhr = parseFloat(tr.querySelector(".nhr") ? tr.querySelector(".nhr").value : 0) || 0;
+    const nrate = parseFloat(tr.querySelector(".nrate") ? tr.querySelector(".nrate").value : 0) || 0;
+    const othr = parseFloat(tr.querySelector(".othr") ? tr.querySelector(".othr").value : 0) || 0;
+    const otrate = parseFloat(tr.querySelector(".otrate") ? tr.querySelector(".otrate").value : 0) || 0;
+    const rent = parseFloat(tr.querySelector(".rent") ? tr.querySelector(".rent").value : 0) || 0;
+    const vatVal = parseFloat(tr.querySelector(".vat") ? tr.querySelector(".vat").innerText : 0) || 0;
+    const totalVal = parseFloat(tr.querySelector(".total") ? tr.querySelector(".total").innerText : 0) || (rent + vatVal);
+
+    if (plate || rent > 0 || nhr > 0) {
+      rows.push({
+        plate,
+        vtype,
+        driver,
+        site,
+        nhr,
+        nrate,
+        othr,
+        otrate,
+        rent,
+        vat: vatVal,
+        total: totalVal
+      });
+    }
+  });
+
+  const grandRent = parseFloat(card.querySelector(".grandRent") ? card.querySelector(".grandRent").innerText : 0) || 0;
+  const grandVat = parseFloat(card.querySelector(".grandVat") ? card.querySelector(".grandVat").innerText : 0) || 0;
+  const grandTotal = parseFloat(card.querySelector(".grandTotal") ? card.querySelector(".grandTotal").innerText : 0) || (grandRent + grandVat);
+
+  const compConfig = companyData[companyName] || companyData["Haka"];
+
+  const payload = {
+    billingMonth,
+    ownerName,
+    vendorDisplayName,
+    vendorArabicName,
+    vendorVatNo,
+    companyName,
+    companyHeader: compConfig.header || "",
+    rows,
+    grandRent,
+    grandVat,
+    grandTotal
+  };
+
+  sessionStorage.setItem("activeEInvoiceData", JSON.stringify(payload));
+  window.open("/e-invoice/index.html", "_blank");
+}

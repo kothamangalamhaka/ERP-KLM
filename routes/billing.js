@@ -117,7 +117,7 @@ router.get("/vehicles", async (req, res) => {
       "SELECT plate_no, site_name, rate, work_start_date, work_end_date FROM vehicle_rate_log",
     );
     const ownerLogs = await pool.query(
-      "SELECT plate_no, owner_name, owner_mobile, vat, work_start_date, work_end_date FROM vehicle_owner_log",
+      "SELECT plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, company_arabic_name, work_start_date, work_end_date FROM vehicle_owner_log",
     );
     const plateLogs = await pool.query(
       "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
@@ -277,6 +277,9 @@ router.get("/vehicles", async (req, res) => {
           if (activeOwnerLog.owner_name) correctOwner = activeOwnerLog.owner_name.trim();
           if (activeOwnerLog.owner_mobile) correctOwnerMobile = activeOwnerLog.owner_mobile.trim();
           if (activeOwnerLog.vat) correctVat = String(activeOwnerLog.vat).trim();
+          tsItem.company_display_name = activeOwnerLog.company_display_name || tsItem.company_display_name || "";
+          tsItem.company_arabic_name = activeOwnerLog.company_arabic_name || tsItem.company_arabic_name || "";
+          tsItem.vat_no = activeOwnerLog.vat_no || tsItem.vat_no || "";
         }
 
         // --- SITE LOGIC ---
@@ -385,6 +388,9 @@ router.get("/vehicles", async (req, res) => {
           otrate: (pRate / 260) * 0.7,
           owner: pOwner,
           owner_mobile: pOwnerMobile,
+          company_display_name: pItem.company_display_name || pItem.company_display_name_ || "",
+          company_arabic_name: pItem.company_arabic_name || "",
+          vat_no: pItem.vat_no || "",
           site: pSite,
           driver_name: finalDriver, // 🟢 ഡ്രൈവർ പേര് ഉറപ്പാക്കുന്നു
           vat_bill: isVatBill,

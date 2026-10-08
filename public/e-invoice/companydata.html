@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>E-Invoice Company Settings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body { font-family: 'Inter', sans-serif; background: #f8fafc; margin: 0; padding: 25px; color: #1e293b; }
+      .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+      h2 { margin-top: 0; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+      .form-group { display: flex; flex-direction: column; gap: 5px; }
+      .form-group.full { grid-column: 1 / -1; }
+      label { font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; }
+      input, textarea { padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 13px; outline: none; }
+      input:focus, textarea:focus { border-color: #2563eb; }
+      .btn { padding: 9px 18px; border-radius: 5px; border: none; font-weight: 600; cursor: pointer; font-size: 13px; }
+      .btn-primary { background: #2563eb; color: white; }
+      .btn-danger { background: #dc2626; color: white; }
+      .btn-secondary { background: #64748b; color: white; }
+      
+      /* 🟢 Borderless Upload Buttons in 1 Line */
+      .upload-row-container {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 15px;
+        margin-top: 5px;
+      }
+      .custom-upload-btn {
+        background: #f1f5f9;
+        color: #1e293b;
+        padding: 10px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        font-weight: 600;
+        font-size: 12px;
+        border: none;
+        outline: none;
+        transition: all 0.2s ease;
+      }
+      .custom-upload-btn:hover {
+        background: #e2e8f0;
+        color: #2563eb;
+      }
+      .upload-file-input {
+        display: none;
+      }
+      .file-status-text {
+        font-size: 11px;
+        font-weight: normal;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+      table { width: 100%; border-collapse: collapse; margin-top: 25px; font-size: 13px; }
+      th, td { border: 1px solid #e2e8f0; padding: 10px 12px; text-align: left; }
+      th { background: #1e293b; color: white; font-weight: 600; font-size: 12px; }
+      tr:hover { background: #f1f5f9; }
+      .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #e0f2fe; color: #0284c7; }
+    </style>
+  </head>
+  <body>
+    <!-- 🟢 Security Lock Overlay -->
+    <div id="securityOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#0f172a; z-index:99999; display:flex; align-items:center; justify-content:center;">
+      <div style="background:white; padding:30px; border-radius:10px; width:340px; text-align:center; box-shadow:0 15px 30px rgba(0,0,0,0.3);">
+        <div style="font-size:42px; margin-bottom:10px;">🔒</div>
+        <h3 style="margin:0 0 10px 0; color:#1e293b;">Security Verification</h3>
+        <p style="font-size:12px; color:#64748b; margin-bottom:18px;">Enter the VAT Tracker Security Code to manage companies.</p>
+        <input type="password" id="secCodeInput" placeholder="Enter Security Code" style="width:100%; box-sizing:border-box; padding:10px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:14px; text-align:center; outline:none; margin-bottom:12px;" onkeydown="if(event.key==='Enter') verifyCompanyAccess();" />
+        <div id="secErrorMsg" style="color:#ef4444; font-size:12px; margin-bottom:10px; display:none;"></div>
+        <button class="btn btn-primary" style="width:100%; padding:10px; font-size:13px;" onclick="verifyCompanyAccess()">Unlock Settings 🔓</button>
+      </div>
+    </div>
+
+    <div class="container" id="mainContent" style="display:none;">
+      <h2>
+        <span>🏢 Manage E-Invoice Companies</span>
+        <button class="btn btn-secondary" onclick="clearForm()">+ New Company</button>
+      </h2>
+
+      <input type="hidden" id="companyId" />
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Company Name (English)</label>
+          <input type="text" id="compEn" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Company Name (Arabic) / اسم المؤسسة بالعربي</label>
+          <input type="text" id="compAr" dir="rtl" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Short Code (e.g. HAK, ALJ, MAS)</label>
+          <input type="text" id="compShortCode" maxlength="10" placeholder="" style="text-transform:uppercase; font-weight:bold;" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>C.R. Number / س ت</label>
+          <input type="text" id="compCr" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>VAT Number / الرقم الضريبي</label>
+          <input type="text" id="compVat" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Phone / تلفاكس</label>
+          <input type="text" id="compPhone" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="compEmail" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Address (English)</label>
+          <input type="text" id="addrEn" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Address (Arabic) / العنوان بالعربي</label>
+          <input type="text" id="addrAr" dir="rtl" autocomplete="off" />
+        </div>
+        <div class="upload-row-container">
+          <div class="form-group">
+            <label>Logo</label>
+            <label for="logoFile" class="custom-upload-btn">
+              <span>🖼️ Upload Logo</span>
+              <span id="curLogoDisplay" class="file-status-text">No file chosen</span>
+            </label>
+            <input type="file" id="logoFile" class="upload-file-input" accept="image/*" onchange="updateFileLabel('logoFile', 'curLogoDisplay')" />
+          </div>
+
+          <div class="form-group">
+            <label>Seal</label>
+            <label for="sealFile" class="custom-upload-btn">
+              <span>💮 Upload Seal</span>
+              <span id="curSealDisplay" class="file-status-text">No file chosen</span>
+            </label>
+            <input type="file" id="sealFile" class="upload-file-input" accept="image/*" onchange="updateFileLabel('sealFile', 'curSealDisplay')" />
+          </div>
+
+          <div class="form-group">
+            <label>Signature</label>
+            <label for="signFile" class="custom-upload-btn">
+              <span>✍️ Upload Signature</span>
+              <span id="curSignDisplay" class="file-status-text">No file chosen</span>
+            </label>
+            <input type="file" id="signFile" class="upload-file-input" accept="image/*" onchange="updateFileLabel('signFile', 'curSignDisplay')" />
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="existingLogo" />
+      <input type="hidden" id="existingSeal" />
+      <input type="hidden" id="existingSign" />
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+        <button class="btn btn-primary" onclick="saveCompany()">Save Company 💾</button>
+      </div>
+
+      <h3>Registered Companies</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name (EN / AR)</th>
+            <th>CR No</th>
+            <th>VAT No</th>
+            <th>Phone</th>
+            <th style="width: 120px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="companyTableBody">
+          <tr><td colspan="6" style="text-align:center;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      async function loadCompanies() {
+        const res = await fetch("/e-invoice/api/companies");
+        const data = await res.json();
+        const tbody = document.getElementById("companyTableBody");
+        tbody.innerHTML = "";
+
+        if (data.success && data.companies.length > 0) {
+          data.companies.forEach(c => {
+            tbody.innerHTML += `
+              <tr>
+                <td>${c.id}</td>
+                <td><b>${c.company_name_en}</b><br><span style="color:#059669;">${c.company_name_ar || ''}</span></td>
+                <td>${c.cr_number || '-'}</td>
+                <td>${c.vat_number || '-'}</td>
+                <td>${c.phone || '-'}</td>
+                <td>
+                  <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick='editCompany(${JSON.stringify(c)})'>Edit</button>
+                  <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteCompany(${c.id})">Del</button>
+                </td>
+              </tr>
+            `;
+          });
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No companies registered yet.</td></tr>';
+        }
+      }
+
+      function editCompany(c) {
+        document.getElementById("companyId").value = c.id;
+        document.getElementById("compEn").value = c.company_name_en || "";
+        document.getElementById("compAr").value = c.company_name_ar || "";
+        document.getElementById("compShortCode").value = c.short_code || "";
+        document.getElementById("compCr").value = c.cr_number || "";
+        document.getElementById("compVat").value = c.vat_number || "";
+        document.getElementById("compPhone").value = c.phone || "";
+        document.getElementById("compEmail").value = c.email || "";
+        document.getElementById("addrEn").value = c.address_line_en || "";
+        document.getElementById("addrAr").value = c.address_line_ar || "";
+
+        document.getElementById("existingLogo").value = c.logo_url || "";
+        document.getElementById("existingSeal").value = c.seal_url || "";
+        document.getElementById("existingSign").value = c.signature_url || "";
+
+        document.getElementById("curLogoDisplay").innerText = c.logo_url ? `Current: ${c.logo_url}` : "";
+        document.getElementById("curSealDisplay").innerText = c.seal_url ? `Current: ${c.seal_url}` : "";
+        document.getElementById("curSignDisplay").innerText = c.signature_url ? `Current: ${c.signature_url}` : "";
+
+        document.getElementById("logoFile").value = "";
+        document.getElementById("sealFile").value = "";
+        document.getElementById("signFile").value = "";
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function updateFileLabel(inputId, labelId) {
+        const fileInput = document.getElementById(inputId);
+        const label = document.getElementById(labelId);
+        if (fileInput.files && fileInput.files[0]) {
+          label.innerText = `✓ ${fileInput.files[0].name}`;
+          label.style.color = "#059669";
+          label.style.fontWeight = "bold";
+        }
+      }
+
+      function clearForm() {
+        document.getElementById("companyId").value = "";
+        document.querySelectorAll("input").forEach(i => i.value = "");
+        document.getElementById("curLogoDisplay").innerText = "No file chosen";
+        document.getElementById("curLogoDisplay").style.color = "#64748b";
+        document.getElementById("curLogoDisplay").style.fontWeight = "normal";
+
+        document.getElementById("curSealDisplay").innerText = "No file chosen";
+        document.getElementById("curSealDisplay").style.color = "#64748b";
+        document.getElementById("curSealDisplay").style.fontWeight = "normal";
+
+        document.getElementById("curSignDisplay").innerText = "No file chosen";
+        document.getElementById("curSignDisplay").style.color = "#64748b";
+        document.getElementById("curSignDisplay").style.fontWeight = "normal";
+      }
+
+      async function saveCompany() {
+        const compEn = document.getElementById("compEn").value.trim();
+        const compAr = document.getElementById("compAr").value.trim();
+
+        if (!compEn || !compAr) {
+          return alert("English and Arabic company names are required!");
+        }
+
+        const formData = new FormData();
+        const compId = document.getElementById("companyId").value;
+        if (compId) formData.append("id", compId);
+
+        formData.append("company_name_en", compEn);
+        formData.append("company_name_ar", compAr);
+        formData.append("short_code", document.getElementById("compShortCode").value.trim().toUpperCase());
+        formData.append("cr_number", document.getElementById("compCr").value.trim());
+        formData.append("vat_number", document.getElementById("compVat").value.trim());
+        formData.append("phone", document.getElementById("compPhone").value.trim());
+        formData.append("email", document.getElementById("compEmail").value.trim());
+        formData.append("address_line_en", document.getElementById("addrEn").value.trim());
+        formData.append("address_line_ar", document.getElementById("addrAr").value.trim());
+
+        formData.append("existing_logo", document.getElementById("existingLogo").value);
+        formData.append("existing_seal", document.getElementById("existingSeal").value);
+        formData.append("existing_sign", document.getElementById("existingSign").value);
+
+        const logoInput = document.getElementById("logoFile");
+        if (logoInput.files[0]) formData.append("logo_file", logoInput.files[0]);
+
+        const sealInput = document.getElementById("sealFile");
+        if (sealInput.files[0]) formData.append("seal_file", sealInput.files[0]);
+
+        const signInput = document.getElementById("signFile");
+        if (signInput.files[0]) formData.append("sign_file", signInput.files[0]);
+
+        const res = await fetch("/e-invoice/api/save-company", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.success) {
+          clearForm();
+          loadCompanies();
+        } else {
+          alert("Error: " + data.message);
+        }
+      }
+
+      async function deleteCompany(id) {
+        if (!confirm("Are you sure you want to delete this company?")) return;
+        const res = await fetch("/e-invoice/api/delete-company", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+        const data = await res.json();
+        if (data.success) loadCompanies();
+        else alert(data.message);
+      }
+
+      async function verifyCompanyAccess() {
+        const inputEl = document.getElementById("secCodeInput");
+        const code = inputEl ? inputEl.value.trim() : "";
+        const errEl = document.getElementById("secErrorMsg");
+
+        if (!code) {
+          errEl.innerText = "Please enter the security code.";
+          errEl.style.display = "block";
+          return;
+        }
+
+        try {
+          const res = await fetch("/e-invoice/api/verify-security", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: code }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            sessionStorage.setItem("vat_tracker_auth", "true");
+            document.getElementById("securityOverlay").style.display = "none";
+            document.getElementById("mainContent").style.display = "block";
+            loadCompanies();
+          } else {
+            errEl.innerText = "Invalid Security Code. Access Denied!";
+            errEl.style.display = "block";
+            if (inputEl) inputEl.value = "";
+          }
+        } catch (e) {
+          errEl.innerText = "Server verification failed.";
+          errEl.style.display = "block";
+        }
+      }
+
+      // Check if already authenticated in this session
+      if (sessionStorage.getItem("vat_tracker_auth") === "true") {
+        document.getElementById("securityOverlay").style.display = "none";
+        document.getElementById("mainContent").style.display = "block";
+        loadCompanies();
+      } else {
+        document.getElementById("securityOverlay").style.display = "flex";
+        setTimeout(() => document.getElementById("secCodeInput")?.focus(), 200);
+      }
+    </script>
+  </body>
+</html>

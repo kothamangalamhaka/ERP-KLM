@@ -55,6 +55,7 @@ const nonVatRouter = require("./routes/non_vat_bill_tracker");
 const driverBillingRoutes = require("./routes/driver_billing");
 const logsheetToolsRoutes = require("./routes/logsheet_tools");
 const debitNotesRoute = require("./routes/debit_note");
+const eInvoiceRoutes = require("./routes/eInvoice");
 
 
 
@@ -100,7 +101,7 @@ app.use("/timesheet/api/logsheets", logsheetToolsRoutes);
 app.use("/timesheet/api/non-vat-pending-diff", require("./routes/non_vat_pending_diff"));
 app.use("/debit-notes", debitNotesRoute);
 app.get("/tools/editor", (req, res) => res.sendFile(path.join(__dirname, "public/Tools/editor/index.html")));
-
+app.use("/e-invoice", eInvoiceRoutes);
 
 
 
