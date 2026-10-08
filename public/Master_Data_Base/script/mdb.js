@@ -2039,11 +2039,13 @@ lengthMenu: [
         statusVal = "";
       if (sIdx !== -1) {
         statusVal = String(data[sIdx]).trim().toLowerCase();
-        $(row).removeClass("status-released status-replaced status-mobilizing");
+        $(row).removeClass("status-released status-replaced status-mobilizing status-ideal");
         if (statusVal === "released") $(row).addClass("status-released");
         else if (statusVal === "replaced") $(row).addClass("status-replaced");
         else if (statusVal === "mobilizing")
           $(row).addClass("status-mobilizing");
+        else if (statusVal === "ideal")
+          $(row).addClass("status-ideal");
       }
       let today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -2963,7 +2965,7 @@ function openAddEntryModal(dbId = null, clone = false) {
     } else if (colUpper === "IF SUB") {
       inputHtml = `<select class="modal-input entry-input" data-colname="${header}"><option value="">(Blank)</option><option value="Sub">Sub</option></select>`;
     } else if (colUpper === "STATUS") {
-      inputHtml = `<select class="modal-input entry-input" data-colname="${header}"><option value="">Select Status</option><option value="Running">Running</option><option value="Released">Released</option><option value="Replaced">Replaced</option><option value="Mobilizing">Mobilizing</option></select>`;
+      inputHtml = `<select class="modal-input entry-input" data-colname="${header}"><option value="">Select Status</option><option value="Running">Running</option><option value="Released">Released</option><option value="Replaced">Replaced</option><option value="Ideal">Ideal</option><option value="Mobilizing">Mobilizing</option></select>`;
     } else if (colUpper === "COMPANY") {
       let optionsCompHtml = DYNAMIC_COMPANIES.map(function (o) {
         return `<option value="${o.replace(/"/g, "&quot;")}">${o}</option>`;
@@ -3378,11 +3380,12 @@ function applyHistoricalState(dbId, colName, value) {
   let colUpper = String(colName).replace(/\s+/g, " ").trim().toUpperCase(),
     $row = $(`#erpTable tbody tr[data-sheetrow="${dbId}"]`);
   if (colUpper === "STATUS" && $row.length) {
-    $row.removeClass("status-released status-replaced status-mobilizing");
+    $row.removeClass("status-released status-replaced status-mobilizing status-ideal");
     let sVal = value.trim().toLowerCase();
     if (sVal === "released") $row.addClass("status-released");
     else if (sVal === "replaced") $row.addClass("status-replaced");
     else if (sVal === "mobilizing") $row.addClass("status-mobilizing");
+    else if (sVal === "ideal") $row.addClass("status-ideal");
   }
   if ($row.length) {
     let $cell = $row.find(`td[data-colname="${colName}"]`);
@@ -3551,7 +3554,7 @@ function attachEditListeners() {
           } else if (["REMARK", "REMARKS", "DRIVER LOG"].includes(colUpper)) {
             inputHtml = `<textarea class="edit-input">${oldVal}</textarea>`;
           } else if (colUpper === "STATUS") {
-            let optsStatus = ["Running", "Released", "Replaced", "Mobilizing"],
+            let optsStatus = ["Running", "Released", "Replaced", "Mobilizing", "Ideal"],
               optionsStatusHtml = optsStatus
                 .map(function (o) {
                   return `<option value="${o}" ${oldVal.toLowerCase() === o.toLowerCase() ? "selected" : ""}>${o}</option>`;
