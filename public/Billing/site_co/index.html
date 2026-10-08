@@ -1925,7 +1925,13 @@
 
             // 🟢 Fix 2: Added data-site to the tr tag
             rowsHtml += `
-              <tr data-plate="${escapeHtmlAttribute(r.plate_no || "")}" data-master-plate="${escapeHtmlAttribute(r.master_plate || r.plate_no || "")}" data-owner="${escapeHtmlAttribute(rowOwner)}" data-site="${escapeHtmlAttribute(r.site || 'N/A')}">
+              <tr data-plate="${escapeHtmlAttribute(r.plate_no || "")}" 
+                  data-master-plate="${escapeHtmlAttribute(r.master_plate || r.plate_no || "")}" 
+                  data-owner="${escapeHtmlAttribute(rowOwner)}" 
+                  data-company-display="${escapeHtmlAttribute(r.company_display_name || "")}" 
+                  data-company-arabic="${escapeHtmlAttribute(r.company_arabic_name || "")}" 
+                  data-vat-no="${escapeHtmlAttribute(r.vat_no || "")}" 
+                  data-site="${escapeHtmlAttribute(r.site || 'N/A')}">
                 <td>${idx + 1}</td>
                 <td>${escapeHtml(r.date || "")}</td>
                 <td>${escapeHtml(r.vtype || "")}</td>
@@ -1990,13 +1996,13 @@
         let displayTitle = "";
 
         if (distinctOwners.length === 1) {
-          // ഒരൊറ്റ ഓണർ മാത്രമുള്ളപ്പോൾ
+          // Oru owner maathram ullappol
           displayTitle =
             companyTitle && companyTitle !== "Manual Entry Table"
               ? `${companyTitle} - ${distinctOwners[0]}`
               : `Owner: ${distinctOwners[0]}`;
         } else if (distinctOwners.length > 1) {
-          // പല ഓണർമാർ വരുമ്പോൾ എണ്ണം സഹിതം കൃത്യമായി കാണിക്കുന്നു
+          // Palavidha owner-maar varumbol
           let ownerSummary = distinctOwners
             .map((o) => `${o} (${ownerCounts[o]})`)
             .join(" | ");
@@ -2020,6 +2026,16 @@
             </div>
 
             <div class="edit-action-buttons">
+              <!-- 🟢 E-INVOICE GENERATOR BUTTON -->
+              <button
+                class="btn"
+                title="Generate E-Invoice"
+                style="background:#059669;"
+                onclick="openEInvoiceFromSiteCoCard(this)"
+              >
+                <i class="material-icons" style="font-size:16px;">receipt</i> E-Invoice
+              </button>
+
               <!-- 🟢 SEAL & SIGN TOGGLE BUTTON -->
               <button
                 class="btn"
@@ -4342,6 +4358,99 @@
             console.warn("Background auto-save failed", err);
           }
         }
+      }
+
+      /* ============================================================
+       * 🟢 OPEN E-INVOICE FROM SITE CO CARD
+       * ============================================================
+       */
+      function openEInvoiceFromSiteCoCard(btn) {
+        const card = btn.closest(".bill-card");
+        if (!card) return showToast("Card not found!");
+
+        const selMonth = document.getElementById("selMonth")?.value || "";
+        const selYear = document.getElementById("selYear")?.value || "";
+        const billingMonth = `${selMonth} ${selYear}`.trim();
+
+        const titleText = card.querySelector(".card-header-title-text")?.innerText || "";
+        const rows = [];
+        let matchedOwnerInfo = null;
+
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((tr) => {
+          const displayPlate = tr.getAttribute("data-plate") || tr.querySelector(".manual-plate-input")?.value?.trim() || tr.children[5]?.innerText?.trim() || "";
+          const masterPlate = tr.getAttribute("data-master-plate") || displayPlate;
+          const vtype = tr.children[2]?.innerText?.trim() || "";
+          const site = tr.getAttribute("data-site") || tr.children[3]?.innerText?.trim() || "";
+          const driver = tr.children[4]?.innerText?.trim() || "";
+          const nhr = parseFloat(tr.querySelector(".nhr-field")?.value || tr.querySelector(".nhr-cell .view-number-text")?.innerText || 0);
+          const othr = parseFloat(tr.querySelector(".othr-field")?.value || tr.querySelector(".othr-cell .view-number-text")?.innerText || 0);
+
+          const cells = tr.querySelectorAll(".rate-column-cell");
+          const nrate = parseFloat(cells[0]?.querySelector(".nrate-field")?.value || cells[0]?.querySelector(".view-number-text")?.innerText || 0);
+          const otrate = parseFloat(cells[1]?.querySelector(".otrate-field")?.value || cells[1]?.querySelector(".view-number-text")?.innerText || 0);
+
+          const rent = parseFloat(tr.querySelector(".rent-cell")?.innerText || (nhr * nrate + othr * otrate) || 0);
+          const vat = parseFloat(tr.querySelector(".vat-cell")?.innerText || 0);
+          const total = parseFloat(tr.querySelector(".total-cell")?.innerText || (rent + vat) || 0);
+
+          if (displayPlate || rent > 0 || nhr > 0) {
+            rows.push({
+              plate: displayPlate,
+              master_plate: masterPlate,
+              vtype: vtype,
+              driver: driver,
+              site: site,
+              nhr: nhr,
+              nrate: nrate,
+              othr: othr,
+              otrate: otrate,
+              rent: rent,
+              vat: vat,
+              total: total,
+            });
+          }
+
+          if (!matchedOwnerInfo) {
+            const match = findMatchingPlateRecord(fetchedRowsCache, displayPlate || masterPlate);
+            if (match) matchedOwnerInfo = match;
+          }
+        });
+
+        if (rows.length === 0) {
+          return showToast("No valid vehicle rows found in this card!");
+        }
+
+        const firstTr = card.querySelector(".supplier-bill-table tbody tr");
+        const cardOwner = card.getAttribute("data-owner") || rows[0]?.owner || "";
+        const vendorArabicName = (firstTr?.getAttribute("data-company-arabic") || matchedOwnerInfo?.company_arabic_name || "").trim();
+        const vendorDisplayName = (firstTr?.getAttribute("data-company-display") || matchedOwnerInfo?.company_display_name || "").trim();
+        const vendorVatNo = (firstTr?.getAttribute("data-vat-no") || matchedOwnerInfo?.vat_no || "").trim();
+
+        // First site-il ninnu company theerumanikkunnu
+        const firstSite = rows[0]?.site || "";
+        const detectedComp = getCompanyFromSite(firstSite);
+        const compConfig = companyData[detectedComp] || companyData["Haka"];
+
+        const grandRent = parseFloat(card.querySelector(".grand-rent")?.innerText || 0);
+        const grandVat = parseFloat(card.querySelector(".grand-vat")?.innerText || 0);
+        const grandTotal = parseFloat(card.querySelector(".grand-total")?.innerText || (grandRent + grandVat));
+
+        const payload = {
+          billingMonth: billingMonth,
+          ownerName: cardOwner,
+          vendorDisplayName: vendorDisplayName,
+          vendorArabicName: vendorArabicName,
+          vendorVatNo: vendorVatNo,
+          companyName: detectedComp,
+          companyHeader: compConfig.header || "",
+          rows: rows,
+          grandRent: grandRent,
+          grandVat: grandVat,
+          grandTotal: grandTotal,
+        };
+
+        sessionStorage.setItem("activeEInvoiceData", JSON.stringify(payload));
+        window.open("/e-invoice/index.html", "_blank");
       }
     </script>
   </body>

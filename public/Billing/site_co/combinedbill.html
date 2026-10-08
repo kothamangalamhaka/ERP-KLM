@@ -696,9 +696,16 @@
         rows.forEach((r, idx) => {
           const nhr = parseFloat(r.nhr || 0);
           const othr = parseFloat(r.othr || 0);
-          const rent = parseFloat(r.rent || 0);
-          const vat = parseFloat(r.vat_amount || 0);
-          const total = parseFloat(r.total || (rent + vat) || 0);
+          const nrate = parseFloat(r.nrate || 0);
+          const otrate = parseFloat(r.otrate || 0);
+
+          // 🟢 Herreega rent, vat, fi total kallattiin fooyyessuu
+          const rent = (nhr * nrate) + (othr * otrate);
+          const vatPercent = parseFloat(r.vat_percent || 0);
+          const vat = r.vat_amount !== undefined && parseFloat(r.vat_amount) > 0 
+            ? parseFloat(r.vat_amount) 
+            : (vatPercent > 0 ? (rent * (vatPercent / 100)) : 0);
+          const total = rent + vat;
 
           totalNHr += nhr;
           totalOTHr += othr;
@@ -716,7 +723,7 @@
               <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">${nhr}</td>
               <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">${othr}</td>
               <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">${rent.toFixed(2)}</td>
-              ${hasVat ? `<td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">${vat > 0 ? vat.toFixed(2) : "0"}</td>` : ""}
+              ${hasVat ? `<td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center;">${vat > 0 ? vat.toFixed(2) : "0.00"}</td>` : ""}
               <td style="padding: 6px 8px; border: 1px solid #cbd5e1; text-align: center; font-weight:bold;">${total.toFixed(2)}</td>
             </tr>
           `;

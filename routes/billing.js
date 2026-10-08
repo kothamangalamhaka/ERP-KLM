@@ -780,11 +780,18 @@ router.get("/combined-bill", async (req, res) => {
       if (savedRow) {
         let nhr = parseFloat(savedRow.nhr) || 0;
         let othr = parseFloat(savedRow.othr) || 0;
-        let rent = parseFloat(savedRow.rent) || 0;
-        let vatAmt = parseFloat(savedRow.vat_amount) || 0;
-        let total = parseFloat(savedRow.total) || (rent + vatAmt);
+
+        let rowNRate = (savedRow.nrate !== null && parseFloat(savedRow.nrate) > 0) ? parseFloat(savedRow.nrate) : fallbackNRate;
+        let rowOTRate = (savedRow.otrate !== null && parseFloat(savedRow.otrate) > 0) ? parseFloat(savedRow.otrate) : fallbackOTRate;
+
+        // 🟢 Live Calculation of Rent from N.Hr, OT Hr, and Rates
+        let rent = Number(((nhr * rowNRate) + (othr * rowOTRate)).toFixed(2));
+        let vatPercent = parseFloat(savedRow.vat_percent) || 0;
+        let vatAmt = Number((rent * (vatPercent / 100)).toFixed(2));
+        let total = Number((rent + vatAmt).toFixed(2));
+
         let adjAmt = parseFloat(savedRow.adjusted_amount) || 0;
-        let afterAdj = parseFloat(savedRow.after_adjustment) || (total + adjAmt);
+        let afterAdj = Number((total + adjAmt).toFixed(2));
 
         totals.nhr += nhr;
         totals.othr += othr;
@@ -793,9 +800,6 @@ router.get("/combined-bill", async (req, res) => {
         totals.total += total;
         totals.adjusted_amount += adjAmt;
         totals.after_adjustment += afterAdj;
-
-        let rowNRate = (savedRow.nrate !== null && parseFloat(savedRow.nrate) > 0) ? parseFloat(savedRow.nrate) : fallbackNRate;
-        let rowOTRate = (savedRow.otrate !== null && parseFloat(savedRow.otrate) > 0) ? parseFloat(savedRow.otrate) : fallbackOTRate;
 
         let targetSite = savedRow.site_name || vehicleInfo.site_name || "N/A";
         let resolvedCompany = savedRow.company || getCompanyFromSite(targetSite, vehicleInfo.company);

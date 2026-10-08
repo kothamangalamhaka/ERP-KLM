@@ -352,8 +352,30 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
     const yearStr = year.trim();
     const fullMonth = `${monthStr} ${yearStr}`;
 
+    // Safely check existing columns in timesheet_vehicles table
+    const tvColsRes = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'timesheet_vehicles'"
+    );
+    const existingTvCols = tvColsRes.rows.map(r => r.column_name.toLowerCase());
+
+    let tvSelectCols = ["plate_no", "owner_name", "owner_mobile", "site_name", "vehicle_type", "vat", "driver_name", "driver_mobile", "field_co", "site_co", "rate"];
+    
+    if (existingTvCols.includes("company_display_name_")) {
+      tvSelectCols.push("company_display_name_ AS company_display_name");
+    } else if (existingTvCols.includes("company_display_name")) {
+      tvSelectCols.push("company_display_name");
+    } else {
+      tvSelectCols.push("'' AS company_display_name");
+    }
+
+    if (existingTvCols.includes("company_arabic_name")) {
+      tvSelectCols.push("company_arabic_name");
+    } else {
+      tvSelectCols.push("'' AS company_arabic_name");
+    }
+
     const [vehiclesRes, sitesRes, driversRes, timesheetsRes, invoicesRes, billingRes, specialRulesRes, ratesRes, ownersRes, plateLogsRes] = await Promise.all([
-      pool.query("SELECT plate_no, owner_name, owner_mobile, site_name, vehicle_type, vat, driver_name, driver_mobile, field_co, site_co, rate FROM timesheet_vehicles"),
+      pool.query(`SELECT ${tvSelectCols.join(", ")} FROM timesheet_vehicles`),
       pool.query("SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co, status, vehicle_type FROM vehicle_site_log"),
       pool.query("SELECT plate_no, driver_name, driver_mobile, work_start_date, work_end_date, status FROM vehicle_driver_log"),
       pool.query("SELECT plate_no, record_date, calc_time, calc_distance, bd, remark, wrk_start, hmr_start FROM timesheet_daily_records WHERE month=$1 AND year=$2", [monthStr, yearStr]),
@@ -361,7 +383,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
       pool.query("SELECT * FROM billing_records WHERE billing_month=$1", [fullMonth]),
       pool.query("SELECT * FROM special_days_rules WHERE is_active = true"),
       pool.query("SELECT plate_no, site_name, rate, work_start_date, work_end_date FROM vehicle_rate_log"),
-      pool.query("SELECT plate_no, owner_name, owner_mobile, vat, work_start_date, work_end_date FROM vehicle_owner_log"),
+      pool.query("SELECT plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, company_arabic_name, work_start_date, work_end_date FROM vehicle_owner_log"),
       pool.query("SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC")
     ]);
 
@@ -559,11 +581,18 @@ if (!resolvedSearchMatch) return;
       let effectiveOwner = (v.owner_name || "COMPANY VEHICLE").trim();
       let effectiveVat = (v.vat || "No").trim();
 
+      let effectiveCompanyDisplayName = (v.company_display_name || v.company_display_name_ || "").trim();
+      let effectiveCompanyArabicName = (v.company_arabic_name || "").trim();
+      let effectiveVatNo = (v.vat_no || "").trim();
+
       if (validOLogs.length > 0) {
         validOLogs.sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"));
         let activeOwnerLog = validOLogs[0];
         if (activeOwnerLog.owner_name) effectiveOwner = activeOwnerLog.owner_name.trim();
         if (activeOwnerLog.vat) effectiveVat = String(activeOwnerLog.vat).trim();
+        if (activeOwnerLog.company_display_name) effectiveCompanyDisplayName = String(activeOwnerLog.company_display_name).trim();
+        if (activeOwnerLog.company_arabic_name) effectiveCompanyArabicName = String(activeOwnerLog.company_arabic_name).trim();
+        if (activeOwnerLog.vat_no) effectiveVatNo = String(activeOwnerLog.vat_no).trim();
       }
 
       const normalizedVat = effectiveVat.toLowerCase().replace(/\s+/g, "");
@@ -597,6 +626,9 @@ if (!resolvedSearchMatch) return;
         master_plate: masterPlate,
         plate_logs: vPlateChanges,
         owner: effectiveOwner,
+        company_display_name: effectiveCompanyDisplayName || "",
+        company_arabic_name: effectiveCompanyArabicName || "",
+        vat_no: effectiveVatNo || "",
         nhr,
         othr,
         nrate: nrate,
@@ -921,19 +953,6 @@ const [savedResult, tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes, plateLogR
       if (savedRow) {
         let nhr = parseFloat(savedRow.nhr) || 0;
         let othr = parseFloat(savedRow.othr) || 0;
-        let rent = parseFloat(savedRow.rent) || 0;
-        let vatAmt = parseFloat(savedRow.vat_amount) || 0;
-        let total = parseFloat(savedRow.total) || (rent + vatAmt);
-        let adjAmt = parseFloat(savedRow.adjusted_amount) || 0;
-        let afterAdj = parseFloat(savedRow.after_adjustment) || (total + adjAmt);
-
-        totals.nhr += nhr;
-        totals.othr += othr;
-        totals.rent += rent;
-        totals.vat_amount += vatAmt;
-        totals.total += total;
-        totals.adjusted_amount += adjAmt;
-        totals.after_adjustment += afterAdj;
 
         let rowSite = savedRow.site_name || vehicleInfo.site_name || "N/A";
         let autoCompany = "Haka";
@@ -944,6 +963,23 @@ const [savedResult, tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes, plateLogR
 
         let rowNRate = (savedRow.nrate !== null && parseFloat(savedRow.nrate) > 0) ? parseFloat(savedRow.nrate) : fallbackNRate;
         let rowOTRate = (savedRow.otrate !== null && parseFloat(savedRow.otrate) > 0) ? parseFloat(savedRow.otrate) : fallbackOTRate;
+
+        // 🟢 Herreega rent, vat_amount, fi total kallattiin haaromsuu
+        let rent = Number(((nhr * rowNRate) + (othr * rowOTRate)).toFixed(2));
+        let vatPercent = parseFloat(savedRow.vat_percent) || 0;
+        let vatAmt = Number((rent * (vatPercent / 100)).toFixed(2));
+        let total = Number((rent + vatAmt).toFixed(2));
+
+        let adjAmt = parseFloat(savedRow.adjusted_amount) || 0;
+        let afterAdj = Number((total + adjAmt).toFixed(2));
+
+        totals.nhr += nhr;
+        totals.othr += othr;
+        totals.rent += rent;
+        totals.vat_amount += vatAmt;
+        totals.total += total;
+        totals.adjusted_amount += adjAmt;
+        totals.after_adjustment += afterAdj;
 
         combinedRows.push({
           billing_month: mStr,

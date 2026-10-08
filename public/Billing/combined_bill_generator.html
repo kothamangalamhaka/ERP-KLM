@@ -486,7 +486,9 @@
         }
 
         data.rows.forEach((r, idx) => {
-          let vatCell = hasVat ? `<td>${r.vat_amount > 0 ? parseFloat(r.vat_amount).toFixed(2) : "0"}</td>` : "";
+          let rentDisplay = parseFloat(r.rent || 0).toFixed(2);
+          let totalDisplay = parseFloat(r.total || 0).toFixed(2);
+          let vatCell = hasVat ? `<td>${r.vat_amount > 0 ? parseFloat(r.vat_amount).toFixed(2) : "0.00"}</td>` : "";
 
           tbody.innerHTML += `
             <tr>
@@ -497,9 +499,9 @@
               <td>${r.plate_no}</td>
               <td>${r.nhr}</td>
               <td>${r.othr}</td>
-              <td>${r.rent}</td>
+              <td>${rentDisplay}</td>
               ${vatCell}
-              <td style="font-weight:bold;">${r.total}</td>
+              <td style="font-weight:bold;">${totalDisplay}</td>
             </tr>
           `;
         });
