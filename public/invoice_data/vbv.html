@@ -1,0 +1,2009 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Virtual Batch View - Invoice Analysis</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #0ea5e9;
+        --secondary: #0f2027;
+        --bg-color: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        --border-color: #cbd5e1;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--bg-color);
+        margin: 0;
+        padding: 0;
+        font-size: 12px;
+        color: var(--text-main);
+      }
+
+      .navbar {
+        background-color: var(--secondary);
+        color: white;
+        padding: 6px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        gap: 10px;
+      }
+
+      .navbar-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+
+      .btn-export {
+        background-color: #16a34a;
+        color: white;
+        border: none;
+        padding: 5px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 11px;
+        transition: 0.2s;
+        white-space: nowrap;
+      }
+
+      .btn-export:hover {
+        background-color: #15803d;
+      }
+
+      .navbar h2 {
+        margin: 0;
+        font-size: 15px;
+        font-family: "Times New Roman", Times, serif;
+        white-space: nowrap;
+      }
+
+      .navbar-controls {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex-wrap: nowrap;
+      }
+
+      .form-group {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .form-group label {
+        font-weight: 600;
+        font-size: 10px;
+        color: #94a3b8;
+        text-transform: uppercase;
+      }
+
+      .navbar select,
+      .navbar input {
+        padding: 4px 6px;
+        border: 1px solid #475569;
+        border-radius: 4px;
+        background: #1e293b;
+        color: #ffffff;
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        outline: none;
+      }
+
+      .navbar input::placeholder {
+        color: #94a3b8;
+      }
+
+      .navbar select:focus,
+      .navbar input:focus {
+        border-color: var(--primary);
+      }
+
+      .btn-fetch {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 5px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 11px;
+        transition: 0.2s;
+        white-space: nowrap;
+      }
+
+      .btn-fetch:hover {
+        background-color: #0284c7;
+      }
+
+      /* 🟢 Virtual Scrolling Viewport */
+      #viewport {
+        height: calc(100vh - 44px);
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+        background: white;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        min-width: 3350px;
+      }
+
+      thead tr:first-child th {
+        position: sticky;
+        top: 0;
+        z-index: 12;
+      }
+
+      thead tr:nth-child(2) th {
+        position: sticky;
+        top: 29px;
+        z-index: 11;
+        cursor: pointer;
+      }
+
+      th {
+        font-weight: 600;
+        font-size: 11px;
+        padding: 6px 4px;
+        border: 1px solid #475569;
+        text-align: center;
+        user-select: none;
+      }
+
+      /* Category Headers */
+      .th-vehicle { background-color: #1e293b; color: white; }
+      .th-vehicle:hover { background-color: #334155; }
+      .th-ts { background-color: #166534; color: white; }
+      .th-ts:hover { background-color: #15803d; }
+      .th-inv { background-color: #1e40af; color: white; }
+      .th-inv:hover { background-color: #1d4ed8; }
+      .th-bill { background-color: #6b21a8; color: white; }
+      .th-bill:hover { background-color: #7e22ce; }
+      .th-driver { background-color: #a16207; color: white; }
+      .th-driver:hover { background-color: #854d0e; }
+      .th-diff { background-color: #be123c; color: white; }
+      .th-diff:hover { background-color: #9f1239; }
+      .th-amt { background-color: #059669; color: white; }
+      .th-amt:hover { background-color: #047857; }
+      .th-inv-red { background-color: #b91c1c; color: white; }
+      .th-inv-red:hover { background-color: #991b1b; }
+      .th-extra { background-color: #334155; color: white; }
+      .th-extra:hover { background-color: #475569; }
+      .th-gen { background-color: #1e293b; color: white; }
+      .th-gen:hover { background-color: #334155; }
+
+      .filter-icon {
+        font-size: 9px;
+        margin-left: 3px;
+        color: #94a3b8;
+        transition: color 0.2s;
+      }
+      .filter-icon.filter-active {
+        color: #f59e0b !important;
+      }
+
+      tbody td {
+        border: 1px solid var(--border-color);
+        padding: 0 6px;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 11px;
+      }
+
+      tbody tr {
+        height: 30px;
+        cursor: pointer;
+      }
+
+      tbody tr:hover {
+        background-color: #e0f2fe !important;
+      }
+
+      /* 🟢 Excel Filter Menu */
+      .excel-filter-menu {
+        display: none;
+        position: absolute;
+        background: white;
+        border: 1px solid #cbd5e1;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+        border-radius: 8px;
+        z-index: 9999;
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        overflow: hidden;
+        width: 230px;
+        color: #111;
+      }
+
+      .excel-filter-search {
+        padding: 8px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
+      }
+
+      .excel-filter-search input {
+        width: 100%;
+        padding: 5px 8px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        outline: none;
+        box-sizing: border-box;
+        font-size: 11px;
+      }
+
+      .excel-filter-list {
+        max-height: 220px;
+        overflow-y: auto;
+        padding: 4px 0;
+      }
+
+      .filter-item {
+        padding: 5px 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+
+      .filter-item:hover {
+        background: #f1f5f9;
+      }
+
+      .filter-item label {
+        cursor: pointer;
+        flex-grow: 1;
+        user-select: none;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .excel-filter-actions {
+        padding: 8px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        background: #f8fafc;
+        gap: 8px;
+      }
+
+      .excel-filter-actions button {
+        flex: 1;
+        padding: 5px;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        font-size: 11px;
+      }
+
+      .btn-apply-filter { background: #2563eb; color: white; }
+      .btn-clear-filter { background: #e2e8f0; color: #475569; }
+
+      /* 🟢 Edit Modal Styles */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(15, 23, 42, 0.7);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(2px);
+      }
+
+      .modal-content {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 650px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-header {
+        font-size: 15px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #cbd5e1;
+        padding-bottom: 8px;
+        color: #0f172a;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .form-control {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .form-control label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #475569;
+      }
+
+      .form-control input,
+      .form-control textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        font-family: "Inter", sans-serif;
+        font-size: 12px;
+      }
+
+      .form-control input:focus,
+      .form-control textarea:focus {
+        border-color: #0ea5e9;
+        outline: none;
+      }
+
+      .btn-group {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 15px;
+        border-top: 1px solid #cbd5e1;
+        padding-top: 12px;
+      }
+
+      .btn-save { background: #10b981; color: white; border: none; padding: 7px 18px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+      .btn-cancel { background: #ef4444; color: white; border: none; padding: 7px 18px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+      .loader {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(15, 23, 42, 0.95);
+        color: white;
+        padding: 18px 30px;
+        border-radius: 8px;
+        font-weight: bold;
+        z-index: 9999;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 🟢 Top Ribbon with Left Search & Export Button -->
+    <div class="navbar">
+      <div class="navbar-left">
+        <h2>⚡ Virtual Batch View</h2>
+        <span
+          id="statsInfo"
+          style="
+            background: #f59e0b;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 10px;
+          "
+        >
+          0 Rows
+        </span>
+
+        <!-- 🟢 Search Bar ഇടത് വശത്തേക്ക് മാറ്റി -->
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="🔍 Search Plate, Site, Owner..."
+          onkeyup="filterData()"
+          style="width: 210px; text-transform: uppercase; margin-left: 5px;"
+        />
+      </div>
+
+      <div class="navbar-controls">
+        <!-- 🟢 Load Mode Switcher -->
+        <div class="form-group">
+          <label>Mode:</label>
+          <select id="selMode" onchange="toggleLoadMode()" style="background: #334155; font-weight: 600;">
+            <option value="single">Single Month</option>
+            <option value="batch" selected>Batch Range</option>
+          </select>
+        </div>
+
+        <div style="width: 1px; height: 18px; background: #475569; margin: 0 2px;"></div>
+
+        <!-- From Month & Year -->
+        <div class="form-group">
+          <label id="lblFrom">From:</label>
+          <select id="fromM">
+            <option value="January">Jan</option>
+            <option value="February">Feb</option>
+            <option value="March">Mar</option>
+            <option value="April">Apr</option>
+            <option value="May">May</option>
+            <option value="June">Jun</option>
+            <option value="July">Jul</option>
+            <option value="August">Aug</option>
+            <option value="September">Sep</option>
+            <option value="October">Oct</option>
+            <option value="November">Nov</option>
+            <option value="December">Dec</option>
+          </select>
+          <input type="number" id="fromY" value="2026" style="width: 55px;" />
+        </div>
+
+        <!-- To Month & Year -->
+        <div class="form-group" id="groupTo">
+          <label>To:</label>
+          <select id="toM">
+            <option value="January">Jan</option>
+            <option value="February">Feb</option>
+            <option value="March">Mar</option>
+            <option value="April">Apr</option>
+            <option value="May">May</option>
+            <option value="June">Jun</option>
+            <option value="July">Jul</option>
+            <option value="August">Aug</option>
+            <option value="September">Sep</option>
+            <option value="October">Oct</option>
+            <option value="November">Nov</option>
+            <option value="December">Dec</option>
+          </select>
+          <input type="number" id="toY" value="2026" style="width: 55px;" />
+        </div>
+
+        <button class="btn-fetch" onclick="loadVirtualBatchData()">Fetch Data</button>
+
+        <div style="width: 1px; height: 18px; background: #475569; margin: 0 4px;"></div>
+
+        <!-- 🟢 Export Excel Button -->
+        <button class="btn-export" onclick="exportFilteredToExcel()">📊 Export Excel</button>
+      </div>
+    </div>
+
+    <div id="loader" class="loader">Loading...</div>
+
+    <!-- 🟢 Excel Header Filter Dropdown Menu -->
+    <div
+      id="excelFilterMenu"
+      class="excel-filter-menu"
+      onclick="event.stopPropagation()"
+    >
+      <div
+        style="
+          padding: 8px;
+          border-bottom: 1px solid #e2e8f0;
+          display: flex;
+          gap: 5px;
+          background: #f8fafc;
+        "
+      >
+        <button
+          onclick="applySort('asc')"
+          style="
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 11px;
+          "
+        >
+          🔼 Sort A-Z
+        </button>
+        <button
+          onclick="applySort('desc')"
+          style="
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 11px;
+          "
+        >
+          🔽 Sort Z-A
+        </button>
+      </div>
+      <div class="excel-filter-search">
+        <input type="text" id="filterSearchInput" placeholder="Search values..." />
+      </div>
+      <div
+        class="filter-item"
+        style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;"
+      >
+        <input type="checkbox" id="filterSelectAll" checked />
+        <label for="filterSelectAll" style="font-weight: 700;">(Select All)</label>
+      </div>
+      <div class="excel-filter-list" id="filterChecklist"></div>
+      <div class="excel-filter-actions">
+        <button class="btn-apply-filter" onclick="applyExcelFilter()">Apply</button>
+        <button class="btn-clear-filter" onclick="closeExcelFilter()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- 🟢 Virtual Scrolling Table Viewport -->
+    <div id="viewport" onscroll="handleScroll()">
+      <table id="dataTable">
+        <colgroup>
+          <col style="width: 80px" />
+          <col style="width: 190px" />
+          <col style="width: 65px" />
+          <col style="width: 50px" />
+          <col style="width: 180px" />
+          <col style="width: 140px" />
+          <col style="width: 100px" />
+          <col style="width: 60px" />
+          <col style="width: 60px" />
+          <col style="width: 60px" />
+          <col style="width: 60px" />
+          <col style="width: 60px" />
+          <col style="width: 60px" />
+          <col style="width: 60px" />
+          <col style="width: 80px" />
+          <col style="width: 60px" />
+          <col style="width: 60px" />
+          <col style="width: 70px" />
+          <col style="width: 50px" />
+          <col style="width: 120px" />
+          <col style="width: 70px" />
+          <col style="width: 70px" />
+          <col style="width: 90px" />
+          <col style="width: 80px" />
+          <col style="width: 90px" />
+          <col style="width: 100px" />
+          <col style="width: 100px" />
+          <col style="width: 120px" />
+          <col style="width: 120px" />
+          <col style="width: 120px" />
+          <col style="width: 120px" />
+          <col style="width: 140px" />
+          <col style="width: 140px" />
+          <col style="width: 150px" />
+          <col style="width: 120px" />
+          <col style="width: 120px" />
+          <col style="width: 60px" />
+          <col style="width: 60px" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th colspan="7" class="th-vehicle">VEHICLE INFO</th>
+            <th colspan="2" class="th-ts">Logsheet Collected</th>
+            <th colspan="2" class="th-inv">Bill Summary</th>
+            <th colspan="2" class="th-bill">Supplier</th>
+            <th colspan="2" class="th-driver">For Driver</th>
+            <th colspan="5" class="th-diff">DIFFERENCE</th>
+            <th colspan="5" class="th-amt">AMOUNT</th>
+            <th colspan="4" class="th-inv-red">INVOICE</th>
+            <th colspan="4" class="th-extra">EXTRA DETAILS</th>
+            <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
+            <th colspan="2" class="th-gen">31 Considered as NR</th>
+          </tr>
+          <!-- 🟢 Filterable Column Header Row -->
+          <tr>
+            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'report_date')">
+              Month <span class="filter-icon" data-key="report_date">▼</span>
+            </th>
+            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'site')">
+              Site <span class="filter-icon" data-key="site">▼</span>
+            </th>
+            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'rate')">
+              Rate <span class="filter-icon" data-key="rate">▼</span>
+            </th>
+            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'vat')">
+              VAT <span class="filter-icon" data-key="vat">▼</span>
+            </th>
+            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'owner')">
+              Owner Name <span class="filter-icon" data-key="owner">▼</span>
+            </th>
+            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'vehicle_type')">
+              Vehicle Type <span class="filter-icon" data-key="vehicle_type">▼</span>
+            </th>
+            <th class="th-vehicle" onclick="openExcelFilterMenu(event, 'plate')">
+              Plate No <span class="filter-icon" data-key="plate">▼</span>
+            </th>
+
+            <th class="th-ts" onclick="openExcelFilterMenu(event, 'ts_nr')">
+              NR <span class="filter-icon" data-key="ts_nr">▼</span>
+            </th>
+            <th class="th-ts" onclick="openExcelFilterMenu(event, 'ts_ot')">
+              OT <span class="filter-icon" data-key="ts_ot">▼</span>
+            </th>
+
+            <th class="th-inv" onclick="openExcelFilterMenu(event, 'inv_nr')">
+              NR <span class="filter-icon" data-key="inv_nr">▼</span>
+            </th>
+            <th class="th-inv" onclick="openExcelFilterMenu(event, 'inv_ot')">
+              OT <span class="filter-icon" data-key="inv_ot">▼</span>
+            </th>
+
+            <th class="th-bill" onclick="openExcelFilterMenu(event, 'bill_db_nr')">
+              NR <span class="filter-icon" data-key="bill_db_nr">▼</span>
+            </th>
+            <th class="th-bill" onclick="openExcelFilterMenu(event, 'bill_db_ot')">
+              OT <span class="filter-icon" data-key="bill_db_ot">▼</span>
+            </th>
+
+            <th class="th-driver" onclick="openExcelFilterMenu(event, 'driver_ot')">
+              OT <span class="filter-icon" data-key="driver_ot">▼</span>
+            </th>
+            <th class="th-driver" onclick="openExcelFilterMenu(event, 'driver_amount')">
+              AMT <span class="filter-icon" data-key="driver_amount">▼</span>
+            </th>
+
+            <th class="th-diff" onclick="openExcelFilterMenu(event, 'diff_nr')">
+              NR <span class="filter-icon" data-key="diff_nr">▼</span>
+            </th>
+            <th class="th-diff" onclick="openExcelFilterMenu(event, 'diff_ot')">
+              OT <span class="filter-icon" data-key="diff_ot">▼</span>
+            </th>
+            <th class="th-diff" onclick="openExcelFilterMenu(event, 'diff_st')">
+              IDN <span class="filter-icon" data-key="diff_st">▼</span>
+            </th>
+            <th class="th-diff" onclick="openExcelFilterMenu(event, 'diff_clear')">
+              Clear <span class="filter-icon" data-key="diff_clear">▼</span>
+            </th>
+            <th class="th-diff" onclick="openExcelFilterMenu(event, 'vbill_notes')">
+              V.Bill Notes <span class="filter-icon" data-key="vbill_notes">▼</span>
+            </th>
+
+            <th class="th-amt" onclick="openExcelFilterMenu(event, 'bill_nrate')">
+              NR Rate <span class="filter-icon" data-key="bill_nrate">▼</span>
+            </th>
+            <th class="th-amt" onclick="openExcelFilterMenu(event, 'bill_otrate')">
+              OT Rate <span class="filter-icon" data-key="bill_otrate">▼</span>
+            </th>
+            <th class="th-amt" onclick="openExcelFilterMenu(event, 'bill_rent')">
+              Rent <span class="filter-icon" data-key="bill_rent">▼</span>
+            </th>
+            <th class="th-amt" onclick="openExcelFilterMenu(event, 'rent_vat')">
+              VAT <span class="filter-icon" data-key="rent_vat">▼</span>
+            </th>
+            <th class="th-amt" onclick="openExcelFilterMenu(event, 'rent_total')">
+              Total <span class="filter-icon" data-key="rent_total">▼</span>
+            </th>
+
+            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'inv_subtotal')">
+              Subtotal <span class="filter-icon" data-key="inv_subtotal">▼</span>
+            </th>
+            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'inv_total')">
+              Total <span class="filter-icon" data-key="inv_total">▼</span>
+            </th>
+            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'inv_no')">
+              Invoice No <span class="filter-icon" data-key="inv_no">▼</span>
+            </th>
+            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'bill_no')">
+              Bill No <span class="filter-icon" data-key="bill_no">▼</span>
+            </th>
+
+            <th class="th-extra" onclick="openExcelFilterMenu(event, 'pwas')">
+              PWAS <span class="filter-icon" data-key="pwas">▼</span>
+            </th>
+            <th class="th-extra" onclick="openExcelFilterMenu(event, 'erp')">
+              ERP <span class="filter-icon" data-key="erp">▼</span>
+            </th>
+            <th class="th-extra" onclick="openExcelFilterMenu(event, 'payment_status')">
+              Payment Status <span class="filter-icon" data-key="payment_status">▼</span>
+            </th>
+            <th class="th-extra" onclick="openExcelFilterMenu(event, 'accounts_note')">
+              Accounts Note <span class="filter-icon" data-key="accounts_note">▼</span>
+            </th>
+
+            <th class="th-gen" onclick="openExcelFilterMenu(event, 'driver_name')">
+              Driver Name <span class="filter-icon" data-key="driver_name">▼</span>
+            </th>
+            <th class="th-gen" onclick="openExcelFilterMenu(event, 'field_co')">
+              Field Co <span class="filter-icon" data-key="field_co">▼</span>
+            </th>
+            <th class="th-gen" onclick="openExcelFilterMenu(event, 'site_co')">
+              Site Co <span class="filter-icon" data-key="site_co">▼</span>
+            </th>
+
+            <th class="th-gen" onclick="openExcelFilterMenu(event, 'alt_nr')">
+              NR <span class="filter-icon" data-key="alt_nr">▼</span>
+            </th>
+            <th class="th-gen" onclick="openExcelFilterMenu(event, 'alt_ot')">
+              OT <span class="filter-icon" data-key="alt_ot">▼</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="virtualBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 🟢 Row Edit Modal -->
+    <div id="editModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header" id="editModalTitle">Edit Record</div>
+
+        <div style="margin-bottom: 12px; font-weight: bold; color: #1e40af;">Invoice & Bill Summary</div>
+        <div class="grid-3">
+          <div class="form-control"><label>Invoice No</label><input type="text" id="mdl_inv_no" /></div>
+          <div class="form-control"><label>Invoice Subtotal</label><input type="number" id="mdl_inv_amount" /></div>
+          <div class="form-control"><label>Bill No</label><input type="text" id="mdl_bill_no" /></div>
+          <div class="form-control"><label>Inv NR</label><input type="number" id="mdl_inv_nr" /></div>
+          <div class="form-control"><label>Inv OT</label><input type="number" id="mdl_inv_ot" /></div>
+        </div>
+
+        <div style="margin-bottom: 12px; font-weight: bold; color: #6b21a8;">Supplier & Driver</div>
+        <div class="grid-2">
+          <div class="form-control"><label>Supplier NR</label><input type="number" id="mdl_bill_db_nr" /></div>
+          <div class="form-control"><label>Supplier OT</label><input type="number" id="mdl_bill_db_ot" /></div>
+          <div class="form-control"><label>Driver OT</label><input type="number" id="mdl_driver_ot" /></div>
+          <div class="form-control"><label>Driver Amount</label><input type="number" id="mdl_driver_amount" /></div>
+        </div>
+
+        <div style="margin-bottom: 12px; font-weight: bold; color: #334155;">Extra Details & Notes</div>
+        <div class="grid-2">
+          <div class="form-control"><label>V.Bill Notes</label><textarea id="mdl_vbill_notes" rows="2"></textarea></div>
+          <div class="form-control"><label>Accounts Note</label><textarea id="mdl_accounts_note" rows="2"></textarea></div>
+          <div class="form-control"><label>PWAS</label><input type="text" id="mdl_pwas" /></div>
+          <div class="form-control"><label>ERP</label><input type="text" id="mdl_erp" /></div>
+          <div class="form-control"><label>Payment Status</label><input type="text" id="mdl_payment_status" /></div>
+          <div class="form-control" style="justify-content: center;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; color: #be123c;">
+              <input type="checkbox" id="mdl_diff_clear" style="width: 16px; height: 16px; cursor: pointer;" />
+              Mark Difference as Cleared
+            </label>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+          <button class="btn-save" onclick="saveRowEdits()">💾 Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+
+      let masterData = [];
+      let filteredData = [];
+      let headerFilters = {};
+      let sortConfig = null;
+      let currentFilterColInfo = { key: "" };
+      let specialRulesCache = [];
+
+      const ROW_HEIGHT = 30;
+      const BUFFER = 25;
+      const viewportEl = document.getElementById("viewport");
+      const tbodyEl = document.getElementById("virtualBody");
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const dDate = new Date();
+        const curM = months[dDate.getMonth()];
+        const curY = dDate.getFullYear();
+
+        document.getElementById("fromM").value = "January";
+        document.getElementById("fromY").value = 2026;
+        document.getElementById("toM").value = curM;
+        document.getElementById("toY").value = curY;
+
+        toggleLoadMode();
+      });
+
+      // 🟢 Toggle between Single Month & Batch Range Load Mode
+      function toggleLoadMode() {
+        const mode = document.getElementById("selMode").value;
+        const toGroup = document.getElementById("groupTo");
+        const lblFrom = document.getElementById("lblFrom");
+
+        if (mode === "single") {
+          toGroup.style.display = "none";
+          lblFrom.innerText = "Month:";
+        } else {
+          toGroup.style.display = "flex";
+          lblFrom.innerText = "From:";
+        }
+      }
+
+      function cleanPlate(p) {
+        return String(p || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      }
+
+      function safeDate(dStr, fallback) {
+        if (!dStr || String(dStr).trim() === "" || String(dStr).trim() === "-")
+          return new Date(fallback);
+        let parts = String(dStr).split("T")[0].split("-");
+        if (parts.length === 3) {
+          let yr = parseInt(parts[0], 10);
+          let mo = parseInt(parts[1], 10) - 1;
+          let dy = parseInt(parts[2], 10);
+          return new Date(yr, mo, dy, 0, 0, 0, 0);
+        }
+        let d = new Date(dStr);
+        if (isNaN(d.getTime())) return new Date(fallback);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+      }
+
+      function getDayName(dayNum, monthStr, year) {
+        const dateObj = new Date(`${monthStr} ${dayNum}, ${year}`);
+        return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dateObj.getDay()];
+      }
+
+      async function ensureSpecialRules() {
+        try {
+          const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+          const srRes = await fetch("/timesheet/api/special-rules", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          if (srRes.ok) {
+            const srData = await srRes.json();
+            if (srData.success) specialRulesCache = srData.data;
+          }
+        } catch (err) {
+          console.warn("Could not fetch special rules", err);
+        }
+      }
+
+      function processDataLogic(data, monthStr, yearStr) {
+        const mIdx = months.indexOf(monthStr);
+        const shortDate = monthStr.substring(0, 3) + " " + String(yearStr).substring(2, 4);
+        const monthStart = new Date(yearStr, mIdx, 1, 0, 0, 0, 0);
+        const monthEnd = new Date(yearStr, mIdx + 1, 0, 23, 59, 59, 999);
+        const daysInMonth = monthEnd.getDate();
+
+        let processedArray = [];
+
+        (data.vehicles || []).forEach((v) => {
+          let originalPlate = String(v.plate_no || "").trim();
+          let pClean = cleanPlate(originalPlate);
+          let defaultSite = (v.site_name || "N/A").trim();
+          let vehicle_type = v.vehicle_type || "-";
+
+          if (!pClean) return;
+
+          let vOwners = (data.owners || []).filter((o) => cleanPlate(o.plate_no) === pClean);
+          let activeOwners = vOwners.filter((o) => {
+            let st = safeDate(o.work_start_date, "2000-01-01");
+            let ed = safeDate(o.work_end_date, "2099-01-01");
+            st.setHours(0, 0, 0, 0);
+            ed.setHours(23, 59, 59, 999);
+            return st <= monthEnd && ed >= monthStart;
+          });
+
+          if (activeOwners.length === 0 && vOwners.length > 0) {
+            activeOwners = vOwners.filter((o) => o.status === "Running");
+            if (activeOwners.length === 0) {
+              activeOwners = [[...vOwners].sort((a, b) => safeDate(b.work_start_date || "2000-01-01") - safeDate(a.work_start_date || "2000-01-01"))[0]];
+            }
+          }
+
+          let owner = activeOwners.length > 0 ? activeOwners[0].owner_name || v.owner_name || "N/A" : v.owner_name || "N/A";
+          let vat = activeOwners.length > 0 ? activeOwners[0].vat || v.vat || "No" : v.vat || "No";
+
+          let vSites = (data.sites || []).filter((s) => cleanPlate(s.plate_no) === pClean);
+          let strictlyActiveSites = vSites.filter((s) => {
+            let st = safeDate(s.work_start_date, "2000-01-01");
+            let ed = safeDate(s.work_end_date, "2099-01-01");
+            st.setHours(0, 0, 0, 0);
+            ed.setHours(23, 59, 59, 999);
+            return st <= monthEnd && ed >= monthStart;
+          });
+
+          let vTimesheets = (data.timesheets || []).filter((ts) => cleanPlate(ts.plate_no) === pClean);
+          let vInvoices = (data.invoices || []).filter((i) => cleanPlate(i.plate_no) === pClean);
+          let vDrivers = (data.drivers || []).filter((d) => cleanPlate(d.plate_no) === pClean);
+          let vRates = (data.rates || []).filter((r) => cleanPlate(r.plate_no) === pClean);
+
+          let hasMonthTimesheetActivity = vTimesheets.some((ts) => {
+            let tm = parseFloat(ts.calc_time) || 0;
+            let bd = String(ts.bd || "").trim().toUpperCase();
+            let wrkStart = String(ts.wrk_start || "").trim();
+            return tm > 0 || bd !== "" || wrkStart !== "";
+          });
+
+          if (strictlyActiveSites.length === 0 && !hasMonthTimesheetActivity) return;
+
+          let activeSites = strictlyActiveSites;
+          if (activeSites.length === 0 && hasMonthTimesheetActivity) {
+            let endedPastSites = vSites.filter((s) => {
+              if (!s.work_end_date) return false;
+              let ed = safeDate(s.work_end_date, "2099-01-01");
+              return ed <= monthEnd;
+            });
+
+            let lastSiteLog = [...endedPastSites].sort((a, b) => safeDate(b.work_end_date || "2000-01-01") - safeDate(a.work_end_date || "2000-01-01"))[0];
+            let naLabel = "N/A";
+            let statusType = "";
+            if (lastSiteLog && lastSiteLog.site_name) {
+              let prevSite = lastSiteLog.site_name.trim();
+              let lastDateStr = "";
+              if (lastSiteLog.work_end_date) {
+                let d = safeDate(lastSiteLog.work_end_date, "");
+                if (!isNaN(d.getTime())) {
+                  let dy = String(d.getDate()).padStart(2, "0");
+                  let mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  lastDateStr = ` - ${dy}-${mNames[d.getMonth()]}-${d.getFullYear()}`;
+                }
+              }
+              naLabel = `Prev: ${prevSite}${lastDateStr}`;
+              statusType = String(lastSiteLog.status || "").trim().toLowerCase();
+            }
+
+            activeSites = [{
+              site_name: naLabel,
+              work_start_date: monthStart.toISOString().split("T")[0],
+              work_end_date: monthEnd.toISOString().split("T")[0],
+              rate: lastSiteLog ? lastSiteLog.rate || "-" : "-",
+              field_co: lastSiteLog ? lastSiteLog.field_co || "-" : "-",
+              site_co: lastSiteLog ? lastSiteLog.site_co || "-" : "-",
+              vehicle_type: lastSiteLog && lastSiteLog.vehicle_type ? lastSiteLog.vehicle_type : vehicle_type,
+              siteStatusType: statusType,
+            }];
+          }
+
+          let siteDataMap = {};
+          activeSites.forEach((s) => {
+            let sName = (s.site_name || "N/A").trim();
+            let siteStart = safeDate(s.work_start_date, "2000-01-01");
+            let siteEnd = safeDate(s.work_end_date, "2099-01-01");
+            let overlapStart = new Date(Math.max(monthStart, siteStart));
+            let overlapEnd = new Date(Math.min(monthEnd, siteEnd));
+
+            let matchedRates = vRates.filter((r) => {
+              let rSite = (r.site_name || "").trim().toUpperCase();
+              let curSite = sName.toUpperCase();
+              if (rSite !== curSite && rSite !== "ALL") return false;
+              let rStart = safeDate(r.work_start_date, "2000-01-01");
+              let rEnd = safeDate(r.work_end_date, "2099-01-01");
+              return rStart <= overlapEnd && rEnd >= overlapStart;
+            });
+
+            let finalRate = s.rate || "-";
+            if (matchedRates.length > 0) {
+              finalRate = matchedRates[0].rate || finalRate;
+            }
+
+            let activeDrivers = [];
+            vDrivers.forEach((d) => {
+              let dStart = safeDate(d.work_start_date, "2000-01-01");
+              let dEnd = safeDate(d.work_end_date, "2099-01-01");
+              if (dStart <= overlapEnd && dEnd >= overlapStart) {
+                if (d.driver_name && d.driver_name.trim() !== "" && d.driver_name.trim() !== "-") {
+                  activeDrivers.push(d.driver_name.trim());
+                }
+              }
+            });
+
+            let uniqueDrivers = [...new Set(activeDrivers)];
+            let driverString = uniqueDrivers.length > 0 ? uniqueDrivers.join(" / ") : "-";
+
+            function formatRateValue(rateVal) {
+              if (!rateVal || rateVal === "-") return "-";
+              let num = parseFloat(rateVal);
+              if (isNaN(num)) return rateVal;
+              return num % 1 !== 0 ? num.toFixed(2) : num.toString();
+            }
+
+            if (!siteDataMap[sName]) {
+              siteDataMap[sName] = {
+                ts_nr: 0,
+                ts_ot: 0,
+                ts_31st_shift: 0,
+                rate: formatRateValue(finalRate),
+                driver_name: driverString,
+                field_co: s.field_co || "-",
+                site_co: s.site_co || "-",
+                vehicle_type: s.vehicle_type && s.vehicle_type.trim() !== "" && s.vehicle_type !== "-" ? s.vehicle_type : vehicle_type,
+              };
+            }
+          });
+
+          function getPreviousSiteBeforeDate(targetDate) {
+            let endedBeforeDate = vSites.filter((s) => {
+              if (!s.work_end_date) return false;
+              let ed = safeDate(s.work_end_date, "2099-01-01");
+              ed.setHours(23, 59, 59, 999);
+              return ed < targetDate;
+            });
+
+            let lastSiteLog = [...endedBeforeDate].sort((a, b) => safeDate(b.work_end_date || "2000-01-01") - safeDate(a.work_end_date || "2000-01-01"))[0];
+            if (lastSiteLog && lastSiteLog.site_name) {
+              let prevSite = lastSiteLog.site_name.trim();
+              let lastDateStr = "";
+              if (lastSiteLog.work_end_date) {
+                let d = safeDate(lastSiteLog.work_end_date, "");
+                if (!isNaN(d.getTime())) {
+                  let dy = String(d.getDate()).padStart(2, "0");
+                  let mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  lastDateStr = ` - ${dy}-${mNames[d.getMonth()]}-${d.getFullYear()}`;
+                }
+              }
+              return { name: `Prev: ${prevSite}${lastDateStr}`, log: lastSiteLog };
+            }
+            return { name: "N/A", log: null };
+          }
+
+          for (let i = 1; i <= daysInMonth; i++) {
+            let checkDate = new Date(yearStr, mIdx, i, 0, 0, 0, 0);
+            let currentSite = "N/A";
+
+            if (vSites.length === 0) {
+              currentSite = defaultSite;
+            } else {
+              for (let s of activeSites) {
+                let st = safeDate(s.work_start_date, "2000-01-01");
+                let ed = safeDate(s.work_end_date, "2099-01-01");
+                st.setHours(0, 0, 0, 0);
+                ed.setHours(23, 59, 59, 999);
+                if (checkDate >= st && checkDate <= ed) {
+                  currentSite = (s.site_name || "N/A").trim();
+                  break;
+                }
+              }
+            }
+
+            if (currentSite === "N/A") {
+              let prevInfo = getPreviousSiteBeforeDate(checkDate);
+              currentSite = prevInfo.name;
+              if (!siteDataMap[currentSite]) {
+                let lastLog = prevInfo.log;
+                siteDataMap[currentSite] = {
+                  ts_nr: 0,
+                  ts_ot: 0,
+                  ts_31st_shift: 0,
+                  rate: lastLog ? lastLog.rate || "-" : "-",
+                  driver_name: lastLog ? lastLog.driver_name || "-" : "-",
+                  field_co: lastLog ? lastLog.field_co || "-" : "-",
+                  site_co: lastLog ? lastLog.site_co || "-" : "-",
+                  displayName: currentSite,
+                  siteStatusType: lastLog ? String(lastLog.status || "").trim().toLowerCase() : "",
+                  vehicle_type: lastLog && lastLog.vehicle_type ? lastLog.vehicle_type : vehicle_type,
+                };
+              }
+            }
+
+            let formattedDate = checkDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, " ");
+            let siteForRule = currentSite.split("&")[0].trim().toUpperCase();
+            let specialRule = specialRulesCache.find((r) => r.is_active && (r.sites.includes("ALL") || r.sites.includes(siteForRule)) && r.dates.includes(formattedDate));
+
+            let ts = vTimesheets.find((r) => parseInt(r.record_date) === i);
+            let tm = ts ? parseFloat(ts.calc_time) || 0 : 0;
+            let bd = ts ? String(ts.bd || "").trim().toUpperCase() : "";
+            let hasData = tm > 0 || bd !== "" || (ts && ts.wrk_start);
+
+            if (!hasData && specialRule && specialRule.rule_type !== "FULL_OT") {
+              bd = specialRule.rule_type;
+              hasData = true;
+            }
+
+            if (!hasData) continue;
+
+            let dayName = getDayName(i, monthStr, yearStr);
+            let isFullOT = dayName === "Fri" || i === 31;
+            if (specialRule && specialRule.rule_type === "FULL_OT") isFullOT = true;
+
+            let nHr = 0, otHr = 0;
+            if (bd === "ID" || bd === "NP") {
+              if (isFullOT) otHr = 10;
+              else nHr = 10;
+            } else if (bd === "B" || bd === "H") {
+              nHr = 0; otHr = 0;
+            } else if (tm > 0) {
+              if (isFullOT) otHr = tm;
+              else {
+                if (tm > 10) { nHr = 10; otHr = tm - 10; }
+                else nHr = tm;
+              }
+            }
+
+            if (!siteDataMap[currentSite]) {
+              siteDataMap[currentSite] = { ts_nr: 0, ts_ot: 0, ts_31st_shift: 0 };
+            }
+            siteDataMap[currentSite].ts_nr += nHr;
+            siteDataMap[currentSite].ts_ot += otHr;
+
+            if (i === 31 && dayName !== "Fri") {
+              let shiftToNr = 0;
+              if (bd === "ID" || bd === "NP") shiftToNr = 10;
+              else if (tm > 0) shiftToNr = tm > 10 ? 10 : tm;
+              siteDataMap[currentSite].ts_31st_shift += shiftToNr;
+            }
+          }
+
+          Object.keys(siteDataMap).forEach((sName) => {
+            let ts_nr = siteDataMap[sName].ts_nr;
+            let ts_ot = siteDataMap[sName].ts_ot;
+            let displaySiteName = siteDataMap[sName].displayName || sName;
+
+            let relatedCleanPlates = [pClean];
+            (data.plateChanges || []).forEach((pl) => {
+              let oP = cleanPlate(pl.old_plate_no);
+              let nP = cleanPlate(pl.new_plate_no);
+              if (oP === pClean && !relatedCleanPlates.includes(nP)) relatedCleanPlates.push(nP);
+              if (nP === pClean && !relatedCleanPlates.includes(oP)) relatedCleanPlates.push(oP);
+            });
+
+            let vInvoices = (data.invoices || []).filter((i) => {
+              let rawP = String(i.plate_no || "").toUpperCase();
+              let pParts = rawP.split(/➔|→|->/).map((p) => cleanPlate(p)).filter(Boolean);
+              return pParts.some((cp) => relatedCleanPlates.includes(cp)) || relatedCleanPlates.includes(cleanPlate(rawP));
+            });
+
+            let sortedBilling = [...(data.billing || [])].sort((a, b) => (b.id || 0) - (a.id || 0));
+            function matchPlateWithAliases(targetPlate) {
+              let raw = String(targetPlate || "").toUpperCase();
+              let parts = raw.split(/➔|→|->/).map((p) => cleanPlate(p)).filter(Boolean);
+              return parts.some((cp) => relatedCleanPlates.includes(cp)) || relatedCleanPlates.includes(cleanPlate(raw));
+            }
+
+            let billData = sortedBilling.find((b) => matchPlateWithAliases(b.plate_no) && (b.site_name || "").trim() === sName);
+            if (!billData && sName !== "N/A") {
+              billData = sortedBilling.find((b) => matchPlateWithAliases(b.plate_no) && (!b.site_name || b.site_name === "N/A"));
+            }
+
+            let bill_db_nr = billData ? parseFloat(billData.nhr) || 0 : 0;
+            let bill_db_ot = billData ? parseFloat(billData.othr) || 0 : 0;
+            let driver_ot = billData ? parseFloat(billData.driver_ot) || 0 : 0;
+            let driver_amount = billData ? parseFloat(billData.driver_amount) || 0 : 0;
+            let bill_nrate = billData ? parseFloat(billData.nrate) || 0 : 0;
+            let bill_otrate = billData ? parseFloat(billData.otrate) || 0 : 0;
+            let bill_rent = billData ? parseFloat(billData.rent) || 0 : 0;
+            let rent_vat = billData ? parseFloat(billData.vat_amount) || 0 : 0;
+            let rent_total = billData ? parseFloat(billData.total) || 0 : 0;
+
+            let totalTsHrs = (parseFloat(ts_nr) || 0) + (parseFloat(ts_ot) || 0);
+            if ((sName === "N/A" || displaySiteName.startsWith("Prev:")) && totalTsHrs === 0) return;
+
+            let invData = vInvoices.find((i) => (i.site_name || "").trim() === sName);
+            if (!invData && sName !== "N/A") {
+              invData = vInvoices.find((i) => !i.site_name || i.site_name === "N/A");
+            }
+
+            let inv_nr_raw = invData ? invData.bill_nr : null;
+            let inv_nr = inv_nr_raw !== null && inv_nr_raw !== "" ? parseFloat(inv_nr_raw) : "";
+            let inv_ot_raw = invData ? invData.bill_ot : null;
+            let inv_ot = inv_ot_raw !== null && inv_ot_raw !== "" ? parseFloat(inv_ot_raw) : "";
+            let inv_no = invData ? invData.invoice_no || "" : "";
+            let bill_no = invData ? invData.bill_no || "" : "";
+            let accounts_note = invData ? invData.accounts_note || "" : "";
+            let pwas = invData ? invData.pwas || "" : "";
+            let erp = invData ? invData.erp || "" : "";
+            let payment_status = invData ? invData.payment_status || "" : "";
+            let diff_clear = invData ? invData.diff_clear || "No" : "No";
+            let vbill_notes = billData && billData.remark ? billData.remark : "";
+            let inv_amount = invData ? parseFloat(invData.invoice_amount) || 0 : 0;
+
+            let calc_ts_nr = parseFloat(ts_nr) || 0;
+            let calc_ts_ot = parseFloat(ts_ot) || 0;
+            let calc_inv_nr = parseFloat(inv_nr) || 0;
+            let calc_inv_ot = parseFloat(inv_ot) || 0;
+
+            let diff_nr = "", diff_ot = "", diff_st = "";
+            let sNameUpper = sName.toUpperCase();
+
+            if (!sNameUpper.startsWith("Z")) {
+              let virtual_ts_nr = calc_ts_nr;
+              let virtual_ts_ot = calc_ts_ot;
+
+              if (sNameUpper.includes("L&T") || sNameUpper.includes("L & T")) {
+                if (daysInMonth === 31) {
+                  let nonFridayDays = 0;
+                  for (let d = 1; d <= 31; d++) {
+                    if (getDayName(d, monthStr, yearStr) !== "Fri") nonFridayDays++;
+                  }
+                  if (nonFridayDays < 27) {
+                    let shift_amt = siteDataMap[sName].ts_31st_shift || 0;
+                    let maxPossibleShift = Math.max(0, 260 - virtual_ts_nr);
+                    let actualShift = Math.min(shift_amt, maxPossibleShift);
+                    virtual_ts_nr += actualShift;
+                    virtual_ts_ot -= actualShift;
+                  }
+                }
+              }
+
+              if (calc_inv_nr > 0 || calc_inv_ot > 0) {
+                let diff_nr_val = virtual_ts_nr - calc_inv_nr;
+                if (diff_nr_val > 0) diff_nr = diff_nr_val.toString();
+                let diff_ot_val = virtual_ts_ot - calc_inv_ot;
+                if (diff_ot_val > 0) diff_ot = diff_ot_val.toString();
+
+                if (diff_nr !== "" && diff_ot !== "") diff_st = "NR & OT";
+                else if (diff_nr !== "") diff_st = "NR";
+                else if (diff_ot !== "") diff_st = "OT";
+              }
+            }
+
+            if (diff_clear === "Yes") {
+              diff_nr = ""; diff_ot = ""; diff_st = "";
+            }
+
+            let effectivePlate = originalPlate;
+            let vPlateLogs = (data.plateChanges || []).filter((pl) => {
+              let oP = cleanPlate(pl.old_plate_no);
+              let nP = cleanPlate(pl.new_plate_no);
+              return oP === pClean || nP === pClean;
+            });
+
+            if (vPlateLogs.length > 0) {
+              for (let pl of vPlateLogs) {
+                if (!pl.change_date) continue;
+                let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+                let cDate = new Date(cYear, cMonth - 1, cDay);
+                let curMonthStart = new Date(parseInt(yearStr), mIdx, 1, 0, 0, 0, 0);
+                let curMonthEnd = new Date(parseInt(yearStr), mIdx + 1, 0, 23, 59, 59, 999);
+
+                if (cYear === parseInt(yearStr) && cMonth - 1 === mIdx) {
+                  effectivePlate = `${pl.old_plate_no} ➔ ${pl.new_plate_no}`;
+                } else if (curMonthEnd < cDate) {
+                  effectivePlate = pl.old_plate_no;
+                } else if (curMonthStart >= cDate) {
+                  effectivePlate = pl.new_plate_no;
+                }
+              }
+            }
+
+            let display_inv_nr = inv_nr_raw !== null && inv_nr_raw !== "" ? calc_inv_nr.toString() : "";
+            let display_inv_ot = calc_inv_nr > 0 || calc_inv_ot > 0 ? calc_inv_ot.toString() : "";
+
+            processedArray.push({
+              report_date: shortDate,
+              raw_month: monthStr,
+              raw_year: yearStr,
+              plate: effectivePlate,
+              master_plate: originalPlate,
+              owner,
+              vat,
+              site: displaySiteName,
+              site_status: siteDataMap[sName].siteStatusType || "",
+              rate: siteDataMap[sName].rate,
+              ts_nr: calc_ts_nr.toString(),
+              ts_ot: calc_ts_ot > 0 ? calc_ts_ot.toString() : "",
+              inv_nr: display_inv_nr,
+              inv_ot: display_inv_ot,
+              bill_db_nr: bill_db_nr > 0 ? bill_db_nr.toString() : "",
+              bill_db_ot: bill_db_ot > 0 ? bill_db_ot.toString() : "",
+              driver_ot: driver_ot > 0 ? driver_ot.toString() : "",
+              driver_amount: driver_amount !== 0 ? driver_amount.toFixed(2) : "",
+              bill_nrate: bill_nrate > 0 ? parseFloat(bill_nrate).toFixed(2) : "",
+              bill_otrate: bill_otrate > 0 ? parseFloat(bill_otrate).toFixed(2) : "",
+              bill_rent: bill_rent > 0 ? bill_rent.toFixed(2) : "",
+              rent_vat: rent_vat > 0 ? rent_vat.toFixed(2) : "",
+              rent_total: rent_total > 0 ? rent_total.toFixed(2) : "",
+              inv_subtotal: inv_amount > 0 ? inv_amount.toFixed(2) : "",
+              inv_total: inv_amount > 0 ? (inv_amount * 1.15).toFixed(2) : "",
+              diff_nr,
+              diff_ot,
+              diff_st,
+              diff_clear,
+              inv_no,
+              bill_no,
+              vbill_notes: vbill_notes || "-",
+              pwas: pwas || "-",
+              erp: erp || "-",
+              payment_status: payment_status || "-",
+              accounts_note: accounts_note || "-",
+              driver_name: siteDataMap[sName].driver_name,
+              vehicle_type: siteDataMap[sName].vehicle_type || vehicle_type,
+              field_co: siteDataMap[sName].field_co,
+              site_co: siteDataMap[sName].site_co,
+              alt_nr: (() => {
+                if (daysInMonth !== 31) return calc_ts_nr;
+                let nonFridayDays = 0;
+                for (let d = 1; d <= 31; d++) {
+                  if (getDayName(d, monthStr, yearStr) !== "Fri") nonFridayDays++;
+                }
+                if (nonFridayDays >= 27) return calc_ts_nr;
+                let shift = siteDataMap[sName].ts_31st_shift || 0;
+                let maxShift = Math.max(0, 260 - calc_ts_nr);
+                let actualShift = Math.min(shift, maxShift);
+                return calc_ts_nr + actualShift;
+              })(),
+              alt_ot: (() => {
+                if (daysInMonth !== 31) return calc_ts_ot;
+                let nonFridayDays = 0;
+                for (let d = 1; d <= 31; d++) {
+                  if (getDayName(d, monthStr, yearStr) !== "Fri") nonFridayDays++;
+                }
+                if (nonFridayDays >= 27) return calc_ts_ot;
+                let shift = siteDataMap[sName].ts_31st_shift || 0;
+                let maxShift = Math.max(0, 260 - calc_ts_nr);
+                let actualShift = Math.min(shift, maxShift);
+                return calc_ts_ot >= actualShift ? calc_ts_ot - actualShift : 0;
+              })(),
+            });
+          });
+        });
+
+        function getSiteBaseAndRank(site) {
+          let s = (site || "").toUpperCase();
+          let rank = 1;
+          if (s.includes("HAKA")) rank = 2;
+          else if (s.includes("ALJODA") || s.includes("AL JODA")) rank = 3;
+          else if (s.includes("MASAR")) rank = 4;
+          else if (s.includes("WE1")) rank = 5;
+
+          let base = s.replace(/HAKA|ALJODA|AL\sJODA|MASAR\s*WHEELS|MASAR|WE1/g, "").replace(/\s+/g, " ").trim();
+          return { base, rank };
+        }
+
+        processedArray.sort((a, b) => {
+          let infoA = getSiteBaseAndRank(a.site);
+          let infoB = getSiteBaseAndRank(b.site);
+          let baseCompare = infoA.base.localeCompare(infoB.base);
+          if (baseCompare !== 0) return baseCompare;
+          if (infoA.rank !== infoB.rank) return infoA.rank - infoB.rank;
+          return (a.plate || "").localeCompare(b.plate || "");
+        });
+
+        return processedArray;
+      }
+
+      async function fetchBatchReportDataAPI(monthQueries) {
+        const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+        try {
+          const res = await fetch("/payment/master-report-data-batch", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              months: monthQueries.map((query) => ({
+                month: query.m,
+                year: Number(query.y),
+              })),
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || "Failed to load batch data");
+          }
+
+          return monthQueries.map((query) => {
+            const fullMonth = `${query.m} ${query.y}`;
+            const monthData = {
+              ...data,
+              timesheets: (data.timesheets || []).filter(
+                (row) => row.month === query.m && String(row.year) === String(query.y)
+              ),
+              invoices: (data.invoices || []).filter((row) => row.month === fullMonth),
+              billing: (data.billing || []).filter((row) => row.billing_month === fullMonth),
+            };
+            return processDataLogic(monthData, query.m, query.y);
+          });
+        } catch (error) {
+          console.error(error);
+          return monthQueries.map(() => []);
+        }
+      }
+
+      async function loadVirtualBatchData() {
+        const mode = document.getElementById("selMode").value;
+        const fromM = document.getElementById("fromM").value;
+        const fromY = document.getElementById("fromY").value;
+
+        let monthQueries = [];
+
+        if (mode === "single") {
+          monthQueries.push({ m: fromM, y: fromY });
+        } else {
+          const toM = document.getElementById("toM").value;
+          const toY = document.getElementById("toY").value;
+
+          let start = new Date(fromY, months.indexOf(fromM), 1);
+          let end = new Date(toY, months.indexOf(toM), 1);
+
+          if (start > end) {
+            alert("Invalid date range selected.");
+            return;
+          }
+
+          let current = new Date(start);
+          while (current <= end) {
+            monthQueries.push({
+              m: months[current.getMonth()],
+              y: current.getFullYear(),
+            });
+            current.setMonth(current.getMonth() + 1);
+          }
+        }
+
+        const loader = document.getElementById("loader");
+        loader.style.display = "block";
+        await ensureSpecialRules();
+
+        // Reset previous filters
+        headerFilters = {};
+        document.querySelectorAll(".filter-icon").forEach((el) => el.classList.remove("filter-active"));
+
+        const totalMonths = monthQueries.length;
+        const chunkSize = 3;
+        masterData = [];
+
+        for (let i = 0; i < totalMonths; i += chunkSize) {
+          const chunk = monthQueries.slice(i, i + chunkSize);
+          const chunkLabels = chunk.map((c) => `${c.m.substring(0, 3)} ${c.y}`).join(", ");
+          const percent = Math.round((i / totalMonths) * 100);
+
+          loader.innerHTML = `⏳ Loading [${i + 1}/${totalMonths}]: <b>${chunkLabels}</b> (${percent}%) ...`;
+          await new Promise((r) => setTimeout(r, 40));
+
+          const chunkRes = await fetchBatchReportDataAPI(chunk);
+          chunkRes.forEach((resArr) => {
+            if (resArr && resArr.length > 0) {
+              masterData.push(...resArr);
+            }
+          });
+        }
+
+        loader.innerHTML = `⚡ Finalizing Virtual Viewport...`;
+        await new Promise((r) => setTimeout(r, 30));
+
+        filterData();
+        loader.style.display = "none";
+        viewportEl.scrollTop = 0;
+      }
+
+      // 🟢 Filter Data (Combines Search Input + Header Column Filters + Sorting)
+      function filterData() {
+        const keyword = document.getElementById("searchInput").value.trim().toUpperCase();
+
+        filteredData = masterData.filter((row) => {
+          let matchKeyword =
+            keyword === "" ||
+            (row.plate && row.plate.toUpperCase().includes(keyword)) ||
+            (row.owner && row.owner.toUpperCase().includes(keyword)) ||
+            (row.site && row.site.toUpperCase().includes(keyword)) ||
+            (row.inv_no && row.inv_no.toUpperCase().includes(keyword)) ||
+            (row.bill_no && row.bill_no.toUpperCase().includes(keyword));
+
+          let passesHeaders = true;
+          for (const key in headerFilters) {
+            if (headerFilters[key] && headerFilters[key].length > 0) {
+              const cellVal = String(row[key] !== undefined && row[key] !== null ? row[key] : "");
+              if (!headerFilters[key].includes(cellVal)) {
+                passesHeaders = false;
+                break;
+              }
+            }
+          }
+          return matchKeyword && passesHeaders;
+        });
+
+        if (sortConfig) {
+          filteredData.sort((a, b) => {
+            let valA = String(a[sortConfig.key] || "").toLowerCase();
+            let valB = String(b[sortConfig.key] || "").toLowerCase();
+            let numA = parseFloat(valA);
+            let numB = parseFloat(valB);
+            if (!isNaN(numA) && !isNaN(numB) && valA.match(/^[\d.]+$/) && valB.match(/^[\d.]+$/)) {
+              return sortConfig.dir === "asc" ? numA - numB : numB - numA;
+            }
+            if (valA < valB) return sortConfig.dir === "asc" ? -1 : 1;
+            if (valA > valB) return sortConfig.dir === "asc" ? 1 : -1;
+            return 0;
+          });
+        }
+
+        document.getElementById("statsInfo").innerText = `${filteredData.length} Rows`;
+        renderVirtualViewport();
+      }
+
+      function handleScroll() {
+        window.requestAnimationFrame(renderVirtualViewport);
+      }
+
+      function renderVirtualViewport() {
+        const scrollTop = viewportEl.scrollTop;
+        const viewportHeight = viewportEl.clientHeight;
+        const totalRows = filteredData.length;
+
+        let startIndex = Math.floor(scrollTop / ROW_HEIGHT) - BUFFER;
+        startIndex = Math.max(0, startIndex);
+
+        let visibleCount = Math.ceil(viewportHeight / ROW_HEIGHT) + BUFFER * 2;
+        let endIndex = Math.min(totalRows, startIndex + visibleCount);
+
+        const topPadding = startIndex * ROW_HEIGHT;
+        const bottomPadding = (totalRows - endIndex) * ROW_HEIGHT;
+
+        let html = "";
+
+        if (topPadding > 0) {
+          html += `<tr style="height: ${topPadding}px;"><td colspan="38" style="border: none; padding: 0;"></td></tr>`;
+        }
+
+        for (let i = startIndex; i < endIndex; i++) {
+          const row = filteredData[i];
+          const isVatYes = row.vat && row.vat.toLowerCase().includes("yes");
+          const vatDisplay = isVatYes ? "Yes" : "";
+          const vatStyle = isVatYes ? "background-color: #fef08a; color: #854d0e; font-weight: 700;" : "";
+
+          html += `
+            <tr ondblclick="openRowEditModal(${i})" title="Double-click to Edit this Row">
+              <td style="font-weight: 600; text-align: center; color: #b91c1c; font-size: 11px;">${row.report_date}</td>
+              <td style="font-weight: 600; text-align: left; padding-left: 8px; color: ${row.site.startsWith('Prev:') ? (row.site_status.includes('replace') ? '#ea580c' : '#dc2626') : 'inherit'};">${row.site}</td>
+              <td style="font-weight: 700; color: #0f172a;">${row.rate}</td>
+              <td style="${vatStyle}">${vatDisplay}</td>
+              <td style="text-align: left; padding-left: 6px;">${row.owner}</td>
+              <td>${row.vehicle_type}</td>
+              <td style="font-weight: 700;">${row.plate}</td>
+              <td>${row.ts_nr}</td>
+              <td>${row.ts_ot}</td>
+              <td>${row.inv_nr}</td>
+              <td>${row.inv_ot}</td>
+              <td style="color: #6b21a8; font-weight: 500;">${row.bill_db_nr}</td>
+              <td style="color: #6b21a8; font-weight: 500;">${row.bill_db_ot}</td>
+              <td style="color: #854d0e; font-weight: 600;">${row.driver_ot}</td>
+              <td style="color: #854d0e; font-weight: 600;">${row.driver_amount}</td>
+              <td style="color: #be123c; font-weight: 700;">${row.diff_nr}</td>
+              <td style="color: #be123c; font-weight: 700;">${row.diff_ot}</td>
+              <td style="font-weight: bold; color: #be123c;">${row.diff_st}</td>
+              <td>${row.diff_clear}</td>
+              <td style="text-align: left; color: #1e40af; font-weight: 500;">${row.vbill_notes}</td>
+              <td>${row.bill_nrate}</td>
+              <td>${row.bill_otrate}</td>
+              <td style="font-weight: 700;">${row.bill_rent ? Number(row.bill_rent).toFixed(2) : ""}</td>
+              <td style="font-weight: 700;">${row.rent_vat ? Number(row.rent_vat).toFixed(2) : ""}</td>
+              <td style="font-weight: 700;">${row.rent_total ? Number(row.rent_total).toFixed(2) : ""}</td>
+              <td style="font-weight: 700; color: #0f172a;">${row.inv_subtotal ? Number(row.inv_subtotal).toFixed(2) : ""}</td>
+              <td style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
+              <td style="color: #1e40af; font-weight: 600;">${row.inv_no}</td>
+              <td>${row.bill_no}</td>
+              <td>${row.pwas}</td>
+              <td>${row.erp}</td>
+              <td>${row.payment_status}</td>
+              <td>${row.accounts_note}</td>
+              <td>${row.driver_name}</td>
+              <td>${row.field_co}</td>
+              <td>${row.site_co}</td>
+              <td style="font-weight: 600; color: #166534;">${row.alt_nr}</td>
+              <td style="font-weight: 600; color: #166534;">${row.alt_ot > 0 ? row.alt_ot : ""}</td>
+            </tr>
+          `;
+        }
+
+        if (bottomPadding > 0) {
+          html += `<tr style="height: ${bottomPadding}px;"><td colspan="38" style="border: none; padding: 0;"></td></tr>`;
+        }
+
+        tbodyEl.innerHTML = html;
+      }
+
+      // 🟢 Excel Header Filter Menu Logic
+      function openExcelFilterMenu(event, key) {
+        event.stopPropagation();
+        currentFilterColInfo = { key };
+        const menu = document.getElementById("excelFilterMenu");
+        const listContainer = document.getElementById("filterChecklist");
+        listContainer.innerHTML = "";
+
+        let allOptions = new Set();
+        masterData.forEach((row) => {
+          let val = row[key] !== undefined && row[key] !== null ? String(row[key]) : "";
+          allOptions.add(val);
+        });
+
+        let allDataArr = Array.from(allOptions).sort((a, b) =>
+          a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" })
+        );
+
+        let previouslySelected = headerFilters[key] || [];
+        let isAllSelected = previouslySelected.length === 0;
+
+        document.getElementById("filterSelectAll").checked = isAllSelected;
+
+        allDataArr.forEach((val) => {
+          let displayVal = val === "" ? "(Blank)" : val;
+          let isChecked = isAllSelected || previouslySelected.includes(val);
+          let id = "flt_" + Math.random().toString(36).substr(2, 9);
+          listContainer.insertAdjacentHTML(
+            "beforeend",
+            `<div class="filter-item filter-row-item">
+              <input type="checkbox" id="${id}" value="${val.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} class="col-filter-cb" />
+              <label for="${id}">${displayVal}</label>
+            </div>`
+          );
+        });
+
+        let thRect = event.currentTarget.getBoundingClientRect();
+        menu.style.top = thRect.bottom + window.scrollY + 2 + "px";
+        menu.style.left = Math.min(thRect.left + window.scrollX, window.innerWidth - 240) + "px";
+        menu.style.display = "block";
+        document.getElementById("filterSearchInput").value = "";
+        document.getElementById("filterSearchInput").focus();
+      }
+
+      function closeExcelFilter() {
+        document.getElementById("excelFilterMenu").style.display = "none";
+      }
+
+      function applySort(dir) {
+        sortConfig = { key: currentFilterColInfo.key, dir };
+        closeExcelFilter();
+        filterData();
+      }
+
+      function applyExcelFilter() {
+        let selectedValues = [];
+        let totalVisible = 0;
+        let checkedCount = 0;
+
+        document.querySelectorAll(".col-filter-cb").forEach((cb) => {
+          totalVisible++;
+          if (cb.checked) {
+            selectedValues.push(cb.value);
+            checkedCount++;
+          }
+        });
+
+        const key = currentFilterColInfo.key;
+        const icon = document.querySelector(`.filter-icon[data-key="${key}"]`);
+
+        if (checkedCount === totalVisible || checkedCount === 0) {
+          delete headerFilters[key];
+          if (icon) icon.classList.remove("filter-active");
+        } else {
+          headerFilters[key] = selectedValues;
+          if (icon) icon.classList.add("filter-active");
+        }
+
+        closeExcelFilter();
+        viewportEl.scrollTop = 0;
+        filterData();
+      }
+
+      document.getElementById("filterSelectAll")?.addEventListener("change", function () {
+        let isChecked = this.checked;
+        document.querySelectorAll(".col-filter-cb").forEach((cb) => {
+          if (cb.parentElement.style.display !== "none") cb.checked = isChecked;
+        });
+      });
+
+      document.getElementById("filterSearchInput")?.addEventListener("keyup", function () {
+        let keyword = this.value.toLowerCase();
+        document.querySelectorAll(".filter-row-item").forEach((item) => {
+          if (item.textContent.toLowerCase().includes(keyword)) item.style.display = "";
+          else item.style.display = "none";
+        });
+      });
+
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest(".excel-filter-menu") && !e.target.closest("th")) {
+          closeExcelFilter();
+        }
+      });
+
+      // 🟢 Modal Editing Logic
+      let editingRowIndex = -1;
+
+      function openRowEditModal(index) {
+        editingRowIndex = index;
+        const row = filteredData[index];
+
+        document.getElementById("editModalTitle").innerText = `Edit: ${row.plate} | ${row.site} | ${row.report_date}`;
+
+        document.getElementById("mdl_inv_no").value = row.inv_no || "";
+        document.getElementById("mdl_inv_amount").value = row.inv_subtotal || "";
+        document.getElementById("mdl_bill_no").value = row.bill_no || "";
+        document.getElementById("mdl_inv_nr").value = row.inv_nr || "";
+        document.getElementById("mdl_inv_ot").value = row.inv_ot || "";
+
+        document.getElementById("mdl_bill_db_nr").value = row.bill_db_nr || "";
+        document.getElementById("mdl_bill_db_ot").value = row.bill_db_ot || "";
+        document.getElementById("mdl_driver_ot").value = row.driver_ot || "";
+        document.getElementById("mdl_driver_amount").value = row.driver_amount || "";
+        document.getElementById("mdl_vbill_notes").value = row.vbill_notes !== "-" ? row.vbill_notes : "";
+
+        document.getElementById("mdl_pwas").value = row.pwas !== "-" ? row.pwas : "";
+        document.getElementById("mdl_erp").value = row.erp !== "-" ? row.erp : "";
+        document.getElementById("mdl_payment_status").value = row.payment_status !== "-" ? row.payment_status : "";
+        document.getElementById("mdl_accounts_note").value = row.accounts_note !== "-" ? row.accounts_note : "";
+        document.getElementById("mdl_diff_clear").checked = row.diff_clear === "Yes";
+
+        document.getElementById("editModal").style.display = "flex";
+      }
+
+      function closeEditModal() {
+        document.getElementById("editModal").style.display = "none";
+        editingRowIndex = -1;
+      }
+
+      async function saveRowEdits() {
+        if (editingRowIndex === -1) return;
+        const row = filteredData[editingRowIndex];
+        const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+
+        document.getElementById("loader").style.display = "block";
+        document.getElementById("loader").innerText = "Saving Data... Please Wait.";
+
+        try {
+          const getVal = (id) => document.getElementById(id).value.trim();
+          const getNum = (val) => val === "" ? null : (isNaN(parseFloat(val)) ? null : parseFloat(val));
+
+          const preciseMonth = `${row.raw_month} ${row.raw_year}`;
+          const siteName = row.site;
+          const plateNo = row.master_plate;
+
+          // 1. Invoice Data API
+          const invData = {
+            month: preciseMonth,
+            site: siteName,
+            plate: plateNo,
+            inv_no: getVal("mdl_inv_no"),
+            bill_no: getVal("mdl_bill_no"),
+            inv_nr: getNum(getVal("mdl_inv_nr")),
+            inv_ot: getNum(getVal("mdl_inv_ot")),
+            inv_amount: getNum(getVal("mdl_inv_amount")),
+          };
+          await fetch("/py/payment/bulk-save-invoices", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            body: JSON.stringify({ records: [invData] }),
+          });
+
+          // 2. Billing & Driver Data API
+          const vbillData = {
+            month: preciseMonth,
+            site_name: siteName,
+            plate_no: plateNo,
+            remark: getVal("mdl_vbill_notes") || "-",
+            bill_nr: getNum(getVal("mdl_bill_db_nr")),
+            bill_ot: getNum(getVal("mdl_bill_db_ot")),
+            driver_ot: getNum(getVal("mdl_driver_ot")),
+            driver_amount: getNum(getVal("mdl_driver_amount")),
+          };
+          await fetch("/payment/save-bulk-vbill-notes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            body: JSON.stringify({ records: [vbillData] }),
+          });
+
+          // 3. Text Notes & Diff Clear Checkbox API
+          const textFields = ["pwas", "erp", "payment_status", "accounts_note"];
+          const textPromises = textFields.map((field) => {
+            let val = getVal("mdl_" + field) || "-";
+            return fetch("/payment/save-text-note", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+              body: JSON.stringify({ plate_no: plateNo, month: preciseMonth, site_name: siteName, field: field, value: val }),
+            });
+          });
+
+          let diffClearVal = document.getElementById("mdl_diff_clear").checked ? "Yes" : "No";
+          textPromises.push(
+            fetch("/payment/save-text-note", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+              body: JSON.stringify({ plate_no: plateNo, month: preciseMonth, site_name: siteName, field: "diff_clear", value: diffClearVal }),
+            })
+          );
+
+          await Promise.all(textPromises);
+
+          // Update Row Data Locally for Immediate UI Reflection
+          row.inv_no = invData.inv_no;
+          row.bill_no = invData.bill_no;
+          row.inv_nr = invData.inv_nr !== null ? invData.inv_nr.toString() : "";
+          row.inv_ot = invData.inv_ot !== null ? invData.inv_ot.toString() : "";
+          row.inv_subtotal = invData.inv_amount !== null ? invData.inv_amount.toFixed(2) : "";
+          row.inv_total = invData.inv_amount !== null ? (invData.inv_amount * 1.15).toFixed(2) : "";
+
+          row.bill_db_nr = vbillData.bill_nr !== null ? vbillData.bill_nr.toString() : "";
+          row.bill_db_ot = vbillData.bill_ot !== null ? vbillData.bill_ot.toString() : "";
+          row.driver_ot = vbillData.driver_ot !== null ? vbillData.driver_ot.toString() : "";
+          row.driver_amount = vbillData.driver_amount !== null ? vbillData.driver_amount.toFixed(2) : "";
+          row.vbill_notes = vbillData.remark;
+
+          row.pwas = getVal("mdl_pwas") || "-";
+          row.erp = getVal("mdl_erp") || "-";
+          row.payment_status = getVal("mdl_payment_status") || "-";
+          row.accounts_note = getVal("mdl_accounts_note") || "-";
+          row.diff_clear = diffClearVal;
+
+          if (diffClearVal === "Yes") {
+            row.diff_nr = "";
+            row.diff_ot = "";
+            row.diff_st = "";
+          }
+
+          renderVirtualViewport();
+          closeEditModal();
+          alert("✓ Record Updated Successfully!");
+        } catch (err) {
+          console.error(err);
+          alert("Error saving data: " + err.message);
+        } finally {
+          document.getElementById("loader").style.display = "none";
+        }
+      }
+
+      // 🟢 Helper for Cleaning Rate Values
+      function cleanExportRate(val) {
+        if (!val || val === "-") return "-";
+        let num = parseFloat(val);
+        if (isNaN(num)) return val;
+        return num % 1 !== 0 ? num : Math.round(num);
+      }
+
+      // 🟢 Create Sheet Payload for Export
+      function createExportSheetFromData(dataArray) {
+        let aoa = [
+          [
+            "VEHICLE INFO", "", "", "", "", "", "",
+            "Logsheet Collected", "",
+            "Bill Summary", "",
+            "To Supplier", "",
+            "For Driver", "",
+            "DIFFERENCE", "", "", "", "",
+            "AMOUNT", "", "", "", "",
+            "INVOICE", "", "", "",
+            "EXTRA DETAILS", "", "", "",
+            "GENERAL VEHICLE INFO", "", "",
+            "31 Considered as NR", ""
+          ],
+          [
+            "Month", "Site", "Rate", "VAT", "Owner Name", "Vehicle Type", "Plate No",
+            "NR", "OT", "NR", "OT", "NR", "OT", "OT", "AMT",
+            "NR", "OT", "IDN", "Clear", "V.Bill Notes",
+            "NR Rate", "OT Rate", "Rent", "VAT", "Total",
+            "Subtotal", "Total", "Invoice No", "Bill No",
+            "PWAS", "ERP", "Payment Status", "Accounts Note",
+            "Driver Name", "Field Co", "Site Co", "NR", "OT"
+          ]
+        ];
+
+        dataArray.forEach((r) => {
+          aoa.push([
+            r.report_date,
+            r.site,
+            cleanExportRate(r.rate),
+            (r.vat && r.vat.toLowerCase().includes("yes")) ? "Yes" : "",
+            r.owner,
+            r.vehicle_type,
+            r.plate,
+            r.ts_nr,
+            r.ts_ot,
+            r.inv_nr || "",
+            r.inv_ot || "",
+            r.bill_db_nr || "",
+            r.bill_db_ot || "",
+            r.driver_ot || "",
+            r.driver_amount || "",
+            r.diff_nr,
+            r.diff_ot,
+            r.diff_st,
+            r.diff_clear,
+            r.vbill_notes || "-",
+            r.bill_nrate || "",
+            r.bill_otrate || "",
+            r.bill_rent || "",
+            r.rent_vat || "",
+            r.rent_total || "",
+            r.inv_subtotal || "",
+            r.inv_total || "",
+            r.inv_no,
+            r.bill_no,
+            r.pwas || "-",
+            r.erp || "-",
+            r.payment_status || "-",
+            r.accounts_note || "-",
+            r.driver_name,
+            r.field_co,
+            r.site_co,
+            r.alt_nr,
+            r.alt_ot > 0 ? r.alt_ot : ""
+          ]);
+        });
+
+        let merges = [
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+          { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } },
+          { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } },
+          { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } },
+          { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } },
+          { s: { r: 0, c: 15 }, e: { r: 0, c: 19 } },
+          { s: { r: 0, c: 20 }, e: { r: 0, c: 24 } },
+          { s: { r: 0, c: 25 }, e: { r: 0, c: 28 } },
+          { s: { r: 0, c: 29 }, e: { r: 0, c: 32 } },
+          { s: { r: 0, c: 33 }, e: { r: 0, c: 35 } },
+          { s: { r: 0, c: 36 }, e: { r: 0, c: 37 } }
+        ];
+
+        return {
+          sheet_name: "Virtual_Batch_Report",
+          aoa: aoa,
+          merges: merges,
+          is_analysis: false
+        };
+      }
+
+      // 🟢 Export Action
+      async function exportFilteredToExcel() {
+        if (!filteredData || filteredData.length === 0) {
+          alert("No data available to export.");
+          return;
+        }
+
+        const loader = document.getElementById("loader");
+        loader.style.display = "block";
+        loader.innerText = "Generating Excel via Python Server...";
+
+        try {
+          const mode = document.getElementById("selMode").value;
+          const fromM = document.getElementById("fromM").value;
+          const fromY = document.getElementById("fromY").value;
+          let fileName = "";
+
+          if (mode === "single") {
+            fileName = `Single - ${fromM} ${fromY} - Virtual Report.xlsx`;
+          } else {
+            const toM = document.getElementById("toM").value;
+            const toY = document.getElementById("toY").value;
+            fileName = `Batch - ${fromM} ${fromY} to ${toM} ${toY} - Virtual Report.xlsx`;
+          }
+
+          const sheetObj = createExportSheetFromData(filteredData);
+
+          const res = await fetch("/py/payment-export/generate-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file_name: fileName, sheets: [sheetObj] }),
+          });
+
+          if (!res.ok) throw new Error("Excel export service error");
+
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        } catch (err) {
+          console.error(err);
+          alert("Export failed. Make sure the Python service is running.");
+        } finally {
+          loader.style.display = "none";
+          loader.innerText = "Loading...";
+        }
+      }
+    </script>
+  </body>
+</html>

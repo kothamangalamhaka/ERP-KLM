@@ -1101,7 +1101,7 @@
       <div class="navbar">
         <div style="display: flex; align-items: center;">
           <h2 style="display: flex; align-items: center; margin: 0;">
-            Analysis Report
+            <a href="javascript:void(0);" onclick="window.location.href='vbv.html';" style="text-decoration: none; cursor: pointer; color: whitesmoke;"> Analysis Report</a>
             <span
               id="plateCountBadge"
               style="
@@ -4194,7 +4194,9 @@
           return;
         }
         closeBatchModal();
-        document.getElementById("loader").style.display = "block";
+
+        const loader = document.getElementById("loader");
+        loader.style.display = "block";
         await ensureSpecialRules();
 
         let monthQueries = [];
@@ -4207,27 +4209,45 @@
           current.setMonth(current.getMonth() + 1);
         }
 
-        let results = await fetchBatchReportDataAPI(monthQueries);
-
+        const totalMonths = monthQueries.length;
+        const chunkSize = 3;
         let sheetsArray = [];
-        results.forEach((data, idx) => {
-          if (data && data.length > 0) {
-            let label =
-              `${monthQueries[idx].m} ${monthQueries[idx].y}`.substring(0, 31);
-            let sheetObj = createSheetFromData(data);
-            sheetObj.sheet_name = label;
-            sheetsArray.push(sheetObj);
-          }
-        });
+
+        for (let i = 0; i < totalMonths; i += chunkSize) {
+          const chunk = monthQueries.slice(i, i + chunkSize);
+          const chunkLabels = chunk.map((c) => `${c.m.substring(0, 3)} ${c.y}`).join(", ");
+          const percent = Math.round((i / totalMonths) * 100);
+
+          loader.innerHTML = `⏳ Loading [${i + 1}/${totalMonths}]: <b>${chunkLabels}</b> (${percent}%) ...`;
+          await new Promise((r) => setTimeout(r, 50));
+
+          const chunkRes = await fetchBatchReportDataAPI(chunk);
+
+          // 🟢 ലഭിച്ച ഉടൻ ഷീറ്റ് ഉണ്ടാക്കി സൂക്ഷിക്കുന്നു; റോ ഡാറ്റ സൂക്ഷിക്കാതെ റാം റിലീസ് ചെയ്യുന്നു
+          chunkRes.forEach((data, idx) => {
+            if (data && data.length > 0) {
+              const q = chunk[idx];
+              const label = `${q.m} ${q.y}`.substring(0, 31);
+              let sheetObj = createSheetFromData(data);
+              sheetObj.sheet_name = label;
+              sheetsArray.push(sheetObj);
+            }
+          });
+        }
+
+        loader.innerHTML = `⚡ Finalizing Excel Workbook (100%)...`;
+        await new Promise((r) => setTimeout(r, 50));
 
         if (sheetsArray.length === 0) {
           window.alert("No data found in selected batch period.");
-          document.getElementById("loader").style.display = "none";
+          loader.style.display = "none";
+          loader.innerText = "Processing Data... Please wait.";
           return;
         }
 
-        let fileName = `Batch ${fromM} ${fromY} to ${toM} ${toY} - Invoice & Payment Analysis Report.xlsx`;
-        downloadExcelViaPython(fileName, sheetsArray);
+        let fileName = `Batch - ${fromM} ${fromY} to ${toM} ${toY} - Invoice & Payment Analysis Report.xlsx`;
+        await downloadExcelViaPython(fileName, sheetsArray);
+        loader.innerText = "Processing Data... Please wait.";
       }
 
       function openSingleExcelModal() {
@@ -4251,7 +4271,6 @@
         }
         closeSingleExcelModal();
         const loader = document.getElementById("loader");
-        loader.innerText = "Extracting Analysis Data... Please wait.";
         loader.style.display = "block";
         await ensureSpecialRules();
 
@@ -4266,19 +4285,35 @@
           current.setMonth(current.getMonth() + 1);
         }
 
-        let results = await fetchBatchReportDataAPI(monthQueries);
-
+        const totalMonths = monthQueries.length;
+        const chunkSize = 3;
         let combinedData = [];
-        results.forEach((data, idx) => {
-          if (data && data.length > 0) {
-            let { m, y, monthIndex } = monthQueries[idx];
-            data.forEach((row) => {
-              row.report_month = `${m.substring(0, 3)} ${String(y).substring(2, 4)}`;
-              row.sort_date = new Date(y, monthIndex, 1).getTime();
-              combinedData.push(row);
-            });
-          }
-        });
+
+        for (let i = 0; i < totalMonths; i += chunkSize) {
+          const chunk = monthQueries.slice(i, i + chunkSize);
+          const chunkLabels = chunk.map((c) => `${c.m.substring(0, 3)} ${c.y}`).join(", ");
+          const percent = Math.round((i / totalMonths) * 100);
+
+          loader.innerHTML = `⏳ Extracting [${i + 1}/${totalMonths}]: <b>${chunkLabels}</b> (${percent}%) ...`;
+          await new Promise((r) => setTimeout(r, 50));
+
+          const chunkRes = await fetchBatchReportDataAPI(chunk);
+
+          // 🟢 റെസ്പോൺസ് വന്നയുടൻ `combinedData`-ലേക്ക് മാറ്റുന്നു, ഇടനില അറേകൾ സൂക്ഷിക്കുന്നില്ല
+          chunkRes.forEach((data, idx) => {
+            if (data && data.length > 0) {
+              const { m, y, monthIndex } = chunk[idx];
+              data.forEach((row) => {
+                row.report_month = `${m.substring(0, 3)} ${String(y).substring(2, 4)}`;
+                row.sort_date = new Date(y, monthIndex, 1).getTime();
+                combinedData.push(row);
+              });
+            }
+          });
+        }
+
+        loader.innerHTML = `⚡ Merging Single Analysis Sheet...`;
+        await new Promise((r) => setTimeout(r, 50));
         loader.style.display = "none";
         loader.innerText = "Processing Data... Please wait.";
         if (combinedData.length === 0) {
@@ -4870,7 +4905,9 @@
           return;
         }
         closeBatchViewModal();
-        document.getElementById("loader").style.display = "block";
+        
+        const loader = document.getElementById("loader");
+        loader.style.display = "block";
         document.getElementById("reportBody").innerHTML = "";
 
         let currentOwner = "ALL",
@@ -4898,7 +4935,25 @@
           current.setMonth(current.getMonth() + 1);
         }
 
-        let resultsArray = await fetchBatchReportDataAPI(monthQueries);
+        const totalMonths = monthQueries.length;
+        const chunkSize = 3; // 🟢 കൃത്യമായി 3 മാസങ്ങൾ വീതമുള്ള ബാച്ചുകളാക്കി ലോഡ് ചെയ്യുന്നു
+        let resultsArray = [];
+
+        for (let i = 0; i < totalMonths; i += chunkSize) {
+          const chunk = monthQueries.slice(i, i + chunkSize);
+          const chunkLabels = chunk.map((c) => `${c.m.substring(0, 3)} ${c.y}`).join(", ");
+          const percent = Math.round((i / totalMonths) * 100);
+
+          loader.innerHTML = `⏳ Loading Screen Data [${i + 1}/${totalMonths}]: <b>${chunkLabels}</b> (${percent}%) ...`;
+          await new Promise((r) => setTimeout(r, 60));
+
+          const chunkRes = await fetchBatchReportDataAPI(chunk);
+          resultsArray.push(...chunkRes);
+        }
+
+        loader.innerHTML = `⚡ Rendering Screen Table...`;
+        await new Promise((r) => setTimeout(r, 50));
+
         let combinedData = resultsArray.flat().filter(Boolean);
 
         masterData = combinedData;
@@ -4921,7 +4976,8 @@
         }
 
         applyFilters();
-        document.getElementById("loader").style.display = "none";
+        loader.style.display = "none";
+        loader.innerText = "Processing Data... Please wait.";
       }
 
       // 🟢 Zoho Status ടോഗിൾ ചെയ്യാനുള്ള ഫങ്ക്ഷൻ (ടൈപ്പിംഗ് ഒഴിവാക്കാൻ)
