@@ -1124,25 +1124,6 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
   }
 });
 
-router.post("/api/delete-log-entry", verifyEditor, async (req, res) => {
-  try {
-    const { type, id } = req.body;
-    if (!id) throw new Error("Log ID missing");
-
-    if (type === "driver") {
-      await pool.query("DELETE FROM vehicle_driver_log WHERE id=$1", [id]);
-    } else if (type === "site") {
-      await pool.query("DELETE FROM vehicle_site_log WHERE id=$1", [id]);
-    } else {
-      throw new Error("Invalid log type");
-    }
-    await logAudit(req.user, "LOG_DELETE", `Deleted ${type} log ID ${id}`);
-    res.json({ success: true });
-  } catch (error) {
-    res.json({ success: false, message: error.message });
-  }
-});
-
 // ==========================================
 // RECORD LOCKING (CONCURRENCY CONTROL & LIVE TRANSFER)
 // ==========================================
@@ -1211,59 +1192,6 @@ router.post("/api/record-lock/release", verifyToken, (req, res) => {
   res.json({ success: true });
 });
 
-// 🟢 RESOLVE TRANSFER: യൂസർ 2-ന് ഓണർഷിപ്പ് പെർമനന്റായി കൈമാറുന്നു
-router.post("/api/record-lock/resolve-transfer", verifyToken, (req, res) => {
-  const { plate, month, year, action } = req.body;
-  const cleanP = String(plate).replace(/\s+/g, "").toUpperCase();
-  const lockKey = `${cleanP}_${month}_${year}`;
-  const lock = activeRecordLocks.get(lockKey);
-  const currentUser = String(req.user.username).trim().toLowerCase();
-
-  if (!lock) return res.json({ success: false, message: "No active lock" });
-
-  const requester = lock.requestedBy;
-
-  if (action === "force" && requester && requester.toLowerCase() === currentUser) {
-    lock.username = req.user.username; // User 2 becomes owner
-    lock.timestamp = Date.now();
-    lock.requestedBy = null;
-    lock.requestTime = null;
-    return res.json({ success: true, newOwner: lock.username });
-  } else if (String(lock.username).trim().toLowerCase() === currentUser) {
-    if (action === "approve" && requester) {
-      lock.username = requester; // Hand over to User 2
-      lock.timestamp = Date.now();
-      lock.requestedBy = null;
-      lock.requestTime = null;
-      return res.json({ success: true, newOwner: lock.username });
-    } else if (action === "reject") {
-      lock.requestedBy = "REJECTED";
-      lock.requestTime = null;
-      return res.json({ success: true });
-    }
-  }
-
-  res.json({ success: false });
-});
-
-// 🟢 POLL CHECK: തത്സമയം നിലവിലെ സ്റ്റാറ്റസ് ഉറപ്പുവരുത്തുന്നു
-router.get("/api/record-lock/poll", verifyToken, (req, res) => {
-  const { plate, month, year } = req.query;
-  const cleanP = String(plate || "").replace(/\s+/g, "").toUpperCase();
-  const lockKey = `${cleanP}_${month}_${year}`;
-  const lock = activeRecordLocks.get(lockKey);
-
-  if (!lock || (Date.now() - lock.timestamp >= 10 * 60 * 1000)) {
-    return res.json({ locked: false });
-  }
-
-  res.json({
-    locked: true,
-    owner: lock.username,
-    requestedBy: lock.requestedBy,
-    requestTime: lock.requestTime,
-  });
-});
 
 // 🟢 NEW: API for User B to request edit access
 router.post("/api/record-lock/request-transfer", verifyToken, (req, res) => {
@@ -1283,53 +1211,58 @@ router.post("/api/record-lock/request-transfer", verifyToken, (req, res) => {
   }
 });
 
-// 🟢 NEW: Polling API to check status live without reloading
+// 🟢 POLL CHECK: തത്സമയം നിലവിലെ സ്റ്റാറ്റസ് ഉറപ്പുവരുത്തുന്നു
 router.get("/api/record-lock/poll", verifyToken, (req, res) => {
   const { plate, month, year } = req.query;
-  const lockKey = `${plate}_${month}_${year}`;
+  const cleanP = String(plate || "").replace(/\s+/g, "").toUpperCase();
+  const lockKey = `${cleanP}_${month}_${year}`;
   const lock = activeRecordLocks.get(lockKey);
 
+  // 15 minutes timeout logic included
   if (!lock || (Date.now() - lock.timestamp >= 15 * 60 * 1000)) {
-      return res.json({ locked: false }); // Lock expired or doesn't exist
+    return res.json({ locked: false });
   }
 
   res.json({
-      locked: true,
-      owner: lock.username,
-      requestedBy: lock.requestedBy,
-      requestTime: lock.requestTime
+    locked: true,
+    owner: lock.username,
+    requestedBy: lock.requestedBy,
+    requestTime: lock.requestTime,
   });
 });
 
-// 🟢 NEW: Resolve Transfer (Approve/Reject/Force)
+// 🟢 RESOLVE TRANSFER: Resolve Transfer (Approve/Reject/Force)
 router.post("/api/record-lock/resolve-transfer", verifyToken, (req, res) => {
-  const { plate, month, year, action } = req.body; // action: 'approve', 'reject', 'force'
-  const lockKey = `${plate}_${month}_${year}`;
+  const { plate, month, year, action } = req.body;
+  const cleanP = String(plate).replace(/\s+/g, "").toUpperCase();
+  const lockKey = `${cleanP}_${month}_${year}`;
   const lock = activeRecordLocks.get(lockKey);
   const currentUser = String(req.user.username).trim().toLowerCase();
 
-  if (!lock) return res.json({ success: false });
+  if (!lock) return res.json({ success: false, message: "No active lock" });
 
-  if (action === "force" && String(lock.requestedBy).trim().toLowerCase() === currentUser) {
+  const requester = lock.requestedBy;
+
+  if (action === "force" && requester && String(requester).trim().toLowerCase() === currentUser) {
       if (lock.requestTime && (Date.now() - lock.requestTime >= 27000)) { 
           lock.username = req.user.username;
           lock.timestamp = Date.now();
           lock.requestedBy = null;
           lock.requestTime = null;
-          return res.json({ success: true });
+          return res.json({ success: true, newOwner: lock.username });
       }
   } else if (String(lock.username).trim().toLowerCase() === currentUser) {
-      if (action === "approve" && lock.requestedBy) {
-          lock.username = lock.requestedBy;
+      if (action === "approve" && requester) {
+          lock.username = requester;
           lock.timestamp = Date.now();
           lock.requestedBy = null;
           lock.requestTime = null;
           return res.json({ success: true, newOwner: lock.username });
       } else if (action === "reject") {
-          lock.requestedBy = "REJECTED"; // Signal to User B that request was rejected
+          lock.requestedBy = "REJECTED";
           lock.requestTime = null;
+          return res.json({ success: true });
       }
-      return res.json({ success: true });
   }
 
   res.json({ success: false });
@@ -1996,11 +1929,6 @@ router.post("/api/db/bulk-import", verifyEditor, async (req, res) => {
       }
     }
 
-    await logAudit(
-      req.user,
-      "BULK_IMPORT_MASTER",
-      `Master Database bulk imported`,
-    );
     await client.query(`
         UPDATE vehicle_site_log vsl
         SET rate = tv.rate
