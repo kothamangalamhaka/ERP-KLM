@@ -1,7 +1,11 @@
 const token = localStorage.getItem("timesheetToken");
 const userStr = localStorage.getItem("timesheetUser");
 
-if (!token || !userStr || (localStorage.getItem("lastActive") && Date.now() - Number(localStorage.getItem("lastActive")) > 18000000)) { localStorage.clear(); window.location.href = "index.html"; } else { localStorage.setItem("lastActive", String(Date.now())); }
+if (!token || !userStr) {
+  window.location.href = "index.html";
+} else {
+  localStorage.setItem("lastActive", String(Date.now()));
+}
 
 const dDate = new Date();
 document.getElementById("selYear").value = dDate.getFullYear();
@@ -81,14 +85,19 @@ document.getElementById("selYear").addEventListener("change", releaseLock);
 async function init() {
   const ts = new Date().getTime();
 
-  const rRes = await fetch(`/timesheet/api/rules?_t=${ts}`, {
-    headers: { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" },
-    cache: "no-store",
-  });
+  let rRes;
+  try {
+    rRes = await fetch(`/timesheet/api/rules?_t=${ts}`, {
+      headers: { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" },
+      cache: "no-store",
+    });
+  } catch (netErr) {
+    console.warn("Offline/Network glitch during init:", netErr);
+    return;
+  }
   
   if (rRes.status === 401 || rRes.status === 403) {
-    await customAlert("Session expired. Please login again.", "Session Timeout");
-    logout();
+    openTimesheetReLoginModal(() => init());
     return;
   }
   
@@ -443,8 +452,7 @@ async function triggerFetch() {
     }
 
     if (lockRes.status === 401 || lockRes.status === 403) {
-      await customAlert("Session expired or invalid. Please login again.", "Session Timeout");
-      logout();
+      openTimesheetReLoginModal(() => triggerFetch());
       return;
     }
 
@@ -495,8 +503,7 @@ async function triggerFetch() {
 
     if (res.status === 401 || res.status === 403) {
       releaseLock(); 
-      await customAlert("Session expired. Please login again.", "Session Timeout");
-      logout();
+      openTimesheetReLoginModal(() => triggerFetch());
       return;
     }
 
@@ -504,13 +511,15 @@ async function triggerFetch() {
     try { data = await res.json(); } 
     catch (e) {
       releaseLock(); 
-      await customAlert("Session expired or invalid response. Please login again.", "Session Timeout");
-      logout();
-      return;
+      throw new Error("Server returned invalid response. Check connection.");
     }
 
     if (data.success === false) {
       releaseLock(); 
+      if (data.message && (data.message.toLowerCase().includes("session") || data.message.toLowerCase().includes("token"))) {
+        openTimesheetReLoginModal(() => triggerFetch());
+        return;
+      }
       throw new Error(data.message);
     }
     
@@ -1248,9 +1257,9 @@ function calculateRow(rowIdx) {
     let bdNum = parseFloat(bd);
     if (!isNaN(bdNum)) finalTime = bdNum;
     else if (["ID", "NP"].includes(bdCheck)) finalTime = 10;
-      else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "RE", "FRI"].includes(bdCheck))
-        finalTime = 0;
-    } else if (ws && we) {
+    else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "RE", "FRI"].includes(bdCheck))
+      finalTime = 0;
+  } else if (ws && we) {
     let sHour = parseRailwayTime(ws);
     let eHour = parseRailwayTime(we);
     let diff = eHour - sHour;

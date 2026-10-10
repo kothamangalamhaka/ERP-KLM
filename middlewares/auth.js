@@ -6,25 +6,25 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 const verifyToken = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.json({ success: false, message: 'No token provided' });
+    if (!token) return res.status(401).json({ success: false, message: 'No token provided' });
     try {
         req.user = jwt.verify(token, JWT_SECRET);
         next();
     } catch (e) {
-        res.json({ success: false, message: 'Invalid session' });
+        return res.status(401).json({ success: false, message: 'Invalid session' });
     }
 };
 
 const verifySuperAdmin = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.json({ success: false, message: 'No token provided' });
+    if (!token) return res.status(401).json({ success: false, message: 'No token provided' });
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded.role !== 'Super Admin') return res.json({ success: false, message: 'Access Denied: Super Admin only.' });
+        if (decoded.role !== 'Super Admin') return res.status(403).json({ success: false, message: 'Access Denied: Super Admin only.' });
         req.user = decoded;
         next();
     } catch (e) {
-        res.json({ success: false, message: 'Invalid token' });
+        return res.status(401).json({ success: false, message: 'Invalid token' });
     }
 };
 
