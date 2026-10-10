@@ -4210,33 +4210,41 @@
         }
 
         const totalMonths = monthQueries.length;
-        const chunkSize = 3;
-        let sheetsArray = [];
+        let sheetsArray = new Array(totalMonths);
+        let completedCount = 0;
+        let queueIndex = 0;
+        const CONCURRENCY_LIMIT = 2; // 🟢 ഒരേസമയം പരമാവധി 2 പാരലൽ റിക്വസ്റ്റുകൾ
 
-        for (let i = 0; i < totalMonths; i += chunkSize) {
-          const chunk = monthQueries.slice(i, i + chunkSize);
-          const chunkLabels = chunk.map((c) => `${c.m.substring(0, 3)} ${c.y}`).join(", ");
-          const percent = Math.round((i / totalMonths) * 100);
+        async function exportWorker() {
+          while (queueIndex < totalMonths) {
+            const idx = queueIndex++;
+            const q = monthQueries[idx];
 
-          loader.innerHTML = `⏳ Loading [${i + 1}/${totalMonths}]: <b>${chunkLabels}</b> (${percent}%) ...`;
-          await new Promise((r) => setTimeout(r, 50));
-
-          const chunkRes = await fetchBatchReportDataAPI(chunk);
-
-          // 🟢 ലഭിച്ച ഉടൻ ഷീറ്റ് ഉണ്ടാക്കി സൂക്ഷിക്കുന്നു; റോ ഡാറ്റ സൂക്ഷിക്കാതെ റാം റിലീസ് ചെയ്യുന്നു
-          chunkRes.forEach((data, idx) => {
-            if (data && data.length > 0) {
-              const q = chunk[idx];
-              const label = `${q.m} ${q.y}`.substring(0, 31);
-              let sheetObj = createSheetFromData(data);
-              sheetObj.sheet_name = label;
-              sheetsArray.push(sheetObj);
+            try {
+              const res = await fetchBatchReportDataAPI([q]);
+              if (res && res[0] && res[0].length > 0) {
+                const label = `${q.m} ${q.y}`.substring(0, 31);
+                let sheetObj = createSheetFromData(res[0]);
+                sheetObj.sheet_name = label;
+                sheetsArray[idx] = sheetObj; // കൃത്യമായ മാസം ക്രമത്തിൽ സൂക്ഷിക്കുന്നു
+              }
+            } catch (err) {
+              console.error(`Export failed for ${q.m} ${q.y}:`, err);
             }
-          });
+
+            completedCount++;
+            const percent = Math.round((completedCount / totalMonths) * 100);
+            loader.innerHTML = `⏳ Parallel Export (${completedCount}/${totalMonths}): <b>${q.m.substring(0, 3)} ${q.y}</b> [${percent}%]`;
+          }
         }
 
+        const workers = Array.from({ length: Math.min(CONCURRENCY_LIMIT, totalMonths) }, () => exportWorker());
+        await Promise.all(workers);
+
+        sheetsArray = sheetsArray.filter(Boolean); // ശൂന്യമായ മാസങ്ങൾ ഒഴിവാക്കുന്നു
+
         loader.innerHTML = `⚡ Finalizing Excel Workbook (100%)...`;
-        await new Promise((r) => setTimeout(r, 50));
+        await new Promise((r) => setTimeout(r, 40));
 
         if (sheetsArray.length === 0) {
           window.alert("No data found in selected batch period.");
@@ -4286,36 +4294,45 @@
         }
 
         const totalMonths = monthQueries.length;
-        const chunkSize = 3;
-        let combinedData = [];
+        let monthDataArray = new Array(totalMonths);
+        let completedCount = 0;
+        let queueIndex = 0;
+        const CONCURRENCY_LIMIT = 2;
 
-        for (let i = 0; i < totalMonths; i += chunkSize) {
-          const chunk = monthQueries.slice(i, i + chunkSize);
-          const chunkLabels = chunk.map((c) => `${c.m.substring(0, 3)} ${c.y}`).join(", ");
-          const percent = Math.round((i / totalMonths) * 100);
+        async function singleExportWorker() {
+          while (queueIndex < totalMonths) {
+            const idx = queueIndex++;
+            const { m, y, monthIndex } = monthQueries[idx];
 
-          loader.innerHTML = `⏳ Extracting [${i + 1}/${totalMonths}]: <b>${chunkLabels}</b> (${percent}%) ...`;
-          await new Promise((r) => setTimeout(r, 50));
-
-          const chunkRes = await fetchBatchReportDataAPI(chunk);
-
-          // 🟢 റെസ്പോൺസ് വന്നയുടൻ `combinedData`-ലേക്ക് മാറ്റുന്നു, ഇടനില അറേകൾ സൂക്ഷിക്കുന്നില്ല
-          chunkRes.forEach((data, idx) => {
-            if (data && data.length > 0) {
-              const { m, y, monthIndex } = chunk[idx];
-              data.forEach((row) => {
-                row.report_month = `${m.substring(0, 3)} ${String(y).substring(2, 4)}`;
-                row.sort_date = new Date(y, monthIndex, 1).getTime();
-                combinedData.push(row);
-              });
+            try {
+              const res = await fetchBatchReportDataAPI([{ m, y }]);
+              if (res && res[0] && res[0].length > 0) {
+                const rows = res[0];
+                rows.forEach((row) => {
+                  row.report_month = `${m.substring(0, 3)} ${String(y).substring(2, 4)}`;
+                  row.sort_date = new Date(y, monthIndex, 1).getTime();
+                });
+                monthDataArray[idx] = rows;
+              }
+            } catch (err) {
+              console.error(`Single export failed for ${m} ${y}:`, err);
             }
-          });
+
+            completedCount++;
+            const percent = Math.round((completedCount / totalMonths) * 100);
+            loader.innerHTML = `⏳ Parallel Extract (${completedCount}/${totalMonths}): <b>${m.substring(0, 3)} ${y}</b> [${percent}%]`;
+          }
         }
 
+        const workers = Array.from({ length: Math.min(CONCURRENCY_LIMIT, totalMonths) }, () => singleExportWorker());
+        await Promise.all(workers);
+
         loader.innerHTML = `⚡ Merging Single Analysis Sheet...`;
-        await new Promise((r) => setTimeout(r, 50));
+        await new Promise((r) => setTimeout(r, 40));
         loader.style.display = "none";
         loader.innerText = "Processing Data... Please wait.";
+
+        let combinedData = monthDataArray.filter(Boolean).flat();
         if (combinedData.length === 0) {
           window.alert("No data found for the selected period.");
           return;
@@ -4936,25 +4953,38 @@
         }
 
         const totalMonths = monthQueries.length;
-        const chunkSize = 3; // 🟢 കൃത്യമായി 3 മാസങ്ങൾ വീതമുള്ള ബാച്ചുകളാക്കി ലോഡ് ചെയ്യുന്നു
-        let resultsArray = [];
+        let resultsArray = new Array(totalMonths);
+        let completedCount = 0;
+        let queueIndex = 0;
+        const CONCURRENCY_LIMIT = 2; // 🟢 2 പാരലൽ വർക്കേഴ്സ്
 
-        for (let i = 0; i < totalMonths; i += chunkSize) {
-          const chunk = monthQueries.slice(i, i + chunkSize);
-          const chunkLabels = chunk.map((c) => `${c.m.substring(0, 3)} ${c.y}`).join(", ");
-          const percent = Math.round((i / totalMonths) * 100);
+        async function batchViewWorker() {
+          while (queueIndex < totalMonths) {
+            const idx = queueIndex++;
+            const q = monthQueries[idx];
 
-          loader.innerHTML = `⏳ Loading Screen Data [${i + 1}/${totalMonths}]: <b>${chunkLabels}</b> (${percent}%) ...`;
-          await new Promise((r) => setTimeout(r, 60));
+            try {
+              const res = await fetchBatchReportDataAPI([q]);
+              if (res && res[0] && res[0].length > 0) {
+                resultsArray[idx] = res[0];
+              }
+            } catch (err) {
+              console.error(`Batch view failed for ${q.m} ${q.y}:`, err);
+            }
 
-          const chunkRes = await fetchBatchReportDataAPI(chunk);
-          resultsArray.push(...chunkRes);
+            completedCount++;
+            const percent = Math.round((completedCount / totalMonths) * 100);
+            loader.innerHTML = `⏳ Parallel Loading (${completedCount}/${totalMonths}): <b>${q.m.substring(0, 3)} ${q.y}</b> [${percent}%]`;
+          }
         }
 
-        loader.innerHTML = `⚡ Rendering Screen Table...`;
-        await new Promise((r) => setTimeout(r, 50));
+        const workers = Array.from({ length: Math.min(CONCURRENCY_LIMIT, totalMonths) }, () => batchViewWorker());
+        await Promise.all(workers);
 
-        let combinedData = resultsArray.flat().filter(Boolean);
+        loader.innerHTML = `⚡ Rendering Screen Table...`;
+        await new Promise((r) => setTimeout(r, 40));
+
+        let combinedData = resultsArray.filter(Boolean).flat();
 
         masterData = combinedData;
         let uniqueOwners = new Set(),

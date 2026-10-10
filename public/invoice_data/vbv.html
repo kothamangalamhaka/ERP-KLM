@@ -749,6 +749,27 @@
       </table>
     </div>
 
+    <!-- 🟢 Master Security Code Prompt Modal -->
+    <div id="masterPrompt" class="modal-overlay">
+      <div class="modal-content" style="width: 340px; text-align: center;">
+        <div class="modal-header" style="justify-content: center; color: #b91c1c;">🔒 Security Verification</div>
+        <p style="font-size: 12px; color: #475569; margin: 0 0 15px 0;">
+          Enter Master Security Code to enable editing:
+        </p>
+        <input
+          type="password"
+          id="masterSecurityCode"
+          placeholder="Master Code"
+          style="width: 100%; box-sizing: border-box; padding: 8px 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; text-align: center; outline: none;"
+          onkeypress="if (event.key === 'Enter') submitMasterPrompt();"
+        />
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button class="btn-cancel" style="padding: 6px 16px;" onclick="closeMasterPrompt()">Cancel</button>
+          <button class="btn-save" style="padding: 6px 16px; background-color: #2563eb;" onclick="submitMasterPrompt()">Submit</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 🟢 Row Edit Modal -->
     <div id="editModal" class="modal-overlay">
       <div class="modal-content">
@@ -1451,24 +1472,37 @@
         document.querySelectorAll(".filter-icon").forEach((el) => el.classList.remove("filter-active"));
 
         const totalMonths = monthQueries.length;
-        const chunkSize = 3;
         masterData = [];
+        let completedCount = 0;
 
-        for (let i = 0; i < totalMonths; i += chunkSize) {
-          const chunk = monthQueries.slice(i, i + chunkSize);
-          const chunkLabels = chunk.map((c) => `${c.m.substring(0, 3)} ${c.y}`).join(", ");
-          const percent = Math.round((i / totalMonths) * 100);
+        // 🟢 ഒരേസമയം പരമാവധി 2 റിക്വസ്റ്റുകൾ മാത്രം പാരലൽ ആയി അയക്കുന്ന വർക്കർ പൂൾ
+        const CONCURRENCY_LIMIT = 2;
+        let queueIndex = 0;
 
-          loader.innerHTML = `⏳ Loading [${i + 1}/${totalMonths}]: <b>${chunkLabels}</b> (${percent}%) ...`;
-          await new Promise((r) => setTimeout(r, 40));
+        async function fetchWorker() {
+          while (queueIndex < totalMonths) {
+            const idx = queueIndex++;
+            const q = monthQueries[idx];
 
-          const chunkRes = await fetchBatchReportDataAPI(chunk);
-          chunkRes.forEach((resArr) => {
-            if (resArr && resArr.length > 0) {
-              masterData.push(...resArr);
+            try {
+              // ഒറ്റ മാസം മാത്രമായി ഫെച്ച് ചെയ്യുന്നു
+              const resArr = await fetchBatchReportDataAPI([q]);
+              if (resArr && resArr[0] && resArr[0].length > 0) {
+                masterData.push(...resArr[0]);
+              }
+            } catch (err) {
+              console.error(`Failed loading ${q.m} ${q.y}:`, err);
             }
-          });
+
+            completedCount++;
+            const percent = Math.round((completedCount / totalMonths) * 100);
+            loader.innerHTML = `⏳ Parallel Loading (${completedCount}/${totalMonths}): <b>${q.m.substring(0, 3)} ${q.y}</b> [${percent}%]`;
+          }
         }
+
+        // 🟢 2 വർക്കേഴ്സ് ഒരേ സമയം റൺ ചെയ്യുന്നു (ഡാറ്റാബേസ് ഹാങ് ആവാതെ മാക്സിമം സ്പീഡ്)
+        const workers = Array.from({ length: Math.min(CONCURRENCY_LIMIT, totalMonths) }, () => fetchWorker());
+        await Promise.all(workers);
 
         loader.innerHTML = `⚡ Finalizing Virtual Viewport...`;
         await new Promise((r) => setTimeout(r, 30));
@@ -1708,10 +1742,61 @@
         }
       });
 
-      // 🟢 Modal Editing Logic
+      // 🟢 Master Security Verification State
+      let isMasterSecurityVerified = false;
+      let pendingEditIndex = -1;
       let editingRowIndex = -1;
 
+      function closeMasterPrompt() {
+        document.getElementById("masterPrompt").style.display = "none";
+        document.getElementById("masterSecurityCode").value = "";
+        pendingEditIndex = -1;
+      }
+
+      async function submitMasterPrompt() {
+        const code = document.getElementById("masterSecurityCode").value.trim();
+        if (!code) return;
+
+        const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+        try {
+          const res = await fetch("/payment/verify-master-security", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ code }),
+          });
+
+          const data = await res.json();
+          if (data.success) {
+            isMasterSecurityVerified = true;
+            const targetIdx = pendingEditIndex;
+            closeMasterPrompt();
+            if (targetIdx !== -1) {
+              openRowEditModal(targetIdx);
+            }
+          } else {
+            alert(data.message || "Invalid Master Security Code!");
+            document.getElementById("masterSecurityCode").value = "";
+            document.getElementById("masterSecurityCode").focus();
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Server connection error during verification.");
+        }
+      }
+
       function openRowEditModal(index) {
+        // 🟢 First time check: Prompt for master code if not verified in this session
+        if (!isMasterSecurityVerified) {
+          pendingEditIndex = index;
+          document.getElementById("masterSecurityCode").value = "";
+          document.getElementById("masterPrompt").style.display = "flex";
+          setTimeout(() => document.getElementById("masterSecurityCode").focus(), 50);
+          return;
+        }
+
         editingRowIndex = index;
         const row = filteredData[index];
 
