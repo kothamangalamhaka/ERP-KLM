@@ -2745,22 +2745,21 @@
             }
           });
 
-          if (!siteDataMap["N/A"]) {
-            // 🟢 Aa maasathino athinu munpo END aayi kazhinja sites mathram filter cheyyunnu
-            let endedPastSites = vSites.filter((s) => {
+          // 🟢 Helper function to find the exact previous site before a specific target date
+          function getPreviousSiteBeforeDate(targetDate) {
+            let endedBeforeDate = vSites.filter((s) => {
               if (!s.work_end_date) return false;
               let ed = safeDate(s.work_end_date, "2099-01-01");
-              return ed <= monthEnd;
+              ed.setHours(23, 59, 59, 999);
+              return ed < targetDate;
             });
 
-            let lastSiteLog = [...endedPastSites].sort(
+            let lastSiteLog = [...endedBeforeDate].sort(
               (a, b) =>
                 safeDate(b.work_end_date || "2000-01-01") -
-                safeDate(a.work_end_date || "2000-01-01"),
+                safeDate(a.work_end_date || "2000-01-01")
             )[0];
 
-            let naSiteName = "N/A";
-            let statusType = "";
             if (lastSiteLog && lastSiteLog.site_name) {
               let prevSite = lastSiteLog.site_name.trim();
               let lastDateStr = "";
@@ -2772,33 +2771,22 @@
                   lastDateStr = ` - ${dy}-${mNames[d.getMonth()]}-${d.getFullYear()}`;
                 }
               }
-              naSiteName = `Prev: ${prevSite}${lastDateStr}`;
-              statusType = String(lastSiteLog.status || "").trim().toLowerCase();
+              return {
+                name: `Prev: ${prevSite}${lastDateStr}`,
+                log: lastSiteLog
+              };
             }
-
-            siteDataMap["N/A"] = {
-              ts_nr: 0,
-              ts_ot: 0,
-              ts_31st_shift: 0,
-              rate: lastSiteLog ? lastSiteLog.rate || "-" : "-",
-              driver_name: lastSiteLog ? (lastSiteLog.driver_name || "-") : "-",
-              field_co: lastSiteLog ? lastSiteLog.field_co || "-" : "-",
-              site_co: lastSiteLog ? lastSiteLog.site_co || "-" : "-",
-              displayName: naSiteName,
-              siteStatusType: statusType,
-            };
+            return { name: "N/A", log: null };
           }
 
           for (let i = 1; i <= daysInMonth; i++) {
-            let checkDate = new Date(yearStr, mIdx, i);
-            let currentSite = "N/A"; // Default to N/A for unallocated days
+            let checkDate = new Date(yearStr, mIdx, i, 0, 0, 0, 0);
+            let currentSite = "N/A"; 
 
-            // Only use the master default site if there are absolutely no site allocation logs
             if (vSites.length === 0) {
               currentSite = defaultSite;
             } else {
               for (let s of activeSites) {
-                // Removed the buggy continue condition so all sites get date-checked
                 let st = safeDate(s.work_start_date, "2000-01-01");
                 let ed = safeDate(s.work_end_date, "2099-01-01");
                 st.setHours(0, 0, 0, 0);
@@ -2807,6 +2795,28 @@
                   currentSite = (s.site_name || "N/A").trim();
                   break;
                 }
+              }
+            }
+
+            // 🟢 അലോക്കേഷൻ ഇല്ലാത്ത ദിവസമാണെങ്കിൽ, കൃത്യമായി ആ ദിവസത്തിന് മുൻപുള്ള സൈറ്റ് കണ്ടെത്തി ടാഗ് ചെയ്യുന്നു
+            if (currentSite === "N/A") {
+              let prevInfo = getPreviousSiteBeforeDate(checkDate);
+              currentSite = prevInfo.name;
+              
+              if (!siteDataMap[currentSite]) {
+                let lastLog = prevInfo.log;
+                siteDataMap[currentSite] = {
+                  ts_nr: 0,
+                  ts_ot: 0,
+                  ts_31st_shift: 0,
+                  rate: lastLog ? (lastLog.rate || "-") : "-",
+                  driver_name: lastLog ? (lastLog.driver_name || "-") : "-",
+                  field_co: lastLog ? (lastLog.field_co || "-") : "-",
+                  site_co: lastLog ? (lastLog.site_co || "-") : "-",
+                  displayName: currentSite,
+                  siteStatusType: lastLog ? String(lastLog.status || "").trim().toLowerCase() : "",
+                  vehicle_type: lastLog && lastLog.vehicle_type ? lastLog.vehicle_type : vehicle_type
+                };
               }
             }
 
