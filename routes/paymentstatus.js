@@ -86,7 +86,6 @@ router.post("/verify-security", (req, res) => {
 // 🟢 Verify Security Code for Special Edit Mode (Clear & V.Bill)
 router.post("/verify-special-security", (req, res) => {
   const { code } = req.body;
-  // നിങ്ങളുടെ .env ഫയലിൽ SPECIAL_EDIT_CODE=1234 (ഏതെങ്കിലും നമ്പർ) എന്ന് ആഡ് ചെയ്യുക.
   const validCode = process.env.SPECIAL_EDIT_CODE || "9999";
 
   if (code === validCode) {
