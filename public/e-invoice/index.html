@@ -402,18 +402,57 @@
         padding-top: 8px;
       }
 
-      /* Bottom Section */
+      /* Bottom Section Layout */
       .bottom-section {
         display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-top: 25px;
+        width: 100%;
+      }
+      .seal-sign-wrapper {
+        width: 100%;
+        display: flex;
         justify-content: flex-end;
-        align-items: flex-end;
-        margin-top: 40px;
+        margin-bottom: 15px;
       }
       .seal-sign-group {
         display: flex;
         align-items: flex-end;
         gap: 20px;
-        margin-right: 25px;
+        margin-right: 20px;
+      }
+      .remarks-display-box {
+        width: 85%;
+        max-width: 85%;
+        text-align: left;
+        font-size: 11.5px;
+        line-height: 1.6;
+        color: #000000; 
+        background: transparent; 
+        border-left: 3px solid #0284c7;
+        padding: 8px 14px;
+        border-radius: 0 6px 6px 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        box-sizing: border-box;
+      }
+      .remarks-display-title {
+        font-weight: 800;
+        font-size: 11px;
+        color: #000000; /* Pure black heading */
+        text-transform: uppercase;
+        margin-bottom: 3px;
+        letter-spacing: 0.5px;
+      }
+      .supply-text-clean {
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: 0.3px;
       }
       .stamp-img {
         max-height: 105px;
@@ -422,6 +461,27 @@
       .sign-img {
         max-height: 85px;
         object-fit: contain;
+      }
+      .selected-months-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 5px;
+      }
+      .month-pill {
+        background: #0284c7;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .month-pill span {
+        cursor: pointer;
+        font-weight: bold;
       }
       .invoice-footer {
         border-top: 2px solid #0f172a;
@@ -668,9 +728,46 @@
         display: none;
         font-weight: 600;
       }
+
+      /* PDF Generation Floating Toast */
+      #pdfToast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #0f172a;
+        color: #ffffff;
+        padding: 14px 22px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        border-left: 4px solid #10b981;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        z-index: 999999;
+        transition: all 0.3s ease;
+      }
+      .toast-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
     </style>
   </head>
   <body>
+    <!-- Floating PDF Progress Toast -->
+    <div id="pdfToast">
+      <div id="pdfToastSpinner" class="toast-spinner"></div>
+      <span id="pdfToastMsg">Generating PDF...</span>
+    </div>
+
     <!-- Security Lock Screen -->
     <div id="securityLockOverlay">
       <div class="security-box">
@@ -832,21 +929,27 @@
         </div>
 
         <div class="bottom-section">
-          <div class="seal-sign-group">
-            <img
-              id="stampImage"
-              class="stamp-img"
-              src=""
-              alt="Seal"
-              style="display: none"
-            />
-            <img
-              id="signImage"
-              class="sign-img"
-              src=""
-              alt="Signature"
-              style="display: none"
-            />
+          <div class="seal-sign-wrapper">
+            <div class="seal-sign-group">
+              <img
+                id="stampImage"
+                class="stamp-img"
+                src=""
+                alt="Seal"
+                style="display: none"
+              />
+              <img
+                id="signImage"
+                class="sign-img"
+                src=""
+                alt="Signature"
+                style="display: none"
+              />
+            </div>
+          </div>
+          <div id="remarksDisplayContainer" class="remarks-display-box" style="display: none;">
+            <div class="remarks-display-title">Note :-</div>
+            <div id="remarksDisplayText"></div>
           </div>
         </div>
       </div>
@@ -885,22 +988,26 @@
             <input type="date" id="modalDate" class="form-input" />
           </div>
           <div class="form-group">
-            <label>Supply Month:</label>
-            <!-- Month Picker -->
-            <input type="month" id="modalSupplyMonth" class="form-input" />
+            <label>Supply Months (Select multiple):</label>
+            <div style="display:flex; gap:6px;">
+              <input type="month" id="modalSupplyMonthInput" class="form-input" style="flex:1;" />
+              <button type="button" class="btn-ribbon btn-new-bill" style="padding:6px 10px;" onclick="addSelectedMonth()">+ Add</button>
+            </div>
+            <div id="modalSelectedMonthsContainer" class="selected-months-pills"></div>
           </div>
         </div>
 
         <div class="form-grid-3" style="grid-template-columns: 2fr 1fr">
           <div class="form-group">
-            <label>Customer Name (العميل):</label>
+            <label>Customer Name or Nick Name (العميل):</label>
             <input
               type="text"
               id="modalBuyerName"
               class="form-input"
               list="suppliersDataList"
+              oninput="onPopupBuyerSelected(this.value)"
               onchange="onPopupBuyerSelected(this.value)"
-              placeholder="Type or select customer"
+              placeholder="Type Customer Name or Nickname"
             />
             <datalist id="suppliersDataList"></datalist>
           </div>
@@ -913,6 +1020,17 @@
               placeholder="VAT or CR Number"
             />
           </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 5px;">
+          <label>Bill Remarks / Notes (ملاحظات الفاتورة):</label>
+          <textarea
+            id="modalRemarksInput"
+            class="form-input"
+            rows="3"
+            placeholder="Enter custom remarks or vehicle descriptions..."
+            style="resize: vertical; font-family: inherit;"
+          ></textarea>
         </div>
 
         <div style="margin-top: 15px">
@@ -958,43 +1076,72 @@
 
     <!-- ================= ADD / VIEW CUSTOMERS DIRECTORY MODAL ================= -->
     <div class="modal-backdrop" id="custModalBackdrop">
-      <div class="modal-card cust-modal">
+      <div class="modal-card cust-modal" style="width: 780px; max-width: 95vw;">
         <div class="modal-header">
-          <h2>🏢 Customers / Suppliers Directory</h2>
+          <h2 id="custModalHeaderTitle">🏢 Customers Directory</h2>
           <button class="modal-close-btn" onclick="closeSupplierModal()">
             &times;
           </button>
         </div>
-        <div class="form-group">
-          <label>Customer Name (اسم العميل):</label>
-          <input
-            type="text"
-            id="addCustNameInput"
-            class="form-input"
-            placeholder="e.g. مؤسسة حمزة عوض بن محمد"
-          />
+
+        <input type="hidden" id="editCustIdInput" value="" />
+        
+        <div class="form-grid-3" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 5px;">
+          <div class="form-group">
+            <label>Customer Name (اسم العميل):</label>
+            <input
+              type="text"
+              id="addCustNameInput"
+              class="form-input"
+              placeholder="Full Customer Name"
+            />
+          </div>
+          <div class="form-group">
+            <label>Nick Name (اسم الشهرة / البحث):</label>
+            <input
+              type="text"
+              id="addCustNickInput"
+              class="form-input"
+              placeholder="e.g. Hamza, Bin Muhammad"
+            />
+          </div>
+          <div class="form-group">
+            <label>VAT / CR Number (الرقم الضريبي):</label>
+            <input
+              type="text"
+              id="addCustVatInput"
+              class="form-input"
+              placeholder="Enter VAT or CR No"
+            />
+          </div>
         </div>
-        <div class="form-group">
-          <label>VAT / CR Number (الرقم الضريبي):</label>
-          <input
-            type="text"
-            id="addCustVatInput"
-            class="form-input"
-            placeholder="Enter VAT or CR No"
-          />
-        </div>
-        <div class="modal-footer" style="margin-top: 10px">
-          <button class="btn-ribbon btn-pdf" onclick="saveNewSupplierManual()">
+
+        <div style="display:flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px;">
+          <button id="cancelCustEditBtn" class="btn-ribbon btn-dash" style="display:none;" onclick="cancelCustomerEdit()">Cancel Edit</button>
+          <button class="btn-ribbon btn-pdf" id="saveCustSubmitBtn" onclick="saveNewSupplierManual()">
             Save Customer
           </button>
         </div>
 
-        <div style="max-height: 200px; overflow-y: auto; margin-top: 15px">
+        <div class="form-group" style="margin-bottom: 10px;">
+          <input
+            type="text"
+            id="searchCustDirectoryInput"
+            class="form-input"
+            placeholder="🔍 Search by Code, Name, or Nick Name..."
+            oninput="renderFilteredSuppliersTable(this.value)"
+          />
+        </div>
+
+        <div style="max-height: 260px; overflow-y: auto;">
           <table class="popup-items-table">
             <thead>
               <tr>
+                <th style="width: 95px">Cust ID</th>
                 <th style="text-align: left">Customer Name</th>
-                <th>VAT / CR No</th>
+                <th style="text-align: left">Nick Name</th>
+                <th style="width: 110px">VAT / CR</th>
+                <th style="width: 100px">Action</th>
               </tr>
             </thead>
             <tbody id="modalCustTableBody"></tbody>
@@ -1003,44 +1150,97 @@
       </div>
     </div>
 
+    <!-- CUSTOMER DELETE CONFIRMATION POPUP -->
+    <div class="modal-backdrop" id="deleteCustConfirmModal">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <h2>⚠️ Confirm Deletion</h2>
+          <button class="modal-close-btn" onclick="closeDeleteCustModal()">&times;</button>
+        </div>
+        <p style="font-size: 13.5px; color: #334155; line-height: 1.5; margin-bottom: 20px;">
+          Are you sure you want to remove <b id="delCustTargetName">this customer</b>? Data won't be lost permanently and past bills remain intact.
+        </p>
+        <div class="modal-footer">
+          <button class="btn-ribbon btn-dash" onclick="closeDeleteCustModal()">Cancel</button>
+          <button class="btn-ribbon btn-pdf" style="background:#ef4444;" onclick="executeDeleteSupplier()">Delete</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ================= ADD / VIEW ITEMS DIRECTORY MODAL ================= -->
     <div class="modal-backdrop" id="itemsModalBackdrop">
-      <div class="modal-card cust-modal">
+      <div class="modal-card cust-modal" style="width: 720px; max-width: 95vw;">
         <div class="modal-header">
-          <h2>📦 Items / Vehicles Directory</h2>
+          <h2 id="itemsModalHeaderTitle">📦 Items / Vehicles Directory</h2>
           <button class="modal-close-btn" onclick="closeItemsModal()">
             &times;
           </button>
         </div>
-        <div class="form-group">
-          <label>Item / Vehicle Type Name:</label>
-          <input
-            type="text"
-            id="addItemNameInput"
-            class="form-input"
-            placeholder="e.g. Water Tanker"
-          />
+
+        <input type="hidden" id="editItemIdInput" value="" />
+
+        <div class="form-grid-3" style="grid-template-columns: 2fr 1fr; margin-bottom: 5px;">
+          <div class="form-group">
+            <label>Item / Vehicle Type Name:</label>
+            <input
+              type="text"
+              id="addItemNameInput"
+              class="form-input"
+              placeholder="e.g. Water Tanker"
+            />
+          </div>
+          <div class="form-group">
+            <label>Default Rate:</label>
+            <input type="number" step="any" id="addItemRateInput" class="form-input" placeholder="e.g. 48.07" onwheel="this.blur()" />
+          </div>
         </div>
-        <div class="form-group">
-          <label>Default Rate:</label>
-          <input type="number" id="addItemRateInput" class="form-input" placeholder="e.g. 48.07" onwheel="this.blur()" />
-        </div>
-        <div class="modal-footer" style="margin-top: 10px">
-          <button class="btn-ribbon btn-pdf" onclick="saveNewItemManual()">
+
+        <div style="display:flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px;">
+          <button id="cancelItemEditBtn" class="btn-ribbon btn-dash" style="display:none;" onclick="cancelItemEdit()">Cancel Edit</button>
+          <button class="btn-ribbon btn-pdf" id="saveItemSubmitBtn" onclick="saveNewItemManual()">
             Save Item
           </button>
         </div>
 
-        <div style="max-height: 200px; overflow-y: auto; margin-top: 15px">
+        <div class="form-group" style="margin-bottom: 10px;">
+          <input
+            type="text"
+            id="searchItemDirectoryInput"
+            class="form-input"
+            placeholder="🔍 Search by Item Code or Name..."
+            oninput="renderFilteredItemsTable(this.value)"
+          />
+        </div>
+
+        <div style="max-height: 250px; overflow-y: auto;">
           <table class="popup-items-table">
             <thead>
               <tr>
+                <th style="width: 95px">Item Code</th>
                 <th style="text-align: left">Item Name</th>
-                <th>Default Rate</th>
+                <th style="width: 100px">Default Rate</th>
+                <th style="width: 95px">Action</th>
               </tr>
             </thead>
             <tbody id="modalItemsTableBody"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ITEM DELETE CONFIRMATION POPUP -->
+    <div class="modal-backdrop" id="deleteItemConfirmModal">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <h2>⚠️ Confirm Deletion</h2>
+          <button class="modal-close-btn" onclick="closeDeleteItemModal()">&times;</button>
+        </div>
+        <p style="font-size: 13.5px; color: #334155; line-height: 1.5; margin-bottom: 20px;">
+          Are you sure you want to remove <b id="delItemTargetName">this item</b>? Past bills will not be affected.
+        </p>
+        <div class="modal-footer">
+          <button class="btn-ribbon btn-dash" onclick="closeDeleteItemModal()">Cancel</button>
+          <button class="btn-ribbon btn-pdf" style="background:#ef4444;" onclick="executeDeleteItem()">Delete</button>
         </div>
       </div>
     </div>
@@ -1122,14 +1322,29 @@
         const raw = sessionStorage.getItem("activeEInvoiceData");
         let restoredCompanyId = null;
         let prevInvoiceNo = null;
+        let restoredData = null;
 
         if (raw) {
           try {
-            const passed = JSON.parse(raw);
+            restoredData = JSON.parse(raw);
             restoredCompanyId =
-              passed.company_id || passed.selected_company?.id || null;
-            prevInvoiceNo = passed.invoice_no || null;
-          } catch (e) {}
+              restoredData.company_id || restoredData.selected_company?.id || null;
+            prevInvoiceNo = restoredData.invoice_no || null;
+          } catch (e) {
+            restoredData = null;
+          }
+          // 🟢 ഒറ്റത്തവണ ഡാറ്റ എടുത്തു കഴിഞ്ഞാൽ ഉടൻ സെഷൻ ക്ലിയർ ചെയ്യുന്നു.
+          // ഇതിലൂടെ പേജ് റീലോഡ് ചെയ്താലും പഴയ ഡാറ്റ വീണ്ടും കയറിവരില്ല!
+          sessionStorage.removeItem("activeEInvoiceData");
+        } else {
+          // Fresh Bill aayirikkumbol remarks-um inputs-um complete clean aakkunnu
+          currentRemarks = "";
+          const remBox = document.getElementById("remarksDisplayContainer");
+          const remTxt = document.getElementById("remarksDisplayText");
+          const remInp = document.getElementById("modalRemarksInput");
+          if (remTxt) remTxt.innerText = "";
+          if (remBox) remBox.style.display = "none";
+          if (remInp) remInp.value = "";
         }
 
         if (
@@ -1143,7 +1358,83 @@
           await fetchNextNumber(null);
         }
 
+        // Dashboard-il ninnulla Data Restore cheyyunnu
+        if (restoredData) {
+          const payload = restoredData.raw_payload || {};
+
+          // 1. Remarks Restore
+          currentRemarks = restoredData.remarks || payload.remarks || "";
+          const remarksBox = document.getElementById("remarksDisplayContainer");
+          const remarksText = document.getElementById("remarksDisplayText");
+          const remarksModalInp = document.getElementById("modalRemarksInput");
+          if (currentRemarks && currentRemarks.trim()) {
+            if (remarksText) remarksText.innerText = currentRemarks;
+            if (remarksBox) remarksBox.style.display = "block";
+            if (remarksModalInp) remarksModalInp.value = currentRemarks;
+          } else {
+            if (remarksText) remarksText.innerText = "";
+            if (remarksBox) remarksBox.style.display = "none";
+            if (remarksModalInp) remarksModalInp.value = "";
+          }
+
+          // 2. Buyer Details Restore
+          if (restoredData.vendor_name) {
+            document.getElementById("buyerNameDisplay").innerText = restoredData.vendor_name;
+            if (document.getElementById("modalBuyerName")) {
+              document.getElementById("modalBuyerName").value = restoredData.vendor_name;
+            }
+            const matchedBuyer = savedSuppliers.find(
+              (s) => s.customer_name.toLowerCase() === restoredData.vendor_name.toLowerCase()
+            );
+            if (matchedBuyer) {
+              document.getElementById("buyerVatDisplay").innerText = matchedBuyer.vat_number || "";
+              if (document.getElementById("modalBuyerVat")) {
+                document.getElementById("modalBuyerVat").value = matchedBuyer.vat_number || "";
+              }
+            }
+          }
+
+          // 3. Date & Supply Month Restore
+          if (restoredData.invoice_date) {
+            document.getElementById("dateDisplay").innerText = restoredData.invoice_date;
+            document.getElementById("modalDate").value = restoredData.invoice_date;
+          }
+          if (payload.selected_supply_months && Array.isArray(payload.selected_supply_months)) {
+            selectedSupplyMonths = payload.selected_supply_months;
+            updateSupplyDateDisplay();
+            renderSelectedMonthsPills();
+          }
+
+          // 4. Line Items Restore & Table Render
+          if (restoredData.manual_items && restoredData.manual_items.length > 0) {
+            manualItems = restoredData.manual_items;
+          } else if (payload.manual_items && payload.manual_items.length > 0) {
+            manualItems = payload.manual_items;
+          }
+
+          // 5. Seal State Restore
+          if (restoredData.has_seal || payload.has_seal) {
+            if (!isSealEngaged) toggleSealEngagement();
+          }
+        }
+
         setBillMode("newbill");
+        renderInvoiceViewTable(); // View Table-il items instant aayi render aavan idh avashyamaanu
+
+        // 🟢 Direct download trigger & URL cleanup (Infinite download loop ozhivakki)
+        const urlParams = new URLSearchParams(window.location.search);
+        const isDirect = urlParams.get("directDownload") === "true" || sessionStorage.getItem("autoDownloadPdfTrigger") === "true";
+        if (isDirect) {
+          sessionStorage.removeItem("autoDownloadPdfTrigger");
+          // URL-il ninnu ?directDownload=true remove cheyyunnu
+          if (window.history.replaceState) {
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+          }
+          setTimeout(async () => {
+            await downloadAndSaveInvoice();
+          }, 500);
+        }
       }
 
       async function loadCompanies() {
@@ -1159,39 +1450,98 @@
         }
       }
 
+      let selectedSupplyMonths = [];
+      let currentRemarks = "";
+      let customerToDeleteId = null;
+
       function setupInitialDates() {
         const now = new Date();
         const y = now.getFullYear();
         const m = String(now.getMonth() + 1).padStart(2, "0");
         const d = String(now.getDate()).padStart(2, "0");
         const todayStr = `${y}-${m}-${d}`;
-        const monthStr = `${y}-${m}`; // YYYY-MM format for input[type="month"]
+        const initialMonth = `${y}-${m}`;
 
         document.getElementById("dateDisplay").innerText = todayStr;
-        document.getElementById("supplyDateDisplay").innerText =
-          formatMonthYear(monthStr);
         document.getElementById("modalDate").value = todayStr;
-        document.getElementById("modalSupplyMonth").value = monthStr;
+
+        selectedSupplyMonths = [initialMonth];
+        updateSupplyDateDisplay();
+        renderSelectedMonthsPills();
       }
 
-      function formatMonthYear(yyyyMm) {
+      function formatToMmmYy(yyyyMm) {
         if (!yyyyMm) return "";
         const [yy, mm] = yyyyMm.split("-");
-        const monthNames = [
-          "January",
-          "February",
-          "March",
-          "April",
-          "May",
-          "June",
-          "July",
-          "August",
-          "September",
-          "October",
-          "November",
-          "December",
+        const shortMonths = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
         ];
-        return yy && mm ? `${monthNames[parseInt(mm) - 1]} ${yy}` : yyyyMm;
+        const monthIndex = parseInt(mm, 10) - 1;
+        const shortYear = yy ? yy.slice(-2) : "";
+        return shortMonths[monthIndex] ? `${shortMonths[monthIndex]}-${shortYear}` : yyyyMm;
+      }
+
+      function updateSupplyDateDisplay() {
+        const displayEl = document.getElementById("supplyDateDisplay");
+        if (selectedSupplyMonths.length === 0) {
+          displayEl.innerText = "------";
+          return;
+        }
+
+        const sortedMonths = [...selectedSupplyMonths].sort();
+        const shortMonths = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ];
+
+        // Year basis-il group cheyyunnu
+        const groups = {};
+        sortedMonths.forEach((m) => {
+          const [yy, mm] = m.split("-");
+          const mIndex = parseInt(mm, 10) - 1;
+          const mName = shortMonths[mIndex] || mm;
+          if (!groups[yy]) groups[yy] = [];
+          groups[yy].push(mName);
+        });
+
+        // "Apr, Oct, Dec-26" format-il combine cheyyunnu
+        const formattedParts = Object.keys(groups).map((yy) => {
+          const shortYear = yy.slice(-2);
+          return `${groups[yy].join(", ")}-${shortYear}`;
+        });
+
+        displayEl.innerHTML = `<span class="supply-text-clean">${formattedParts.join(" | ")}</span>`;
+      }
+
+      function renderSelectedMonthsPills() {
+        const container = document.getElementById("modalSelectedMonthsContainer");
+        if (!container) return;
+        container.innerHTML = "";
+        selectedSupplyMonths.forEach((m, idx) => {
+          container.innerHTML += `
+            <div class="month-pill">
+              ${formatToMmmYy(m)}
+              <span onclick="removeSelectedMonth(${idx})">&times;</span>
+            </div>
+          `;
+        });
+      }
+
+      function addSelectedMonth() {
+        const picker = document.getElementById("modalSupplyMonthInput");
+        const val = picker.value;
+        if (!val) return;
+        if (!selectedSupplyMonths.includes(val)) {
+          selectedSupplyMonths.push(val);
+          renderSelectedMonthsPills();
+        }
+        picker.value = "";
+      }
+
+      function removeSelectedMonth(index) {
+        selectedSupplyMonths.splice(index, 1);
+        renderSelectedMonthsPills();
       }
 
       function setBillMode(mode) {
@@ -1277,6 +1627,9 @@
           .innerText.trim();
         document.getElementById("modalBuyerVat").value =
           currentVat === "-" ? "" : currentVat;
+
+        document.getElementById("modalRemarksInput").value = currentRemarks;
+        renderSelectedMonthsPills();
 
         if (manualItems.length === 0) {
           manualItems = [
@@ -1378,27 +1731,52 @@
       }
 
       function onPopupBuyerSelected(val) {
-        const found = savedSuppliers.find(
-          (s) =>
-            s.customer_name.trim().toLowerCase() === val.trim().toLowerCase(),
-        );
+        const cleanVal = (val || "").trim().toLowerCase();
+        if (!cleanVal) return;
+
+        const found = savedSuppliers.find((s) => {
+          const matchName = s.customer_name && s.customer_name.toLowerCase() === cleanVal;
+          const matchNick = s.nickname && s.nickname.toLowerCase() === cleanVal;
+          const matchCombined = `${s.customer_name} (${s.nickname})`.toLowerCase() === cleanVal;
+          return matchName || matchNick || matchCombined;
+        });
+
         if (found) {
-          document.getElementById("modalBuyerVat").value =
-            found.vat_number || "";
+          document.getElementById("modalBuyerName").value = found.customer_name;
+          document.getElementById("modalBuyerVat").value = found.vat_number || "";
         }
       }
 
       async function saveAndApplyBillChanges() {
         const buyer = document.getElementById("modalBuyerName").value.trim();
         const vat = document.getElementById("modalBuyerVat").value.trim();
+        currentRemarks = document.getElementById("modalRemarksInput").value.trim();
+
+        // Enthoru month picker-il select cheythittundengil athine auto add aakkuka
+        const monthInputVal = document.getElementById("modalSupplyMonthInput") ? document.getElementById("modalSupplyMonthInput").value : "";
+        if (monthInputVal && !selectedSupplyMonths.includes(monthInputVal)) {
+          selectedSupplyMonths.push(monthInputVal);
+          document.getElementById("modalSupplyMonthInput").value = "";
+        }
 
         document.getElementById("dateDisplay").innerText = document
           .getElementById("modalDate")
           .value.trim();
-        document.getElementById("supplyDateDisplay").innerText =
-          formatMonthYear(document.getElementById("modalSupplyMonth").value);
+        
+        updateSupplyDateDisplay();
         document.getElementById("buyerNameDisplay").innerText = buyer || "";
         document.getElementById("buyerVatDisplay").innerText = vat || "";
+
+        // Display Remarks on Invoice Bottom Left if exists
+        const remarksBox = document.getElementById("remarksDisplayContainer");
+        const remarksText = document.getElementById("remarksDisplayText");
+        if (currentRemarks) {
+          remarksText.innerText = currentRemarks;
+          remarksBox.style.display = "block";
+        } else {
+          remarksText.innerText = "";
+          remarksBox.style.display = "none";
+        }
 
         // Remove completely blank rows
         manualItems = manualItems.filter(
@@ -1414,7 +1792,7 @@
             await fetch("/e-invoice/api/save-supplier", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ customer_name: buyer, vat_number: vat }),
+              body: JSON.stringify({ customer_name: buyer, nickname: "", vat_number: vat }),
             });
             await loadSavedSuppliers();
           }
@@ -1460,42 +1838,153 @@
         const data = await res.json();
         if (data.success) {
           savedSuppliers = data.suppliers || [];
-          const dl = document.getElementById("suppliersDataList");
-          dl.innerHTML = "";
-          const tbody = document.getElementById("modalCustTableBody");
-          tbody.innerHTML = "";
-
-          savedSuppliers.forEach((s) => {
-            dl.innerHTML += `<option value="${s.customer_name}">${s.vat_number ? "VAT: " + s.vat_number : ""}</option>`;
-            tbody.innerHTML += `<tr><td style="text-align:left;">${s.customer_name}</td><td style="font-family:monospace;">${s.vat_number || "-"}</td></tr>`;
-          });
+          populateCustomerDataList();
+          renderFilteredSuppliersTable("");
         }
       }
+
+      function populateCustomerDataList() {
+        const dl = document.getElementById("suppliersDataList");
+        dl.innerHTML = "";
+        savedSuppliers.forEach((s) => {
+          const displayLabel = s.nickname ? `${s.customer_name} (${s.nickname})` : s.customer_name;
+          dl.innerHTML += `<option value="${displayLabel}">${s.customer_code ? '[' + s.customer_code + '] ' : ''}${s.vat_number ? 'VAT: ' + s.vat_number : ''}</option>`;
+          if (s.nickname) {
+            dl.innerHTML += `<option value="${s.nickname}">[Nick] ${s.customer_name}</option>`;
+          }
+        });
+      }
+
+      function renderFilteredSuppliersTable(filterTerm) {
+        const tbody = document.getElementById("modalCustTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        const term = (filterTerm || "").toLowerCase().trim();
+        const filtered = savedSuppliers.filter((s) => {
+          if (!term) return true;
+          const matchCode = (s.customer_code || "").toLowerCase().includes(term);
+          const matchName = (s.customer_name || "").toLowerCase().includes(term);
+          const matchNick = (s.nickname || "").toLowerCase().includes(term);
+          const matchVat = (s.vat_number || "").toLowerCase().includes(term);
+          return matchCode || matchName || matchNick || matchVat;
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:15px;">No matching customers found</td></tr>`;
+          return;
+        }
+
+        filtered.forEach((s) => {
+          tbody.innerHTML += `
+            <tr>
+              <td><span style="font-family:monospace; font-weight:700; color:#0284c7;">${s.customer_code || '-'}</span></td>
+              <td style="text-align:left; font-weight:600;">${s.customer_name}</td>
+              <td style="text-align:left; color:#64748b;">${s.nickname || '-'}</td>
+              <td style="font-family:monospace;">${s.vat_number || '-'}</td>
+              <td>
+                <button class="btn-ribbon btn-edit-bill" style="padding:3px 6px; font-size:11px;" onclick="startEditCustomer(${s.id})">✏️</button>
+                <button class="btn-ribbon btn-dash" style="padding:3px 6px; font-size:11px; background:#ef4444;" onclick="promptDeleteCustomer(${s.id}, '${escapeQuotes(s.customer_name)}')">🗑️</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      function escapeQuotes(str) {
+        return (str || "").replace(/'/g, "\\'");
+      }
+
       function openSupplierModal() {
+        cancelCustomerEdit();
         document.getElementById("custModalBackdrop").style.display = "flex";
       }
+
       function closeSupplierModal() {
         document.getElementById("custModalBackdrop").style.display = "none";
       }
+
+      function startEditCustomer(id) {
+        const cust = savedSuppliers.find((s) => String(s.id) === String(id));
+        if (!cust) return;
+
+        document.getElementById("editCustIdInput").value = cust.id;
+        document.getElementById("addCustNameInput").value = cust.customer_name;
+        document.getElementById("addCustNickInput").value = cust.nickname || "";
+        document.getElementById("addCustVatInput").value = cust.vat_number || "";
+
+        document.getElementById("custModalHeaderTitle").innerText = `✏️ Edit Customer (${cust.customer_code || 'ID:' + cust.id})`;
+        document.getElementById("saveCustSubmitBtn").innerText = "Update Customer";
+        document.getElementById("cancelCustEditBtn").style.display = "inline-flex";
+      }
+
+      function cancelCustomerEdit() {
+        document.getElementById("editCustIdInput").value = "";
+        document.getElementById("addCustNameInput").value = "";
+        document.getElementById("addCustNickInput").value = "";
+        document.getElementById("addCustVatInput").value = "";
+
+        document.getElementById("custModalHeaderTitle").innerText = "🏢 Customers Directory";
+        document.getElementById("saveCustSubmitBtn").innerText = "Save Customer";
+        document.getElementById("cancelCustEditBtn").style.display = "none";
+      }
+
       async function saveNewSupplierManual() {
+        const id = document.getElementById("editCustIdInput").value;
         const name = document.getElementById("addCustNameInput").value.trim();
+        const nick = document.getElementById("addCustNickInput").value.trim();
         const vat = document.getElementById("addCustVatInput").value.trim();
+
         if (!name) return alert("Please enter Customer Name");
+
         const res = await fetch("/e-invoice/api/save-supplier", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ customer_name: name, vat_number: vat }),
+          body: JSON.stringify({ id: id || null, customer_name: name, nickname: nick, vat_number: vat }),
         });
         const data = await res.json();
         if (data.success) {
-          document.getElementById("addCustNameInput").value = "";
-          document.getElementById("addCustVatInput").value = "";
+          cancelCustomerEdit();
           await loadSavedSuppliers();
-          alert("Customer saved successfully!");
+        } else {
+          alert(data.message || "Failed to save customer");
+        }
+      }
+
+      function promptDeleteCustomer(id, name) {
+        customerToDeleteId = id;
+        document.getElementById("delCustTargetName").innerText = name;
+        document.getElementById("deleteCustConfirmModal").style.display = "flex";
+      }
+
+      function closeDeleteCustModal() {
+        customerToDeleteId = null;
+        document.getElementById("deleteCustConfirmModal").style.display = "none";
+      }
+
+      async function executeDeleteSupplier() {
+        if (!customerToDeleteId) return;
+        try {
+          const res = await fetch("/e-invoice/api/delete-supplier", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: customerToDeleteId }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeDeleteCustModal();
+            await loadSavedSuppliers();
+          } else {
+            alert(data.message || "Failed to remove customer");
+          }
+        } catch (e) {
+          alert("Error connecting to server");
         }
       }
 
       /* ================= ITEMS DIRECTORY LOGIC ================= */
+      let itemToDeleteId = null;
+
       async function loadSavedItems() {
         const res = await fetch("/e-invoice/api/items");
         const data = await res.json();
@@ -1503,37 +1992,127 @@
           savedItems = data.items || [];
           const dl = document.getElementById("itemsDataList");
           dl.innerHTML = "";
-          const tbody = document.getElementById("modalItemsTableBody");
-          if (tbody) tbody.innerHTML = "";
-
           savedItems.forEach((i) => {
-            dl.innerHTML += `<option value="${i.item_name}"></option>`;
-            if (tbody)
-              tbody.innerHTML += `<tr><td style="text-align:left;">${i.item_name}</td><td>${parseFloat(i.rate).toFixed(2)}</td></tr>`;
+            dl.innerHTML += `<option value="${i.item_name}">${i.item_code ? '[' + i.item_code + ']' : ''}</option>`;
           });
+          renderFilteredItemsTable("");
         }
       }
+
+      function renderFilteredItemsTable(filterTerm) {
+        const tbody = document.getElementById("modalItemsTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        const term = (filterTerm || "").toLowerCase().trim();
+        const filtered = savedItems.filter((i) => {
+          if (!term) return true;
+          const matchCode = (i.item_code || "").toLowerCase().includes(term);
+          const matchName = (i.item_name || "").toLowerCase().includes(term);
+          return matchCode || matchName;
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:15px;">No matching items found</td></tr>`;
+          return;
+        }
+
+        filtered.forEach((i) => {
+          tbody.innerHTML += `
+            <tr>
+              <td><span style="font-family:monospace; font-weight:700; color:#0284c7;">${i.item_code || '-'}</span></td>
+              <td style="text-align:left; font-weight:600;">${i.item_name}</td>
+              <td style="font-family:monospace;">${parseFloat(i.rate || 0).toFixed(2)}</td>
+              <td>
+                <button class="btn-ribbon btn-edit-bill" style="padding:3px 6px; font-size:11px;" onclick="startEditItem(${i.id})">✏️</button>
+                <button class="btn-ribbon btn-dash" style="padding:3px 6px; font-size:11px; background:#ef4444;" onclick="promptDeleteItem(${i.id}, '${escapeQuotes(i.item_name)}')">🗑️</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
       function openItemsModal() {
+        cancelItemEdit();
         document.getElementById("itemsModalBackdrop").style.display = "flex";
       }
+
       function closeItemsModal() {
         document.getElementById("itemsModalBackdrop").style.display = "none";
       }
+
+      function startEditItem(id) {
+        const item = savedItems.find((i) => String(i.id) === String(id));
+        if (!item) return;
+
+        document.getElementById("editItemIdInput").value = item.id;
+        document.getElementById("addItemNameInput").value = item.item_name;
+        document.getElementById("addItemRateInput").value = item.rate;
+
+        document.getElementById("itemsModalHeaderTitle").innerText = `✏️ Edit Item (${item.item_code || 'ID:' + item.id})`;
+        document.getElementById("saveItemSubmitBtn").innerText = "Update Item";
+        document.getElementById("cancelItemEditBtn").style.display = "inline-flex";
+      }
+
+      function cancelItemEdit() {
+        document.getElementById("editItemIdInput").value = "";
+        document.getElementById("addItemNameInput").value = "";
+        document.getElementById("addItemRateInput").value = "";
+
+        document.getElementById("itemsModalHeaderTitle").innerText = "📦 Items / Vehicles Directory";
+        document.getElementById("saveItemSubmitBtn").innerText = "Save Item";
+        document.getElementById("cancelItemEditBtn").style.display = "none";
+      }
+
       async function saveNewItemManual() {
+        const id = document.getElementById("editItemIdInput").value;
         const name = document.getElementById("addItemNameInput").value.trim();
         const rate = document.getElementById("addItemRateInput").value.trim();
+
         if (!name) return alert("Please enter Item Name");
+
         const res = await fetch("/e-invoice/api/save-item", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ item_name: name, rate: rate }),
+          body: JSON.stringify({ id: id || null, item_name: name, rate: rate }),
         });
         const data = await res.json();
         if (data.success) {
-          document.getElementById("addItemNameInput").value = "";
-          document.getElementById("addItemRateInput").value = "";
+          cancelItemEdit();
           await loadSavedItems();
-          alert("Item saved successfully!");
+        } else {
+          alert(data.message || "Failed to save item");
+        }
+      }
+
+      function promptDeleteItem(id, name) {
+        itemToDeleteId = id;
+        document.getElementById("delItemTargetName").innerText = name;
+        document.getElementById("deleteItemConfirmModal").style.display = "flex";
+      }
+
+      function closeDeleteItemModal() {
+        itemToDeleteId = null;
+        document.getElementById("deleteItemConfirmModal").style.display = "none";
+      }
+
+      async function executeDeleteItem() {
+        if (!itemToDeleteId) return;
+        try {
+          const res = await fetch("/e-invoice/api/delete-item", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: itemToDeleteId }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeDeleteItemModal();
+            await loadSavedItems();
+          } else {
+            alert(data.message || "Failed to delete item");
+          }
+        } catch (e) {
+          alert("Error connecting to server");
         }
       }
 
@@ -1594,7 +2173,8 @@
           ? `E-mail: ${comp.email}`
           : "";
 
-        if (existingInvNo) {
+        // എഡിറ്റ് മോഡ് അല്ലെങ്കിൽ ഡാഷ്‌ബോർഡിൽ നിന്ന് വ്യക്തമായി വ്യൂ ചെയ്യാൻ വന്നതല്ലെങ്കിൽ പുതിയ നമ്പർ തന്നെ എടുക്കണം
+        if (existingInvNo && !sessionStorage.getItem("einv_force_new_seq")) {
           document.getElementById("invNoDisplay").innerText = existingInvNo;
           document.getElementById("modalInvNo").value = existingInvNo;
         } else {
@@ -1604,6 +2184,13 @@
       }
       async function onCompanySelectChange() {
         const selId = document.getElementById("companySelect").value;
+
+        // Company maattumbol pazhaya bill-nte remarks reset aakkunnu
+        currentRemarks = "";
+        if (document.getElementById("remarksDisplayText")) document.getElementById("remarksDisplayText").innerText = "";
+        if (document.getElementById("remarksDisplayContainer")) document.getElementById("remarksDisplayContainer").style.display = "none";
+        if (document.getElementById("modalRemarksInput")) document.getElementById("modalRemarksInput").value = "";
+
         if (!selId) {
           document.getElementById("headerCompEn").innerHTML = "";
           document.getElementById("headerCompAr").innerHTML = "";
@@ -1665,6 +2252,10 @@
           has_seal: isSealEngaged,
           mode: activeMode,
           manual_items: activeMode === "newbill" ? manualItems : null,
+          raw_payload: {
+            remarks: currentRemarks,
+            selected_supply_months: selectedSupplyMonths,
+          },
         };
 
         try {
@@ -1685,35 +2276,53 @@
         }
       }
 
-      /* PDF GENERATION */
+      function showPdfToast(msg, isLoading = true) {
+        const toast = document.getElementById("pdfToast");
+        const msgEl = document.getElementById("pdfToastMsg");
+        const spinner = document.getElementById("pdfToastSpinner");
+        if (!toast) return;
+
+        msgEl.innerText = msg;
+        spinner.style.display = isLoading ? "block" : "none";
+        toast.style.borderLeftColor = isLoading ? "#0284c7" : "#10b981";
+        toast.style.display = "flex";
+
+        if (!isLoading) {
+          setTimeout(() => {
+            toast.style.display = "none";
+          }, 3500);
+        }
+      }
+
+      /* PDF GENERATION (ADVANCED AUTO-FLOW MULTI-PAGE ENGINE - FIXED HEIGHT & GAP CALCULATION) */
       async function downloadAndSaveInvoice() {
         const invNo = document.getElementById("invNoDisplay").innerText.trim();
         if (!invNo || invNo === "------")
           return alert("Please select Company or configure a Bill No first!");
 
+        showPdfToast("Saving Invoice & Preparing Pages...", true);
+
+        // 1. Database-il Data Save Cheyyunnu
         const selId = document.getElementById("companySelect").value;
         const comp = companiesList.find((c) => String(c.id) === String(selId));
         const body = {
           invoice_no: invNo,
           company_id: selId || null,
           company_name: comp ? comp.company_name_en : "",
-          vendor_name: document
-            .getElementById("buyerNameDisplay")
-            .innerText.trim(),
-          billing_month: document
-            .getElementById("supplyDateDisplay")
-            .innerText.trim(),
+          vendor_name: document.getElementById("buyerNameDisplay").innerText.trim(),
+          billing_month: document.getElementById("supplyDateDisplay").innerText.trim(),
           invoice_date: document.getElementById("dateDisplay").innerText.trim(),
           invoice_time: new Date().toLocaleTimeString(),
-          subtotal:
-            parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
-          vat_amount:
-            parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
-          grand_total:
-            parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
+          subtotal: parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
+          vat_amount: parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
+          grand_total: parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
           has_seal: isSealEngaged,
           mode: activeMode,
           manual_items: activeMode === "newbill" ? manualItems : null,
+          raw_payload: {
+            remarks: currentRemarks,
+            selected_supply_months: selectedSupplyMonths,
+          },
         };
         try {
           await fetch("/e-invoice/api/save-invoice-record", {
@@ -1721,25 +2330,262 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
           });
-        } catch (err) {}
+        } catch (err) {
+          console.error("Save error", err);
+        }
 
-        const { jsPDF } = window.jspdf;
-        const invoiceEl = document.getElementById("printableInvoice");
-        const canvas = await html2canvas(invoiceEl, {
-          scale: 2.5,
-          useCORS: true,
-        });
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "pt", "a4");
-        pdf.addImage(
-          imgData,
-          "PNG",
-          0,
-          0,
-          pdf.internal.pageSize.getWidth(),
-          pdf.internal.pageSize.getHeight(),
-        );
-        pdf.save(`${invNo}.pdf`);
+        // DOM elements clone cheyyunnu
+        const originalInvoice = document.getElementById("printableInvoice");
+        const printContainer = document.createElement("div");
+        printContainer.style.position = "fixed";
+        printContainer.style.left = "-10000px";
+        printContainer.style.top = "0";
+        document.body.appendChild(printContainer);
+
+        const headerTop = originalInvoice.querySelector(".invoice-header").cloneNode(true);
+        const titleGrid = originalInvoice.querySelector(".title-meta-grid").cloneNode(true);
+        const buyerBar = originalInvoice.querySelector(".middle-details-bar").cloneNode(true);
+        const tableHead = originalInvoice.querySelector(".items-table thead").cloneNode(true);
+        const invoiceFooter = originalInvoice.querySelector(".invoice-footer").cloneNode(true);
+        const summaryWrap = originalInvoice.querySelector(".summary-container-wrap").cloneNode(true);
+        const sealSignWrapper = originalInvoice.querySelector(".seal-sign-wrapper")?.cloneNode(true);
+
+        const pageElements = [];
+        const PAGE_WIDTH = 860;
+        const PAGE_HEIGHT = 1216; // A4 Aspect Ratio
+
+        function createPageSkeleton() {
+          const page = document.createElement("div");
+          page.className = "invoice-page";
+          page.style.width = `${PAGE_WIDTH}px`;
+          page.style.height = `${PAGE_HEIGHT}px`;
+          page.style.minHeight = `${PAGE_HEIGHT}px`;
+          page.style.maxHeight = `${PAGE_HEIGHT}px`;
+          page.style.position = "relative";
+          page.style.background = "#ffffff";
+          page.style.padding = "35px 45px";
+          page.style.boxSizing = "border-box";
+          page.style.display = "block"; // Flex ഒഴിവാക്കി സ്വാഭാവിക ഹൈറ്റ് നൽകുന്നു
+          page.style.overflow = "hidden";
+
+          // Watermark
+          const logoSrc = document.getElementById("headerLogo")?.src;
+          if (logoSrc && document.getElementById("headerLogo").style.display !== "none") {
+            const wm = document.createElement("img");
+            wm.src = logoSrc;
+            wm.style.display = "block";
+            wm.style.position = "absolute";
+            wm.style.top = "50%";
+            wm.style.left = "50%";
+            wm.style.transform = "translate(-50%, -50%)";
+            wm.style.width = "430px";
+            wm.style.opacity = "0.06";
+            wm.style.pointerEvents = "none";
+            wm.style.zIndex = "0";
+            page.appendChild(wm);
+          }
+
+          const content = document.createElement("div");
+          content.style.position = "relative";
+          content.style.zIndex = "1";
+          content.style.width = "100%";
+          page.appendChild(content);
+
+          // Footer പേജിന്റെ ഏറ്റവും അടിയിൽ കൃത്യമായി ഫിക്സ് ചെയ്യുന്നു
+          const foot = invoiceFooter.cloneNode(true);
+          foot.style.position = "absolute";
+          foot.style.bottom = "25px";
+          foot.style.left = "45px";
+          foot.style.right = "45px";
+          foot.style.width = "calc(100% - 90px)";
+          foot.style.boxSizing = "border-box";
+          page.appendChild(foot);
+
+          printContainer.appendChild(page);
+          pageElements.push(page);
+          return { page, content, foot };
+        }
+
+        // കൃത്യമായി Footer-ന്റെ top-ൽ നിന്ന് 10px മുകളിലുള്ള മാക്സിമം പരിധി അളക്കുന്നു
+        function getMaxAllowedBottom(page, foot) {
+          const pageRect = page.getBoundingClientRect();
+          const footRect = foot.getBoundingClientRect();
+          return (footRect.top - pageRect.top) - 10;
+        }
+
+        function getElementBottom(el, page) {
+          const pageRect = page.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          return elRect.bottom - pageRect.top;
+        }
+
+        // --- PAGE 1 INIT ---
+        let currentPageObj = createPageSkeleton();
+        let currentContent = currentPageObj.content;
+        currentContent.appendChild(headerTop.cloneNode(true));
+        currentContent.appendChild(titleGrid.cloneNode(true));
+        currentContent.appendChild(buyerBar.cloneNode(true));
+
+        function startNewPage() {
+          currentPageObj = createPageSkeleton();
+          currentContent = currentPageObj.content;
+          currentContent.appendChild(headerTop.cloneNode(true));
+        }
+
+        // 2. ITEMS TABLE POPULATION (ഫൂട്ടറിന് 10px മുകളിൽ വരെ ഫിൽ ആകുന്നു)
+        const allRows = Array.from(document.getElementById("invoiceItemsBody").children);
+        if (allRows.length > 0) {
+          let table = document.createElement("table");
+          table.className = "items-table";
+          table.style.marginTop = "10px";
+          table.appendChild(tableHead.cloneNode(true));
+          let tbody = document.createElement("tbody");
+          table.appendChild(tbody);
+          currentContent.appendChild(table);
+
+          for (let i = 0; i < allRows.length; i++) {
+            const rowClone = allRows[i].cloneNode(true);
+            tbody.appendChild(rowClone);
+
+            const maxBottom = getMaxAllowedBottom(currentPageObj.page, currentPageObj.foot);
+            // ഫൂട്ടറിന്റെ 10px മുകളിൽ എത്തിയാൽ മാത്രം ബാക്കി ഐറ്റങ്ങൾ അടുത്ത പേജിലേക്ക് മാറ്റുന്നു
+            if (getElementBottom(rowClone, currentPageObj.page) > maxBottom && tbody.children.length > 1) {
+              tbody.removeChild(rowClone);
+              startNewPage();
+
+              table = document.createElement("table");
+              table.className = "items-table";
+              table.style.marginTop = "10px";
+              table.appendChild(tableHead.cloneNode(true));
+              tbody = document.createElement("tbody");
+              table.appendChild(tbody);
+              currentContent.appendChild(table);
+
+              tbody.appendChild(rowClone);
+            }
+          }
+        }
+
+        // 3. SUMMARY TABLE PLACEMENT
+        const sumClone = summaryWrap.cloneNode(true);
+        sumClone.style.marginTop = "10px";
+        currentContent.appendChild(sumClone);
+        const sumMaxBottom = getMaxAllowedBottom(currentPageObj.page, currentPageObj.foot);
+        if (getElementBottom(sumClone, currentPageObj.page) > sumMaxBottom) {
+          currentContent.removeChild(sumClone);
+          startNewPage();
+          currentContent.appendChild(sumClone);
+        }
+
+        // 4. NOTE / REMARKS ENGINE (ആദ്യ പേജിലെ ബാക്കി സ്പേസ് ഫിൽ ചെയ്ത് ബാക്കി മാത്രം അടുത്ത പേജിലേക്ക്)
+        if (currentRemarks && currentRemarks.trim()) {
+          const rawLines = currentRemarks.split("\n");
+          const wordChunks = [];
+          rawLines.forEach((line) => {
+            if (line.length > 70) {
+              const words = line.split(" ");
+              let cur = "";
+              words.forEach((w) => {
+                if ((cur + " " + w).trim().length > 65) {
+                  wordChunks.push(cur.trim());
+                  cur = w;
+                } else {
+                  cur = cur ? cur + " " + w : w;
+                }
+              });
+              if (cur.trim()) wordChunks.push(cur.trim());
+            } else {
+              wordChunks.push(line);
+            }
+          });
+
+          let noteBox = document.createElement("div");
+          noteBox.className = "remarks-display-box";
+          noteBox.style.marginTop = "12px";
+          noteBox.innerHTML = `
+            <div class="remarks-display-title">Note :-</div>
+            <div class="rem-body" style="white-space:pre-wrap; word-break:break-word;"></div>
+          `;
+          currentContent.appendChild(noteBox);
+          let noteBody = noteBox.querySelector(".rem-body");
+
+          // Note ബോക്സ് നടപ്പുള്ള പേജിൽ കൊള്ളുമോ എന്ന് നോക്കുന്നു
+          let maxBottom = getMaxAllowedBottom(currentPageObj.page, currentPageObj.foot);
+          if (getElementBottom(noteBox, currentPageObj.page) > maxBottom) {
+            currentContent.removeChild(noteBox);
+            startNewPage();
+            currentContent.appendChild(noteBox);
+          }
+
+          for (let i = 0; i < wordChunks.length; i++) {
+            const prevText = noteBody.textContent;
+            noteBody.textContent = prevText ? prevText + "\n" + wordChunks[i] : wordChunks[i];
+
+            const curMax = getMaxAllowedBottom(currentPageObj.page, currentPageObj.foot);
+            if (getElementBottom(noteBox, currentPageObj.page) > curMax) {
+              // അവസാന വരി ഇവിടെ കൊള്ളില്ലെങ്കിൽ റോൾബാക്ക് ചെയ്ത് അടുത്ത പേജിലേക്ക് മാറ്റുന്നു
+              noteBody.textContent = prevText;
+
+              startNewPage();
+
+              noteBox = document.createElement("div");
+              noteBox.className = "remarks-display-box";
+              noteBox.style.marginTop = "12px";
+              noteBox.innerHTML = `
+                <div class="remarks-display-title">Note :- (Contd.)</div>
+                <div class="rem-body" style="white-space:pre-wrap; word-break:break-word;"></div>
+              `;
+              currentContent.appendChild(noteBox);
+              noteBody = noteBox.querySelector(".rem-body");
+              noteBody.textContent = wordChunks[i];
+            }
+          }
+        }
+
+        // 5. SEAL & SIGNATURE PLACEMENT
+        if (sealSignWrapper && isSealEngaged) {
+          const sealClone = sealSignWrapper.cloneNode(true);
+          sealClone.style.marginTop = "15px";
+          currentContent.appendChild(sealClone);
+          const sealMaxBottom = getMaxAllowedBottom(currentPageObj.page, currentPageObj.foot);
+          if (getElementBottom(sealClone, currentPageObj.page) > sealMaxBottom) {
+            currentContent.removeChild(sealClone);
+            startNewPage();
+            currentContent.appendChild(sealClone);
+          }
+        }
+
+        // 6. PDF GENERATION VIA HTML2CANVAS & JSPDF
+        try {
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF("p", "pt", "a4");
+          const a4WidthPt = pdf.internal.pageSize.getWidth();
+          const a4HeightPt = pdf.internal.pageSize.getHeight();
+
+          for (let i = 0; i < pageElements.length; i++) {
+            showPdfToast(`Processing Page ${i + 1} of ${pageElements.length}...`, true);
+            await new Promise((r) => setTimeout(r, 60));
+
+            const canvas = await html2canvas(pageElements[i], {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: "#ffffff",
+            });
+
+            const imgData = canvas.toDataURL("image/jpeg", 0.95);
+            if (i > 0) pdf.addPage();
+            pdf.addImage(imgData, "JPEG", 0, 0, a4WidthPt, a4HeightPt);
+          }
+
+          pdf.save(`${invNo}.pdf`);
+          showPdfToast("✅ PDF Generated & Downloaded Successfully!", false);
+        } catch (pdfErr) {
+          console.error("PDF generation error", pdfErr);
+          showPdfToast("❌ Failed to generate PDF!", false);
+        } finally {
+          document.body.removeChild(printContainer);
+        }
       }
 
 
@@ -1753,21 +2599,31 @@
         document.getElementById("newBillConfirmModal").style.display = "none";
       }
 
+      /* ================= CREATE NEW BILL LOGIC ================= */
       async function confirmCreateNewBill() {
-        // 1. Close the modal
         closeNewBillModal();
 
-        // 2. Reset manual items
+        // Session-le pazhaya bill data full clear cheyyunnu
+        sessionStorage.removeItem("activeEInvoiceData");
+
         manualItems = [{ vtype: "", seq: "1", qty: "", rate: "", vatPercent: 15 }];
-        
-        // 3. Reset dates
         setupInitialDates();
 
-        // 4. Clear Buyer Details
+        // Remarks poornamayi reset aakkunnu (Variable, Display, and Modal Input)
+        currentRemarks = "";
+        const remDisplay = document.getElementById("remarksDisplayText");
+        const remContainer = document.getElementById("remarksDisplayContainer");
+        const remInput = document.getElementById("modalRemarksInput");
+
+        if (remDisplay) remDisplay.innerText = "";
+        if (remContainer) remContainer.style.display = "none";
+        if (remInput) remInput.value = "";
+
         document.getElementById("buyerNameDisplay").innerText = "";
         document.getElementById("buyerVatDisplay").innerText = "";
+        if (document.getElementById("modalBuyerName")) document.getElementById("modalBuyerName").value = "";
+        if (document.getElementById("modalBuyerVat")) document.getElementById("modalBuyerVat").value = "";
 
-        // 5. Fetch new invoice number based on current company
         const selId = document.getElementById("companySelect").value;
         if (selId) {
           await fetchNextNumber(selId);
@@ -1775,7 +2631,6 @@
           await fetchNextNumber(null);
         }
 
-        // 6. Re-render empty table and totals
         renderInvoiceViewTable();
       }
 

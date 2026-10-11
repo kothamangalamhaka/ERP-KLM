@@ -154,19 +154,39 @@ router.post("/api/save-invoice-record", async (req, res) => {
   try {
     const {
       invoice_no, company_id, company_name, vendor_name, billing_month, invoice_date,
-      invoice_time, subtotal, vat_amount, grand_total, has_seal, raw_payload,
+      invoice_time, subtotal, vat_amount, grand_total, has_seal, mode, manual_items, raw_payload,
     } = req.body;
+
+    const extractedRemarks = (raw_payload && raw_payload.remarks) ? raw_payload.remarks : "";
+
+    const finalPayload = {
+      ...(raw_payload || {}),
+      remarks: extractedRemarks,
+      manual_items: manual_items || (raw_payload ? raw_payload.manual_items : []),
+      mode: mode || "newbill",
+      has_seal: !!has_seal
+    };
 
     const result = await pool.query(
       `INSERT INTO generated_e_invoices 
-        (invoice_no, company_id, company_name, vendor_name, billing_month, invoice_date, invoice_time, subtotal, vat_amount, grand_total, raw_payload)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        (invoice_no, company_id, company_name, vendor_name, billing_month, invoice_date, invoice_time, subtotal, vat_amount, grand_total, remarks, raw_payload)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (invoice_no) DO UPDATE SET
-        vendor_name = EXCLUDED.vendor_name, subtotal = EXCLUDED.subtotal, vat_amount = EXCLUDED.vat_amount, grand_total = EXCLUDED.grand_total, raw_payload = EXCLUDED.raw_payload
+        company_id = EXCLUDED.company_id,
+        company_name = EXCLUDED.company_name,
+        vendor_name = EXCLUDED.vendor_name,
+        billing_month = EXCLUDED.billing_month,
+        invoice_date = EXCLUDED.invoice_date,
+        invoice_time = EXCLUDED.invoice_time,
+        subtotal = EXCLUDED.subtotal,
+        vat_amount = EXCLUDED.vat_amount,
+        grand_total = EXCLUDED.grand_total,
+        remarks = EXCLUDED.remarks,
+        raw_payload = EXCLUDED.raw_payload
        RETURNING id`,
       [
         invoice_no, company_id || null, company_name, vendor_name, billing_month, invoice_date || new Date(),
-        invoice_time, subtotal || 0, vat_amount || 0, grand_total || 0, { ...(raw_payload || {}), has_seal: !!has_seal },
+        invoice_time, subtotal || 0, vat_amount || 0, grand_total || 0, extractedRemarks, finalPayload,
       ]
     );
     res.json({ success: true, id: result.rows[0].id });
@@ -176,17 +196,31 @@ router.post("/api/save-invoice-record", async (req, res) => {
 });
 
 // 7. Customers / Suppliers Management Endpoints
+async function ensureSupplierTableSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS e_invoice_suppliers (
+      id SERIAL PRIMARY KEY,
+      customer_code VARCHAR(50) UNIQUE,
+      customer_name VARCHAR(255) NOT NULL,
+      nickname VARCHAR(255),
+      vat_number VARCHAR(100),
+      is_deleted BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS customer_code VARCHAR(50) UNIQUE`);
+  await pool.query(`ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS nickname VARCHAR(255)`);
+  await pool.query(`ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE e_invoice_suppliers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+}
+
 router.get("/api/suppliers", async (req, res) => {
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS e_invoice_suppliers (
-        id SERIAL PRIMARY KEY,
-        customer_name VARCHAR(255) NOT NULL,
-        vat_number VARCHAR(100),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    const result = await pool.query("SELECT * FROM e_invoice_suppliers ORDER BY customer_name ASC");
+    await ensureSupplierTableSchema();
+    const result = await pool.query(
+      "SELECT * FROM e_invoice_suppliers WHERE is_deleted = FALSE ORDER BY id DESC"
+    );
     res.json({ success: true, suppliers: result.rows });
   } catch (err) {
     res.json({ success: false, message: err.message });
@@ -195,16 +229,48 @@ router.get("/api/suppliers", async (req, res) => {
 
 router.post("/api/save-supplier", async (req, res) => {
   try {
-    const { customer_name, vat_number } = req.body;
-    if (!customer_name) return res.json({ success: false, message: "Customer name required" });
+    await ensureSupplierTableSchema();
+    const { id, customer_name, nickname, vat_number } = req.body;
+    if (!customer_name || !customer_name.trim()) {
+      return res.json({ success: false, message: "Customer name is required" });
+    }
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS e_invoice_suppliers (
-        id SERIAL PRIMARY KEY, customer_name VARCHAR(255) NOT NULL, vat_number VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    await pool.query("INSERT INTO e_invoice_suppliers (customer_name, vat_number) VALUES ($1, $2)", [customer_name.trim(), (vat_number || "").trim()]);
+    if (id) {
+      await pool.query(
+        `UPDATE e_invoice_suppliers 
+         SET customer_name = $1, nickname = $2, vat_number = $3, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $4`,
+        [customer_name.trim(), (nickname || "").trim(), (vat_number || "").trim(), id]
+      );
+    } else {
+      const countRes = await pool.query("SELECT COUNT(*) as total FROM e_invoice_suppliers");
+      const nextSeq = parseInt(countRes.rows[0].total || 0, 10) + 1;
+      const customerCode = `CUS-${String(nextSeq).padStart(5, "0")}`;
+
+      await pool.query(
+        `INSERT INTO e_invoice_suppliers (customer_code, customer_name, nickname, vat_number, is_deleted) 
+         VALUES ($1, $2, $3, $4, FALSE)`,
+        [customerCode, customer_name.trim(), (nickname || "").trim(), (vat_number || "").trim()]
+      );
+    }
     res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+router.post("/api/delete-supplier", async (req, res) => {
+  try {
+    await ensureSupplierTableSchema();
+    const { id } = req.body;
+    if (!id) return res.json({ success: false, message: "Customer ID required" });
+
+    // Soft delete to prevent permanent data loss
+    await pool.query(
+      "UPDATE e_invoice_suppliers SET is_deleted = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+      [id]
+    );
+    res.json({ success: true, message: "Customer archived successfully" });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
@@ -213,15 +279,9 @@ router.post("/api/save-supplier", async (req, res) => {
 // 8. Items / Vehicles Management Endpoints
 router.get("/api/items", async (req, res) => {
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS e_invoice_items (
-        id SERIAL PRIMARY KEY,
-        item_name VARCHAR(255) NOT NULL,
-        rate DECIMAL(10,2) DEFAULT 0.00,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    const result = await pool.query("SELECT * FROM e_invoice_items ORDER BY item_name ASC");
+    const result = await pool.query(
+      "SELECT * FROM e_invoice_items WHERE is_deleted = FALSE ORDER BY id DESC"
+    );
     res.json({ success: true, items: result.rows });
   } catch (err) {
     res.json({ success: false, message: err.message });
@@ -230,16 +290,39 @@ router.get("/api/items", async (req, res) => {
 
 router.post("/api/save-item", async (req, res) => {
   try {
-    const { item_name, rate } = req.body;
-    if (!item_name) return res.json({ success: false, message: "Item name required" });
+    const { id, item_name, rate } = req.body;
+    if (!item_name || !item_name.trim()) {
+      return res.json({ success: false, message: "Item name required" });
+    }
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS e_invoice_items (
-        id SERIAL PRIMARY KEY, item_name VARCHAR(255) NOT NULL, rate DECIMAL(10,2) DEFAULT 0.00, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    await pool.query("INSERT INTO e_invoice_items (item_name, rate) VALUES ($1, $2)", [item_name.trim(), parseFloat(rate) || 0]);
+    if (id) {
+      await pool.query(
+        "UPDATE e_invoice_items SET item_name = $1, rate = $2 WHERE id = $3",
+        [item_name.trim(), parseFloat(rate) || 0, id]
+      );
+    } else {
+      const countRes = await pool.query("SELECT COUNT(*) as total FROM e_invoice_items");
+      const nextSeq = parseInt(countRes.rows[0].total || 0, 10) + 1;
+      const itemCode = `IT-${String(nextSeq).padStart(5, "0")}`;
+
+      await pool.query(
+        "INSERT INTO e_invoice_items (item_code, item_name, rate, is_deleted) VALUES ($1, $2, $3, FALSE)",
+        [itemCode, item_name.trim(), parseFloat(rate) || 0]
+      );
+    }
     res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
+
+router.post("/api/delete-item", async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.json({ success: false, message: "Item ID required" });
+
+    await pool.query("UPDATE e_invoice_items SET is_deleted = TRUE WHERE id = $1", [id]);
+    res.json({ success: true, message: "Item archived successfully" });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
