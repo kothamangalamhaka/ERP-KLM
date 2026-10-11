@@ -78,6 +78,7 @@
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
+      transition: transform 0.2s ease-in-out;
     }
     
     .btn-delete-item {
@@ -96,7 +97,28 @@
       cursor: pointer;
       border: 2px solid var(--card-bg);
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      z-index: 5;
     }
+
+    .btn-rotate-item {
+      position: absolute;
+      top: -6px;
+      left: -6px;
+      background: #3b82f6;
+      color: white;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      cursor: pointer;
+      border: 2px solid var(--card-bg);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      z-index: 5;
+    }
+    .btn-rotate-item:hover { background: #2563eb; }
     
     /* Files List View */
     .file-item-list {
@@ -216,9 +238,35 @@
       text-align: center;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3);
     }
+
+    /* Drag & Drop Overlay Zone */
+    #dropOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(59, 130, 246, 0.85);
+      z-index: 9998;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      border: 4px dashed #ffffff;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
   </style>
 </head>
 <body onclick="hideContextMenu()">
+
+<!-- Drag & Drop Fullscreen Feedback -->
+<div id="dropOverlay" class="d-none">
+  <i class="fa-solid fa-cloud-arrow-up fa-4x mb-3 animate__animated animate__bounce"></i>
+  <h3 class="fw-bold">Drop PDF or Image files here</h3>
+  <p class="mb-0 text-light opacity-75">Files will be loaded instantly</p>
+</div>
 
 <!-- Top Toolbar -->
 <div class="top-toolbar px-3 py-2">
@@ -287,10 +335,10 @@
   <div id="emptyContainer" class="text-center py-5">
     <div class="py-5">
       <i class="fa-solid fa-cloud-arrow-up fa-3x text-secondary mb-3"></i>
-      <h6 class="fw-bold text-muted">No PDF files added yet</h6>
-      <p class="small text-muted mb-3">Upload your PDF files to arrange, view pages, or extract.</p>
+      <h6 class="fw-bold text-muted">Drag & Drop files here or click to browse</h6>
+      <p class="small text-muted mb-3">Supports multiple PDF files and Images (JPG, PNG, WEBP).</p>
       <button class="btn btn-primary btn-sm fw-semibold" onclick="document.getElementById('pdfFileInput').click()">
-        <i class="fa-solid fa-folder-open me-1"></i> Select PDF Files
+        <i class="fa-solid fa-folder-open me-1"></i> Select Files
       </button>
     </div>
   </div>
@@ -352,12 +400,44 @@
 
   let rawFiles = [];    // File objects
   let rawBuffers = [];  // Cached ArrayBuffers
-  let pageStore = [];   // { id, fileIndex, pageIndex, pageNum, fileName, imgUrl, pdfRef }
-  let currentView = 'files'; // 'files' | 'pages' | 'single_file_edit'
-  let fileLayout = 'grid'; // Grid is default
+  let pageStore = [];   // { id, fileIndex, pageIndex, pageNum, fileName, imgUrl, pdfRef, rotation }
+  let currentView = 'files';
+  let fileLayout = 'grid';
   let activeEditingFileIndex = null;
   let contextTargetFileIndex = null;
   let extractScope = 'all';
+
+  // --- DRAG & DROP FILE LISTENERS ---
+  const dropOverlay = document.getElementById('dropOverlay');
+  let dragCounter = 0;
+
+  window.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    dragCounter++;
+    dropOverlay.classList.remove('d-none');
+  });
+
+  window.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0) {
+      dragCounter = 0;
+      dropOverlay.classList.add('d-none');
+    }
+  });
+
+  window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
+
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    dropOverlay.classList.add('d-none');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onFilesSelected(e.dataTransfer.files);
+    }
+  });
 
   function showLoading(title, subtitle, percent = 0) {
     document.getElementById('loadingOverlay').classList.remove('d-none');
@@ -439,7 +519,7 @@
     }
   });
 
-  // Sortable for Files (Grid & List View)
+  // Sortable for Files
   const filesListEl = document.getElementById('filesContainer');
   new Sortable(filesListEl, {
     animation: 150,
@@ -470,12 +550,10 @@
     const newPos = curPos + direction;
     if (newPos < 0 || newPos >= uniqueFileIndices.length) return;
 
-    // Swap positions in unique list
     const temp = uniqueFileIndices[curPos];
     uniqueFileIndices[curPos] = uniqueFileIndices[newPos];
     uniqueFileIndices[newPos] = temp;
 
-    // Rebuild pageStore
     const newStore = [];
     uniqueFileIndices.forEach(fIdx => {
       newStore.push(...pageStore.filter(p => p.fileIndex === fIdx));
@@ -496,13 +574,10 @@
     const isPng = file.type === 'image/png' || /\.png$/i.test(file.name);
 
     if (isJpg) {
-      // 100% Raw bit-by-bit lossless JPEG embed
       embeddedImg = await pdfDoc.embedJpg(fileBytes);
     } else if (isPng) {
-      // 100% Raw bit-by-bit lossless PNG embed
       embeddedImg = await pdfDoc.embedPng(fileBytes);
     } else {
-      // Fallback for WEBP only (Lossless maximum pixel-ratio canvas conversion)
       const blobUrl = URL.createObjectURL(file);
       const canvasImg = await new Promise((resolve, reject) => {
         const img = new Image();
@@ -514,7 +589,7 @@
       canvas.width = canvasImg.naturalWidth;
       canvas.height = canvasImg.naturalHeight;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.imageSmoothingEnabled = false; // Zero blur/smoothing
+      ctx.imageSmoothingEnabled = false;
       ctx.drawImage(canvasImg, 0, 0);
       URL.revokeObjectURL(blobUrl);
 
@@ -524,7 +599,6 @@
     }
 
     const { width, height } = embeddedImg.scale(1);
-    // Exact 1:1 original pixel dimension mapping
     const page = pdfDoc.addPage([width, height]);
     page.drawImage(embeddedImg, {
       x: 0,
@@ -565,7 +639,7 @@
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
 
         for (let p = 1; p <= pdf.numPages; p++) {
-          const pageId = `p_${fileIndex}_${p - 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+          const pageId = `p_${fileIndex}_${p}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
           pageStore.push({
             id: pageId,
             fileIndex: fileIndex,
@@ -573,7 +647,8 @@
             pageNum: p,
             fileName: f.name,
             imgUrl: null,
-            pdfRef: pdf
+            pdfRef: pdf,
+            rotation: 0 // New rotation angle (0, 90, 180, 270)
           });
         }
       } catch (err) {
@@ -745,9 +820,14 @@
       card.dataset.id = page.id;
 
       card.innerHTML = `
-        <div class="btn-delete-item" onclick="removeSinglePage('${page.id}')"><i class="fa-solid fa-xmark"></i></div>
+        <div class="btn-rotate-item" onclick="rotateSinglePage('${page.id}')" title="Rotate 90° Clockwise">
+          <i class="fa-solid fa-rotate-right"></i>
+        </div>
+        <div class="btn-delete-item" onclick="removeSinglePage('${page.id}')" title="Delete Page">
+          <i class="fa-solid fa-xmark"></i>
+        </div>
         <div class="page-thumb-wrapper" id="thumb_${page.id}">
-          ${page.imgUrl ? `<img src="${page.imgUrl}">` : `<i class="fa-solid fa-spinner fa-spin text-secondary"></i>`}
+          ${page.imgUrl ? `<img src="${page.imgUrl}" style="transform: rotate(${page.rotation || 0}deg);">` : `<i class="fa-solid fa-spinner fa-spin text-secondary"></i>`}
         </div>
         <div class="mt-1 text-center" style="font-size: 11px;">
           <b class="text-dark">P. ${page.pageNum}</b>
@@ -757,6 +837,22 @@
       pagesGridEl.appendChild(card);
       if (!page.imgUrl) observer.observe(card);
     });
+  }
+
+  // --- ROTATE SINGLE PAGE FUNCTION ---
+  function rotateSinglePage(pageId) {
+    const pageObj = pageStore.find(p => p.id === pageId);
+    if (!pageObj) return;
+
+    pageObj.rotation = ((pageObj.rotation || 0) + 90) % 360;
+    
+    const cardEl = document.querySelector(`.page-card[data-id="${pageId}"]`);
+    if (cardEl) {
+      const img = cardEl.querySelector(`#thumb_${pageId} img`);
+      if (img) {
+        img.style.transform = `rotate(${pageObj.rotation}deg)`;
+      }
+    }
   }
 
   async function renderPageThumbnail(pageObj, cardEl) {
@@ -776,7 +872,9 @@
       canvas.height = 0;
 
       const thumbWrapper = cardEl.querySelector(`#thumb_${pageObj.id}`);
-      if (thumbWrapper) thumbWrapper.innerHTML = `<img src="${pageObj.imgUrl}">`;
+      if (thumbWrapper) {
+        thumbWrapper.innerHTML = `<img src="${pageObj.imgUrl}" style="transform: rotate(${pageObj.rotation || 0}deg);">`;
+      }
     } catch (e) {
       console.error(e);
     }
@@ -835,30 +933,24 @@
       if (format === 'png') {
         for (let i = 0; i < targets.length; i++) {
           const item = targets[i];
-          const originalFile = rawFiles[item.fileIndex];
-          const isOriginalImg = originalFile.type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(originalFile.name);
+          const page = await item.pdfRef.getPage(item.pageNum);
+          
+          // Rotation കണക്കിലെടുത്ത് വ്യൂപോർട്ട് സ്കെയിൽ ചെയ്യുന്നു
+          const originalRotation = page.rotate || 0;
+          const finalRotation = (originalRotation + (item.rotation || 0)) % 360;
+          
+          const viewport = page.getViewport({ scale: 3.0, rotation: finalRotation });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d', { alpha: false });
+          ctx.imageSmoothingEnabled = false;
 
-          if (isOriginalImg) {
-            // Original image file aanenkil oru compression-um illathe direct raw byte eduthu ZIP-il vekkunnu
-            const rawBytes = await originalFile.arrayBuffer();
-            const ext = originalFile.name.split('.').pop();
-            zip.file(`Page_${i + 1}_${item.fileName.replace(/\.[^/.]+$/, "")}.${ext}`, rawBytes);
-          } else {
-            // PDF page aanenkil Ultra-High Resolution scale (3.0 = 300 DPI print quality) pixel-by-pixel lossless render
-            const page = await item.pdfRef.getPage(item.pageNum);
-            const viewport = page.getViewport({ scale: 3.0 });
-            const canvas = document.createElement('canvas');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            const ctx = canvas.getContext('2d', { alpha: false });
-            ctx.imageSmoothingEnabled = false;
-
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-            
-            const pngBlob = await new Promise(r => canvas.toBlob(r, 'image/png', 1.0));
-            const pngBytes = await pngBlob.arrayBuffer();
-            zip.file(`Page_${i + 1}_${item.fileName.replace('.pdf', '')}.png`, pngBytes);
-          }
+          await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+          
+          const pngBlob = await new Promise(r => canvas.toBlob(r, 'image/png', 1.0));
+          const pngBytes = await pngBlob.arrayBuffer();
+          zip.file(`Page_${i + 1}_${item.fileName.replace('.pdf', '')}.png`, pngBytes);
           updateLoading(Math.round(((i + 1) / targets.length) * 80), `Extracting page ${i + 1}...`);
         }
       } else {
@@ -873,6 +965,12 @@
 
           const singlePdf = await PDFLib.PDFDocument.create();
           const [copiedPage] = await singlePdf.copyPages(srcDoc, [item.pageIndex]);
+          
+          if (item.rotation) {
+            const currentRotation = copiedPage.getRotation().angle;
+            copiedPage.setRotation(PDFLib.degrees((currentRotation + item.rotation) % 360));
+          }
+          
           singlePdf.addPage(copiedPage);
 
           const pdfBytes = await singlePdf.save();
@@ -950,6 +1048,13 @@
         }
 
         const [copiedPage] = await mergedPdf.copyPages(srcDoc, [item.pageIndex]);
+        
+        // Page Rotate ചെയ്തിട്ടുണ്ടെങ്കിൽ ആ ആംഗിൾ അപ്ലൈ ചെയ്യുന്നു
+        if (item.rotation) {
+          const currentRotation = copiedPage.getRotation().angle;
+          copiedPage.setRotation(PDFLib.degrees((currentRotation + item.rotation) % 360));
+        }
+
         mergedPdf.addPage(copiedPage);
 
         if (i % 25 === 0 || i === totalPages - 1) {
