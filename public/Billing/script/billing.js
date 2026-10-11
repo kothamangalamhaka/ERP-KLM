@@ -975,7 +975,6 @@ function createBillCard(group, id) {
                 <button class="icon-btn" title="Adjustments" style="background:#6c757d;" onclick="toggleCardAdjustments('${id}')"><i class="material-icons">settings</i></button>
             </div>
             <div style="display:flex; gap:10px;">
-                <button class="icon-btn" title="Open E-Invoice" style="background:#059669;" onclick="openEInvoiceForCard('${id}')"><i class="material-icons">receipt</i></button>
                 <button class="icon-btn" title="Download Image" style="background:#007bff;" onclick="exportSingleImage('${id}')"><i class="material-icons">download</i></button>
 <button class="icon-btn" title="Copy High Quality Image" style="background:#17a2b8;" onclick="copyHighQualityCard('${id}')"><i class="material-icons">content_copy</i></button>
                 <button class="icon-btn" title="Share WhatsApp" style="background:#25D366;" onclick="shareSingleWhatsApp('${id}')"><i class="material-icons">chat</i></button>
