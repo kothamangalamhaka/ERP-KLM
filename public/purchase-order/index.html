@@ -1,0 +1,1823 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Purchase Order - أمر الشراء</title>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-theme: #0284c7;
+        --primary-dark: #002886;
+        --primary-border: #0369a1;
+        --primary-light-bg: #e0f2fe;
+        --table-header-bg: #0284c7;
+        --table-header-text: #ffffff;
+      }
+
+      body {
+        margin: 0;
+        padding: 20px;
+        background: #1e293b;
+        font-family: "Inter", "Tajawal", sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* Responsive Top Ribbon */
+      .top-ribbon {
+        width: 100%;
+        max-width: 900px;
+        background: #0f172a;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-sizing: border-box;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+      }
+      .ribbon-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .ribbon-select {
+        padding: 6px 10px;
+        border-radius: 5px;
+        border: 1px solid #475569;
+        background: #1e293b;
+        color: white;
+        font-size: 13px;
+        outline: none;
+      }
+      .btn-ribbon {
+        padding: 7px 13px;
+        border-radius: 5px;
+        border: none;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: 0.2s;
+        text-decoration: none;
+      }
+      .btn-new { background: #3b82f6; color: white; }
+      .btn-edit { background: #f59e0b; color: #000; }
+      .btn-dash { background: #475569; color: white; }
+      .btn-tools { background: #8b5cf6; color: white; }
+      .btn-save { background: #2563eb; color: white; }
+      .btn-pdf { background: #10b981; color: white; }
+
+      /* Dropdown Menu */
+      .dropdown-wrap {
+        position: relative;
+        display: inline-block;
+      }
+      .dropdown-content {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 115%;
+        background: #0f172a;
+        min-width: 190px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        border: 1px solid #334155;
+        border-radius: 6px;
+        z-index: 1000;
+        overflow: hidden;
+      }
+      .dropdown-content button {
+        width: 100%;
+        text-align: left;
+        padding: 9px 14px;
+        background: transparent;
+        border: none;
+        color: #f8fafc;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dropdown-content button:hover {
+        background: #1e293b;
+      }
+
+      /* PO Sheet */
+      .po-page {
+        width: 860px;
+        min-height: 1180px;
+        background: #ffffff;
+        position: relative;
+        padding: 35px 40px;
+        box-sizing: border-box;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s ease;
+      }
+
+      .header-wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2.5px solid var(--primary-dark);
+        padding-bottom: 12px;
+      }
+      .comp-en {
+        text-align: left;
+        direction: ltr;
+        font-size: 13.5px;
+        color: var(--primary-dark);
+        line-height: 1.4;
+        width: 35%;
+      }
+      .comp-en b {
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+        display: inline-block;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+      }
+      .comp-ar {
+        text-align: right;
+        direction: rtl;
+        font-family: "Tajawal", sans-serif;
+        font-size: 14.5px;
+        color: var(--primary-dark);
+        line-height: 1.4;
+        width: 35%;
+      }
+      .comp-ar b {
+        font-size: 16px;
+        display: inline-block;
+        margin-bottom: 2px;
+      }
+      .comp-logo { max-height: 85px; max-width: 150px; object-fit: contain; }
+
+      .po-title {
+        text-align: center;
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--primary-dark);
+        margin: 15px 0 14px 0;
+        letter-spacing: 0.5px;
+      }
+
+      .two-boxes {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 16px;
+      }
+      .info-box {
+        border: 1.5px solid var(--primary-dark);
+        padding: 10px 14px;
+        border-radius: 5px;
+        font-size: 13px;
+        line-height: 1.5;
+        min-height: 85px;
+        box-sizing: border-box;
+      }
+      .vendor-box { text-align: left; }
+      .company-box { text-align: right; direction: rtl; font-family: "Tajawal", sans-serif; }
+
+      /* 🟢 Headers ഒരു വരിയിലും Data തൊട്ടുതാഴെ അടുത്ത വരിയിലും */
+      .meta-box-table {
+        width: 100%;
+        border: 1.5px solid var(--primary-dark);
+        border-radius: 5px;
+        border-collapse: separate;
+        border-spacing: 0;
+        text-align: center;
+        margin-top: 5px;
+        margin-bottom: 22px;
+        overflow: hidden;
+      }
+      .meta-box-table th {
+        background: #f8fafc;
+        color: #334155;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 7px 6px;
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 1.5px solid var(--primary-dark);
+        line-height: 1.35;
+      }
+      .meta-box-table th:last-child {
+        border-right: none;
+      }
+      .meta-box-table td {
+        padding: 9px 6px;
+        border-right: 1px solid #cbd5e1;
+        font-size: 12px;
+        font-weight: 800;
+        color: #0f172a;
+        word-break: break-word;
+        vertical-align: middle;
+      }
+      .meta-box-table td:last-child {
+        border-right: none;
+      }
+      .meta-hdr {
+        font-size: 11px;
+        font-weight: 700;
+        color: #334155;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 5px;
+        margin-bottom: 5px;
+        line-height: 1.3;
+      }
+      .meta-val {
+        font-size: 12px;
+        font-weight: 800;
+        color: #0f172a;
+        word-break: break-word;
+        white-space: normal;
+      }
+
+      .po-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        text-align: center;
+      }
+      .po-table th, .po-table td {
+        border: 1.5px solid var(--primary-border);
+        padding: 8px 6px;
+      }
+      .po-table th {
+        background: var(--table-header-bg);
+        color: var(--table-header-text);
+        font-weight: 800;
+        font-family: "Tajawal", sans-serif;
+      }
+
+      /* Bilingual VAT Note */
+      .note-vat-row {
+        margin-top: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #011447;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .note-vat-en { text-align: left; }
+      .note-vat-ar { text-align: right; direction: rtl; font-family: "Tajawal", sans-serif; }
+
+      .terms-section {
+        margin-top: 15px;
+        border-top: 1.5px dashed #cbd5e1;
+        padding-top: 10px;
+      }
+      .terms-ar {
+        text-align: right;
+        direction: rtl;
+        font-family: "Tajawal", sans-serif;
+        font-size: 11px;
+        line-height: 1.45;
+        color: #1e3a8a;
+        white-space: pre-wrap;
+        margin-bottom: 8px;
+      }
+      .terms-en {
+        text-align: left;
+        font-size: 11px;
+        line-height: 1.45;
+        color: #1e3a8a;
+        white-space: pre-wrap;
+      }
+
+      .sign-section {
+        display: flex;
+        justify-content: space-between;
+        margin-top: auto;
+        padding-top: 20px;
+      }
+      .sign-box {
+        width: 250px;
+        text-align: center;
+      }
+      .sign-box-title {
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 40px;
+        color: #0f172a;
+      }
+      .stamp-area {
+        height: 80px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .po-footer {
+        border-top: 2px solid var(--primary-dark);
+        padding-top: 10px;
+        margin-top: 20px;
+        font-size: 11px;
+        text-align: center;
+        line-height: 1.5;
+        color: #334155;
+      }
+
+      /* ================= 🏢 COMPANY THEME VARIATIONS ================= */
+      /* 1. HAKA THEME (Amber Orange RTL) */
+      .theme-haka {
+        --primary-theme: #d97706;
+        --primary-dark: #b45309;
+        --primary-border: #f59e0b;
+        --primary-light-bg: #fef3c7;
+        --table-header-bg: #d97706;
+        --table-header-text: #ffffff;
+      }
+
+      /* 2. MASAR THEME (Dual Tone Orange-Blue Gradient) */
+      .theme-masar {
+        --primary-theme: #ea580c;
+        --primary-dark: #0f2c59;
+        --primary-border: #1e3a8a;
+        --primary-light-bg: #ffedd5;
+        --table-header-bg: linear-gradient(120deg, #001757 0%, #001757 100%);
+        --table-header-text: #ffffff;
+      }
+      .theme-masar .po-title {
+        background: linear-gradient(120deg, #001757, #001757);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      /* 3. WEFAQ THEME (Orange Accent 6 Lighter 40% with Black Header Text) */
+      .theme-wefaq {
+        --primary-theme: #f9ba85;
+        --primary-dark: #c25e10;
+        --primary-border: #f59e0b;
+        --primary-light-bg: #fff7ed;
+        --table-header-bg: #f9ba85;
+        --table-header-text: #000000;
+      }
+
+      /* 4. DEFAULT AL THEME (Royal Navy) */
+      .theme-default {
+        --primary-theme: #0284c7;
+        --primary-dark: #002886;
+        --primary-border: #0369a1;
+        --primary-light-bg: #e0f2fe;
+        --table-header-bg: #0284c7;
+        --table-header-text: #ffffff;
+      }
+
+      /* Modal Popups */
+      .modal-backdrop {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(15, 23, 42, 0.7);
+        display: none; align-items: center; justify-content: center;
+        z-index: 9999;
+      }
+      .modal-card {
+        background: white; border-radius: 8px; padding: 20px;
+        width: 780px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+      }
+      .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; text-align: left; }
+      .form-group label { font-size: 11.5px; font-weight: 700; color: #475569; }
+      .form-input { padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; outline: none; }
+      .form-input:focus { border-color: #0284c7; }
+
+      .table-modal {
+        width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px;
+      }
+      .table-modal th, .table-modal td {
+        border: 1px solid #cbd5e1; padding: 6px; text-align: center;
+      }
+      .table-modal th { background: #f1f5f9; font-weight: 700; color: #334155; }
+
+      /* 🟢 Floating Toast Notification */
+      #poToast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #0f172a;
+        color: #ffffff;
+        padding: 14px 22px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        border-left: 4px solid #10b981;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        z-index: 999999;
+        transition: all 0.3s ease;
+      }
+      .toast-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 🟢 Floating Progress Toast -->
+    <div id="poToast">
+      <div id="poToastSpinner" class="toast-spinner"></div>
+      <span id="poToastMsg">Processing...</span>
+    </div>
+
+    <!-- Top Ribbon -->
+    <div class="top-ribbon">
+      <div class="ribbon-group">
+        <select id="companySelect" class="ribbon-select" onchange="onCompanyChange()">
+          <option value="">-- Choose Company --</option>
+        </select>
+        <button class="btn-ribbon btn-new" onclick="resetNewPO()">📄 New</button>
+        <button class="btn-ribbon btn-edit" onclick="openPOModal()">✏️ Edit PO</button>
+        <a href="dashboard.html" class="btn-ribbon btn-dash">Dashboard</a>
+
+        <!-- Tools Dropdown -->
+        <div class="dropdown-wrap">
+          <button class="btn-ribbon btn-tools" onclick="toggleToolsMenu(event)">⚙️ Tools ▾</button>
+          <div class="dropdown-content" id="toolsDropdown">
+            <button onclick="openVendorsModal()">🏢 Vendors Directory</button>
+            <button onclick="openEquipmentsModal()">🚜 Equipment Directory</button>
+            <button onclick="openTermsModal()">📝 Edit Terms</button>
+            <button id="sealToggleBtn" onclick="toggleSeal()">🔏 Toggle Seal & Sign</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ribbon-group">
+        <button class="btn-ribbon btn-save" onclick="savePO()">💾 Save</button>
+        <button class="btn-ribbon btn-pdf" onclick="downloadPDF()">PDF ⬇️</button>
+      </div>
+    </div>
+
+    <!-- PO Page -->
+    <div class="po-page theme-default" id="printablePO">
+      <!-- Header -->
+      <div class="header-wrap">
+        <div class="comp-en" id="topHeaderEn"></div>
+        <img id="compLogo" class="comp-logo" src="" style="display: none;" />
+        <div class="comp-ar" id="topHeaderAr"></div>
+      </div>
+
+      <!-- Center Title -->
+      <div class="po-title">Purchase Order - أمر الشراء</div>
+
+      <!-- Two Boxes -->
+      <div class="two-boxes">
+        <!-- Left: Vendor Details (Labels like 'Vendor Name', 'VAT No:' removed) -->
+        <div class="info-box vendor-box">
+          <div style="font-weight: 800; color: #0f172a; font-size: 14.5px; margin-bottom: 2px;" id="dispVendorName">-</div>
+          <div style="font-family: 'Tajawal', sans-serif; font-weight: 700; color: #334155; font-size: 13.5px; margin-bottom: 3px;" id="dispVendorNameAr"></div>
+          <div id="dispVendorCr" style="color: #475569; font-size: 12.5px;">CR: -</div>
+          <div id="dispVendorVat" style="color: #0f172a; font-weight: 700; font-family: monospace; font-size: 13px;">-</div>
+        </div>
+
+        <!-- Right: Our Company Details -->
+        <div class="info-box company-box">
+          <div style="font-weight: 800; color: #0f172a; font-size: 14.5px;" id="dispCompNameAr">اسم الشركة</div>
+          <div style="color: #475569; font-size: 12.5px;">المملكة العربية السعودية</div>
+          <div>CR: <span id="dispCompCr" style="font-family: monospace; font-weight: 700;">-</span></div>
+          <div id="dispCompVat" style="font-family: monospace; font-weight: 700;">-</div>
+        </div>
+      </div>
+
+      <!-- PO Meta Table (Row 1: All Headers, Row 2: All Data) -->
+      <table class="meta-box-table">
+        <thead>
+          <tr>
+            <th style="width: 20%;">P.O. Number<br>رقم أمر الشراء</th>
+            <th style="width: 18%;">P.O. Date<br>تاريخ أمر الشراء</th>
+            <th style="width: 20%;">Plate No<br>رقم اللوحة</th>
+            <th style="width: 22%;">Payment Terms<br>شروط الدفع</th>
+            <th style="width: 20%;">Location<br>الموقع</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td id="dispPoNo">------</td>
+            <td id="dispPoDate">------</td>
+            <td id="dispPlateNo">------</td>
+            <td id="dispPaymentTerms">------</td>
+            <td id="dispLocation">------</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Equipment Table -->
+      <table class="po-table">
+        <thead>
+          <tr>
+            <th style="width: 40px;">م</th>
+            <th style="text-align: right; padding-right: 12px;">نوع المعدة / البيان (Equipment)</th>
+            <th style="width: 70px;">الكمية</th>
+            <th style="width: 100px;">الإيجار الشهري</th>
+            <th style="width: 110px;">إجمالي الإيجار</th>
+          </tr>
+        </thead>
+        <tbody id="poItemsBody"></tbody>
+      </table>
+
+      <!-- Bilingual VAT Note -->
+      <div class="note-vat-row">
+        <div class="note-vat-en">The Above prices are excluding from vat</div>
+        <div class="note-vat-ar">الأسعار الموضحة أعلاه غير شاملة ضريبة القيمة المضافة</div>
+      </div>
+
+      <!-- Terms & Conditions -->
+      <div class="terms-section">
+        <!-- 🟢 Arabic Heading directly above Arabic Terms -->
+        <div style="text-align: right; margin-bottom: 5px;">
+          <span style="font-weight: 800; font-size: 13.5px; color: var(--primary-dark); font-family: 'Tajawal', sans-serif; direction: rtl;">
+            الشروط والأحكام :-
+          </span>
+        </div>
+        <div class="terms-ar" id="dispTermsAr"></div>
+
+        <!-- 🟢 English Heading directly above English Terms -->
+        <div style="text-align: left; margin-top: 10px; margin-bottom: 5px;">
+          <span style="font-weight: 800; font-size: 12px; color: var(--primary-dark); text-transform: uppercase;">
+            TERMS & CONDITIONS :-
+          </span>
+        </div>
+        <div class="terms-en" id="dispTermsEn"></div>
+      </div>
+
+      <!-- Signatures -->
+      <div class="sign-section">
+        <div class="sign-box">
+          <!-- 🟢 First Party maatti Company Name dynamic aayi kaanikunnu -->
+          <div class="sign-box-title" id="signFirstPartyName" style="font-weight: 800; font-size: 14px; font-family: 'Tajawal', sans-serif;">-</div>
+          <div class="stamp-area">
+            <img id="poStampImg" style="max-height: 80px; display: none;" src="" />
+            <img id="poSignImg" style="max-height: 60px; display: none;" src="" />
+          </div>
+        </div>
+        <div class="sign-box">
+          <!-- 🟢 Second Party maatti Vendor Name dynamic aayi kaanikunnu -->
+          <div class="sign-box-title" id="signSecondPartyName" style="font-weight: 800; font-size: 14px; font-family: 'Tajawal', sans-serif;">-</div>
+          <div class="stamp-area" style="border-bottom: 1.5px solid #0f172a; width: 200px; margin: 0 auto;"></div>
+        </div>
+      </div>
+
+      <!-- Bottom Address Footer -->
+      <div class="po-footer">
+        <span id="footerAddrContainer"></span>
+        <div id="footerEmail" style="margin-top: 2px;"></div>
+      </div>
+    </div>
+
+    <!-- ================= EDIT PO DETAILS POPUP ================= -->
+    <div class="modal-backdrop" id="poModal">
+      <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+          <h3 style="margin: 0; color: #0f172a;">✏️ Edit Purchase Order</h3>
+          <button onclick="closePOModal()" style="border: none; background: transparent; font-size: 18px; cursor: pointer;">&times;</button>
+        </div>
+
+        <datalist id="vendorsDatalist"></datalist>
+        <datalist id="equipmentsDatalist"></datalist>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label>PO Number:</label>
+            <input type="text" id="modalPoNo" class="form-input" readonly style="background: #f1f5f9;" />
+          </div>
+          <div class="form-group">
+            <label>PO Date:</label>
+            <input type="date" id="modalPoDate" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Vendor Name (Search or Type New):</label>
+            <!-- 🟢 onchange-ൽ checkAndPromptNewVendor കോൾ ചെയ്യുന്നു -->
+            <input type="text" id="modalVendorName" list="vendorsDatalist" oninput="onModalVendorSelect(this.value)" onchange="checkAndPromptNewVendor(this.value)" class="form-input" placeholder="Search or type vendor name..." />
+          </div>
+          <div class="form-group">
+            <label>Vendor VAT Number:</label>
+            <input type="text" id="modalVendorVat" class="form-input" placeholder="Enter VAT Number" />
+          </div>
+          <div class="form-group">
+            <label>Plate No (Separate multiple with commas ','):</label>
+            <input type="text" id="modalPlateNo" class="form-input" placeholder="e.g. 1234 ABC, 5678 XYZ" />
+          </div>
+          <div class="form-group">
+            <label>Payment Terms:</label>
+            <input type="text" id="modalPaymentTerms" class="form-input" placeholder="e.g. 30 Days" />
+          </div>
+          <div class="form-group" style="grid-column: span 2;">
+            <label>Location:</label>
+            <input type="text" id="modalLocation" class="form-input" placeholder="e.g. Riyadh / Project Site" />
+          </div>
+        </div>
+
+        <h4 style="margin: 12px 0 6px 0; color: #0f172a;">Line Items / Equipment:</h4>
+        <div id="modalItemsWrap"></div>
+        <button type="button" onclick="addModalItemRow()" style="padding: 5px 12px; font-size: 12px; font-weight: bold; background: #e0f2fe; color: #0284c7; border: 1px dashed #0284c7; border-radius: 4px; cursor: pointer;">+ Add Line Item</button>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+          <button onclick="closePOModal()" class="btn-ribbon btn-dash">Cancel</button>
+          <button style="background: #10b981; color: white;" onclick="applyPOModal()" class="btn-ribbon">Apply to PO</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🟢 QUICK ADD NEW VENDOR MODAL -->
+    <div class="modal-backdrop" id="quickAddVendorModal" style="z-index: 10001;">
+      <div class="modal-card" style="width: 520px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+          <h3 style="margin: 0; color: #0f172a;">🏢 Add New Vendor</h3>
+          <button onclick="closeQuickAddVendorModal()" style="border: none; background: transparent; font-size: 18px; cursor: pointer;">&times;</button>
+        </div>
+        <div class="form-group">
+          <label>Vendor Name (English):</label>
+          <input type="text" id="quickVenEn" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Vendor Name (Arabic):</label>
+          <input type="text" id="quickVenAr" dir="rtl" class="form-input" placeholder="اسم المورد بالعربي" />
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="form-group">
+            <label>CR Number:</label>
+            <input type="text" id="quickVenCr" class="form-input" placeholder="Commercial Register" />
+          </div>
+          <div class="form-group">
+            <label>VAT Number:</label>
+            <input type="text" id="quickVenVat" class="form-input" placeholder="VAT Number" />
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+          <button onclick="closeQuickAddVendorModal()" class="btn-ribbon btn-dash">Cancel</button>
+          <button onclick="saveQuickVendor()" class="btn-ribbon btn-save">Save & Select</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🟢 QUICK ADD NEW EQUIPMENT MODAL -->
+    <div class="modal-backdrop" id="quickAddEquipmentModal" style="z-index: 10001;">
+      <div class="modal-card" style="width: 520px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+          <h3 style="margin: 0; color: #0f172a;">🚜 Add New Equipment</h3>
+          <button onclick="closeQuickAddEquipmentModal()" style="border: none; background: transparent; font-size: 18px; cursor: pointer;">&times;</button>
+        </div>
+        <input type="hidden" id="quickEqTargetIndex" value="" />
+        <div class="form-group">
+          <label>Equipment Name (English):</label>
+          <input type="text" id="quickEqEn" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Equipment Name (Arabic):</label>
+          <input type="text" id="quickEqAr" dir="rtl" class="form-input" placeholder="نوع المعدة بالعربي" />
+        </div>
+        <div class="form-group">
+          <label>Default Monthly Rent:</label>
+          <input type="number" id="quickEqRent" class="form-input" placeholder="0.00" />
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+          <button onclick="closeQuickAddEquipmentModal()" class="btn-ribbon btn-dash">Cancel</button>
+          <button onclick="saveQuickEquipment()" class="btn-ribbon btn-save">Save & Select</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= VENDORS DIRECTORY MODAL ================= -->
+    <div class="modal-backdrop" id="vendorsModal">
+      <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+          <h3 style="margin: 0;">🏢 Vendors Directory</h3>
+          <button onclick="closeVendorsModal()" style="border: none; background: transparent; font-size: 18px; cursor: pointer;">&times;</button>
+        </div>
+        <input type="hidden" id="editVendorId" value="" />
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px;">
+          <div class="form-group">
+            <label>Vendor English Name:</label>
+            <input type="text" id="addVenEn" class="form-input" placeholder="e.g. Bin Laden Transport" />
+          </div>
+          <div class="form-group">
+            <label>Vendor Arabic Name:</label>
+            <input type="text" id="addVenAr" dir="rtl" class="form-input" placeholder="اسم المورد بالعربي" />
+          </div>
+          <div class="form-group">
+            <label>Nick Name:</label>
+            <input type="text" id="addVenNick" class="form-input" placeholder="Nickname" />
+          </div>
+          <div class="form-group">
+            <label>CR Number:</label>
+            <input type="text" id="addVenCr" class="form-input" placeholder="Commercial Register" />
+          </div>
+          <div class="form-group">
+            <label>VAT Number:</label>
+            <input type="text" id="addVenVat" class="form-input" placeholder="VAT Number" />
+          </div>
+          <div class="form-group" style="justify-content: flex-end;">
+            <button onclick="saveVendorManual()" class="btn-ribbon btn-save" style="margin-top: 16px;">Save Vendor</button>
+          </div>
+        </div>
+
+        <input type="text" id="searchVenInput" oninput="renderVendorsTable(this.value)" class="form-input" style="width: 100%; margin-top: 10px; box-sizing: border-box;" placeholder="🔍 Search Vendors..." />
+
+        <div style="max-height: 240px; overflow-y: auto; margin-top: 8px;">
+          <table class="table-modal">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Name (EN)</th>
+                <th>Name (AR)</th>
+                <th>CR / VAT</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="vendorsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= EQUIPMENT DIRECTORY MODAL ================= -->
+    <div class="modal-backdrop" id="equipmentsModal">
+      <div class="modal-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+          <h3 style="margin: 0;">🚜 Equipment Directory</h3>
+          <button onclick="closeEquipmentsModal()" style="border: none; background: transparent; font-size: 18px; cursor: pointer;">&times;</button>
+        </div>
+        <input type="hidden" id="editEqId" value="" />
+        <div style="display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr; gap: 8px; margin-top: 10px;">
+          <div class="form-group">
+            <label>Name (English):</label>
+            <input type="text" id="addEqEn" class="form-input" placeholder="Water Tanker 32KL" />
+          </div>
+          <div class="form-group">
+            <label>Name (Arabic):</label>
+            <input type="text" id="addEqAr" dir="rtl" class="form-input" placeholder="صهريج مياه ٣٢ ألف لتر" />
+          </div>
+          <div class="form-group">
+            <label>Default Rent:</label>
+            <input type="number" id="addEqRent" class="form-input" placeholder="Rent" />
+          </div>
+          <div class="form-group" style="justify-content: flex-end;">
+            <button onclick="saveEquipmentManual()" class="btn-ribbon btn-save" style="margin-top: 16px;">Save Equipment</button>
+          </div>
+        </div>
+
+        <input type="text" id="searchEqInput" oninput="renderEquipmentsTable(this.value)" class="form-input" style="width: 100%; margin-top: 10px; box-sizing: border-box;" placeholder="🔍 Search Equipment..." />
+
+        <div style="max-height: 240px; overflow-y: auto; margin-top: 8px;">
+          <table class="table-modal">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Name (EN)</th>
+                <th>Name (AR)</th>
+                <th>Default Rent</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="equipmentsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= EDIT TERMS MODAL ================= -->
+    <div class="modal-backdrop" id="termsModal">
+      <div class="modal-card" style="width: 650px;">
+        <h3>📝 Global Terms & Conditions</h3>
+        <div class="form-group">
+          <label>الشروط والأحكام (Arabic):</label>
+          <textarea id="modalTermsAr" rows="5" class="form-input" dir="rtl"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Terms & Conditions (English):</label>
+          <textarea id="modalTermsEn" rows="5" class="form-input"></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px;">
+          <button onclick="closeTermsModal()" class="btn-ribbon btn-dash">Cancel</button>
+          <button style="background: #6366f1; color: white;" onclick="saveTermsGlobal()" class="btn-ribbon">Save Terms</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let companiesList = [];
+      let savedVendors = [];
+      let savedEquipments = [];
+      // 🟢 Default aayi blank line item nalkunnu
+      let currentItems = [{ vtype: "", vtype_ar: "", qty: "", rate: "" }];
+      let isSealEngaged = false;
+      let currentCompanyTheme = "default";
+
+      let isRestoringFromDashboard = false;
+
+      async function initPO() {
+        await Promise.all([loadCompanies(), loadGlobalTerms(), loadVendors(), loadEquipments()]);
+
+        const stored = sessionStorage.getItem("activePOData");
+        if (stored) {
+          try {
+            isRestoringFromDashboard = true;
+            const data = JSON.parse(stored);
+            await restorePO(data);
+          } catch(e) {
+            console.error(e);
+          }
+          sessionStorage.removeItem("activePOData");
+
+          // 🟢 Dashboard direct download trigger check
+          if (sessionStorage.getItem("autoDownloadPoTrigger") === "true") {
+            sessionStorage.removeItem("autoDownloadPoTrigger");
+            setTimeout(async () => {
+              await downloadPDF();
+            }, 600);
+          }
+        } else {
+          isRestoringFromDashboard = false;
+          resetNewPO();
+        }
+      }
+
+      function detectThemeByCompany(comp) {
+        if (!comp) return "default";
+        const code = (comp.short_code || comp.company_name_en || "").toUpperCase();
+        if (code.includes("HAK") || code.includes("HAKA")) return "haka";
+        if (code.includes("MW") || code.includes("MASAR")) return "masar";
+        if (code.includes("WE") || code.includes("WEFAQ")) return "wefaq";
+        return "default";
+      }
+
+      function applyCompanyLayoutTheme(themeKey) {
+        currentCompanyTheme = themeKey;
+        const page = document.getElementById("printablePO");
+        if (page) page.className = `po-page theme-${themeKey}`;
+      }
+
+      function toggleToolsMenu(e) {
+        e.stopPropagation();
+        const drop = document.getElementById("toolsDropdown");
+        drop.style.display = drop.style.display === "block" ? "none" : "block";
+      }
+      document.addEventListener("click", () => {
+        const drop = document.getElementById("toolsDropdown");
+        if (drop) drop.style.display = "none";
+      });
+
+      async function loadCompanies() {
+        const res = await fetch("/e-invoice/api/companies");
+        const data = await res.json();
+        if (data.success) {
+          companiesList = data.companies;
+          const sel = document.getElementById("companySelect");
+          sel.innerHTML = '<option value="">-- Choose Company --</option>';
+          companiesList.forEach(c => {
+            sel.innerHTML += `<option value="${c.id}">${c.company_name_en}</option>`;
+          });
+        }
+      }
+
+      async function loadGlobalTerms() {
+        const res = await fetch("/purchase-order/api/terms");
+        const data = await res.json();
+        if (data.success && data.terms) {
+          document.getElementById("dispTermsAr").innerText = data.terms.terms_ar || "";
+          document.getElementById("dispTermsEn").innerText = data.terms.terms_en || "";
+          document.getElementById("modalTermsAr").value = data.terms.terms_ar || "";
+          document.getElementById("modalTermsEn").value = data.terms.terms_en || "";
+        }
+      }
+
+      /* ================= VENDORS LOGIC ================= */
+      async function loadVendors() {
+        const res = await fetch("/purchase-order/api/vendors");
+        const data = await res.json();
+        if (data.success) {
+          savedVendors = data.vendors || [];
+          populateVendorsDatalist();
+          renderVendorsTable("");
+        }
+      }
+
+      function populateVendorsDatalist() {
+        const dl = document.getElementById("vendorsDatalist");
+        dl.innerHTML = "";
+        savedVendors.forEach(v => {
+          dl.innerHTML += `<option value="${v.vendor_name_en}">${v.vendor_name_ar ? v.vendor_name_ar + ' | ' : ''}VAT: ${v.vat_number||'-'}</option>`;
+        });
+      }
+
+      function renderVendorsTable(term) {
+        const tbody = document.getElementById("vendorsTableBody");
+        tbody.innerHTML = "";
+        const clean = (term||"").toLowerCase().trim();
+        const filtered = savedVendors.filter(v => 
+          !clean || (v.vendor_name_en||"").toLowerCase().includes(clean) ||
+          (v.vendor_name_ar||"").toLowerCase().includes(clean) ||
+          (v.nickname||"").toLowerCase().includes(clean)
+        );
+        filtered.forEach(v => {
+          tbody.innerHTML += `
+            <tr>
+              <td><b>${v.vendor_code||'-'}</b></td>
+              <td>${v.vendor_name_en}</td>
+              <td dir="rtl">${v.vendor_name_ar||'-'}</td>
+              <td>${v.cr_number ? 'CR: '+v.cr_number : ''} ${v.vat_number ? 'VAT: '+v.vat_number : ''}</td>
+              <td>
+                <button onclick="editVendor(${v.id})" style="cursor:pointer; border:none; background:transparent;">✏️</button>
+                <button onclick="deleteVendor(${v.id})" style="cursor:pointer; border:none; background:transparent;">🗑️</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      async function saveVendorManual() {
+        const id = document.getElementById("editVendorId").value;
+        const en = document.getElementById("addVenEn").value.trim();
+        const ar = document.getElementById("addVenAr").value.trim();
+        const nick = document.getElementById("addVenNick").value.trim();
+        const cr = document.getElementById("addVenCr").value.trim();
+        const vat = document.getElementById("addVenVat").value.trim();
+
+        if (!en) return alert("Vendor English Name required");
+
+        await fetch("/purchase-order/api/save-vendor", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: id||null, vendor_name_en: en, vendor_name_ar: ar, nickname: nick, cr_number: cr, vat_number: vat })
+        });
+        document.getElementById("editVendorId").value = "";
+        document.getElementById("addVenEn").value = "";
+        document.getElementById("addVenAr").value = "";
+        document.getElementById("addVenNick").value = "";
+        document.getElementById("addVenCr").value = "";
+        document.getElementById("addVenVat").value = "";
+        await loadVendors();
+      }
+
+      function editVendor(id) {
+        const v = savedVendors.find(x => x.id === id);
+        if (!v) return;
+        document.getElementById("editVendorId").value = v.id;
+        document.getElementById("addVenEn").value = v.vendor_name_en;
+        document.getElementById("addVenAr").value = v.vendor_name_ar || "";
+        document.getElementById("addVenNick").value = v.nickname || "";
+        document.getElementById("addVenCr").value = v.cr_number || "";
+        document.getElementById("addVenVat").value = v.vat_number || "";
+      }
+
+      async function deleteVendor(id) {
+        if (!confirm("Are you sure you want to delete this vendor?")) return;
+        await fetch("/purchase-order/api/delete-vendor", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id })
+        });
+        await loadVendors();
+      }
+
+      function openVendorsModal() { document.getElementById("vendorsModal").style.display = "flex"; }
+      function closeVendorsModal() { document.getElementById("vendorsModal").style.display = "none"; }
+
+      /* ================= EQUIPMENTS LOGIC ================= */
+      async function loadEquipments() {
+        const res = await fetch("/purchase-order/api/equipments");
+        const data = await res.json();
+        if (data.success) {
+          savedEquipments = data.equipments || [];
+          populateEquipmentsDatalist();
+          renderEquipmentsTable("");
+        }
+      }
+
+      function populateEquipmentsDatalist() {
+        const dl = document.getElementById("equipmentsDatalist");
+        dl.innerHTML = "";
+        savedEquipments.forEach(eq => {
+          dl.innerHTML += `<option value="${eq.equipment_name_en}">${eq.equipment_name_ar ? eq.equipment_name_ar + ' - ' : ''}Rent: ${parseFloat(eq.default_rent||0).toFixed(2)}</option>`;
+        });
+      }
+
+      function renderEquipmentsTable(term) {
+        const tbody = document.getElementById("equipmentsTableBody");
+        tbody.innerHTML = "";
+        const clean = (term||"").toLowerCase().trim();
+        const filtered = savedEquipments.filter(e =>
+          !clean || (e.equipment_name_en||"").toLowerCase().includes(clean) ||
+          (e.equipment_name_ar||"").toLowerCase().includes(clean)
+        );
+        filtered.forEach(e => {
+          tbody.innerHTML += `
+            <tr>
+              <td><b>${e.equipment_code||'-'}</b></td>
+              <td>${e.equipment_name_en}</td>
+              <td dir="rtl">${e.equipment_name_ar||'-'}</td>
+              <td>${parseFloat(e.default_rent||0).toFixed(2)}</td>
+              <td>
+                <button onclick="editEquipment(${e.id})" style="cursor:pointer; border:none; background:transparent;">✏️</button>
+                <button onclick="deleteEquipment(${e.id})" style="cursor:pointer; border:none; background:transparent;">🗑️</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      async function saveEquipmentManual() {
+        const id = document.getElementById("editEqId").value;
+        const en = document.getElementById("addEqEn").value.trim();
+        const ar = document.getElementById("addEqAr").value.trim();
+        const rent = document.getElementById("addEqRent").value.trim();
+
+        if (!en) return alert("Equipment English Name required");
+
+        await fetch("/purchase-order/api/save-equipment", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: id||null, equipment_name_en: en, equipment_name_ar: ar, default_rent: rent })
+        });
+        document.getElementById("editEqId").value = "";
+        document.getElementById("addEqEn").value = "";
+        document.getElementById("addEqAr").value = "";
+        document.getElementById("addEqRent").value = "";
+        await loadEquipments();
+      }
+
+      function editEquipment(id) {
+        const eq = savedEquipments.find(x => x.id === id);
+        if (!eq) return;
+        document.getElementById("editEqId").value = eq.id;
+        document.getElementById("addEqEn").value = eq.equipment_name_en;
+        document.getElementById("addEqAr").value = eq.equipment_name_ar || "";
+        document.getElementById("addEqRent").value = eq.default_rent || 0;
+      }
+
+      async function deleteEquipment(id) {
+        if (!confirm("Are you sure you want to delete this equipment?")) return;
+        await fetch("/purchase-order/api/delete-equipment", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id })
+        });
+        await loadEquipments();
+      }
+
+      function openEquipmentsModal() { document.getElementById("equipmentsModal").style.display = "flex"; }
+      function closeEquipmentsModal() { document.getElementById("equipmentsModal").style.display = "none"; }
+
+      /* ================= COMPANY CHANGE ================= */
+      function onCompanyChange() {
+        // 🟢 1. Company maarumbol seal & sign complete aayi reset cheyyunnu
+        isSealEngaged = false;
+        const st = document.getElementById("poStampImg");
+        const sg = document.getElementById("poSignImg");
+        if (st) { st.src = ""; st.style.display = "none"; }
+        if (sg) { sg.src = ""; sg.style.display = "none"; }
+        const sealBtn = document.getElementById("sealToggleBtn");
+        if (sealBtn) sealBtn.classList.remove("active");
+
+        const id = document.getElementById("companySelect").value;
+        const comp = companiesList.find(c => String(c.id) === String(id));
+        if (comp) {
+          applyCompanyLayoutTheme(detectThemeByCompany(comp));
+
+          document.getElementById("topHeaderEn").innerHTML = 
+            `<b>${comp.company_name_en}</b><br>C.R. : ${comp.cr_number || "-"}<br>VAT No : ${comp.vat_number || "-"}`;
+          
+          document.getElementById("topHeaderAr").innerHTML = 
+            `<b>${comp.company_name_ar || comp.company_name_en}</b><br>س ت : ${comp.cr_number || "-"}<br>الرقم الضريبي : ${comp.vat_number || "-"}`;
+
+          document.getElementById("dispCompNameAr").innerText = comp.company_name_ar || comp.company_name_en;
+          document.getElementById("dispCompCr").innerText = comp.cr_number || "-";
+          document.getElementById("dispCompVat").innerText = comp.vat_number || "-";
+          // 🟢 Seal & Sign section-il company name Arabic-il nalkunnu
+          const signCompEl = document.getElementById("signFirstPartyName");
+          if (signCompEl) signCompEl.innerText = comp.company_name_ar || comp.company_name_en;
+
+          if (comp.logo_url) {
+            document.getElementById("compLogo").src = comp.logo_url;
+            document.getElementById("compLogo").style.display = "block";
+          } else {
+            document.getElementById("compLogo").style.display = "none";
+          }
+
+          // 🟢 2. Puthya company-yude address set cheyyunnu
+          const addr = [];
+          if (comp.address_line_ar) addr.push(comp.address_line_ar.trim());
+          if (comp.address_line_en) addr.push(comp.address_line_en.trim());
+          document.getElementById("footerAddrContainer").innerText = addr.join(" | ");
+          document.getElementById("footerEmail").innerText = comp.email ? `E-mail: ${comp.email}` : "";
+
+          fetchNextPoNo(comp.id);
+        } else {
+          // 🟢 3. Company ozhivakkiyaal ella fields-um empty aayi reset aavunnu
+          applyCompanyLayoutTheme("default");
+          document.getElementById("topHeaderEn").innerHTML = "";
+          document.getElementById("topHeaderAr").innerHTML = "";
+          document.getElementById("dispCompNameAr").innerText = "اسم الشركة";
+          document.getElementById("dispCompCr").innerText = "-";
+          document.getElementById("dispCompVat").innerText = "-";
+          document.getElementById("dispPoNo").innerText = "------";
+          document.getElementById("compLogo").style.display = "none";
+          document.getElementById("footerAddrContainer").innerText = "";
+          document.getElementById("footerEmail").innerText = "";
+        }
+      }
+
+      async function fetchNextPoNo(compId) {
+        const res = await fetch(`/purchase-order/api/next-po-no?company_id=${compId || ""}`);
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById("dispPoNo").innerText = data.po_no;
+          document.getElementById("modalPoNo").value = data.po_no;
+        }
+      }
+
+      function resetNewPO() {
+        const today = new Date().toISOString().split("T")[0];
+        document.getElementById("dispPoDate").innerText = today;
+        document.getElementById("modalPoDate").value = today;
+        document.getElementById("dispVendorName").innerText = "-";
+        document.getElementById("dispVendorNameAr").innerText = "";
+        document.getElementById("dispVendorCr").innerText = "CR: -";
+        document.getElementById("dispVendorVat").innerText = "-";
+        document.getElementById("dispPlateNo").innerText = "------";
+        document.getElementById("dispPaymentTerms").innerText = "------";
+        document.getElementById("dispLocation").innerText = "------";
+        // 🟢 New PO click cheyyumbolum blank aayi reset aavunnu
+        currentItems = [{ vtype: "", vtype_ar: "", qty: "", rate: "" }];
+        renderTable();
+        const compId = document.getElementById("companySelect").value;
+        if (compId) fetchNextPoNo(compId);
+      }
+
+      function renderTable() {
+        const tbody = document.getElementById("poItemsBody");
+        tbody.innerHTML = "";
+        currentItems.forEach((it, idx) => {
+          const tot = (parseFloat(it.qty) || 0) * (parseFloat(it.rate) || 0);
+          let nameDisp = "-";
+          if (it.vtype && it.vtype_ar) {
+            nameDisp = `${it.vtype} / ${it.vtype_ar}`;
+          } else if (it.vtype) {
+            nameDisp = it.vtype;
+          } else if (it.vtype_ar) {
+            nameDisp = it.vtype_ar;
+          }
+
+          tbody.innerHTML += `
+            <tr>
+              <td>${idx + 1}</td>
+              <td style="text-align: right; padding-right: 12px; font-weight: 700;">${nameDisp}</td>
+              <td>${it.qty || "-"}</td>
+              <td>${it.rate ? parseFloat(it.rate).toFixed(2) : "-"}</td>
+              <td style="font-weight: 800;">${tot > 0 ? tot.toFixed(2) : "-"}</td>
+            </tr>
+          `;
+        });
+      }
+
+      /* ================= POPUP MODAL LOGIC ================= */
+      function openPOModal() {
+        const currentV = document.getElementById("dispVendorName").innerText;
+        document.getElementById("modalVendorName").value = currentV === "-" ? "" : currentV;
+
+        const currentVat = document.getElementById("dispVendorVat").innerText;
+        document.getElementById("modalVendorVat").value = currentVat === "-" ? "" : currentVat;
+
+        document.getElementById("modalPlateNo").value = document.getElementById("dispPlateNo").innerText === "------" ? "" : document.getElementById("dispPlateNo").innerText;
+        document.getElementById("modalPaymentTerms").value = document.getElementById("dispPaymentTerms").innerText === "------" ? "" : document.getElementById("dispPaymentTerms").innerText;
+        document.getElementById("modalLocation").value = document.getElementById("dispLocation").innerText === "------" ? "" : document.getElementById("dispLocation").innerText;
+
+        renderModalItemRows();
+        document.getElementById("poModal").style.display = "flex";
+      }
+      function closePOModal() { document.getElementById("poModal").style.display = "none"; }
+
+      function renderModalItemRows() {
+        const wrap = document.getElementById("modalItemsWrap");
+        wrap.innerHTML = "";
+        currentItems.forEach((it, i) => {
+          wrap.innerHTML += `
+            <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+              <input type="text" class="form-input" style="flex: 2;" list="equipmentsDatalist" onchange="onModalEqSelect(${i}, this.value)" value="${it.vtype}" placeholder="Equipment (EN)" />
+              <input type="text" class="form-input" style="flex: 2;" dir="rtl" value="${it.vtype_ar||''}" onchange="currentItems[${i}].vtype_ar = this.value" placeholder="المعدة (AR)" />
+              <input type="number" class="form-input" style="width: 70px;" value="${it.qty}" onchange="currentItems[${i}].qty = this.value" placeholder="Qty" />
+              <input type="number" class="form-input" style="width: 90px;" value="${it.rate}" onchange="currentItems[${i}].rate = this.value" placeholder="Rent" />
+              <button onclick="removeModalItemRow(${i})" style="background:#ef4444; color:white; border:none; border-radius:4px; padding:0 8px; cursor:pointer;">&times;</button>
+            </div>
+          `;
+        });
+      }
+
+      function addModalItemRow() {
+        currentItems.push({ vtype: "", vtype_ar: "", qty: 1, rate: 0 });
+        renderModalItemRows();
+      }
+      function removeModalItemRow(i) {
+        currentItems.splice(i, 1);
+        renderModalItemRows();
+      }
+
+      // 🟢 വെണ്ടർ സെലക്ട് ചെയ്യുമ്പോഴും പുതിയതാണെങ്കിൽ Add Popup വരാനും
+      function onModalVendorSelect(val) {
+        const clean = (val || "").trim();
+        if (!clean) return;
+
+        const found = savedVendors.find(v => 
+          v.vendor_name_en.toLowerCase() === clean.toLowerCase() ||
+          (v.vendor_name_ar && v.vendor_name_ar.toLowerCase() === clean.toLowerCase())
+        );
+
+        if (found) {
+          document.getElementById("modalVendorName").value = found.vendor_name_en;
+          document.getElementById("modalVendorVat").value = found.vat_number || "";
+          document.getElementById("dispVendorCr").innerText = found.cr_number ? `CR: ${found.cr_number}` : "CR: -";
+          document.getElementById("dispVendorNameAr").innerText = found.vendor_name_ar || "";
+          const signVenEl = document.getElementById("signSecondPartyName");
+          if (signVenEl) signVenEl.innerText = found.vendor_name_ar || found.vendor_name_en || "-";
+        }
+      }
+
+      // ടൈപ്പ് ചെയ്ത് ഫോക്കസ് ഔട്ട് ചെയ്യുമ്പോൾ ലിസ്റ്റിൽ ഇല്ലെങ്കിൽ Quick Add Modal കാണിക്കുന്നു
+      function checkAndPromptNewVendor(val) {
+        const clean = (val || "").trim();
+        if (!clean) return;
+
+        const exists = savedVendors.some(v => 
+          v.vendor_name_en.toLowerCase() === clean.toLowerCase() ||
+          (v.vendor_name_ar && v.vendor_name_ar.toLowerCase() === clean.toLowerCase())
+        );
+
+        if (!exists) {
+          document.getElementById("quickVenEn").value = clean;
+          document.getElementById("quickVenAr").value = "";
+          document.getElementById("quickVenCr").value = "";
+          document.getElementById("quickVenVat").value = document.getElementById("modalVendorVat").value || "";
+          document.getElementById("quickAddVendorModal").style.display = "flex";
+        }
+      }
+
+      function closeQuickAddVendorModal() {
+        document.getElementById("quickAddVendorModal").style.display = "none";
+      }
+
+      async function saveQuickVendor() {
+        const en = document.getElementById("quickVenEn").value.trim();
+        const ar = document.getElementById("quickVenAr").value.trim();
+        const cr = document.getElementById("quickVenCr").value.trim();
+        const vat = document.getElementById("quickVenVat").value.trim();
+
+        if (!en) return alert("Vendor English Name required");
+
+        const res = await fetch("/purchase-order/api/save-vendor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vendor_name_en: en, vendor_name_ar: ar, cr_number: cr, vat_number: vat })
+        });
+        const data = await res.json();
+        if (data.success) {
+          await loadVendors();
+          document.getElementById("modalVendorName").value = en;
+          document.getElementById("modalVendorVat").value = vat;
+          document.getElementById("dispVendorCr").innerText = cr ? `CR: ${cr}` : "CR: -";
+          document.getElementById("dispVendorNameAr").innerText = ar;
+          const signVenEl = document.getElementById("signSecondPartyName");
+          if (signVenEl) signVenEl.innerText = ar || en;
+          closeQuickAddVendorModal();
+        } else {
+          alert(data.message || "Failed to save vendor");
+        }
+      }
+
+      // 🟢 എക്യുപ്‌മെന്റ് ലിസ്റ്റിൽ ഇല്ലെങ്കിൽ Quick Add Modal വരാൻ
+      function onModalEqSelect(index, val) {
+        const clean = (val || "").trim();
+        currentItems[index].vtype = clean;
+        if (!clean) return;
+
+        const found = savedEquipments.find(e => 
+          e.equipment_name_en.toLowerCase() === clean.toLowerCase() ||
+          (e.equipment_name_ar && e.equipment_name_ar.toLowerCase() === clean.toLowerCase())
+        );
+
+        if (found) {
+          currentItems[index].vtype = found.equipment_name_en;
+          currentItems[index].vtype_ar = found.equipment_name_ar || "";
+          currentItems[index].rate = found.default_rent || currentItems[index].rate || 0;
+          renderModalItemRows();
+        } else {
+          // പുതിയ ഐറ്റം ആണെങ്കിൽ പോപ്പ്-അപ്പ് തുറക്കുന്നു
+          document.getElementById("quickEqTargetIndex").value = index;
+          document.getElementById("quickEqEn").value = clean;
+          document.getElementById("quickEqAr").value = currentItems[index].vtype_ar || "";
+          document.getElementById("quickEqRent").value = currentItems[index].rate || "";
+          document.getElementById("quickAddEquipmentModal").style.display = "flex";
+        }
+      }
+
+      function closeQuickAddEquipmentModal() {
+        document.getElementById("quickAddEquipmentModal").style.display = "none";
+      }
+
+      async function saveQuickEquipment() {
+        const idx = document.getElementById("quickEqTargetIndex").value;
+        const en = document.getElementById("quickEqEn").value.trim();
+        const ar = document.getElementById("quickEqAr").value.trim();
+        const rent = document.getElementById("quickEqRent").value.trim();
+
+        if (!en) return alert("Equipment English Name required");
+
+        const res = await fetch("/purchase-order/api/save-equipment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ equipment_name_en: en, equipment_name_ar: ar, default_rent: rent })
+        });
+        const data = await res.json();
+        if (data.success) {
+          await loadEquipments();
+          if (idx !== "" && currentItems[idx]) {
+            currentItems[idx].vtype = en;
+            currentItems[idx].vtype_ar = ar;
+            if (rent) currentItems[idx].rate = rent;
+            renderModalItemRows();
+          }
+          closeQuickAddEquipmentModal();
+        } else {
+          alert(data.message || "Failed to save equipment");
+        }
+      }
+
+      async function applyPOModal() {
+        const vName = document.getElementById("modalVendorName").value.trim();
+        const vVat = document.getElementById("modalVendorVat").value.trim();
+
+        // 🟢 Labels like 'Vendor Name', 'VAT No:' removed completely
+        document.getElementById("dispVendorName").innerText = vName || "-";
+        document.getElementById("dispVendorVat").innerText = vVat || "-";
+        // 🟢 Vendor Arabic name undengil athu edukkunnu, illengil maathram English
+        const vArName = document.getElementById("dispVendorNameAr").innerText.trim();
+        const signVenEl = document.getElementById("signSecondPartyName");
+        if (signVenEl) signVenEl.innerText = vArName || vName || "-";
+        document.getElementById("dispPoDate").innerText = document.getElementById("modalPoDate").value;
+
+        const plates = document.getElementById("modalPlateNo").value.trim();
+        document.getElementById("dispPlateNo").innerText = plates || "------";
+
+        document.getElementById("dispPaymentTerms").innerText = document.getElementById("modalPaymentTerms").value || "------";
+        document.getElementById("dispLocation").innerText = document.getElementById("modalLocation").value || "------";
+
+        if (vName) {
+          const vExists = savedVendors.find(v => v.vendor_name_en.toLowerCase() === vName.toLowerCase());
+          if (!vExists) {
+            await fetch("/purchase-order/api/save-vendor", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ vendor_name_en: vName, vendor_name_ar: "", vat_number: vVat })
+            });
+            await loadVendors();
+          }
+        }
+
+        for (const it of currentItems) {
+          if (it.vtype) {
+            const eqExists = savedEquipments.find(e => e.equipment_name_en.toLowerCase() === it.vtype.toLowerCase());
+            if (!eqExists) {
+              await fetch("/purchase-order/api/save-equipment", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ equipment_name_en: it.vtype, equipment_name_ar: it.vtype_ar||"", default_rent: it.rate||0 })
+              });
+            }
+          }
+        }
+        await loadEquipments();
+
+        renderTable();
+        closePOModal();
+      }
+
+      function openTermsModal() { document.getElementById("termsModal").style.display = "flex"; }
+      function closeTermsModal() { document.getElementById("termsModal").style.display = "none"; }
+      async function saveTermsGlobal() {
+        const ar = document.getElementById("modalTermsAr").value;
+        const en = document.getElementById("modalTermsEn").value;
+        await fetch("/purchase-order/api/save-terms", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ terms_ar: ar, terms_en: en })
+        });
+        document.getElementById("dispTermsAr").innerText = ar;
+        document.getElementById("dispTermsEn").innerText = en;
+        closeTermsModal();
+      }
+
+      function toggleSeal() {
+        const id = document.getElementById("companySelect").value;
+        const comp = companiesList.find(c => String(c.id) === String(id));
+        if (!comp) return alert("Select company first!");
+        isSealEngaged = !isSealEngaged;
+        const st = document.getElementById("poStampImg");
+        const sg = document.getElementById("poSignImg");
+        if (isSealEngaged && comp.seal_url) { st.src = comp.seal_url; st.style.display = "block"; } else st.style.display = "none";
+        if (isSealEngaged && comp.signature_url) { sg.src = comp.signature_url; sg.style.display = "block"; } else sg.style.display = "none";
+      }
+
+      async function savePO() {
+        const poNo = document.getElementById("dispPoNo").innerText.trim();
+        if (!poNo || poNo === "------") {
+          showPoToast("⚠️ Please configure a valid PO Number first!", false);
+          return;
+        }
+
+        showPoToast("Saving Purchase Order...", true);
+
+        const compId = document.getElementById("companySelect").value;
+        const comp = companiesList.find(c => String(c.id) === String(compId));
+
+        let subtotal = 0;
+        currentItems.forEach(i => subtotal += (parseFloat(i.qty)||0) * (parseFloat(i.rate)||0));
+
+        const payload = {
+          po_no: poNo,
+          company_id: compId || null,
+          company_name: comp ? comp.company_name_en : "",
+          vendor_name: document.getElementById("dispVendorName").innerText,
+          vendor_details: { 
+            name_ar: document.getElementById("dispVendorNameAr").innerText,
+            cr: document.getElementById("dispVendorCr").innerText,
+            vat: document.getElementById("dispVendorVat").innerText 
+          },
+          po_date: document.getElementById("dispPoDate").innerText,
+          plate_no: document.getElementById("dispPlateNo").innerText,
+          payment_terms: document.getElementById("dispPaymentTerms").innerText,
+          location: document.getElementById("dispLocation").innerText,
+          subtotal: subtotal,
+          vat_amount: 0,
+          grand_total: subtotal,
+          has_seal: isSealEngaged,
+          line_items: currentItems,
+          terms_ar: document.getElementById("dispTermsAr").innerText,
+          terms_en: document.getElementById("dispTermsEn").innerText,
+        };
+
+        try {
+          const res = await fetch("/purchase-order/api/save-po-record", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (data.success) {
+            showPoToast("✅ Purchase Order Saved Successfully!", false);
+          } else {
+            showPoToast("❌ Failed to save Purchase Order!", false);
+          }
+        } catch(err) {
+          showPoToast("❌ An error occurred while saving!", false);
+        }
+      }
+
+      // 🟢 Multi-Page Dynamic Pagination Engine (First Page-il Seal & Sign preserve cheythu)
+      async function downloadPDF() {
+        const poNo = document.getElementById("dispPoNo").innerText.trim();
+        if (!poNo || poNo === "------") return alert("Please configure PO No first!");
+
+        const originalPO = document.getElementById("printablePO");
+        const printContainer = document.createElement("div");
+        printContainer.style.position = "fixed";
+        printContainer.style.left = "-10000px";
+        printContainer.style.top = "0";
+        document.body.appendChild(printContainer);
+
+        const headerTop = originalPO.querySelector(".header-wrap").cloneNode(true);
+        const poTitle = originalPO.querySelector(".po-title").cloneNode(true);
+        const twoBoxes = originalPO.querySelector(".two-boxes").cloneNode(true);
+        const metaTable = originalPO.querySelector(".meta-box-table").cloneNode(true);
+        const poTableHead = originalPO.querySelector(".po-table thead").cloneNode(true);
+        const noteVat = originalPO.querySelector(".note-vat-row").cloneNode(true);
+        const signSection = originalPO.querySelector(".sign-section").cloneNode(true);
+        const poFooter = originalPO.querySelector(".po-footer").cloneNode(true);
+
+        const pageElements = [];
+        const PAGE_WIDTH = 860;
+        const PAGE_HEIGHT = 1216;
+
+        function createPageSkeleton(isFirstPage = false) {
+          const page = document.createElement("div");
+          page.className = `po-page theme-${currentCompanyTheme}`;
+          page.style.width = `${PAGE_WIDTH}px`;
+          page.style.height = `${PAGE_HEIGHT}px`;
+          page.style.minHeight = `${PAGE_HEIGHT}px`;
+          page.style.maxHeight = `${PAGE_HEIGHT}px`;
+          page.style.position = "relative";
+          page.style.background = "#ffffff";
+          page.style.padding = "35px 40px";
+          page.style.boxSizing = "border-box";
+          page.style.overflow = "hidden";
+          page.style.display = "block";
+
+          const content = document.createElement("div");
+          content.style.position = "relative";
+          content.style.width = "100%";
+          page.appendChild(content);
+
+          // Footer Address
+          const foot = poFooter.cloneNode(true);
+          foot.style.position = "absolute";
+          foot.style.bottom = "20px";
+          foot.style.left = "40px";
+          foot.style.right = "40px";
+          foot.style.width = "calc(100% - 80px)";
+          page.appendChild(foot);
+
+          // 🟢 Seal & Sign section first page-nte bottom portion-il fixed aayi nilkkanam
+          let signBoxEl = null;
+          if (isFirstPage) {
+            signBoxEl = signSection.cloneNode(true);
+            signBoxEl.style.position = "absolute";
+            signBoxEl.style.bottom = "65px";
+            signBoxEl.style.left = "40px";
+            signBoxEl.style.right = "40px";
+            signBoxEl.style.width = "calc(100% - 80px)";
+            page.appendChild(signBoxEl);
+          }
+
+          printContainer.appendChild(page);
+          pageElements.push(page);
+          return { page, content, foot, signBoxEl };
+        }
+
+        function getMaxBottom(page, bottomBarrier) {
+          const pageRect = page.getBoundingClientRect();
+          const barrierRect = bottomBarrier.getBoundingClientRect();
+          return barrierRect.top - pageRect.top - 12;
+        }
+
+        function getElBottom(el, page) {
+          const pageRect = page.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          return elRect.bottom - pageRect.top;
+        }
+
+        // Page 1 Init
+        let curPageObj = createPageSkeleton(true);
+        let curContent = curPageObj.content;
+        curContent.appendChild(headerTop.cloneNode(true));
+        curContent.appendChild(poTitle.cloneNode(true));
+        curContent.appendChild(twoBoxes.cloneNode(true));
+        curContent.appendChild(metaTable.cloneNode(true));
+
+        function startNewPage() {
+          curPageObj = createPageSkeleton(false);
+          curContent = curPageObj.content;
+          curContent.appendChild(headerTop.cloneNode(true));
+        }
+
+        // 1. Line Items Table Split
+        const allRows = Array.from(originalPO.querySelector("#poItemsBody").children);
+        if (allRows.length > 0) {
+          let table = document.createElement("table");
+          table.className = "po-table";
+          table.appendChild(poTableHead.cloneNode(true));
+          let tbody = document.createElement("tbody");
+          table.appendChild(tbody);
+          curContent.appendChild(table);
+
+          for (let i = 0; i < allRows.length; i++) {
+            const rClone = allRows[i].cloneNode(true);
+            tbody.appendChild(rClone);
+
+            const limit = getMaxBottom(curPageObj.page, curPageObj.signBoxEl || curPageObj.foot);
+            if (getElBottom(rClone, curPageObj.page) > limit && tbody.children.length > 1) {
+              tbody.removeChild(rClone);
+              startNewPage();
+
+              table = document.createElement("table");
+              table.className = "po-table";
+              table.style.marginTop = "15px";
+              table.appendChild(poTableHead.cloneNode(true));
+              tbody = document.createElement("tbody");
+              table.appendChild(tbody);
+              curContent.appendChild(table);
+
+              tbody.appendChild(rClone);
+            }
+          }
+        }
+
+        // VAT Note
+        const noteClone = noteVat.cloneNode(true);
+        curContent.appendChild(noteClone);
+        let noteLimit = getMaxBottom(curPageObj.page, curPageObj.signBoxEl || curPageObj.foot);
+        if (getElBottom(noteClone, curPageObj.page) > noteLimit) {
+          curContent.removeChild(noteClone);
+          startNewPage();
+          curContent.appendChild(noteClone);
+        }
+
+        // 2. Terms & Conditions Line-by-Line Split (Arabic & English)
+        const termsArText = document.getElementById("dispTermsAr").innerText.trim();
+        const termsEnText = document.getElementById("dispTermsEn").innerText.trim();
+
+        if (termsArText || termsEnText) {
+          let termsWrap = document.createElement("div");
+          termsWrap.className = "terms-section";
+          curContent.appendChild(termsWrap);
+
+          // 1. Arabic Heading & Lines
+          if (termsArText) {
+            const arHdr = document.createElement("div");
+            arHdr.style.cssText = "text-align: right; margin-bottom: 5px;";
+            arHdr.innerHTML = `<span style="font-weight: 800; font-size: 13.5px; color: var(--primary-dark); font-family: 'Tajawal', sans-serif; direction: rtl;">الشروط والأحكام :-</span>`;
+            termsWrap.appendChild(arHdr);
+
+            const arLines = termsArText.split("\n");
+            let arEl = document.createElement("div");
+            arEl.className = "terms-ar";
+            termsWrap.appendChild(arEl);
+
+            for (const line of arLines) {
+              const p = document.createElement("div");
+              p.innerText = line;
+              arEl.appendChild(p);
+
+              const lim = getMaxBottom(curPageObj.page, curPageObj.signBoxEl || curPageObj.foot);
+              if (getElBottom(p, curPageObj.page) > lim) {
+                arEl.removeChild(p);
+                startNewPage();
+
+                termsWrap = document.createElement("div");
+                termsWrap.className = "terms-section";
+                termsWrap.style.marginTop = "15px";
+                curContent.appendChild(termsWrap);
+
+                arEl = document.createElement("div");
+                arEl.className = "terms-ar";
+                termsWrap.appendChild(arEl);
+                arEl.appendChild(p);
+              }
+            }
+          }
+
+          // 2. English Heading & Lines (Arabic kazhinju mathram)
+          if (termsEnText) {
+            const enHdr = document.createElement("div");
+            enHdr.style.cssText = "text-align: left; margin-top: 10px; margin-bottom: 5px;";
+            enHdr.innerHTML = `<span style="font-weight: 800; font-size: 12px; color: var(--primary-dark); text-transform: uppercase;">TERMS & CONDITIONS :-</span>`;
+            termsWrap.appendChild(enHdr);
+
+            const enLines = termsEnText.split("\n");
+            let enEl = document.createElement("div");
+            enEl.className = "terms-en";
+            termsWrap.appendChild(enEl);
+
+            for (const line of enLines) {
+              const p = document.createElement("div");
+              p.innerText = line;
+              enEl.appendChild(p);
+
+              const lim = getMaxBottom(curPageObj.page, curPageObj.signBoxEl || curPageObj.foot);
+              if (getElBottom(p, curPageObj.page) > lim) {
+                enEl.removeChild(p);
+                startNewPage();
+
+                termsWrap = document.createElement("div");
+                termsWrap.className = "terms-section";
+                termsWrap.style.marginTop = "15px";
+                curContent.appendChild(termsWrap);
+
+                enEl = document.createElement("div");
+                enEl.className = "terms-en";
+                termsWrap.appendChild(enEl);
+                enEl.appendChild(p);
+              }
+            }
+          }
+        }
+
+        // 🟢 PDF Generation with Toast Status
+        showPoToast("Generating PDF Pages...", true);
+
+        try {
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF("p", "pt", "a4");
+          const a4W = pdf.internal.pageSize.getWidth();
+          const a4H = pdf.internal.pageSize.getHeight();
+
+          for (let i = 0; i < pageElements.length; i++) {
+            showPoToast(`Processing Page ${i + 1} of ${pageElements.length}...`, true);
+            await new Promise((r) => setTimeout(r, 60));
+            const canvas = await html2canvas(pageElements[i], {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: "#ffffff",
+            });
+            const imgData = canvas.toDataURL("image/jpeg", 0.95);
+            if (i > 0) pdf.addPage();
+            pdf.addImage(imgData, "JPEG", 0, 0, a4W, a4H);
+          }
+          pdf.save(`${poNo}.pdf`);
+          showPoToast("✅ PDF Generated & Downloaded Successfully!", false);
+        } catch (e) {
+          console.error("PDF Gen Error", e);
+          showPoToast("❌ Failed to export PDF!", false);
+        } finally {
+          document.body.removeChild(printContainer);
+        }
+      }
+
+      async function restorePO(po) {
+        // 1. Company details aadhyam thanne load cheythu header-um footer-um set aakkunnu
+        if (po.company_id) {
+          document.getElementById("companySelect").value = String(po.company_id);
+          const comp = companiesList.find(c => String(c.id) === String(po.company_id));
+          if (comp) {
+            applyCompanyLayoutTheme(detectThemeByCompany(comp));
+
+            document.getElementById("topHeaderEn").innerHTML = 
+              `<b>${comp.company_name_en}</b><br>C.R. : ${comp.cr_number || "-"}<br>VAT No : ${comp.vat_number || "-"}`;
+            
+            document.getElementById("topHeaderAr").innerHTML = 
+              `<b>${comp.company_name_ar || comp.company_name_en}</b><br>س ت : ${comp.cr_number || "-"}<br>الرقم الضريبي : ${comp.vat_number || "-"}`;
+
+            document.getElementById("dispCompNameAr").innerText = comp.company_name_ar || comp.company_name_en;
+            document.getElementById("dispCompCr").innerText = comp.cr_number || "-";
+            document.getElementById("dispCompVat").innerText = comp.vat_number || "-";
+
+            if (comp.logo_url) {
+              document.getElementById("compLogo").src = comp.logo_url;
+              document.getElementById("compLogo").style.display = "block";
+            }
+
+            const addr = [];
+            if (comp.address_line_ar) addr.push(comp.address_line_ar.trim());
+            if (comp.address_line_en) addr.push(comp.address_line_en.trim());
+            document.getElementById("footerAddrContainer").innerText = addr.join(" | ");
+            document.getElementById("footerEmail").innerText = comp.email ? `E-mail: ${comp.email}` : "";
+
+            const signCompEl = document.getElementById("signFirstPartyName");
+            if (signCompEl) signCompEl.innerText = comp.company_name_ar || comp.company_name_en;
+          }
+        }
+
+        // 2. PO No puthithaayi fetch cheyyaathe existing PO Number thanne nilanirthunnu
+        document.getElementById("dispPoNo").innerText = po.po_no || "------";
+        document.getElementById("modalPoNo").value = po.po_no || "------";
+        document.getElementById("dispPoDate").innerText = po.po_date || "------";
+        document.getElementById("modalPoDate").value = po.po_date || "";
+
+        // 3. Vendor Details restore cheyyunnu
+        document.getElementById("dispVendorName").innerText = po.vendor_name || "-";
+        const vDet = typeof po.vendor_details === "object" ? po.vendor_details : JSON.parse(po.vendor_details||"{}");
+        document.getElementById("dispVendorNameAr").innerText = vDet.name_ar || "";
+        document.getElementById("dispVendorCr").innerText = vDet.cr || "CR: -";
+        document.getElementById("dispVendorVat").innerText = vDet.vat || "-";
+
+        const signVenEl = document.getElementById("signSecondPartyName");
+        if (signVenEl) signVenEl.innerText = vDet.name_ar || po.vendor_name || "-";
+
+        // 4. Meta and Line items
+        document.getElementById("dispPlateNo").innerText = po.plate_no || "------";
+        document.getElementById("dispPaymentTerms").innerText = po.payment_terms || "------";
+        document.getElementById("dispLocation").innerText = po.location || "------";
+
+        currentItems = typeof po.line_items === "object" ? po.line_items : JSON.parse(po.line_items||"[]");
+        renderTable();
+
+        if (po.has_seal && !isSealEngaged) toggleSeal();
+      }
+
+      document.addEventListener("DOMContentLoaded", initPO);
+
+      function showPoToast(msg, isLoading = true) {
+        const toast = document.getElementById("poToast");
+        const msgEl = document.getElementById("poToastMsg");
+        const spinner = document.getElementById("poToastSpinner");
+        if (!toast) return;
+
+        msgEl.innerText = msg;
+        spinner.style.display = isLoading ? "block" : "none";
+        toast.style.borderLeftColor = isLoading ? "#0284c7" : "#10b981";
+        toast.style.display = "flex";
+
+        if (!isLoading) {
+          setTimeout(() => {
+            toast.style.display = "none";
+          }, 3500);
+        }
+      }
+    </script>
+  </body>
+</html>

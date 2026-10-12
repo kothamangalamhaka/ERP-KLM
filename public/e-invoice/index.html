@@ -1236,6 +1236,36 @@
               />
               <span>Hide SEQ No</span>
             </label>
+
+            <!-- 🟢 ഇംഗ്ലീഷ് / അറബിക് വിവരണം സ്വിച്ച് ചെയ്യാനുള്ള ചെക്ക് ബോക്സ് -->
+            <label
+              style="
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 12.5px;
+                font-weight: 700;
+                color: #059669;
+                cursor: pointer;
+                background: #d1fae5;
+                padding: 4px 10px;
+                border-radius: 6px;
+                border: 1px solid #a7f3d0;
+              "
+            >
+              <input
+                type="checkbox"
+                id="showEnglishDescCheckbox"
+                onchange="toggleEnglishDesc()"
+                style="
+                  cursor: pointer;
+                  width: 15px;
+                  height: 15px;
+                  accent-color: #059669;
+                "
+              />
+              <span>Show English in Invoice</span>
+            </label>
           </div>
           <button class="modal-close-btn" onclick="closeEditBillModal()">
             &times;
@@ -1331,8 +1361,8 @@
             <thead>
               <tr>
                 <th style="width: 30px">#</th>
-                <th style="text-align: left">Vehicle / Description</th>
                 <th style="width: 70px" id="popupThSeq">SEQ</th>
+                <th style="text-align: left">Vehicle / Description</th>
                 <th style="width: 75px">Qty</th>
                 <th style="width: 85px">Rate</th>
                 <th style="width: 85px">VAT %</th>
@@ -1467,15 +1497,25 @@
         <input type="hidden" id="editItemIdInput" value="" />
         <div
           class="form-grid-3"
-          style="grid-template-columns: 2fr 1fr; margin-bottom: 5px"
+          style="grid-template-columns: 1.5fr 1.5fr 1fr; margin-bottom: 5px"
         >
           <div class="form-group">
-            <label>Item / Vehicle Type Name:</label>
+            <label>Item Name (English):</label>
             <input
               type="text"
               id="addItemNameInput"
               class="form-input"
-              placeholder="e.g. Water Tanker"
+              placeholder="e.g. Water Tanker 32KL"
+            />
+          </div>
+          <div class="form-group">
+            <label>Item Name (Arabic - البيان):</label>
+            <input
+              type="text"
+              id="addItemNameArInput"
+              class="form-input"
+              dir="rtl"
+              placeholder="صهريج مياه ٣٢ ألف لتر"
             />
           </div>
           <div class="form-group">
@@ -1527,14 +1567,49 @@
           <table class="popup-items-table">
             <thead>
               <tr>
-                <th style="width: 95px">Item Code</th>
-                <th style="text-align: left">Item Name</th>
-                <th style="width: 100px">Default Rate</th>
-                <th style="width: 95px">Action</th>
+                <th style="width: 85px">Item Code</th>
+                <th style="text-align: left">Item (English)</th>
+                <th style="text-align: right">Item (Arabic)</th>
+                <th style="width: 90px">Default Rate</th>
+                <th style="width: 90px">Action</th>
               </tr>
             </thead>
             <tbody id="modalItemsTableBody"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOMER DELETE CONFIRMATION POPUP -->
+    <div class="modal-backdrop" id="deleteCustConfirmModal">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <h2>⚠️ Confirm Deletion</h2>
+          <button class="modal-close-btn" onclick="closeDeleteCustModal()">&times;</button>
+        </div>
+        <p style="font-size: 13.5px; color: #334155; line-height: 1.5; margin-bottom: 20px;">
+          Are you sure you want to remove <b id="delCustTargetName">this customer</b>? Data won't be lost permanently and past bills remain intact.
+        </p>
+        <div class="modal-footer">
+          <button class="btn-ribbon btn-dash" onclick="closeDeleteCustModal()">Cancel</button>
+          <button class="btn-ribbon btn-pdf" style="background:#ef4444;" onclick="executeDeleteSupplier()">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ITEM DELETE CONFIRMATION POPUP -->
+    <div class="modal-backdrop" id="deleteItemConfirmModal">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <h2>⚠️ Confirm Deletion</h2>
+          <button class="modal-close-btn" onclick="closeDeleteItemModal()">&times;</button>
+        </div>
+        <p style="font-size: 13.5px; color: #334155; line-height: 1.5; margin-bottom: 20px;">
+          Are you sure you want to remove <b id="delItemTargetName">this item</b>? Past bills will not be affected.
+        </p>
+        <div class="modal-footer">
+          <button class="btn-ribbon btn-dash" onclick="closeDeleteItemModal()">Cancel</button>
+          <button class="btn-ribbon btn-pdf" style="background:#ef4444;" onclick="executeDeleteItem()">Delete</button>
         </div>
       </div>
     </div>
@@ -1586,6 +1661,13 @@
       let currentRemarks = "";
       let currentInvoiceDate = "";
       let hideSeqColumn = false;
+      let showEnglishDescription = false; // 🟢 Unchecked by default (Arabic only on Invoice & PDF)
+
+      function toggleEnglishDesc() {
+        const chk = document.getElementById("showEnglishDescCheckbox");
+        showEnglishDescription = chk ? chk.checked : false;
+        renderInvoiceViewTable();
+      }
       let currentCompanyTheme = "default"; // 'haka' | 'masar' | 'wefaq' | 'default'
 
       /* ================= INITIALIZATION ================= */
@@ -2080,31 +2162,31 @@
 
         // 🟢 ക്രമം: SN -> SEQ -> Vehicle Type
         if (currentCompanyTheme === "haka" || currentCompanyTheme === "masar") {
-          // Full Arabic Headers for both HAKA & MASAR
+          // Full Arabic Headers - Compact widths for numbers to expand description
           thead.innerHTML = `
             <tr>
-              <th style="width: 35px">م</th>
-              ${hideSeqColumn ? "" : '<th style="width: 75px">التسلسل</th>'}
+              <th style="width: 30px">م</th>
+              ${hideSeqColumn ? "" : '<th style="width: 50px">التسلسل</th>'}
               <th style="text-align: right; padding-right: 10px">نوع المعدة / البيان</th>
-              <th style="width: 65px">الكمية</th>
-              <th style="width: 80px">السعر</th>
-              <th style="width: 95px">الإجمالي</th>
-              <th style="width: 85px">الضريبة</th>
-              <th style="width: 105px">المجموع</th>
+              <th style="width: 50px">الكمية</th>
+              <th style="width: 60px">السعر</th>
+              <th style="width: 75px">الإجمالي</th>
+              <th style="width: 65px">الضريبة</th>
+              <th style="width: 80px">المجموع</th>
             </tr>
           `;
         } else {
-          // 🟢 ഇംഗ്ലീഷിന് താഴെ അറബിക് കൂടി ചേർത്ത ബൈലിംഗ്വൽ ഹെഡർ
+          // Bilingual Header - Compact widths to give maximum space to Vehicle Type
           thead.innerHTML = `
             <tr>
-              <th style="width: 35px; line-height: 1.3;">SN<br><span style="font-size: 10px; font-weight: 700;">م</span></th>
-              ${hideSeqColumn ? "" : '<th style="width: 75px; line-height: 1.3;">SEQ<br><span style="font-size: 10px; font-weight: 700;">التسلسل</span></th>'}
-              <th style="text-align: left; padding-left: 10px; line-height: 1.3;">Vehicle Type<br><span style="font-size: 10px; font-weight: 700;">نوع المعدة / البيان</span></th>
-              <th style="width: 65px; line-height: 1.3;">Quantity<br><span style="font-size: 10px; font-weight: 700;">الكمية</span></th>
-              <th style="width: 80px; line-height: 1.3;">Rate<br><span style="font-size: 10px; font-weight: 700;">السعر</span></th>
-              <th style="width: 95px; line-height: 1.3;">Sub Total<br><span style="font-size: 10px; font-weight: 700;">الإجمالي</span></th>
-              <th style="width: 85px; line-height: 1.3;">VAT<br><span style="font-size: 10px; font-weight: 700;">الضريبة</span></th>
-              <th style="width: 105px; line-height: 1.3;">Total<br><span style="font-size: 10px; font-weight: 700;">المجموع</span></th>
+              <th style="width: 30px; line-height: 1.2;">SN<br><span style="font-size: 9px; font-weight: 700;">م</span></th>
+              ${hideSeqColumn ? "" : '<th style="width: 50px; line-height: 1.2;">SEQ<br><span style="font-size: 9px; font-weight: 700;">التسلسل</span></th>'}
+              <th style="text-align: left; padding-left: 8px; line-height: 1.2;">Vehicle Type<br><span style="font-size: 9px; font-weight: 700;">نوع المعدة / البيان</span></th>
+              <th style="width: 50px; line-height: 1.2;">Qty<br><span style="font-size: 9px; font-weight: 700;">الكمية</span></th>
+              <th style="width: 60px; line-height: 1.2;">Rate<br><span style="font-size: 9px; font-weight: 700;">السعر</span></th>
+              <th style="width: 75px; line-height: 1.2;">Sub Total<br><span style="font-size: 9px; font-weight: 700;">الإجمالي</span></th>
+              <th style="width: 65px; line-height: 1.2;">VAT<br><span style="font-size: 9px; font-weight: 700;">الضريبة</span></th>
+              <th style="width: 80px; line-height: 1.2;">Total<br><span style="font-size: 9px; font-weight: 700;">المجموع</span></th>
             </tr>
           `;
         }
@@ -2144,11 +2226,24 @@
 
           // 🟢 Line item-il ulla ella cells-um normal font weight aakkunnu (bold ozhivakki)
           // 🟢 SEQ സെൽ SN-ന് തൊട്ടടുത്ത് രണ്ടാമത്തെ സ്ഥാനത്തേക്ക് മാറ്റി
+          // English-um thazhe Arabic-um orumichu render cheyyunnu
+          const enName = (row.vtype || "").trim();
+          const arName = (row.vtype_ar || "").trim();
+
+          let displayVehicleName = "-";
+          if (enName && arName) {
+            displayVehicleName = `<div>${enName}</div><div style="font-family:'Tajawal', sans-serif; font-size:11px; color:#475569; margin-top:2px;">${arName}</div>`;
+          } else if (enName) {
+            displayVehicleName = enName;
+          } else if (arName) {
+            displayVehicleName = arName;
+          }
+
           tbody.innerHTML += `
             <tr>
               <td>${idx + 1}</td>
               ${seqTd}
-              <td style="${alignStyle} font-weight:normal;">${row.vtype || "-"}</td>
+              <td style="${alignStyle} font-weight:normal; line-height:1.25;">${displayVehicleName}</td>
               <td>${qty}</td>
               <td>${rate.toFixed(2)}</td>
               <td style="font-weight:normal;">${rowSub.toFixed(2)}</td>
@@ -2597,6 +2692,8 @@
         });
       }
 
+      let pendingPopupItemRowIndex = null;
+
       function onPopupItemTypeChange(index, val) {
         manualItems[index].vtype = val;
         if (!val.trim()) {
@@ -2604,14 +2701,28 @@
           return;
         }
 
+        const cleanVal = val.toLowerCase().trim();
         const existing = savedItems.find(
-          (i) => i.item_name.toLowerCase() === val.toLowerCase(),
+          (i) =>
+            i.item_name.toLowerCase() === cleanVal ||
+            (i.item_name_ar && i.item_name_ar.toLowerCase() === cleanVal) ||
+            `${i.item_name} | ${i.item_name_ar}`.toLowerCase() === cleanVal
         );
         if (existing) {
+          manualItems[index].vtype = existing.item_name;
+          manualItems[index].vtype_ar = existing.item_name_ar || "";
           manualItems[index].rate = existing.rate;
           renderPopupTable();
         } else {
-          renderPopupTable();
+          // Puthiya item aanenkil rate undenkil edukkunnu, Items modal thurannu Arabic add cheyyaan prompt cheyyunnu
+          pendingPopupItemRowIndex = index;
+          cancelItemEdit();
+          document.getElementById("addItemNameInput").value = val.trim();
+          if (manualItems[index].rate) {
+            document.getElementById("addItemRateInput").value = manualItems[index].rate;
+          }
+          openItemsModal();
+          document.getElementById("addItemNameArInput").focus();
         }
       }
 
@@ -2705,20 +2816,33 @@
         );
 
         if (buyer) {
+          const cleanBuyerName = buyer.trim();
+
+          // Customer nilavil undonnu perum nick namem check cheyyunnu
           const exists = savedSuppliers.find(
-            (s) => s.customer_name.toLowerCase() === buyer.toLowerCase(),
+            (s) =>
+              (s.customer_name && s.customer_name.toLowerCase() === cleanBuyerName.toLowerCase()) ||
+              (s.nickname && s.nickname.toLowerCase() === cleanBuyerName.toLowerCase())
           );
+
           if (!exists) {
-            await fetch("/e-invoice/api/save-supplier", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                customer_name: buyer,
-                nickname: "",
-                vat_number: vat,
-              }),
-            });
-            await loadSavedSuppliers();
+            try {
+              const res = await fetch("/e-invoice/api/save-supplier", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  customer_name: cleanBuyerName,
+                  nickname: "", // Nickname empty aayi save aakum, pinneed user-kk directory-il add cheyyaam
+                  vat_number: vat || "",
+                }),
+              });
+              const saveRes = await res.json();
+              if (saveRes.success) {
+                await loadSavedSuppliers(); // Puthiya customer list udan thanne update aakum
+              }
+            } catch (err) {
+              console.error("Auto customer save failed:", err);
+            }
           }
         }
 
@@ -2777,17 +2901,149 @@
               <td style="font-family:monospace;">${s.vat_number || "-"}</td>
               <td>
                 <button class="btn-ribbon btn-edit-bill" style="padding:3px 6px; font-size:11px;" onclick="startEditCustomer(${s.id})">✏️</button>
+                <button class="btn-ribbon btn-dash" style="padding:3px 6px; font-size:11px; background:#ef4444;" onclick="promptDeleteCustomer(${s.id}, '${escapeQuotes(s.customer_name)}')">🗑️</button>
               </td>
             </tr>
           `;
         });
       }
 
+      function escapeQuotes(str) {
+        return (str || "").replace(/'/g, "\\'");
+      }
+
+      /* Customer Delete Handlers */
+      let customerToDeleteId = null;
+      function promptDeleteCustomer(id, name) {
+        customerToDeleteId = id;
+        document.getElementById("delCustTargetName").innerText = name;
+        document.getElementById("deleteCustConfirmModal").style.display = "flex";
+      }
+
+      function closeDeleteCustModal() {
+        customerToDeleteId = null;
+        document.getElementById("deleteCustConfirmModal").style.display = "none";
+      }
+
+      async function executeDeleteSupplier() {
+        if (!customerToDeleteId) return;
+        try {
+          const res = await fetch("/e-invoice/api/delete-supplier", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: customerToDeleteId }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeDeleteCustModal();
+            await loadSavedSuppliers();
+          } else {
+            alert(data.message || "Failed to remove customer");
+          }
+        } catch (e) {
+          alert("Error connecting to server");
+        }
+      }
+
+      /* Item Delete Handlers */
+      let itemToDeleteId = null;
+      function promptDeleteItem(id, name) {
+        itemToDeleteId = id;
+        document.getElementById("delItemTargetName").innerText = name;
+        document.getElementById("deleteItemConfirmModal").style.display = "flex";
+      }
+
+      function closeDeleteItemModal() {
+        itemToDeleteId = null;
+        document.getElementById("deleteItemConfirmModal").style.display = "none";
+      }
+
+      async function executeDeleteItem() {
+        if (!itemToDeleteId) return;
+        try {
+          const res = await fetch("/e-invoice/api/delete-item", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: itemToDeleteId }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeDeleteItemModal();
+            await loadSavedItems();
+          } else {
+            alert(data.message || "Failed to delete item");
+          }
+        } catch (e) {
+          alert("Error connecting to server");
+        }
+      }
+
       function openSupplierModal() {
+        cancelCustomerEdit();
+        renderFilteredSuppliersTable("");
         document.getElementById("custModalBackdrop").style.display = "flex";
       }
+
       function closeSupplierModal() {
         document.getElementById("custModalBackdrop").style.display = "none";
+      }
+
+      /* ================= CUSTOMER EDIT & SAVE FUNCTIONS ================= */
+      function startEditCustomer(id) {
+        const cust = savedSuppliers.find((s) => String(s.id) === String(id));
+        if (!cust) return;
+
+        document.getElementById("editCustIdInput").value = cust.id;
+        document.getElementById("addCustNameInput").value = cust.customer_name || "";
+        document.getElementById("addCustNickInput").value = cust.nickname || "";
+        document.getElementById("addCustVatInput").value = cust.vat_number || "";
+
+        document.getElementById("custModalHeaderTitle").innerText = `✏️ Edit Customer (${cust.customer_code || "ID:" + cust.id})`;
+        document.getElementById("saveCustSubmitBtn").innerText = "Update Customer";
+        document.getElementById("cancelCustEditBtn").style.display = "inline-flex";
+      }
+
+      function cancelCustomerEdit() {
+        document.getElementById("editCustIdInput").value = "";
+        document.getElementById("addCustNameInput").value = "";
+        document.getElementById("addCustNickInput").value = "";
+        document.getElementById("addCustVatInput").value = "";
+
+        document.getElementById("custModalHeaderTitle").innerText = "🏢 Customers Directory";
+        document.getElementById("saveCustSubmitBtn").innerText = "Save Customer";
+        document.getElementById("cancelCustEditBtn").style.display = "none";
+      }
+
+      async function saveNewSupplierManual() {
+        const id = document.getElementById("editCustIdInput").value;
+        const name = document.getElementById("addCustNameInput").value.trim();
+        const nick = document.getElementById("addCustNickInput").value.trim();
+        const vat = document.getElementById("addCustVatInput").value.trim();
+
+        if (!name) return alert("Please enter Customer Name");
+
+        try {
+          const res = await fetch("/e-invoice/api/save-supplier", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: id || null,
+              customer_name: name,
+              nickname: nick,
+              vat_number: vat
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            cancelCustomerEdit();
+            await loadSavedSuppliers();
+          } else {
+            alert(data.message || "Failed to save customer");
+          }
+        } catch (e) {
+          console.error("Save customer error", e);
+          alert("Error connecting to server");
+        }
       }
 
       async function loadSavedItems() {
@@ -2796,18 +3052,121 @@
         if (data.success) {
           savedItems = data.items || [];
           const dl = document.getElementById("itemsDataList");
-          dl.innerHTML = "";
-          savedItems.forEach((i) => {
-            dl.innerHTML += `<option value="${i.item_name}">${i.item_code ? "[" + i.item_code + "]" : ""}</option>`;
-          });
+          if (dl) {
+            dl.innerHTML = "";
+            savedItems.forEach((i) => {
+              const label = i.item_name_ar ? `${i.item_name} | ${i.item_name_ar}` : i.item_name;
+              dl.innerHTML += `<option value="${i.item_name}">${i.item_name_ar ? i.item_name_ar + ' - ' : ''}Rate: ${parseFloat(i.rate || 0).toFixed(2)}</option>`;
+            });
+          }
+          renderFilteredItemsTable("");
         }
       }
 
+      function renderFilteredItemsTable(filterTerm) {
+        const tbody = document.getElementById("modalItemsTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        const term = (filterTerm || "").toLowerCase().trim();
+        const filtered = savedItems.filter((i) => {
+          if (!term) return true;
+          const matchCode = (i.item_code || "").toLowerCase().includes(term);
+          const matchName = (i.item_name || "").toLowerCase().includes(term);
+          const matchAr = (i.item_name_ar || "").toLowerCase().includes(term);
+          return matchCode || matchName || matchAr;
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:15px;">No matching items found</td></tr>`;
+          return;
+        }
+
+        filtered.forEach((i) => {
+          tbody.innerHTML += `
+            <tr>
+              <td><span style="font-family:monospace; font-weight:700; color:#0284c7;">${i.item_code || "-"}</span></td>
+              <td style="text-align:left; font-weight:600;">${i.item_name}</td>
+              <td style="text-align:right; font-weight:600; font-family:'Tajawal', sans-serif;">${i.item_name_ar || "-"}</td>
+              <td style="font-family:monospace;">${parseFloat(i.rate || 0).toFixed(2)}</td>
+              <td>
+                <button class="btn-ribbon btn-edit-bill" style="padding:3px 6px; font-size:11px;" onclick="startEditItem(${i.id})">✏️</button>
+                <button class="btn-ribbon btn-dash" style="padding:3px 6px; font-size:11px; background:#ef4444;" onclick="promptDeleteItem(${i.id}, '${escapeQuotes(i.item_name)}')">🗑️</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
       function openItemsModal() {
+        cancelItemEdit();
+        renderFilteredItemsTable("");
         document.getElementById("itemsModalBackdrop").style.display = "flex";
       }
+
       function closeItemsModal() {
         document.getElementById("itemsModalBackdrop").style.display = "none";
+      }
+
+      function startEditItem(id) {
+        const item = savedItems.find((i) => String(i.id) === String(id));
+        if (!item) return;
+
+        document.getElementById("editItemIdInput").value = item.id;
+        document.getElementById("addItemNameInput").value = item.item_name;
+        document.getElementById("addItemNameArInput").value = item.item_name_ar || "";
+        document.getElementById("addItemRateInput").value = item.rate;
+
+        document.getElementById("itemsModalHeaderTitle").innerText = `✏️ Edit Item (${item.item_code || "ID:" + item.id})`;
+        document.getElementById("saveItemSubmitBtn").innerText = "Update Item";
+        document.getElementById("cancelItemEditBtn").style.display = "inline-flex";
+      }
+
+      function cancelItemEdit() {
+        document.getElementById("editItemIdInput").value = "";
+        document.getElementById("addItemNameInput").value = "";
+        document.getElementById("addItemNameArInput").value = "";
+        document.getElementById("addItemRateInput").value = "";
+
+        document.getElementById("itemsModalHeaderTitle").innerText = "📦 Items / Vehicles Directory";
+        document.getElementById("saveItemSubmitBtn").innerText = "Save Item";
+        document.getElementById("cancelItemEditBtn").style.display = "none";
+      }
+
+      async function saveNewItemManual() {
+        const id = document.getElementById("editItemIdInput").value;
+        const name = document.getElementById("addItemNameInput").value.trim();
+        const nameAr = document.getElementById("addItemNameArInput").value.trim();
+        const rate = document.getElementById("addItemRateInput").value.trim();
+
+        if (!name) return alert("Please enter Item Name (English)");
+
+        try {
+          const res = await fetch("/e-invoice/api/save-item", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: id || null, item_name: name, item_name_ar: nameAr, rate: rate }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            cancelItemEdit();
+            await loadSavedItems();
+
+            // Edit bill vazhi open aayathaanenkil row-lekk auto apply aakkunnu
+            if (pendingPopupItemRowIndex !== null && manualItems[pendingPopupItemRowIndex]) {
+              manualItems[pendingPopupItemRowIndex].vtype = name;
+              manualItems[pendingPopupItemRowIndex].vtype_ar = nameAr || "";
+              if (rate) manualItems[pendingPopupItemRowIndex].rate = rate;
+              pendingPopupItemRowIndex = null;
+              closeItemsModal();
+              renderPopupTable();
+            }
+          } else {
+            alert(data.message || "Failed to save item");
+          }
+        } catch (e) {
+          console.error("Item save failed:", e);
+        }
       }
 
       /* ================= COMPANY SELECTION & DYNAMIC SWITCH ================= */

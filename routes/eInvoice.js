@@ -353,15 +353,15 @@ router.get("/api/items", async (req, res) => {
 
 router.post("/api/save-item", async (req, res) => {
   try {
-    const { id, item_name, rate } = req.body;
+    const { id, item_name, item_name_ar, rate } = req.body;
     if (!item_name || !item_name.trim()) {
       return res.json({ success: false, message: "Item name required" });
     }
 
     if (id) {
       await pool.query(
-        "UPDATE e_invoice_items SET item_name = $1, rate = $2 WHERE id = $3",
-        [item_name.trim(), parseFloat(rate) || 0, id]
+        "UPDATE e_invoice_items SET item_name = $1, item_name_ar = $2, rate = $3 WHERE id = $4",
+        [item_name.trim(), (item_name_ar || "").trim(), parseFloat(rate) || 0, id]
       );
     } else {
       const countRes = await pool.query("SELECT COUNT(*) as total FROM e_invoice_items");
@@ -369,8 +369,8 @@ router.post("/api/save-item", async (req, res) => {
       const itemCode = `IT-${String(nextSeq).padStart(5, "0")}`;
 
       await pool.query(
-        "INSERT INTO e_invoice_items (item_code, item_name, rate, is_deleted) VALUES ($1, $2, $3, FALSE)",
-        [itemCode, item_name.trim(), parseFloat(rate) || 0]
+        "INSERT INTO e_invoice_items (item_code, item_name, item_name_ar, rate, is_deleted) VALUES ($1, $2, $3, $4, FALSE)",
+        [itemCode, item_name.trim(), (item_name_ar || "").trim(), parseFloat(rate) || 0]
       );
     }
     res.json({ success: true });

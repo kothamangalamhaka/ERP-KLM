@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Purchase Order Dashboard</title>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background: #f8fafc;
+        padding: 25px;
+        color: #1e293b;
+      }
+      .container {
+        max-width: 1050px;
+        margin: 0 auto;
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 15px;
+      }
+      .search-bar-wrap {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+      }
+      .search-input {
+        width: 100%;
+        padding: 9px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 13px;
+        outline: none;
+      }
+      .search-input:focus {
+        border-color: #2563eb;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        font-size: 13px;
+      }
+      th,
+      td {
+        border: 1px solid #e2e8f0;
+        padding: 10px 12px;
+        text-align: left;
+      }
+      th {
+        background: #1e293b;
+        color: white;
+      }
+      .btn {
+        padding: 6px 12px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .btn-primary {
+        background: #2563eb;
+        color: white;
+      }
+      .btn-view {
+        background: #0284c7;
+        color: white;
+      }
+
+      /* Floating Toast */
+      #dashToast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #0f172a;
+        color: #ffffff;
+        padding: 14px 22px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        border-left: 4px solid #10b981;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        z-index: 999999;
+        transition: all 0.3s ease;
+      }
+      .toast-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Toast Message Element -->
+    <div id="dashToast">
+      <div id="dashToastSpinner" class="toast-spinner"></div>
+      <span id="dashToastMsg">Processing...</span>
+    </div>
+
+    <div class="container">
+      <div class="header-bar">
+        <h2 style="margin: 0; font-size: 20px;">📑 Purchase Orders Dashboard</h2>
+        
+        <!-- 🟢 Create New PO button-te aduthu thanne cheruthayi search box nalkunnu -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <input
+            type="text"
+            id="poSearchInput"
+            style="padding: 7px 12px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 12.5px; outline: none; width: 230px;"
+            placeholder="🔍 Search PO..."
+            oninput="filterPoList(this.value)"
+          />
+          <a href="index.html" class="btn btn-primary">+ Create New PO</a>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 17%">PO No</th>
+            <th style="width: 32%">Company</th>
+            <th style="width: 25%">Vendor</th>
+            <th style="width: 12%">Date</th>
+            <th style="width: 14%">Action</th>
+          </tr>
+        </thead>
+        <tbody id="poListBody">
+          <tr>
+            <td colspan="5" style="text-align: center">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      let allOrders = [];
+
+      async function loadDashboard() {
+        try {
+          const res = await fetch("/purchase-order/api/dashboard-pos");
+          const data = await res.json();
+          if (data.success && data.orders) {
+            allOrders = data.orders;
+            renderPoTable(allOrders);
+          } else {
+            document.getElementById("poListBody").innerHTML =
+              '<tr><td colspan="5" style="text-align:center;">No PO records found</td></tr>';
+          }
+        } catch (e) {
+          document.getElementById("poListBody").innerHTML =
+            '<tr><td colspan="5" style="text-align:center; color:#ef4444;">Error loading dashboard data</td></tr>';
+        }
+      }
+
+      function renderPoTable(orders) {
+        const tbody = document.getElementById("poListBody");
+        tbody.innerHTML = "";
+        if (orders.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="5" style="text-align:center; color:#64748b;">No matching Purchase Orders found</td></tr>';
+          return;
+        }
+
+        orders.forEach((po) => {
+          tbody.innerHTML += `
+            <tr>
+              <td><b style="color: #0284c7; font-family: monospace;">${po.po_no}</b></td>
+              <td style="font-weight: 600;">${po.company_name || "-"}</td>
+              <td style="color: #334155;">${po.vendor_name || "-"}</td>
+              <td style="font-family: monospace;">${po.po_date || "-"}</td>
+              <td>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-view" onclick="viewPO(${po.id})">👁️ View</button>
+                  <button class="btn" style="background:#10b981; color:white;" onclick="downloadDirectPO(${po.id})">📥 PDF</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      // 🟢 Live Search Filter Logic
+      function filterPoList(query) {
+        const term = (query || "").toLowerCase().trim();
+        if (!term) {
+          renderPoTable(allOrders);
+          return;
+        }
+        const filtered = allOrders.filter((po) => {
+          const matchPo = (po.po_no || "").toLowerCase().includes(term);
+          const matchComp = (po.company_name || "").toLowerCase().includes(term);
+          const matchVen = (po.vendor_name || "").toLowerCase().includes(term);
+          const matchDate = (po.po_date || "").toLowerCase().includes(term);
+          return matchPo || matchComp || matchVen || matchDate;
+        });
+        renderPoTable(filtered);
+      }
+
+      async function viewPO(id) {
+        const res = await fetch(`/purchase-order/api/po/${id}`);
+        const data = await res.json();
+        if (data.success) {
+          sessionStorage.setItem("activePOData", JSON.stringify(data.po));
+          window.location.href = "index.html";
+        }
+      }
+
+      function showDashToast(msg, isLoading = true) {
+        const toast = document.getElementById("dashToast");
+        const msgEl = document.getElementById("dashToastMsg");
+        const spinner = document.getElementById("dashToastSpinner");
+        if (!toast) return;
+
+        msgEl.innerText = msg;
+        spinner.style.display = isLoading ? "block" : "none";
+        toast.style.borderLeftColor = isLoading ? "#0284c7" : "#10b981";
+        toast.style.display = "flex";
+
+        if (!isLoading) {
+          setTimeout(() => {
+            toast.style.display = "none";
+          }, 3500);
+        }
+      }
+
+      // 🟢 Hidden iframe വഴി index.html-ലെ മൾട്ടി-പേജ് എഞ്ചിൻ റൺ ചെയ്ത് ബാക്ക്‌ഗ്രൗണ്ടിൽ ഡൗൺലോഡ് ചെയ്യുന്നു
+      async function downloadDirectPO(id) {
+        showDashToast("Fetching PO details...", true);
+
+        try {
+          const res = await fetch(`/purchase-order/api/po/${id}`);
+          const data = await res.json();
+
+          if (!data.success || !data.po) {
+            showDashToast("❌ Failed to fetch PO data", false);
+            return;
+          }
+
+          showDashToast("Generating perfect multi-page PDF...", true);
+
+          let oldFrame = document.getElementById("hiddenPoDownloadFrame");
+          if (oldFrame) oldFrame.remove();
+
+          const iframe = document.createElement("iframe");
+          iframe.id = "hiddenPoDownloadFrame";
+          iframe.style.position = "fixed";
+          iframe.style.left = "-10000px";
+          iframe.style.top = "0";
+          iframe.style.width = "1000px";
+          iframe.style.height = "1200px";
+          iframe.style.border = "none";
+
+          sessionStorage.setItem("activePOData", JSON.stringify(data.po));
+
+          document.body.appendChild(iframe);
+          iframe.src = "index.html";
+
+          iframe.onload = async () => {
+            try {
+              const frameWin = iframe.contentWindow;
+              await new Promise((r) => setTimeout(r, 600));
+
+              if (frameWin && typeof frameWin.downloadPDF === "function") {
+                await frameWin.downloadPDF();
+                showDashToast("✅ PDF Generated & Downloaded Successfully!", false);
+              } else {
+                showDashToast("❌ PDF engine not ready", false);
+              }
+            } catch (err) {
+              console.error(err);
+              showDashToast("❌ Error exporting PDF", false);
+            } finally {
+              setTimeout(() => {
+                iframe.remove();
+              }, 1500);
+            }
+          };
+        } catch (err) {
+          console.error(err);
+          showDashToast("❌ Error connecting to server", false);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", loadDashboard);
+    </script>
+  </body>
+</html>
