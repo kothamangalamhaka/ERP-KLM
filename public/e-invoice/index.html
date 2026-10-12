@@ -1077,7 +1077,7 @@
               <span id="invNoDisplay" class="meta-tag">------</span>
             </div>
             <div class="meta-row">
-              <span class="meta-label" id="lblMetaSupply">Supply Date:</span>
+              <span class="meta-label" id="lblMetaSupply" style="line-height: 1.3; text-align: right;">Supply Month:<br><span style="font-size: 10px; font-weight: 700;">شهر التوريد :</span></span>
               <span id="supplyDateDisplay" class="meta-tag">------</span>
             </div>
           </div>
@@ -1801,7 +1801,7 @@
           rightWrap.style.display = "flex";
           document.getElementById("lblMetaDate").innerText = "Date:";
           document.getElementById("lblMetaInv").innerText = "Bill No:";
-          document.getElementById("lblMetaSupply").innerText = "Supply Date:";
+          document.getElementById("lblMetaSupply").innerHTML = 'Supply Month:<br><span style="font-size: 10px; font-weight: 700;">شهر التوريد :</span>';
           titleEl.innerText = "Bill Summary - ملخص الفاتورة";
           authLine.innerText =
             "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
@@ -1814,7 +1814,7 @@
           rightWrap.style.display = "flex";
           document.getElementById("lblMetaDate").innerText = "Date:";
           document.getElementById("lblMetaInv").innerText = "Bill No:";
-          document.getElementById("lblMetaSupply").innerText = "Supply Date:";
+          document.getElementById("lblMetaSupply").innerHTML = 'Supply Month:<br><span style="font-size: 10px; font-weight: 700;">شهر التوريد :</span>';
           titleEl.innerText = "Bill Summary - ملخص الفاتورة";
           authLine.innerText =
             "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
@@ -2094,17 +2094,17 @@
             </tr>
           `;
         } else {
-          // Corporate English Headers (SEQ No മാറ്റി SEQ ആക്കി, SN കഴിഞ്ഞയുടൻ നൽകി)
+          // 🟢 ഇംഗ്ലീഷിന് താഴെ അറബിക് കൂടി ചേർത്ത ബൈലിംഗ്വൽ ഹെഡർ
           thead.innerHTML = `
             <tr>
-              <th style="width: 35px">SN</th>
-              ${hideSeqColumn ? "" : '<th style="width: 75px">SEQ</th>'}
-              <th style="text-align: left; padding-left: 10px">Vehicle Type</th>
-              <th style="width: 65px">Quantity</th>
-              <th style="width: 80px">Rate</th>
-              <th style="width: 95px">Sub Total</th>
-              <th style="width: 85px">VAT</th>
-              <th style="width: 105px">Total</th>
+              <th style="width: 35px; line-height: 1.3;">SN<br><span style="font-size: 10px; font-weight: 700;">م</span></th>
+              ${hideSeqColumn ? "" : '<th style="width: 75px; line-height: 1.3;">SEQ<br><span style="font-size: 10px; font-weight: 700;">التسلسل</span></th>'}
+              <th style="text-align: left; padding-left: 10px; line-height: 1.3;">Vehicle Type<br><span style="font-size: 10px; font-weight: 700;">نوع المعدة / البيان</span></th>
+              <th style="width: 65px; line-height: 1.3;">Quantity<br><span style="font-size: 10px; font-weight: 700;">الكمية</span></th>
+              <th style="width: 80px; line-height: 1.3;">Rate<br><span style="font-size: 10px; font-weight: 700;">السعر</span></th>
+              <th style="width: 95px; line-height: 1.3;">Sub Total<br><span style="font-size: 10px; font-weight: 700;">الإجمالي</span></th>
+              <th style="width: 85px; line-height: 1.3;">VAT<br><span style="font-size: 10px; font-weight: 700;">الضريبة</span></th>
+              <th style="width: 105px; line-height: 1.3;">Total<br><span style="font-size: 10px; font-weight: 700;">المجموع</span></th>
             </tr>
           `;
         }
