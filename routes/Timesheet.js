@@ -1146,20 +1146,20 @@ router.post("/api/record-lock/request", verifyToken, (req, res) => {
   const existingLock = activeRecordLocks.get(lockKey);
 
   if (existingLock) {
-    const lockOwner = String(existingLock.username).trim();
+    const lockOwner = String(existingLock.username || "").trim();
 
-    // 🟢 1. സ്വന്തം ലോക്ക് ആണെങ്കിൽ എപ്പോഴും ആക്സസ് നൽകുക (Never block the owner)
+    // 🟢 1. Swantham lock aanenkil (case-insensitive check) eppozhum access nalkuka
     if (lockOwner.toLowerCase() === currentUsername.toLowerCase()) {
-      existingLock.timestamp = now; // Refresh activity timestamp
+      existingLock.timestamp = now;
+      existingLock.username = currentUsername; // ensure exact casing
       return res.json({ success: true, owner: lockOwner });
     }
 
-    // 🟢 2. മറ്റൊരാളുടെ ലോക്ക് 10 മിനിറ്റിൽ കൂടുതൽ ഇൻആക്ടീവ് ആണെങ്കിൽ ഓട്ടോ-റിലീസ്
+    // 🟢 2. Mattoraalude lock 10 min-il kooduthal inactive aanenkil release cheyyuka
     if (now - existingLock.timestamp > 10 * 60 * 1000) {
       activeRecordLocks.delete(lockKey);
     } else {
-      // നിലവിൽ മറ്റൊരാൾ ആക്ടീവ് ആണ്
-      return res.json({ success: false, lockedBy: existingLock.username });
+      return res.json({ success: false, lockedBy: lockOwner });
     }
   }
 
@@ -1220,7 +1220,13 @@ router.get("/api/record-lock/poll", verifyToken, (req, res) => {
 
   // 15 minutes timeout logic included
   if (!lock || (Date.now() - lock.timestamp >= 15 * 60 * 1000)) {
+    activeRecordLocks.delete(lockKey);
     return res.json({ locked: false });
+  }
+
+  // 🟢 FIX: Current owner thanneyannu poll cheyyunnathanenkil timestamp refresh cheyyuka (Prevents accidental lock loss)
+  if (req.user && req.user.username && lock.username.toLowerCase() === req.user.username.trim().toLowerCase()) {
+    lock.timestamp = Date.now();
   }
 
   res.json({

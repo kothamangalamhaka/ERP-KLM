@@ -1,4 +1,9 @@
-const token = localStorage.getItem("timesheetToken");
+// 🟢 FIX: Token dynamic getter aakkunnu, token refresh aayal ellaa requestilum puthiya token kittum
+function getAuthToken() {
+  return localStorage.getItem("timesheetToken") || "";
+}
+
+let token = getAuthToken();
 const userStr = localStorage.getItem("timesheetUser");
 
 if (!token || !userStr) {
@@ -456,14 +461,16 @@ async function triggerFetch() {
       return;
     }
 
-    if (!lockData.success) {
-      let currentLoggedUser = "";
-      try {
-        currentLoggedUser = (JSON.parse(localStorage.getItem("timesheetUser") || "{}").username || "").toUpperCase();
-      } catch(e) {}
+    let currentLoggedUser = "";
+    try {
+      currentLoggedUser = String(JSON.parse(localStorage.getItem("timesheetUser") || "{}").username || "").trim().toLowerCase();
+    } catch(e) {}
 
-      if (lockData.lockedBy && lockData.lockedBy.toUpperCase() !== currentLoggedUser) {
-        let lockedUser = lockData.lockedBy.toUpperCase();
+    const returnedOwner = String(lockData.lockedBy || lockData.owner || "").trim().toLowerCase();
+    const isOwnedByMe = returnedOwner === currentLoggedUser;
+
+    if (!lockData.success && !isOwnedByMe) {
+        let lockedUser = (lockData.lockedBy || "Another User").toUpperCase();
 
         Swal.fire({
           toast: true,
@@ -485,14 +492,8 @@ async function triggerFetch() {
           btnReq.disabled = false;
         }
         amIWaitingForApproval = false;
-      } else {
-        console.warn("Lock acquire notice or same user session:", lockData.message);
-        isReadOnlyMode = false;
-        currentLockedRecord = { plate: p, month: m, year: y, leaseId: lockData.leaseId || currentLockedRecord?.leaseId };
-        const btnReq = document.getElementById("btnRequestEdit");
-        if (btnReq) btnReq.style.display = "none";
-      }
     } else {
+      // 🟢 Swantham lock aanenkil athallekil fresh lock aanenkil full edit access
       isReadOnlyMode = false;
       currentLockedRecord = { plate: p, month: m, year: y };
       const btnReq = document.getElementById("btnRequestEdit");
@@ -2285,13 +2286,18 @@ function startRecordPoll(p, m, y) {
           const isRejected = data.requestedBy === "REJECTED";
 
           if (!data.locked) {
-              // 🟢 FIX: Read-only മോഡിലുള്ള യൂസർ തനിയെ ലോക്ക് തിരിച്ചുപിടിക്കാൻ പാടില്ല!
-              // യൂസർ Fetch അടിച്ചാലോ ബെല്ലടിച്ചാലോ മാത്രമേ ആക്സസ് കിട്ടാവൂ.
+              // 🟢 FIX: Thante thanne record timeout aayi poyathanenkil athine silent aayi restore cheyyuka
+              if (currentLockedRecord && !isReadOnlyMode) {
+                  fetch('/timesheet/api/record-lock/request', {
+                      method: 'POST',
+                      headers: { "Authorization": "Bearer " + getAuthToken(), "Content-Type": "application/json" },
+                      body: JSON.stringify({ plate: p, month: m, year: y })
+                  }).catch(() => {});
+              }
               return;
           }
 
           if (isMe) {
-              // 🟢 യൂസർ 2 ആക്സസ് നേടിയാൽ ലോക്ക് ഓണർഷിപ്പ് സെറ്റ് ചെയ്യുന്നു
               currentLockedRecord = { plate: p, month: m, year: y };
 
               if (isReadOnlyMode) {
@@ -2314,20 +2320,20 @@ function startRecordPoll(p, m, y) {
 
               if (data.requestedBy && data.requestedBy !== "REJECTED" && !incomingRequestActive) {
                   incomingRequestActive = true;
-                  // 🟢 Popup load aavunnathinu munpu thanne sound play aakunnu (Works in Background Tabs)
                   playTransferAlertSound();
                   showTransferRequestPopup(data.requestedBy, p, m, y);
               }
           } else {
-              if (!isReadOnlyMode) {
+              // 🟢 FIX: data.owner യഥാർത്ഥത്തിൽ നിലവിലുണ്ടാവുകയും അത് മറ്റൊരു വ്യക്തി (Different Username) ആവുകയും ചെയ്യുമ്പോൾ മാത്രമേ Read-Only ആക്കാവൂ!
+              if (data.owner && data.owner.trim().toLowerCase() !== user && !isReadOnlyMode) {
                   isReadOnlyMode = true;
                   currentLockedRecord = null;
                   makeGridReadOnlyLive();
                   Swal.fire({
                     toast: true,
                     position: 'top-end',
-                    icon: 'info',
-                    title: 'Access Transferred',
+                    icon: 'warning',
+                    title: `Locked by ${data.owner.toUpperCase()}`,
                     text: 'You are now in Read-Only mode.',
                     showConfirmButton: false,
                     timer: 4000,
@@ -2338,28 +2344,26 @@ function startRecordPoll(p, m, y) {
               // 3. I AM THE REQUESTER WAITING FOR RESPONSE
               if (amIWaitingForApproval) {
                   if (isRejected) {
-                      // 🟢 Request was REJECTED by Active User
                       amIWaitingForApproval = false;
-                      resetBellButton(); // 🟢 ടൈമർ നിർത്തി പഴയ ബെൽ തിരികെ വെക്കുന്നു
+                      resetBellButton();
                       Swal.fire({ toast: true, position: "top-end", icon: "error", title: "Request Rejected by the active user.", showConfirmButton: false, timer: 4000 });
                       
-                      // Clear rejection state on backend
                       fetch("/timesheet/api/record-lock/clear-rejection", {
                           method: 'POST',
-                          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+                          headers: { "Authorization": "Bearer " + getAuthToken(), "Content-Type": "application/json" },
                           body: JSON.stringify({ plate: p, month: m, year: y })
                       });
                   } else if (isRequestedByMe) {
-                      // 🟢 Waiting for 30s Timeout
                       if (data.requestTime && (Date.now() - data.requestTime >= 30000)) {
                           forceClaimLock(p, m, y); 
                       }
                   } else if (!data.requestedBy) {
-                      // 🟢 FAILSAFE: Active user closed tab or lock released naturally
                       amIWaitingForApproval = false;
                       const btn = document.getElementById("btnRequestEdit");
-                      btn.style.opacity = "1";
-                      btn.disabled = false;
+                      if (btn) {
+                          btn.style.opacity = "1";
+                          btn.disabled = false;
+                      }
                   }
               }
           }
@@ -2479,14 +2483,18 @@ async function requestEditAccess() {
   }
 }
 
-// 🟢 Background-il aayalum loud aayi play cheyyunna Audio function
+// 🟢 Audio track cheyyaan global variable
+let currentTransferAudio = null;
+
 function playTransferAlertSound() {
   try {
-    const bellAudio = new Audio("../alert_mp3/bell_alert.mp3");
-    bellAudio.volume = 1.0;
+    // Munpu enthenkilum play aakunundengil stop cheyyunnu
+    stopTransferAlertSound();
+
+    currentTransferAudio = new Audio("../alert_mp3/bell_alert.mp3");
+    currentTransferAudio.volume = 1.0;
     
-    // Background tab audio play fix
-    let playPromise = bellAudio.play();
+    let playPromise = currentTransferAudio.play();
     if (playPromise !== undefined) {
       playPromise.catch(error => {
         console.warn("Audio autoplay blocked or failed:", error);
@@ -2494,6 +2502,15 @@ function playTransferAlertSound() {
     }
   } catch (e) {
     console.error("Audio trigger error:", e);
+  }
+}
+
+// 🟢 Popup close aavumbol audio udan nirthunna function
+function stopTransferAlertSound() {
+  if (currentTransferAudio) {
+    currentTransferAudio.pause();
+    currentTransferAudio.currentTime = 0;
+    currentTransferAudio = null;
   }
 }
 
@@ -2520,8 +2537,10 @@ function showTransferRequestPopup(requester, p, m, y) {
     },
     willClose: () => {
       clearInterval(timerInterval);
+      stopTransferAlertSound(); // 🛑 Popup close aayi thudangumbol thanne sound nilkkum
     }
   }).then((result) => {
+    stopTransferAlertSound(); // 🛑 Approve / Reject click cheythaal udan sound nilkkum
     incomingRequestActive = false;
     if (result.isConfirmed || result.dismiss === Swal.DismissReason.timer) {
       resolveTransfer(p, m, y, 'approve');
@@ -2644,6 +2663,7 @@ async function executeReLoginAndResume() {
     const data = await res.json();
     if (data.success && data.token) {
       localStorage.setItem("timesheetToken", data.token);
+      token = data.token; // 🟢 FIX: Global memory-ilulla token-um udan thanne update cheyyunnu!
       if (data.user) {
         localStorage.setItem("timesheetUser", JSON.stringify(data.user));
       }
