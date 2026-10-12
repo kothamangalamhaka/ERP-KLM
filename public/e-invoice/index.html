@@ -868,7 +868,7 @@
           </div> -->
 
           <div class="title-center-wrap">
-            <div class="inv-title">فـــاتـــورة</div>
+            <div class="inv-title">ملخص الفاتورة</div>
           </div>
 
           <div class="meta-right-wrap">
@@ -900,7 +900,7 @@
             <tr>
               <th style="width: 35px">SN</th>
               <th style="text-align: left; padding-left: 10px">Vehicle Type</th>
-              <th style="width: 90px">SEQ No</th>
+              <th style="width: 90px" id="thSeqCol">SEQ No</th>
               <th style="width: 65px">Quantity</th>
               <th style="width: 80px">Rate</th>
               <th style="width: 95px">Sub Total</th>
@@ -967,7 +967,13 @@
     <div class="modal-backdrop" id="editBillModal">
       <div class="modal-card edit-bill-modal">
         <div class="modal-header">
-          <h2>✏️ Edit Invoice Details</h2>
+          <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <h2>✏️ Edit Invoice Details</h2>
+            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #0284c7; cursor: pointer; background: #e0f2fe; padding: 4px 10px; border-radius: 6px; border: 1px solid #bae6fd;">
+              <input type="checkbox" id="hideSeqCheckbox" checked onchange="toggleSeqColumn()" style="cursor: pointer; width: 15px; height: 15px; accent-color: #0284c7;" />
+              <span>Hide SEQ No</span>
+            </label>
+          </div>
           <button class="modal-close-btn" onclick="closeEditBillModal()">
             &times;
           </button>
@@ -985,7 +991,7 @@
           </div>
           <div class="form-group">
             <label>Date (YYYY-MM-DD):</label>
-            <input type="date" id="modalDate" class="form-input" />
+            <input type="date" id="modalDate" class="form-input" onchange="onModalDateChange()" />
           </div>
           <div class="form-group">
             <label>Supply Months (Select multiple):</label>
@@ -1043,7 +1049,7 @@
               <tr>
                 <th style="width: 30px">#</th>
                 <th style="text-align: left">Vehicle / Description</th>
-                <th style="width: 70px">SEQ</th>
+                <th style="width: 70px" id="popupThSeq">SEQ</th>
                 <th style="width: 75px">Qty</th>
                 <th style="width: 85px">Rate</th>
                 <th style="width: 85px">VAT %</th>
@@ -1396,8 +1402,10 @@
 
           // 3. Date & Supply Month Restore
           if (restoredData.invoice_date) {
-            document.getElementById("dateDisplay").innerText = restoredData.invoice_date;
-            document.getElementById("modalDate").value = restoredData.invoice_date;
+            const standardDate = parseToYyyyMmDd(restoredData.invoice_date);
+            currentInvoiceDate = standardDate;
+            document.getElementById("dateDisplay").innerText = formatToYyyyMmmDd(standardDate);
+            document.getElementById("modalDate").value = standardDate;
           }
           if (payload.selected_supply_months && Array.isArray(payload.selected_supply_months)) {
             selectedSupplyMonths = payload.selected_supply_months;
@@ -1453,6 +1461,62 @@
       let selectedSupplyMonths = [];
       let currentRemarks = "";
       let customerToDeleteId = null;
+      let currentInvoiceDate = "";
+      let hideSeqColumn = true; // 🟢 By default hide SEQ column
+
+      function toggleSeqColumn() {
+        const chk = document.getElementById("hideSeqCheckbox");
+        hideSeqColumn = chk ? chk.checked : true;
+        renderPopupTable();
+        renderInvoiceViewTable();
+      }
+
+      // YYYY-MM-DD നെ YYYY-MMM-DD (e.g. 2026-Oct-12) ആക്കി മാറ്റുന്നു
+      function formatToYyyyMmmDd(dateStr) {
+        if (!dateStr || dateStr === "------") return "------";
+        const cleanStr = String(dateStr).split("T")[0].trim();
+        const parts = cleanStr.split("-");
+        if (parts.length === 3) {
+          const y = parts[0];
+          const mPart = parts[1];
+          const d = parts[2].padStart ? parts[2].padStart(2, "0") : parts[2];
+          const shortMonths = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+          ];
+          const mIndex = parseInt(mPart, 10) - 1;
+          if (!isNaN(mIndex) && mIndex >= 0 && mIndex < 12) {
+            return `${y}-${shortMonths[mIndex]}-${d}`;
+          }
+          return `${y}-${mPart}-${d}`;
+        }
+        return dateStr;
+      }
+
+      // YYYY-MMM-DD നെ തിരിച്ച് modal input-ന് വേണ്ട YYYY-MM-DD ആക്കുന്നു
+      function parseToYyyyMmDd(dateStr) {
+        if (!dateStr || dateStr === "------") return "";
+        const cleanStr = String(dateStr).split("T")[0].trim();
+        const parts = cleanStr.split("-");
+        if (parts.length === 3) {
+          const y = parts[0];
+          const mPart = parts[1];
+          const d = String(parts[2]).padStart(2, "0");
+          const shortMonths = [
+            "jan", "feb", "mar", "apr", "may", "jun",
+            "jul", "aug", "sep", "oct", "nov", "dec"
+          ];
+          const idx = shortMonths.indexOf(mPart.toLowerCase());
+          if (idx !== -1) {
+            return `${y}-${String(idx + 1).padStart(2, "0")}-${d}`;
+          }
+          const mNum = parseInt(mPart, 10);
+          if (!isNaN(mNum) && mNum >= 1 && mNum <= 12) {
+            return `${y}-${String(mNum).padStart(2, "0")}-${d}`;
+          }
+        }
+        return dateStr;
+      }
 
       function setupInitialDates() {
         const now = new Date();
@@ -1462,7 +1526,8 @@
         const todayStr = `${y}-${m}-${d}`;
         const initialMonth = `${y}-${m}`;
 
-        document.getElementById("dateDisplay").innerText = todayStr;
+        currentInvoiceDate = todayStr;
+        document.getElementById("dateDisplay").innerText = formatToYyyyMmmDd(todayStr);
         document.getElementById("modalDate").value = todayStr;
 
         selectedSupplyMonths = [initialMonth];
@@ -1560,6 +1625,12 @@
         const tbody = document.getElementById("invoiceItemsBody");
         tbody.innerHTML = "";
 
+        // 🟢 SEQ No ഹെഡർ Hide / Show ചെയ്യുന്നു
+        const thSeq = document.getElementById("thSeqCol");
+        if (thSeq) {
+          thSeq.style.display = hideSeqColumn ? "none" : "";
+        }
+
         let subtotal = 0,
           totalVat = 0,
           grandTotal = 0;
@@ -1585,11 +1656,16 @@
           totalVat += rowVat;
           grandTotal += rowTot;
 
+          // 🟢 Hide ആണെങ്കിൽ SEQ td ഒഴിവാക്കി നേരെ Quantity കാണിക്കുന്നു
+          const seqTd = hideSeqColumn
+            ? ""
+            : `<td style="font-family:monospace;">${row.seq || idx + 1}</td>`;
+
           tbody.innerHTML += `
             <tr>
               <td>${idx + 1}</td>
               <td style="text-align:left; font-weight:600;">${row.vtype || "-"}</td>
-              <td style="font-family:monospace;">${row.seq || idx + 1}</td>
+              ${seqTd}
               <td>${qty}</td>
               <td>${rate.toFixed(2)}</td>
               <td style="font-weight:600;">${rowSub.toFixed(2)}</td>
@@ -1611,10 +1687,8 @@
         document.getElementById("modalInvNo").value = document
           .getElementById("invNoDisplay")
           .innerText.trim();
-        document.getElementById("modalDate").value =
-          document.getElementById("dateDisplay").innerText.trim() !== "------"
-            ? document.getElementById("dateDisplay").innerText.trim()
-            : "";
+        const activeDate = currentInvoiceDate || parseToYyyyMmDd(document.getElementById("dateDisplay").innerText.trim());
+        document.getElementById("modalDate").value = activeDate && activeDate !== "------" ? activeDate : "";
 
         const currentBuyer = document
           .getElementById("buyerNameDisplay")
@@ -1648,6 +1722,12 @@
         const tbody = document.getElementById("popupItemsBody");
         tbody.innerHTML = "";
 
+        // 🟢 പോപ്പപ്പിലെ SEQ ഹെഡർ Hide / Show ചെയ്യുന്നു
+        const popThSeq = document.getElementById("popupThSeq");
+        if (popThSeq) {
+          popThSeq.style.display = hideSeqColumn ? "none" : "";
+        }
+
         manualItems.forEach((row, idx) => {
           const qty = parseFloat(row.qty) || 0;
           const rate = parseFloat(row.rate) || 0;
@@ -1657,11 +1737,16 @@
           const vat = sub * (vatPct / 100);
           const tot = sub + vat;
 
+          // 🟢 Hide ആണെങ്കിൽ SEQ ഇൻപുട്ട് കോളം ഒഴിവാക്കുന്നു
+          const seqInputTd = hideSeqColumn
+            ? ""
+            : `<td><input type="text" class="popup-input" value="${row.seq || idx + 1}" onchange="updatePopupItem(${idx}, 'seq', this.value)"></td>`;
+
           tbody.innerHTML += `
             <tr>
               <td>${idx + 1}</td>
               <td><input type="text" class="popup-input" style="text-align:left;" list="itemsDataList" value="${row.vtype || ""}" onchange="onPopupItemTypeChange(${idx}, this.value)" placeholder="Vehicle / Item"></td>
-              <td><input type="text" class="popup-input" value="${row.seq || idx + 1}" onchange="updatePopupItem(${idx}, 'seq', this.value)"></td>
+              ${seqInputTd}
               <td><input type="number" step="any" class="popup-input" value="${row.qty !== "" ? row.qty : ""}" onchange="updatePopupItem(${idx}, 'qty', this.value)" onwheel="this.blur()" placeholder="0"></td>
               <td><input type="number" step="any" class="popup-input" value="${row.rate !== "" ? row.rate : ""}" onchange="updatePopupItem(${idx}, 'rate', this.value)" onwheel="this.blur()" placeholder="0.00"></td>
               <td>
@@ -1759,9 +1844,14 @@
           document.getElementById("modalSupplyMonthInput").value = "";
         }
 
-        document.getElementById("dateDisplay").innerText = document
-          .getElementById("modalDate")
-          .value.trim();
+        // 🟢 തീയതി മാറുമ്പോൾ തീയതിക്കൊപ്പം Bill No-ഉം അപ്ഡേറ്റ് ചെയ്യുന്നു
+        const chosenDate = document.getElementById("modalDate").value.trim();
+        if (chosenDate) {
+          currentInvoiceDate = chosenDate;
+          document.getElementById("dateDisplay").innerText = formatToYyyyMmmDd(chosenDate);
+          const selId = document.getElementById("companySelect").value;
+          await fetchNextNumber(selId, chosenDate);
+        }
         
         updateSupplyDateDisplay();
         document.getElementById("buyerNameDisplay").innerText = buyer || "";
@@ -2139,17 +2229,29 @@
       }
 
       /* ================= COMPANY SELECTION ================= */
-      async function fetchNextNumber(compId) {
-        const url = compId
-          ? `/e-invoice/api/next-invoice-no?company_id=${compId}`
-          : `/e-invoice/api/next-invoice-no`;
+      async function fetchNextNumber(compId, targetDate) {
+        const dateToUse = targetDate || currentInvoiceDate || parseToYyyyMmDd(document.getElementById("dateDisplay")?.innerText.trim()) || new Date().toISOString().split("T")[0];
+        let url = `/e-invoice/api/next-invoice-no?invoice_date=${encodeURIComponent(dateToUse)}`;
+        if (compId) {
+          url += `&company_id=${compId}`;
+        }
         const numRes = await fetch(url);
         const numData = await numRes.json();
         if (numData.success) {
           document.getElementById("invNoDisplay").innerText =
             numData.invoice_no;
-          document.getElementById("modalInvNo").value = numData.invoice_no;
+          if (document.getElementById("modalInvNo")) {
+            document.getElementById("modalInvNo").value = numData.invoice_no;
+          }
         }
+      }
+
+      // Modal-ൽ Date മാറ്റുമ്പോൾ ലൈവായി Bill No മാറുവാൻ:
+      async function onModalDateChange() {
+        const chosenDate = document.getElementById("modalDate").value;
+        if (!chosenDate) return;
+        const selId = document.getElementById("companySelect").value;
+        await fetchNextNumber(selId, chosenDate);
       }
       async function applyCompanyDetailsToView(compId, existingInvNo) {
         const comp = companiesList.find((c) => String(c.id) === String(compId));
@@ -2244,7 +2346,7 @@
           company_name: comp ? comp.company_name_en : "",
           vendor_name: document.getElementById("buyerNameDisplay").innerText.trim(),
           billing_month: document.getElementById("supplyDateDisplay").innerText.trim(),
-          invoice_date: document.getElementById("dateDisplay").innerText.trim(),
+          invoice_date: currentInvoiceDate || parseToYyyyMmDd(document.getElementById("dateDisplay").innerText.trim()),
           invoice_time: new Date().toLocaleTimeString(),
           subtotal: parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
           vat_amount: parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
@@ -2311,7 +2413,7 @@
           company_name: comp ? comp.company_name_en : "",
           vendor_name: document.getElementById("buyerNameDisplay").innerText.trim(),
           billing_month: document.getElementById("supplyDateDisplay").innerText.trim(),
-          invoice_date: document.getElementById("dateDisplay").innerText.trim(),
+          invoice_date: currentInvoiceDate || parseToYyyyMmDd(document.getElementById("dateDisplay").innerText.trim()),
           invoice_time: new Date().toLocaleTimeString(),
           subtotal: parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
           vat_amount: parseFloat(document.getElementById("sumVatAmount").innerText) || 0,

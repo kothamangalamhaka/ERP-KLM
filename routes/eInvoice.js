@@ -122,26 +122,89 @@ router.post("/api/generate-zatca-qr", (req, res) => {
 // 5. Unique Auto-Increment Invoice Number Generator
 router.get("/api/next-invoice-no", async (req, res) => {
   try {
-    const { company_id } = req.query;
+    const { company_id, invoice_date } = req.query;
     let shortCode = "NV";
 
     if (company_id) {
-      const compRes = await pool.query("SELECT short_code, company_name_en FROM e_invoice_companies WHERE id = $1", [company_id]);
+      const compRes = await pool.query(
+        "SELECT short_code, company_name_en FROM e_invoice_companies WHERE id = $1",
+        [company_id]
+      );
       if (compRes.rows.length > 0) {
-        shortCode = compRes.rows[0].short_code || compRes.rows[0].company_name_en.substring(0, 3).toUpperCase();
+        shortCode =
+          compRes.rows[0].short_code ||
+          compRes.rows[0].company_name_en.substring(0, 3).toUpperCase();
       }
     }
-    const now = new Date();
-    const yStr = now.getFullYear();
-    const mStr = String(now.getMonth() + 1).padStart(2, "0");
-    const prefix = `${shortCode}-${yStr}-${mStr}`;
 
+    const cleanCode = (shortCode || "").trim().toUpperCase();
+
+    // 🟢 4 കമ്പനികളുടെ ബേസ് നമ്പറുകൾ (2026 ഒക്ടോബർ / Month 10 ന് അടിസ്ഥാനമാക്കി)
+    let startBase = 5645;
+    if (cleanCode.includes("HAK")) {
+      startBase = 4238;
+    } else if (cleanCode.includes("WE")) {
+      startBase = 2598;
+    } else if (cleanCode.includes("MW")) {
+      startBase = 3111;
+    } else if (cleanCode.includes("AL")) {
+      startBase = 5645;
+    }
+
+    // Bill Date-ൽ നിന്നുള്ള Year, Month കൃത്യമായി എടുക്കുന്നു
+    let targetYear = 2026;
+    let targetMonth = 10;
+    if (invoice_date && typeof invoice_date === "string" && invoice_date.includes("-")) {
+      const parts = invoice_date.split("T")[0].split("-");
+      if (parts.length >= 2) {
+        targetYear = parseInt(parts[0], 10) || 2026;
+        targetMonth = parseInt(parts[1], 10) || 10;
+      }
+    } else {
+      const now = new Date();
+      targetYear = now.getFullYear();
+      targetMonth = now.getMonth() + 1;
+    }
+
+    const yyStr = String(targetYear).slice(-2); // e.g. 26
+    const mStr = String(targetMonth); // e.g. 9, 10, 11
+    const prefix = `${shortCode}-${yyStr}-${mStr}`;
+
+    // 🟢 Month വ്യത്യാസമനുസരിച്ച് നമ്പർ കൂടുകയും കുറയുകയും ചെയ്യുന്നു
+    // Base Reference: 2026 ഒക്ടോബർ (Year: 2026, Month: 10)
+    const monthDiff = (targetYear - 2026) * 12 + (targetMonth - 10);
+    const calculatedBaseSeq = startBase + monthDiff;
+
+    // ഇതേ മാസത്തിൽ ഇതിനകം ബില്ലുകൾ സേവ് ചെയ്തിട്ടുണ്ടെങ്കിൽ കൗണ്ട് കൂട്ടുന്നു
     const countRes = await pool.query(
       "SELECT COUNT(*) as total FROM generated_e_invoices WHERE invoice_no LIKE $1",
       [`${prefix}-%`]
     );
-    const nextSeq = parseInt(countRes.rows[0].total || 0, 10) + 1;
-    const invNo = `${prefix}-${String(nextSeq).padStart(5, "0")}`;
+
+    let nextSeq = calculatedBaseSeq + parseInt(countRes.rows[0].total || 0, 10);
+
+    // ഡ്യൂപ്ലിക്കേറ്റ് വരാതിരിക്കാൻ നിലവിലെ മാക്സിമം നമ്പർ പരിശോധിക്കുന്നു
+    const maxRes = await pool.query(
+      "SELECT invoice_no FROM generated_e_invoices WHERE invoice_no LIKE $1",
+      [`${prefix}-%`]
+    );
+    if (maxRes.rows.length > 0) {
+      let maxNum = calculatedBaseSeq - 1;
+      maxRes.rows.forEach((r) => {
+        const parts = (r.invoice_no || "").split("-");
+        const lastPart = parseInt(parts[parts.length - 1], 10);
+        if (!isNaN(lastPart) && lastPart > maxNum) {
+          maxNum = lastPart;
+        }
+      });
+      if (maxNum >= calculatedBaseSeq) {
+        nextSeq = Math.max(nextSeq, maxNum + 1);
+      }
+    }
+
+    // 5 അക്കങ്ങളിലേക്ക് ഫോർമാറ്റ് ചെയ്യുന്നു (e.g. 04238, 04239, 04237)
+    const seqStr = String(nextSeq).padStart(5, "0");
+    const invNo = `${prefix}-${seqStr}`;
 
     res.json({ success: true, invoice_no: invNo });
   } catch (err) {
@@ -182,7 +245,7 @@ router.post("/api/save-invoice-record", async (req, res) => {
         vat_amount = EXCLUDED.vat_amount,
         grand_total = EXCLUDED.grand_total,
         remarks = EXCLUDED.remarks,
-        raw_payload = EXCLUDED.raw_payload
+        raw_payload = EXCLUDED.raw_payload 
        RETURNING id`,
       [
         invoice_no, company_id || null, company_name, vendor_name, billing_month, invoice_date || new Date(),
