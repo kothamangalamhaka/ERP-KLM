@@ -58,8 +58,7 @@ async def export_dashboard_excel():
 
         headers = [
             "SL NO", "INVOICE NO", "COMPANY NAME", "CUSTOMER NAME", "SUPPLY MONTH", "BILL DATE",
-            "SEQ NO", "ITEM / VEHICLE", "QTY", "RATE", "SUBTOTAL", "VAT (15%)", "TOTAL",
-            "OT QTY", "OT RATE", "OT SUBTOTAL", "OT VAT", "OT TOTAL", "GRAND TOTAL"
+            "SEQ NO", "ITEM / VEHICLE", "NORMAL", "RATE", "OVER TIME", "RATE", "SUBTOTAL", "VAT", "GRAND TOTAL"
         ]
 
         # 2. Write Headers
@@ -135,9 +134,6 @@ async def export_dashboard_excel():
                 eq_seq = eq["seq"]
                 eq_qty = eq["qty"]
                 eq_rate = eq["rate"]
-                eq_sub = round(eq_qty * eq_rate, 2)
-                eq_vat = round(eq_sub * (eq["vat_pct"] / 100), 2)
-                eq_tot = round(eq_sub + eq_vat, 2)
 
                 # Find Matching OT with same SEQ
                 matched_ot = None
@@ -148,11 +144,14 @@ async def export_dashboard_excel():
 
                 ot_qty = matched_ot["qty"] if matched_ot else 0.0
                 ot_rate = matched_ot["rate"] if matched_ot else 0.0
-                ot_sub = round(ot_qty * ot_rate, 2) if matched_ot else 0.0
-                ot_vat = round(ot_sub * ((matched_ot["vat_pct"] / 100) if matched_ot else 0.15), 2)
-                ot_tot = round(ot_sub + ot_vat, 2)
 
-                combined_grand_total = round(eq_tot + ot_tot, 2)
+                # 🟢 Subtotal = (Normal * Rate) + (Over Time * Rate)
+                subtotal = round((eq_qty * eq_rate) + (ot_qty * ot_rate), 2)
+                
+                # VAT % (default 15%)
+                vat_pct = eq.get("vat_pct", 15.0)
+                vat_amount = round(subtotal * (vat_pct / 100), 2)
+                grand_total = round(subtotal + vat_amount, 2)
 
                 row_vals = [
                     sl_no,
@@ -163,17 +162,13 @@ async def export_dashboard_excel():
                     inv_date or "-",
                     eq_seq,
                     eq["vtype"],
-                    eq_qty,
-                    eq_rate,
-                    eq_sub,
-                    eq_vat,
-                    eq_tot,
+                    eq_qty if eq_qty > 0 else "-",
+                    eq_rate if eq_qty > 0 else "-",
                     ot_qty if ot_qty > 0 else "-",
                     ot_rate if ot_qty > 0 else "-",
-                    ot_sub if ot_qty > 0 else "-",
-                    ot_vat if ot_qty > 0 else "-",
-                    ot_tot if ot_qty > 0 else "-",
-                    combined_grand_total
+                    subtotal,
+                    vat_amount,
+                    grand_total
                 ]
 
                 for col_idx, val in enumerate(row_vals, 1):
@@ -184,11 +179,11 @@ async def export_dashboard_excel():
                     # Formats & Alignments
                     if col_idx in [1, 5, 6, 7]:
                         cell.alignment = Alignment(horizontal="center", vertical="center")
-                    elif col_idx in [9, 10, 11, 12, 13, 14, 15, 16, 17, 18]:
+                    elif col_idx in [9, 10, 11, 12, 13, 14]:
                         cell.alignment = Alignment(horizontal="right", vertical="center")
                         if isinstance(val, (int, float)):
                             cell.number_format = "#,##0.00"
-                    elif col_idx == 19:
+                    elif col_idx == 15:
                         cell.alignment = Alignment(horizontal="right", vertical="center")
                         cell.font = grand_font
                         if isinstance(val, (int, float)):
@@ -204,9 +199,10 @@ async def export_dashboard_excel():
             for ot in overtimes:
                 ot_qty = ot["qty"]
                 ot_rate = ot["rate"]
-                ot_sub = round(ot_qty * ot_rate, 2)
-                ot_vat = round(ot_sub * (ot["vat_pct"] / 100), 2)
-                ot_tot = round(ot_sub + ot_vat, 2)
+                subtotal = round(ot_qty * ot_rate, 2)
+                vat_pct = ot.get("vat_pct", 15.0)
+                vat_amount = round(subtotal * (vat_pct / 100), 2)
+                grand_total = round(subtotal + vat_amount, 2)
 
                 row_vals = [
                     sl_no,
@@ -217,9 +213,13 @@ async def export_dashboard_excel():
                     inv_date or "-",
                     ot["seq"],
                     "Over Time",
-                    0, 0, 0, 0, 0,
-                    ot_qty, ot_rate, ot_sub, ot_vat, ot_tot,
-                    ot_tot
+                    "-",
+                    "-",
+                    ot_qty if ot_qty > 0 else "-",
+                    ot_rate if ot_qty > 0 else "-",
+                    subtotal,
+                    vat_amount,
+                    grand_total
                 ]
 
                 for col_idx, val in enumerate(row_vals, 1):
@@ -228,8 +228,13 @@ async def export_dashboard_excel():
                     cell.border = thin_border
                     if col_idx in [1, 5, 6, 7]:
                         cell.alignment = Alignment(horizontal="center", vertical="center")
-                    elif col_idx >= 9:
+                    elif col_idx in [9, 10, 11, 12, 13, 14]:
                         cell.alignment = Alignment(horizontal="right", vertical="center")
+                        if isinstance(val, (int, float)):
+                            cell.number_format = "#,##0.00"
+                    elif col_idx == 15:
+                        cell.alignment = Alignment(horizontal="right", vertical="center")
+                        cell.font = grand_font
                         if isinstance(val, (int, float)):
                             cell.number_format = "#,##0.00"
                     else:

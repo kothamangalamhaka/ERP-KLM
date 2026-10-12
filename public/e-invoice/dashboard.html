@@ -6,20 +6,34 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
       body { font-family: 'Inter', sans-serif; background: #f8fafc; margin: 0; padding: 25px; color: #1e293b; }
-      .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+      .container { max-width: 1500px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
       .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+      .header-title-group { display: flex; align-items: center; gap: 14px; }
       h2 { margin: 0; color: #0f172a; font-size: 20px; }
       .btn { padding: 8px 16px; border-radius: 5px; font-weight: 600; cursor: pointer; border: none; font-size: 13px; text-decoration: none; }
       .btn-primary { background: #2563eb; color: white; }
       .btn-outline { background: transparent; border: 1px solid #cbd5e1; color: #475569; }
-      table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 15px; }
-      th, td { border: 1px solid #e2e8f0; padding: 10px 12px; text-align: left; }
-      th { background: #1e293b; color: white; font-weight: 600; font-size: 12px; }
-      tr:hover { background: #f1f5f9; }
-      .inv-tag { font-family: monospace; font-weight: 700; color: #2563eb; }
-      .btn-action { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
+      .btn-detail-toggle { background: #f1f5f9; border: 1.5px solid #cbd5e1; color: #334155; padding: 6px 13px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
+      .btn-detail-toggle:hover { background: #e2e8f0; color: #0f172a; }
+      .btn-detail-toggle.active { background: #0284c7; color: #ffffff; border-color: #0284c7; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35); }
+      .table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; vertical-align: middle; }
+      th { background: #1e293b; color: white; font-weight: 600; font-size: 11.5px; white-space: nowrap; }
+      tr:hover { background: #f8fafc; }
+      .inv-tag { font-family: monospace; font-weight: 700; color: #2563eb; white-space: nowrap; }
+      .btn-action { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
       .btn-view { background: #0284c7; color: white; }
       .btn-dl { background: #10b981; color: white; }
+
+      /* Detail View Columns Toggle Class */
+      .table-wrapper.hide-details .col-detail { display: none !important; }
+
+      /* Multi-line cell styles for SEQ, Hours & Rates */
+      .multi-cell-stack { display: flex; flex-direction: column; gap: 4px; }
+      .multi-line-item { min-height: 18px; line-height: 18px; white-space: nowrap; font-family: monospace; }
+      .multi-line-item.center { text-align: center; }
+      .multi-line-item.right { text-align: right; }
 
       /* Floating Toast Notification */
       #dashToast {
@@ -74,7 +88,12 @@
 
     <div class="container" id="mainContent" style="display:none;">
       <div class="header-bar">
-        <h2>🧾 E-Invoices Dashboard</h2>
+        <div class="header-title-group">
+          <h2>🧾 Bill Summary Dashboard</h2>
+          <button id="btnDetailToggle" class="btn-detail-toggle" onclick="toggleDetailView()">
+            👁️ Detail View
+          </button>
+        </div>
         <div style="display: flex; gap: 10px;">
           <button onclick="exportDashboardToExcel()" class="btn" style="background: #10b981; color: white;">📊 Export Excel</button>
           <a href="../Billing/index.html" class="btn btn-primary">Admin</a>
@@ -83,22 +102,30 @@
         </div>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Invoice No</th>
-            <th>Company Name</th>
-            <th>Vendor Name</th>
-            <th>Month</th>
-            <th>Date</th>
-            <th>Grand Total</th>
-            <th style="width: 140px; text-align: center;">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="invoicesListBody">
-          <tr><td colspan="7" style="text-align: center;">Loading dashboard data...</td></tr>
-        </tbody>
-      </table>
+      <div class="table-wrapper hide-details" id="dashboardTableWrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 85px;">Bill Date</th>
+              <th>Bill No</th>
+              <th>Company Name</th>
+              <th>Vendor Name</th>
+              <th>Nick Name</th>
+              <th style="width: 80px;">Month</th>
+              <th class="col-detail" style="width: 50px; text-align: center;">SEQ</th>
+              <th class="col-detail" style="width: 75px; text-align: center;">Normal Hr</th>
+              <th class="col-detail" style="width: 70px; text-align: right;">Rate</th>
+              <th class="col-detail" style="width: 75px; text-align: center;">Over Time</th>
+              <th class="col-detail" style="width: 70px; text-align: right;">Rate</th>
+              <th style="width: 85px; text-align: right;">Grand Total</th>
+              <th style="width: 140px; text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="invoicesListBody">
+            <tr><td colspan="13" style="text-align: center;">Loading dashboard data...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <script>
@@ -106,7 +133,6 @@
         try {
           showDashToast("Generating Excel file...", true);
           
-          // 🟢 Python FastAPI സർവീസ് റൺ ആകുന്ന 8001 പോർട്ടിലേക്ക് കണക്ട് ചെയ്യുന്നു
           const pyHost = window.location.hostname || "127.0.0.1";
           const response = await fetch(`http://${pyHost}:8001/py/einvoice/export-dashboard-excel`);
           
@@ -137,25 +163,94 @@
 
         if (data.success && data.invoices.length > 0) {
           data.invoices.forEach(inv => {
+            // raw_payload-ൽ നിന്ന് manual_items വേർതിരിച്ചെടുക്കുന്നു
+            let items = [];
+            if (inv.raw_payload) {
+              const payload = typeof inv.raw_payload === 'string' ? JSON.parse(inv.raw_payload) : inv.raw_payload;
+              items = payload.manual_items || [];
+            }
+
+            // മൾട്ടി-ലൈൻ റോകൾ തയ്യാറാക്കുന്നു (Normal & Overtime ഗ്രൂപ്പിംഗ്)
+            const seqList = [];
+            const normalHrList = [];
+            const normalRateList = [];
+            const otHrList = [];
+            const otRateList = [];
+
+            if (items && items.length > 0) {
+              // 1. Equipments vs Overtime തിരിക്കുന്നു
+              const equipments = [];
+              const overtimes = [];
+
+              items.forEach((row, idx) => {
+                const vtype = (row.vtype || "").trim();
+                const cleanV = vtype.toLowerCase();
+                const isOT = cleanV.includes("overtime") || cleanV.includes("over time") || /\bot\b/i.test(cleanV);
+                const seq = row.seq !== undefined && row.seq !== "" ? String(row.seq).trim() : String(idx + 1);
+                const qty = parseFloat(row.qty) || 0;
+                const rate = parseFloat(row.rate) || 0;
+
+                if (isOT) {
+                  overtimes.push({ seq, qty, rate });
+                } else {
+                  equipments.push({ seq, qty, rate, otQty: 0, otRate: 0 });
+                }
+              });
+
+              // Overtime-നെ ഉപകരണങ്ങളുടെ അതേ SEQ-ലേക്ക് മാപ്പ് ചെയ്യുന്നു
+              overtimes.forEach(ot => {
+                let match = equipments.find(e => e.seq === ot.seq);
+                if (!match && equipments.length > 0) match = equipments[0];
+                if (match) {
+                  match.otQty += ot.qty;
+                  match.otRate = ot.rate;
+                } else {
+                  equipments.push({ seq: ot.seq, qty: 0, rate: 0, otQty: ot.qty, otRate: ot.rate });
+                }
+              });
+
+              equipments.forEach(eq => {
+                seqList.push(`<div class="multi-line-item center">${eq.seq || '-'}</div>`);
+                normalHrList.push(`<div class="multi-line-item center">${eq.qty > 0 ? eq.qty : '-'}</div>`);
+                normalRateList.push(`<div class="multi-line-item right">${eq.qty > 0 ? parseFloat(eq.rate).toFixed(2) : '-'}</div>`);
+                otHrList.push(`<div class="multi-line-item center">${eq.otQty > 0 ? eq.otQty : '-'}</div>`);
+                otRateList.push(`<div class="multi-line-item right">${eq.otQty > 0 ? parseFloat(eq.otRate).toFixed(2) : '-'}</div>`);
+              });
+            }
+
+            const seqHtml = seqList.length > 0 ? `<div class="multi-cell-stack">${seqList.join('')}</div>` : '-';
+            const normalHrHtml = normalHrList.length > 0 ? `<div class="multi-cell-stack">${normalHrList.join('')}</div>` : '-';
+            const normalRateHtml = normalRateList.length > 0 ? `<div class="multi-cell-stack">${normalRateList.join('')}</div>` : '-';
+            const otHrHtml = otHrList.length > 0 ? `<div class="multi-cell-stack">${otHrList.join('')}</div>` : '-';
+            const otRateHtml = otRateList.length > 0 ? `<div class="multi-cell-stack">${otRateList.join('')}</div>` : '-';
+
             tbody.innerHTML += `
               <tr>
+                <td style="white-space:nowrap; font-family:monospace;">${inv.invoice_date || '-'}</td>
                 <td><span class="inv-tag">${inv.invoice_no}</span></td>
                 <td><b>${inv.company_name || '-'}</b></td>
                 <td>${inv.vendor_name || '-'}</td>
-                <td>${inv.billing_month || '-'}</td>
-                <td>${inv.invoice_date || '-'}</td>
-                <td style="font-weight:700;">${parseFloat(inv.grand_total || 0).toFixed(2)}</td>
-                <td style="text-align: center; display: flex; gap: 6px; justify-content: center; position: relative;">
-                  <button class="btn-action btn-view" onclick="viewInvoice(${inv.id})">👁️ View</button>
-                  <div style="position: relative; display: inline-block;">
-                    <button class="btn-action btn-dl" onclick="toggleDashDlMenu(event, ${inv.id})">⬇️ Download</button>
-                    <div id="dlDropdown_${inv.id}" class="dash-dl-menu" style="display: none; position: absolute; right: 0; top: 110%; background: #0f172a; border: 1px solid #334155; border-radius: 6px; box-shadow: 0 8px 18px rgba(0,0,0,0.35); z-index: 1000; min-width: 120px; overflow: hidden;">
-                      <button style="width: 100%; text-align: left; padding: 7px 10px; background: transparent; border: none; color: #f8fafc; font-size: 11.5px; font-weight: 700; cursor: pointer;" onmouseover="this.style.background='#1e293b'" onmouseout="this.style.background='transparent'" onclick="downloadInvoiceDirect(${inv.id}, false)">
-                        📄 Bill Only
-                      </button>
-                      <button style="width: 100%; text-align: left; padding: 7px 10px; background: transparent; border: none; color: #f8fafc; font-size: 11.5px; font-weight: 700; cursor: pointer; border-top: 1px solid #1e293b;" onmouseover="this.style.background='#1e293b'" onmouseout="this.style.background='transparent'" onclick="downloadInvoiceDirect(${inv.id}, true)">
-                        📑 With TS
-                      </button>
+                <td style="color:#0284c7; font-weight:600;">${inv.nickname || '-'}</td>
+                <td style="white-space:nowrap;">${inv.billing_month || '-'}</td>
+                <td class="col-detail">${seqHtml}</td>
+                <td class="col-detail">${normalHrHtml}</td>
+                <td class="col-detail">${normalRateHtml}</td>
+                <td class="col-detail">${otHrHtml}</td>
+                <td class="col-detail">${otRateHtml}</td>
+                <td style="font-weight:700; text-align:right; font-family:monospace;">${parseFloat(inv.grand_total || 0).toFixed(2)}</td>
+                <td style="text-align: center;">
+                  <div style="display:flex; gap: 6px; justify-content: center; position: relative;">
+                    <button class="btn-action btn-view" onclick="viewInvoice(${inv.id})">👁️ View</button>
+                    <div style="position: relative; display: inline-block;">
+                      <button class="btn-action btn-dl" onclick="toggleDashDlMenu(event, ${inv.id})">⬇️ Download</button>
+                      <div id="dlDropdown_${inv.id}" class="dash-dl-menu" style="display: none; position: absolute; right: 0; top: 110%; background: #0f172a; border: 1px solid #334155; border-radius: 6px; box-shadow: 0 8px 18px rgba(0,0,0,0.35); z-index: 1000; min-width: 120px; overflow: hidden;">
+                        <button style="width: 100%; text-align: left; padding: 7px 10px; background: transparent; border: none; color: #f8fafc; font-size: 11.5px; font-weight: 700; cursor: pointer;" onmouseover="this.style.background='#1e293b'" onmouseout="this.style.background='transparent'" onclick="downloadInvoiceDirect(${inv.id}, false)">
+                          📄 Bill Only
+                        </button>
+                        <button style="width: 100%; text-align: left; padding: 7px 10px; background: transparent; border: none; color: #f8fafc; font-size: 11.5px; font-weight: 700; cursor: pointer; border-top: 1px solid #1e293b;" onmouseover="this.style.background='#1e293b'" onmouseout="this.style.background='transparent'" onclick="downloadInvoiceDirect(${inv.id}, true)">
+                          📑 With TS
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -163,7 +258,7 @@
             `;
           });
         } else {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #64748b;">No saved invoices found. Generate one and click "Save to DB".</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px; color: #64748b;">No saved invoices found. Generate one and click "Save to DB".</td></tr>';
         }
       }
 
@@ -226,7 +321,6 @@
 
       function toggleDashDlMenu(event, id) {
         event.stopPropagation();
-        // മറ്റ് ഡ്രോപ്ഡൗണുകൾ ഉണ്ടെങ്കിൽ ക്ലോസ് ചെയ്യുന്നു
         document.querySelectorAll(".dash-dl-menu").forEach(menu => {
           if (menu.id !== `dlDropdown_${id}`) menu.style.display = "none";
         });
@@ -242,7 +336,6 @@
 
       async function downloadInvoiceDirect(id, withTs = true) {
         try {
-          // മെനു ക്ലോസ് ചെയ്യുന്നു
           document.querySelectorAll(".dash-dl-menu").forEach(menu => menu.style.display = "none");
 
           showDashToast("Fetching invoice data...", true);
@@ -263,7 +356,6 @@
 
           hiddenFrame.src = `index.html?directDownload=true&withTs=${withTs}`;
 
-          // PDF പ്രൊസസിംഗ് പൂർത്തിയാകുമ്പോൾ സക്സസ് ടോസ്റ്റ് കാണിക്കുന്നു
           setTimeout(() => {
             showDashToast(`✅ PDF Downloaded: ${payload.invoice_no}`, false);
           }, 2500);
@@ -317,6 +409,24 @@
       } else {
         document.getElementById("securityOverlay").style.display = "flex";
         setTimeout(() => document.getElementById("secCodeInput")?.focus(), 200);
+      }
+
+      let isDetailViewActive = false;
+      function toggleDetailView() {
+        isDetailViewActive = !isDetailViewActive;
+        const wrapper = document.getElementById("dashboardTableWrapper");
+        const btn = document.getElementById("btnDetailToggle");
+        if (!wrapper || !btn) return;
+
+        if (isDetailViewActive) {
+          wrapper.classList.remove("hide-details");
+          btn.classList.add("active");
+          btn.innerHTML = "👁️ Hide Details";
+        } else {
+          wrapper.classList.add("hide-details");
+          btn.classList.remove("active");
+          btn.innerHTML = "👁️ Detail View";
+        }
       }
     </script>
   </body>

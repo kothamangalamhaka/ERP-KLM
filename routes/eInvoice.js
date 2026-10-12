@@ -395,11 +395,15 @@ router.post("/api/delete-item", async (req, res) => {
 router.get("/api/dashboard-invoices", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, invoice_no, company_name, vendor_name, billing_month, 
-              TO_CHAR(invoice_date, 'YYYY-MM-DD') as invoice_date, invoice_time, 
-              subtotal, vat_amount, grand_total, created_at
-       FROM generated_e_invoices 
-       ORDER BY id DESC`
+      `SELECT g.id, g.invoice_no, g.company_name, g.vendor_name, g.billing_month, 
+              TO_CHAR(g.invoice_date, 'YYYY-MM-DD') as invoice_date, g.invoice_time, 
+              g.subtotal, g.vat_amount, g.grand_total, g.created_at, g.raw_payload,
+              s.nickname
+       FROM generated_e_invoices g
+       LEFT JOIN e_invoice_suppliers s 
+         ON LOWER(TRIM(g.vendor_name)) = LOWER(TRIM(s.customer_name)) 
+         AND s.is_deleted = FALSE
+       ORDER BY g.id DESC`
     );
     res.json({ success: true, invoices: result.rows });
   } catch (err) {
