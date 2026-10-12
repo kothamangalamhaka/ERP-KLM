@@ -220,6 +220,10 @@ router.post("/api/save-invoice-record", async (req, res) => {
       invoice_time, subtotal, vat_amount, grand_total, has_seal, mode, manual_items, raw_payload,
     } = req.body;
 
+    if (!company_id) {
+      return res.json({ success: false, message: "Company selection is mandatory" });
+    }
+
     const extractedRemarks = (raw_payload && raw_payload.remarks) ? raw_payload.remarks : "";
 
     const finalPayload = {

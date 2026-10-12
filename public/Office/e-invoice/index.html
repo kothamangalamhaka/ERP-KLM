@@ -3285,6 +3285,13 @@
 
       /* ================= SAVE DATA TO DB (Alert ഒഴിവാക്കി Toast നൽകുന്നു) ================= */
       async function onlySaveInvoiceData() {
+        const selId = document.getElementById("companySelect").value;
+        if (!selId) {
+          showPdfToast("⚠️ ദയവായി ഒരു കമ്പനി തിരഞ്ഞെടുക്കുക! (Please select a Company)", false);
+          document.getElementById("companySelect").focus();
+          return;
+        }
+
         const invNo = document.getElementById("invNoDisplay").innerText.trim();
         if (!invNo || invNo === "------") {
           showPdfToast("⚠️ Please configure a valid Bill No first!", false);
@@ -3293,7 +3300,6 @@
 
         showPdfToast("Saving Invoice...", true);
 
-        const selId = document.getElementById("companySelect").value;
         const comp = companiesList.find((c) => String(c.id) === String(selId));
         const body = {
           invoice_no: invNo,
@@ -3375,6 +3381,13 @@
 
       /* ================= PDF GENERATION ENGINE ================= */
       async function downloadAndSaveInvoice(includeTimesheet = true) {
+        const selId = document.getElementById("companySelect").value;
+        if (!selId) {
+          showPdfToast("⚠️ Please select a Company", false);
+          document.getElementById("companySelect").focus();
+          return;
+        }
+
         const invNo = document.getElementById("invNoDisplay").innerText.trim();
         if (!invNo || invNo === "------")
           return alert("Please select Company or configure a Bill No first!");
