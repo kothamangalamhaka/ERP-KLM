@@ -2,6 +2,7 @@ import os
 import io
 import json
 import psycopg2
+import re
 from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
@@ -100,7 +101,8 @@ async def export_dashboard_excel():
                 if not vtype and qty == 0:
                     continue
 
-                is_ot = vtype.lower() in ["over time", "overtime", "ot"]
+                v_lower = vtype.lower()
+                is_ot = "overtime" in v_lower or "over time" in v_lower or re.search(r'\bot\b', v_lower) is not None
 
                 if is_ot:
                     overtimes.append({
