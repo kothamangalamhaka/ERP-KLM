@@ -397,16 +397,17 @@
         margin-bottom: 6px;
         font-family: "Tajawal", sans-serif;
       }
+      /* 🟢 കോംപാക്റ്റ് നോട്ട് ബോക്സ് (അനാവശ്യ ഗ്യാപ്പ് ഒഴിവാക്കി) */
       .remarks-display-box {
         width: 85%;
         max-width: 85%;
         text-align: left;
         font-size: 11.5px;
-        line-height: 1.6;
+        line-height: 1.35;
         color: #000000;
         background: transparent;
         border-left: 3.5px solid var(--primary-theme);
-        padding: 8px 14px;
+        padding: 4px 10px;
         border-radius: 0 6px 6px 0;
         white-space: pre-wrap;
         word-break: break-word;
@@ -417,7 +418,7 @@
         font-size: 11px;
         color: #000000;
         text-transform: uppercase;
-        margin-bottom: 3px;
+        margin-bottom: 2px;
         letter-spacing: 0.5px;
       }
       .supply-text-clean {
@@ -1618,12 +1619,18 @@
           updateRemarksDisplay();
         }
 
+        if (restoredData) {
+          isExistingBillEditing = true; // 🟢 Dashboard-il ninnum vannathaanennu identify cheyyunnu
+          activeMode = "editbill";
+        } else {
+          isExistingBillEditing = false;
+        }
+
         if (
           restoredCompanyId &&
           companiesList.some((c) => String(c.id) === String(restoredCompanyId))
         ) {
-          document.getElementById("companySelect").value =
-            String(restoredCompanyId);
+          document.getElementById("companySelect").value = String(restoredCompanyId);
           await applyCompanyDetailsToView(restoredCompanyId, prevInvoiceNo);
         } else {
           await fetchNextNumber(null);
@@ -1665,14 +1672,38 @@
             document.getElementById("modalDate").value = standardDate;
           }
 
+          // 🟢 1. selected_supply_months ഉണ്ടെങ്കിൽ അത് എടുക്കുന്നു, ഇല്ലെങ്കിൽ billing_month-ൽ നിന്ന് റീസ്റ്റോർ ചെയ്യുന്നു
           if (
             payload.selected_supply_months &&
-            Array.isArray(payload.selected_supply_months)
+            Array.isArray(payload.selected_supply_months) &&
+            payload.selected_supply_months.length > 0
           ) {
             selectedSupplyMonths = payload.selected_supply_months;
-            updateSupplyDateDisplay();
-            renderSelectedMonthsPills();
+          } else if (restoredData.billing_month && restoredData.billing_month !== "------") {
+            // "Mar-26" പോലുള്ള ഫോർമാറ്റിൽ നിന്ന് "2026-03" ഫോർമാറ്റിലേക്ക് മാറ്റുന്നു
+            const shortMonths = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+            const rawParts = restoredData.billing_month.split("|").map(s => s.trim());
+            selectedSupplyMonths = [];
+
+            rawParts.forEach(part => {
+              const subMatches = part.split(",");
+              let yearVal = "2026";
+              const yrMatch = part.match(/[-/](\d{2,4})$/);
+              if (yrMatch) {
+                yearVal = yrMatch[1].length === 2 ? "20" + yrMatch[1] : yrMatch[1];
+              }
+              subMatches.forEach(sm => {
+                const cleanSm = sm.replace(/[-/]\d{2,4}$/, "").trim().toLowerCase();
+                const mIdx = shortMonths.indexOf(cleanSm);
+                if (mIdx !== -1) {
+                  selectedSupplyMonths.push(`${yearVal}-${String(mIdx + 1).padStart(2, "0")}`);
+                }
+              });
+            });
           }
+
+          updateSupplyDateDisplay();
+          renderSelectedMonthsPills();
 
           if (
             restoredData.manual_items &&
@@ -1688,7 +1719,13 @@
           }
         }
 
-        setBillMode("newbill");
+        // 🟢 Dashboard data undengil edit mode aayi nilanirthunnu, allenkil maathram newbill
+        if (!restoredData) {
+          setBillMode("newbill");
+        } else {
+          const btnEdit = document.getElementById("btnOpenEditModal");
+          if (btnEdit) btnEdit.style.display = "inline-flex";
+        }
         renderInvoiceViewTable();
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -1769,7 +1806,7 @@
           authLine.innerText =
             "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
           buyerTitle.innerText = "العميل";
-          if (remTitle) remTitle.innerText = "Note :-";
+          if (remTitle) remTitle.innerText = "Note ";
         }
         // 4. DEFAULT AL: Royal Navy
         else {
@@ -1782,7 +1819,7 @@
           authLine.innerText =
             "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
           buyerTitle.innerText = "العميل";
-          if (remTitle) remTitle.innerText = "Note :-";
+          if (remTitle) remTitle.innerText = "Note";
         }
 
         renderInvoiceViewTable();
@@ -1829,9 +1866,10 @@
         const remarksText = document.getElementById("remarksDisplayText");
         const remarksModalInp = document.getElementById("modalRemarksInput");
         if (currentRemarks && currentRemarks.trim()) {
-          if (remarksText) remarksText.innerText = currentRemarks;
+          // 🟢 വരികൾക്കിടയിലെ അനാവശ്യ ബ്ലാങ്ക് എന്ററുകൾ ട്രിം ചെയ്യുന്നു
+          if (remarksText) remarksText.innerText = currentRemarks.trim();
           if (remarksBox) remarksBox.style.display = "block";
-          if (remarksModalInp) remarksModalInp.value = currentRemarks;
+          if (remarksModalInp) remarksModalInp.value = currentRemarks.trim();
         } else {
           if (remarksText) remarksText.innerText = "";
           if (remarksBox) remarksBox.style.display = "none";
@@ -2040,14 +2078,14 @@
         const tbody = document.getElementById("invoiceItemsBody");
         tbody.innerHTML = "";
 
-        // കമ്പനി തീം അനുസരിച്ച് ടേബിൾ ഹെഡറുകൾ ക്രമീകരിക്കുന്നു
+        // 🟢 ക്രമം: SN -> SEQ -> Vehicle Type
         if (currentCompanyTheme === "haka" || currentCompanyTheme === "masar") {
           // Full Arabic Headers for both HAKA & MASAR
           thead.innerHTML = `
             <tr>
               <th style="width: 35px">م</th>
+              ${hideSeqColumn ? "" : '<th style="width: 75px">التسلسل</th>'}
               <th style="text-align: right; padding-right: 10px">نوع المعدة / البيان</th>
-              ${hideSeqColumn ? "" : '<th style="width: 85px">رقم التسلسل</th>'}
               <th style="width: 65px">الكمية</th>
               <th style="width: 80px">السعر</th>
               <th style="width: 95px">الإجمالي</th>
@@ -2056,12 +2094,12 @@
             </tr>
           `;
         } else {
-          // Corporate English Headers
+          // Corporate English Headers (SEQ No മാറ്റി SEQ ആക്കി, SN കഴിഞ്ഞയുടൻ നൽകി)
           thead.innerHTML = `
             <tr>
               <th style="width: 35px">SN</th>
+              ${hideSeqColumn ? "" : '<th style="width: 75px">SEQ</th>'}
               <th style="text-align: left; padding-left: 10px">Vehicle Type</th>
-              ${hideSeqColumn ? "" : '<th style="width: 90px">SEQ No</th>'}
               <th style="width: 65px">Quantity</th>
               <th style="width: 80px">Rate</th>
               <th style="width: 95px">Sub Total</th>
@@ -2105,11 +2143,12 @@
               : "text-align:left; padding-left:10px;";
 
           // 🟢 Line item-il ulla ella cells-um normal font weight aakkunnu (bold ozhivakki)
+          // 🟢 SEQ സെൽ SN-ന് തൊട്ടടുത്ത് രണ്ടാമത്തെ സ്ഥാനത്തേക്ക് മാറ്റി
           tbody.innerHTML += `
             <tr>
               <td>${idx + 1}</td>
-              <td style="${alignStyle} font-weight:normal;">${row.vtype || "-"}</td>
               ${seqTd}
+              <td style="${alignStyle} font-weight:normal;">${row.vtype || "-"}</td>
               <td>${qty}</td>
               <td>${rate.toFixed(2)}</td>
               <td style="font-weight:normal;">${rowSub.toFixed(2)}</td>
@@ -2459,11 +2498,11 @@
             }
           }
 
-          // 🟢 Normal Qty, OT Qty, Grand Total Qty എന്നിവ കൃത്യമായി കാണിക്കുന്നു
+          // 🟢 Total സെല്ലിന് എല്ലാ തീമിലും വ്യക്തമായി കാണുന്ന ഡാർക്ക് കളർ നൽകുന്നു
           trHtml += `
               <td style="font-weight:700;">${normalQty > 0 ? normalQty : "-"}</td>
               <td style="font-weight:700;">${otQty > 0 ? otQty : "-"}</td>
-              <td style="font-weight:800; color:var(--primary-theme);">${totalQty}</td>
+              <td style="font-weight:800; color:#0f172a;">${totalQty}</td>
             </tr>
           `;
           tbody.innerHTML += trHtml;
@@ -2539,8 +2578,8 @@
           tbody.innerHTML += `
             <tr>
               <td>${idx + 1}</td>
-              <td><input type="text" class="popup-input" style="text-align:left;" list="itemsDataList" value="${row.vtype || ""}" onchange="onPopupItemTypeChange(${idx}, this.value)" placeholder="Vehicle / Item"></td>
               ${seqInputTd}
+              <td><input type="text" class="popup-input" style="text-align:left;" list="itemsDataList" value="${row.vtype || ""}" onchange="onPopupItemTypeChange(${idx}, this.value)" placeholder="Vehicle / Item"></td>
               <td><input type="number" step="any" class="popup-input" value="${row.qty !== "" ? row.qty : ""}" onchange="updatePopupItem(${idx}, 'qty', this.value)" onwheel="this.blur()" placeholder="0"></td>
               <td><input type="number" step="any" class="popup-input" value="${row.rate !== "" ? row.rate : ""}" onchange="updatePopupItem(${idx}, 'rate', this.value)" onwheel="this.blur()" placeholder="0.00"></td>
               <td>
@@ -2624,6 +2663,8 @@
         }
       }
 
+      let isExistingBillEditing = false; // 🟢 Existing bill edit aano ennu track cheyyaan
+
       async function saveAndApplyBillChanges() {
         const buyer = document.getElementById("modalBuyerName").value.trim();
         const vat = document.getElementById("modalBuyerVat").value.trim();
@@ -2631,19 +2672,26 @@
           .getElementById("modalRemarksInput")
           .value.trim();
 
+        // 🟢 Single month pick cheythu '+ Add' click cheythillelum athine auto supply month aakkunnu
         const monthInputVal =
           document.getElementById("modalSupplyMonthInput")?.value || "";
-        if (monthInputVal && !selectedSupplyMonths.includes(monthInputVal)) {
-          selectedSupplyMonths.push(monthInputVal);
+        if (monthInputVal) {
+          if (!selectedSupplyMonths.includes(monthInputVal)) {
+            selectedSupplyMonths.push(monthInputVal);
+          }
           document.getElementById("modalSupplyMonthInput").value = "";
+          renderSelectedMonthsPills();
         }
 
         const chosenDate = document.getElementById("modalDate").value.trim();
         if (chosenDate) {
           currentInvoiceDate = chosenDate;
           syncDateDisplays(chosenDate);
-          const selId = document.getElementById("companySelect").value;
-          await fetchNextNumber(selId, chosenDate);
+          // 🟢 Existing bill edit cheyyukayaano enkil Bill No puthithaayi fetch cheythu overwrite aakkaruthu!
+          if (!isExistingBillEditing) {
+            const selId = document.getElementById("companySelect").value;
+            await fetchNextNumber(selId, chosenDate);
+          }
         }
 
         updateSupplyDateDisplay();
@@ -2784,8 +2832,11 @@
       async function onModalDateChange() {
         const chosenDate = document.getElementById("modalDate").value;
         if (!chosenDate) return;
-        const selId = document.getElementById("companySelect").value;
-        await fetchNextNumber(selId, chosenDate);
+        // 🟢 എഡിറ്റ് മോഡിൽ ആണെങ്കിൽ പുതിയ നമ്പർ എടുക്കരുത്
+        if (!isExistingBillEditing) {
+          const selId = document.getElementById("companySelect").value;
+          await fetchNextNumber(selId, chosenDate);
+        }
       }
 
       async function applyCompanyDetailsToView(compId, existingInvNo) {
@@ -2873,12 +2924,15 @@
         }
       }
 
-      /* ================= SAVE DATA TO DB (No Payload Changes) ================= */
+      /* ================= SAVE DATA TO DB (Alert ഒഴിവാക്കി Toast നൽകുന്നു) ================= */
       async function onlySaveInvoiceData() {
         const invNo = document.getElementById("invNoDisplay").innerText.trim();
         if (!invNo || invNo === "------") {
-          return alert("Please select Company or configure a Bill No first!");
+          showPdfToast("⚠️ Please configure a valid Bill No first!", false);
+          return;
         }
+
+        showPdfToast("Saving Invoice...", true);
 
         const selId = document.getElementById("companySelect").value;
         const comp = companiesList.find((c) => String(c.id) === String(selId));
@@ -2886,30 +2940,20 @@
           invoice_no: invNo,
           company_id: selId || null,
           company_name: comp ? comp.company_name_en : "",
-          vendor_name: document
-            .getElementById("buyerNameDisplay")
-            .innerText.trim(),
-          billing_month: document
-            .getElementById("supplyDateDisplay")
-            .innerText.trim(),
-          invoice_date:
-            currentInvoiceDate ||
-            parseToYyyyMmDd(
-              document.getElementById("dateDisplay").innerText.trim(),
-            ),
+          vendor_name: document.getElementById("buyerNameDisplay").innerText.trim(),
+          billing_month: document.getElementById("supplyDateDisplay").innerText.trim(),
+          invoice_date: currentInvoiceDate || parseToYyyyMmDd(document.getElementById("dateDisplay").innerText.trim()),
           invoice_time: new Date().toLocaleTimeString(),
-          subtotal:
-            parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
-          vat_amount:
-            parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
-          grand_total:
-            parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
+          subtotal: parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
+          vat_amount: parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
+          grand_total: parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
           has_seal: isSealEngaged,
           mode: activeMode,
-          manual_items: activeMode === "newbill" ? manualItems : null,
+          manual_items: manualItems,
           raw_payload: {
             remarks: currentRemarks,
             selected_supply_months: selectedSupplyMonths,
+            manual_items: manualItems,
           },
         };
 
@@ -2921,13 +2965,13 @@
           });
           const data = await res.json();
           if (data.success) {
-            alert("Invoice Data Saved Successfully!");
+            showPdfToast("✅ Invoice Updated & Saved Successfully!", false);
           } else {
-            alert("Failed to save data!");
+            showPdfToast("❌ Failed to save invoice data!", false);
           }
         } catch (err) {
           console.error("Save Failed", err);
-          alert("An error occurred while saving!");
+          showPdfToast("❌ An error occurred while saving!", false);
         }
       }
 
@@ -3149,7 +3193,7 @@
           noteBox.className = "remarks-display-box";
           noteBox.style.marginTop = "12px";
           noteBox.innerHTML = `
-            <div class="remarks-display-title">${currentCompanyTheme === "haka" ? "ملاحظات :-" : "Note :-"}</div>
+            <div class="remarks-display-title">${currentCompanyTheme === "haka" ? "ملاحظات :-" : "Note"}</div>
             <div class="rem-body" style="white-space:pre-wrap; word-break:break-word;">${currentRemarks}</div>
           `;
           currentContent.appendChild(noteBox);
@@ -3237,6 +3281,8 @@
 
       async function onlySaveInvoiceDataSilent() {
         const invNo = document.getElementById("invNoDisplay").innerText.trim();
+        if (!invNo || invNo === "------") return;
+
         const selId = document.getElementById("companySelect").value;
         const comp = companiesList.find((c) => String(c.id) === String(selId));
         const body = {
@@ -3263,10 +3309,11 @@
             parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
           has_seal: isSealEngaged,
           mode: activeMode,
-          manual_items: activeMode === "newbill" ? manualItems : null,
+          manual_items: manualItems,
           raw_payload: {
             remarks: currentRemarks,
             selected_supply_months: selectedSupplyMonths,
+            manual_items: manualItems,
           },
         };
         try {
@@ -3290,10 +3337,10 @@
       async function confirmCreateNewBill() {
         closeNewBillModal();
         sessionStorage.removeItem("activeEInvoiceData");
+        isExistingBillEditing = false; // 🟢 New bill click cheyyumbol edit mode off aakunnu
+        activeMode = "newbill";
 
-        manualItems = [
-          { vtype: "", seq: "1", qty: "", rate: "", vatPercent: 15 },
-        ];
+        manualItems = [{ vtype: "", seq: "1", qty: "", rate: "", vatPercent: 15 }];
         setupInitialDates();
 
         currentRemarks = "";
