@@ -28,7 +28,7 @@ const VENDORS = {
 
   MASAR: {
     label: "Etijah Al Masar General Contracting Est",
-    email: "masar wheels",
+    email: "masarwheels",
     prefix: "INV-MW",
   },
 
