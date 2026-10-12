@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import klm_staff_payroll
 from routers import monthly_list_summary
 from routers.pdf_tools import router as pdf_tools_router
+from routers.einvoice_export_py import router as einvoice_export_router
 
 
 
@@ -50,6 +51,7 @@ app.include_router(Staff_salary_export.router, prefix="/py", tags=["Salary Expor
 app.include_router(klm_staff_payroll.router, prefix="/api/py-payroll", tags=["Payroll Export"])
 app.include_router(monthly_list_summary.router)
 app.include_router(pdf_tools_router)
+app.include_router(einvoice_export_router)
 
 
 

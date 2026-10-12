@@ -937,9 +937,20 @@
         <button class="btn-ribbon btn-dash" style="background:#2563eb;" onclick="onlySaveInvoiceData()">
           💾 Save
         </button>
-        <button class="btn-ribbon btn-pdf" onclick="downloadAndSaveInvoice()">
-          PDF ⬇️
-        </button>
+        <!-- PDF Dropdown with 2 Options: Bill Only & With TS -->
+        <div style="position: relative; display: inline-block;">
+          <button class="btn-ribbon btn-pdf" onclick="togglePdfDropdown(event)">
+            PDF ⬇️
+          </button>
+          <div id="pdfDropdownMenu" style="display: none; position: absolute; right: 0; top: 110%; background: #0f172a; border: 1px solid #334155; border-radius: 6px; box-shadow: 0 8px 20px rgba(0,0,0,0.4); z-index: 1000; min-width: 130px; overflow: hidden;">
+            <button style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: #f8fafc; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#1e293b'" onmouseout="this.style.background='transparent'" onclick="selectPdfExport(false)">
+              📄 Bill Only
+            </button>
+            <button style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; color: #f8fafc; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; border-top: 1px solid #1e293b;" onmouseover="this.style.background='#1e293b'" onmouseout="this.style.background='transparent'" onclick="selectPdfExport(true)">
+              📑 With TS
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1560,6 +1571,7 @@
         // 🟢 Direct download trigger & URL cleanup (Infinite download loop ozhivakki)
         const urlParams = new URLSearchParams(window.location.search);
         const isDirect = urlParams.get("directDownload") === "true" || sessionStorage.getItem("autoDownloadPdfTrigger") === "true";
+        const withTsParam = urlParams.get("withTs") !== "false"; // Default true if not specified
         if (isDirect) {
           sessionStorage.removeItem("autoDownloadPdfTrigger");
           // URL-il ninnu ?directDownload=true remove cheyyunnu
@@ -1568,7 +1580,7 @@
             window.history.replaceState({}, document.title, cleanUrl);
           }
           setTimeout(async () => {
-            await downloadAndSaveInvoice();
+            await downloadAndSaveInvoice(withTsParam);
           }, 500);
         }
       }
@@ -2768,8 +2780,29 @@
         }
       }
 
+      /* PDF Dropdown Toggle & Selection Helpers */
+      function togglePdfDropdown(event) {
+        event.stopPropagation();
+        const menu = document.getElementById("pdfDropdownMenu");
+        if (menu) {
+          menu.style.display = menu.style.display === "block" ? "none" : "block";
+        }
+      }
+
+      function selectPdfExport(includeTimesheet) {
+        const menu = document.getElementById("pdfDropdownMenu");
+        if (menu) menu.style.display = "none";
+        downloadAndSaveInvoice(includeTimesheet);
+      }
+
+      // Close dropdown if clicked outside
+      document.addEventListener("click", () => {
+        const menu = document.getElementById("pdfDropdownMenu");
+        if (menu) menu.style.display = "none";
+      });
+
       /* PDF GENERATION (ADVANCED AUTO-FLOW MULTI-PAGE ENGINE - FIXED HEIGHT & GAP CALCULATION) */
-      async function downloadAndSaveInvoice() {
+      async function downloadAndSaveInvoice(includeTimesheet = true) {
         const invNo = document.getElementById("invNoDisplay").innerText.trim();
         if (!invNo || invNo === "------")
           return alert("Please select Company or configure a Bill No first!");
@@ -3052,21 +3085,23 @@
             pdf.addImage(imgData, "JPEG", 0, 0, a4WidthPt, a4HeightPt);
           }
 
-          // 🟢 Page 2: Landscape Timesheet ചേർക്കുന്നു
-          const timesheetEl = document.getElementById("printableTimesheet");
-          if (timesheetEl) {
-            showPdfToast("Processing Timesheet (Landscape)...", true);
-            const tsCanvas = await html2canvas(timesheetEl, {
-              scale: 2,
-              useCORS: true,
-              logging: false,
-              backgroundColor: "#ffffff",
-            });
-            const tsImgData = tsCanvas.toDataURL("image/jpeg", 0.95);
-            pdf.addPage("a4", "landscape"); // 🟢 Adds Landscape A4 Page
-            const a4LandWidth = pdf.internal.pageSize.getWidth();
-            const a4LandHeight = pdf.internal.pageSize.getHeight();
-            pdf.addImage(tsImgData, "JPEG", 0, 0, a4LandWidth, a4LandHeight);
+          // 🟢 Page 2: Landscape Timesheet (includeTimesheet true ആകുമ്പോൾ മാത്രം)
+          if (includeTimesheet) {
+            const timesheetEl = document.getElementById("printableTimesheet");
+            if (timesheetEl) {
+              showPdfToast("Processing Timesheet (Landscape)...", true);
+              const tsCanvas = await html2canvas(timesheetEl, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: "#ffffff",
+              });
+              const tsImgData = tsCanvas.toDataURL("image/jpeg", 0.95);
+              pdf.addPage("a4", "landscape"); // 🟢 Adds Landscape A4 Page
+              const a4LandWidth = pdf.internal.pageSize.getWidth();
+              const a4LandHeight = pdf.internal.pageSize.getHeight();
+              pdf.addImage(tsImgData, "JPEG", 0, 0, a4LandWidth, a4LandHeight);
+            }
           }
 
           pdf.save(`${invNo}.pdf`);
