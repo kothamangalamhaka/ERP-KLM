@@ -1613,13 +1613,19 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
     if (["owner_name", "owner_mobile", "vat", "vat_no", "ledger_folio", "company_display_name", "company_display_name_", "company_arabic_name"].includes(cleanCol)) {
       let targetCol = cleanCol === "company_display_name_" ? "company_display_name" : cleanCol;
       
-      // Check if an active running owner log exists
+      // Find the old active owner log values before updating
+      let oldOwnerName = null;
+      let oldLedgerFolio = null;
+
       const checkActive = await pool.query(
-        `SELECT id FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) AND status = 'Running' ORDER BY id DESC LIMIT 1`,
+        `SELECT id, owner_name, ledger_folio FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) AND status = 'Running' ORDER BY id DESC LIMIT 1`,
         [plate_no]
       );
 
       if (checkActive.rows.length > 0) {
+        oldOwnerName = checkActive.rows[0].owner_name ? checkActive.rows[0].owner_name.trim() : null;
+        oldLedgerFolio = checkActive.rows[0].ledger_folio ? checkActive.rows[0].ledger_folio.trim() : null;
+
         await pool.query(
           `UPDATE vehicle_owner_log SET "${targetCol}" = $1 WHERE id = $2`,
           [value, checkActive.rows[0].id]
@@ -1629,6 +1635,27 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
           `INSERT INTO vehicle_owner_log (plate_no, "${targetCol}", status) VALUES ($1, $2, 'Running')`,
           [plate_no.trim().toUpperCase(), value]
         );
+      }
+
+      // 🟢 Cascade ledger_folio change to vat_billing_records
+      if (cleanCol === "ledger_folio" && value && value.trim()) {
+        const newLf = value.trim();
+        // If owner name exists, update by owner name; otherwise update by old LF
+        if (oldOwnerName) {
+          await pool.query(
+            `UPDATE vat_billing_records 
+             SET ledger_folio = $1, updated_at = CURRENT_TIMESTAMP 
+             WHERE LOWER(TRIM(supplier)) = LOWER(TRIM($2))`,
+            [newLf, oldOwnerName]
+          );
+        } else if (oldLedgerFolio && oldLedgerFolio !== newLf) {
+          await pool.query(
+            `UPDATE vat_billing_records 
+             SET ledger_folio = $1, updated_at = CURRENT_TIMESTAMP 
+             WHERE ledger_folio = $2`,
+            [newLf, oldLedgerFolio]
+          );
+        }
       }
 
       // 🟢 Period-Aware Sync for Owner Name across Billing and VAT records
