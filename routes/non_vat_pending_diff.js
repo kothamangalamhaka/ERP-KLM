@@ -326,6 +326,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
 
           const savedBill = billingData.find(
             (b) =>
+              (b.supplier || "").trim().toLowerCase() === normSup &&
               (b.site_name || "").toLowerCase().trim() === sFirst &&
               (b.ledger_folio || "").trim().toLowerCase() === siteLf &&
               b.month_index === m

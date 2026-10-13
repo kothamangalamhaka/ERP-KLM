@@ -436,6 +436,300 @@
             color: #38bdf8;
             background: rgba(255, 255, 255, 0.1);
         }
+
+        /* Notes Modal Styles (Dark Gradient Theme) */
+        .notes-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 11, 20, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+        }
+        .notes-modal-content {
+            width: 80%;
+            height: 90%;
+            background: linear-gradient(145deg, #0d1726, #090e17);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 12px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 25px rgba(56, 189, 248, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: #f1f5f9;
+        }
+        .notes-modal-header {
+            padding: 16px 24px;
+            background: linear-gradient(90deg, #0f2027, #203a43, #2c5364);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .notes-header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .notes-header-title h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+        .notes-badge-supplier {
+            background: rgba(56, 189, 248, 0.2);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .notes-modal-body {
+            flex: 1;
+            padding: 20px 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: radial-gradient(circle at top right, rgba(30, 58, 138, 0.1), transparent 60%);
+        }
+        .note-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .note-card:hover {
+            border-color: rgba(56, 189, 248, 0.35);
+        }
+        .note-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(255, 255, 255, 0.02);
+            transition: background 0.15s;
+        }
+        .note-card-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .note-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+        .note-toggle-arrow {
+            font-size: 11px;
+            color: #38bdf8;
+            transition: transform 0.2s ease;
+        }
+        .note-card.expanded .note-toggle-arrow {
+            transform: rotate(90deg);
+        }
+        .note-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .note-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .note-card-date {
+            font-size: 11px;
+            color: #94a3b8;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .note-action-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #94a3b8;
+            transition: color 0.15s, background 0.15s;
+        }
+        .note-action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+        .note-action-btn.btn-delete:hover {
+            color: #ef4444;
+        }
+        .note-card-body {
+            display: none;
+            padding: 14px 18px 16px 38px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #cbd5e1;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(15, 23, 42, 0.35);
+        }
+        .note-card.expanded .note-card-body {
+            display: block;
+        }
+
+        /* Floating Action Button (+ Add Note) */
+        .btn-fab-add-note {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(2, 132, 199, 0.4), 0 4px 12px rgba(0, 0, 0, 0.5);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+            z-index: 10;
+        }
+        .btn-fab-add-note:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 30px rgba(2, 132, 199, 0.6);
+            filter: brightness(1.15);
+        }
+
+        /* Gmail-style Compose Mini-Popup */
+        .gmail-compose-box {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 440px;
+            max-width: 90%;
+            background: #0f172a;
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 20;
+        }
+        .gmail-compose-header {
+            background: #1e293b;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .gmail-compose-header span {
+            font-size: 13px;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+        .gmail-compose-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+        .gmail-compose-close:hover { color: #ffffff; }
+        .gmail-compose-body {
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .gmail-input-title {
+            background: #090e17;
+            border: 1px solid #334155;
+            color: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+        .gmail-input-title:focus { border-color: #38bdf8; }
+        .gmail-input-content {
+            background: #090e17;
+            border: 1px solid #334155;
+            color: #f1f5f9;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            resize: vertical;
+            min-height: 110px;
+            max-height: 220px;
+            outline: none;
+            font-family: inherit;
+        }
+        .gmail-input-content:focus { border-color: #38bdf8; }
+        .gmail-compose-footer {
+            padding: 10px 14px;
+            background: #090e17;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .btn-gmail-cancel {
+            background: transparent;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            padding: 6px 14px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .btn-gmail-save {
+            background: #0284c7;
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-gmail-save:hover { background: #0369a1; }
+        .btn-supplier-note-icon {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            padding: 2px 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: transform 0.15s ease, opacity 0.15s ease;
+            opacity: 0.75;
+        }
+        .btn-supplier-note-icon:hover {
+            transform: scale(1.2);
+            opacity: 1;
+        }
         
     </style>
 </head>
@@ -476,6 +770,47 @@
                     <tbody id="tsBreakdownBody"></tbody>
                     <tfoot id="tsBreakdownFoot"></tfoot>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supplier Notes Modal (Dark Gradient 80% x 90%) -->
+    <div id="supplierNotesModal" class="notes-modal-overlay" onclick="if(event.target===this) closeNotesModal()">
+        <div class="notes-modal-content" style="position: relative;">
+            <div class="notes-modal-header">
+                <div class="notes-header-title">
+                    <span style="font-size: 18px;">📝</span>
+                    <h3>Supplier Notes & Remarks</h3>
+                    <span id="notesModalSupplierName" class="notes-badge-supplier"></span>
+                </div>
+                <button class="modal-close-btn" onclick="closeNotesModal()" style="font-size: 24px; color: #94a3b8; background: none; border: none; cursor: pointer;">&times;</button>
+            </div>
+
+            <!-- Notes Collapsible List Container -->
+            <div class="notes-modal-body" id="notesListContainer" style="padding-bottom: 80px;">
+                <!-- Notes loaded dynamically -->
+            </div>
+
+            <!-- Floating Action Button (+ Add Note) -->
+            <button class="btn-fab-add-note" onclick="openComposeBox()" title="Add New Note">
+                ➕ Add Note
+            </button>
+
+            <!-- Gmail-style Compose Mini-Popup -->
+            <div id="gmailComposeBox" class="gmail-compose-box">
+                <div class="gmail-compose-header">
+                    <span id="composeBoxTitle">New Note</span>
+                    <button class="gmail-compose-close" onclick="closeComposeBox()">&times;</button>
+                </div>
+                <div class="gmail-compose-body">
+                    <input type="hidden" id="editNoteId" value="">
+                    <input type="text" id="composeNoteTitle" class="gmail-input-title" placeholder="Subject / Header" maxlength="100">
+                    <textarea id="composeNoteContent" class="gmail-input-content" placeholder="Type note details here..."></textarea>
+                </div>
+                <div class="gmail-compose-footer">
+                    <button class="btn-gmail-cancel" onclick="closeComposeBox()">Cancel</button>
+                    <button class="btn-gmail-save" onclick="saveComposeNote()">Save</button>
+                </div>
             </div>
         </div>
     </div>
@@ -537,7 +872,10 @@
                     <div class="info-label">Supplier / Owner</div>
                     <div class="info-val" id="infoOwnerName"></div>
                 </div>
-                <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn-supplier-note-icon" onclick="openNotesModal()" title="Supplier Notes / Remarks">
+                        ✏️
+                    </button>
                     <span style="background: #fee2e2; color: #b91c1c; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 12px;">Non-VAT Vendor</span>
                 </div>
             </div>
@@ -655,7 +993,13 @@
             let firstMatchedSupplier = null;
 
             rawData.forEach(s => {
-                if (search && !s.supplier.toLowerCase().includes(search)) return;
+                // 🟢 Supplier Name allenkil Sites-le Ledger Folio match aavunundo ennu nokkunnu
+                const hasLfMatch = Array.isArray(s.sites) && s.sites.some(st => 
+                    (st.ledger_folio || "").toLowerCase().includes(search)
+                );
+                const hasSupplierMatch = s.supplier.toLowerCase().includes(search);
+
+                if (search && !hasSupplierMatch && !hasLfMatch) return;
 
                 matchCount++;
                 if (!firstMatchedSupplier) {
@@ -1382,6 +1726,193 @@
 
         // Initialize live sync listener
         initLiveSync();
+        
+
+        // ==========================================
+        // SUPPLIER NOTES LOGIC (COLLAPSIBLE + GMAIL POPUP + EDIT/DELETE)
+        // ==========================================
+        let currentSupplierNotes = [];
+
+        async function openNotesModal() {
+            if (!selectedSupplier) return;
+            document.getElementById("notesModalSupplierName").innerText = selectedSupplier;
+            document.getElementById("supplierNotesModal").style.display = "flex";
+            closeComposeBox();
+            await fetchSupplierNotes(selectedSupplier);
+        }
+
+        function closeNotesModal() {
+            document.getElementById("supplierNotesModal").style.display = "none";
+            closeComposeBox();
+        }
+
+        function openComposeBox(noteId = null) {
+            const box = document.getElementById("gmailComposeBox");
+            const titleEl = document.getElementById("composeBoxTitle");
+            const idInput = document.getElementById("editNoteId");
+            const titleInput = document.getElementById("composeNoteTitle");
+            const contentInput = document.getElementById("composeNoteContent");
+
+            if (noteId) {
+                const note = currentSupplierNotes.find(n => String(n.id) === String(noteId));
+                if (note) {
+                    titleEl.innerText = "Edit Note";
+                    idInput.value = note.id;
+                    titleInput.value = note.note_title || "";
+                    contentInput.value = note.note_content || "";
+                }
+            } else {
+                titleEl.innerText = "New Note";
+                idInput.value = "";
+                titleInput.value = "";
+                contentInput.value = "";
+            }
+
+            box.style.display = "flex";
+            contentInput.focus();
+        }
+
+        function closeComposeBox() {
+            document.getElementById("gmailComposeBox").style.display = "none";
+            document.getElementById("editNoteId").value = "";
+            document.getElementById("composeNoteTitle").value = "";
+            document.getElementById("composeNoteContent").value = "";
+        }
+
+        async function fetchSupplierNotes(supplierName) {
+            const container = document.getElementById("notesListContainer");
+            container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 40px;">Fetching notes...</div>`;
+
+            try {
+                const res = await fetch(`/timesheet/api/non-vat-tracking/notes?supplier=${encodeURIComponent(supplierName)}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                const json = await res.json();
+
+                if (json.success) {
+                    currentSupplierNotes = json.data || [];
+                    renderNotesList(currentSupplierNotes);
+                } else {
+                    container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 40px;">Error: ${escapeHTML(json.message)}</div>`;
+                }
+            } catch (err) {
+                container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 40px;">Network error loading notes</div>`;
+            }
+        }
+
+        function toggleNoteExpand(cardEl) {
+            cardEl.classList.toggle("expanded");
+        }
+
+        function renderNotesList(notes) {
+            const container = document.getElementById("notesListContainer");
+            if (!notes || notes.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #64748b; padding: 60px 20px;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">📋</div>
+                        <div>No notes recorded for this supplier yet.</div>
+                        <div style="font-size: 11px; margin-top: 4px;">Click the <b>+ Add Note</b> button at the bottom right.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = "";
+            notes.forEach(n => {
+                html += `
+                    <div class="note-card" id="noteCard_${n.id}">
+                        <div class="note-card-header" onclick="toggleNoteExpand(this.parentElement)">
+                            <div class="note-header-left">
+                                <span class="note-toggle-arrow">▶</span>
+                                <span class="note-card-title">${escapeHTML(n.note_title || "Remark")}</span>
+                            </div>
+                            <div class="note-header-right" onclick="event.stopPropagation()">
+                                <span class="note-card-date">🕒 ${escapeHTML(n.formatted_date || "")}</span>
+                                <button class="note-action-btn" title="Edit Note" onclick="openComposeBox(${n.id})">✏️</button>
+                                <button class="note-action-btn btn-delete" title="Delete Note" onclick="deleteNote(${n.id})">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="note-card-body">${escapeHTML(n.note_content || "")}</div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        async function saveComposeNote() {
+            if (!selectedSupplier) return;
+            const noteId = document.getElementById("editNoteId").value.trim();
+            const title = document.getElementById("composeNoteTitle").value.trim();
+            const content = document.getElementById("composeNoteContent").value.trim();
+
+            if (!content) {
+                alert("Please enter note details!");
+                document.getElementById("composeNoteContent").focus();
+                return;
+            }
+
+            showStatus("Saving...", "saving");
+
+            try {
+                const url = noteId 
+                    ? `/timesheet/api/non-vat-tracking/notes/${noteId}`
+                    : `/timesheet/api/non-vat-tracking/notes`;
+                const method = noteId ? "PUT" : "POST";
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-vat-code": vatCode
+                    },
+                    body: JSON.stringify({
+                        supplier: selectedSupplier,
+                        title: title,
+                        content: content
+                    })
+                });
+
+                const json = await res.json();
+                if (json.success) {
+                    closeComposeBox();
+                    showStatus("Note Saved", "saved");
+                    await fetchSupplierNotes(selectedSupplier);
+                } else {
+                    showStatus("Save Failed", "error");
+                    alert("Error: " + json.message);
+                }
+            } catch (err) {
+                showStatus("Network Error", "error");
+                alert("Network error saving note");
+            }
+        }
+
+        async function deleteNote(noteId) {
+            if (!confirm("Are you sure you want to delete this note?")) return;
+
+            showStatus("Deleting...", "saving");
+
+            try {
+                const res = await fetch(`/timesheet/api/non-vat-tracking/notes/${noteId}`, {
+                    method: "DELETE",
+                    headers: { "x-vat-code": vatCode }
+                });
+
+                const json = await res.json();
+                if (json.success) {
+                    showStatus("Note Deleted", "saved");
+                    await fetchSupplierNotes(selectedSupplier);
+                } else {
+                    showStatus("Delete Failed", "error");
+                    alert("Error: " + json.message);
+                }
+            } catch (err) {
+                showStatus("Network Error", "error");
+                alert("Network error deleting note");
+            }
+        }
+
     </script>
 </body>
 </html>

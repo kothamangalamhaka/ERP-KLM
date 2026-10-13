@@ -407,9 +407,10 @@ router.get("/data", verifyAccessCode, async (req, res) => {
           });
 
           const currentCardLf = (siteObj.ledger_folio || "").trim().toLowerCase();
-          // 🟢 Owner Name maariyaalum data miss aavathirikkan LF + Site vachu match cheyyunnu
+          // 🟢 Supplier + Site + Ledger Folio match cheythu mathram saved quick dice edukkkunnu (Prevents cross-supplier collision on same LF)
           const savedBill = billingData.find(
             (b) =>
+              (b.supplier || "").trim().toLowerCase() === normSup &&
               (b.site_name || "").toLowerCase().trim() === sFirst &&
               (b.ledger_folio || "").trim().toLowerCase() === currentCardLf &&
               b.month_index === m,
@@ -679,7 +680,7 @@ function broadcastNonVatUpdate(payload) {
   });
 }
 
-// 3. UPSERT Quick Dice for Non-VAT per Site + Ledger Folio
+// 3. UPSERT Quick Dice for Non-VAT per Supplier + Site + Ledger Folio
 router.post("/update-cell", verifyAccessCode, async (req, res) => {
   try {
     const { year, supplier, site_first_name, ledger_folio, month_index, value } = req.body;
@@ -691,39 +692,39 @@ router.post("/update-cell", verifyAccessCode, async (req, res) => {
         ? null
         : String(value).trim();
     const cleanLf = (ledger_folio || "").trim();
-
-    // Ledger folio eppozhum empty string aayi coalesce cheythu save cheyyunnu
     const cleanLfStr = cleanLf || "";
+    const cleanSup = String(supplier).trim();
 
-    // 🟢 Ee LF + Site-il already record undenkil puthiya supplier perilekku update aakkunnu
+    // 🟢 Supplier + Site + LF moonnum koodi nokki check cheyyunnu (Same LF ullavar collision aavilla)
     const existingCheck = await pool.query(
       `SELECT id FROM vat_billing_records 
        WHERE year = $1 AND company = 'NON_VAT' 
-         AND site_name = $2 
-         AND COALESCE(ledger_folio, '') = $3 
-         AND month_index = $4 LIMIT 1`,
-      [parseInt(year), site_first_name.trim().toLowerCase(), cleanLfStr, parseInt(month_index)]
+         AND LOWER(TRIM(supplier)) = LOWER(TRIM($2))
+         AND site_name = $3 
+         AND COALESCE(ledger_folio, '') = $4 
+         AND month_index = $5 LIMIT 1`,
+      [parseInt(year), cleanSup, site_first_name.trim().toLowerCase(), cleanLfStr, parseInt(month_index)]
     );
 
     if (existingCheck.rows.length > 0) {
       await pool.query(
         `UPDATE vat_billing_records 
-         SET quick_dice = $1, supplier = $2, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = $3`,
-        [valToSave, supplier, existingCheck.rows[0].id]
+         SET quick_dice = $1, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $2`,
+        [valToSave, existingCheck.rows[0].id]
       );
     } else {
       await pool.query(
         `INSERT INTO vat_billing_records (year, company, supplier, site_name, ledger_folio, month_index, quick_dice)
          VALUES ($1, 'NON_VAT', $2, $3, $4, $5, $6)`,
-        [parseInt(year), supplier, site_first_name.trim().toLowerCase(), cleanLfStr, parseInt(month_index), valToSave]
+        [parseInt(year), cleanSup, site_first_name.trim().toLowerCase(), cleanLfStr, parseInt(month_index), valToSave]
       );
     }
 
-    // 🟢 Broadcast live update to other users with ledger_folio
+    // 🟢 Broadcast live update to other users with supplier & ledger_folio
     broadcastNonVatUpdate({
       year: parseInt(year),
-      supplier: supplier,
+      supplier: cleanSup,
       site_first_name: site_first_name.trim().toLowerCase(),
       ledger_folio: cleanLf,
       month_index: parseInt(month_index),
@@ -733,6 +734,99 @@ router.post("/update-cell", verifyAccessCode, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.json({ success: false, message: error.message });
+  }
+});
+
+// ==========================================
+// SUPPLIER NOTES / REMARKS APIS
+// ==========================================
+router.get("/notes", verifyAccessCode, async (req, res) => {
+  try {
+    const { supplier } = req.query;
+    if (!supplier) {
+      return res.status(400).json({ success: false, message: "Supplier name is required" });
+    }
+
+    const result = await pool.query(
+      `SELECT id, supplier_name, note_title, note_content, 
+              TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date,
+              created_at
+       FROM supplier_notes
+       WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($1))
+       ORDER BY created_at DESC, id DESC`,
+      [supplier]
+    );
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post("/notes", verifyAccessCode, async (req, res) => {
+  try {
+    const { supplier, title, content } = req.body;
+    if (!supplier || !content || !content.trim()) {
+      return res.status(400).json({ success: false, message: "Supplier and note content are required" });
+    }
+
+    const cleanTitle = (title || "").trim() || "Remark";
+    const cleanContent = content.trim();
+
+    const insertRes = await pool.query(
+      `INSERT INTO supplier_notes (supplier_name, note_title, note_content)
+       VALUES ($1, $2, $3)
+       RETURNING id, supplier_name, note_title, note_content,
+                 TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date,
+                 created_at`,
+      [supplier.trim(), cleanTitle, cleanContent]
+    );
+
+    res.json({ success: true, data: insertRes.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Update an existing note
+router.put("/notes/:id", verifyAccessCode, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content } = req.body;
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: "Content is required" });
+    }
+
+    const cleanTitle = (title || "").trim() || "Remark";
+    const cleanContent = content.trim();
+
+    const updateRes = await pool.query(
+      `UPDATE supplier_notes 
+       SET note_title = $1, note_content = $2 
+       WHERE id = $3 
+       RETURNING id, supplier_name, note_title, note_content,
+                 TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date`,
+      [cleanTitle, cleanContent, parseInt(id)]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Note not found" });
+    }
+
+    res.json({ success: true, data: updateRes.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Delete a note
+router.delete("/notes/:id", verifyAccessCode, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query(`DELETE FROM supplier_notes WHERE id = $1`, [parseInt(id)]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
