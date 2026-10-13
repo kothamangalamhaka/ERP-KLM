@@ -2036,6 +2036,16 @@
                 <i class="material-icons" style="font-size:16px;">visibility</i> Seal/Sign
               </button>
 
+              <!-- 🟢 VENDOR BILL SUMMARY BUTTON -->
+              <button
+                class="btn"
+                title="Open Vendor Bill Summary"
+                style="background:#ff9800;"
+                onclick="openVendorBillFromSiteCoCard(this)"
+              >
+                <i class="material-icons" style="font-size:16px;">receipt</i> Bill Summary
+              </button>
+
               <!-- NORMAL MODE -->
               <button
                 class="btn card-edit-btn"
@@ -4441,6 +4451,123 @@
 
         sessionStorage.setItem("activeEInvoiceData", JSON.stringify(payload));
         window.open("/e-invoice/index.html", "_blank");
+      }
+
+      /* ============================================================
+       * 🟢 OPEN VENDOR BILL FROM SITE CO CARD
+       * ============================================================
+       */
+      // 🟢 'async' keyword add cheythu
+      async function openVendorBillFromSiteCoCard(btn) {
+        const card = btn.closest(".bill-card");
+        if (!card) return showToast("Card not found!");
+
+        const selMonth = document.getElementById("selMonth")?.value || "";
+        const selYear = document.getElementById("selYear")?.value || "";
+        const billingMonth = `${selMonth} ${selYear}`.trim();
+
+        const rows = [];
+        let matchedOwnerInfo = null;
+
+        card.querySelectorAll(".supplier-bill-table tbody tr").forEach((tr) => {
+          const displayPlate = tr.getAttribute("data-plate") || tr.querySelector(".manual-plate-input")?.value?.trim() || tr.children[5]?.innerText?.trim() || "";
+          const masterPlate = tr.getAttribute("data-master-plate") || displayPlate;
+          const vtype = tr.children[2]?.innerText?.trim() || "";
+          const site = tr.getAttribute("data-site") || tr.children[3]?.innerText?.trim() || "";
+          const driver = tr.children[4]?.innerText?.trim() || "";
+          const nhr = parseFloat(tr.querySelector(".nhr-field")?.value || tr.querySelector(".nhr-cell .view-number-text")?.innerText || 0);
+          const othr = parseFloat(tr.querySelector(".othr-field")?.value || tr.querySelector(".othr-cell .view-number-text")?.innerText || 0);
+
+          const cells = tr.querySelectorAll(".rate-column-cell");
+          const nrate = parseFloat(cells[0]?.querySelector(".nrate-field")?.value || cells[0]?.querySelector(".view-number-text")?.innerText || 0);
+          const otrate = parseFloat(cells[1]?.querySelector(".otrate-field")?.value || cells[1]?.querySelector(".view-number-text")?.innerText || 0);
+
+          const rent = parseFloat(tr.querySelector(".rent-cell")?.innerText || (nhr * nrate + othr * otrate) || 0);
+          const vatVal = parseFloat(tr.querySelector(".vat-cell")?.innerText || 0);
+          const vatPercent = parseFloat(tr.querySelector(".vat-percent-field")?.value || (vatVal > 0 ? 15 : 0));
+          const total = parseFloat(tr.querySelector(".total-cell")?.innerText || (rent + vatVal) || 0);
+
+          if (displayPlate || rent > 0 || nhr > 0 || othr > 0) {
+            rows.push({
+              plate: displayPlate,
+              master_plate: masterPlate,
+              vtype: vtype,
+              vtype_ar: "",
+              driver: driver,
+              site: site,
+              nhr: nhr,
+              nrate: nrate,
+              othr: othr,
+              otrate: otrate,
+              rent: rent,
+              vat_percent: vatPercent,
+              vat_amount: vatVal,
+              total: total
+            });
+          }
+
+          if (!matchedOwnerInfo) {
+            const match = findMatchingPlateRecord(fetchedRowsCache, displayPlate || masterPlate);
+            if (match) matchedOwnerInfo = match;
+          }
+        });
+
+        if (rows.length === 0) {
+          return showToast("No valid vehicle rows found in this card!");
+        }
+
+        const firstTr = card.querySelector(".supplier-bill-table tbody tr");
+        const cardOwner = (firstTr?.getAttribute("data-owner") || matchedOwnerInfo?.owner || "COMPANY VEHICLE").trim();
+        const vendorArabicName = (firstTr?.getAttribute("data-company-arabic") || matchedOwnerInfo?.company_arabic_name || "").trim();
+        const vendorDisplayName = (firstTr?.getAttribute("data-company-display") || matchedOwnerInfo?.company_display_name || cardOwner).trim();
+        const vendorVatNo = (firstTr?.getAttribute("data-vat-no") || matchedOwnerInfo?.vat_no || "").trim();
+
+        const firstSite = rows[0]?.site || "";
+        const detectedComp = getCompanyFromSite(firstSite);
+
+        const grandRent = parseFloat(card.querySelector(".grand-rent")?.innerText || 0);
+        const grandVat = parseFloat(card.querySelector(".grand-vat")?.innerText || 0);
+        const grandTotal = parseFloat(card.querySelector(".grand-total")?.innerText || (grandRent + grandVat));
+
+        showToast("Preparing Bill & Card Snapshot...");
+
+        // 🟢 Site Co card-inte snapshot capture cheyyunnu (Rate/remark columns hide cheythu print area maathram)
+        let cardImageData = "";
+        try {
+          const printArea = card.querySelector(".print-area") || card;
+          card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => el.style.setProperty("display", "none", "important"));
+          card.querySelectorAll(".site-column-cell").forEach((el) => el.style.setProperty("display", "none", "important"));
+          const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
+          if (grandTotalCell) grandTotalCell.setAttribute("colspan", "5");
+
+          const canvas = await html2canvas(printArea, { scale: 2.5, useCORS: true, logging: false });
+          cardImageData = canvas.toDataURL("image/jpeg", 0.95);
+
+          card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => (el.style.display = ""));
+          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          if (grandTotalCell) grandTotalCell.setAttribute("colspan", "6");
+        } catch (err) {
+          console.warn("Site Co snapshot error:", err);
+        }
+
+        const payload = {
+          source: "VB",
+          billingMonth: billingMonth,
+          ownerName: cardOwner,
+          ownerNick: cardOwner,
+          vendorDisplayName: vendorArabicName || vendorDisplayName || cardOwner,
+          vendorArabicName: vendorArabicName,
+          vendorVatNo: vendorVatNo,
+          companyName: detectedComp,
+          rows: rows,
+          grandRent: grandRent,
+          grandVat: grandVat,
+          grandTotal: grandTotal,
+          billingCardImage: cardImageData // 🟢 Second page-lekku merge cheyyaanulla image
+        };
+
+        sessionStorage.setItem("activeVendorBillData", JSON.stringify(payload));
+        window.open("/Office/e-invoice/vendorbill.html", "_blank");
       }
     </script>
   </body>

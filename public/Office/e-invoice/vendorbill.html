@@ -1,0 +1,2036 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bill Summary - ملخص الفاتورة</title>
+    <script src="/node_xlsx_scripts/qrcode.min.js"></script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-theme: #0284c7;
+        --primary-dark: #002886;
+        --primary-border: #0369a1;
+        --primary-light-bg: #e0f2fe;
+        --table-header-bg: #0284c7;
+        --table-header-text: #ffffff;
+      }
+
+      body {
+        margin: 0;
+        padding: 20px;
+        background: #1e293b;
+        font-family: "Inter", "Tajawal", sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .top-ribbon {
+        width: 100%;
+        max-width: 1200px;
+        background: #0f172a;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-sizing: border-box;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+      }
+      .ribbon-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .ribbon-select {
+        padding: 6px 10px;
+        border-radius: 5px;
+        border: 1px solid #475569;
+        background: #1e293b;
+        color: white;
+        font-size: 13px;
+        outline: none;
+        cursor: pointer;
+        max-width: 220px;
+      }
+      .btn-ribbon {
+        padding: 7px 14px;
+        border-radius: 5px;
+        border: none;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+      .btn-pdf { background: #10b981; color: white; }
+      .btn-pdf:hover { background: #059669; }
+      .btn-seal { background: #8b5cf6; color: white; }
+      .btn-seal.active { background: #dc2626; }
+      .btn-dash { background: #475569; color: white; text-decoration: none; }
+      .btn-dash:hover { background: #334155; }
+      .btn-edit-bill { background: #f59e0b; color: #000; }
+      .btn-edit-bill:hover { background: #d97706; color: #fff; }
+      .btn-cust { background: #0284c7; color: white; }
+      .btn-cust:hover { background: #0369a1; }
+
+      .invoice-page {
+        width: 860px;
+        min-height: 1180px;
+        background: #ffffff;
+        position: relative;
+        padding: 40px 45px;
+        box-sizing: border-box;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s ease;
+      }
+      .watermark-logo {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 450px;
+        opacity: 0.05;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .content-wrapper {
+        position: relative;
+        z-index: 1;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2.5px solid var(--primary-dark);
+        padding-bottom: 12px;
+      }
+      .comp-en {
+        text-align: left;
+        direction: ltr;
+        font-size: 13.5px;
+        color: var(--primary-dark);
+        line-height: 1.4;
+        width: 35%;
+      }
+      .comp-en b {
+        font-size: 16.5px;
+        font-weight: 800;
+        color: #0f172a;
+        display: inline-block;
+        margin-bottom: 3px;
+        text-transform: uppercase;
+      }
+      .comp-ar {
+        text-align: right;
+        direction: rtl;
+        font-family: "Tajawal", sans-serif;
+        font-size: 14.5px;
+        color: var(--primary-dark);
+        line-height: 1.4;
+        width: 35%;
+      }
+      .comp-ar b {
+        font-size: 16.5px;
+        display: inline-block;
+        margin-bottom: 2px;
+      }
+      .comp-logo {
+        max-height: 90px;
+        max-width: 160px;
+        object-fit: contain;
+      }
+
+      .title-meta-grid {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        margin-top: 15px;
+        margin-bottom: 15px;
+        width: 100%;
+      }
+      .meta-left-wrap {
+        grid-column: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .title-center-wrap {
+        grid-column: 2;
+        text-align: center;
+      }
+      .inv-title {
+        font-size: 21px;
+        font-weight: 800;
+        color: var(--primary-dark);
+        font-family: "Tajawal", sans-serif;
+        border-bottom: 2.5px solid var(--primary-theme);
+        padding-bottom: 4px;
+        display: inline-block;
+      }
+      .meta-right-wrap {
+        grid-column: 3;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .meta-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .meta-label {
+        font-size: 11.5px;
+        color: #334155;
+        font-weight: 700;
+        font-family: "Tajawal", sans-serif;
+      }
+      .meta-tag {
+        background: #f8fafc;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #cbd5e1;
+        font-family: monospace;
+        min-width: 140px;
+        white-space: nowrap;
+        text-align: center;
+        box-sizing: border-box;
+        display: inline-block;
+      }
+
+      /* 🟢 Vendor details styling (No Labels) */
+      .middle-details-bar {
+        display: flex;
+        width: 100%;
+        margin-bottom: 18px;
+      }
+      .buyer-box {
+        display: flex;
+        flex-direction: column;
+        max-width: 75%;
+      }
+      .buyer-name {
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.35;
+        font-family: "Tajawal", "Inter", sans-serif;
+        margin-bottom: 2px;
+      }
+      .buyer-vat {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        font-family: monospace;
+      }
+
+      /* Alignment Classes */
+      .align-left {
+        justify-content: flex-start !important;
+        text-align: left !important;
+      }
+      .align-left .buyer-box {
+        align-items: flex-start !important;
+        text-align: left !important;
+      }
+      .align-right {
+        justify-content: flex-end !important;
+        text-align: right !important;
+      }
+      .align-right .buyer-box {
+        align-items: flex-end !important;
+        text-align: right !important;
+      }
+
+      .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: center;
+        font-size: 12px;
+        background: transparent;
+      }
+      .items-table th,
+      .items-table td {
+        border: 1.5px solid var(--primary-border);
+        padding: 8px 6px;
+        background: transparent;
+      }
+      .items-table th {
+        background: var(--table-header-bg);
+        font-weight: 800;
+        color: var(--table-header-text);
+        font-size: 11.5px;
+        letter-spacing: 0.3px;
+      }
+
+      .summary-container-wrap {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 15px;
+        width: 100%;
+      }
+      .arabic-summary-table {
+        border-collapse: collapse;
+        font-family: "Tajawal", sans-serif;
+        direction: rtl;
+        font-size: 13.5px;
+        min-width: 320px;
+      }
+      .arabic-summary-table td {
+        padding: 5px 8px;
+        border: none !important;
+      }
+      .arabic-summary-table .sum-lbl {
+        color: #334155;
+        font-weight: 700;
+        text-align: right;
+      }
+      .arabic-summary-table .sum-val {
+        color: #0f172a;
+        font-weight: 800;
+        font-family: monospace;
+        font-size: 14px;
+        text-align: left;
+        direction: ltr;
+        min-width: 110px;
+      }
+      .arabic-summary-table .grand-row td {
+        font-size: 16px;
+        color: #0f172a !important;
+        font-weight: 800;
+        border-top: 1.5px solid #cbd5e1 !important;
+        padding-top: 8px;
+      }
+      .arabic-summary-table .grand-row .sum-val {
+        color: #0f172a !important;
+      }
+
+      .bottom-section {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-top: 25px;
+        width: 100%;
+      }
+      .seal-sign-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 15px;
+      }
+      .seal-sign-group {
+        display: flex;
+        align-items: flex-end;
+        gap: 20px;
+        margin-right: 15px;
+      }
+      .digital-auth-line {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        letter-spacing: 0px; /* 🟢 letter-spacing 0 ആക്കണം, അല്ലാത്തപക്ഷം അക്ഷരങ്ങൾ വേർപെട്ടുപോകും */
+        margin-bottom: 6px;
+        font-family: "Tajawal", sans-serif;
+        direction: rtl !important;
+        text-align: right;
+        display: inline-block;
+      }
+      .remarks-display-box {
+        width: 85%;
+        max-width: 85%;
+        text-align: left;
+        font-size: 11.5px;
+        line-height: 1.35;
+        color: #000000;
+        background: transparent;
+        border-left: 3.5px solid var(--primary-theme);
+        padding: 4px 10px;
+        border-radius: 0 6px 6px 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        box-sizing: border-box;
+      }
+      .remarks-display-title {
+        font-weight: 800;
+        font-size: 11px;
+        color: #000000;
+        text-transform: uppercase;
+        margin-bottom: 2px;
+        letter-spacing: 0.5px;
+      }
+      .stamp-img { max-height: 105px; object-fit: contain; }
+      .sign-img { max-height: 85px; object-fit: contain; }
+
+      .invoice-footer {
+        border-top: 2px solid var(--primary-dark);
+        padding-top: 10px;
+        margin-top: auto;
+        font-size: 11px;
+        text-align: center;
+        line-height: 1.5;
+        direction: ltr;
+        width: 100%;
+      }
+
+      /* Themes */
+      .theme-haka {
+        --primary-theme: #d97706;
+        --primary-dark: #b45309;
+        --primary-border: #f59e0b;
+        --primary-light-bg: #fef3c7;
+        --table-header-bg: #d97706;
+        --table-header-text: #ffffff;
+      }
+      .theme-haka .items-table { direction: rtl !important; }
+      .theme-haka .remarks-display-box {
+        text-align: right !important;
+        direction: rtl !important;
+        border-left: none !important;
+        border-right: 3.5px solid #d97706 !important;
+        border-radius: 6px 0 0 6px !important;
+      }
+
+      .theme-masar {
+        --primary-theme: #ea580c;
+        --primary-dark: #0f2c59;
+        --primary-border: #1e3a8a;
+        --primary-light-bg: #ffedd5;
+        --table-header-bg: linear-gradient(120deg, #001757 0%, #001757 100%);
+        --table-header-text: #ffffff;
+      }
+      .theme-masar .inv-title {
+        background: linear-gradient(120deg, #001757, #001757);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        border-bottom: 2.5px solid #ea580c;
+      }
+      .theme-masar .items-table { direction: rtl !important; }
+      .theme-masar .remarks-display-box {
+        text-align: right !important;
+        direction: rtl !important;
+        border-left: none !important;
+        border-right: 3.5px solid #ea580c !important;
+        border-radius: 6px 0 0 6px !important;
+      }
+
+      .theme-wefaq {
+        --primary-theme: #f9ba85;
+        --primary-dark: #c25e10;
+        --primary-border: #f59e0b;
+        --primary-light-bg: #fff7ed;
+        --table-header-bg: #f9ba85;
+        --table-header-text: #000000;
+      }
+
+      .theme-default {
+        --primary-theme: #0284c7;
+        --primary-dark: #002886;
+        --primary-border: #0369a1;
+        --primary-light-bg: #e0f2fe;
+        --table-header-bg: #0284c7;
+        --table-header-text: #ffffff;
+      }
+
+      /* Modals */
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      .modal-card {
+        background: #ffffff;
+        border-radius: 10px;
+        padding: 24px;
+        box-shadow: 0 20px 35px rgba(0, 0, 0, 0.3);
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      .edit-bill-modal { width: 650px; max-width: 95vw; }
+      .cust-modal { width: 680px; max-width: 90vw; }
+      .small-modal { width: 450px; max-width: 90vw; }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+      }
+      .modal-header h2 { margin: 0; font-size: 18px; color: #0f172a; }
+      .modal-close-btn {
+        background: transparent;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #64748b;
+        font-weight: 700;
+      }
+
+      .form-grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        text-align: left;
+        margin-bottom: 10px;
+      }
+      .form-group label {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #475569;
+      }
+      .form-input {
+        padding: 8px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 5px;
+        font-size: 13px;
+        outline: none;
+      }
+      .form-input:focus { border-color: #0284c7; }
+      .readonly-input {
+        background: #f1f5f9;
+        cursor: not-allowed;
+        font-family: monospace;
+        font-weight: 700;
+      }
+      .popup-items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+      .popup-items-table th,
+      .popup-items-table td {
+        border: 1px solid #cbd5e1;
+        padding: 6px;
+        text-align: center;
+      }
+      .popup-items-table th {
+        background: #f1f5f9;
+        font-weight: 700;
+        color: #334155;
+      }
+      .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+        border-top: 1px solid #e2e8f0;
+        padding-top: 14px;
+      }
+
+      /* Toast */
+      #pdfToast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #0f172a;
+        color: #ffffff;
+        padding: 14px 22px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        border-left: 4px solid #10b981;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        z-index: 999999;
+      }
+      .toast-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Security Lock */
+      #securityLockOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #0f172a;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .security-box {
+        background: #1e293b;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        text-align: center;
+        border: 1px solid #334155;
+        width: 320px;
+      }
+      .security-box h2 {
+        color: #f8fafc;
+        margin-top: 0;
+        font-size: 18px;
+        margin-bottom: 20px;
+      }
+      .security-box input {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        border: 1px solid #475569;
+        background: #0f172a;
+        color: #fff;
+        text-align: center;
+        font-size: 16px;
+        letter-spacing: 2px;
+        box-sizing: border-box;
+      }
+      .security-box button {
+        width: 100%;
+        background: #0284c7;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 5px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .sec-err {
+        color: #ef4444;
+        font-size: 12px;
+        margin-bottom: 10px;
+        display: none;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Toast Progress -->
+    <div id="pdfToast">
+      <div id="pdfToastSpinner" class="toast-spinner"></div>
+      <span id="pdfToastMsg">Processing...</span>
+    </div>
+
+    <!-- Security Lock Overlay -->
+    <div id="securityLockOverlay">
+      <div class="security-box">
+        <h2>🔒 Enter Access Code</h2>
+        <div id="secError" class="sec-err">Invalid Code. Try again.</div>
+        <input
+          type="password"
+          id="secCodeInput"
+          placeholder="Enter Code"
+          onkeypress="if (event.key === 'Enter') verifySecurityCode();"
+        />
+        <button onclick="verifySecurityCode()">Unlock System</button>
+      </div>
+    </div>
+
+    <!-- Top Ribbon -->
+    <div class="top-ribbon">
+      <div class="ribbon-group">
+        <label style="font-size: 12px; font-weight: 600">Company:</label>
+        <select
+          id="companySelect"
+          class="ribbon-select"
+          onchange="onCompanySelectChange()"
+        >
+          <option value="">-- Choose Company --</option>
+        </select>
+
+        <button
+          id="btnOpenEditModal"
+          class="btn-ribbon btn-edit-bill"
+          onclick="openEditBillModal()"
+        >
+          ✏️ Edit Details
+        </button>
+
+        <button
+          id="sealToggleBtn"
+          class="btn-ribbon btn-seal"
+          onclick="toggleSealEngagement()"
+        >
+          Seal & Sign
+        </button>
+      </div>
+
+      <div class="ribbon-group">
+        <button class="btn-ribbon btn-cust" onclick="openSupplierModal()">
+          Vendors Directory
+        </button>
+        <a href="vbill-dashboard.html" class="btn-ribbon btn-dash">Dashboard</a>
+        <button
+          class="btn-ribbon btn-dash"
+          style="background: #2563eb"
+          onclick="saveVendorBillRecord(false)"
+        >
+          💾 Save
+        </button>
+
+        <button class="btn-ribbon btn-pdf" onclick="downloadInvoicePDF()">
+          📄 Download PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Printable Sheet -->
+    <div class="invoice-page theme-default" id="printableInvoice">
+      <img
+        id="watermarkLogo"
+        class="watermark-logo"
+        src=""
+        alt=""
+        style="display: none"
+      />
+
+      <div class="content-wrapper">
+        <div class="invoice-header">
+          <div class="comp-en" id="headerCompEn"></div>
+          <img
+            id="headerLogo"
+            class="comp-logo"
+            src=""
+            alt=""
+            style="display: none"
+          />
+          <div class="comp-ar" id="headerCompAr"></div>
+        </div>
+
+        <div class="title-meta-grid" id="titleMetaGrid">
+          <!-- 🟢 Left Meta Wrap (Haka & Masar എന്നിവയ്ക്ക്) -->
+          <div class="meta-left-wrap" id="metaLeftWrap" style="display: none">
+            <div class="meta-row">
+              <span id="dateDisplayLeft" class="meta-tag">------</span>
+              <span class="meta-label">التاريخ :</span>
+            </div>
+            <div class="meta-row">
+              <span id="invNoDisplayLeft" class="meta-tag">------</span>
+              <span class="meta-label">رقم الفاتورة :</span>
+            </div>
+            <div class="meta-row">
+              <span id="supplyDateDisplayLeft" class="meta-tag">------</span>
+              <span class="meta-label">تاريخ التوريد :</span>
+            </div>
+          </div>
+
+          <!-- 🟢 Center Title (Always Bill Summary / ملخص الفاتورة) -->
+          <div class="title-center-wrap">
+            <div class="inv-title" id="invTitleDisplay">
+              Bill Summary - ملخص الفاتورة
+            </div>
+          </div>
+
+          <!-- 🟢 Right Meta Wrap (All Companies have Arabic Labels) -->
+          <div class="meta-right-wrap" id="metaRightWrap">
+            <div class="meta-row">
+              <span class="meta-label">التاريخ :</span>
+              <span id="dateDisplay" class="meta-tag">------</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">رقم الفاتورة :</span>
+              <span id="invNoDisplay" class="meta-tag">------</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">شهر التوريد :</span>
+              <span id="supplyDateDisplay" class="meta-tag">------</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🟢 Middle Details Bar: No Labels, Company-specific alignment -->
+        <div class="middle-details-bar align-right" id="buyerDetailsBar">
+          <div class="buyer-box">
+            <div class="buyer-name" id="buyerNameDisplay"></div>
+            <div class="buyer-vat" id="buyerVatDisplay"></div>
+          </div>
+        </div>
+
+        <table class="items-table" id="itemsTable">
+          <thead id="itemsTableHead"></thead>
+          <tbody id="invoiceItemsBody"></tbody>
+        </table>
+
+        <div class="summary-container-wrap" style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-top: 15px;">
+          <!-- 🟢 Right/Opposite portion-il ZATCA QR Code -->
+          <div id="zatcaQrWrapper" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px;">
+            <!-- 🟢 Border പൂർണ്ണമായി ഒഴിവാക്കി, സ്കാനിംഗിന് ആവശ്യമായ ക്ലീൻ വൈറ്റ് പാഡിംഗ് മാത്രം നിലനിർത്തുന്നു -->
+<div id="zatcaQrCanvas" style="padding: 6px; background: #ffffff; min-width: 88px; min-height: 88px; display: flex; align-items: center; justify-content: center;"></div>
+          </div>
+
+          <table class="arabic-summary-table">
+            <tr>
+              <td class="sum-lbl">الإجمالي قبل الضريبة :</td>
+              <td class="sum-val" id="sumBeforeVat">0.00</td>
+            </tr>
+            <tr>
+              <td class="sum-lbl">ضريبة القيمة المضافة :</td>
+              <td class="sum-val" id="sumVatAmount">0.00</td>
+            </tr>
+            <tr class="grand-row">
+              <td class="sum-lbl">الإجمالي شامل الضريبة :</td>
+              <td class="sum-val" id="sumGrandTotal">0.00</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="bottom-section">
+          <div class="seal-sign-wrapper">
+            <!-- 🟢 ചിഹ്നങ്ങൾ ഒഴിവാക്കിയ ക്ലീൻ അറബിക് വാചകം (PDF-ൽ അക്ഷരങ്ങൾ പരസ്പരം ഒട്ടി ക്ലിയറായി വരും) -->
+            <div class="digital-auth-line" id="digitalAuthLine" dir="rtl">
+              ملخص الفاتورة المعد إلكترونيا - تم التحقق منه واعتماده رقميا
+            </div>
+
+            <div class="seal-sign-group">
+              <img
+                id="stampImage"
+                class="stamp-img"
+                src=""
+                alt="Seal"
+                style="display: none"
+              />
+              <img
+                id="signImage"
+                class="sign-img"
+                src=""
+                alt="Signature"
+                style="display: none"
+              />
+            </div>
+          </div>
+          <div
+            id="remarksDisplayContainer"
+            class="remarks-display-box"
+            style="display: none"
+          >
+            <div class="remarks-display-title" id="remarksDisplayTitle">
+              Note
+            </div>
+            <div id="remarksDisplayText"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="invoice-footer">
+        <span id="footerAddrContainer"></span>
+        <div id="footerEmail" style="margin-top: 2px"></div>
+      </div>
+    </div>
+
+    <!-- 🟢 Edit Details Modal (Stable Supply Month - non-editable) -->
+    <div class="modal-backdrop" id="editBillModal">
+      <div class="modal-card edit-bill-modal">
+        <div class="modal-header">
+          <h2>✏️ Edit Bill Details</h2>
+          <button class="modal-close-btn" onclick="closeEditBillModal()">
+            &times;
+          </button>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>Bill No (Auto-Generated):</label>
+            <input
+              type="text"
+              id="modalInvNo"
+              class="form-input readonly-input"
+              readonly
+            />
+          </div>
+          <div class="form-group">
+            <label>Bill Date (YYYY-MM-DD):</label>
+            <input
+              type="date"
+              id="modalDate"
+              class="form-input"
+              onchange="onModalDateChange()"
+            />
+          </div>
+        </div>
+
+        <!-- 🟢 Fixed Supply Month Info (Display only, from billing screen) -->
+        <div class="form-group">
+          <label>Supply Month (Fixed from Billing):</label>
+          <input
+            type="text"
+            id="modalSupplyMonthDisplay"
+            class="form-input readonly-input"
+            readonly
+          />
+        </div>
+
+        <div class="form-grid-3" style="margin-top: 10px">
+          <div class="form-group">
+            <label>Vendor Display Name:</label>
+            <input
+              type="text"
+              id="modalBuyerName"
+              class="form-input"
+              list="suppliersDataList"
+              oninput="onPopupBuyerSelected(this.value)"
+              placeholder="Search or enter vendor name"
+            />
+            <datalist id="suppliersDataList"></datalist>
+          </div>
+          <div class="form-group">
+            <label>VAT / CR Number:</label>
+            <input
+              type="text"
+              id="modalBuyerVat"
+              class="form-input"
+              placeholder="Enter VAT or CR Number"
+            />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 5px">
+          <label>Bill Remarks / Custom Notes:</label>
+          <textarea
+            id="modalRemarksInput"
+            class="form-input"
+            rows="3"
+            placeholder="Type note or remark..."
+            style="resize: vertical; font-family: inherit"
+          ></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-ribbon btn-dash" onclick="closeEditBillModal()">
+            Cancel
+          </button>
+          <button
+            class="btn-ribbon btn-pdf"
+            onclick="applyBillModalChanges()"
+          >
+            Apply Changes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Multi-Owner Selection Modal -->
+    <div class="modal-backdrop" id="multiOwnerModal">
+      <div class="modal-card small-modal">
+        <div class="modal-header">
+          <h2 style="color: #d97706">⚠️ Select Vehicle Owner</h2>
+          <button class="modal-close-btn" onclick="closeMultiOwnerModal()">&times;</button>
+        </div>
+        <p style="font-size: 13px; color: #475569; line-height: 1.4;">
+          This vehicle worked under multiple owners during this billing month. Please select the appropriate owner for this bill:
+        </p>
+        <div id="multiOwnerList" style="display: flex; flex-direction: column; gap: 8px; margin: 15px 0;"></div>
+        <div class="modal-footer">
+          <button class="btn-ribbon btn-dash" onclick="closeMultiOwnerModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vendor Directory Modal -->
+    <div class="modal-backdrop" id="custModalBackdrop">
+      <div class="modal-card cust-modal">
+        <div class="modal-header">
+          <h2 id="custModalHeaderTitle">🏢 Vendor Directory</h2>
+          <button class="modal-close-btn" onclick="closeSupplierModal()">
+            &times;
+          </button>
+        </div>
+        <input type="hidden" id="editCustIdInput" value="" />
+        <div class="form-grid-3" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 5px;">
+          <div class="form-group">
+            <label>Vendor Name:</label>
+            <input type="text" id="addCustNameInput" class="form-input" placeholder="Company / Vendor Name" />
+          </div>
+          <div class="form-group">
+            <label>Nick Name (Owner):</label>
+            <input type="text" id="addCustNickInput" class="form-input" placeholder="Owner / Nick Name" />
+          </div>
+          <div class="form-group">
+            <label>VAT / CR Number:</label>
+            <input type="text" id="addCustVatInput" class="form-input" placeholder="VAT / CR" />
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px;">
+          <button id="cancelCustEditBtn" class="btn-ribbon btn-dash" style="display: none" onclick="cancelCustomerEdit()">
+            Cancel Edit
+          </button>
+          <button class="btn-ribbon btn-pdf" id="saveCustSubmitBtn" onclick="saveNewSupplierManual()">
+            Save Vendor
+          </button>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 10px">
+          <input
+            type="text"
+            id="searchCustDirectoryInput"
+            class="form-input"
+            placeholder="🔍 Search by Code, Name, or Nick Name..."
+            oninput="renderFilteredSuppliersTable(this.value)"
+          />
+        </div>
+
+        <div style="max-height: 260px; overflow-y: auto">
+          <table class="popup-items-table">
+            <thead>
+              <tr>
+                <th style="width: 90px">Code</th>
+                <th style="text-align: left">Vendor Name</th>
+                <th style="text-align: left">Nick Name</th>
+                <th style="width: 110px">VAT / CR</th>
+                <th style="width: 80px">Action</th>
+              </tr>
+            </thead>
+            <tbody id="modalCustTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let companiesList = [];
+      let savedSuppliers = [];
+      let activeBillItems = [];
+      let fixedSupplyMonth = "------";
+      let currentRemarks = "";
+      let currentInvoiceDate = "";
+      let currentCompanyTheme = "default";
+      let isSealEngaged = false;
+      let billOwnerNick = "";
+      let currentVendorAlignment = "right";
+      let isBillAlreadySaved = false; // 🟢 Bill save aayo ennu track cheyyaan
+      let attachedBillingCardImage = ""; // 🟢 Second page card image സൂക്ഷിക്കാൻ
+
+      // 🟢 Dynamic Google Translate function (English -> Arabic)
+      async function translateToArabicDynamic(text) {
+        if (!text || !text.trim()) return "";
+        try {
+          // Plate number/brackets ozhivaakki clean vehicle name maathram translate cheyyunnu
+          const cleanText = text.replace(/\(.*?\)/g, "").trim();
+          if (!cleanText) return "";
+          
+          const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodeURIComponent(cleanText)}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data && data[0] && data[0][0] && data[0][0][0]) {
+            return data[0][0][0].trim();
+          }
+          return "";
+        } catch (e) {
+          console.warn("Translation failed for:", text, e);
+          return "";
+        }
+      }
+
+      async function initVendorBill() {
+        setupInitialDates();
+        await Promise.all([loadCompanies(), loadSavedSuppliers()]);
+
+        const raw = sessionStorage.getItem("activeVendorBillData");
+        if (raw) {
+          try {
+            const data = JSON.parse(raw);
+            sessionStorage.removeItem("activeVendorBillData");
+            
+            if (data.invoice_no && data.invoice_no !== "------") {
+              isBillAlreadySaved = true;
+              syncInvNoDisplays(data.invoice_no);
+            }
+
+            await populateIncomingBillingData(data);
+            
+            // 🟢 ഫെച്ചിംഗിന് ശേഷവും യഥാർത്ഥ ഇൻവോയ്സ് നമ്പർ തന്നെ ഉറപ്പാക്കുന്നു
+            if (data.invoice_no && data.invoice_no !== "------") {
+              isBillAlreadySaved = true;
+              syncInvNoDisplays(data.invoice_no);
+              updateZatcaQrCode();
+            }
+          } catch (e) {
+            console.error("Payload parse error:", e);
+          }
+        } else {
+          await fetchNextNumber(null);
+          applyCompanyLayoutTheme("default");
+          renderInvoiceViewTable();
+        }
+      }
+
+      function setupInitialDates() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, "0");
+        const d = String(now.getDate()).padStart(2, "0");
+        const todayStr = `${y}-${m}-${d}`;
+
+        currentInvoiceDate = todayStr;
+        syncDateDisplays(todayStr);
+        document.getElementById("modalDate").value = todayStr;
+      }
+
+      async function loadCompanies() {
+        const res = await fetch("/vendor-bill/api/companies");
+        const data = await res.json();
+        const sel = document.getElementById("companySelect");
+        sel.innerHTML = '<option value="">-- Choose Company --</option>';
+        if (data.success && data.companies.length > 0) {
+          companiesList = data.companies;
+
+          // 🟢 Order mapping configuration
+          const customOrder = [
+            { key: "HAK", label: "Haka" },
+            { key: "AL",  label: "Al Joda" },
+            { key: "MW",  label: "Masar Wheels" },
+            { key: "WE",  label: "We1 Track Co" }
+          ];
+
+          customOrder.forEach((item) => {
+            const comp = companiesList.find((c) => {
+              const code = (c.short_code || c.company_name_en || "").toUpperCase();
+              return code.includes(item.key);
+            });
+            if (comp) {
+              sel.innerHTML += `<option value="${comp.id}">${item.label}</option>`;
+            }
+          });
+
+          // Baakki ulla company-kal undenkil add cheyyunnu
+          companiesList.forEach((c) => {
+            const code = (c.short_code || c.company_name_en || "").toUpperCase();
+            const exists = customOrder.some(co => code.includes(co.key));
+            if (!exists) {
+              sel.innerHTML += `<option value="${c.id}">${c.company_name_en}</option>`;
+            }
+          });
+        }
+      }
+
+      async function populateIncomingBillingData(incoming) {
+        // 🟢 ഇകംമിംഗ് ഡാറ്റയിൽ ഇൻവോയ്സ് നമ്പർ ഉണ്ടെങ്കിൽ അത് സേവ് ചെയ്ത ബില്ലാണ്, അല്ലാത്തപ്പോൾ മാത്രം false ആക്കുക
+        if (!incoming.invoice_no || incoming.invoice_no === "------") {
+          isBillAlreadySaved = false;
+        } else {
+          isBillAlreadySaved = true;
+        }
+        attachedBillingCardImage = incoming.billingCardImage || incoming.raw_payload?.billingCardImage || ""; // 🟢 Card image capture cheyyunnu // 🟢 Billing-il ninnum puthiya entry varumbol false aakkunnu
+        // 🟢 1. Stable Supply Month setup
+        if (incoming.billingMonth) {
+          const parts = incoming.billingMonth.split(" ");
+          const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          if (parts.length >= 2) {
+            const mIdx = shortMonths.findIndex(sm => parts[0].toLowerCase().startsWith(sm.toLowerCase()));
+            if (mIdx !== -1) {
+              fixedSupplyMonth = `${shortMonths[mIdx]}-${parts[1].slice(-2)}`;
+            } else {
+              fixedSupplyMonth = incoming.billingMonth;
+            }
+          } else {
+            fixedSupplyMonth = incoming.billingMonth;
+          }
+        }
+        syncSupplyDateDisplays(fixedSupplyMonth);
+        document.getElementById("modalSupplyMonthDisplay").value = fixedSupplyMonth;
+
+        // 🟢 2. Vendor Name (Arabic first preference from TS DB)
+        billOwnerNick = incoming.ownerNick || incoming.ownerName || "";
+        const ownerDisplay = incoming.vendorArabicName || incoming.vendorDisplayName || incoming.ownerName || "";
+        
+        document.getElementById("buyerNameDisplay").innerText = ownerDisplay;
+        document.getElementById("buyerVatDisplay").innerText = incoming.vendorVatNo || "";
+
+        document.getElementById("modalBuyerName").value = ownerDisplay;
+        document.getElementById("modalBuyerVat").value = incoming.vendorVatNo || "";
+
+        // 🟢 3. Match Issuer Company and Theme
+        if (incoming.companyName) {
+          const matchedComp = companiesList.find(c =>
+            c.company_name_en.toLowerCase().includes(incoming.companyName.toLowerCase()) ||
+            (c.short_code && incoming.companyName.toLowerCase().includes(c.short_code.toLowerCase()))
+          );
+          if (matchedComp) {
+            document.getElementById("companySelect").value = String(matchedComp.id);
+            await applyCompanyDetailsToView(matchedComp.id);
+          } else {
+            await fetchNextNumber(null);
+          }
+        }
+
+        // 🟢 4. N.Hr & Overtime Separate Line Item ആയി സ്പ്ലിറ്റ് ചെയ്യുന്നു (Dashboard View & Fresh Entry Support)
+        activeBillItems = [];
+        let seqCount = 0;
+
+        // Dashboard-ൽ നിന്ന് വരുമ്പോൾ manual_items-ലും Billing-ൽ നിന്ന് വരുമ്പോൾ rows-ലും ആകും ലിസ്റ്റ് ഉണ്ടാവുക
+        const incomingRows = incoming.rows || incoming.manual_items || [];
+
+        for (let row of incomingRows) {
+          // Dashboard-ൽ ഇതിനകം സേവ് ചെയ്ത ഐറ്റങ്ങൾ ആണെങ്കിൽ subTotal / total നേരിട്ട് എടുക്കുന്നു
+          if (row.subTotal !== undefined || row.total !== undefined) {
+            seqCount++;
+            activeBillItems.push({
+              seq: row.seq || String(seqCount),
+              vtype: row.vtype || "Vehicle",
+              vtype_ar: row.vtype_ar || "",
+              qty: parseFloat(row.qty) || 0,
+              rate: parseFloat(row.rate) || 0,
+              subTotal: parseFloat(row.subTotal) || 0,
+              vatPercent: row.vatPercent !== undefined ? parseFloat(row.vatPercent) : 15,
+              vatAmount: parseFloat(row.vatAmount) || 0,
+              total: parseFloat(row.total) || 0
+            });
+            continue;
+          }
+
+          const nhr = parseFloat(row.nhr) || 0;
+          const othr = parseFloat(row.othr) || 0;
+          const nrate = parseFloat(row.nrate) || 0;
+          const otrate = parseFloat(row.otrate) || 0;
+          const vatPct = row.vat_percent !== undefined ? parseFloat(row.vat_percent) : 15;
+
+          // Arabic translation check: row-il illenkil online Google Translate vazhi live aayi fetch cheyyunnu
+          let rawVtype = row.vtype || "Vehicle";
+          let arabicDesc = (row.vtype_ar || "").trim();
+          if (!arabicDesc && rawVtype) {
+            arabicDesc = await translateToArabicDynamic(rawVtype);
+          }
+
+          // 1. Normal Hours Row (N.Hr undenkil athallenkil fixed rent)
+          if (nhr > 0 || (nhr === 0 && othr === 0)) {
+            seqCount++;
+            const qty = nhr > 0 ? nhr : 1;
+            const rate = nhr > 0 ? nrate : (row.rent || 0);
+            const sub = Number((qty * rate).toFixed(2));
+            const vat = Number((sub * (vatPct / 100)).toFixed(2));
+            const tot = Number((sub + vat).toFixed(2));
+
+            activeBillItems.push({
+              seq: String(seqCount),
+              vtype: row.plate ? `${rawVtype} (${row.plate})` : rawVtype,
+              vtype_ar: arabicDesc,
+              qty: qty,
+              rate: rate,
+              subTotal: sub,
+              vatPercent: vatPct,
+              vatAmount: vat,
+              total: tot
+            });
+          }
+
+          // 2. Over Time Row (OT undenkil prathyekam adutha variyaayi cherkkunnu)
+          if (othr > 0) {
+            seqCount++;
+            const qty = othr;
+            const rate = otrate;
+            const sub = Number((qty * rate).toFixed(2));
+            const vat = Number((sub * (vatPct / 100)).toFixed(2));
+            const tot = Number((sub + vat).toFixed(2));
+
+            activeBillItems.push({
+              seq: String(seqCount),
+              vtype: row.plate ? `Over Time (${row.plate})` : "Over Time",
+              vtype_ar: "وقت إضافي",
+              qty: qty,
+              rate: rate,
+              subTotal: sub,
+              vatPercent: vatPct,
+              vatAmount: vat,
+              total: tot
+            });
+          }
+        }
+
+        renderInvoiceViewTable();
+
+        // 🟢 5. Check if multiple owners exist
+        const samplePlate = incoming.rows && incoming.rows[0] ? incoming.rows[0].plate : "";
+        if (samplePlate && incoming.billingMonth) {
+          const bParts = incoming.billingMonth.split(" ");
+          if (bParts.length >= 2) {
+            checkMultiOwnersFromTimesheet(samplePlate, bParts[0], bParts[1]);
+          }
+        }
+      }
+
+      async function checkMultiOwnersFromTimesheet(plate, month, year) {
+        try {
+          const res = await fetch(`/vendor-bill/api/vehicle-owners?plate_no=${encodeURIComponent(plate)}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`);
+          const data = await res.json();
+          if (data.success && data.owners && data.owners.length > 1) {
+            const listEl = document.getElementById("multiOwnerList");
+            listEl.innerHTML = "";
+            data.owners.forEach((o) => {
+              const oBtn = document.createElement("button");
+              oBtn.className = "btn-ribbon";
+              oBtn.style.cssText = "background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; justify-content:space-between; padding:10px;";
+              const dispName = o.company_arabic_name || o.company_display_name || o.owner_name;
+              oBtn.innerHTML = `<span><b>${dispName}</b> (${o.owner_name})</span> <span style="color:#0284c7; font-family:monospace;">${o.work_start_date ? o.work_start_date.split('T')[0] : 'Start'} ➔ ${o.work_end_date ? o.work_end_date.split('T')[0] : 'Running'}</span>`;
+              oBtn.onclick = () => {
+                selectVehicleOwnerChoice(o);
+                closeMultiOwnerModal();
+              };
+              listEl.appendChild(oBtn);
+            });
+            document.getElementById("multiOwnerModal").style.display = "flex";
+          }
+        } catch (e) {
+          console.warn("Could not check multi-owners:", e);
+        }
+      }
+
+      function selectVehicleOwnerChoice(owner) {
+        billOwnerNick = owner.owner_name || "";
+        const disp = owner.company_arabic_name || owner.company_display_name || owner.owner_name || "";
+        document.getElementById("buyerNameDisplay").innerText = disp;
+        document.getElementById("buyerVatDisplay").innerText = owner.vat_no || "";
+
+        document.getElementById("modalBuyerName").value = disp;
+        document.getElementById("modalBuyerVat").value = owner.vat_no || "";
+      }
+
+      function closeMultiOwnerModal() {
+        document.getElementById("multiOwnerModal").style.display = "none";
+      }
+
+      function renderInvoiceViewTable() {
+        const thead = document.getElementById("itemsTableHead");
+        const tbody = document.getElementById("invoiceItemsBody");
+        tbody.innerHTML = "";
+
+        if (currentCompanyTheme === "haka" || currentCompanyTheme === "masar") {
+          thead.innerHTML = `
+            <tr>
+              <th style="width: 35px">م</th>
+              <th style="text-align: right; padding-right: 10px">نوع المعدة / البيان</th>
+              <th style="width: 55px">الكمية</th>
+              <th style="width: 65px">السعر</th>
+              <th style="width: 80px">الإجمالي</th>
+              <th style="width: 65px">الضريبة</th>
+              <th style="width: 85px">المجموع</th>
+            </tr>
+          `;
+        } else {
+          thead.innerHTML = `
+            <tr>
+              <th style="width: 35px; line-height: 1.2;">SN<br><span style="font-size: 9px; font-weight: 700;">م</span></th>
+              <th style="text-align: left; padding-left: 8px; line-height: 1.2;">Vehicle / Description<br><span style="font-size: 9px; font-weight: 700;">نوع المعدة / البيان</span></th>
+              <th style="width: 55px; line-height: 1.2;">Qty<br><span style="font-size: 9px; font-weight: 700;">الكمية</span></th>
+              <th style="width: 65px; line-height: 1.2;">Rate<br><span style="font-size: 9px; font-weight: 700;">السعر</span></th>
+              <th style="width: 80px; line-height: 1.2;">Sub Total<br><span style="font-size: 9px; font-weight: 700;">الإجمالي</span></th>
+              <th style="width: 65px; line-height: 1.2;">VAT<br><span style="font-size: 9px; font-weight: 700;">الضريبة</span></th>
+              <th style="width: 85px; line-height: 1.2;">Total<br><span style="font-size: 9px; font-weight: 700;">المجموع</span></th>
+            </tr>
+          `;
+        }
+
+        let subtotal = 0, totalVat = 0, grandTotal = 0;
+
+        if (activeBillItems.length === 0) {
+          document.getElementById("sumBeforeVat").innerText = "0.00";
+          document.getElementById("sumVatAmount").innerText = "0.00";
+          document.getElementById("sumGrandTotal").innerText = "0.00";
+          return;
+        }
+
+        activeBillItems.forEach((row, idx) => {
+          const qty = parseFloat(row.qty) || 0;
+          const rate = parseFloat(row.rate) || 0;
+          const rowSub = parseFloat(row.subTotal) || (qty * rate);
+          const rowVat = parseFloat(row.vatAmount) || (rowSub * (parseFloat(row.vatPercent || 15) / 100));
+          const rowTot = parseFloat(row.total) || (rowSub + rowVat);
+
+          subtotal += rowSub;
+          totalVat += rowVat;
+          grandTotal += rowTot;
+
+          const alignStyle = (currentCompanyTheme === "haka" || currentCompanyTheme === "masar")
+            ? "text-align:right; padding-right:10px;"
+            : "text-align:left; padding-left:10px;";
+
+          // 🟢 Vehicle type with Arabic in next line
+          let vehicleCellContent = `<div>${row.vtype}</div>`;
+          if (row.vtype_ar && row.vtype_ar.trim() !== "") {
+            vehicleCellContent += `<div style="font-family:'Tajawal', sans-serif; font-size:11px; color:#475569; margin-top:2px;">${row.vtype_ar}</div>`;
+          }
+
+          tbody.innerHTML += `
+            <tr>
+              <td>${idx + 1}</td>
+              <td style="${alignStyle} font-weight:600; line-height:1.3;">${vehicleCellContent}</td>
+              <td>${qty}</td>
+              <td>${rate.toFixed(2)}</td>
+              <td>${rowSub.toFixed(2)}</td>
+              <td>${rowVat.toFixed(2)}</td>
+              <td style="font-weight:700;">${rowTot.toFixed(2)}</td>
+            </tr>
+          `;
+        });
+
+        document.getElementById("sumBeforeVat").innerText = subtotal.toFixed(2);
+        document.getElementById("sumVatAmount").innerText = totalVat.toFixed(2);
+        document.getElementById("sumGrandTotal").innerText = grandTotal.toFixed(2);
+        updateZatcaQrCode();
+      }
+
+      function openEditBillModal() {
+        document.getElementById("modalInvNo").value = document.getElementById("invNoDisplay").innerText.trim();
+        document.getElementById("modalDate").value = currentInvoiceDate;
+        document.getElementById("modalRemarksInput").value = currentRemarks;
+        document.getElementById("modalSupplyMonthDisplay").value = fixedSupplyMonth;
+        document.getElementById("editBillModal").style.display = "flex";
+      }
+
+      function closeEditBillModal() {
+        document.getElementById("editBillModal").style.display = "none";
+      }
+
+      async function applyBillModalChanges() {
+        const vName = document.getElementById("modalBuyerName").value.trim();
+        const vVat = document.getElementById("modalBuyerVat").value.trim();
+        currentRemarks = document.getElementById("modalRemarksInput").value.trim();
+
+        const dateVal = document.getElementById("modalDate").value;
+        if (dateVal) {
+          currentInvoiceDate = dateVal;
+          syncDateDisplays(dateVal);
+        }
+
+        document.getElementById("buyerNameDisplay").innerText = vName;
+        document.getElementById("buyerVatDisplay").innerText = vVat;
+
+        updateRemarksDisplay();
+        updateZatcaQrCode();
+        closeEditBillModal();
+      }
+
+      function updateRemarksDisplay() {
+        const box = document.getElementById("remarksDisplayContainer");
+        const txt = document.getElementById("remarksDisplayText");
+        if (currentRemarks && currentRemarks.trim()) {
+          txt.innerText = currentRemarks.trim();
+          box.style.display = "block";
+        } else {
+          txt.innerText = "";
+          box.style.display = "none";
+        }
+      }
+
+      function syncDateDisplays(dateStr) {
+        document.getElementById("dateDisplay").innerText = dateStr || "------";
+        const dl = document.getElementById("dateDisplayLeft");
+        if (dl) dl.innerText = dateStr || "------";
+      }
+
+      function syncInvNoDisplays(invNo) {
+        document.getElementById("invNoDisplay").innerText = invNo || "------";
+        const il = document.getElementById("invNoDisplayLeft");
+        if (il) il.innerText = invNo || "------";
+        if (document.getElementById("modalInvNo")) {
+          document.getElementById("modalInvNo").value = invNo || "------";
+        }
+      }
+
+      function syncSupplyDateDisplays(val) {
+        document.getElementById("supplyDateDisplay").innerText = val || "------";
+        const sl = document.getElementById("supplyDateDisplayLeft");
+        if (sl) sl.innerText = val || "------";
+      }
+
+      async function onCompanySelectChange() {
+        // 🟢 Company select maattumbol Seal & Sign nishkarsham reset aakkunnu
+        isSealEngaged = false;
+        const sealBtn = document.getElementById("sealToggleBtn");
+        if (sealBtn) sealBtn.classList.remove("active");
+        const stampImg = document.getElementById("stampImage");
+        const signImg = document.getElementById("signImage");
+        if (stampImg) stampImg.style.display = "none";
+        if (signImg) signImg.style.display = "none";
+
+        const selId = document.getElementById("companySelect").value;
+        if (!selId) {
+          applyCompanyLayoutTheme("default");
+          document.getElementById("headerCompEn").innerHTML = "";
+          document.getElementById("headerCompAr").innerHTML = "";
+          document.getElementById("headerLogo").style.display = "none";
+          document.getElementById("watermarkLogo").style.display = "none";
+          document.getElementById("zatcaQrCanvas").innerHTML = "";
+          await fetchNextNumber(null);
+          return;
+        }
+        await applyCompanyDetailsToView(selId);
+      }
+
+      async function applyCompanyDetailsToView(compId) {
+        const comp = companiesList.find(c => String(c.id) === String(compId));
+        if (!comp) return;
+
+        const code = (comp.short_code || comp.company_name_en || "").toUpperCase();
+        let theme = "default";
+        
+        // 🟢 Aljoda -> Left, Masar & Haka -> Right, WE1 -> Left
+        if (code.includes("HAK")) theme = "haka";
+        else if (code.includes("MW") || code.includes("MASAR")) theme = "masar";
+        else if (code.includes("WE") || code.includes("WEFAQ")) theme = "wefaq";
+
+        applyCompanyLayoutTheme(theme);
+
+        document.getElementById("headerCompEn").innerHTML =
+          `<b>${comp.company_name_en}</b><br>C.R. : ${comp.cr_number || "-"}<br>VAT No : ${comp.vat_number || "-"}`;
+        document.getElementById("headerCompAr").innerHTML =
+          `<b>${comp.company_name_ar}</b><br>س ت : ${comp.cr_number || "-"}<br>الرقم الضريبي : ${comp.vat_number || "-"}`;
+
+        if (comp.logo_url) {
+          document.getElementById("headerLogo").src = comp.logo_url;
+          document.getElementById("headerLogo").style.display = "block";
+          document.getElementById("watermarkLogo").src = comp.logo_url;
+          document.getElementById("watermarkLogo").style.display = "block";
+        } else {
+          document.getElementById("headerLogo").style.display = "none";
+          document.getElementById("watermarkLogo").style.display = "none";
+        }
+
+        const addr = [comp.address_line_ar, comp.address_line_en].filter(Boolean).join(" | ");
+        document.getElementById("footerAddrContainer").innerText = addr;
+        document.getElementById("footerEmail").innerText = comp.email ? `E-mail: ${comp.email}` : "";
+
+        // 🟢 ഇതിനകം സേവ് ചെയ്ത ബിൽ ആണെങ്കിൽ പുതിയ നമ്പർ എടുക്കരുത്
+        const currentInvNo = document.getElementById("invNoDisplay")?.innerText.trim();
+        if (!isBillAlreadySaved || !currentInvNo || currentInvNo === "------") {
+          await fetchNextNumber(comp.id);
+        }
+        updateZatcaQrCode();
+      }
+
+      function applyCompanyLayoutTheme(themeKey) {
+        currentCompanyTheme = themeKey;
+        const page = document.getElementById("printableInvoice");
+        page.className = `invoice-page theme-${themeKey}`;
+
+        const leftWrap = document.getElementById("metaLeftWrap");
+        const rightWrap = document.getElementById("metaRightWrap");
+        const titleEl = document.getElementById("invTitleDisplay");
+        const buyerBar = document.getElementById("buyerDetailsBar");
+
+        // 🟢 എല്ലായിടത്തും "Bill Summary - ملخص الفاتورة" എന്ന് മാത്രം
+        titleEl.innerText = "Bill Summary - ملخص الفاتورة";
+
+        if (themeKey === "haka" || themeKey === "masar") {
+          leftWrap.style.display = "flex";
+          rightWrap.style.display = "none";
+          // Haka & Masar: Right Aligned (Haka-ൽ ടേബിളിലെ 'م' കോളത്തിന് നേരെ)
+          buyerBar.className = "middle-details-bar align-right";
+        } else {
+          leftWrap.style.display = "none";
+          rightWrap.style.display = "flex";
+          // Aljoda & WE1: Left Aligned
+          buyerBar.className = "middle-details-bar align-left";
+        }
+
+        renderInvoiceViewTable();
+      }
+
+      async function fetchNextNumber(compId) {
+        const dateToUse = currentInvoiceDate || new Date().toISOString().split("T")[0];
+        let url = `/vendor-bill/api/next-invoice-no?invoice_date=${encodeURIComponent(dateToUse)}`;
+        if (compId) url += `&company_id=${compId}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.success) syncInvNoDisplays(data.invoice_no);
+      }
+
+      async function onModalDateChange() {
+        const chosen = document.getElementById("modalDate").value;
+        if (!chosen) return;
+        const compId = document.getElementById("companySelect").value;
+        await fetchNextNumber(compId);
+      }
+
+      function toggleSealEngagement() {
+        const selId = document.getElementById("companySelect").value;
+        if (!selId) return alert("Select an issuer company first!");
+        const comp = companiesList.find(c => String(c.id) === String(selId));
+        if (!comp || (!comp.seal_url && !comp.signature_url)) {
+          return alert("This company has no seal or signature uploaded.");
+        }
+        isSealEngaged = !isSealEngaged;
+        const btn = document.getElementById("sealToggleBtn");
+        if (isSealEngaged) {
+          btn.classList.add("active");
+          if (comp.seal_url) {
+            document.getElementById("stampImage").src = comp.seal_url;
+            document.getElementById("stampImage").style.display = "block";
+          }
+          if (comp.signature_url) {
+            document.getElementById("signImage").src = comp.signature_url;
+            document.getElementById("signImage").style.display = "block";
+          }
+        } else {
+          btn.classList.remove("active");
+          document.getElementById("stampImage").style.display = "none";
+          document.getElementById("signImage").style.display = "none";
+        }
+      }
+
+      function showPdfToast(msg, isLoading = true) {
+        const toast = document.getElementById("pdfToast");
+        const msgEl = document.getElementById("pdfToastMsg");
+        const spinner = document.getElementById("pdfToastSpinner");
+        msgEl.innerText = msg;
+        spinner.style.display = isLoading ? "block" : "none";
+        toast.style.display = "flex";
+        if (!isLoading) {
+          setTimeout(() => { toast.style.display = "none"; }, 3500);
+        }
+      }
+
+      async function saveVendorBillRecord(isFinal = false) {
+        const selId = document.getElementById("companySelect").value;
+        if (!selId) {
+          alert("Please select Issuer Company!");
+          return null;
+        }
+
+        const invNo = document.getElementById("invNoDisplay").innerText.trim();
+        const comp = companiesList.find(c => String(c.id) === String(selId));
+        const vName = document.getElementById("buyerNameDisplay").innerText.trim();
+        const vVat = document.getElementById("buyerVatDisplay").innerText.trim();
+
+        // 🟢 Once save cheythittundengil mode 'editbill' aakkunnu (duplicate aavaathirikkan)
+        const currentMode = isBillAlreadySaved ? "editbill" : "newbill";
+
+        const body = {
+          invoice_no: invNo,
+          company_id: selId,
+          company_name: comp ? comp.company_name_en : "",
+          vendor_name: vName,
+          billing_month: fixedSupplyMonth,
+          invoice_date: currentInvoiceDate,
+          invoice_time: new Date().toLocaleTimeString(),
+          subtotal: parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
+          vat_amount: parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
+          grand_total: parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
+          has_seal: isSealEngaged,
+          mode: currentMode,
+          manual_items: activeBillItems,
+          is_final_save: isFinal,
+          raw_payload: {
+            remarks: currentRemarks,
+            fixed_supply_month: fixedSupplyMonth,
+            manual_items: activeBillItems,
+            owner_nick: billOwnerNick,
+            buyer_vat: vVat,
+            billingCardImage: attachedBillingCardImage // 🟢 Backend-il preserve cheyyunnu
+          }
+        };
+
+        try {
+          showPdfToast("Saving record to database...", true);
+          const res = await fetch("/vendor-bill/api/save-invoice-record", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          const data = await res.json();
+          if (data.success) {
+            isBillAlreadySaved = true; // 🟢 Save aayi kazhinju ennu mark cheyyunnu
+            if (data.invoice_no && data.invoice_no !== invNo) {
+              syncInvNoDisplays(data.invoice_no);
+            }
+            showPdfToast("✅ Bill Saved Successfully!", false);
+            return data.invoice_no || invNo;
+          } else {
+            showPdfToast("❌ Failed to save bill: " + data.message, false);
+            return null;
+          }
+        } catch (e) {
+          showPdfToast("❌ Connection error while saving.", false);
+          return null;
+        }
+      }
+
+     async function downloadInvoicePDF() {
+        const btnPdf = document.querySelector(".btn-pdf");
+        const originalBtnHtml = btnPdf ? btnPdf.innerHTML : "📄 Download PDF";
+
+        try {
+          // 1. Button disable cheythu loading animation kaanikkunnu
+          if (btnPdf) {
+            btnPdf.disabled = true;
+            btnPdf.innerHTML = `<span class="toast-spinner" style="width: 14px; height: 14px; border-width: 2px; display: inline-block;"></span> Generating PDF...`;
+          }
+
+          // 2. Aadyam backend-il record save cheythu confirmed Bill No edukkunnu
+          const confirmedInvNo = await saveVendorBillRecord(true);
+          if (!confirmedInvNo) {
+            if (btnPdf) {
+              btnPdf.disabled = false;
+              btnPdf.innerHTML = originalBtnHtml;
+            }
+            return;
+          }
+
+          showPdfToast("Generating high-quality PDF...", true);
+
+          // 3. Bill No and QR code UI-il refresh aavaan 150ms delay nalkunnu
+          await new Promise((resolve) => setTimeout(resolve, 150));
+
+          const card = document.getElementById("printableInvoice");
+
+          const canvas = await html2canvas(card, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: "#ffffff",
+          });
+
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF("p", "pt", "a4");
+          const a4Width = pdf.internal.pageSize.getWidth();
+          const a4Height = pdf.internal.pageSize.getHeight();
+          const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+          // 🟢 Page 1: Bill Summary
+          pdf.addImage(imgData, "JPEG", 0, 0, a4Width, a4Height, undefined, "FAST");
+
+          // 🟢 Page 2: Billing Card Snapshot (Excess white space illaathe exact card size-il fit cheyyunnu)
+          if (attachedBillingCardImage) {
+            try {
+              showPdfToast("Merging Billing Card (Page 2)...", true);
+              const cardImg = new Image();
+              cardImg.src = attachedBillingCardImage;
+              await new Promise((res) => { cardImg.onload = res; cardImg.onerror = res; });
+
+              if (cardImg.width && cardImg.height) {
+                // Card-nte exact aspect ratio maintain cheythu page size set cheyyunnu
+                const cardAspect = cardImg.height / cardImg.width;
+                const pdfCardHeight = a4Width * cardAspect;
+
+                // Excess white space ozhivaakki card height-nu anuroopamaayi Page 2 add cheyyunnu
+                pdf.addPage([a4Width, pdfCardHeight], a4Width > pdfCardHeight ? "l" : "p");
+                pdf.addImage(attachedBillingCardImage, "JPEG", 0, 0, a4Width, pdfCardHeight, undefined, "FAST");
+              }
+            } catch (mergeErr) {
+              console.warn("Card page merge failed:", mergeErr);
+            }
+          }
+
+          pdf.save(`${confirmedInvNo}.pdf`);
+
+          showPdfToast("✅ PDF Exported Successfully!", false);
+        } catch (e) {
+          console.error("PDF export error:", e);
+          showPdfToast("❌ Failed to export PDF", false);
+        } finally {
+          // 4. Download kazhinjal button pazhaya reethiyilaakkunnu
+          if (btnPdf) {
+            btnPdf.disabled = false;
+            btnPdf.innerHTML = originalBtnHtml;
+          }
+        }
+      }
+
+      // 🟢 ZATCA TLV Base64 Encoder
+      function getZatcaTLV(tag, value) {
+        const str = String(value || "");
+        const valBuf = new TextEncoder().encode(str);
+        const buf = new Uint8Array(2 + valBuf.length);
+        buf[0] = tag;
+        buf[1] = valBuf.length;
+        buf.set(valBuf, 2);
+        return buf;
+      }
+
+      function generateZatcaBase64(sellerName, vatNumber, dateStr, totalWithVat, vatTotal) {
+        try {
+          // 🟢 User-nte bill date-um live time-um (HH:mm:ss) cherthu timestamp undakkunnu
+          const now = new Date();
+          const curTime = now.toTimeString().split(" ")[0]; // e.g. "16:32:05"
+          const cleanDate = (dateStr || now.toISOString().split("T")[0]).trim();
+          const zatcaTimestamp = `${cleanDate}T${curTime}`;
+
+          const t1 = getZatcaTLV(1, sellerName);
+          const t2 = getZatcaTLV(2, vatNumber);
+          const t3 = getZatcaTLV(3, zatcaTimestamp);
+          const t4 = getZatcaTLV(4, parseFloat(totalWithVat || 0).toFixed(2));
+          const t5 = getZatcaTLV(5, parseFloat(vatTotal || 0).toFixed(2));
+
+          const totalLen = t1.length + t2.length + t3.length + t4.length + t5.length;
+          const merged = new Uint8Array(totalLen);
+          let offset = 0;
+          [t1, t2, t3, t4, t5].forEach(t => {
+            merged.set(t, offset);
+            offset += t.length;
+          });
+
+          let binary = "";
+          for (let i = 0; i < merged.length; i++) {
+            binary += String.fromCharCode(merged[i]);
+          }
+          return btoa(binary);
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function updateZatcaQrCode() {
+        const qrContainer = document.getElementById("zatcaQrCanvas");
+        if (!qrContainer) return;
+        qrContainer.innerHTML = "";
+
+        const selId = document.getElementById("companySelect")?.value;
+        const comp = companiesList.find(c => String(c.id) === String(selId));
+        if (!comp) return;
+
+        const sellerName = comp.company_name_en || "Company";
+        const vatNumber = comp.vat_number || "";
+        const billDate = currentInvoiceDate || new Date().toISOString().split("T")[0];
+        const grandTotal = document.getElementById("sumGrandTotal")?.innerText || "0.00";
+        const vatTotal = document.getElementById("sumVatAmount")?.innerText || "0.00";
+
+        const base64Data = generateZatcaBase64(sellerName, vatNumber, billDate, grandTotal, vatTotal);
+        if (!base64Data) return;
+
+        new QRCode(qrContainer, {
+          text: base64Data,
+          width: 88,
+          height: 88,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+
+
+      // Vendor Directory Operations
+      async function loadSavedSuppliers() {
+        const res = await fetch("/vendor-bill/api/suppliers");
+        const data = await res.json();
+        if (data.success) {
+          savedSuppliers = data.suppliers || [];
+          populateVendorDataList();
+          renderFilteredSuppliersTable("");
+        }
+      }
+
+      function populateVendorDataList() {
+        const dl = document.getElementById("suppliersDataList");
+        dl.innerHTML = "";
+        savedSuppliers.forEach((s) => {
+          const disp = s.nickname ? `${s.customer_name} (${s.nickname})` : s.customer_name;
+          dl.innerHTML += `<option value="${disp}">${s.customer_code ? '[' + s.customer_code + '] ' : ''}${s.vat_number ? 'VAT: ' + s.vat_number : ''}</option>`;
+        });
+      }
+
+      function renderFilteredSuppliersTable(term = "") {
+        const tbody = document.getElementById("modalCustTableBody");
+        tbody.innerHTML = "";
+        const cleanTerm = term.toLowerCase().trim();
+
+        const filtered = savedSuppliers.filter(s =>
+          !cleanTerm ||
+          (s.customer_code || "").toLowerCase().includes(cleanTerm) ||
+          (s.customer_name || "").toLowerCase().includes(cleanTerm) ||
+          (s.nickname || "").toLowerCase().includes(cleanTerm) ||
+          (s.vat_number || "").toLowerCase().includes(cleanTerm)
+        );
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:#94a3b8;">No matching vendors found</td></tr>';
+          return;
+        }
+
+        filtered.forEach((s) => {
+          const isManual = s.is_manual !== false;
+          tbody.innerHTML += `
+            <tr>
+              <td><span style="font-family:monospace; font-weight:700; color:#0284c7;">${s.customer_code || "-"}</span></td>
+              <td style="text-align:left; font-weight:600;">${s.customer_name}</td>
+              <td style="text-align:left; color:#64748b;">${s.nickname || "-"}</td>
+              <td style="font-family:monospace;">${s.vat_number || "-"}</td>
+              <td>
+                ${isManual ? `
+                  <button class="btn-ribbon btn-edit-bill" style="padding:3px 6px; font-size:11px;" onclick="startEditCustomer(${s.id})">✏️</button>
+                  <button class="btn-ribbon btn-dash" style="padding:3px 6px; font-size:11px; background:#ef4444;" onclick="deleteCustomer(${s.id})">🗑️</button>
+                ` : `<span style="font-size:10px; color:#94a3b8; font-weight:700;">LOCKED</span>`}
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      function onPopupBuyerSelected(val) {
+        const clean = (val || "").trim().toLowerCase();
+        if (!clean) return;
+
+        const found = savedSuppliers.find(s => {
+          const m1 = s.customer_name && s.customer_name.toLowerCase() === clean;
+          const m2 = s.nickname && s.nickname.toLowerCase() === clean;
+          const m3 = `${s.customer_name} (${s.nickname})`.toLowerCase() === clean;
+          return m1 || m2 || m3;
+        });
+
+        if (found) {
+          document.getElementById("modalBuyerName").value = found.customer_name;
+          document.getElementById("modalBuyerVat").value = found.vat_number || "";
+          billOwnerNick = found.nickname || found.customer_name;
+        }
+      }
+
+      function openSupplierModal() {
+        cancelCustomerEdit();
+        renderFilteredSuppliersTable("");
+        document.getElementById("custModalBackdrop").style.display = "flex";
+      }
+
+      function closeSupplierModal() {
+        document.getElementById("custModalBackdrop").style.display = "none";
+      }
+
+      function startEditCustomer(id) {
+        const cust = savedSuppliers.find(s => String(s.id) === String(id));
+        if (!cust) return;
+
+        document.getElementById("editCustIdInput").value = cust.id;
+        document.getElementById("addCustNameInput").value = cust.customer_name || "";
+        document.getElementById("addCustNickInput").value = cust.nickname || "";
+        document.getElementById("addCustVatInput").value = cust.vat_number || "";
+
+        document.getElementById("custModalHeaderTitle").innerText = `✏️ Edit Vendor (${cust.customer_code || id})`;
+        document.getElementById("saveCustSubmitBtn").innerText = "Update Vendor";
+        document.getElementById("cancelCustEditBtn").style.display = "inline-flex";
+      }
+
+      function cancelCustomerEdit() {
+        document.getElementById("editCustIdInput").value = "";
+        document.getElementById("addCustNameInput").value = "";
+        document.getElementById("addCustNickInput").value = "";
+        document.getElementById("addCustVatInput").value = "";
+
+        document.getElementById("custModalHeaderTitle").innerText = "🏢 Vendor Directory";
+        document.getElementById("saveCustSubmitBtn").innerText = "Save Vendor";
+        document.getElementById("cancelCustEditBtn").style.display = "none";
+      }
+
+      async function saveNewSupplierManual() {
+        const id = document.getElementById("editCustIdInput").value;
+        const name = document.getElementById("addCustNameInput").value.trim();
+        const nick = document.getElementById("addCustNickInput").value.trim();
+        const vat = document.getElementById("addCustVatInput").value.trim();
+
+        if (!name) return alert("Please enter Vendor Name");
+
+        try {
+          const res = await fetch("/vendor-bill/api/save-supplier", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: id || null, customer_name: name, nickname: nick, vat_number: vat })
+          });
+          const data = await res.json();
+          if (data.success) {
+            cancelCustomerEdit();
+            await loadSavedSuppliers();
+          } else {
+            alert(data.message || "Failed to save vendor");
+          }
+        } catch (e) {
+          alert("Error connecting to server");
+        }
+      }
+
+      async function deleteCustomer(id) {
+        if (!confirm("Are you sure you want to remove this vendor?")) return;
+        try {
+          const res = await fetch("/vendor-bill/api/delete-supplier", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id })
+          });
+          const data = await res.json();
+          if (data.success) {
+            await loadSavedSuppliers();
+          } else {
+            alert(data.message || "Failed to delete");
+          }
+        } catch (e) {
+          alert("Error connecting to server");
+        }
+      }
+
+      // Security Gate (Using separate vbill_system_unlocked key)
+      document.addEventListener("DOMContentLoaded", () => {
+        const isUnlocked = sessionStorage.getItem("vbill_system_unlocked");
+        if (isUnlocked === "true") {
+          document.getElementById("securityLockOverlay").style.display = "none";
+          initVendorBill();
+        }
+      });
+
+      async function verifySecurityCode() {
+        const code = document.getElementById("secCodeInput").value.trim();
+        if (!code) return;
+
+        try {
+          const res = await fetch("/vendor-bill/api/verify-security", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            sessionStorage.setItem("vbill_system_unlocked", "true");
+            document.getElementById("securityLockOverlay").style.display = "none";
+            initVendorBill();
+          } else {
+            const errEl = document.getElementById("secError");
+            errEl.style.display = "block";
+            errEl.innerText = data.message || "Invalid Code";
+          }
+        } catch (e) {
+          console.error("Security check failed:", e);
+        }
+      }
+    </script>
+  </body>
+</html>

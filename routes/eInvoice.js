@@ -407,6 +407,7 @@ router.get("/api/dashboard-invoices", async (req, res) => {
        LEFT JOIN e_invoice_suppliers s 
          ON LOWER(TRIM(g.vendor_name)) = LOWER(TRIM(s.customer_name)) 
          AND s.is_deleted = FALSE
+       WHERE (g.bill_source IS NULL OR g.bill_source != 'VB')
        ORDER BY g.id DESC`
     );
     res.json({ success: true, invoices: result.rows });

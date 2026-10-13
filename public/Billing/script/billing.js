@@ -975,6 +975,7 @@ function createBillCard(group, id) {
                 <button class="icon-btn" title="Adjustments" style="background:#6c757d;" onclick="toggleCardAdjustments('${id}')"><i class="material-icons">settings</i></button>
             </div>
             <div style="display:flex; gap:10px;">
+                <button class="icon-btn" title="Vendor Bill Summary" style="background:#ff9800;" onclick="openVendorBillForCard('${id}')"><i class="material-icons">receipt</i></button>
                 <button class="icon-btn" title="Download Image" style="background:#007bff;" onclick="exportSingleImage('${id}')"><i class="material-icons">download</i></button>
 <button class="icon-btn" title="Copy High Quality Image" style="background:#17a2b8;" onclick="copyHighQualityCard('${id}')"><i class="material-icons">content_copy</i></button>
                 <button class="icon-btn" title="Share WhatsApp" style="background:#25D366;" onclick="shareSingleWhatsApp('${id}')"><i class="material-icons">chat</i></button>
@@ -3167,7 +3168,8 @@ document.addEventListener("wheel", function (e) {
   }
 }, { passive: false });
 
-function openEInvoiceForCard(cardId) {
+// 🟢 'async' keyword add cheythu
+async function openVendorBillForCard(cardId) {
   const card = document.getElementById(`billCard_${cardId}`);
   if (!card) return showToast("Card not found!");
 
@@ -3178,7 +3180,7 @@ function openEInvoiceForCard(cardId) {
   const ownerName = ownerInput ? ownerInput.value.trim() : (card.dataset.owner || "");
   const companyName = card.dataset.company || "Haka";
 
-  // Timesheet DB masterData-il ninnum owner details (VAT No, Arabic Name, Company Name) fetch cheyyunnu
+  // Timesheet DB masterData-യിൽ നിന്നും ഒപ്പം ഓണർ ലോഗ് അനുസരിച്ചുമുള്ള ഡാറ്റ ഫെച്ച് ചെയ്യുന്നു
   let matchedOwnerInfo = null;
   card.querySelectorAll(".tableBody tr").forEach((tr) => {
     if (matchedOwnerInfo) return;
@@ -3194,13 +3196,19 @@ function openEInvoiceForCard(cardId) {
   });
 
   const vendorArabicName = matchedOwnerInfo?.company_arabic_name ? matchedOwnerInfo.company_arabic_name.trim() : "";
-  const vendorDisplayName = matchedOwnerInfo?.company_display_name ? matchedOwnerInfo.company_display_name.trim() : "";
+  // 🟢 മുൻഗണന അറബിക് പേരിന് നൽകുന്നു, ഇല്ലെങ്കിൽ ഇംഗ്ലീഷ് ഡിസ്‌പ്ലേ നെയിം
+  const vendorDisplayName = vendorArabicName || (matchedOwnerInfo?.company_display_name ? matchedOwnerInfo.company_display_name.trim() : (ownerName || ""));
   const vendorVatNo = matchedOwnerInfo?.vat_no ? matchedOwnerInfo.vat_no.trim() : "";
 
   const rows = [];
   card.querySelectorAll(".tableBody tr").forEach((tr) => {
     const plate = tr.querySelector(".plate") ? tr.querySelector(".plate").value.trim() : "";
     const vtype = tr.querySelector(".vtype") ? tr.querySelector(".vtype").value.trim() : "";
+    
+    // TS DB-യിൽ നിന്ന് വാഹനം പരിശോധിച്ച് അറബിക് പേര് കണ്ടെത്തുന്നു
+    let vMatch = masterData.find(m => (m.plate_number || m.plate || "").toUpperCase() === plate.toUpperCase());
+    const vtypeAr = vMatch?.vehicle_type_ar || vMatch?.vtype_ar || "";
+
     const driver = tr.querySelector(".driver") ? tr.querySelector(".driver").value.trim() : "";
     const site = tr.querySelector(".site") ? tr.querySelector(".site").value.trim() : "";
     const nhr = parseFloat(tr.querySelector(".nhr") ? tr.querySelector(".nhr").value : 0) || 0;
@@ -3208,13 +3216,15 @@ function openEInvoiceForCard(cardId) {
     const othr = parseFloat(tr.querySelector(".othr") ? tr.querySelector(".othr").value : 0) || 0;
     const otrate = parseFloat(tr.querySelector(".otrate") ? tr.querySelector(".otrate").value : 0) || 0;
     const rent = parseFloat(tr.querySelector(".rent") ? tr.querySelector(".rent").value : 0) || 0;
+    const vatPercent = parseFloat(tr.querySelector(".vat-rate") ? tr.querySelector(".vat-rate").value : 0) || 0;
     const vatVal = parseFloat(tr.querySelector(".vat") ? tr.querySelector(".vat").innerText : 0) || 0;
     const totalVal = parseFloat(tr.querySelector(".total") ? tr.querySelector(".total").innerText : 0) || (rent + vatVal);
 
-    if (plate || rent > 0 || nhr > 0) {
+    if (plate || rent > 0 || nhr > 0 || othr > 0) {
       rows.push({
         plate,
         vtype,
+        vtype_ar: vtypeAr,
         driver,
         site,
         nhr,
@@ -3222,7 +3232,8 @@ function openEInvoiceForCard(cardId) {
         othr,
         otrate,
         rent,
-        vat: vatVal,
+        vat_percent: vatPercent,
+        vat_amount: vatVal,
         total: totalVal
       });
     }
@@ -3232,22 +3243,39 @@ function openEInvoiceForCard(cardId) {
   const grandVat = parseFloat(card.querySelector(".grandVat") ? card.querySelector(".grandVat").innerText : 0) || 0;
   const grandTotal = parseFloat(card.querySelector(".grandTotal") ? card.querySelector(".grandTotal").innerText : 0) || (grandRent + grandVat);
 
-  const compConfig = companyData[companyName] || companyData["Haka"];
+  // 🟢 ഒറിജിനൽ Owner Name (വ്യക്തിയുടെ പേര്) കൃത്യമായി Nickname ആക്കി നൽകുന്നു
+  const cleanOwnerNick = (ownerName && ownerName !== "VARIOUS OWNERS") ? ownerName.trim() : (matchedOwnerInfo?.owner_name || "");
+
+  showToast("Preparing Bill & Card Snapshot...");
+
+  // 🟢 Card-inte HQ Snapshot (Excess space illaathe card size-il) capture cheyyunnu
+  let cardImageData = "";
+  try {
+    const printArea = card.querySelector(".print-area") || card;
+    if (typeof convertInputsToText === "function") convertInputsToText(printArea);
+    const canvas = await html2canvas(printArea, { scale: 2.5, useCORS: true, logging: false });
+    if (typeof revertInputsFromText === "function") revertInputsFromText(printArea);
+    cardImageData = canvas.toDataURL("image/jpeg", 0.95);
+  } catch (err) {
+    console.warn("Card snapshot error:", err);
+  }
 
   const payload = {
-    billingMonth,
-    ownerName,
-    vendorDisplayName,
-    vendorArabicName,
-    vendorVatNo,
-    companyName,
-    companyHeader: compConfig.header || "",
-    rows,
-    grandRent,
-    grandVat,
-    grandTotal
+    source: "VB",
+    billingMonth: billingMonth,
+    ownerName: cleanOwnerNick,
+    ownerNick: cleanOwnerNick,
+    vendorDisplayName: vendorArabicName || vendorDisplayName || cleanOwnerNick,
+    vendorArabicName: vendorArabicName,
+    vendorVatNo: vendorVatNo,
+    companyName: companyName,
+    rows: rows,
+    grandRent: grandRent,
+    grandVat: grandVat,
+    grandTotal: grandTotal,
+    billingCardImage: cardImageData // 🟢 Second page-lekku merge cheyyaanulla image
   };
 
-  sessionStorage.setItem("activeEInvoiceData", JSON.stringify(payload));
-  window.open("/e-invoice/index.html", "_blank");
+  sessionStorage.setItem("activeVendorBillData", JSON.stringify(payload));
+  window.open("/Office/e-invoice/vendorbill.html", "_blank");
 }

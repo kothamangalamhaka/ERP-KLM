@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vendor Bill Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body { font-family: 'Inter', sans-serif; background: #f8fafc; margin: 0; padding: 25px; color: #1e293b; }
+      .container { max-width: 1500px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+      .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+      .header-title-group { display: flex; align-items: center; gap: 14px; }
+      h2 { margin: 0; color: #0f172a; font-size: 20px; }
+      .btn { padding: 8px 16px; border-radius: 5px; font-weight: 600; cursor: pointer; border: none; font-size: 13px; text-decoration: none; }
+      .btn-primary { background: #2563eb; color: white; }
+      .btn-outline { background: transparent; border: 1px solid #cbd5e1; color: #475569; }
+      .btn-detail-toggle { background: #f1f5f9; border: 1.5px solid #cbd5e1; color: #334155; padding: 6px 13px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
+      .btn-detail-toggle:hover { background: #e2e8f0; color: #0f172a; }
+      .btn-detail-toggle.active { background: #0284c7; color: #ffffff; border-color: #0284c7; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35); }
+      .table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; vertical-align: middle; }
+      th { background: #1e293b; color: white; font-weight: 600; font-size: 11.5px; white-space: nowrap; }
+      tr:hover { background: #f8fafc; }
+      .inv-tag { font-family: monospace; font-weight: 700; color: #2563eb; white-space: nowrap; }
+      .btn-action { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
+      .btn-view { background: #0284c7; color: white; }
+      .btn-dl { background: #10b981; color: white; }
+
+      .table-wrapper.hide-details .col-detail { display: none !important; }
+
+      .multi-cell-stack { display: flex; flex-direction: column; gap: 4px; }
+      .multi-line-item { min-height: 18px; line-height: 18px; white-space: nowrap; font-family: monospace; }
+      .multi-line-item.center { text-align: center; }
+      .multi-line-item.right { text-align: right; }
+
+      #dashToast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #0f172a;
+        color: #ffffff;
+        padding: 14px 22px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        border-left: 4px solid #10b981;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        z-index: 999999;
+        transition: all 0.3s ease;
+      }
+      .toast-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* 🟢 Context Menu Styles */
+      .context-menu {
+        position: fixed;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        z-index: 10000;
+        display: none;
+        overflow: hidden;
+      }
+      .context-menu-item {
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #ef4444;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .context-menu-item:hover {
+        background: #fee2e2;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Floating Toast -->
+    <div id="dashToast">
+      <div id="dashToastSpinner" class="toast-spinner"></div>
+      <span id="dashToastMsg">Processing...</span>
+    </div>
+
+    <!-- Security Lock Overlay -->
+    <div id="securityOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#0f172a; z-index:99999; display:flex; align-items:center; justify-content:center;">
+      <div style="background:white; padding:30px; border-radius:10px; width:340px; text-align:center; box-shadow:0 15px 30px rgba(0,0,0,0.3);">
+        <div style="font-size:42px; margin-bottom:10px;">🔒</div>
+        <h3 style="margin:0 0 10px 0; color:#1e293b;">Security Verification</h3>
+        <p style="font-size:12px; color:#64748b; margin-bottom:18px;">Enter Security Code to access Vendor Bill Dashboard.</p>
+        <input type="password" id="secCodeInput" placeholder="Enter Security Code" style="width:100%; box-sizing:border-box; padding:10px; border:1.5px solid #cbd5e1; border-radius:6px; font-size:14px; text-align:center; outline:none; margin-bottom:12px;" onkeydown="if(event.key==='Enter') verifyDashboardAccess();" />
+        <div id="secErrorMsg" style="color:#ef4444; font-size:12px; margin-bottom:10px; display:none;"></div>
+        <button class="btn btn-primary" style="width:100%; padding:10px; font-size:13px;" onclick="verifyDashboardAccess()">Unlock Dashboard 🔓</button>
+      </div>
+    </div>
+
+    <div class="container" id="mainContent" style="display:none;">
+      <div class="header-bar">
+        <div class="header-title-group">
+          <h2>🧾 Vendor Bill Dashboard</h2>
+          <button id="btnDetailToggle" class="btn-detail-toggle" onclick="toggleDetailView()">
+            👁️ Detail View
+          </button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <a href="../../Billing/index.html" class="btn btn-primary" style="background:#475569;">Billing Screen</a>
+          <a href="../../Billing/site_co/index.html" class="btn btn-primary" style="background:#ff9800;">Generate Vendor Bill</a>
+          <a href="dashboard.html" class="btn btn-outline">Invoice Dashboard</a>
+        </div>
+      </div>
+
+      <div class="table-wrapper hide-details" id="dashboardTableWrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 85px;">Bill Date</th>
+              <th>Bill No</th>
+              <th>Company Name</th>
+              <th>Vendor Name</th>
+              <th>Nick Name</th>
+              <th style="width: 80px;">Month</th>
+              <th class="col-detail" style="width: 90px; text-align: center;">Plate No</th>
+              <th class="col-detail" style="width: 75px; text-align: center;">Normal Hr</th>
+              <th class="col-detail" style="width: 70px; text-align: right;">Rate</th>
+              <th class="col-detail" style="width: 75px; text-align: center;">Over Time</th>
+              <th class="col-detail" style="width: 70px; text-align: right;">Rate</th>
+              <th style="width: 85px; text-align: right;">Grand Total</th>
+              <th style="width: 100px; text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="invoicesListBody">
+            <tr><td colspan="13" style="text-align: center;">Loading dashboard data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      async function loadDashboardInvoices() {
+        const res = await fetch("/vendor-bill/api/dashboard-invoices");
+        const data = await res.json();
+        const tbody = document.getElementById("invoicesListBody");
+        tbody.innerHTML = "";
+
+        if (data.success && data.invoices.length > 0) {
+          data.invoices.forEach(inv => {
+            let items = [];
+            if (inv.raw_payload) {
+              const payload = typeof inv.raw_payload === 'string' ? JSON.parse(inv.raw_payload) : inv.raw_payload;
+              items = payload.manual_items || [];
+            }
+
+            const seqList = [];
+            const normalHrList = [];
+            const normalRateList = [];
+            const otHrList = [];
+            const otRateList = [];
+
+            if (items && items.length > 0) {
+              // 1. Vehicles vs Overtime വേർതിരിക്കുന്നു (വണ്ടി അനുസരിച്ച് OT മാപ്പ് ചെയ്യാൻ)
+              const vehiclesMap = new Map();
+              const overtimes = [];
+
+              items.forEach((row, idx) => {
+                const desc = (row.vtype || "").trim();
+                const isOT = desc.toLowerCase().includes("over time") || desc.toLowerCase().includes("overtime") || desc.includes("وقت إضافي");
+                
+                // Plate No ബ്രാക്കറ്റിൽ നിന്നോ (e.g. "Water Tanker (1139 VEB)") അല്ലെങ്കിൽ നേരിട്ടോ വേർതിരിച്ചെടുക്കുന്നു
+                const plateMatch = desc.match(/\(([^)]+)\)/);
+                const plate = plateMatch ? plateMatch[1].trim().toUpperCase() : (row.plate || "").trim().toUpperCase();
+
+                const qty = parseFloat(row.qty) || 0;
+                const rate = parseFloat(row.rate) || 0;
+
+                if (isOT) {
+                  overtimes.push({ plate, qty, rate });
+                } else {
+                  vehiclesMap.set(plate || `VEH_${idx}`, {
+                    plate: plate || row.seq || String(idx + 1),
+                    normalQty: qty,
+                    normalRate: rate,
+                    otQty: 0,
+                    otRate: 0
+                  });
+                }
+              });
+
+              // 2. Over Time-നെ അനുയോജ്യമായ വണ്ടിയുടെ പ്ലേറ്റിലേക്ക് ലിങ്ക് ചെയ്യുന്നു
+              overtimes.forEach(ot => {
+                let match = vehiclesMap.get(ot.plate);
+                if (!match && vehiclesMap.size > 0) {
+                  match = vehiclesMap.values().next().value;
+                }
+                if (match) {
+                  match.otQty += ot.qty;
+                  match.otRate = ot.rate;
+                } else {
+                  vehiclesMap.set(ot.plate || `OT_${vehiclesMap.size}`, {
+                    plate: ot.plate || "OT",
+                    normalQty: 0,
+                    normalRate: 0,
+                    otQty: ot.qty,
+                    otRate: ot.rate
+                  });
+                }
+              });
+
+              // 3. SEQ കോളത്തിൽ Plate No ഡിസ്‌പ്ലേ ചെയ്യുന്നു
+              vehiclesMap.forEach(veh => {
+                seqList.push(`<div class="multi-line-item center" style="font-weight:700; color:#0f172a;">${veh.plate || '-'}</div>`);
+                normalHrList.push(`<div class="multi-line-item center">${veh.normalQty > 0 ? veh.normalQty : '-'}</div>`);
+                normalRateList.push(`<div class="multi-line-item right">${veh.normalQty > 0 ? veh.normalRate.toFixed(2) : '-'}</div>`);
+                otHrList.push(`<div class="multi-line-item center">${veh.otQty > 0 ? veh.otQty : '-'}</div>`);
+                otRateList.push(`<div class="multi-line-item right">${veh.otQty > 0 ? veh.otRate.toFixed(2) : '-'}</div>`);
+              });
+            }
+
+            const seqHtml = seqList.length > 0 ? `<div class="multi-cell-stack">${seqList.join('')}</div>` : '-';
+            const normalHrHtml = normalHrList.length > 0 ? `<div class="multi-cell-stack">${normalHrList.join('')}</div>` : '-';
+            const normalRateHtml = normalRateList.length > 0 ? `<div class="multi-cell-stack">${normalRateList.join('')}</div>` : '-';
+            const otHrHtml = otHrList.length > 0 ? `<div class="multi-cell-stack">${otHrList.join('')}</div>` : '-';
+            const otRateHtml = otRateList.length > 0 ? `<div class="multi-cell-stack">${otRateList.join('')}</div>` : '-';
+
+            tbody.innerHTML += `
+              <tr>
+                <td style="white-space:nowrap; font-family:monospace; cursor:context-menu;" oncontextmenu="openDateContextMenu(event, ${inv.id})">${inv.invoice_date || '-'}</td>
+                <td><span class="inv-tag">${inv.invoice_no}</span></td>
+                <td><b>${inv.company_name || '-'}</b></td>
+                <td>${inv.vendor_name || '-'}</td>
+                <td style="color:#0284c7; font-weight:600;">${inv.nickname || '-'}</td>
+                <td style="white-space:nowrap;">${inv.billing_month || '-'}</td>
+                <td class="col-detail">${seqHtml}</td>
+                <td class="col-detail">${normalHrHtml}</td>
+                <td class="col-detail">${normalRateHtml}</td>
+                <td class="col-detail">${otHrHtml}</td>
+                <td class="col-detail">${otRateHtml}</td>
+                <td style="font-weight:700; text-align:right; font-family:monospace;">${parseFloat(inv.grand_total || 0).toFixed(2)}</td>
+                <td style="text-align: center;">
+                  <button class="btn-action btn-view" onclick="viewInvoice(${inv.id})">👁️ View</button>
+                </td>
+              </tr>
+            `;
+          });
+        } else {
+          tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px; color: #64748b;">No saved vendor bills found.</td></tr>';
+        }
+      }
+
+      async function viewInvoice(id) {
+        try {
+          const res = await fetch(`/vendor-bill/api/invoice/${id}`);
+          const data = await res.json();
+          if (!data.success || !data.invoice) return alert("Failed to fetch bill.");
+
+          const inv = data.invoice;
+          let rawData = {};
+          if (typeof inv.raw_payload === "object" && inv.raw_payload !== null) rawData = inv.raw_payload;
+          else if (typeof inv.raw_payload === "string") {
+            try { rawData = JSON.parse(inv.raw_payload); } catch(e) {}
+          }
+
+          // 🟢 Database-ൽ നിന്നുള്ള manual_items അല്ലെങ്കിൽ raw_payload.rows വേർതിരിച്ചെടുക്കുന്നു
+          const itemsList = rawData.manual_items || rawData.rows || [];
+
+          const payload = {
+            ...rawData,
+            invoice_no: inv.invoice_no,
+            company_id: inv.company_id,
+            companyName: inv.company_name,
+            vendorDisplayName: inv.vendor_name,
+            vendorArabicName: rawData.vendorArabicName || inv.vendor_name,
+            vendorVatNo: rawData.buyer_vat || rawData.vendorVatNo || "",
+            billingMonth: inv.billing_month,
+            invoice_date: inv.invoice_date,
+            remarks: inv.remarks || rawData.remarks || "",
+            has_seal: inv.has_seal === true || rawData.has_seal === true,
+            rows: itemsList, // 🟢 rows കൃത്യമായി പാസ്സ് ചെയ്യുന്നു
+            manual_items: itemsList
+          };
+
+          sessionStorage.setItem("activeVendorBillData", JSON.stringify(payload));
+          window.open("vendorbill.html", "_blank");
+        } catch (e) {
+          alert("Error opening vendor bill.");
+        }
+      }
+
+      async function verifyDashboardAccess() {
+        const inputEl = document.getElementById("secCodeInput");
+        const code = inputEl ? inputEl.value.trim() : "";
+        const errEl = document.getElementById("secErrorMsg");
+
+        if (!code) {
+          errEl.innerText = "Please enter the security code.";
+          errEl.style.display = "block";
+          return;
+        }
+
+        try {
+          const res = await fetch("/vendor-bill/api/verify-security", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            sessionStorage.setItem("vbill_system_unlocked", "true");
+            document.getElementById("securityOverlay").style.display = "none";
+            document.getElementById("mainContent").style.display = "block";
+            loadDashboardInvoices();
+          } else {
+            errEl.innerText = "Invalid Security Code. Access Denied!";
+            errEl.style.display = "block";
+            if (inputEl) inputEl.value = "";
+          }
+        } catch (e) {
+          errEl.innerText = "Server verification failed.";
+          errEl.style.display = "block";
+        }
+      }
+
+      if (sessionStorage.getItem("vbill_system_unlocked") === "true") {
+        document.getElementById("securityOverlay").style.display = "none";
+        document.getElementById("mainContent").style.display = "block";
+        loadDashboardInvoices();
+      } else {
+        document.getElementById("securityOverlay").style.display = "flex";
+        setTimeout(() => document.getElementById("secCodeInput")?.focus(), 200);
+      }
+
+      let isDetailViewActive = false;
+      function toggleDetailView() {
+        isDetailViewActive = !isDetailViewActive;
+        const wrapper = document.getElementById("dashboardTableWrapper");
+        const btn = document.getElementById("btnDetailToggle");
+        if (!wrapper || !btn) return;
+
+        if (isDetailViewActive) {
+          wrapper.classList.remove("hide-details");
+          btn.classList.add("active");
+          btn.innerHTML = "👁️ Hide Details";
+        } else {
+          wrapper.classList.add("hide-details");
+          btn.classList.remove("active");
+          btn.innerHTML = "👁️ Detail View";
+        }
+      }
+
+      // 🟢 Date Right-Click & Delete Context Handlers
+      let selectedDeleteInvoiceId = null;
+
+      function openDateContextMenu(event, invoiceId) {
+        event.preventDefault();
+        event.stopPropagation();
+        selectedDeleteInvoiceId = invoiceId;
+
+        const menu = document.getElementById("dateContextMenu");
+        menu.style.display = "block";
+        menu.style.left = `${event.pageX}px`;
+        menu.style.top = `${event.pageY}px`;
+      }
+
+      document.addEventListener("click", () => {
+        const menu = document.getElementById("dateContextMenu");
+        if (menu) menu.style.display = "none";
+      });
+
+      function promptDeleteVendorBill() {
+        const menu = document.getElementById("dateContextMenu");
+        if (menu) menu.style.display = "none";
+
+        const modal = document.getElementById("deleteConfirmModal");
+        const pinInput = document.getElementById("delPinInput");
+        const errEl = document.getElementById("delPinError");
+
+        if (errEl) errEl.style.display = "none";
+        if (pinInput) pinInput.value = "";
+        if (modal) modal.style.display = "flex";
+
+        setTimeout(() => pinInput?.focus(), 100);
+      }
+
+      function closeDeleteConfirmModal() {
+        const modal = document.getElementById("deleteConfirmModal");
+        if (modal) modal.style.display = "none";
+        selectedDeleteInvoiceId = null;
+      }
+
+      async function executeDeleteVendorBill() {
+        if (!selectedDeleteInvoiceId) return;
+
+        const pinInput = document.getElementById("delPinInput");
+        const errEl = document.getElementById("delPinError");
+        const pin = pinInput ? pinInput.value.trim() : "";
+
+        if (!pin) {
+          errEl.innerText = "Please enter PIN!";
+          errEl.style.display = "block";
+          return;
+        }
+
+        try {
+          const res = await fetch("/vendor-bill/api/delete-invoice", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: selectedDeleteInvoiceId, pin: pin }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            closeDeleteConfirmModal();
+            loadDashboardInvoices(); // 🟢 Table refresh aakunnu
+          } else {
+            errEl.innerText = data.message || "Invalid PIN!";
+            errEl.style.display = "block";
+            if (pinInput) pinInput.value = "";
+          }
+        } catch (e) {
+          errEl.innerText = "Server error occurred.";
+          errEl.style.display = "block";
+        }
+      }
+    </script>
+
+    <!-- 🟢 Context Menu for Bill Date -->
+    <div id="dateContextMenu" class="context-menu">
+      <div class="context-menu-item" onclick="promptDeleteVendorBill()">
+        🗑️ Delete Bill
+      </div>
+    </div>
+
+    <!-- 🟢 PIN Confirmation Modal -->
+    <div id="deleteConfirmModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); z-index: 99999; display: none; align-items: center; justify-content: center;">
+      <div style="background: white; padding: 24px; border-radius: 8px; width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+        <h3 style="margin: 0 0 10px 0; color: #dc2626; font-size: 16px;">⚠️ Confirm Deletion</h3>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 15px;">
+          Enter the Delete PIN to permanently remove this bill:
+        </p>
+        <input
+          type="password"
+          id="delPinInput"
+          placeholder="Enter PIN"
+          style="width: 100%; box-sizing: border-box; padding: 10px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 14px; text-align: center; outline: none; margin-bottom: 10px;"
+          onkeydown="if(event.key==='Enter') executeDeleteVendorBill();"
+        />
+        <div id="delPinError" style="color: #ef4444; font-size: 12px; margin-bottom: 12px; display: none; font-weight: 600;"></div>
+        <div style="display: flex; gap: 8px; justify-content: center;">
+          <button class="btn btn-outline" style="padding: 8px 14px;" onclick="closeDeleteConfirmModal()">Cancel</button>
+          <button class="btn" style="background: #dc2626; color: white; padding: 8px 14px;" onclick="executeDeleteVendorBill()">Delete 🗑️</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -23,11 +23,13 @@ def get_db_connection():
 
 @router.get("/export-dashboard-excel")
 async def export_dashboard_excel():
+    conn = None
+    cur = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Database-ൽ നിന്ന് എല്ലാ ഇന്‍വോയ്സുകളും എടുക്കുന്നു
+        # Database query - ആവശ്യമായ കോളങ്ങൾ മാത്രം കുറഞ്ഞ മെമ്മറിയിൽ എടുക്കുന്നു
         cur.execute("""
             SELECT id, invoice_no, company_name, vendor_name, billing_month, 
                    TO_CHAR(invoice_date, 'YYYY-MM-DD') as inv_date, raw_payload
@@ -37,36 +39,37 @@ async def export_dashboard_excel():
         records = cur.fetchall()
         cur.close()
         conn.close()
+        conn = None
 
+        # സെർവർ മെമ്മറി ലാഭിക്കാൻ വേഗത്തിൽ എക്സൽ ബിൽഡ് ചെയ്യുന്നു
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Invoices Detailed"
 
-        # 1. Styles & Colors
+        # Styles & Colors (ഒറ്റത്തവണ ഒബ്ജക്റ്റുകൾ ഡിക്ലെയർ ചെയ്യുന്നു)
         header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")
         header_font = Font(name="Calibri", size=10, bold=True, color="FFFFFF")
         data_font = Font(name="Calibri", size=10)
-        bold_font = Font(name="Calibri", size=10, bold=True)
         grand_font = Font(name="Calibri", size=10, bold=True, color="002886")
 
-        thin_border = Border(
-            left=Side(style='thin', color='CBD5E1'),
-            right=Side(style='thin', color='CBD5E1'),
-            top=Side(style='thin', color='CBD5E1'),
-            bottom=Side(style='thin', color='CBD5E1')
-        )
+        thin_side = Side(style='thin', color='CBD5E1')
+        thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+        center_align = Alignment(horizontal="center", vertical="center")
+        right_align = Alignment(horizontal="right", vertical="center")
+        left_align = Alignment(horizontal="left", vertical="center")
 
         headers = [
             "SL NO", "INVOICE NO", "COMPANY NAME", "CUSTOMER NAME", "SUPPLY MONTH", "BILL DATE",
             "SEQ NO", "ITEM / VEHICLE", "NORMAL", "RATE", "OVER TIME", "RATE", "SUBTOTAL", "VAT", "GRAND TOTAL"
         ]
 
-        # 2. Write Headers
+        # Write Headers
         for col_idx, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col_idx, value=header)
             cell.fill = header_fill
             cell.font = header_font
-            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=False)
+            cell.alignment = center_align
             cell.border = thin_border
 
         ws.row_dimensions[1].height = 26
@@ -86,7 +89,6 @@ async def export_dashboard_excel():
 
             manual_items = payload.get("manual_items") or []
 
-            # Equipments-ഉം Overtime-ഉം തരംതിരിക്കുന്നു
             equipments = []
             overtimes = []
 
@@ -104,38 +106,18 @@ async def export_dashboard_excel():
                 is_ot = "overtime" in v_lower or "over time" in v_lower or re.search(r'\bot\b', v_lower) is not None
 
                 if is_ot:
-                    overtimes.append({
-                        "seq": seq,
-                        "qty": qty,
-                        "rate": rate,
-                        "vat_pct": vat_pct
-                    })
+                    overtimes.append({"seq": seq, "qty": qty, "rate": rate, "vat_pct": vat_pct})
                 else:
-                    equipments.append({
-                        "seq": seq,
-                        "vtype": vtype,
-                        "qty": qty,
-                        "rate": rate,
-                        "vat_pct": vat_pct
-                    })
+                    equipments.append({"seq": seq, "vtype": vtype, "qty": qty, "rate": rate, "vat_pct": vat_pct})
 
-            # എക്യുപ്‌മെന്റ് ഒന്നും ചേർത്തിട്ടില്ലാത്ത ബിൽ ആണെങ്കിൽ ബ്ലാങ്ക് ഐറ്റം ആഡ് ചെയ്യുന്നു
             if not equipments and not overtimes:
-                equipments.append({
-                    "seq": "-",
-                    "vtype": "-",
-                    "qty": 0.0,
-                    "rate": 0.0,
-                    "vat_pct": 15.0
-                })
+                equipments.append({"seq": "-", "vtype": "-", "qty": 0.0, "rate": 0.0, "vat_pct": 15.0})
 
-            # ഓരോ എക്യുപ്‌മെന്റിനും ഒപ്പം അതേ SEQ വരുന്ന OT മാച്ച് ചെയ്യുന്നു
             for eq in equipments:
                 eq_seq = eq["seq"]
                 eq_qty = eq["qty"]
                 eq_rate = eq["rate"]
 
-                # Find Matching OT with same SEQ
                 matched_ot = None
                 for idx, ot in enumerate(overtimes):
                     if ot["seq"] == eq_seq:
@@ -145,57 +127,37 @@ async def export_dashboard_excel():
                 ot_qty = matched_ot["qty"] if matched_ot else 0.0
                 ot_rate = matched_ot["rate"] if matched_ot else 0.0
 
-                # 🟢 Subtotal = (Normal * Rate) + (Over Time * Rate)
                 subtotal = round((eq_qty * eq_rate) + (ot_qty * ot_rate), 2)
-                
-                # VAT % (default 15%)
                 vat_pct = eq.get("vat_pct", 15.0)
                 vat_amount = round(subtotal * (vat_pct / 100), 2)
                 grand_total = round(subtotal + vat_amount, 2)
 
                 row_vals = [
-                    sl_no,
-                    inv_no or "-",
-                    comp_name or "-",
-                    cust_name or "-",
-                    bill_month or "-",
-                    inv_date or "-",
-                    eq_seq,
-                    eq["vtype"],
-                    eq_qty if eq_qty > 0 else "-",
-                    eq_rate if eq_qty > 0 else "-",
-                    ot_qty if ot_qty > 0 else "-",
-                    ot_rate if ot_qty > 0 else "-",
-                    subtotal,
-                    vat_amount,
-                    grand_total
+                    sl_no, inv_no or "-", comp_name or "-", cust_name or "-", bill_month or "-", inv_date or "-",
+                    eq_seq, eq["vtype"],
+                    eq_qty if eq_qty > 0 else "-", eq_rate if eq_qty > 0 else "-",
+                    ot_qty if ot_qty > 0 else "-", ot_rate if ot_qty > 0 else "-",
+                    subtotal, vat_amount, grand_total
                 ]
 
                 for col_idx, val in enumerate(row_vals, 1):
                     cell = ws.cell(row=current_row, column=col_idx, value=val)
-                    cell.font = data_font
+                    cell.font = grand_font if col_idx == 15 else data_font
                     cell.border = thin_border
 
-                    # Formats & Alignments
                     if col_idx in [1, 5, 6, 7]:
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
-                    elif col_idx in [9, 10, 11, 12, 13, 14]:
-                        cell.alignment = Alignment(horizontal="right", vertical="center")
-                        if isinstance(val, (int, float)):
-                            cell.number_format = "#,##0.00"
-                    elif col_idx == 15:
-                        cell.alignment = Alignment(horizontal="right", vertical="center")
-                        cell.font = grand_font
+                        cell.alignment = center_align
+                    elif col_idx in [9, 10, 11, 12, 13, 14, 15]:
+                        cell.alignment = right_align
                         if isinstance(val, (int, float)):
                             cell.number_format = "#,##0.00"
                     else:
-                        cell.alignment = Alignment(horizontal="left", vertical="center")
+                        cell.alignment = left_align
 
                 ws.row_dimensions[current_row].height = 20
                 current_row += 1
                 sl_no += 1
 
-            # ഏതെങ്കിലും OT മാച്ച് ആവാതെ അവശേഷിച്ചിട്ടുണ്ടെങ്കിൽ അവയ്ക്കും പ്രത്യേക വരി കൊടുക്കുന്നു
             for ot in overtimes:
                 ot_qty = ot["qty"]
                 ot_rate = ot["rate"]
@@ -205,46 +167,31 @@ async def export_dashboard_excel():
                 grand_total = round(subtotal + vat_amount, 2)
 
                 row_vals = [
-                    sl_no,
-                    inv_no or "-",
-                    comp_name or "-",
-                    cust_name or "-",
-                    bill_month or "-",
-                    inv_date or "-",
-                    ot["seq"],
-                    "Over Time",
-                    "-",
-                    "-",
-                    ot_qty if ot_qty > 0 else "-",
-                    ot_rate if ot_qty > 0 else "-",
-                    subtotal,
-                    vat_amount,
-                    grand_total
+                    sl_no, inv_no or "-", comp_name or "-", cust_name or "-", bill_month or "-", inv_date or "-",
+                    ot["seq"], "Over Time", "-", "-",
+                    ot_qty if ot_qty > 0 else "-", ot_rate if ot_qty > 0 else "-",
+                    subtotal, vat_amount, grand_total
                 ]
 
                 for col_idx, val in enumerate(row_vals, 1):
                     cell = ws.cell(row=current_row, column=col_idx, value=val)
-                    cell.font = data_font
+                    cell.font = grand_font if col_idx == 15 else data_font
                     cell.border = thin_border
+
                     if col_idx in [1, 5, 6, 7]:
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
-                    elif col_idx in [9, 10, 11, 12, 13, 14]:
-                        cell.alignment = Alignment(horizontal="right", vertical="center")
-                        if isinstance(val, (int, float)):
-                            cell.number_format = "#,##0.00"
-                    elif col_idx == 15:
-                        cell.alignment = Alignment(horizontal="right", vertical="center")
-                        cell.font = grand_font
+                        cell.alignment = center_align
+                    elif col_idx in [9, 10, 11, 12, 13, 14, 15]:
+                        cell.alignment = right_align
                         if isinstance(val, (int, float)):
                             cell.number_format = "#,##0.00"
                     else:
-                        cell.alignment = Alignment(horizontal="left", vertical="center")
+                        cell.alignment = left_align
 
                 ws.row_dimensions[current_row].height = 20
                 current_row += 1
                 sl_no += 1
 
-        # 3. Column Widths
+        # Column Widths
         for col in ws.columns:
             max_len = 0
             col_letter = get_column_letter(col[0].column)
@@ -261,11 +208,22 @@ async def export_dashboard_excel():
         output.seek(0)
 
         filename = f"E_Invoices_Master_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        
+        # Cross-Origin, Tailscale funnel ഫ്രണ്ട്‌ലി ഹെഡറുകൾ നൽകുന്നു
+        headers_resp = {
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+
         return Response(
             content=output.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
+            headers=headers_resp
         )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cur: cur.close()
+        if conn: conn.close()
