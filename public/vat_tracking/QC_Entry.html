@@ -990,14 +990,11 @@
         <div
           class="supplier-info-card"
           id="supplierInfoCard"
-          style="display: none"
+          style="display: none; position: relative;"
         >
           <div>
             <div class="info-label">Supplier / Owner</div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="info-val" id="infoOwnerName"></span>
-                <button onclick="openVatNotesModal()" style="background: transparent; border: none; cursor: pointer; font-size: 14px; opacity: 0.8;" title="Supplier Notes">✏️</button>
-            </div>
+            <div class="info-val" id="infoOwnerName"></div>
           </div>
           <div>
             <div class="info-label">VAT Number</div>
@@ -1021,9 +1018,30 @@
             <div class="info-label">Display Name</div>
             <div class="info-val" id="infoDisplayName"></div>
           </div>
-          <div>
-            <div class="info-label">Active Sites</div>
-            <div class="info-val" id="infoSitesCount">0</div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div class="info-label">Active Sites</div>
+              <div class="info-val" id="infoSitesCount">0</div>
+            </div>
+            <!-- 🟢 Right Corner Pencil Button -->
+            <button
+              onclick="openVatNotesModal()"
+              style="
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                font-size: 16px;
+                opacity: 0.75;
+                padding: 6px 8px;
+                border-radius: 4px;
+                transition: transform 0.15s ease, opacity 0.15s ease;
+              "
+              onmouseenter="this.style.opacity='1'; this.style.transform='scale(1.2)';"
+              onmouseleave="this.style.opacity='0.75'; this.style.transform='scale(1)';"
+              title="Supplier Notes / Remarks"
+            >
+              ✏️
+            </button>
           </div>
         </div>
 
