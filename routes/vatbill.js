@@ -342,35 +342,28 @@ router.post("/update-cell", verifyVatCode, async (req, res) => {
 
         const currentYearNum = parseInt(year);
 
-        // 🟢 2027+: Ee LF + Site-il already record undenkil puthiya supplier perilekku update cheyyunnu
-        let existingId = null;
-        if (currentYearNum >= 2027 && cleanLf) {
-            const checkRes = await pool.query(`
-                SELECT id FROM vat_billing_records 
-                WHERE year = $1 AND company = $2 AND site_name = $3 
-                  AND COALESCE(ledger_folio, '') = $4 AND month_index = $5 LIMIT 1
-            `, [currentYearNum, company, site_name, cleanLf, parseInt(month_index)]);
-            if (checkRes.rows.length > 0) existingId = checkRes.rows[0].id;
-        }
+        // 🟢 2027+: Supplier + Company + Site + LF കൃത്യമായി പരിശോധിച്ച് Overwrite ഒഴിവാക്കുന്നു
+        const cleanSup = (supplier || "").trim();
+        const existingCheck = await pool.query(`
+            SELECT id FROM vat_billing_records 
+            WHERE year = $1 AND company = $2 
+              AND LOWER(TRIM(supplier)) = LOWER(TRIM($3))
+              AND site_name = $4 
+              AND COALESCE(ledger_folio, '') = $5 
+              AND month_index = $6 LIMIT 1
+        `, [currentYearNum, company, cleanSup, site_name, cleanLf, parseInt(month_index)]);
 
-        if (existingId) {
+        if (existingCheck.rows.length > 0) {
             await pool.query(`
                 UPDATE vat_billing_records 
-                SET ${field} = $1, supplier = $2, vat_no = $3, display_name = $4, updated_at = CURRENT_TIMESTAMP 
-                WHERE id = $5
-            `, [valToSave, supplier, vat_no, display_name, existingId]);
+                SET ${field} = $1, vat_no = $2, display_name = $3, updated_at = CURRENT_TIMESTAMP 
+                WHERE id = $4
+            `, [valToSave, vat_no, display_name, existingCheck.rows[0].id]);
         } else {
-            const query = `
+            await pool.query(`
                 INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, ${field})
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                ON CONFLICT (year, company, supplier, site_name, COALESCE(ledger_folio, ''), month_index) 
-                DO UPDATE SET 
-                    ${field} = EXCLUDED.${field},
-                    vat_no = EXCLUDED.vat_no,
-                    display_name = EXCLUDED.display_name,
-                    updated_at = CURRENT_TIMESTAMP
-            `;
-            await pool.query(query, [year, company, supplier, vat_no, display_name, site_name, cleanLf, month_index, valToSave]);
+            `, [currentYearNum, company, cleanSup, vat_no, display_name, site_name, cleanLf, parseInt(month_index), valToSave]);
         }
         
         // Real-time live update for bill_no, amount, and quick_dice to other users without reload
@@ -581,6 +574,79 @@ function broadcastQcUpdate(payload) {
         c.res.write(`data: ${JSON.stringify(payload)}\n\n`);
     });
 }
+
+// ==========================================
+// VAT SUPPLIER NOTES APIS
+// ==========================================
+router.get("/notes", verifyVatCode, async (req, res) => {
+    try {
+        const { supplier } = req.query;
+        if (!supplier) return res.status(400).json({ success: false, message: "Supplier name is required" });
+
+        const result = await pool.query(`
+            SELECT id, supplier_name, note_title, note_content, 
+                   TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date,
+                   created_at
+            FROM supplier_notes
+            WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($1))
+            ORDER BY created_at DESC, id DESC
+        `, [supplier]);
+
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+router.post("/notes", verifyVatCode, async (req, res) => {
+    try {
+        const { supplier, title, content } = req.body;
+        if (!supplier || !content || !content.trim()) {
+            return res.status(400).json({ success: false, message: "Content is required" });
+        }
+
+        const insertRes = await pool.query(`
+            INSERT INTO supplier_notes (supplier_name, note_title, note_content)
+            VALUES ($1, $2, $3)
+            RETURNING id, supplier_name, note_title, note_content,
+                      TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date
+        `, [supplier.trim(), (title || "Remark").trim(), content.trim()]);
+
+        res.json({ success: true, data: insertRes.rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+router.put("/notes/:id", verifyVatCode, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, content } = req.body;
+        if (!content || !content.trim()) return res.status(400).json({ success: false, message: "Content is required" });
+
+        const updateRes = await pool.query(`
+            UPDATE supplier_notes 
+            SET note_title = $1, note_content = $2 
+            WHERE id = $3 
+            RETURNING id, supplier_name, note_title, note_content,
+                      TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date
+        `, [(title || "Remark").trim(), content.trim(), parseInt(id)]);
+
+        res.json({ success: true, data: updateRes.rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+router.delete("/notes/:id", verifyVatCode, async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query("DELETE FROM supplier_notes WHERE id = $1", [parseInt(id)]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
  
 module.exports = router;
  

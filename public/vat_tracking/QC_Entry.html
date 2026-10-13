@@ -994,7 +994,10 @@
         >
           <div>
             <div class="info-label">Supplier / Owner</div>
-            <div class="info-val" id="infoOwnerName"></div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="info-val" id="infoOwnerName"></span>
+                <button onclick="openVatNotesModal()" style="background: transparent; border: none; cursor: pointer; font-size: 14px; opacity: 0.8;" title="Supplier Notes">✏️</button>
+            </div>
           </div>
           <div>
             <div class="info-label">VAT Number</div>
@@ -2140,6 +2143,171 @@
 
       // Initialize listener
       initLiveSync();
+
+      let currentVatNotes = [];
+
+        async function openVatNotesModal() {
+            if (!selectedSupplierKey) return;
+            document.getElementById("vatNotesSupplierBadge").innerText = selectedSupplierKey;
+            document.getElementById("vatNotesModal").style.display = "flex";
+            closeVatComposeBox();
+            await fetchVatSupplierNotes(selectedSupplierKey);
+        }
+
+        function closeVatNotesModal() {
+            document.getElementById("vatNotesModal").style.display = "none";
+            closeVatComposeBox();
+        }
+
+        function openVatComposeBox(noteId = null) {
+            const box = document.getElementById("vatGmailCompose");
+            const titleEl = document.getElementById("vatComposeTitle");
+            const idInput = document.getElementById("vatEditNoteId");
+            const titleInput = document.getElementById("vatNoteTitle");
+            const contentInput = document.getElementById("vatNoteContent");
+
+            if (noteId) {
+                const note = currentVatNotes.find(n => String(n.id) === String(noteId));
+                if (note) {
+                    titleEl.innerText = "Edit Note";
+                    idInput.value = note.id;
+                    titleInput.value = note.note_title || "";
+                    contentInput.value = note.note_content || "";
+                }
+            } else {
+                titleEl.innerText = "New Note";
+                idInput.value = "";
+                titleInput.value = "";
+                contentInput.value = "";
+            }
+            box.style.display = "flex";
+            contentInput.focus();
+        }
+
+        function closeVatComposeBox() {
+            document.getElementById("vatGmailCompose").style.display = "none";
+        }
+
+        async function fetchVatSupplierNotes(supplierName) {
+            const container = document.getElementById("vatNotesListContainer");
+            container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 30px;">Fetching notes...</div>`;
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/notes?supplier=${encodeURIComponent(supplierName)}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                const json = await res.json();
+                if (json.success) {
+                    currentVatNotes = json.data || [];
+                    renderVatNotesList(currentVatNotes);
+                }
+            } catch (err) {
+                container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 30px;">Error loading notes</div>`;
+            }
+        }
+
+        function renderVatNotesList(notes) {
+            const container = document.getElementById("vatNotesListContainer");
+            if (!notes || notes.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: #64748b; padding: 50px;">No notes recorded yet. Click <b>+ Add Note</b> below.</div>`;
+                return;
+            }
+            let html = "";
+            notes.forEach(n => {
+                html += `
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden;">
+                        <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'" style="padding: 10px 14px; background: rgba(255,255,255,0.02); display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <span style="font-weight: 600; color: #f1f5f9; font-size: 13px;">▶ ${escapeHTML(n.note_title || "Remark")}</span>
+                            <div style="display: flex; align-items: center; gap: 8px;" onclick="event.stopPropagation()">
+                                <span style="font-size: 11px; color: #94a3b8;">🕒 ${escapeHTML(n.formatted_date || "")}</span>
+                                <button onclick="openVatComposeBox(${n.id})" style="background: none; border: none; cursor: pointer; color: #94a3b8;">✏️</button>
+                                <button onclick="deleteVatNote(${n.id})" style="background: none; border: none; cursor: pointer; color: #ef4444;">🗑️</button>
+                            </div>
+                        </div>
+                        <div style="display: none; padding: 12px 16px; font-size: 12.5px; color: #cbd5e1; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(15,23,42,0.4); white-space: pre-wrap;">${escapeHTML(n.note_content || "")}</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        async function saveVatNote() {
+            if (!selectedSupplierKey) return;
+            const noteId = document.getElementById("vatEditNoteId").value.trim();
+            const title = document.getElementById("vatNoteTitle").value.trim();
+            const content = document.getElementById("vatNoteContent").value.trim();
+            if (!content) return alert("Please enter note details!");
+
+            showStatus("Saving Note...", "saving");
+            try {
+                const url = noteId ? `/timesheet/api/vat-tracking/notes/${noteId}` : `/timesheet/api/vat-tracking/notes`;
+                const method = noteId ? "PUT" : "POST";
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
+                    body: JSON.stringify({ supplier: selectedSupplierKey, title: title, content: content })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    closeVatComposeBox();
+                    showStatus("Note Saved", "saved");
+                    await fetchVatSupplierNotes(selectedSupplierKey);
+                }
+            } catch (e) {
+                showStatus("Error Saving", "error");
+            }
+        }
+
+        async function deleteVatNote(noteId) {
+            if (!confirm("Delete this note?")) return;
+            try {
+                await fetch(`/timesheet/api/vat-tracking/notes/${noteId}`, {
+                    method: "DELETE",
+                    headers: { "x-vat-code": vatCode }
+                });
+                showStatus("Note Deleted", "saved");
+                await fetchVatSupplierNotes(selectedSupplierKey);
+            } catch (e) {
+                showStatus("Delete Failed", "error");
+            }
+        }
     </script>
+
+    <!-- Supplier Notes Modal -->
+    <div id="vatNotesModal" class="modal-overlay" onclick="if(event.target===this) closeVatNotesModal()" style="z-index: 10005;">
+        <div class="modal-content" style="width: 80%; height: 90%; max-width: 95%; max-height: 95%; background: linear-gradient(145deg, #0d1726, #090e17); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; position: relative; color: #f1f5f9; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(90deg, #0f2027, #203a43, #2c5364); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 18px;">📝</span>
+                    <h3 style="margin: 0; font-size: 15px;">Supplier Notes & Remarks</h3>
+                    <span id="vatNotesSupplierBadge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 2px 8px; border-radius: 12px; font-size: 11px;"></span>
+                </div>
+                <button class="modal-close-btn" onclick="closeVatNotesModal()">&times;</button>
+            </div>
+            
+            <div id="vatNotesListContainer" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 80px;"></div>
+
+            <!-- Floating + Button -->
+            <button onclick="openVatComposeBox()" style="position: absolute; bottom: 20px; right: 20px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; padding: 10px 18px; border-radius: 25px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.5); display: inline-flex; align-items: center; gap: 6px; z-index: 10;">
+                ➕ Add Note
+            </button>
+
+            <!-- Gmail Mini Compose Box -->
+            <div id="vatGmailCompose" style="position: absolute; bottom: 20px; right: 20px; width: 420px; max-width: 90%; background: #0f172a; border: 1px solid #38bdf8; border-radius: 8px; box-shadow: 0 15px 35px rgba(0,0,0,0.8); display: none; flex-direction: column; z-index: 20; overflow: hidden;">
+                <div style="background: #1e293b; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <span id="vatComposeTitle" style="font-size: 12px; font-weight: 600;">New Note</span>
+                    <button onclick="closeVatComposeBox()" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer;">&times;</button>
+                </div>
+                <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <input type="hidden" id="vatEditNoteId" value="">
+                    <input type="text" id="vatNoteTitle" placeholder="Subject / Header" style="background: #090e17; border: 1px solid #334155; color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px; outline: none;">
+                    <textarea id="vatNoteContent" placeholder="Note details..." style="background: #090e17; border: 1px solid #334155; color: white; padding: 8px 10px; border-radius: 4px; font-size: 12px; min-height: 90px; resize: vertical; outline: none;"></textarea>
+                </div>
+                <div style="padding: 8px 12px; background: #090e17; display: flex; justify-content: flex-end; gap: 6px;">
+                    <button onclick="closeVatComposeBox()" style="background: transparent; border: 1px solid #475569; color: #94a3b8; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;">Cancel</button>
+                    <button onclick="saveVatNote()" style="background: #0284c7; border: none; color: white; padding: 4px 14px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer;">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
   </body>
 </html>
