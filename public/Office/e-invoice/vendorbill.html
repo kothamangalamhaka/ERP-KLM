@@ -30,6 +30,7 @@
         align-items: center;
       }
 
+      /* Responsive Top Ribbon */
       .top-ribbon {
         width: 100%;
         max-width: 1200px;
@@ -85,6 +86,7 @@
       .btn-cust { background: #0284c7; color: white; }
       .btn-cust:hover { background: #0369a1; }
 
+      /* Printable Invoice Sheet */
       .invoice-page {
         width: 860px;
         min-height: 1180px;
@@ -157,6 +159,7 @@
         object-fit: contain;
       }
 
+      /* Meta Grid */
       .title-meta-grid {
         display: grid;
         grid-template-columns: 1fr auto 1fr;
@@ -207,7 +210,6 @@
         font-size: 11.5px;
         color: #334155;
         font-weight: 700;
-        font-family: "Tajawal", sans-serif;
       }
       .meta-tag {
         background: #f8fafc;
@@ -222,50 +224,47 @@
         display: inline-block;
       }
 
-      /* 🟢 Vendor details styling (No Labels) */
+      /* Buyer Details */
       .middle-details-bar {
         display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+        margin-bottom: 20px;
         width: 100%;
-        margin-bottom: 18px;
       }
       .buyer-box {
+        border: none;
+        padding: 0;
         display: flex;
         flex-direction: column;
-        max-width: 75%;
+        justify-content: center;
+        text-align: right;
+        align-items: flex-end;
+        max-width: 65%;
+      }
+      .buyer-title {
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 700;
+        margin-bottom: 3px;
+        font-family: "Tajawal", sans-serif;
       }
       .buyer-name {
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 800;
         color: #0f172a;
-        line-height: 1.35;
-        font-family: "Tajawal", "Inter", sans-serif;
-        margin-bottom: 2px;
+        line-height: 1.3;
+        margin-bottom: 3px;
+        font-family: "Tajawal", sans-serif;
       }
       .buyer-vat {
-        font-size: 13.5px;
+        font-size: 13px;
         font-weight: 700;
         color: var(--primary-dark);
         font-family: monospace;
       }
 
-      /* Alignment Classes */
-      .align-left {
-        justify-content: flex-start !important;
-        text-align: left !important;
-      }
-      .align-left .buyer-box {
-        align-items: flex-start !important;
-        text-align: left !important;
-      }
-      .align-right {
-        justify-content: flex-end !important;
-        text-align: right !important;
-      }
-      .align-right .buyer-box {
-        align-items: flex-end !important;
-        text-align: right !important;
-      }
-
+      /* Items Table */
       .items-table {
         width: 100%;
         border-collapse: collapse;
@@ -287,6 +286,7 @@
         letter-spacing: 0.3px;
       }
 
+      /* Summary Table */
       .summary-container-wrap {
         display: flex;
         justify-content: flex-end;
@@ -329,6 +329,7 @@
         color: #0f172a !important;
       }
 
+      /* Bottom Section */
       .bottom-section {
         display: flex;
         flex-direction: column;
@@ -351,41 +352,65 @@
       }
       .digital-auth-line {
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 600;
         color: var(--primary-dark);
-        letter-spacing: 0px; /* 🟢 letter-spacing 0 ആക്കണം, അല്ലാത്തപക്ഷം അക്ഷരങ്ങൾ വേർപെട്ടുപോകും */
+        letter-spacing: normal !important;
         margin-bottom: 6px;
         font-family: "Tajawal", sans-serif;
-        direction: rtl !important;
-        text-align: right;
-        display: inline-block;
       }
       .remarks-display-box {
-        width: 85%;
-        max-width: 85%;
+        width: 100%;
+        max-width: 100%;
         text-align: left;
-        font-size: 11.5px;
-        line-height: 1.35;
+        font-size: 12px;
+        line-height: 1.3;
         color: #000000;
         background: transparent;
-        border-left: 3.5px solid var(--primary-theme);
-        padding: 4px 10px;
-        border-radius: 0 6px 6px 0;
+        border: none !important;
+        padding: 0 !important;
+        margin-top: 5px !important;
+        display: flex !important;
+        align-items: baseline !important;
+        gap: 6px !important;
         white-space: pre-wrap;
         word-break: break-word;
         box-sizing: border-box;
       }
       .remarks-display-title {
         font-weight: 800;
-        font-size: 11px;
-        color: #000000;
+        font-size: 12px;
+        color: #0f172a;
         text-transform: uppercase;
-        margin-bottom: 2px;
-        letter-spacing: 0.5px;
+        margin: 0 !important;
+        letter-spacing: normal !important;
+        white-space: nowrap !important;
       }
-      .stamp-img { max-height: 105px; object-fit: contain; }
-      .sign-img { max-height: 85px; object-fit: contain; }
-
+      #remarksDisplayText {
+        font-weight: 600;
+        font-size: 12px;
+        color: #0f172a;
+        margin: 0 !important;
+      }
+      .supply-text-clean {
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: 0.3px;
+      }
+      .stamp-img {
+        max-height: 105px;
+        object-fit: contain;
+        opacity: 0.65 !important;
+        mix-blend-mode: multiply !important;
+        filter: contrast(1.1) !important;
+      }
+      .sign-img {
+        max-height: 85px;
+        object-fit: contain;
+        opacity: 0.75 !important;
+        mix-blend-mode: multiply !important;
+      }
       .invoice-footer {
         border-top: 2px solid var(--primary-dark);
         padding-top: 10px;
@@ -397,7 +422,8 @@
         width: 100%;
       }
 
-      /* Themes */
+      /* ================= 🏢 COMPANY THEME VARIATIONS ================= */
+      /* 1. HAKA THEME */
       .theme-haka {
         --primary-theme: #d97706;
         --primary-dark: #b45309;
@@ -407,38 +433,193 @@
         --table-header-text: #ffffff;
       }
       .theme-haka .items-table { direction: rtl !important; }
+      .theme-haka .middle-details-bar { display: none !important; }
+      .theme-haka .title-meta-grid { display: none !important; }
+      .theme-haka .haka-top-container {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        margin-top: 18px !important;
+        margin-bottom: 10px !important;
+      }
+      .theme-haka .summary-container-wrap {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important;
+        width: 100% !important;
+        margin-top: 6px !important;
+      }
+      .theme-haka .haka-bottom-meta {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        text-align: right !important;
+        gap: 4px !important;
+        font-family: monospace !important;
+        font-size: 13.5px !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+      }
+      .theme-haka .haka-clean-tag {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        font-weight: 700 !important;
+        font-size: 13.5px !important;
+        color: #0f172a !important;
+        font-family: monospace !important;
+      }
       .theme-haka .remarks-display-box {
         text-align: right !important;
         direction: rtl !important;
-        border-left: none !important;
-        border-right: 3.5px solid #d97706 !important;
-        border-radius: 6px 0 0 6px !important;
+        border: none !important;
+        padding: 0 !important;
       }
 
+      /* 2. MASAR THEME */
       .theme-masar {
         --primary-theme: #ea580c;
         --primary-dark: #0f2c59;
-        --primary-border: #1e3a8a;
+        --primary-border: #cbd5e1;
         --primary-light-bg: #ffedd5;
-        --table-header-bg: linear-gradient(120deg, #001757 0%, #001757 100%);
+        --table-header-bg: #0f2c59;
         --table-header-text: #ffffff;
       }
+      .theme-masar .invoice-header {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        border-bottom: none !important;
+        padding-bottom: 5px !important;
+      }
+      .theme-masar .comp-en {
+        width: 60% !important;
+        text-align: left !important;
+        line-height: 1.5;
+      }
+      .theme-masar .comp-ar { display: none !important; }
+      .theme-masar .comp-logo {
+        max-height: 85px;
+        max-width: 220px;
+        object-fit: contain;
+        display: block !important;
+      }
+      .theme-masar .title-meta-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        margin-top: 15px !important;
+        margin-bottom: 8px !important;
+      }
+      .theme-masar .masar-meta-buyer-row {
+        order: 1 !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        width: 100% !important;
+        margin-bottom: 16px !important;
+      }
+      .theme-masar .title-center-wrap {
+        order: 2 !important;
+        width: 100%;
+        text-align: center !important;
+        margin-top: 4px !important;
+        margin-bottom: 10px !important;
+      }
+      
+      [lang="ar"], [dir="rtl"], .comp-ar, .arabic-summary-table, .inv-title, .digital-auth-line, .theme-masar * {
+        letter-spacing: normal !important;
+        font-feature-settings: "liga" 1, "calt" 1;
+        text-rendering: geometricPrecision;
+      }
+
       .theme-masar .inv-title {
-        background: linear-gradient(120deg, #001757, #001757);
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        border-bottom: 2.5px solid #ea580c;
+        font-family: "Tajawal", sans-serif !important;
+        font-size: 25px !important;
+        font-weight: 800 !important;
+        color: #0f2c59 !important;
+        border-bottom: 2.5px solid #ea580c !important;
+        padding-bottom: 3px !important;
+        display: inline-block !important;
+        letter-spacing: normal !important;
+      }
+      .theme-masar .meta-right-wrap {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        gap: 5px;
+      }
+      .theme-masar .meta-row {
+        direction: rtl !important;
+        gap: 8px;
+      }
+      .theme-masar .meta-label {
+        font-family: "Tajawal", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f172a;
+        min-width: 120px;
+        text-align: right;
+      }
+      .theme-masar .meta-tag {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        min-width: auto !important;
+        text-align: right !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+      }
+      .theme-masar .middle-details-bar { display: none !important; }
+      .theme-masar .buyer-box {
+        text-align: left !important;
+        align-items: flex-start !important;
+        max-width: 55% !important;
+      }
+      .theme-masar .buyer-name {
+        font-size: 15px !important;
+        font-weight: 800 !important;
+        color: #0f172a !important;
+        line-height: 1.35 !important;
+        margin-bottom: 4px !important;
+        font-family: "Tajawal", sans-serif !important;
+      }
+      .theme-masar .buyer-vat {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #0f2c59 !important;
+        font-family: monospace !important;
       }
       .theme-masar .items-table { direction: rtl !important; }
       .theme-masar .remarks-display-box {
-        text-align: right !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
         direction: rtl !important;
-        border-left: none !important;
-        border-right: 3.5px solid #ea580c !important;
-        border-radius: 6px 0 0 6px !important;
+        text-align: right !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        font-family: "Tajawal", sans-serif !important;
+      }
+      .theme-masar .remarks-display-title {
+        margin-bottom: 0 !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+        white-space: nowrap !important;
+      }
+      .theme-masar #remarksDisplayText {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
       }
 
+      /* 3. WEFAQ THEME */
       .theme-wefaq {
         --primary-theme: #f9ba85;
         --primary-dark: #c25e10;
@@ -447,7 +628,47 @@
         --table-header-bg: #f9ba85;
         --table-header-text: #000000;
       }
+      .theme-wefaq .middle-details-bar { display: none !important; }
+      .theme-wefaq .title-meta-grid { display: none !important; }
+      .theme-wefaq .wefaq-custom-container {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        margin-top: 25px !important;
+        margin-bottom: 14px !important;
+        gap: 10px !important;
+      }
+      .theme-wefaq .masar-meta-buyer-row { display: none !important; }
+      .theme-wefaq .wefaq-row-1 {
+        display: grid !important;
+        grid-template-columns: 1fr auto 1fr !important;
+        align-items: center !important;
+        width: 100% !important;
+      }
+      .theme-wefaq .wefaq-row-2 {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        width: 100% !important;
+      }
+      .theme-wefaq .wefaq-borderless-tag {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        font-family: inherit !important;
+        font-weight: 700 !important;
+        color: #0f172a !important;
+        font-size: 13px !important;
+      }
+      .theme-wefaq .wefaq-arabic-lbl {
+        font-family: "Tajawal", sans-serif !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        color: #0f172a !important;
+      }
 
+      /* 4. DEFAULT AL THEME */
       .theme-default {
         --primary-theme: #0284c7;
         --primary-dark: #002886;
@@ -455,6 +676,29 @@
         --primary-light-bg: #e0f2fe;
         --table-header-bg: #0284c7;
         --table-header-text: #ffffff;
+      }
+      .theme-default .invoice-header { display: none !important; }
+      .theme-default .title-meta-grid { display: none !important; }
+      .theme-default .middle-details-bar { display: none !important; }
+      .theme-default .aljoda-custom-container {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        margin-bottom: 12px !important;
+      }
+      .theme-default .aljoda-pill {
+        border: 1.5px solid #0284c7 !important;
+        background: #e0f2fe !important;
+        color: #002886 !important;
+        padding: 3px 10px !important;
+        border-radius: 5px !important;
+        font-weight: 700 !important;
+        font-size: 12.5px !important;
+        display: inline-block !important;
+        min-width: 125px !important;
+        text-align: center !important;
+        font-family: monospace !important;
+        box-sizing: border-box !important;
       }
 
       /* Modals */
@@ -742,51 +986,58 @@
         </div>
 
         <div class="title-meta-grid" id="titleMetaGrid">
-          <!-- 🟢 Left Meta Wrap (Haka & Masar എന്നിവയ്ക്ക്) -->
-          <div class="meta-left-wrap" id="metaLeftWrap" style="display: none">
-            <div class="meta-row">
-              <span id="dateDisplayLeft" class="meta-tag">------</span>
-              <span class="meta-label">التاريخ :</span>
-            </div>
-            <div class="meta-row">
-              <span id="invNoDisplayLeft" class="meta-tag">------</span>
-              <span class="meta-label">رقم الفاتورة :</span>
-            </div>
-            <div class="meta-row">
-              <span id="supplyDateDisplayLeft" class="meta-tag">------</span>
-              <span class="meta-label">تاريخ التوريد :</span>
-            </div>
-          </div>
-
-          <!-- 🟢 Center Title (Always Bill Summary / ملخص الفاتورة) -->
           <div class="title-center-wrap">
             <div class="inv-title" id="invTitleDisplay">
               Bill Summary - ملخص الفاتورة
             </div>
           </div>
 
-          <!-- 🟢 Right Meta Wrap (All Companies have Arabic Labels) -->
-          <div class="meta-right-wrap" id="metaRightWrap">
-            <div class="meta-row">
-              <span class="meta-label">التاريخ :</span>
-              <span id="dateDisplay" class="meta-tag">------</span>
+          <div class="masar-meta-buyer-row" id="metaBuyerCombinedRow">
+            <div class="buyer-box" id="embeddedBuyerBox">
+              <div class="buyer-title" id="buyerTitleLabel">العميل</div>
+              <div class="buyer-name" id="buyerNameDisplay"></div>
+              <div class="buyer-vat" id="buyerVatDisplay"></div>
             </div>
-            <div class="meta-row">
-              <span class="meta-label">رقم الفاتورة :</span>
-              <span id="invNoDisplay" class="meta-tag">------</span>
+
+            <!-- Left Meta Wrap -->
+            <div class="meta-left-wrap" id="metaLeftWrap" style="display: none">
+              <div class="meta-row">
+                <span id="dateDisplayLeft" class="meta-tag">------</span>
+                <span class="meta-label">التاريخ :</span>
+              </div>
+              <div class="meta-row">
+                <span id="invNoDisplayLeft" class="meta-tag">------</span>
+                <span class="meta-label">رقم الفاتورة :</span>
+              </div>
+              <div class="meta-row">
+                <span id="supplyDateDisplayLeft" class="meta-tag">------</span>
+                <span class="meta-label">شهر التوريد :</span>
+              </div>
             </div>
-            <div class="meta-row">
-              <span class="meta-label">شهر التوريد :</span>
-              <span id="supplyDateDisplay" class="meta-tag">------</span>
+
+            <!-- Right Meta Wrap -->
+            <div class="meta-right-wrap" id="metaRightWrap">
+              <div class="meta-row">
+                <span class="meta-label" id="lblMetaDate">التاريخ :</span>
+                <span id="dateDisplay" class="meta-tag">------</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label" id="lblMetaInv">رقم الفاتورة :</span>
+                <span id="invNoDisplay" class="meta-tag">------</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label" id="lblMetaSupply">شهر التوريد :</span>
+                <span id="supplyDateDisplay" class="meta-tag">------</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 🟢 Middle Details Bar: No Labels, Company-specific alignment -->
-        <div class="middle-details-bar align-right" id="buyerDetailsBar">
+        <div class="middle-details-bar" id="buyerDetailsBar">
           <div class="buyer-box">
-            <div class="buyer-name" id="buyerNameDisplay"></div>
-            <div class="buyer-vat" id="buyerVatDisplay"></div>
+            <div class="buyer-title" id="buyerTitleLabelStand">العميل</div>
+            <div class="buyer-name" id="buyerNameDisplayStand"></div>
+            <div class="buyer-vat" id="buyerVatDisplayStand"></div>
           </div>
         </div>
 
@@ -796,10 +1047,8 @@
         </table>
 
         <div class="summary-container-wrap" style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-top: 15px;">
-          <!-- 🟢 Right/Opposite portion-il ZATCA QR Code -->
           <div id="zatcaQrWrapper" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px;">
-            <!-- 🟢 Border പൂർണ്ണമായി ഒഴിവാക്കി, സ്കാനിംഗിന് ആവശ്യമായ ക്ലീൻ വൈറ്റ് പാഡിംഗ് മാത്രം നിലനിർത്തുന്നു -->
-<div id="zatcaQrCanvas" style="padding: 6px; background: #ffffff; min-width: 88px; min-height: 88px; display: flex; align-items: center; justify-content: center;"></div>
+            <div id="zatcaQrCanvas" style="padding: 6px; background: #ffffff; min-width: 88px; min-height: 88px; display: flex; align-items: center; justify-content: center;"></div>
           </div>
 
           <table class="arabic-summary-table">
@@ -820,7 +1069,6 @@
 
         <div class="bottom-section">
           <div class="seal-sign-wrapper">
-            <!-- 🟢 ചിഹ്നങ്ങൾ ഒഴിവാക്കിയ ക്ലീൻ അറബിക് വാചകം (PDF-ൽ അക്ഷരങ്ങൾ പരസ്പരം ഒട്ടി ക്ലിയറായി വരും) -->
             <div class="digital-auth-line" id="digitalAuthLine" dir="rtl">
               ملخص الفاتورة المعد إلكترونيا - تم التحقق منه واعتماده رقميا
             </div>
@@ -848,7 +1096,7 @@
             style="display: none"
           >
             <div class="remarks-display-title" id="remarksDisplayTitle">
-              Note
+              Note ::
             </div>
             <div id="remarksDisplayText"></div>
           </div>
@@ -861,7 +1109,7 @@
       </div>
     </div>
 
-    <!-- 🟢 Edit Details Modal (Stable Supply Month - non-editable) -->
+    <!-- Edit Details Modal -->
     <div class="modal-backdrop" id="editBillModal">
       <div class="modal-card edit-bill-modal">
         <div class="modal-header">
@@ -892,7 +1140,6 @@
           </div>
         </div>
 
-        <!-- 🟢 Fixed Supply Month Info (Display only, from billing screen) -->
         <div class="form-group">
           <label>Supply Month (Fixed from Billing):</label>
           <input
@@ -1040,18 +1287,14 @@
       let currentCompanyTheme = "default";
       let isSealEngaged = false;
       let billOwnerNick = "";
-      let currentVendorAlignment = "right";
-      let isBillAlreadySaved = false; // 🟢 Bill save aayo ennu track cheyyaan
-      let attachedBillingCardImage = ""; // 🟢 Second page card image സൂക്ഷിക്കാൻ
+      let isBillAlreadySaved = false;
+      let attachedBillingCardImage = "";
 
-      // 🟢 Dynamic Google Translate function (English -> Arabic)
       async function translateToArabicDynamic(text) {
         if (!text || !text.trim()) return "";
         try {
-          // Plate number/brackets ozhivaakki clean vehicle name maathram translate cheyyunnu
           const cleanText = text.replace(/\(.*?\)/g, "").trim();
           if (!cleanText) return "";
-          
           const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodeURIComponent(cleanText)}`;
           const res = await fetch(url);
           const data = await res.json();
@@ -1082,7 +1325,6 @@
 
             await populateIncomingBillingData(data);
             
-            // 🟢 ഫെച്ചിംഗിന് ശേഷവും യഥാർത്ഥ ഇൻവോയ്സ് നമ്പർ തന്നെ ഉറപ്പാക്കുന്നു
             if (data.invoice_no && data.invoice_no !== "------") {
               isBillAlreadySaved = true;
               syncInvNoDisplays(data.invoice_no);
@@ -1118,7 +1360,6 @@
         if (data.success && data.companies.length > 0) {
           companiesList = data.companies;
 
-          // 🟢 Order mapping configuration
           const customOrder = [
             { key: "HAK", label: "Haka" },
             { key: "AL",  label: "Al Joda" },
@@ -1136,7 +1377,6 @@
             }
           });
 
-          // Baakki ulla company-kal undenkil add cheyyunnu
           companiesList.forEach((c) => {
             const code = (c.short_code || c.company_name_en || "").toUpperCase();
             const exists = customOrder.some(co => code.includes(co.key));
@@ -1148,14 +1388,13 @@
       }
 
       async function populateIncomingBillingData(incoming) {
-        // 🟢 ഇകംമിംഗ് ഡാറ്റയിൽ ഇൻവോയ്സ് നമ്പർ ഉണ്ടെങ്കിൽ അത് സേവ് ചെയ്ത ബില്ലാണ്, അല്ലാത്തപ്പോൾ മാത്രം false ആക്കുക
         if (!incoming.invoice_no || incoming.invoice_no === "------") {
           isBillAlreadySaved = false;
         } else {
           isBillAlreadySaved = true;
         }
-        attachedBillingCardImage = incoming.billingCardImage || incoming.raw_payload?.billingCardImage || ""; // 🟢 Card image capture cheyyunnu // 🟢 Billing-il ninnum puthiya entry varumbol false aakkunnu
-        // 🟢 1. Stable Supply Month setup
+        attachedBillingCardImage = incoming.billingCardImage || incoming.raw_payload?.billingCardImage || "";
+
         if (incoming.billingMonth) {
           const parts = incoming.billingMonth.split(" ");
           const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -1173,17 +1412,12 @@
         syncSupplyDateDisplays(fixedSupplyMonth);
         document.getElementById("modalSupplyMonthDisplay").value = fixedSupplyMonth;
 
-        // 🟢 2. Vendor Name (Arabic first preference from TS DB)
         billOwnerNick = incoming.ownerNick || incoming.ownerName || "";
         const ownerDisplay = incoming.vendorArabicName || incoming.vendorDisplayName || incoming.ownerName || "";
-        
-        document.getElementById("buyerNameDisplay").innerText = ownerDisplay;
-        document.getElementById("buyerVatDisplay").innerText = incoming.vendorVatNo || "";
+        const ownerVat = incoming.vendorVatNo || "";
 
-        document.getElementById("modalBuyerName").value = ownerDisplay;
-        document.getElementById("modalBuyerVat").value = incoming.vendorVatNo || "";
+        setVendorDetails(ownerDisplay, ownerVat);
 
-        // 🟢 3. Match Issuer Company and Theme
         if (incoming.companyName) {
           const matchedComp = companiesList.find(c =>
             c.company_name_en.toLowerCase().includes(incoming.companyName.toLowerCase()) ||
@@ -1197,15 +1431,11 @@
           }
         }
 
-        // 🟢 4. N.Hr & Overtime Separate Line Item ആയി സ്പ്ലിറ്റ് ചെയ്യുന്നു (Dashboard View & Fresh Entry Support)
         activeBillItems = [];
         let seqCount = 0;
-
-        // Dashboard-ൽ നിന്ന് വരുമ്പോൾ manual_items-ലും Billing-ൽ നിന്ന് വരുമ്പോൾ rows-ലും ആകും ലിസ്റ്റ് ഉണ്ടാവുക
         const incomingRows = incoming.rows || incoming.manual_items || [];
 
         for (let row of incomingRows) {
-          // Dashboard-ൽ ഇതിനകം സേവ് ചെയ്ത ഐറ്റങ്ങൾ ആണെങ്കിൽ subTotal / total നേരിട്ട് എടുക്കുന്നു
           if (row.subTotal !== undefined || row.total !== undefined) {
             seqCount++;
             activeBillItems.push({
@@ -1228,14 +1458,12 @@
           const otrate = parseFloat(row.otrate) || 0;
           const vatPct = row.vat_percent !== undefined ? parseFloat(row.vat_percent) : 15;
 
-          // Arabic translation check: row-il illenkil online Google Translate vazhi live aayi fetch cheyyunnu
           let rawVtype = row.vtype || "Vehicle";
           let arabicDesc = (row.vtype_ar || "").trim();
           if (!arabicDesc && rawVtype) {
             arabicDesc = await translateToArabicDynamic(rawVtype);
           }
 
-          // 1. Normal Hours Row (N.Hr undenkil athallenkil fixed rent)
           if (nhr > 0 || (nhr === 0 && othr === 0)) {
             seqCount++;
             const qty = nhr > 0 ? nhr : 1;
@@ -1257,7 +1485,6 @@
             });
           }
 
-          // 2. Over Time Row (OT undenkil prathyekam adutha variyaayi cherkkunnu)
           if (othr > 0) {
             seqCount++;
             const qty = othr;
@@ -1282,7 +1509,6 @@
 
         renderInvoiceViewTable();
 
-        // 🟢 5. Check if multiple owners exist
         const samplePlate = incoming.rows && incoming.rows[0] ? incoming.rows[0].plate : "";
         if (samplePlate && incoming.billingMonth) {
           const bParts = incoming.billingMonth.split(" ");
@@ -1290,6 +1516,44 @@
             checkMultiOwnersFromTimesheet(samplePlate, bParts[0], bParts[1]);
           }
         }
+      }
+
+      function setVendorDetails(name, vat) {
+        const idsName = ["buyerNameDisplay", "buyerNameDisplayStand", "wefaqBuyerNameVal", "hakaBuyerNameVal", "aljodaBuyerNameVal"];
+        const idsVat = ["buyerVatDisplay", "buyerVatDisplayStand", "wefaqBuyerVatVal", "hakaBuyerVatVal", "aljodaBuyerVatVal"];
+        
+        idsName.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerText = name;
+        });
+
+        idsVat.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerText = vat;
+        });
+
+        const mName = document.getElementById("modalBuyerName");
+        if (mName) mName.value = name;
+        const mVat = document.getElementById("modalBuyerVat");
+        if (mVat) mVat.value = vat;
+      }
+
+      function getActiveVendorName() {
+        return (
+          document.getElementById("modalBuyerName")?.value ||
+          document.getElementById("buyerNameDisplay")?.innerText ||
+          document.getElementById("buyerNameDisplayStand")?.innerText ||
+          ""
+        ).trim();
+      }
+
+      function getActiveVendorVat() {
+        return (
+          document.getElementById("modalBuyerVat")?.value ||
+          document.getElementById("buyerVatDisplay")?.innerText ||
+          document.getElementById("buyerVatDisplayStand")?.innerText ||
+          ""
+        ).trim();
       }
 
       async function checkMultiOwnersFromTimesheet(plate, month, year) {
@@ -1321,15 +1585,231 @@
       function selectVehicleOwnerChoice(owner) {
         billOwnerNick = owner.owner_name || "";
         const disp = owner.company_arabic_name || owner.company_display_name || owner.owner_name || "";
-        document.getElementById("buyerNameDisplay").innerText = disp;
-        document.getElementById("buyerVatDisplay").innerText = owner.vat_no || "";
-
-        document.getElementById("modalBuyerName").value = disp;
-        document.getElementById("modalBuyerVat").value = owner.vat_no || "";
+        setVendorDetails(disp, owner.vat_no || "");
+        updateZatcaQrCode();
       }
 
       function closeMultiOwnerModal() {
         document.getElementById("multiOwnerModal").style.display = "none";
+      }
+
+      /* ================= 🎨 DYNAMIC THEME & LAYOUT ENGINE (E-Invoice Template Synced) ================= */
+      function applyCompanyLayoutTheme(themeKey, compObj) {
+        currentCompanyTheme = themeKey;
+        const page = document.getElementById("printableInvoice");
+
+        const wefaqCont = document.getElementById("wefaqLayoutContainer");
+        if (wefaqCont) wefaqCont.style.display = "none";
+        const hakaCont = document.getElementById("hakaTopLayoutContainer");
+        if (hakaCont) hakaCont.style.display = "none";
+        const hakaBtmMeta = document.getElementById("hakaBottomMetaContainer");
+        if (hakaBtmMeta) hakaBtmMeta.style.display = "none";
+        const aljodaCont = document.getElementById("aljodaLayoutContainer");
+        if (aljodaCont) aljodaCont.style.display = "none";
+
+        const mainGrid = document.getElementById("titleMetaGrid");
+        if (mainGrid) mainGrid.style.display = "";
+
+        page.className = `invoice-page theme-${themeKey}`;
+
+        const leftWrap = document.getElementById("metaLeftWrap");
+        const rightWrap = document.getElementById("metaRightWrap");
+        const titleEl = document.getElementById("invTitleDisplay");
+        const authLine = document.getElementById("digitalAuthLine");
+        const remTitle = document.getElementById("remarksDisplayTitle");
+
+        if (themeKey === "haka") {
+          leftWrap.style.display = "none";
+          rightWrap.style.display = "none";
+          if (mainGrid) mainGrid.style.display = "none";
+          const oldBuyerBar = document.getElementById("buyerDetailsBar");
+          if (oldBuyerBar) oldBuyerBar.style.display = "none";
+
+          let topCont = document.getElementById("hakaTopLayoutContainer");
+          if (!topCont) {
+            topCont = document.createElement("div");
+            topCont.id = "hakaTopLayoutContainer";
+            topCont.className = "haka-top-container";
+            const itemsTable = document.getElementById("itemsTable");
+            itemsTable.parentNode.insertBefore(topCont, itemsTable);
+          }
+          topCont.style.display = "flex";
+
+          let btmCont = document.getElementById("hakaBottomMetaContainer");
+          const sumWrap = document.querySelector(".summary-container-wrap");
+          if (!btmCont) {
+            btmCont = document.createElement("div");
+            btmCont.id = "hakaBottomMetaContainer";
+            btmCont.className = "haka-bottom-meta";
+          }
+          if (sumWrap && btmCont.parentNode !== sumWrap) {
+            sumWrap.appendChild(btmCont);
+          }
+          btmCont.style.display = "flex";
+
+          const currentSupply = document.getElementById("supplyDateDisplay")?.innerText || fixedSupplyMonth;
+          const currentDate = document.getElementById("dateDisplay")?.innerText || "------";
+          const currentInv = document.getElementById("invNoDisplay")?.innerText || "------";
+          const currentBuyer = getActiveVendorName();
+          const currentVat = getActiveVendorVat();
+
+          topCont.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%;">
+              <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:'Tajawal',sans-serif; font-weight:700; font-size:13px; color:#0f172a;">التاريخ :</span>
+                  <span id="hakaDateVal" class="haka-clean-tag">${currentDate}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:'Tajawal',sans-serif; font-weight:700; font-size:13px; color:#0f172a;">شهر التوريد :</span>
+                  <span id="hakaSupplyVal" class="haka-clean-tag">${currentSupply}</span>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; align-items:flex-end; text-align:right;">
+                <span id="hakaBuyerNameVal" style="font-family:'Tajawal',sans-serif; font-weight:800; font-size:15px; color:#0f172a;">${currentBuyer}</span>
+                <span id="hakaBuyerVatVal" style="font-family:monospace; font-weight:700; font-size:13px; color:var(--primary-dark); margin-top:3px;">${currentVat}</span>
+              </div>
+            </div>
+            <div style="width:100%; text-align:center; margin-top:10px; margin-bottom:5px;">
+              <div class="inv-title" style="font-family:'Tajawal',sans-serif; font-size:20px; font-weight:800; color:var(--primary-dark); border-bottom:2.5px solid var(--primary-theme); padding-bottom:3px; display:inline-block;">
+                ملخص الفاتورة الضريبية
+              </div>
+            </div>
+          `;
+
+          btmCont.innerHTML = `
+            <span id="hakaSupplyValBtm" class="haka-clean-tag">${currentSupply}</span>
+            <span id="hakaInvNoVal" class="haka-clean-tag">${currentInv}</span>
+          `;
+
+          authLine.innerText = "فاتورة ضريبية مُعتمدة إلكترونياً – تم التحقق والاعتماد رقمياً";
+          if (remTitle) remTitle.innerText = "ملاحظات :";
+        }
+        else if (themeKey === "masar") {
+          leftWrap.style.display = "none";
+          rightWrap.style.display = "flex";
+          document.getElementById("lblMetaDate").innerText = "تاريخ الفاتورة :";
+          document.getElementById("lblMetaInv").innerText = "رقم ملخص الفاتورة :";
+          document.getElementById("lblMetaSupply").innerHTML = "شهر التوريد :";
+          titleEl.innerText = "ملخص الفاتورة";
+          authLine.innerText = "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
+          if (remTitle) remTitle.innerText = "ملاحظات :";
+        }
+        else if (themeKey === "wefaq") {
+          leftWrap.style.display = "none";
+          rightWrap.style.display = "none";
+          if (mainGrid) mainGrid.style.display = "none";
+          const oldBuyerBar = document.getElementById("buyerDetailsBar");
+          if (oldBuyerBar) oldBuyerBar.style.display = "none";
+
+          let wefaqContainer = document.getElementById("wefaqLayoutContainer");
+          if (!wefaqContainer) {
+            wefaqContainer = document.createElement("div");
+            wefaqContainer.id = "wefaqLayoutContainer";
+            wefaqContainer.className = "wefaq-custom-container";
+            const itemsTable = document.getElementById("itemsTable");
+            itemsTable.parentNode.insertBefore(wefaqContainer, itemsTable);
+          }
+          wefaqContainer.style.display = "flex";
+
+          const currentSupply = document.getElementById("supplyDateDisplay")?.innerText || fixedSupplyMonth;
+          const currentDate = document.getElementById("dateDisplay")?.innerText || "------";
+          const currentInv = document.getElementById("invNoDisplay")?.innerText || "------";
+          const currentBuyer = getActiveVendorName();
+          const currentVat = getActiveVendorVat();
+
+          wefaqContainer.innerHTML = `
+            <div class="wefaq-row-1">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="wefaq-arabic-lbl">شهر التوريد :</span>
+                <span id="wefaqSupplyVal" class="wefaq-borderless-tag">${currentSupply}</span>
+              </div>
+              <div style="text-align:center;">
+                <div class="inv-title" style="font-size:20px; font-weight:800; border-bottom:2.5px solid var(--primary-theme); padding-bottom:3px; display:inline-block;">
+                  ملخص الفاتورة - Bill Summary
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+                <span class="wefaq-arabic-lbl">التاريخ :</span>
+                <span id="wefaqDateVal" class="wefaq-borderless-tag">${currentDate}</span>
+              </div>
+            </div>
+            <div class="wefaq-row-2">
+              <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                <span id="wefaqBuyerNameVal" style="font-weight:800; font-size:14.5px; color:#0f172a; font-family:'Tajawal', sans-serif; line-height:1.2;">${currentBuyer}</span>
+                <span id="wefaqBuyerVatVal" style="font-family:monospace; font-size:12.5px; font-weight:700; color:var(--primary-dark); margin-top:3px;">${currentVat}</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="wefaq-arabic-lbl">رقم الفاتورة :</span>
+                <span id="wefaqInvNoVal" class="wefaq-borderless-tag">${currentInv}</span>
+              </div>
+            </div>
+          `;
+
+          authLine.innerText = "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
+          if (remTitle) remTitle.innerText = "Note ::";
+        }
+        else {
+          leftWrap.style.display = "none";
+          rightWrap.style.display = "none";
+          if (mainGrid) mainGrid.style.display = "none";
+          const oldBuyerBar = document.getElementById("buyerDetailsBar");
+          if (oldBuyerBar) oldBuyerBar.style.display = "none";
+
+          let aljodaContainer = document.getElementById("aljodaLayoutContainer");
+          if (!aljodaContainer) {
+            aljodaContainer = document.createElement("div");
+            aljodaContainer.id = "aljodaLayoutContainer";
+            aljodaContainer.className = "aljoda-custom-container";
+            const itemsTable = document.getElementById("itemsTable");
+            itemsTable.parentNode.insertBefore(aljodaContainer, itemsTable);
+          }
+          aljodaContainer.style.display = "flex";
+
+          const selCompId = document.getElementById("companySelect")?.value;
+          const compData = compObj || companiesList.find((c) => String(c.id) === String(selCompId)) || {};
+
+          const currentSupply = document.getElementById("supplyDateDisplay")?.innerText || fixedSupplyMonth;
+          const currentDate = document.getElementById("dateDisplay")?.innerText || "------";
+          const currentInv = document.getElementById("invNoDisplay")?.innerText || "------";
+          const currentBuyer = getActiveVendorName();
+          const currentVat = getActiveVendorVat();
+
+          aljodaContainer.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; margin-bottom:8px;">
+              <div style="display:flex; flex-direction:column; align-items:flex-start; text-align:left; max-width:48%;">
+                <span id="aljodaBuyerNameVal" style="font-family:'Tajawal',sans-serif; font-weight:800; font-size:16px; color:#0f172a; line-height:1.3; padding-top: 20px;">${currentBuyer}</span>
+                <span id="aljodaBuyerVatVal" style="font-family:monospace; font-weight:700; font-size:13px; color:var(--primary-dark); margin-top:4px;">${currentVat}</span>
+                <div style="height:28px; width:100%;"></div>
+                <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-start;">
+                  <span id="aljodaInvNoVal" class="aljoda-pill">${currentInv}</span>
+                  <span id="aljodaDateVal" class="aljoda-pill">${currentDate}</span>
+                  <span id="aljodaSupplyVal" class="aljoda-pill">${currentSupply}</span>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; align-items:flex-end; text-align:right; max-width:50%;">
+                ${compData.logo_url ? `<img src="${compData.logo_url}" style="max-height:85px; max-width:200px; object-fit:contain; margin-bottom:6px;" alt="Logo" />` : ''}
+                <b style="font-family:'Tajawal',sans-serif; font-size:16px; font-weight:800; color:var(--primary-dark);">${compData.company_name_ar || ''}</b>
+                <div style="font-size:12.5px; color:#334155; margin-top:3px; font-weight:700; font-family:'Tajawal',sans-serif;">
+                  س ت : <span style="font-family:monospace;">${compData.cr_number || '-'}</span>
+                </div>
+                <div style="font-size:12.5px; color:#334155; margin-top:2px; font-weight:700; font-family:'Tajawal',sans-serif;">
+                  الرقم الضريبي : <span style="font-family:monospace;">${compData.vat_number || '-'}</span>
+                </div>
+              </div>
+            </div>
+            <div style="width:100%; text-align:center; margin-bottom:8px;">
+              <div class="inv-title" style="font-family:'Tajawal',sans-serif; font-size:22px; font-weight:800; color:var(--primary-dark); border-bottom:2.5px solid var(--primary-theme); padding-bottom:3px; display:inline-block;">
+                ملخص الفاتورة
+              </div>
+            </div>
+          `;
+
+          authLine.innerText = "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
+          if (remTitle) remTitle.innerText = "Note ::";
+        }
+
+        renderInvoiceViewTable();
       }
 
       function renderInvoiceViewTable() {
@@ -1337,7 +1817,9 @@
         const tbody = document.getElementById("invoiceItemsBody");
         tbody.innerHTML = "";
 
-        if (currentCompanyTheme === "haka" || currentCompanyTheme === "masar") {
+        const isArabicTheme = currentCompanyTheme === "haka" || currentCompanyTheme === "masar";
+
+        if (isArabicTheme) {
           thead.innerHTML = `
             <tr>
               <th style="width: 35px">م</th>
@@ -1383,11 +1865,10 @@
           totalVat += rowVat;
           grandTotal += rowTot;
 
-          const alignStyle = (currentCompanyTheme === "haka" || currentCompanyTheme === "masar")
+          const alignStyle = isArabicTheme
             ? "text-align:right; padding-right:10px;"
             : "text-align:left; padding-left:10px;";
 
-          // 🟢 Vehicle type with Arabic in next line
           let vehicleCellContent = `<div>${row.vtype}</div>`;
           if (row.vtype_ar && row.vtype_ar.trim() !== "") {
             vehicleCellContent += `<div style="font-family:'Tajawal', sans-serif; font-size:11px; color:#475569; margin-top:2px;">${row.vtype_ar}</div>`;
@@ -1417,6 +1898,8 @@
         document.getElementById("modalDate").value = currentInvoiceDate;
         document.getElementById("modalRemarksInput").value = currentRemarks;
         document.getElementById("modalSupplyMonthDisplay").value = fixedSupplyMonth;
+        document.getElementById("modalBuyerName").value = getActiveVendorName();
+        document.getElementById("modalBuyerVat").value = getActiveVendorVat();
         document.getElementById("editBillModal").style.display = "flex";
       }
 
@@ -1435,9 +1918,7 @@
           syncDateDisplays(dateVal);
         }
 
-        document.getElementById("buyerNameDisplay").innerText = vName;
-        document.getElementById("buyerVatDisplay").innerText = vVat;
-
+        setVendorDetails(vName, vVat);
         updateRemarksDisplay();
         updateZatcaQrCode();
         closeEditBillModal();
@@ -1446,38 +1927,48 @@
       function updateRemarksDisplay() {
         const box = document.getElementById("remarksDisplayContainer");
         const txt = document.getElementById("remarksDisplayText");
+        const title = document.getElementById("remarksDisplayTitle");
         if (currentRemarks && currentRemarks.trim()) {
           txt.innerText = currentRemarks.trim();
-          box.style.display = "block";
+          if (title) title.style.display = "inline-block";
+          box.style.display = "flex";
         } else {
           txt.innerText = "";
+          if (title) title.style.display = "none";
           box.style.display = "none";
         }
       }
 
       function syncDateDisplays(dateStr) {
-        document.getElementById("dateDisplay").innerText = dateStr || "------";
-        const dl = document.getElementById("dateDisplayLeft");
-        if (dl) dl.innerText = dateStr || "------";
+        const val = dateStr || "------";
+        const ids = ["dateDisplay", "dateDisplayLeft", "wefaqDateVal", "hakaDateVal", "aljodaDateVal"];
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerText = val;
+        });
       }
 
       function syncInvNoDisplays(invNo) {
-        document.getElementById("invNoDisplay").innerText = invNo || "------";
-        const il = document.getElementById("invNoDisplayLeft");
-        if (il) il.innerText = invNo || "------";
-        if (document.getElementById("modalInvNo")) {
-          document.getElementById("modalInvNo").value = invNo || "------";
-        }
+        const val = invNo || "------";
+        const ids = ["invNoDisplay", "invNoDisplayLeft", "wefaqInvNoVal", "hakaInvNoVal", "aljodaInvNoVal"];
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerText = val;
+        });
+        const mInv = document.getElementById("modalInvNo");
+        if (mInv) mInv.value = val;
       }
 
       function syncSupplyDateDisplays(val) {
-        document.getElementById("supplyDateDisplay").innerText = val || "------";
-        const sl = document.getElementById("supplyDateDisplayLeft");
-        if (sl) sl.innerText = val || "------";
+        const textVal = val || "------";
+        const ids = ["supplyDateDisplay", "supplyDateDisplayLeft", "wefaqSupplyVal", "hakaSupplyVal", "hakaSupplyValBtm", "aljodaSupplyVal"];
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerText = textVal;
+        });
       }
 
       async function onCompanySelectChange() {
-        // 🟢 Company select maattumbol Seal & Sign nishkarsham reset aakkunnu
         isSealEngaged = false;
         const sealBtn = document.getElementById("sealToggleBtn");
         if (sealBtn) sealBtn.classList.remove("active");
@@ -1507,25 +1998,41 @@
         const code = (comp.short_code || comp.company_name_en || "").toUpperCase();
         let theme = "default";
         
-        // 🟢 Aljoda -> Left, Masar & Haka -> Right, WE1 -> Left
         if (code.includes("HAK")) theme = "haka";
         else if (code.includes("MW") || code.includes("MASAR")) theme = "masar";
         else if (code.includes("WE") || code.includes("WEFAQ")) theme = "wefaq";
 
-        applyCompanyLayoutTheme(theme);
+        applyCompanyLayoutTheme(theme, comp);
 
-        document.getElementById("headerCompEn").innerHTML =
-          `<b>${comp.company_name_en}</b><br>C.R. : ${comp.cr_number || "-"}<br>VAT No : ${comp.vat_number || "-"}`;
-        document.getElementById("headerCompAr").innerHTML =
-          `<b>${comp.company_name_ar}</b><br>س ت : ${comp.cr_number || "-"}<br>الرقم الضريبي : ${comp.vat_number || "-"}`;
+        const logoEl = document.getElementById("headerLogo");
+        const compEnEl = document.getElementById("headerCompEn");
+        const compArEl = document.getElementById("headerCompAr");
+
+        if (theme === "masar") {
+          compArEl.style.display = "none";
+          compEnEl.innerHTML = `
+            <div style="font-family:'Tajawal',sans-serif; font-size:16.5px; font-weight:800; color:#0f172a; line-height:1.3;">${comp.company_name_ar || ""}</div>
+            <div style="font-size:12.5px; font-weight:700; color:#475569; text-transform:uppercase; margin-top:2px; letter-spacing:0.3px;">${comp.company_name_en}</div>
+            <div style="font-size:12px; color:#334155; margin-top:4px; font-weight:600;">
+              C.R. : <span style="font-family:monospace; font-weight:700;">${comp.cr_number || "-"}</span> | س ت : <span style="font-family:monospace; font-weight:700;">${comp.cr_number || "-"}</span>
+            </div>
+            <div style="font-size:12px; color:#334155; margin-top:2px; font-weight:600;">
+              VAT No : <span style="font-family:monospace; font-weight:700;">${comp.vat_number || "-"}</span> | الرقم الضريبي : <span style="font-family:monospace; font-weight:700;">${comp.vat_number || "-"}</span>
+            </div>
+          `;
+        } else {
+          compArEl.style.display = "";
+          compEnEl.innerHTML = `<b>${comp.company_name_en}</b><br>C.R. : ${comp.cr_number || "-"}<br>VAT No : ${comp.vat_number || "-"}`;
+          compArEl.innerHTML = `<b>${comp.company_name_ar}</b><br>س ت : ${comp.cr_number || "-"}<br>الرقم الضريبي : ${comp.vat_number || "-"}`;
+        }
 
         if (comp.logo_url) {
-          document.getElementById("headerLogo").src = comp.logo_url;
-          document.getElementById("headerLogo").style.display = "block";
+          logoEl.src = comp.logo_url;
+          logoEl.style.display = "block";
           document.getElementById("watermarkLogo").src = comp.logo_url;
           document.getElementById("watermarkLogo").style.display = "block";
         } else {
-          document.getElementById("headerLogo").style.display = "none";
+          logoEl.style.display = "none";
           document.getElementById("watermarkLogo").style.display = "none";
         }
 
@@ -1533,40 +2040,11 @@
         document.getElementById("footerAddrContainer").innerText = addr;
         document.getElementById("footerEmail").innerText = comp.email ? `E-mail: ${comp.email}` : "";
 
-        // 🟢 ഇതിനകം സേവ് ചെയ്ത ബിൽ ആണെങ്കിൽ പുതിയ നമ്പർ എടുക്കരുത്
         const currentInvNo = document.getElementById("invNoDisplay")?.innerText.trim();
         if (!isBillAlreadySaved || !currentInvNo || currentInvNo === "------") {
           await fetchNextNumber(comp.id);
         }
         updateZatcaQrCode();
-      }
-
-      function applyCompanyLayoutTheme(themeKey) {
-        currentCompanyTheme = themeKey;
-        const page = document.getElementById("printableInvoice");
-        page.className = `invoice-page theme-${themeKey}`;
-
-        const leftWrap = document.getElementById("metaLeftWrap");
-        const rightWrap = document.getElementById("metaRightWrap");
-        const titleEl = document.getElementById("invTitleDisplay");
-        const buyerBar = document.getElementById("buyerDetailsBar");
-
-        // 🟢 എല്ലായിടത്തും "Bill Summary - ملخص الفاتورة" എന്ന് മാത്രം
-        titleEl.innerText = "Bill Summary - ملخص الفاتورة";
-
-        if (themeKey === "haka" || themeKey === "masar") {
-          leftWrap.style.display = "flex";
-          rightWrap.style.display = "none";
-          // Haka & Masar: Right Aligned (Haka-ൽ ടേബിളിലെ 'م' കോളത്തിന് നേരെ)
-          buyerBar.className = "middle-details-bar align-right";
-        } else {
-          leftWrap.style.display = "none";
-          rightWrap.style.display = "flex";
-          // Aljoda & WE1: Left Aligned
-          buyerBar.className = "middle-details-bar align-left";
-        }
-
-        renderInvoiceViewTable();
       }
 
       async function fetchNextNumber(compId) {
@@ -1633,10 +2111,9 @@
 
         const invNo = document.getElementById("invNoDisplay").innerText.trim();
         const comp = companiesList.find(c => String(c.id) === String(selId));
-        const vName = document.getElementById("buyerNameDisplay").innerText.trim();
-        const vVat = document.getElementById("buyerVatDisplay").innerText.trim();
+        const vName = getActiveVendorName();
+        const vVat = getActiveVendorVat();
 
-        // 🟢 Once save cheythittundengil mode 'editbill' aakkunnu (duplicate aavaathirikkan)
         const currentMode = isBillAlreadySaved ? "editbill" : "newbill";
 
         const body = {
@@ -1660,7 +2137,7 @@
             manual_items: activeBillItems,
             owner_nick: billOwnerNick,
             buyer_vat: vVat,
-            billingCardImage: attachedBillingCardImage // 🟢 Backend-il preserve cheyyunnu
+            billingCardImage: attachedBillingCardImage
           }
         };
 
@@ -1673,7 +2150,7 @@
           });
           const data = await res.json();
           if (data.success) {
-            isBillAlreadySaved = true; // 🟢 Save aayi kazhinju ennu mark cheyyunnu
+            isBillAlreadySaved = true;
             if (data.invoice_no && data.invoice_no !== invNo) {
               syncInvNoDisplays(data.invoice_no);
             }
@@ -1689,18 +2166,17 @@
         }
       }
 
-     async function downloadInvoicePDF() {
+      /* ================= 🟢 STABLE HIGH-PRECISION PDF GENERATOR (Fix Arabic Broken Letters) ================= */
+      async function downloadInvoicePDF() {
         const btnPdf = document.querySelector(".btn-pdf");
         const originalBtnHtml = btnPdf ? btnPdf.innerHTML : "📄 Download PDF";
 
         try {
-          // 1. Button disable cheythu loading animation kaanikkunnu
           if (btnPdf) {
             btnPdf.disabled = true;
             btnPdf.innerHTML = `<span class="toast-spinner" style="width: 14px; height: 14px; border-width: 2px; display: inline-block;"></span> Generating PDF...`;
           }
 
-          // 2. Aadyam backend-il record save cheythu confirmed Bill No edukkunnu
           const confirmedInvNo = await saveVendorBillRecord(true);
           if (!confirmedInvNo) {
             if (btnPdf) {
@@ -1712,7 +2188,10 @@
 
           showPdfToast("Generating high-quality PDF...", true);
 
-          // 3. Bill No and QR code UI-il refresh aavaan 150ms delay nalkunnu
+          if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+          }
+
           await new Promise((resolve) => setTimeout(resolve, 150));
 
           const card = document.getElementById("printableInvoice");
@@ -1722,18 +2201,29 @@
             useCORS: true,
             logging: false,
             backgroundColor: "#ffffff",
+            onclone: (clonedDoc) => {
+              const allElements = clonedDoc.querySelectorAll("*");
+              allElements.forEach((el) => {
+                const computed = window.getComputedStyle(el);
+                const isArabic = computed.direction === "rtl" || /[\u0600-\u06FF]/.test(el.innerText || "");
+                if (isArabic) {
+                  el.style.letterSpacing = "0px !important";
+                  el.style.wordSpacing = "normal !important";
+                  el.style.fontFeatureSettings = '"liga" 1, "calt" 1';
+                  el.style.textRendering = "optimizeLegibility";
+                }
+              });
+            }
           });
 
           const { jsPDF } = window.jspdf;
           const pdf = new jsPDF("p", "pt", "a4");
           const a4Width = pdf.internal.pageSize.getWidth();
           const a4Height = pdf.internal.pageSize.getHeight();
-          const imgData = canvas.toDataURL("image/jpeg", 0.95);
+          const imgData = canvas.toDataURL("image/jpeg", 0.98);
 
-          // 🟢 Page 1: Bill Summary
           pdf.addImage(imgData, "JPEG", 0, 0, a4Width, a4Height, undefined, "FAST");
 
-          // 🟢 Page 2: Billing Card Snapshot (Excess white space illaathe exact card size-il fit cheyyunnu)
           if (attachedBillingCardImage) {
             try {
               showPdfToast("Merging Billing Card (Page 2)...", true);
@@ -1742,11 +2232,8 @@
               await new Promise((res) => { cardImg.onload = res; cardImg.onerror = res; });
 
               if (cardImg.width && cardImg.height) {
-                // Card-nte exact aspect ratio maintain cheythu page size set cheyyunnu
                 const cardAspect = cardImg.height / cardImg.width;
                 const pdfCardHeight = a4Width * cardAspect;
-
-                // Excess white space ozhivaakki card height-nu anuroopamaayi Page 2 add cheyyunnu
                 pdf.addPage([a4Width, pdfCardHeight], a4Width > pdfCardHeight ? "l" : "p");
                 pdf.addImage(attachedBillingCardImage, "JPEG", 0, 0, a4Width, pdfCardHeight, undefined, "FAST");
               }
@@ -1756,13 +2243,11 @@
           }
 
           pdf.save(`${confirmedInvNo}.pdf`);
-
           showPdfToast("✅ PDF Exported Successfully!", false);
         } catch (e) {
           console.error("PDF export error:", e);
           showPdfToast("❌ Failed to export PDF", false);
         } finally {
-          // 4. Download kazhinjal button pazhaya reethiyilaakkunnu
           if (btnPdf) {
             btnPdf.disabled = false;
             btnPdf.innerHTML = originalBtnHtml;
@@ -1770,7 +2255,7 @@
         }
       }
 
-      // 🟢 ZATCA TLV Base64 Encoder
+      /* ================= ZATCA TLV Base64 Encoder ================= */
       function getZatcaTLV(tag, value) {
         const str = String(value || "");
         const valBuf = new TextEncoder().encode(str);
@@ -1783,9 +2268,8 @@
 
       function generateZatcaBase64(sellerName, vatNumber, dateStr, totalWithVat, vatTotal) {
         try {
-          // 🟢 User-nte bill date-um live time-um (HH:mm:ss) cherthu timestamp undakkunnu
           const now = new Date();
-          const curTime = now.toTimeString().split(" ")[0]; // e.g. "16:32:05"
+          const curTime = now.toTimeString().split(" ")[0];
           const cleanDate = (dateStr || now.toISOString().split("T")[0]).trim();
           const zatcaTimestamp = `${cleanDate}T${curTime}`;
 
@@ -1841,8 +2325,7 @@
         });
       }
 
-
-      // Vendor Directory Operations
+      /* ================= VENDOR DIRECTORY OPERATIONS ================= */
       async function loadSavedSuppliers() {
         const res = await fetch("/vendor-bill/api/suppliers");
         const data = await res.json();
@@ -1911,9 +2394,9 @@
         });
 
         if (found) {
-          document.getElementById("modalBuyerName").value = found.customer_name;
-          document.getElementById("modalBuyerVat").value = found.vat_number || "";
+          setVendorDetails(found.customer_name, found.vat_number || "");
           billOwnerNick = found.nickname || found.customer_name;
+          updateZatcaQrCode();
         }
       }
 
@@ -1997,7 +2480,7 @@
         }
       }
 
-      // Security Gate (Using separate vbill_system_unlocked key)
+      /* ================= SECURITY GATE ================= */
       document.addEventListener("DOMContentLoaded", () => {
         const isUnlocked = sessionStorage.getItem("vbill_system_unlocked");
         if (isUnlocked === "true") {

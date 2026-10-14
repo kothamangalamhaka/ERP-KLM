@@ -167,42 +167,30 @@ router.get("/api/next-invoice-no", async (req, res) => {
     }
 
     const yyStr = String(targetYear).slice(-2); // e.g. 26
-    const mStr = String(targetMonth); // e.g. 9, 10, 11
+    const mStr = String(targetMonth); // e.g. 7, 8, 9, 10
     const prefix = `${shortCode}-${yyStr}-${mStr}`;
 
-    // 🟢 Month വ്യത്യാസമനുസരിച്ച് നമ്പർ കൂടുകയും കുറയുകയും ചെയ്യുന്നു
-    // Base Reference: 2026 ഒക്ടോബർ (Year: 2026, Month: 10)
-    const monthDiff = (targetYear - 2026) * 12 + (targetMonth - 10);
-    const calculatedBaseSeq = startBase + monthDiff;
-
-    // ഇതേ മാസത്തിൽ ഇതിനകം ബില്ലുകൾ സേവ് ചെയ്തിട്ടുണ്ടെങ്കിൽ കൗണ്ട് കൂട്ടുന്നു
-    const countRes = await pool.query(
-      "SELECT COUNT(*) as total FROM generated_e_invoices WHERE invoice_no LIKE $1",
-      [`${prefix}-%`]
-    );
-
-    let nextSeq = calculatedBaseSeq + parseInt(countRes.rows[0].total || 0, 10);
-
-    // ഡ്യൂപ്ലിക്കേറ്റ് വരാതിരിക്കാൻ നിലവിലെ മാക്സിമം നമ്പർ പരിശോധിക്കുന്നു
-    const maxRes = await pool.query(
+    // 🟢 കമ്പനിയുടെ മൊത്തം ബില്ലുകൾ പരിശോധിച്ച് ലാസ്റ്റ് 5 അക്കം എപ്പോഴും Increment ചെയ്യുന്നു (മാസം മാറിയാലും റിപ്പീറ്റ് വരില്ല)
+    const companyBillsRes = await pool.query(
       "SELECT invoice_no FROM generated_e_invoices WHERE invoice_no LIKE $1",
-      [`${prefix}-%`]
+      [`${shortCode}-%`]
     );
-    if (maxRes.rows.length > 0) {
-      let maxNum = calculatedBaseSeq - 1;
-      maxRes.rows.forEach((r) => {
+
+    let highestExistingSeq = startBase - 1;
+
+    if (companyBillsRes.rows.length > 0) {
+      companyBillsRes.rows.forEach((r) => {
         const parts = (r.invoice_no || "").split("-");
         const lastPart = parseInt(parts[parts.length - 1], 10);
-        if (!isNaN(lastPart) && lastPart > maxNum) {
-          maxNum = lastPart;
+        if (!isNaN(lastPart) && lastPart > highestExistingSeq) {
+          highestExistingSeq = lastPart;
         }
       });
-      if (maxNum >= calculatedBaseSeq) {
-        nextSeq = Math.max(nextSeq, maxNum + 1);
-      }
     }
 
-    // 5 അക്കങ്ങളിലേക്ക് ഫോർമാറ്റ് ചെയ്യുന്നു (e.g. 04238, 04239, 04237)
+    const nextSeq = highestExistingSeq + 1;
+
+    // 5 അക്കങ്ങളിലേക്ക് ഫോർമാറ്റ് ചെയ്യുന്നു (e.g. 03111, 03112, 03113...)
     const seqStr = String(nextSeq).padStart(5, "0");
     const invNo = `${prefix}-${seqStr}`;
 
@@ -234,6 +222,9 @@ router.post("/api/save-invoice-record", async (req, res) => {
       has_seal: !!has_seal
     };
 
+    // തീയതി ശൂന്യമാണെങ്കിലോ അസാധുവാണെങ്കിലോ മാത്രം ഇന്നത്തെ തീയതി നൽകുക
+    const validInvoiceDate = (invoice_date && String(invoice_date).trim() !== "------") ? invoice_date : new Date().toISOString().split("T")[0];
+
     const result = await pool.query(
       `INSERT INTO generated_e_invoices 
         (invoice_no, company_id, company_name, vendor_name, billing_month, invoice_date, invoice_time, subtotal, vat_amount, grand_total, remarks, raw_payload)
@@ -252,7 +243,7 @@ router.post("/api/save-invoice-record", async (req, res) => {
         raw_payload = EXCLUDED.raw_payload 
        RETURNING id`,
       [
-        invoice_no, company_id || null, company_name, vendor_name, billing_month, invoice_date || new Date(),
+        invoice_no, company_id || null, company_name, vendor_name, billing_month, validInvoiceDate,
         invoice_time, subtotal || 0, vat_amount || 0, grand_total || 0, extractedRemarks, finalPayload,
       ]
     );
@@ -405,7 +396,7 @@ router.get("/api/dashboard-invoices", async (req, res) => {
               s.nickname
        FROM generated_e_invoices g
        LEFT JOIN e_invoice_suppliers s 
-         ON LOWER(TRIM(g.vendor_name)) = LOWER(TRIM(s.customer_name)) 
+         ON TRIM(g.vendor_name) = TRIM(s.customer_name) 
          AND s.is_deleted = FALSE
        WHERE (g.bill_source IS NULL OR g.bill_source != 'VB')
        ORDER BY g.id DESC`
