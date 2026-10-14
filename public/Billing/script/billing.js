@@ -208,23 +208,21 @@ function initMonth() {
 }
 
 const monthsList = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
 ];
+
+function formatShortMonth(fullVal) {
+  const parts = String(fullVal).trim().split(" ");
+  if (parts.length >= 2) {
+    return parts[0].substring(0, 3) + " " + parts[1].substring(2, 4);
+  }
+  return fullVal;
+}
 
 function prevMonthBilling() {
   const textEl = document.getElementById("selectedMonthText");
-  const currentVal = textEl.innerText.trim();
+  const currentVal = (textEl.dataset.fullMonth || textEl.innerText).trim();
   const parts = currentVal.split(" ");
   if (parts.length < 2) return;
 
@@ -244,7 +242,7 @@ function prevMonthBilling() {
 
 function nextMonthBilling() {
   const textEl = document.getElementById("selectedMonthText");
-  const currentVal = textEl.innerText.trim();
+  const currentVal = (textEl.dataset.fullMonth || textEl.innerText).trim();
   const parts = currentVal.split(" ");
   if (parts.length < 2) return;
 
@@ -262,19 +260,12 @@ function nextMonthBilling() {
   selectMonth(`${monthsList[mIdx]} ${y}`);
 }
 
-function formatShortMonth(fullVal) {
-  const parts = String(fullVal).trim().split(" ");
-  if (parts.length >= 2) {
-    return parts[0].substring(0, 3) + " " + parts[1].substring(2, 4);
-  }
-  return fullVal;
-}
-
 function selectMonth(val) {
   const textEl = document.getElementById("selectedMonthText");
   textEl.dataset.fullMonth = val;
   textEl.innerText = formatShortMonth(val);
-  document.getElementById("monthOptions").classList.remove("show");
+  const mOpts = document.getElementById("monthOptions");
+  if (mOpts) mOpts.classList.remove("show");
 
   let activeOwners = [];
   document.querySelectorAll(".bill-card").forEach((card) => {
@@ -285,50 +276,7 @@ function selectMonth(val) {
     }
   });
 
-  masterData = [];
-  savedBillingData = [];
-
   fetchDataFromERP(activeOwners);
-}
-
-function prevMonthBilling() {
-  const textEl = document.getElementById("selectedMonthText");
-  const currentVal = textEl.dataset.fullMonth || textEl.innerText.trim();
-  const parts = currentVal.split(" ");
-  if (parts.length < 2) return;
-
-  let mIdx = monthsList.indexOf(parts[0]);
-  let y = parseInt(parts[1], 10);
-  if (mIdx === -1 || isNaN(y)) return;
-
-  if (mIdx === 0) {
-    mIdx = 11;
-    y -= 1;
-  } else {
-    mIdx -= 1;
-  }
-
-  selectMonth(`${monthsList[mIdx]} ${y}`);
-}
-
-function nextMonthBilling() {
-  const textEl = document.getElementById("selectedMonthText");
-  const currentVal = textEl.dataset.fullMonth || textEl.innerText.trim();
-  const parts = currentVal.split(" ");
-  if (parts.length < 2) return;
-
-  let mIdx = monthsList.indexOf(parts[0]);
-  let y = parseInt(parts[1], 10);
-  if (mIdx === -1 || isNaN(y)) return;
-
-  if (mIdx === 11) {
-    mIdx = 0;
-    y += 1;
-  } else {
-    mIdx += 1;
-  }
-
-  selectMonth(`${monthsList[mIdx]} ${y}`);
 }
 
 function getShortDate() {
@@ -392,28 +340,34 @@ function updateSelectTexts() {
     sites.length > 0 ? `${sites.length} Selected` : "None Selected";
 }
 
+let billingAbortController = null;
+
 function fetchDataFromERP(autoArrangeOwners = []) {
   const textEl = document.getElementById("selectedMonthText");
   const fullMonth = (textEl.dataset.fullMonth || textEl.innerText).trim();
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token") || localStorage.getItem("invoiceToken");
   if (!fullMonth || fullMonth === "Loading...")
     return showToast("Select a month.");
 
-  // 🟢 NEW: ഡാറ്റ മായ്ക്കുന്നതിന് മുൻപ് നിലവിലെ ഫിൽറ്ററുകൾ സേവ് ചെയ്യുന്നു
+  // Cancel any ongoing fetch to avoid race condition when quickly switching months
+  if (billingAbortController) {
+    billingAbortController.abort();
+  }
+  billingAbortController = new AbortController();
+
   let isFirstLoad = document.getElementById("siteList").querySelectorAll(".dynamic-item").length === 0;
   let prevOwners = getSelectedCheckboxes("ownerList");
   let prevSites = getSelectedCheckboxes("siteList");
 
-  document.getElementById("dynamicBillsContainer").innerHTML = `
-    <div style="text-align: center; padding: 50px; color: #666; background: white; border-radius: 8px; border: 1px dashed #ccc;">
-      <h2>Data Fetched for ${fullMonth}</h2>
-    </div>
-  `;
   manualTableCount = 0;
+  const loaderEl = document.getElementById("loader");
+  const loaderTxt = document.getElementById("loaderText");
+  if (loaderTxt) loaderTxt.innerText = `Fetching ${fullMonth} Data...`;
+  if (loaderEl) loaderEl.style.display = "flex";
 
-  document.getElementById("loader").style.display = "flex";
   fetch("/billing/vehicles?month=" + encodeURIComponent(fullMonth), {
     headers: { Authorization: `Bearer ${token}` },
+    signal: billingAbortController.signal
   })
     .then(async (res) => {
       if (res.status === 401 || res.status === 403) {
@@ -424,27 +378,34 @@ function fetchDataFromERP(autoArrangeOwners = []) {
     })
     .then((data) => {
       if (data.success) {
-        masterData = data.data;
+        masterData = data.data || [];
         savedBillingData = data.saved_bills || [];
-        
-        // 🟢 NEW: സേവ് ചെയ്ത ഫിൽറ്ററുകൾ populateCheckboxes-ലേക്ക് അയക്കുന്നു
+
         populateCheckboxes(isFirstLoad, prevOwners, prevSites);
 
-        // മുൻപ് screen-ൽ ഉണ്ടായിരുന്ന owners ഉണ്ടെങ്കിൽ auto re-arrange ചെയ്യുക
         if (autoArrangeOwners.length > 0) {
           autoArrangeForOwners(autoArrangeOwners);
         } else {
-          showToast(
-            `Fetched ${masterData.length} vehicles! Select filters and click 'Arrange ✨'`,
-          );
+          document.getElementById("dynamicBillsContainer").innerHTML = `
+            <div style="text-align: center; padding: 50px; color: #666; background: white; border-radius: 8px; border: 1px dashed #ccc;">
+              <h2>Data Fetched for ${fullMonth}</h2>
+              <p>Fetched ${masterData.length} vehicles! Select filters and click 'Arrange ✨'</p>
+            </div>
+          `;
+          showToast(`Fetched ${masterData.length} vehicles!`);
         }
-      } else showToast("Backend Error: " + data.message);
-      document.getElementById("loader").style.display = "none";
+      } else {
+        showToast("Backend Error: " + data.message);
+      }
+      if (loaderEl) loaderEl.style.display = "none";
     })
     .catch((err) => {
-      document.getElementById("loader").style.display = "none";
-      if (err.message !== "Session Expired")
-        showToast("Server Connection Failed!");
+      if (err.name === "AbortError") {
+        console.log("Previous month fetch aborted cleanly.");
+        return;
+      }
+      if (loaderEl) loaderEl.style.display = "none";
+      if (err.message !== "Session Expired") showToast("Server Connection Failed!");
     });
 }
 
@@ -1026,21 +987,36 @@ function createBillCard(group, id) {
                 <tbody class="tableBody">
     `;
 
+  // Global Helper: Cleans and extracts every plate variation (including arrow transitions)
+  function extractCleanPlateTokens(str) {
+    if (!str) return [];
+    return String(str)
+      .split(/➔|→|->|\/|,/)
+      .map(p => p.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+      .filter(p => p.length > 0);
+  }
+
   group.items.forEach((item, index) => {
-    let itemPlates = Array.isArray(item.related_plates) ? item.related_plates : [(item.plate_number || item.plate || "").trim().toUpperCase()];
+    let itemPlates = Array.isArray(item.related_plates) && item.related_plates.length > 0
+      ? item.related_plates
+      : [item.plate_number, item.plate, item.master_plate].filter(Boolean);
+
+    let cleanItemTokens = [
+      ...new Set(itemPlates.flatMap(p => extractCleanPlateTokens(p)))
+    ];
+
     function matchesBillingPlate(bPlate) {
       if (!bPlate) return false;
-      let raw = String(bPlate).trim().toUpperCase();
-      let parts = raw.split(/➔|→|->/).map(p => p.trim().replace(/[^A-Z0-9]/g, "")).filter(Boolean);
-      let cleanItemPlates = itemPlates.map(p => String(p).replace(/[^A-Z0-9]/g, ""));
-      return parts.some(p => cleanItemPlates.includes(p)) || cleanItemPlates.includes(raw.replace(/[^A-Z0-9]/g, ""));
+      let bTokens = extractCleanPlateTokens(bPlate);
+      if (bTokens.length === 0 || cleanItemTokens.length === 0) return false;
+      return bTokens.some(tok => cleanItemTokens.includes(tok));
     }
 
+    let itemSite = (item.site || "").trim().toUpperCase();
     let saved = savedBillingData.find(
       (s) =>
         matchesBillingPlate(s.plate_no) &&
-        (s.site_name || "").trim().toUpperCase() ===
-          (item.site || "").trim().toUpperCase(),
+        ((s.site_name || "").trim().toUpperCase() === itemSite || !itemSite || itemSite === "N/A")
     );
 
     let nhr = saved ? saved.nhr : 0;
@@ -3168,10 +3144,14 @@ document.addEventListener("wheel", function (e) {
   }
 }, { passive: false });
 
-// 🟢 'async' keyword add cheythu
 async function openVendorBillForCard(cardId) {
   const card = document.getElementById(`billCard_${cardId}`);
   if (!card) return showToast("Card not found!");
+
+  const loaderEl = document.getElementById("loader");
+  const loaderTxt = document.getElementById("loaderText");
+  if (loaderTxt) loaderTxt.innerText = "Generating Vendor Bill Preview...";
+  if (loaderEl) loaderEl.style.display = "flex";
 
   const textEl = document.getElementById("selectedMonthText");
   const billingMonth = (textEl.dataset.fullMonth || textEl.innerText).trim();
@@ -3180,7 +3160,7 @@ async function openVendorBillForCard(cardId) {
   const ownerName = ownerInput ? ownerInput.value.trim() : (card.dataset.owner || "");
   const companyName = card.dataset.company || "Haka";
 
-  // Timesheet DB masterData-യിൽ നിന്നും ഒപ്പം ഓണർ ലോഗ് അനുസരിച്ചുമുള്ള ഡാറ്റ ഫെച്ച് ചെയ്യുന്നു
+  // Owner Info Lookup
   let matchedOwnerInfo = null;
   card.querySelectorAll(".tableBody tr").forEach((tr) => {
     if (matchedOwnerInfo) return;
@@ -3189,14 +3169,13 @@ async function openVendorBillForCard(cardId) {
       const match = masterData.find((m) => {
         const p1 = (m.plate_number || m.plate || "").toUpperCase();
         const p2 = (m.master_plate || "").toUpperCase();
-        return p1 === plate || p2 === plate || (Array.isArray(m.related_plates) && m.related_plates.map(x=>x.toUpperCase()).includes(plate));
+        return p1 === plate || p2 === plate || (Array.isArray(m.related_plates) && m.related_plates.map(x => x.toUpperCase()).includes(plate));
       });
       if (match) matchedOwnerInfo = match;
     }
   });
 
   const vendorArabicName = matchedOwnerInfo?.company_arabic_name ? matchedOwnerInfo.company_arabic_name.trim() : "";
-  // 🟢 മുൻഗണന അറബിക് പേരിന് നൽകുന്നു, ഇല്ലെങ്കിൽ ഇംഗ്ലീഷ് ഡിസ്‌പ്ലേ നെയിം
   const vendorDisplayName = vendorArabicName || (matchedOwnerInfo?.company_display_name ? matchedOwnerInfo.company_display_name.trim() : (ownerName || ""));
   const vendorVatNo = matchedOwnerInfo?.vat_no ? matchedOwnerInfo.vat_no.trim() : "";
 
@@ -3205,7 +3184,6 @@ async function openVendorBillForCard(cardId) {
     const plate = tr.querySelector(".plate") ? tr.querySelector(".plate").value.trim() : "";
     const vtype = tr.querySelector(".vtype") ? tr.querySelector(".vtype").value.trim() : "";
     
-    // TS DB-യിൽ നിന്ന് വാഹനം പരിശോധിച്ച് അറബിക് പേര് കണ്ടെത്തുന്നു
     let vMatch = masterData.find(m => (m.plate_number || m.plate || "").toUpperCase() === plate.toUpperCase());
     const vtypeAr = vMatch?.vehicle_type_ar || vMatch?.vtype_ar || "";
 
@@ -3242,22 +3220,22 @@ async function openVendorBillForCard(cardId) {
   const grandRent = parseFloat(card.querySelector(".grandRent") ? card.querySelector(".grandRent").innerText : 0) || 0;
   const grandVat = parseFloat(card.querySelector(".grandVat") ? card.querySelector(".grandVat").innerText : 0) || 0;
   const grandTotal = parseFloat(card.querySelector(".grandTotal") ? card.querySelector(".grandTotal").innerText : 0) || (grandRent + grandVat);
-
-  // 🟢 ഒറിജിനൽ Owner Name (വ്യക്തിയുടെ പേര്) കൃത്യമായി Nickname ആക്കി നൽകുന്നു
   const cleanOwnerNick = (ownerName && ownerName !== "VARIOUS OWNERS") ? ownerName.trim() : (matchedOwnerInfo?.owner_name || "");
 
-  showToast("Preparing Bill & Card Snapshot...");
-
-  // 🟢 Card-inte HQ Snapshot (Excess space illaathe card size-il) capture cheyyunnu
+  // Fast & Optimized Snapshot generation
   let cardImageData = "";
   try {
     const printArea = card.querySelector(".print-area") || card;
     if (typeof convertInputsToText === "function") convertInputsToText(printArea);
-    const canvas = await html2canvas(printArea, { scale: 2.5, useCORS: true, logging: false });
+    
+    // Scale 1.8 avoids extreme lag & heavy memory blocks while keeping high clarity
+    const canvas = await html2canvas(printArea, { scale: 1.8, useCORS: true, logging: false });
     if (typeof revertInputsFromText === "function") revertInputsFromText(printArea);
-    cardImageData = canvas.toDataURL("image/jpeg", 0.95);
+    cardImageData = canvas.toDataURL("image/jpeg", 0.90);
   } catch (err) {
     console.warn("Card snapshot error:", err);
+  } finally {
+    if (loaderEl) loaderEl.style.display = "none";
   }
 
   const payload = {
@@ -3273,7 +3251,7 @@ async function openVendorBillForCard(cardId) {
     grandRent: grandRent,
     grandVat: grandVat,
     grandTotal: grandTotal,
-    billingCardImage: cardImageData // 🟢 Second page-lekku merge cheyyaanulla image
+    billingCardImage: cardImageData
   };
 
   sessionStorage.setItem("activeVendorBillData", JSON.stringify(payload));

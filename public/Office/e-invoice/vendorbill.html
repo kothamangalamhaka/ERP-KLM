@@ -1436,7 +1436,8 @@
         const incomingRows = incoming.rows || incoming.manual_items || [];
 
         for (let row of incomingRows) {
-          if (row.subTotal !== undefined || row.total !== undefined) {
+          // If already fully formatted manual item from saved payload with subTotal & qty
+          if (row.subTotal !== undefined && row.qty !== undefined && row.nhr === undefined) {
             seqCount++;
             activeBillItems.push({
               seq: row.seq || String(seqCount),
@@ -1456,7 +1457,7 @@
           const othr = parseFloat(row.othr) || 0;
           const nrate = parseFloat(row.nrate) || 0;
           const otrate = parseFloat(row.otrate) || 0;
-          const vatPct = row.vat_percent !== undefined ? parseFloat(row.vat_percent) : 15;
+          const vatPct = row.vat_percent !== undefined ? parseFloat(row.vat_percent) : (parseFloat(row.vatPercent) || 0);
 
           let rawVtype = row.vtype || "Vehicle";
           let arabicDesc = (row.vtype_ar || "").trim();
@@ -1464,17 +1465,21 @@
             arabicDesc = await translateToArabicDynamic(rawVtype);
           }
 
+          // Format description with plate number: e.g. "Dyna 5 T (6452 LDA)"
+          const plateStr = (row.plate || row.plate_no || "").trim();
+          const descWithPlate = plateStr ? `${rawVtype} (${plateStr})` : rawVtype;
+
           if (nhr > 0 || (nhr === 0 && othr === 0)) {
             seqCount++;
             const qty = nhr > 0 ? nhr : 1;
-            const rate = nhr > 0 ? nrate : (row.rent || 0);
+            const rate = nhr > 0 ? nrate : (parseFloat(row.rent) || 0);
             const sub = Number((qty * rate).toFixed(2));
             const vat = Number((sub * (vatPct / 100)).toFixed(2));
             const tot = Number((sub + vat).toFixed(2));
 
             activeBillItems.push({
               seq: String(seqCount),
-              vtype: row.plate ? `${rawVtype} (${row.plate})` : rawVtype,
+              vtype: descWithPlate,
               vtype_ar: arabicDesc,
               qty: qty,
               rate: rate,
@@ -1495,7 +1500,7 @@
 
             activeBillItems.push({
               seq: String(seqCount),
-              vtype: row.plate ? `Over Time (${row.plate})` : "Over Time",
+              vtype: plateStr ? `Over Time (${plateStr})` : "Over Time",
               vtype_ar: "وقت إضافي",
               qty: qty,
               rate: rate,
@@ -1598,6 +1603,15 @@
         currentCompanyTheme = themeKey;
         const page = document.getElementById("printableInvoice");
 
+        // 🟢 إعادة رمز الاستجابة السريعة (QR) إلى مكانه الأصلي عند اختيار قوالب أخرى غير Haka
+        const qrWrapper = document.getElementById("zatcaQrWrapper");
+        const sumWrap = document.querySelector(".summary-container-wrap");
+        const hakaQrCont = document.getElementById("hakaQrUnderAuth");
+        if (hakaQrCont) hakaQrCont.style.display = "none";
+        if (qrWrapper && sumWrap && themeKey !== "haka") {
+          sumWrap.insertBefore(qrWrapper, sumWrap.firstChild);
+        }
+
         const wefaqCont = document.getElementById("wefaqLayoutContainer");
         if (wefaqCont) wefaqCont.style.display = "none";
         const hakaCont = document.getElementById("hakaTopLayoutContainer");
@@ -1646,6 +1660,31 @@
             sumWrap.appendChild(btmCont);
           }
           btmCont.style.display = "flex";
+
+          // 🟢 QR koodii Haka qofaaf sarara barreeffamichaa jalatti (vertically below) galchuuf
+          const qrWrapper = document.getElementById("zatcaQrWrapper");
+          const authLineEl = document.getElementById("digitalAuthLine");
+          let qrTargetCont = document.getElementById("hakaQrUnderAuth");
+
+          if (authLineEl) {
+            // Qindaa'ina kutaa sanas sararaan gadi (column) akka ta'u taasisa
+            authLineEl.parentElement.style.display = "flex";
+            authLineEl.parentElement.style.flexDirection = "column";
+            authLineEl.parentElement.style.alignItems = "flex-start";
+          }
+          
+          if (!qrTargetCont && authLineEl) {
+            qrTargetCont = document.createElement("div");
+            qrTargetCont.id = "hakaQrUnderAuth";
+            qrTargetCont.style.cssText = "display: flex; justify-content: flex-start; align-items: flex-start; width: 100%; margin-top: 6px;";
+            authLineEl.insertAdjacentElement("afterend", qrTargetCont);
+          }
+
+          if (qrWrapper && qrTargetCont) {
+            qrWrapper.style.padding = "0";
+            qrTargetCont.appendChild(qrWrapper);
+            qrTargetCont.style.display = "flex";
+          }
 
           const currentSupply = document.getElementById("supplyDateDisplay")?.innerText || fixedSupplyMonth;
           const currentDate = document.getElementById("dateDisplay")?.innerText || "------";
