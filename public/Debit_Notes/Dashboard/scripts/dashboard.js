@@ -120,32 +120,44 @@ function formatCombinedSite(site, company, customer) {
 function calculateKPIs() {
   let totalAmt = 0;
   let paidAmt = 0;
-  let pendingAmt = 0;
-  let paidCount = 0;
-  let pendingCount = 0;
+  let qcCount = 0;
 
   records.forEach((r) => {
-    const tot = parseFloat(r.total_amount) || parseFloat(r.amount) || 0;
-    totalAmt += tot;
+    // Total Amount sum
+    const tot = parseFloat(String(r.total_amount || "").replace(/,/g, "")) || 
+                parseFloat(String(r.amount || "").replace(/,/g, "")) || 0;
+    
+    // Status nookaathe Index-le purely QC Entry column mathram sum cheyyunnu
+    const qcRaw = r.qc_entry !== null && r.qc_entry !== undefined ? String(r.qc_entry).replace(/,/g, "").trim() : "";
+    const qc = parseFloat(qcRaw) || 0;
 
-    const isPaid = String(r.status || "").trim().toLowerCase() === "paid";
-    if (isPaid) {
-      paidAmt += tot;
-      paidCount++;
-    } else {
-      pendingAmt += tot;
-      pendingCount++;
+    totalAmt += tot;
+    paidAmt += qc;
+
+    if (qc > 0) {
+      qcCount++;
     }
   });
+
+  // Remaining = Total Amount - Paid Total (QC Entry sum)
+  const remainingAmt = Math.max(0, totalAmt - paidAmt);
+  const remainingCount = records.filter((r) => {
+    const tot = parseFloat(String(r.total_amount || "").replace(/,/g, "")) || 
+                parseFloat(String(r.amount || "").replace(/,/g, "")) || 0;
+    const qc = parseFloat(String(r.qc_entry || "").replace(/,/g, "").trim()) || 0;
+    return (tot - qc) > 0.001;
+  }).length;
 
   document.getElementById("kpiTotalAmount").innerText = `SAR ${totalAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   document.getElementById("kpiTotalCount").innerText = `${records.length} Records`;
 
+  // Index-le QC Entry sum mathram PAID TOTAL aayi kaanikkunnu
   document.getElementById("kpiPaidAmount").innerText = `SAR ${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  document.getElementById("kpiPaidCount").innerText = `${paidCount} Records`;
+  document.getElementById("kpiPaidCount").innerText = `${qcCount} Records`;
 
-  document.getElementById("kpiPendingAmount").innerText = `SAR ${pendingAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  document.getElementById("kpiPendingCount").innerText = `${pendingCount} Records`;
+  // Total Amount - QC Entry sum REMAINING AMOUNT aayi kaanikkunnu
+  document.getElementById("kpiPendingAmount").innerText = `SAR ${remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  document.getElementById("kpiPendingCount").innerText = `${remainingCount} Records`;
 }
 
 function groupDataByOwner() {
@@ -164,15 +176,13 @@ function groupDataByOwner() {
       };
     }
 
-    const tot = parseFloat(r.total_amount) || parseFloat(r.amount) || 0;
-    groupedOwners[owner].totalAmount += tot;
+    const tot = parseFloat(String(r.total_amount || "").replace(/,/g, "")) || 
+                parseFloat(String(r.amount || "").replace(/,/g, "")) || 0;
+    const qc = parseFloat(String(r.qc_entry || "").replace(/,/g, "").trim()) || 0;
 
-    const isPaid = String(r.status || "").trim().toLowerCase() === "paid";
-    if (isPaid) {
-      groupedOwners[owner].paidAmount += tot;
-    } else {
-      groupedOwners[owner].pendingAmount += tot;
-    }
+    groupedOwners[owner].totalAmount += tot;
+    groupedOwners[owner].paidAmount += qc;
+    groupedOwners[owner].pendingAmount = Math.max(0, groupedOwners[owner].totalAmount - groupedOwners[owner].paidAmount);
 
     groupedOwners[owner].items.push(r);
   });
@@ -233,6 +243,9 @@ function getOwnerRowValue(item, col) {
   if (col === "total_amount") {
     return (parseFloat(item.total_amount) || parseFloat(item.amount) || 0).toFixed(2);
   }
+  if (col === "paid") {
+    return (parseFloat(item.qc_entry) || 0).toFixed(2);
+  }
   if (col === "site_name") {
     return formatCombinedSite(item.site, item.company, item.customer);
   }
@@ -290,16 +303,15 @@ function renderOwnerTableRows() {
     if (!visible) return;
 
     visibleCount++;
-    const tot = parseFloat(item.total_amount) || parseFloat(item.amount) || 0;
+    const tot = parseFloat(String(item.total_amount || "").replace(/,/g, "")) || 
+                parseFloat(String(item.amount || "").replace(/,/g, "")) || 0;
+    // Status 'Paid' aano ennathalla, item-le qc_entry value mathram Paid aayi edukkkunnu
+    const paidVal = parseFloat(String(item.qc_entry || "").replace(/,/g, "").trim()) || 0;
+
     ownerTotal += tot;
+    ownerPaid += paidVal;
 
     const isPaid = String(item.status || "").trim().toLowerCase() === "paid";
-    if (isPaid) {
-      ownerPaid += tot;
-    } else {
-      ownerPending += tot;
-    }
-
     const statusText = isPaid ? "Paid" : "Pending";
     const statusClass = isPaid ? "paid" : "pending";
     const combinedSite = formatCombinedSite(item.site, item.company, item.customer);
@@ -313,6 +325,7 @@ function renderOwnerTableRows() {
       <td>${escapeHTML(item.particulars || "")}</td>
       <td>${escapeHTML(item.driver_name || "")}</td>
       <td style="text-align: right; font-weight: 700; color: #0f172a;">${tot.toFixed(2)}</td>
+      <td style="text-align: right; font-weight: 700; color: #15803d;">${paidVal.toFixed(2)}</td>
       <td>${escapeHTML(combinedSite)}</td>
       <td>${escapeHTML(item.remark || "")}</td>
       <td style="text-align: center;"><span class="status-pill ${statusClass}">${statusText}</span></td>
@@ -320,8 +333,10 @@ function renderOwnerTableRows() {
     tbody.appendChild(tr);
   });
 
+  ownerPending = Math.max(0, ownerTotal - ownerPaid);
+
   if (visibleCount === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #64748b; padding: 25px;">No records match your filter/search.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: #64748b; padding: 25px;">No records match your filter/search.</td></tr>`;
   }
 
   document.getElementById("selectedOwnerSummary").innerText = `${visibleCount} of ${ownerData.items.length} records`;
@@ -399,7 +414,7 @@ function sortOwnerColumn(direction) {
     let va = getOwnerRowValue(a, activeOwnerCol);
     let vb = getOwnerRowValue(b, activeOwnerCol);
 
-    if (activeOwnerCol === "total_amount") {
+    if (activeOwnerCol === "total_amount" || activeOwnerCol === "paid") {
       return direction === "asc" ? parseFloat(va) - parseFloat(vb) : parseFloat(vb) - parseFloat(va);
     }
     return direction === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
@@ -461,6 +476,7 @@ function exportSelectedOwnerExcel() {
     "Particulars",
     "Driver Name",
     "Total Amount",
+    "Paid",
     "Site Name",
     "Remark",
     "Status",
@@ -470,6 +486,7 @@ function exportSelectedOwnerExcel() {
   ownerData.items.forEach((item, idx) => {
     const isPaid = String(item.status || "").trim().toLowerCase() === "paid";
     const tot = parseFloat(item.total_amount) || parseFloat(item.amount) || 0;
+    const paidVal = parseFloat(item.qc_entry) || 0;
     const combinedSite = formatCombinedSite(item.site, item.company, item.customer);
 
     rows.push([
@@ -480,6 +497,7 @@ function exportSelectedOwnerExcel() {
       item.particulars || "",
       item.driver_name || "",
       tot,
+      paidVal,
       combinedSite,
       item.remark || "",
       isPaid ? "Paid" : "Pending",
@@ -509,6 +527,7 @@ function exportAllOwnersExcel() {
     "Particulars",
     "Driver Name",
     "Total Amount",
+    "Paid",
     "Site Name",
     "Remark",
     "Status",
@@ -524,6 +543,7 @@ function exportAllOwnersExcel() {
       const tot = parseFloat(item.total_amount) || parseFloat(item.amount) || 0;
       const combinedSite = formatCombinedSite(item.site, item.company, item.customer);
 
+      const paidVal = parseFloat(item.qc_entry) || 0;
       rows.push([
         idx + 1,
         item.month_year || "",
@@ -532,6 +552,7 @@ function exportAllOwnersExcel() {
         item.particulars || "",
         item.driver_name || "",
         tot,
+        paidVal,
         combinedSite,
         item.remark || "",
         isPaid ? "Paid" : "Pending",

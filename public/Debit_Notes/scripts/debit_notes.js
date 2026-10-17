@@ -343,6 +343,7 @@ function createBlankRowObj() {
     vat_status: "Included",
     vat_amount: 0.0,
     total_amount: 0.0,
+    qc_entry: "",
     owner_name: "",
     status: "Received",
     ref_no: "",
@@ -444,6 +445,17 @@ function renderTable() {
         .trim()
         .toLowerCase() === "paid";
     const isStatusEditable = isEditMode || (isStatusEditMode && !isRowPaid);
+    // Status 'Paid' aanenkilum QC Entry edit cheyyan saadhikkum
+    const isQcEditable = isEditMode || isStatusEditMode;
+    const qcEditAttr = isQcEditable ? 'contenteditable="true"' : "";
+
+    // Status 'Paid' aayi nilkkumbozhe (Total - QC > 0) red fill & white text highlight varavu
+    const numTotal = parseFloat(totalVal) || 0;
+    const numQc = parseFloat(row.qc_entry) || 0;
+    const isQcMismatch = isRowPaid && numTotal > 0 && (numTotal - numQc) > 0.001;
+    const qcCustomStyle = isQcMismatch
+      ? "background-color: #dc2626 !important; color: #ffffff !important;"
+      : "color: #15803d;";
 
     let attachmentHtml = "";
     if (row.attachment_path) {
@@ -507,11 +519,11 @@ function renderTable() {
       
       <td style="text-align: center;">${renderDropdownCell(idx, "approved_by", row.approved_by, dropdownOptions.approved_by, isEditable)}</td>
       
-      <td ${editAttr} oninput="handleLastRowLiveInput(${idx})" onblur="updateCellData(${idx}, 'particulars', this.innerText.trim())">${escapeHTML(row.particulars || "")}</td>
+      <td ${editAttr} oncontextmenu="copyCellTextOnContextMenu(event, 'Particulars')" oninput="handleLastRowLiveInput(${idx})" onblur="updateCellData(${idx}, 'particulars', this.innerText.trim())">${escapeHTML(row.particulars || "")}</td>
       
-      <td style="text-align: center; padding-left: 5px; padding-right: 5px;">${plateHtml}</td>
+      <td style="text-align: center; padding-left: 5px; padding-right: 5px;" oncontextmenu="copyCellTextOnContextMenu(event, 'Plate No')">${plateHtml}</td>
       
-      <td ${editAttr} oninput="handleLastRowLiveInput(${idx})" onblur="updateCellData(${idx}, 'driver_name', this.innerText.trim())">${escapeHTML(row.driver_name || "")}</td>
+      <td ${editAttr} oncontextmenu="copyCellTextOnContextMenu(event, 'Driver Name')" oninput="handleLastRowLiveInput(${idx})" onblur="updateCellData(${idx}, 'driver_name', this.innerText.trim())">${escapeHTML(row.driver_name || "")}</td>
       
       <td>${renderDropdownCell(idx, "site", row.site, dropdownOptions.site, isEditable)}</td>
       
@@ -526,8 +538,10 @@ function renderTable() {
       <td style="font-weight: 700; text-align: right; color: #0284c7; padding-right: 10px;">
         ${totalVal}
       </td>
+
+      <td ${qcEditAttr} style="font-weight: 700; text-align: right; padding-right: 10px; ${qcCustomStyle}" oninput="handleLastRowLiveInput(${idx})" onblur="updateCellData(${idx}, 'qc_entry', this.innerText.trim())">${escapeHTML(row.qc_entry || "")}</td>
       
-      <td ${editAttr} oninput="handleLastRowLiveInput(${idx})" onblur="updateCellData(${idx}, 'owner_name', this.innerText.trim())">${escapeHTML(row.owner_name || "")}</td>
+      <td ${editAttr} oncontextmenu="copyCellTextOnContextMenu(event, 'Owner Name')" oninput="handleLastRowLiveInput(${idx})" onblur="updateCellData(${idx}, 'owner_name', this.innerText.trim())">${escapeHTML(row.owner_name || "")}</td>
       
       <td style="${!isEditMode && isStatusEditMode && isRowPaid ? "background: #f1f5f9; cursor: not-allowed;" : ""}">
         ${renderDropdownCell(idx, "status", row.status, dropdownOptions.status, isStatusEditable)}
@@ -839,6 +853,7 @@ function openAddNewDataModal() {
   document.getElementById("m_status").value = "Received";
 
   document.getElementById("m_total_amount").value = "0.00";
+  document.getElementById("m_qc_entry").value = "";
   document.getElementById("modalUploadProgressContainer").style.display =
     "none";
   document.getElementById("addNewDataModal").style.display = "flex";
@@ -902,6 +917,7 @@ async function submitNewRecordModal(e) {
     customer: document.getElementById("m_customer").value,
     amount: document.getElementById("m_amount").value,
     vat_status: document.getElementById("m_vat_status").value,
+    qc_entry: document.getElementById("m_qc_entry").value,
     owner_name: document.getElementById("m_owner_name").value,
     status: document.getElementById("m_status").value,
     ref_no: document.getElementById("m_ref_no").value.trim(),
@@ -1053,6 +1069,7 @@ function contextCloneRow() {
   document.getElementById("m_customer").value = source.customer || "";
   document.getElementById("m_amount").value = source.amount || "";
   document.getElementById("m_vat_status").value = source.vat_status || "Included";
+  document.getElementById("m_qc_entry").value = source.qc_entry || "";
   document.getElementById("m_owner_name").value = source.owner_name || "";
   document.getElementById("m_status").value = source.status || "Received";
   
@@ -1262,7 +1279,7 @@ function toggleEditMode() {
   document.getElementById("editModeBtn").innerText = isEditMode
     ? "💾 Read Only"
     : "✏️ Edit Data";
-  document.getElementById("statusEditModeBtn").innerText = "⚡ Edit Status";
+  document.getElementById("statusEditModeBtn").innerText = "⚡ Edit Status / QC";
   document.body.classList.toggle("editable-active", isEditMode);
   ensureEmptyRowBuffer();
   renderTable();
@@ -1277,7 +1294,7 @@ function toggleStatusEditMode() {
     document.body.classList.remove("editable-active");
   }
   const btn = document.getElementById("statusEditModeBtn");
-  btn.innerText = isStatusEditMode ? "💾 Lock Status" : "⚡ Edit Status";
+  btn.innerText = isStatusEditMode ? "💾 Lock Status / QC" : "⚡ Edit Status / QC";
   btn.style.background = isStatusEditMode ? "#0284c7" : "transparent";
   btn.style.color = isStatusEditMode ? "#ffffff" : "#0284c7";
   ensureEmptyRowBuffer();
@@ -1302,6 +1319,7 @@ function exportToExcel() {
     "Amount",
     "VAT Status",
     "Total Amount",
+    "QC Entry",
     "Owner Name",
     "Status",
     "Ref No",
@@ -1334,6 +1352,7 @@ function exportToExcel() {
       numAmt,
       r.vat_status || "Included",
       totVal,
+      parseFloat(r.qc_entry) || r.qc_entry || "",
       r.owner_name || "",
       r.status || "",
       r.ref_no || "",
@@ -1509,4 +1528,34 @@ async function viewerCopyAsImage() {
     console.error("Copy Image Error:", e);
     showStatus("Copy Failed: " + e.message, "error");
   }
+}
+function copyCellTextOnContextMenu(e, label) {
+  e.preventDefault();
+  let text = "";
+
+  // സെല്ലിനകത്ത് input tag ഉണ്ടെങ്കിൽ അതിന്റെ value എടുക്കുന്നു, ഇല്ലെങ്കിൽ innerText
+  const inputEl = e.currentTarget.querySelector("input");
+  if (inputEl) {
+    text = inputEl.value.trim();
+  } else {
+    text = e.currentTarget.innerText.trim();
+  }
+
+  if (!text) {
+    showStatus(`${label} is empty`, "saving");
+    return;
+  }
+
+  navigator.clipboard.writeText(text).then(() => {
+    showStatus(`✓ Copied ${label}: ${text}`, "saved");
+  }).catch(() => {
+    // Fallback for older browsers
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    showStatus(`✓ Copied ${label}: ${text}`, "saved");
+  });
 }

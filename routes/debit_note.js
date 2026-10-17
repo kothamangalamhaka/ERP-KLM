@@ -364,6 +364,7 @@ router.get("/api/records", verifyVatTrackerCode, async (req, res) => {
         vat_status,
         COALESCE(vat_amount, 0) as vat_amount,
         COALESCE(total_amount, 0) as total_amount,
+        COALESCE(qc_entry, 0) as qc_entry,
         owner_name, status, ref_no, work_order, remark,
         attachment_path
       FROM debit_notes
@@ -598,6 +599,7 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
       customer,
       amount,
       vat_status,
+      qc_entry,
       owner_name,
       status,
       ref_no,
@@ -607,12 +609,16 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
     } = req.body;
 
     const numAmount = parseFloat(amount) || 0;
+    const numQcEntry = qc_entry !== null && qc_entry !== undefined && String(qc_entry).trim() !== ""
+      ? parseFloat(qc_entry)
+      : null;
 
     const hasData =
       (plate_no && plate_no.trim() !== "") ||
       (particulars && particulars.trim() !== "") ||
       numAmount > 0 ||
-      (received_date && received_date.trim() !== "");
+      (received_date && received_date.trim() !== "") ||
+      (numQcEntry !== null && numQcEntry > 0);
 
     if (!id && !hasData) {
       return res.json({ success: false, message: "Empty row ignored" });
@@ -650,14 +656,15 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
           vat_status = $12,
           vat_amount = $13,
           total_amount = $14,
-          owner_name = $15,
-          status = $16,
-          ref_no = $17,
-          work_order = $18,
-          remark = $19,
-          attachment_path = COALESCE($20, attachment_path),
+          qc_entry = $15,
+          owner_name = $16,
+          status = $17,
+          ref_no = $18,
+          work_order = $19,
+          remark = $20,
+          attachment_path = COALESCE($21, attachment_path),
           updated_at = CURRENT_TIMESTAMP
-        WHERE id = $21`,
+        WHERE id = $22`,
         [
           cleanReceivedDate,
           cleanSubmittedDate,
@@ -673,6 +680,7 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
           vat_status || "Included",
           vatAmount,
           totalAmount,
+          numQcEntry,
           owner_name || null,
           status || "Received",
           ref_no || null,
@@ -687,8 +695,8 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
         `INSERT INTO debit_notes (
           received_date, submitted_date, month_year, approved_by, particulars, plate_no,
           driver_name, site, company, customer, amount, vat_status, vat_amount, total_amount,
-          owner_name, status, ref_no, work_order, remark, attachment_path
-        ) VALUES ($1::date, $2::date, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+          qc_entry, owner_name, status, ref_no, work_order, remark, attachment_path
+        ) VALUES ($1::date, $2::date, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
         RETURNING id`,
         [
           cleanReceivedDate,
@@ -705,6 +713,7 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
           vat_status || "Included",
           vatAmount,
           totalAmount,
+          numQcEntry,
           owner_name || null,
           status || "Received",
           ref_no || null,
@@ -737,6 +746,7 @@ router.post("/api/save-row", verifyVatTrackerCode, async (req, res) => {
       `SELECT id, TO_CHAR(received_date, 'YYYY-MM-DD') AS received_date, TO_CHAR(submitted_date, 'YYYY-MM-DD') AS submitted_date,
        month_year, approved_by, particulars, plate_no, driver_name, site, company, customer,
        COALESCE(amount, 0) as amount, vat_status, COALESCE(vat_amount, 0) as vat_amount, COALESCE(total_amount, 0) as total_amount,
+       COALESCE(qc_entry, 0) as qc_entry,
        owner_name, status, ref_no, work_order, remark, attachment_path FROM debit_notes WHERE id = $1`,
       [finalId],
     );

@@ -345,6 +345,17 @@
               />
             </div>
             <div class="form-field">
+              <label>QC Entry</label>
+              <input
+                type="number"
+                step="0.01"
+                id="m_qc_entry"
+                class="modal-input"
+                placeholder="0.00"
+                style="color: #15803d; font-weight: 700;"
+              />
+            </div>
+            <div class="form-field">
               <label>Owner Name</label>
               <input
                 type="text"
@@ -353,14 +364,14 @@
                 placeholder="Owner Name"
               />
             </div>
-            <div class="form-field">
-              <label>Status</label>
-              <select id="m_status" class="modal-input"></select>
-            </div>
           </div>
 
           <!-- Row 4: 5 Inputs -->
           <div class="form-row-5">
+            <div class="form-field">
+              <label>Status</label>
+              <select id="m_status" class="modal-input"></select>
+            </div>
             <div class="form-field">
               <label>Ref No</label>
               <input
@@ -379,7 +390,7 @@
                 placeholder="Work Order details..."
               />
             </div>
-            <div class="form-field" style="grid-column: span 2">
+            <div class="form-field">
               <label>Remark</label>
               <input
                 type="text"
@@ -569,7 +580,7 @@
           id="statusEditModeBtn"
           style="border-color: #0284c7; color: #0284c7; font-weight: 700"
         >
-          ⚡ Edit Status
+          ⚡ Edit Status / QC
         </button>
         <button
           class="btn btn-secondary"
@@ -668,6 +679,12 @@
                 oncontextmenu="openHeaderFilter(event, 'total_amount')"
               >
                 Total Amount
+              </th>
+              <th
+                data-col="qc_entry"
+                oncontextmenu="openHeaderFilter(event, 'qc_entry')"
+              >
+                QC Entry
               </th>
               <th
                 data-col="owner_name"
