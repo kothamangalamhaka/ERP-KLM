@@ -149,15 +149,15 @@ function calculateKPIs() {
   }).length;
 
   document.getElementById("kpiTotalAmount").innerText = `SAR ${totalAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  document.getElementById("kpiTotalCount").innerText = `${records.length} Records`;
+  document.getElementById("kpiTotalCount").innerText = `(${records.length} Records)`;
 
   // Index-le QC Entry sum mathram PAID TOTAL aayi kaanikkunnu
   document.getElementById("kpiPaidAmount").innerText = `SAR ${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  document.getElementById("kpiPaidCount").innerText = `${qcCount} Records`;
+  document.getElementById("kpiPaidCount").innerText = `(${qcCount} Records)`;
 
   // Total Amount - QC Entry sum REMAINING AMOUNT aayi kaanikkunnu
   document.getElementById("kpiPendingAmount").innerText = `SAR ${remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  document.getElementById("kpiPendingCount").innerText = `${remainingCount} Records`;
+  document.getElementById("kpiPendingCount").innerText = `(${remainingCount} Records)`;
 }
 
 function groupDataByOwner() {
@@ -234,7 +234,8 @@ function selectOwner(owner) {
 
   document.getElementById("selectedOwnerName").innerText = owner;
   document.getElementById("detailActionBtns").style.display = "flex";
-  document.getElementById("ownerBottomSummaryBar").style.display = "flex";
+  const pillGroup = document.getElementById("ownerHeaderKpiPills");
+  if (pillGroup) pillGroup.style.display = "flex";
 
   renderOwnerTableRows();
 }

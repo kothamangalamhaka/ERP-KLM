@@ -33,7 +33,7 @@
     </div>
   </div>
 
-  <!-- Navbar -->
+  <!-- Navbar with Top Ribbon KPI Boxes -->
   <div class="navbar">
     <div class="nav-left">
       <a href="../index.html" class="nav-back-icon" title="Back to Table View">
@@ -42,6 +42,34 @@
       <span class="nav-title">Debit Notes Dashboard</span>
       <span id="syncStatus" class="status-badge">✓ Ready</span>
     </div>
+
+    <!-- Center Compact Top KPI Boxes -->
+    <div class="nav-center-kpis">
+      <div class="nav-kpi-pill box-nav-total">
+        <span class="nav-kpi-title">TOTAL AMOUNT</span>
+        <div class="nav-kpi-data">
+          <span class="nav-kpi-val text-primary" id="kpiTotalAmount">SAR 0.00</span>
+          <span class="nav-kpi-count" id="kpiTotalCount">(0)</span>
+        </div>
+      </div>
+
+      <div class="nav-kpi-pill box-nav-paid">
+        <span class="nav-kpi-title">PAID TOTAL</span>
+        <div class="nav-kpi-data">
+          <span class="nav-kpi-val text-success" id="kpiPaidAmount">SAR 0.00</span>
+          <span class="nav-kpi-count" id="kpiPaidCount">(0)</span>
+        </div>
+      </div>
+
+      <div class="nav-kpi-pill box-nav-remaining">
+        <span class="nav-kpi-title">REMAINING AMOUNT</span>
+        <div class="nav-kpi-data">
+          <span class="nav-kpi-val text-danger" id="kpiPendingAmount">SAR 0.00</span>
+          <span class="nav-kpi-count" id="kpiPendingCount">(0)</span>
+        </div>
+      </div>
+    </div>
+
     <div class="nav-right">
       <button class="btn btn-success" onclick="exportAllOwnersExcel()">
         ⬇ Export All (Owner Sheets)
@@ -50,25 +78,6 @@
   </div>
 
   <div class="dashboard-body">
-    <!-- Top KPI Cards -->
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-title">TOTAL AMOUNT</div>
-        <div class="kpi-value" id="kpiTotalAmount">SAR 0.00</div>
-        <div class="kpi-sub" id="kpiTotalCount">0 Records</div>
-      </div>
-      <div class="kpi-card card-paid">
-        <div class="kpi-title">PAID TOTAL</div>
-        <div class="kpi-value text-success" id="kpiPaidAmount" style="color: #000b9e;">SAR 0.00</div>
-        <div class="kpi-sub" id="kpiPaidCount">0 Records</div>
-      </div>
-      <div class="kpi-card card-pending">
-        <div class="kpi-title">REMAINING AMOUNT</div>
-        <div class="kpi-value text-danger" id="kpiPendingAmount" style="color: #fc0000;">SAR 0.00</div>
-        <div class="kpi-sub" id="kpiPendingCount">0 Records</div>
-      </div>
-    </div>
-
     <!-- Main Content Layout: Left Owners List, Right Selected Owner Table -->
     <div class="content-layout">
       <!-- Left: Owners List -->
@@ -88,10 +97,27 @@
       <!-- Right: Owner Table View -->
       <div class="owner-detail-panel">
         <div class="detail-header">
-          <div>
+          <div style="min-width: 170px;">
             <h2 id="selectedOwnerName" class="owner-title">Select an Owner</h2>
             <div id="selectedOwnerSummary" class="owner-subtitle">Click an owner from the left list to view table</div>
           </div>
+
+          <!-- Header Ribbon 3 Boxes: Total, Paid, Remaining -->
+          <div id="ownerHeaderKpiPills" class="owner-kpi-pill-group" style="display: none;">
+            <div class="kpi-mini-box box-total">
+              <span class="mini-label">TOTAL</span>
+              <span id="btmTotalAmt" class="mini-val text-primary">SAR 0.00</span>
+            </div>
+            <div class="kpi-mini-box box-paid">
+              <span class="mini-label">PAID</span>
+              <span id="btmPaidAmt" class="mini-val text-success">SAR 0.00</span>
+            </div>
+            <div class="kpi-mini-box box-remaining">
+              <span class="mini-label">REMAINING</span>
+              <span id="btmPendingAmt" class="mini-val text-danger">SAR 0.00</span>
+            </div>
+          </div>
+
           <div class="detail-actions" id="detailActionBtns" style="display: none;">
             <div class="table-search-box">
               <input type="text" id="ownerTableSearchInput" placeholder="🔍 Search table..." oninput="applyOwnerTableFilters()" />
@@ -130,24 +156,6 @@
               </tr>
             </tbody>
           </table>
-        </div>
-
-        <!-- Sticky Bottom Summary Line for Selected Owner -->
-        <div id="ownerBottomSummaryBar" class="owner-bottom-bar" style="display: none;">
-          <div class="summary-line-item">
-            <span class="lbl">TOTAL:</span>
-            <span id="btmTotalAmt" class="val text-primary">SAR 0.00</span>
-          </div>
-          <div class="summary-separator">|</div>
-          <div class="summary-line-item">
-            <span class="lbl">PAID TOTAL:</span>
-            <span id="btmPaidAmt" class="val text-success">SAR 0.00</span>
-          </div>
-          <div class="summary-separator">|</div>
-          <div class="summary-line-item">
-            <span class="lbl">REMAINING AMOUNT:</span>
-            <span id="btmPendingAmt" class="val text-danger">SAR 0.00</span>
-          </div>
         </div>
       </div>
     </div>
