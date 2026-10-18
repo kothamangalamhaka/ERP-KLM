@@ -730,8 +730,98 @@
             transform: scale(1.2);
             opacity: 1;
         }
-        
+
+        /* 🟢 Excel-style Note Corner Triangle Indicator */
+        .month-col {
+            position: relative !important;
+        }
+        .has-month-note::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-top: 10px solid #dc2626 !important;
+            border-left: 10px solid transparent !important;
+            pointer-events: none;
+            z-index: 25;
+        }
+
+        /* 🟢 Right-click Month Note Context Popover */
+        .month-note-popover {
+            position: fixed;
+            background: #0f172a;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            border-radius: 8px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+            color: #f1f5f9;
+            z-index: 10005;
+            min-width: 260px;
+            max-width: 340px;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            font-size: 12px;
+        }
+        .mn-pop-header {
+            background: #1e293b;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            font-size: 12px;
+            color: #38bdf8;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .mn-pop-body {
+            padding: 10px 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .mn-pop-item {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            padding: 6px 8px;
+        }
+        .mn-pop-title {
+            font-weight: 600;
+            color: #f8fafc;
+            margin-bottom: 2px;
+        }
+        .mn-pop-content {
+            color: #cbd5e1;
+            font-size: 11px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .mn-pop-footer {
+            padding: 6px 10px;
+            background: #090e17;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
+
+    <!-- Month Right-Click Note Popover -->
+    <div id="monthNotePopover" class="month-note-popover" onclick="event.stopPropagation()">
+        <div class="mn-pop-header">
+            <span id="mnPopTitle">Month Notes</span>
+            <button onclick="closeMonthNotePopover()" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer;">&times;</button>
+        </div>
+        <div class="mn-pop-body" id="mnPopBody"></div>
+        <div class="mn-pop-footer">
+            <button id="mnPopAddBtn" style="background:#0284c7; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer;">➕ Add Note</button>
+            <button onclick="closeMonthNotePopover()" style="background:transparent; color:#94a3b8; border:none; font-size:11px; cursor:pointer;">Close</button>
+        </div>
+    </div>
 </head>
 <body>
 
@@ -804,6 +894,30 @@
                 </div>
                 <div class="gmail-compose-body">
                     <input type="hidden" id="editNoteId" value="">
+                    <div style="display: flex; gap: 8px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 10.5px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Ledger Folio (LF)</label>
+                            <select id="composeNoteLf" class="gmail-input-title" style="width: 100%; padding: 6px 8px; cursor: pointer;"></select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 10.5px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Target Month</label>
+                            <select id="composeNoteMonth" class="gmail-input-title" style="width: 100%; padding: 6px 8px; cursor: pointer;">
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9">October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                                <option value="">(All Months / General)</option>
+                            </select>
+                        </div>
+                    </div>
                     <input type="text" id="composeNoteTitle" class="gmail-input-title" placeholder="Subject / Header" maxlength="100">
                     <textarea id="composeNoteContent" class="gmail-input-content" placeholder="Type note details here..."></textarea>
                 </div>
@@ -873,8 +987,9 @@
                     <div class="info-val" id="infoOwnerName"></div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <button class="btn-supplier-note-icon" onclick="openNotesModal()" title="Supplier Notes / Remarks">
+                    <button class="btn-supplier-note-icon" onclick="openNotesModal()" title="Supplier Notes / Remarks" style="position: relative;">
                         ✏️
+                        <span id="supplierNoteCountBadge" style="display: none; position: absolute; top: -6px; right: -8px; background: #ef4444; color: #ffffff; font-size: 10px; font-weight: 800; border-radius: 10px; padding: 1px 5px; min-width: 16px; text-align: center; border: 1.5px solid #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></span>
                     </button>
                     <span style="background: #fee2e2; color: #b91c1c; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 12px;">Non-VAT Vendor</span>
                 </div>
@@ -1051,7 +1166,9 @@
             document.getElementById("supplierInfoCard").style.display = "flex";
             document.getElementById("infoOwnerName").innerText = supData.supplier;
 
-            renderSiteTables(supData);
+            updateSupplierNoteBadge(supData.supplier).then(() => {
+                renderSiteTables(supData);
+            });
         }
 
         function toggleEditMode() {
@@ -1110,6 +1227,16 @@
                     const hasValue = qDiceVal.trim() !== "";
                     const hlClass = hasValue ? "qc-highlight" : "";
 
+                    const siteLfClean = String(siteObj.ledger_folio || "").trim().toLowerCase();
+                    const hasNoteThisMonth = currentSupplierNotes.some(n => {
+                        const nMonth = n.note_month !== null && n.note_month !== undefined ? Number(n.note_month) : null;
+                        const nLf = String(n.ledger_folio || "").trim().toLowerCase();
+                        const isMonthMatch = (nMonth === null || nMonth === m);
+                        const isLfMatch = (!nLf || !siteLfClean || nLf === siteLfClean);
+                        return isMonthMatch && isLfMatch;
+                    });
+                    const noteMarkerClass = hasNoteThisMonth ? "has-month-note" : "";
+
                     if (isActive) {
                         totVendorTs += bill.vendor_ts || 0;
                         const parsedDice = parseFloat(qDiceVal.replace(/,/g, ""));
@@ -1126,7 +1253,7 @@
 
                         bodyHtml += `
                             <tr>
-                                <td class="month-col ${hlClass}">${mLabel}</td>
+                                <td class="month-col ${hlClass} ${noteMarkerClass}" style="cursor: context-menu;" oncontextmenu="handleMonthCellRightClick(event, '${escapeQuotes(supData.supplier)}', '${escapeQuotes(siteObj.site_first_name)}', '${escapeQuotes(siteObj.ledger_folio || '')}', ${m})">${mLabel}</td>
                                 <td class="vendor-ts-cell ${hlClass}" style="background: #f0fdfa; font-weight: 600; color: #0f766e;" 
                                     title="Click for breakdown, Right-click to copy" 
                                     onclick="openTsDetailsModal('${escapeQuotes(supData.supplier)}', '${escapeQuotes(sFirstName)}', '${escapeQuotes(siteObj.ledger_folio || '')}', ${m})" 
@@ -1260,10 +1387,10 @@
             const supData = rawData.find(s => s.supplier === selectedSupplier);
             if (!supData) return;
 
-            const cleanLf = (lf || "").trim();
+            const cleanLf = String(lf || "").trim();
             const siteObj = supData.sites.find(s => 
-                s.site_first_name.toLowerCase() === siteFirstName.toLowerCase() &&
-                (s.ledger_folio || "").trim().toLowerCase() === cleanLf.toLowerCase()
+                String(s.site_first_name || "").toLowerCase() === String(siteFirstName || "").toLowerCase() &&
+                String(s.ledger_folio || "").trim().toLowerCase() === cleanLf.toLowerCase()
             );
             if (siteObj && siteObj.billing[monthIdx]) {
                 siteObj.billing[monthIdx].quick_dice = val;
@@ -1733,6 +1860,35 @@
         // ==========================================
         let currentSupplierNotes = [];
 
+        async function updateSupplierNoteBadge(supplierName) {
+            const badge = document.getElementById("supplierNoteCountBadge");
+            if (!badge) return;
+            try {
+                const res = await fetch(`/timesheet/api/non-vat-tracking/notes?supplier=${encodeURIComponent(supplierName)}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                const json = await res.json();
+                if (json.success && Array.isArray(json.data)) {
+                    renderSupplierNoteBadgeCount(json.data.length);
+                } else {
+                    renderSupplierNoteBadgeCount(0);
+                }
+            } catch (e) {
+                renderSupplierNoteBadgeCount(0);
+            }
+        }
+
+        function renderSupplierNoteBadgeCount(count) {
+            const badge = document.getElementById("supplierNoteCountBadge");
+            if (!badge) return;
+            if (count > 0) {
+                badge.innerText = count;
+                badge.style.display = "inline-block";
+            } else {
+                badge.style.display = "none";
+            }
+        }
+
         async function openNotesModal() {
             if (!selectedSupplier) return;
             document.getElementById("notesModalSupplierName").innerText = selectedSupplier;
@@ -1746,12 +1902,33 @@
             closeComposeBox();
         }
 
-        function openComposeBox(noteId = null) {
+        function populateComposeLfOptions(selectedLf = "") {
+            const sel = document.getElementById("composeNoteLf");
+            if (!sel || !selectedSupplier) return;
+            const supData = rawData.find(s => s.supplier === selectedSupplier);
+            const availableLfs = [];
+            if (supData && Array.isArray(supData.sites)) {
+                supData.sites.forEach(st => {
+                    const lf = (st.ledger_folio || "").trim();
+                    if (lf && !availableLfs.includes(lf)) availableLfs.push(lf);
+                });
+            }
+            let html = "";
+            let autoSelected = selectedLf || (availableLfs.length > 0 ? availableLfs[0] : "");
+            availableLfs.forEach(lf => {
+                html += `<option value="${escapeHTML(lf)}" ${lf.toLowerCase() === autoSelected.toLowerCase() ? 'selected' : ''}>${escapeHTML(lf)}</option>`;
+            });
+            html += `<option value="" ${autoSelected === "" ? 'selected' : ''}>(All / General LF)</option>`;
+            sel.innerHTML = html;
+        }
+
+        function openComposeBox(noteId = null, defaultLf = "", defaultMonth = "") {
             const box = document.getElementById("gmailComposeBox");
             const titleEl = document.getElementById("composeBoxTitle");
             const idInput = document.getElementById("editNoteId");
             const titleInput = document.getElementById("composeNoteTitle");
             const contentInput = document.getElementById("composeNoteContent");
+            const monthInput = document.getElementById("composeNoteMonth");
 
             if (noteId) {
                 const note = currentSupplierNotes.find(n => String(n.id) === String(noteId));
@@ -1760,16 +1937,73 @@
                     idInput.value = note.id;
                     titleInput.value = note.note_title || "";
                     contentInput.value = note.note_content || "";
+                    populateComposeLfOptions(note.ledger_folio || "");
+                    if (monthInput) monthInput.value = (note.note_month !== null && note.note_month !== undefined) ? note.note_month : "";
                 }
             } else {
                 titleEl.innerText = "New Note";
                 idInput.value = "";
                 titleInput.value = "";
                 contentInput.value = "";
+                populateComposeLfOptions(defaultLf);
+                if (monthInput) monthInput.value = (defaultMonth !== "" && defaultMonth !== null) ? defaultMonth : "";
             }
 
             box.style.display = "flex";
             contentInput.focus();
+        }
+
+        function closeMonthNotePopover() {
+            const pop = document.getElementById("monthNotePopover");
+            if (pop) pop.style.display = "none";
+        }
+
+        document.addEventListener("click", () => closeMonthNotePopover());
+
+        function handleMonthCellRightClick(e, supplier, siteFirst, ledgerFolio, monthIdx) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const pop = document.getElementById("monthNotePopover");
+            const titleEl = document.getElementById("mnPopTitle");
+            const bodyEl = document.getElementById("mnPopBody");
+            const addBtn = document.getElementById("mnPopAddBtn");
+
+            const mName = monthsFull[monthIdx];
+            const cleanLf = (ledgerFolio || "").trim();
+            titleEl.innerText = `${mName} Notes ${cleanLf ? '[' + cleanLf + ']' : ''}`;
+
+            const matchedNotes = currentSupplierNotes.filter(n => 
+                (n.note_month === null || n.note_month === undefined || n.note_month === monthIdx) &&
+                (!n.ledger_folio || !cleanLf || n.ledger_folio.toLowerCase() === cleanLf.toLowerCase())
+            );
+
+            if (matchedNotes.length === 0) {
+                bodyEl.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 12px 6px;">No notes for this month.</div>`;
+            } else {
+                bodyEl.innerHTML = matchedNotes.map(n => `
+                    <div class="mn-pop-item">
+                        <div class="mn-pop-title">📌 ${escapeHTML(n.note_title || "Remark")} <span style="font-size:10px; color:#94a3b8; font-weight:normal;">(${escapeHTML(n.formatted_date || '')})</span></div>
+                        <div class="mn-pop-content">${escapeHTML(n.note_content || "")}</div>
+                    </div>
+                `).join("");
+            }
+
+            addBtn.onclick = () => {
+                closeMonthNotePopover();
+                openNotesModal().then(() => {
+                    openComposeBox(null, cleanLf, monthIdx);
+                });
+            };
+
+            let x = e.clientX;
+            let y = e.clientY;
+            if (x + 300 > window.innerWidth) x = window.innerWidth - 320;
+            if (y + 220 > window.innerHeight) y = window.innerHeight - 230;
+
+            pop.style.left = `${x}px`;
+            pop.style.top = `${y}px`;
+            pop.style.display = "flex";
         }
 
         function closeComposeBox() {
@@ -1791,6 +2025,7 @@
 
                 if (json.success) {
                     currentSupplierNotes = json.data || [];
+                    renderSupplierNoteBadgeCount(currentSupplierNotes.length);
                     renderNotesList(currentSupplierNotes);
                 } else {
                     container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 40px;">Error: ${escapeHTML(json.message)}</div>`;
@@ -1860,6 +2095,9 @@
                     : `/timesheet/api/non-vat-tracking/notes`;
                 const method = noteId ? "PUT" : "POST";
 
+                const lfVal = document.getElementById("composeNoteLf") ? document.getElementById("composeNoteLf").value.trim() : "";
+                const monthVal = document.getElementById("composeNoteMonth") ? document.getElementById("composeNoteMonth").value : "";
+
                 const res = await fetch(url, {
                     method: method,
                     headers: {
@@ -1869,7 +2107,10 @@
                     body: JSON.stringify({
                         supplier: selectedSupplier,
                         title: title,
-                        content: content
+                        content: content,
+                        ledger_folio: lfVal || null,
+                        note_month: monthVal !== "" ? parseInt(monthVal, 10) : null,
+                        note_year: currentYear
                     })
                 });
 
@@ -1878,6 +2119,8 @@
                     closeComposeBox();
                     showStatus("Note Saved", "saved");
                     await fetchSupplierNotes(selectedSupplier);
+                    const curSupData = rawData.find(s => s.supplier === selectedSupplier);
+                    if (curSupData) renderSiteTables(curSupData);
                 } else {
                     showStatus("Save Failed", "error");
                     alert("Error: " + json.message);

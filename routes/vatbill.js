@@ -132,7 +132,7 @@ router.get("/data", verifyVatCode, async (req, res) => {
         const siteLogResult = await pool.query(siteLogQuery, [plates]);
  
         // 4. Fetch billing records & ERP Totals
-        const billingQuery = `SELECT * FROM vat_billing_records WHERE year = $1`;
+        const billingQuery = `SELECT * FROM vat_billing_records WHERE year = $1 ORDER BY COALESCE(NULLIF(TRIM(quick_dice), ''), '0') DESC, updated_at DESC, id DESC`;
         const billingResult = await pool.query(billingQuery, [currentYear]);
         const billingData = billingResult.rows;
  

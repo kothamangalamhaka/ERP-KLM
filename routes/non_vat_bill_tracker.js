@@ -406,14 +406,14 @@ router.get("/data", verifyAccessCode, async (req, res) => {
             }
           });
 
-          const currentCardLf = (siteObj.ledger_folio || "").trim().toLowerCase();
+          const currentCardLf = String(siteObj.ledger_folio || "").trim().toLowerCase();
           // 🟢 Supplier + Site + Ledger Folio match cheythu mathram saved quick dice edukkkunnu (Prevents cross-supplier collision on same LF)
           const savedBill = billingData.find(
             (b) =>
-              (b.supplier || "").trim().toLowerCase() === normSup &&
-              (b.site_name || "").toLowerCase().trim() === sFirst &&
-              (b.ledger_folio || "").trim().toLowerCase() === currentCardLf &&
-              b.month_index === m,
+              String(b.supplier || "").trim().toLowerCase() === normSup &&
+              String(b.site_name || "").toLowerCase().trim() === sFirst &&
+              String(b.ledger_folio || "").trim().toLowerCase() === currentCardLf &&
+              Number(b.month_index) === m
           );
 
           siteObj.billing[m] = {
@@ -742,21 +742,35 @@ router.post("/update-cell", verifyAccessCode, async (req, res) => {
 // ==========================================
 router.get("/notes", verifyAccessCode, async (req, res) => {
   try {
-    const { supplier } = req.query;
+    const { supplier, ledger_folio, month } = req.query;
     if (!supplier) {
       return res.status(400).json({ success: false, message: "Supplier name is required" });
     }
 
-    const result = await pool.query(
-      `SELECT id, supplier_name, note_title, note_content, 
-              TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date,
-              created_at
-       FROM supplier_notes
-       WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($1))
-       ORDER BY created_at DESC, id DESC`,
-      [supplier]
-    );
+    let query = `
+      SELECT id, supplier_name, note_title, note_content, 
+             COALESCE(ledger_folio, '') as ledger_folio,
+             note_month, note_year,
+             TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date,
+             created_at
+      FROM supplier_notes
+      WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($1))
+    `;
+    const params = [supplier.trim()];
 
+    if (ledger_folio !== undefined && ledger_folio !== null && String(ledger_folio).trim() !== "") {
+      params.push(String(ledger_folio).trim());
+      query += ` AND (ledger_folio IS NULL OR ledger_folio = '' OR LOWER(TRIM(ledger_folio)) = LOWER(TRIM($${params.length})))`;
+    }
+
+    if (month !== undefined && month !== null && String(month).trim() !== "") {
+      params.push(parseInt(month, 10));
+      query += ` AND (note_month IS NULL OR note_month = $${params.length})`;
+    }
+
+    query += ` ORDER BY created_at DESC, id DESC`;
+
+    const result = await pool.query(query, params);
     res.json({ success: true, data: result.rows });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -765,21 +779,24 @@ router.get("/notes", verifyAccessCode, async (req, res) => {
 
 router.post("/notes", verifyAccessCode, async (req, res) => {
   try {
-    const { supplier, title, content } = req.body;
+    const { supplier, title, content, ledger_folio, note_month, note_year } = req.body;
     if (!supplier || !content || !content.trim()) {
       return res.status(400).json({ success: false, message: "Supplier and note content are required" });
     }
 
     const cleanTitle = (title || "").trim() || "Remark";
     const cleanContent = content.trim();
+    const cleanLf = ledger_folio ? String(ledger_folio).trim() : null;
+    const cleanMonth = (note_month !== undefined && note_month !== null && note_month !== "") ? parseInt(note_month, 10) : null;
+    const cleanYear = (note_year !== undefined && note_year !== null && note_year !== "") ? parseInt(note_year, 10) : null;
 
     const insertRes = await pool.query(
-      `INSERT INTO supplier_notes (supplier_name, note_title, note_content)
-       VALUES ($1, $2, $3)
-       RETURNING id, supplier_name, note_title, note_content,
+      `INSERT INTO supplier_notes (supplier_name, note_title, note_content, ledger_folio, note_month, note_year)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, supplier_name, note_title, note_content, ledger_folio, note_month, note_year,
                  TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date,
                  created_at`,
-      [supplier.trim(), cleanTitle, cleanContent]
+      [supplier.trim(), cleanTitle, cleanContent, cleanLf, cleanMonth, cleanYear]
     );
 
     res.json({ success: true, data: insertRes.rows[0] });
