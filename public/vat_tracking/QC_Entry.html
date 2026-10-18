@@ -341,6 +341,84 @@
         border-right: 2px solid #94a3b8;
         text-align: center;
       }
+
+      /* 🟢 Excel-style Note Corner Triangle Indicator */
+      .has-month-note {
+        position: sticky !important;
+      }
+      .has-month-note::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 0;
+        height: 0;
+        border-top: 10px solid #dc2626 !important;
+        border-left: 10px solid transparent !important;
+        pointer-events: none;
+        z-index: 25;
+      }
+
+      /* 🟢 Right-click Month Note Context Popover */
+      .month-note-popover {
+        position: fixed;
+        background: #0f172a;
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        border-radius: 8px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+        color: #f1f5f9;
+        z-index: 10005;
+        min-width: 260px;
+        max-width: 340px;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        font-size: 12px;
+      }
+      .mn-pop-header {
+        background: #1e293b;
+        padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+        font-size: 12px;
+        color: #38bdf8;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .mn-pop-body {
+        padding: 10px 12px;
+        max-height: 200px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .mn-pop-item {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 4px;
+        padding: 6px 8px;
+      }
+      .mn-pop-title {
+        font-weight: 600;
+        color: #f8fafc;
+        margin-bottom: 2px;
+      }
+      .mn-pop-content {
+        color: #cbd5e1;
+        font-size: 11px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .mn-pop-footer {
+        padding: 6px 10px;
+        background: #090e17;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
       th.month-col {
         top: 0;
         z-index: 25;
@@ -1023,7 +1101,7 @@
               <div class="info-label">Active Sites</div>
               <div class="info-val" id="infoSitesCount">0</div>
             </div>
-            <!-- 🟢 Right Corner Pencil Button -->
+            <!-- 🟢 Right Corner Pencil Button With Count Badge -->
             <button
               onclick="openVatNotesModal()"
               style="
@@ -1035,12 +1113,14 @@
                 padding: 6px 8px;
                 border-radius: 4px;
                 transition: transform 0.15s ease, opacity 0.15s ease;
+                position: relative;
               "
               onmouseenter="this.style.opacity='1'; this.style.transform='scale(1.2)';"
               onmouseleave="this.style.opacity='0.75'; this.style.transform='scale(1)';"
               title="Supplier Notes / Remarks"
             >
               ✏️
+              <span id="vatNoteCountBadge" style="display: none; position: absolute; top: -4px; right: -4px; background: #ef4444; color: #ffffff; font-size: 10px; font-weight: 800; border-radius: 10px; padding: 1px 5px; min-width: 16px; text-align: center; border: 1.5px solid #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></span>
             </button>
           </div>
         </div>
@@ -1351,7 +1431,9 @@
         document.getElementById("noSelectionNotice").style.display = "none";
         document.getElementById("qcTable").style.display = "table";
 
-        renderTable(supData);
+        updateVatNoteBadge(key).then(() => {
+          renderTable(supData);
+        });
       }
 
       function toggleEditMode() {
@@ -1877,7 +1959,11 @@
 
         for (let m = 0; m < 12; m++) {
           let mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
-          bodyHtml += `<tr><td class="month-col"><div class="cell-content">${mLabel}</div></td>`;
+          const hasNoteThisMonth = currentVatNotes.some(n => 
+            n.note_month !== null && n.note_month !== undefined && Number(n.note_month) === m
+          );
+          const noteMarkerClass = hasNoteThisMonth ? "has-month-note" : "";
+          bodyHtml += `<tr><td class="month-col ${noteMarkerClass}" style="cursor: context-menu;" oncontextmenu="handleVatMonthCellRightClick(event, ${m})"><div class="cell-content">${mLabel}</div></td>`;
 
           supData.sites.forEach((site, sIdx) => {
             const isActive = site.active_months[m];
@@ -2179,12 +2265,65 @@
             closeVatComposeBox();
         }
 
-        function openVatComposeBox(noteId = null) {
+        async function updateVatNoteBadge(supplierName) {
+            const badge = document.getElementById("vatNoteCountBadge");
+            if (!badge) return;
+            try {
+                const res = await fetch(`/timesheet/api/vat-tracking/notes?supplier=${encodeURIComponent(supplierName)}`, {
+                    headers: { "x-vat-code": vatCode }
+                });
+                const json = await res.json();
+                if (json.success && Array.isArray(json.data)) {
+                    currentVatNotes = json.data || [];
+                    renderVatNoteBadgeCount(currentVatNotes.length);
+                } else {
+                    currentVatNotes = [];
+                    renderVatNoteBadgeCount(0);
+                }
+            } catch (e) {
+                currentVatNotes = [];
+                renderVatNoteBadgeCount(0);
+            }
+        }
+
+        function renderVatNoteBadgeCount(count) {
+            const badge = document.getElementById("vatNoteCountBadge");
+            if (!badge) return;
+            if (count > 0) {
+                badge.innerText = count;
+                badge.style.display = "inline-block";
+            } else {
+                badge.style.display = "none";
+            }
+        }
+
+        function populateVatComposeLfOptions(selectedLf = "") {
+            const sel = document.getElementById("vatComposeNoteLf");
+            if (!sel || !selectedSupplierKey) return;
+            const supData = consolidatedSuppliers[selectedSupplierKey];
+            const availableLfs = [];
+            if (supData && Array.isArray(supData.sites)) {
+                supData.sites.forEach(st => {
+                    const lf = (st.ledger_folio || "").trim();
+                    if (lf && !availableLfs.includes(lf)) availableLfs.push(lf);
+                });
+            }
+            let html = "";
+            let autoSelected = selectedLf || (availableLfs.length > 0 ? availableLfs[0] : "");
+            availableLfs.forEach(lf => {
+                html += `<option value="${escapeHTML(lf)}" ${lf.toLowerCase() === autoSelected.toLowerCase() ? 'selected' : ''}>${escapeHTML(lf)}</option>`;
+            });
+            html += `<option value="" ${autoSelected === "" ? 'selected' : ''}>(All / General LF)</option>`;
+            sel.innerHTML = html;
+        }
+
+        function openVatComposeBox(noteId = null, defaultLf = "", defaultMonth = "") {
             const box = document.getElementById("vatGmailCompose");
             const titleEl = document.getElementById("vatComposeTitle");
             const idInput = document.getElementById("vatEditNoteId");
             const titleInput = document.getElementById("vatNoteTitle");
             const contentInput = document.getElementById("vatNoteContent");
+            const monthInput = document.getElementById("vatComposeNoteMonth");
 
             if (noteId) {
                 const note = currentVatNotes.find(n => String(n.id) === String(noteId));
@@ -2193,12 +2332,16 @@
                     idInput.value = note.id;
                     titleInput.value = note.note_title || "";
                     contentInput.value = note.note_content || "";
+                    populateVatComposeLfOptions(note.ledger_folio || "");
+                    if (monthInput) monthInput.value = (note.note_month !== null && note.note_month !== undefined) ? note.note_month : "";
                 }
             } else {
                 titleEl.innerText = "New Note";
                 idInput.value = "";
                 titleInput.value = "";
                 contentInput.value = "";
+                populateVatComposeLfOptions(defaultLf);
+                if (monthInput) monthInput.value = (defaultMonth !== "" && defaultMonth !== null) ? defaultMonth : "0";
             }
             box.style.display = "flex";
             contentInput.focus();
@@ -2206,6 +2349,57 @@
 
         function closeVatComposeBox() {
             document.getElementById("vatGmailCompose").style.display = "none";
+        }
+
+        function closeVatMonthNotePopover() {
+            const pop = document.getElementById("vatMonthNotePopover");
+            if (pop) pop.style.display = "none";
+        }
+
+        document.addEventListener("click", () => closeVatMonthNotePopover());
+
+        function handleVatMonthCellRightClick(e, monthIdx) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const pop = document.getElementById("vatMonthNotePopover");
+            const titleEl = document.getElementById("vatMnPopTitle");
+            const bodyEl = document.getElementById("vatMnPopBody");
+            const addBtn = document.getElementById("vatMnPopAddBtn");
+
+            const mName = monthsFull[monthIdx];
+            titleEl.innerText = `${mName} Notes`;
+
+            const matchedNotes = currentVatNotes.filter(n => 
+                n.note_month !== null && n.note_month !== undefined && Number(n.note_month) === monthIdx
+            );
+
+            if (matchedNotes.length === 0) {
+                bodyEl.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 12px 6px;">No notes for this month.</div>`;
+            } else {
+                bodyEl.innerHTML = matchedNotes.map(n => `
+                    <div class="mn-pop-item">
+                        <div class="mn-pop-title">📌 ${escapeHTML(n.note_title || "Remark")} <span style="font-size:10px; color:#94a3b8; font-weight:normal;">(${escapeHTML(n.formatted_date || '')})</span></div>
+                        <div class="mn-pop-content">${escapeHTML(n.note_content || "")}</div>
+                    </div>
+                `).join("");
+            }
+
+            addBtn.onclick = () => {
+                closeVatMonthNotePopover();
+                openVatNotesModal().then(() => {
+                    openVatComposeBox(null, "", monthIdx);
+                });
+            };
+
+            let x = e.clientX;
+            let y = e.clientY;
+            if (x + 300 > window.innerWidth) x = window.innerWidth - 320;
+            if (y + 220 > window.innerHeight) y = window.innerHeight - 230;
+
+            pop.style.left = `${x}px`;
+            pop.style.top = `${y}px`;
+            pop.style.display = "flex";
         }
 
         async function fetchVatSupplierNotes(supplierName) {
@@ -2218,6 +2412,7 @@
                 const json = await res.json();
                 if (json.success) {
                     currentVatNotes = json.data || [];
+                    renderVatNoteBadgeCount(currentVatNotes.length);
                     renderVatNotesList(currentVatNotes);
                 }
             } catch (err) {
@@ -2255,6 +2450,8 @@
             const noteId = document.getElementById("vatEditNoteId").value.trim();
             const title = document.getElementById("vatNoteTitle").value.trim();
             const content = document.getElementById("vatNoteContent").value.trim();
+            const lfVal = document.getElementById("vatComposeNoteLf") ? document.getElementById("vatComposeNoteLf").value.trim() : "";
+            const monthVal = document.getElementById("vatComposeNoteMonth") ? document.getElementById("vatComposeNoteMonth").value : "";
             if (!content) return alert("Please enter note details!");
 
             showStatus("Saving Note...", "saving");
@@ -2264,13 +2461,22 @@
                 const res = await fetch(url, {
                     method: method,
                     headers: { "Content-Type": "application/json", "x-vat-code": vatCode },
-                    body: JSON.stringify({ supplier: selectedSupplierKey, title: title, content: content })
+                    body: JSON.stringify({ 
+                        supplier: selectedSupplierKey, 
+                        title: title, 
+                        content: content,
+                        ledger_folio: lfVal || null,
+                        note_month: monthVal !== "" ? parseInt(monthVal, 10) : null,
+                        note_year: currentYear
+                    })
                 });
                 const json = await res.json();
                 if (json.success) {
                     closeVatComposeBox();
                     showStatus("Note Saved", "saved");
                     await fetchVatSupplierNotes(selectedSupplierKey);
+                    const curSupData = consolidatedSuppliers[selectedSupplierKey];
+                    if (curSupData) renderTable(curSupData);
                 }
             } catch (e) {
                 showStatus("Error Saving", "error");
@@ -2291,6 +2497,19 @@
             }
         }
     </script>
+
+    <!-- Month Right-Click Note Popover -->
+    <div id="vatMonthNotePopover" class="month-note-popover" onclick="event.stopPropagation()">
+        <div class="mn-pop-header">
+            <span id="vatMnPopTitle">Month Notes</span>
+            <button onclick="closeVatMonthNotePopover()" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer;">&times;</button>
+        </div>
+        <div class="mn-pop-body" id="vatMnPopBody"></div>
+        <div class="mn-pop-footer">
+            <button id="vatMnPopAddBtn" style="background:#0284c7; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer;">➕ Add Note</button>
+            <button onclick="closeVatMonthNotePopover()" style="background:transparent; color:#94a3b8; border:none; font-size:11px; cursor:pointer;">Close</button>
+        </div>
+    </div>
 
     <!-- Supplier Notes Modal -->
     <div id="vatNotesModal" class="modal-overlay" onclick="if(event.target===this) closeVatNotesModal()" style="z-index: 10005;">
@@ -2319,6 +2538,30 @@
                 </div>
                 <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
                     <input type="hidden" id="vatEditNoteId" value="">
+                    <div style="display: flex; gap: 8px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 10.5px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Ledger Folio / Site</label>
+                            <select id="vatComposeNoteLf" style="width: 100%; background: #090e17; border: 1px solid #334155; color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; outline: none; cursor: pointer;"></select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 10.5px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Target Month</label>
+                            <select id="vatComposeNoteMonth" style="width: 100%; background: #090e17; border: 1px solid #334155; color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; outline: none; cursor: pointer;">
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9">October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                                <option value="">(All Months / General)</option>
+                            </select>
+                        </div>
+                    </div>
                     <input type="text" id="vatNoteTitle" placeholder="Subject / Header" style="background: #090e17; border: 1px solid #334155; color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px; outline: none;">
                     <textarea id="vatNoteContent" placeholder="Note details..." style="background: #090e17; border: 1px solid #334155; color: white; padding: 8px 10px; border-radius: 4px; font-size: 12px; min-height: 90px; resize: vertical; outline: none;"></textarea>
                 </div>
