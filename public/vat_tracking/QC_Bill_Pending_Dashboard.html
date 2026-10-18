@@ -598,15 +598,17 @@
             const quickDice = billing.quick_dice ? String(billing.quick_dice).trim() : "";
             const billNo = billing.bill_no ? String(billing.bill_no).trim() : "";
             const amount = billing.amount ? String(billing.amount).trim() : "";
+            const erpTotal = billing.erp_total ? parseFloat(billing.erp_total) : 0;
 
+            const hasVendorTs = !isNaN(erpTotal) && erpTotal > 0;
             const isDiceEmpty = !quickDice || quickDice === "0" || quickDice.toLowerCase() === "null";
+            const hasBillingData = (billNo !== "") || (amount !== "" && amount !== "0");
 
             if (currentDashboardMode === "zoho") {
-                // 1. Zoho Mode: Quick Dice ഉണ്ടാവുകയും, Bill No അല്ലെങ്കിൽ Amount ബ്ലാങ്ക് ആവുകയും ചെയ്യുമ്പോൾ
-                return (!isDiceEmpty) && (!billNo || !amount || amount === "0");
+                // 1. Zoho Mode: Vendor TS-il data undu, ennaal Bill No-yo Amount-o blank/0 aayal pending
+                return hasVendorTs && (!billNo || !amount || amount === "0");
             } else {
-                // 2. Quick Dice Mode: Bill No അല്ലെങ്കിൽ Amount ഉണ്ടാവുകയും, Quick Dice ബ്ലാങ്ക് ആവുകയും ചെയ്യുമ്പോൾ
-                const hasBillingData = (billNo !== "") || (amount !== "" && amount !== "0");
+                // 2. Quick Dice Mode: Bill No-yo Amount-o undu, ennaal Quick Dice blank aayal pending
                 return hasBillingData && isDiceEmpty;
             }
         }

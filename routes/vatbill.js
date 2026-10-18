@@ -238,17 +238,32 @@ const erpQuery = `
             group.sites.forEach(siteObj => {
                 const siteLf = (siteObj.ledger_folio || "").trim().toLowerCase();
                 for (let i = 0; i < 12; i++) {
+                    // Helper to clean site name by stripping 're-running', 'running', spacing and symbols
+                    const cleanSiteName = (s) => {
+                        return (s || "")
+                            .toLowerCase()
+                            .replace(/re[\s\-_]*running/gi, "")
+                            .replace(/running/gi, "")
+                            .replace(/[\s\-_]/g, "")
+                            .trim();
+                    };
+
+                    const targetSiteClean = cleanSiteName(siteObj.site_name);
+
                     // 🟢 2027 muthal Owner Name maariyaalum data miss aavathe LF + Site vechu match cheyyunnu
                     const bill = billingData.find(b => {
-                        if (b.company !== group.company || b.site_name !== siteObj.site_name || b.month_index !== i) {
+                        const billSiteClean = cleanSiteName(b.site_name);
+                        const isSiteMatch = (b.site_name === siteObj.site_name) || (billSiteClean === targetSiteClean);
+
+                        if (b.company !== group.company || !isSiteMatch || b.month_index !== i) {
                             return false;
                         }
                         if (currentYear >= 2027 && siteLf) {
                             // 2027+: Ledger Folio match aayal mathi (owner name maariyaalum data varum)
                             return (b.ledger_folio || "").trim().toLowerCase() === siteLf;
                         }
-                        // 2026 & older: Standard supplier matching
-                        return b.supplier === group.supplier;
+                        // 2026 & older: Standard supplier matching (case-insensitive & trimmed)
+                        return (b.supplier || "").trim().toLowerCase() === (group.supplier || "").trim().toLowerCase();
                     });
  
                     const monthString = `${monthNames[i]} ${currentYear}`;
@@ -258,17 +273,31 @@ const erpQuery = `
                     const normComp = group.company.replace(/\s+/g, '').trim().toLowerCase();
  
                     let erpTotal = "";
-                    if (currentYear >= 2027) {
-                        let monthSum = 0;
-                        const processedPlates = new Set();
+                    let monthSum = 0;
+                    const processedRows = new Set();
 
-                        erpData.forEach(e => {
-                            const isMonthMatch = e.billing_month === monthString;
-                            const isSiteMatch = (e.norm_site === normSite || e.norm_site.replace(/[\s\-_]/g, '') === normSite.replace(/[\s\-_]/g, ''));
-                            const isOwnerMatch = (e.norm_owner === normSupplier || e.clean_owner === cleanSupplier);
+                    // Site name-il ninnu re-running, running, space, symbols strip cheyyanulla helper
+                    const cleanErpSite = (s) => {
+                        return (s || "")
+                            .toLowerCase()
+                            .replace(/re[\s\-_]*running/gi, "")
+                            .replace(/running/gi, "")
+                            .replace(/[\s\-_]/g, "")
+                            .trim();
+                    };
+                    const targetErpSiteClean = cleanErpSite(siteObj.site_name);
 
-                            if (isMonthMatch && isSiteMatch && isOwnerMatch) {
-                                const pKey = (e.plate_no || "").trim().toUpperCase();
+                    erpData.forEach(e => {
+                        const isMonthMatch = e.billing_month === monthString;
+                        const rowSiteClean = cleanErpSite(e.norm_site);
+                        const isSiteMatch = (e.norm_site === normSite) || (rowSiteClean === targetErpSiteClean);
+                        const isOwnerMatch = (e.norm_owner === normSupplier || e.clean_owner === cleanSupplier);
+
+                        if (isMonthMatch && isSiteMatch && isOwnerMatch) {
+                            const pKey = (e.plate_no || "").trim().toUpperCase();
+
+                            if (currentYear >= 2027) {
+                                // 🟢 2027 muthal mathram Ledger Folio (LF) vechu check cheyyunnu
                                 let vehLf = "";
                                 if (pKey) {
                                     const rVeh = vehicles.find(v => (v.plate_no || "").trim().toUpperCase() === pKey);
@@ -277,33 +306,24 @@ const erpQuery = `
                                 }
 
                                 if (vehLf === siteLf) {
-                                    const uKey = `${pKey}_${e.norm_site}`;
-                                    if (!processedPlates.has(uKey)) {
-                                        processedPlates.add(uKey);
+                                    const uKey = `${pKey}_${e.norm_site}_${e.row_total}`;
+                                    if (!processedRows.has(uKey)) {
+                                        processedRows.add(uKey);
                                         monthSum += parseFloat(e.row_total || 0);
                                     }
                                 }
+                            } else {
+                                // 🟢 2026-il LF thirivilla; aa site-il ulla ella vahanangaleyum SUM cheyyunnu
+                                const uKey = `${pKey}_${e.norm_site}_${e.row_total}`;
+                                if (!processedRows.has(uKey)) {
+                                    processedRows.add(uKey);
+                                    monthSum += parseFloat(e.row_total || 0);
+                                }
                             }
-                        });
-                        erpTotal = monthSum > 0 ? Number(monthSum.toFixed(2)) : "";
-                    } else {
-                        // 🟢 2026-ലും അതിനു മുൻപും യാതൊരു മാറ്റവുമില്ലാതെ പഴയ ലോജിക് തന്നെ പ്രവർത്തിക്കുന്നു
-                        let erpRecord = erpData.find(e => 
-                            (e.norm_site === normSite || e.norm_site.replace(/[\s\-_]/g, '') === normSite.replace(/[\s\-_]/g, '')) && 
-                            (e.norm_owner === normSupplier || e.clean_owner === cleanSupplier) && 
-                            (e.norm_company === normComp || e.norm_company === "" || normComp === "") &&
-                            e.billing_month === monthString
-                        );
-
-                        if (!erpRecord) {
-                            erpRecord = erpData.find(e => 
-                                (e.norm_site === normSite || e.norm_site.replace(/[\s\-_]/g, '') === normSite.replace(/[\s\-_]/g, '')) && 
-                                (e.norm_owner === normSupplier || e.clean_owner === cleanSupplier) && 
-                                e.billing_month === monthString
-                            );
                         }
-                        erpTotal = erpRecord ? erpRecord.row_total : "";
-                    }
+                    });
+
+                    erpTotal = monthSum > 0 ? Number(monthSum.toFixed(2)) : "";
  
                     siteObj.billing[i] = bill 
                         ? { 

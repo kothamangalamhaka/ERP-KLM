@@ -345,7 +345,7 @@
         overflow: hidden;
       }
       .quick-modal-content.single-site {
-        width: 540px;
+        width: 650px;
         max-width: 95vw;
       }
       .quick-modal-header {
@@ -1211,15 +1211,15 @@
         }
 
         // 1. Build Header: Month with Top & Left Freeze
-        let headRow1 = `<tr><th rowspan="2" class="qm-month-header" style="${isSingle ? "width: 22%;" : ""}">Month</th>`;
+        let headRow1 = `<tr><th rowspan="2" class="qm-month-header" style="${isSingle ? "width: 16%; min-width: 80px;" : ""}">Month</th>`;
         let headRow2 = `<tr>`;
 
         qmActiveSites.forEach((item) => {
           headRow1 += `<th colspan="4" style="background: #1e293b; color: white; border-left: 2px solid #64748b; font-size: 11px; white-space: nowrap; max-width: 250px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHTML(item.site.site_name)}">${escapeHTML(item.site.site_name)}</th>`;
-          headRow2 += `<th class="qm-head-row2" style="background: #334155; color: white; ${isSingle ? "width: 28%;" : "width: 120px; min-width: 120px;"} border-left: 2px solid #64748b;">Bill No</th>
-                             <th class="qm-head-row2" style="background: #334155; color: white; ${isSingle ? "width: 22%;" : "width: 85px; min-width: 85px;"}">Amount</th>
-                             <th class="qm-head-row2" style="background: #0f766e; color: white; ${isSingle ? "width: 18%;" : "width: 75px; min-width: 75px;"}">Vendor TS</th>
-                             <th class="qm-head-row2" style="background: #4338ca; color: white; ${isSingle ? "width: 18%;" : "width: 75px; min-width: 75px;"}">Quick Dice</th>`;
+          headRow2 += `<th class="qm-head-row2" style="background: #334155; color: white; ${isSingle ? "width: 24%; min-width: 100px;" : "width: 120px; min-width: 120px;"} border-left: 2px solid #64748b;">Bill No</th>
+                             <th class="qm-head-row2" style="background: #334155; color: white; ${isSingle ? "width: 20%; min-width: 95px;" : "width: 85px; min-width: 85px;"}">Amount</th>
+                             <th class="qm-head-row2" style="background: #0f766e; color: white; ${isSingle ? "width: 18%; min-width: 90px;" : "width: 75px; min-width: 75px;"}">Vendor TS</th>
+                             <th class="qm-head-row2" style="background: #4338ca; color: white; ${isSingle ? "width: 22%; min-width: 100px;" : "width: 95px; min-width: 95px;"}">Quick Dice</th>`;
         });
         headRow1 += `</tr>`;
         headRow2 += `</tr>`;
@@ -1256,7 +1256,7 @@
                             </td>
                             <td style="${isSingle ? "" : "width: 85px; min-width: 85px;"}"><input type="text" class="quick-input qm-cell-input" data-siteidx="${sIdx}" data-month="${m}" data-field="amount" value="${amtVal}" title="${amtVal}" oninput="this.title = this.value"></td>
                             <td style="background: #f0fdfa; font-weight: 600; color: #0f766e; font-size: 10.5px; ${isSingle ? "" : "width: 75px; min-width: 75px;"}">${erpVal}</td>
-                            <td style="${isSingle ? "" : "width: 75px; min-width: 75px;"}"><input type="text" class="quick-input qm-cell-input" data-siteidx="${sIdx}" data-month="${m}" data-field="quick_dice" value="${qDiceVal}" title="${qDiceVal}" placeholder="Dice#" oninput="this.title = this.value"></td>
+                            <td style="${isSingle ? "" : "width: 95px; min-width: 95px;"}"><input type="text" class="quick-input qm-cell-input" data-siteidx="${sIdx}" data-month="${m}" data-field="quick_dice" value="${qDiceVal}" title="${qDiceVal}" placeholder="Dice#" oninput="this.title = this.value"></td>
                         `;
             } else {
               bodyHtml += `
