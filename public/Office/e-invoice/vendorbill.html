@@ -1093,9 +1093,9 @@
           <div
             id="remarksDisplayContainer"
             class="remarks-display-box"
-            style="display: none"
+            style="display: none !important"
           >
-            <div class="remarks-display-title" id="remarksDisplayTitle">
+            <div class="remarks-display-title" id="remarksDisplayTitle" style="display: none">
               Note ::
             </div>
             <div id="remarksDisplayText"></div>
@@ -1430,6 +1430,9 @@
             await fetchNextNumber(null);
           }
         }
+
+        currentRemarks = incoming.remarks || incoming.raw_payload?.remarks || "";
+        updateRemarksDisplay();
 
         activeBillItems = [];
         let seqCount = 0;
@@ -1849,6 +1852,7 @@
         }
 
         renderInvoiceViewTable();
+        updateRemarksDisplay();
       }
 
       function renderInvoiceViewTable() {
@@ -1967,14 +1971,22 @@
         const box = document.getElementById("remarksDisplayContainer");
         const txt = document.getElementById("remarksDisplayText");
         const title = document.getElementById("remarksDisplayTitle");
-        if (currentRemarks && currentRemarks.trim()) {
-          txt.innerText = currentRemarks.trim();
+        
+        const cleanNote = (currentRemarks || "").trim();
+        
+        if (cleanNote) {
+          if (txt) txt.innerText = cleanNote;
           if (title) title.style.display = "inline-block";
-          box.style.display = "flex";
+          if (box) {
+            box.style.removeProperty("display");
+            box.style.display = "flex";
+          }
         } else {
-          txt.innerText = "";
+          if (txt) txt.innerText = "";
           if (title) title.style.display = "none";
-          box.style.display = "none";
+          if (box) {
+            box.style.setProperty("display", "none", "important");
+          }
         }
       }
 
