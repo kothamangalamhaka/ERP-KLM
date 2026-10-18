@@ -61,30 +61,7 @@
       }
       @keyframes spin { to { transform: rotate(360deg); } }
 
-      /* 🟢 Context Menu Styles */
-      .context-menu {
-        position: fixed;
-        background: #ffffff;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        z-index: 10000;
-        display: none;
-        overflow: hidden;
-      }
-      .context-menu-item {
-        padding: 8px 14px;
-        font-size: 12px;
-        font-weight: 700;
-        color: #ef4444;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .context-menu-item:hover {
-        background: #fee2e2;
-      }
+      /* Context menu styles removed */
     </style>
   </head>
   <body>
@@ -359,28 +336,13 @@
         }
       }
 
-      // 🟢 Date Right-Click & Delete Context Handlers
+      // 🟢 Date Right-Click - Direct PIN Modal Trigger
       let selectedDeleteInvoiceId = null;
 
       function openDateContextMenu(event, invoiceId) {
         event.preventDefault();
         event.stopPropagation();
         selectedDeleteInvoiceId = invoiceId;
-
-        const menu = document.getElementById("dateContextMenu");
-        menu.style.display = "block";
-        menu.style.left = `${event.pageX}px`;
-        menu.style.top = `${event.pageY}px`;
-      }
-
-      document.addEventListener("click", () => {
-        const menu = document.getElementById("dateContextMenu");
-        if (menu) menu.style.display = "none";
-      });
-
-      function promptDeleteVendorBill() {
-        const menu = document.getElementById("dateContextMenu");
-        if (menu) menu.style.display = "none";
 
         const modal = document.getElementById("deleteConfirmModal");
         const pinInput = document.getElementById("delPinInput");
@@ -435,13 +397,6 @@
         }
       }
     </script>
-
-    <!-- 🟢 Context Menu for Bill Date -->
-    <div id="dateContextMenu" class="context-menu">
-      <div class="context-menu-item" onclick="promptDeleteVendorBill()">
-        🗑️ Delete Bill
-      </div>
-    </div>
 
     <!-- 🟢 PIN Confirmation Modal -->
     <div id="deleteConfirmModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); z-index: 99999; display: none; align-items: center; justify-content: center;">

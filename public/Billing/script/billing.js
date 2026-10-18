@@ -3254,6 +3254,8 @@ async function openVendorBillForCard(cardId) {
     billingCardImage: cardImageData
   };
 
+  // 🟢 Billing-ൽ നിന്ന് പോകുമ്പോൾ വെണ്ടർ ബിൽ ലോക്ക് തുറന്ന് നേരിട്ട് കാണിക്കുന്നു
+  sessionStorage.setItem("vbill_system_unlocked", "true");
   sessionStorage.setItem("activeVendorBillData", JSON.stringify(payload));
   window.open("/Office/e-invoice/vendorbill.html", "_blank");
 }

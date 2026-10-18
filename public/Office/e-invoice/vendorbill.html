@@ -6,11 +6,87 @@
     <script src="/node_xlsx_scripts/qrcode.min.js"></script>
     <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <style>
+      /* 🟢 Custom Modern Neon Loader */
+      #pageLoaderOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #0f172a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999999;
+        gap: 25px;
+        transition: opacity 0.3s ease;
+      }
+      .loader {
+        --color-1: #00FFAF;
+        --color-2: #19BC1D;
+        --size: 1.65px;
+
+        position: relative;
+        width: calc(120 * var(--size));
+        height: calc(140 * var(--size));
+        background-image:
+          radial-gradient(circle calc(30 * var(--size)), var(--color-1) 100%, transparent 0),
+          radial-gradient(circle calc(5 * var(--size)), var(--color-1) 100%, transparent 0),
+          radial-gradient(circle calc(5 * var(--size)), var(--color-1) 100%, transparent 0),
+          linear-gradient(var(--color-1) calc(20 * var(--size)), transparent 0);
+        background-position:
+          center calc(127 * var(--size)),
+          calc(94 * var(--size)) calc(102 * var(--size)),
+          calc(16 * var(--size)) calc(18 * var(--size)),
+          center calc(114 * var(--size));
+        background-size:
+          calc(60 * var(--size)) calc(60 * var(--size)),
+          calc(10 * var(--size)) calc(10 * var(--size)),
+          calc(10 * var(--size)) calc(10 * var(--size)),
+          calc(4 * var(--size)) calc(14 * var(--size));
+        background-repeat: no-repeat;
+        z-index: 10;
+        perspective: calc(500 * var(--size));
+      }
+      .loader::before {
+        content: '';
+        position: absolute;
+        width: calc(100 * var(--size));
+        height: calc(100 * var(--size));
+        border-radius: 50%;
+        border: calc(3 * var(--size)) solid var(--color-1);
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -55%) rotate(-45deg);
+        border-right-color: transparent;
+        box-sizing: border-box;
+      }
+      .loader::after {
+        content: '';
+        position: absolute;
+        height: calc(80 * var(--size));
+        width: calc(80 * var(--size));
+        transform: translate(-50%, -55%) rotate(-45deg) rotateY(0deg);
+        left: 50%;
+        top: 50%;
+        box-sizing: border-box;
+        border: calc(7 * var(--size)) solid var(--color-2);
+        border-radius: 50%;
+        animation: rotate 0.5s linear infinite;
+      }
+      @keyframes rotate {
+        to {
+          transform: translate(-50%, -55%) rotate(-45deg) rotateY(360deg);
+        }
+      }
+
       :root {
         --primary-theme: #0284c7;
         --primary-dark: #002886;
@@ -30,13 +106,13 @@
         align-items: center;
       }
 
-      /* Responsive Top Ribbon */
+      /* Responsive Top Ribbon (Compact Single Line) */
       .top-ribbon {
         width: 100%;
         max-width: 1200px;
         background: #0f172a;
         color: white;
-        padding: 12px 20px;
+        padding: 8px 12px;
         border-radius: 8px;
         margin-bottom: 15px;
         display: flex;
@@ -44,34 +120,35 @@
         align-items: center;
         box-sizing: border-box;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+        gap: 8px;
       }
       .ribbon-group {
         display: flex;
         align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
+        gap: 6px;
+        flex-wrap: nowrap;
       }
       .ribbon-select {
-        padding: 6px 10px;
+        padding: 5px 8px;
         border-radius: 5px;
         border: 1px solid #475569;
         background: #1e293b;
         color: white;
-        font-size: 13px;
+        font-size: 12px;
         outline: none;
         cursor: pointer;
-        max-width: 220px;
+        max-width: 170px;
       }
       .btn-ribbon {
-        padding: 7px 14px;
+        padding: 6px 9px;
         border-radius: 5px;
         border: none;
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: 700;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
         transition: all 0.2s ease;
         white-space: nowrap;
       }
@@ -893,6 +970,14 @@
     </style>
   </head>
   <body>
+    <!-- 🟢 Dynamic Table & Page Data Loader -->
+    <div id="pageLoaderOverlay">
+      <span class="loader"></span>
+      <div style="color: #00FFAF; font-size: 14px; font-weight: 700; letter-spacing: 1px; font-family: 'Inter', sans-serif;">
+        Preparing Bill & Formatting Table...
+      </div>
+    </div>
+
     <!-- Toast Progress -->
     <div id="pdfToast">
       <div id="pdfToastSpinner" class="toast-spinner"></div>
@@ -914,10 +999,10 @@
       </div>
     </div>
 
-    <!-- Top Ribbon -->
+    <!-- Top Ribbon (Single Line Compact) -->
     <div class="top-ribbon">
       <div class="ribbon-group">
-        <label style="font-size: 12px; font-weight: 600">Company:</label>
+        <label style="font-size: 11px; font-weight: 700">Company:</label>
         <select
           id="companySelect"
           class="ribbon-select"
@@ -930,34 +1015,70 @@
           id="btnOpenEditModal"
           class="btn-ribbon btn-edit-bill"
           onclick="openEditBillModal()"
+          title="Edit Bill Details"
         >
-          ✏️ Edit Details
+          ✏️ Edit
         </button>
 
         <button
           id="sealToggleBtn"
           class="btn-ribbon btn-seal"
           onclick="toggleSealEngagement()"
+          title="Toggle Seal & Signature"
         >
-          Seal & Sign
+          🔏 Seal
         </button>
+
+        <button class="btn-ribbon btn-cust" onclick="openSupplierModal()" title="Vendors Directory">
+          🏢 Vendors
+        </button>
+
+        <a href="vbill-dashboard.html" class="btn-ribbon btn-dash" title="Dashboard">
+          📊 Dashboard
+        </a>
       </div>
 
       <div class="ribbon-group">
-        <button class="btn-ribbon btn-cust" onclick="openSupplierModal()">
-          Vendors Directory
+        <button
+          id="btnSplitToggle"
+          class="btn-ribbon"
+          style="background: #8b5cf6; color: white; display: none;"
+          onclick="toggleSplitVehicleMode()"
+          title="Toggle Split View"
+        >
+          ⚡ Split
         </button>
-        <a href="vbill-dashboard.html" class="btn-ribbon btn-dash">Dashboard</a>
+
+        <select
+          id="splitPlateSelect"
+          class="ribbon-select"
+          style="display: none; background: #334155; border-color: #8b5cf6; font-weight: 700; max-width: 135px;"
+          onchange="onSplitPlateChange(this.value)"
+        >
+          <option value="ALL">📋 All</option>
+        </select>
+
         <button
           class="btn-ribbon btn-dash"
           style="background: #2563eb"
           onclick="saveVendorBillRecord(false)"
+          title="Save Bill Record"
         >
           💾 Save
         </button>
 
-        <button class="btn-ribbon btn-pdf" onclick="downloadInvoicePDF()">
-          📄 Download PDF
+        <button
+          id="btnDownloadZip"
+          class="btn-ribbon"
+          style="background: #e11d48; color: white; display: none;"
+          onclick="openZipModal()"
+          title="Download all vehicle bills as ZIP"
+        >
+          📦 ZIP
+        </button>
+
+        <button class="btn-ribbon btn-pdf" onclick="downloadInvoicePDF()" title="Download PDF">
+          📄 PDF
         </button>
       </div>
     </div>
@@ -1199,6 +1320,36 @@
       </div>
     </div>
 
+    <!-- 🟢 ZIP Download Confirmation Modal -->
+    <div class="modal-backdrop" id="zipOptionsModal">
+      <div class="modal-card small-modal" style="width: 380px;">
+        <div class="modal-header">
+          <h2 style="color: #e11d48; font-size: 16px;">📦 Download All ZIP Options</h2>
+          <button class="modal-close-btn" onclick="closeZipModal()">&times;</button>
+        </div>
+        <p style="font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 15px;">
+          You are about to export bills for <b id="zipPlateCount">0</b> vehicles as a single ZIP file.
+        </p>
+        
+        <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-bottom: 18px; text-align: left;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 700; color: #0f172a;">
+            <input type="checkbox" id="zipSaveCheckbox" checked style="width: 18px; height: 18px; cursor: pointer;" />
+            <span>Save records to database</span>
+          </label>
+          <div style="font-size: 11px; color: #64748b; margin-top: 5px; margin-left: 28px;">
+            Uncheck this if you only want to download as draft without creating permanent records in database.
+          </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 10px; padding-top: 10px;">
+          <button class="btn-ribbon btn-dash" onclick="closeZipModal()">Cancel</button>
+          <button class="btn-ribbon" style="background: #e11d48; color: white;" onclick="confirmAndExecuteZip()">
+            Download ZIP 📦
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Multi-Owner Selection Modal -->
     <div class="modal-backdrop" id="multiOwnerModal">
       <div class="modal-card small-modal">
@@ -1281,6 +1432,9 @@
       let companiesList = [];
       let savedSuppliers = [];
       let activeBillItems = [];
+      let allCombinedItemsBackup = []; // 🟢 മുഴുവൻ ഐറ്റങ്ങളും സൂക്ഷിക്കാൻ
+      let isSplitModeActive = false;
+      let currentSelectedPlate = "ALL";
       let fixedSupplyMonth = "------";
       let currentRemarks = "";
       let currentInvoiceDate = "";
@@ -1289,6 +1443,118 @@
       let billOwnerNick = "";
       let isBillAlreadySaved = false;
       let attachedBillingCardImage = "";
+      let originalIncomingPayload = null; // 🟢 Full payload backup vekkaan
+      let savedPlateInvoices = {}; // 🟢 ഓരോ പ്ലേറ്റിന്റെയും സേവ് ചെയ്ത ഇൻവോയ്സ് നമ്പർ ട്രാക്ക് ചെയ്യാൻ
+
+      // 🟢 Filter cheytha plate-nu vendi Page 2 card dynamic aayi capture cheyyunnu
+      async function generateDynamicCardImage(targetPlate) {
+        if (!originalIncomingPayload || !originalIncomingPayload.rows) {
+          return attachedBillingCardImage;
+        }
+
+        const isAll = !targetPlate || targetPlate === "ALL";
+        const filteredRows = isAll
+          ? originalIncomingPayload.rows
+          : originalIncomingPayload.rows.filter(r => {
+              const p = (r.plate || r.plate_no || "").trim().toUpperCase();
+              return p === targetPlate.trim().toUpperCase() || p.includes(targetPlate.trim().toUpperCase());
+            });
+
+        if (filteredRows.length === 0) return attachedBillingCardImage;
+
+        // Hidden container create cheythu billing card table render cheyyunnu
+        const tempDiv = document.createElement("div");
+        tempDiv.style.cssText = "position:fixed; top:-9999px; left:-9999px; width:1250px; background:#ffffff; padding:25px; font-family:'Inter',sans-serif;";
+
+        let rowsHtml = "";
+        let totNhr = 0, totOthr = 0, totRent = 0, totVat = 0, totAmt = 0;
+
+        filteredRows.forEach((r, idx) => {
+          const nhr = parseFloat(r.nhr) || 0;
+          const othr = parseFloat(r.othr) || 0;
+          const rent = parseFloat(r.rent) || 0;
+          const vat = parseFloat(r.vat_amount || r.vatVal) || 0;
+          const total = parseFloat(r.total || r.totalVal) || (rent + vat);
+
+          totNhr += nhr;
+          totOthr += othr;
+          totRent += rent;
+          totVat += vat;
+          totAmt += total;
+
+          rowsHtml += `
+            <tr style="text-align:center; font-size:12px; height:32px;">
+              <td style="border:1px solid #cbd5e1; padding:6px; font-weight:700;">${idx + 1}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; font-weight:700; color:#1a4d80;">${originalIncomingPayload.billingMonth || ''}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px;">${r.vtype || ''}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px;">${r.driver || ''}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; font-weight:700;">${r.plate || r.plate_no || ''}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px;">${nhr.toFixed(2)}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px;">${othr.toFixed(2)}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">${rent.toFixed(2)}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${parseFloat(r.vat_percent || 15)}%</td>
+              <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">${vat.toFixed(2)}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right; font-weight:700;">${total.toFixed(2)}</td>
+            </tr>
+          `;
+        });
+
+        tempDiv.innerHTML = `
+          <div style="border:1.5px solid #cbd5e1; border-radius:8px; overflow:hidden;">
+            <div style="background:#f8fafc; padding:12px 20px; border-bottom:1.5px solid #cbd5e1; text-align:center;">
+              <h3 style="margin:0; font-size:16px; color:#1e293b; font-weight:800;">Bill Summary for Each Month ملخص فاتورة الشهر</h3>
+            </div>
+            <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+              <colgroup>
+                <col style="width: 38px;">
+                <col style="width: 100px;">
+                <col style="width: 150px;">
+                <col style="width: 260px;">
+                <col style="width: 110px;">
+                <col style="width: 75px;">
+                <col style="width: 75px;">
+                <col style="width: 110px;">
+                <col style="width: 70px;">
+                <col style="width: 110px;">
+                <col style="width: 130px;">
+              </colgroup>
+              <thead>
+                <tr style="background:#1a4d80; color:#ffffff; font-size:11.5px; height:38px;">
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">#</th>
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">Date</th>
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">Vehicle Type</th>
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">Driver</th>
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">Plate No</th>
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">N.Hr</th>
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">OT Hr</th>
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:right;">Rent</th>
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">VAT %</th>
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:right;">VAT Amt</th>
+                  <th style="border:1px solid #1a4d80; padding:6px; text-align:right;">Total</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+              <tfoot>
+                <tr style="font-weight:800; font-size:13px; background:#f1f5f9; height:40px;">
+                  <td colspan="5" style="text-align:right; padding-right:15px; border:1px solid #cbd5e1; font-weight:800; color:#0f172a;">Grand Total:</td>
+                  <td style="border:1px solid #cbd5e1; text-align:center; font-weight:800;">${totNhr.toFixed(0)}</td>
+                  <td style="border:1px solid #cbd5e1; text-align:center; font-weight:800;">${totOthr.toFixed(0)}</td>
+                  <td style="border:1px solid #cbd5e1; text-align:right; padding-right:8px; font-weight:800;">${totRent.toFixed(2)}</td>
+                  <td style="border:1px solid #cbd5e1;"></td>
+                  <td style="border:1px solid #cbd5e1; text-align:right; padding-right:8px; font-weight:800;">${totVat.toFixed(2)}</td>
+                  <td style="border:1px solid #cbd5e1; text-align:right; padding-right:8px; font-weight:800; color:#0f172a;">${totAmt.toFixed(2)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        `;
+
+        document.body.appendChild(tempDiv);
+        const cardCanvas = await html2canvas(tempDiv, { scale: 2, backgroundColor: "#ffffff" });
+        document.body.removeChild(tempDiv);
+
+        return cardCanvas.toDataURL("image/jpeg", 0.92);
+      }
 
       async function translateToArabicDynamic(text) {
         if (!text || !text.trim()) return "";
@@ -1309,8 +1575,12 @@
       }
 
       async function initVendorBill() {
+        const loader = document.getElementById("pageLoaderOverlay");
         setupInitialDates();
-        await Promise.all([loadCompanies(), loadSavedSuppliers()]);
+
+        // ബാക്ക്ഗ്രൗണ്ടിൽ ലോഡ് ആകേണ്ടവ പാരലൽ ആയി ലോഡ് ചെയ്യുന്നു
+        const loadCompaniesPromise = loadCompanies();
+        const loadSuppliersPromise = loadSavedSuppliers();
 
         const raw = sessionStorage.getItem("activeVendorBillData");
         if (raw) {
@@ -1318,6 +1588,8 @@
             const data = JSON.parse(raw);
             sessionStorage.removeItem("activeVendorBillData");
             
+            await loadCompaniesPromise; // കമ്പനി ലിസ്റ്റ് നിർബന്ധമായതിനാൽ മാത്രം കാക്കുന്നു
+
             if (data.invoice_no && data.invoice_no !== "------") {
               isBillAlreadySaved = true;
               syncInvNoDisplays(data.invoice_no);
@@ -1334,10 +1606,19 @@
             console.error("Payload parse error:", e);
           }
         } else {
+          await loadCompaniesPromise;
           await fetchNextNumber(null);
           applyCompanyLayoutTheme("default");
           renderInvoiceViewTable();
         }
+
+        // 🟢 യാതൊരു താമസമവുമില്ലാതെ ഫ്ലാഷ് സ്പീഡിൽ ലോഡർ ക്ലോസ് ചെയ്യുന്നു
+        if (loader) {
+          loader.style.display = "none";
+        }
+
+        // വെണ്ടർ ഡയറക്ടറി ആവശ്യമെങ്കിൽ പതുക്കെ ബാക്ക്ഗ്രൗണ്ടിൽ ലോഡ് ആയാൽ മതി
+        await loadSuppliersPromise;
       }
 
       function setupInitialDates() {
@@ -1388,10 +1669,16 @@
       }
 
       async function populateIncomingBillingData(incoming) {
+        originalIncomingPayload = incoming; // 🟢 Payload backup vekkunnu
+        savedPlateInvoices = {}; // റീസെറ്റ് ചെയ്യുന്നു
+
         if (!incoming.invoice_no || incoming.invoice_no === "------") {
           isBillAlreadySaved = false;
         } else {
           isBillAlreadySaved = true;
+          // സിംഗിൾ പ്ലേറ്റ് ബിൽ ആണെങ്കിൽ ആ പ്ലേറ്റിന്റെ ഇൻവോയ്സ് നമ്പർ സൂക്ഷിക്കുന്നു
+          const singleP = (incoming.rows && incoming.rows[0]) ? (incoming.rows[0].plate || incoming.rows[0].plate_no) : "";
+          if (singleP) savedPlateInvoices[singleP.trim().toUpperCase()] = incoming.invoice_no;
         }
         attachedBillingCardImage = incoming.billingCardImage || incoming.raw_payload?.billingCardImage || "";
 
@@ -1463,10 +1750,8 @@
           const vatPct = row.vat_percent !== undefined ? parseFloat(row.vat_percent) : (parseFloat(row.vatPercent) || 0);
 
           let rawVtype = row.vtype || "Vehicle";
+          // ബില്ലിംഗിൽ നിന്ന് ലഭിച്ച അറബിക് പേര് ഉണ്ടെങ്കിൽ അത് എടുക്കുന്നു, അല്ലെങ്കിൽ അതേ പേര് നൽകുന്നു
           let arabicDesc = (row.vtype_ar || "").trim();
-          if (!arabicDesc && rawVtype) {
-            arabicDesc = await translateToArabicDynamic(rawVtype);
-          }
 
           // Format description with plate number: e.g. "Dyna 5 T (6452 LDA)"
           const plateStr = (row.plate || row.plate_no || "").trim();
@@ -1517,6 +1802,19 @@
 
         renderInvoiceViewTable();
 
+        // 🟢 Check if more than 1 unique plate exists to show Split Button
+        const uniquePlates = getUniquePlateNumbers();
+        const splitBtn = document.getElementById("btnSplitZip");
+        if (splitBtn) {
+          splitBtn.style.display = uniquePlates.length > 1 ? "inline-flex" : "none";
+        }
+
+        allCombinedItemsBackup = JSON.parse(JSON.stringify(activeBillItems));
+        renderInvoiceViewTable();
+
+        // 🟢 ഒന്നിൽ കൂടുതൽ വണ്ടികൾ ഉണ്ടെങ്കിൽ സ്പ്ലിറ്റ് ബട്ടൺ ദൃശ്യമാക്കുന്നു
+        setupSplitButtons();
+
         const samplePlate = incoming.rows && incoming.rows[0] ? incoming.rows[0].plate : "";
         if (samplePlate && incoming.billingMonth) {
           const bParts = incoming.billingMonth.split(" ");
@@ -1524,6 +1822,103 @@
             checkMultiOwnersFromTimesheet(samplePlate, bParts[0], bParts[1]);
           }
         }
+      }
+
+      function getUniquePlateNumbers() {
+        const plates = new Set();
+        const sourceItems = allCombinedItemsBackup.length > 0 ? allCombinedItemsBackup : activeBillItems;
+        sourceItems.forEach(item => {
+          const desc = item.vtype || "";
+          const match = desc.match(/\(([^)]+)\)/);
+          const p = match ? match[1].trim() : (item.plate || "");
+          if (p) plates.add(p);
+        });
+        return Array.from(plates);
+      }
+
+      function setupSplitButtons() {
+        const uniquePlates = getUniquePlateNumbers();
+        const splitToggleBtn = document.getElementById("btnSplitToggle");
+        const zipBtn = document.getElementById("btnDownloadZip");
+        const plateSelect = document.getElementById("splitPlateSelect");
+
+        if (uniquePlates.length > 1) {
+          if (splitToggleBtn) splitToggleBtn.style.display = "inline-flex";
+          if (zipBtn) zipBtn.style.display = "inline-flex";
+          
+          if (plateSelect) {
+            plateSelect.innerHTML = '<option value="ALL">All Plates</option>';
+            uniquePlates.forEach(p => {
+              plateSelect.innerHTML += `<option value="${p}">${p}</option>`;
+            });
+          }
+        } else {
+          if (splitToggleBtn) splitToggleBtn.style.display = "none";
+          if (zipBtn) zipBtn.style.display = "none";
+          if (plateSelect) plateSelect.style.display = "none";
+        }
+      }
+
+      function toggleSplitVehicleMode() {
+        const plateSelect = document.getElementById("splitPlateSelect");
+        const toggleBtn = document.getElementById("btnSplitToggle");
+        const uniquePlates = getUniquePlateNumbers();
+
+        if (uniquePlates.length <= 1) return;
+
+        isSplitModeActive = !isSplitModeActive;
+
+        if (isSplitModeActive) {
+          plateSelect.style.display = "inline-block";
+          toggleBtn.style.background = "#059669";
+          toggleBtn.innerHTML = "👁️ Exit";
+          plateSelect.value = uniquePlates[0];
+          onSplitPlateChange(uniquePlates[0]);
+        } else {
+          plateSelect.style.display = "none";
+          toggleBtn.style.background = "#8b5cf6";
+          toggleBtn.innerHTML = "⚡ Split";
+          plateSelect.value = "ALL";
+          onSplitPlateChange("ALL");
+        }
+      }
+
+      // 🟢 2. ഡ്രോപ്പ്ഡൗണിൽ നിന്ന് വണ്ടി മാറ്റുമ്പോൾ ടേബിൾ പ്രിവ്യൂ അപ്ഡേറ്റ് ചെയ്യുന്നു
+      function onSplitPlateChange(selectedPlate) {
+        currentSelectedPlate = selectedPlate;
+        const cleanP = (selectedPlate || "").trim().toUpperCase();
+
+        if (selectedPlate === "ALL") {
+          activeBillItems = JSON.parse(JSON.stringify(allCombinedItemsBackup));
+        } else {
+          activeBillItems = allCombinedItemsBackup.filter(item => {
+            const desc = item.vtype || "";
+            return desc.includes(`(${selectedPlate})`);
+          });
+        }
+
+        // 🟢 ഈ പ്ലേറ്റിന് ഇതിനകം സേവ് ചെയ്ത ഇൻവോയ്സ് നമ്പർ ഉണ്ടെങ്കിൽ അത് സ്ക്രീനിൽ കാണിക്കുക
+        if (savedPlateInvoices[cleanP]) {
+          syncInvNoDisplays(savedPlateInvoices[cleanP]);
+          isBillAlreadySaved = true;
+        }
+
+        renderInvoiceViewTable();
+        updateRemarksDisplay();
+        updateZatcaQrCode();
+
+        showPdfToast(`Previewing: ${selectedPlate === 'ALL' ? 'Combined Bill' : 'Plate ' + selectedPlate}`, false);
+      }
+
+      function getUniquePlateNumbers() {
+        const plates = new Set();
+        activeBillItems.forEach(item => {
+          const desc = item.vtype || "";
+          const match = desc.match(/\(([^)]+)\)/);
+          const p = match ? match[1].trim() : (item.plate || "");
+          if (p) plates.add(p);
+        });
+        return Array.from(plates);
       }
 
       function setVendorDetails(name, vat) {
@@ -2165,7 +2560,9 @@
         const vName = getActiveVendorName();
         const vVat = getActiveVendorVat();
 
-        const currentMode = isBillAlreadySaved ? "editbill" : "newbill";
+        // ഇൻവോയ്സ് നമ്പർ ഇതിനകം ഡാറ്റാബേസിൽ ഉണ്ടെങ്കിലോ നേരത്തെ സേവ് ചെയ്തതാണെങ്കിലോ 'editbill' മോഡ് ആക്കുന്നു
+        const isExisting = isBillAlreadySaved || (invNo && invNo !== "------" && !invNo.startsWith("DRAFT_"));
+        const currentMode = isExisting ? "editbill" : "newbill";
 
         const body = {
           invoice_no: invNo,
@@ -2275,18 +2672,21 @@
 
           pdf.addImage(imgData, "JPEG", 0, 0, a4Width, a4Height, undefined, "FAST");
 
-          if (attachedBillingCardImage) {
+          // 🟢 Current split plate anusarichu card dynamic aayi edukkunnu
+          const targetCardImage = await generateDynamicCardImage(currentSelectedPlate);
+
+          if (targetCardImage) {
             try {
               showPdfToast("Merging Billing Card (Page 2)...", true);
               const cardImg = new Image();
-              cardImg.src = attachedBillingCardImage;
+              cardImg.src = targetCardImage;
               await new Promise((res) => { cardImg.onload = res; cardImg.onerror = res; });
 
               if (cardImg.width && cardImg.height) {
                 const cardAspect = cardImg.height / cardImg.width;
                 const pdfCardHeight = a4Width * cardAspect;
                 pdf.addPage([a4Width, pdfCardHeight], a4Width > pdfCardHeight ? "l" : "p");
-                pdf.addImage(attachedBillingCardImage, "JPEG", 0, 0, a4Width, pdfCardHeight, undefined, "FAST");
+                pdf.addImage(targetCardImage, "JPEG", 0, 0, a4Width, pdfCardHeight, undefined, "FAST");
               }
             } catch (mergeErr) {
               console.warn("Card page merge failed:", mergeErr);
@@ -2537,6 +2937,10 @@
         if (isUnlocked === "true") {
           document.getElementById("securityLockOverlay").style.display = "none";
           initVendorBill();
+        } else {
+          // പാസ്‌വേഡ് ചോദിക്കുന്ന സമയത്ത് ലോഡർ ഒഴിവാക്കുന്നു
+          const loader = document.getElementById("pageLoaderOverlay");
+          if (loader) loader.style.display = "none";
         }
       });
 
@@ -2563,6 +2967,155 @@
           }
         } catch (e) {
           console.error("Security check failed:", e);
+        }
+      }
+
+      function openZipModal() {
+        const uniquePlates = getUniquePlateNumbers();
+        if (uniquePlates.length <= 1) {
+          return alert("Multiple plates ഇല്ലാത്തതിനാൽ ZIP ഡൗൺലോഡ് സാധ്യമല്ല.");
+        }
+        const selCompId = document.getElementById("companySelect")?.value;
+        if (!selCompId) {
+          return alert("ദയവായി Issuer Company തെരഞ്ഞെടുക്കുക!");
+        }
+
+        document.getElementById("zipPlateCount").innerText = uniquePlates.length;
+        document.getElementById("zipSaveCheckbox").checked = true; // 🟢 Initially checked ആയിരിക്കും
+        document.getElementById("zipOptionsModal").style.display = "flex";
+      }
+
+      function closeZipModal() {
+        document.getElementById("zipOptionsModal").style.display = "none";
+      }
+
+      async function confirmAndExecuteZip() {
+        const shouldSave = document.getElementById("zipSaveCheckbox").checked;
+        closeZipModal();
+        await downloadSplitBillsZip(shouldSave);
+      }
+
+      async function downloadSplitBillsZip(shouldSaveToDb = true) {
+        const uniquePlates = getUniquePlateNumbers();
+        const selCompId = document.getElementById("companySelect")?.value;
+        if (!selCompId) return;
+
+        const zipBtn = document.getElementById("btnDownloadZip");
+        const originalBtnHtml = zipBtn ? zipBtn.innerHTML : "📦 ZIP";
+        if (zipBtn) zipBtn.disabled = true;
+
+        const currentActiveItems = JSON.parse(JSON.stringify(activeBillItems));
+        let lastAssignedInvNo = document.getElementById("invNoDisplay")?.innerText.trim();
+
+        try {
+          const zip = new JSZip();
+          const { jsPDF } = window.jspdf;
+
+          for (let i = 0; i < uniquePlates.length; i++) {
+            const currentPlate = uniquePlates[i];
+            const statusAction = shouldSaveToDb ? "Saving & Generating" : "Generating Draft";
+            showPdfToast(`${statusAction} Plate: ${currentPlate} (${i + 1}/${uniquePlates.length})...`, true);
+
+            // 1. നിർദ്ദിഷ്ട പ്ലേറ്റ് മാത്രം ഫിൽട്ടർ ചെയ്യുന്നു
+            activeBillItems = allCombinedItemsBackup.filter(item => {
+              const desc = item.vtype || "";
+              return desc.includes(`(${currentPlate})`);
+            });
+
+            renderInvoiceViewTable();
+
+            let targetInvNo = lastAssignedInvNo;
+
+            // 2. യൂസർ ടിക്ക് ചെയ്തിട്ടുണ്ടെങ്കിൽ മാത്രം DB-ൽ സേവ് ചെയ്യുക
+            if (shouldSaveToDb) {
+              const cleanP = currentPlate.trim().toUpperCase();
+
+              // 🟢 ഈ പ്ലേറ്റിന് ഇതിനകം ഇൻവോയ്സ് നമ്പർ ഉണ്ടെങ്കിൽ പുതിയ നമ്പർ എടുക്കരുത്, പഴയത് തന്നെ ഉപയോഗിക്കുക!
+              if (savedPlateInvoices[cleanP]) {
+                targetInvNo = savedPlateInvoices[cleanP];
+                syncInvNoDisplays(targetInvNo);
+                isBillAlreadySaved = true; // എഡിറ്റ് മോഡ് ആക്കുന്നു
+                await saveVendorBillRecord(true);
+              } else {
+                // പുതിയ പ്ലേറ്റിന് മാത്രം പുതിയ നമ്പർ ഫെച്ച് ചെയ്യുക
+                await fetchNextNumber(selCompId);
+                isBillAlreadySaved = false;
+                targetInvNo = await saveVendorBillRecord(true);
+                savedPlateInvoices[cleanP] = targetInvNo; // നമ്പർ ഓർത്തു വെക്കുന്നു
+              }
+              lastAssignedInvNo = targetInvNo;
+            } else {
+              // സേവ് ചെയ്യാതെ ഡ്രാഫ്റ്റ് ആണെങ്കിൽ താൽക്കാലിക ഡ്രാഫ്റ്റ് നമ്പർ
+              targetInvNo = `DRAFT_${currentPlate}`;
+              syncInvNoDisplays(targetInvNo);
+            }
+
+            await new Promise(r => setTimeout(r, 150));
+
+            // 3. കാൻവാസ് വഴി പിഡിഎഫ് തയ്യാറാക്കുന്നു
+            const card = document.getElementById("printableInvoice");
+            const canvas = await html2canvas(card, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: "#ffffff"
+            });
+
+            const pdf = new jsPDF("p", "pt", "a4");
+            const a4Width = pdf.internal.pageSize.getWidth();
+            const a4Height = pdf.internal.pageSize.getHeight();
+            const imgData = canvas.toDataURL("image/jpeg", 0.98);
+
+            pdf.addImage(imgData, "JPEG", 0, 0, a4Width, a4Height, undefined, "FAST");
+
+            // Page 2 Card Snapshot
+            const singlePlateCardImage = await generateDynamicCardImage(currentPlate);
+
+            if (singlePlateCardImage) {
+              try {
+                const cardImg = new Image();
+                cardImg.src = singlePlateCardImage;
+                await new Promise(res => { cardImg.onload = res; cardImg.onerror = res; });
+                if (cardImg.width && cardImg.height) {
+                  const cardAspect = cardImg.height / cardImg.width;
+                  const pdfCardHeight = a4Width * cardAspect;
+                  pdf.addPage([a4Width, pdfCardHeight], a4Width > pdfCardHeight ? "l" : "p");
+                  pdf.addImage(singlePlateCardImage, "JPEG", 0, 0, a4Width, pdfCardHeight, undefined, "FAST");
+                }
+              } catch(e) {}
+            }
+
+            const pdfBlob = pdf.output("blob");
+            zip.file(`${targetInvNo}_${currentPlate}.pdf`, pdfBlob);
+          }
+
+          showPdfToast("Archiving ZIP file...", true);
+          const zipContent = await zip.generateAsync({ type: "blob" });
+          const zipLink = document.createElement("a");
+          zipLink.href = URL.createObjectURL(zipContent);
+          zipLink.download = `VendorBills_${shouldSaveToDb ? 'Saved' : 'Draft'}_${fixedSupplyMonth}.zip`;
+          zipLink.click();
+
+          showPdfToast(`✅ ZIP Downloaded ${shouldSaveToDb ? 'and Saved!' : '(Draft Mode)'}`, false);
+        } catch (err) {
+          console.error("ZIP Generation error:", err);
+          showPdfToast("❌ Failed to create ZIP.", false);
+        } finally {
+          // 🟢 BUG FIX: പഴയ കാഴ്ച്ച തിരികെ വെയ്ക്കുമ്പോൾ വീണ്ടും പുതിയ നമ്പർ വരാതിരിക്കാൻ
+          activeBillItems = currentActiveItems;
+          renderInvoiceViewTable();
+
+          if (shouldSaveToDb) {
+            // സേവ് കഴിഞ്ഞ സ്ഥിതിക്ക് നിലവിലെ സ്ക്രീൻ "Saved" ആയി അടയാളപ്പെടുത്തുന്നു
+            isBillAlreadySaved = true;
+            // സ്ക്രീനിലുള്ള കമ്പനിയുടെ അപ്ഡേറ്റഡ് നമ്പർ നിലനിർത്തുന്നു
+            syncInvNoDisplays(lastAssignedInvNo);
+          }
+
+          if (zipBtn) {
+            zipBtn.disabled = false;
+            zipBtn.innerHTML = originalBtnHtml;
+          }
         }
       }
     </script>
