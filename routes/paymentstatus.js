@@ -316,7 +316,7 @@ router.post("/save-accounts-note", async (req, res) => {
   }
 });
 
-// 🟢 Save Bulk Special Edits (V.Bill Notes, Supplier and Driver values)
+// 🟢 Save Bulk Special Edits (V.Bill Notes, Supplier, Driver values & Invoice Deduct)
 router.post("/save-bulk-vbill-notes", async (req, res) => {
   let client;
   try {
@@ -366,6 +366,24 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
           ]
         );
       }
+
+      if (row.inv_deduct !== undefined) {
+        const checkInv = await client.query(
+          "SELECT id FROM invoice_records WHERE plate_no = $1 AND month = $2 AND site_name = $3",
+          [row.plate_no, row.month, row.site_name]
+        );
+        if (checkInv.rows.length > 0) {
+          await client.query(
+            "UPDATE invoice_records SET inv_deduct = $1, updated_at = CURRENT_TIMESTAMP WHERE plate_no = $2 AND month = $3 AND site_name = $4",
+            [row.inv_deduct, row.plate_no, row.month, row.site_name]
+          );
+        } else {
+          await client.query(
+            "INSERT INTO invoice_records (plate_no, month, site_name, inv_deduct, invoice_no, bill_nr, bill_ot) VALUES ($1, $2, $3, $4, '', 0, 0)",
+            [row.plate_no, row.month, row.site_name, row.inv_deduct]
+          );
+        }
+      }
     }
     await client.query("COMMIT");
     res.json({ success: true });
@@ -410,6 +428,94 @@ router.post("/save-text-note", async (req, res) => {
   } catch (err) {
     console.error(`Error saving text note (${field}):`, err.message); 
     res.json({ success: false, message: err.message });
+  }
+});
+
+// 🟢 Save Master Edits (Both Invoice Data and Special Billing Data in ONE Transaction)
+router.post("/save-master-edits", async (req, res) => {
+  let client;
+  try {
+    const { invoiceRecords, billingRecords } = req.body;
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    // 1. Save Normal Invoice Records (including inv_deduct)
+    if (Array.isArray(invoiceRecords)) {
+      for (let row of invoiceRecords) {
+        const { month, plate, site, inv_nr, inv_ot, inv_no, inv_amount, bill_no, inv_deduct } = row;
+        if (!month || !plate) continue;
+
+        const checkInv = await client.query(
+          "SELECT id FROM invoice_records WHERE plate_no = $1 AND month = $2 AND site_name = $3",
+          [plate, month, site]
+        );
+
+        if (checkInv.rows.length > 0) {
+          await client.query(
+            "UPDATE invoice_records SET invoice_no=$1, bill_no=$2, bill_nr=$3, bill_ot=$4, invoice_amount=$5, inv_deduct=$6, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$7 AND month=$8 AND site_name=$9",
+            [inv_no, bill_no, inv_nr ?? null, inv_ot ?? null, inv_amount ?? null, inv_deduct ?? 0, plate, month, site]
+          );
+        } else {
+          await client.query(
+            "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_no, bill_nr, bill_ot, invoice_amount, inv_deduct, zoho) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'No')",
+            [plate, month, site, inv_no, bill_no, inv_nr, inv_ot, inv_amount, inv_deduct ?? 0]
+          );
+        }
+      }
+    }
+
+    // 2. Save Special Billing Records
+    if (Array.isArray(billingRecords)) {
+      for (let row of billingRecords) {
+        const checkBill = await client.query(
+          "SELECT id FROM billing_records WHERE plate_no=$1 AND billing_month=$2 AND site_name=$3",
+          [row.plate_no, row.month, row.site_name]
+        );
+
+        if (checkBill.rows.length > 0) {
+          await client.query(
+            `UPDATE billing_records
+             SET remark=$1, nhr=$5, othr=$6, driver_ot=$7, driver_amount=$8
+             WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4`,
+            [
+              row.remark,
+              row.plate_no,
+              row.month,
+              row.site_name,
+              row.bill_nr,
+              row.bill_ot,
+              row.driver_ot,
+              row.driver_amount,
+            ]
+          );
+        } else {
+          await client.query(
+            `INSERT INTO billing_records
+             (plate_no, billing_month, site_name, remark, nhr, othr, driver_ot, driver_amount)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [
+              row.plate_no,
+              row.month,
+              row.site_name,
+              row.remark,
+              row.bill_nr,
+              row.bill_ot,
+              row.driver_ot,
+              row.driver_amount,
+            ]
+          );
+        }
+      }
+    }
+
+    await client.query("COMMIT");
+    res.json({ success: true, message: "Master Edits Saved Successfully!" });
+  } catch (err) {
+    if (client) await client.query("ROLLBACK");
+    console.error("Master Edit Save Error:", err);
+    res.json({ success: false, message: err.message });
+  } finally {
+    if (client) client.release();
   }
 });
 
