@@ -367,20 +367,20 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
         );
       }
 
-      if (row.inv_deduct !== undefined) {
+      if (row.inv_deduct !== undefined || row.deduct_reason !== undefined) {
         const checkInv = await client.query(
           "SELECT id FROM invoice_records WHERE plate_no = $1 AND month = $2 AND site_name = $3",
           [row.plate_no, row.month, row.site_name]
         );
         if (checkInv.rows.length > 0) {
           await client.query(
-            "UPDATE invoice_records SET inv_deduct = $1, updated_at = CURRENT_TIMESTAMP WHERE plate_no = $2 AND month = $3 AND site_name = $4",
-            [row.inv_deduct, row.plate_no, row.month, row.site_name]
+            "UPDATE invoice_records SET inv_deduct = COALESCE($1, inv_deduct), deduct_reason = COALESCE($2, deduct_reason), updated_at = CURRENT_TIMESTAMP WHERE plate_no = $3 AND month = $4 AND site_name = $5",
+            [row.inv_deduct, row.deduct_reason, row.plate_no, row.month, row.site_name]
           );
         } else {
           await client.query(
-            "INSERT INTO invoice_records (plate_no, month, site_name, inv_deduct, invoice_no, bill_nr, bill_ot) VALUES ($1, $2, $3, $4, '', 0, 0)",
-            [row.plate_no, row.month, row.site_name, row.inv_deduct]
+            "INSERT INTO invoice_records (plate_no, month, site_name, inv_deduct, deduct_reason, invoice_no, bill_nr, bill_ot) VALUES ($1, $2, $3, $4, $5, '', 0, 0)",
+            [row.plate_no, row.month, row.site_name, row.inv_deduct || 0, row.deduct_reason || '']
           );
         }
       }
@@ -439,10 +439,10 @@ router.post("/save-master-edits", async (req, res) => {
     client = await pool.connect();
     await client.query("BEGIN");
 
-    // 1. Save Normal Invoice Records (including inv_deduct)
+    // 1. Save Normal Invoice Records (including inv_deduct & deduct_reason)
     if (Array.isArray(invoiceRecords)) {
       for (let row of invoiceRecords) {
-        const { month, plate, site, inv_nr, inv_ot, inv_no, inv_amount, bill_no, inv_deduct } = row;
+        const { month, plate, site, inv_nr, inv_ot, inv_no, inv_amount, bill_no, inv_deduct, deduct_reason } = row;
         if (!month || !plate) continue;
 
         const checkInv = await client.query(
@@ -452,13 +452,13 @@ router.post("/save-master-edits", async (req, res) => {
 
         if (checkInv.rows.length > 0) {
           await client.query(
-            "UPDATE invoice_records SET invoice_no=$1, bill_no=$2, bill_nr=$3, bill_ot=$4, invoice_amount=$5, inv_deduct=$6, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$7 AND month=$8 AND site_name=$9",
-            [inv_no, bill_no, inv_nr ?? null, inv_ot ?? null, inv_amount ?? null, inv_deduct ?? 0, plate, month, site]
+            "UPDATE invoice_records SET invoice_no=$1, bill_no=$2, bill_nr=$3, bill_ot=$4, invoice_amount=$5, inv_deduct=$6, deduct_reason=$7, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$8 AND month=$9 AND site_name=$10",
+            [inv_no, bill_no, inv_nr ?? null, inv_ot ?? null, inv_amount ?? null, inv_deduct ?? 0, deduct_reason ?? '', plate, month, site]
           );
         } else {
           await client.query(
-            "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_no, bill_nr, bill_ot, invoice_amount, inv_deduct, zoho) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'No')",
-            [plate, month, site, inv_no, bill_no, inv_nr, inv_ot, inv_amount, inv_deduct ?? 0]
+            "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_no, bill_nr, bill_ot, invoice_amount, inv_deduct, deduct_reason, zoho) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'No')",
+            [plate, month, site, inv_no, bill_no, inv_nr, inv_ot, inv_amount, inv_deduct ?? 0, deduct_reason ?? '']
           );
         }
       }

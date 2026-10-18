@@ -593,6 +593,7 @@
           <col style="width: 100px" />
           <col style="width: 110px" />
           <col style="width: 110px" />
+          <col style="width: 140px" />
           <col style="width: 120px" />
           <col style="width: 120px" />
           <col style="width: 120px" />
@@ -614,7 +615,7 @@
             <th colspan="2" class="th-driver">For Driver</th>
             <th colspan="5" class="th-diff">DIFFERENCE</th>
             <th colspan="5" class="th-amt">AMOUNT</th>
-            <th colspan="6" class="th-inv-red">INVOICE</th>
+            <th colspan="7" class="th-inv-red">INVOICE</th>
             <th colspan="4" class="th-extra">EXTRA DETAILS</th>
             <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
             <th colspan="2" class="th-gen">31 Considered as NR</th>
@@ -715,6 +716,9 @@
             <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'inv_net')">
               Net Amount <span class="filter-icon" data-key="inv_net">▼</span>
             </th>
+            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'deduct_reason')">
+              Reason <span class="filter-icon" data-key="deduct_reason">▼</span>
+            </th>
             <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'inv_no')">
               Invoice No <span class="filter-icon" data-key="inv_no">▼</span>
             </th>
@@ -791,6 +795,7 @@
           <div class="form-control"><label>Inv NR</label><input type="number" id="mdl_inv_nr" /></div>
           <div class="form-control"><label>Inv OT</label><input type="number" id="mdl_inv_ot" /></div>
           <div class="form-control"><label style="color: #b91c1c;">Deduct :: Invoice</label><input type="number" id="mdl_inv_deduct" /></div>
+          <div class="form-control" style="grid-column: 1 / -1;"><label style="color: #b91c1c;">Deduction Reason</label><input type="text" id="mdl_deduct_reason" placeholder="Enter reason for deduction..." /></div>
         </div>
 
         <div style="margin-bottom: 12px; font-weight: bold; color: #6b21a8;">Supplier & Driver</div>
@@ -1239,6 +1244,7 @@
             let inv_deduct = invData && invData.inv_deduct !== null && invData.inv_deduct !== ""
               ? parseFloat(invData.inv_deduct) || 0
               : 0;
+            let deduct_reason = invData ? invData.deduct_reason || "" : "";
             let raw_total = inv_amount > 0 ? (inv_amount * 1.15) : 0;
             let inv_net = (raw_total > 0 || inv_deduct > 0) ? (raw_total - inv_deduct) : 0;
 
@@ -1342,6 +1348,7 @@
               inv_total: inv_amount > 0 ? raw_total.toFixed(2) : "",
               inv_deduct: inv_deduct !== 0 ? inv_deduct.toFixed(2) : "",
               inv_net: (raw_total > 0 || inv_deduct > 0) ? inv_net.toFixed(2) : "",
+              deduct_reason: deduct_reason,
               diff_nr,
               diff_ot,
               diff_st,
@@ -1634,6 +1641,7 @@
               <td style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
               <td style="font-weight: 700; color: #dc2626;">${row.inv_deduct}</td>
               <td style="font-weight: 700; color: #047857;">${row.inv_net}</td>
+              <td style="text-align: left; font-size: 11px;">${row.deduct_reason || ""}</td>
               <td style="color: #1e40af; font-weight: 600;">${row.inv_no}</td>
               <td>${row.bill_no}</td>
               <td>${row.pwas}</td>
@@ -1825,6 +1833,7 @@
         document.getElementById("mdl_inv_nr").value = row.inv_nr || "";
         document.getElementById("mdl_inv_ot").value = row.inv_ot || "";
         document.getElementById("mdl_inv_deduct").value = row.inv_deduct || "";
+        document.getElementById("mdl_deduct_reason").value = row.deduct_reason || "";
 
         document.getElementById("mdl_bill_db_nr").value = row.bill_db_nr || "";
         document.getElementById("mdl_bill_db_ot").value = row.bill_db_ot || "";
@@ -1873,6 +1882,7 @@
             inv_ot: getNum(getVal("mdl_inv_ot")),
             inv_amount: getNum(getVal("mdl_inv_amount")),
             inv_deduct: getNum(getVal("mdl_inv_deduct")) || 0,
+            deduct_reason: getVal("mdl_deduct_reason"),
           };
           await fetch("/py/payment/bulk-save-invoices", {
             method: "POST",
@@ -1931,6 +1941,7 @@
 
           let dVal = getNum(getVal("mdl_inv_deduct")) || 0;
           row.inv_deduct = dVal !== 0 ? dVal.toFixed(2) : "";
+          row.deduct_reason = getVal("mdl_deduct_reason");
           row.inv_net = (rawTot > 0 || dVal > 0) ? (rawTot - dVal).toFixed(2) : "";
 
           row.bill_db_nr = vbillData.bill_nr !== null ? vbillData.bill_nr.toString() : "";

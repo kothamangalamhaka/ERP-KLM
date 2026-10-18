@@ -1438,6 +1438,7 @@
               <col class="col-grp-inv-red" style="width: 100px" />
               <col class="col-grp-inv-red" style="width: 110px" />
               <col class="col-grp-inv-red" style="width: 110px" />
+              <col class="col-grp-inv-red" style="width: 140px" />
               <col class="col-grp-inv-red" style="width: 120px" />
               <col class="col-grp-inv-red" style="width: 120px" />
               <col class="col-grp-extra" style="width: 120px" />
@@ -1459,7 +1460,7 @@
                 <th colspan="2" class="th-driver">For Driver</th>
                 <th colspan="5" class="th-diff">DIFFERENCE</th>
                 <th colspan="5" class="th-amt">AMOUNT</th>
-                <th colspan="6" class="th-inv-red">INVOICE</th>
+                <th colspan="7" class="th-inv-red">INVOICE</th>
                 <th colspan="4" class="th-extra">EXTRA DETAILS</th>
                 <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
                 <th colspan="2" class="th-gen-nr th-gen">
@@ -1689,6 +1690,15 @@
                 >
                   Net Amount
                   <span class="filter-icon" data-key="inv_net">▼</span>
+                </th>
+                <th
+                  class="th-inv-red"
+                  style="width: 140px"
+                  data-col-key="deduct_reason"
+                  onclick="openExcelFilterMenu(event, 'deduct_reason')"
+                >
+                  Reason
+                  <span class="filter-icon" data-key="deduct_reason">▼</span>
                 </th>
                 <th
                   class="th-inv-red"
@@ -3014,6 +3024,7 @@
             let inv_deduct = invData && invData.inv_deduct !== null && invData.inv_deduct !== ""
               ? parseFloat(invData.inv_deduct) || 0
               : 0;
+            let deduct_reason = invData ? invData.deduct_reason || "" : "";
             let raw_total = inv_amount > 0 ? (inv_amount * 1.15) : 0;
             let inv_net = (raw_total > 0 || inv_deduct > 0) ? (raw_total - inv_deduct) : 0;
 
@@ -3181,6 +3192,7 @@
               inv_total: inv_amount > 0 ? raw_total.toFixed(2) : "",
               inv_deduct: inv_deduct !== 0 ? inv_deduct.toFixed(2) : "",
               inv_net: (raw_total > 0 || inv_deduct > 0) ? inv_net.toFixed(2) : "",
+              deduct_reason: deduct_reason,
               diff_nr,
               diff_ot,
               diff_st,
@@ -3350,12 +3362,12 @@
                 : ""
             ).toUpperCase();
 
-            // 🟢 2 കോളങ്ങൾ പുതിയതായി വന്നതിനാൽ inv_no = 29, bill_no = 30
-            let inv_no = tr.cells[29]
-              ? tr.cells[29].innerText.toUpperCase()
-              : "";
-            let bill_no = tr.cells[30]
+            // 🟢 Reason കോളം വന്നതിനാൽ inv_no = 30, bill_no = 31
+            let inv_no = tr.cells[30]
               ? tr.cells[30].innerText.toUpperCase()
+              : "";
+            let bill_no = tr.cells[31]
+              ? tr.cells[31].innerText.toUpperCase()
               : "";
 
             let matchO =
@@ -3497,6 +3509,7 @@
             <td class="col-inv-red inv-total-cell" style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
             <td class="col-inv-red inv-deduct-cell" style="font-weight: 700; color: #dc2626;" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}">${row.inv_deduct}</td>
             <td class="col-inv-red inv-net-cell" style="font-weight: 700; color: #047857;">${row.inv_net}</td>
+            <td class="col-inv-red deduct-reason-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" style="word-wrap: break-word; text-align: left; font-size: 11px;">${row.deduct_reason || ""}</td>
             <td class="col-inv-red editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
             <td class="col-inv-red editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
             <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
@@ -4596,6 +4609,7 @@
             "Total",
             "Deduct :: Invoice",
             "Net Amount",
+            "Reason",
             "Invoice No",
             "Bill No",
             "PWAS",
@@ -4641,6 +4655,7 @@
             r.inv_total || "",
             r.inv_deduct || "",
             r.inv_net || "",
+            r.deduct_reason || "",
             r.inv_no,
             r.bill_no,
             r.pwas || "-",
@@ -4661,9 +4676,9 @@
           { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }, // DRIVER (16..17)
           { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFF (18..22)
           { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMT (23..27)
-          { s: { r: 0, c: 28 }, e: { r: 0, c: 33 } }, // INVOICE (28..33 -> Subtotal, Total, Deduct, Net, Inv No, Bill No)
-          { s: { r: 0, c: 34 }, e: { r: 0, c: 37 } }, // EXTRA DETAILS (34..37)
-          { s: { r: 0, c: 38 }, e: { r: 0, c: 39 } }, // 31 Considered as NR (38..39)
+          { s: { r: 0, c: 28 }, e: { r: 0, c: 34 } }, // INVOICE (28..34 -> Subtotal, Total, Deduct, Net, Reason, Inv No, Bill No)
+          { s: { r: 0, c: 35 }, e: { r: 0, c: 38 } }, // EXTRA DETAILS (35..38)
+          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }, // 31 Considered as NR (39..40)
         ];
         return {
           sheet_name: "Report",
@@ -4752,6 +4767,7 @@
             "Total",
             "Deduct :: Invoice",
             "Net Amount",
+            "Reason",
             "Invoice No",
             "Bill No",
             "PWAS",
@@ -4798,6 +4814,7 @@
             r.inv_total || "",
             r.inv_deduct || "",
             r.inv_net || "",
+            r.deduct_reason || "",
             r.inv_no,
             r.bill_no,
             r.pwas || "-",
@@ -4818,9 +4835,9 @@
           { s: { r: 0, c: 17 }, e: { r: 0, c: 18 } }, // DRIVER (17..18)
           { s: { r: 0, c: 19 }, e: { r: 0, c: 23 } }, // DIFF (19..23)
           { s: { r: 0, c: 24 }, e: { r: 0, c: 28 } }, // AMT (24..28)
-          { s: { r: 0, c: 29 }, e: { r: 0, c: 34 } }, // INVOICE (29..34 -> Subtotal, Total, Deduct, Net, Inv No, Bill No)
-          { s: { r: 0, c: 35 }, e: { r: 0, c: 38 } }, // EXTRA DETAILS (35..38)
-          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }, // 31 Considered as NR (39..40)
+          { s: { r: 0, c: 29 }, e: { r: 0, c: 35 } }, // INVOICE (29..35 -> Subtotal, Total, Deduct, Net, Reason, Inv No, Bill No)
+          { s: { r: 0, c: 36 }, e: { r: 0, c: 39 } }, // EXTRA DETAILS (36..39)
+          { s: { r: 0, c: 40 }, e: { r: 0, c: 41 } }, // 31 Considered as NR (40..41)
         ];
 
         return {
@@ -5145,7 +5162,7 @@
 
         document
           .querySelectorAll(
-            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell",
+            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell",
           )
           .forEach((td) => {
             td.setAttribute("contenteditable", "true");
@@ -5265,6 +5282,8 @@
             let deductTd = tr.querySelector(".inv-deduct-cell");
             let deductVal = deductTd ? deductTd.innerText.trim().replace(/,/g, "") : "";
             let parsedDeduct = deductVal === "" ? 0 : (isNaN(parseFloat(deductVal)) ? 0 : parseFloat(deductVal));
+            let reasonTd = tr.querySelector(".deduct-reason-cell");
+            let reasonVal = reasonTd ? reasonTd.innerText.trim() : "";
 
             normalUpdates.push({
               month: `${tr.dataset.month} ${tr.dataset.year}`,
@@ -5274,6 +5293,7 @@
               inv_ot,
               inv_amount,
               inv_deduct: parsedDeduct,
+              deduct_reason: reasonVal,
               inv_no,
               bill_no,
             });
@@ -5369,7 +5389,7 @@
 
         document
           .querySelectorAll(
-            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell",
+            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell",
           )
           .forEach((td) => {
             td.setAttribute("contenteditable", "true");
@@ -5426,7 +5446,7 @@
           .forEach((cb) => (cb.disabled = true));
         document
           .querySelectorAll(
-            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell",
+            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell",
           )
           .forEach((td) => {
             td.removeAttribute("contenteditable");
@@ -5470,6 +5490,8 @@
             .replace(/,/g, "");
           let deductTd = tr.querySelector(".inv-deduct-cell");
           let deductVal = deductTd ? deductTd.innerText.trim().replace(/,/g, "") : "";
+          let reasonTd = tr.querySelector(".deduct-reason-cell");
+          let reasonVal = reasonTd ? reasonTd.innerText.trim() : "";
 
           nrVal = nrVal === "" ? null : parseFloat(nrVal);
           otVal = otVal === "" ? null : parseFloat(otVal);
@@ -5488,6 +5510,7 @@
             driver_ot: isNaN(driverOtVal) ? null : driverOtVal,
             driver_amount: isNaN(driverAmountVal) ? null : driverAmountVal,
             inv_deduct: isNaN(parsedDeduct) ? 0 : parsedDeduct,
+            deduct_reason: reasonVal,
           });
         });
 
