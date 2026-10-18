@@ -34,6 +34,7 @@ let activeFilters = {};
 let currentPickerRowIdx = null;
 let currentPickerYear = new Date().getFullYear();
 let activeUploadRowIdx = null;
+let modalEditingRecordId = null;
 
 function formatDateDisplay(dStr) {
   if (!dStr) return "";
@@ -551,9 +552,9 @@ function renderTable() {
 
       <td ${editAttr} oninput="handleLastRowLiveInput(${idx})" onblur="updateCellData(${idx}, 'work_order', this.innerText.trim())">${escapeHTML(row.work_order || "")}</td>
 
-      <td ${editAttr} oninput="handleLastRowLiveInput(${idx})" onblur="updateCellData(${idx}, 'remark', this.innerText.trim())">${escapeHTML(row.remark || "")}</td>
-
       <td style="text-align: center;">${attachmentHtml}</td>
+
+      <td ${editAttr} oninput="handleLastRowLiveInput(${idx})" onblur="updateCellData(${idx}, 'remark', this.innerText.trim())">${escapeHTML(row.remark || "")}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -832,24 +833,32 @@ function saveRowToBackend(idx) {
 }
 
 function openAddNewDataModal() {
+  modalEditingRecordId = null;
+  const titleEl = document.querySelector("#addNewDataModal .modal-header-bar h3");
+  if (titleEl) titleEl.innerText = "➕ Add New Debit Note";
+  const submitBtn = document.getElementById("mSubmitBtn");
+  if (submitBtn) submitBtn.innerText = "Save Debit Note";
   document.getElementById("newRecordForm").reset();
 
-  const populateSelect = (id, list) => {
+  const populateSelect = (id, category, list) => {
     const sel = document.getElementById(id);
+    const allowAddNew = ["approved_by", "site", "company", "customer"].includes(category);
     sel.innerHTML =
       `<option value="">-- Select --</option>` +
       (list || [])
         .map(
           (v) => `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`,
         )
-        .join("");
+        .join("") +
+      (allowAddNew ? `<option value="__ADD_NEW__" style="font-weight: bold; color: #2563eb;">➕ Add New</option>` : "");
+    sel.onchange = () => handleModalDropdownChange(id, category);
   };
 
-  populateSelect("m_approved_by", dropdownOptions.approved_by);
-  populateSelect("m_site", dropdownOptions.site);
-  populateSelect("m_company", dropdownOptions.company);
-  populateSelect("m_customer", dropdownOptions.customer);
-  populateSelect("m_status", dropdownOptions.status);
+  populateSelect("m_approved_by", "approved_by", dropdownOptions.approved_by);
+  populateSelect("m_site", "site", dropdownOptions.site);
+  populateSelect("m_company", "company", dropdownOptions.company);
+  populateSelect("m_customer", "customer", dropdownOptions.customer);
+  populateSelect("m_status", "status", dropdownOptions.status);
   document.getElementById("m_status").value = "Received";
 
   document.getElementById("m_total_amount").value = "0.00";
@@ -857,6 +866,62 @@ function openAddNewDataModal() {
   document.getElementById("modalUploadProgressContainer").style.display =
     "none";
   document.getElementById("addNewDataModal").style.display = "flex";
+}
+
+async function handleModalDropdownChange(selectId, category) {
+  const sel = document.getElementById(selectId);
+  if (sel.value !== "__ADD_NEW__") return;
+
+  const fieldLabel = category.replace("_", " ").toUpperCase();
+  const cleanVal = await showCustomPrompt(
+    `Add New ${fieldLabel}`,
+    `Enter new ${fieldLabel.toLowerCase()} to save permanently:`,
+  );
+
+  if (cleanVal) {
+    showStatus("Saving...", "saving");
+    try {
+      const res = await fetch("/debit-notes/api/add-dropdown", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-security-code": securityCode,
+        },
+        body: JSON.stringify({ category, value: cleanVal }),
+      }).then((r) => r.json());
+
+      if (res.success) {
+        if (!dropdownOptions[category].includes(cleanVal)) {
+          dropdownOptions[category].push(cleanVal);
+          if (["site", "customer", "approved_by"].includes(category)) {
+            dropdownOptions[category].sort();
+          }
+        }
+        // Modal Dropdown റീഫ്രഷ് ചെയ്തു പുതിയ വാല്യൂ സെലക്ട് ചെയ്യുന്നു
+        const populateSelect = (id, cat, list) => {
+          const s = document.getElementById(id);
+          s.innerHTML =
+            `<option value="">-- Select --</option>` +
+            (list || [])
+              .map((v) => `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`)
+              .join("") +
+            `<option value="__ADD_NEW__" style="font-weight: bold; color: #2563eb;">➕ Add New</option>`;
+        };
+        populateSelect(selectId, category, dropdownOptions[category]);
+        sel.value = cleanVal;
+        renderTable();
+        showStatus("✓ Added " + cleanVal, "saved");
+      } else {
+        showStatus(res.message || "Failed to add", "error");
+        sel.value = "";
+      }
+    } catch (e) {
+      showStatus("Network Error", "error");
+      sel.value = "";
+    }
+  } else {
+    sel.value = "";
+  }
 }
 
 function closeAddNewDataModal() {
@@ -904,7 +969,12 @@ async function submitNewRecordModal(e) {
   btn.disabled = true;
   btn.innerText = "Saving...";
 
+  const editingRow = modalEditingRecordId
+    ? records.find((r) => Number(r.id) === Number(modalEditingRecordId))
+    : null;
+
   const newRec = {
+    id: modalEditingRecordId || null,
     received_date: document.getElementById("m_received_date").value,
     submitted_date: document.getElementById("m_submitted_date").value,
     month_year: document.getElementById("m_month_year").value.trim(),
@@ -923,7 +993,7 @@ async function submitNewRecordModal(e) {
     ref_no: document.getElementById("m_ref_no").value.trim(),
     work_order: document.getElementById("m_work_order").value.trim(),
     remark: document.getElementById("m_remark").value.trim(),
-    attachment_path: "",
+    attachment_path: editingRow ? editingRow.attachment_path : "",
   };
 
   try {
@@ -1019,10 +1089,26 @@ function openSnMenu(e, idx) {
   activeRowIndex = idx;
   const menu = document.getElementById("snContextMenu");
   menu.style.display = "flex";
-  menu.style.left = e.pageX + "px";
-  menu.style.top = e.pageY + "px";
+
+  const menuHeight = menu.offsetHeight || 120;
+  const menuWidth = menu.offsetWidth || 170;
+
+  let posX = e.pageX;
+  let posY = e.pageY;
+
+  if (e.clientY + menuHeight > window.innerHeight) {
+    posY = Math.max(10, e.pageY - menuHeight);
+  }
+  if (e.clientX + menuWidth > window.innerWidth) {
+    posX = Math.max(10, e.pageX - menuWidth);
+  }
+
+  menu.style.left = posX + "px";
+  menu.style.top = posY + "px";
 
   const isBuffer = idx === records.length - 1 && !records[idx].id;
+  const editBtn = document.getElementById("cmEditRowBtn");
+  if (editBtn) editBtn.style.display = isBuffer ? "none" : "flex";
   const cloneBtn = document.getElementById("cmCloneRowBtn");
   if (cloneBtn) cloneBtn.style.display = isBuffer ? "none" : "flex";
   document.getElementById("cmDeleteRowBtn").style.display = isBuffer
@@ -1047,6 +1133,43 @@ document.addEventListener("click", (e) => {
 function contextAddRow() {
   records.splice(activeRowIndex + 1, 0, createBlankRowObj());
   renderTable();
+}
+
+function contextEditRow() {
+  if (activeRowIndex === null || !records[activeRowIndex]) return;
+  const source = records[activeRowIndex];
+
+  openAddNewDataModal();
+  modalEditingRecordId = source.id ? Number(source.id) : null;
+
+  const titleEl = document.querySelector("#addNewDataModal .modal-header-bar h3");
+  if (titleEl) titleEl.innerText = "✏️ Edit Debit Note";
+  const submitBtn = document.getElementById("mSubmitBtn");
+  if (submitBtn) submitBtn.innerText = "Update Debit Note";
+
+  document.getElementById("m_received_date").value = source.received_date || "";
+  document.getElementById("m_submitted_date").value = source.submitted_date || "";
+  document.getElementById("m_month_year").value = source.month_year || "";
+  document.getElementById("m_approved_by").value = source.approved_by || "";
+  document.getElementById("m_particulars").value = source.particulars || "";
+  document.getElementById("m_plate_no").value = source.plate_no || "";
+  document.getElementById("m_driver_name").value = source.driver_name || "";
+  document.getElementById("m_site").value = source.site || "";
+  document.getElementById("m_company").value = source.company || "";
+  document.getElementById("m_customer").value = source.customer || "";
+  document.getElementById("m_amount").value = source.amount || "";
+  document.getElementById("m_vat_status").value = source.vat_status || "Included";
+  document.getElementById("m_qc_entry").value = source.qc_entry || "";
+  document.getElementById("m_owner_name").value = source.owner_name || "";
+  document.getElementById("m_status").value = source.status || "Received";
+
+  if (document.getElementById("m_ref_no")) {
+    document.getElementById("m_ref_no").value = source.ref_no || "";
+  }
+  document.getElementById("m_work_order").value = source.work_order || "";
+  document.getElementById("m_remark").value = source.remark || "";
+
+  modalCalculateTotal();
 }
 
 function contextCloneRow() {
@@ -1324,8 +1447,8 @@ function exportToExcel() {
     "Status",
     "Ref No",
     "Work Order",
-    "Remark",
     "Attachment Link",
+    "Remark",
   ];
 
   const exportData = [headers];
@@ -1357,10 +1480,10 @@ function exportToExcel() {
       r.status || "",
       r.ref_no || "",
       r.work_order || "",
-      r.remark || "",
       r.attachment_path
         ? "https://fefei.tail129892.ts.net" + r.attachment_path
         : "",
+      r.remark || "",
     ]);
   });
 
