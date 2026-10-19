@@ -342,11 +342,11 @@
         text-align: center;
       }
 
-      /* 🟢 Excel-style Note Corner Triangle Indicator */
-      .has-month-note {
-        position: sticky !important;
+      /* 🟢 Excel-style Note Corner Triangle Indicator on Quick Dice */
+      .has-dice-note {
+        position: relative !important;
       }
-      .has-month-note::after {
+      .has-dice-note::after {
         content: "";
         position: absolute;
         top: 0;
@@ -356,7 +356,7 @@
         border-top: 10px solid #dc2626 !important;
         border-left: 10px solid transparent !important;
         pointer-events: none;
-        z-index: 25;
+        z-index: 15;
       }
 
       /* 🟢 Right-click Month Note Context Popover */
@@ -1959,11 +1959,7 @@
 
         for (let m = 0; m < 12; m++) {
           let mLabel = `${monthsFull[m].substring(0, 3)} - ${shortYear}`;
-          const hasNoteThisMonth = currentVatNotes.some(n => 
-            n.note_month !== null && n.note_month !== undefined && Number(n.note_month) === m
-          );
-          const noteMarkerClass = hasNoteThisMonth ? "has-month-note" : "";
-          bodyHtml += `<tr><td class="month-col ${noteMarkerClass}" style="cursor: context-menu;" oncontextmenu="handleVatMonthCellRightClick(event, ${m})"><div class="cell-content">${mLabel}</div></td>`;
+          bodyHtml += `<tr><td class="month-col"><div class="cell-content">${mLabel}</div></td>`;
 
           supData.sites.forEach((site, sIdx) => {
             const isActive = site.active_months[m];
@@ -2058,12 +2054,27 @@
                                 </td>
                                 <td class="vendor-ts-cell qc-highlight-target ${hlClass}" style="background: #f0fdfa; cursor: pointer;" 
                                     title="${initialLabel}"
-                                    onmouseenter="loadCellTooltip(this, '${sNameAttr}', '${sLfAttr}', ${m})"
-                                    onclick="openTsDetailsModal('${sNameAttr}', '${sLfAttr}', ${m})"
-                                    oncontextmenu="handleTsRightClick(event, '${sNameAttr}', '${sLfAttr}', ${m})">
+                                    onmouseenter="loadCellTooltip(this, '${sNameAttr}', '${sLfAttr}',${m})"
+                                    onclick="openTsDetailsModal('${sNameAttr}', '${sLfAttr}',${m})"
+                                    oncontextmenu="handleTsRightClick(event, '${sNameAttr}', '${sLfAttr}',${m})">
                                     <div class="cell-content" style="font-weight: 600; font-size: 11px;">${erpVal}</div>
                                 </td>
-                                <td class="qc-highlight-target ${hlClass}">
+                            `;
+
+                            const sCleanSiteName = (site.site_name || "").trim().toLowerCase();
+                            const hasDiceNote = currentVatNotes.some(n => {
+                              const nMonth = (n.note_month !== null && n.note_month !== undefined) ? Number(n.note_month) : null;
+                              if (nMonth === null || nMonth !== m) return false;
+                              const nLf = String(n.ledger_folio || "").trim().toLowerCase();
+                              const nSite = String(n.site_name || "").trim().toLowerCase();
+                              const isLfMatch = (!nLf || !sLfAttr.toLowerCase() || nLf === sLfAttr.toLowerCase());
+                              const isSiteMatch = (!nSite || !sCleanSiteName || nSite === sCleanSiteName);
+                              return isLfMatch && isSiteMatch;
+                            });
+                            const diceMarkerClass = hasDiceNote ? "has-dice-note" : "";
+
+                            bodyHtml += `
+                                <td class="qc-highlight-target ${hlClass} ${diceMarkerClass}" oncontextmenu="handleVatDiceRightClick(event, '${sNameAttr}', '${sLfAttr}', ${m})">
                                     ${diceCellContent}
                                 </td>
                             `;
@@ -2297,27 +2308,41 @@
             }
         }
 
-        function populateVatComposeLfOptions(selectedLf = "") {
-            const sel = document.getElementById("vatComposeNoteLf");
-            if (!sel || !selectedSupplierKey) return;
+        function populateVatComposeLfAndSiteOptions(selectedLf = "", selectedSite = "") {
+            const selLf = document.getElementById("vatComposeNoteLf");
+            const selSite = document.getElementById("vatComposeNoteSite");
+            if (!selLf || !selectedSupplierKey) return;
             const supData = consolidatedSuppliers[selectedSupplierKey];
             const availableLfs = [];
+            const availableSites = [];
+
             if (supData && Array.isArray(supData.sites)) {
                 supData.sites.forEach(st => {
                     const lf = (st.ledger_folio || "").trim();
+                    const sName = (st.site_name || "").trim();
                     if (lf && !availableLfs.includes(lf)) availableLfs.push(lf);
+                    if (sName && !availableSites.includes(sName)) availableSites.push(sName);
                 });
             }
-            let html = "";
-            let autoSelected = selectedLf || (availableLfs.length > 0 ? availableLfs[0] : "");
+
+            let lfHtml = "";
+            let autoSelectedLf = selectedLf || (availableLfs.length > 0 ? availableLfs[0] : "");
             availableLfs.forEach(lf => {
-                html += `<option value="${escapeHTML(lf)}" ${lf.toLowerCase() === autoSelected.toLowerCase() ? 'selected' : ''}>${escapeHTML(lf)}</option>`;
+                lfHtml += `<option value="${escapeHTML(lf)}" ${lf.toLowerCase() === autoSelectedLf.toLowerCase() ? 'selected' : ''}>${escapeHTML(lf)}</option>`;
             });
-            html += `<option value="" ${autoSelected === "" ? 'selected' : ''}>(All / General LF)</option>`;
-            sel.innerHTML = html;
+            lfHtml += `<option value="" ${autoSelectedLf === "" ? 'selected' : ''}>(All / General LF)</option>`;
+            selLf.innerHTML = lfHtml;
+
+            let siteHtml = "";
+            let autoSelectedSite = selectedSite || (availableSites.length > 0 ? availableSites[0] : "");
+            availableSites.forEach(stName => {
+                siteHtml += `<option value="${escapeHTML(stName)}" ${stName.toLowerCase() === autoSelectedSite.toLowerCase() ? 'selected' : ''}>${escapeHTML(stName)}</option>`;
+            });
+            siteHtml += `<option value="" ${autoSelectedSite === "" ? 'selected' : ''}>(All Sites)</option>`;
+            selSite.innerHTML = siteHtml;
         }
 
-        function openVatComposeBox(noteId = null, defaultLf = "", defaultMonth = "") {
+        function openVatComposeBox(noteId = null, defaultLf = "", defaultMonth = "", defaultSite = "") {
             const box = document.getElementById("vatGmailCompose");
             const titleEl = document.getElementById("vatComposeTitle");
             const idInput = document.getElementById("vatEditNoteId");
@@ -2332,7 +2357,7 @@
                     idInput.value = note.id;
                     titleInput.value = note.note_title || "";
                     contentInput.value = note.note_content || "";
-                    populateVatComposeLfOptions(note.ledger_folio || "");
+                    populateVatComposeLfAndSiteOptions(note.ledger_folio || "", note.site_name || "");
                     if (monthInput) monthInput.value = (note.note_month !== null && note.note_month !== undefined) ? note.note_month : "";
                 }
             } else {
@@ -2340,7 +2365,7 @@
                 idInput.value = "";
                 titleInput.value = "";
                 contentInput.value = "";
-                populateVatComposeLfOptions(defaultLf);
+                populateVatComposeLfAndSiteOptions(defaultLf, defaultSite);
                 if (monthInput) monthInput.value = (defaultMonth !== "" && defaultMonth !== null) ? defaultMonth : "0";
             }
             box.style.display = "flex";
@@ -2358,7 +2383,7 @@
 
         document.addEventListener("click", () => closeVatMonthNotePopover());
 
-        function handleVatMonthCellRightClick(e, monthIdx) {
+        function handleVatDiceRightClick(e, siteName, ledgerFolio, monthIdx) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -2368,14 +2393,22 @@
             const addBtn = document.getElementById("vatMnPopAddBtn");
 
             const mName = monthsFull[monthIdx];
-            titleEl.innerText = `${mName} Notes`;
+            const cleanSite = (siteName || "").trim();
+            const cleanLf = (ledgerFolio || "").trim();
+            titleEl.innerText = `${mName} - ${cleanSite} Notes`;
 
-            const matchedNotes = currentVatNotes.filter(n => 
-                n.note_month !== null && n.note_month !== undefined && Number(n.note_month) === monthIdx
-            );
+            const matchedNotes = currentVatNotes.filter(n => {
+                const nMonth = (n.note_month !== null && n.note_month !== undefined) ? Number(n.note_month) : null;
+                if (nMonth === null || nMonth !== monthIdx) return false;
+                const nLf = String(n.ledger_folio || "").trim().toLowerCase();
+                const nSite = String(n.site_name || "").trim().toLowerCase();
+                const isLfMatch = (!nLf || !cleanLf.toLowerCase() || nLf === cleanLf.toLowerCase());
+                const isSiteMatch = (!nSite || !cleanSite.toLowerCase() || nSite === cleanSite.toLowerCase());
+                return isLfMatch && isSiteMatch;
+            });
 
             if (matchedNotes.length === 0) {
-                bodyEl.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 12px 6px;">No notes for this month.</div>`;
+                bodyEl.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 12px 6px;">No notes for this site & month.</div>`;
             } else {
                 bodyEl.innerHTML = matchedNotes.map(n => `
                     <div class="mn-pop-item">
@@ -2388,7 +2421,7 @@
             addBtn.onclick = () => {
                 closeVatMonthNotePopover();
                 openVatNotesModal().then(() => {
-                    openVatComposeBox(null, "", monthIdx);
+                    openVatComposeBox(null, cleanLf, monthIdx, cleanSite);
                 });
             };
 
@@ -2451,6 +2484,7 @@
             const title = document.getElementById("vatNoteTitle").value.trim();
             const content = document.getElementById("vatNoteContent").value.trim();
             const lfVal = document.getElementById("vatComposeNoteLf") ? document.getElementById("vatComposeNoteLf").value.trim() : "";
+            const siteVal = document.getElementById("vatComposeNoteSite") ? document.getElementById("vatComposeNoteSite").value.trim() : "";
             const monthVal = document.getElementById("vatComposeNoteMonth") ? document.getElementById("vatComposeNoteMonth").value : "";
             if (!content) return alert("Please enter note details!");
 
@@ -2466,6 +2500,7 @@
                         title: title, 
                         content: content,
                         ledger_folio: lfVal || null,
+                        site_name: siteVal || null,
                         note_month: monthVal !== "" ? parseInt(monthVal, 10) : null,
                         note_year: currentYear
                     })
@@ -2540,8 +2575,12 @@
                     <input type="hidden" id="vatEditNoteId" value="">
                     <div style="display: flex; gap: 8px;">
                         <div style="flex: 1;">
-                            <label style="font-size: 10.5px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Ledger Folio / Site</label>
+                            <label style="font-size: 10.5px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Ledger Folio (LF)</label>
                             <select id="vatComposeNoteLf" style="width: 100%; background: #090e17; border: 1px solid #334155; color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; outline: none; cursor: pointer;"></select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 10.5px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Site Name</label>
+                            <select id="vatComposeNoteSite" style="width: 100%; background: #090e17; border: 1px solid #334155; color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; outline: none; cursor: pointer;"></select>
                         </div>
                         <div style="flex: 1;">
                             <label style="font-size: 10.5px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Target Month</label>
