@@ -92,16 +92,6 @@
             </p>
           </div>
         </a>
-
-        <a href="Office/index.html" class="action-card">
-          <div class="card-icon">🏢</div>
-          <div class="card-content">
-            <h3>Office</h3>
-            <p>
-              Manage bill summary and PO creation.
-            </p>
-          </div>
-        </a>
      
         <a href="./invoice_data/report.html" class="action-card">
           <div class="card-icon">📊</div>
@@ -163,16 +153,16 @@
             <p>To Manage & Record Vat Bills, Amount.</p>
           </div>
           </a>
-          
-          <a href="./Tools/" class="action-card">
-             <div class="card-icon">🧰</div>
-              <div class="card-content">
-                <h3>Office Utility Tools</h3>
-              <p>
-             utility tools for daily office operations.
+         
+          <a href="Office/index.html" class="action-card">
+          <div class="card-icon">🏢</div>
+          <div class="card-content">
+            <h3>Office</h3>
+            <p>
+              Manage bill summary and PO creation.
             </p>
-            </div>
-              </a>
+          </div>
+        </a>
 
         <a href="./KLM/" class="action-card">
           <div class="card-icon">🏢</div>
@@ -184,7 +174,7 @@
           </div>
         </a>
           
-        <a href="./Master_Data_Base/backup.html" class="action-card">
+        <a href="javascript:void(0);" onclick="openBackupModal()" class="action-card" style="cursor: pointer;">
           <div class="card-icon">💾</div>
           <div class="card-content">
             <h3>SQL Backup</h3>
@@ -223,7 +213,85 @@
         }
       })();
 
-      
+      function openBackupModal() {
+        const modal = document.getElementById("passcodeModal");
+        const passInput = document.getElementById("passcodeInput");
+        const statusMsg = document.getElementById("modalStatusMsg");
+        if (modal) modal.classList.add("active");
+        if (passInput) {
+          passInput.value = "";
+          setTimeout(() => passInput.focus(), 100);
+        }
+        if (statusMsg) statusMsg.style.display = "none";
+      }
+
+      function closeBackupModal() {
+        const modal = document.getElementById("passcodeModal");
+        if (modal) modal.classList.remove("active");
+      }
+
+      async function triggerBackup() {
+        const passcodeInput = document.getElementById("passcodeInput");
+        const confirmBtn = document.getElementById("confirmBackupBtn");
+        const cancelBtn = document.getElementById("cancelBackupBtn");
+        const statusMsg = document.getElementById("modalStatusMsg");
+        const passcode = passcodeInput ? passcodeInput.value.trim() : "";
+
+        if (!passcode) {
+          statusMsg.className = "status-msg status-error";
+          statusMsg.innerText = "⚠️ Please enter the passcode.";
+          statusMsg.style.display = "block";
+          return;
+        }
+
+        confirmBtn.disabled = true;
+        cancelBtn.disabled = true;
+        statusMsg.className = "status-msg status-loading";
+        statusMsg.innerText = "Verifying credentials & starting backup...";
+        statusMsg.style.display = "block";
+
+        try {
+          const res = await fetch("/api/backup/run-backup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ passcode: passcode }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            statusMsg.className = "status-msg status-success";
+            statusMsg.innerText = "🎉 " + data.message;
+            setTimeout(() => closeBackupModal(), 2500);
+          } else {
+            statusMsg.className = "status-msg status-error";
+            statusMsg.innerText = "❌ Access Denied: " + (data.message || "Invalid Passcode.");
+          }
+        } catch (err) {
+          statusMsg.className = "status-msg status-error";
+          statusMsg.innerText = "❌ Communication Failure: Backend server not reachable.";
+        } finally {
+          confirmBtn.disabled = false;
+          cancelBtn.disabled = false;
+        }
+      }
     </script>
+
+    <!-- In-Page SQL Backup Modal -->
+    <div id="passcodeModal" class="modal-overlay" onclick="if(event.target===this) closeBackupModal()">
+      <div class="modal-content">
+        <h3>🔒 Admin Authorization</h3>
+        <input
+          type="password"
+          id="passcodeInput"
+          placeholder="Enter Master Passcode"
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter') triggerBackup();"
+        />
+        <div class="modal-actions">
+          <button id="cancelBackupBtn" class="btn-cancel" onclick="closeBackupModal()">Cancel</button>
+          <button id="confirmBackupBtn" class="btn-confirm" onclick="triggerBackup()">Verify & Run</button>
+        </div>
+        <div id="modalStatusMsg" class="status-msg"></div>
+      </div>
+    </div>
   </body>
 </html>

@@ -163,18 +163,129 @@ a {
 }
 
 *{
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 body h1{
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 .connect-wrapper a{
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
+    font-family: 'Montserrat', sans-serif;
 }
 
 .connect-btn:hover{
     background: yellowgreen;
     border-color: rgb(0, 0, 0);
 }
+
+.modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(8px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .modal-overlay.active {
+        display: flex;
+        opacity: 1;
+      }
+      .modal-content {
+        background: #1e293b;
+        border: 1px solid rgba(0, 206, 209, 0.4);
+        border-radius: 16px;
+        padding: 2.2rem;
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(0, 206, 209, 0.15);
+      }
+      .modal-content h3 {
+        color: #ffffff;
+        margin-top: 0;
+        margin-bottom: 1.2rem;
+        font-family: "Montserrat", sans-serif;
+        font-size: 1.2rem;
+      }
+      .modal-content input[type="password"] {
+        width: 100%;
+        padding: 0.9rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.35);
+        color: #ffffff;
+        font-size: 1rem;
+        box-sizing: border-box;
+        outline: none;
+        text-align: center;
+        letter-spacing: 2px;
+        margin-bottom: 1.4rem;
+      }
+      .modal-content input[type="password"]:focus {
+        border-color: #00ced1;
+        box-shadow: 0 0 10px rgba(0, 206, 209, 0.3);
+      }
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .modal-actions button {
+        flex: 1;
+        padding: 0.8rem;
+        border-radius: 25px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 0.95rem;
+        border: none;
+        transition: all 0.2s ease;
+      }
+      .btn-cancel {
+        background: rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+      }
+      .btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+      }
+      .btn-confirm {
+        background: #00ced1;
+        color: #0f172a;
+      }
+      .btn-confirm:hover {
+        background: #00b4b4;
+        box-shadow: 0 4px 15px rgba(0, 206, 209, 0.4);
+      }
+      .status-msg {
+        margin-top: 1.2rem;
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: none;
+        line-height: 1.4;
+      }
+      .status-success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+      .status-error {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+      .status-loading {
+        background: rgba(0, 206, 209, 0.15);
+        color: #00ced1;
+        border: 1px solid rgba(0, 206, 209, 0.3);
+      }
