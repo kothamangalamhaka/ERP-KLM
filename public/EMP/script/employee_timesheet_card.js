@@ -127,9 +127,9 @@ function setDefaultDates() {
   const year = today.getFullYear();
   const month = today.getMonth();
 
-  // Previous Month First & Last Day
-  const firstDay = new Date(year, month - 1, 1);
-  const lastDay = new Date(year, month, 0);
+  // Current Month First & Last Day
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
 
   const fmt = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

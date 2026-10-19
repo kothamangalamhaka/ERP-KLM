@@ -24,6 +24,51 @@ router.post("/verify-pin", (req, res) => {
 
 router.use(verifyToken);
 
+// 🟢 Recurring Expenses CRUD APIs
+router.get("/recurring-expenses", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM recurring_expenses ORDER BY id ASC");
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch recurring expenses" });
+  }
+});
+
+router.post("/recurring-expenses/save", async (req, res) => {
+  try {
+    const { id, expense_head, description, amount, start_month, end_month } = req.body;
+    if (!expense_head || !description || !start_month) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+    const endVal = end_month && end_month.trim() !== "" ? end_month.trim() : null;
+
+    if (id) {
+      await pool.query(
+        `UPDATE recurring_expenses SET expense_head = $1, description = $2, amount = $3, start_month = $4, end_month = $5 WHERE id = $6`,
+        [expense_head, description.trim(), amount || 0, start_month.trim(), endVal, id]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO recurring_expenses (expense_head, description, amount, start_month, end_month) VALUES ($1, $2, $3, $4, $5)`,
+        [expense_head, description.trim(), amount || 0, start_month.trim(), endVal]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to save recurring expense" });
+  }
+});
+
+router.delete("/recurring-expenses/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("DELETE FROM recurring_expenses WHERE id = $1", [id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to delete recurring expense" });
+  }
+});
+
 // Send OTP to unlock
 router.post("/send-unlock-otp", async (req, res) => {
   try {
@@ -180,15 +225,30 @@ router.get("/data", async (req, res) => {
     const customPrevUpcomingExp = prevUpcomingExp.filter(ex => !ex.desc.includes("GST Filing"));
 
     if (!summary) {
-      const dObj = new Date(year, monthIndex, 1);
-      const curMonthName = dObj.toLocaleString("en-US", { month: "long" });
+      const recRes = await pool.query(
+        `SELECT * FROM recurring_expenses WHERE start_month <= $1 AND (end_month IS NULL OR end_month >= $1) ORDER BY id ASC`,
+        [month]
+      );
+      const recList = recRes.rows;
 
-      let curExpenses = [{ desc: "Office Rent", amt: 6000, fixed: true }];
+      const nextMonthDate = new Date(year, monthIndex + 1, 1);
+      const nextMonthShort = nextMonthDate.toLocaleString("en-US", { month: "short" });
+      const nextYearShort = String(nextMonthDate.getFullYear()).slice(-2);
 
-      if (isJuneOrLater) {
-        curExpenses.push({ desc: `GST Filing & Professional Charges :: ${curMonthName}`, amt: 3100, fixed: true });
-        curExpenses.push({ desc: "Wifi Recharge", amt: 1061, fixed: true });
-      }
+      let curExpenses = [];
+      let othExpenses = [];
+      let upExpenses = [];
+
+      recList.forEach(item => {
+        let desc = item.description;
+        if (item.expense_head === "upcoming" && desc.toLowerCase().includes("haritha karma sena")) {
+          desc = `Haritha Karma Sena ${nextMonthShort}-${nextYearShort}`;
+        }
+        const expObj = { desc: desc, amt: parseFloat(item.amount) || 0, fixed: false };
+        if (item.expense_head === "current") curExpenses.push(expObj);
+        else if (item.expense_head === "other") othExpenses.push(expObj);
+        else if (item.expense_head === "upcoming") upExpenses.push(expObj);
+      });
 
       // Add previous upcoming custom expenses into current period
       customPrevUpcomingExp.forEach(pExp => {
@@ -203,10 +263,8 @@ router.get("/data", async (req, res) => {
         cash_from_ajil: 0,
         staff_adjustments: {},
         current_expenses: curExpenses,
-        other_expenses: [],
-        upcoming_expenses: [
-          { desc: "GST Filing & Professional Charges", amt: 3100, fixed: true }
-        ]
+        other_expenses: othExpenses,
+        upcoming_expenses: upExpenses
       };
     } else {
       // If month is not May 2026 (starting month), keep Opening Balance strictly synced
