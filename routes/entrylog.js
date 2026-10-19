@@ -7,7 +7,7 @@ const { verifyToken } = require("../middlewares/auth");
 router.get("/", verifyToken, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, username, plate_number, to_char(entry_date, 'YYYY-MM-DD') as entry_date, action, created_at FROM timesheet_entry_logs WHERE created_at >= NOW() - INTERVAL '6 months' ORDER BY created_at DESC"
+      "SELECT id, username, plate_number, to_char(entry_date, 'YYYY-MM-DD') as entry_date, action, created_at FROM timesheet_entry_logs WHERE created_at >= NOW() - INTERVAL '6 months' ORDER BY created_at DESC",
     );
     res.json({ success: true, logs: result.rows });
   } catch (error) {
@@ -23,13 +23,18 @@ router.post("/add", verifyToken, async (req, res) => {
     // 1. Insert the new log
     await pool.query(
       "INSERT INTO timesheet_entry_logs (username, plate_number, entry_date, action) VALUES ($1, $2, $3, $4)",
-      [username, plate_number, entry_date, action || "ENTRY"]
+      [username, plate_number, entry_date, action || "ENTRY"],
     );
 
     // 2. Auto-cleanup: Delete logs older than 6 months
     // We run this asynchronously so it doesn't block the immediate response to the user
-    pool.query("DELETE FROM timesheet_entry_logs WHERE created_at < NOW() - INTERVAL '6 months'")
-      .catch(err => console.error("Background log cleanup failed:", err.message));
+    pool
+      .query(
+        "DELETE FROM timesheet_entry_logs WHERE created_at < NOW() - INTERVAL '6 months'",
+      )
+      .catch((err) =>
+        console.error("Background log cleanup failed:", err.message),
+      );
 
     res.json({ success: true, message: "Log saved successfully" });
   } catch (error) {

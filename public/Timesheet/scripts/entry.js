@@ -15,8 +15,18 @@ if (!token || !userStr) {
 const dDate = new Date();
 document.getElementById("selYear").value = dDate.getFullYear();
 const months = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 document.getElementById("selMonth").value = months[dDate.getMonth()];
 
@@ -28,15 +38,15 @@ if (userStr) {
 
 let rulesCache = [];
 let specialRulesCache = [];
-let breakRulesCache = []; 
+let breakRulesCache = [];
 let vehiclesCache = [];
 let currentFocus = -1;
 
-let systemLockData = { month: null, year: null }; 
+let systemLockData = { month: null, year: null };
 let isEditingInvoice = false;
 let currentInvoices = [];
 let loggedRowsTracker = new Set();
-let currentLockedRecord = null; 
+let currentLockedRecord = null;
 let recordPollGeneration = 0; // 🟢 പുതിയ വേരിയബിൾ: പഴയ പോളിംഗ് തടയാൻ
 
 // 🟢 NEW: Variables for Live Lock Transfer
@@ -50,19 +60,27 @@ let editCountdownInterval = null; // 🟢 കൗണ്ട്ഡൗൺ ടൈമ�
 function prevMonth() {
   const sel = document.getElementById("selMonth");
   const yr = document.getElementById("selYear");
-  if(sel.selectedIndex > 0) { sel.selectedIndex--; }
-  else { sel.selectedIndex = 11; yr.value = parseInt(yr.value) - 1; }
+  if (sel.selectedIndex > 0) {
+    sel.selectedIndex--;
+  } else {
+    sel.selectedIndex = 11;
+    yr.value = parseInt(yr.value) - 1;
+  }
   releaseLock();
-  if(document.getElementById('selPlate').value) triggerFetch();
+  if (document.getElementById("selPlate").value) triggerFetch();
 }
 
 function nextMonth() {
   const sel = document.getElementById("selMonth");
   const yr = document.getElementById("selYear");
-  if(sel.selectedIndex < 11) { sel.selectedIndex++; }
-  else { sel.selectedIndex = 0; yr.value = parseInt(yr.value) + 1; }
+  if (sel.selectedIndex < 11) {
+    sel.selectedIndex++;
+  } else {
+    sel.selectedIndex = 0;
+    yr.value = parseInt(yr.value) + 1;
+  }
   releaseLock();
-  if(document.getElementById('selPlate').value) triggerFetch();
+  if (document.getElementById("selPlate").value) triggerFetch();
 }
 
 function releaseLock() {
@@ -70,15 +88,15 @@ function releaseLock() {
     const lockToken = localStorage.getItem("timesheetToken");
     if (lockToken) {
       const payload = JSON.stringify(currentLockedRecord);
-      fetch('/timesheet/api/record-lock/release', {
-        method: 'POST',
+      fetch("/timesheet/api/record-lock/release", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + lockToken
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + lockToken,
         },
         body: payload,
-        keepalive: true 
-      }).catch(e => console.error("Lock release error:", e));
+        keepalive: true,
+      }).catch((e) => console.error("Lock release error:", e));
     }
     currentLockedRecord = null;
   }
@@ -93,49 +111,74 @@ async function init() {
   let rRes;
   try {
     rRes = await fetch(`/timesheet/api/rules?_t=${ts}`, {
-      headers: { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" },
+      headers: {
+        Authorization: "Bearer " + token,
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
       cache: "no-store",
     });
   } catch (netErr) {
     console.warn("Offline/Network glitch during init:", netErr);
     return;
   }
-  
+
   if (rRes.status === 401 || rRes.status === 403) {
     openTimesheetReLoginModal(() => init());
     return;
   }
-  
+
   let rData;
-  try { rData = await rRes.json(); } catch (e) { return; }
+  try {
+    rData = await rRes.json();
+  } catch (e) {
+    return;
+  }
 
   if (rData && rData.success) rulesCache = rData.data;
 
   const srRes = await fetch(`/timesheet/api/special-rules?_t=${ts}`, {
-    headers: { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" },
+    headers: {
+      Authorization: "Bearer " + token,
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
     cache: "no-store",
   });
   const srData = await srRes.json();
   if (srData.success) specialRulesCache = srData.data;
 
   const brRes = await fetch(`/timesheet/api/break-rules?_t=${ts}`, {
-    headers: { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" },
+    headers: {
+      Authorization: "Bearer " + token,
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
     cache: "no-store",
   });
   const brData = await brRes.json();
   if (brData.success) breakRulesCache = brData.data;
 
   const vRes = await fetch(`/timesheet/api/vehicle-info?_t=${ts}`, {
-    headers: { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" },
+    headers: {
+      Authorization: "Bearer " + token,
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
     cache: "no-store",
   });
   const vData = await vRes.json();
   if (vData.success) vehiclesCache = vData.data;
 
-  const lRes = await fetch(`/api/lock/status?_t=${ts}`, { headers: { Authorization: "Bearer " + token }});
-  const lData = await lRes.json().catch(()=>({}));
-  if(lData.success && lData.data) {
-      systemLockData = { month: lData.data.lock_month, year: lData.data.lock_year };
+  const lRes = await fetch(`/api/lock/status?_t=${ts}`, {
+    headers: { Authorization: "Bearer " + token },
+  });
+  const lData = await lRes.json().catch(() => ({}));
+  if (lData.success && lData.data) {
+    systemLockData = {
+      month: lData.data.lock_month,
+      year: lData.data.lock_year,
+    };
   }
 }
 
@@ -144,14 +187,16 @@ function searchPlate() {
   const inputEl = document.getElementById("selPlate");
   // 🟢 User manual type cheyyumbol pazhaya cached selection clear aakkunnu
   delete inputEl.dataset.actualPlate;
-  
+
   const val = inputEl.value.trim().toUpperCase();
   const sug = document.getElementById("plateSuggestions");
-  sug.innerHTML = ""; 
+  sug.innerHTML = "";
   currentFocus = -1;
 
   if (!val) {
-    let history = JSON.parse(localStorage.getItem("plateSearchHistory") || "[]");
+    let history = JSON.parse(
+      localStorage.getItem("plateSearchHistory") || "[]",
+    );
     if (history.length > 0) {
       sug.style.display = "block";
       sug.style.maxHeight = "105px";
@@ -159,11 +204,15 @@ function searchPlate() {
       history.forEach((hPlate) => {
         let div = document.createElement("div");
         div.innerHTML = `<b>${hPlate}</b>`;
-        let masterObj = vehiclesCache.find((v) => v.plate_no.toUpperCase() === hPlate) || { plate_no: hPlate };
+        let masterObj = vehiclesCache.find(
+          (v) => v.plate_no.toUpperCase() === hPlate,
+        ) || { plate_no: hPlate };
         div.onclick = () => selectPlate(masterObj);
         sug.appendChild(div);
       });
-    } else { sug.style.display = "none"; }
+    } else {
+      sug.style.display = "none";
+    }
     return;
   }
 
@@ -188,7 +237,7 @@ function searchPlate() {
       let oPlate = (log.old_plate_no || "").trim().toUpperCase();
       let nPlate = (log.new_plate_no || "").trim().toUpperCase();
 
-      if (cYear === selYearNum && (cMonth - 1) === selMonthIdx) {
+      if (cYear === selYearNum && cMonth - 1 === selMonthIdx) {
         return `${oPlate} ➔ ${nPlate}`;
       } else if (selMonthEnd < cDate) {
         return oPlate;
@@ -212,7 +261,8 @@ function searchPlate() {
     let plateMatch = allRelated.some((p) => p && p.toUpperCase().includes(val));
     let assetMatch = v.asset_code && v.asset_code.toUpperCase().includes(val);
     let woMatch = v.wrk_order_no && v.wrk_order_no.toUpperCase().includes(val);
-    let driverMatch = v.driver_name && v.driver_name.toUpperCase().includes(val);
+    let driverMatch =
+      v.driver_name && v.driver_name.toUpperCase().includes(val);
 
     return plateMatch || assetMatch || woMatch || driverMatch;
   });
@@ -251,14 +301,21 @@ function selectPlate(vObj, resolvedPlate) {
 document.getElementById("selPlate").addEventListener("keydown", function (e) {
   let sug = document.getElementById("plateSuggestions");
   if (sug.style.display === "none") {
-    if (e.key === "Enter") { e.preventDefault(); triggerFetch(); }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      triggerFetch();
+    }
     return;
   }
   let items = sug.getElementsByTagName("div");
   if (e.key === "ArrowDown") {
-    e.preventDefault(); currentFocus++; addActive(items);
+    e.preventDefault();
+    currentFocus++;
+    addActive(items);
   } else if (e.key === "ArrowUp") {
-    e.preventDefault(); currentFocus--; addActive(items);
+    e.preventDefault();
+    currentFocus--;
+    addActive(items);
   } else if (e.key === "Enter" || e.key === "Tab") {
     e.preventDefault();
     if (currentFocus > -1 && items[currentFocus]) items[currentFocus].click();
@@ -277,7 +334,8 @@ function addActive(items) {
 }
 
 function removeActive(items) {
-  for (let i = 0; i < items.length; i++) items[i].classList.remove("suggestion-active");
+  for (let i = 0; i < items.length; i++)
+    items[i].classList.remove("suggestion-active");
 }
 
 function parseLogDate(dStr, defaultDate) {
@@ -287,45 +345,80 @@ function parseLogDate(dStr, defaultDate) {
 }
 
 function getGapStatus(d, sLogs, dLogs) {
-  let sActive = false, sGap = false, isReplaced = false, isBeforeStart = false, isAfterEnd = false;
-  let dActive = false, dGap = false;
+  let sActive = false,
+    sGap = false,
+    isReplaced = false,
+    isBeforeStart = false,
+    isAfterEnd = false;
+  let dActive = false,
+    dGap = false;
 
   if (sLogs && sLogs.length > 0) {
-    let ascSLogs = [...sLogs].sort((a, b) => parseLogDate(a.work_start_date, new Date("2000-01-01")) - parseLogDate(b.work_start_date, new Date("2000-01-01")));
+    let ascSLogs = [...sLogs].sort(
+      (a, b) =>
+        parseLogDate(a.work_start_date, new Date("2000-01-01")) -
+        parseLogDate(b.work_start_date, new Date("2000-01-01")),
+    );
     for (let i = 0; i < ascSLogs.length; i++) {
-      let st = parseLogDate(ascSLogs[i].work_start_date, new Date("2000-01-01"));
+      let st = parseLogDate(
+        ascSLogs[i].work_start_date,
+        new Date("2000-01-01"),
+      );
       let ed = parseLogDate(ascSLogs[i].work_end_date, new Date("2099-01-01"));
-      if (d >= st && d <= ed) { sActive = true; break; }
+      if (d >= st && d <= ed) {
+        sActive = true;
+        break;
+      }
       if (d > ed) {
         if (ascSLogs[i].status === "Replaced") isReplaced = true;
-        else isReplaced = false; 
+        else isReplaced = false;
       }
     }
     if (!sActive) {
-      let firstStart = parseLogDate(ascSLogs[0].work_start_date, new Date("2000-01-01"));
-      let lastEnd = parseLogDate(ascSLogs[ascSLogs.length - 1].work_end_date, new Date("2099-01-01"));
+      let firstStart = parseLogDate(
+        ascSLogs[0].work_start_date,
+        new Date("2000-01-01"),
+      );
+      let lastEnd = parseLogDate(
+        ascSLogs[ascSLogs.length - 1].work_end_date,
+        new Date("2099-01-01"),
+      );
       if (d >= firstStart && d <= lastEnd) sGap = true;
       else if (d < firstStart) isBeforeStart = true;
       else if (d > lastEnd) isAfterEnd = true;
     }
-  } else { sActive = true; }
+  } else {
+    sActive = true;
+  }
 
   if (!sActive) {
     if (isReplaced) return "R";
     if (sGap) return "SC";
-    if (isBeforeStart) return "WS";  
+    if (isBeforeStart) return "WS";
     if (isAfterEnd) return "Re";
     return "AB";
   }
 
   if (dLogs && dLogs.length > 0) {
-    let ascDLogs = [...dLogs].sort((a, b) => parseLogDate(a.work_start_date, new Date("2000-01-01")) - parseLogDate(b.work_start_date, new Date("2000-01-01")));
+    let ascDLogs = [...dLogs].sort(
+      (a, b) =>
+        parseLogDate(a.work_start_date, new Date("2000-01-01")) -
+        parseLogDate(b.work_start_date, new Date("2000-01-01")),
+    );
     for (let i = 0; i < ascDLogs.length; i++) {
-      let st = parseLogDate(ascDLogs[i].work_start_date, new Date("2000-01-01"));
+      let st = parseLogDate(
+        ascDLogs[i].work_start_date,
+        new Date("2000-01-01"),
+      );
       let ed = parseLogDate(ascDLogs[i].work_end_date, new Date("2099-01-01"));
-      if (d >= st && d <= ed) { dActive = true; break; }
+      if (d >= st && d <= ed) {
+        dActive = true;
+        break;
+      }
     }
-  } else { dActive = true; }
+  } else {
+    dActive = true;
+  }
 
   if (!dActive) return "DC";
   return "ACTIVE";
@@ -335,7 +428,9 @@ function getDaysInMonth(monthStr, year) {
   return new Date(year, months.indexOf(monthStr) + 1, 0).getDate();
 }
 function getDayName(dayNum, monthStr, year) {
-  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date(`${monthStr} ${dayNum}, ${year}`).getDay()];
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+    new Date(`${monthStr} ${dayNum}, ${year}`).getDay()
+  ];
 }
 function formatDateUI(dStr) {
   if (!dStr || dStr === "N/A") return "N/A";
@@ -346,14 +441,17 @@ function formatDateUI(dStr) {
 async function triggerFetch() {
   const inputEl = document.getElementById("selPlate");
   let rawVal = inputEl.value.trim().toUpperCase();
-  
+
   // 🟢 User box-il type cheytha text-il ninnum direct match edukkuka
   let p = rawVal;
   if (p.includes("➔")) p = p.split("➔").pop().trim();
   else if (p.includes("->")) p = p.split("->").pop().trim();
 
   // Box-ilulla val-um actualPlate-um thammil mismatch aanenkil dataset clear aakkuka
-  if (inputEl.dataset.actualPlate && !rawVal.includes(inputEl.dataset.actualPlate)) {
+  if (
+    inputEl.dataset.actualPlate &&
+    !rawVal.includes(inputEl.dataset.actualPlate)
+  ) {
     delete inputEl.dataset.actualPlate;
   }
   if (inputEl.dataset.actualPlate) {
@@ -376,8 +474,8 @@ async function triggerFetch() {
   incomingRequestActive = false;
 
   // 🟢 ക്ലിയറിങ് ഇവിടെ ചെയ്യുന്നു
-  if(document.getElementById("actualLogsheetCount")) {
-      document.getElementById("actualLogsheetCount").innerHTML = "";
+  if (document.getElementById("actualLogsheetCount")) {
+    document.getElementById("actualLogsheetCount").innerHTML = "";
   }
   document.getElementById("dispDName").innerText = "N/A";
   document.getElementById("dispDMob").innerText = "N/A";
@@ -391,13 +489,16 @@ async function triggerFetch() {
   document.getElementById("dispWorkOrder").innerText = "N/A";
   document.getElementById("dispSiteStart").innerText = "N/A";
   document.getElementById("dispSiteEnd").innerText = "N/A";
-  if (document.getElementById("oldVehRow")) document.getElementById("oldVehRow").style.display = "none";
-  if (document.getElementById("newVehRow")) document.getElementById("newVehRow").style.display = "none";
-  document.getElementById("invSiteSelect").innerHTML = '<option value="">Waiting for data...</option>';
+  if (document.getElementById("oldVehRow"))
+    document.getElementById("oldVehRow").style.display = "none";
+  if (document.getElementById("newVehRow"))
+    document.getElementById("newVehRow").style.display = "none";
+  document.getElementById("invSiteSelect").innerHTML =
+    '<option value="">Waiting for data...</option>';
   clearInvoiceForm();
   isEditingInvoice = false;
   currentInvoices = [];
-  
+
   const btnReq = document.getElementById("btnRequestEdit");
   if (btnReq) {
     btnReq.style.display = "none";
@@ -406,16 +507,22 @@ async function triggerFetch() {
   }
 
   loggedRowsTracker.clear();
-  resetBellButton(); 
+  resetBellButton();
   savePlateHistory(p);
 
   const inlineLogsheet = document.getElementById("inlineLogsheet");
-  if (inlineLogsheet && inlineLogsheet.style.display !== "none") openLogsheetViewer(p);
+  if (inlineLogsheet && inlineLogsheet.style.display !== "none")
+    openLogsheetViewer(p);
 
   const m = document.getElementById("selMonth").value;
   const y = document.getElementById("selYear").value;
 
-  if (currentLockedRecord && (currentLockedRecord.plate !== p || currentLockedRecord.month !== m || currentLockedRecord.year !== y)) {
+  if (
+    currentLockedRecord &&
+    (currentLockedRecord.plate !== p ||
+      currentLockedRecord.month !== m ||
+      currentLockedRecord.year !== y)
+  ) {
     releaseLock();
   }
 
@@ -427,11 +534,16 @@ async function triggerFetch() {
   btn.disabled = true;
   text.innerText = "Wait...";
   loader.style.display = "block";
-  tbody.innerHTML = '<tr class="loading-row"><td colspan="13">Fetching database records...</td></tr>';
+  tbody.innerHTML =
+    '<tr class="loading-row"><td colspan="13">Fetching database records...</td></tr>';
 
   try {
     const ts = new Date().getTime();
-    const headers = { Authorization: "Bearer " + token, "Cache-Control": "no-cache", Pragma: "no-cache" };
+    const headers = {
+      Authorization: "Bearer " + token,
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    };
 
     // 🟢 vehiclesCache fresh aayi irikkaan
     if (!vehiclesCache || vehiclesCache.length === 0) {
@@ -445,15 +557,21 @@ async function triggerFetch() {
 
     let lockRes, lockData;
     try {
-      lockRes = await fetch('/timesheet/api/record-lock/request', {
-        method: 'POST',
-        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ plate: p, month: m, year: y })
+      lockRes = await fetch("/timesheet/api/record-lock/request", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ plate: p, month: m, year: y }),
       });
       lockData = await lockRes.json();
     } catch (e) {
-      await customAlert("Network connection lost. Please check your internet and try again.", "Connection Error");
-      throw e; 
+      await customAlert(
+        "Network connection lost. Please check your internet and try again.",
+        "Connection Error",
+      );
+      throw e;
     }
 
     if (lockRes.status === 401 || lockRes.status === 403) {
@@ -463,35 +581,42 @@ async function triggerFetch() {
 
     let currentLoggedUser = "";
     try {
-      currentLoggedUser = String(JSON.parse(localStorage.getItem("timesheetUser") || "{}").username || "").trim().toLowerCase();
-    } catch(e) {}
+      currentLoggedUser = String(
+        JSON.parse(localStorage.getItem("timesheetUser") || "{}").username ||
+          "",
+      )
+        .trim()
+        .toLowerCase();
+    } catch (e) {}
 
-    const returnedOwner = String(lockData.lockedBy || lockData.owner || "").trim().toLowerCase();
+    const returnedOwner = String(lockData.lockedBy || lockData.owner || "")
+      .trim()
+      .toLowerCase();
     const isOwnedByMe = returnedOwner === currentLoggedUser;
 
     if (!lockData.success && !isOwnedByMe) {
-        let lockedUser = (lockData.lockedBy || "Another User").toUpperCase();
+      let lockedUser = (lockData.lockedBy || "Another User").toUpperCase();
 
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "warning",
-          title: `Locked by [ ${lockedUser} ]`,
-          text: "Opening in Read-Only mode",
-          showConfirmButton: false,
-          timer: 3000,
-          timerProgressBar: true,
-        });
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "warning",
+        title: `Locked by [ ${lockedUser} ]`,
+        text: "Opening in Read-Only mode",
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
 
-        isReadOnlyMode = true;
-        currentLockedRecord = null;
-        let btnReq = document.getElementById("btnRequestEdit");
-        if (btnReq) {
-          btnReq.style.display = "inline-block";
-          btnReq.style.opacity = "1";
-          btnReq.disabled = false;
-        }
-        amIWaitingForApproval = false;
+      isReadOnlyMode = true;
+      currentLockedRecord = null;
+      let btnReq = document.getElementById("btnRequestEdit");
+      if (btnReq) {
+        btnReq.style.display = "inline-block";
+        btnReq.style.opacity = "1";
+        btnReq.disabled = false;
+      }
+      amIWaitingForApproval = false;
     } else {
       // 🟢 Swantham lock aanenkil athallekil fresh lock aanenkil full edit access
       isReadOnlyMode = false;
@@ -500,117 +625,221 @@ async function triggerFetch() {
       if (btnReq) btnReq.style.display = "none";
     }
 
-    const res = await fetch(`/timesheet/api/grid-data?month=${m}&year=${y}&plate=${p}&_t=${ts}`, { headers, cache: "no-store" });
+    const res = await fetch(
+      `/timesheet/api/grid-data?month=${m}&year=${y}&plate=${p}&_t=${ts}`,
+      { headers, cache: "no-store" },
+    );
 
     if (res.status === 401 || res.status === 403) {
-      releaseLock(); 
+      releaseLock();
       openTimesheetReLoginModal(() => triggerFetch());
       return;
     }
 
     let data;
-    try { data = await res.json(); } 
-    catch (e) {
-      releaseLock(); 
+    try {
+      data = await res.json();
+    } catch (e) {
+      releaseLock();
       throw new Error("Server returned invalid response. Check connection.");
     }
 
     if (data.success === false) {
-      releaseLock(); 
-      if (data.message && (data.message.toLowerCase().includes("session") || data.message.toLowerCase().includes("token"))) {
+      releaseLock();
+      if (
+        data.message &&
+        (data.message.toLowerCase().includes("session") ||
+          data.message.toLowerCase().includes("token"))
+      ) {
         openTimesheetReLoginModal(() => triggerFetch());
         return;
       }
       throw new Error(data.message);
     }
-    
-    const logRes = await fetch(`/timesheet/api/vehicle-logs?plate=${p}&_t=${ts}`, { headers, cache: "no-store" });
+
+    const logRes = await fetch(
+      `/timesheet/api/vehicle-logs?plate=${p}&_t=${ts}`,
+      { headers, cache: "no-store" },
+    );
     let logs;
-    try { logs = await logRes.json(); } catch (e) { logs = { drivers: [], sites: [], owners: [], rates: [] }; }
+    try {
+      logs = await logRes.json();
+    } catch (e) {
+      logs = { drivers: [], sites: [], owners: [], rates: [] };
+    }
 
     let mIdx = months.indexOf(m);
     let monthStart = new Date(y, mIdx, 1);
     let monthEnd = new Date(y, mIdx + 1, 0);
 
-    let dNameArr = [], dMobArr = [], siteArr = [], activeSites = [];
-    let oNameArr = [], oMobArr = [];
+    let dNameArr = [],
+      dMobArr = [],
+      siteArr = [],
+      activeSites = [];
+    let oNameArr = [],
+      oMobArr = [];
 
     if (logs.success) {
       // 1. Driver Logs
       let activeDrivers = (logs.drivers || []).filter((d) => {
-        let st = d.work_start_date ? new Date(d.work_start_date) : new Date("2000-01-01");
-        let ed = d.work_end_date ? new Date(d.work_end_date) : new Date("2099-01-01");
+        let st = d.work_start_date
+          ? new Date(d.work_start_date)
+          : new Date("2000-01-01");
+        let ed = d.work_end_date
+          ? new Date(d.work_end_date)
+          : new Date("2099-01-01");
         return st <= monthEnd && ed >= monthStart;
       });
-      if (activeDrivers.length === 0 && logs.drivers && logs.drivers.length > 0) {
-        activeDrivers = [ [...logs.drivers].sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"))[0] ];
+      if (
+        activeDrivers.length === 0 &&
+        logs.drivers &&
+        logs.drivers.length > 0
+      ) {
+        activeDrivers = [
+          [...logs.drivers].sort(
+            (a, b) =>
+              new Date(b.work_start_date || "2000-01-01") -
+              new Date(a.work_start_date || "2000-01-01"),
+          )[0],
+        ];
       }
       if (activeDrivers.length > 0) {
-        dNameArr = [...new Set(activeDrivers.map((d) => d.driver_name))].filter(Boolean);
-        dMobArr = [...new Set(activeDrivers.map((d) => d.driver_mobile))].filter(Boolean);
+        dNameArr = [...new Set(activeDrivers.map((d) => d.driver_name))].filter(
+          Boolean,
+        );
+        dMobArr = [
+          ...new Set(activeDrivers.map((d) => d.driver_mobile)),
+        ].filter(Boolean);
       }
 
       // 2. Site Logs
       activeSites = (logs.sites || []).filter((s) => {
-        let st = s.work_start_date ? new Date(s.work_start_date) : new Date("2000-01-01");
-        let ed = s.work_end_date ? new Date(s.work_end_date) : new Date("2099-01-01");
+        let st = s.work_start_date
+          ? new Date(s.work_start_date)
+          : new Date("2000-01-01");
+        let ed = s.work_end_date
+          ? new Date(s.work_end_date)
+          : new Date("2099-01-01");
         return st <= monthEnd && ed >= monthStart;
       });
       if (activeSites.length === 0 && logs.sites && logs.sites.length > 0) {
-        activeSites = [ [...logs.sites].sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"))[0] ];
+        activeSites = [
+          [...logs.sites].sort(
+            (a, b) =>
+              new Date(b.work_start_date || "2000-01-01") -
+              new Date(a.work_start_date || "2000-01-01"),
+          )[0],
+        ];
       }
       if (activeSites.length > 0) {
-        siteArr = [...new Set(activeSites.map((s) => s.site_name))].filter(Boolean);
+        siteArr = [...new Set(activeSites.map((s) => s.site_name))].filter(
+          Boolean,
+        );
       }
 
       // 3. Owner Logs
       let activeOwners = (logs.owners || []).filter((o) => {
-        let st = o.work_start_date ? new Date(o.work_start_date) : new Date("2000-01-01");
-        let ed = o.work_end_date ? new Date(o.work_end_date) : new Date("2099-01-01");
+        let st = o.work_start_date
+          ? new Date(o.work_start_date)
+          : new Date("2000-01-01");
+        let ed = o.work_end_date
+          ? new Date(o.work_end_date)
+          : new Date("2099-01-01");
         return st <= monthEnd && ed >= monthStart;
       });
       if (activeOwners.length === 0 && logs.owners && logs.owners.length > 0) {
-        activeOwners = (logs.owners || []).filter((o) => o.status === "Running");
+        activeOwners = (logs.owners || []).filter(
+          (o) => o.status === "Running",
+        );
         if (activeOwners.length === 0) {
-          activeOwners = [ [...logs.owners].sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"))[0] ];
+          activeOwners = [
+            [...logs.owners].sort(
+              (a, b) =>
+                new Date(b.work_start_date || "2000-01-01") -
+                new Date(a.work_start_date || "2000-01-01"),
+            )[0],
+          ];
         }
       }
       if (activeOwners.length > 0) {
-        oNameArr = [...new Set(activeOwners.map((o) => o.owner_name))].filter(Boolean);
-        oMobArr = [...new Set(activeOwners.map((o) => o.owner_mobile))].filter(Boolean);
+        oNameArr = [...new Set(activeOwners.map((o) => o.owner_name))].filter(
+          Boolean,
+        );
+        oMobArr = [...new Set(activeOwners.map((o) => o.owner_mobile))].filter(
+          Boolean,
+        );
       }
     }
 
     let vObjMaster = vehiclesCache.find((v) => v.plate_no.toUpperCase() === p);
-    document.getElementById("dispDName").innerText = dNameArr.length > 0 ? dNameArr.join(" & ") : (vObjMaster ? vObjMaster.driver_name || "N/A" : "N/A");
-    document.getElementById("dispDMob").innerText = dMobArr.length > 0 ? dMobArr.join(" & ") : (vObjMaster ? vObjMaster.driver_mobile || "N/A" : "N/A");
-    document.getElementById("dispSite").innerText = siteArr.length > 0 ? siteArr.join(" & ") : (vObjMaster ? vObjMaster.site_name || "N/A" : "N/A");
-    
-    document.getElementById("dispOName").innerText = oNameArr.length > 0 ? oNameArr.join(" & ") : (vObjMaster ? vObjMaster.owner_name || "N/A" : "N/A");
-    document.getElementById("dispOMob").innerText = oMobArr.length > 0 ? oMobArr.join(" & ") : (vObjMaster ? vObjMaster.owner_mobile || "N/A" : "N/A");
-    
-    document.getElementById("dispVType").innerText = vObjMaster ? vObjMaster.vehicle_type || "N/A" : "N/A";
+    document.getElementById("dispDName").innerText =
+      dNameArr.length > 0
+        ? dNameArr.join(" & ")
+        : vObjMaster
+          ? vObjMaster.driver_name || "N/A"
+          : "N/A";
+    document.getElementById("dispDMob").innerText =
+      dMobArr.length > 0
+        ? dMobArr.join(" & ")
+        : vObjMaster
+          ? vObjMaster.driver_mobile || "N/A"
+          : "N/A";
+    document.getElementById("dispSite").innerText =
+      siteArr.length > 0
+        ? siteArr.join(" & ")
+        : vObjMaster
+          ? vObjMaster.site_name || "N/A"
+          : "N/A";
+
+    document.getElementById("dispOName").innerText =
+      oNameArr.length > 0
+        ? oNameArr.join(" & ")
+        : vObjMaster
+          ? vObjMaster.owner_name || "N/A"
+          : "N/A";
+    document.getElementById("dispOMob").innerText =
+      oMobArr.length > 0
+        ? oMobArr.join(" & ")
+        : vObjMaster
+          ? vObjMaster.owner_mobile || "N/A"
+          : "N/A";
+
+    document.getElementById("dispVType").innerText = vObjMaster
+      ? vObjMaster.vehicle_type || "N/A"
+      : "N/A";
 
     window.currentActiveSitesList = activeSites;
     window.currentVehicleMasterObj = vObjMaster;
 
     updateSiteLogDetailsCard(activeSites.length > 0 ? activeSites[0] : null);
 
-    let sStartVal = activeSites.length > 0 && activeSites[0].work_start_date ? activeSites[0].work_start_date.split("T")[0] : null;
-    let sEndVal = activeSites.length > 0 && activeSites[0].work_end_date ? activeSites[0].work_end_date.split("T")[0] : null;
+    let sStartVal =
+      activeSites.length > 0 && activeSites[0].work_start_date
+        ? activeSites[0].work_start_date.split("T")[0]
+        : null;
+    let sEndVal =
+      activeSites.length > 0 && activeSites[0].work_end_date
+        ? activeSites[0].work_end_date.split("T")[0]
+        : null;
 
     try {
-      const invRes = await fetch(`/payment/get-invoice?plate_no=${p}&month=${m + " " + y}&_t=${ts}`, { headers, cache: "no-store" });
+      const invRes = await fetch(
+        `/payment/get-invoice?plate_no=${p}&month=${m + " " + y}&_t=${ts}`,
+        { headers, cache: "no-store" },
+      );
       const invData = await invRes.json();
       currentInvoices = invData.success && invData.data ? invData.data : [];
-    } catch (e) { currentInvoices = []; }
+    } catch (e) {
+      currentInvoices = [];
+    }
 
     const invSiteSelect = document.getElementById("invSiteSelect");
     invSiteSelect.innerHTML = "";
     if (siteArr.length > 0) {
       siteArr.forEach((siteName) => {
         let opt = document.createElement("option");
-        opt.value = siteName; opt.text = siteName;
+        opt.value = siteName;
+        opt.text = siteName;
         invSiteSelect.appendChild(opt);
       });
       loadInvoiceForSelectedSite();
@@ -627,64 +856,64 @@ async function triggerFetch() {
       },
       body: JSON.stringify({ month: m, year: y, plate_no: p }),
     })
-    .then(res => res.json())
-    .then(lsData => {
-      const actualLsSpan = document.getElementById("actualLogsheetCount");
-      if (actualLsSpan) {
-        if (lsData.success && lsData.files && lsData.files.length > 0) {
-          let validCount = 0;
-          let zeroCount = 0;
-          
-          lsData.files.forEach(f => {
-            if (f.size === 0) zeroCount++;
-            else validCount++;
-          });
-          
-          let htmlStr = `<span style="font-weight: 700;">[ ${validCount} ]</span>`;
-          
-          if (zeroCount > 0) {
-            htmlStr += `<span style="color: #ef4444; font-weight: 700; margin-left: 6px; font-size: 13px;" title="${zeroCount} Empty (0B) files">${zeroCount}</span>`;
+      .then((res) => res.json())
+      .then((lsData) => {
+        const actualLsSpan = document.getElementById("actualLogsheetCount");
+        if (actualLsSpan) {
+          if (lsData.success && lsData.files && lsData.files.length > 0) {
+            let validCount = 0;
+            let zeroCount = 0;
+
+            lsData.files.forEach((f) => {
+              if (f.size === 0) zeroCount++;
+              else validCount++;
+            });
+
+            let htmlStr = `<span style="font-weight: 700;">[ ${validCount} ]</span>`;
+
+            if (zeroCount > 0) {
+              htmlStr += `<span style="color: #ef4444; font-weight: 700; margin-left: 6px; font-size: 13px;" title="${zeroCount} Empty (0B) files">${zeroCount}</span>`;
+            }
+
+            actualLsSpan.innerHTML = htmlStr;
+          } else {
+            actualLsSpan.innerHTML = "";
           }
-          
-          actualLsSpan.innerHTML = htmlStr;
-        } else {
-          actualLsSpan.innerHTML = "";
         }
-      }
-    })
-    .catch(e => console.log("Error fetching logsheet count:", e));
+      })
+      .catch((e) => console.log("Error fetching logsheet count:", e));
 
     let existingData = data.success ? data.data : [];
-    let pLogsForGrid = data.plateLogs || (logs.plateChanges || []);
-    
+    let pLogsForGrid = data.plateLogs || logs.plateChanges || [];
+
     try {
-        renderGrid(m, y, p, existingData, sStartVal, sEndVal, logs, pLogsForGrid);
-        await applyLockStatus(m, y, false);
+      renderGrid(m, y, p, existingData, sStartVal, sEndVal, logs, pLogsForGrid);
+      await applyLockStatus(m, y, false);
 
-        const saveLabel = document.getElementById("saveStatus");
-        if (saveLabel) {
-            if (isReadOnlyMode) {
-                saveLabel.innerText = "Read Only";
-                saveLabel.className = "save-indicator status-saving";
-            } else {
-                saveLabel.innerText = "Editable";
-                saveLabel.className = "save-indicator";
-            }
+      const saveLabel = document.getElementById("saveStatus");
+      if (saveLabel) {
+        if (isReadOnlyMode) {
+          saveLabel.innerText = "Read Only";
+          saveLabel.className = "save-indicator status-saving";
+        } else {
+          saveLabel.innerText = "Editable";
+          saveLabel.className = "save-indicator";
         }
-        
-        if(typeof startRecordPoll === "function") {
-            startRecordPoll(p, m, y);
-        }
+      }
+
+      if (typeof startRecordPoll === "function") {
+        startRecordPoll(p, m, y);
+      }
     } catch (renderError) {
-        console.error("Render Grid Error:", renderError);
+      console.error("Render Grid Error:", renderError);
     } finally {
-        btn.disabled = false;
-        text.innerText = "Fetch Data";
-        loader.style.display = "none";
+      btn.disabled = false;
+      text.innerText = "Fetch Data";
+      loader.style.display = "none";
     }
-
   } catch (error) {
-    tbody.innerHTML = '<tr class="loading-row"><td colspan="13" style="color:red;">Error fetching data. Check connection.</td></tr>';
+    tbody.innerHTML =
+      '<tr class="loading-row"><td colspan="13" style="color:red;">Error fetching data. Check connection.</td></tr>';
     btn.disabled = false;
     text.innerText = "Fetch Data";
     loader.style.display = "none";
@@ -695,7 +924,11 @@ function calculateHoursForSite(targetSiteLog) {
   const siteHoursBlock = document.getElementById("siteHoursBlock");
   if (!siteHoursBlock) return;
 
-  if (!window.currentActiveSitesList || window.currentActiveSitesList.length <= 1 || !targetSiteLog) {
+  if (
+    !window.currentActiveSitesList ||
+    window.currentActiveSitesList.length <= 1 ||
+    !targetSiteLog
+  ) {
     siteHoursBlock.style.display = "none";
     return;
   }
@@ -705,12 +938,17 @@ function calculateHoursForSite(targetSiteLog) {
   const mIdx = months.indexOf(monthStr);
   const days = getDaysInMonth(monthStr, year);
 
-  let stDate = targetSiteLog.work_start_date ? new Date(targetSiteLog.work_start_date) : new Date(year, mIdx, 1);
+  let stDate = targetSiteLog.work_start_date
+    ? new Date(targetSiteLog.work_start_date)
+    : new Date(year, mIdx, 1);
   stDate.setHours(0, 0, 0, 0);
-  let edDate = targetSiteLog.work_end_date ? new Date(targetSiteLog.work_end_date) : new Date(year, mIdx + 1, 0);
+  let edDate = targetSiteLog.work_end_date
+    ? new Date(targetSiteLog.work_end_date)
+    : new Date(year, mIdx + 1, 0);
   edDate.setHours(23, 59, 59, 999);
 
-  let siteNormal = 0, siteOT = 0;
+  let siteNormal = 0,
+    siteOT = 0;
 
   for (let i = 1; i <= days; i++) {
     let curDate = new Date(year, mIdx, i);
@@ -718,26 +956,54 @@ function calculateHoursForSite(targetSiteLog) {
 
     if (curDate >= stDate && curDate <= edDate) {
       let tm = parseFloat(document.getElementById(`time_${i}`)?.value) || 0;
-      let bd = document.querySelector(`.grid-input[data-row="${i}"][data-col="bd"]`)?.value.trim().toUpperCase() || "";
+      let bd =
+        document
+          .querySelector(`.grid-input[data-row="${i}"][data-col="bd"]`)
+          ?.value.trim()
+          .toUpperCase() || "";
       let dayName = getDayName(i, monthStr, year);
 
-      let formattedDateForSum = new Date(year, mIdx, i).toLocaleDateString("en-GB", {
-        day: "2-digit", month: "short", year: "numeric"
-      }).replace(/ /g, " ");
+      let formattedDateForSum = new Date(year, mIdx, i)
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+        .replace(/ /g, " ");
 
       let targetSiteName = (targetSiteLog.site_name || "").trim().toUpperCase();
-      let sumOtRule = specialRulesCache.find(r =>
-        r.is_active && r.rule_type === "FULL_OT" &&
-        (r.sites.includes("ALL") || r.sites.includes(targetSiteName)) &&
-        r.dates.includes(formattedDateForSum)
+      let sumOtRule = specialRulesCache.find(
+        (r) =>
+          r.is_active &&
+          r.rule_type === "FULL_OT" &&
+          (r.sites.includes("ALL") || r.sites.includes(targetSiteName)) &&
+          r.dates.includes(formattedDateForSum),
       );
 
       let isFullOT = dayName === "Fri" || i === 31 || !!sumOtRule;
-      let nr = 0, ot = 0;
+      let nr = 0,
+        ot = 0;
 
       if (bd === "ID" || bd === "NP") {
-        if (isFullOT) ot = 10; else nr = 10;
-      } else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "RE", "FRI", "Fri"].includes(bd)) {
+        if (isFullOT) ot = 10;
+        else nr = 10;
+      } else if (
+        [
+          "BD",
+          "NW",
+          "NS",
+          "NR",
+          "H",
+          "AB",
+          "DC",
+          "SC",
+          "R",
+          "WS",
+          "RE",
+          "FRI",
+          "Fri",
+        ].includes(bd)
+      ) {
       } else if (tm > 0) {
         if (isFullOT) {
           ot = tm;
@@ -767,12 +1033,20 @@ function updateSiteLogDetailsCard(targetSiteLog) {
   const newVehRow = document.getElementById("newVehRow");
 
   if (!targetSiteLog) {
-    document.getElementById("dispFieldCo").innerText = vMaster ? vMaster.field_co || "N/A" : "N/A";
-    document.getElementById("dispSiteCo").innerText = vMaster ? vMaster.site_co || "N/A" : "N/A";
+    document.getElementById("dispFieldCo").innerText = vMaster
+      ? vMaster.field_co || "N/A"
+      : "N/A";
+    document.getElementById("dispSiteCo").innerText = vMaster
+      ? vMaster.site_co || "N/A"
+      : "N/A";
     document.getElementById("dispSiteStart").innerText = "N/A";
     document.getElementById("dispSiteEnd").innerText = "N/A";
-    document.getElementById("dispAsset").innerText = vMaster ? vMaster.asset_code || "N/A" : "N/A";
-    document.getElementById("dispWorkOrder").innerText = vMaster ? vMaster.wrk_order_no || "N/A" : "N/A";
+    document.getElementById("dispAsset").innerText = vMaster
+      ? vMaster.asset_code || "N/A"
+      : "N/A";
+    document.getElementById("dispWorkOrder").innerText = vMaster
+      ? vMaster.wrk_order_no || "N/A"
+      : "N/A";
     if (oldVehRow) oldVehRow.style.display = "none";
     if (newVehRow) newVehRow.style.display = "none";
     const siteHoursBlock = document.getElementById("siteHoursBlock");
@@ -780,25 +1054,48 @@ function updateSiteLogDetailsCard(targetSiteLog) {
     return;
   }
 
-  const sStart = targetSiteLog.work_start_date ? targetSiteLog.work_start_date.split("T")[0] : null;
-  const sEnd = targetSiteLog.work_end_date ? targetSiteLog.work_end_date.split("T")[0] : null;
+  const sStart = targetSiteLog.work_start_date
+    ? targetSiteLog.work_start_date.split("T")[0]
+    : null;
+  const sEnd = targetSiteLog.work_end_date
+    ? targetSiteLog.work_end_date.split("T")[0]
+    : null;
 
-  document.getElementById("dispFieldCo").innerText = targetSiteLog.field_co || (vMaster ? vMaster.field_co : "N/A");
-  document.getElementById("dispSiteCo").innerText = targetSiteLog.site_co || (vMaster ? vMaster.site_co : "N/A");
-  document.getElementById("dispSiteStart").innerText = formatDateUI(sStart || "N/A");
-  document.getElementById("dispSiteEnd").innerText = sEnd ? formatDateUI(sEnd) + (targetSiteLog.new_vehicle_no ? " (Replaced)" : " (Released)") : "Running";
-  document.getElementById("dispAsset").innerText = targetSiteLog.asset_code || (vMaster ? vMaster.asset_code : "N/A");
-  document.getElementById("dispWorkOrder").innerText = targetSiteLog.work_order_no || (vMaster ? vMaster.wrk_order_no : "N/A");
+  document.getElementById("dispFieldCo").innerText =
+    targetSiteLog.field_co || (vMaster ? vMaster.field_co : "N/A");
+  document.getElementById("dispSiteCo").innerText =
+    targetSiteLog.site_co || (vMaster ? vMaster.site_co : "N/A");
+  document.getElementById("dispSiteStart").innerText = formatDateUI(
+    sStart || "N/A",
+  );
+  document.getElementById("dispSiteEnd").innerText = sEnd
+    ? formatDateUI(sEnd) +
+      (targetSiteLog.new_vehicle_no ? " (Replaced)" : " (Released)")
+    : "Running";
+  document.getElementById("dispAsset").innerText =
+    targetSiteLog.asset_code || (vMaster ? vMaster.asset_code : "N/A");
+  document.getElementById("dispWorkOrder").innerText =
+    targetSiteLog.work_order_no || (vMaster ? vMaster.wrk_order_no : "N/A");
 
-  if (targetSiteLog.old_vehicle_no && targetSiteLog.old_vehicle_no.trim() !== "" && targetSiteLog.old_vehicle_no !== "null") {
-    document.getElementById("dispOldVeh").innerText = targetSiteLog.old_vehicle_no.toUpperCase();
+  if (
+    targetSiteLog.old_vehicle_no &&
+    targetSiteLog.old_vehicle_no.trim() !== "" &&
+    targetSiteLog.old_vehicle_no !== "null"
+  ) {
+    document.getElementById("dispOldVeh").innerText =
+      targetSiteLog.old_vehicle_no.toUpperCase();
     if (oldVehRow) oldVehRow.style.display = "flex";
   } else {
     if (oldVehRow) oldVehRow.style.display = "none";
   }
 
-  if (targetSiteLog.new_vehicle_no && targetSiteLog.new_vehicle_no.trim() !== "" && targetSiteLog.new_vehicle_no !== "null") {
-    document.getElementById("dispNewVeh").innerText = targetSiteLog.new_vehicle_no.toUpperCase();
+  if (
+    targetSiteLog.new_vehicle_no &&
+    targetSiteLog.new_vehicle_no.trim() !== "" &&
+    targetSiteLog.new_vehicle_no !== "null"
+  ) {
+    document.getElementById("dispNewVeh").innerText =
+      targetSiteLog.new_vehicle_no.toUpperCase();
     if (newVehRow) newVehRow.style.display = "flex";
   } else {
     if (newVehRow) newVehRow.style.display = "none";
@@ -815,8 +1112,13 @@ function loadInvoiceForSelectedSite() {
     return;
   }
 
-  if (window.currentActiveSitesList && window.currentActiveSitesList.length > 0) {
-    const matchedSiteLog = window.currentActiveSitesList.find(s => s.site_name === selectedSite) || window.currentActiveSitesList[0];
+  if (
+    window.currentActiveSitesList &&
+    window.currentActiveSitesList.length > 0
+  ) {
+    const matchedSiteLog =
+      window.currentActiveSitesList.find((s) => s.site_name === selectedSite) ||
+      window.currentActiveSitesList[0];
     updateSiteLogDetailsCard(matchedSiteLog);
   }
 
@@ -851,7 +1153,7 @@ function renderGrid(
   siteStart,
   siteEnd,
   logs = { drivers: [], sites: [] },
-  plateLogs = []
+  plateLogs = [],
 ) {
   const tbody = document.getElementById("gridBody");
   tbody.innerHTML = "";
@@ -865,16 +1167,20 @@ function renderGrid(
 
   let activeMonthChanges = [];
   if (plateLogs && plateLogs.length > 0) {
-    activeMonthChanges = plateLogs.filter(pl => {
+    activeMonthChanges = plateLogs.filter((pl) => {
       if (!pl.change_date) return false;
       let cDate = new Date(pl.change_date);
-      return cDate.getFullYear() === parseInt(year) && cDate.getMonth() === mIdx;
+      return (
+        cDate.getFullYear() === parseInt(year) && cDate.getMonth() === mIdx
+      );
     });
   }
 
   let cleanMasterPlate = plate;
-  if (cleanMasterPlate.includes("➔")) cleanMasterPlate = cleanMasterPlate.split("➔").pop().trim();
-  else if (cleanMasterPlate.includes("->")) cleanMasterPlate = cleanMasterPlate.split("->").pop().trim();
+  if (cleanMasterPlate.includes("➔"))
+    cleanMasterPlate = cleanMasterPlate.split("➔").pop().trim();
+  else if (cleanMasterPlate.includes("->"))
+    cleanMasterPlate = cleanMasterPlate.split("->").pop().trim();
 
   for (let i = 1; i <= days; i++) {
     const rowData =
@@ -889,12 +1195,19 @@ function renderGrid(
     if (plateLogs && plateLogs.length > 0) {
       for (let pl of plateLogs) {
         if (!pl.change_date) continue;
-        let cParts = String(pl.change_date).split("T")[0].split("-").map(Number);
+        let cParts = String(pl.change_date)
+          .split("T")[0]
+          .split("-")
+          .map(Number);
         let cDate = new Date(cParts[0], cParts[1] - 1, cParts[2]);
         cDate.setHours(0, 0, 0, 0);
 
-        let oPlate = String(pl.old_plate_no || "").trim().toUpperCase();
-        let nPlate = String(pl.new_plate_no || "").trim().toUpperCase();
+        let oPlate = String(pl.old_plate_no || "")
+          .trim()
+          .toUpperCase();
+        let nPlate = String(pl.new_plate_no || "")
+          .trim()
+          .toUpperCase();
 
         if (curDateObj < cDate) {
           dayPlate = oPlate;
@@ -921,7 +1234,20 @@ function renderGrid(
       })
       .replace(/ /g, " ");
 
-    const monthShortNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthShortNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     const padDay = String(i).padStart(2, "0");
     const formattedDateStd = `${padDay} ${monthShortNames[mIdx]} ${year}`;
     const altDateStd = `${i} ${monthShortNames[mIdx]} ${year}`;
@@ -930,16 +1256,32 @@ function renderGrid(
       if (!r.is_active) return false;
       let sitesArr = Array.isArray(r.sites) ? r.sites : [];
       if (typeof r.sites === "string") {
-        try { sitesArr = JSON.parse(r.sites); } catch (e) { sitesArr = [r.sites]; }
+        try {
+          sitesArr = JSON.parse(r.sites);
+        } catch (e) {
+          sitesArr = [r.sites];
+        }
       }
       let datesArr = Array.isArray(r.dates) ? r.dates : [];
       if (typeof r.dates === "string") {
-        try { datesArr = JSON.parse(r.dates); } catch (e) { datesArr = [r.dates]; }
+        try {
+          datesArr = JSON.parse(r.dates);
+        } catch (e) {
+          datesArr = [r.dates];
+        }
       }
-      const siteMatch = sitesArr.includes("ALL") || sitesArr.some(s => s && currentSiteStr.includes(String(s).trim().toUpperCase()));
-      const dateMatch = datesArr.some(d => {
+      const siteMatch =
+        sitesArr.includes("ALL") ||
+        sitesArr.some(
+          (s) => s && currentSiteStr.includes(String(s).trim().toUpperCase()),
+        );
+      const dateMatch = datesArr.some((d) => {
         let dStr = String(d).trim();
-        return dStr === formattedDateStd || dStr === altDateStd || dStr === formattedDate;
+        return (
+          dStr === formattedDateStd ||
+          dStr === altDateStd ||
+          dStr === formattedDate
+        );
       });
       return siteMatch && dateMatch;
     });
@@ -961,7 +1303,10 @@ function renderGrid(
     }
 
     let statusCode = getGapStatus(currentDateObj, siteLogs, driverLogs);
-    let hasData = (displayBd !== "" && displayBd !== null) || (ws !== "" && we !== "") || hmr !== "";
+    let hasData =
+      (displayBd !== "" && displayBd !== null) ||
+      (ws !== "" && we !== "") ||
+      hmr !== "";
 
     if (!hasData) {
       if (specialRule && specialRule.rule_type !== "FULL_OT") {
@@ -972,7 +1317,9 @@ function renderGrid(
       }
     }
 
-    let disabledAttr = isReadOnlyMode ? 'disabled style="background-color: #f1f5f9; cursor: not-allowed;"' : '';
+    let disabledAttr = isReadOnlyMode
+      ? 'disabled style="background-color: #f1f5f9; cursor: not-allowed;"'
+      : "";
 
     let tr = document.createElement("tr");
     tr.className = rowClass;
@@ -986,7 +1333,7 @@ function renderGrid(
       <td><input type="text" class="grid-input" data-col="hmr_end" data-row="${i}" value="${cleanVal(rowData.hmr_end)}" ${disabledAttr}></td>
       <td><input type="text" class="grid-input" data-col="fuel" data-row="${i}" value="${cleanVal(rowData.fuel)}" ${disabledAttr}></td>
       <td><input type="text" class="grid-input" data-col="bd" data-row="${i}" value="${displayBd}" ${disabledAttr}></td>
-      <td><input type="checkbox" class="grid-input" data-col="nl_checked" data-row="${i}" ${rowData.nl_checked ? "checked" : ""} ${isReadOnlyMode ? 'disabled' : ''}></td>
+      <td><input type="checkbox" class="grid-input" data-col="nl_checked" data-row="${i}" ${rowData.nl_checked ? "checked" : ""} ${isReadOnlyMode ? "disabled" : ""}></td>
       <td><input type="text" class="grid-readonly" id="dist_${i}" value="${dbDist}" tabindex="-1" readonly></td>
       <td><input type="text" class="grid-readonly" id="time_${i}" value="${cleanVal(rowData.calc_time)}" tabindex="-1" readonly></td>
       <td><textarea class="grid-input" data-col="remark" data-row="${i}" ${disabledAttr}>${rowRemark}</textarea></td>
@@ -1067,7 +1414,23 @@ function updateSummaryBox() {
     if (bd === "ID" || bd === "NP") {
       if (isFullOT) otHr = 10;
       else normalHr = 10;
-    } else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "RE", "FRI", "Fri"].includes(bd)) {
+    } else if (
+      [
+        "BD",
+        "NW",
+        "NS",
+        "NR",
+        "H",
+        "AB",
+        "DC",
+        "SC",
+        "R",
+        "WS",
+        "RE",
+        "FRI",
+        "Fri",
+      ].includes(bd)
+    ) {
     } else if (tm > 0) {
       if (isFullOT) {
         otHr = tm;
@@ -1099,8 +1462,14 @@ function updateSummaryBox() {
   document.getElementById("sumMileage").innerText = mileage;
 
   const curSite = document.getElementById("invSiteSelect")?.value;
-  if (curSite && window.currentActiveSitesList && window.currentActiveSitesList.length > 0) {
-    const matchedLog = window.currentActiveSitesList.find(s => s.site_name === curSite) || window.currentActiveSitesList[0];
+  if (
+    curSite &&
+    window.currentActiveSitesList &&
+    window.currentActiveSitesList.length > 0
+  ) {
+    const matchedLog =
+      window.currentActiveSitesList.find((s) => s.site_name === curSite) ||
+      window.currentActiveSitesList[0];
     if (typeof calculateHoursForSite === "function") {
       calculateHoursForSite(matchedLog);
     }
@@ -1144,24 +1513,28 @@ function attachGridEvents() {
     }
 
     input.addEventListener("focus", function () {
-      this.dataset.oldVal = this.type === "checkbox" ? this.checked : this.value;
+      this.dataset.oldVal =
+        this.type === "checkbox" ? this.checked : this.value;
     });
 
     input.addEventListener("blur", function () {
       const row = this.getAttribute("data-row");
       const col = this.getAttribute("data-col");
       let currentVal = this.type === "checkbox" ? this.checked : this.value;
-      
+
       // Check if this row actually exists in DB or if modified_by is empty
       const modUser = document.getElementById(`mod_${row}`)?.value || "";
       const isUnsavedAutoValue = !modUser && currentVal !== "";
 
-      if (String(this.dataset.oldVal) !== String(currentVal) || isUnsavedAutoValue) {
-        calculateRow(row); 
-        const finalVal = this.type === "checkbox" ? this.checked : this.value; 
+      if (
+        String(this.dataset.oldVal) !== String(currentVal) ||
+        isUnsavedAutoValue
+      ) {
+        calculateRow(row);
+        const finalVal = this.type === "checkbox" ? this.checked : this.value;
         saveCellData(row, col, finalVal);
         updateSummaryBox();
-        this.dataset.oldVal = finalVal; 
+        this.dataset.oldVal = finalVal;
       }
     });
 
@@ -1170,7 +1543,7 @@ function attachGridEvents() {
         const row = this.getAttribute("data-row");
         const col = this.getAttribute("data-col");
         let currentVal = this.checked;
-        
+
         if (String(this.dataset.oldVal) !== String(currentVal)) {
           calculateRow(row);
           const finalVal = this.checked;
@@ -1232,8 +1605,8 @@ function calculateRow(rowIdx) {
   else if (bd === "S") bd = "NS";
   else if (bd === "NR") bd = "NR";
   else if (bd === "F") bd = "Fri";
-  
-  bdInput.value = bd; 
+
+  bdInput.value = bd;
   let bdCheck = bd.toUpperCase();
 
   if (ws !== "" && we !== "") {
@@ -1258,7 +1631,22 @@ function calculateRow(rowIdx) {
     let bdNum = parseFloat(bd);
     if (!isNaN(bdNum)) finalTime = bdNum;
     else if (["ID", "NP"].includes(bdCheck)) finalTime = 10;
-    else if (["BD", "NW", "NS", "NR", "H", "AB", "DC", "SC", "R", "WS", "RE", "FRI"].includes(bdCheck))
+    else if (
+      [
+        "BD",
+        "NW",
+        "NS",
+        "NR",
+        "H",
+        "AB",
+        "DC",
+        "SC",
+        "R",
+        "WS",
+        "RE",
+        "FRI",
+      ].includes(bdCheck)
+    )
       finalTime = 0;
   } else if (ws && we) {
     let sHour = parseRailwayTime(ws);
@@ -1340,8 +1728,7 @@ function calculateRow(rowIdx) {
 }
 
 let saveTimeout;
-let pendingSaves = 0; 
-
+let pendingSaves = 0;
 
 window.addEventListener("beforeunload", function (e) {
   if (pendingSaves > 0) {
@@ -1351,21 +1738,22 @@ window.addEventListener("beforeunload", function (e) {
   }
 });
 
-
 window.addEventListener("pagehide", function () {
   releaseLock();
 });
 
 async function saveCellData(rowIdx, colName, colValue) {
   const mainPlateInput = document.getElementById("selPlate");
-  let p = mainPlateInput.dataset.actualPlate || mainPlateInput.value.trim().toUpperCase();
+  let p =
+    mainPlateInput.dataset.actualPlate ||
+    mainPlateInput.value.trim().toUpperCase();
   if (p.includes("➔")) p = p.split("➔").pop().trim();
   else if (p.includes("->")) p = p.split("->").pop().trim();
 
   const plate = p;
   if (!plate || !colName) return;
 
-  pendingSaves++; 
+  pendingSaves++;
   const statusLabel = document.getElementById("saveStatus");
   statusLabel.innerText = "Saving...";
   statusLabel.className = "save-indicator status-saving";
@@ -1392,7 +1780,7 @@ async function saveCellData(rowIdx, colName, colValue) {
         Authorization: "Bearer " + token,
       },
       body: JSON.stringify(payload),
-      keepalive: true 
+      keepalive: true,
     });
 
     if (response.status === 401 || response.status === 403) {
@@ -1403,7 +1791,9 @@ async function saveCellData(rowIdx, colName, colValue) {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok || data.success === false) {
-      throw new Error(data.message || "Database rejected the save. Possible sync issue.");
+      throw new Error(
+        data.message || "Database rejected the save. Possible sync issue.",
+      );
     }
 
     try {
@@ -1443,7 +1833,7 @@ async function saveCellData(rowIdx, colName, colValue) {
             entry_date: formattedDate,
             action: "UPDATE",
           }),
-          keepalive: true
+          keepalive: true,
         });
       }
     } catch (logErr) {}
@@ -1451,34 +1841,46 @@ async function saveCellData(rowIdx, colName, colValue) {
     console.error("Strict Save Error:", e);
     statusLabel.innerText = "Error";
     statusLabel.style.backgroundColor = "#dc3545";
-    
-    await customAlert("CRITICAL ERROR: Data failed to save securely to the database. To prevent data loss, your session will be closed. Reason: " + (e.message || "Server Connection Error"), "Database Error");
-    logout(); 
+
+    await customAlert(
+      "CRITICAL ERROR: Data failed to save securely to the database. To prevent data loss, your session will be closed. Reason: " +
+        (e.message || "Server Connection Error"),
+      "Database Error",
+    );
+    logout();
   } finally {
-    pendingSaves = Math.max(0, pendingSaves - 1); 
+    pendingSaves = Math.max(0, pendingSaves - 1);
   }
 }
 
 // 🟢 NEW: Navbar-ലെ 🔒 Lock ഐക്കണിൽ ക്ലിക്ക് ചെയ്യുമ്പോൾ അൺലോക്ക് പോപ്പ്-അപ്പ് ഓപ്പൺ ആകുന്നു
 function openPeriodUnlockModal() {
   if (systemLockData && systemLockData.month && systemLockData.year) {
-    customAlert(`The period up to ${systemLockData.month} ${systemLockData.year} is locked. You cannot edit this data without unlocking.`, "Period Locked 🔒");
+    customAlert(
+      `The period up to ${systemLockData.month} ${systemLockData.year} is locked. You cannot edit this data without unlocking.`,
+      "Period Locked 🔒",
+    );
   }
 }
 
 function customAlert(message, title = "Notice") {
   return new Promise((resolve) => {
     document.getElementById("customAlertTitle").innerText = title;
-    document.getElementById("customAlertTitle").style.color = (title.includes("Success") || title.includes("Unlocked") || title.includes("Transferred")) ? "#10b981" : "#ef4444";
+    document.getElementById("customAlertTitle").style.color =
+      title.includes("Success") ||
+      title.includes("Unlocked") ||
+      title.includes("Transferred")
+        ? "#10b981"
+        : "#ef4444";
     document.getElementById("customAlertMessage").innerText = message;
-    
+
     const logoutBtn = document.getElementById("alertLogoutBtn");
     const unlockBtn = document.getElementById("alertUnlockBtn");
     const reqOtpBtn = document.getElementById("alertRequestOtpBtn");
     const okBtn = document.getElementById("alertOkBtn");
     const closeBtn = document.getElementById("alertCloseBtn");
     const otpInput = document.getElementById("gridUnlockInput");
-    
+
     if (logoutBtn) {
       if (title === "Database Error" || title === "Connection Error") {
         logoutBtn.style.display = "inline-block";
@@ -1491,8 +1893,8 @@ function customAlert(message, title = "Notice") {
       if (title === "Period Locked" || title === "Period Locked 🔒") {
         unlockBtn.style.display = "inline-block";
         reqOtpBtn.style.display = "inline-block";
-        otpInput.style.display = "none"; 
-        otpInput.value = ""; 
+        otpInput.style.display = "none";
+        otpInput.value = "";
         if (okBtn) okBtn.style.display = "none"; // 🟢 OK ബട്ടൺ മറയ്ക്കുന്നു
         if (closeBtn) closeBtn.style.display = "inline-block"; // 🟢 Close ബട്ടൺ കാണിക്കുന്നു
       } else {
@@ -1503,7 +1905,7 @@ function customAlert(message, title = "Notice") {
         if (closeBtn) closeBtn.style.display = "none";
       }
     }
-    
+
     document.getElementById("customAlertModal").style.display = "flex";
     window.closeCustomAlert = function () {
       document.getElementById("customAlertModal").style.display = "none";
@@ -1521,51 +1923,52 @@ async function requestOtpFromGrid() {
   btn.disabled = true;
   btn.innerText = "Sending...";
   try {
-      const token = localStorage.getItem("timesheetToken");
-      const res = await fetch("/api/lock/request-unlock", {
-          method: "POST",
-          headers: { Authorization: "Bearer " + token }
-      });
-      const data = await res.json();
-      
-      if(data.success) {
-          document.getElementById("customAlertTitle").innerText = "OTP Sent 📩";
-          document.getElementById("customAlertTitle").style.color = "#3b82f6";
-          document.getElementById("customAlertMessage").innerText = data.message;
-          document.getElementById("gridUnlockInput").style.display = "block";
-          document.getElementById("gridUnlockInput").focus();
-      } else {
-          document.getElementById("customAlertMessage").innerText = data.message;
-      }
-  } catch(e) {
-      document.getElementById("customAlertMessage").innerText = "Network issue while sending OTP.";
+    const token = localStorage.getItem("timesheetToken");
+    const res = await fetch("/api/lock/request-unlock", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token },
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      document.getElementById("customAlertTitle").innerText = "OTP Sent 📩";
+      document.getElementById("customAlertTitle").style.color = "#3b82f6";
+      document.getElementById("customAlertMessage").innerText = data.message;
+      document.getElementById("gridUnlockInput").style.display = "block";
+      document.getElementById("gridUnlockInput").focus();
+    } else {
+      document.getElementById("customAlertMessage").innerText = data.message;
+    }
+  } catch (e) {
+    document.getElementById("customAlertMessage").innerText =
+      "Network issue while sending OTP.";
   } finally {
-      btn.disabled = false;
-      btn.innerText = "📩 Req OTP";
+    btn.disabled = false;
+    btn.innerText = "📩 Req OTP";
   }
 }
 
 async function triggerGridUnlock() {
   const otpInput = document.getElementById("gridUnlockInput");
-  
+
   if (otpInput && otpInput.style.display === "none") {
-      otpInput.style.display = "block";
-      otpInput.focus();
-      return; 
+    otpInput.style.display = "block";
+    otpInput.focus();
+    return;
   }
 
   const code = otpInput ? otpInput.value.trim() : "";
-  
+
   if (!code) {
-      if (otpInput) {
-          otpInput.style.borderColor = "#ef4444";
-          otpInput.placeholder = "Enter Code First!";
-          setTimeout(() => {
-              otpInput.style.borderColor = "#cbd5e1";
-              otpInput.placeholder = "Enter OTP or Master Code";
-          }, 2000);
-      }
-      return;
+    if (otpInput) {
+      otpInput.style.borderColor = "#ef4444";
+      otpInput.placeholder = "Enter Code First!";
+      setTimeout(() => {
+        otpInput.style.borderColor = "#cbd5e1";
+        otpInput.placeholder = "Enter OTP or Master Code";
+      }, 2000);
+    }
+    return;
   }
 
   const btn = document.getElementById("alertUnlockBtn");
@@ -1573,50 +1976,57 @@ async function triggerGridUnlock() {
   btn.innerText = "Wait...";
 
   try {
-      const token = localStorage.getItem("timesheetToken");
-      const res = await fetch("/api/lock/verify-unlock", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify({ code })
+    const token = localStorage.getItem("timesheetToken");
+    const res = await fetch("/api/lock/verify-unlock", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      closeCustomAlert();
+      await customAlert(
+        "System unlocked successfully! You can now edit the data.",
+        "Success",
+      );
+
+      systemLockData = { month: null, year: null };
+
+      document.querySelectorAll(".grid-input").forEach((el) => {
+        el.disabled = false;
+        el.style.backgroundColor = "";
+        el.style.cursor = "text";
+        el.style.color = "";
+        el.style.opacity = "1";
       });
-      const data = await res.json();
-      
-      if (data.success) {
-          closeCustomAlert(); 
-          await customAlert("System unlocked successfully! You can now edit the data.", "Success");
-          
-          systemLockData = { month: null, year: null }; 
-          
-          document.querySelectorAll(".grid-input").forEach(el => {
-              el.disabled = false;
-              el.style.backgroundColor = ""; 
-              el.style.cursor = "text";
-              el.style.color = "";
-              el.style.opacity = "1"; 
-          });
-          
-          const invBtn = document.querySelector(".btn-inv-save");
-          if(invBtn) {
-              invBtn.disabled = false;
-              invBtn.style.opacity = "1";
-              invBtn.innerText = "Save Invoice Data";
-          }
-      } else {
-          if (otpInput) {
-              otpInput.value = "";
-              otpInput.style.borderColor = "#ef4444";
-              otpInput.placeholder = "Invalid Code!";
-              setTimeout(() => {
-                  otpInput.style.borderColor = "#cbd5e1";
-                  otpInput.placeholder = "Enter OTP or Master Code";
-              }, 2000);
-          }
+
+      const invBtn = document.querySelector(".btn-inv-save");
+      if (invBtn) {
+        invBtn.disabled = false;
+        invBtn.style.opacity = "1";
+        invBtn.innerText = "Save Invoice Data";
       }
+    } else {
+      if (otpInput) {
+        otpInput.value = "";
+        otpInput.style.borderColor = "#ef4444";
+        otpInput.placeholder = "Invalid Code!";
+        setTimeout(() => {
+          otpInput.style.borderColor = "#cbd5e1";
+          otpInput.placeholder = "Enter OTP or Master Code";
+        }, 2000);
+      }
+    }
   } catch (e) {
-      document.getElementById("customAlertMessage").innerText = "Verification failed. Check network.";
+    document.getElementById("customAlertMessage").innerText =
+      "Verification failed. Check network.";
   } finally {
-      btn.disabled = false;
-      btn.innerText = "🔑 Unlock";
+    btn.disabled = false;
+    btn.innerText = "🔑 Unlock";
   }
 }
 
@@ -1802,14 +2212,14 @@ function toggleDarkMode() {
   document.getElementById("userDropdownMenu").style.display = "none";
 }
 function logout() {
-  releaseLock(); 
+  releaseLock();
   localStorage.removeItem("timesheetToken");
   localStorage.removeItem("timesheetUser");
-  
+
   const currentPage = encodeURIComponent(
-    window.location.pathname.split("/").pop() + window.location.search
+    window.location.pathname.split("/").pop() + window.location.search,
   );
-  
+
   setTimeout(() => {
     window.location.href = "index.html?redirect=" + currentPage;
   }, 300);
@@ -1963,7 +2373,7 @@ async function importExcel() {
       let bd = String(row["BD"] || "")
         .trim()
         .toUpperCase();
-      
+
       if (bd === "B") bd = "BD";
       else if (bd === "N") bd = "NW";
       else if (bd === "S") bd = "NS";
@@ -1981,7 +2391,8 @@ async function importExcel() {
         let bdNum = parseFloat(bd);
         if (!isNaN(bdNum)) finalTime = bdNum;
         else if (["ID", "NP"].includes(bd)) finalTime = 10;
-        else if (["BD", "NW", "NS", "NR", "H", "FRI"].includes(bd)) finalTime = 0;
+        else if (["BD", "NW", "NS", "NR", "H", "FRI"].includes(bd))
+          finalTime = 0;
       } else if (ws && we) {
         let parseRT = (val) => {
           let [hStr, mStr] = String(val).split(".");
@@ -2164,96 +2575,111 @@ init();
 // ==========================================
 // 🔒 LOCK PERIOD CHECKER (UPDATED)
 // ==========================================
-async function applyLockStatus(selectedMonthStr, selectedYearStr, silent = false) {
-    try {
-        const ts = new Date().getTime();
-        const lRes = await fetch(`/api/lock/status?_t=${ts}`, { headers: { Authorization: "Bearer " + token }});
-        
-        if (lRes.status === 401 || lRes.status === 403) {
-            await customAlert("Session expired due to inactivity. Please login again to prevent data loss.", "Session Timeout");
-            logout();
-            return;
-        }
+async function applyLockStatus(
+  selectedMonthStr,
+  selectedYearStr,
+  silent = false,
+) {
+  try {
+    const ts = new Date().getTime();
+    const lRes = await fetch(`/api/lock/status?_t=${ts}`, {
+      headers: { Authorization: "Bearer " + token },
+    });
 
-        const lData = await lRes.json();
-        if (lData.success && lData.data && lData.data.lock_month) {
-            systemLockData = { month: lData.data.lock_month, year: lData.data.lock_year };
-        } else {
-            systemLockData = { month: null, year: null };
-        }
-    } catch (e) {
-        console.error("Lock fetch error:", e);
+    if (lRes.status === 401 || lRes.status === 403) {
+      await customAlert(
+        "Session expired due to inactivity. Please login again to prevent data loss.",
+        "Session Timeout",
+      );
+      logout();
+      return;
     }
 
-    const sYear = parseInt(selectedYearStr);
-    const sMonthIdx = months.indexOf(selectedMonthStr);
-    const lockYear = systemLockData.year ? parseInt(systemLockData.year) : 0;
-    const lockMonthIdx = systemLockData.month ? months.indexOf(systemLockData.month) : -1;
-
-    const selectedAbsolute = (sYear * 12) + sMonthIdx;
-    const lockAbsolute = (lockYear * 12) + lockMonthIdx;
-
-    const isCurrentlyLockedInDB = systemLockData.month && systemLockData.year && (selectedAbsolute <= lockAbsolute);
-    
-    if (isCurrentlyLockedInDB) {
-        document.querySelectorAll(".grid-input").forEach(el => {
-            el.disabled = true;
-            el.style.backgroundColor = "transparent"; 
-            el.style.cursor = "not-allowed";
-            el.style.color = "Black";
-            el.style.opacity = "0.9"; 
-        });
-        
-        const invBtn = document.querySelector(".btn-inv-save");
-        if (invBtn) {
-            invBtn.disabled = true;
-            invBtn.style.opacity = "0.5";
-            invBtn.innerText = "🔒 Locked Period";
-        }
-        
-        // 🟢 പീരിയഡ് ലോക്ക്ഡ് ആണെങ്കിൽ Pending-ന് അരികിൽ 🔒 ഐക്കൺ ദൃശ്യമാക്കുന്നു
-        const lockBtn = document.getElementById("btnPeriodLock");
-        if (lockBtn) lockBtn.style.display = "inline-block";
-
-        // (ഓട്ടോമാറ്റിക് പോപ്പ്-അപ്പ് പൂർണ്ണമായും ഒഴിവാക്കി, ഉപയോക്താവിന് സുഗമമായി റീഡ്-മോഡിൽ ഡാറ്റ കാണാം)
+    const lData = await lRes.json();
+    if (lData.success && lData.data && lData.data.lock_month) {
+      systemLockData = {
+        month: lData.data.lock_month,
+        year: lData.data.lock_year,
+      };
     } else {
-        // 🟢 അൺലോക്ക്ഡ് ആണെങ്കിൽ 🔒 ഐക്കൺ മറയ്ക്കുന്നു
-        const lockBtn = document.getElementById("btnPeriodLock");
-        if (lockBtn) lockBtn.style.display = "none";
-
-        // 🟢 റെക്കോർഡ് ലോക്ക് കാരണം Read-Only മോഡിൽ ആണെങ്കിൽ ഇൻപുട്ടുകൾ എനേബിൾ ചെയ്യരുത്!
-        if (isReadOnlyMode) {
-            document.querySelectorAll(".grid-input").forEach(el => {
-                el.disabled = true;
-                el.style.backgroundColor = "#f1f5f9";
-                el.style.cursor = "not-allowed";
-            });
-            return;
-        }
-
-        let isUIDisabled = document.querySelector(".grid-input")?.disabled === true;
-        if (isUIDisabled) {
-            document.querySelectorAll(".grid-input").forEach(el => {
-                el.disabled = false;
-                el.style.backgroundColor = ""; 
-                el.style.cursor = "text";
-                el.style.color = "";
-                el.style.opacity = "1"; 
-            });
-            
-            const invBtn = document.querySelector(".btn-inv-save");
-            if(invBtn) {
-                invBtn.disabled = false;
-                invBtn.style.opacity = "1";
-                invBtn.innerText = "Save Invoice Data";
-            }
-        }
+      systemLockData = { month: null, year: null };
     }
+  } catch (e) {
+    console.error("Lock fetch error:", e);
+  }
+
+  const sYear = parseInt(selectedYearStr);
+  const sMonthIdx = months.indexOf(selectedMonthStr);
+  const lockYear = systemLockData.year ? parseInt(systemLockData.year) : 0;
+  const lockMonthIdx = systemLockData.month
+    ? months.indexOf(systemLockData.month)
+    : -1;
+
+  const selectedAbsolute = sYear * 12 + sMonthIdx;
+  const lockAbsolute = lockYear * 12 + lockMonthIdx;
+
+  const isCurrentlyLockedInDB =
+    systemLockData.month &&
+    systemLockData.year &&
+    selectedAbsolute <= lockAbsolute;
+
+  if (isCurrentlyLockedInDB) {
+    document.querySelectorAll(".grid-input").forEach((el) => {
+      el.disabled = true;
+      el.style.backgroundColor = "transparent";
+      el.style.cursor = "not-allowed";
+      el.style.color = "Black";
+      el.style.opacity = "0.9";
+    });
+
+    const invBtn = document.querySelector(".btn-inv-save");
+    if (invBtn) {
+      invBtn.disabled = true;
+      invBtn.style.opacity = "0.5";
+      invBtn.innerText = "🔒 Locked Period";
+    }
+
+    // 🟢 പീരിയഡ് ലോക്ക്ഡ് ആണെങ്കിൽ Pending-ന് അരികിൽ 🔒 ഐക്കൺ ദൃശ്യമാക്കുന്നു
+    const lockBtn = document.getElementById("btnPeriodLock");
+    if (lockBtn) lockBtn.style.display = "inline-block";
+
+    // (ഓട്ടോമാറ്റിക് പോപ്പ്-അപ്പ് പൂർണ്ണമായും ഒഴിവാക്കി, ഉപയോക്താവിന് സുഗമമായി റീഡ്-മോഡിൽ ഡാറ്റ കാണാം)
+  } else {
+    // 🟢 അൺലോക്ക്ഡ് ആണെങ്കിൽ 🔒 ഐക്കൺ മറയ്ക്കുന്നു
+    const lockBtn = document.getElementById("btnPeriodLock");
+    if (lockBtn) lockBtn.style.display = "none";
+
+    // 🟢 റെക്കോർഡ് ലോക്ക് കാരണം Read-Only മോഡിൽ ആണെങ്കിൽ ഇൻപുട്ടുകൾ എനേബിൾ ചെയ്യരുത്!
+    if (isReadOnlyMode) {
+      document.querySelectorAll(".grid-input").forEach((el) => {
+        el.disabled = true;
+        el.style.backgroundColor = "#f1f5f9";
+        el.style.cursor = "not-allowed";
+      });
+      return;
+    }
+
+    let isUIDisabled = document.querySelector(".grid-input")?.disabled === true;
+    if (isUIDisabled) {
+      document.querySelectorAll(".grid-input").forEach((el) => {
+        el.disabled = false;
+        el.style.backgroundColor = "";
+        el.style.cursor = "text";
+        el.style.color = "";
+        el.style.opacity = "1";
+      });
+
+      const invBtn = document.querySelector(".btn-inv-save");
+      if (invBtn) {
+        invBtn.disabled = false;
+        invBtn.style.opacity = "1";
+        invBtn.innerText = "Save Invoice Data";
+      }
+    }
+  }
 }
 
-window.addEventListener("focus", async () => {
-});
-
+window.addEventListener("focus", async () => {});
 
 // ==========================================
 // 🟢 LIVE LOCK TRANSFER & POLLING LOGIC
@@ -2263,112 +2689,137 @@ function startRecordPoll(p, m, y) {
   clearInterval(recordPollTimer);
   const generation = recordPollGeneration; // 🟢 നിലവിലെ ജനറേഷൻ ഓർത്തു വെക്കുന്നു
   recordPollTimer = setInterval(async () => {
-      if (generation !== recordPollGeneration) return; // 🟢 പ്ലേറ്റ് മാറിയാൽ പഴയ പോൾ തടയുന്നു
+    if (generation !== recordPollGeneration) return; // 🟢 പ്ലേറ്റ് മാറിയാൽ പഴയ പോൾ തടയുന്നു
 
-      try {
-          const ts = new Date().getTime(); 
-          const res = await fetch(`/timesheet/api/record-lock/poll?plate=${p}&month=${m}&year=${y}&_t=${ts}`, {
-              headers: { 
-                  "Authorization": "Bearer " + token,
-                  "Cache-Control": "no-cache",
-                  "Pragma": "no-cache"
-              },
-              cache: "no-store"
+    try {
+      const ts = new Date().getTime();
+      const res = await fetch(
+        `/timesheet/api/record-lock/poll?plate=${p}&month=${m}&year=${y}&_t=${ts}`,
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+          cache: "no-store",
+        },
+      );
+      const data = await res.json();
+      if (generation !== recordPollGeneration) return;
+      const userStr = localStorage.getItem("timesheetUser");
+      if (!userStr) return;
+      const user = JSON.parse(userStr).username.trim().toLowerCase();
+
+      const isMe = data.owner && data.owner.trim().toLowerCase() === user;
+      const isRequestedByMe =
+        data.requestedBy && data.requestedBy.trim().toLowerCase() === user;
+      const isRejected = data.requestedBy === "REJECTED";
+
+      if (!data.locked) {
+        // 🟢 FIX: Thante thanne record timeout aayi poyathanenkil athine silent aayi restore cheyyuka
+        if (currentLockedRecord && !isReadOnlyMode) {
+          fetch("/timesheet/api/record-lock/request", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + getAuthToken(),
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ plate: p, month: m, year: y }),
+          }).catch(() => {});
+        }
+        return;
+      }
+
+      if (isMe) {
+        currentLockedRecord = { plate: p, month: m, year: y };
+
+        if (isReadOnlyMode) {
+          isReadOnlyMode = false;
+          amIWaitingForApproval = false;
+          resetBellButton();
+          clearInterval(recordPollTimer);
+
+          Swal.fire({
+            title: "Access Granted! 🔓",
+            text: "You now have full edit access.",
+            icon: "success",
+            timer: 1500,
+            showConfirmButton: false,
+          }).then(() => {
+            triggerFetch();
           });
-          const data = await res.json();
-          if (generation !== recordPollGeneration) return; 
-          const userStr = localStorage.getItem("timesheetUser");
-          if (!userStr) return;
-          const user = JSON.parse(userStr).username.trim().toLowerCase();
+          return;
+        }
 
-          const isMe = data.owner && data.owner.trim().toLowerCase() === user;
-          const isRequestedByMe = data.requestedBy && data.requestedBy.trim().toLowerCase() === user;
-          const isRejected = data.requestedBy === "REJECTED";
+        if (
+          data.requestedBy &&
+          data.requestedBy !== "REJECTED" &&
+          !incomingRequestActive
+        ) {
+          incomingRequestActive = true;
+          playTransferAlertSound();
+          showTransferRequestPopup(data.requestedBy, p, m, y);
+        }
+      } else {
+        // 🟢 FIX: data.owner യഥാർത്ഥത്തിൽ നിലവിലുണ്ടാവുകയും അത് മറ്റൊരു വ്യക്തി (Different Username) ആവുകയും ചെയ്യുമ്പോൾ മാത്രമേ Read-Only ആക്കാവൂ!
+        if (
+          data.owner &&
+          data.owner.trim().toLowerCase() !== user &&
+          !isReadOnlyMode
+        ) {
+          isReadOnlyMode = true;
+          currentLockedRecord = null;
+          makeGridReadOnlyLive();
+          Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "warning",
+            title: `Locked by ${data.owner.toUpperCase()}`,
+            text: "You are now in Read-Only mode.",
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true,
+          });
+        }
 
-          if (!data.locked) {
-              // 🟢 FIX: Thante thanne record timeout aayi poyathanenkil athine silent aayi restore cheyyuka
-              if (currentLockedRecord && !isReadOnlyMode) {
-                  fetch('/timesheet/api/record-lock/request', {
-                      method: 'POST',
-                      headers: { "Authorization": "Bearer " + getAuthToken(), "Content-Type": "application/json" },
-                      body: JSON.stringify({ plate: p, month: m, year: y })
-                  }).catch(() => {});
-              }
-              return;
+        // 3. I AM THE REQUESTER WAITING FOR RESPONSE
+        if (amIWaitingForApproval) {
+          if (isRejected) {
+            amIWaitingForApproval = false;
+            resetBellButton();
+            Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "error",
+              title: "Request Rejected by the active user.",
+              showConfirmButton: false,
+              timer: 4000,
+            });
+
+            fetch("/timesheet/api/record-lock/clear-rejection", {
+              method: "POST",
+              headers: {
+                Authorization: "Bearer " + getAuthToken(),
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ plate: p, month: m, year: y }),
+            });
+          } else if (isRequestedByMe) {
+            if (data.requestTime && Date.now() - data.requestTime >= 30000) {
+              forceClaimLock(p, m, y);
+            }
+          } else if (!data.requestedBy) {
+            amIWaitingForApproval = false;
+            const btn = document.getElementById("btnRequestEdit");
+            if (btn) {
+              btn.style.opacity = "1";
+              btn.disabled = false;
+            }
           }
-
-          if (isMe) {
-              currentLockedRecord = { plate: p, month: m, year: y };
-
-              if (isReadOnlyMode) {
-                  isReadOnlyMode = false;
-                  amIWaitingForApproval = false;
-                  resetBellButton();
-                  clearInterval(recordPollTimer); 
-                  
-                  Swal.fire({
-                      title: "Access Granted! 🔓",
-                      text: "You now have full edit access.",
-                      icon: "success",
-                      timer: 1500,
-                      showConfirmButton: false
-                  }).then(() => {
-                      triggerFetch(); 
-                  });
-                  return;
-              }
-
-              if (data.requestedBy && data.requestedBy !== "REJECTED" && !incomingRequestActive) {
-                  incomingRequestActive = true;
-                  playTransferAlertSound();
-                  showTransferRequestPopup(data.requestedBy, p, m, y);
-              }
-          } else {
-              // 🟢 FIX: data.owner യഥാർത്ഥത്തിൽ നിലവിലുണ്ടാവുകയും അത് മറ്റൊരു വ്യക്തി (Different Username) ആവുകയും ചെയ്യുമ്പോൾ മാത്രമേ Read-Only ആക്കാവൂ!
-              if (data.owner && data.owner.trim().toLowerCase() !== user && !isReadOnlyMode) {
-                  isReadOnlyMode = true;
-                  currentLockedRecord = null;
-                  makeGridReadOnlyLive();
-                  Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'warning',
-                    title: `Locked by ${data.owner.toUpperCase()}`,
-                    text: 'You are now in Read-Only mode.',
-                    showConfirmButton: false,
-                    timer: 4000,
-                    timerProgressBar: true
-                  });
-              }
-
-              // 3. I AM THE REQUESTER WAITING FOR RESPONSE
-              if (amIWaitingForApproval) {
-                  if (isRejected) {
-                      amIWaitingForApproval = false;
-                      resetBellButton();
-                      Swal.fire({ toast: true, position: "top-end", icon: "error", title: "Request Rejected by the active user.", showConfirmButton: false, timer: 4000 });
-                      
-                      fetch("/timesheet/api/record-lock/clear-rejection", {
-                          method: 'POST',
-                          headers: { "Authorization": "Bearer " + getAuthToken(), "Content-Type": "application/json" },
-                          body: JSON.stringify({ plate: p, month: m, year: y })
-                      });
-                  } else if (isRequestedByMe) {
-                      if (data.requestTime && (Date.now() - data.requestTime >= 30000)) {
-                          forceClaimLock(p, m, y); 
-                      }
-                  } else if (!data.requestedBy) {
-                      amIWaitingForApproval = false;
-                      const btn = document.getElementById("btnRequestEdit");
-                      if (btn) {
-                          btn.style.opacity = "1";
-                          btn.disabled = false;
-                      }
-                  }
-              }
-          }
-      } catch (e) {}
-  }, 5000); 
+        }
+      }
+    } catch (e) {}
+  }, 5000);
 }
 
 // 🟢 FIX: ബാക്ക്‌ഗ്രൗണ്ട് വഴി അറിയാതെ ലോക്ക് റീ-ക്ലെയിം ചെയ്യുന്നത് ഒഴിവാക്കി
@@ -2395,91 +2846,108 @@ async function requestEditAccess() {
   const p = document.getElementById("selPlate").value.trim().toUpperCase();
   const m = document.getElementById("selMonth").value;
   const y = document.getElementById("selYear").value;
-  
+
   const btn = document.getElementById("btnRequestEdit");
   btn.style.opacity = "0.7";
   btn.disabled = true;
 
   try {
-      const res = await fetch("/timesheet/api/record-lock/request-transfer", {
-          method: 'POST',
-          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-          body: JSON.stringify({ plate: p, month: m, year: y })
+    const res = await fetch("/timesheet/api/record-lock/request-transfer", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ plate: p, month: m, year: y }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "info",
+        title: "Request sent. Waiting for approval...",
+        showConfirmButton: false,
+        timer: 3000,
       });
-      const data = await res.json();
-      if(data.success) {
-          Swal.fire({ toast: true, position: "top-end", icon: "info", title: "Request sent. Waiting for approval...", showConfirmButton: false, timer: 3000 });
-          amIWaitingForApproval = true;
-          
-          // 🟢 ബെല്ലിന് പകരം 29 സെക്കൻഡ് ലൈവ് കൗണ്ട്ഡൗൺ കാണിക്കുന്നു
-          let timeLeft = 29;
+      amIWaitingForApproval = true;
+
+      // 🟢 ബെല്ലിന് പകരം 29 സെക്കൻഡ് ലൈവ് കൗണ്ട്ഡൗൺ കാണിക്കുന്നു
+      let timeLeft = 29;
+      btn.innerText = `⏳ ${timeLeft}s`;
+
+      if (editCountdownInterval) clearInterval(editCountdownInterval);
+      editCountdownInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft > 0) {
           btn.innerText = `⏳ ${timeLeft}s`;
-
-          if (editCountdownInterval) clearInterval(editCountdownInterval);
-          editCountdownInterval = setInterval(() => {
-              timeLeft--;
-              if (timeLeft > 0) {
-                  btn.innerText = `⏳ ${timeLeft}s`;
-              } else {
-                  clearInterval(editCountdownInterval);
-                  editCountdownInterval = null;
-                  if (amIWaitingForApproval) {
-                      forceClaimLock(p, m, y);
-                  }
-              }
-          }, 1000);
-
-      } else {
-          // 🟢 FIX: റെക്കോർഡ് നിലവിൽ ഫ്രീ ആണെങ്കിൽ (ആരും ലോക്ക് ചെയ്തിട്ടില്ലെങ്കിൽ) ഉടൻ ഈ യൂസർക്ക് എഡിറ്റ് ആക്സസ് നൽകുന്നു
-          resetBellButton();
-          
-          if (data.message && data.message.toLowerCase().includes("not currently locked")) {
-              const claimRes = await fetch('/timesheet/api/record-lock/request', {
-                  method: 'POST',
-                  headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-                  body: JSON.stringify({ plate: p, month: m, year: y })
-              });
-              const claimData = await claimRes.json();
-              
-              if (claimData.success) {
-                  isReadOnlyMode = false;
-                  currentLockedRecord = { plate: p, month: m, year: y };
-                  
-                  // എല്ലാ ഇൻപുട്ടുകളും എഡിറ്റബിൾ ആക്കുന്നു
-                  document.querySelectorAll(".grid-input").forEach(el => {
-                      el.disabled = false;
-                      el.style.backgroundColor = "";
-                      el.style.cursor = "text";
-                      el.style.color = "";
-                      el.style.opacity = "1";
-                  });
-                  
-                  const btnReq = document.getElementById("btnRequestEdit");
-                  if (btnReq) btnReq.style.display = "none";
-                  
-                  const saveLabel = document.getElementById("saveStatus");
-                  if (saveLabel) {
-                      saveLabel.innerText = "✓ Editable";
-                      saveLabel.className = "save-indicator status-saved";
-                      setTimeout(() => { saveLabel.className = "save-indicator"; }, 2000);
-                  }
-                  
-                  Swal.fire({
-                      toast: true,
-                      position: "top-end",
-                      icon: "success",
-                      title: "Unlocked! You have full edit access.",
-                      showConfirmButton: false,
-                      timer: 2500
-                  });
-                  return;
-              }
+        } else {
+          clearInterval(editCountdownInterval);
+          editCountdownInterval = null;
+          if (amIWaitingForApproval) {
+            forceClaimLock(p, m, y);
           }
-          
-          customAlert(data.message, "Notice");
-      }
-  } catch(e) {
+        }
+      }, 1000);
+    } else {
+      // 🟢 FIX: റെക്കോർഡ് നിലവിൽ ഫ്രീ ആണെങ്കിൽ (ആരും ലോക്ക് ചെയ്തിട്ടില്ലെങ്കിൽ) ഉടൻ ഈ യൂസർക്ക് എഡിറ്റ് ആക്സസ് നൽകുന്നു
       resetBellButton();
+
+      if (
+        data.message &&
+        data.message.toLowerCase().includes("not currently locked")
+      ) {
+        const claimRes = await fetch("/timesheet/api/record-lock/request", {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ plate: p, month: m, year: y }),
+        });
+        const claimData = await claimRes.json();
+
+        if (claimData.success) {
+          isReadOnlyMode = false;
+          currentLockedRecord = { plate: p, month: m, year: y };
+
+          // എല്ലാ ഇൻപുട്ടുകളും എഡിറ്റബിൾ ആക്കുന്നു
+          document.querySelectorAll(".grid-input").forEach((el) => {
+            el.disabled = false;
+            el.style.backgroundColor = "";
+            el.style.cursor = "text";
+            el.style.color = "";
+            el.style.opacity = "1";
+          });
+
+          const btnReq = document.getElementById("btnRequestEdit");
+          if (btnReq) btnReq.style.display = "none";
+
+          const saveLabel = document.getElementById("saveStatus");
+          if (saveLabel) {
+            saveLabel.innerText = "✓ Editable";
+            saveLabel.className = "save-indicator status-saved";
+            setTimeout(() => {
+              saveLabel.className = "save-indicator";
+            }, 2000);
+          }
+
+          Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "success",
+            title: "Unlocked! You have full edit access.",
+            showConfirmButton: false,
+            timer: 2500,
+          });
+          return;
+        }
+      }
+
+      customAlert(data.message, "Notice");
+    }
+  } catch (e) {
+    resetBellButton();
   }
 }
 
@@ -2493,10 +2961,10 @@ function playTransferAlertSound() {
 
     currentTransferAudio = new Audio("../alert_mp3/bell_alert.mp3");
     currentTransferAudio.volume = 1.0;
-    
+
     let playPromise = currentTransferAudio.play();
     if (playPromise !== undefined) {
-      playPromise.catch(error => {
+      playPromise.catch((error) => {
         console.warn("Audio autoplay blocked or failed:", error);
       });
     }
@@ -2517,18 +2985,18 @@ function stopTransferAlertSound() {
 function showTransferRequestPopup(requester, p, m, y) {
   let timerInterval;
   Swal.fire({
-    title: 'Edit Access Requested',
+    title: "Edit Access Requested",
     html: `<b>${requester.toUpperCase()}</b> is requesting to edit this record.<br><br>Auto-approving in <b id="swal-timer" style="color:red; font-size:18px;"></b> seconds.`,
     timer: 29000,
     timerProgressBar: true,
     showCancelButton: true,
-    confirmButtonColor: '#10b981',
-    cancelButtonColor: '#ef4444',
-    confirmButtonText: 'Approve',
-    cancelButtonText: 'Reject',
+    confirmButtonColor: "#10b981",
+    cancelButtonColor: "#ef4444",
+    confirmButtonText: "Approve",
+    cancelButtonText: "Reject",
     allowOutsideClick: false,
     didOpen: () => {
-      const b = Swal.getHtmlContainer().querySelector('#swal-timer');
+      const b = Swal.getHtmlContainer().querySelector("#swal-timer");
       if (b) {
         timerInterval = setInterval(() => {
           b.textContent = Math.ceil(Swal.getTimerLeft() / 1000);
@@ -2538,39 +3006,45 @@ function showTransferRequestPopup(requester, p, m, y) {
     willClose: () => {
       clearInterval(timerInterval);
       stopTransferAlertSound(); // 🛑 Popup close aayi thudangumbol thanne sound nilkkum
-    }
+    },
   }).then((result) => {
     stopTransferAlertSound(); // 🛑 Approve / Reject click cheythaal udan sound nilkkum
     incomingRequestActive = false;
     if (result.isConfirmed || result.dismiss === Swal.DismissReason.timer) {
-      resolveTransfer(p, m, y, 'approve');
+      resolveTransfer(p, m, y, "approve");
     } else {
-      resolveTransfer(p, m, y, 'reject');
+      resolveTransfer(p, m, y, "reject");
     }
   });
 }
 
 async function resolveTransfer(p, m, y, action) {
   await fetch("/timesheet/api/record-lock/resolve-transfer", {
-      method: 'POST',
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ plate: p, month: m, year: y, action: action })
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ plate: p, month: m, year: y, action: action }),
   });
 }
 
 async function forceClaimLock(p, m, y) {
   await fetch("/timesheet/api/record-lock/resolve-transfer", {
-      method: 'POST',
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ plate: p, month: m, year: y, action: 'force' })
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ plate: p, month: m, year: y, action: "force" }),
   });
 }
 
 function makeGridReadOnlyLive() {
-  document.querySelectorAll(".grid-input").forEach(el => {
-      el.disabled = true;
-      el.style.backgroundColor = "#f1f5f9";
-      el.style.cursor = "not-allowed";
+  document.querySelectorAll(".grid-input").forEach((el) => {
+    el.disabled = true;
+    el.style.backgroundColor = "#f1f5f9";
+    el.style.cursor = "not-allowed";
   });
   const saveLabel = document.getElementById("saveStatus");
   saveLabel.innerText = "Read Only";
@@ -2670,7 +3144,7 @@ async function executeReLoginAndResume() {
       localStorage.setItem("lastActive", String(Date.now()));
 
       closeTimesheetReLoginModal();
-      
+
       // Toast message
       Swal.fire({
         toast: true,
@@ -2678,7 +3152,7 @@ async function executeReLoginAndResume() {
         icon: "success",
         title: "Session Restored! Resuming...",
         showConfirmButton: false,
-        timer: 2000
+        timer: 2000,
       });
 
       if (typeof pendingTimesheetAction === "function") {
