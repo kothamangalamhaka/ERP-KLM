@@ -742,7 +742,7 @@ router.post("/update-cell", verifyAccessCode, async (req, res) => {
 // ==========================================
 router.get("/notes", verifyAccessCode, async (req, res) => {
   try {
-    const { supplier, ledger_folio, month } = req.query;
+    const { supplier, ledger_folio, month, site_name } = req.query;
     if (!supplier) {
       return res.status(400).json({ success: false, message: "Supplier name is required" });
     }
@@ -750,6 +750,7 @@ router.get("/notes", verifyAccessCode, async (req, res) => {
     let query = `
       SELECT id, supplier_name, note_title, note_content, 
              COALESCE(ledger_folio, '') as ledger_folio,
+             COALESCE(site_name, '') as site_name,
              note_month, note_year,
              TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date,
              created_at
@@ -761,6 +762,11 @@ router.get("/notes", verifyAccessCode, async (req, res) => {
     if (ledger_folio !== undefined && ledger_folio !== null && String(ledger_folio).trim() !== "") {
       params.push(String(ledger_folio).trim());
       query += ` AND (ledger_folio IS NULL OR ledger_folio = '' OR LOWER(TRIM(ledger_folio)) = LOWER(TRIM($${params.length})))`;
+    }
+
+    if (site_name !== undefined && site_name !== null && String(site_name).trim() !== "") {
+      params.push(String(site_name).trim());
+      query += ` AND (site_name IS NULL OR site_name = '' OR LOWER(TRIM(site_name)) = LOWER(TRIM($${params.length})))`;
     }
 
     if (month !== undefined && month !== null && String(month).trim() !== "") {
@@ -779,7 +785,7 @@ router.get("/notes", verifyAccessCode, async (req, res) => {
 
 router.post("/notes", verifyAccessCode, async (req, res) => {
   try {
-    const { supplier, title, content, ledger_folio, note_month, note_year } = req.body;
+    const { supplier, title, content, ledger_folio, site_name, note_month, note_year } = req.body;
     if (!supplier || !content || !content.trim()) {
       return res.status(400).json({ success: false, message: "Supplier and note content are required" });
     }
@@ -787,16 +793,17 @@ router.post("/notes", verifyAccessCode, async (req, res) => {
     const cleanTitle = (title || "").trim() || "Remark";
     const cleanContent = content.trim();
     const cleanLf = ledger_folio ? String(ledger_folio).trim() : null;
+    const cleanSite = site_name ? String(site_name).trim() : null;
     const cleanMonth = (note_month !== undefined && note_month !== null && note_month !== "") ? parseInt(note_month, 10) : null;
     const cleanYear = (note_year !== undefined && note_year !== null && note_year !== "") ? parseInt(note_year, 10) : null;
 
     const insertRes = await pool.query(
-      `INSERT INTO supplier_notes (supplier_name, note_title, note_content, ledger_folio, note_month, note_year)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, supplier_name, note_title, note_content, ledger_folio, note_month, note_year,
+      `INSERT INTO supplier_notes (supplier_name, note_title, note_content, ledger_folio, site_name, note_month, note_year)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, supplier_name, note_title, note_content, ledger_folio, site_name, note_month, note_year,
                  TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date,
                  created_at`,
-      [supplier.trim(), cleanTitle, cleanContent, cleanLf, cleanMonth, cleanYear]
+      [supplier.trim(), cleanTitle, cleanContent, cleanLf, cleanSite, cleanMonth, cleanYear]
     );
 
     res.json({ success: true, data: insertRes.rows[0] });
@@ -809,21 +816,30 @@ router.post("/notes", verifyAccessCode, async (req, res) => {
 router.put("/notes/:id", verifyAccessCode, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content } = req.body;
+    const { title, content, ledger_folio, site_name, note_month, note_year } = req.body;
     if (!content || !content.trim()) {
       return res.status(400).json({ success: false, message: "Content is required" });
     }
 
     const cleanTitle = (title || "").trim() || "Remark";
     const cleanContent = content.trim();
+    const cleanLf = ledger_folio ? String(ledger_folio).trim() : null;
+    const cleanSite = site_name ? String(site_name).trim() : null;
+    const cleanMonth = (note_month !== undefined && note_month !== null && note_month !== "") ? parseInt(note_month, 10) : null;
+    const cleanYear = (note_year !== undefined && note_year !== null && note_year !== "") ? parseInt(note_year, 10) : null;
 
     const updateRes = await pool.query(
       `UPDATE supplier_notes 
-       SET note_title = $1, note_content = $2 
-       WHERE id = $3 
-       RETURNING id, supplier_name, note_title, note_content,
+       SET note_title = $1, 
+           note_content = $2, 
+           ledger_folio = $3, 
+           site_name = $4, 
+           note_month = $5,
+           note_year = COALESCE($6, note_year)
+       WHERE id = $7 
+       RETURNING id, supplier_name, note_title, note_content, ledger_folio, site_name, note_month, note_year,
                  TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date`,
-      [cleanTitle, cleanContent, parseInt(id)]
+      [cleanTitle, cleanContent, cleanLf, cleanSite, cleanMonth, cleanYear, parseInt(id)]
     );
 
     if (updateRes.rows.length === 0) {

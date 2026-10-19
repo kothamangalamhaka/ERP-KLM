@@ -900,6 +900,10 @@
                             <select id="composeNoteLf" class="gmail-input-title" style="width: 100%; padding: 6px 8px; cursor: pointer;"></select>
                         </div>
                         <div style="flex: 1;">
+                            <label style="font-size: 10.5px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Site Name</label>
+                            <select id="composeNoteSite" class="gmail-input-title" style="width: 100%; padding: 6px 8px; cursor: pointer;"></select>
+                        </div>
+                        <div style="flex: 1;">
                             <label style="font-size: 10.5px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Target Month</label>
                             <select id="composeNoteMonth" class="gmail-input-title" style="width: 100%; padding: 6px 8px; cursor: pointer;">
                                 <option value="0">January</option>
@@ -1152,7 +1156,9 @@
             renderOwnerList();
         }
 
-        function selectSupplier(supplierName) {
+        const supplierNotesGlobalMap = {};
+
+        async function selectSupplier(supplierName) {
             selectedSupplier = supplierName;
             const supData = rawData.find(s => s.supplier === supplierName);
             if (!supData) return;
@@ -1166,9 +1172,11 @@
             document.getElementById("supplierInfoCard").style.display = "flex";
             document.getElementById("infoOwnerName").innerText = supData.supplier;
 
-            updateSupplierNoteBadge(supData.supplier).then(() => {
-                renderSiteTables(supData);
-            });
+            await updateSupplierNoteBadge(supData.supplier);
+            if (supplierNotesGlobalMap[supData.supplier]) {
+                currentSupplierNotes = supplierNotesGlobalMap[supData.supplier];
+            }
+            renderSiteTables(supData);
         }
 
         function toggleEditMode() {
@@ -1228,12 +1236,15 @@
                     const hlClass = hasValue ? "qc-highlight" : "";
 
                     const siteLfClean = String(siteObj.ledger_folio || "").trim().toLowerCase();
+                    const currentSiteClean = String(sFirstName || "").trim().toLowerCase();
                     const hasNoteThisMonth = currentSupplierNotes.some(n => {
-                        const nMonth = n.note_month !== null && n.note_month !== undefined ? Number(n.note_month) : null;
+                        const nMonth = (n.note_month !== null && n.note_month !== undefined) ? Number(n.note_month) : null;
+                        if (nMonth === null || nMonth !== m) return false;
                         const nLf = String(n.ledger_folio || "").trim().toLowerCase();
-                        const isMonthMatch = (nMonth === null || nMonth === m);
+                        const nSite = String(n.site_name || "").trim().toLowerCase();
                         const isLfMatch = (!nLf || !siteLfClean || nLf === siteLfClean);
-                        return isMonthMatch && isLfMatch;
+                        const isSiteMatch = (!nSite || !currentSiteClean || nSite === currentSiteClean);
+                        return isLfMatch && isSiteMatch;
                     });
                     const noteMarkerClass = hasNoteThisMonth ? "has-month-note" : "";
 
@@ -1862,19 +1873,30 @@
 
         async function updateSupplierNoteBadge(supplierName) {
             const badge = document.getElementById("supplierNoteCountBadge");
-            if (!badge) return;
             try {
                 const res = await fetch(`/timesheet/api/non-vat-tracking/notes?supplier=${encodeURIComponent(supplierName)}`, {
                     headers: { "x-vat-code": vatCode }
                 });
                 const json = await res.json();
                 if (json.success && Array.isArray(json.data)) {
-                    renderSupplierNoteBadgeCount(json.data.length);
+                    supplierNotesGlobalMap[supplierName] = json.data;
+                    if (selectedSupplier === supplierName) {
+                        currentSupplierNotes = json.data;
+                    }
+                    if (badge) renderSupplierNoteBadgeCount(json.data.length);
                 } else {
-                    renderSupplierNoteBadgeCount(0);
+                    supplierNotesGlobalMap[supplierName] = [];
+                    if (selectedSupplier === supplierName) {
+                        currentSupplierNotes = [];
+                    }
+                    if (badge) renderSupplierNoteBadgeCount(0);
                 }
             } catch (e) {
-                renderSupplierNoteBadgeCount(0);
+                supplierNotesGlobalMap[supplierName] = [];
+                if (selectedSupplier === supplierName) {
+                    currentSupplierNotes = [];
+                }
+                if (badge) renderSupplierNoteBadgeCount(0);
             }
         }
 
@@ -1902,27 +1924,43 @@
             closeComposeBox();
         }
 
-        function populateComposeLfOptions(selectedLf = "") {
-            const sel = document.getElementById("composeNoteLf");
-            if (!sel || !selectedSupplier) return;
+        function populateComposeLfAndSiteOptions(selectedLf = "", selectedSite = "") {
+            const selLf = document.getElementById("composeNoteLf");
+            const selSite = document.getElementById("composeNoteSite");
+            if (!selLf || !selectedSupplier) return;
             const supData = rawData.find(s => s.supplier === selectedSupplier);
             const availableLfs = [];
+            const availableSites = [];
+
             if (supData && Array.isArray(supData.sites)) {
                 supData.sites.forEach(st => {
                     const lf = (st.ledger_folio || "").trim();
+                    const site = (st.site_first_name || "").trim().toUpperCase();
                     if (lf && !availableLfs.includes(lf)) availableLfs.push(lf);
+                    if (site && !availableSites.includes(site)) availableSites.push(site);
                 });
             }
-            let html = "";
-            let autoSelected = selectedLf || (availableLfs.length > 0 ? availableLfs[0] : "");
+
+            // 1. Ledger Folio options: real LF first, (All / General LF) at the bottom
+            let lfHtml = "";
+            let autoSelectedLf = selectedLf || (availableLfs.length > 0 ? availableLfs[0] : "");
             availableLfs.forEach(lf => {
-                html += `<option value="${escapeHTML(lf)}" ${lf.toLowerCase() === autoSelected.toLowerCase() ? 'selected' : ''}>${escapeHTML(lf)}</option>`;
+                lfHtml += `<option value="${escapeHTML(lf)}" ${lf.toLowerCase() === autoSelectedLf.toLowerCase() ? 'selected' : ''}>${escapeHTML(lf)}</option>`;
             });
-            html += `<option value="" ${autoSelected === "" ? 'selected' : ''}>(All / General LF)</option>`;
-            sel.innerHTML = html;
+            lfHtml += `<option value="" ${autoSelectedLf === "" ? 'selected' : ''}>(All / General LF)</option>`;
+            selLf.innerHTML = lfHtml;
+
+            // 2. Site options: sites first, (All Sites) at the bottom
+            let siteHtml = "";
+            let autoSelectedSite = selectedSite || (availableSites.length > 0 ? availableSites[0] : "");
+            availableSites.forEach(stName => {
+                siteHtml += `<option value="${escapeHTML(stName)}" ${stName.toLowerCase() === autoSelectedSite.toLowerCase() ? 'selected' : ''}>${escapeHTML(stName)}</option>`;
+            });
+            siteHtml += `<option value="" ${autoSelectedSite === "" ? 'selected' : ''}>(All Sites)</option>`;
+            selSite.innerHTML = siteHtml;
         }
 
-        function openComposeBox(noteId = null, defaultLf = "", defaultMonth = "") {
+        function openComposeBox(noteId = null, defaultLf = "", defaultMonth = "", defaultSite = "") {
             const box = document.getElementById("gmailComposeBox");
             const titleEl = document.getElementById("composeBoxTitle");
             const idInput = document.getElementById("editNoteId");
@@ -1937,7 +1975,7 @@
                     idInput.value = note.id;
                     titleInput.value = note.note_title || "";
                     contentInput.value = note.note_content || "";
-                    populateComposeLfOptions(note.ledger_folio || "");
+                    populateComposeLfAndSiteOptions(note.ledger_folio || "", note.site_name || "");
                     if (monthInput) monthInput.value = (note.note_month !== null && note.note_month !== undefined) ? note.note_month : "";
                 }
             } else {
@@ -1945,8 +1983,8 @@
                 idInput.value = "";
                 titleInput.value = "";
                 contentInput.value = "";
-                populateComposeLfOptions(defaultLf);
-                if (monthInput) monthInput.value = (defaultMonth !== "" && defaultMonth !== null) ? defaultMonth : "";
+                populateComposeLfAndSiteOptions(defaultLf, defaultSite);
+                if (monthInput) monthInput.value = (defaultMonth !== "" && defaultMonth !== null) ? defaultMonth : "0";
             }
 
             box.style.display = "flex";
@@ -1992,7 +2030,7 @@
             addBtn.onclick = () => {
                 closeMonthNotePopover();
                 openNotesModal().then(() => {
-                    openComposeBox(null, cleanLf, monthIdx);
+                    openComposeBox(null, cleanLf, monthIdx, siteFirst.toUpperCase());
                 });
             };
 
@@ -2025,6 +2063,7 @@
 
                 if (json.success) {
                     currentSupplierNotes = json.data || [];
+                    supplierNotesGlobalMap[supplierName] = currentSupplierNotes;
                     renderSupplierNoteBadgeCount(currentSupplierNotes.length);
                     renderNotesList(currentSupplierNotes);
                 } else {
@@ -2096,6 +2135,7 @@
                 const method = noteId ? "PUT" : "POST";
 
                 const lfVal = document.getElementById("composeNoteLf") ? document.getElementById("composeNoteLf").value.trim() : "";
+                const siteVal = document.getElementById("composeNoteSite") ? document.getElementById("composeNoteSite").value.trim() : "";
                 const monthVal = document.getElementById("composeNoteMonth") ? document.getElementById("composeNoteMonth").value : "";
 
                 const res = await fetch(url, {
@@ -2109,6 +2149,7 @@
                         title: title,
                         content: content,
                         ledger_folio: lfVal || null,
+                        site_name: siteVal || null,
                         note_month: monthVal !== "" ? parseInt(monthVal, 10) : null,
                         note_year: currentYear
                     })
