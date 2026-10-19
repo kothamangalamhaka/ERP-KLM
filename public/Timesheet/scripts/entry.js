@@ -1773,11 +1773,12 @@ async function saveCellData(rowIdx, colName, colValue) {
   };
 
   try {
+    const currentValidToken = getAuthToken();
     const response = await fetch("/timesheet/api/upsert-grid-cell", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
+        Authorization: "Bearer " + currentValidToken,
       },
       body: JSON.stringify(payload),
       keepalive: true,
@@ -2716,17 +2717,7 @@ function startRecordPoll(p, m, y) {
       const isRejected = data.requestedBy === "REJECTED";
 
       if (!data.locked) {
-        // 🟢 FIX: Thante thanne record timeout aayi poyathanenkil athine silent aayi restore cheyyuka
-        if (currentLockedRecord && !isReadOnlyMode) {
-          fetch("/timesheet/api/record-lock/request", {
-            method: "POST",
-            headers: {
-              Authorization: "Bearer " + getAuthToken(),
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ plate: p, month: m, year: y }),
-          }).catch(() => {});
-        }
+        // Record lock released or expired; do not forcefully auto-claim in background
         return;
       }
 
