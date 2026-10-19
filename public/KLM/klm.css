@@ -1,0 +1,187 @@
+/* 🟢 KLM Branch Office Custom Luxury Theme */
+:root {
+    --klm-bg: #0b1329;
+    --klm-card-bg: rgba(30, 41, 59, 0.75);
+    --klm-card-border: rgba(56, 189, 248, 0.2);
+    --klm-card-hover: rgba(56, 189, 248, 0.12);
+    --klm-accent: #38bdf8;
+    --klm-text: #f8fafc;
+    --klm-muted: #94a3b8;
+}
+
+body {
+    background-color: var(--klm-bg) !important;
+    background-image: url('../icons/bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    color: var(--klm-text) !important;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+h1.animate-title {
+    font-family: 'Montserrat', sans-serif;
+    color: var(--klm-accent);
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    text-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+}
+
+.action-grid-box {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.2rem;
+    width: 98vw;
+    max-width: 1550px;
+    margin: 0 auto;
+}
+
+.action-card {
+    background: var(--klm-card-bg);
+    border: 1px solid var(--klm-card-border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2rem;
+    text-decoration: none;
+    color: inherit;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-card:hover {
+    transform: translateY(-6px);
+    background: var(--klm-card-hover);
+    border-color: var(--klm-accent);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.2);
+}
+
+.card-icon {
+    font-size: 1.8rem;
+    background: linear-gradient(135deg, #0284c7, #38bdf8);
+    color: #0f172a;
+    width: 55px;
+    height: 55px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-content h3 {
+    margin: 0 0 0.5rem 0;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.15rem;
+    color: var(--klm-accent);
+}
+
+.card-content p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--klm-muted);
+    line-height: 1.5;
+}
+
+/* Security Box Modal Styling */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(11, 19, 41, 0.92);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.security-box {
+    background: #111e38;
+    padding: 35px;
+    border-radius: 16px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.15);
+    text-align: center;
+    width: 90%;
+    max-width: 420px;
+}
+
+.security-box h3 {
+    color: var(--klm-accent);
+    margin-top: 0;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.3rem;
+}
+
+.security-box p {
+    color: var(--klm-muted);
+    font-size: 13.5px;
+    margin-bottom: 22px;
+}
+
+.security-box input {
+    width: 85%;
+    padding: 12px;
+    margin-bottom: 22px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #090e17;
+    color: white;
+    text-align: center;
+    font-size: 16px;
+    letter-spacing: 3px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.security-box input:focus {
+    border-color: var(--klm-accent);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+.security-box button {
+    background: linear-gradient(135deg, #0284c7, #38bdf8);
+    color: #0f172a;
+    border: none;
+    padding: 11px 28px;
+    border-radius: 25px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+}
+
+.security-box button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5);
+    filter: brightness(1.1);
+}
+
+#error-msg {
+    color: #ef4444;
+    font-size: 12.5px;
+    margin-top: 12px;
+    display: none;
+    font-weight: 600;
+}
