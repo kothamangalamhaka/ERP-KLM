@@ -547,9 +547,9 @@
       </div>
 
       <!-- Terms & Conditions -->
-      <div class="terms-section">
+      <div class="terms-section" id="termsSectionWrapper">
         <!-- 🟢 Arabic Heading directly above Arabic Terms -->
-        <div style="text-align: right; margin-bottom: 5px;">
+        <div id="hdrTermsAr" style="text-align: right; margin-bottom: 5px; display: none;">
           <span style="font-weight: 800; font-size: 13.5px; color: var(--primary-dark); font-family: 'Tajawal', sans-serif; direction: rtl;">
             الشروط والأحكام :-
           </span>
@@ -557,7 +557,7 @@
         <div class="terms-ar" id="dispTermsAr"></div>
 
         <!-- 🟢 English Heading directly above English Terms -->
-        <div style="text-align: left; margin-top: 10px; margin-bottom: 5px;">
+        <div id="hdrTermsEn" style="text-align: left; margin-top: 10px; margin-bottom: 5px; display: none;">
           <span style="font-weight: 800; font-size: 12px; color: var(--primary-dark); text-transform: uppercase;">
             TERMS & CONDITIONS :-
           </span>
@@ -819,6 +819,25 @@
       </div>
     </div>
 
+    <!-- ================= 🔐 SECURITY CODE MODAL ================= -->
+    <div class="modal-backdrop" id="poSecurityModal" style="z-index: 10002;">
+      <div class="modal-card" style="width: 380px; text-align: center;">
+        <div style="font-size: 36px; margin-bottom: 8px;">🔐</div>
+        <h3 style="margin: 0 0 8px 0; color: #0f172a;">Security Verification</h3>
+        <p style="font-size: 12.5px; color: #64748b; margin-bottom: 15px;">
+          Please enter the Master Security Code to proceed with this operation.
+        </p>
+        <div class="form-group">
+          <input type="password" id="poSecurityInput" class="form-input" style="text-align: center; font-size: 15px; letter-spacing: 2px;" placeholder="Enter Security Code" onkeydown="if(event.key==='Enter') verifyPoSecurityAction();" />
+        </div>
+        <div id="poSecurityErr" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;"></div>
+        <div style="display: flex; justify-content: center; gap: 8px; margin-top: 10px;">
+          <button onclick="closePoSecurityModal()" class="btn-ribbon btn-dash">Cancel</button>
+          <button onclick="verifyPoSecurityAction()" class="btn-ribbon btn-save">Verify & Proceed</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       let companiesList = [];
       let savedVendors = [];
@@ -831,6 +850,12 @@
       let isRestoringFromDashboard = false;
 
       async function initPO() {
+        requirePoSecurity(async () => {
+          await executeInitPO();
+        });
+      }
+
+      async function executeInitPO() {
         await Promise.all([loadCompanies(), loadGlobalTerms(), loadVendors(), loadEquipments()]);
 
         const stored = sessionStorage.getItem("activePOData");
@@ -895,6 +920,18 @@
         }
       }
 
+      function updateTermsHeadingsVisibility() {
+        const arText = (document.getElementById("dispTermsAr").innerText || "").trim();
+        const enText = (document.getElementById("dispTermsEn").innerText || "").trim();
+        const arHdr = document.getElementById("hdrTermsAr");
+        const enHdr = document.getElementById("hdrTermsEn");
+        const wrap = document.getElementById("termsSectionWrapper");
+
+        if (arHdr) arHdr.style.display = arText ? "block" : "none";
+        if (enHdr) enHdr.style.display = enText ? "block" : "none";
+        if (wrap) wrap.style.display = (arText || enText) ? "block" : "none";
+      }
+
       async function loadGlobalTerms() {
         const res = await fetch("/purchase-order/api/terms");
         const data = await res.json();
@@ -903,6 +940,7 @@
           document.getElementById("dispTermsEn").innerText = data.terms.terms_en || "";
           document.getElementById("modalTermsAr").value = data.terms.terms_ar || "";
           document.getElementById("modalTermsEn").value = data.terms.terms_en || "";
+          updateTermsHeadingsVisibility();
         }
       }
 
@@ -1420,6 +1458,7 @@
         });
         document.getElementById("dispTermsAr").innerText = ar;
         document.getElementById("dispTermsEn").innerText = en;
+        updateTermsHeadingsVisibility();
         closeTermsModal();
       }
 
@@ -1432,6 +1471,58 @@
         const sg = document.getElementById("poSignImg");
         if (isSealEngaged && comp.seal_url) { st.src = comp.seal_url; st.style.display = "block"; } else st.style.display = "none";
         if (isSealEngaged && comp.signature_url) { sg.src = comp.signature_url; sg.style.display = "block"; } else sg.style.display = "none";
+      }
+
+      let pendingSecureCallback = null;
+
+      function requirePoSecurity(callback) {
+        if (sessionStorage.getItem("po_auth_verified") === "true") {
+          return callback();
+        }
+        pendingSecureCallback = callback;
+        document.getElementById("poSecurityInput").value = "";
+        document.getElementById("poSecurityErr").style.display = "none";
+        document.getElementById("poSecurityModal").style.display = "flex";
+        setTimeout(() => document.getElementById("poSecurityInput").focus(), 150);
+      }
+
+      function closePoSecurityModal() {
+        document.getElementById("poSecurityModal").style.display = "none";
+        pendingSecureCallback = null;
+        if (sessionStorage.getItem("po_auth_verified") !== "true") {
+          window.location.href = "../index.html";
+        }
+      }
+
+      async function verifyPoSecurityAction() {
+        const code = document.getElementById("poSecurityInput").value.trim();
+        const errEl = document.getElementById("poSecurityErr");
+        if (!code) {
+          errEl.innerText = "Please enter the code!";
+          errEl.style.display = "block";
+          return;
+        }
+        try {
+          const res = await fetch("/purchase-order/api/verify-security-code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code })
+          });
+          const data = await res.json();
+          if (data.success) {
+            sessionStorage.setItem("po_auth_verified", "true");
+            closePoSecurityModal();
+            if (typeof pendingSecureCallback === "function") {
+              pendingSecureCallback();
+            }
+          } else {
+            errEl.innerText = data.message || "Invalid Code!";
+            errEl.style.display = "block";
+          }
+        } catch(e) {
+          errEl.innerText = "Network error while verifying";
+          errEl.style.display = "block";
+        }
       }
 
       async function savePO() {

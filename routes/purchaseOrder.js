@@ -2,6 +2,23 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/db");
 
+// ================= 0. SECURITY VERIFICATION =================
+router.post("/api/verify-security-code", (req, res) => {
+  try {
+    const { code } = req.body;
+    const masterCode = process.env.PO_SECURITY_CODE;
+    if (!masterCode) {
+      return res.status(500).json({ success: false, message: "PO_SECURITY_CODE not configured in .env" });
+    }
+    if (code && code.trim() === masterCode.trim()) {
+      return res.json({ success: true, message: "Security verified" });
+    }
+    return res.status(401).json({ success: false, message: "Invalid Security Code" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ================= 1. TERMS & CONDITIONS =================
 router.get("/api/terms", async (req, res) => {
   try {
