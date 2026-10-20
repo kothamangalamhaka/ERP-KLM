@@ -463,66 +463,54 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
 
       let displayPlate = effectivePlate;
 
-      // 🟢 ഈ മാസത്തിൽ ഈ വണ്ടിക്ക് ബാധകമായ സൈറ്റ് ലോഗ് (vehicle_site_log) മാത്രം കണ്ടുപിടിക്കുന്നു
+      // 🟢 ഈ മാസത്തിൽ ഈ വണ്ടിക്ക് ബാധകമായ എല്ലാ ആക്ടീവ് സൈറ്റ് ലോഗുകളും കണ്ടെത്തുന്നു
       let vSiteLogs = siteLogs.filter((s) => allRelatedNorms.includes(cleanPlate(s.plate_no)));
-      let activeSiteLog = vSiteLogs.find((s) => {
+      let activeMonthSiteLogs = vSiteLogs.filter((s) => {
+        let sName = (s.site_name || "").trim();
+        if (!sName || sName === "N/A" || sName === "-" || sName.startsWith("Prev:")) return false;
         let st = s.work_start_date ? new Date(s.work_start_date) : new Date(2000, 0, 1);
         let ed = s.work_end_date ? new Date(s.work_end_date) : new Date(2100, 11, 31);
         if (s.status === "Running" && !s.work_end_date) ed = new Date(2100, 11, 31);
         return st <= monthEnd && ed >= monthStart;
       });
 
-      let currentSiteName = "";
-      if (activeSiteLog && activeSiteLog.site_name) {
-        currentSiteName = activeSiteLog.site_name.trim();
-      } else if (v.site_name) {
-        currentSiteName = v.site_name.trim();
-      } else {
-        let savedCheck = billing.find((b) => relatedPlates.includes((b.plate_no || "").trim().toUpperCase()));
-        if (savedCheck && savedCheck.site_name) {
-          currentSiteName = savedCheck.site_name.trim();
-        } else {
-          currentSiteName = "N/A";
+      // സൈറ്റ് ലോഗ് ഇല്ലെങ്കിൽ ടൈംഷീറ്റ് വെഹിക്കിൾസ് നോക്കുന്നു (N/A, Prev ഒഴിവാക്കുന്നു)
+      if (activeMonthSiteLogs.length === 0) {
+        let masterSite = (v.site_name || "").trim();
+        if (masterSite && masterSite !== "N/A" && masterSite !== "-" && !masterSite.startsWith("Prev:")) {
+          activeMonthSiteLogs.push({
+            site_name: masterSite,
+            rate: v.rate,
+            vehicle_type: v.vehicle_type
+          });
         }
       }
 
-      if (!currentSiteName || currentSiteName === "N/A") {
-        let hasTsOrBilling = timesheets.some(t => allRelatedNorms.includes(cleanPlate(t.plate_no))) || billing.some(b => relatedPlates.includes((b.plate_no || "").trim().toUpperCase()));
-        if (!hasTsOrBilling) return;
-        currentSiteName = v.site_name || "N/A";
-      }
+      if (activeMonthSiteLogs.length === 0) return;
 
-      // 🟢 Site Co പെർമിഷൻ പരിശോധന (ലോഗ് ലുള്ള സൈറ്റ് യൂസർക്ക് ആക്സസ് ഉണ്ടോ എന്ന് നോക്കുന്നു)
-      if (user.role === "Site Co") {
-        if (!userAssignedSites.includes(currentSiteName.toLowerCase())) {
-          return; // ആക്സസ് ഇല്ലെങ്കിൽ ഈ വണ്ടി ഒഴിവാക്കും
-        }
-      }
-
-      // 🟢 സർച്ച് ഫിൽട്ടർ പരിശോധന (പഴയ പ്ലേറ്റ് അടിച്ചു സെർച്ച് ചെയ്താലും വണ്ടി കൃത്യമായി കിട്ടാൻ)
+      // 🟢 സർച്ച് ഫിൽട്ടർ പരിശോധന
       let resolvedSearchMatch = true;
-if (search_value && search_value.trim() !== "") {
-  const cleanVal = search_value.trim().toUpperCase();
-  const cleanValNorm = cleanPlate(search_value);
-  let match = false;
+      if (search_value && search_value.trim() !== "") {
+        const cleanVal = search_value.trim().toUpperCase();
+        const cleanValNorm = cleanPlate(search_value);
+        let match = false;
 
-  // 🟢 Old plate / new plate / master plate ഏതുകൊടുത്താലും match ആകും
-  let plateMatchesSearch = 
-    allRelatedNorms.some(rn => rn.includes(cleanValNorm)) ||
-    relatedPlates.some(rp => rp.replace(/[^A-Z0-9]/g, "").includes(cleanValNorm)) ||
-    displayPlate.toUpperCase().replace(/[^A-Z0-9➔ ]/g, "").includes(cleanVal);
+        let plateMatchesSearch = 
+          allRelatedNorms.some(rn => rn.includes(cleanValNorm)) ||
+          relatedPlates.some(rp => rp.replace(/[^A-Z0-9]/g, "").includes(cleanValNorm)) ||
+          displayPlate.toUpperCase().replace(/[^A-Z0-9➔ ]/g, "").includes(cleanVal);
 
-  if (search_type === "plate") {
-    match = plateMatchesSearch;
-  } else if (search_type === "owner") {
-    match = (v.owner_name || "").trim().toUpperCase().includes(cleanVal);
-  } else {
-    match = plateMatchesSearch || (v.owner_name || "").trim().toUpperCase().includes(cleanVal);
-  }
-  resolvedSearchMatch = match;
-}
+        if (search_type === "plate") {
+          match = plateMatchesSearch;
+        } else if (search_type === "owner") {
+          match = (v.owner_name || "").trim().toUpperCase().includes(cleanVal);
+        } else {
+          match = plateMatchesSearch || (v.owner_name || "").trim().toUpperCase().includes(cleanVal);
+        }
+        resolvedSearchMatch = match;
+      }
 
-if (!resolvedSearchMatch) return;
+      if (!resolvedSearchMatch) return;
 
       function matchesRelatedPlates(bPlate) {
         if (!bPlate) return false;
@@ -531,9 +519,21 @@ if (!resolvedSearchMatch) return;
         return parts.some((p) => allRelatedNorms.includes(p)) || allRelatedNorms.includes(cleanPlate(raw));
       }
 
-      let saved = billing.find((b) => matchesRelatedPlates(b.plate_no) && (b.site_name || "").trim().toLowerCase() === currentSiteName.toLowerCase());
-      let vInvs = invoices.filter((i) => matchesRelatedPlates(i.plate_no));
-      let invData = vInvs[0] || {};
+      // 🟢 ആ മാസത്തിൽ വണ്ടിക്കുള്ള ഓരോ സൈറ്റും വെവ്വേറെ ലൂപ്പ് ചെയ്യുന്നു (Humaij, Humaij Re-running രണ്ടും കിട്ടും)
+      activeMonthSiteLogs.forEach((activeSiteLog) => {
+        let currentSiteName = (activeSiteLog.site_name || "").trim();
+        if (!currentSiteName || currentSiteName === "N/A" || currentSiteName === "-" || currentSiteName.startsWith("Prev:")) {
+          return;
+        }
+
+        if (user.role === "Site Co") {
+          if (!userAssignedSites.includes(currentSiteName.toLowerCase())) {
+            return;
+          }
+        }
+
+        let saved = billing.find((b) => matchesRelatedPlates(b.plate_no) && (b.site_name || "").trim().toLowerCase() === currentSiteName.toLowerCase());
+        let invData = invoices.find((i) => matchesRelatedPlates(i.plate_no) && (i.site_name || "").trim().toLowerCase() === currentSiteName.toLowerCase()) || {};
 
       // 🟢 Driver Log Lookup for specific month
       let vDriverLogs = driversRes.rows.filter((d) => allRelatedNorms.includes(cleanPlate(d.plate_no)));
@@ -713,23 +713,24 @@ if (!resolvedSearchMatch) return;
       }
 
       reportData.push({
-        report_date: monthStr.substring(0, 3) + " " + yearStr.substring(2, 4),
-        rate: baseRate || saved?.nrate || "-",
-        vat: isEffectiveVatYes,
-        site: currentSiteName,
-        owner: effectiveOwner,
-        driver_name: effectiveDriver,
-        plate: displayPlate,
-        plate_logs: vPlateChanges,
-        ts_nr: ts_nr > 0 ? ts_nr : "",
-        ts_ot: ts_ot > 0 ? ts_ot : "",
-        inv_nr: inv_nr > 0 ? inv_nr : "",
-        inv_ot: inv_ot > 0 ? inv_ot : "",
-        bill_db_nr: bill_sup_nr > 0 ? bill_sup_nr : "",
-        bill_db_ot: bill_sup_ot > 0 ? bill_sup_ot : "",
-        diff_nr,
-        diff_ot,
-        diff_st,
+          report_date: monthStr.substring(0, 3) + " " + yearStr.substring(2, 4),
+          rate: baseRate || saved?.nrate || "-",
+          vat: isEffectiveVatYes,
+          site: currentSiteName,
+          owner: effectiveOwner,
+          driver_name: effectiveDriver,
+          plate: displayPlate,
+          plate_logs: vPlateChanges,
+          ts_nr: ts_nr > 0 ? ts_nr : "",
+          ts_ot: ts_ot > 0 ? ts_ot : "",
+          inv_nr: inv_nr > 0 ? inv_nr : "",
+          inv_ot: inv_ot > 0 ? inv_ot : "",
+          bill_db_nr: bill_sup_nr > 0 ? bill_sup_nr : "",
+          bill_db_ot: bill_sup_ot > 0 ? bill_sup_ot : "",
+          diff_nr,
+          diff_ot,
+          diff_st,
+        });
       });
     });
 

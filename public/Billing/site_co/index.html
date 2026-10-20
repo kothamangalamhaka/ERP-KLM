@@ -1844,7 +1844,43 @@
           return;
         }
 
-        const card = buildBillCardElement(rows, companyTitle);
+        function getBaseSiteKey(sName) {
+          return String(sName || "").replace(/[\s\-_]*re[\s\-_]*running/gi, "").replace(/\s+/g, " ").trim().toLowerCase();
+        }
+
+        let displayRows = [];
+        let mergeMap = new Map();
+
+        rows.forEach((r) => {
+          let sRaw = String(r.site || "").trim();
+          if (!sRaw || sRaw === "N/A" || sRaw === "-" || sRaw.startsWith("Prev:")) return;
+
+          let pKey = normalizePlateKey(r.master_plate || r.plate_no);
+          let sKey = getBaseSiteKey(sRaw);
+          let clusterKey = `${r.date}_${pKey}_${sKey}`;
+
+          if (!mergeMap.has(clusterKey)) {
+            let rowCopy = { ...r };
+            mergeMap.set(clusterKey, rowCopy);
+            displayRows.push(rowCopy);
+          } else {
+            let target = mergeMap.get(clusterKey);
+            target.nhr = Number(((parseFloat(target.nhr) || 0) + (parseFloat(r.nhr) || 0)).toFixed(2));
+            target.othr = Number(((parseFloat(target.othr) || 0) + (parseFloat(r.othr) || 0)).toFixed(2));
+            target.rent = Number(((parseFloat(target.rent) || 0) + (parseFloat(r.rent) || 0)).toFixed(2));
+            target.vat_amount = Number(((parseFloat(target.vat_amount) || 0) + (parseFloat(r.vat_amount) || 0)).toFixed(2));
+            target.total = Number(((parseFloat(target.total) || 0) + (parseFloat(r.total) || 0)).toFixed(2));
+
+            if (target.site !== r.site && !target.site.toLowerCase().includes("re-running")) {
+              target.site = `${target.site} / Re-Running`;
+            }
+            if (r.remark && r.remark.trim() !== "") {
+              target.remark = target.remark ? `${target.remark} | ${r.remark.trim()}` : r.remark.trim();
+            }
+          }
+        });
+
+        const card = buildBillCardElement(displayRows, companyTitle);
 
         container.appendChild(card);
       }
