@@ -1851,6 +1851,15 @@
         let displayRows = [];
         let mergeMap = new Map();
 
+        function getReportForSite(row) {
+          return (fetchedReportCache || []).find(
+            (rep) =>
+              plateRecordsMatch(rep, row) &&
+              String(rep.site || "").trim().toLowerCase() ===
+                String(row.site || "").trim().toLowerCase(),
+          ) || null;
+        }
+
         rows.forEach((r) => {
           let sRaw = String(r.site || "").trim();
           if (!sRaw || sRaw === "N/A" || sRaw === "-" || sRaw.startsWith("Prev:")) return;
@@ -1859,12 +1868,29 @@
           let sKey = getBaseSiteKey(sRaw);
           let clusterKey = `${r.date}_${pKey}_${sKey}`;
 
+          const rep = getReportForSite(r) || {};
+          const repVals = {
+            ts_nr: parseFloat(rep.ts_nr) || 0,
+            ts_ot: parseFloat(rep.ts_ot) || 0,
+            inv_nr: parseFloat(rep.inv_nr) || 0,
+            inv_ot: parseFloat(rep.inv_ot) || 0,
+          };
+
           if (!mergeMap.has(clusterKey)) {
             let rowCopy = { ...r };
+            rowCopy._rep = { ...repVals };
+            rowCopy._mergedCount = 1;
             mergeMap.set(clusterKey, rowCopy);
             displayRows.push(rowCopy);
           } else {
             let target = mergeMap.get(clusterKey);
+            target._mergedCount += 1;
+            // Logsheet hours plate-wise ആണ് (site-wise അല്ല) -> sum ചെയ്യരുത്
+            target._rep.ts_nr = Math.max(target._rep.ts_nr, repVals.ts_nr);
+            target._rep.ts_ot = Math.max(target._rep.ts_ot, repVals.ts_ot);
+            // Bill summary site-wise ആണ് -> sum ചെയ്യണം
+            target._rep.inv_nr += repVals.inv_nr;
+            target._rep.inv_ot += repVals.inv_ot;
             target.nhr = Number(((parseFloat(target.nhr) || 0) + (parseFloat(r.nhr) || 0)).toFixed(2));
             target.othr = Number(((parseFloat(target.othr) || 0) + (parseFloat(r.othr) || 0)).toFixed(2));
             target.rent = Number(((parseFloat(target.rent) || 0) + (parseFloat(r.rent) || 0)).toFixed(2));
@@ -1945,7 +1971,9 @@
           totalVat += vatVal;
           grandTotal += totalVal;
 
-          const repMatch = findMatchingPlateRecord(fetchedReportCache, r) || {};
+          const repMatch = r._rep
+            ? r._rep
+            : (findMatchingPlateRecord(fetchedReportCache, r) || {});
 
           const tsNr = parseFloat(repMatch.ts_nr || 0);
           const tsOt = parseFloat(repMatch.ts_ot || 0);
@@ -1967,11 +1995,12 @@
                   data-company-display="${escapeHtmlAttribute(r.company_display_name || "")}" 
                   data-company-arabic="${escapeHtmlAttribute(r.company_arabic_name || "")}" 
                   data-vat-no="${escapeHtmlAttribute(r.vat_no || "")}" 
-                  data-site="${escapeHtmlAttribute(r.site || 'N/A')}">
+                  data-site="${escapeHtmlAttribute(r.site || 'N/A')}"
+                  data-merged="${r._mergedCount > 1 ? "1" : "0"}">
                 <td>${idx + 1}</td>
                 <td>${escapeHtml(r.date || "")}</td>
                 <td>${escapeHtml(r.vtype || "")}</td>
-                <td style="text-align:left;" class="site-column-cell">${escapeHtml(r.site || "N/A")}</td>
+                <td style="text-align:left;" class="site-column-cell" title="${r._mergedCount > 1 ? "Merged row (Normal + Re-Running) - edit disabled" : ""}">${escapeHtml(r.site || "N/A")}</td>
                 <td style="text-align:left; white-space:nowrap;">${escapeHtml(r.driver || "")}</td>
                 <td>${escapeHtml(r.plate_no || "")}</td>
                 <td class="nhr-cell editable-number-cell" data-original-value="${nhrVal}">
@@ -2000,7 +2029,7 @@
                  ${hasVat ? `<td class="vat-cell vat-amount-column">${vatVal.toFixed(2)}</td>` : ""}
                 <td style="font-weight:bold;" class="total-cell">${totalVal.toFixed(2)}</td>
                 <td class="remark-column-cell no-print" 
-                    contenteditable="true" 
+                    contenteditable="${r._mergedCount > 1 ? "false" : "true"}" 
                     spellcheck="false"
                     data-month="${escapeHtmlAttribute(r.date || '')}" 
                     data-placeholder="Add remark..."
@@ -2241,10 +2270,14 @@
           });
 
         card.querySelectorAll(".edit-number-input").forEach((input) => {
+          const tr = input.closest("tr");
+          if (tr && tr.getAttribute("data-merged") === "1") return;
           input.style.display = "inline-block";
         });
 
         card.querySelectorAll(".view-number-text").forEach((span) => {
+          const tr = span.closest("tr");
+          if (tr && tr.getAttribute("data-merged") === "1") return;
           span.style.display = "none";
         });
 
@@ -2556,6 +2589,8 @@
         let invalidFound = false;
 
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
+          if (r.getAttribute("data-merged") === "1") return;
+
           const displayPlate = r.getAttribute("data-plate");
           const plate = r.getAttribute("data-master-plate") || displayPlate;
 
@@ -2751,6 +2786,12 @@
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
           const displayPlate = r.getAttribute("data-plate");
           const plate = r.getAttribute("data-master-plate") || displayPlate;
+
+          if (r.getAttribute("data-merged") === "1") {
+            const orig = findOriginalRowByPlate(card, displayPlate || plate);
+            if (orig) rows.push(orig);
+            return;
+          }
 
           if (!plate) {
             return;
@@ -4330,7 +4371,9 @@
         const items = [];
 
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-         const displayPlate = r.getAttribute("data-plate");
+          if (r.getAttribute("data-merged") === "1") return;
+
+          const displayPlate = r.getAttribute("data-plate");
           const plate = r.getAttribute("data-master-plate") || displayPlate;
           if (!plate) return;
 

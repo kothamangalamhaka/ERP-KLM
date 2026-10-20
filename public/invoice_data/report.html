@@ -3843,40 +3843,35 @@
           return;
         }
 
+        // 🟢 FIX: Temporarily show hidden rows to safely read innerText
+        rows.forEach(tr => {
+          if (tr.style.display === 'none') {
+            tr.dataset.wasHidden = 'true';
+            tr.style.display = '';
+          }
+        });
+
         rows.forEach((tr) => {
           if (!tr.cells || tr.cells.length < 6) return;
           let site = tr.dataset.site;
           let plate = tr.dataset.masterPlate;
 
-          // 🟢 Robust Number Parsing (prevents spaces breaking logic)
-          let inv_nr_text = tr
-            .querySelector('[data-field="inv_nr"]')
-            .innerText.trim()
-            .replace(/,/g, "");
+          // 🟢 Robust Number Parsing
+          let inv_nr_text = tr.querySelector('[data-field="inv_nr"]')?.innerText.trim().replace(/,/g, "") || "";
           let parsed_nr = parseFloat(inv_nr_text);
-          // 🟢 Blank/empty ആണെങ്കിൽ null, 0 ആണെങ്കിൽ 0, otherwise parsed value
-          let inv_nr =
-            inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
+          let inv_nr = inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
 
-          let inv_ot_text = tr
-            .querySelector('[data-field="inv_ot"]')
-            .innerText.trim()
-            .replace(/,/g, "");
+          let inv_ot_text = tr.querySelector('[data-field="inv_ot"]')?.innerText.trim().replace(/,/g, "") || "";
           let parsed_ot = parseFloat(inv_ot_text);
-          let inv_ot =
-            inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
+          let inv_ot = inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
 
           const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
-          const parsedAmount = normalizeInvoiceAmountCell(invAmountCell);
+          const parsedAmount = invAmountCell ? normalizeInvoiceAmountCell(invAmountCell) : { value: null };
           if (!parsedAmount.valid) hasInvalidFormula = true;
           const inv_amount = parsedAmount.value;
 
-          let inv_no = tr
-            .querySelector('[data-field="inv_no"]')
-            .innerText.trim();
-          let bill_no = tr
-            .querySelector('[data-field="bill_no"]')
-            .innerText.trim();
+          let inv_no = tr.querySelector('[data-field="inv_no"]')?.innerText.trim() || "";
+          let bill_no = tr.querySelector('[data-field="bill_no"]')?.innerText.trim() || "";
           let deductTd = tr.querySelector(".inv-deduct-cell");
           let deductVal = deductTd ? deductTd.innerText.trim().replace(/,/g, "") : "";
           let inv_deduct = deductVal === "" ? 0 : (isNaN(parseFloat(deductVal)) ? 0 : parseFloat(deductVal));
@@ -3894,6 +3889,14 @@
             inv_no,
             bill_no,
           });
+        });
+
+        // 🟢 FIX: Restore hidden state
+        rows.forEach(tr => {
+          if (tr.dataset.wasHidden === 'true') {
+            tr.style.display = 'none';
+            delete tr.dataset.wasHidden;
+          }
         });
 
         document.getElementById("loader").style.display = "block";
@@ -5261,6 +5264,14 @@
           return;
         }
 
+        // 🟢 FIX: Temporarily show hidden rows to safely read innerText
+        editedRows.forEach(tr => {
+          if (tr.style.display === 'none') {
+            tr.dataset.wasHidden = 'true';
+            tr.style.display = '';
+          }
+        });
+
         document.getElementById("loader").style.display = "block";
         document.getElementById("loader").innerText = "Saving All Master Data... Please wait.";
 
@@ -5335,6 +5346,14 @@
               driver_ot: driverOtVal === "" ? null : isNaN(parseFloat(driverOtVal)) ? null : parseFloat(driverOtVal),
               driver_amount: driverAmountVal === "" ? null : isNaN(parseFloat(driverAmountVal)) ? null : parseFloat(driverAmountVal),
             });
+          });
+
+          // 🟢 FIX: Restore hidden state before API call to ensure UI resets correctly
+          editedRows.forEach(tr => {
+            if (tr.dataset.wasHidden === 'true') {
+              tr.style.display = 'none';
+              delete tr.dataset.wasHidden;
+            }
           });
 
           // 🟢 ഒരൊറ്റ API കോൾ വഴി Invoice Data-യും Special Billing Data-യും ഒന്നിച്ചു സേവ് ചെയ്യുന്നു
@@ -5481,6 +5500,14 @@
           return;
         }
 
+        // 🟢 FIX: Temporarily show hidden rows to safely read innerText
+        rows.forEach(tr => {
+          if (tr.style.display === 'none') {
+            tr.dataset.wasHidden = 'true';
+            tr.style.display = '';
+          }
+        });
+
         document.getElementById("loader").style.display = "block";
 
         rows.forEach((tr) => {
@@ -5493,13 +5520,11 @@
           let newNote = vbillTd.innerText.trim();
           if (newNote === "") newNote = "-";
 
-          // NR, OT നമ്പറുകൾ കറക്റ്റ് ആയി എടുക്കാൻ
           let nrVal = billNrTd.innerText.trim().replace(/,/g, "");
           let otVal = billOtTd.innerText.trim().replace(/,/g, "");
           let driverOtVal = driverOtTd.innerText.trim().replace(/,/g, "");
-          let driverAmountVal = driverAmountTd.innerText
-            .trim()
-            .replace(/,/g, "");
+          let driverAmountVal = driverAmountTd.innerText.trim().replace(/,/g, "");
+          
           let deductTd = tr.querySelector(".inv-deduct-cell");
           let deductVal = deductTd ? deductTd.innerText.trim().replace(/,/g, "") : "";
           let reasonTd = tr.querySelector(".deduct-reason-cell");
@@ -5508,8 +5533,7 @@
           nrVal = nrVal === "" ? null : parseFloat(nrVal);
           otVal = otVal === "" ? null : parseFloat(otVal);
           driverOtVal = driverOtVal === "" ? null : parseFloat(driverOtVal);
-          driverAmountVal =
-            driverAmountVal === "" ? null : parseFloat(driverAmountVal);
+          driverAmountVal = driverAmountVal === "" ? null : parseFloat(driverAmountVal);
           let parsedDeduct = deductVal === "" ? null : parseFloat(deductVal);
 
           updates.push({
@@ -5524,6 +5548,14 @@
             inv_deduct: isNaN(parsedDeduct) ? 0 : parsedDeduct,
             deduct_reason: reasonVal,
           });
+        });
+
+        // 🟢 FIX: Restore hidden state
+        rows.forEach(tr => {
+          if (tr.dataset.wasHidden === 'true') {
+            tr.style.display = 'none';
+            delete tr.dataset.wasHidden;
+          }
         });
 
         const token = localStorage.getItem("timesheetToken");
