@@ -1,5 +1,11 @@
 let rawEquipments = [],
   rawMonthlyLogs = [];
+let activeColumnFilters = {
+  plate_no: null,
+  purchase_date: null,
+  remaining_purchase_cost: null,
+};
+let currentFilterColumn = null;
 const monthNames = [
   "Jan",
   "Feb",
@@ -43,6 +49,8 @@ document.addEventListener("DOMContentLoaded", () => {
       document.activeElement.blur();
     }
   });
+
+  window.addEventListener("click", () => closePlateFilterMenu());
 
   const modalInputs = document.querySelectorAll(
     "#dataModal input[type='number']",
@@ -88,13 +96,78 @@ function initYearMonthDropdowns() {
   });
   document.getElementById("monthCheckboxes").innerHTML = liHTML;
 }
+function updateMonthSelectorLabel() {
+  const lbl = document.getElementById("monthSelectorLabel");
+  if (!lbl) return;
+  const checked = Array.from(document.querySelectorAll(".month-chk:checked")).map((c) => parseInt(c.value));
+  if (checked.length === 12 || checked.length === 0) {
+    lbl.innerText = "All Months";
+  } else if (checked.length === 1) {
+    lbl.innerText = `${monthNames[checked[0] - 1]}`;
+  } else {
+    lbl.innerText = `${checked.length} Months`;
+  }
+}
+
 function toggleAllMonths(src) {
   document
     .querySelectorAll(".month-chk")
     .forEach((chk) => (chk.checked = src.checked));
+  updateMonthSelectorLabel();
 }
 function uncheckAll(src) {
-  if (!src.checked) document.getElementById("chkAllMonths").checked = false;
+  if (!src.checked) {
+    document.getElementById("chkAllMonths").checked = false;
+  } else {
+    const allChecked = Array.from(document.querySelectorAll(".month-chk")).every((c) => c.checked);
+    document.getElementById("chkAllMonths").checked = allChecked;
+  }
+  updateMonthSelectorLabel();
+}
+
+async function navigateMonth(direction) {
+  const yearSelect = document.getElementById("filterYear");
+  let currentYear = parseInt(yearSelect.value);
+  const checked = Array.from(document.querySelectorAll(".month-chk:checked")).map((c) => parseInt(c.value));
+  
+  let targetMonth = 1;
+  if (checked.length === 1) {
+    targetMonth = checked[0] + direction;
+  } else {
+    targetMonth = direction > 0 ? 1 : 12;
+  }
+
+  let yearChanged = false;
+  if (targetMonth > 12) {
+    targetMonth = 1;
+    currentYear += 1;
+    yearChanged = true;
+  } else if (targetMonth < 1) {
+    targetMonth = 12;
+    currentYear -= 1;
+    yearChanged = true;
+  }
+
+  if (yearChanged) {
+    let yearOption = Array.from(yearSelect.options).find((opt) => parseInt(opt.value) === currentYear);
+    if (!yearOption) {
+      yearSelect.innerHTML += `<option value="${currentYear}">${currentYear}</option>`;
+    }
+    yearSelect.value = currentYear;
+  }
+
+  document.getElementById("chkAllMonths").checked = false;
+  document.querySelectorAll(".month-chk").forEach((chk) => {
+    chk.checked = parseInt(chk.value) === targetMonth;
+  });
+
+  updateMonthSelectorLabel();
+
+  if (yearChanged) {
+    await loadDashboardData();
+  } else {
+    renderTable();
+  }
 }
 async function loadDashboardData() {
   const y = document.getElementById("filterYear").value;
@@ -114,6 +187,7 @@ function filterByPlateNo() {
 }
 
 function renderTable() {
+  updateMonthSelectorLabel();
   const y = document.getElementById("filterYear").value;
   const searchTerm = (
     document.getElementById("searchPlateNo")
@@ -129,7 +203,10 @@ function renderTable() {
   );
   if (vM.length === 0) vM = Array.from({ length: 12 }, (_, i) => i + 1);
 
-  let r1 = `<tr><th rowspan="4" class="master-head">SN</th><th rowspan="4" class="master-head">Plate No</th><th rowspan="4" class="master-head">Date of <br> Purchase</th><th rowspan="4" class="master-head">Purchase <br> Cost Paid</th><th rowspan="4" class="master-head">Remaining <br> Purchase <br> Cost</th>`;
+  const plateInd = activeColumnFilters.plate_no !== null ? " 🔽" : "";
+  const dateInd = activeColumnFilters.purchase_date !== null ? " 🔽" : "";
+  const remInd = activeColumnFilters.remaining_purchase_cost !== null ? " 🔽" : "";
+  let r1 = `<tr><th rowspan="4" class="master-head">SN</th><th rowspan="4" class="master-head" id="thPlateNo" style="cursor:context-menu;" title="Right-click to filter">Plate No${plateInd}</th><th rowspan="4" class="master-head" id="thPurchaseDate" style="cursor:context-menu;" title="Right-click to filter">Date of <br> Purchase${dateInd}</th><th rowspan="4" class="master-head">Purchase <br> Cost Paid</th><th rowspan="4" class="master-head" id="thRemainingCost" style="cursor:context-menu;" title="Right-click to filter">Remaining <br> Purchase <br> Cost${remInd}</th>`;
   let r2 = `<tr>`,
     r3 = `<tr>`,
     r4 = `<tr>`;
@@ -151,12 +228,32 @@ function renderTable() {
     return dateA - dateB;
   });
 
-  const filteredEquipments = sortedEquipments.filter(
-    (eq) =>
-      !searchTerm ||
-      (eq.plate_no &&
-        eq.plate_no.toString().toLowerCase().includes(searchTerm)),
-  );
+  const filteredEquipments = sortedEquipments.filter((eq) => {
+    const pNo = (eq.plate_no || "").toString().trim();
+    if (searchTerm && !pNo.toLowerCase().includes(searchTerm)) return false;
+
+    // 1. Plate No Filter
+    if (activeColumnFilters.plate_no !== null) {
+      if (pNo === "" && !activeColumnFilters.plate_no.includes("__BLANK__")) return false;
+      if (pNo !== "" && !activeColumnFilters.plate_no.includes(pNo)) return false;
+    }
+
+    // 2. Date of Purchase Filter
+    if (activeColumnFilters.purchase_date !== null) {
+      const formattedDate = formatPurchaseDate(eq.purchase_date);
+      if (formattedDate === "" && !activeColumnFilters.purchase_date.includes("__BLANK__")) return false;
+      if (formattedDate !== "" && !activeColumnFilters.purchase_date.includes(formattedDate)) return false;
+    }
+
+    // 3. Remaining Purchase Cost Filter
+    if (activeColumnFilters.remaining_purchase_cost !== null) {
+      const remVal = eq.remaining_purchase_cost !== null && eq.remaining_purchase_cost !== undefined ? String(eq.remaining_purchase_cost) : "";
+      if (remVal === "" && !activeColumnFilters.remaining_purchase_cost.includes("__BLANK__")) return false;
+      if (remVal !== "" && !activeColumnFilters.remaining_purchase_cost.includes(remVal)) return false;
+    }
+
+    return true;
+  });
 
   filteredEquipments.forEach((eq, idx) => {
     let tr = `<tr>
@@ -216,82 +313,266 @@ function renderTable() {
     }
     body.innerHTML += tr + `</tr>`;
   });
+
+  if (isEditMode) {
+    applyInlineEditStateToRenderedCells();
+  }
+
+  const attachHeaderContextMenu = (elId, columnKey) => {
+    const thEl = document.getElementById(elId);
+    if (thEl) {
+      thEl.oncontextmenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openColumnFilterMenu(columnKey, e.clientX, e.clientY);
+      };
+    }
+  };
+
+  attachHeaderContextMenu("thPlateNo", "plate_no");
+  attachHeaderContextMenu("thPurchaseDate", "purchase_date");
+  attachHeaderContextMenu("thRemainingCost", "remaining_purchase_cost");
+}
+
+function openColumnFilterMenu(columnKey, x, y) {
+  currentFilterColumn = columnKey;
+  const menu = document.getElementById("plateNoFilterMenu");
+  if (!menu) return;
+
+  const titleMap = {
+    plate_no: "Plate No",
+    purchase_date: "Date of Purchase",
+    remaining_purchase_cost: "Remaining Purchase Cost",
+  };
+
+  const headerTitle = menu.querySelector(".excel-filter-header span");
+  if (headerTitle) headerTitle.innerText = `Filter: ${titleMap[columnKey] || columnKey}`;
+
+  const searchInput = document.getElementById("plateFilterSearch");
+  if (searchInput) searchInput.value = "";
+
+  populateColumnFilterItems(columnKey);
+
+  menu.style.display = "block";
+  const menuWidth = 240;
+  const menuHeight = 320;
+  const posX = (x + menuWidth > window.innerWidth) ? (window.innerWidth - menuWidth - 10) : x;
+  const posY = (y + menuHeight > window.innerHeight) ? (window.innerHeight - menuHeight - 10) : y;
+
+  menu.style.left = `${posX}px`;
+  menu.style.top = `${posY}px`;
+}
+
+function closePlateFilterMenu() {
+  const menu = document.getElementById("plateNoFilterMenu");
+  if (menu) menu.style.display = "none";
+}
+
+function populateColumnFilterItems(columnKey) {
+  const list = document.getElementById("plateFilterList");
+  if (!list) return;
+
+  const valueSet = new Set();
+  let hasBlank = false;
+
+  rawEquipments.forEach((eq) => {
+    let val = "";
+    if (columnKey === "plate_no") {
+      val = (eq.plate_no || "").toString().trim();
+    } else if (columnKey === "purchase_date") {
+      val = formatPurchaseDate(eq.purchase_date);
+    } else if (columnKey === "remaining_purchase_cost") {
+      val = eq.remaining_purchase_cost !== null && eq.remaining_purchase_cost !== undefined ? String(eq.remaining_purchase_cost) : "";
+    }
+
+    if (val === "" || val === null || val === undefined) {
+      hasBlank = true;
+    } else {
+      valueSet.add(val);
+    }
+  });
+
+  let sortedValues = [];
+  if (columnKey === "remaining_purchase_cost") {
+    sortedValues = Array.from(valueSet).sort((a, b) => Number(a) - Number(b));
+  } else {
+    sortedValues = Array.from(valueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }
+
+  const selectedList = activeColumnFilters[columnKey];
+
+  let html = `
+    <li>
+      <input type="checkbox" id="plateFilterSelectAll" onchange="toggleSelectAllPlates(this)" checked />
+      <label for="plateFilterSelectAll"><b>(Select All)</b></label>
+    </li>
+  `;
+
+  if (hasBlank) {
+    const isChecked = selectedList === null || selectedList.includes("__BLANK__");
+    html += `
+      <li class="plate-filter-item" data-text="(blanks)">
+        <input type="checkbox" class="plate-chk" value="__BLANK__" id="filter_blank" ${isChecked ? "checked" : ""} onchange="onSinglePlateCheckChange()" />
+        <label for="filter_blank">(Blanks)</label>
+      </li>
+    `;
+  }
+
+  sortedValues.forEach((itemVal, i) => {
+    const isChecked = selectedList === null || selectedList.includes(itemVal);
+    html += `
+      <li class="plate-filter-item" data-text="${String(itemVal).toLowerCase()}">
+        <input type="checkbox" class="plate-chk" value="${itemVal}" id="filter_item_${i}" ${isChecked ? "checked" : ""} onchange="onSinglePlateCheckChange()" />
+        <label for="filter_item_${i}">${itemVal}</label>
+      </li>
+    `;
+  });
+
+  list.innerHTML = html;
+  syncSelectAllPlateState();
+}
+
+function searchPlateFilterItems() {
+  const q = document.getElementById("plateFilterSearch").value.trim().toLowerCase();
+  document.querySelectorAll(".plate-filter-item").forEach((li) => {
+    const txt = li.getAttribute("data-text") || "";
+    li.style.display = txt.includes(q) ? "flex" : "none";
+  });
+}
+
+function toggleSelectAllPlates(master) {
+  const visibleItems = Array.from(document.querySelectorAll(".plate-filter-item")).filter((li) => li.style.display !== "none");
+  visibleItems.forEach((li) => {
+    const chk = li.querySelector(".plate-chk");
+    if (chk) chk.checked = master.checked;
+  });
+}
+
+function onSinglePlateCheckChange() {
+  syncSelectAllPlateState();
+}
+
+function syncSelectAllPlateState() {
+  const chks = Array.from(document.querySelectorAll(".plate-chk"));
+  const master = document.getElementById("plateFilterSelectAll");
+  if (!master) return;
+  master.checked = chks.length > 0 && chks.every((c) => c.checked);
+}
+
+function applyPlateFilter() {
+  if (!currentFilterColumn) return;
+  const chks = Array.from(document.querySelectorAll(".plate-chk"));
+  const checkedVals = chks.filter((c) => c.checked).map((c) => c.value);
+
+  if (checkedVals.length === chks.length) {
+    activeColumnFilters[currentFilterColumn] = null;
+  } else {
+    activeColumnFilters[currentFilterColumn] = checkedVals;
+  }
+
+  closePlateFilterMenu();
+  renderTable();
+}
+
+function clearPlateFilter() {
+  if (!currentFilterColumn) return;
+  activeColumnFilters[currentFilterColumn] = null;
+  closePlateFilterMenu();
+  renderTable();
+}
+
+function applyInlineEditStateToRenderedCells() {
+  document.querySelectorAll(".editable-cell").forEach((cell) => {
+    cell.setAttribute("contenteditable", "true");
+    cell.style.backgroundColor = "#fffbcc";
+    cell.style.outline = "1px solid #f39c12";
+
+    const eqId = cell.getAttribute("data-eq");
+    const month = cell.getAttribute("data-month");
+    const field = cell.getAttribute("data-field");
+    const key = `${eqId}_${month}_${field}`;
+
+    if (!cell.dataset.initialValue) {
+      cell.dataset.initialValue = cell.innerText.trim();
+    }
+
+    if (unsavedInlineChanges[key] !== undefined) {
+      cell.innerText = unsavedInlineChanges[key].value === 0 ? "" : unsavedInlineChanges[key].value;
+      cell.classList.add("dirty-cell");
+    }
+
+    cell.oninput = () => {
+      const currentText = cell.innerText.trim();
+      const initialText = cell.dataset.initialValue || "";
+
+      if (currentText !== initialText) {
+        cell.classList.add("dirty-cell");
+        unsavedInlineChanges[key] = {
+          equipment_id: Number(eqId),
+          year: Number(document.getElementById("filterYear").value),
+          month: Number(month),
+          field: field,
+          value: currentText === "" || isNaN(parseFloat(currentText)) ? 0 : parseFloat(currentText)
+        };
+      } else {
+        cell.classList.remove("dirty-cell");
+        delete unsavedInlineChanges[key];
+      }
+    };
+  });
 }
 
 let isEditMode = false;
+let unsavedInlineChanges = {};
 
 function toggleEditMode() {
   const btn = document.getElementById("btnEditInline");
-  const cells = document.querySelectorAll(".editable-cell");
 
   if (!isEditMode) {
     isEditMode = true;
+    unsavedInlineChanges = {};
     btn.innerHTML = "💾 Save Data";
     btn.style.background = "#27ae60";
-    cells.forEach((cell) => {
-      cell.setAttribute("contenteditable", "true");
-      cell.style.backgroundColor = "#fffbcc";
-      cell.style.outline = "1px solid #f39c12";
-    });
+    applyInlineEditStateToRenderedCells();
   } else {
     saveInlineData();
   }
 }
 
 async function saveInlineData() {
-  const y = Number(document.getElementById("filterYear").value);
-  const cells = document.querySelectorAll(".editable-cell");
-  let groupedLogs = {};
+  const updates = Object.values(unsavedInlineChanges);
 
-  cells.forEach((cell) => {
-    const eqId = Number(cell.getAttribute("data-eq"));
-    const month = Number(cell.getAttribute("data-month"));
-    const field = cell.getAttribute("data-field");
-    const rawText = cell.innerText.trim();
-    const val = (rawText === "" || isNaN(parseFloat(rawText))) ? 0 : parseFloat(rawText);
-
-    const key = `${eqId}_${month}`;
-    if (!groupedLogs[key]) {
-      const existing = getBaseLog(eqId, y, month);
-      groupedLogs[key] = {
-        equipment_id: eqId,
-        year: y,
-        month: month,
-        maintenance_cost: Number(existing.maintenance_cost || 0),
-        basic_salary: Number(existing.basic_salary || 0),
-        overtime: Number(existing.overtime || 0),
-        allowance: Number(existing.allowance || 0),
-        penalty: Number(existing.penalty || 0),
-        santook_rent: Number(existing.santook_rent || 0),
-        kafil_comm: Number(existing.kafil_comm || 0),
-        owner_comm: Number(existing.owner_comm || 0),
-        investor_comm: Number(existing.investor_comm || 0),
-        debit: Number(existing.debit || 0),
-        pwas: Number(existing.pwas || 0),
-        other_expense: Number(existing.other_expense || 0),
-        op_revenue: Number(existing.op_revenue || 0),
-      };
+  if (updates.length === 0) {
+    isEditMode = false;
+    const btn = document.getElementById("btnEditInline");
+    if (btn) {
+      btn.innerHTML = "✏️ Edit All Data";
+      btn.style.background = "#8e44ad";
     }
-    groupedLogs[key][field] = val;
-  });
-
-  const payload = {
-    logs: Object.values(groupedLogs),
-  };
+    document.querySelectorAll(".editable-cell").forEach((cell) => {
+      cell.removeAttribute("contenteditable");
+      cell.style.backgroundColor = "";
+      cell.style.outline = "";
+      cell.oninput = null;
+    });
+    showToast("No changes detected to save.", "success");
+    return;
+  }
 
   try {
-    const res = await fetch("/py/own-equipment/bulk-save-logs", {
+    const res = await fetch("/py/own-equipment/cell-level-save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ updates }),
     });
 
     const result = await res.json();
     if (res.ok && result.success) {
       isEditMode = false;
+      unsavedInlineChanges = {};
       const btn = document.getElementById("btnEditInline");
       if (btn) {
-        btn.innerHTML = "✏️ Edit Data";
+        btn.innerHTML = "✏️ Edit All Data";
         btn.style.background = "#8e44ad";
       }
 
@@ -299,6 +580,7 @@ async function saveInlineData() {
         cell.removeAttribute("contenteditable");
         cell.style.backgroundColor = "";
         cell.style.outline = "";
+        cell.oninput = null;
       });
 
       await loadDashboardData();
@@ -689,7 +971,7 @@ function populateRevenueTable() {
           ${fullMonthNames[m - 1]} ${y}
         </td>
         <td style="padding: 0; background: #fff; width: 50%;">
-          <input type="number" id="rev_input_${m}" class="rev-input-cell" data-index="${m}" value="${rev}" 
+          <input type="number" id="rev_input_${m}" class="rev-input-cell" data-month="${m}" data-initial="${rev}" value="${rev}" 
                  style="width: 100%; border: none; text-align: center; font-weight: bold; background: transparent; padding: 12px 0; outline: none; box-shadow: none;" 
                  placeholder="0" />
         </td>
@@ -741,40 +1023,31 @@ function populateRevenueTable() {
 async function postRevenueData() {
   const eqId = Number(document.getElementById("revenueEqId").value);
   const y = Number(document.getElementById("filterYear").value);
-  let groupedLogs = {};
+  const inputs = document.querySelectorAll(".rev-input-cell");
+  let updates = [];
 
-  for (let m = 1; m <= 12; m++) {
-    const inputVal = document.getElementById(`rev_input_${m}`).value;
-    const revVal = parseFloat(inputVal) || 0;
-    const existingLog =
-      rawMonthlyLogs.find(
-        (x) => x.equipment_id === eqId && x.year === y && x.month === m,
-      ) || {};
+  inputs.forEach((input) => {
+    const currentVal = input.value.trim();
+    const initialVal = (input.dataset.initial || "").trim();
 
-    groupedLogs[`${eqId}_${m}`] = {
-      equipment_id: eqId,
-      year: y,
-      month: m,
-      maintenance_cost: existingLog.maintenance_cost || 0,
-      basic_salary: existingLog.basic_salary || 0,
-      overtime: existingLog.overtime || 0,
-      penalty: existingLog.penalty || 0,
-      santook_rent: existingLog.santook_rent || 0,
-      kafil_comm: existingLog.kafil_comm || 0,
-      owner_comm: existingLog.owner_comm || 0,
-      investor_comm: existingLog.investor_comm || 0,
-      debit: existingLog.debit || 0,
-      pwas: existingLog.pwas || 0,
-      other_expense: existingLog.other_expense || 0,
-      op_revenue: revVal, // Only updates operational revenue
-    };
-  }
+    if (currentVal !== initialVal) {
+      updates.push({
+        equipment_id: eqId,
+        year: y,
+        month: Number(input.getAttribute("data-month")),
+        field: "op_revenue",
+        value: currentVal === "" ? 0 : parseFloat(currentVal) || 0,
+      });
+    }
+  });
+
+  if (updates.length === 0) return true;
 
   try {
-    const res = await fetch("/py/own-equipment/bulk-save-logs", {
+    const res = await fetch("/py/own-equipment/cell-level-save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ logs: Object.values(groupedLogs) }),
+      body: JSON.stringify({ updates }),
     });
     const result = await res.json();
     return res.ok && result.success;
@@ -945,13 +1218,19 @@ function populateExpenseTable() {
 
   for (let m = 1; m <= 12; m++) {
     const log = getBaseLog(eqId, y, m);
+    const maintVal = cleanZero(log.maintenance_cost);
+    const santookVal = cleanZero(log.santook_rent);
+    const debitVal = cleanZero(log.debit);
+    const pwasVal = cleanZero(log.pwas);
+    const otherVal = cleanZero(log.other_expense);
+
     html += `<tr>
       <td style="font-weight: bold; background: #fafafa; text-align: center;">${fullMonthNames[m - 1]} ${y}</td>
-      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="1" id="exp_maint_${m}" value="${cleanZero(log.maintenance_cost)}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="2" id="exp_santook_${m}" value="${cleanZero(log.santook_rent)}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="3" id="exp_debit_${m}" value="${cleanZero(log.debit)}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="4" id="exp_pwas_${m}" value="${cleanZero(log.pwas)}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="exp-input" data-row="${m}" data-col="5" id="exp_other_${m}" value="${cleanZero(log.other_expense)}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-month="${m}" data-field="maintenance_cost" data-initial="${maintVal}" data-row="${m}" data-col="1" id="exp_maint_${m}" value="${maintVal}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-month="${m}" data-field="santook_rent" data-initial="${santookVal}" data-row="${m}" data-col="2" id="exp_santook_${m}" value="${santookVal}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-month="${m}" data-field="debit" data-initial="${debitVal}" data-row="${m}" data-col="3" id="exp_debit_${m}" value="${debitVal}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-month="${m}" data-field="pwas" data-initial="${pwasVal}" data-row="${m}" data-col="4" id="exp_pwas_${m}" value="${pwasVal}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="exp-input" data-month="${m}" data-field="other_expense" data-initial="${otherVal}" data-row="${m}" data-col="5" id="exp_other_${m}" value="${otherVal}" placeholder="-" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
     </tr>`;
   }
   document.getElementById("expenseTableBody").innerHTML = html;
@@ -961,27 +1240,30 @@ function populateExpenseTable() {
 async function postExpenseData() {
   const eqId = Number(document.getElementById("expenseEqId").value);
   const y = Number(document.getElementById("filterYear").value);
-  let logs = [];
-  for (let m = 1; m <= 12; m++) {
-    let log = getBaseLog(eqId, y, m);
-    log.equipment_id = eqId;
-    log.year = y;
-    log.month = m;
-    log.maintenance_cost =
-      parseFloat(document.getElementById(`exp_maint_${m}`).value) || 0;
-    log.santook_rent =
-      parseFloat(document.getElementById(`exp_santook_${m}`).value) || 0;
-    log.debit =
-      parseFloat(document.getElementById(`exp_debit_${m}`).value) || 0;
-    log.pwas = parseFloat(document.getElementById(`exp_pwas_${m}`).value) || 0;
-    log.other_expense =
-      parseFloat(document.getElementById(`exp_other_${m}`).value) || 0;
-    logs.push(log);
-  }
-  return await fetch("/py/own-equipment/bulk-save-logs", {
+  const inputs = document.querySelectorAll(".exp-input");
+  let updates = [];
+
+  inputs.forEach((input) => {
+    const currentVal = input.value.trim();
+    const initialVal = (input.dataset.initial || "").trim();
+
+    if (currentVal !== initialVal) {
+      updates.push({
+        equipment_id: eqId,
+        year: y,
+        month: Number(input.getAttribute("data-month")),
+        field: input.getAttribute("data-field"),
+        value: currentVal === "" ? 0 : parseFloat(currentVal) || 0,
+      });
+    }
+  });
+
+  if (updates.length === 0) return { success: true };
+
+  return await fetch("/py/own-equipment/cell-level-save", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ logs }),
+    body: JSON.stringify({ updates }),
   }).then((r) => r.json());
 }
 async function saveExpenseData() {
@@ -1020,11 +1302,14 @@ function calculateNetSalary(m) {
   const basic =
     parseFloat(document.getElementById(`sal_basic_${m}`).value) || 0;
   const ot = parseFloat(document.getElementById(`sal_ot_${m}`).value) || 0;
+  const allowance =
+    parseFloat(document.getElementById(`sal_allowance_${m}`).value) || 0;
   const penalty =
     parseFloat(document.getElementById(`sal_penalty_${m}`).value) || 0;
   document.getElementById(`sal_net_${m}`).innerText = (
     basic +
-    ot -
+    ot +
+    allowance -
     penalty
   ).toFixed(2);
 }
@@ -1039,14 +1324,20 @@ function populateSalaryTable() {
     // Explicitly convert to Numbers to avoid string concatenation issues
     const basic = Number(log.basic_salary) || 0;
     const ot = Number(log.overtime) || 0;
+    const allowance = Number(log.allowance) || 0;
     const penalty = Number(log.penalty) || 0;
-    const net = basic + ot - penalty;
+    const net = basic + ot + allowance - penalty;
+    const bVal = basic || "";
+    const otVal = ot || "";
+    const alVal = allowance || "";
+    const penVal = penalty || "";
 
     html += `<tr>
       <td style="font-weight: bold; background: #fafafa; text-align: center;">${fullMonthNames[m - 1]} ${y}</td>
-      <td style="padding:0;"><input type="number" class="sal-input" data-row="${m}" data-col="1" id="sal_basic_${m}" value="${basic || ""}" oninput="calculateNetSalary(${m})" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="sal-input" data-row="${m}" data-col="2" id="sal_ot_${m}" value="${ot || ""}" oninput="calculateNetSalary(${m})" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="sal-input" data-row="${m}" data-col="3" id="sal_penalty_${m}" value="${penalty || ""}" oninput="calculateNetSalary(${m})" style="width:100%; border:none; text-align:center; padding:10px 0; color:red;"></td>
+      <td style="padding:0;"><input type="number" class="sal-input" data-month="${m}" data-field="basic_salary" data-initial="${bVal}" data-row="${m}" data-col="1" id="sal_basic_${m}" value="${bVal}" oninput="calculateNetSalary(${m})" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="sal-input" data-month="${m}" data-field="overtime" data-initial="${otVal}" data-row="${m}" data-col="2" id="sal_ot_${m}" value="${otVal}" oninput="calculateNetSalary(${m})" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="sal-input" data-month="${m}" data-field="allowance" data-initial="${alVal}" data-row="${m}" data-col="3" id="sal_allowance_${m}" value="${alVal}" oninput="calculateNetSalary(${m})" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="sal-input" data-month="${m}" data-field="penalty" data-initial="${penVal}" data-row="${m}" data-col="4" id="sal_penalty_${m}" value="${penVal}" oninput="calculateNetSalary(${m})" style="width:100%; border:none; text-align:center; padding:10px 0; color:red;"></td>
       <td style="background: #f8f9fa; text-align: center; font-weight: bold;"><span id="sal_net_${m}">${net.toFixed(2)}</span></td>
     </tr>`;
   }
@@ -1057,24 +1348,30 @@ function populateSalaryTable() {
 async function postSalaryData() {
   const eqId = Number(document.getElementById("salaryEqId").value);
   const y = Number(document.getElementById("filterYear").value);
-  let logs = [];
-  for (let m = 1; m <= 12; m++) {
-    let log = getBaseLog(eqId, y, m);
-    log.equipment_id = eqId;
-    log.year = y;
-    log.month = m;
-    log.basic_salary =
-      parseFloat(document.getElementById(`sal_basic_${m}`).value) || 0;
-    log.overtime =
-      parseFloat(document.getElementById(`sal_ot_${m}`).value) || 0;
-    log.penalty =
-      parseFloat(document.getElementById(`sal_penalty_${m}`).value) || 0;
-    logs.push(log);
-  }
-  return await fetch("/py/own-equipment/bulk-save-logs", {
+  const inputs = document.querySelectorAll(".sal-input");
+  let updates = [];
+
+  inputs.forEach((input) => {
+    const currentVal = input.value.trim();
+    const initialVal = (input.dataset.initial || "").trim();
+
+    if (currentVal !== initialVal) {
+      updates.push({
+        equipment_id: eqId,
+        year: y,
+        month: Number(input.getAttribute("data-month")),
+        field: input.getAttribute("data-field"),
+        value: currentVal === "" ? 0 : parseFloat(currentVal) || 0,
+      });
+    }
+  });
+
+  if (updates.length === 0) return { success: true };
+
+  return await fetch("/py/own-equipment/cell-level-save", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ logs }),
+    body: JSON.stringify({ updates }),
   }).then((r) => r.json());
 }
 async function saveSalaryData() {
@@ -1116,11 +1413,14 @@ function populateCommissionTable() {
 
   for (let m = 1; m <= 12; m++) {
     const log = getBaseLog(eqId, y, m);
+    const kafilVal = log.kafil_comm || "";
+    const ownerVal = log.owner_comm || "";
+    const invVal = log.investor_comm || "";
     html += `<tr>
       <td style="font-weight: bold; background: #fafafa; text-align: center;">${fullMonthNames[m - 1]} ${y}</td>
-      <td style="padding:0;"><input type="number" class="comm-input" data-row="${m}" data-col="1" id="comm_kafil_${m}" value="${log.kafil_comm || ""}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="comm-input" data-row="${m}" data-col="2" id="comm_owner_${m}" value="${log.owner_comm || ""}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
-      <td style="padding:0;"><input type="number" class="comm-input" data-row="${m}" data-col="3" id="comm_investor_${m}" value="${log.investor_comm || ""}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="comm-input" data-month="${m}" data-field="kafil_comm" data-initial="${kafilVal}" data-row="${m}" data-col="1" id="comm_kafil_${m}" value="${kafilVal}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="comm-input" data-month="${m}" data-field="owner_comm" data-initial="${ownerVal}" data-row="${m}" data-col="2" id="comm_owner_${m}" value="${ownerVal}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
+      <td style="padding:0;"><input type="number" class="comm-input" data-month="${m}" data-field="investor_comm" data-initial="${invVal}" data-row="${m}" data-col="3" id="comm_investor_${m}" value="${invVal}" style="width:100%; border:none; text-align:center; padding:10px 0;"></td>
     </tr>`;
   }
   document.getElementById("commissionTableBody").innerHTML = html;
@@ -1130,24 +1430,30 @@ function populateCommissionTable() {
 async function postCommissionData() {
   const eqId = Number(document.getElementById("commissionEqId").value);
   const y = Number(document.getElementById("filterYear").value);
-  let logs = [];
-  for (let m = 1; m <= 12; m++) {
-    let log = getBaseLog(eqId, y, m);
-    log.equipment_id = eqId;
-    log.year = y;
-    log.month = m;
-    log.kafil_comm =
-      parseFloat(document.getElementById(`comm_kafil_${m}`).value) || 0;
-    log.owner_comm =
-      parseFloat(document.getElementById(`comm_owner_${m}`).value) || 0;
-    log.investor_comm =
-      parseFloat(document.getElementById(`comm_investor_${m}`).value) || 0;
-    logs.push(log);
-  }
-  return await fetch("/py/own-equipment/bulk-save-logs", {
+  const inputs = document.querySelectorAll(".comm-input");
+  let updates = [];
+
+  inputs.forEach((input) => {
+    const currentVal = input.value.trim();
+    const initialVal = (input.dataset.initial || "").trim();
+
+    if (currentVal !== initialVal) {
+      updates.push({
+        equipment_id: eqId,
+        year: y,
+        month: Number(input.getAttribute("data-month")),
+        field: input.getAttribute("data-field"),
+        value: currentVal === "" ? 0 : parseFloat(currentVal) || 0,
+      });
+    }
+  });
+
+  if (updates.length === 0) return { success: true };
+
+  return await fetch("/py/own-equipment/cell-level-save", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ logs }),
+    body: JSON.stringify({ updates }),
   }).then((r) => r.json());
 }
 async function saveCommissionData() {

@@ -19,6 +19,7 @@ class InlineLogEdit(BaseModel):
     maintenance_cost: float = 0
     basic_salary: float = 0
     overtime: float = 0
+    allowance: float = 0
     penalty: float = 0
     santook_rent: float = 0
     kafil_comm: float = 0
@@ -31,6 +32,54 @@ class InlineLogEdit(BaseModel):
 
 class BulkLogUpdateRequest(BaseModel):
     logs: List[InlineLogEdit]
+
+class CellUpdateItem(BaseModel):
+    equipment_id: int
+    year: int
+    month: int
+    field: str
+    value: float
+
+class CellLevelUpdateRequest(BaseModel):
+    updates: List[CellUpdateItem]
+
+ALLOWED_COLUMNS = {
+    "maintenance_cost", "basic_salary", "overtime", "allowance",
+    "penalty", "santook_rent", "kafil_comm", "owner_comm",
+    "investor_comm", "debit", "pwas", "other_expense", "op_revenue"
+}
+
+@router.post("/cell-level-save")
+async def cell_level_save(payload: CellLevelUpdateRequest):
+    try:
+        conn = psycopg2.connect(
+            dbname=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASS"),
+            host=os.getenv("DB_HOST", "127.0.0.1"),
+            port=os.getenv("DB_PORT", "5432")
+        )
+        cur = conn.cursor()
+
+        for item in payload.updates:
+            if item.field not in ALLOWED_COLUMNS:
+                continue
+
+            query = f"""
+                INSERT INTO equipment_monthly_logs (equipment_id, year, month, {item.field})
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (equipment_id, year, month)
+                DO UPDATE SET {item.field} = EXCLUDED.{item.field};
+            """
+            cur.execute(query, (item.equipment_id, item.year, item.month, item.value))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True, "message": f"Successfully updated {len(payload.updates)} cell values!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/bulk-save-logs")
 async def bulk_save_logs(payload: BulkLogUpdateRequest):
