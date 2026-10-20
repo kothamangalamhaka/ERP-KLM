@@ -6,7 +6,7 @@
     <script src="/node_xlsx_scripts/qrcode.min.js"></script>
     <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="/node_xlsx_scripts/jszip.min.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
@@ -29,17 +29,29 @@
         transition: opacity 0.3s ease;
       }
       .loader {
-        --color-1: #00FFAF;
-        --color-2: #19BC1D;
+        --color-1: #00ffaf;
+        --color-2: #19bc1d;
         --size: 1.65px;
 
         position: relative;
         width: calc(120 * var(--size));
         height: calc(140 * var(--size));
         background-image:
-          radial-gradient(circle calc(30 * var(--size)), var(--color-1) 100%, transparent 0),
-          radial-gradient(circle calc(5 * var(--size)), var(--color-1) 100%, transparent 0),
-          radial-gradient(circle calc(5 * var(--size)), var(--color-1) 100%, transparent 0),
+          radial-gradient(
+            circle calc(30 * var(--size)),
+            var(--color-1) 100%,
+            transparent 0
+          ),
+          radial-gradient(
+            circle calc(5 * var(--size)),
+            var(--color-1) 100%,
+            transparent 0
+          ),
+          radial-gradient(
+            circle calc(5 * var(--size)),
+            var(--color-1) 100%,
+            transparent 0
+          ),
           linear-gradient(var(--color-1) calc(20 * var(--size)), transparent 0);
         background-position:
           center calc(127 * var(--size)),
@@ -56,7 +68,7 @@
         perspective: calc(500 * var(--size));
       }
       .loader::before {
-        content: '';
+        content: "";
         position: absolute;
         width: calc(100 * var(--size));
         height: calc(100 * var(--size));
@@ -69,7 +81,7 @@
         box-sizing: border-box;
       }
       .loader::after {
-        content: '';
+        content: "";
         position: absolute;
         height: calc(80 * var(--size));
         width: calc(80 * var(--size));
@@ -152,16 +164,43 @@
         transition: all 0.2s ease;
         white-space: nowrap;
       }
-      .btn-pdf { background: #10b981; color: white; }
-      .btn-pdf:hover { background: #059669; }
-      .btn-seal { background: #8b5cf6; color: white; }
-      .btn-seal.active { background: #dc2626; }
-      .btn-dash { background: #475569; color: white; text-decoration: none; }
-      .btn-dash:hover { background: #334155; }
-      .btn-edit-bill { background: #f59e0b; color: #000; }
-      .btn-edit-bill:hover { background: #d97706; color: #fff; }
-      .btn-cust { background: #0284c7; color: white; }
-      .btn-cust:hover { background: #0369a1; }
+      .btn-pdf {
+        background: #10b981;
+        color: white;
+      }
+      .btn-pdf:hover {
+        background: #059669;
+      }
+      .btn-seal {
+        background: #8b5cf6;
+        color: white;
+      }
+      .btn-seal.active {
+        background: #dc2626;
+      }
+      .btn-dash {
+        background: #475569;
+        color: white;
+        text-decoration: none;
+      }
+      .btn-dash:hover {
+        background: #334155;
+      }
+      .btn-edit-bill {
+        background: #f59e0b;
+        color: #000;
+      }
+      .btn-edit-bill:hover {
+        background: #d97706;
+        color: #fff;
+      }
+      .btn-cust {
+        background: #0284c7;
+        color: white;
+      }
+      .btn-cust:hover {
+        background: #0369a1;
+      }
 
       /* Printable Invoice Sheet */
       .invoice-page {
@@ -192,6 +231,7 @@
         flex: 1;
         display: flex;
         flex-direction: column;
+        margin-bottom: 15px; /* 🟢 ടേബിളും ഫൂട്ടറും തമ്മിലുള്ള അകലം കൂട്ടാൻ */
       }
       .invoice-header {
         display: flex;
@@ -509,9 +549,15 @@
         --table-header-bg: #d97706;
         --table-header-text: #ffffff;
       }
-      .theme-haka .items-table { direction: rtl !important; }
-      .theme-haka .middle-details-bar { display: none !important; }
-      .theme-haka .title-meta-grid { display: none !important; }
+      .theme-haka .items-table {
+        direction: rtl !important;
+      }
+      .theme-haka .middle-details-bar {
+        display: none !important;
+      }
+      .theme-haka .title-meta-grid {
+        display: none !important;
+      }
       .theme-haka .haka-top-container {
         display: flex !important;
         flex-direction: column !important;
@@ -576,7 +622,9 @@
         text-align: left !important;
         line-height: 1.5;
       }
-      .theme-masar .comp-ar { display: none !important; }
+      .theme-masar .comp-ar {
+        display: none !important;
+      }
       .theme-masar .comp-logo {
         max-height: 85px;
         max-width: 220px;
@@ -605,10 +653,18 @@
         margin-top: 4px !important;
         margin-bottom: 10px !important;
       }
-      
-      [lang="ar"], [dir="rtl"], .comp-ar, .arabic-summary-table, .inv-title, .digital-auth-line, .theme-masar * {
+
+      [lang="ar"],
+      [dir="rtl"],
+      .comp-ar,
+      .arabic-summary-table,
+      .inv-title,
+      .digital-auth-line,
+      .theme-masar * {
         letter-spacing: normal !important;
-        font-feature-settings: "liga" 1, "calt" 1;
+        font-feature-settings:
+          "liga" 1,
+          "calt" 1;
         text-rendering: geometricPrecision;
       }
 
@@ -651,7 +707,9 @@
         font-weight: 700 !important;
         color: #0f172a !important;
       }
-      .theme-masar .middle-details-bar { display: none !important; }
+      .theme-masar .middle-details-bar {
+        display: none !important;
+      }
       .theme-masar .buyer-box {
         text-align: left !important;
         align-items: flex-start !important;
@@ -671,7 +729,9 @@
         color: #0f2c59 !important;
         font-family: monospace !important;
       }
-      .theme-masar .items-table { direction: rtl !important; }
+      .theme-masar .items-table {
+        direction: rtl !important;
+      }
       .theme-masar .remarks-display-box {
         display: flex !important;
         align-items: center !important;
@@ -705,8 +765,12 @@
         --table-header-bg: #f9ba85;
         --table-header-text: #000000;
       }
-      .theme-wefaq .middle-details-bar { display: none !important; }
-      .theme-wefaq .title-meta-grid { display: none !important; }
+      .theme-wefaq .middle-details-bar {
+        display: none !important;
+      }
+      .theme-wefaq .title-meta-grid {
+        display: none !important;
+      }
       .theme-wefaq .wefaq-custom-container {
         display: flex !important;
         flex-direction: column !important;
@@ -715,7 +779,9 @@
         margin-bottom: 14px !important;
         gap: 10px !important;
       }
-      .theme-wefaq .masar-meta-buyer-row { display: none !important; }
+      .theme-wefaq .masar-meta-buyer-row {
+        display: none !important;
+      }
       .theme-wefaq .wefaq-row-1 {
         display: grid !important;
         grid-template-columns: 1fr auto 1fr !important;
@@ -754,9 +820,15 @@
         --table-header-bg: #0284c7;
         --table-header-text: #ffffff;
       }
-      .theme-default .invoice-header { display: none !important; }
-      .theme-default .title-meta-grid { display: none !important; }
-      .theme-default .middle-details-bar { display: none !important; }
+      .theme-default .invoice-header {
+        display: none !important;
+      }
+      .theme-default .title-meta-grid {
+        display: none !important;
+      }
+      .theme-default .middle-details-bar {
+        display: none !important;
+      }
       .theme-default .aljoda-custom-container {
         display: flex !important;
         flex-direction: column !important;
@@ -799,9 +871,18 @@
         max-height: 90vh;
         overflow-y: auto;
       }
-      .edit-bill-modal { width: 650px; max-width: 95vw; }
-      .cust-modal { width: 680px; max-width: 90vw; }
-      .small-modal { width: 450px; max-width: 90vw; }
+      .edit-bill-modal {
+        width: 650px;
+        max-width: 95vw;
+      }
+      .cust-modal {
+        width: 680px;
+        max-width: 90vw;
+      }
+      .small-modal {
+        width: 450px;
+        max-width: 90vw;
+      }
 
       .modal-header {
         display: flex;
@@ -811,7 +892,11 @@
         padding-bottom: 12px;
         margin-bottom: 16px;
       }
-      .modal-header h2 { margin: 0; font-size: 18px; color: #0f172a; }
+      .modal-header h2 {
+        margin: 0;
+        font-size: 18px;
+        color: #0f172a;
+      }
       .modal-close-btn {
         background: transparent;
         border: none;
@@ -846,7 +931,9 @@
         font-size: 13px;
         outline: none;
       }
-      .form-input:focus { border-color: #0284c7; }
+      .form-input:focus {
+        border-color: #0284c7;
+      }
       .readonly-input {
         background: #f1f5f9;
         cursor: not-allowed;
@@ -905,7 +992,11 @@
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
       }
-      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
       /* Security Lock */
       #securityLockOverlay {
@@ -967,13 +1058,34 @@
         display: none;
         font-weight: 600;
       }
+
+      /* 🟢 Fix: Bill No Wrap Issue & Page 2 Header Hiding */
+      #invNoDisplay, #invNoDisplayLeft, #wefaqInvNoVal, #hakaInvNoVal, #aljodaInvNoVal {
+        white-space: nowrap !important;
+      }
+      .page-subsequent #titleMetaGrid,
+      .page-subsequent #buyerDetailsBar,
+      .page-subsequent .hide-on-page-2 {
+        display: none !important;
+      }
+      .page-subsequent #subsequentPageMiniHeader {
+        display: block !important;
+      }
     </style>
   </head>
   <body>
     <!-- 🟢 Dynamic Table & Page Data Loader -->
     <div id="pageLoaderOverlay">
       <span class="loader"></span>
-      <div style="color: #00FFAF; font-size: 14px; font-weight: 700; letter-spacing: 1px; font-family: 'Inter', sans-serif;">
+      <div
+        style="
+          color: #00ffaf;
+          font-size: 14px;
+          font-weight: 700;
+          letter-spacing: 1px;
+          font-family: &quot;Inter&quot;, sans-serif;
+        "
+      >
         Preparing Bill & Formatting Table...
       </div>
     </div>
@@ -1029,11 +1141,19 @@
           🔏 Seal
         </button>
 
-        <button class="btn-ribbon btn-cust" onclick="openSupplierModal()" title="Vendors Directory">
+        <button
+          class="btn-ribbon btn-cust"
+          onclick="openSupplierModal()"
+          title="Vendors Directory"
+        >
           🏢 Vendors
         </button>
 
-        <a href="vbill-dashboard.html" class="btn-ribbon btn-dash" title="Dashboard">
+        <a
+          href="vbill-dashboard.html"
+          class="btn-ribbon btn-dash"
+          title="Dashboard"
+        >
           📊 Dashboard
         </a>
       </div>
@@ -1042,7 +1162,7 @@
         <button
           id="btnSplitToggle"
           class="btn-ribbon"
-          style="background: #8b5cf6; color: white; display: none;"
+          style="background: #8b5cf6; color: white; display: none"
           onclick="toggleSplitVehicleMode()"
           title="Toggle Split View"
         >
@@ -1052,7 +1172,13 @@
         <select
           id="splitPlateSelect"
           class="ribbon-select"
-          style="display: none; background: #334155; border-color: #8b5cf6; font-weight: 700; max-width: 135px;"
+          style="
+            display: none;
+            background: #334155;
+            border-color: #8b5cf6;
+            font-weight: 700;
+            max-width: 135px;
+          "
           onchange="onSplitPlateChange(this.value)"
         >
           <option value="ALL">📋 All</option>
@@ -1070,14 +1196,18 @@
         <button
           id="btnDownloadZip"
           class="btn-ribbon"
-          style="background: #e11d48; color: white; display: none;"
+          style="background: #e11d48; color: white; display: none"
           onclick="openZipModal()"
           title="Download all vehicle bills as ZIP"
         >
           📦 ZIP
         </button>
 
-        <button class="btn-ribbon btn-pdf" onclick="downloadInvoicePDF()" title="Download PDF">
+        <button
+          class="btn-ribbon btn-pdf"
+          onclick="downloadInvoicePDF()"
+          title="Download PDF"
+        >
           📄 PDF
         </button>
       </div>
@@ -1162,14 +1292,46 @@
           </div>
         </div>
 
+        <!-- 🟢 Mini Header for 2nd Page onwards -->
+        <div id="subsequentPageMiniHeader" style="display: none; text-align: right; width: 100%; font-family: monospace; font-weight: 800; font-size: 14px; margin-bottom: 10px; color: var(--primary-dark);"></div>
+
         <table class="items-table" id="itemsTable">
           <thead id="itemsTableHead"></thead>
           <tbody id="invoiceItemsBody"></tbody>
         </table>
 
-        <div class="summary-container-wrap" style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-top: 15px;">
-          <div id="zatcaQrWrapper" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px;">
-            <div id="zatcaQrCanvas" style="padding: 6px; background: #ffffff; min-width: 88px; min-height: 88px; display: flex; align-items: center; justify-content: center;"></div>
+        <div
+          class="summary-container-wrap"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+            margin-top: 15px;
+          "
+        >
+          <div
+            id="zatcaQrWrapper"
+            style="
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 4px;
+              padding: 4px;
+            "
+          >
+            <div
+              id="zatcaQrCanvas"
+              style="
+                padding: 6px;
+                background: #ffffff;
+                min-width: 88px;
+                min-height: 88px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            ></div>
           </div>
 
           <table class="arabic-summary-table">
@@ -1216,7 +1378,11 @@
             class="remarks-display-box"
             style="display: none !important"
           >
-            <div class="remarks-display-title" id="remarksDisplayTitle" style="display: none">
+            <div
+              class="remarks-display-title"
+              id="remarksDisplayTitle"
+              style="display: none"
+            >
               Note ::
             </div>
             <div id="remarksDisplayText"></div>
@@ -1310,10 +1476,7 @@
           <button class="btn-ribbon btn-dash" onclick="closeEditBillModal()">
             Cancel
           </button>
-          <button
-            class="btn-ribbon btn-pdf"
-            onclick="applyBillModalChanges()"
-          >
+          <button class="btn-ribbon btn-pdf" onclick="applyBillModalChanges()">
             Apply Changes
           </button>
         </div>
@@ -1322,28 +1485,78 @@
 
     <!-- 🟢 ZIP Download Confirmation Modal -->
     <div class="modal-backdrop" id="zipOptionsModal">
-      <div class="modal-card small-modal" style="width: 380px;">
+      <div class="modal-card small-modal" style="width: 380px">
         <div class="modal-header">
-          <h2 style="color: #e11d48; font-size: 16px;">📦 Download All ZIP Options</h2>
-          <button class="modal-close-btn" onclick="closeZipModal()">&times;</button>
+          <h2 style="color: #e11d48; font-size: 16px">
+            📦 Download All ZIP Options
+          </h2>
+          <button class="modal-close-btn" onclick="closeZipModal()">
+            &times;
+          </button>
         </div>
-        <p style="font-size: 13px; color: #475569; line-height: 1.5; margin-bottom: 15px;">
-          You are about to export bills for <b id="zipPlateCount">0</b> vehicles as a single ZIP file.
+        <p
+          style="
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.5;
+            margin-bottom: 15px;
+          "
+        >
+          You are about to export bills for <b id="zipPlateCount">0</b> vehicles
+          as a single ZIP file.
         </p>
-        
-        <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-bottom: 18px; text-align: left;">
-          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 700; color: #0f172a;">
-            <input type="checkbox" id="zipSaveCheckbox" checked style="width: 18px; height: 18px; cursor: pointer;" />
+
+        <div
+          style="
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 18px;
+            text-align: left;
+          "
+        >
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              cursor: pointer;
+              font-size: 13px;
+              font-weight: 700;
+              color: #0f172a;
+            "
+          >
+            <input
+              type="checkbox"
+              id="zipSaveCheckbox"
+              checked
+              style="width: 18px; height: 18px; cursor: pointer"
+            />
             <span>Save records to database</span>
           </label>
-          <div style="font-size: 11px; color: #64748b; margin-top: 5px; margin-left: 28px;">
-            Uncheck this if you only want to download as draft without creating permanent records in database.
+          <div
+            style="
+              font-size: 11px;
+              color: #64748b;
+              margin-top: 5px;
+              margin-left: 28px;
+            "
+          >
+            Uncheck this if you only want to download as draft without creating
+            permanent records in database.
           </div>
         </div>
 
-        <div class="modal-footer" style="margin-top: 10px; padding-top: 10px;">
-          <button class="btn-ribbon btn-dash" onclick="closeZipModal()">Cancel</button>
-          <button class="btn-ribbon" style="background: #e11d48; color: white;" onclick="confirmAndExecuteZip()">
+        <div class="modal-footer" style="margin-top: 10px; padding-top: 10px">
+          <button class="btn-ribbon btn-dash" onclick="closeZipModal()">
+            Cancel
+          </button>
+          <button
+            class="btn-ribbon"
+            style="background: #e11d48; color: white"
+            onclick="confirmAndExecuteZip()"
+          >
             Download ZIP 📦
           </button>
         </div>
@@ -1355,14 +1568,27 @@
       <div class="modal-card small-modal">
         <div class="modal-header">
           <h2 style="color: #d97706">⚠️ Select Vehicle Owner</h2>
-          <button class="modal-close-btn" onclick="closeMultiOwnerModal()">&times;</button>
+          <button class="modal-close-btn" onclick="closeMultiOwnerModal()">
+            &times;
+          </button>
         </div>
-        <p style="font-size: 13px; color: #475569; line-height: 1.4;">
-          This vehicle worked under multiple owners during this billing month. Please select the appropriate owner for this bill:
+        <p style="font-size: 13px; color: #475569; line-height: 1.4">
+          This vehicle worked under multiple owners during this billing month.
+          Please select the appropriate owner for this bill:
         </p>
-        <div id="multiOwnerList" style="display: flex; flex-direction: column; gap: 8px; margin: 15px 0;"></div>
+        <div
+          id="multiOwnerList"
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 15px 0;
+          "
+        ></div>
         <div class="modal-footer">
-          <button class="btn-ribbon btn-dash" onclick="closeMultiOwnerModal()">Cancel</button>
+          <button class="btn-ribbon btn-dash" onclick="closeMultiOwnerModal()">
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -1377,26 +1603,60 @@
           </button>
         </div>
         <input type="hidden" id="editCustIdInput" value="" />
-        <div class="form-grid-3" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 5px;">
+        <div
+          class="form-grid-3"
+          style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 5px"
+        >
           <div class="form-group">
             <label>Vendor Name:</label>
-            <input type="text" id="addCustNameInput" class="form-input" placeholder="Company / Vendor Name" />
+            <input
+              type="text"
+              id="addCustNameInput"
+              class="form-input"
+              placeholder="Company / Vendor Name"
+            />
           </div>
           <div class="form-group">
             <label>Nick Name (Owner):</label>
-            <input type="text" id="addCustNickInput" class="form-input" placeholder="Owner / Nick Name" />
+            <input
+              type="text"
+              id="addCustNickInput"
+              class="form-input"
+              placeholder="Owner / Nick Name"
+            />
           </div>
           <div class="form-group">
             <label>VAT / CR Number:</label>
-            <input type="text" id="addCustVatInput" class="form-input" placeholder="VAT / CR" />
+            <input
+              type="text"
+              id="addCustVatInput"
+              class="form-input"
+              placeholder="VAT / CR"
+            />
           </div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px;">
-          <button id="cancelCustEditBtn" class="btn-ribbon btn-dash" style="display: none" onclick="cancelCustomerEdit()">
+        <div
+          style="
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 12px;
+          "
+        >
+          <button
+            id="cancelCustEditBtn"
+            class="btn-ribbon btn-dash"
+            style="display: none"
+            onclick="cancelCustomerEdit()"
+          >
             Cancel Edit
           </button>
-          <button class="btn-ribbon btn-pdf" id="saveCustSubmitBtn" onclick="saveNewSupplierManual()">
+          <button
+            class="btn-ribbon btn-pdf"
+            id="saveCustSubmitBtn"
+            onclick="saveNewSupplierManual()"
+          >
             Save Vendor
           </button>
         </div>
@@ -1448,15 +1708,26 @@
 
       // 🟢 Filter cheytha plate-nu vendi Page 2 card dynamic aayi capture cheyyunnu
       async function generateDynamicCardImage(targetPlate) {
-        if (!originalIncomingPayload || !originalIncomingPayload.rows) {
+        // 🟢 Fix: Dashboard-ൽ നിന്നും ലോഡ് ചെയ്യുമ്പോൾ rows ഉണ്ടാകില്ല, പകരം manual_items ഉപയോഗിക്കണം
+        const sourceRows = (originalIncomingPayload && originalIncomingPayload.rows)
+          ? originalIncomingPayload.rows
+          : (originalIncomingPayload && originalIncomingPayload.manual_items)
+            ? originalIncomingPayload.manual_items
+            : activeBillItems;
+
+        if (!sourceRows || sourceRows.length === 0) {
           return attachedBillingCardImage;
         }
 
         const isAll = !targetPlate || targetPlate === "ALL";
         const filteredRows = isAll
-          ? originalIncomingPayload.rows
-          : originalIncomingPayload.rows.filter(r => {
-              const p = (r.plate || r.plate_no || "").trim().toUpperCase();
+          ? sourceRows
+          : sourceRows.filter((r) => {
+              let p = (r.plate || r.plate_no || "").trim().toUpperCase();
+              if (!p && r.vtype) {
+                 const match = r.vtype.match(/\(([^)]+)\)/);
+                 if (match) p = match[1].trim().toUpperCase();
+              }
               return p === targetPlate.trim().toUpperCase() || p.includes(targetPlate.trim().toUpperCase());
             });
 
@@ -1464,37 +1735,73 @@
 
         // Hidden container create cheythu billing card table render cheyyunnu
         const tempDiv = document.createElement("div");
-        tempDiv.style.cssText = "position:fixed; top:-9999px; left:-9999px; width:1250px; background:#ffffff; padding:25px; font-family:'Inter',sans-serif;";
+        tempDiv.style.cssText =
+          "position:fixed; top:-9999px; left:-9999px; width:1250px; background:#ffffff; padding:25px; font-family:'Inter',sans-serif;";
 
         let rowsHtml = "";
-        let totNhr = 0, totOthr = 0, totRent = 0, totVat = 0, totAmt = 0;
+        let totNhr = 0,
+          totOthr = 0,
+          totRent = 0,
+          totVat = 0,
+          totAmt = 0;
 
-        filteredRows.forEach((r, idx) => {
-          const nhr = parseFloat(r.nhr) || 0;
-          const othr = parseFloat(r.othr) || 0;
-          const rent = parseFloat(r.rent) || 0;
-          const vat = parseFloat(r.vat_amount || r.vatVal) || 0;
-          const total = parseFloat(r.total || r.totalVal) || (rent + vat);
+        const groupedMap = new Map();
 
-          totNhr += nhr;
-          totOthr += othr;
-          totRent += rent;
-          totVat += vat;
-          totAmt += total;
+        filteredRows.forEach((r) => {
+          const isManual = r.qty !== undefined; 
+          
+          const nhr = isManual ? (r.vtype.includes("Over Time") ? 0 : parseFloat(r.qty)) : (parseFloat(r.nhr) || 0);
+          const othr = isManual ? (r.vtype.includes("Over Time") ? parseFloat(r.qty) : 0) : (parseFloat(r.othr) || 0);
+          const rent = isManual ? parseFloat(r.subTotal) : (parseFloat(r.rent) || 0);
+          const vat = isManual ? parseFloat(r.vatAmount) : (parseFloat(r.vat_amount || r.vatVal) || 0);
+          const total = isManual ? parseFloat(r.total) : (parseFloat(r.total || r.totalVal) || rent + vat);
+          
+          const plateNo = isManual ? (r.vtype.match(/\(([^)]+)\)/) ? r.vtype.match(/\(([^)]+)\)/)[1] : "") : (r.plate || r.plate_no || "");
+          const cleanPlate = plateNo.trim().toUpperCase();
+          const rawVtype = isManual ? r.vtype.split('(')[0].trim() : (r.vtype || "");
+          
+          const groupKey = cleanPlate || rawVtype;
+
+          if (!groupedMap.has(groupKey)) {
+             groupedMap.set(groupKey, {
+                 vTypeStr: rawVtype.includes("Over Time") ? "" : rawVtype,
+                 plateNo: cleanPlate,
+                 nhr: 0, othr: 0, rent: 0, vat: 0, total: 0,
+                 vatPercent: parseFloat(r.vat_percent || r.vatPercent || 15)
+             });
+          }
+
+          const existing = groupedMap.get(groupKey);
+          if (rawVtype && !rawVtype.includes("Over Time")) {
+              existing.vTypeStr = rawVtype;
+          }
+          existing.nhr += nhr;
+          existing.othr += othr;
+          existing.rent += rent;
+          existing.vat += vat;
+          existing.total += total;
+        });
+
+        let rowIndex = 0;
+        groupedMap.forEach((g) => {
+          totNhr += g.nhr;
+          totOthr += g.othr;
+          totRent += g.rent;
+          totVat += g.vat;
+          totAmt += g.total;
 
           rowsHtml += `
             <tr style="text-align:center; font-size:12px; height:32px;">
-              <td style="border:1px solid #cbd5e1; padding:6px; font-weight:700;">${idx + 1}</td>
-              <td style="border:1px solid #cbd5e1; padding:6px; font-weight:700; color:#1a4d80;">${originalIncomingPayload.billingMonth || ''}</td>
-              <td style="border:1px solid #cbd5e1; padding:6px;">${r.vtype || ''}</td>
-              <td style="border:1px solid #cbd5e1; padding:6px;">${r.driver || ''}</td>
-              <td style="border:1px solid #cbd5e1; padding:6px; font-weight:700;">${r.plate || r.plate_no || ''}</td>
-              <td style="border:1px solid #cbd5e1; padding:6px;">${nhr.toFixed(2)}</td>
-              <td style="border:1px solid #cbd5e1; padding:6px;">${othr.toFixed(2)}</td>
-              <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">${rent.toFixed(2)}</td>
-              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${parseFloat(r.vat_percent || 15)}%</td>
-              <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">${vat.toFixed(2)}</td>
-              <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right; font-weight:700;">${total.toFixed(2)}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; font-weight:700;">${++rowIndex}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; font-weight:700; color:#1a4d80;">${originalIncomingPayload.billingMonth || fixedSupplyMonth || ""}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px;">${g.vTypeStr || "Over Time"}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; font-weight:700;">${g.plateNo}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px;">${g.nhr.toFixed(2)}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px;">${g.othr.toFixed(2)}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">${g.rent.toFixed(2)}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px; text-align:center;">${g.vatPercent}%</td>
+              <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">${g.vat.toFixed(2)}</td>
+              <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right; font-weight:700;">${g.total.toFixed(2)}</td>
             </tr>
           `;
         });
@@ -1508,22 +1815,20 @@
               <colgroup>
                 <col style="width: 38px;">
                 <col style="width: 100px;">
-                <col style="width: 150px;">
-                <col style="width: 260px;">
+                <col style="width: 250px;">
                 <col style="width: 110px;">
                 <col style="width: 75px;">
                 <col style="width: 75px;">
-                <col style="width: 110px;">
+                <col style="width: 120px;">
                 <col style="width: 70px;">
-                <col style="width: 110px;">
-                <col style="width: 130px;">
+                <col style="width: 120px;">
+                <col style="width: 140px;">
               </colgroup>
               <thead>
                 <tr style="background:#1a4d80; color:#ffffff; font-size:11.5px; height:38px;">
                   <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">#</th>
                   <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">Date</th>
                   <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">Vehicle Type</th>
-                  <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">Driver</th>
                   <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">Plate No</th>
                   <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">N.Hr</th>
                   <th style="border:1px solid #1a4d80; padding:6px; text-align:center;">OT Hr</th>
@@ -1536,7 +1841,7 @@
               <tbody>${rowsHtml}</tbody>
               <tfoot>
                 <tr style="font-weight:800; font-size:13px; background:#f1f5f9; height:40px;">
-                  <td colspan="5" style="text-align:right; padding-right:15px; border:1px solid #cbd5e1; font-weight:800; color:#0f172a;">Grand Total:</td>
+                  <td colspan="4" style="text-align:right; padding-right:15px; border:1px solid #cbd5e1; font-weight:800; color:#0f172a;">Grand Total:</td>
                   <td style="border:1px solid #cbd5e1; text-align:center; font-weight:800;">${totNhr.toFixed(0)}</td>
                   <td style="border:1px solid #cbd5e1; text-align:center; font-weight:800;">${totOthr.toFixed(0)}</td>
                   <td style="border:1px solid #cbd5e1; text-align:right; padding-right:8px; font-weight:800;">${totRent.toFixed(2)}</td>
@@ -1550,7 +1855,10 @@
         `;
 
         document.body.appendChild(tempDiv);
-        const cardCanvas = await html2canvas(tempDiv, { scale: 2, backgroundColor: "#ffffff" });
+        const cardCanvas = await html2canvas(tempDiv, {
+          scale: 2,
+          backgroundColor: "#ffffff",
+        });
         document.body.removeChild(tempDiv);
 
         return cardCanvas.toDataURL("image/jpeg", 0.92);
@@ -1587,7 +1895,7 @@
           try {
             const data = JSON.parse(raw);
             sessionStorage.removeItem("activeVendorBillData");
-            
+
             await loadCompaniesPromise; // കമ്പനി ലിസ്റ്റ് നിർബന്ധമായതിനാൽ മാത്രം കാക്കുന്നു
 
             if (data.invoice_no && data.invoice_no !== "------") {
@@ -1596,7 +1904,7 @@
             }
 
             await populateIncomingBillingData(data);
-            
+
             if (data.invoice_no && data.invoice_no !== "------") {
               isBillAlreadySaved = true;
               syncInvNoDisplays(data.invoice_no);
@@ -1643,14 +1951,18 @@
 
           const customOrder = [
             { key: "HAK", label: "Haka" },
-            { key: "AL",  label: "Al Joda" },
-            { key: "MW",  label: "Masar Wheels" },
-            { key: "WE",  label: "We1 Track Co" }
+            { key: "AL", label: "Al Joda" },
+            { key: "MW", label: "Masar Wheels" },
+            { key: "WE", label: "We1 Track Co" },
           ];
 
           customOrder.forEach((item) => {
             const comp = companiesList.find((c) => {
-              const code = (c.short_code || c.company_name_en || "").toUpperCase();
+              const code = (
+                c.short_code ||
+                c.company_name_en ||
+                ""
+              ).toUpperCase();
               return code.includes(item.key);
             });
             if (comp) {
@@ -1659,8 +1971,12 @@
           });
 
           companiesList.forEach((c) => {
-            const code = (c.short_code || c.company_name_en || "").toUpperCase();
-            const exists = customOrder.some(co => code.includes(co.key));
+            const code = (
+              c.short_code ||
+              c.company_name_en ||
+              ""
+            ).toUpperCase();
+            const exists = customOrder.some((co) => code.includes(co.key));
             if (!exists) {
               sel.innerHTML += `<option value="${c.id}">${c.company_name_en}</option>`;
             }
@@ -1677,16 +1993,39 @@
         } else {
           isBillAlreadySaved = true;
           // സിംഗിൾ പ്ലേറ്റ് ബിൽ ആണെങ്കിൽ ആ പ്ലേറ്റിന്റെ ഇൻവോയ്സ് നമ്പർ സൂക്ഷിക്കുന്നു
-          const singleP = (incoming.rows && incoming.rows[0]) ? (incoming.rows[0].plate || incoming.rows[0].plate_no) : "";
-          if (singleP) savedPlateInvoices[singleP.trim().toUpperCase()] = incoming.invoice_no;
+          const singleP =
+            incoming.rows && incoming.rows[0]
+              ? incoming.rows[0].plate || incoming.rows[0].plate_no
+              : "";
+          if (singleP)
+            savedPlateInvoices[singleP.trim().toUpperCase()] =
+              incoming.invoice_no;
         }
-        attachedBillingCardImage = incoming.billingCardImage || incoming.raw_payload?.billingCardImage || "";
+        attachedBillingCardImage =
+          incoming.billingCardImage ||
+          incoming.raw_payload?.billingCardImage ||
+          "";
 
         if (incoming.billingMonth) {
           const parts = incoming.billingMonth.split(" ");
-          const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const shortMonths = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
           if (parts.length >= 2) {
-            const mIdx = shortMonths.findIndex(sm => parts[0].toLowerCase().startsWith(sm.toLowerCase()));
+            const mIdx = shortMonths.findIndex((sm) =>
+              parts[0].toLowerCase().startsWith(sm.toLowerCase()),
+            );
             if (mIdx !== -1) {
               fixedSupplyMonth = `${shortMonths[mIdx]}-${parts[1].slice(-2)}`;
             } else {
@@ -1697,28 +2036,42 @@
           }
         }
         syncSupplyDateDisplays(fixedSupplyMonth);
-        document.getElementById("modalSupplyMonthDisplay").value = fixedSupplyMonth;
+        document.getElementById("modalSupplyMonthDisplay").value =
+          fixedSupplyMonth;
 
         billOwnerNick = incoming.ownerNick || incoming.ownerName || "";
-        const ownerDisplay = incoming.vendorArabicName || incoming.vendorDisplayName || incoming.ownerName || "";
+        const ownerDisplay =
+          incoming.vendorArabicName ||
+          incoming.vendorDisplayName ||
+          incoming.ownerName ||
+          "";
         const ownerVat = incoming.vendorVatNo || "";
 
         setVendorDetails(ownerDisplay, ownerVat);
 
         if (incoming.companyName) {
-          const matchedComp = companiesList.find(c =>
-            c.company_name_en.toLowerCase().includes(incoming.companyName.toLowerCase()) ||
-            (c.short_code && incoming.companyName.toLowerCase().includes(c.short_code.toLowerCase()))
+          const matchedComp = companiesList.find(
+            (c) =>
+              c.company_name_en
+                .toLowerCase()
+                .includes(incoming.companyName.toLowerCase()) ||
+              (c.short_code &&
+                incoming.companyName
+                  .toLowerCase()
+                  .includes(c.short_code.toLowerCase())),
           );
           if (matchedComp) {
-            document.getElementById("companySelect").value = String(matchedComp.id);
+            document.getElementById("companySelect").value = String(
+              matchedComp.id,
+            );
             await applyCompanyDetailsToView(matchedComp.id);
           } else {
             await fetchNextNumber(null);
           }
         }
 
-        currentRemarks = incoming.remarks || incoming.raw_payload?.remarks || "";
+        currentRemarks =
+          incoming.remarks || incoming.raw_payload?.remarks || "";
         updateRemarksDisplay();
 
         activeBillItems = [];
@@ -1727,7 +2080,11 @@
 
         for (let row of incomingRows) {
           // If already fully formatted manual item from saved payload with subTotal & qty
-          if (row.subTotal !== undefined && row.qty !== undefined && row.nhr === undefined) {
+          if (
+            row.subTotal !== undefined &&
+            row.qty !== undefined &&
+            row.nhr === undefined
+          ) {
             seqCount++;
             activeBillItems.push({
               seq: row.seq || String(seqCount),
@@ -1736,9 +2093,10 @@
               qty: parseFloat(row.qty) || 0,
               rate: parseFloat(row.rate) || 0,
               subTotal: parseFloat(row.subTotal) || 0,
-              vatPercent: row.vatPercent !== undefined ? parseFloat(row.vatPercent) : 15,
+              vatPercent:
+                row.vatPercent !== undefined ? parseFloat(row.vatPercent) : 15,
               vatAmount: parseFloat(row.vatAmount) || 0,
-              total: parseFloat(row.total) || 0
+              total: parseFloat(row.total) || 0,
             });
             continue;
           }
@@ -1747,20 +2105,28 @@
           const othr = parseFloat(row.othr) || 0;
           const nrate = parseFloat(row.nrate) || 0;
           const otrate = parseFloat(row.otrate) || 0;
-          const vatPct = row.vat_percent !== undefined ? parseFloat(row.vat_percent) : (parseFloat(row.vatPercent) || 0);
+          const vatPct =
+            row.vat_percent !== undefined
+              ? parseFloat(row.vat_percent)
+              : parseFloat(row.vatPercent) || 0;
 
           let rawVtype = row.vtype || "Vehicle";
-          // ബില്ലിംഗിൽ നിന്ന് ലഭിച്ച അറബിക് പേര് ഉണ്ടെങ്കിൽ അത് എടുക്കുന്നു, അല്ലെങ്കിൽ അതേ പേര് നൽകുന്നു
+          // Backend-il ninnum Arabic peru vannillengil, Google API vazhi translate cheyyunnu
           let arabicDesc = (row.vtype_ar || "").trim();
+          if (!arabicDesc && rawVtype) {
+            arabicDesc = await translateToArabicDynamic(rawVtype);
+          }
 
           // Format description with plate number: e.g. "Dyna 5 T (6452 LDA)"
           const plateStr = (row.plate || row.plate_no || "").trim();
-          const descWithPlate = plateStr ? `${rawVtype} (${plateStr})` : rawVtype;
+          const descWithPlate = plateStr
+            ? `${rawVtype} (${plateStr})`
+            : rawVtype;
 
           if (nhr > 0 || (nhr === 0 && othr === 0)) {
             seqCount++;
             const qty = nhr > 0 ? nhr : 1;
-            const rate = nhr > 0 ? nrate : (parseFloat(row.rent) || 0);
+            const rate = nhr > 0 ? nrate : parseFloat(row.rent) || 0;
             const sub = Number((qty * rate).toFixed(2));
             const vat = Number((sub * (vatPct / 100)).toFixed(2));
             const tot = Number((sub + vat).toFixed(2));
@@ -1774,7 +2140,7 @@
               subTotal: sub,
               vatPercent: vatPct,
               vatAmount: vat,
-              total: tot
+              total: tot,
             });
           }
 
@@ -1795,7 +2161,7 @@
               subTotal: sub,
               vatPercent: vatPct,
               vatAmount: vat,
-              total: tot
+              total: tot,
             });
           }
         }
@@ -1806,7 +2172,8 @@
         const uniquePlates = getUniquePlateNumbers();
         const splitBtn = document.getElementById("btnSplitZip");
         if (splitBtn) {
-          splitBtn.style.display = uniquePlates.length > 1 ? "inline-flex" : "none";
+          splitBtn.style.display =
+            uniquePlates.length > 1 ? "inline-flex" : "none";
         }
 
         allCombinedItemsBackup = JSON.parse(JSON.stringify(activeBillItems));
@@ -1815,7 +2182,8 @@
         // 🟢 ഒന്നിൽ കൂടുതൽ വണ്ടികൾ ഉണ്ടെങ്കിൽ സ്പ്ലിറ്റ് ബട്ടൺ ദൃശ്യമാക്കുന്നു
         setupSplitButtons();
 
-        const samplePlate = incoming.rows && incoming.rows[0] ? incoming.rows[0].plate : "";
+        const samplePlate =
+          incoming.rows && incoming.rows[0] ? incoming.rows[0].plate : "";
         if (samplePlate && incoming.billingMonth) {
           const bParts = incoming.billingMonth.split(" ");
           if (bParts.length >= 2) {
@@ -1826,11 +2194,14 @@
 
       function getUniquePlateNumbers() {
         const plates = new Set();
-        const sourceItems = allCombinedItemsBackup.length > 0 ? allCombinedItemsBackup : activeBillItems;
-        sourceItems.forEach(item => {
+        const sourceItems =
+          allCombinedItemsBackup.length > 0
+            ? allCombinedItemsBackup
+            : activeBillItems;
+        sourceItems.forEach((item) => {
           const desc = item.vtype || "";
           const match = desc.match(/\(([^)]+)\)/);
-          const p = match ? match[1].trim() : (item.plate || "");
+          const p = match ? match[1].trim() : item.plate || "";
           if (p) plates.add(p);
         });
         return Array.from(plates);
@@ -1845,10 +2216,10 @@
         if (uniquePlates.length > 1) {
           if (splitToggleBtn) splitToggleBtn.style.display = "inline-flex";
           if (zipBtn) zipBtn.style.display = "inline-flex";
-          
+
           if (plateSelect) {
             plateSelect.innerHTML = '<option value="ALL">All Plates</option>';
-            uniquePlates.forEach(p => {
+            uniquePlates.forEach((p) => {
               plateSelect.innerHTML += `<option value="${p}">${p}</option>`;
             });
           }
@@ -1891,7 +2262,7 @@
         if (selectedPlate === "ALL") {
           activeBillItems = JSON.parse(JSON.stringify(allCombinedItemsBackup));
         } else {
-          activeBillItems = allCombinedItemsBackup.filter(item => {
+          activeBillItems = allCombinedItemsBackup.filter((item) => {
             const desc = item.vtype || "";
             return desc.includes(`(${selectedPlate})`);
           });
@@ -1907,30 +2278,45 @@
         updateRemarksDisplay();
         updateZatcaQrCode();
 
-        showPdfToast(`Previewing: ${selectedPlate === 'ALL' ? 'Combined Bill' : 'Plate ' + selectedPlate}`, false);
+        showPdfToast(
+          `Previewing: ${selectedPlate === "ALL" ? "Combined Bill" : "Plate " + selectedPlate}`,
+          false,
+        );
       }
 
       function getUniquePlateNumbers() {
         const plates = new Set();
-        activeBillItems.forEach(item => {
+        activeBillItems.forEach((item) => {
           const desc = item.vtype || "";
           const match = desc.match(/\(([^)]+)\)/);
-          const p = match ? match[1].trim() : (item.plate || "");
+          const p = match ? match[1].trim() : item.plate || "";
           if (p) plates.add(p);
         });
         return Array.from(plates);
       }
 
       function setVendorDetails(name, vat) {
-        const idsName = ["buyerNameDisplay", "buyerNameDisplayStand", "wefaqBuyerNameVal", "hakaBuyerNameVal", "aljodaBuyerNameVal"];
-        const idsVat = ["buyerVatDisplay", "buyerVatDisplayStand", "wefaqBuyerVatVal", "hakaBuyerVatVal", "aljodaBuyerVatVal"];
-        
-        idsName.forEach(id => {
+        const idsName = [
+          "buyerNameDisplay",
+          "buyerNameDisplayStand",
+          "wefaqBuyerNameVal",
+          "hakaBuyerNameVal",
+          "aljodaBuyerNameVal",
+        ];
+        const idsVat = [
+          "buyerVatDisplay",
+          "buyerVatDisplayStand",
+          "wefaqBuyerVatVal",
+          "hakaBuyerVatVal",
+          "aljodaBuyerVatVal",
+        ];
+
+        idsName.forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.innerText = name;
         });
 
-        idsVat.forEach(id => {
+        idsVat.forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.innerText = vat;
         });
@@ -1961,7 +2347,9 @@
 
       async function checkMultiOwnersFromTimesheet(plate, month, year) {
         try {
-          const res = await fetch(`/vendor-bill/api/vehicle-owners?plate_no=${encodeURIComponent(plate)}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`);
+          const res = await fetch(
+            `/vendor-bill/api/vehicle-owners?plate_no=${encodeURIComponent(plate)}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`,
+          );
           const data = await res.json();
           if (data.success && data.owners && data.owners.length > 1) {
             const listEl = document.getElementById("multiOwnerList");
@@ -1969,9 +2357,11 @@
             data.owners.forEach((o) => {
               const oBtn = document.createElement("button");
               oBtn.className = "btn-ribbon";
-              oBtn.style.cssText = "background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; justify-content:space-between; padding:10px;";
-              const dispName = o.company_arabic_name || o.company_display_name || o.owner_name;
-              oBtn.innerHTML = `<span><b>${dispName}</b> (${o.owner_name})</span> <span style="color:#0284c7; font-family:monospace;">${o.work_start_date ? o.work_start_date.split('T')[0] : 'Start'} ➔ ${o.work_end_date ? o.work_end_date.split('T')[0] : 'Running'}</span>`;
+              oBtn.style.cssText =
+                "background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; justify-content:space-between; padding:10px;";
+              const dispName =
+                o.company_arabic_name || o.company_display_name || o.owner_name;
+              oBtn.innerHTML = `<span><b>${dispName}</b> (${o.owner_name})</span> <span style="color:#0284c7; font-family:monospace;">${o.work_start_date ? o.work_start_date.split("T")[0] : "Start"} ➔ ${o.work_end_date ? o.work_end_date.split("T")[0] : "Running"}</span>`;
               oBtn.onclick = () => {
                 selectVehicleOwnerChoice(o);
                 closeMultiOwnerModal();
@@ -1987,7 +2377,11 @@
 
       function selectVehicleOwnerChoice(owner) {
         billOwnerNick = owner.owner_name || "";
-        const disp = owner.company_arabic_name || owner.company_display_name || owner.owner_name || "";
+        const disp =
+          owner.company_arabic_name ||
+          owner.company_display_name ||
+          owner.owner_name ||
+          "";
         setVendorDetails(disp, owner.vat_no || "");
         updateZatcaQrCode();
       }
@@ -2070,11 +2464,12 @@
             authLineEl.parentElement.style.flexDirection = "column";
             authLineEl.parentElement.style.alignItems = "flex-start";
           }
-          
+
           if (!qrTargetCont && authLineEl) {
             qrTargetCont = document.createElement("div");
             qrTargetCont.id = "hakaQrUnderAuth";
-            qrTargetCont.style.cssText = "display: flex; justify-content: flex-start; align-items: flex-start; width: 100%; margin-top: 6px;";
+            qrTargetCont.style.cssText =
+              "display: flex; justify-content: flex-start; align-items: flex-start; width: 100%; margin-top: 6px;";
             authLineEl.insertAdjacentElement("afterend", qrTargetCont);
           }
 
@@ -2084,14 +2479,18 @@
             qrTargetCont.style.display = "flex";
           }
 
-          const currentSupply = document.getElementById("supplyDateDisplay")?.innerText || fixedSupplyMonth;
-          const currentDate = document.getElementById("dateDisplay")?.innerText || "------";
-          const currentInv = document.getElementById("invNoDisplay")?.innerText || "------";
+          const currentSupply =
+            document.getElementById("supplyDateDisplay")?.innerText ||
+            fixedSupplyMonth;
+          const currentDate =
+            document.getElementById("dateDisplay")?.innerText || "------";
+          const currentInv =
+            document.getElementById("invNoDisplay")?.innerText || "------";
           const currentBuyer = getActiveVendorName();
           const currentVat = getActiveVendorVat();
 
           topCont.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%;">
+            <div class="hide-on-page-2" style="display:flex; justify-content:space-between; align-items:flex-start; width:100%;">
               <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px;">
                 <div style="display:flex; align-items:center; gap:6px;">
                   <span style="font-family:'Tajawal',sans-serif; font-weight:700; font-size:13px; color:#0f172a;">التاريخ :</span>
@@ -2107,7 +2506,7 @@
                 <span id="hakaBuyerVatVal" style="font-family:monospace; font-weight:700; font-size:13px; color:var(--primary-dark); margin-top:3px;">${currentVat}</span>
               </div>
             </div>
-            <div style="width:100%; text-align:center; margin-top:10px; margin-bottom:5px;">
+            <div class="hide-on-page-2" style="width:100%; text-align:center; margin-top:10px; margin-bottom:5px;">
               <div class="inv-title" style="font-family:'Tajawal',sans-serif; font-size:20px; font-weight:800; color:var(--primary-dark); border-bottom:2.5px solid var(--primary-theme); padding-bottom:3px; display:inline-block;">
                 ملخص الفاتورة الضريبية
               </div>
@@ -2119,20 +2518,21 @@
             <span id="hakaInvNoVal" class="haka-clean-tag">${currentInv}</span>
           `;
 
-          authLine.innerText = "فاتورة ضريبية مُعتمدة إلكترونياً – تم التحقق والاعتماد رقمياً";
+          authLine.innerText =
+            "فاتورة ضريبية مُعتمدة إلكترونياً – تم التحقق والاعتماد رقمياً";
           if (remTitle) remTitle.innerText = "ملاحظات :";
-        }
-        else if (themeKey === "masar") {
+        } else if (themeKey === "masar") {
           leftWrap.style.display = "none";
           rightWrap.style.display = "flex";
           document.getElementById("lblMetaDate").innerText = "تاريخ الفاتورة :";
-          document.getElementById("lblMetaInv").innerText = "رقم ملخص الفاتورة :";
+          document.getElementById("lblMetaInv").innerText =
+            "رقم ملخص الفاتورة :";
           document.getElementById("lblMetaSupply").innerHTML = "شهر التوريد :";
           titleEl.innerText = "ملخص الفاتورة";
-          authLine.innerText = "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
+          authLine.innerText =
+            "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
           if (remTitle) remTitle.innerText = "ملاحظات :";
-        }
-        else if (themeKey === "wefaq") {
+        } else if (themeKey === "wefaq") {
           leftWrap.style.display = "none";
           rightWrap.style.display = "none";
           if (mainGrid) mainGrid.style.display = "none";
@@ -2149,14 +2549,18 @@
           }
           wefaqContainer.style.display = "flex";
 
-          const currentSupply = document.getElementById("supplyDateDisplay")?.innerText || fixedSupplyMonth;
-          const currentDate = document.getElementById("dateDisplay")?.innerText || "------";
-          const currentInv = document.getElementById("invNoDisplay")?.innerText || "------";
+          const currentSupply =
+            document.getElementById("supplyDateDisplay")?.innerText ||
+            fixedSupplyMonth;
+          const currentDate =
+            document.getElementById("dateDisplay")?.innerText || "------";
+          const currentInv =
+            document.getElementById("invNoDisplay")?.innerText || "------";
           const currentBuyer = getActiveVendorName();
           const currentVat = getActiveVendorVat();
 
           wefaqContainer.innerHTML = `
-            <div class="wefaq-row-1">
+            <div class="wefaq-row-1 hide-on-page-2">
               <div style="display:flex; align-items:center; gap:6px;">
                 <span class="wefaq-arabic-lbl">شهر التوريد :</span>
                 <span id="wefaqSupplyVal" class="wefaq-borderless-tag">${currentSupply}</span>
@@ -2171,10 +2575,10 @@
                 <span id="wefaqDateVal" class="wefaq-borderless-tag">${currentDate}</span>
               </div>
             </div>
-            <div class="wefaq-row-2">
-              <div style="display:flex; flex-direction:column; align-items:flex-start;">
-                <span id="wefaqBuyerNameVal" style="font-weight:800; font-size:14.5px; color:#0f172a; font-family:'Tajawal', sans-serif; line-height:1.2;">${currentBuyer}</span>
-                <span id="wefaqBuyerVatVal" style="font-family:monospace; font-size:12.5px; font-weight:700; color:var(--primary-dark); margin-top:3px;">${currentVat}</span>
+            <div class="wefaq-row-2 hide-on-page-2">
+              <div style="display:flex; flex-direction:column; align-items:flex-start; max-width:65%;">
+                <span id="wefaqBuyerNameVal" style="font-weight:800; font-size:14.5px; color:#0f172a; font-family:'Tajawal', sans-serif; line-height:1.4;">${currentBuyer}</span>
+                <span id="wefaqBuyerVatVal" style="font-family:monospace; font-size:12.5px; font-weight:700; color:var(--primary-dark); margin-top:5px;">${currentVat}</span>
               </div>
               <div style="display:flex; align-items:center; gap:6px;">
                 <span class="wefaq-arabic-lbl">رقم الفاتورة :</span>
@@ -2183,17 +2587,19 @@
             </div>
           `;
 
-          authLine.innerText = "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
+          authLine.innerText =
+            "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
           if (remTitle) remTitle.innerText = "Note ::";
-        }
-        else {
+        } else {
           leftWrap.style.display = "none";
           rightWrap.style.display = "none";
           if (mainGrid) mainGrid.style.display = "none";
           const oldBuyerBar = document.getElementById("buyerDetailsBar");
           if (oldBuyerBar) oldBuyerBar.style.display = "none";
 
-          let aljodaContainer = document.getElementById("aljodaLayoutContainer");
+          let aljodaContainer = document.getElementById(
+            "aljodaLayoutContainer",
+          );
           if (!aljodaContainer) {
             aljodaContainer = document.createElement("div");
             aljodaContainer.id = "aljodaLayoutContainer";
@@ -2204,17 +2610,24 @@
           aljodaContainer.style.display = "flex";
 
           const selCompId = document.getElementById("companySelect")?.value;
-          const compData = compObj || companiesList.find((c) => String(c.id) === String(selCompId)) || {};
+          const compData =
+            compObj ||
+            companiesList.find((c) => String(c.id) === String(selCompId)) ||
+            {};
 
-          const currentSupply = document.getElementById("supplyDateDisplay")?.innerText || fixedSupplyMonth;
-          const currentDate = document.getElementById("dateDisplay")?.innerText || "------";
-          const currentInv = document.getElementById("invNoDisplay")?.innerText || "------";
+          const currentSupply =
+            document.getElementById("supplyDateDisplay")?.innerText ||
+            fixedSupplyMonth;
+          const currentDate =
+            document.getElementById("dateDisplay")?.innerText || "------";
+          const currentInv =
+            document.getElementById("invNoDisplay")?.innerText || "------";
           const currentBuyer = getActiveVendorName();
           const currentVat = getActiveVendorVat();
 
           aljodaContainer.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start; width:100%; margin-bottom:8px;">
-              <div style="display:flex; flex-direction:column; align-items:flex-start; text-align:left; max-width:48%;">
+              <div class="hide-on-page-2" style="display:flex; flex-direction:column; align-items:flex-start; text-align:left; max-width:48%;">
                 <span id="aljodaBuyerNameVal" style="font-family:'Tajawal',sans-serif; font-weight:800; font-size:16px; color:#0f172a; line-height:1.3; padding-top: 20px;">${currentBuyer}</span>
                 <span id="aljodaBuyerVatVal" style="font-family:monospace; font-weight:700; font-size:13px; color:var(--primary-dark); margin-top:4px;">${currentVat}</span>
                 <div style="height:28px; width:100%;"></div>
@@ -2225,24 +2638,25 @@
                 </div>
               </div>
               <div style="display:flex; flex-direction:column; align-items:flex-end; text-align:right; max-width:50%;">
-                ${compData.logo_url ? `<img src="${compData.logo_url}" style="max-height:85px; max-width:200px; object-fit:contain; margin-bottom:6px;" alt="Logo" />` : ''}
-                <b style="font-family:'Tajawal',sans-serif; font-size:16px; font-weight:800; color:var(--primary-dark);">${compData.company_name_ar || ''}</b>
+                ${compData.logo_url ? `<img src="${compData.logo_url}" style="max-height:85px; max-width:200px; object-fit:contain; margin-bottom:6px;" alt="Logo" />` : ""}
+                <b style="font-family:'Tajawal',sans-serif; font-size:16px; font-weight:800; color:var(--primary-dark);">${compData.company_name_ar || ""}</b>
                 <div style="font-size:12.5px; color:#334155; margin-top:3px; font-weight:700; font-family:'Tajawal',sans-serif;">
-                  س ت : <span style="font-family:monospace;">${compData.cr_number || '-'}</span>
+                  س ت : <span style="font-family:monospace;">${compData.cr_number || "-"}</span>
                 </div>
                 <div style="font-size:12.5px; color:#334155; margin-top:2px; font-weight:700; font-family:'Tajawal',sans-serif;">
-                  الرقم الضريبي : <span style="font-family:monospace;">${compData.vat_number || '-'}</span>
+                  الرقم الضريبي : <span style="font-family:monospace;">${compData.vat_number || "-"}</span>
                 </div>
               </div>
             </div>
-            <div style="width:100%; text-align:center; margin-bottom:8px;">
+            <div class="hide-on-page-2" style="width:100%; text-align:center; margin-bottom:8px;">
               <div class="inv-title" style="font-family:'Tajawal',sans-serif; font-size:22px; font-weight:800; color:var(--primary-dark); border-bottom:2.5px solid var(--primary-theme); padding-bottom:3px; display:inline-block;">
                 ملخص الفاتورة
               </div>
             </div>
           `;
 
-          authLine.innerText = "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
+          authLine.innerText =
+            "ملخص الفاتورة المُعدّ إلكترونيًا – تم التحقق منه واعتماده رقميًا";
           if (remTitle) remTitle.innerText = "Note ::";
         }
 
@@ -2255,7 +2669,8 @@
         const tbody = document.getElementById("invoiceItemsBody");
         tbody.innerHTML = "";
 
-        const isArabicTheme = currentCompanyTheme === "haka" || currentCompanyTheme === "masar";
+        const isArabicTheme =
+          currentCompanyTheme === "haka" || currentCompanyTheme === "masar";
 
         if (isArabicTheme) {
           thead.innerHTML = `
@@ -2283,7 +2698,9 @@
           `;
         }
 
-        let subtotal = 0, totalVat = 0, grandTotal = 0;
+        let subtotal = 0,
+          totalVat = 0,
+          grandTotal = 0;
 
         if (activeBillItems.length === 0) {
           document.getElementById("sumBeforeVat").innerText = "0.00";
@@ -2295,9 +2712,11 @@
         activeBillItems.forEach((row, idx) => {
           const qty = parseFloat(row.qty) || 0;
           const rate = parseFloat(row.rate) || 0;
-          const rowSub = parseFloat(row.subTotal) || (qty * rate);
-          const rowVat = parseFloat(row.vatAmount) || (rowSub * (parseFloat(row.vatPercent || 15) / 100));
-          const rowTot = parseFloat(row.total) || (rowSub + rowVat);
+          const rowSub = parseFloat(row.subTotal) || qty * rate;
+          const rowVat =
+            parseFloat(row.vatAmount) ||
+            rowSub * (parseFloat(row.vatPercent || 15) / 100);
+          const rowTot = parseFloat(row.total) || rowSub + rowVat;
 
           subtotal += rowSub;
           totalVat += rowVat;
@@ -2327,15 +2746,19 @@
 
         document.getElementById("sumBeforeVat").innerText = subtotal.toFixed(2);
         document.getElementById("sumVatAmount").innerText = totalVat.toFixed(2);
-        document.getElementById("sumGrandTotal").innerText = grandTotal.toFixed(2);
+        document.getElementById("sumGrandTotal").innerText =
+          grandTotal.toFixed(2);
         updateZatcaQrCode();
       }
 
       function openEditBillModal() {
-        document.getElementById("modalInvNo").value = document.getElementById("invNoDisplay").innerText.trim();
+        document.getElementById("modalInvNo").value = document
+          .getElementById("invNoDisplay")
+          .innerText.trim();
         document.getElementById("modalDate").value = currentInvoiceDate;
         document.getElementById("modalRemarksInput").value = currentRemarks;
-        document.getElementById("modalSupplyMonthDisplay").value = fixedSupplyMonth;
+        document.getElementById("modalSupplyMonthDisplay").value =
+          fixedSupplyMonth;
         document.getElementById("modalBuyerName").value = getActiveVendorName();
         document.getElementById("modalBuyerVat").value = getActiveVendorVat();
         document.getElementById("editBillModal").style.display = "flex";
@@ -2348,7 +2771,9 @@
       async function applyBillModalChanges() {
         const vName = document.getElementById("modalBuyerName").value.trim();
         const vVat = document.getElementById("modalBuyerVat").value.trim();
-        currentRemarks = document.getElementById("modalRemarksInput").value.trim();
+        currentRemarks = document
+          .getElementById("modalRemarksInput")
+          .value.trim();
 
         const dateVal = document.getElementById("modalDate").value;
         if (dateVal) {
@@ -2366,9 +2791,9 @@
         const box = document.getElementById("remarksDisplayContainer");
         const txt = document.getElementById("remarksDisplayText");
         const title = document.getElementById("remarksDisplayTitle");
-        
+
         const cleanNote = (currentRemarks || "").trim();
-        
+
         if (cleanNote) {
           if (txt) txt.innerText = cleanNote;
           if (title) title.style.display = "inline-block";
@@ -2387,8 +2812,14 @@
 
       function syncDateDisplays(dateStr) {
         const val = dateStr || "------";
-        const ids = ["dateDisplay", "dateDisplayLeft", "wefaqDateVal", "hakaDateVal", "aljodaDateVal"];
-        ids.forEach(id => {
+        const ids = [
+          "dateDisplay",
+          "dateDisplayLeft",
+          "wefaqDateVal",
+          "hakaDateVal",
+          "aljodaDateVal",
+        ];
+        ids.forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.innerText = val;
         });
@@ -2396,8 +2827,14 @@
 
       function syncInvNoDisplays(invNo) {
         const val = invNo || "------";
-        const ids = ["invNoDisplay", "invNoDisplayLeft", "wefaqInvNoVal", "hakaInvNoVal", "aljodaInvNoVal"];
-        ids.forEach(id => {
+        const ids = [
+          "invNoDisplay",
+          "invNoDisplayLeft",
+          "wefaqInvNoVal",
+          "hakaInvNoVal",
+          "aljodaInvNoVal",
+        ];
+        ids.forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.innerText = val;
         });
@@ -2407,8 +2844,15 @@
 
       function syncSupplyDateDisplays(val) {
         const textVal = val || "------";
-        const ids = ["supplyDateDisplay", "supplyDateDisplayLeft", "wefaqSupplyVal", "hakaSupplyVal", "hakaSupplyValBtm", "aljodaSupplyVal"];
-        ids.forEach(id => {
+        const ids = [
+          "supplyDateDisplay",
+          "supplyDateDisplayLeft",
+          "wefaqSupplyVal",
+          "hakaSupplyVal",
+          "hakaSupplyValBtm",
+          "aljodaSupplyVal",
+        ];
+        ids.forEach((id) => {
           const el = document.getElementById(id);
           if (el) el.innerText = textVal;
         });
@@ -2438,12 +2882,16 @@
       }
 
       async function applyCompanyDetailsToView(compId) {
-        const comp = companiesList.find(c => String(c.id) === String(compId));
+        const comp = companiesList.find((c) => String(c.id) === String(compId));
         if (!comp) return;
 
-        const code = (comp.short_code || comp.company_name_en || "").toUpperCase();
+        const code = (
+          comp.short_code ||
+          comp.company_name_en ||
+          ""
+        ).toUpperCase();
         let theme = "default";
-        
+
         if (code.includes("HAK")) theme = "haka";
         else if (code.includes("MW") || code.includes("MASAR")) theme = "masar";
         else if (code.includes("WE") || code.includes("WEFAQ")) theme = "wefaq";
@@ -2482,11 +2930,17 @@
           document.getElementById("watermarkLogo").style.display = "none";
         }
 
-        const addr = [comp.address_line_ar, comp.address_line_en].filter(Boolean).join(" | ");
+        const addr = [comp.address_line_ar, comp.address_line_en]
+          .filter(Boolean)
+          .join(" | ");
         document.getElementById("footerAddrContainer").innerText = addr;
-        document.getElementById("footerEmail").innerText = comp.email ? `E-mail: ${comp.email}` : "";
+        document.getElementById("footerEmail").innerText = comp.email
+          ? `E-mail: ${comp.email}`
+          : "";
 
-        const currentInvNo = document.getElementById("invNoDisplay")?.innerText.trim();
+        const currentInvNo = document
+          .getElementById("invNoDisplay")
+          ?.innerText.trim();
         if (!isBillAlreadySaved || !currentInvNo || currentInvNo === "------") {
           await fetchNextNumber(comp.id);
         }
@@ -2494,7 +2948,8 @@
       }
 
       async function fetchNextNumber(compId) {
-        const dateToUse = currentInvoiceDate || new Date().toISOString().split("T")[0];
+        const dateToUse =
+          currentInvoiceDate || new Date().toISOString().split("T")[0];
         let url = `/vendor-bill/api/next-invoice-no?invoice_date=${encodeURIComponent(dateToUse)}`;
         if (compId) url += `&company_id=${compId}`;
 
@@ -2513,7 +2968,7 @@
       function toggleSealEngagement() {
         const selId = document.getElementById("companySelect").value;
         if (!selId) return alert("Select an issuer company first!");
-        const comp = companiesList.find(c => String(c.id) === String(selId));
+        const comp = companiesList.find((c) => String(c.id) === String(selId));
         if (!comp || (!comp.seal_url && !comp.signature_url)) {
           return alert("This company has no seal or signature uploaded.");
         }
@@ -2544,7 +2999,9 @@
         spinner.style.display = isLoading ? "block" : "none";
         toast.style.display = "flex";
         if (!isLoading) {
-          setTimeout(() => { toast.style.display = "none"; }, 3500);
+          setTimeout(() => {
+            toast.style.display = "none";
+          }, 3500);
         }
       }
 
@@ -2556,12 +3013,14 @@
         }
 
         const invNo = document.getElementById("invNoDisplay").innerText.trim();
-        const comp = companiesList.find(c => String(c.id) === String(selId));
+        const comp = companiesList.find((c) => String(c.id) === String(selId));
         const vName = getActiveVendorName();
         const vVat = getActiveVendorVat();
 
         // ഇൻവോയ്സ് നമ്പർ ഇതിനകം ഡാറ്റാബേസിൽ ഉണ്ടെങ്കിലോ നേരത്തെ സേവ് ചെയ്തതാണെങ്കിലോ 'editbill' മോഡ് ആക്കുന്നു
-        const isExisting = isBillAlreadySaved || (invNo && invNo !== "------" && !invNo.startsWith("DRAFT_"));
+        const isExisting =
+          isBillAlreadySaved ||
+          (invNo && invNo !== "------" && !invNo.startsWith("DRAFT_"));
         const currentMode = isExisting ? "editbill" : "newbill";
 
         const body = {
@@ -2572,9 +3031,12 @@
           billing_month: fixedSupplyMonth,
           invoice_date: currentInvoiceDate,
           invoice_time: new Date().toLocaleTimeString(),
-          subtotal: parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
-          vat_amount: parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
-          grand_total: parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
+          subtotal:
+            parseFloat(document.getElementById("sumBeforeVat").innerText) || 0,
+          vat_amount:
+            parseFloat(document.getElementById("sumVatAmount").innerText) || 0,
+          grand_total:
+            parseFloat(document.getElementById("sumGrandTotal").innerText) || 0,
           has_seal: isSealEngaged,
           mode: currentMode,
           manual_items: activeBillItems,
@@ -2585,8 +3047,8 @@
             manual_items: activeBillItems,
             owner_nick: billOwnerNick,
             buyer_vat: vVat,
-            billingCardImage: attachedBillingCardImage
-          }
+            billingCardImage: attachedBillingCardImage,
+          },
         };
 
         try {
@@ -2594,7 +3056,7 @@
           const res = await fetch("/vendor-bill/api/save-invoice-record", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
           });
           const data = await res.json();
           if (data.success) {
@@ -2642,51 +3104,119 @@
 
           await new Promise((resolve) => setTimeout(resolve, 150));
 
-          const card = document.getElementById("printableInvoice");
-
-          const canvas = await html2canvas(card, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: "#ffffff",
-            onclone: (clonedDoc) => {
-              const allElements = clonedDoc.querySelectorAll("*");
-              allElements.forEach((el) => {
-                const computed = window.getComputedStyle(el);
-                const isArabic = computed.direction === "rtl" || /[\u0600-\u06FF]/.test(el.innerText || "");
-                if (isArabic) {
-                  el.style.letterSpacing = "0px !important";
-                  el.style.wordSpacing = "normal !important";
-                  el.style.fontFeatureSettings = '"liga" 1, "calt" 1';
-                  el.style.textRendering = "optimizeLegibility";
-                }
-              });
-            }
-          });
-
           const { jsPDF } = window.jspdf;
           const pdf = new jsPDF("p", "pt", "a4");
           const a4Width = pdf.internal.pageSize.getWidth();
           const a4Height = pdf.internal.pageSize.getHeight();
-          const imgData = canvas.toDataURL("image/jpeg", 0.98);
 
-          pdf.addImage(imgData, "JPEG", 0, 0, a4Width, a4Height, undefined, "FAST");
+          const card = document.getElementById("printableInvoice");
+          const summarySection = document.querySelector(".summary-container-wrap");
+          const bottomSection = document.querySelector(".bottom-section");
+
+          const fullItemsBackup = JSON.parse(JSON.stringify(activeBillItems));
+          const ITEMS_PER_PAGE = 20; 
+          const totalPages = Math.ceil(fullItemsBackup.length / ITEMS_PER_PAGE) || 1;
+
+          for (let i = 0; i < totalPages; i++) {
+            const startIdx = i * ITEMS_PER_PAGE;
+            activeBillItems = fullItemsBackup.slice(
+              startIdx,
+              startIdx + ITEMS_PER_PAGE,
+            );
+            renderInvoiceViewTable();
+
+            // 🟢 Add subsequent page class to hide headers & show mini bill no
+            const miniHeader = document.getElementById("subsequentPageMiniHeader");
+            if (i > 0) {
+              card.classList.add("page-subsequent");
+              const invVal = document.getElementById("invNoDisplay")?.innerText || "";
+              if (miniHeader) miniHeader.innerHTML = `Bill No : ${invVal}`;
+            } else {
+              card.classList.remove("page-subsequent");
+              if (miniHeader) miniHeader.innerHTML = "";
+            }
+
+            const isLastPage = i === totalPages - 1;
+            if (summarySection)
+              summarySection.style.display = isLastPage ? "flex" : "none";
+            if (bottomSection)
+              bottomSection.style.display = isLastPage ? "flex" : "none";
+
+            if (isLastPage) {
+              let fSub = 0, fVat = 0, fGrand = 0;
+              fullItemsBackup.forEach(r => {
+                const q = parseFloat(r.qty) || 0, rt = parseFloat(r.rate) || 0;
+                const sb = parseFloat(r.subTotal) || (q * rt);
+                const vt = parseFloat(r.vatAmount) || (sb * (parseFloat(r.vatPercent || 15) / 100));
+                fSub += sb; fVat += vt; fGrand += (parseFloat(r.total) || (sb + vt));
+              });
+              document.getElementById("sumBeforeVat").innerText = fSub.toFixed(2);
+              document.getElementById("sumVatAmount").innerText = fVat.toFixed(2);
+              document.getElementById("sumGrandTotal").innerText = fGrand.toFixed(2);
+              updateZatcaQrCode();
+            }
+
+            const tbody = document.getElementById("invoiceItemsBody");
+            const rows = tbody.querySelectorAll("tr");
+            rows.forEach((tr, rIdx) => { tr.children[0].innerText = startIdx + rIdx + 1; });
+
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
+            const canvas = await html2canvas(card, {
+              scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff",
+              onclone: (clonedDoc) => {
+                clonedDoc.querySelectorAll("*").forEach((el) => {
+                  const comp = window.getComputedStyle(el);
+                  if (comp.direction === "rtl" || /[\u0600-\u06FF]/.test(el.innerText || "")) {
+                    el.style.letterSpacing = "0px !important";
+                    el.style.wordSpacing = "normal !important";
+                    el.style.fontFeatureSettings = '"liga" 1, "calt" 1';
+                  }
+                });
+              }
+            });
+
+            if (i > 0) pdf.addPage();
+            pdf.addImage(canvas.toDataURL("image/jpeg", 0.98), "JPEG", 0, 0, a4Width, a4Height, undefined, "FAST");
+          }
+
+          activeBillItems = fullItemsBackup;
+          renderInvoiceViewTable();
+          card.classList.remove("page-subsequent");
+          if (summarySection) summarySection.style.display = "flex";
+          if (bottomSection) bottomSection.style.display = "flex";
 
           // 🟢 Current split plate anusarichu card dynamic aayi edukkunnu
-          const targetCardImage = await generateDynamicCardImage(currentSelectedPlate);
+          const targetCardImage =
+            await generateDynamicCardImage(currentSelectedPlate);
 
           if (targetCardImage) {
             try {
               showPdfToast("Merging Billing Card (Page 2)...", true);
               const cardImg = new Image();
               cardImg.src = targetCardImage;
-              await new Promise((res) => { cardImg.onload = res; cardImg.onerror = res; });
+              await new Promise((res) => {
+                cardImg.onload = res;
+                cardImg.onerror = res;
+              });
 
               if (cardImg.width && cardImg.height) {
                 const cardAspect = cardImg.height / cardImg.width;
                 const pdfCardHeight = a4Width * cardAspect;
-                pdf.addPage([a4Width, pdfCardHeight], a4Width > pdfCardHeight ? "l" : "p");
-                pdf.addImage(targetCardImage, "JPEG", 0, 0, a4Width, pdfCardHeight, undefined, "FAST");
+                pdf.addPage(
+                  [a4Width, pdfCardHeight],
+                  a4Width > pdfCardHeight ? "l" : "p",
+                );
+                pdf.addImage(
+                  targetCardImage,
+                  "JPEG",
+                  0,
+                  0,
+                  a4Width,
+                  pdfCardHeight,
+                  undefined,
+                  "FAST",
+                );
               }
             } catch (mergeErr) {
               console.warn("Card page merge failed:", mergeErr);
@@ -2717,7 +3247,13 @@
         return buf;
       }
 
-      function generateZatcaBase64(sellerName, vatNumber, dateStr, totalWithVat, vatTotal) {
+      function generateZatcaBase64(
+        sellerName,
+        vatNumber,
+        dateStr,
+        totalWithVat,
+        vatTotal,
+      ) {
         try {
           const now = new Date();
           const curTime = now.toTimeString().split(" ")[0];
@@ -2730,10 +3266,11 @@
           const t4 = getZatcaTLV(4, parseFloat(totalWithVat || 0).toFixed(2));
           const t5 = getZatcaTLV(5, parseFloat(vatTotal || 0).toFixed(2));
 
-          const totalLen = t1.length + t2.length + t3.length + t4.length + t5.length;
+          const totalLen =
+            t1.length + t2.length + t3.length + t4.length + t5.length;
           const merged = new Uint8Array(totalLen);
           let offset = 0;
-          [t1, t2, t3, t4, t5].forEach(t => {
+          [t1, t2, t3, t4, t5].forEach((t) => {
             merged.set(t, offset);
             offset += t.length;
           });
@@ -2754,16 +3291,25 @@
         qrContainer.innerHTML = "";
 
         const selId = document.getElementById("companySelect")?.value;
-        const comp = companiesList.find(c => String(c.id) === String(selId));
+        const comp = companiesList.find((c) => String(c.id) === String(selId));
         if (!comp) return;
 
         const sellerName = comp.company_name_en || "Company";
         const vatNumber = comp.vat_number || "";
-        const billDate = currentInvoiceDate || new Date().toISOString().split("T")[0];
-        const grandTotal = document.getElementById("sumGrandTotal")?.innerText || "0.00";
-        const vatTotal = document.getElementById("sumVatAmount")?.innerText || "0.00";
+        const billDate =
+          currentInvoiceDate || new Date().toISOString().split("T")[0];
+        const grandTotal =
+          document.getElementById("sumGrandTotal")?.innerText || "0.00";
+        const vatTotal =
+          document.getElementById("sumVatAmount")?.innerText || "0.00";
 
-        const base64Data = generateZatcaBase64(sellerName, vatNumber, billDate, grandTotal, vatTotal);
+        const base64Data = generateZatcaBase64(
+          sellerName,
+          vatNumber,
+          billDate,
+          grandTotal,
+          vatTotal,
+        );
         if (!base64Data) return;
 
         new QRCode(qrContainer, {
@@ -2772,7 +3318,7 @@
           height: 88,
           colorDark: "#000000",
           colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.M
+          correctLevel: QRCode.CorrectLevel.M,
         });
       }
 
@@ -2791,8 +3337,10 @@
         const dl = document.getElementById("suppliersDataList");
         dl.innerHTML = "";
         savedSuppliers.forEach((s) => {
-          const disp = s.nickname ? `${s.customer_name} (${s.nickname})` : s.customer_name;
-          dl.innerHTML += `<option value="${disp}">${s.customer_code ? '[' + s.customer_code + '] ' : ''}${s.vat_number ? 'VAT: ' + s.vat_number : ''}</option>`;
+          const disp = s.nickname
+            ? `${s.customer_name} (${s.nickname})`
+            : s.customer_name;
+          dl.innerHTML += `<option value="${disp}">${s.customer_code ? "[" + s.customer_code + "] " : ""}${s.vat_number ? "VAT: " + s.vat_number : ""}</option>`;
         });
       }
 
@@ -2801,16 +3349,18 @@
         tbody.innerHTML = "";
         const cleanTerm = term.toLowerCase().trim();
 
-        const filtered = savedSuppliers.filter(s =>
-          !cleanTerm ||
-          (s.customer_code || "").toLowerCase().includes(cleanTerm) ||
-          (s.customer_name || "").toLowerCase().includes(cleanTerm) ||
-          (s.nickname || "").toLowerCase().includes(cleanTerm) ||
-          (s.vat_number || "").toLowerCase().includes(cleanTerm)
+        const filtered = savedSuppliers.filter(
+          (s) =>
+            !cleanTerm ||
+            (s.customer_code || "").toLowerCase().includes(cleanTerm) ||
+            (s.customer_name || "").toLowerCase().includes(cleanTerm) ||
+            (s.nickname || "").toLowerCase().includes(cleanTerm) ||
+            (s.vat_number || "").toLowerCase().includes(cleanTerm),
         );
 
         if (filtered.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:#94a3b8;">No matching vendors found</td></tr>';
+          tbody.innerHTML =
+            '<tr><td colspan="5" style="text-align:center; padding:15px; color:#94a3b8;">No matching vendors found</td></tr>';
           return;
         }
 
@@ -2823,10 +3373,14 @@
               <td style="text-align:left; color:#64748b;">${s.nickname || "-"}</td>
               <td style="font-family:monospace;">${s.vat_number || "-"}</td>
               <td>
-                ${isManual ? `
+                ${
+                  isManual
+                    ? `
                   <button class="btn-ribbon btn-edit-bill" style="padding:3px 6px; font-size:11px;" onclick="startEditCustomer(${s.id})">✏️</button>
                   <button class="btn-ribbon btn-dash" style="padding:3px 6px; font-size:11px; background:#ef4444;" onclick="deleteCustomer(${s.id})">🗑️</button>
-                ` : `<span style="font-size:10px; color:#94a3b8; font-weight:700;">LOCKED</span>`}
+                `
+                    : `<span style="font-size:10px; color:#94a3b8; font-weight:700;">LOCKED</span>`
+                }
               </td>
             </tr>
           `;
@@ -2837,10 +3391,11 @@
         const clean = (val || "").trim().toLowerCase();
         if (!clean) return;
 
-        const found = savedSuppliers.find(s => {
+        const found = savedSuppliers.find((s) => {
           const m1 = s.customer_name && s.customer_name.toLowerCase() === clean;
           const m2 = s.nickname && s.nickname.toLowerCase() === clean;
-          const m3 = `${s.customer_name} (${s.nickname})`.toLowerCase() === clean;
+          const m3 =
+            `${s.customer_name} (${s.nickname})`.toLowerCase() === clean;
           return m1 || m2 || m3;
         });
 
@@ -2862,17 +3417,22 @@
       }
 
       function startEditCustomer(id) {
-        const cust = savedSuppliers.find(s => String(s.id) === String(id));
+        const cust = savedSuppliers.find((s) => String(s.id) === String(id));
         if (!cust) return;
 
         document.getElementById("editCustIdInput").value = cust.id;
-        document.getElementById("addCustNameInput").value = cust.customer_name || "";
+        document.getElementById("addCustNameInput").value =
+          cust.customer_name || "";
         document.getElementById("addCustNickInput").value = cust.nickname || "";
-        document.getElementById("addCustVatInput").value = cust.vat_number || "";
+        document.getElementById("addCustVatInput").value =
+          cust.vat_number || "";
 
-        document.getElementById("custModalHeaderTitle").innerText = `✏️ Edit Vendor (${cust.customer_code || id})`;
-        document.getElementById("saveCustSubmitBtn").innerText = "Update Vendor";
-        document.getElementById("cancelCustEditBtn").style.display = "inline-flex";
+        document.getElementById("custModalHeaderTitle").innerText =
+          `✏️ Edit Vendor (${cust.customer_code || id})`;
+        document.getElementById("saveCustSubmitBtn").innerText =
+          "Update Vendor";
+        document.getElementById("cancelCustEditBtn").style.display =
+          "inline-flex";
       }
 
       function cancelCustomerEdit() {
@@ -2881,7 +3441,8 @@
         document.getElementById("addCustNickInput").value = "";
         document.getElementById("addCustVatInput").value = "";
 
-        document.getElementById("custModalHeaderTitle").innerText = "🏢 Vendor Directory";
+        document.getElementById("custModalHeaderTitle").innerText =
+          "🏢 Vendor Directory";
         document.getElementById("saveCustSubmitBtn").innerText = "Save Vendor";
         document.getElementById("cancelCustEditBtn").style.display = "none";
       }
@@ -2898,7 +3459,12 @@
           const res = await fetch("/vendor-bill/api/save-supplier", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: id || null, customer_name: name, nickname: nick, vat_number: vat })
+            body: JSON.stringify({
+              id: id || null,
+              customer_name: name,
+              nickname: nick,
+              vat_number: vat,
+            }),
           });
           const data = await res.json();
           if (data.success) {
@@ -2918,7 +3484,7 @@
           const res = await fetch("/vendor-bill/api/delete-supplier", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id })
+            body: JSON.stringify({ id }),
           });
           const data = await res.json();
           if (data.success) {
@@ -2952,13 +3518,14 @@
           const res = await fetch("/vendor-bill/api/verify-security", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code })
+            body: JSON.stringify({ code }),
           });
           const data = await res.json();
 
           if (data.success) {
             sessionStorage.setItem("vbill_system_unlocked", "true");
-            document.getElementById("securityLockOverlay").style.display = "none";
+            document.getElementById("securityLockOverlay").style.display =
+              "none";
             initVendorBill();
           } else {
             const errEl = document.getElementById("secError");
@@ -2980,7 +3547,8 @@
           return alert("ദയവായി Issuer Company തെരഞ്ഞെടുക്കുക!");
         }
 
-        document.getElementById("zipPlateCount").innerText = uniquePlates.length;
+        document.getElementById("zipPlateCount").innerText =
+          uniquePlates.length;
         document.getElementById("zipSaveCheckbox").checked = true; // 🟢 Initially checked ആയിരിക്കും
         document.getElementById("zipOptionsModal").style.display = "flex";
       }
@@ -3005,7 +3573,9 @@
         if (zipBtn) zipBtn.disabled = true;
 
         const currentActiveItems = JSON.parse(JSON.stringify(activeBillItems));
-        let lastAssignedInvNo = document.getElementById("invNoDisplay")?.innerText.trim();
+        let lastAssignedInvNo = document
+          .getElementById("invNoDisplay")
+          ?.innerText.trim();
 
         try {
           const zip = new JSZip();
@@ -3013,11 +3583,16 @@
 
           for (let i = 0; i < uniquePlates.length; i++) {
             const currentPlate = uniquePlates[i];
-            const statusAction = shouldSaveToDb ? "Saving & Generating" : "Generating Draft";
-            showPdfToast(`${statusAction} Plate: ${currentPlate} (${i + 1}/${uniquePlates.length})...`, true);
+            const statusAction = shouldSaveToDb
+              ? "Saving & Generating"
+              : "Generating Draft";
+            showPdfToast(
+              `${statusAction} Plate: ${currentPlate} (${i + 1}/${uniquePlates.length})...`,
+              true,
+            );
 
             // 1. നിർദ്ദിഷ്ട പ്ലേറ്റ് മാത്രം ഫിൽട്ടർ ചെയ്യുന്നു
-            activeBillItems = allCombinedItemsBackup.filter(item => {
+            activeBillItems = allCombinedItemsBackup.filter((item) => {
               const desc = item.vtype || "";
               return desc.includes(`(${currentPlate})`);
             });
@@ -3050,39 +3625,112 @@
               syncInvNoDisplays(targetInvNo);
             }
 
-            await new Promise(r => setTimeout(r, 150));
+            await new Promise((r) => setTimeout(r, 150));
 
             // 3. കാൻവാസ് വഴി പിഡിഎഫ് തയ്യാറാക്കുന്നു
-            const card = document.getElementById("printableInvoice");
-            const canvas = await html2canvas(card, {
-              scale: 2,
-              useCORS: true,
-              logging: false,
-              backgroundColor: "#ffffff"
-            });
-
+            const { jsPDF } = window.jspdf;
             const pdf = new jsPDF("p", "pt", "a4");
             const a4Width = pdf.internal.pageSize.getWidth();
             const a4Height = pdf.internal.pageSize.getHeight();
-            const imgData = canvas.toDataURL("image/jpeg", 0.98);
 
-            pdf.addImage(imgData, "JPEG", 0, 0, a4Width, a4Height, undefined, "FAST");
+            const card = document.getElementById("printableInvoice");
+            const summarySection = document.querySelector(".summary-container-wrap");
+            const bottomSection = document.querySelector(".bottom-section");
+
+            const singlePlateItemsBackup = JSON.parse(JSON.stringify(activeBillItems));
+            const ITEMS_PER_PAGE = 20;
+            const totalPages = Math.ceil(singlePlateItemsBackup.length / ITEMS_PER_PAGE) || 1;
+
+            for (let j = 0; j < totalPages; j++) {
+              const startIdx = j * ITEMS_PER_PAGE;
+              activeBillItems = singlePlateItemsBackup.slice(
+                startIdx,
+                startIdx + ITEMS_PER_PAGE,
+              );
+              renderInvoiceViewTable();
+
+              // 🟢 Add subsequent page class to hide headers & show mini bill no
+              const miniHeader = document.getElementById("subsequentPageMiniHeader");
+              if (j > 0) {
+                card.classList.add("page-subsequent");
+                const invVal = document.getElementById("invNoDisplay")?.innerText || "";
+                if (miniHeader) miniHeader.innerHTML = `Bill No : ${invVal}`;
+              } else {
+                card.classList.remove("page-subsequent");
+                if (miniHeader) miniHeader.innerHTML = "";
+              }
+
+              const isLastPage = j === totalPages - 1;
+              if (summarySection)
+                summarySection.style.display = isLastPage ? "flex" : "none";
+              if (bottomSection)
+                bottomSection.style.display = isLastPage ? "flex" : "none";
+
+              if (isLastPage) {
+                let fSub = 0, fVat = 0, fGrand = 0;
+                singlePlateItemsBackup.forEach(r => {
+                  const q = parseFloat(r.qty) || 0, rt = parseFloat(r.rate) || 0;
+                  const sb = parseFloat(r.subTotal) || (q * rt);
+                  const vt = parseFloat(r.vatAmount) || (sb * (parseFloat(r.vatPercent || 15) / 100));
+                  fSub += sb; fVat += vt; fGrand += (parseFloat(r.total) || (sb + vt));
+                });
+                document.getElementById("sumBeforeVat").innerText = fSub.toFixed(2);
+                document.getElementById("sumVatAmount").innerText = fVat.toFixed(2);
+                document.getElementById("sumGrandTotal").innerText = fGrand.toFixed(2);
+                updateZatcaQrCode();
+              }
+
+              const tbody = document.getElementById("invoiceItemsBody");
+              const rows = tbody.querySelectorAll("tr");
+              rows.forEach((tr, rIdx) => { tr.children[0].innerText = startIdx + rIdx + 1; });
+
+              await new Promise((resolve) => setTimeout(resolve, 100));
+
+              const canvas = await html2canvas(card, {
+                scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff"
+              });
+
+              if (j > 0) pdf.addPage();
+              pdf.addImage(canvas.toDataURL("image/jpeg", 0.98), "JPEG", 0, 0, a4Width, a4Height, undefined, "FAST");
+            }
+
+            activeBillItems = singlePlateItemsBackup;
+            renderInvoiceViewTable();
+            card.classList.remove("page-subsequent");
+            if (summarySection) summarySection.style.display = "flex";
+            if (bottomSection) bottomSection.style.display = "flex";
 
             // Page 2 Card Snapshot
-            const singlePlateCardImage = await generateDynamicCardImage(currentPlate);
+            const singlePlateCardImage =
+              await generateDynamicCardImage(currentPlate);
 
             if (singlePlateCardImage) {
               try {
                 const cardImg = new Image();
                 cardImg.src = singlePlateCardImage;
-                await new Promise(res => { cardImg.onload = res; cardImg.onerror = res; });
+                await new Promise((res) => {
+                  cardImg.onload = res;
+                  cardImg.onerror = res;
+                });
                 if (cardImg.width && cardImg.height) {
                   const cardAspect = cardImg.height / cardImg.width;
                   const pdfCardHeight = a4Width * cardAspect;
-                  pdf.addPage([a4Width, pdfCardHeight], a4Width > pdfCardHeight ? "l" : "p");
-                  pdf.addImage(singlePlateCardImage, "JPEG", 0, 0, a4Width, pdfCardHeight, undefined, "FAST");
+                  pdf.addPage(
+                    [a4Width, pdfCardHeight],
+                    a4Width > pdfCardHeight ? "l" : "p",
+                  );
+                  pdf.addImage(
+                    singlePlateCardImage,
+                    "JPEG",
+                    0,
+                    0,
+                    a4Width,
+                    pdfCardHeight,
+                    undefined,
+                    "FAST",
+                  );
                 }
-              } catch(e) {}
+              } catch (e) {}
             }
 
             const pdfBlob = pdf.output("blob");
@@ -3093,10 +3741,13 @@
           const zipContent = await zip.generateAsync({ type: "blob" });
           const zipLink = document.createElement("a");
           zipLink.href = URL.createObjectURL(zipContent);
-          zipLink.download = `VendorBills_${shouldSaveToDb ? 'Saved' : 'Draft'}_${fixedSupplyMonth}.zip`;
+          zipLink.download = `VendorBills_${shouldSaveToDb ? "Saved" : "Draft"}_${fixedSupplyMonth}.zip`;
           zipLink.click();
 
-          showPdfToast(`✅ ZIP Downloaded ${shouldSaveToDb ? 'and Saved!' : '(Draft Mode)'}`, false);
+          showPdfToast(
+            `✅ ZIP Downloaded ${shouldSaveToDb ? "and Saved!" : "(Draft Mode)"}`,
+            false,
+          );
         } catch (err) {
           console.error("ZIP Generation error:", err);
           showPdfToast("❌ Failed to create ZIP.", false);
