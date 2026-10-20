@@ -1043,11 +1043,11 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       const siteEndDateVal = work_end_date || new Date().toISOString().split("T")[0];
       await client.query(
         `UPDATE vehicle_rate_log 
-         SET work_end_date = COALESCE(work_end_date, $1::date), 
+         SET work_end_date = $1::date, 
              status = 'Released'
          WHERE UPPER(TRIM(plate_no)) = $2 
            AND UPPER(TRIM(site_name)) = $3 
-           AND status = 'Running'`,
+           AND (status = 'Running' OR work_end_date IS NULL)`,
         [siteEndDateVal, cleanPlateUpper, cleanSiteUpper]
       );
     }

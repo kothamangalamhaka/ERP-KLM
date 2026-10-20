@@ -1206,6 +1206,9 @@
             }
 
             let billData = sortedBilling.find((b) => matchPlateWithAliases(b.plate_no) && (b.site_name || "").trim() === sName);
+            if (!billData && sName.startsWith("Prev:")) {
+              billData = sortedBilling.find((b) => matchPlateWithAliases(b.plate_no) && (b.site_name || "").trim().startsWith("Prev:"));
+            }
             if (!billData && sName !== "N/A") {
               billData = sortedBilling.find((b) => matchPlateWithAliases(b.plate_no) && (!b.site_name || b.site_name === "N/A"));
             }
@@ -1224,6 +1227,9 @@
             if ((sName === "N/A" || displaySiteName.startsWith("Prev:")) && totalTsHrs === 0) return;
 
             let invData = vInvoices.find((i) => (i.site_name || "").trim() === sName);
+            if (!invData && sName.startsWith("Prev:")) {
+              invData = vInvoices.find((i) => (i.site_name || "").trim().startsWith("Prev:"));
+            }
             if (!invData && sName !== "N/A") {
               invData = vInvoices.find((i) => !i.site_name || i.site_name === "N/A");
             }

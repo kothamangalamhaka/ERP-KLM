@@ -2965,6 +2965,13 @@
                 matchPlateWithAliases(b.plate_no) &&
                 (b.site_name || "").trim() === sName,
             );
+            if (!billData && sName.startsWith("Prev:")) {
+              billData = sortedBilling.find(
+                (b) =>
+                  matchPlateWithAliases(b.plate_no) &&
+                  (b.site_name || "").trim().startsWith("Prev:")
+              );
+            }
             if (!billData && sName !== "N/A") {
               billData = sortedBilling.find(
                 (b) =>
@@ -2994,6 +3001,11 @@
             let invData = vInvoices.find(
               (i) => (i.site_name || "").trim() === sName,
             );
+            if (!invData && sName.startsWith("Prev:")) {
+              invData = vInvoices.find(
+                (i) => (i.site_name || "").trim().startsWith("Prev:")
+              );
+            }
             if (!invData && sName !== "N/A")
               invData = vInvoices.find(
                 (i) => !i.site_name || i.site_name === "N/A",
@@ -3498,24 +3510,24 @@
             <td class="col-driver-billing driver-amount-cell">${row.driver_amount}</td>
             <td class="col-diff">${row.diff_nr}</td><td class="col-diff">${row.diff_ot}</td><td class="col-diff" style="font-weight: bold;">${row.diff_st}</td>
             <td class="col-diff" style="text-align: center;">
-              <input type="checkbox" class="clear-checkbox" ${row.diff_clear === "Yes" ? "checked" : ""} ${isSpecialEditMode ? "" : "disabled"} onchange="toggleDiffClear(this, '${row.plate}', '${row.site}', '${row.raw_month}', '${row.raw_year}')" style="cursor:pointer;" />
+              <input type="checkbox" class="clear-checkbox" ${row.diff_clear === "Yes" ? "checked" : ""} ${isSpecialEditMode ? "" : "disabled"} onchange="toggleDiffClear(this, '${row.master_plate}', '${row.site}', '${row.raw_month}', '${row.raw_year}')" style="cursor:pointer;" />
             </td>
-            <td class="col-diff vbill-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" style="word-wrap: break-word; text-align: left; color:#1e40af; font-weight:500;">${row.vbill_notes}</td>
+            <td class="col-diff vbill-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" style="word-wrap: break-word; text-align: left; color:#1e40af; font-weight:500;">${row.vbill_notes}</td>
             <td class="col-amt">${row.bill_nrate}</td><td class="col-amt">${row.bill_otrate}</td>
             <td class="col-amt" style="font-weight: 700;">${row.bill_rent ? Number(row.bill_rent).toFixed(2) : ""}</td>
             <td class="col-amt" style="font-weight: 700;">${row.rent_vat ? Number(row.rent_vat).toFixed(2) : ""}</td>
             <td class="col-amt" style="font-weight: 700;">${row.rent_total ? Number(row.rent_total).toFixed(2) : ""}</td>
             <td class="col-inv-red editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_subtotal ? Number(row.inv_subtotal).toFixed(2) : ""}</td>
             <td class="col-inv-red inv-total-cell" style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
-            <td class="col-inv-red inv-deduct-cell" style="font-weight: 700; color: #dc2626;" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}">${row.inv_deduct}</td>
+            <td class="col-inv-red inv-deduct-cell" style="font-weight: 700; color: #dc2626;" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}">${row.inv_deduct}</td>
             <td class="col-inv-red inv-net-cell" style="font-weight: 700; color: #047857;">${row.inv_net}</td>
-            <td class="col-inv-red deduct-reason-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" style="word-wrap: break-word; text-align: left; font-size: 11px;">${row.deduct_reason || ""}</td>
+            <td class="col-inv-red deduct-reason-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" style="word-wrap: break-word; text-align: left; font-size: 11px;">${row.deduct_reason || ""}</td>
             <td class="col-inv-red editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
             <td class="col-inv-red editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
-            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
-            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'erp')">${row.erp}</td>
-            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'payment_status')">${row.payment_status}</td>
-            <td class="col-extra editable-cell" data-plate="${row.plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'accounts_note')">${row.accounts_note}</td>
+            <td class="col-extra editable-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
+            <td class="col-extra editable-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'erp')">${row.erp}</td>
+            <td class="col-extra editable-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'payment_status')">${row.payment_status}</td>
+            <td class="col-extra editable-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'accounts_note')">${row.accounts_note}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.driver_name}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.field_co}</td>
             <td class="col-gen" style="word-wrap: break-word;">${row.site_co}</td>
@@ -3834,7 +3846,7 @@
         rows.forEach((tr) => {
           if (!tr.cells || tr.cells.length < 6) return;
           let site = tr.dataset.site;
-          let plate = tr.dataset.plate;
+          let plate = tr.dataset.masterPlate;
 
           // 🟢 Robust Number Parsing (prevents spaces breaking logic)
           let inv_nr_text = tr
@@ -5288,7 +5300,7 @@
             normalUpdates.push({
               month: `${tr.dataset.month} ${tr.dataset.year}`,
               site: tr.dataset.site,
-              plate: tr.dataset.plate,
+              plate: tr.dataset.masterPlate,
               inv_nr,
               inv_ot,
               inv_amount,
@@ -5314,7 +5326,7 @@
             let driverAmountVal = driverAmountTd ? driverAmountTd.innerText.trim().replace(/,/g, "") : "";
 
             specialUpdates.push({
-              plate_no: tr.dataset.plate,
+              plate_no: tr.dataset.masterPlate,
               site_name: tr.dataset.site,
               month: `${tr.dataset.month} ${tr.dataset.year}`,
               remark: newNote,
