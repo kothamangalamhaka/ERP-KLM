@@ -1,106 +1,215 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Yearly Summary</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
-        .btn-blue { background: #2980b9; color: white; }
-        
-        /* Checkbox Dropdown Styling */
-        .dropdown { position: relative; display: inline-block; }
-        .dropbtn { background: white; padding: 8px 15px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; }
-        .dropdown-content { display: none; position: absolute; background: #fff; min-width: 160px; box-shadow: 0px 8px 16px rgba(0,0,0,0.2); z-index: 1; padding: 10px; border-radius: 4px; border: 1px solid #ccc; }
-        .dropdown-content label { display: block; padding: 4px 0; cursor: pointer; font-size: 13px; }
-        .dropdown:hover .dropdown-content { display: block; }
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f4f7f6;
+        padding: 20px;
+      }
+      .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+      .controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 13px;
+      }
+      .btn-blue {
+        background: #2980b9;
+        color: white;
+      }
 
-        /* 3 Cards in a Row Layout */
-        .summary-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: flex-start; }
-        .summary-card { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: calc(50% - 14px); min-width: 420px; box-sizing: border-box; }
-        
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { border: 1px solid #000; padding: 5px 6px; text-align: left; }
-        th { background: #bdd7ee; text-align: center; }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; font-weight: bold; }
-        .inner-table { width: 100%; border-collapse: collapse; margin-top: 2px; }
-        .inner-table td { border: 1px solid #e6e1e1; padding: 2px 4px; font-size: 11px; }
+      /* Checkbox Dropdown Styling */
+      .dropdown {
+        position: relative;
+        display: inline-block;
+      }
+      .dropbtn {
+        background: white;
+        padding: 8px 15px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: bold;
+      }
+      .dropdown-content {
+        display: none;
+        position: absolute;
+        background: #fff;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+      .dropdown-content label {
+        display: block;
+        padding: 4px 0;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .dropdown:hover .dropdown-content {
+        display: block;
+      }
+
+      /* 3 Cards in a Row Layout */
+      .summary-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: flex-start;
+      }
+      .summary-card {
+        background: white;
+        padding: 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        width: calc(50% - 14px);
+        min-width: 420px;
+        box-sizing: border-box;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      th,
+      td {
+        border: 1px solid #000;
+        padding: 5px 6px;
+        text-align: left;
+      }
+      th {
+        background: #bdd7ee;
+        text-align: center;
+      }
+      .text-center {
+        text-align: center;
+      }
+      .text-right {
+        text-align: right;
+        font-weight: bold;
+      }
+      .inner-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 2px;
+      }
+      .inner-table td {
+        border: 1px solid #e6e1e1;
+        padding: 2px 4px;
+        font-size: 11px;
+      }
     </style>
-</head>
-<body>
-
-<div class="top-bar">
-    <h2 style="margin:0; font-size: 20px; color: #2c3e50;">Yearly Profit & Loss Summary</h2>
-    <div class="controls">
-            <!-- Year Selection Checkboxes -->
-            <div class="dropdown">
-                <button class="dropbtn">Select Years ▼</button>
-                <div class="dropdown-content" id="yearCheckboxes">
-                    <!-- Populated via JS -->
-                </div>
-            </div>
-            <button class="btn" style="background: #16a085; color: white;" onclick="window.location.href='list.html'">Expand</button>
-            <button class="btn btn-blue" onclick="window.location.href='Dashboard.html'">Back to Dashboard</button>
+  </head>
+  <body>
+    <div class="top-bar">
+      <h2 style="margin: 0; font-size: 20px; color: #2c3e50">
+        Yearly Profit & Loss Summary
+      </h2>
+      <div class="controls">
+        <!-- Year Selection Checkboxes -->
+        <div class="dropdown">
+          <button class="dropbtn">Select Years ▼</button>
+          <div class="dropdown-content" id="yearCheckboxes">
+            <!-- Populated via JS -->
+          </div>
         </div>
-</div>
+        <button
+          class="btn"
+          style="background: #16a085; color: white"
+          onclick="window.location.href = 'list.html'"
+        >
+          Expand
+        </button>
+        <button
+          class="btn btn-blue"
+          onclick="window.location.href = 'Dashboard.html'"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    </div>
 
-<div class="summary-container" id="summaryWrapper"></div>
+    <div class="summary-container" id="summaryWrapper"></div>
 
-<script>
+    <script>
+      if (!localStorage.getItem("eq_user")) {
+        window.location.replace("index.html");
+      }
 
-    if (!localStorage.getItem('eq_user')) {
-    window.location.replace('index.html');
-}
+      let globalData = [];
 
-    let globalData = [];
-
-    async function fetchSummaryData() {
+      async function fetchSummaryData() {
         try {
-            const res = await fetch('/api/own-equipment/tracker/summary-data');
-            globalData = await res.json();
-            initYearCheckboxes();
-            loadSummary();
+          const res = await fetch("/api/own-equipment/tracker/summary-data");
+          globalData = await res.json();
+          initYearCheckboxes();
+          loadSummary();
         } catch (err) {
-            console.error("Error loading summary:", err);
+          console.error("Error loading summary:", err);
         }
-    }
+      }
 
-    function initYearCheckboxes() {
-        const container = document.getElementById('yearCheckboxes');
+      function initYearCheckboxes() {
+        const container = document.getElementById("yearCheckboxes");
         container.innerHTML = `<label><input type="checkbox" id="chkAll" checked onchange="toggleAllYears(this)"> <b>Select All</b></label><hr style="margin:4px 0;">`;
-        
-        globalData.forEach(d => {
-            container.innerHTML += `<label><input type="checkbox" class="year-chk" value="${d.year}" checked onchange="loadSummary()"> ${d.year}</label>`;
+
+        globalData.forEach((d) => {
+          container.innerHTML += `<label><input type="checkbox" class="year-chk" value="${d.year}" checked onchange="loadSummary()"> ${d.year}</label>`;
         });
-    }
+      }
 
-    function toggleAllYears(source) {
-        document.querySelectorAll('.year-chk').forEach(chk => chk.checked = source.checked);
+      function toggleAllYears(source) {
+        document
+          .querySelectorAll(".year-chk")
+          .forEach((chk) => (chk.checked = source.checked));
         loadSummary();
-    }
+      }
 
-    function loadSummary() {
-        const wrapper = document.getElementById('summaryWrapper');
-        wrapper.innerHTML = '';
+      function loadSummary() {
+        const wrapper = document.getElementById("summaryWrapper");
+        wrapper.innerHTML = "";
 
-        const checkedYears = Array.from(document.querySelectorAll('.year-chk:checked')).map(chk => chk.value);
+        const checkedYears = Array.from(
+          document.querySelectorAll(".year-chk:checked"),
+        ).map((chk) => chk.value);
 
-        globalData.forEach(d => {
-            if (!checkedYears.includes(d.year.toString())) return;
+        globalData.forEach((d) => {
+          if (!checkedYears.includes(d.year.toString())) return;
 
-            let prevHtml = '';
-            if (d.prevBalance < 0) {
-                prevHtml = `<tr><td class="text-center">${d.year}</td><td>Previous Year OP Loss</td><td class="text-right">${Math.abs(d.prevBalance).toFixed(2)}</td><td></td><td></td><td></td></tr>`;
-            } else if (d.prevBalance > 0) {
-                prevHtml = `<tr><td></td><td></td><td></td><td class="text-center">${d.year}</td><td>Previous Year OP Profit</td><td class="text-right">${d.prevBalance.toFixed(2)}</td></tr>`;
-            }
+          let prevHtml = "";
+          if (d.prevBalance < 0) {
+            prevHtml = `<tr><td class="text-center">${d.year}</td><td>Previous Year OP Loss</td><td class="text-right">${Math.abs(d.prevBalance).toFixed(2)}</td><td></td><td></td><td></td></tr>`;
+          } else if (d.prevBalance > 0) {
+            prevHtml = `<tr><td></td><td></td><td></td><td class="text-center">${d.year}</td><td>Previous Year OP Profit</td><td class="text-right">${d.prevBalance.toFixed(2)}</td></tr>`;
+          }
 
-            let resultHtml = '';
-            if (d.isNetLoss) {
-                resultHtml = `
+          let resultHtml = "";
+          if (d.isNetLoss) {
+            resultHtml = `
                     <tr><td></td><td></td><td></td><td class="text-center"><b>${d.year}</b></td><td><b>Net Loss ::</b>
                         <table class="inner-table">
                             <tr><td>Asset Cost</td><td class="text-right">${d.purchaseCost.toFixed(2)}</td></tr>
@@ -108,17 +217,17 @@
                         </table>
                     </td><td class="text-right" style="color:red;"><b>${d.netDiff.toFixed(2)}</b></td></tr>
                 `;
-            } else {
-                resultHtml = `
+          } else {
+            resultHtml = `
                     <tr><td class="text-center"><b>${d.year}</b></td><td><b>Net Profit ::</b>
                         <table class="inner-table">
                             <tr><td>Operational Profit</td><td class="text-right">${d.opDiff.toFixed(2)}</td></tr>
                         </table>
                     </td><td class="text-right" style="color:green;"><b>${d.netDiff.toFixed(2)}</b></td><td></td><td></td><td></td></tr>
                 `;
-            }
+          }
 
-            wrapper.innerHTML += `
+          wrapper.innerHTML += `
                 <div class="summary-card">
                     <h3 style="text-align:center; margin: 5px 0 10px 0; color:#34495e;">Annual Summary - ${d.year}</h3>
                     <table>
@@ -164,6 +273,7 @@
                                         <tr><td colspan="2"><b>Driver Salary</b></td></tr>
                                         <tr><td style="padding-left: 15px;">Basic Salary</td><td class="text-right">${Number(d.basic || 0).toFixed(2)}</td></tr>
                                         <tr><td style="padding-left: 15px;">Over Time</td><td class="text-right">${Number(d.ot || 0).toFixed(2)}</td></tr>
+                                        <tr><td style="padding-left: 15px;">Allowance</td><td class="text-right">${Number(d.allowance || 0).toFixed(2)}</td></tr>
                                         <tr><td><b>Gross Salary</b></td><td class="text-right"><b>${Number(d.grossSal || 0).toFixed(2)}</b></td></tr>
                                         <tr><td style="color:red; padding-left: 15px;">less:: Penalty</td><td class="text-right" style="color:red;">${Number(d.driverPenalty || 0).toFixed(2)}</td></tr>
                                         <tr><td><b>Net Salary ::</b></td><td class="text-right"><b>${Number(d.driverNet || 0).toFixed(2)}</b></td></tr>
@@ -203,9 +313,9 @@
                 </div>
             `;
         });
-    }
+      }
 
-    window.onload = fetchSummaryData;
-</script>
-</body>
+      window.onload = fetchSummaryData;
+    </script>
+  </body>
 </html>

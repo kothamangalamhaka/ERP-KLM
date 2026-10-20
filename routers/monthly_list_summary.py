@@ -107,8 +107,9 @@ async def export_monthly_summary_excel(from_y: int, from_m: int, to_y: int, to_m
                     maint = float(log.get("maintenance_cost", 0) or 0)
                     basic = float(log.get("basic_salary", 0) or 0)
                     ot = float(log.get("overtime", 0) or 0)
+                    allowance = float(log.get("allowance", 0) or 0)
                     penalty = float(log.get("penalty", 0) or 0)
-                    net_sal = (basic + ot) - penalty
+                    net_sal = (basic + ot + allowance) - penalty
                     rent = float(log.get("santook_rent", 0) or 0)
                     debt = float(log.get("debit", 0) or 0)
                     pwas = float(log.get("pwas", 0) or 0)

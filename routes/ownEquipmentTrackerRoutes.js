@@ -75,6 +75,7 @@ router.post("/save-log", async (req, res) => {
     maintenance_cost,
     basic_salary,
     overtime,
+    allowance,
     penalty,
     santook_rent,
     kafil_comm,
@@ -87,10 +88,10 @@ router.post("/save-log", async (req, res) => {
   } = req.body;
   try {
     const query = `
-            INSERT INTO equipment_monthly_logs (equipment_id, year, month, maintenance_cost, basic_salary, overtime, penalty, santook_rent, kafil_comm, owner_comm, investor_comm, debit, pwas, other_expense, op_revenue)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            INSERT INTO equipment_monthly_logs (equipment_id, year, month, maintenance_cost, basic_salary, overtime, allowance, penalty, santook_rent, kafil_comm, owner_comm, investor_comm, debit, pwas, other_expense, op_revenue)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             ON CONFLICT (equipment_id, year, month)
-            DO UPDATE SET maintenance_cost = EXCLUDED.maintenance_cost, basic_salary = EXCLUDED.basic_salary, overtime = EXCLUDED.overtime, penalty = EXCLUDED.penalty, santook_rent = EXCLUDED.santook_rent, kafil_comm = EXCLUDED.kafil_comm, owner_comm = EXCLUDED.owner_comm, investor_comm = EXCLUDED.investor_comm, debit = EXCLUDED.debit, pwas = EXCLUDED.pwas, other_expense = EXCLUDED.other_expense, op_revenue = EXCLUDED.op_revenue;
+            DO UPDATE SET maintenance_cost = EXCLUDED.maintenance_cost, basic_salary = EXCLUDED.basic_salary, overtime = EXCLUDED.overtime, allowance = EXCLUDED.allowance, penalty = EXCLUDED.penalty, santook_rent = EXCLUDED.santook_rent, kafil_comm = EXCLUDED.kafil_comm, owner_comm = EXCLUDED.owner_comm, investor_comm = EXCLUDED.investor_comm, debit = EXCLUDED.debit, pwas = EXCLUDED.pwas, other_expense = EXCLUDED.other_expense, op_revenue = EXCLUDED.op_revenue;
         `;
     await pool.query(query, [
       equipment_id,
@@ -99,6 +100,7 @@ router.post("/save-log", async (req, res) => {
       maintenance_cost || 0,
       basic_salary || 0,
       overtime || 0,
+      allowance || 0,
       penalty || 0,
       santook_rent || 0,
       kafil_comm || 0,
@@ -140,6 +142,7 @@ router.get("/summary-data", async (req, res) => {
           maint: 0,
           basic: 0,
           ot: 0,
+          allowance: 0,
           penalty: 0,
           santook: 0,
           kafil: 0,
@@ -155,6 +158,7 @@ router.get("/summary-data", async (req, res) => {
       y.maint += Number(log.maintenance_cost || 0);
       y.basic += Number(log.basic_salary || 0);
       y.ot += Number(log.overtime || 0);
+      y.allowance += Number(log.allowance || 0);
       y.penalty += Number(log.penalty || 0);
       y.santook += Number(log.santook_rent || 0);
       y.debit += Number(log.debit || 0);
@@ -175,7 +179,7 @@ router.get("/summary-data", async (req, res) => {
       .sort()
       .forEach((yr) => {
         let d = yearsData[yr];
-        let grossSal = d.basic + d.ot;
+        let grossSal = d.basic + d.ot + d.allowance;
         let netSal = grossSal - d.penalty;
         let opCost = netSal + d.santook + d.kafil + d.owner + d.inv + d.debit + (d.pwas || 0) + d.other_exp;
         let currentOpProfitLoss = d.revenue - (d.maint + opCost);
@@ -198,6 +202,7 @@ router.get("/summary-data", async (req, res) => {
           opCost: opCost,
           basic: d.basic,
           ot: d.ot,
+          allowance: d.allowance,
           grossSal: grossSal,
           driverNet: netSal,
           driverPenalty: d.penalty,

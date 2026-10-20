@@ -47,12 +47,12 @@ async def bulk_save_logs(payload: BulkLogUpdateRequest):
         query = """
             INSERT INTO equipment_monthly_logs (
                 equipment_id, year, month, maintenance_cost, basic_salary, overtime, 
-                penalty, santook_rent, kafil_comm, owner_comm, investor_comm, 
+                allowance, penalty, santook_rent, kafil_comm, owner_comm, investor_comm, 
                 debit, pwas, other_expense, op_revenue
             )
             VALUES (
                 %(equipment_id)s, %(year)s, %(month)s, %(maintenance_cost)s, %(basic_salary)s, %(overtime)s,
-                %(penalty)s, %(santook_rent)s, %(kafil_comm)s, %(owner_comm)s, %(investor_comm)s,
+                %(allowance)s, %(penalty)s, %(santook_rent)s, %(kafil_comm)s, %(owner_comm)s, %(investor_comm)s,
                 %(debit)s, %(pwas)s, %(other_expense)s, %(op_revenue)s
             )
             ON CONFLICT (equipment_id, year, month)
@@ -60,6 +60,7 @@ async def bulk_save_logs(payload: BulkLogUpdateRequest):
                 maintenance_cost = EXCLUDED.maintenance_cost,
                 basic_salary = EXCLUDED.basic_salary,
                 overtime = EXCLUDED.overtime,
+                allowance = EXCLUDED.allowance,
                 penalty = EXCLUDED.penalty,
                 santook_rent = EXCLUDED.santook_rent,
                 kafil_comm = EXCLUDED.kafil_comm,
@@ -71,7 +72,12 @@ async def bulk_save_logs(payload: BulkLogUpdateRequest):
                 op_revenue = EXCLUDED.op_revenue;
         """
 
-        log_dicts = [item.dict() for item in payload.logs]
+        log_dicts = []
+        for item in payload.logs:
+            d = item.dict()
+            if "allowance" not in d or d["allowance"] is None:
+                d["allowance"] = 0
+            log_dicts.append(d)
         execute_batch(cur, query, log_dicts, page_size=100)
 
         conn.commit()
