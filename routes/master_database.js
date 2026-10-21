@@ -1764,5 +1764,80 @@ router.post("/update-driver", verifyToken, async (req, res) => {
     }
   });
 
+// 🟢 NEW CODE: Quick Expiry Update from MDB Issues
+router.post("/update-expiry-dates", verifyToken, async (req, res) => {
+  try {
+    if (req.user.role === "Viewer") {
+      return res.json({ success: false, message: "Access Denied: Viewers cannot edit." });
+    }
+
+    const { dbId, updates } = req.body;
+    if (!dbId || !updates) {
+      return res.json({ success: false, message: "Invalid parameters." });
+    }
+
+    const recordRes = await pool.query(
+      "SELECT id, plate_number, record_data FROM erp_records WHERE id = $1 AND deleted_at IS NULL",
+      [dbId]
+    );
+    if (recordRes.rows.length === 0) {
+      return res.json({ success: false, message: "Record not found." });
+    }
+
+    let currentData = recordRes.rows[0].record_data || {};
+    
+    // 🟢 Plate number DB column-il illenkil JSON record_data-yil ninnu edukkunnu
+    let resolvedPlate = 
+      recordRes.rows[0].plate_number || 
+      currentData[COLUMNS.PLATE_NUMBER] || 
+      currentData["PLATE NUMBER"] || 
+      currentData["Plate Number"] || 
+      currentData["PLATE NO"] || 
+      "N/A";
+
+    let changeLogs = [];
+    let payload = {};
+
+    for (let key in updates) {
+      let targetKey = Object.keys(currentData).find(
+        (k) => k.replace(/\s+/g, "").toUpperCase() === key.replace(/\s+/g, "").toUpperCase()
+      ) || key;
+
+      let oldVal = currentData[targetKey] !== undefined && currentData[targetKey] !== null ? String(currentData[targetKey]).trim() : "";
+      let newVal = updates[key] !== undefined && updates[key] !== null ? String(updates[key]).trim() : "";
+
+      if (oldVal !== newVal) {
+        payload[targetKey] = newVal;
+        changeLogs.push({
+          plate: resolvedPlate,
+          colName: targetKey,
+          oldVal: oldVal !== "" ? oldVal : "(Blank)",
+          newVal: newVal !== "" ? newVal : "(Blank)",
+        });
+      }
+    }
+
+    if (Object.keys(payload).length > 0) {
+      await pool.query(
+        "UPDATE erp_records SET record_data = record_data || $1::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+        [JSON.stringify(payload), dbId]
+      );
+
+      await pool.query(
+        "INSERT INTO activity_logs (username, action, details) VALUES ($1, 'UPDATE_EXPIRY', $2)",
+        [req.user.username, JSON.stringify({ dbId, changes: changeLogs })]
+      );
+
+      if (changeLogs.length > 0) {
+        await sendLiveTelegramAlert(req.user.username, changeLogs);
+      }
+    }
+
+    res.json({ success: true, message: "Expiry dates updated successfully." });
+  } catch (error) {
+    handleError(res, error, req.user.role, "UPDATE_EXPIRY");
+  }
+});
+
   return router;
 };

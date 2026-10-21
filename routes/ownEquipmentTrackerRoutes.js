@@ -79,6 +79,7 @@ router.post("/save-log", async (req, res) => {
     penalty,
     santook_rent,
     kafil_comm,
+    kafil_pct,
     owner_comm,
     investor_comm,
     debit,
@@ -88,10 +89,10 @@ router.post("/save-log", async (req, res) => {
   } = req.body;
   try {
     const query = `
-            INSERT INTO equipment_monthly_logs (equipment_id, year, month, maintenance_cost, basic_salary, overtime, allowance, penalty, santook_rent, kafil_comm, owner_comm, investor_comm, debit, pwas, other_expense, op_revenue)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            INSERT INTO equipment_monthly_logs (equipment_id, year, month, maintenance_cost, basic_salary, overtime, allowance, penalty, santook_rent, kafil_comm, kafil_pct, owner_comm, investor_comm, debit, pwas, other_expense, op_revenue)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             ON CONFLICT (equipment_id, year, month)
-            DO UPDATE SET maintenance_cost = EXCLUDED.maintenance_cost, basic_salary = EXCLUDED.basic_salary, overtime = EXCLUDED.overtime, allowance = EXCLUDED.allowance, penalty = EXCLUDED.penalty, santook_rent = EXCLUDED.santook_rent, kafil_comm = EXCLUDED.kafil_comm, owner_comm = EXCLUDED.owner_comm, investor_comm = EXCLUDED.investor_comm, debit = EXCLUDED.debit, pwas = EXCLUDED.pwas, other_expense = EXCLUDED.other_expense, op_revenue = EXCLUDED.op_revenue;
+            DO UPDATE SET maintenance_cost = EXCLUDED.maintenance_cost, basic_salary = EXCLUDED.basic_salary, overtime = EXCLUDED.overtime, allowance = EXCLUDED.allowance, penalty = EXCLUDED.penalty, santook_rent = EXCLUDED.santook_rent, kafil_comm = EXCLUDED.kafil_comm, kafil_pct = EXCLUDED.kafil_pct, owner_comm = EXCLUDED.owner_comm, investor_comm = EXCLUDED.investor_comm, debit = EXCLUDED.debit, pwas = EXCLUDED.pwas, other_expense = EXCLUDED.other_expense, op_revenue = EXCLUDED.op_revenue;
         `;
     await pool.query(query, [
       equipment_id,
@@ -104,6 +105,7 @@ router.post("/save-log", async (req, res) => {
       penalty || 0,
       santook_rent || 0,
       kafil_comm || 0,
+      kafil_pct !== undefined && kafil_pct !== null && kafil_pct !== "" ? Number(kafil_pct) : 3,
       owner_comm || 0,
       investor_comm || 0,
       debit || 0,
@@ -166,8 +168,10 @@ router.get("/summary-data", async (req, res) => {
       y.other_exp += Number(log.other_expense || 0);
       const rev = Number(log.op_revenue || 0);
       y.revenue += rev;
-      // 🟢 FIXED: Kafil is % of Revenue, Owner and Investor are Direct SAR Amounts
-      y.kafil += rev * (Number(log.kafil_comm || 0) / 100);
+      // 🟢 Kafil: Percentage നൽകിയിട്ടുണ്ടെങ്കിൽ (OP Revenue * pct / 100), അല്ലെങ്കിൽ direct kafil_comm എമൗണ്ട്
+      const pct = log.kafil_pct !== null && log.kafil_pct !== undefined ? Number(log.kafil_pct) : 0;
+      const kafilAmt = (pct > 0 && rev > 0) ? (rev * (pct / 100)) : Number(log.kafil_comm || 0);
+      y.kafil += kafilAmt;
       y.owner += Number(log.owner_comm || 0);
       y.inv += Number(log.investor_comm || 0);
     });

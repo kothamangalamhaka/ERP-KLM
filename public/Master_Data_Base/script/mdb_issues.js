@@ -1350,15 +1350,26 @@ function tableCardMarkup({
       ? rows
           .map((row) => {
             const cells = columns
-              .map((column) => {
-                const rawValue = column.value ? column.value(row) : "";
-                const display = column.render
-                  ? column.render(row)
-                  : escapeHtml(rawValue);
-                const cellClass = column.cellClass ? column.cellClass(row) : "";
-                return `<td class="${escapeAttribute(cellClass)}" data-filter-value="${escapeAttribute(rawValue)}">${display}</td>`;
-              })
-              .join("");
+  .map((column) => {
+    const rawValue = column.value ? column.value(row) : "";
+    const display = column.render
+      ? column.render(row)
+      : escapeHtml(rawValue);
+    const cellClass = column.cellClass ? column.cellClass(row) : "";
+    const isPlateCol = column.label === "Plate No";
+let clickAttr = "";
+if (isPlateCol) {
+  if (id === "work-start-issues") {
+    clickAttr = `data-record-id="${row.id}" oncontextmenu="openWorkStartModal(event, ${row.id})" style="cursor:context-menu;" title="Right-click to Update Work Start & Timeline"`;
+  } else if (id === "no-owner-issues") {
+    clickAttr = `data-record-id="${row.id}" oncontextmenu="openOwnerModal(event, ${row.id})" style="cursor:context-menu;" title="Right-click to Update Owner Info"`;
+  } else if (id.includes("expiry")) {
+    clickAttr = `data-record-id="${row.id}" oncontextmenu="openQuickExpiryModal(event, ${row.id}, '${escapeAttribute(id)}')" style="cursor:context-menu;" title="Right-click to Update Expiry"`;
+  }
+}
+return `<td class="${escapeAttribute(cellClass)}" data-filter-value="${escapeAttribute(rawValue)}" ${clickAttr}>${display}</td>`;
+  })
+  .join("");
             return `<tr class="data-row ${escapeAttribute(rowClass(row))}">${cells}</tr>`;
           })
           .join("")
@@ -2365,4 +2376,305 @@ function escapeHtml(value) {
 
 function escapeAttribute(value) {
   return escapeHtml(value).replace(/`/g, "&#96;");
+}
+
+// 🟢 Helper to format date into YYYY-MM-DD for input[type=date]
+function toIsoDate(dStr) {
+  const d = parseDateValue(dStr);
+  if (!d) return "";
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function openQuickExpiryModal(event, dbId, tableId = "") {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const record = issueRecords.find((r) => r.id === dbId);
+  if (!record) return;
+
+  document.getElementById("modalExpiryDbId").value = dbId;
+  document.getElementById("modalPlateBadge").innerText = record.plate || "N/A";
+
+  document.getElementById("expInputIqama").value = toIsoDate(record.iqamaExpiry);
+  document.getElementById("expInputLicence").value = toIsoDate(record.licenceExpiry);
+  document.getElementById("expInputInsurance").value = toIsoDate(record.insuranceExpiry);
+  document.getElementById("expInputFahs").value = toIsoDate(record.fahsExpiry);
+  document.getElementById("expInputOpTuv").value = toIsoDate(record.operatorTuvExpiry);
+  document.getElementById("expInputEqTuv").value = toIsoDate(record.eqTuvExpiry);
+
+  // Parent div-kal eduthu hide/show cheyyunnu
+  const wrapIqama = document.getElementById("expInputIqama").closest("div");
+  const wrapLicence = document.getElementById("expInputLicence").closest("div");
+  const wrapInsurance = document.getElementById("expInputInsurance").closest("div");
+  const wrapFahs = document.getElementById("expInputFahs").closest("div");
+  const wrapOpTuv = document.getElementById("expInputOpTuv").closest("div");
+  const wrapEqTuv = document.getElementById("expInputEqTuv").closest("div");
+
+  // Default aayi ellam hide cheyyunnu
+  [wrapIqama, wrapLicence, wrapInsurance, wrapFahs, wrapOpTuv, wrapEqTuv].forEach(el => {
+    if (el) el.style.display = "none";
+  });
+
+  // Ethu table aano athinu vendath maathram show cheyyunnu
+  if (tableId === "iqama-expiry") {
+    if (wrapIqama) wrapIqama.style.display = "block";
+  } else if (tableId === "licence-expiry") {
+    if (wrapLicence) wrapLicence.style.display = "block";
+  } else if (tableId === "iqama-licence-expiry") {
+    if (wrapIqama) wrapIqama.style.display = "block";
+    if (wrapLicence) wrapLicence.style.display = "block";
+  } else if (tableId === "insurance-expiry") {
+    if (wrapInsurance) wrapInsurance.style.display = "block";
+  } else if (tableId === "fahs-expiry") {
+    if (wrapFahs) wrapFahs.style.display = "block";
+  } else if (tableId === "insurance-fahs-expiry") {
+    if (wrapInsurance) wrapInsurance.style.display = "block";
+    if (wrapFahs) wrapFahs.style.display = "block";
+  } else if (tableId === "operator-tuv-expiry") {
+    if (wrapOpTuv) wrapOpTuv.style.display = "block";
+  } else if (tableId === "eq-tuv-expiry") {
+    if (wrapEqTuv) wrapEqTuv.style.display = "block";
+  } else {
+    // Combined Expiry allengil mattulla tables: Ellam kaanikkum
+    [wrapIqama, wrapLicence, wrapInsurance, wrapFahs, wrapOpTuv, wrapEqTuv].forEach(el => {
+      if (el) el.style.display = "block";
+    });
+  }
+
+  const modal = document.getElementById("expiryUpdateModal");
+  modal.style.display = "flex";
+}
+
+function closeExpiryModal() {
+  document.getElementById("expiryUpdateModal").style.display = "none";
+}
+
+async function submitExpiryModal() {
+  const dbId = parseInt(document.getElementById("modalExpiryDbId").value, 10);
+  if (!dbId) return;
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const formatDdMmmYyyy = (val) => {
+    if (!val) return "";
+    const p = val.split("-");
+    if (p.length === 3) {
+      return `${p[2]}-${monthNames[parseInt(p[1], 10) - 1]}-${p[0]}`;
+    }
+    return val;
+  };
+
+  // Screen-il visible aayi nilkkunna inputs mathram DB-ilekk update cheyyunnu
+  const updates = {};
+  const isVisible = (id) => {
+    const el = document.getElementById(id);
+    return el && el.closest("div") && el.closest("div").style.display !== "none";
+  };
+
+  if (isVisible("expInputIqama")) {
+    updates["IQAMA EXPIRE DATE"] = formatDdMmmYyyy(document.getElementById("expInputIqama").value);
+  }
+  if (isVisible("expInputLicence")) {
+    updates["LICENSE EXPIRE DATE"] = formatDdMmmYyyy(document.getElementById("expInputLicence").value);
+  }
+  if (isVisible("expInputInsurance")) {
+    updates["EQ INSURANSE EXPIRE DATE"] = formatDdMmmYyyy(document.getElementById("expInputInsurance").value);
+  }
+  if (isVisible("expInputFahs")) {
+    updates["FAHS MVPI EXPIRE"] = formatDdMmmYyyy(document.getElementById("expInputFahs").value);
+  }
+  if (isVisible("expInputOpTuv")) {
+    updates["OPERATOR TUV EXPIRE DATE"] = formatDdMmmYyyy(document.getElementById("expInputOpTuv").value);
+  }
+  if (isVisible("expInputEqTuv")) {
+    updates["EQ TUV EXPIRE DATE"] = formatDdMmmYyyy(document.getElementById("expInputEqTuv").value);
+  }
+
+  closeExpiryModal();
+  setLoading(true);
+
+  try {
+    const res = await fetch("/api/update-expiry-dates", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${issueToken}`,
+      },
+      body: JSON.stringify({ dbId, updates }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast("Expiry updated successfully in Master DB!");
+      await loadIssueData(); // Refresh Issue tables instantly
+    } else {
+      showToast(data.message || "Failed to update", true);
+    }
+  } catch (err) {
+    showToast("Server error updating expiry.", true);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ==========================================
+// 🟢 1. WORK START & EQ REACHED QUICK MODAL
+// ==========================================
+function openWorkStartModal(event, dbId) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const record = issueRecords.find((r) => r.id === dbId);
+  if (!record) return;
+
+  document.getElementById("modalWsDbId").value = dbId;
+  document.getElementById("modalWsPlateBadge").innerText = record.plate || "N/A";
+
+  document.getElementById("inputWsDate").value = toIsoDate(record.workStart);
+  document.getElementById("inputEqReachedDate").value = toIsoDate(record.equipmentReached);
+  
+  const review = record.reviews.work_start_gap || {};
+  document.getElementById("inputWsRemark").value = review.remark || "";
+  document.getElementById("inputWsCleared").checked = review.cleared === true;
+
+  document.getElementById("workStartUpdateModal").style.display = "flex";
+}
+
+function closeWorkStartModal() {
+  document.getElementById("workStartUpdateModal").style.display = "none";
+}
+
+async function submitWorkStartModal() {
+  const dbId = parseInt(document.getElementById("modalWsDbId").value, 10);
+  if (!dbId) return;
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const formatDdMmmYyyy = (val) => {
+    if (!val) return "";
+    const p = val.split("-");
+    if (p.length === 3) {
+      return `${p[2]}-${monthNames[parseInt(p[1], 10) - 1]}-${p[0]}`;
+    }
+    return val;
+  };
+
+  const wsVal = formatDdMmmYyyy(document.getElementById("inputWsDate").value);
+  const eqVal = formatDdMmmYyyy(document.getElementById("inputEqReachedDate").value);
+  const remarkVal = document.getElementById("inputWsRemark").value.trim();
+  const clearedVal = document.getElementById("inputWsCleared").checked;
+
+  closeWorkStartModal();
+  setLoading(true);
+
+  try {
+    // 1. Update Master DB row fields (Work Start & Equipment Reached)
+    const cellUpdates = {
+      "WORK START": wsVal,
+      "EQUIPMENT REACHED AT SITE": eqVal
+    };
+
+    const updateRes = await fetch("/api/update-expiry-dates", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${issueToken}`,
+      },
+      body: JSON.stringify({ dbId, updates: cellUpdates }),
+    });
+    const updateData = await updateRes.json();
+    if (!updateData.success) {
+      throw new Error(updateData.message || "Failed to update record dates.");
+    }
+
+    // 2. Update Issue Review & Remark in jsonb
+    const reviewRes = await fetch("/api/mdb-issues/review", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${issueToken}`,
+      },
+      body: JSON.stringify({
+        recordId: dbId,
+        issueKey: "work_start_gap",
+        cleared: clearedVal,
+        remark: remarkVal,
+      }),
+    });
+    const reviewData = await reviewRes.json();
+    if (!reviewData.success) {
+      throw new Error(reviewData.message || "Failed to update review status.");
+    }
+
+    showToast("Work Start and Review updated in Master DB!");
+    await loadIssueData();
+  } catch (err) {
+    showToast(err.message || "Error updating Work Start issue.", true);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ==========================================
+// 🟢 2. MISSING OWNER DETAILS QUICK MODAL
+// ==========================================
+function openOwnerModal(event, dbId) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const record = issueRecords.find((r) => r.id === dbId);
+  if (!record) return;
+
+  document.getElementById("modalOwnerDbId").value = dbId;
+  document.getElementById("modalOwnerPlateBadge").innerText = record.plate || "N/A";
+
+  document.getElementById("inputOwnerName").value = record.owner || "";
+  document.getElementById("inputOwnerMobile").value = record.ownerMobile || "";
+
+  document.getElementById("ownerUpdateModal").style.display = "flex";
+}
+
+function closeOwnerModal() {
+  document.getElementById("ownerUpdateModal").style.display = "none";
+}
+
+async function submitOwnerModal() {
+  const dbId = parseInt(document.getElementById("modalOwnerDbId").value, 10);
+  if (!dbId) return;
+
+  const ownerName = document.getElementById("inputOwnerName").value.trim();
+  const ownerMobile = document.getElementById("inputOwnerMobile").value.trim();
+
+  closeOwnerModal();
+  setLoading(true);
+
+  try {
+    const updates = {
+      "OWNER NAME": ownerName,
+      "OWNER NUMBER": ownerMobile,
+      "OWNER MOBILE": ownerMobile
+    };
+
+    const res = await fetch("/api/update-expiry-dates", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${issueToken}`,
+      },
+      body: JSON.stringify({ dbId, updates }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast("Owner details updated successfully in Master DB!");
+      await loadIssueData();
+    } else {
+      showToast(data.message || "Failed to update owner.", true);
+    }
+  } catch (err) {
+    showToast("Server error updating owner details.", true);
+  } finally {
+    setLoading(false);
+  }
 }

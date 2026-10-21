@@ -5,7 +5,7 @@ from psycopg2.extras import execute_batch
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
-from typing import List
+from typing import List, Any
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -38,14 +38,14 @@ class CellUpdateItem(BaseModel):
     year: int
     month: int
     field: str
-    value: float
+    value: Any
 
 class CellLevelUpdateRequest(BaseModel):
     updates: List[CellUpdateItem]
 
 ALLOWED_COLUMNS = {
     "maintenance_cost", "basic_salary", "overtime", "allowance",
-    "penalty", "santook_rent", "kafil_comm", "owner_comm",
+    "penalty", "santook_rent", "kafil_comm", "kafil_pct", "owner_comm",
     "investor_comm", "debit", "pwas", "other_expense", "op_revenue"
 }
 

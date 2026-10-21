@@ -6,6 +6,7 @@ let activeColumnFilters = {
   remaining_purchase_cost: null,
 };
 let currentFilterColumn = null;
+let currentSort = { column: null, direction: null }; 
 const monthNames = [
   "Jan",
   "Feb",
@@ -206,23 +207,52 @@ function renderTable() {
   const plateInd = activeColumnFilters.plate_no !== null ? " 🔽" : "";
   const dateInd = activeColumnFilters.purchase_date !== null ? " 🔽" : "";
   const remInd = activeColumnFilters.remaining_purchase_cost !== null ? " 🔽" : "";
+  const fInd = (k) => (activeColumnFilters[k] !== undefined && activeColumnFilters[k] !== null ? " 🔽" : "");
+
   let r1 = `<tr><th rowspan="4" class="master-head">SN</th><th rowspan="4" class="master-head" id="thPlateNo" style="cursor:context-menu;" title="Right-click to filter">Plate No${plateInd}</th><th rowspan="4" class="master-head" id="thPurchaseDate" style="cursor:context-menu;" title="Right-click to filter">Date of <br> Purchase${dateInd}</th><th rowspan="4" class="master-head">Purchase <br> Cost Paid</th><th rowspan="4" class="master-head" id="thRemainingCost" style="cursor:context-menu;" title="Right-click to filter">Remaining <br> Purchase <br> Cost${remInd}</th>`;
   let r2 = `<tr>`,
     r3 = `<tr>`,
     r4 = `<tr>`;
 
   vM.forEach((m) => {
-    r1 += `<th colspan="18" class="month-head">${fullMonthNames[m - 1]} ${y}</th>`;
-    r2 += `<th rowspan="3" class="sub-head">Equipment <br> Maintanance <br> Cost</th><th colspan="12" class="sub-head bg-opc">Operating Expenses</th><th rowspan="3" class="sub-head bg-total-cost">Total Cost</th><th rowspan="3" class="sub-head bg-revenue">OPerational <br> Revenue</th><th rowspan="3" class="sub-head bg-gl"> This Month <br> Gain / Loss</th><th rowspan="3" class="sub-head">Prv Month <br> Balance</th><th rowspan="3" class="sub-head bg-net">Net OP <br> Gain/Loss</th>`;
-    r3 += `<th colspan="5" class="sub-head bg-opc">Driver Side Expenses</th><th rowspan="2" class="sub-head bg-opc">Santook <br> Rent</th><th colspan="3" class="sub-head bg-opc">Commission Paid</th><th colspan="3" class="sub-head bg-opc">Other Expense</th>`;
-    r4 += `<th class="sub-head bg-opc">Basic</th><th class="sub-head bg-opc">OT</th><th class="sub-head bg-opc">Allowance</th><th class="sub-head bg-opc" style="color:red;">Penalty</th><th class="sub-head bg-opc" style="font-weight:bold;">Net Salary</th><th class="sub-head bg-opc">Kafil</th><th class="sub-head bg-opc">Owner</th><th class="sub-head bg-opc">Investor</th><th class="sub-head bg-opc">Debit</th><th class="sub-head bg-opc">PWAS</th><th class="sub-head bg-opc">Other</th>`;
+    r1 += `<th colspan="19" class="month-head">${fullMonthNames[m - 1]} ${y}</th>`;
+    r2 += `<th rowspan="3" class="sub-head col-filter-th" data-col="maint_${m}" style="cursor:context-menu;" title="Right-click to filter">Equipment <br> Maintanance <br> Cost${fInd(`maint_${m}`)}</th>
+           <th colspan="13" class="sub-head bg-opc">Operating Expenses</th>
+           <th rowspan="3" class="sub-head bg-total-cost col-filter-th" data-col="tcost_${m}" style="cursor:context-menu;" title="Right-click to filter">Total Cost${fInd(`tcost_${m}`)}</th>
+           <th rowspan="3" class="sub-head bg-revenue col-filter-th" data-col="rev_${m}" style="cursor:context-menu;" title="Right-click to filter">OPerational <br> Revenue${fInd(`rev_${m}`)}</th>
+           <th rowspan="3" class="sub-head bg-gl col-filter-th" data-col="gl_${m}" style="cursor:context-menu;" title="Right-click to filter"> This Month <br> Gain / Loss${fInd(`gl_${m}`)}</th>
+           <th rowspan="3" class="sub-head col-filter-th" data-col="prv_${m}" style="cursor:context-menu;" title="Right-click to filter">Prv Month <br> Balance${fInd(`prv_${m}`)}</th>
+           <th rowspan="3" class="sub-head bg-net col-filter-th" data-col="net_${m}" style="cursor:context-menu;" title="Right-click to filter">Net OP <br> Gain/Loss${fInd(`net_${m}`)}</th>`;
+    r3 += `<th colspan="5" class="sub-head bg-opc">Driver Side Expenses</th>
+           <th rowspan="2" class="sub-head bg-opc col-filter-th" data-col="santook_${m}" style="cursor:context-menu;" title="Right-click to filter">Santook <br> Rent${fInd(`santook_${m}`)}</th>
+           <th colspan="4" class="sub-head bg-opc">Commission Paid</th>
+           <th colspan="3" class="sub-head bg-opc">Other Expense</th>`;
+    r4 += `<th class="sub-head bg-opc col-filter-th" data-col="basic_${m}" style="cursor:context-menu;" title="Right-click to filter">Basic${fInd(`basic_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="ot_${m}" style="cursor:context-menu;" title="Right-click to filter">OT${fInd(`ot_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="allowance_${m}" style="cursor:context-menu;" title="Right-click to filter">Allowance${fInd(`allowance_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="penalty_${m}" style="color:red; cursor:context-menu;" title="Right-click to filter">Penalty${fInd(`penalty_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="netSal_${m}" style="font-weight:bold; cursor:context-menu;" title="Right-click to filter">Net Salary${fInd(`netSal_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="kafilpct_${m}" style="width:50px; cursor:context-menu;" title="Right-click to filter">%${fInd(`kafilpct_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="kafil_${m}" style="cursor:context-menu;" title="Right-click to filter">Kafil${fInd(`kafil_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="owner_${m}" style="cursor:context-menu;" title="Right-click to filter">Owner${fInd(`owner_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="inv_${m}" style="cursor:context-menu;" title="Right-click to filter">Investor${fInd(`inv_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="debit_${m}" style="cursor:context-menu;" title="Right-click to filter">Debit${fInd(`debit_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="pwas_${m}" style="cursor:context-menu;" title="Right-click to filter">PWAS${fInd(`pwas_${m}`)}</th>
+           <th class="sub-head bg-opc col-filter-th" data-col="other_${m}" style="cursor:context-menu;" title="Right-click to filter">Other${fInd(`other_${m}`)}</th>`;
   });
   header.innerHTML = r1 + `</tr>` + r2 + `</tr>` + r3 + `</tr>` + r4 + `</tr>`;
 
   body.innerHTML = "";
 
-  // Chronological sorting based on Purchase Date (oldest to newest)
+  // Sorting: Plate No A-Z / Z-A അല്ലെങ്കിൽ Purchase Date (oldest to newest)
   const sortedEquipments = [...rawEquipments].sort((a, b) => {
+    if (currentSort.column === "plate_no") {
+      const pA = (a.plate_no || "").toString().trim();
+      const pB = (b.plate_no || "").toString().trim();
+      return currentSort.direction === "asc"
+        ? pA.localeCompare(pB, undefined, { numeric: true })
+        : pB.localeCompare(pA, undefined, { numeric: true });
+    }
     const dateA = a.purchase_date ? new Date(a.purchase_date).getTime() : 0;
     const dateB = b.purchase_date ? new Date(b.purchase_date).getTime() : 0;
     return dateA - dateB;
@@ -233,23 +263,31 @@ function renderTable() {
     if (searchTerm && !pNo.toLowerCase().includes(searchTerm)) return false;
 
     // 1. Plate No Filter
-    if (activeColumnFilters.plate_no !== null) {
+    if (activeColumnFilters.plate_no !== null && activeColumnFilters.plate_no !== undefined) {
       if (pNo === "" && !activeColumnFilters.plate_no.includes("__BLANK__")) return false;
       if (pNo !== "" && !activeColumnFilters.plate_no.includes(pNo)) return false;
     }
 
     // 2. Date of Purchase Filter
-    if (activeColumnFilters.purchase_date !== null) {
+    if (activeColumnFilters.purchase_date !== null && activeColumnFilters.purchase_date !== undefined) {
       const formattedDate = formatPurchaseDate(eq.purchase_date);
       if (formattedDate === "" && !activeColumnFilters.purchase_date.includes("__BLANK__")) return false;
       if (formattedDate !== "" && !activeColumnFilters.purchase_date.includes(formattedDate)) return false;
     }
 
     // 3. Remaining Purchase Cost Filter
-    if (activeColumnFilters.remaining_purchase_cost !== null) {
+    if (activeColumnFilters.remaining_purchase_cost !== null && activeColumnFilters.remaining_purchase_cost !== undefined) {
       const remVal = eq.remaining_purchase_cost !== null && eq.remaining_purchase_cost !== undefined ? String(eq.remaining_purchase_cost) : "";
       if (remVal === "" && !activeColumnFilters.remaining_purchase_cost.includes("__BLANK__")) return false;
       if (remVal !== "" && !activeColumnFilters.remaining_purchase_cost.includes(remVal)) return false;
+    }
+
+    // Dynamic Monthly Columns Filter Check
+    for (const [colKey, selectedVals] of Object.entries(activeColumnFilters)) {
+      if (selectedVals === null || ["plate_no", "purchase_date", "remaining_purchase_cost"].includes(colKey)) continue;
+      const val = getEquipmentColumnValue(eq, colKey);
+      const strVal = (val === "" || val === null || val === undefined) ? "__BLANK__" : String(val);
+      if (!selectedVals.includes(strVal)) return false;
     }
 
     return true;
@@ -278,8 +316,19 @@ function renderTable() {
         pwas = Number(l.pwas || 0),
         other_exp = Number(l.other_expense || 0);
       const netSal = basic + ot + allowance - penalty;
-      const kafil = rev * (Number(l.kafil_comm || 0) / 100),
-        owner = Number(l.owner_comm || 0),
+      
+      // Kafil %: നൽകിയിട്ടുണ്ടെങ്കിൽ അത്, ഇല്ലെങ്കിൽ 3
+      const kafilPctVal = (l.kafil_pct !== null && l.kafil_pct !== undefined) ? Number(l.kafil_pct) : 3;
+      
+      // Kafil Amount: % നൽകിയിട്ടുണ്ടെങ്കിൽ റവന്യൂവിന്റെ ശതമാനം, അല്ലെങ്കിൽ നേരിട്ട് നൽകിയ kafil_comm എമൗണ്ട്
+      let kafil = 0;
+      if (kafilPctVal > 0) {
+        kafil = rev > 0 ? (rev * (kafilPctVal / 100)) : 0;
+      } else {
+        kafil = Number(l.kafil_comm || 0);
+      }
+
+      const owner = Number(l.owner_comm || 0),
         inv = Number(l.investor_comm || 0);
       const opc =
         netSal + santook + kafil + owner + inv + debit + pwas + other_exp;
@@ -297,7 +346,8 @@ function renderTable() {
           <td class="bg-opc editable-cell" style="color:red;" data-eq="${eq.id}" data-month="${m}" data-field="penalty">${fmt(penalty)}</td>
           <td class="bg-opc"><b>${fmt(netSal)}</b></td>
           <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="santook_rent">${fmt(santook)}</td>
-          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="kafil_comm">${fmt(kafil, 1)}</td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="kafil_pct" id="cell_kafil_pct_${eq.id}_${m}">${kafilPctVal > 0 ? kafilPctVal : ""}</td>
+          <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="kafil_comm" id="cell_kafil_${eq.id}_${m}">${fmt(kafil, 1)}</td>
           <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="owner_comm">${fmt(owner, 1)}</td>
           <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="investor_comm">${fmt(inv, 1)}</td>
           <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="debit">${fmt(debit)}</td>
@@ -332,6 +382,75 @@ function renderTable() {
   attachHeaderContextMenu("thPlateNo", "plate_no");
   attachHeaderContextMenu("thPurchaseDate", "purchase_date");
   attachHeaderContextMenu("thRemainingCost", "remaining_purchase_cost");
+
+  // Attach context menu to all monthly columns
+  document.querySelectorAll(".col-filter-th").forEach((th) => {
+    const colKey = th.getAttribute("data-col");
+    if (colKey) {
+      th.oncontextmenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openColumnFilterMenu(colKey, e.clientX, e.clientY);
+      };
+    }
+  });
+}
+
+function getEquipmentColumnValue(eq, colKey) {
+  if (colKey === "plate_no") return (eq.plate_no || "").toString().trim();
+  if (colKey === "purchase_date") return formatPurchaseDate(eq.purchase_date);
+  if (colKey === "remaining_purchase_cost") return eq.remaining_purchase_cost !== null && eq.remaining_purchase_cost !== undefined ? String(eq.remaining_purchase_cost) : "";
+
+  const parts = colKey.split("_");
+  const field = parts[0];
+  const targetMonth = parseInt(parts[1]);
+
+  let carryGL = 0;
+  for (let m = 1; m <= 12; m++) {
+    const l = rawMonthlyLogs.find((x) => x.equipment_id === eq.id && x.month === m) || {};
+    const maint = Number(l.maintenance_cost || 0),
+      basic = Number(l.basic_salary || 0),
+      ot = Number(l.overtime || 0),
+      allowance = Number(l.allowance || 0),
+      penalty = Number(l.penalty || 0),
+      santook = Number(l.santook_rent || 0),
+      rev = Number(l.op_revenue || 0),
+      debit = Number(l.debit || 0),
+      pwas = Number(l.pwas || 0),
+      other_exp = Number(l.other_expense || 0);
+
+    const netSal = basic + ot + allowance - penalty;
+    const kafil = rev * (Number(l.kafil_comm || 0) / 100);
+    const owner = Number(l.owner_comm || 0);
+    const inv = Number(l.investor_comm || 0);
+    const opc = netSal + santook + kafil + owner + inv + debit + pwas + other_exp;
+    const tCost = maint + opc;
+
+    let gl = (tCost > 0 || rev > 0) ? (rev - tCost) : 0;
+    let net = (gl !== 0 || carryGL !== 0) ? (gl + carryGL) : 0;
+    let prv = carryGL;
+
+    if (m === targetMonth) {
+      const pctVal = (l.kafil_pct !== null && l.kafil_pct !== undefined) ? Number(l.kafil_pct) : 3;
+      const vMap = {
+        maint: maint, basic: basic, ot: ot, allowance: allowance,
+        penalty: penalty, netSal: netSal, santook: santook, kafilpct: pctVal, kafil: Number(kafil.toFixed(1)),
+        owner: Number(owner.toFixed(1)), inv: Number(inv.toFixed(1)), debit: debit,
+        pwas: pwas, other: other_exp, tcost: Number(tCost.toFixed(1)), rev: rev,
+        gl: Number(gl.toFixed(1)), prv: Number(prv.toFixed(1)), net: Number(net.toFixed(1))
+      };
+      const numVal = vMap[field];
+      return (numVal === 0 || numVal === undefined) ? "" : String(numVal);
+    }
+    carryGL = net;
+  }
+  return "";
+}
+
+function sortPlateNo(dir) {
+  currentSort = { column: "plate_no", direction: dir };
+  closePlateFilterMenu();
+  renderTable();
 }
 
 function openColumnFilterMenu(columnKey, x, y) {
@@ -339,14 +458,38 @@ function openColumnFilterMenu(columnKey, x, y) {
   const menu = document.getElementById("plateNoFilterMenu");
   if (!menu) return;
 
-  const titleMap = {
+  // Plate No ആണെങ്കിൽ മാത്രം A-Z, Z-A സെക്ഷനും Copy ബട്ടണും കാണിക്കുക
+  const sortSec = document.getElementById("plateSortSection");
+  if (sortSec) {
+    sortSec.style.display = columnKey === "plate_no" ? "flex" : "none";
+  }
+
+  const copyBtn = document.getElementById("btnCopyPlateList");
+  if (copyBtn) {
+    copyBtn.style.display = columnKey === "plate_no" ? "inline-block" : "none";
+  }
+
+  const baseTitleMap = {
     plate_no: "Plate No",
     purchase_date: "Date of Purchase",
     remaining_purchase_cost: "Remaining Purchase Cost",
+    maint: "Maint Cost", basic: "Basic Salary", ot: "Over Time",
+    allowance: "Allowance", penalty: "Penalty", netSal: "Net Salary",
+    santook: "Santook Rent", kafil: "Kafil Comm", owner: "Owner Comm",
+    inv: "Investor Comm", debit: "Debit Note", pwas: "PWAS", other: "Other Exp",
+    tcost: "Total Cost", rev: "OP Revenue", gl: "Gain / Loss",
+    prv: "Prv Month", net: "Net OP G/L"
   };
 
+  let title = baseTitleMap[columnKey];
+  if (!title && columnKey.includes("_")) {
+    const [f, m] = columnKey.split("_");
+    const mName = monthNames[parseInt(m) - 1] || "";
+    title = `${baseTitleMap[f] || f} (${mName})`;
+  }
+
   const headerTitle = menu.querySelector(".excel-filter-header span");
-  if (headerTitle) headerTitle.innerText = `Filter: ${titleMap[columnKey] || columnKey}`;
+  if (headerTitle) headerTitle.innerText = `Filter: ${title || columnKey}`;
 
   const searchInput = document.getElementById("plateFilterSearch");
   if (searchInput) searchInput.value = "";
@@ -376,14 +519,7 @@ function populateColumnFilterItems(columnKey) {
   let hasBlank = false;
 
   rawEquipments.forEach((eq) => {
-    let val = "";
-    if (columnKey === "plate_no") {
-      val = (eq.plate_no || "").toString().trim();
-    } else if (columnKey === "purchase_date") {
-      val = formatPurchaseDate(eq.purchase_date);
-    } else if (columnKey === "remaining_purchase_cost") {
-      val = eq.remaining_purchase_cost !== null && eq.remaining_purchase_cost !== undefined ? String(eq.remaining_purchase_cost) : "";
-    }
+    let val = getEquipmentColumnValue(eq, columnKey);
 
     if (val === "" || val === null || val === undefined) {
       hasBlank = true;
@@ -393,13 +529,13 @@ function populateColumnFilterItems(columnKey) {
   });
 
   let sortedValues = [];
-  if (columnKey === "remaining_purchase_cost") {
-    sortedValues = Array.from(valueSet).sort((a, b) => Number(a) - Number(b));
-  } else {
+  if (columnKey === "plate_no" || columnKey === "purchase_date") {
     sortedValues = Array.from(valueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  } else {
+    sortedValues = Array.from(valueSet).sort((a, b) => Number(a) - Number(b));
   }
 
-  const selectedList = activeColumnFilters[columnKey];
+  const selectedList = activeColumnFilters[columnKey] !== undefined ? activeColumnFilters[columnKey] : null;
 
   let html = `
     <li>
@@ -481,7 +617,44 @@ function clearPlateFilter() {
   renderTable();
 }
 
+function copyVisiblePlates() {
+  // നിലവിൽ ടേബിൾ ബോഡിയിൽ കാണുന്ന rows-ൽ നിന്നുള്ള Plate No (രണ്ടാമത്തെ കോളം) എടുക്കുന്നു
+  const rows = document.querySelectorAll("#tableBody tr");
+  const plates = [];
+
+  rows.forEach((tr) => {
+    const td = tr.querySelector("td:nth-child(2)");
+    if (td) {
+      const val = td.innerText.trim();
+      if (val) plates.push(val);
+    }
+  });
+
+  if (plates.length === 0) {
+    showToast("No plate numbers to copy!", "error");
+    return;
+  }
+
+  const textToCopy = plates.join("\n");
+  navigator.clipboard
+    .writeText(textToCopy)
+    .then(() => {
+      showToast(`Copied ${plates.length} Plate No(s)!`, "success");
+      closePlateFilterMenu();
+    })
+    .catch((err) => {
+      console.error("Copy error:", err);
+      showToast("Failed to copy plates.", "error");
+    });
+}
+
 function applyInlineEditStateToRenderedCells() {
+  // Inline edit mode-ൽ മാത്രം 3% checkbox enable ചെയ്യുക
+  document.querySelectorAll(".kafil-pct-chk").forEach((chk) => {
+    chk.removeAttribute("disabled");
+    chk.style.cursor = "pointer";
+  });
+
   document.querySelectorAll(".editable-cell").forEach((cell) => {
     cell.setAttribute("contenteditable", "true");
     cell.style.backgroundColor = "#fffbcc";
@@ -507,13 +680,38 @@ function applyInlineEditStateToRenderedCells() {
 
       if (currentText !== initialText) {
         cell.classList.add("dirty-cell");
+        const parsedVal = currentText === "" || isNaN(parseFloat(currentText)) ? 0 : parseFloat(currentText);
         unsavedInlineChanges[key] = {
           equipment_id: Number(eqId),
           year: Number(document.getElementById("filterYear").value),
           month: Number(month),
           field: field,
-          value: currentText === "" || isNaN(parseFloat(currentText)) ? 0 : parseFloat(currentText)
+          value: parsedVal
         };
+
+        // OP Revenue അല്ലെങ്കിൽ Kafil % മാറ്റുമ്പോൾ Kafil Commission തനിയെ recalculate ചെയ്യുക
+        if (field === "kafil_pct" || field === "op_revenue") {
+          const revCell = document.querySelector(`.editable-cell[data-eq="${eqId}"][data-month="${month}"][data-field="op_revenue"]`);
+          const pctCell = document.getElementById(`cell_kafil_pct_${eqId}_${month}`);
+          const commCell = document.getElementById(`cell_kafil_${eqId}_${month}`);
+
+          const cRev = revCell ? (parseFloat(revCell.innerText.trim()) || 0) : 0;
+          const cPct = pctCell ? (parseFloat(pctCell.innerText.trim()) || 0) : 0;
+
+          if (cPct > 0) {
+            const calculatedComm = cRev > 0 ? Number(((cRev * cPct) / 100).toFixed(1)) : 0;
+            if (commCell) commCell.innerText = calculatedComm > 0 ? calculatedComm : "";
+            
+            const commKey = `${eqId}_${month}_kafil_comm`;
+            unsavedInlineChanges[commKey] = {
+              equipment_id: Number(eqId),
+              year: Number(document.getElementById("filterYear").value),
+              month: Number(month),
+              field: "kafil_comm",
+              value: calculatedComm
+            };
+          }
+        }
       } else {
         cell.classList.remove("dirty-cell");
         delete unsavedInlineChanges[key];
@@ -549,6 +747,11 @@ async function saveInlineData() {
       btn.innerHTML = "✏️ Edit All Data";
       btn.style.background = "#8e44ad";
     }
+    document.querySelectorAll(".kafil-pct-chk").forEach((chk) => {
+      chk.setAttribute("disabled", "true");
+      chk.style.cursor = "default";
+    });
+
     document.querySelectorAll(".editable-cell").forEach((cell) => {
       cell.removeAttribute("contenteditable");
       cell.style.backgroundColor = "";
@@ -1474,4 +1677,35 @@ async function saveAndNextCommission() {
     populateCommissionTable();
     showToast("Saved & Moved Next!", "success");
   }
+}
+
+function onKafilPercentChange(chk, eqId, month) {
+  const isChecked = chk.checked;
+  const keyPct = `${eqId}_${month}_kafil_is_percent`;
+  const keyComm = `${eqId}_${month}_kafil_comm`;
+  const y = Number(document.getElementById("filterYear").value);
+
+  unsavedInlineChanges[keyPct] = {
+    equipment_id: Number(eqId),
+    year: y,
+    month: Number(month),
+    field: "kafil_is_percent",
+    value: isChecked,
+  };
+
+  // OP Revenue എത്രയാണെന്ന് നോക്കി തത്സമയം Kafil സെല്ലിൽ 3% അപ്ഡേറ്റ് ചെയ്യുന്നു
+  const revCell = document.querySelector(`.editable-cell[data-eq="${eqId}"][data-month="${month}"][data-field="op_revenue"]`);
+  const kafilCell = document.getElementById(`cell_kafil_${eqId}_${month}`);
+  const currentRev = revCell ? (parseFloat(revCell.innerText.trim()) || 0) : 0;
+
+  const calcVal = isChecked ? (currentRev > 0 ? Number((currentRev * 0.03).toFixed(1)) : 0) : 0;
+  if (kafilCell) kafilCell.innerText = calcVal === 0 ? "" : calcVal;
+
+  unsavedInlineChanges[keyComm] = {
+    equipment_id: Number(eqId),
+    year: y,
+    month: Number(month),
+    field: "kafil_comm",
+    value: calcVal,
+  };
 }

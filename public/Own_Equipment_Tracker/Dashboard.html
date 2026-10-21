@@ -894,11 +894,20 @@
         <span>Filter: Plate No</span>
         <span style="cursor: pointer; color: #64748b;" onclick="closePlateFilterMenu()">✖</span>
       </div>
+      <div id="plateSortSection" style="display: flex; flex-direction: column; border-bottom: 1px solid #e2e8f0; padding: 4px 0;">
+        <button type="button" onclick="sortPlateNo('asc')" style="background: none; border: none; text-align: left; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+          <span>🔤</span> Sort A to Z
+        </button>
+        <button type="button" onclick="sortPlateNo('desc')" style="background: none; border: none; text-align: left; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+          <span>🔤</span> Sort Z to A
+        </button>
+      </div>
       <div class="excel-filter-search">
         <input type="text" id="plateFilterSearch" placeholder="Search..." oninput="searchPlateFilterItems()" />
       </div>
       <ul class="excel-filter-list" id="plateFilterList"></ul>
       <div class="excel-filter-actions">
+        <button type="button" id="btnCopyPlateList" class="btn" style="background:#10b981; color:white; display:none;" onclick="copyVisiblePlates()">📋 Copy</button>
         <button type="button" class="btn" style="background:#e2e8f0; color:#334155;" onclick="clearPlateFilter()">Clear</button>
         <button type="button" class="btn btn-blue" onclick="applyPlateFilter()">Apply</button>
       </div>
