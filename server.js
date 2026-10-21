@@ -58,7 +58,7 @@ const debitNotesRoute = require("./routes/debit_note");
 const eInvoiceRoutes = require("./routes/eInvoice");
 const poRoutes = require("./routes/purchaseOrder");
 const vendorBillRouter = require("./routes/vendorBill");
-
+const companyIdentifierRoutes = require("./routes/own_eq_tracker_company_identifier");
 
 
 
@@ -104,7 +104,7 @@ app.get("/tools/editor", (req, res) => res.sendFile(path.join(__dirname, "public
 app.use("/e-invoice", eInvoiceRoutes);
 app.use("/purchase-order", poRoutes);
 app.use("/vendor-bill", vendorBillRouter);
-
+app.use("/api/own-equipment/company-helper", companyIdentifierRoutes);
 
 
 // ==========================================

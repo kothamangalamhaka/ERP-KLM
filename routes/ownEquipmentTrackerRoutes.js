@@ -168,7 +168,7 @@ router.get("/summary-data", async (req, res) => {
       y.other_exp += Number(log.other_expense || 0);
       const rev = Number(log.op_revenue || 0);
       y.revenue += rev;
-      // 🟢 Kafil: Percentage നൽകിയിട്ടുണ്ടെങ്കിൽ (OP Revenue * pct / 100), അല്ലെങ്കിൽ direct kafil_comm എമൗണ്ട്
+      // 🟢 Kafil: Revenue ഉണ്ടെങ്കിൽ Percentage പ്രകാരമുള്ള തുക, അല്ലെങ്കിൽ നേരിട്ട് നൽകിയ direct kafil_comm തുക
       const pct = log.kafil_pct !== null && log.kafil_pct !== undefined ? Number(log.kafil_pct) : 0;
       const kafilAmt = (pct > 0 && rev > 0) ? (rev * (pct / 100)) : Number(log.kafil_comm || 0);
       y.kafil += kafilAmt;
