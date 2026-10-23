@@ -289,10 +289,13 @@
                 return;
             }
 
+            // 🟢 Plate No enter cheyyan ulla popup
+            const plateNo = prompt("Plate No enter cheyyuka:", "");
+            if (plateNo === null) return; // Cancel cheythal PDF download aakilla
+
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('portrait', 'pt', 'a4'); 
             
-            // 🟢 Puthiya DAY column add cheythu
             const pdfHeaders = [["ASSET CODE", "ASSET DESCRIPTION", "LOG DATE", "DAY", "SHIFT HR", "WORK HOURS", "IDLE HOUR", "BREAKDOWN HOUR", "NORMAL HR", "OT HOUR"]];
             const pdfData = [];
 
@@ -300,8 +303,6 @@
             rows.forEach(tr => {
                 const cells = tr.querySelectorAll("td");
                 if (cells.length === 13) {
-                    
-                    // 🟢 LOG DATE ninnu Day (Sun, Mon...) kandupidikkunnu
                     const dateStr = cells[2].innerText;
                     let dayName = "";
                     if (dateStr && dateStr !== "TOTAL:") {
@@ -315,7 +316,7 @@
                         cells[0].innerText, 
                         cells[1].innerText, 
                         cells[2].innerText, 
-                        dayName,             // 🟢 Day value add cheythu
+                        dayName,             
                         cells[7].innerText, 
                         cells[8].innerText, 
                         cells[9].innerText, 
@@ -328,10 +329,27 @@
             });
 
             const assetCode = document.getElementById('assetInput').value || 'Asset';
-            const monthYear = document.getElementById('monthPicker').value || 'Report';
+            const rawMonth = document.getElementById('monthPicker').value; // Format: "2026-02"
+            
+            // 🟢 Month numeric-il ninnum "Feb-2026" format-lekku maattunnu
+            let displayMonth = rawMonth;
+            if (rawMonth) {
+                const [yyyy, mm] = rawMonth.split('-');
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                displayMonth = `${months[parseInt(mm, 10) - 1]}-${yyyy}`;
+            }
 
+            // 🟢 Left side - Asset Report Title
             doc.setFontSize(14);
-            doc.text(`Monthly Asset Report - ${assetCode} (${monthYear})`, 25, 30);
+            doc.text(`Monthly Asset Report - ${assetCode} (${displayMonth})`, 15, 30);
+
+            // 🟢 Right side - Plate Number
+            if (plateNo.trim() !== "") {
+                doc.setFontSize(12);
+                const pageWidth = doc.internal.pageSize.getWidth();
+                // വലതുവശത്തേക്ക് ചേർത്ത് വെക്കാൻ align: 'right' ഉപയോഗിക്കുന്നു
+                doc.text(`Plate No: ${plateNo}`, pageWidth - 15, 30, { align: 'right' });
+            }
 
             doc.autoTable({
                 head: pdfHeaders,
@@ -347,7 +365,7 @@
                     textColor: [0, 0, 0],
                     lineColor: [0, 0, 0], 
                     lineWidth: 0.5,       
-                    overflow: 'ellipsize' // 🟢 Text cut aakan (wrap thadayan)
+                    overflow: 'ellipsize' 
                 },
                 headStyles: { 
                     fillColor: [226, 232, 240], 
@@ -358,18 +376,16 @@
                     minCellHeight: 24    
                 },
                 columnStyles: {
-                    1: { cellWidth: 105 }, // 🟢 Description width kurachu (150-il ninnu 105 aakki)
-                    3: { halign: 'center' }, // DAY
-                    4: { halign: 'center' }, // SHIFT HR
-                    5: { halign: 'center' }, // WORK HOURS
-                    6: { halign: 'center' }, // IDLE HOUR
-                    7: { halign: 'center' }, // BREAKDOWN HOUR
-                    8: { halign: 'center' }, // NORMAL HR
-                    9: { halign: 'center' }  // OT HOUR
+                    1: { cellWidth: 105 }, 
+                    3: { halign: 'center' }, 
+                    4: { halign: 'center' }, 
+                    5: { halign: 'center' }, 
+                    6: { halign: 'center' }, 
+                    7: { halign: 'center' }, 
+                    8: { halign: 'center' },
+                    9: { halign: 'center' }  
                 },
-                // 🟢 willDrawCell-ന് പകരം didParseCell ഉപയോഗിക്കുന്നു (കളർ ഓവർറൈറ്റ് ആവാതിരിക്കാൻ)
                 didParseCell: function(data) {
-                    // TOTAL Row Style
                     if (data.row.raw && String(data.row.raw[7]).trim() === 'TOTAL:') {
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.fillColor = [203, 213, 225];
@@ -377,14 +393,13 @@
                             data.cell.styles.halign = 'right'; 
                         }
                     }
-                    // Friday (Fri) highlight
                     else if (data.row.raw && String(data.row.raw[3]).includes('Fri')) {
-                        data.cell.styles.fillColor = [220, 220, 220]; // അല്പം കൂടി ഡാർക്ക് ആയ ഗ്രേ കളർ
+                        data.cell.styles.fillColor = [220, 220, 220]; 
                     }
                 }
             });
 
-            doc.save(`Asset_Report_${assetCode}_${monthYear}.pdf`);
+            doc.save(`Asset_Report_${assetCode}_${displayMonth}.pdf`);
         }
     </script>
 </body>
