@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LandT Asset Data Manager</title>
+    
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f8fafc; 
+            color: #0f172a; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #cbd5e1; padding-bottom: 10px; }
+        .tab-btn { background: #e2e8f0; color: #475569; border: none; padding: 10px 20px; cursor: pointer; border-radius: 6px; font-weight: 600; transition: all 0.2s; }
+        .tab-btn:hover { background: #cbd5e1; }
+        .tab-btn.active { background: #0284c7; color: #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        textarea { width: 100%; height: 260px; background: #ffffff; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; box-sizing: border-box; font-family: monospace; }
+        .btn { background: #0284c7; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-top: 10px; font-weight: 600; }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+        
+        .search-panel { display: flex; gap: 15px; margin-bottom: 20px; align-items: flex-end; background: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; font-weight: 600; color: #334155; }
+        input, select { background: #ffffff; color: #0f172a; border: 1px solid #94a3b8; padding: 8px 12px; border-radius: 6px; font-family: inherit; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; background: #ffffff; }
+        th, td { border: 1px solid #cbd5e1; padding: 10px 8px; text-align: left; }
+        th { background: #e2e8f0; color: #0f172a; font-weight: 700; white-space: nowrap; }
+        tr:nth-child(even) { background: #f1f5f9; }
+        tr:hover { background: #e2e8f0; }
+
+        .upload-box { background: #ffffff; padding: 20px; border-radius: 8px; border: 2px dashed #0284c7; margin-bottom: 25px; }
+        .upload-title { margin-top: 0; color: #0284c7; }
+        .upload-desc { color: #64748b; font-size: 13px; margin-bottom: 12px; }
+        .total-row { background: #cbd5e1 !important; font-weight: 800; color: #0f172a; }
+        
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+    </style>
+</head>
+<body>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('screen1')">Screen 1: Data Import</button>
+        <button class="tab-btn" onclick="switchTab('screen2')">Screen 2: Query & Filter</button>
+    </div>
+
+    <div id="screen1" class="tab-content active">
+        <div class="upload-box">
+            <h3 class="upload-title">Option A: Upload Excel File (.xlsx)</h3>
+            <p class="upload-desc">78,000 rows ulla file upload cheyyan ithu use cheyyuka.</p>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <input type="file" id="excelFile" accept=".xlsx, .xls" style="background: #f8fafc; padding: 10px;">
+                <button id="fileUploadBtn" class="btn" style="background: #10b981; margin-top: 0;" onclick="uploadExcelFile()">Upload Excel File</button>
+            </div>
+            <div id="fileStatusMessage" style="margin-top: 10px; font-weight: bold;"></div>
+        </div>
+
+        <h3 style="color: #334155;">Option B: Paste Data (Small batches only)</h3>
+        <textarea id="pasteArea" placeholder="Excel-il ninnu copy cheyth data ivide paste cheyyuka..."></textarea>
+        <button id="uploadBtn" class="btn" onclick="uploadData()">Save to PostgreSQL</button>
+        <div id="statusMessage" style="margin-top: 10px; font-weight: bold;"></div>
+    </div>
+
+    <div id="screen2" class="tab-content">
+        <div class="search-panel">
+            <div class="form-group">
+                <label>Asset Code</label>
+                <input type="text" id="assetInput" list="assetSuggestions" oninput="fetchSuggestions(this.value)" placeholder="Type asset code...">
+                <datalist id="assetSuggestions"></datalist>
+            </div>
+            <div class="form-group">
+                <label>Month & Year</label>
+                <input type="month" id="monthPicker">
+            </div>
+            <button class="btn" style="margin-top: 0; margin-bottom: 2px;" onclick="filterData()">Fetch Records</button>
+            <button class="btn" style="background: #ef4444; margin-top: 0; margin-bottom: 2px; margin-left: auto;" onclick="saveAsPDF()">Save as PDF</button>
+        </div>
+
+        <div style="overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>ASSET CODE</th>
+                        <th>ASSET DESCRIPTION</th>
+                        <th>LOG DATE</th>
+                        <th>METER TYPE</th>
+                        <th>START METER READING</th>
+                        <th>END METER READING</th>
+                        <th>HRS KM RUN</th>
+                        <th class="text-center">SHIFT HR</th>
+                        <th class="text-center">WORK HOURS</th>
+                        <th class="text-center">IDLE HOUR</th>
+                        <th class="text-center">BREAKDOWN HOUR</th>
+                        <th class="text-center">NORMAL HR</th>
+                        <th class="text-center">OT HOUR</th>
+                    </tr>
+                </thead>
+                <tbody id="dataBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const PY_BASE_URL = `http://${window.location.hostname}:8001`;
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function uploadExcelFile() {
+            const fileInput = document.getElementById('excelFile');
+            const status = document.getElementById('fileStatusMessage');
+            const btn = document.getElementById('fileUploadBtn');
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Excel (.xlsx) file select cheyyuka!');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            btn.disabled = true;
+            status.style.color = '#0284c7';
+            status.innerText = 'Excel file process cheyyunnu... wait cheyyuka.';
+
+            try {
+                const response = await fetch(`${PY_BASE_URL}/api/ltass/upload-file`, { method: 'POST', body: formData });
+                const res = await response.json();
+                if (res.success) {
+                    status.style.color = '#10b981';
+                    status.innerText = `Success! ${res.count} rows insert cheythu.`;
+                    fileInput.value = '';
+                } else {
+                    status.style.color = '#ef4444';
+                    status.innerText = 'Failed: ' + (res.error || res.message);
+                }
+            } catch (err) {
+                status.style.color = '#ef4444';
+                status.innerText = 'Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function uploadData() {
+            const rawData = document.getElementById('pasteArea').value;
+            const status = document.getElementById('statusMessage');
+            const btn = document.getElementById('uploadBtn');
+
+            if (!rawData.trim()) { alert('Data paste cheyyuka!'); return; }
+
+            btn.disabled = true;
+            status.style.color = '#0284c7';
+            status.innerText = 'Data upload aakunnu... wait cheyyuka.';
+
+            try {
+                const response = await fetch(`${PY_BASE_URL}/api/ltass/bulk-upload`, {
+                    method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: rawData
+                });
+                const res = await response.json();
+                if (res.success) {
+                    status.style.color = '#10b981';
+                    status.innerText = `Success! ${res.count} rows insert cheythu.`;
+                    document.getElementById('pasteArea').value = '';
+                } else {
+                    status.style.color = '#ef4444';
+                    status.innerText = 'Failed: ' + res.error;
+                }
+            } catch (err) {
+                status.style.color = '#ef4444';
+                status.innerText = 'Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        let debounceTimeout;
+        function fetchSuggestions(val) {
+            clearTimeout(debounceTimeout);
+            if (!val || val.length < 2) return;
+            debounceTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`${PY_BASE_URL}/api/ltass/suggestions?q=${encodeURIComponent(val)}`);
+                    const list = await res.json();
+                    const datalist = document.getElementById('assetSuggestions');
+                    datalist.innerHTML = '';
+                    list.forEach(item => {
+                        const opt = document.createElement('option');
+                        opt.value = item;
+                        datalist.appendChild(opt);
+                    });
+                } catch(e) {}
+            }, 300);
+        }
+
+        async function filterData() {
+            const assetCode = document.getElementById('assetInput').value.trim();
+            const monthYear = document.getElementById('monthPicker').value;
+
+            if (!assetCode || !monthYear) {
+                alert('Asset Code, Month & Year randum select cheyyuka.');
+                return;
+            }
+
+            const tbody = document.getElementById('dataBody');
+            tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; padding: 20px;">Data load cheyyunnu...</td></tr>';
+
+            try {
+                const res = await fetch(`${PY_BASE_URL}/api/ltass/filter?asset_code=${encodeURIComponent(assetCode)}&month_year=${monthYear}`);
+                const result = await res.json();
+
+                tbody.innerHTML = '';
+                if (result.success && result.data.length > 0) {
+                    let totalNormalHr = 0;
+                    let totalOtHr = 0;
+
+                    result.data.forEach(row => {
+                        const workHrs = parseFloat(row[8]) || 0;
+                        const idleHrs = parseFloat(row[9]) || 0;
+                        const normalHrVal = workHrs + idleHrs;
+                        const otHrVal = parseFloat(row[11]) || 0;
+
+                        totalNormalHr += normalHrVal;
+                        totalOtHr += otHrVal;
+
+                        const tr = document.createElement('tr');
+                        const reorderedRow = [
+                            row[0], row[2], row[1], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], 
+                            normalHrVal.toString(), row[11]
+                        ];
+
+                        reorderedRow.forEach((val, index) => {
+                            const td = document.createElement('td');
+                            td.innerText = val || '';
+                            if(index >= 7) td.className = 'text-center';
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    });
+
+                    const totalTr = document.createElement('tr');
+                    totalTr.className = 'total-row'; 
+                    
+                    for (let i = 0; i < 13; i++) {
+                        const td = document.createElement('td');
+                        if (i === 10) {
+                            td.innerText = 'TOTAL:';
+                            td.className = 'text-right';
+                        } else if (i === 11) {
+                            td.innerText = totalNormalHr.toFixed(2).replace(/\.00$/, ''); 
+                            td.className = 'text-center';
+                        } else if (i === 12) {
+                            td.innerText = totalOtHr.toFixed(2).replace(/\.00$/, ''); 
+                            td.className = 'text-center';
+                        } else {
+                            td.innerText = '';
+                        }
+                        totalTr.appendChild(td);
+                    }
+                    tbody.appendChild(totalTr);
+
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; padding: 20px; color: #ef4444;">Data onnum kandethiyilla.</td></tr>';
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="13" style="text-align:center; color:#ef4444; padding: 20px;">Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        function saveAsPDF() {
+            const tbody = document.getElementById('dataBody');
+            if (tbody.children.length === 0 || tbody.innerText.includes("Data onnum kandethiyilla") || tbody.innerText.includes("Data load cheyyunnu")) {
+                alert("PDF save cheyyan data illaa. Aadhyam Fetch Records click cheyyuka.");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('portrait', 'pt', 'a4'); 
+            
+            // 🟢 Puthiya DAY column add cheythu
+            const pdfHeaders = [["ASSET CODE", "ASSET DESCRIPTION", "LOG DATE", "DAY", "SHIFT HR", "WORK HOURS", "IDLE HOUR", "BREAKDOWN HOUR", "NORMAL HR", "OT HOUR"]];
+            const pdfData = [];
+
+            const rows = tbody.querySelectorAll("tr");
+            rows.forEach(tr => {
+                const cells = tr.querySelectorAll("td");
+                if (cells.length === 13) {
+                    
+                    // 🟢 LOG DATE ninnu Day (Sun, Mon...) kandupidikkunnu
+                    const dateStr = cells[2].innerText;
+                    let dayName = "";
+                    if (dateStr && dateStr !== "TOTAL:") {
+                        const d = new Date(dateStr);
+                        if (!isNaN(d)) {
+                            dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+                        }
+                    }
+
+                    const rowData = [
+                        cells[0].innerText, 
+                        cells[1].innerText, 
+                        cells[2].innerText, 
+                        dayName,             // 🟢 Day value add cheythu
+                        cells[7].innerText, 
+                        cells[8].innerText, 
+                        cells[9].innerText, 
+                        cells[10].innerText,
+                        cells[11].innerText,
+                        cells[12].innerText 
+                    ];
+                    pdfData.push(rowData);
+                }
+            });
+
+            const assetCode = document.getElementById('assetInput').value || 'Asset';
+            const monthYear = document.getElementById('monthPicker').value || 'Report';
+
+            doc.setFontSize(14);
+            doc.text(`Monthly Asset Report - ${assetCode} (${monthYear})`, 25, 30);
+
+            doc.autoTable({
+                head: pdfHeaders,
+                body: pdfData,
+                startY: 40,
+                margin: { top: 35, bottom: 15, left: 15, right: 15 },
+                theme: 'grid',
+                styles: { 
+                    fontSize: 8, 
+                    cellPadding: 4,      
+                    minCellHeight: 21,   
+                    valign: 'middle',
+                    textColor: [0, 0, 0],
+                    lineColor: [0, 0, 0], 
+                    lineWidth: 0.5,       
+                    overflow: 'ellipsize' // 🟢 Text cut aakan (wrap thadayan)
+                },
+                headStyles: { 
+                    fillColor: [226, 232, 240], 
+                    textColor: [0, 0, 0], 
+                    lineColor: [0, 0, 0], 
+                    lineWidth: 0.5,
+                    fontStyle: 'bold',
+                    minCellHeight: 24    
+                },
+                columnStyles: {
+                    1: { cellWidth: 105 }, // 🟢 Description width kurachu (150-il ninnu 105 aakki)
+                    3: { halign: 'center' }, // DAY
+                    4: { halign: 'center' }, // SHIFT HR
+                    5: { halign: 'center' }, // WORK HOURS
+                    6: { halign: 'center' }, // IDLE HOUR
+                    7: { halign: 'center' }, // BREAKDOWN HOUR
+                    8: { halign: 'center' }, // NORMAL HR
+                    9: { halign: 'center' }  // OT HOUR
+                },
+                // 🟢 willDrawCell-ന് പകരം didParseCell ഉപയോഗിക്കുന്നു (കളർ ഓവർറൈറ്റ് ആവാതിരിക്കാൻ)
+                didParseCell: function(data) {
+                    // TOTAL Row Style
+                    if (data.row.raw && String(data.row.raw[7]).trim() === 'TOTAL:') {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fillColor = [203, 213, 225];
+                        if (data.column.index === 7) {
+                            data.cell.styles.halign = 'right'; 
+                        }
+                    }
+                    // Friday (Fri) highlight
+                    else if (data.row.raw && String(data.row.raw[3]).includes('Fri')) {
+                        data.cell.styles.fillColor = [220, 220, 220]; // അല്പം കൂടി ഡാർക്ക് ആയ ഗ്രേ കളർ
+                    }
+                }
+            });
+
+            doc.save(`Asset_Report_${assetCode}_${monthYear}.pdf`);
+        }
+    </script>
+</body>
+</html>
