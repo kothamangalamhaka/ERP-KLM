@@ -3742,8 +3742,8 @@
             <td class="col-inv-red editable-field" data-field="inv_amount" style="font-weight: 700; color: #0f172a;">${row.inv_subtotal ? Number(row.inv_subtotal).toFixed(2) : ""}</td>
             <td class="col-inv-red inv-deduct-cell" style="font-weight: 700; color: #dc2626;" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}">${row.inv_deduct}</td>
             <td class="col-inv-red inv-total-cell" style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
-            <td class="col-inv-red deduct-reason-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" style="word-wrap: break-word; text-align: left; font-size: 11px;">${row.deduct_reason || ""}</td>
-              <td class="col-inv-red editable-field" data-field="crn_no" style="color:#0f766e; font-weight:600; word-wrap: break-word;">${row.crn_no || ""}</td>
+              <td class="col-inv-red deduct-reason-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" style="word-wrap: break-word; text-align: left; font-size: 11px;">${row.deduct_reason || ""}</td>
+              <td class="col-inv-red crn-no-cell" data-field="crn_no" style="color:#0f766e; font-weight:600; word-wrap: break-word;">${row.crn_no || ""}</td>
               <td class="col-inv-red editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
             <td class="col-inv-red editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
             <td class="col-extra editable-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
@@ -5470,7 +5470,7 @@
 
         document
           .querySelectorAll(
-            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell",
+            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell, .crn-no-cell",
           )
           .forEach((td) => {
             td.setAttribute("contenteditable", "true");
@@ -5630,6 +5630,8 @@
                   : parseFloat(deductVal);
             let reasonTd = tr.querySelector(".deduct-reason-cell");
             let reasonVal = reasonTd ? reasonTd.innerText.trim() : "";
+            let crnTd = tr.querySelector(".crn-no-cell");
+            let crn_no = crnTd ? crnTd.innerText.trim() : "";
 
             normalUpdates.push({
               month: `${tr.dataset.month} ${tr.dataset.year}`,
@@ -5774,7 +5776,7 @@
 
         document
           .querySelectorAll(
-            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell",
+            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell, .crn-no-cell",
           )
           .forEach((td) => {
             td.setAttribute("contenteditable", "true");
@@ -5835,7 +5837,7 @@
           .forEach((cb) => (cb.disabled = true));
         document
           .querySelectorAll(
-            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell",
+            ".vbill-cell, .bill-nr-cell, .bill-ot-cell, .driver-ot-cell, .driver-amount-cell, .inv-deduct-cell, .deduct-reason-cell, .crn-no-cell",
           )
           .forEach((td) => {
             td.removeAttribute("contenteditable");
@@ -5891,6 +5893,8 @@
             : "";
           let reasonTd = tr.querySelector(".deduct-reason-cell");
           let reasonVal = reasonTd ? reasonTd.innerText.trim() : "";
+          let crnTd = tr.querySelector(".crn-no-cell");
+          let crnVal = crnTd ? crnTd.innerText.trim() : "";
 
           nrVal = nrVal === "" ? null : parseFloat(nrVal);
           otVal = otVal === "" ? null : parseFloat(otVal);
@@ -5915,6 +5919,7 @@
             driver_amount: isNaN(driverAmountVal) ? null : driverAmountVal,
             inv_deduct: parsedDeduct, // 🟢 Now safely sends the updated number
             deduct_reason: reasonVal,
+            crn_no: crnVal,
           });
         });
 
