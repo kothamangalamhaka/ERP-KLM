@@ -59,6 +59,7 @@ const eInvoiceRoutes = require("./routes/eInvoice");
 const poRoutes = require("./routes/purchaseOrder");
 const vendorBillRouter = require("./routes/vendorBill");
 const companyIdentifierRoutes = require("./routes/own_eq_tracker_company_identifier");
+const paymentClearanceRoutes = require("./routes/KSAOffice/nonvat_payment_clearence_note");
 
 
 
@@ -105,6 +106,11 @@ app.use("/e-invoice", eInvoiceRoutes);
 app.use("/purchase-order", poRoutes);
 app.use("/vendor-bill", vendorBillRouter);
 app.use("/api/own-equipment/company-helper", companyIdentifierRoutes);
+app.use("/office/nonvat-clearance", paymentClearanceRoutes);
+
+
+
+
 
 
 // ==========================================
