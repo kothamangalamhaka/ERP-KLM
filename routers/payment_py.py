@@ -20,6 +20,7 @@ class InvoiceEditRecord(BaseModel):
     inv_amount: Optional[Any] = None
     inv_deduct: Optional[Any] = None
     deduct_reason: Optional[str] = ""
+    crn_no: Optional[str] = ""
     inv_no: Optional[str] = ""
     bill_no: Optional[str] = ""
 
@@ -41,11 +42,11 @@ async def bulk_save_invoices(payload: BulkInvoiceRequest):
         query = """
             INSERT INTO invoice_records (
                 plate_no, month, site_name, invoice_no, bill_no, 
-                bill_nr, bill_ot, invoice_amount, inv_deduct, deduct_reason, zoho
+                bill_nr, bill_ot, invoice_amount, inv_deduct, deduct_reason, crn_no, zoho
             )
             VALUES (
                 %(plate)s, %(month)s, %(site)s, %(inv_no)s, %(bill_no)s, 
-                %(inv_nr)s, %(inv_ot)s, %(inv_amount)s, %(inv_deduct)s, %(deduct_reason)s, 'No'
+                %(inv_nr)s, %(inv_ot)s, %(inv_amount)s, %(inv_deduct)s, %(deduct_reason)s, %(crn_no)s, 'No'
             )
             ON CONFLICT (plate_no, month, site_name)
             DO UPDATE SET 
@@ -56,6 +57,7 @@ async def bulk_save_invoices(payload: BulkInvoiceRequest):
                 invoice_amount = EXCLUDED.invoice_amount,
                 inv_deduct = COALESCE(EXCLUDED.inv_deduct, invoice_records.inv_deduct),
                 deduct_reason = COALESCE(EXCLUDED.deduct_reason, invoice_records.deduct_reason),
+                crn_no = COALESCE(EXCLUDED.crn_no, invoice_records.crn_no),
                 updated_at = CURRENT_TIMESTAMP;
         """
 

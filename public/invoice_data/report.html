@@ -1438,6 +1438,7 @@
               <col class="col-grp-inv-red" style="width: 110px" />
               <col class="col-grp-inv-red" style="width: 110px" />
               <col class="col-grp-inv-red" style="width: 140px" />
+              <col class="col-grp-inv-red" style="width: 110px" />
               <col class="col-grp-inv-red" style="width: 120px" />
               <col class="col-grp-inv-red" style="width: 120px" />
               <col class="col-grp-extra" style="width: 120px" />
@@ -1459,7 +1460,7 @@
                 <th colspan="2" class="th-driver">For Driver</th>
                 <th colspan="5" class="th-diff">DIFFERENCE</th>
                 <th colspan="5" class="th-amt">AMOUNT</th>
-                <th colspan="6" class="th-inv-red">INVOICE</th>
+                <th colspan="7" class="th-inv-red">INVOICE</th>
                 <th colspan="4" class="th-extra">EXTRA DETAILS</th>
                 <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
                 <th colspan="2" class="th-gen-nr th-gen">
@@ -1683,16 +1684,20 @@
                 </th>
                 <th
                   class="th-inv-red"
-                  style="width: 140px"
                   data-col-key="deduct_reason"
                   onclick="openExcelFilterMenu(event, 'deduct_reason')"
                 >
-                  Reason
-                  <span class="filter-icon" data-key="deduct_reason">▼</span>
+                  Reason <span class="filter-icon" data-key="deduct_reason">▼</span>
                 </th>
                 <th
                   class="th-inv-red"
-                  style="width: 120px"
+                  data-col-key="crn_no"
+                  onclick="openExcelFilterMenu(event, 'crn_no')"
+                >
+                  CRN No <span class="filter-icon" data-key="crn_no">▼</span>
+                </th>
+                <th
+                  class="th-inv-red"
                   data-col-key="inv_no"
                   onclick="openExcelFilterMenu(event, 'inv_no')"
                 >
@@ -3013,6 +3018,7 @@
                 : "";
             let inv_no = invData ? invData.invoice_no || "" : "";
             let bill_no = invData ? invData.bill_no || "" : "";
+            let crn_no = invData ? invData.crn_no || "" : "";
             let accounts_note = invData ? invData.accounts_note || "" : "";
             let pwas = invData ? invData.pwas || "" : "";
             let erp = invData ? invData.erp || "" : "";
@@ -3196,6 +3202,7 @@
               inv_deduct: inv_deduct !== 0 ? inv_deduct.toFixed(2) : "",
               inv_total: calculated_total > 0 ? calculated_total.toFixed(2) : "",
               deduct_reason: deduct_reason,
+              crn_no: crn_no,
               diff_nr,
               diff_ot,
               diff_st,
@@ -3512,7 +3519,8 @@
             <td class="col-inv-red inv-deduct-cell" style="font-weight: 700; color: #dc2626;" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}">${row.inv_deduct}</td>
             <td class="col-inv-red inv-total-cell" style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
             <td class="col-inv-red deduct-reason-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" style="word-wrap: break-word; text-align: left; font-size: 11px;">${row.deduct_reason || ""}</td>
-            <td class="col-inv-red editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
+              <td class="col-inv-red editable-field" data-field="crn_no" style="color:#0f766e; font-weight:600; word-wrap: break-word;">${row.crn_no || ""}</td>
+              <td class="col-inv-red editable-field" data-field="inv_no" style="color:#1e40af; font-weight:600; word-wrap: break-word;">${row.inv_no}</td>
             <td class="col-inv-red editable-field" data-field="bill_no" style="word-wrap: break-word;">${row.bill_no}</td>
             <td class="col-extra editable-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'pwas')">${row.pwas}</td>
             <td class="col-extra editable-cell" data-plate="${row.master_plate}" data-site="${row.site}" data-month="${row.raw_month}" data-year="${row.raw_year}" ondblclick="editTextNote(this, 'erp')">${row.erp}</td>
@@ -3871,6 +3879,7 @@
           if (!parsedAmount.valid) hasInvalidFormula = true;
           const inv_amount = parsedAmount.value;
 
+          let crn_no = tr.querySelector('[data-field="crn_no"]')?.innerText.trim() || "";
           let inv_no = tr.querySelector('[data-field="inv_no"]')?.innerText.trim() || "";
           let bill_no = tr.querySelector('[data-field="bill_no"]')?.innerText.trim() || "";
           let deductTd = tr.querySelector(".inv-deduct-cell");
@@ -4533,10 +4542,10 @@
         for (let i = 12; i <= 13; i++) m[i + offset] = COL.driver;
         for (let i = 14; i <= 18; i++) m[i + offset] = COL.diff;
         for (let i = 19; i <= 23; i++) m[i + offset] = COL.amt;
-        for (let i = 24; i <= 29; i++) m[i + offset] = "B91C1C";
-        for (let i = 30; i <= 33; i++) m[i + offset] = COL.extra;
-        for (let i = 34; i <= 36; i++) m[i + offset] = COL.vehicle;
-        for (let i = 37; i <= 38; i++) m[i + offset] = COL.ts;
+        for (let i = 24; i <= 30; i++) m[i + offset] = "B91C1C";
+        for (let i = 31; i <= 34; i++) m[i + offset] = COL.extra;
+        for (let i = 35; i <= 37; i++) m[i + offset] = COL.vehicle;
+        for (let i = 38; i <= 39; i++) m[i + offset] = COL.ts;
         return m;
       }
 
@@ -4625,6 +4634,7 @@
             "Deductions",
             "Total",
             "Reason",
+            "CRN No",
             "Invoice No",
             "Bill No",
             "PWAS",
@@ -4670,6 +4680,7 @@
             r.inv_deduct || "",
             r.inv_total || "",
             r.deduct_reason || "",
+            r.crn_no || "",
             r.inv_no,
             r.bill_no,
             r.pwas || "-",
@@ -4690,9 +4701,9 @@
           { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }, // DRIVER (16..17)
           { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFF (18..22)
           { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMT (23..27)
-          { s: { r: 0, c: 28 }, e: { r: 0, c: 33 } }, // INVOICE (28..33 -> Subtotal, Deductions, Total, Reason, Inv No, Bill No)
-          { s: { r: 0, c: 34 }, e: { r: 0, c: 37 } }, // EXTRA DETAILS (34..37)
-          { s: { r: 0, c: 38 }, e: { r: 0, c: 39 } }, // 31 Considered as NR (38..39)
+          { s: { r: 0, c: 28 }, e: { r: 0, c: 34 } }, // INVOICE (28..34 -> Subtotal, Deductions, Total, Reason, CRN No, Inv No, Bill No)
+          { s: { r: 0, c: 35 }, e: { r: 0, c: 38 } }, // EXTRA DETAILS (35..38)
+          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }, // 31 Considered as NR (39..40)
         ];
         return {
           sheet_name: "Report",
@@ -4781,6 +4792,7 @@
             "Deductions",
             "Total",
             "Reason",
+            "CRN No",
             "Invoice No",
             "Bill No",
             "PWAS",
@@ -4827,6 +4839,7 @@
             r.inv_deduct || "",
             r.inv_total || "",
             r.deduct_reason || "",
+            r.crn_no || "",
             r.inv_no,
             r.bill_no,
             r.pwas || "-",
@@ -4847,9 +4860,9 @@
           { s: { r: 0, c: 17 }, e: { r: 0, c: 18 } }, // DRIVER (17..18)
           { s: { r: 0, c: 19 }, e: { r: 0, c: 23 } }, // DIFF (19..23)
           { s: { r: 0, c: 24 }, e: { r: 0, c: 28 } }, // AMT (24..28)
-          { s: { r: 0, c: 29 }, e: { r: 0, c: 34 } }, // INVOICE (29..34 -> Subtotal, Deductions, Total, Reason, Inv No, Bill No)
-          { s: { r: 0, c: 35 }, e: { r: 0, c: 38 } }, // EXTRA DETAILS (35..38)
-          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }, // 31 Considered as NR (39..40)
+          { s: { r: 0, c: 29 }, e: { r: 0, c: 35 } }, // INVOICE (29..35)
+          { s: { r: 0, c: 36 }, e: { r: 0, c: 39 } }, // EXTRA DETAILS (36..39)
+          { s: { r: 0, c: 40 }, e: { r: 0, c: 41 } }, // 31 Considered as NR (40..41)
         ];
 
         return {
@@ -5314,8 +5327,9 @@
               inv_ot,
               inv_amount,
               inv_deduct: parsedDeduct,
-              deduct_reason: reasonVal,
-              inv_no,
+            deduct_reason: reasonVal,
+            crn_no,
+            inv_no,
               bill_no,
             });
 

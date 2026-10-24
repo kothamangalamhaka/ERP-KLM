@@ -614,7 +614,7 @@
             <th colspan="2" class="th-driver">For Driver</th>
             <th colspan="5" class="th-diff">DIFFERENCE</th>
             <th colspan="5" class="th-amt">AMOUNT</th>
-            <th colspan="6" class="th-inv-red">INVOICE</th>
+            <th colspan="7" class="th-inv-red">INVOICE</th>
             <th colspan="4" class="th-extra">EXTRA DETAILS</th>
             <th colspan="3" class="th-gen">GENERAL VEHICLE INFO</th>
             <th colspan="2" class="th-gen">31 Considered as NR</th>
@@ -791,7 +791,8 @@
           <div class="form-control"><label>Inv NR</label><input type="number" id="mdl_inv_nr" /></div>
           <div class="form-control"><label>Inv OT</label><input type="number" id="mdl_inv_ot" /></div>
           <div class="form-control"><label style="color: #b91c1c;">Deduct :: Invoice</label><input type="number" id="mdl_inv_deduct" /></div>
-          <div class="form-control" style="grid-column: 1 / -1;"><label style="color: #b91c1c;">Deduction Reason</label><input type="text" id="mdl_deduct_reason" placeholder="Enter reason for deduction..." /></div>
+          <div class="form-control" style="grid-column: 1 / 3;"><label style="color: #b91c1c;">Deduction Reason</label><input type="text" id="mdl_deduct_reason" placeholder="Enter reason for deduction..." /></div>
+          <div class="form-control"><label style="color: #0f766e;">CRN No</label><input type="text" id="mdl_crn_no" placeholder="Credit Note No..." /></div>
         </div>
 
         <div style="margin-bottom: 12px; font-weight: bold; color: #6b21a8;">Supplier & Driver</div>
@@ -1836,6 +1837,7 @@
         document.getElementById("mdl_inv_ot").value = row.inv_ot || "";
         document.getElementById("mdl_inv_deduct").value = row.inv_deduct || "";
         document.getElementById("mdl_deduct_reason").value = row.deduct_reason || "";
+        document.getElementById("mdl_crn_no").value = row.crn_no || "";
 
         document.getElementById("mdl_bill_db_nr").value = row.bill_db_nr || "";
         document.getElementById("mdl_bill_db_ot").value = row.bill_db_ot || "";
@@ -1885,6 +1887,7 @@
             inv_amount: getNum(getVal("mdl_inv_amount")),
             inv_deduct: getNum(getVal("mdl_inv_deduct")) || 0,
             deduct_reason: getVal("mdl_deduct_reason"),
+            crn_no: getVal("mdl_crn_no"),
           };
           await fetch("/py/payment/bulk-save-invoices", {
             method: "POST",
@@ -1944,6 +1947,7 @@
           let calculatedTot = (invAmt > 0 || dVal > 0) ? ((invAmt - dVal) * 1.15) : 0; // 🟢 Robust calculation
           row.inv_total = calculatedTot > 0 ? calculatedTot.toFixed(2) : "";
           row.deduct_reason = invData.deduct_reason;
+          row.crn_no = invData.crn_no;
 
           row.bill_db_nr = vbillData.bill_nr !== null ? vbillData.bill_nr.toString() : "";
           row.bill_db_ot = vbillData.bill_ot !== null ? vbillData.bill_ot.toString() : "";
