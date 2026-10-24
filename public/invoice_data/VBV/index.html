@@ -594,6 +594,7 @@
           <col style="width: 110px" />
           <col style="width: 110px" />
           <col style="width: 140px" />
+          <col style="width: 110px" />
           <col style="width: 120px" />
           <col style="width: 120px" />
           <col style="width: 120px" />
@@ -714,6 +715,9 @@
             </th>
             <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'deduct_reason')">
               Reason <span class="filter-icon" data-key="deduct_reason">▼</span>
+            </th>
+            <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'crn_no')">
+              CRN No <span class="filter-icon" data-key="crn_no">▼</span>
             </th>
             <th class="th-inv-red" onclick="openExcelFilterMenu(event, 'inv_no')">
               Invoice No <span class="filter-icon" data-key="inv_no">▼</span>
@@ -1645,6 +1649,7 @@
               <td style="font-weight: 700; color: #dc2626;">${row.inv_deduct}</td>
               <td style="font-weight: 700; color: #b91c1c;">${row.inv_total ? Number(row.inv_total).toFixed(2) : ""}</td>
               <td style="text-align: left; font-size: 11px;">${row.deduct_reason || ""}</td>
+              <td style="color: #0f766e; font-weight: 600;">${row.crn_no || ""}</td>
               <td style="color: #1e40af; font-weight: 600;">${row.inv_no}</td>
               <td>${row.bill_no}</td>
               <td>${row.pwas}</td>
@@ -1997,7 +2002,7 @@
             "For Driver", "",
             "DIFFERENCE", "", "", "", "",
             "AMOUNT", "", "", "", "",
-            "INVOICE", "", "", "", "",
+            "INVOICE", "", "", "", "", "", "",
             "EXTRA DETAILS", "", "", "",
             "GENERAL VEHICLE INFO", "", "",
             "31 Considered as NR", ""
@@ -2007,7 +2012,7 @@
             "NR", "OT", "NR", "OT", "NR", "OT", "OT", "AMT",
             "NR", "OT", "IDN", "Clear", "V.Bill Notes",
             "NR Rate", "OT Rate", "Rent", "VAT", "Total",
-            "Subtotal", "Deductions", "Total", "Reason", "Invoice No", "Bill No",
+            "Subtotal", "Deductions", "Total", "Reason", "CRN No", "Invoice No", "Bill No",
             "PWAS", "ERP", "Payment Status", "Accounts Note",
             "Driver Name", "Field Co", "Site Co", "NR", "OT"
           ]
@@ -2044,6 +2049,7 @@
             r.inv_deduct || "",
             r.inv_total || "",
             r.deduct_reason || "",
+            r.crn_no || "",
             r.inv_no,
             r.bill_no,
             r.pwas || "-",
@@ -2059,24 +2065,25 @@
         });
 
         let merges = [
-          { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, // VEHICLE INFO
-          { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } }, // TS
-          { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } }, // INV
-          { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // BILL
-          { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } }, // DRIVER
-          { s: { r: 0, c: 15 }, e: { r: 0, c: 19 } }, // DIFF
-          { s: { r: 0, c: 20 }, e: { r: 0, c: 24 } }, // AMT
-          { s: { r: 0, c: 25 }, e: { r: 0, c: 30 } }, // INVOICE (25..30 -> Subtotal, Deductions, Total, Reason, Inv No, Bill No)
-          { s: { r: 0, c: 31 }, e: { r: 0, c: 34 } }, // EXTRA DETAILS
-          { s: { r: 0, c: 35 }, e: { r: 0, c: 37 } }, // GENERAL VEHICLE INFO
-          { s: { r: 0, c: 38 }, e: { r: 0, c: 39 } }  // 31 Considered as NR
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, // VEHICLE INFO (0..6)
+          { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } }, // TS (7..8)
+          { s: { r: 0, c: 9 }, e: { r: 0, c: 10 } }, // INV (9..10)
+          { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // BILL (11..12)
+          { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } }, // DRIVER (13..14)
+          { s: { r: 0, c: 15 }, e: { r: 0, c: 19 } }, // DIFF (15..19)
+          { s: { r: 0, c: 20 }, e: { r: 0, c: 24 } }, // AMT (20..24)
+          { s: { r: 0, c: 25 }, e: { r: 0, c: 31 } }, // INVOICE (25..31 -> Subtotal, Deductions, Total, Reason, CRN No, Inv No, Bill No)
+          { s: { r: 0, c: 32 }, e: { r: 0, c: 35 } }, // EXTRA DETAILS (32..35)
+          { s: { r: 0, c: 36 }, e: { r: 0, c: 38 } }, // GENERAL VEHICLE INFO (36..38)
+          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }  // 31 Considered as NR (39..40)
         ];
 
         return {
           sheet_name: "Virtual_Batch_Report",
           aoa: aoa,
           merges: merges,
-          is_analysis: false
+          is_analysis: false,
+          is_vbv: true
         };
       }
 

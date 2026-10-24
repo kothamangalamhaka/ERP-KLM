@@ -4831,89 +4831,28 @@
       function createSheetFromData(dataArray) {
         let aoa = [
           [
-            "VEHICLE INFO",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "Logsheet Collected",
-            "",
-            "Bill Summary",
-            "",
-            "To Supplier",
-            "",
-            "For Driver",
-            "",
-            "DIFFERENCE",
-            "",
-            "",
-            "",
-            "",
-            "AMOUNT",
-            "",
-            "",
-            "",
-            "",
-            "INVOICE",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "EXTRA DETAILS",
-            "",
-            "",
-            "",
-            "31 Considered as NR",
-            "",
+            "VEHICLE INFO", "", "", "", "", "", "", "", "", "",
+            "Logsheet Collected", "",
+            "Bill Summary", "",
+            "To Supplier", "",
+            "For Driver", "",
+            "DIFFERENCE", "", "", "", "",
+            "AMOUNT", "", "", "", "",
+            "INVOICE", "", "", "", "", "", "",
+            "EXTRA DETAILS", "", "", "",
+            "31 Considered as NR", ""
           ],
           [
-            "Date",
-            "Site",
-            "Rate",
-            "VAT",
-            "Owner Name",
-            "Driver Name",
-            "Field Co",
-            "Site Co",
-            "Vehicle Type",
-            "Plate No",
-            "NR",
-            "OT",
-            "NR",
-            "OT",
-            "NR",
-            "OT",
-            "OT",
-            "AMT",
-            "NR",
-            "OT",
-            "IDN",
-            "Clear",
-            "V.Bill Notes",
-            "NR Rate",
-            "OT Rate",
-            "Rent",
-            "VAT",
-            "Total",
-            "Subtotal",
-            "Deductions",
-            "Total",
-            "Reason",
-            "CRN No",
-            "Invoice No",
-            "Bill No",
-            "PWAS",
-            "ERP",
-            "Payment Status",
-            "Accounts Note",
-            "NR",
-            "OT",
+            "Date", "Site", "Rate", "VAT", "Owner Name", "Driver Name", "Field Co", "Site Co", "Vehicle Type", "Plate No",
+            "NR", "OT",
+            "NR", "OT",
+            "NR", "OT",
+            "OT", "AMT",
+            "NR", "OT", "IDN", "Clear", "V.Bill Notes",
+            "NR Rate", "OT Rate", "Rent", "VAT", "Total",
+            "Subtotal", "Deductions", "Total", "Reason", "CRN No", "Invoice No", "Bill No",
+            "PWAS", "ERP", "Payment Status", "Accounts Note",
+            "NR", "OT"
           ],
         ];
 
@@ -4963,18 +4902,18 @@
           ]);
         });
 
-        // Total 40 columns (0 to 39).
+        // Total 41 columns (Indices 0 to 40)
         let merges = [
-          { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }, // VEHICLE INFO (0..9)
-          { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, // TS (10..11)
-          { s: { r: 0, c: 12 }, e: { r: 0, c: 13 } }, // INV (12..13)
-          { s: { r: 0, c: 14 }, e: { r: 0, c: 15 } }, // BILL (14..15)
-          { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }, // DRIVER (16..17)
-          { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFF (18..22)
-          { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMT (23..27)
-          { s: { r: 0, c: 28 }, e: { r: 0, c: 34 } }, // INVOICE (28..34 -> Subtotal, Deductions, Total, Reason, CRN No, Inv No, Bill No)
-          { s: { r: 0, c: 35 }, e: { r: 0, c: 38 } }, // EXTRA DETAILS (35..38)
-          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }, // 31 Considered as NR (39..40)
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },   // VEHICLE INFO (Cols 0..9)
+          { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, // Logsheet Collected (Cols 10..11)
+          { s: { r: 0, c: 12 }, e: { r: 0, c: 13 } }, // Bill Summary (Cols 12..13)
+          { s: { r: 0, c: 14 }, e: { r: 0, c: 15 } }, // To Supplier (Cols 14..15)
+          { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }, // For Driver (Cols 16..17)
+          { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFFERENCE (Cols 18..22)
+          { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMOUNT (Cols 23..27)
+          { s: { r: 0, c: 28 }, e: { r: 0, c: 34 } }, // INVOICE (Cols 28..34)
+          { s: { r: 0, c: 35 }, e: { r: 0, c: 38 } }, // EXTRA DETAILS (Cols 35..38)
+          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }  // 31 Considered as NR (Cols 39..40)
         ];
         return {
           sheet_name: "Report",
@@ -4988,46 +4927,16 @@
         let aoa = [
           [
             "REPORT MONTH",
-            "VEHICLE INFO",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "Logsheet Collected",
-            "",
-            "Bill Summary",
-            "",
-            "To Supplier",
-            "",
-            "For Driver",
-            "",
-            "DIFFERENCE",
-            "",
-            "",
-            "",
-            "",
-            "AMOUNT",
-            "",
-            "",
-            "",
-            "",
-            "INVOICE",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "EXTRA DETAILS",
-            "",
-            "",
-            "",
-            "31 Considered as NR",
-            "",
+            "VEHICLE INFO", "", "", "", "", "", "", "", "", "",
+            "Logsheet Collected", "",
+            "Bill Summary", "",
+            "To Supplier", "",
+            "For Driver", "",
+            "DIFFERENCE", "", "", "", "",
+            "AMOUNT", "", "", "", "",
+            "INVOICE", "", "", "", "", "", "",
+            "EXTRA DETAILS", "", "", "",
+            "31 Considered as NR", ""
           ],
           [
             "Month",
@@ -5122,18 +5031,18 @@
           ]);
         });
 
-        // Merges shifted by +1 because of "REPORT MONTH" (41 columns: 0 to 40).
+        // Merges shifted by +1 because of "REPORT MONTH" (Total 42 columns: 0 to 41)
         let merges = [
-          { s: { r: 0, c: 1 }, e: { r: 0, c: 10 } }, // Vehicle Info (1..10)
-          { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // TS (11..12)
-          { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } }, // INV (13..14)
-          { s: { r: 0, c: 15 }, e: { r: 0, c: 16 } }, // BILL (15..16)
-          { s: { r: 0, c: 17 }, e: { r: 0, c: 18 } }, // DRIVER (17..18)
-          { s: { r: 0, c: 19 }, e: { r: 0, c: 23 } }, // DIFF (19..23)
-          { s: { r: 0, c: 24 }, e: { r: 0, c: 28 } }, // AMT (24..28)
-          { s: { r: 0, c: 29 }, e: { r: 0, c: 35 } }, // INVOICE (29..35)
-          { s: { r: 0, c: 36 }, e: { r: 0, c: 39 } }, // EXTRA DETAILS (36..39)
-          { s: { r: 0, c: 40 }, e: { r: 0, c: 41 } }, // 31 Considered as NR (40..41)
+          { s: { r: 0, c: 1 }, e: { r: 0, c: 10 } }, // Vehicle Info (Cols 1..10)
+          { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // Logsheet Collected (Cols 11..12)
+          { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } }, // Bill Summary (Cols 13..14)
+          { s: { r: 0, c: 15 }, e: { r: 0, c: 16 } }, // To Supplier (Cols 15..16)
+          { s: { r: 0, c: 17 }, e: { r: 0, c: 18 } }, // For Driver (Cols 17..18)
+          { s: { r: 0, c: 19 }, e: { r: 0, c: 23 } }, // DIFFERENCE (Cols 19..23)
+          { s: { r: 0, c: 24 }, e: { r: 0, c: 28 } }, // AMOUNT (Cols 24..28)
+          { s: { r: 0, c: 29 }, e: { r: 0, c: 35 } }, // INVOICE (Cols 29..35)
+          { s: { r: 0, c: 36 }, e: { r: 0, c: 39 } }, // EXTRA DETAILS (Cols 36..39)
+          { s: { r: 0, c: 40 }, e: { r: 0, c: 41 } }, // 31 Considered as NR (Cols 40..41)
         ];
 
         return {
