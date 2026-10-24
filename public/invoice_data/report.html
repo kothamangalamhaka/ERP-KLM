@@ -191,7 +191,8 @@
       .export-dropdown {
         display: none !important;
       }
-      #btnNavbarEditData, #btnNavbarCancelEdit {
+      #btnNavbarEditData,
+      #btnNavbarCancelEdit {
         display: none !important;
       }
 
@@ -209,7 +210,8 @@
           margin-left: 6px;
         }
         /* 3. Controls card-ile Edit button hide cheythu Navbar-il show aakkunnu */
-        #btnEditData, #btnCancelEdit {
+        #btnEditData,
+        #btnCancelEdit {
           display: none !important;
         }
         #btnNavbarEditData {
@@ -1099,9 +1101,15 @@
 
     <div id="mainAppContainer">
       <div class="navbar">
-        <div style="display: flex; align-items: center;">
-          <h2 style="display: flex; align-items: center; margin: 0;">
-            <a href="javascript:void(0);" onclick="window.location.href='vbv.html';" style="text-decoration: none; cursor: pointer; color: whitesmoke;"> Analysis Report</a>
+        <div style="display: flex; align-items: center">
+          <h2 style="display: flex; align-items: center; margin: 0">
+            <a
+              href="javascript:void(0);"
+              onclick="window.location.href = 'vbv.html'"
+              style="text-decoration: none; cursor: pointer; color: whitesmoke"
+            >
+              Analysis Report</a
+            >
             <span
               id="plateCountBadge"
               style="
@@ -1120,16 +1128,29 @@
           <!-- 🟢 Top Navbar Compact Controls (Only visible when pinned) -->
           <div class="nav-compact-controls" id="navCompactControls">
             <!-- Compact Month Selector with ◀ and ▶ -->
-            <div style="display: flex; align-items: center; gap: 2px;">
+            <div style="display: flex; align-items: center; gap: 2px">
               <button
                 type="button"
                 onclick="prevMonthReport()"
                 title="Previous Month"
-                style="padding: 3px 6px; border: 1px solid #475569; background: #334155; color: white; border-radius: 3px; cursor: pointer; font-size: 10px; font-weight: bold;"
+                style="
+                  padding: 3px 6px;
+                  border: 1px solid #475569;
+                  background: #334155;
+                  color: white;
+                  border-radius: 3px;
+                  cursor: pointer;
+                  font-size: 10px;
+                  font-weight: bold;
+                "
               >
                 ◀
               </button>
-              <select id="compactMonth" onchange="syncFromCompactMonth()" style="width: 95px; padding: 4px 4px;">
+              <select
+                id="compactMonth"
+                onchange="syncFromCompactMonth()"
+                style="width: 95px; padding: 4px 4px"
+              >
                 <option value="January">January</option>
                 <option value="February">February</option>
                 <option value="March">March</option>
@@ -1147,49 +1168,105 @@
                 type="button"
                 onclick="nextMonthReport()"
                 title="Next Month"
-                style="padding: 3px 6px; border: 1px solid #475569; background: #334155; color: white; border-radius: 3px; cursor: pointer; font-size: 10px; font-weight: bold;"
+                style="
+                  padding: 3px 6px;
+                  border: 1px solid #475569;
+                  background: #334155;
+                  color: white;
+                  border-radius: 3px;
+                  cursor: pointer;
+                  font-size: 10px;
+                  font-weight: bold;
+                "
               >
                 ▶
               </button>
             </div>
-            <input type="number" id="compactYear" style="width: 55px;" onchange="syncFromCompactYear()" />
+            <input
+              type="number"
+              id="compactYear"
+              style="width: 55px"
+              onchange="syncFromCompactYear()"
+            />
             <button
               type="button"
               class="btn-fetch btn-compact"
               onclick="fetchAndRenderUI()"
-              style="padding: 4px 10px !important; font-size: 11px !important; background-color: var(--primary);"
+              style="
+                padding: 4px 10px !important;
+                font-size: 11px !important;
+                background-color: var(--primary);
+              "
             >
               Fetch
             </button>
-            <input type="text" id="compactSearch" placeholder="🔍 Search..." style="width: 130px; text-transform: uppercase;" onkeyup="syncFromCompactSearch(this.value)" />
-
-            </div>
+            <input
+              type="text"
+              id="compactSearch"
+              placeholder="🔍 Search..."
+              style="width: 130px; text-transform: uppercase"
+              onkeyup="syncFromCompactSearch(this.value)"
+            />
+          </div>
         </div>
         <div class="navbar-links">
           <!-- 🟢 Compact Export & Edit Buttons (Pinned beside 📌 Pin button) -->
-          <div id="navCompactControlsRight" style="display: inline-flex; align-items: center; gap: 6px; margin: 0;">
+          <div
+            id="navCompactControlsRight"
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              margin: 0;
+            "
+          >
             <div class="compact-export-buttons">
-              <button class="btn-excel btn-compact" onclick="exportCurrentToExcel()">Export Excel</button>
-              <button class="btn-batch btn-compact" onclick="openBatchModal()">Batch Export</button>
-              <button class="btn-single-excel btn-compact" onclick="openSingleExcelModal()">Single Excel</button>
+              <button
+                class="btn-excel btn-compact"
+                onclick="exportCurrentToExcel()"
+              >
+                Export Excel
+              </button>
+              <button class="btn-batch btn-compact" onclick="openBatchModal()">
+                Batch Export
+              </button>
+              <button
+                class="btn-single-excel btn-compact"
+                onclick="openSingleExcelModal()"
+              >
+                Single Excel
+              </button>
             </div>
-            <div class="compact-export-dropdown" id="compactExportDropdownWrapper" style="position: relative;">
+            <div
+              class="compact-export-dropdown"
+              id="compactExportDropdownWrapper"
+              style="position: relative"
+            >
               <button
                 type="button"
                 class="btn-export-dropdown"
-                style="padding: 4px 8px; font-size: 11px;"
+                style="padding: 4px 8px; font-size: 11px"
                 onclick="toggleCompactExportDropdown(event)"
               >
                 📥 Export ▾
               </button>
               <div class="export-dropdown-menu" id="compactExportDropdownMenu">
-                <button class="export-dropdown-item" onclick="triggerDropdownAction(exportCurrentToExcel)">
+                <button
+                  class="export-dropdown-item"
+                  onclick="triggerDropdownAction(exportCurrentToExcel)"
+                >
                   📊 Export Excel
                 </button>
-                <button class="export-dropdown-item" onclick="triggerDropdownAction(openBatchModal)">
+                <button
+                  class="export-dropdown-item"
+                  onclick="triggerDropdownAction(openBatchModal)"
+                >
                   🗓️ Batch Export
                 </button>
-                <button class="export-dropdown-item" onclick="triggerDropdownAction(openSingleExcelModal)">
+                <button
+                  class="export-dropdown-item"
+                  onclick="triggerDropdownAction(openSingleExcelModal)"
+                >
                   📑 Single Excel
                 </button>
               </div>
@@ -1205,7 +1282,7 @@
             <button
               id="btnCompactCancelEdit"
               class="btn-danger btn-compact"
-              style="display: none !important; background-color: #ef4444;"
+              style="display: none !important; background-color: #ef4444"
               onclick="cancelEditMode()"
             >
               ❌ Cancel
@@ -1282,18 +1359,27 @@
 
       <div class="container">
         <div class="controls-card">
-          <div class="form-group" style="width: 145px; flex-shrink: 0;">
+          <div class="form-group" style="width: 145px; flex-shrink: 0">
             <label>Month</label>
             <div style="display: flex; align-items: center; gap: 3px">
               <button
                 type="button"
                 onclick="prevMonthReport()"
                 title="Previous Month"
-                style="padding: 5px 7px; border: 1px solid var(--border-color); background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; color: #475569;"
+                style="
+                  padding: 5px 7px;
+                  border: 1px solid var(--border-color);
+                  background: white;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-size: 11px;
+                  font-weight: bold;
+                  color: #475569;
+                "
               >
                 ◀
               </button>
-              <select id="selMonth" style="flex: 1; padding: 6px 4px;">
+              <select id="selMonth" style="flex: 1; padding: 6px 4px">
                 <option value="January">January</option>
                 <option value="February">February</option>
                 <option value="March">March</option>
@@ -1311,44 +1397,83 @@
                 type="button"
                 onclick="nextMonthReport()"
                 title="Next Month"
-                style="padding: 5px 7px; border: 1px solid var(--border-color); background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; color: #475569;"
+                style="
+                  padding: 5px 7px;
+                  border: 1px solid var(--border-color);
+                  background: white;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-size: 11px;
+                  font-weight: bold;
+                  color: #475569;
+                "
               >
                 ▶
               </button>
             </div>
           </div>
-          <div class="form-group" style="width: 65px; flex-shrink: 0;">
+          <div class="form-group" style="width: 65px; flex-shrink: 0">
             <label>Year</label>
-            <input type="number" id="selYear" value="2026" style="padding: 6px 4px;" />
+            <input
+              type="number"
+              id="selYear"
+              value="2026"
+              style="padding: 6px 4px"
+            />
           </div>
-          <div class="form-group" style="flex-shrink: 0;">
-            <button class="btn-fetch" style="padding: 7px 14px;" onclick="fetchAndRenderUI()">
+          <div class="form-group" style="flex-shrink: 0">
+            <button
+              class="btn-fetch"
+              style="padding: 7px 14px"
+              onclick="fetchAndRenderUI()"
+            >
               Fetch
             </button>
           </div>
 
-          <div style="width: 1px; background: #e2e8f0; margin: 0 4px; height: 30px; flex-shrink: 0;"></div>
+          <div
+            style="
+              width: 1px;
+              background: #e2e8f0;
+              margin: 0 4px;
+              height: 30px;
+              flex-shrink: 0;
+            "
+          ></div>
 
-          <div class="form-group" style="width: 130px; flex-shrink: 0;">
+          <div class="form-group" style="width: 130px; flex-shrink: 0">
             <label>Filter Owner</label>
-            <select id="filterOwner" style="padding: 6px 6px;" onchange="applyFilters()">
+            <select
+              id="filterOwner"
+              style="padding: 6px 6px"
+              onchange="applyFilters()"
+            >
               <option value="ALL">All Owners</option>
             </select>
           </div>
-          <div class="form-group" style="width: 130px; flex-shrink: 0;">
+          <div class="form-group" style="width: 130px; flex-shrink: 0">
             <label>Filter Site</label>
-            <select id="filterSite" style="padding: 6px 6px;" onchange="applyFilters()">
+            <select
+              id="filterSite"
+              style="padding: 6px 6px"
+              onchange="applyFilters()"
+            >
               <option value="ALL">All Sites</option>
             </select>
           </div>
-          <div class="form-group" style="width: 180px; flex-shrink: 0;">
+          <div class="form-group" style="width: 180px; flex-shrink: 0">
             <label>Search</label>
             <input
               type="text"
               id="filterPlate"
               placeholder="Plate, Owner, Inv..."
               onkeyup="debouncedApplyFilters()"
-              style="text-transform: uppercase; padding: 6px 8px; width: 100%; box-sizing: border-box;"
+              style="
+                text-transform: uppercase;
+                padding: 6px 8px;
+                width: 100%;
+                box-sizing: border-box;
+              "
             />
           </div>
 
@@ -1364,7 +1489,11 @@
           </button>
 
           <!-- Small Screen Single Export Dropdown -->
-          <div class="export-dropdown" id="exportDropdownWrapper" style="margin-left: auto;">
+          <div
+            class="export-dropdown"
+            id="exportDropdownWrapper"
+            style="margin-left: auto"
+          >
             <button
               type="button"
               class="btn-export-dropdown"
@@ -1373,13 +1502,22 @@
               📥 Export ▾
             </button>
             <div class="export-dropdown-menu" id="exportDropdownMenu">
-              <button class="export-dropdown-item" onclick="triggerDropdownAction(exportCurrentToExcel)">
+              <button
+                class="export-dropdown-item"
+                onclick="triggerDropdownAction(exportCurrentToExcel)"
+              >
                 📊 Export Excel
               </button>
-              <button class="export-dropdown-item" onclick="triggerDropdownAction(openBatchModal)">
+              <button
+                class="export-dropdown-item"
+                onclick="triggerDropdownAction(openBatchModal)"
+              >
                 🗓️ Batch Export
               </button>
-              <button class="export-dropdown-item" onclick="triggerDropdownAction(openSingleExcelModal)">
+              <button
+                class="export-dropdown-item"
+                onclick="triggerDropdownAction(openSingleExcelModal)"
+              >
                 📑 Single Excel
               </button>
             </div>
@@ -1389,7 +1527,7 @@
           <button
             id="btnEditData"
             class="btn-primary"
-            style="padding: 7px 14px; flex-shrink: 0;"
+            style="padding: 7px 14px; flex-shrink: 0"
             onclick="requestEditMode()"
           >
             ✏️ Edit Data
@@ -1397,7 +1535,18 @@
           <button
             id="btnCancelEdit"
             class="btn-danger"
-            style="display: none !important; padding: 7px 14px; border-radius: 5px; cursor: pointer; font-weight: 600; border: none; margin-left: 6px; color: white; background-color: #ef4444; flex-shrink: 0;"
+            style="
+              display: none !important;
+              padding: 7px 14px;
+              border-radius: 5px;
+              cursor: pointer;
+              font-weight: 600;
+              border: none;
+              margin-left: 6px;
+              color: white;
+              background-color: #ef4444;
+              flex-shrink: 0;
+            "
             onclick="cancelEditMode()"
           >
             ❌ Cancel
@@ -1687,7 +1836,8 @@
                   data-col-key="deduct_reason"
                   onclick="openExcelFilterMenu(event, 'deduct_reason')"
                 >
-                  Reason <span class="filter-icon" data-key="deduct_reason">▼</span>
+                  Reason
+                  <span class="filter-icon" data-key="deduct_reason">▼</span>
                 </th>
                 <th
                   class="th-inv-red"
@@ -2383,19 +2533,24 @@
 
         // Sync values to compact navbar controls
         if (isCompact) {
-          document.getElementById("compactMonth").value = document.getElementById("selMonth").value;
-          document.getElementById("compactYear").value = document.getElementById("selYear").value;
-          document.getElementById("compactSearch").value = document.getElementById("filterPlate").value;
+          document.getElementById("compactMonth").value =
+            document.getElementById("selMonth").value;
+          document.getElementById("compactYear").value =
+            document.getElementById("selYear").value;
+          document.getElementById("compactSearch").value =
+            document.getElementById("filterPlate").value;
         }
       }
 
       function syncFromCompactMonth() {
-        document.getElementById("selMonth").value = document.getElementById("compactMonth").value;
+        document.getElementById("selMonth").value =
+          document.getElementById("compactMonth").value;
         fetchAndRenderUI();
       }
 
       function syncFromCompactYear() {
-        document.getElementById("selYear").value = document.getElementById("compactYear").value;
+        document.getElementById("selYear").value =
+          document.getElementById("compactYear").value;
         fetchAndRenderUI();
       }
 
@@ -2650,13 +2805,16 @@
           // 🟢 Check if vehicle has actual work / breakdown activity in this month
           let hasMonthTimesheetActivity = vTimesheets.some((ts) => {
             let tm = parseFloat(ts.calc_time) || 0;
-            let bd = String(ts.bd || "").trim().toUpperCase();
+            let bd = String(ts.bd || "")
+              .trim()
+              .toUpperCase();
             let wrkStart = String(ts.wrk_start || "").trim();
             return tm > 0 || bd !== "" || wrkStart !== "";
           });
 
           // If no active site allocation and no actual timesheet activity, strictly skip the vehicle
-          if (strictlyActiveSites.length === 0 && !hasMonthTimesheetActivity) return;
+          if (strictlyActiveSites.length === 0 && !hasMonthTimesheetActivity)
+            return;
 
           // If released/no site allocation, but has logsheet activity, create fallback site allocation with accurate previous site info
           let activeSites = strictlyActiveSites;
@@ -2683,12 +2841,27 @@
                 let d = safeDate(lastSiteLog.work_end_date, "");
                 if (!isNaN(d.getTime())) {
                   let dy = String(d.getDate()).padStart(2, "0");
-                  let mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  let mNames = [
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                  ];
                   lastDateStr = ` - ${dy}-${mNames[d.getMonth()]}-${d.getFullYear()}`;
                 }
               }
               naLabel = `Prev: ${prevSite}${lastDateStr}`;
-              statusType = String(lastSiteLog.status || "").trim().toLowerCase();
+              statusType = String(lastSiteLog.status || "")
+                .trim()
+                .toLowerCase();
             }
 
             activeSites = [
@@ -2699,7 +2872,10 @@
                 rate: lastSiteLog ? lastSiteLog.rate || "-" : "-",
                 field_co: lastSiteLog ? lastSiteLog.field_co || "-" : "-",
                 site_co: lastSiteLog ? lastSiteLog.site_co || "-" : "-",
-                vehicle_type: (lastSiteLog && lastSiteLog.vehicle_type) ? lastSiteLog.vehicle_type : vehicle_type,
+                vehicle_type:
+                  lastSiteLog && lastSiteLog.vehicle_type
+                    ? lastSiteLog.vehicle_type
+                    : vehicle_type,
                 siteStatusType: statusType,
               },
             ];
@@ -2764,7 +2940,12 @@
                 driver_name: driverString,
                 field_co: s.field_co || "-",
                 site_co: s.site_co || "-",
-                vehicle_type: (s.vehicle_type && s.vehicle_type.trim() !== "" && s.vehicle_type !== "-") ? s.vehicle_type : vehicle_type,
+                vehicle_type:
+                  s.vehicle_type &&
+                  s.vehicle_type.trim() !== "" &&
+                  s.vehicle_type !== "-"
+                    ? s.vehicle_type
+                    : vehicle_type,
               };
             }
           });
@@ -2781,7 +2962,7 @@
             let lastSiteLog = [...endedBeforeDate].sort(
               (a, b) =>
                 safeDate(b.work_end_date || "2000-01-01") -
-                safeDate(a.work_end_date || "2000-01-01")
+                safeDate(a.work_end_date || "2000-01-01"),
             )[0];
 
             if (lastSiteLog && lastSiteLog.site_name) {
@@ -2791,13 +2972,26 @@
                 let d = safeDate(lastSiteLog.work_end_date, "");
                 if (!isNaN(d.getTime())) {
                   let dy = String(d.getDate()).padStart(2, "0");
-                  let mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  let mNames = [
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                  ];
                   lastDateStr = ` - ${dy}-${mNames[d.getMonth()]}-${d.getFullYear()}`;
                 }
               }
               return {
                 name: `Prev: ${prevSite}${lastDateStr}`,
-                log: lastSiteLog
+                log: lastSiteLog,
               };
             }
             return { name: "N/A", log: null };
@@ -2805,7 +2999,7 @@
 
           for (let i = 1; i <= daysInMonth; i++) {
             let checkDate = new Date(yearStr, mIdx, i, 0, 0, 0, 0);
-            let currentSite = "N/A"; 
+            let currentSite = "N/A";
 
             if (vSites.length === 0) {
               currentSite = defaultSite;
@@ -2826,20 +3020,27 @@
             if (currentSite === "N/A") {
               let prevInfo = getPreviousSiteBeforeDate(checkDate);
               currentSite = prevInfo.name;
-              
+
               if (!siteDataMap[currentSite]) {
                 let lastLog = prevInfo.log;
                 siteDataMap[currentSite] = {
                   ts_nr: 0,
                   ts_ot: 0,
                   ts_31st_shift: 0,
-                  rate: lastLog ? (lastLog.rate || "-") : "-",
-                  driver_name: lastLog ? (lastLog.driver_name || "-") : "-",
-                  field_co: lastLog ? (lastLog.field_co || "-") : "-",
-                  site_co: lastLog ? (lastLog.site_co || "-") : "-",
+                  rate: lastLog ? lastLog.rate || "-" : "-",
+                  driver_name: lastLog ? lastLog.driver_name || "-" : "-",
+                  field_co: lastLog ? lastLog.field_co || "-" : "-",
+                  site_co: lastLog ? lastLog.site_co || "-" : "-",
                   displayName: currentSite,
-                  siteStatusType: lastLog ? String(lastLog.status || "").trim().toLowerCase() : "",
-                  vehicle_type: lastLog && lastLog.vehicle_type ? lastLog.vehicle_type : vehicle_type
+                  siteStatusType: lastLog
+                    ? String(lastLog.status || "")
+                        .trim()
+                        .toLowerCase()
+                    : "",
+                  vehicle_type:
+                    lastLog && lastLog.vehicle_type
+                      ? lastLog.vehicle_type
+                      : vehicle_type,
                 };
               }
             }
@@ -2940,8 +3141,14 @@
 
             let vInvoices = (data.invoices || []).filter((i) => {
               let rawP = String(i.plate_no || "").toUpperCase();
-              let pParts = rawP.split(/➔|→|->/).map((p) => cleanPlate(p)).filter(Boolean);
-              return pParts.some((cp) => relatedCleanPlates.includes(cp)) || relatedCleanPlates.includes(cleanPlate(rawP));
+              let pParts = rawP
+                .split(/➔|→|->/)
+                .map((p) => cleanPlate(p))
+                .filter(Boolean);
+              return (
+                pParts.some((cp) => relatedCleanPlates.includes(cp)) ||
+                relatedCleanPlates.includes(cleanPlate(rawP))
+              );
             });
 
             // ഏറ്റവും അവസാനം സേവ് ചെയ്ത റെക്കോർഡ് എടുക്കാൻ id DESC ക്രമത്തിൽ സോർട്ട് ചെയ്യുന്നു
@@ -2951,8 +3158,14 @@
 
             function matchPlateWithAliases(targetPlate) {
               let raw = String(targetPlate || "").toUpperCase();
-              let parts = raw.split(/➔|→|->/).map((p) => cleanPlate(p)).filter(Boolean);
-              return parts.some((cp) => relatedCleanPlates.includes(cp)) || relatedCleanPlates.includes(cleanPlate(raw));
+              let parts = raw
+                .split(/➔|→|->/)
+                .map((p) => cleanPlate(p))
+                .filter(Boolean);
+              return (
+                parts.some((cp) => relatedCleanPlates.includes(cp)) ||
+                relatedCleanPlates.includes(cleanPlate(raw))
+              );
             }
 
             let billData = sortedBilling.find(
@@ -2964,7 +3177,7 @@
               billData = sortedBilling.find(
                 (b) =>
                   matchPlateWithAliases(b.plate_no) &&
-                  (b.site_name || "").trim().startsWith("Prev:")
+                  (b.site_name || "").trim().startsWith("Prev:"),
               );
             }
             if (!billData && sName !== "N/A") {
@@ -2988,8 +3201,12 @@
             let rent_total = billData ? parseFloat(billData.total) || 0 : 0;
 
             // 🟢 Site N/A aavukayum work hours (NR & OT) 0 aavukayum cheythal oru kaaranavasalum list cheyyaruthu
-            let totalTsHrs = (parseFloat(ts_nr) || 0) + (parseFloat(ts_ot) || 0);
-            if ((sName === "N/A" || displaySiteName.startsWith("Prev:")) && totalTsHrs === 0) {
+            let totalTsHrs =
+              (parseFloat(ts_nr) || 0) + (parseFloat(ts_ot) || 0);
+            if (
+              (sName === "N/A" || displaySiteName.startsWith("Prev:")) &&
+              totalTsHrs === 0
+            ) {
               return;
             }
 
@@ -2997,8 +3214,8 @@
               (i) => (i.site_name || "").trim() === sName,
             );
             if (!invData && sName.startsWith("Prev:")) {
-              invData = vInvoices.find(
-                (i) => (i.site_name || "").trim().startsWith("Prev:")
+              invData = vInvoices.find((i) =>
+                (i.site_name || "").trim().startsWith("Prev:"),
               );
             }
             if (!invData && sName !== "N/A")
@@ -3029,9 +3246,12 @@
             let inv_amount = invData
               ? parseFloat(invData.invoice_amount) || 0
               : 0;
-            let inv_deduct = invData && invData.inv_deduct !== null && invData.inv_deduct !== ""
-              ? parseFloat(invData.inv_deduct) || 0
-              : 0;
+            let inv_deduct =
+              invData &&
+              invData.inv_deduct !== null &&
+              invData.inv_deduct !== ""
+                ? parseFloat(invData.inv_deduct) || 0
+                : 0;
             let deduct_reason = invData ? invData.deduct_reason || "" : "";
             let calculated_total = 0;
             if (inv_amount > 0 || inv_deduct > 0) {
@@ -3061,7 +3281,8 @@
                   // 🟢 Maasathil Friday ozhike ethra days undennu nokkunnu
                   let nonFridayDays = 0;
                   for (let d = 1; d <= 31; d++) {
-                    if (getDayName(d, monthStr, yearStr) !== "Fri") nonFridayDays++;
+                    if (getDayName(d, monthStr, yearStr) !== "Fri")
+                      nonFridayDays++;
                   }
 
                   // 27 working days indengil 31st day poornnamayum OT aanu, NR-ilekku shift illa!
@@ -3200,7 +3421,8 @@
               rent_total: rent_total > 0 ? rent_total.toFixed(2) : "",
               inv_subtotal: inv_amount > 0 ? inv_amount.toFixed(2) : "",
               inv_deduct: inv_deduct !== 0 ? inv_deduct.toFixed(2) : "",
-              inv_total: calculated_total > 0 ? calculated_total.toFixed(2) : "",
+              inv_total:
+                calculated_total > 0 ? calculated_total.toFixed(2) : "",
               deduct_reason: deduct_reason,
               crn_no: crn_no,
               diff_nr,
@@ -3225,7 +3447,8 @@
                 if (daysInMonth !== 31) return calc_ts_nr;
                 let nonFridayDays = 0;
                 for (let d = 1; d <= 31; d++) {
-                  if (getDayName(d, monthStr, yearStr) !== "Fri") nonFridayDays++;
+                  if (getDayName(d, monthStr, yearStr) !== "Fri")
+                    nonFridayDays++;
                 }
                 if (nonFridayDays >= 27) return calc_ts_nr; // 27 days ullappol 31st shift aavilla
 
@@ -3238,7 +3461,8 @@
                 if (daysInMonth !== 31) return calc_ts_ot;
                 let nonFridayDays = 0;
                 for (let d = 1; d <= 31; d++) {
-                  if (getDayName(d, monthStr, yearStr) !== "Fri") nonFridayDays++;
+                  if (getDayName(d, monthStr, yearStr) !== "Fri")
+                    nonFridayDays++;
                 }
                 if (nonFridayDays >= 27) return calc_ts_ot; // 27 days ullappol 31st shift aavilla
 
@@ -3493,7 +3717,7 @@
           tr.dataset.year = row.raw_year;
           tr.innerHTML = `
             <td style="font-weight: 600; text-align: center; color: #b91c1c; font-size: 11px;">${row.report_date}</td>
-            <td style="font-weight: 600; text-align: left; padding-left: 15px; word-wrap: break-word; color: ${row.site.startsWith('Prev:') ? (row.site_status.includes('replace') ? '#ea580c' : '#dc2626') : 'inherit'};">${row.site}</td>
+            <td style="font-weight: 600; text-align: left; padding-left: 15px; word-wrap: break-word; color: ${row.site.startsWith("Prev:") ? (row.site_status.includes("replace") ? "#ea580c" : "#dc2626") : "inherit"};">${row.site}</td>
             <td style="font-weight: 700; color: #0f172a;">${row.rate}</td>
             <td style="font-weight: 700; background-color: ${row.vat.toLowerCase().includes("yes") ? "#fef08a" : "transparent"}; color: #854d0e;">${row.vat.toLowerCase().includes("yes") ? "Yes" : ""}</td>
             <td class="col-owner" style="word-wrap: break-word;">${row.owner}</td>
@@ -3554,7 +3778,9 @@
           const menu = document.getElementById("exportDropdownMenu");
           if (menu) menu.style.display = "none";
         }
-        const cWrapper = document.getElementById("compactExportDropdownWrapper");
+        const cWrapper = document.getElementById(
+          "compactExportDropdownWrapper",
+        );
         if (cWrapper && !cWrapper.contains(e.target)) {
           const cMenu = document.getElementById("compactExportDropdownMenu");
           if (cMenu) cMenu.style.display = "none";
@@ -3565,7 +3791,9 @@
         const btnCard = document.getElementById("btnEditData");
         const btnCardCancel = document.getElementById("btnCancelEdit");
         const btnCompact = document.getElementById("btnCompactEditData");
-        const btnCompactCancel = document.getElementById("btnCompactCancelEdit");
+        const btnCompactCancel = document.getElementById(
+          "btnCompactCancelEdit",
+        );
 
         if (active) {
           if (btnCard) {
@@ -3578,8 +3806,18 @@
             btnCompact.style.backgroundColor = "#10b981";
             btnCompact.style.removeProperty("display");
           }
-          if (btnCardCancel) btnCardCancel.style.setProperty("display", "inline-block", "important");
-          if (btnCompactCancel) btnCompactCancel.style.setProperty("display", "inline-flex", "important");
+          if (btnCardCancel)
+            btnCardCancel.style.setProperty(
+              "display",
+              "inline-block",
+              "important",
+            );
+          if (btnCompactCancel)
+            btnCompactCancel.style.setProperty(
+              "display",
+              "inline-flex",
+              "important",
+            );
         } else {
           if (btnCard) {
             btnCard.innerHTML = "✏️ Edit Data";
@@ -3591,15 +3829,19 @@
             btnCompact.style.backgroundColor = "#0d9488";
             btnCompact.style.removeProperty("display");
           }
-          if (btnCardCancel) btnCardCancel.style.setProperty("display", "none", "important");
-          if (btnCompactCancel) btnCompactCancel.style.setProperty("display", "none", "important");
+          if (btnCardCancel)
+            btnCardCancel.style.setProperty("display", "none", "important");
+          if (btnCompactCancel)
+            btnCompactCancel.style.setProperty("display", "none", "important");
         }
       }
 
       function toggleCompactExportDropdown(event) {
         event.stopPropagation();
         const menu = document.getElementById("compactExportDropdownMenu");
-        if (menu) menu.style.display = menu.style.display === "block" ? "none" : "block";
+        if (menu)
+          menu.style.display =
+            menu.style.display === "block" ? "none" : "block";
       }
 
       function requestEditMode() {
@@ -3791,7 +4033,8 @@
               let ded = parseFloat(dedText) || 0;
               let totCell = tr.querySelector(".inv-total-cell");
               if (totCell) {
-                totCell.innerText = (sub > 0 || ded > 0) ? ((sub - ded) * 1.15).toFixed(2) : "";
+                totCell.innerText =
+                  sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
               }
             }
           });
@@ -3853,10 +4096,10 @@
         }
 
         // 🟢 FIX: Temporarily show hidden rows to safely read innerText
-        rows.forEach(tr => {
-          if (tr.style.display === 'none') {
-            tr.dataset.wasHidden = 'true';
-            tr.style.display = '';
+        rows.forEach((tr) => {
+          if (tr.style.display === "none") {
+            tr.dataset.wasHidden = "true";
+            tr.style.display = "";
           }
         });
 
@@ -3866,25 +4109,47 @@
           let plate = tr.dataset.masterPlate;
 
           // 🟢 Robust Number Parsing
-          let inv_nr_text = tr.querySelector('[data-field="inv_nr"]')?.innerText.trim().replace(/,/g, "") || "";
+          let inv_nr_text =
+            tr
+              .querySelector('[data-field="inv_nr"]')
+              ?.innerText.trim()
+              .replace(/,/g, "") || "";
           let parsed_nr = parseFloat(inv_nr_text);
-          let inv_nr = inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
+          let inv_nr =
+            inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
 
-          let inv_ot_text = tr.querySelector('[data-field="inv_ot"]')?.innerText.trim().replace(/,/g, "") || "";
+          let inv_ot_text =
+            tr
+              .querySelector('[data-field="inv_ot"]')
+              ?.innerText.trim()
+              .replace(/,/g, "") || "";
           let parsed_ot = parseFloat(inv_ot_text);
-          let inv_ot = inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
+          let inv_ot =
+            inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
 
           const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
-          const parsedAmount = invAmountCell ? normalizeInvoiceAmountCell(invAmountCell) : { value: null };
+          const parsedAmount = invAmountCell
+            ? normalizeInvoiceAmountCell(invAmountCell)
+            : { value: null };
           if (!parsedAmount.valid) hasInvalidFormula = true;
           const inv_amount = parsedAmount.value;
 
-          let crn_no = tr.querySelector('[data-field="crn_no"]')?.innerText.trim() || "";
-          let inv_no = tr.querySelector('[data-field="inv_no"]')?.innerText.trim() || "";
-          let bill_no = tr.querySelector('[data-field="bill_no"]')?.innerText.trim() || "";
+          let crn_no =
+            tr.querySelector('[data-field="crn_no"]')?.innerText.trim() || "";
+          let inv_no =
+            tr.querySelector('[data-field="inv_no"]')?.innerText.trim() || "";
+          let bill_no =
+            tr.querySelector('[data-field="bill_no"]')?.innerText.trim() || "";
           let deductTd = tr.querySelector(".inv-deduct-cell");
-          let deductVal = deductTd ? deductTd.innerText.trim().replace(/,/g, "") : "";
-          let inv_deduct = deductVal === "" ? 0 : (isNaN(parseFloat(deductVal)) ? 0 : parseFloat(deductVal));
+          let deductVal = deductTd
+            ? deductTd.innerText.trim().replace(/,/g, "")
+            : "";
+          let inv_deduct =
+            deductVal === ""
+              ? 0
+              : isNaN(parseFloat(deductVal))
+                ? 0
+                : parseFloat(deductVal);
 
           let preciseMonth = `${tr.dataset.month} ${tr.dataset.year}`;
 
@@ -3902,9 +4167,9 @@
         });
 
         // 🟢 FIX: Restore hidden state
-        rows.forEach(tr => {
-          if (tr.dataset.wasHidden === 'true') {
-            tr.style.display = 'none';
+        rows.forEach((tr) => {
+          if (tr.dataset.wasHidden === "true") {
+            tr.style.display = "none";
             delete tr.dataset.wasHidden;
           }
         });
@@ -4294,7 +4559,10 @@
           }
         }
 
-        const workers = Array.from({ length: Math.min(CONCURRENCY_LIMIT, totalMonths) }, () => exportWorker());
+        const workers = Array.from(
+          { length: Math.min(CONCURRENCY_LIMIT, totalMonths) },
+          () => exportWorker(),
+        );
         await Promise.all(workers);
 
         sheetsArray = sheetsArray.filter(Boolean); // ശൂന്യമായ മാസങ്ങൾ ഒഴിവാക്കുന്നു
@@ -4380,7 +4648,10 @@
           }
         }
 
-        const workers = Array.from({ length: Math.min(CONCURRENCY_LIMIT, totalMonths) }, () => singleExportWorker());
+        const workers = Array.from(
+          { length: Math.min(CONCURRENCY_LIMIT, totalMonths) },
+          () => singleExportWorker(),
+        );
         await Promise.all(workers);
 
         loader.innerHTML = `⚡ Merging Single Analysis Sheet...`;
@@ -4994,7 +5265,7 @@
           return;
         }
         closeBatchViewModal();
-        
+
         const loader = document.getElementById("loader");
         loader.style.display = "block";
         document.getElementById("reportBody").innerHTML = "";
@@ -5050,7 +5321,10 @@
           }
         }
 
-        const workers = Array.from({ length: Math.min(CONCURRENCY_LIMIT, totalMonths) }, () => batchViewWorker());
+        const workers = Array.from(
+          { length: Math.min(CONCURRENCY_LIMIT, totalMonths) },
+          () => batchViewWorker(),
+        );
         await Promise.all(workers);
 
         loader.innerHTML = `⚡ Rendering Screen Table...`;
@@ -5165,22 +5439,31 @@
         const btnCard = document.getElementById("btnEditData");
         const btnCardCancel = document.getElementById("btnCancelEdit");
         const btnCompact = document.getElementById("btnCompactEditData");
-        const btnCompactCancel = document.getElementById("btnCompactCancelEdit");
+        const btnCompactCancel = document.getElementById(
+          "btnCompactCancelEdit",
+        );
         const btnSpecial = document.getElementById("btnSpecialEditMode");
 
         if (btnCard) btnCard.style.setProperty("display", "none", "important");
-        if (btnCardCancel) btnCardCancel.style.setProperty("display", "none", "important");
-        if (btnCompact) btnCompact.style.setProperty("display", "none", "important");
-        if (btnCompactCancel) btnCompactCancel.style.setProperty("display", "none", "important");
-        if (btnSpecial) btnSpecial.style.setProperty("display", "none", "important");
+        if (btnCardCancel)
+          btnCardCancel.style.setProperty("display", "none", "important");
+        if (btnCompact)
+          btnCompact.style.setProperty("display", "none", "important");
+        if (btnCompactCancel)
+          btnCompactCancel.style.setProperty("display", "none", "important");
+        if (btnSpecial)
+          btnSpecial.style.setProperty("display", "none", "important");
 
         // Master button-il Save & Cancel control kodukkunnu
         const mBtn = document.getElementById("btnMasterEditMode");
         mBtn.innerHTML = "💾 Save All";
-        mBtn.style.cssText = "background: #10b981; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; margin-right: 6px;";
+        mBtn.style.cssText =
+          "background: #10b981; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; margin-right: 6px;";
 
         // Clear checkbox enable aakkunnu
-        document.querySelectorAll(".clear-checkbox").forEach((cb) => (cb.disabled = false));
+        document
+          .querySelectorAll(".clear-checkbox")
+          .forEach((cb) => (cb.disabled = false));
 
         // Ella editable cells-um contenteditable aakkunnu
         activateEditModeCells();
@@ -5199,13 +5482,16 @@
 
               if (this.classList.contains("inv-deduct-cell")) {
                 let subCell = tr.querySelector('[data-field="inv_amount"]');
-                let subText = subCell ? subCell.innerText.replace(/,/g, "") : "0";
+                let subText = subCell
+                  ? subCell.innerText.replace(/,/g, "")
+                  : "0";
                 let dedText = this.innerText.replace(/,/g, "");
                 let sub = parseFloat(subText) || 0;
                 let ded = parseFloat(dedText) || 0;
                 let totCell = tr.querySelector(".inv-total-cell");
                 if (totCell) {
-                  totCell.innerText = (sub > 0 || ded > 0) ? ((sub - ded) * 1.15).toFixed(2) : "";
+                  totCell.innerText =
+                    sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
                 }
               }
             };
@@ -5221,7 +5507,8 @@
 
         const mBtn = document.getElementById("btnMasterEditMode");
         mBtn.innerHTML = "⚡";
-        mBtn.style.cssText = "background: transparent; color: white; border: none; font-size: 16px; cursor: pointer; margin-right: 10px;";
+        mBtn.style.cssText =
+          "background: transparent; color: white; border: none; font-size: 16px; cursor: pointer; margin-right: 10px;";
         mBtn.title = "Master Edit (Edit Data + Special Edit All-in-One)";
 
         // 🟢 Master Edit hide cheytha buttons-nte inline override clear cheyyunnu
@@ -5267,7 +5554,9 @@
       }
 
       async function saveMasterEdits() {
-        const editedRows = document.querySelectorAll("#reportBody tr.row-edited, #reportBody tr.special-row-edited");
+        const editedRows = document.querySelectorAll(
+          "#reportBody tr.row-edited, #reportBody tr.special-row-edited",
+        );
 
         if (editedRows.length === 0) {
           lockMasterEditMode();
@@ -5276,15 +5565,16 @@
         }
 
         // 🟢 FIX: Temporarily show hidden rows to safely read innerText
-        editedRows.forEach(tr => {
-          if (tr.style.display === 'none') {
-            tr.dataset.wasHidden = 'true';
-            tr.style.display = '';
+        editedRows.forEach((tr) => {
+          if (tr.style.display === "none") {
+            tr.dataset.wasHidden = "true";
+            tr.style.display = "";
           }
         });
 
         document.getElementById("loader").style.display = "block";
-        document.getElementById("loader").innerText = "Saving All Master Data... Please wait.";
+        document.getElementById("loader").innerText =
+          "Saving All Master Data... Please wait.";
 
         const token = localStorage.getItem("timesheetToken");
 
@@ -5298,24 +5588,46 @@
             if (!tr.cells || tr.cells.length < 6) return;
 
             // 1. Normal Invoice Data
-            let inv_nr_text = tr.querySelector('[data-field="inv_nr"]')?.innerText.trim().replace(/,/g, "") || "";
+            let inv_nr_text =
+              tr
+                .querySelector('[data-field="inv_nr"]')
+                ?.innerText.trim()
+                .replace(/,/g, "") || "";
             let parsed_nr = parseFloat(inv_nr_text);
-            let inv_nr = inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
+            let inv_nr =
+              inv_nr_text === "" ? null : isNaN(parsed_nr) ? null : parsed_nr;
 
-            let inv_ot_text = tr.querySelector('[data-field="inv_ot"]')?.innerText.trim().replace(/,/g, "") || "";
+            let inv_ot_text =
+              tr
+                .querySelector('[data-field="inv_ot"]')
+                ?.innerText.trim()
+                .replace(/,/g, "") || "";
             let parsed_ot = parseFloat(inv_ot_text);
-            let inv_ot = inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
+            let inv_ot =
+              inv_ot_text === "" ? null : isNaN(parsed_ot) ? null : parsed_ot;
 
             const invAmountCell = tr.querySelector('[data-field="inv_amount"]');
-            const parsedAmount = invAmountCell ? normalizeInvoiceAmountCell(invAmountCell) : { value: null };
+            const parsedAmount = invAmountCell
+              ? normalizeInvoiceAmountCell(invAmountCell)
+              : { value: null };
             const inv_amount = parsedAmount.value;
 
-            let inv_no = tr.querySelector('[data-field="inv_no"]')?.innerText.trim() || "";
-            let bill_no = tr.querySelector('[data-field="bill_no"]')?.innerText.trim() || "";
+            let inv_no =
+              tr.querySelector('[data-field="inv_no"]')?.innerText.trim() || "";
+            let bill_no =
+              tr.querySelector('[data-field="bill_no"]')?.innerText.trim() ||
+              "";
 
             let deductTd = tr.querySelector(".inv-deduct-cell");
-            let deductVal = deductTd ? deductTd.innerText.trim().replace(/,/g, "") : "";
-            let parsedDeduct = deductVal === "" ? 0 : (isNaN(parseFloat(deductVal)) ? 0 : parseFloat(deductVal));
+            let deductVal = deductTd
+              ? deductTd.innerText.trim().replace(/,/g, "")
+              : "";
+            let parsedDeduct =
+              deductVal === ""
+                ? 0
+                : isNaN(parseFloat(deductVal))
+                  ? 0
+                  : parseFloat(deductVal);
             let reasonTd = tr.querySelector(".deduct-reason-cell");
             let reasonVal = reasonTd ? reasonTd.innerText.trim() : "";
 
@@ -5327,9 +5639,9 @@
               inv_ot,
               inv_amount,
               inv_deduct: parsedDeduct,
-            deduct_reason: reasonVal,
-            crn_no,
-            inv_no,
+              deduct_reason: reasonVal,
+              crn_no,
+              inv_no,
               bill_no,
             });
 
@@ -5343,27 +5655,55 @@
             let newNote = vbillTd ? vbillTd.innerText.trim() : "-";
             if (newNote === "") newNote = "-";
 
-            let nrVal = billNrTd ? billNrTd.innerText.trim().replace(/,/g, "") : "";
-            let otVal = billOtTd ? billOtTd.innerText.trim().replace(/,/g, "") : "";
-            let driverOtVal = driverOtTd ? driverOtTd.innerText.trim().replace(/,/g, "") : "";
-            let driverAmountVal = driverAmountTd ? driverAmountTd.innerText.trim().replace(/,/g, "") : "";
+            let nrVal = billNrTd
+              ? billNrTd.innerText.trim().replace(/,/g, "")
+              : "";
+            let otVal = billOtTd
+              ? billOtTd.innerText.trim().replace(/,/g, "")
+              : "";
+            let driverOtVal = driverOtTd
+              ? driverOtTd.innerText.trim().replace(/,/g, "")
+              : "";
+            let driverAmountVal = driverAmountTd
+              ? driverAmountTd.innerText.trim().replace(/,/g, "")
+              : "";
 
             specialUpdates.push({
               plate_no: tr.dataset.masterPlate,
               site_name: tr.dataset.site,
               month: `${tr.dataset.month} ${tr.dataset.year}`,
               remark: newNote,
-              bill_nr: nrVal === "" ? null : isNaN(parseFloat(nrVal)) ? null : parseFloat(nrVal),
-              bill_ot: otVal === "" ? null : isNaN(parseFloat(otVal)) ? null : parseFloat(otVal),
-              driver_ot: driverOtVal === "" ? null : isNaN(parseFloat(driverOtVal)) ? null : parseFloat(driverOtVal),
-              driver_amount: driverAmountVal === "" ? null : isNaN(parseFloat(driverAmountVal)) ? null : parseFloat(driverAmountVal),
+              bill_nr:
+                nrVal === ""
+                  ? null
+                  : isNaN(parseFloat(nrVal))
+                    ? null
+                    : parseFloat(nrVal),
+              bill_ot:
+                otVal === ""
+                  ? null
+                  : isNaN(parseFloat(otVal))
+                    ? null
+                    : parseFloat(otVal),
+              driver_ot:
+                driverOtVal === ""
+                  ? null
+                  : isNaN(parseFloat(driverOtVal))
+                    ? null
+                    : parseFloat(driverOtVal),
+              driver_amount:
+                driverAmountVal === ""
+                  ? null
+                  : isNaN(parseFloat(driverAmountVal))
+                    ? null
+                    : parseFloat(driverAmountVal),
             });
           });
 
           // 🟢 FIX: Restore hidden state before API call to ensure UI resets correctly
-          editedRows.forEach(tr => {
-            if (tr.dataset.wasHidden === 'true') {
-              tr.style.display = 'none';
+          editedRows.forEach((tr) => {
+            if (tr.dataset.wasHidden === "true") {
+              tr.style.display = "none";
               delete tr.dataset.wasHidden;
             }
           });
@@ -5383,7 +5723,9 @@
 
           const data = await res.json();
           if (!data.success) {
-            throw new Error("Master Save Failed: " + (data.message || "Unknown error"));
+            throw new Error(
+              "Master Save Failed: " + (data.message || "Unknown error"),
+            );
           }
 
           lockMasterEditMode();
@@ -5391,12 +5733,12 @@
 
           if (isBatchViewActive) executeBatchView(true);
           else fetchAndRenderUI(true);
-
         } catch (err) {
           window.alert(err.message);
         } finally {
           document.getElementById("loader").style.display = "none";
-          document.getElementById("loader").innerText = "Processing Data... Please wait.";
+          document.getElementById("loader").innerText =
+            "Processing Data... Please wait.";
         }
       }
 
@@ -5442,13 +5784,16 @@
               if (this.classList.contains("inv-deduct-cell")) {
                 let tr = this.closest("tr");
                 let subCell = tr.querySelector('[data-field="inv_amount"]');
-                let subText = subCell ? subCell.innerText.replace(/,/g, "") : "0";
+                let subText = subCell
+                  ? subCell.innerText.replace(/,/g, "")
+                  : "0";
                 let dedText = this.innerText.replace(/,/g, "");
                 let sub = parseFloat(subText) || 0;
                 let ded = parseFloat(dedText) || 0;
                 let totCell = tr.querySelector(".inv-total-cell");
                 if (totCell) {
-                  totCell.innerText = (sub > 0 || ded > 0) ? ((sub - ded) * 1.15).toFixed(2) : "";
+                  totCell.innerText =
+                    sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
                 }
               }
             };
@@ -5514,10 +5859,10 @@
         }
 
         // 🟢 FIX: Temporarily show hidden rows to safely read innerText
-        rows.forEach(tr => {
-          if (tr.style.display === 'none') {
-            tr.dataset.wasHidden = 'true';
-            tr.style.display = '';
+        rows.forEach((tr) => {
+          if (tr.style.display === "none") {
+            tr.dataset.wasHidden = "true";
+            tr.style.display = "";
           }
         });
 
@@ -5536,18 +5881,28 @@
           let nrVal = billNrTd.innerText.trim().replace(/,/g, "");
           let otVal = billOtTd.innerText.trim().replace(/,/g, "");
           let driverOtVal = driverOtTd.innerText.trim().replace(/,/g, "");
-          let driverAmountVal = driverAmountTd.innerText.trim().replace(/,/g, "");
-          
+          let driverAmountVal = driverAmountTd.innerText
+            .trim()
+            .replace(/,/g, "");
+
           let deductTd = tr.querySelector(".inv-deduct-cell");
-          let deductVal = deductTd ? deductTd.innerText.trim().replace(/,/g, "") : "";
+          let deductVal = deductTd
+            ? deductTd.innerText.trim().replace(/,/g, "")
+            : "";
           let reasonTd = tr.querySelector(".deduct-reason-cell");
           let reasonVal = reasonTd ? reasonTd.innerText.trim() : "";
 
           nrVal = nrVal === "" ? null : parseFloat(nrVal);
           otVal = otVal === "" ? null : parseFloat(otVal);
           driverOtVal = driverOtVal === "" ? null : parseFloat(driverOtVal);
-          driverAmountVal = driverAmountVal === "" ? null : parseFloat(driverAmountVal);
-          let parsedDeduct = deductVal === "" ? 0 : (isNaN(parseFloat(deductVal)) ? 0 : parseFloat(deductVal)); // 🟢 Changed null to 0
+          driverAmountVal =
+            driverAmountVal === "" ? null : parseFloat(driverAmountVal);
+          let parsedDeduct =
+            deductVal === ""
+              ? 0
+              : isNaN(parseFloat(deductVal))
+                ? 0
+                : parseFloat(deductVal); // 🟢 Changed null to 0
 
           updates.push({
             plate_no: vbillTd.dataset.plate,
@@ -5564,9 +5919,9 @@
         });
 
         // 🟢 FIX: Restore hidden state
-        rows.forEach(tr => {
-          if (tr.dataset.wasHidden === 'true') {
-            tr.style.display = 'none';
+        rows.forEach((tr) => {
+          if (tr.dataset.wasHidden === "true") {
+            tr.style.display = "none";
             delete tr.dataset.wasHidden;
           }
         });
