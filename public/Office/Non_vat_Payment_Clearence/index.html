@@ -1,410 +1,658 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Balance Authentication Certificate - Non VAT Payment Clearance</title>
-  <!-- Local Scripts fallback for CDN errors -->
-  <script src="/node_xlsx_scripts/jquery-3.7.0.min.js"></script>
-  <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
-  <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
-  <!-- Fallback to CDN if needed -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background-color: #f1f5f9; font-family: 'Segoe UI', Arial, sans-serif; }
-
-    /* Top Ribbon Header */
-    .top-ribbon {
-      background: #0f172a;
-      padding: 12px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    .top-ribbon h2 { color: #f8fafc; font-size: 17px; font-weight: 600; }
-    .btn-group { display: flex; gap: 10px; }
-    .btn {
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-    .btn-edit { background: #f59e0b; color: #fff; }
-    .btn-save { background: #10b981; color: #fff; }
-    .btn-pdf { background: #dc2626; color: #fff; }
-    .btn-png { background: #2563eb; color: #fff; }
-    .btn-dashboard { background: #059669; color: #fff; }
-    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-
-    /* A4 Sheet Container */
-    .a4-container {
-      display: flex;
-      justify-content: center;
-      padding: 30px 10px;
-    }
-    .a4-page {
-      width: 210mm;
-      min-height: 297mm;
-      background: #fff;
-      padding: 15mm 20mm;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
-      position: relative;
-      display: flex;
-      flex-direction: column;
-
-      /* Orange Blue Mix Border */
-      border: 8px solid;
-      border-image: linear-gradient(135deg, #f97316 0%, #3b82f6 100%) 1;
-    }
-
-    /* Arabic Section with Natural Font */
-    .ar-section { 
-      text-align: right; 
-      direction: rtl; 
-      font-family: 'Cairo', 'Amiri', Tahoma, sans-serif; 
-      font-size: 14.5px; 
-      line-height: 1.9; 
-      color: #111; 
-    }
-    .ar-title { text-align: center; text-decoration: underline; font-weight: bold; font-size: 19px; margin-bottom: 20px; }
-    .ar-meta { margin-bottom: 12px; }
-    .ar-meta p { margin: 2px 0; }
-    .ar-greeting { margin-bottom: 12px; }
-    .ar-body { margin-bottom: 12px; text-align: justify; }
-
-    /* English Section with Left Align */
-    .en-section { text-align: left; direction: ltr; font-size: 13.5px; line-height: 1.6; color: #111; margin-top: 10px; }
-    .en-title { text-align: center; text-decoration: underline; font-weight: bold; font-size: 16px; margin-bottom: 12px; }
-    .en-body p { margin-bottom: 6px; text-align: left; }
-    .highlight-box {
-      background-color: #ff0;
-      display: inline-block;
-      font-weight: bold;
-      padding: 2px 4px;
-      margin: 4px 0;
-    }
-    .signature-director { margin-top: 10px; text-align: left; padding-left: 50px; font-weight: bold; margin-bottom: 120px; }
-
-    /* Bottom Divider & Signatory */
-    .bottom-divider { border-top: 1.5px solid #000; margin-top: 5px; padding-top: 10px; }
-    .end-date-row { 
-      display: flex; 
-      justify-content: flex-start; 
-      gap: 30px; 
-      font-size: 13.5px; 
-      margin-bottom: 20px; 
-      direction: rtl; 
-    }
-    .auth-sig-title { text-align: center; text-decoration: underline; font-weight: bold; font-size: 14.5px; margin-bottom: 30px; }
-    
-    .signature-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr;
-      text-align: center;
-      font-weight: bold;
-      font-size: 13px;
-      margin-bottom: 15px;
-    }
-
-    /* Modals */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.6);
-      display: none; align-items: center; justify-content: center;
-      z-index: 2000; backdrop-filter: blur(2px);
-    }
-    .modal-card {
-      background: #fff; width: 500px; max-width: 95%; border-radius: 10px;
-      padding: 20px 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
-    }
-    .modal-wide { width: 850px; max-height: 85vh; display: flex; flex-direction: column; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .modal-header h3 { font-size: 18px; color: #1e293b; }
-    .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; }
-
-    .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 12px; font-weight: bold; color: #475569; margin-bottom: 4px; }
-    .form-group input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
-
-    .table-container { overflow-y: auto; flex-grow: 1; border: 1px solid #e2e8f0; border-radius: 6px; margin-top: 10px; }
-    table { width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left; }
-    th { background: #f8fafc; padding: 10px; border-bottom: 1px solid #e2e8f0; color: #475569; }
-    td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
-
-    @media print {
-      body { background: transparent; }
-      .top-ribbon, .modal-overlay { display: none !important; }
-      .a4-container { padding: 0; }
-      .a4-page { box-shadow: none; width: 100%; height: 100%; border: none; }
-    }
-  </style>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-</head>
-<body>
-
-  <!-- Hidden Record ID tracker for updates -->
-  <input type="hidden" id="currentRecordId" value="">
-
-  <!-- Top Ribbon -->
-  <div class="top-ribbon">
-    <h2>Payment Clearance Document</h2>
-    <div class="btn-group">
-      <button class="btn btn-edit" onclick="openEditModal()">✏️ Edit</button>
-      <button class="btn btn-save" onclick="saveToDashboard()">💾 Save / Update</button>
-      <button class="btn btn-pdf" onclick="saveAsPDF()">📄 Save as PDF</button>
-      <button class="btn btn-png" onclick="copyAsPNG()">🖼️ Copy as PNG</button>
-      <button class="btn btn-dashboard" onclick="openDashboard()">📊 Dashboard</button>
-    </div>
-  </div>
-
-  <!-- A4 Document Wrapper -->
-  <div class="a4-container">
-    <div class="a4-page" id="printableCertificate">
-      <div>
-        <!-- Arabic Section -->
-        <div class="ar-section">
-          <div class="ar-title">شهادة تأكيد الرصيد</div>
-          
-          <div class="ar-meta">
-            <p>الساده : <span id="viewArabicName">........</span></p>
-            <p>اللوحة رقم : <span id="viewPlateArabic">........</span></p>
-          </div>
-
-          <div class="ar-greeting">السلام عليكم ورحمة الله وبركاته،</div>
-
-          <div class="ar-body">
-            <b>نحن،</b><br>
-            نؤكد بموجب هذه الرسالة أن الرصيد المستحق لصالح<br>
-            وفقاً لسجلاتنا المحاسبية هو <b><span id="viewAmountSAR1">........</span></b> حتى تاريخ <span id="viewDateArabic">........</span>. تم إصدار هذه الشهاده لغرض تأكيد الرصيد وتسوية الحسابات المالية.<br><br>
-            نرجو منكم تأكيد صحة الرصيد أعلاه، بالتوقيع والختم على هذه الرسالة. شاكر لكم تعاونكم.<br>
-            مع خالص التحية،
-          </div>
-        </div>
-
-        <!-- English Section -->
-        <div class="en-section">
-          <div class="en-title">Balance Authentication Certificate</div>
-          <div class="en-body">
-            <p><b>We,</b></p>
-            <p>Hereby confirm that the outstanding balance payable to Respected <b id="viewName">........</b></p>
-            <p>As per our accounting records <b>SAR <span id="viewAmountSAR2">........</span></b> as of <b><span id="viewDateEng">........</span></b>.</p>
-            <p>This certificate is issued for the purpose of balance authentication and financial reconciliation.</p>
-            <p>Kindly confirm the accuracy of the above balance by signing and stamping this letter.</p>
-            <div>
-              <span class="highlight-box">This is the last payment/ هذا هو الدفعة الأخيرة</span>
-            </div>
-            <p>Thank you for your cooperation</p>
-            <p>Sincerely,</p>
-          </div>
-
-          <div class="signature-director">المدير العام</div>
-        </div>
-      </div>
-
-      <!-- Bottom Signatures -->
-      <div>
-        <div class="bottom-divider">
-          <div class="end-date-row">
-            <div>في نهاية يوم <b><span id="viewDateFooter">........</span></b>يل</div>
-            <div><b><span id="viewAmountFooter">........</span></b> ريال سعودي</div>
-          </div>
-          
-          <div class="auth-sig-title">Authorized Signatory</div>
-          
-          <div class="signature-grid">
-            <div>التاريخ</div>
-            <div>الختم</div>
-            <div>التوقيع</div>
-            <div>!</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Edit Modal -->
-  <div class="modal-overlay" id="editModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>Edit Clearance Certificate</h3>
-        <button class="close-btn" onclick="closeModal('editModal')">&times;</button>
-      </div>
-      <div class="form-group">
-        <label>1. English Name</label>
-        <input type="text" id="inpName" placeholder="Enter English Name">
-      </div>
-      <div class="form-group">
-        <label>2. Arabic Name</label>
-        <input type="text" id="inpArabicName" placeholder="Enter Arabic Name" dir="rtl">
-      </div>
-      <div class="form-group">
-        <label>3. Plate No</label>
-        <input type="text" id="inpPlate" placeholder="Enter Plate No">
-      </div>
-      <div class="form-group">
-        <label>4. Date (Select from Calendar)</label>
-        <input type="date" id="inpDate" onchange="onDateSelected(this.value)">
-      </div>
-      <div class="form-group">
-        <label>5. Amount (SAR)</label>
-        <input type="text" id="inpAmount" placeholder="9500.00">
-      </div>
-      <button class="btn btn-edit" style="width: 100%; justify-content: center; margin-top: 15px;" onclick="applyChanges()">
-        ✔ Apply
-      </button>
-    </div>
-  </div>
-
-  <!-- Dashboard Modal -->
-  <div class="modal-overlay" id="dashboardModal">
-    <div class="modal-card modal-wide">
-      <div class="modal-header">
-        <h3>Cleared Certificates History</h3>
-        <button class="close-btn" onclick="closeModal('dashboardModal')">&times;</button>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Plate No</th>
-              <th>Clearance Date</th>
-              <th>Amount (SAR)</th>
-              <th>Generated Timestamp</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="dashboardTbody">
-            <tr><td colspan="7" style="text-align:center;">Loading records...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    function openEditModal() { document.getElementById("editModal").style.display = "flex"; }
-    function openDashboard() {
-      document.getElementById("dashboardModal").style.display = "flex";
-      loadDashboardRecords();
-    }
-    function closeModal(id) { document.getElementById(id).style.display = "none"; }
-
-    function formatNumber(num) {
-      return parseFloat(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    function formatDateString(dateStr) {
-      if(!dateStr) return "........";
-      const d = new Date(dateStr);
-      if(isNaN(d.getTime())) return dateStr;
-      const day = String(d.getDate()).padStart(2, '0');
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const mon = months[d.getMonth()];
-      const year = d.getFullYear();
-      return `${day}-${mon}-${year}`;
-    }
-
-    function onDateSelected(val) {}
-
-    function applyChanges() {
-      const name = document.getElementById("inpName").value.trim() || "........";
-      const arName = document.getElementById("inpArabicName").value.trim() || "........";
-      const plate = document.getElementById("inpPlate").value.trim() || "........";
-      
-      const rawDate = document.getElementById("inpDate").value;
-      const dateVal = rawDate ? formatDateString(rawDate) : "........";
-
-      const rawAmt = document.getElementById("inpAmount").value.trim();
-      const amtVal = parseFloat(rawAmt) || 0;
-
-      document.getElementById("viewName").innerText = name;
-      document.getElementById("viewArabicName").innerText = arName;
-      document.getElementById("viewPlateArabic").innerText = plate;
-      
-      if(rawAmt === "") {
-        document.getElementById("viewAmountSAR1").innerText = "........";
-        document.getElementById("viewAmountSAR2").innerText = "........";
-        document.getElementById("viewAmountFooter").innerText = "........";
-      } else {
-        const formattedAmt = formatNumber(amtVal);
-        document.getElementById("viewAmountSAR1").innerText = formattedAmt + "SAR";
-        document.getElementById("viewAmountSAR2").innerText = formattedAmt;
-        document.getElementById("viewAmountFooter").innerText = formattedAmt.split('.')[0];
+  <head>
+    <meta charset="UTF-8" />
+    <title>
+      Balance Authentication Certificate - Non VAT Payment Clearance
+    </title>
+    <!-- Local Scripts fallback for CDN errors -->
+    <script src="/node_xlsx_scripts/jquery-3.7.0.min.js"></script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <!-- Fallback to CDN if needed -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background-color: #f1f5f9;
+        font-family: "Segoe UI", Arial, sans-serif;
       }
 
-      document.getElementById("viewDateEng").innerText = dateVal;
-      document.getElementById("viewDateArabic").innerText = dateVal;
-      document.getElementById("viewDateFooter").innerText = dateVal;
-
-      closeModal("editModal");
-    }
-
-    // Save or Update record in Dashboard
-    function saveToDashboard() {
-      const recordId = document.getElementById("currentRecordId").value;
-      const name = document.getElementById("viewName").innerText;
-      const arName = document.getElementById("viewArabicName").innerText;
-      const plate = document.getElementById("viewPlateArabic").innerText;
-      const dateVal = document.getElementById("viewDateEng").innerText;
-      const rawAmt = document.getElementById("viewAmountSAR2").innerText.replace(/[^0-9.-]+/g,"");
-      const amtVal = parseFloat(rawAmt) || 0;
-
-      if(name === "........" || plate === "........") {
-        alert("Please apply details using Edit first!");
-        return;
+      /* Top Ribbon Header */
+      .top-ribbon {
+        background: #0f172a;
+        padding: 12px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+      .top-ribbon h2 {
+        color: #f8fafc;
+        font-size: 17px;
+        font-weight: 600;
+      }
+      .btn-group {
+        display: flex;
+        gap: 10px;
+      }
+      .btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+      }
+      .btn-edit {
+        background: #f59e0b;
+        color: #fff;
+      }
+      .btn-save {
+        background: #10b981;
+        color: #fff;
+      }
+      .btn-pdf {
+        background: #dc2626;
+        color: #fff;
+      }
+      .btn-png {
+        background: #2563eb;
+        color: #fff;
+      }
+      .btn-dashboard {
+        background: #059669;
+        color: #fff;
+      }
+      .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
       }
 
-      const endpoint = recordId ? `/office/nonvat-clearance/api/update/${recordId}` : '/office/nonvat-clearance/api/save';
-      const method = recordId ? 'PUT' : 'POST';
+      /* A4 Sheet Container */
+      .a4-container {
+        display: flex;
+        justify-content: center;
+        padding: 30px 10px;
+      }
+      .a4-page {
+        width: 210mm;
+        min-height: 297mm;
+        background: #fff;
+        padding: 15mm 20mm;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+        position: relative;
+        display: flex;
+        flex-direction: column;
 
-      fetch(endpoint, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name,
-          arabic_name: arName,
-          plate_no: plate,
-          date: dateVal,
-          amount: amtVal
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.success) {
-          alert(recordId ? "Record Updated Successfully!" : "Saved to Dashboard Successfully!");
-        } else {
-          alert("Error: " + data.message);
+        /* Orange Blue Mix Border */
+        border: 8px solid;
+        border-image: linear-gradient(135deg, #f97316 0%, #3b82f6 100%) 1;
+      }
+
+      /* Arabic Section with Natural Font */
+      .ar-section {
+        text-align: right;
+        direction: rtl;
+        font-family: "Cairo", "Amiri", Tahoma, sans-serif;
+        font-size: 14.5px;
+        line-height: 1.9;
+        color: #111;
+      }
+      .ar-title {
+        text-align: center;
+        text-decoration: underline;
+        font-weight: bold;
+        font-size: 19px;
+        margin-bottom: 20px;
+      }
+      .ar-meta {
+        margin-bottom: 12px;
+      }
+      .ar-meta p {
+        margin: 2px 0;
+      }
+      .ar-greeting {
+        margin-bottom: 12px;
+      }
+      .ar-body {
+        margin-bottom: 12px;
+        text-align: justify;
+      }
+
+      /* English Section with Left Align */
+      .en-section {
+        text-align: left;
+        direction: ltr;
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: #111;
+        margin-top: 10px;
+      }
+      .en-title {
+        text-align: center;
+        text-decoration: underline;
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+      .en-body p {
+        margin-bottom: 6px;
+        text-align: left;
+      }
+      .highlight-box {
+        background-color: #ff0;
+        display: inline-block;
+        font-weight: bold;
+        padding: 2px 4px;
+        margin: 4px 0;
+      }
+      .signature-director {
+        margin-top: 10px;
+        text-align: left;
+        padding-left: 50px;
+        font-weight: bold;
+        margin-bottom: 120px;
+      }
+
+      /* Bottom Divider & Signatory */
+      .bottom-divider {
+        border-top: 1.5px solid #000;
+        margin-top: 5px;
+        padding-top: 10px;
+      }
+      .end-date-row {
+        display: flex;
+        justify-content: flex-start;
+        gap: 30px;
+        font-size: 13.5px;
+        margin-bottom: 20px;
+        direction: rtl;
+      }
+      .auth-sig-title {
+        text-align: center;
+        text-decoration: underline;
+        font-weight: bold;
+        font-size: 14.5px;
+        margin-bottom: 30px;
+      }
+
+      .signature-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        text-align: center;
+        font-weight: bold;
+        font-size: 13px;
+        margin-bottom: 15px;
+      }
+
+      /* Modals */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(15, 23, 42, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        backdrop-filter: blur(2px);
+      }
+      .modal-card {
+        background: #fff;
+        width: 500px;
+        max-width: 95%;
+        border-radius: 10px;
+        padding: 20px 24px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      }
+      .modal-wide {
+        width: 850px;
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .modal-header h3 {
+        font-size: 18px;
+        color: #1e293b;
+      }
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #64748b;
+      }
+
+      .form-group {
+        margin-bottom: 12px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 12px;
+        font-weight: bold;
+        color: #475569;
+        margin-bottom: 4px;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+
+      .table-container {
+        overflow-y: auto;
+        flex-grow: 1;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        margin-top: 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+        text-align: left;
+      }
+      th {
+        background: #f8fafc;
+        padding: 10px;
+        border-bottom: 1px solid #e2e8f0;
+        color: #475569;
+      }
+      td {
+        padding: 10px;
+        border-bottom: 1px solid #f1f5f9;
+      }
+
+      @media print {
+        body {
+          background: transparent;
         }
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Failed to save/update record.");
-      });
-    }
+        .top-ribbon,
+        .modal-overlay {
+          display: none !important;
+        }
+        .a4-container {
+          padding: 0;
+        }
+        .a4-page {
+          box-shadow: none;
+          width: 100%;
+          height: 100%;
+          border: none;
+        }
+      }
+    </style>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Hidden Record ID tracker for updates -->
+    <input type="hidden" id="currentRecordId" value="" />
 
-    // Load History Records with View Button
-    function loadDashboardRecords() {
-      fetch('/office/nonvat-clearance/api/records')
-        .then(res => res.json())
-        .then(data => {
-          const tbody = document.getElementById("dashboardTbody");
-          if (!data.success || data.records.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No clearance records saved yet.</td></tr>';
-            return;
-          }
-          tbody.innerHTML = data.records.map(r => `
+    <!-- Top Ribbon -->
+    <div class="top-ribbon">
+      <h2>Payment Clearance Document</h2>
+      <div class="btn-group">
+        <button class="btn btn-edit" onclick="openEditModal()">✏️ Edit</button>
+        <button class="btn btn-save" onclick="saveToDashboard()">
+          💾 Save / Update
+        </button>
+        <button class="btn btn-pdf" onclick="saveAsPDF()">
+          📄 Save as PDF
+        </button>
+        <button class="btn btn-png" onclick="copyAsPNG()">
+          🖼️ Copy as PNG
+        </button>
+        <button class="btn btn-dashboard" onclick="openDashboard()">
+          📊 Dashboard
+        </button>
+      </div>
+    </div>
+
+    <!-- A4 Document Wrapper -->
+    <div class="a4-container">
+      <div class="a4-page" id="printableCertificate">
+        <div>
+          <!-- Arabic Section -->
+          <div class="ar-section">
+            <div class="ar-title">شهادة تأكيد الرصيد</div>
+
+            <div class="ar-meta">
+              <p>الساده : <span id="viewArabicName">........</span></p>
+              <p>اللوحة رقم : <span id="viewPlateArabic">........</span></p>
+            </div>
+
+            <div class="ar-greeting">السلام عليكم ورحمة الله وبركاته،</div>
+
+            <div class="ar-body">
+              <b>نحن،</b><br />
+              نؤكد بموجب هذه الرسالة أن الرصيد المستحق لصالح<br />
+              وفقاً لسجلاتنا المحاسبية هو
+              <b><span id="viewAmountSAR1">........</span></b> حتى تاريخ
+              <span id="viewDateArabic">........</span>. تم إصدار هذه الشهاده
+              لغرض تأكيد الرصيد وتسوية الحسابات المالية.<br /><br />
+              نرجو منكم تأكيد صحة الرصيد أعلاه، بالتوقيع والختم على هذه الرسالة.
+              شاكر لكم تعاونكم.<br />
+              مع خالص التحية،
+            </div>
+          </div>
+
+          <!-- English Section -->
+          <div class="en-section">
+            <div class="en-title">Balance Authentication Certificate</div>
+            <div class="en-body">
+              <p><b>We,</b></p>
+              <p>
+                Hereby confirm that the outstanding balance payable to Respected
+                <b id="viewName">........</b>
+              </p>
+              <p>
+                As per our accounting records
+                <b>SAR <span id="viewAmountSAR2">........</span></b> as of
+                <b><span id="viewDateEng">........</span></b
+                >.
+              </p>
+              <p>
+                This certificate is issued for the purpose of balance
+                authentication and financial reconciliation.
+              </p>
+              <p>
+                Kindly confirm the accuracy of the above balance by signing and
+                stamping this letter.
+              </p>
+              <div>
+                <span class="highlight-box"
+                  >This is the last payment/ هذا هو الدفعة الأخيرة</span
+                >
+              </div>
+              <p>Thank you for your cooperation</p>
+              <p>Sincerely,</p>
+            </div>
+
+            <div class="signature-director">المدير العام</div>
+          </div>
+        </div>
+
+        <!-- Bottom Signatures -->
+        <div>
+          <div class="bottom-divider">
+            <div class="end-date-row">
+              <div>
+                في نهاية يوم <b><span id="viewDateFooter">........</span></b
+                >يل
+              </div>
+              <div>
+                <b><span id="viewAmountFooter">........</span></b> ريال سعودي
+              </div>
+            </div>
+
+            <div class="auth-sig-title">Authorized Signatory</div>
+
+            <div class="signature-grid">
+              <div>التاريخ</div>
+              <div>الختم</div>
+              <div>التوقيع</div>
+              <div>الس</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="editModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Edit Clearance Certificate</h3>
+          <button class="close-btn" onclick="closeModal('editModal')">
+            &times;
+          </button>
+        </div>
+        <div class="form-group">
+          <label>1. English Name</label>
+          <input type="text" id="inpName" placeholder="Enter English Name" />
+        </div>
+        <div class="form-group">
+          <label>2. Arabic Name</label>
+          <input
+            type="text"
+            id="inpArabicName"
+            placeholder="Enter Arabic Name"
+            dir="rtl"
+          />
+        </div>
+        <div class="form-group">
+          <label>3. Plate No</label>
+          <input type="text" id="inpPlate" placeholder="Enter Plate No" />
+        </div>
+        <div class="form-group">
+          <label>4. Date (Select from Calendar)</label>
+          <input
+            type="date"
+            id="inpDate"
+            onchange="onDateSelected(this.value)"
+          />
+        </div>
+        <div class="form-group">
+          <label>5. Amount (SAR)</label>
+          <input type="text" id="inpAmount" placeholder="9500.00" />
+        </div>
+        <button
+          class="btn btn-edit"
+          style="width: 100%; justify-content: center; margin-top: 15px"
+          onclick="applyChanges()"
+        >
+          ✔ Apply
+        </button>
+      </div>
+    </div>
+
+    <!-- Dashboard Modal -->
+    <div class="modal-overlay" id="dashboardModal">
+      <div class="modal-card modal-wide">
+        <div class="modal-header">
+          <h3>Cleared Certificates History</h3>
+          <button class="close-btn" onclick="closeModal('dashboardModal')">
+            &times;
+          </button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Plate No</th>
+                <th>Clearance Date</th>
+                <th>Amount (SAR)</th>
+                <th>Generated Timestamp</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="dashboardTbody">
+              <tr>
+                <td colspan="7" style="text-align: center">
+                  Loading records...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function openEditModal() {
+        document.getElementById("editModal").style.display = "flex";
+      }
+      function openDashboard() {
+        document.getElementById("dashboardModal").style.display = "flex";
+        loadDashboardRecords();
+      }
+      function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+      }
+
+      function formatNumber(num) {
+        return parseFloat(num || 0).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
+
+      function formatDateString(dateStr) {
+        if (!dateStr) return "........";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        const day = String(d.getDate()).padStart(2, "0");
+        const months = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        const mon = months[d.getMonth()];
+        const year = d.getFullYear();
+        return `${day}-${mon}-${year}`;
+      }
+
+      function onDateSelected(val) {}
+
+      function applyChanges() {
+        const name =
+          document.getElementById("inpName").value.trim() || "........";
+        const arName =
+          document.getElementById("inpArabicName").value.trim() || "........";
+        const plate =
+          document.getElementById("inpPlate").value.trim() || "........";
+
+        const rawDate = document.getElementById("inpDate").value;
+        const dateVal = rawDate ? formatDateString(rawDate) : "........";
+
+        const rawAmt = document.getElementById("inpAmount").value.trim();
+        const amtVal = parseFloat(rawAmt) || 0;
+
+        document.getElementById("viewName").innerText = name;
+        document.getElementById("viewArabicName").innerText = arName;
+        document.getElementById("viewPlateArabic").innerText = plate;
+
+        if (rawAmt === "") {
+          document.getElementById("viewAmountSAR1").innerText = "........";
+          document.getElementById("viewAmountSAR2").innerText = "........";
+          document.getElementById("viewAmountFooter").innerText = "........";
+        } else {
+          const formattedAmt = formatNumber(amtVal);
+          document.getElementById("viewAmountSAR1").innerText =
+            formattedAmt + "SAR";
+          document.getElementById("viewAmountSAR2").innerText = formattedAmt;
+          document.getElementById("viewAmountFooter").innerText =
+            formattedAmt.split(".")[0];
+        }
+
+        document.getElementById("viewDateEng").innerText = dateVal;
+        document.getElementById("viewDateArabic").innerText = dateVal;
+        document.getElementById("viewDateFooter").innerText = dateVal;
+
+        closeModal("editModal");
+      }
+
+      // Save or Update record in Dashboard
+      function saveToDashboard() {
+        const recordId = document.getElementById("currentRecordId").value;
+        const name = document.getElementById("viewName").innerText;
+        const arName = document.getElementById("viewArabicName").innerText;
+        const plate = document.getElementById("viewPlateArabic").innerText;
+        const dateVal = document.getElementById("viewDateEng").innerText;
+        const rawAmt = document
+          .getElementById("viewAmountSAR2")
+          .innerText.replace(/[^0-9.-]+/g, "");
+        const amtVal = parseFloat(rawAmt) || 0;
+
+        if (name === "........" || plate === "........") {
+          alert("Please apply details using Edit first!");
+          return;
+        }
+
+        const endpoint = recordId
+          ? `/office/nonvat-clearance/api/update/${recordId}`
+          : "/office/nonvat-clearance/api/save";
+        const method = recordId ? "PUT" : "POST";
+
+        fetch(endpoint, {
+          method: method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name,
+            arabic_name: arName,
+            plate_no: plate,
+            date: dateVal,
+            amount: amtVal,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              alert(
+                recordId
+                  ? "Record Updated Successfully!"
+                  : "Saved to Dashboard Successfully!",
+              );
+            } else {
+              alert("Error: " + data.message);
+            }
+          })
+          .catch((err) => {
+            console.error(err);
+            alert("Failed to save/update record.");
+          });
+      }
+
+      // Load History Records with View Button
+      function loadDashboardRecords() {
+        fetch("/office/nonvat-clearance/api/records")
+          .then((res) => res.json())
+          .then((data) => {
+            const tbody = document.getElementById("dashboardTbody");
+            if (!data.success || data.records.length === 0) {
+              tbody.innerHTML =
+                '<tr><td colspan="7" style="text-align:center;">No clearance records saved yet.</td></tr>';
+              return;
+            }
+            tbody.innerHTML = data.records
+              .map(
+                (r) => `
             <tr>
               <td>#${r.id}</td>
               <td><b>${r.name}</b><br><small style="color:#64748b;">${r.arabic_name}</small></td>
@@ -416,68 +664,84 @@
                 <button class="btn btn-edit" style="padding:4px 8px; font-size:11px;" onclick="viewRecord(${r.id}, '${r.name.replace(/'/g, "\\'")}', '${r.arabic_name.replace(/'/g, "\\'")}', '${r.plate_no}', '${r.clearance_date}', ${r.amount})">👁️ View / Modify</button>
               </td>
             </tr>
-          `).join('');
-        })
-        .catch(() => {
-          document.getElementById("dashboardTbody").innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">Failed to load data.</td></tr>';
+          `,
+              )
+              .join("");
+          })
+          .catch(() => {
+            document.getElementById("dashboardTbody").innerHTML =
+              '<tr><td colspan="7" style="text-align:center; color:red;">Failed to load data.</td></tr>';
+          });
+      }
+
+      // View Record into the Form to modify and replace/update
+      function viewRecord(
+        id,
+        name,
+        arabicName,
+        plateNo,
+        clearanceDate,
+        amount,
+      ) {
+        document.getElementById("currentRecordId").value = id;
+
+        // Populate Form inputs
+        document.getElementById("inpName").value = name;
+        document.getElementById("inpArabicName").value = arabicName;
+        document.getElementById("inpPlate").value = plateNo;
+        document.getElementById("inpAmount").value = amount;
+
+        // Parse date back if needed or set view directly
+        document.getElementById("viewName").innerText = name;
+        document.getElementById("viewArabicName").innerText = arabicName;
+        document.getElementById("viewPlateArabic").innerText = plateNo;
+
+        const formattedAmt = formatNumber(amount);
+        document.getElementById("viewAmountSAR1").innerText =
+          formattedAmt + "SAR";
+        document.getElementById("viewAmountSAR2").innerText = formattedAmt;
+        document.getElementById("viewAmountFooter").innerText =
+          formattedAmt.split(".")[0];
+
+        document.getElementById("viewDateEng").innerText = clearanceDate;
+        document.getElementById("viewDateArabic").innerText = clearanceDate;
+        document.getElementById("viewDateFooter").innerText = clearanceDate;
+
+        closeModal("dashboardModal");
+        alert(
+          `Loaded Record #${id} for viewing/modifying. Click 'Save / Update' after changes.`,
+        );
+      }
+
+      function saveAsPDF() {
+        const element = document.getElementById("printableCertificate");
+        const opt = {
+          margin: 0,
+          filename: `Clearance_Note_${document.getElementById("viewPlateArabic").innerText.replace(/\s+/g, "_")}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        };
+        html2pdf().set(opt).from(element).save();
+      }
+
+      function copyAsPNG() {
+        const element = document.getElementById("printableCertificate");
+        html2canvas(element, { scale: 2 }).then((canvas) => {
+          canvas.toBlob((blob) => {
+            if (navigator.clipboard && navigator.clipboard.write) {
+              const item = new ClipboardItem({ "image/png": blob });
+              navigator.clipboard.write([item]).then(() => {
+                alert("Certificate image copied to clipboard!");
+              });
+            } else {
+              alert(
+                "Clipboard image copy is not supported in this browser context.",
+              );
+            }
+          });
         });
-    }
-
-    // View Record into the Form to modify and replace/update
-    function viewRecord(id, name, arabicName, plateNo, clearanceDate, amount) {
-      document.getElementById("currentRecordId").value = id;
-      
-      // Populate Form inputs
-      document.getElementById("inpName").value = name;
-      document.getElementById("inpArabicName").value = arabicName;
-      document.getElementById("inpPlate").value = plateNo;
-      document.getElementById("inpAmount").value = amount;
-      
-      // Parse date back if needed or set view directly
-      document.getElementById("viewName").innerText = name;
-      document.getElementById("viewArabicName").innerText = arabicName;
-      document.getElementById("viewPlateArabic").innerText = plateNo;
-      
-      const formattedAmt = formatNumber(amount);
-      document.getElementById("viewAmountSAR1").innerText = formattedAmt + "SAR";
-      document.getElementById("viewAmountSAR2").innerText = formattedAmt;
-      document.getElementById("viewAmountFooter").innerText = formattedAmt.split('.')[0];
-
-      document.getElementById("viewDateEng").innerText = clearanceDate;
-      document.getElementById("viewDateArabic").innerText = clearanceDate;
-      document.getElementById("viewDateFooter").innerText = clearanceDate;
-
-      closeModal('dashboardModal');
-      alert(`Loaded Record #${id} for viewing/modifying. Click 'Save / Update' after changes.`);
-    }
-
-    function saveAsPDF() {
-      const element = document.getElementById('printableCertificate');
-      const opt = {
-        margin: 0,
-        filename: `Clearance_Note_${document.getElementById('viewPlateArabic').innerText.replace(/\s+/g, '_')}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      html2pdf().set(opt).from(element).save();
-    }
-
-    function copyAsPNG() {
-      const element = document.getElementById('printableCertificate');
-      html2canvas(element, { scale: 2 }).then(canvas => {
-        canvas.toBlob(blob => {
-          if (navigator.clipboard && navigator.clipboard.write) {
-            const item = new ClipboardItem({ 'image/png': blob });
-            navigator.clipboard.write([item]).then(() => {
-              alert('Certificate image copied to clipboard!');
-            });
-          } else {
-            alert('Clipboard image copy is not supported in this browser context.');
-          }
-        });
-      });
-    }
-  </script>
-</body>
+      }
+    </script>
+  </body>
 </html>
