@@ -516,17 +516,27 @@
         letter-spacing: 0.3px;
       }
       .stamp-img {
-        max-height: 105px;
+        max-height: 110px;
         object-fit: contain;
         opacity: 0.65 !important;
         mix-blend-mode: multiply !important;
         filter: contrast(1.1) !important;
       }
       .sign-img {
-        max-height: 85px;
+        max-height: 90px;
         object-fit: contain;
         opacity: 0.75 !important;
         mix-blend-mode: multiply !important;
+      }
+      .theme-haka .stamp-img,
+      .theme-wefaq .stamp-img,
+      .theme-default .stamp-img {
+        max-height: 116px !important;
+      }
+      .theme-haka .sign-img,
+      .theme-wefaq .sign-img,
+      .theme-default .sign-img {
+        max-height: 94px !important;
       }
       .invoice-footer {
         border-top: 2px solid var(--primary-dark);
@@ -598,6 +608,20 @@
         direction: rtl !important;
         border: none !important;
         padding: 0 !important;
+      }
+      .theme-haka #hakaQrUnderAuth {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important;
+        width: 100% !important;
+      }
+      .theme-haka .seal-sign-group {
+        display: flex !important;
+        align-items: flex-end !important;
+        gap: 15px !important;
+        margin-right: 0 !important;
+        margin-left: auto !important;
       }
 
       /* 2. MASAR THEME */
@@ -809,6 +833,14 @@
         font-weight: 700 !important;
         font-size: 13px !important;
         color: #0f172a !important;
+      }
+      .theme-wefaq .seal-sign-wrapper {
+        justify-content: flex-end !important;
+        width: 100% !important;
+      }
+      .theme-wefaq .seal-sign-group {
+        margin-left: auto !important;
+        margin-right: 0 !important;
       }
 
       /* 4. DEFAULT AL THEME */
@@ -1060,7 +1092,11 @@
       }
 
       /* 🟢 Fix: Bill No Wrap Issue & Page 2 Header Hiding */
-      #invNoDisplay, #invNoDisplayLeft, #wefaqInvNoVal, #hakaInvNoVal, #aljodaInvNoVal {
+      #invNoDisplay,
+      #invNoDisplayLeft,
+      #wefaqInvNoVal,
+      #hakaInvNoVal,
+      #aljodaInvNoVal {
         white-space: nowrap !important;
       }
       .page-subsequent #titleMetaGrid,
@@ -1293,7 +1329,19 @@
         </div>
 
         <!-- 🟢 Mini Header for 2nd Page onwards -->
-        <div id="subsequentPageMiniHeader" style="display: none; text-align: right; width: 100%; font-family: monospace; font-weight: 800; font-size: 14px; margin-bottom: 10px; color: var(--primary-dark);"></div>
+        <div
+          id="subsequentPageMiniHeader"
+          style="
+            display: none;
+            text-align: right;
+            width: 100%;
+            font-family: monospace;
+            font-weight: 800;
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: var(--primary-dark);
+          "
+        ></div>
 
         <table class="items-table" id="itemsTable">
           <thead id="itemsTableHead"></thead>
@@ -1709,11 +1757,12 @@
       // 🟢 Filter cheytha plate-nu vendi Page 2 card dynamic aayi capture cheyyunnu
       async function generateDynamicCardImage(targetPlate) {
         // 🟢 Fix: Dashboard-ൽ നിന്നും ലോഡ് ചെയ്യുമ്പോൾ rows ഉണ്ടാകില്ല, പകരം manual_items ഉപയോഗിക്കണം
-        const sourceRows = (originalIncomingPayload && originalIncomingPayload.rows)
-          ? originalIncomingPayload.rows
-          : (originalIncomingPayload && originalIncomingPayload.manual_items)
-            ? originalIncomingPayload.manual_items
-            : activeBillItems;
+        const sourceRows =
+          originalIncomingPayload && originalIncomingPayload.rows
+            ? originalIncomingPayload.rows
+            : originalIncomingPayload && originalIncomingPayload.manual_items
+              ? originalIncomingPayload.manual_items
+              : activeBillItems;
 
         if (!sourceRows || sourceRows.length === 0) {
           return attachedBillingCardImage;
@@ -1725,10 +1774,13 @@
           : sourceRows.filter((r) => {
               let p = (r.plate || r.plate_no || "").trim().toUpperCase();
               if (!p && r.vtype) {
-                 const match = r.vtype.match(/\(([^)]+)\)/);
-                 if (match) p = match[1].trim().toUpperCase();
+                const match = r.vtype.match(/\(([^)]+)\)/);
+                if (match) p = match[1].trim().toUpperCase();
               }
-              return p === targetPlate.trim().toUpperCase() || p.includes(targetPlate.trim().toUpperCase());
+              return (
+                p === targetPlate.trim().toUpperCase() ||
+                p.includes(targetPlate.trim().toUpperCase())
+              );
             });
 
         if (filteredRows.length === 0) return attachedBillingCardImage;
@@ -1748,32 +1800,56 @@
         const groupedMap = new Map();
 
         filteredRows.forEach((r) => {
-          const isManual = r.qty !== undefined; 
-          
-          const nhr = isManual ? (r.vtype.includes("Over Time") ? 0 : parseFloat(r.qty)) : (parseFloat(r.nhr) || 0);
-          const othr = isManual ? (r.vtype.includes("Over Time") ? parseFloat(r.qty) : 0) : (parseFloat(r.othr) || 0);
-          const rent = isManual ? parseFloat(r.subTotal) : (parseFloat(r.rent) || 0);
-          const vat = isManual ? parseFloat(r.vatAmount) : (parseFloat(r.vat_amount || r.vatVal) || 0);
-          const total = isManual ? parseFloat(r.total) : (parseFloat(r.total || r.totalVal) || rent + vat);
-          
-          const plateNo = isManual ? (r.vtype.match(/\(([^)]+)\)/) ? r.vtype.match(/\(([^)]+)\)/)[1] : "") : (r.plate || r.plate_no || "");
+          const isManual = r.qty !== undefined;
+
+          const nhr = isManual
+            ? r.vtype.includes("Over Time")
+              ? 0
+              : parseFloat(r.qty)
+            : parseFloat(r.nhr) || 0;
+          const othr = isManual
+            ? r.vtype.includes("Over Time")
+              ? parseFloat(r.qty)
+              : 0
+            : parseFloat(r.othr) || 0;
+          const rent = isManual
+            ? parseFloat(r.subTotal)
+            : parseFloat(r.rent) || 0;
+          const vat = isManual
+            ? parseFloat(r.vatAmount)
+            : parseFloat(r.vat_amount || r.vatVal) || 0;
+          const total = isManual
+            ? parseFloat(r.total)
+            : parseFloat(r.total || r.totalVal) || rent + vat;
+
+          const plateNo = isManual
+            ? r.vtype.match(/\(([^)]+)\)/)
+              ? r.vtype.match(/\(([^)]+)\)/)[1]
+              : ""
+            : r.plate || r.plate_no || "";
           const cleanPlate = plateNo.trim().toUpperCase();
-          const rawVtype = isManual ? r.vtype.split('(')[0].trim() : (r.vtype || "");
-          
+          const rawVtype = isManual
+            ? r.vtype.split("(")[0].trim()
+            : r.vtype || "";
+
           const groupKey = cleanPlate || rawVtype;
 
           if (!groupedMap.has(groupKey)) {
-             groupedMap.set(groupKey, {
-                 vTypeStr: rawVtype.includes("Over Time") ? "" : rawVtype,
-                 plateNo: cleanPlate,
-                 nhr: 0, othr: 0, rent: 0, vat: 0, total: 0,
-                 vatPercent: parseFloat(r.vat_percent || r.vatPercent || 15)
-             });
+            groupedMap.set(groupKey, {
+              vTypeStr: rawVtype.includes("Over Time") ? "" : rawVtype,
+              plateNo: cleanPlate,
+              nhr: 0,
+              othr: 0,
+              rent: 0,
+              vat: 0,
+              total: 0,
+              vatPercent: parseFloat(r.vat_percent || r.vatPercent || 15),
+            });
           }
 
           const existing = groupedMap.get(groupKey);
           if (rawVtype && !rawVtype.includes("Over Time")) {
-              existing.vTypeStr = rawVtype;
+            existing.vTypeStr = rawVtype;
           }
           existing.nhr += nhr;
           existing.othr += othr;
@@ -2127,9 +2203,19 @@
             seqCount++;
             const qty = nhr > 0 ? nhr : 1;
             const rate = nhr > 0 ? nrate : parseFloat(row.rent) || 0;
-            const sub = Number((qty * rate).toFixed(2));
-            const vat = Number((sub * (vatPct / 100)).toFixed(2));
-            const tot = Number((sub + vat).toFixed(2));
+            const sub =
+              parseFloat(row.rent) !== undefined && parseFloat(row.rent) > 0
+                ? parseFloat(row.rent)
+                : Number((qty * rate).toFixed(2));
+            const vat =
+              parseFloat(row.vat_amount || row.vat) !== undefined &&
+              parseFloat(row.vat_amount || row.vat) > 0
+                ? parseFloat(row.vat_amount || row.vat)
+                : Number((sub * (vatPct / 100)).toFixed(2));
+            const tot =
+              parseFloat(row.total) !== undefined && parseFloat(row.total) > 0
+                ? parseFloat(row.total)
+                : Number((sub + vat).toFixed(2));
 
             activeBillItems.push({
               seq: String(seqCount),
@@ -2400,6 +2486,16 @@
         const sumWrap = document.querySelector(".summary-container-wrap");
         const hakaQrCont = document.getElementById("hakaQrUnderAuth");
         if (hakaQrCont) hakaQrCont.style.display = "none";
+        const defaultSealWrapper = document.querySelector(".seal-sign-wrapper");
+        const defaultSealGroup = document.querySelector(".seal-sign-group");
+        if (
+          defaultSealWrapper &&
+          defaultSealGroup &&
+          themeKey !== "haka" &&
+          defaultSealGroup.parentElement !== defaultSealWrapper
+        ) {
+          defaultSealWrapper.appendChild(defaultSealGroup);
+        }
         if (qrWrapper && sumWrap && themeKey !== "haka") {
           sumWrap.insertBefore(qrWrapper, sumWrap.firstChild);
         }
@@ -2469,14 +2565,20 @@
             qrTargetCont = document.createElement("div");
             qrTargetCont.id = "hakaQrUnderAuth";
             qrTargetCont.style.cssText =
-              "display: flex; justify-content: flex-start; align-items: flex-start; width: 100%; margin-top: 6px;";
+              "display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-top: 6px;";
             authLineEl.insertAdjacentElement("afterend", qrTargetCont);
           }
 
-          if (qrWrapper && qrTargetCont) {
-            qrWrapper.style.padding = "0";
-            qrTargetCont.appendChild(qrWrapper);
+          const hakaSealSignGroup = document.querySelector(".seal-sign-group");
+          if (qrTargetCont) {
             qrTargetCont.style.display = "flex";
+            if (qrWrapper) {
+              qrWrapper.style.padding = "0";
+              qrTargetCont.appendChild(qrWrapper);
+            }
+            if (hakaSealSignGroup) {
+              qrTargetCont.appendChild(hakaSealSignGroup);
+            }
           }
 
           const currentSupply =
@@ -2744,10 +2846,34 @@
           `;
         });
 
-        document.getElementById("sumBeforeVat").innerText = subtotal.toFixed(2);
-        document.getElementById("sumVatAmount").innerText = totalVat.toFixed(2);
-        document.getElementById("sumGrandTotal").innerText =
-          grandTotal.toFixed(2);
+        const incomingGrand =
+          originalIncomingPayload && originalIncomingPayload.grandTotal
+            ? parseFloat(originalIncomingPayload.grandTotal)
+            : grandTotal;
+        const incomingVat =
+          originalIncomingPayload && originalIncomingPayload.grandVat
+            ? parseFloat(originalIncomingPayload.grandVat)
+            : totalVat;
+        const incomingRent =
+          originalIncomingPayload && originalIncomingPayload.grandRent
+            ? parseFloat(originalIncomingPayload.grandRent)
+            : subtotal;
+
+        document.getElementById("sumBeforeVat").innerText = (
+          currentSelectedPlate === "ALL" && incomingRent > 0
+            ? incomingRent
+            : subtotal
+        ).toFixed(2);
+        document.getElementById("sumVatAmount").innerText = (
+          currentSelectedPlate === "ALL" && incomingVat > 0
+            ? incomingVat
+            : totalVat
+        ).toFixed(2);
+        document.getElementById("sumGrandTotal").innerText = (
+          currentSelectedPlate === "ALL" && incomingGrand > 0
+            ? incomingGrand
+            : grandTotal
+        ).toFixed(2);
         updateZatcaQrCode();
       }
 
@@ -3110,12 +3236,15 @@
           const a4Height = pdf.internal.pageSize.getHeight();
 
           const card = document.getElementById("printableInvoice");
-          const summarySection = document.querySelector(".summary-container-wrap");
+          const summarySection = document.querySelector(
+            ".summary-container-wrap",
+          );
           const bottomSection = document.querySelector(".bottom-section");
 
           const fullItemsBackup = JSON.parse(JSON.stringify(activeBillItems));
-          const ITEMS_PER_PAGE = 20; 
-          const totalPages = Math.ceil(fullItemsBackup.length / ITEMS_PER_PAGE) || 1;
+          const ITEMS_PER_PAGE = 20;
+          const totalPages =
+            Math.ceil(fullItemsBackup.length / ITEMS_PER_PAGE) || 1;
 
           for (let i = 0; i < totalPages; i++) {
             const startIdx = i * ITEMS_PER_PAGE;
@@ -3126,10 +3255,13 @@
             renderInvoiceViewTable();
 
             // 🟢 Add subsequent page class to hide headers & show mini bill no
-            const miniHeader = document.getElementById("subsequentPageMiniHeader");
+            const miniHeader = document.getElementById(
+              "subsequentPageMiniHeader",
+            );
             if (i > 0) {
               card.classList.add("page-subsequent");
-              const invVal = document.getElementById("invNoDisplay")?.innerText || "";
+              const invVal =
+                document.getElementById("invNoDisplay")?.innerText || "";
               if (miniHeader) miniHeader.innerHTML = `Bill No : ${invVal}`;
             } else {
               card.classList.remove("page-subsequent");
@@ -3143,41 +3275,68 @@
               bottomSection.style.display = isLastPage ? "flex" : "none";
 
             if (isLastPage) {
-              let fSub = 0, fVat = 0, fGrand = 0;
-              fullItemsBackup.forEach(r => {
-                const q = parseFloat(r.qty) || 0, rt = parseFloat(r.rate) || 0;
-                const sb = parseFloat(r.subTotal) || (q * rt);
-                const vt = parseFloat(r.vatAmount) || (sb * (parseFloat(r.vatPercent || 15) / 100));
-                fSub += sb; fVat += vt; fGrand += (parseFloat(r.total) || (sb + vt));
+              let fSub = 0,
+                fVat = 0,
+                fGrand = 0;
+              fullItemsBackup.forEach((r) => {
+                const q = parseFloat(r.qty) || 0,
+                  rt = parseFloat(r.rate) || 0;
+                const sb = parseFloat(r.subTotal) || q * rt;
+                const vt =
+                  parseFloat(r.vatAmount) ||
+                  sb * (parseFloat(r.vatPercent || 15) / 100);
+                fSub += sb;
+                fVat += vt;
+                fGrand += parseFloat(r.total) || sb + vt;
               });
-              document.getElementById("sumBeforeVat").innerText = fSub.toFixed(2);
-              document.getElementById("sumVatAmount").innerText = fVat.toFixed(2);
-              document.getElementById("sumGrandTotal").innerText = fGrand.toFixed(2);
+              document.getElementById("sumBeforeVat").innerText =
+                fSub.toFixed(2);
+              document.getElementById("sumVatAmount").innerText =
+                fVat.toFixed(2);
+              document.getElementById("sumGrandTotal").innerText =
+                fGrand.toFixed(2);
               updateZatcaQrCode();
             }
 
             const tbody = document.getElementById("invoiceItemsBody");
             const rows = tbody.querySelectorAll("tr");
-            rows.forEach((tr, rIdx) => { tr.children[0].innerText = startIdx + rIdx + 1; });
+            rows.forEach((tr, rIdx) => {
+              tr.children[0].innerText = startIdx + rIdx + 1;
+            });
 
             await new Promise((resolve) => setTimeout(resolve, 100));
 
             const canvas = await html2canvas(card, {
-              scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff",
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: "#ffffff",
               onclone: (clonedDoc) => {
                 clonedDoc.querySelectorAll("*").forEach((el) => {
                   const comp = window.getComputedStyle(el);
-                  if (comp.direction === "rtl" || /[\u0600-\u06FF]/.test(el.innerText || "")) {
+                  if (
+                    comp.direction === "rtl" ||
+                    /[\u0600-\u06FF]/.test(el.innerText || "")
+                  ) {
                     el.style.letterSpacing = "0px !important";
                     el.style.wordSpacing = "normal !important";
                     el.style.fontFeatureSettings = '"liga" 1, "calt" 1';
                   }
                 });
-              }
+              },
             });
 
             if (i > 0) pdf.addPage();
-            pdf.addImage(canvas.toDataURL("image/jpeg", 0.98), "JPEG", 0, 0, a4Width, a4Height, undefined, "FAST");
+            pdf.addImage(
+              canvas.toDataURL("image/jpeg", 0.98),
+              "JPEG",
+              0,
+              0,
+              a4Width,
+              a4Height,
+              undefined,
+              "FAST",
+            );
           }
 
           activeBillItems = fullItemsBackup;
@@ -3634,12 +3793,17 @@
             const a4Height = pdf.internal.pageSize.getHeight();
 
             const card = document.getElementById("printableInvoice");
-            const summarySection = document.querySelector(".summary-container-wrap");
+            const summarySection = document.querySelector(
+              ".summary-container-wrap",
+            );
             const bottomSection = document.querySelector(".bottom-section");
 
-            const singlePlateItemsBackup = JSON.parse(JSON.stringify(activeBillItems));
+            const singlePlateItemsBackup = JSON.parse(
+              JSON.stringify(activeBillItems),
+            );
             const ITEMS_PER_PAGE = 20;
-            const totalPages = Math.ceil(singlePlateItemsBackup.length / ITEMS_PER_PAGE) || 1;
+            const totalPages =
+              Math.ceil(singlePlateItemsBackup.length / ITEMS_PER_PAGE) || 1;
 
             for (let j = 0; j < totalPages; j++) {
               const startIdx = j * ITEMS_PER_PAGE;
@@ -3650,10 +3814,13 @@
               renderInvoiceViewTable();
 
               // 🟢 Add subsequent page class to hide headers & show mini bill no
-              const miniHeader = document.getElementById("subsequentPageMiniHeader");
+              const miniHeader = document.getElementById(
+                "subsequentPageMiniHeader",
+              );
               if (j > 0) {
                 card.classList.add("page-subsequent");
-                const invVal = document.getElementById("invNoDisplay")?.innerText || "";
+                const invVal =
+                  document.getElementById("invNoDisplay")?.innerText || "";
                 if (miniHeader) miniHeader.innerHTML = `Bill No : ${invVal}`;
               } else {
                 card.classList.remove("page-subsequent");
@@ -3667,31 +3834,55 @@
                 bottomSection.style.display = isLastPage ? "flex" : "none";
 
               if (isLastPage) {
-                let fSub = 0, fVat = 0, fGrand = 0;
-                singlePlateItemsBackup.forEach(r => {
-                  const q = parseFloat(r.qty) || 0, rt = parseFloat(r.rate) || 0;
-                  const sb = parseFloat(r.subTotal) || (q * rt);
-                  const vt = parseFloat(r.vatAmount) || (sb * (parseFloat(r.vatPercent || 15) / 100));
-                  fSub += sb; fVat += vt; fGrand += (parseFloat(r.total) || (sb + vt));
+                let fSub = 0,
+                  fVat = 0,
+                  fGrand = 0;
+                singlePlateItemsBackup.forEach((r) => {
+                  const q = parseFloat(r.qty) || 0,
+                    rt = parseFloat(r.rate) || 0;
+                  const sb = parseFloat(r.subTotal) || q * rt;
+                  const vt =
+                    parseFloat(r.vatAmount) ||
+                    sb * (parseFloat(r.vatPercent || 15) / 100);
+                  fSub += sb;
+                  fVat += vt;
+                  fGrand += parseFloat(r.total) || sb + vt;
                 });
-                document.getElementById("sumBeforeVat").innerText = fSub.toFixed(2);
-                document.getElementById("sumVatAmount").innerText = fVat.toFixed(2);
-                document.getElementById("sumGrandTotal").innerText = fGrand.toFixed(2);
+                document.getElementById("sumBeforeVat").innerText =
+                  fSub.toFixed(2);
+                document.getElementById("sumVatAmount").innerText =
+                  fVat.toFixed(2);
+                document.getElementById("sumGrandTotal").innerText =
+                  fGrand.toFixed(2);
                 updateZatcaQrCode();
               }
 
               const tbody = document.getElementById("invoiceItemsBody");
               const rows = tbody.querySelectorAll("tr");
-              rows.forEach((tr, rIdx) => { tr.children[0].innerText = startIdx + rIdx + 1; });
+              rows.forEach((tr, rIdx) => {
+                tr.children[0].innerText = startIdx + rIdx + 1;
+              });
 
               await new Promise((resolve) => setTimeout(resolve, 100));
 
               const canvas = await html2canvas(card, {
-                scale: 2, useCORS: true, logging: false, backgroundColor: "#ffffff"
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: "#ffffff",
               });
 
               if (j > 0) pdf.addPage();
-              pdf.addImage(canvas.toDataURL("image/jpeg", 0.98), "JPEG", 0, 0, a4Width, a4Height, undefined, "FAST");
+              pdf.addImage(
+                canvas.toDataURL("image/jpeg", 0.98),
+                "JPEG",
+                0,
+                0,
+                a4Width,
+                a4Height,
+                undefined,
+                "FAST",
+              );
             }
 
             activeBillItems = singlePlateItemsBackup;
