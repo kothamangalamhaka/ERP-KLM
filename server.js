@@ -619,8 +619,10 @@ app.get("/api/dashboard-summary", verifyToken, async (req, res) => {
     let params = [];
 
     if (role !== "Admin" && role !== "Super Admin" && role !== "Viewer") {
-      scopeCondition = "TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($1))";
+      scopeCondition = "deleted_at IS NULL AND TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($1))";
       params = [site];
+    } else {
+      scopeCondition = "deleted_at IS NULL";
     }
 
     const overallRes = await pool.query(
@@ -628,7 +630,21 @@ app.get("/api/dashboard-summary", verifyToken, async (req, res) => {
       params,
     );
     const siteRes = await pool.query(
-      `SELECT site, COUNT(*) FILTER (WHERE record_data->>'Status' ILIKE 'Running') as running, COUNT(*) FILTER (WHERE record_data->>'Status' ILIKE 'Released') as released, COUNT(*) FILTER (WHERE record_data->>'Status' ILIKE 'Replaced') as replaced FROM erp_records WHERE ${scopeCondition} AND site IS NOT NULL AND site != '' GROUP BY site ORDER BY running DESC`,
+      `SELECT 
+         COALESCE(
+           NULLIF(TRIM(record_data->>'Site'), ''),
+           NULLIF(TRIM(record_data->>'SITE'), ''),
+           NULLIF(TRIM(site), '')
+         ) as site, 
+         COUNT(*) FILTER (WHERE record_data->>'Status' ILIKE 'Running') as running, 
+         COUNT(*) FILTER (WHERE record_data->>'Status' ILIKE 'Released') as released, 
+         COUNT(*) FILTER (WHERE record_data->>'Status' ILIKE 'Replaced') as replaced 
+       FROM erp_records 
+       WHERE ${scopeCondition} 
+         AND COALESCE(NULLIF(TRIM(record_data->>'Site'), ''), NULLIF(TRIM(site), '')) IS NOT NULL 
+         AND COALESCE(NULLIF(TRIM(record_data->>'Site'), ''), NULLIF(TRIM(site), '')) !~ '^[0-9]{1,4}[-/ ][A-Za-z0-9]{2,3}[-/ ][0-9]{2,4}$'
+       GROUP BY 1 
+       ORDER BY running DESC`,
       params,
     );
     const companyRes = await pool.query(
@@ -636,7 +652,21 @@ app.get("/api/dashboard-summary", verifyToken, async (req, res) => {
       params,
     );
     const siteCompanyRes = await pool.query(
-      `SELECT site, record_data->>'Company' as company, COUNT(*) as count FROM erp_records WHERE ${scopeCondition} AND record_data->>'Status' ILIKE 'Running' AND site IS NOT NULL AND site != '' AND record_data->>'Company' IS NOT NULL AND record_data->>'Company' != '' GROUP BY site, company ORDER BY site ASC, count DESC`,
+      `SELECT 
+         COALESCE(
+           NULLIF(TRIM(record_data->>'Site'), ''),
+           NULLIF(TRIM(record_data->>'SITE'), ''),
+           NULLIF(TRIM(site), '')
+         ) as site, 
+         record_data->>'Company' as company, 
+         COUNT(*) as count 
+       FROM erp_records 
+       WHERE ${scopeCondition} 
+         AND record_data->>'Status' ILIKE 'Running' 
+         AND record_data->>'Company' IS NOT NULL 
+         AND record_data->>'Company' != '' 
+       GROUP BY 1, company 
+       ORDER BY 1 ASC, count DESC`,
       params,
     );
 
@@ -644,15 +674,15 @@ app.get("/api/dashboard-summary", verifyToken, async (req, res) => {
   `
         SELECT 
             COALESCE(
-                NULLIF(TRIM(plate_number), ''),
                 NULLIF(TRIM(record_data->>'PLATE NUMBER'), ''),
                 NULLIF(TRIM(record_data->>'Plate Number'), ''),
-                NULLIF(TRIM(record_data->>'Plate No'), '')
+                NULLIF(TRIM(record_data->>'Plate No'), ''),
+                NULLIF(TRIM(plate_number), '')
             ) as plate_number,
             COALESCE(
-                NULLIF(TRIM(site), ''),
                 NULLIF(TRIM(record_data->>'Site'), ''),
-                NULLIF(TRIM(record_data->>'SITE'), '')
+                NULLIF(TRIM(record_data->>'SITE'), ''),
+                NULLIF(TRIM(site), '')
             ) as site,
             COALESCE(
                 NULLIF(TRIM(record_data->>'Company'), ''),

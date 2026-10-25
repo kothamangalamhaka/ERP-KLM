@@ -347,7 +347,10 @@
         // 🟢 FIX 1: Read top-level DB columns DIRECTLY (plate_number, site, etc.)
         // These are what the server sends for vehicleDetails.
         let plate   = safe(v.plate_number);
-        let site    = safe(v.site);
+        let rawSite = safe(v.site);
+        // Date format-ilulla thettaya values (e.g. 16-Aug-2026, 2026-08-16) Site aayi varunnathu filter cheyyunnu
+        const isDatePattern = /^\d{1,4}[-\/\s][A-Za-z0-9]{2,3}[-\/\s]\d{2,4}$/.test(rawSite);
+        let site    = isDatePattern ? '' : rawSite;
         let company = safe(v.company);
         let status  = safe(v.status);
         let owner   = safe(v.owner);
