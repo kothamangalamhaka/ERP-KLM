@@ -594,8 +594,9 @@ async function triggerFetch() {
       .toLowerCase();
     const isOwnedByMe = returnedOwner === currentLoggedUser;
 
-    if (!lockData.success && !isOwnedByMe) {
-      let lockedUser = (lockData.lockedBy || "Another User").toUpperCase();
+    // 🟢 Same user aano atho fresh lock aano ennu nokki athinanusarichu maathram read-only aakkunnu
+    if (!isOwnedByMe && lockData.lockedBy) {
+      let lockedUser = String(lockData.lockedBy).toUpperCase();
 
       Swal.fire({
         toast: true,
@@ -618,7 +619,7 @@ async function triggerFetch() {
       }
       amIWaitingForApproval = false;
     } else {
-      // 🟢 Swantham lock aanenkil athallekil fresh lock aanenkil full edit access
+      // 🟢 Same user thanne vere tab-il thurannaalum poornnamaaya edit access nalkunnu
       isReadOnlyMode = false;
       currentLockedRecord = { plate: p, month: m, year: y };
       const btnReq = document.getElementById("btnRequestEdit");
@@ -2717,11 +2718,13 @@ function startRecordPoll(p, m, y) {
       const isRejected = data.requestedBy === "REJECTED";
 
       if (!data.locked) {
-        // Record lock released or expired; do not forcefully auto-claim in background
         return;
       }
 
-      if (isMe) {
+      const currentLockOwner = String(data.owner || "").trim().toLowerCase();
+      const amITheRealOwner = currentLockOwner === user;
+
+      if (amITheRealOwner) {
         currentLockedRecord = { plate: p, month: m, year: y };
 
         if (isReadOnlyMode) {
@@ -2745,6 +2748,7 @@ function startRecordPoll(p, m, y) {
         if (
           data.requestedBy &&
           data.requestedBy !== "REJECTED" &&
+          data.requestedBy.trim().toLowerCase() !== user &&
           !incomingRequestActive
         ) {
           incomingRequestActive = true;
@@ -2752,10 +2756,10 @@ function startRecordPoll(p, m, y) {
           showTransferRequestPopup(data.requestedBy, p, m, y);
         }
       } else {
-        // 🟢 FIX: data.owner യഥാർത്ഥത്തിൽ നിലവിലുണ്ടാവുകയും അത് മറ്റൊരു വ്യക്തി (Different Username) ആവുകയും ചെയ്യുമ്പോൾ മാത്രമേ Read-Only ആക്കാവൂ!
+        // 🟢 Owner vere user aanengil mathrame Read-Only aakkoo
         if (
-          data.owner &&
-          data.owner.trim().toLowerCase() !== user &&
+          currentLockOwner !== "" &&
+          currentLockOwner !== user &&
           !isReadOnlyMode
         ) {
           isReadOnlyMode = true;
@@ -2765,7 +2769,7 @@ function startRecordPoll(p, m, y) {
             toast: true,
             position: "top-end",
             icon: "warning",
-            title: `Locked by ${data.owner.toUpperCase()}`,
+            title: `Locked by ${String(data.owner).toUpperCase()}`,
             text: "You are now in Read-Only mode.",
             showConfirmButton: false,
             timer: 4000,
@@ -3147,9 +3151,11 @@ async function executeReLoginAndResume() {
       });
 
       if (typeof pendingTimesheetAction === "function") {
-        setTimeout(() => {
-          pendingTimesheetAction();
-          pendingTimesheetAction = null;
+        const actionToResume = pendingTimesheetAction;
+        pendingTimesheetAction = null;
+        setTimeout(async () => {
+          await init();
+          actionToResume();
         }, 300);
       }
     } else {
