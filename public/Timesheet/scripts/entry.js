@@ -843,10 +843,39 @@ async function triggerFetch() {
         opt.text = siteName;
         invSiteSelect.appendChild(opt);
       });
+
+      let hasNAHours = (data.data || []).some((r) => {
+        let rDate = parseInt(r.record_date);
+        let cDate = new Date(parseInt(y), mIdx, rDate, 12, 0, 0, 0);
+        let inActiveSite = activeSites.some((s) => {
+          let sSt = s.work_start_date ? new Date(s.work_start_date) : new Date(parseInt(y), mIdx, 1);
+          sSt.setHours(0, 0, 0, 0);
+          let sEd = s.work_end_date ? new Date(s.work_end_date) : new Date(parseInt(y), mIdx + 1, 0);
+          sEd.setHours(23, 59, 59, 999);
+          return cDate >= sSt && cDate <= sEd;
+        });
+        let tm = parseFloat(r.calc_time) || 0;
+        let bd = String(r.bd || "").trim().toUpperCase();
+        return !inActiveSite && (tm > 0 || ["ID", "NP"].includes(bd));
+      });
+
+      if (hasNAHours) {
+        let naOpt = document.createElement("option");
+        naOpt.value = "N/A";
+        naOpt.text = "No Active Site (N/A)";
+        invSiteSelect.appendChild(naOpt);
+      }
+
       loadInvoiceForSelectedSite();
     } else {
-      invSiteSelect.innerHTML = '<option value="">No Site Active</option>';
-      clearInvoiceForm();
+      let hasNAHoursOnly = (data.data || []).some((r) => (parseFloat(r.calc_time) || 0) > 0);
+      if (hasNAHoursOnly) {
+        invSiteSelect.innerHTML = '<option value="N/A">No Active Site (N/A)</option>';
+        loadInvoiceForSelectedSite();
+      } else {
+        invSiteSelect.innerHTML = '<option value="">No Site Active</option>';
+        clearInvoiceForm();
+      }
     }
 
     fetch("/timesheet/api/logsheets/list", {
@@ -925,11 +954,7 @@ function calculateHoursForSite(targetSiteLog) {
   const siteHoursBlock = document.getElementById("siteHoursBlock");
   if (!siteHoursBlock) return;
 
-  if (
-    !window.currentActiveSitesList ||
-    window.currentActiveSitesList.length <= 1 ||
-    !targetSiteLog
-  ) {
+  if (!targetSiteLog) {
     siteHoursBlock.style.display = "none";
     return;
   }
@@ -939,6 +964,7 @@ function calculateHoursForSite(targetSiteLog) {
   const mIdx = months.indexOf(monthStr);
   const days = getDaysInMonth(monthStr, year);
 
+  const isNASite = targetSiteLog.site_name === "N/A" || targetSiteLog.site_name === "No Active Site (N/A)";
   let stDate = targetSiteLog.work_start_date
     ? new Date(targetSiteLog.work_start_date)
     : new Date(year, mIdx, 1);
@@ -955,7 +981,21 @@ function calculateHoursForSite(targetSiteLog) {
     let curDate = new Date(year, mIdx, i);
     curDate.setHours(12, 0, 0, 0);
 
-    if (curDate >= stDate && curDate <= edDate) {
+    let isDateMatch = false;
+    if (isNASite) {
+      isDateMatch = !window.currentActiveSitesList.some((s) => {
+        if (!s || s.site_name === "N/A") return false;
+        let sSt = s.work_start_date ? new Date(s.work_start_date) : new Date(year, mIdx, 1);
+        sSt.setHours(0, 0, 0, 0);
+        let sEd = s.work_end_date ? new Date(s.work_end_date) : new Date(year, mIdx + 1, 0);
+        sEd.setHours(23, 59, 59, 999);
+        return curDate >= sSt && curDate <= sEd;
+      });
+    } else {
+      isDateMatch = curDate >= stDate && curDate <= edDate;
+    }
+
+    if (isDateMatch) {
       let tm = parseFloat(document.getElementById(`time_${i}`)?.value) || 0;
       let bd =
         document
@@ -1066,13 +1106,21 @@ function updateSiteLogDetailsCard(targetSiteLog) {
     targetSiteLog.field_co || (vMaster ? vMaster.field_co : "N/A");
   document.getElementById("dispSiteCo").innerText =
     targetSiteLog.site_co || (vMaster ? vMaster.site_co : "N/A");
-  document.getElementById("dispSiteStart").innerText = formatDateUI(
-    sStart || "N/A",
-  );
-  document.getElementById("dispSiteEnd").innerText = sEnd
-    ? formatDateUI(sEnd) +
-      (targetSiteLog.new_vehicle_no ? " (Replaced)" : " (Released)")
-    : "Running";
+  const startRow = document.getElementById("dispSiteStart")?.closest(".detail-row");
+  const endRow = document.getElementById("dispSiteEnd")?.closest(".detail-row");
+  const isNASite = targetSiteLog.site_name === "N/A" || targetSiteLog.site_name === "No Active Site (N/A)";
+
+  if (isNASite) {
+    if (startRow) startRow.style.display = "none";
+    if (endRow) endRow.style.display = "none";
+  } else {
+    if (startRow) startRow.style.display = "flex";
+    if (endRow) endRow.style.display = "flex";
+    document.getElementById("dispSiteStart").innerText = formatDateUI(sStart || "N/A");
+    document.getElementById("dispSiteEnd").innerText = sEnd
+      ? formatDateUI(sEnd) + (targetSiteLog.new_vehicle_no ? " (Replaced)" : " (Released)")
+      : "Running";
+  }
   document.getElementById("dispAsset").innerText =
     targetSiteLog.asset_code || (vMaster ? vMaster.asset_code : "N/A");
   document.getElementById("dispWorkOrder").innerText =
@@ -1117,13 +1165,22 @@ function loadInvoiceForSelectedSite() {
     window.currentActiveSitesList &&
     window.currentActiveSitesList.length > 0
   ) {
-    const matchedSiteLog =
-      window.currentActiveSitesList.find((s) => s.site_name === selectedSite) ||
-      window.currentActiveSitesList[0];
-    updateSiteLogDetailsCard(matchedSiteLog);
+    let matchedSiteLog = window.currentActiveSitesList.find((s) => s.site_name === selectedSite);
+    if (!matchedSiteLog && (selectedSite === "N/A" || selectedSite === "No Active Site (N/A)")) {
+      matchedSiteLog = {
+        site_name: "N/A",
+        field_co: "N/A",
+        site_co: "N/A",
+        asset_code: "N/A",
+        work_order_no: "N/A",
+        work_start_date: null,
+        work_end_date: null,
+      };
+    }
+    updateSiteLogDetailsCard(matchedSiteLog || window.currentActiveSitesList[0]);
   }
 
-  const inv = currentInvoices.find((i) => i.site_name === selectedSite);
+  const inv = currentInvoices.find((i) => i.site_name === selectedSite || (selectedSite === "N/A" && (!i.site_name || i.site_name === "N/A")));
   if (inv) {
     isEditingInvoice = true;
     document.getElementById("invNo").value = inv.invoice_no || "";
