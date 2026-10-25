@@ -33,6 +33,7 @@
         padding: 0;
         font-size: 13px;
         color: var(--text-main);
+        overflow-y: hidden;
       }
 
       #loginScreen {
@@ -459,7 +460,7 @@
       }
       thead tr:nth-child(2) th {
         position: sticky;
-        top: 36px;
+        top: 50px;
         z-index: 11;
       }
       th {
@@ -467,6 +468,8 @@
         font-size: 12px;
         cursor: pointer;
         user-select: none;
+        transform: translateZ(0);
+        background-clip: padding-box;
       }
 
       .th-vehicle {
@@ -851,7 +854,10 @@
       }
       .hide-bill .th-bill,
       .hide-bill .col-bill,
-      .hide-bill col.col-grp-bill {
+      .hide-bill col.col-grp-bill,
+      .hide-bill .th-driver,
+      .hide-bill .col-driver-billing,
+      .hide-bill col.col-grp-driver {
         display: none !important;
       }
       .hide-diff .th-diff,
@@ -3517,6 +3523,9 @@
         isBatchViewActive = false;
         const month = document.getElementById("selMonth").value;
         const year = document.getElementById("selYear").value;
+        const shortMonth = month.substring(0, 3);
+        const shortYear = String(year).slice(-2);
+        document.title = `${shortMonth} ${shortYear} - Financial Operations Intelligence - Analysis Report`;
         document.getElementById("loader").style.display = "block";
         document.getElementById("reportBody").innerHTML = "";
 
@@ -3550,9 +3559,11 @@
         populateSelect("filterOwner", uniqueOwners);
         populateSelect("filterSite", uniqueSites);
 
-        // വാല്യൂസ് റീ-സെറ്റ് ചെയ്യുന്നു (ബട്ടൺ ക്ലിക്ക് ചെയ്താലും വാല്യൂ നഷ്ടപ്പെടില്ല)
-        document.getElementById("filterOwner").value = currentOwner;
-        document.getElementById("filterSite").value = currentSite;
+        // വാല്യൂസ് റീ-സെറ്റ് ചെയ്യുന്നു (പുതിയ മാസത്തിൽ ആ സൈറ്റ്/ഓണർ ഇല്ലെങ്കിൽ ഓട്ടോമാറ്റിക് ആയി ALL ലേക്ക് മാറും)
+        const ownerSelect = document.getElementById("filterOwner");
+        const siteSelect = document.getElementById("filterSite");
+        ownerSelect.value = Array.from(ownerSelect.options).some(o => o.value === currentOwner) ? currentOwner : "ALL";
+        siteSelect.value = Array.from(siteSelect.options).some(o => o.value === currentSite) ? currentSite : "ALL";
         document.getElementById("filterPlate").value = currentPlate;
 
         applyFilters();
@@ -4066,7 +4077,7 @@
           let currentRow = currentCell.parentElement;
           let editableCellsInRow = Array.from(
             currentRow.querySelectorAll(".editable-field"),
-          );
+          ).filter((cell) => cell.offsetParent !== null);
           let startColIndex = editableCellsInRow.indexOf(currentCell);
 
           for (let i = 0; i < rows.length; i++) {
@@ -5430,6 +5441,11 @@
         if (btnSpecial) btnSpecial.style.removeProperty("display");
 
         updateEditButtonsState(false);
+        document.querySelectorAll(".editable-field").forEach((td) => {
+          td.removeAttribute("contenteditable");
+          td.classList.remove("edit-active", "formula-error");
+        });
+        document.querySelectorAll("#reportBody tr.row-edited").forEach((tr) => tr.classList.remove("row-edited"));
         lockSpecialEditMode();
       }
 
