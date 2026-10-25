@@ -88,17 +88,18 @@
       }
       .a4-page {
         width: 210mm;
-        min-height: 297mm;
+        height: 297mm;
+        max-height: 297mm;
         background: #fff;
-        padding: 15mm 20mm;
+        padding: 12mm 16mm;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
         position: relative;
         display: flex;
         flex-direction: column;
-
-        /* Orange Blue Mix Border */
-        border: 8px solid;
-        border-image: linear-gradient(135deg, #f97316 0%, #3b82f6 100%) 1;
+        justify-content: space-between;
+        border: 6px solid #2563eb;
+        outline: 2px solid #f97316;
+        outline-offset: -8px;
       }
 
       /* Arabic Section with Natural Font */
@@ -112,10 +113,14 @@
       }
       .ar-title {
         text-align: center;
-        text-decoration: underline;
         font-weight: bold;
         font-size: 19px;
         margin-bottom: 20px;
+        display: table;
+        margin-left: auto;
+        margin-right: auto;
+        border-bottom: 1.5px solid #111;
+        padding-bottom: 3px;
       }
       .ar-meta {
         margin-bottom: 12px;
@@ -142,10 +147,14 @@
       }
       .en-title {
         text-align: center;
-        text-decoration: underline;
         font-weight: bold;
         font-size: 16px;
         margin-bottom: 12px;
+        display: table;
+        margin-left: auto;
+        margin-right: auto;
+        border-bottom: 1.5px solid #111;
+        padding-bottom: 2px;
       }
       .en-body p {
         margin-bottom: 6px;
@@ -163,7 +172,7 @@
         text-align: left;
         padding-left: 50px;
         font-weight: bold;
-        margin-bottom: 120px;
+        margin-bottom: 40px;
       }
 
       /* Bottom Divider & Signatory */
@@ -182,10 +191,14 @@
       }
       .auth-sig-title {
         text-align: center;
-        text-decoration: underline;
         font-weight: bold;
         font-size: 14.5px;
         margin-bottom: 30px;
+        display: table;
+        margin-left: auto;
+        margin-right: auto;
+        border-bottom: 1.5px solid #111;
+        padding-bottom: 2px;
       }
 
       .signature-grid {
@@ -285,12 +298,37 @@
         border-bottom: 1px solid #f1f5f9;
       }
 
+      /* Toast Notification */
+      .toast-notification {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #0f172a;
+        color: #fff;
+        padding: 12px 22px;
+        border-radius: 8px;
+        font-size: 13.5px;
+        font-weight: 500;
+        box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.3);
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        z-index: 3000;
+        pointer-events: none;
+        border-left: 4px solid #10b981;
+      }
+      .toast-notification.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
       @media print {
         body {
           background: transparent;
         }
         .top-ribbon,
-        .modal-overlay {
+        .modal-overlay,
+        .toast-notification {
           display: none !important;
         }
         .a4-container {
@@ -353,7 +391,7 @@
               نؤكد بموجب هذه الرسالة أن الرصيد المستحق لصالح<br />
               وفقاً لسجلاتنا المحاسبية هو
               <b><span id="viewAmountSAR1">........</span></b> حتى تاريخ
-              <span id="viewDateArabic">........</span>. تم إصدار هذه الشهاده
+              <bdi dir="ltr"><span id="viewDateArabic">........</span></bdi>. تم إصدار هذه الشهاده
               لغرض تأكيد الرصيد وتسوية الحسابات المالية.<br /><br />
               نرجو منكم تأكيد صحة الرصيد أعلاه، بالتوقيع والختم على هذه الرسالة.
               شاكر لكم تعاونكم.<br />
@@ -402,8 +440,7 @@
           <div class="bottom-divider">
             <div class="end-date-row">
               <div>
-                في نهاية يوم <b><span id="viewDateFooter">........</span></b
-                >يل
+                في نهاية يوم <b><bdi dir="ltr"><span id="viewDateFooter">........</span></bdi></b>
               </div>
               <div>
                 <b><span id="viewAmountFooter">........</span></b> ريال سعودي
@@ -505,6 +542,9 @@
       </div>
     </div>
 
+    <!-- Toast Element -->
+    <div id="customToast" class="toast-notification"></div>
+
     <script>
       function openEditModal() {
         document.getElementById("editModal").style.display = "flex";
@@ -548,6 +588,27 @@
         return `${day}-${mon}-${year}`;
       }
 
+      function formatDateDDMMYYYY(dateStr) {
+        if (!dateStr) return "........";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) {
+          const parts = dateStr.split("-");
+          if (parts.length === 3) {
+            const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const mIdx = months.indexOf(parts[1]);
+            if (mIdx !== -1) {
+              const mm = String(mIdx + 1).padStart(2, "0");
+              return `${parts[0]}-${mm}-${parts[2]}`;
+            }
+          }
+          return dateStr;
+        }
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return `${day}-${month}-${year}`;
+      }
+
       function onDateSelected(val) {}
 
       function applyChanges() {
@@ -559,7 +620,8 @@
           document.getElementById("inpPlate").value.trim() || "........";
 
         const rawDate = document.getElementById("inpDate").value;
-        const dateVal = rawDate ? formatDateString(rawDate) : "........";
+        const dateValEng = rawDate ? formatDateString(rawDate) : "........";
+        const dateValAr = rawDate ? formatDateDDMMYYYY(rawDate) : "........";
 
         const rawAmt = document.getElementById("inpAmount").value.trim();
         const amtVal = parseFloat(rawAmt) || 0;
@@ -581,9 +643,9 @@
             formattedAmt.split(".")[0];
         }
 
-        document.getElementById("viewDateEng").innerText = dateVal;
-        document.getElementById("viewDateArabic").innerText = dateVal;
-        document.getElementById("viewDateFooter").innerText = dateVal;
+        document.getElementById("viewDateEng").innerText = dateValEng;
+        document.getElementById("viewDateArabic").innerText = dateValAr;
+        document.getElementById("viewDateFooter").innerText = dateValAr;
 
         closeModal("editModal");
       }
@@ -674,6 +736,15 @@
           });
       }
 
+      function showToast(message) {
+        const toast = document.getElementById("customToast");
+        toast.innerText = message;
+        toast.classList.add("show");
+        setTimeout(() => {
+          toast.classList.remove("show");
+        }, 3500);
+      }
+
       // View Record into the Form to modify and replace/update
       function viewRecord(
         id,
@@ -704,25 +775,32 @@
           formattedAmt.split(".")[0];
 
         document.getElementById("viewDateEng").innerText = clearanceDate;
-        document.getElementById("viewDateArabic").innerText = clearanceDate;
-        document.getElementById("viewDateFooter").innerText = clearanceDate;
+        const arDate = formatDateDDMMYYYY(clearanceDate);
+        document.getElementById("viewDateArabic").innerText = arDate;
+        document.getElementById("viewDateFooter").innerText = arDate;
 
         closeModal("dashboardModal");
-        alert(
-          `Loaded Record #${id} for viewing/modifying. Click 'Save / Update' after changes.`,
-        );
+        showToast(`Loaded Record #${id} for viewing/modifying. Click 'Save / Update' after changes.`);
       }
 
       function saveAsPDF() {
         const element = document.getElementById("printableCertificate");
-        const opt = {
-          margin: 0,
-          filename: `Clearance_Note_${document.getElementById("viewPlateArabic").innerText.replace(/\s+/g, "_")}.pdf`,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        };
-        html2pdf().set(opt).from(element).save();
+        const plateName = document.getElementById("viewPlateArabic").innerText.replace(/\s+/g, "_");
+
+        html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false
+        }).then((canvas) => {
+          const imgData = canvas.toDataURL("image/jpeg", 0.98);
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF("p", "mm", "a4");
+          const pdfWidth = 210;
+          const pdfHeight = 297;
+
+          pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+          pdf.save(`Clearance_Note_${plateName}.pdf`);
+        });
       }
 
       function copyAsPNG() {
