@@ -183,10 +183,10 @@
                     <table class="w-full text-left">
                         <thead class="text-[10px] uppercase font-extrabold tracking-wider bg-white">
                             <tr>
-                                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-600">Site</th>
-                                <th class="px-2 md:px-3 py-3 text-center border-b-2 border-r border-slate-300 bg-emerald-100 text-emerald-800">Run</th>
-                                <th class="px-2 md:px-3 py-3 text-center border-b-2 border-r border-slate-300 bg-red-100 text-red-800">Rel</th>
-                                <th class="px-2 md:px-3 py-3 text-center border-b-2 border-slate-300 bg-amber-100 text-amber-800">Rep</th>
+                                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-600 select-none cursor-context-menu" oncontextmenu="openSiteFleetHeaderFilter(event, 0, 'Site')">Site</th>
+                                <th class="px-2 md:px-3 py-3 text-center border-b-2 border-r border-slate-300 bg-emerald-100 text-emerald-800 select-none cursor-context-menu" oncontextmenu="openSiteFleetHeaderFilter(event, 1, 'Run')">Run</th>
+                                <th class="px-2 md:px-3 py-3 text-center border-b-2 border-r border-slate-300 bg-red-100 text-red-800 select-none cursor-context-menu" oncontextmenu="openSiteFleetHeaderFilter(event, 2, 'Rel')">Rel</th>
+                                <th class="px-2 md:px-3 py-3 text-center border-b-2 border-slate-300 bg-amber-100 text-amber-800 select-none cursor-context-menu" oncontextmenu="openSiteFleetHeaderFilter(event, 3, 'Rep')">Rep</th>
                             </tr>
                         </thead>
                         <tbody id="siteTableBody" class="text-sm bg-white"></tbody>
@@ -268,6 +268,25 @@
         </div>
     </div>
 
+    <!-- Excel Filter Popup for Dashboard Modals -->
+    <div id="dashExcelFilterPopup" class="fixed z-[200] hidden w-[260px] p-2.5 bg-white border border-slate-300 rounded-lg shadow-2xl text-xs text-slate-700">
+        <div id="dashExcelFilterTitle" class="font-extrabold text-slate-900 mb-2 text-[12px]">Filter Column</div>
+        <div class="grid grid-cols-2 gap-1.5 mb-2">
+            <button type="button" id="dashSortAsc" onclick="sortDashboardModal('asc')" class="px-2 py-1.5 border border-slate-300 rounded bg-slate-50 font-bold hover:bg-blue-50 hover:text-blue-600 transition text-[11px]">A → Z</button>
+            <button type="button" id="dashSortDesc" onclick="sortDashboardModal('desc')" class="px-2 py-1.5 border border-slate-300 rounded bg-slate-50 font-bold hover:bg-blue-50 hover:text-blue-600 transition text-[11px]">Z → A</button>
+        </div>
+        <input id="dashExcelFilterSearch" type="search" placeholder="Search values…" oninput="searchDashFilterOptions(this.value)" class="w-full h-8 px-2 border border-slate-300 rounded outline-none mb-1 text-[11px]" />
+        <label class="flex items-center gap-1.5 py-1 text-[11px] font-bold border-b border-slate-200 cursor-pointer">
+            <input id="dashFilterSelectAll" type="checkbox" onchange="toggleDashFilterSelectAll(this.checked)" class="cursor-pointer" />
+            <span>Select All</span>
+        </label>
+        <div id="dashExcelFilterOptions" class="max-h-[180px] overflow-y-auto py-1 space-y-1"></div>
+        <div class="flex justify-end gap-1.5 pt-2 border-t border-slate-200 mt-1">
+            <button type="button" onclick="clearDashboardFilter()" class="px-2.5 py-1 border border-slate-300 rounded bg-slate-50 font-semibold hover:bg-slate-100 transition text-[11px]">Clear</button>
+            <button type="button" onclick="applyDashboardFilter()" class="px-2.5 py-1 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 transition text-[11px]">Apply</button>
+        </div>
+    </div>
+
     <script>
     // ==========================================
     // 🟢 THEME
@@ -328,6 +347,9 @@
     let globalSiteCompanyData = [];  // Aggregated site+company combos
     let currentCopyData = [];
     let modalState = { type: '', name: '', data: [], site: '', company: '' };
+    let activeDashFilter = null;
+    let modalExcelFilters = new Map();
+    let modalSortState = null;
 
     // ==========================================
     // 🟢 CORE FIX: ROBUST VALUE EXTRACTOR
@@ -460,20 +482,20 @@
                 else if (st === 'mobilizing') siteMap[s].mobilizing++;
             });
 
-            const sitesList = Object.values(siteMap).sort((a, b) => b.running - a.running);
+            const sitesList = Object.values(siteMap).sort((a, b) => a.site.localeCompare(b.site, undefined, { sensitivity: 'base' }));
 
             let siteHtml = '';
             sitesList.forEach(s => {
                 const safeSite = s.site.replace(/'/g,"\\'").replace(/"/g,'&quot;');
                 siteHtml += `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="px-4 py-3 border-b border-r border-slate-300">
+                    <tr class="hover:bg-slate-50 transition site-fleet-row">
+                        <td class="px-4 py-3 border-b border-r border-slate-300" data-col-idx="0" data-cell-val="${s.site}">
                             <span class="clickable-text truncate block max-w-[80px] md:max-w-full"
                                   onclick="showModal('SITE','${safeSite}')" title="${s.site}">${s.site}</span>
                         </td>
-                        <td class="px-2 md:px-3 py-3 border-b border-r border-slate-300 text-center font-mono font-extrabold text-emerald-700 bg-emerald-50/20">${s.running || 0}</td>
-                        <td class="px-2 md:px-3 py-3 border-b border-r border-slate-300 text-center font-mono font-bold text-red-500">${s.released || 0}</td>
-                        <td class="px-2 md:px-3 py-3 border-b border-slate-300 text-center font-mono font-bold text-amber-500">${s.replaced || 0}</td>
+                        <td class="px-2 md:px-3 py-3 border-b border-r border-slate-300 text-center font-mono font-extrabold text-emerald-700 bg-emerald-50/20" data-col-idx="1" data-cell-val="${s.running || 0}">${s.running || 0}</td>
+                        <td class="px-2 md:px-3 py-3 border-b border-r border-slate-300 text-center font-mono font-bold text-red-500" data-col-idx="2" data-cell-val="${s.released || 0}">${s.released || 0}</td>
+                        <td class="px-2 md:px-3 py-3 border-b border-slate-300 text-center font-mono font-bold text-amber-500" data-col-idx="3" data-cell-val="${s.replaced || 0}">${s.replaced || 0}</td>
                     </tr>`;
             });
             if (!sitesList.length) {
@@ -490,9 +512,17 @@
                 if (!compMap[c]) compMap[c] = 0;
                 compMap[c]++;
             });
+            const defaultCompanyOrder = ["Haka", "Aljoda", "Masar Wheels", "We1"];
             const compList = Object.entries(compMap)
                 .map(([company, count]) => ({ company, count }))
-                .sort((a, b) => b.count - a.count);
+                .sort((a, b) => {
+                    const idxA = defaultCompanyOrder.indexOf(a.company);
+                    const idxB = defaultCompanyOrder.indexOf(b.company);
+                    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                    if (idxA !== -1) return -1;
+                    if (idxB !== -1) return 1;
+                    return a.company.localeCompare(b.company);
+                });
 
             const maxComp = compList.length ? Math.max(...compList.map(c => c.count)) : 1;
             let companyHtml = '';
@@ -607,6 +637,9 @@
     function showModal(type, name) {
         modalState.type = type;
         modalState.name = name;
+        modalExcelFilters.clear();
+        modalSortState = null;
+        closeDashFilterPopup();
 
         document.getElementById('modalSearch').value = '';
         document.getElementById('modalFilter').value = 'All';
@@ -630,10 +663,23 @@
             document.getElementById('modalControls').classList.add('hidden');
 
         } else if (type === 'OWNER') {
-            // Show all vehicles of this owner
+            // Helper status rank: Running (1) -> Replaced (2) -> Released (3) -> Others (4)
+            const getStatusRank = (st) => {
+                const s = String(st || '').trim().toLowerCase();
+                if (s === 'running') return 1;
+                if (s === 'replaced') return 2;
+                if (s === 'released') return 3;
+                return 4;
+            };
+
+            // Show all vehicles of this owner sorted by Status Priority
             modalState.data = globalVehicleDetails
                 .filter(d => d.owner === name)
-                .sort((a, b) => a.plate_number.localeCompare(b.plate_number));
+                .sort((a, b) => {
+                    const rankDiff = getStatusRank(a.status) - getStatusRank(b.status);
+                    if (rankDiff !== 0) return rankDiff;
+                    return a.plate_number.localeCompare(b.plate_number, undefined, { numeric: true });
+                });
             document.getElementById('modalType').innerText = 'Owner Vehicles';
             let titleHtml = name;
             if (currentUser && currentUser.role === 'Super Admin') {
@@ -650,13 +696,25 @@
             document.getElementById('modalControls').classList.add('flex');
 
         } else if (type === 'SITE_COMPANY') {
-            // Drill: Site → Company → vehicles
+            const getStatusRank = (st) => {
+                const s = String(st || '').trim().toLowerCase();
+                if (s === 'running') return 1;
+                if (s === 'replaced') return 2;
+                if (s === 'released') return 3;
+                return 4;
+            };
+
+            // Drill: Site → Company → vehicles sorted by Status Priority
             const [siteName, compName] = name.split('|||');
             modalState.site = siteName;
             modalState.company = compName;
             modalState.data = globalVehicleDetails
                 .filter(d => d.site === siteName && d.company === compName)
-                .sort((a, b) => (a.owner || '').localeCompare(b.owner || ''));
+                .sort((a, b) => {
+                    const rankDiff = getStatusRank(a.status) - getStatusRank(b.status);
+                    if (rankDiff !== 0) return rankDiff;
+                    return a.plate_number.localeCompare(b.plate_number, undefined, { numeric: true });
+                });
             const safeSite = siteName.replace(/'/g,"\\'").replace(/"/g,'&quot;');
             document.getElementById('modalType').innerHTML =
                 `<span class="clickable-text" onclick="showModal('SITE','${safeSite}')">← Back to ${siteName}</span>`;
@@ -665,13 +723,25 @@
             document.getElementById('modalControls').classList.add('flex');
 
         } else if (type === 'COMPANY_SITE') {
-            // Drill: Company → Site → vehicles
+            const getStatusRank = (st) => {
+                const s = String(st || '').trim().toLowerCase();
+                if (s === 'running') return 1;
+                if (s === 'replaced') return 2;
+                if (s === 'released') return 3;
+                return 4;
+            };
+
+            // Drill: Company → Site → vehicles sorted by Status Priority
             const [compName, siteName] = name.split('|||');
             modalState.site = siteName;
             modalState.company = compName;
             modalState.data = globalVehicleDetails
                 .filter(d => d.company === compName && d.site === siteName)
-                .sort((a, b) => (a.owner || '').localeCompare(b.owner || ''));
+                .sort((a, b) => {
+                    const rankDiff = getStatusRank(a.status) - getStatusRank(b.status);
+                    if (rankDiff !== 0) return rankDiff;
+                    return a.plate_number.localeCompare(b.plate_number, undefined, { numeric: true });
+                });
             const safeComp = compName.replace(/'/g,"\\'").replace(/"/g,'&quot;');
             document.getElementById('modalType').innerHTML =
                 `<span class="clickable-text" onclick="showModal('COMPANY','${safeComp}')">← Back to ${compName}</span>`;
@@ -713,8 +783,8 @@
 
         if (type === 'SITE') {
             theadHtml = `<tr>
-                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Company Name</th>
-                <th class="px-4 py-3 border-b-2 border-slate-300 bg-emerald-100 text-emerald-800 text-center">Count</th>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700 select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 0, 'Company Name')">Company Name</th>
+                <th class="px-4 py-3 border-b-2 border-slate-300 bg-emerald-100 text-emerald-800 text-center select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 1, 'Count')">Count</th>
             </tr>`;
             filtered.forEach(d => {
                 // 🟢 FIX: Use ||| separator (not | which can appear in names)
@@ -732,35 +802,35 @@
 
         } else if (type === 'COMPANY') {
             theadHtml = `<tr>
-                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Site Name</th>
-                <th class="px-4 py-3 border-b-2 border-slate-300 bg-emerald-100 text-emerald-800 text-center">Count</th>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700 select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 0, 'Site Name')">Site Name</th>
+                <th class="px-4 py-3 border-b-2 border-slate-300 bg-emerald-100 text-emerald-800 text-center select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 1, 'Count')">Count</th>
             </tr>`;
             filtered.forEach(d => {
                 const key = `${d.company}|||${d.site}`;
                 const safeKey = key.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-                listHtml += `<tr class="hover:bg-slate-50">
-                    <td class="px-4 py-3 border-b border-r border-slate-300 font-bold text-slate-700">
+                listHtml += `<tr class="hover:bg-slate-50" data-row-idx="0">
+                    <td class="px-4 py-3 border-b border-r border-slate-300 font-bold text-slate-700" data-col-idx="0" data-cell-val="${d.site}">
                         <span class="clickable-text truncate block max-w-[150px] md:max-w-full"
                               onclick="showModal('COMPANY_SITE','${safeKey}')">${d.site}</span>
                     </td>
-                    <td class="px-4 py-3 border-b border-slate-300 text-center font-mono font-bold text-emerald-600 text-lg">${d.count}</td>
+                    <td class="px-4 py-3 border-b border-slate-300 text-center font-mono font-bold text-emerald-600 text-lg" data-col-idx="1" data-cell-val="${d.count}">${d.count}</td>
                 </tr>`;
                 total += Number(d.count);
             });
 
         } else if (type === 'OWNER') {
             theadHtml = `<tr>
-                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Plate No</th>
-                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700 hidden md:table-cell">Site</th>
-                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Company</th>
-                <th class="px-4 py-3 border-b-2 border-slate-300 bg-slate-100 text-slate-700">Status</th>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700 select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 0, 'Plate No')">Plate No</th>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700 hidden md:table-cell select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 1, 'Site')">Site</th>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700 select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 2, 'Company')">Company</th>
+                <th class="px-4 py-3 border-b-2 border-slate-300 bg-slate-100 text-slate-700 select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 3, 'Status')">Status</th>
             </tr>`;
             filtered.forEach(d => {
                 listHtml += `<tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-4 py-3 border-b border-r border-slate-300 font-mono font-bold text-blue-600 whitespace-nowrap">${d.plate_number}</td>
-                    <td class="px-4 py-3 border-b border-r border-slate-300 font-semibold text-slate-700 hidden md:table-cell">${d.site}</td>
-                    <td class="px-4 py-3 border-b border-r border-slate-300 font-semibold text-slate-500 truncate max-w-[100px]">${d.company}</td>
-                    <td class="px-4 py-3 border-b border-slate-300 font-bold text-[10px] uppercase tracking-wider">
+                    <td class="px-4 py-3 border-b border-r border-slate-300 font-mono font-bold text-blue-600 whitespace-nowrap" data-col-idx="0" data-cell-val="${d.plate_number}">${d.plate_number}</td>
+                    <td class="px-4 py-3 border-b border-r border-slate-300 font-semibold text-slate-700 hidden md:table-cell" data-col-idx="1" data-cell-val="${d.site}">${d.site}</td>
+                    <td class="px-4 py-3 border-b border-slate-300 font-semibold text-slate-500 truncate max-w-[100px]" data-col-idx="2" data-cell-val="${d.company}">${d.company}</td>
+                    <td class="px-4 py-3 border-b border-slate-300 font-bold text-[10px] uppercase tracking-wider" data-col-idx="3" data-cell-val="${d.status || '-'}">
                         <span class="${getStatusColor(d.status)}">${d.status || '-'}</span>
                     </td>
                 </tr>`;
@@ -769,9 +839,9 @@
 
         } else if (type === 'SITE_COMPANY' || type === 'COMPANY_SITE') {
             theadHtml = `<tr>
-                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Plate No</th>
-                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700">Owner</th>
-                <th class="px-4 py-3 border-b-2 border-slate-300 bg-slate-100 text-slate-700">Status</th>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700 select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 0, 'Plate No')">Plate No</th>
+                <th class="px-4 py-3 border-b-2 border-r border-slate-300 bg-slate-100 text-slate-700 select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 1, 'Owner')">Owner</th>
+                <th class="px-4 py-3 border-b-2 border-slate-300 bg-slate-100 text-slate-700 select-none cursor-context-menu" oncontextmenu="openDashHeaderFilter(event, 2, 'Status')">Status</th>
             </tr>`;
             filtered.forEach(d => {
                 listHtml += `<tr class="hover:bg-slate-50 transition-colors">
@@ -822,10 +892,274 @@
     // 🟢 MODAL: CLOSE
     // ==========================================
     function closeModal(force = false) {
+        closeDashFilterPopup();
         const modal = document.getElementById('detailsModal');
         modal.classList.remove('show');
         setTimeout(() => { if (!modal.classList.contains('show')) modal.style.display = 'none'; }, 300);
     }
+
+    // ==========================================
+    // 🟢 EXCEL-STYLE HEADER FILTER FOR MODALS
+    // ==========================================
+    function openDashHeaderFilter(event, colIdx, colName) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const popup = document.getElementById('dashExcelFilterPopup');
+        const rows = document.querySelectorAll('#modalListBody tr');
+        if (!rows.length) return;
+
+        let uniqueValues = new Set();
+        rows.forEach(r => {
+            const cell = r.querySelector(`td[data-col-idx="${colIdx}"]`) || r.children[colIdx];
+            if (cell) {
+                const val = (cell.getAttribute('data-cell-val') || cell.innerText || '').trim();
+                uniqueValues.add(val || '(Blank)');
+            }
+        });
+
+        const sortedValues = Array.from(uniqueValues).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+        activeDashFilter = { colIdx, colName, values: sortedValues };
+        document.getElementById('dashExcelFilterTitle').innerText = `Filter: ${colName}`;
+        document.getElementById('dashExcelFilterSearch').value = '';
+
+        // User explicit instructions: Initially all checkboxes must be UNCHECKED
+        const container = document.getElementById('dashExcelFilterOptions');
+        let optionsHtml = '';
+        sortedValues.forEach((val, idx) => {
+            const escaped = val.replace(/"/g, '&quot;');
+            optionsHtml += `
+                <label class="flex items-center gap-1.5 py-0.5 px-1 hover:bg-slate-100 rounded cursor-pointer dash-filter-opt">
+                    <input type="checkbox" value="${escaped}" class="cursor-pointer dash-val-cb" />
+                    <span class="truncate" title="${escaped}">${escaped}</span>
+                </label>
+            `;
+        });
+        container.innerHTML = optionsHtml;
+        document.getElementById('dashFilterSelectAll').checked = false;
+
+        // Positioning
+        popup.classList.remove('hidden');
+        const left = Math.min(event.clientX, window.innerWidth - 275);
+        const top = Math.min(event.clientY + 8, window.innerHeight - 360);
+        popup.style.left = `${Math.max(10, left)}px`;
+        popup.style.top = `${Math.max(10, top)}px`;
+        setTimeout(() => document.getElementById('dashExcelFilterSearch').focus(), 50);
+    }
+
+    function closeDashFilterPopup() {
+        const popup = document.getElementById('dashExcelFilterPopup');
+        if (popup) popup.classList.add('hidden');
+    }
+
+    function searchDashFilterOptions(query) {
+        const q = (query || '').toLowerCase();
+        document.querySelectorAll('.dash-filter-opt').forEach(opt => {
+            opt.style.display = opt.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
+        });
+    }
+
+    function toggleDashFilterSelectAll(checked) {
+        document.querySelectorAll('.dash-filter-opt').forEach(opt => {
+            if (opt.style.display !== 'none') {
+                const cb = opt.querySelector('.dash-val-cb');
+                if (cb) cb.checked = checked;
+            }
+        });
+    }
+
+    function sortDashboardModal(direction) {
+        if (activeSiteFleetFilter) {
+            sortSiteFleet(direction);
+            return;
+        }
+        if (!activeDashFilter) return;
+        const colIdx = activeDashFilter.colIdx;
+        const tbody = document.getElementById('modalListBody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const dirMultiplier = direction === 'asc' ? 1 : -1;
+
+        rows.sort((a, b) => {
+            const cellA = a.querySelector(`td[data-col-idx="${colIdx}"]`) || a.children[colIdx];
+            const cellB = b.querySelector(`td[data-col-idx="${colIdx}"]`) || b.children[colIdx];
+            const valA = (cellA ? (cellA.getAttribute('data-cell-val') || cellA.innerText) : '').trim();
+            const valB = (cellB ? (cellB.getAttribute('data-cell-val') || cellB.innerText) : '').trim();
+            return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' }) * dirMultiplier;
+        });
+
+        tbody.innerHTML = '';
+        rows.forEach(r => tbody.appendChild(r));
+        closeDashFilterPopup();
+        showToast(`Sorted ${direction.toUpperCase()}`, 'success');
+    }
+
+    let activeSiteFleetFilter = null;
+    let siteFleetExcelFilters = new Map();
+
+    function openSiteFleetHeaderFilter(event, colIdx, colName) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const popup = document.getElementById('dashExcelFilterPopup');
+        const rows = document.querySelectorAll('#siteTableBody tr.site-fleet-row');
+        if (!rows.length) return;
+
+        let uniqueValues = new Set();
+        rows.forEach(r => {
+            const cell = r.querySelector(`td[data-col-idx="${colIdx}"]`);
+            if (cell) {
+                const val = (cell.getAttribute('data-cell-val') || cell.innerText || '').trim();
+                uniqueValues.add(val || '(Blank)');
+            }
+        });
+
+        const sortedValues = Array.from(uniqueValues).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+        activeSiteFleetFilter = { colIdx, colName, values: sortedValues };
+        activeDashFilter = null; // deactivate modal filter context
+
+        document.getElementById('dashExcelFilterTitle').innerText = `Filter Site Fleet: ${colName}`;
+        document.getElementById('dashExcelFilterSearch').value = '';
+
+        const container = document.getElementById('dashExcelFilterOptions');
+        let optionsHtml = '';
+        sortedValues.forEach(val => {
+            const escaped = val.replace(/"/g, '&quot;');
+            optionsHtml += `
+                <label class="flex items-center gap-1.5 py-0.5 px-1 hover:bg-slate-100 rounded cursor-pointer dash-filter-opt">
+                    <input type="checkbox" value="${escaped}" class="cursor-pointer dash-val-cb" />
+                    <span class="truncate" title="${escaped}">${escaped}</span>
+                </label>
+            `;
+        });
+        container.innerHTML = optionsHtml;
+        document.getElementById('dashFilterSelectAll').checked = false;
+
+        popup.classList.remove('hidden');
+        const left = Math.min(event.clientX, window.innerWidth - 275);
+        const top = Math.min(event.clientY + 8, window.innerHeight - 360);
+        popup.style.left = `${Math.max(10, left)}px`;
+        popup.style.top = `${Math.max(10, top)}px`;
+        setTimeout(() => document.getElementById('dashExcelFilterSearch').focus(), 50);
+    }
+
+    function sortSiteFleet(direction) {
+        if (!activeSiteFleetFilter) return;
+        const colIdx = activeSiteFleetFilter.colIdx;
+        const tbody = document.getElementById('siteTableBody');
+        const rows = Array.from(tbody.querySelectorAll('tr.site-fleet-row'));
+        const dirMultiplier = direction === 'asc' ? 1 : -1;
+
+        rows.sort((a, b) => {
+            const cellA = a.querySelector(`td[data-col-idx="${colIdx}"]`);
+            const cellB = b.querySelector(`td[data-col-idx="${colIdx}"]`);
+            const valA = (cellA ? (cellA.getAttribute('data-cell-val') || cellA.innerText) : '').trim();
+            const valB = (cellB ? (cellB.getAttribute('data-cell-val') || cellB.innerText) : '').trim();
+            return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' }) * dirMultiplier;
+        });
+
+        tbody.innerHTML = '';
+        rows.forEach(r => tbody.appendChild(r));
+        closeDashFilterPopup();
+        showToast(`Site Fleet Sorted ${direction.toUpperCase()}`, 'success');
+    }
+
+    function applyAllSiteFleetFilters() {
+        const rows = document.querySelectorAll('#siteTableBody tr.site-fleet-row');
+        rows.forEach(r => {
+            let matches = true;
+            siteFleetExcelFilters.forEach((selectedSet, colIdx) => {
+                const cell = r.querySelector(`td[data-col-idx="${colIdx}"]`);
+                const val = (cell ? (cell.getAttribute('data-cell-val') || cell.innerText) : '').trim() || '(Blank)';
+                if (!selectedSet.has(val)) {
+                    matches = false;
+                }
+            });
+            r.style.display = matches ? '' : 'none';
+        });
+    }
+
+    function applyDashboardFilter() {
+        if (activeSiteFleetFilter) {
+            const selected = new Set();
+            document.querySelectorAll('.dash-val-cb:checked').forEach(cb => selected.add(cb.value));
+            if (selected.size === 0) {
+                siteFleetExcelFilters.delete(activeSiteFleetFilter.colIdx);
+            } else {
+                siteFleetExcelFilters.set(activeSiteFleetFilter.colIdx, selected);
+            }
+            applyAllSiteFleetFilters();
+            closeDashFilterPopup();
+            return;
+        }
+
+        if (!activeDashFilter) return;
+        const selected = new Set();
+        document.querySelectorAll('.dash-val-cb:checked').forEach(cb => selected.add(cb.value));
+
+        if (selected.size === 0) {
+            modalExcelFilters.delete(activeDashFilter.colIdx);
+        } else {
+            modalExcelFilters.set(activeDashFilter.colIdx, selected);
+        }
+
+        applyAllModalFilters();
+        closeDashFilterPopup();
+    }
+
+    function clearDashboardFilter() {
+        if (activeSiteFleetFilter) {
+            siteFleetExcelFilters.delete(activeSiteFleetFilter.colIdx);
+            applyAllSiteFleetFilters();
+            closeDashFilterPopup();
+            showToast('Site Fleet Filter cleared', 'success');
+            return;
+        }
+
+        if (!activeDashFilter) return;
+        modalExcelFilters.delete(activeDashFilter.colIdx);
+        applyAllModalFilters();
+        closeDashFilterPopup();
+        showToast('Filter cleared', 'success');
+    }
+
+    function applyAllModalFilters() {
+        const rows = document.querySelectorAll('#modalListBody tr');
+        let visibleCount = 0;
+        let sumCount = 0;
+
+        rows.forEach(r => {
+            let matches = true;
+            modalExcelFilters.forEach((selectedSet, colIdx) => {
+                const cell = r.querySelector(`td[data-col-idx="${colIdx}"]`) || r.children[colIdx];
+                const val = (cell ? (cell.getAttribute('data-cell-val') || cell.innerText) : '').trim() || '(Blank)';
+                if (!selectedSet.has(val)) {
+                    matches = false;
+                }
+            });
+
+            if (matches) {
+                r.style.display = '';
+                visibleCount++;
+                const countCell = r.querySelector('td.font-mono');
+                if (countCell) {
+                    sumCount += Number(countCell.innerText) || 0;
+                }
+            } else {
+                r.style.display = 'none';
+            }
+        });
+
+        // Update Total
+        document.getElementById('modalTotalCount').innerText = sumCount > 0 ? sumCount : visibleCount;
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#dashExcelFilterPopup')) {
+            closeDashFilterPopup();
+        }
+    });
 
     // ==========================================
     // 🟢 AUTH: LOGOUT
