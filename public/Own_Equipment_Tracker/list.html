@@ -3,9 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <title>Equipment Wise Details</title>
-    <!-- 🟢 Include Libraries for PDF & High Quality Image Copy -->
-    <script src="/vendor/html2pdf/html2pdf.bundle.min.js"></script>
+    <!-- 🟢 Include Libraries for PDF, ZIP & High Quality Image Copy -->
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <script src="/node_xlsx_scripts/html2pdf.bundle.min.js"></script>
     <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jszip.min.js"></script>
     <style>
       body {
         font-family: "Segoe UI", sans-serif;
@@ -97,12 +99,24 @@
       th,
       td {
         border: 1px solid #ccc;
-        padding: 8px;
+        padding: 6px 8px;
         text-align: center;
       }
       th {
         background: #d9e1f2;
         color: #000;
+        white-space: normal !important;
+        vertical-align: middle;
+        line-height: 1.3;
+        font-size: 12px;
+      }
+      .btn-pdf {
+        background: #c0392b;
+        color: white;
+      }
+      .btn-png {
+        background: #8e44ad;
+        color: white;
       }
 
       /* 🟢 Convert Dropdown Styles */
@@ -197,9 +211,15 @@
         Detailed Review of Each Equipment
       </h2>
       <div style="display: flex; gap: 10px">
-        <!-- 🟢 Export All as Excel Button -->
+        <!-- 🟢 Export All as Excel, PDF & PNG Buttons -->
         <button class="btn btn-excel" onclick="exportAllEquipmentsExcel()">
           Export All as Excel
+        </button>
+        <button class="btn btn-pdf" onclick="exportAllEquipmentsPDF()">
+          Export All as PDF
+        </button>
+        <button class="btn btn-png" onclick="exportAllEquipmentsPNGZip()">
+          Export All as PNG (ZIP)
         </button>
         <button
           class="btn btn-blue"
@@ -663,6 +683,38 @@
         }
       }
 
+      // 🟢 1.1 EXPORT SINGLE EQUIPMENT PDF
+      function exportSinglePDF() {
+        const element = document.getElementById("detailsWrapper");
+        if (!element || element.style.display === "none") return;
+        const eq = allEquipments.find((e) => e.id === activeEquipmentId);
+        const fileName = eq ? `Equipment_${eq.plate_no}.pdf` : "Equipment_Details.pdf";
+        showToast("Generating PDF...", "success");
+
+        const HTML_Width = element.scrollWidth;
+        const HTML_Height = element.scrollHeight;
+
+        const opt = {
+          margin: 10,
+          filename: fileName,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, windowWidth: HTML_Width },
+          pagebreak: { mode: "avoid-all" },
+          jsPDF: {
+            unit: "px",
+            format: [HTML_Width + 20, HTML_Height + 40],
+            orientation: "landscape",
+          },
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+          showToast("PDF Downloaded Successfully!", "success");
+        }).catch((err) => {
+          console.error(err);
+          showToast("Failed to generate PDF.", "error");
+        });
+      }
+
       // 🟢 2. EXPORT SINGLE EQUIPMENT EXCEL
       async function exportSingleExcel() {
         if (!activeEquipmentId) return;
@@ -703,7 +755,231 @@
         }
       }
 
-      // 🟢 4. COPY OPENED DATA AS HIGH QUALITY IMAGE CARD
+      // 🟢 Helper to generate temporary offscreen Card DOM for clean captures
+      function buildOffscreenEquipmentCard(eq) {
+        const formattedDate = formatPurchaseDate(eq.purchase_date);
+        const formattedCost = Number(eq.purchase_cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        let remCostVal = parseFloat(eq.remaining_purchase_cost || 0);
+        let remText = remCostVal > 0 ? ` | <span style="color: #c0392b;">Remaining Cost: ${remCostVal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR</span>` : "";
+
+        const card = document.createElement("div");
+        card.style.cssText = "background: #ffffff; padding: 20px; border-radius: 8px; width: 1250px; box-sizing: border-box; font-family: 'Segoe UI', sans-serif;";
+
+        const titleRow = document.createElement("div");
+        titleRow.style.cssText = "border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 10px;";
+        titleRow.innerHTML = `<h3 style="margin: 0; color: #2c3e50; font-size: 18px;">Plate No: ${eq.plate_no} | Purchase Date: ${formattedDate} | Purchase Cost: ${formattedCost} SAR${remText}</h3>`;
+        card.appendChild(titleRow);
+
+        const tbl = document.createElement("table");
+        tbl.style.cssText = "width: 100%; border-collapse: collapse; font-size: 13px;";
+        tbl.innerHTML = `
+          <thead>
+            <tr style="height: 38px;">
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Year</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Month</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Maintenance<br>Cost</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Driver (Basic +<br>OT + Allowance)</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Penalty</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Santook<br>Rent</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Kafil<br>Commission</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Owner<br>Commission</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Investor<br>Commission</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Debit<br>Note</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">PWAS</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Other<br>Expenses</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Operational<br>Revenue</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Gain / Loss</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+
+        const tb = tbl.querySelector("tbody");
+        const eqLogs = allLogs.filter((l) => l.equipment_id === eq.id);
+        eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
+
+        const shortM = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let tMaint = 0, tBasicOt = 0, tPenalty = 0, tRent = 0, tKafil = 0, tOwner = 0, tInv = 0, tDebit = 0, tPwas = 0, tOther = 0, tRev = 0, tGl = 0;
+
+        if (eqLogs.length === 0) {
+          tb.innerHTML = `<tr><td colspan="14" style="border: 1px solid #ccc; padding: 8px; text-align: center; color: gray;">No records found.</td></tr>`;
+        } else {
+          eqLogs.forEach((l) => {
+            const maint = Number(l.maintenance_cost || 0);
+            const basicOt = Number(l.basic_salary || 0) + Number(l.overtime || 0) + Number(l.allowance || 0);
+            const penalty = Number(l.penalty || 0);
+            const rent = Number(l.santook_rent || 0);
+            const rev = Number(l.op_revenue || 0);
+            const debit = Number(l.debit || 0);
+            const pwas = Number(l.pwas || 0);
+            const other = Number(l.other_expense || 0);
+            const kafil = rev * (Number(l.kafil_comm || 0) / 100);
+            const owner = Number(l.owner_comm || 0);
+            const inv = Number(l.investor_comm || 0);
+            const netSal = basicOt - penalty;
+            const gl = rev - (maint + netSal + rent + kafil + owner + inv + debit + pwas + other);
+
+            tMaint += maint; tBasicOt += basicOt; tPenalty += penalty; tRent += rent;
+            tKafil += kafil; tOwner += owner; tInv += inv; tDebit += debit; tPwas += pwas;
+            tOther += other; tRev += rev; tGl += gl;
+
+            tb.innerHTML += `
+              <tr style="height: 32px;">
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;"><b>${l.year}</b></td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;"><b>${shortM[l.month - 1] || l.month}</b></td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${maint.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${basicOt.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center; color: red;">${penalty.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${rent.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${kafil.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${owner.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${inv.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${debit.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${pwas.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${other.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${rev.toFixed(2)}</td>
+                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center; font-weight: bold; color: ${gl < 0 ? "red" : "green"};">${gl.toFixed(2)}</td>
+              </tr>
+            `;
+          });
+
+          tb.innerHTML += `
+            <tr style="background-color: #eaeff8; font-weight: bold; border-top: 2px solid #333; height: 35px;">
+              <td colspan="2" style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">TOTAL</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tMaint.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tBasicOt.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center; color: red;">${tPenalty.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tRent.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tKafil.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tOwner.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tInv.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tDebit.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tPwas.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tOther.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tRev.toFixed(2)}</td>
+              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center; font-weight: bold; color: ${tGl < 0 ? "red" : "green"};">${tGl.toFixed(2)}</td>
+            </tr>
+          `;
+        }
+
+        card.appendChild(tbl);
+        return card;
+      }
+
+      // 🟢 3. EXPORT ALL AS MULTI-PAGE PDF (BATCH-WISE NON-BLOCKING)
+      async function exportAllEquipmentsPDF() {
+        if (!allEquipments || allEquipments.length === 0) {
+          showToast("No equipments found to export.", "error");
+          return;
+        }
+
+        showToast(`Preparing PDF for ${allEquipments.length} equipments...`, "success");
+
+        const offscreenHolder = document.createElement("div");
+        offscreenHolder.style.cssText = "position: absolute; left: -9999px; top: 0;";
+        document.body.appendChild(offscreenHolder);
+
+        const jsPdfClass = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
+        if (!jsPdfClass) {
+          showToast("jsPDF library not available.", "error");
+          offscreenHolder.remove();
+          return;
+        }
+        let pdf = null;
+
+        try {
+          for (let i = 0; i < allEquipments.length; i++) {
+            const eq = allEquipments[i];
+            const cardEl = buildOffscreenEquipmentCard(eq);
+            offscreenHolder.innerHTML = "";
+            offscreenHolder.appendChild(cardEl);
+
+            await new Promise((r) => setTimeout(r, 40));
+
+            const canvas = await html2canvas(cardEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+            const imgData = canvas.toDataURL("image/jpeg", 0.95);
+            const w = canvas.width / 2;
+            const h = canvas.height / 2;
+
+            if (i === 0) {
+              pdf = new jsPdfClass({ orientation: "landscape", unit: "px", format: [w + 20, h + 20] });
+            } else {
+              pdf.addPage([w + 20, h + 20], "landscape");
+            }
+
+            pdf.addImage(imgData, "JPEG", 10, 10, w, h);
+            showToast(`Rendered ${i + 1}/${allEquipments.length} pages...`, "success");
+          }
+
+          if (pdf) {
+            pdf.save("All_Equipments_Report.pdf");
+            showToast("All Equipments PDF Downloaded!", "success");
+          }
+        } catch (err) {
+          console.error("Batch PDF Export Error:", err);
+          showToast("Error during PDF batch export.", "error");
+        } finally {
+          offscreenHolder.remove();
+        }
+      }
+
+      // 🟢 4. EXPORT ALL AS HIGH-QUALITY PNG ZIP (PARALLEL/BATCH-SAFE)
+      async function exportAllEquipmentsPNGZip() {
+        if (!allEquipments || allEquipments.length === 0) {
+          showToast("No equipments found to export.", "error");
+          return;
+        }
+        if (typeof JSZip === "undefined") {
+          showToast("JSZip library not loaded. Check internet connection.", "error");
+          return;
+        }
+
+        showToast(`Packaging ${allEquipments.length} images into ZIP...`, "success");
+
+        const zip = new JSZip();
+        const folder = zip.folder("Equipment_PNGs");
+        const offscreenHolder = document.createElement("div");
+        offscreenHolder.style.cssText = "position: absolute; left: -9999px; top: 0;";
+        document.body.appendChild(offscreenHolder);
+
+        try {
+          for (let i = 0; i < allEquipments.length; i++) {
+            const eq = allEquipments[i];
+            const cardEl = buildOffscreenEquipmentCard(eq);
+            offscreenHolder.innerHTML = "";
+            offscreenHolder.appendChild(cardEl);
+
+            await new Promise((r) => setTimeout(r, 40));
+
+            const canvas = await html2canvas(cardEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+            const dataUrl = canvas.toDataURL("image/png");
+            const base64Data = dataUrl.split(",")[1];
+            const safePlate = (eq.plate_no || `EQ_${i + 1}`).replace(/[\/\\?%*:|"<>]/g, "-");
+
+            folder.file(`${String(i + 1).padStart(2, "0")}_${safePlate}.png`, base64Data, { base64: true });
+            showToast(`Processed ${i + 1}/${allEquipments.length} images...`, "success");
+          }
+
+          showToast("Compressing ZIP file...", "success");
+          const zipContent = await zip.generateAsync({ type: "blob" });
+          const url = window.URL.createObjectURL(zipContent);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "All_Equipments_PNG.zip";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+          showToast("All PNGs downloaded in ZIP!", "success");
+        } catch (err) {
+          console.error("Batch PNG ZIP Error:", err);
+          showToast("Error creating PNG ZIP.", "error");
+        } finally {
+          offscreenHolder.remove();
+        }
+      }
+
+      // 🟢 5. COPY OPENED DATA AS HIGH QUALITY IMAGE CARD
       function copyAsImage() {
         const element = document.getElementById("detailsWrapper");
         if (!element || element.style.display === "none") return;
