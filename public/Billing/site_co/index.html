@@ -2271,13 +2271,13 @@
 
         card.querySelectorAll(".edit-number-input").forEach((input) => {
           const tr = input.closest("tr");
-          if (tr && tr.getAttribute("data-merged") === "1") return;
+          if (tr && (tr.getAttribute("data-merged") === "1" || tr.getAttribute("data-inactive") === "1")) return;
           input.style.display = "inline-block";
         });
 
         card.querySelectorAll(".view-number-text").forEach((span) => {
           const tr = span.closest("tr");
-          if (tr && tr.getAttribute("data-merged") === "1") return;
+          if (tr && (tr.getAttribute("data-merged") === "1" || tr.getAttribute("data-inactive") === "1")) return;
           span.style.display = "none";
         });
 
@@ -2589,7 +2589,7 @@
         let invalidFound = false;
 
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          if (r.getAttribute("data-merged") === "1") return;
+          if (r.getAttribute("data-merged") === "1" || r.getAttribute("data-inactive") === "1") return;
 
           const displayPlate = r.getAttribute("data-plate");
           const plate = r.getAttribute("data-master-plate") || displayPlate;
@@ -3530,12 +3530,40 @@
           // 🟢 പുതിയ പ്ലേറ്റ് നമ്പർ വരുമ്പോൾ ടോപ്പ് ഹെഡറിലെ ടൈറ്റിൽ dynamic ആയി അപ്ഡേറ്റ് ചെയ്യുന്നു
           updateCardHeaderTitle(row.closest(".bill-card"));
 
+          const isMonthActive = match && (match.site && match.site !== "N/A" && match.site !== "-");
+          if (!isMonthActive) {
+            row.setAttribute("data-inactive", "1");
+            row.querySelectorAll(".edit-number-input").forEach((inp) => {
+              inp.disabled = true;
+              inp.style.display = "none";
+            });
+            row.querySelectorAll(".view-number-text").forEach((span) => {
+              span.style.display = "inline-block";
+            });
+            row.style.background = "#f1f5f9";
+            showToast(`Vehicle ${plate} has NO active site for this month (Read-Only)`);
+          } else {
+            row.removeAttribute("data-inactive");
+            showToast(`Data loaded for Plate: ${plate}`);
+          }
+
           const tbody = row.parentElement;
           if (row === tbody.lastElementChild) {
             const card = row.closest(".bill-card");
             addManualRowDirectly(card.id);
           }
-          showToast(`Data loaded for Plate: ${plate}`);
+        } else {
+          row.setAttribute("data-inactive", "1");
+          row.children[3].innerText = "N/A";
+          row.querySelectorAll(".edit-number-input").forEach((inp) => {
+            inp.disabled = true;
+            inp.style.display = "none";
+          });
+          row.querySelectorAll(".view-number-text").forEach((span) => {
+            span.style.display = "inline-block";
+          });
+          row.style.background = "#f1f5f9";
+          showToast(`Vehicle ${plate} not active in this month!`);
         }
       }
 
@@ -4371,7 +4399,7 @@
         const items = [];
 
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          if (r.getAttribute("data-merged") === "1") return;
+          if (r.getAttribute("data-merged") === "1" || r.getAttribute("data-inactive") === "1") return;
 
           const displayPlate = r.getAttribute("data-plate");
           const plate = r.getAttribute("data-master-plate") || displayPlate;
