@@ -24,6 +24,7 @@ from routers import klm_staff_payroll
 from routers import monthly_list_summary
 from routers.pdf_tools import router as pdf_tools_router
 from routers.einvoice_export_py import router as einvoice_export_router
+from routers.johns_report import router as johns_report_router
 
 from routers.landtasset_routes import router as landtasset_router
 
@@ -53,6 +54,7 @@ app.include_router(klm_staff_payroll.router, prefix="/api/py-payroll", tags=["Pa
 app.include_router(monthly_list_summary.router)
 app.include_router(pdf_tools_router)
 app.include_router(einvoice_export_router)
+app.include_router(johns_report_router)
 
 app.include_router(landtasset_router)
 
