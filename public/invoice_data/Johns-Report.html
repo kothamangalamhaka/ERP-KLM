@@ -203,6 +203,23 @@
         width: 360px;
         box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       }
+      .security-modal-overlay {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        background: #0f172a;
+        z-index: 1000000;
+        justify-content: center;
+        align-items: center;
+      }
+      .security-card {
+        background: #ffffff;
+        padding: 25px 30px;
+        border-radius: 10px;
+        width: 340px;
+        text-align: center;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+      }
       .filter-icon {
         font-size: 9px;
         color: #94a3b8;
@@ -298,6 +315,15 @@
     </style>
   </head>
   <body>
+    <div id="securityPromptModal" class="security-modal-overlay">
+      <div class="security-card">
+        <h3 style="margin-top:0; color:#0f172a; font-size:16px;">Security Verification</h3>
+        <p style="font-size:12px; color:#64748b; margin-bottom:15px;">Enter authorization code to access report:</p>
+        <input type="password" id="inputSecurityCode" placeholder="Security Code" style="width:100%; box-sizing:border-box; padding:8px 10px; margin-bottom:12px;" onkeypress="if(event.key==='Enter') submitSecurityVerification();" />
+        <div id="securityErrorMsg" style="color:#ef4444; font-size:11px; margin-bottom:12px; display:none;">Invalid code. Please try again.</div>
+        <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="submitSecurityVerification()">Verify & Proceed</button>
+      </div>
+    </div>
     <div class="top-ribbon">
       <div class="ribbon-group">
         <label>From:</label>
@@ -312,7 +338,9 @@
       <button class="btn btn-primary" onclick="loadAllSelectedMonths()">⚡ Fetch Data</button>
       <input type="text" id="tableSearch" placeholder="🔍 Search Plate, Site, Owner..." style="width: 200px;" onkeyup="applySearchFilter()" />
       <div id="loader" class="loader">Loading Data...</div>
-      <button class="btn btn-success" onclick="exportToExcelWorkbook()">📊 Export Excel</button>
+      <button class="btn" style="background: #0d9488; color: #fff; margin-left: auto;" onclick="createCurrentDataBackup()">💾 Backup</button>
+      <button class="btn" style="background: #6366f1; color: #fff;" onclick="openBackupListModal()">📂 View Backups</button>
+      <button class="btn btn-success" style="margin-left: 0;" onclick="exportToExcelWorkbook()">📊 Export Excel</button>
     </div>
 
     <div class="table-wrapper">
@@ -413,6 +441,41 @@
       </div>
     </div>
 
+    <div id="backupListModal" class="export-modal-overlay">
+      <div class="export-modal-card" style="width: 680px; max-width: 95%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; font-size:15px; color:#0f172a;">Saved Report Snapshots (Backups)</h3>
+          <button style="border:none; background:transparent; font-size:16px; cursor:pointer;" onclick="closeBackupListModal()">✖</button>
+        </div>
+        <div style="max-height:350px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px;">
+          <table style="width:100%; border-collapse:collapse; min-width:auto;">
+            <thead>
+              <tr style="background:#f1f5f9; position:sticky; top:0;">
+                <th style="padding:6px; font-size:11px; text-align:left; border-bottom:1px solid #cbd5e1;">Backup Name & Date</th>
+                <th style="padding:6px; font-size:11px; text-align:center; border-bottom:1px solid #cbd5e1;">Period</th>
+                <th style="padding:6px; font-size:11px; text-align:center; border-bottom:1px solid #cbd5e1;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="backupListTableBody">
+              <tr><td colspan="3" style="padding:15px; text-align:center; color:#64748b;">Loading backups...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="deleteBackupModal" class="export-modal-overlay">
+      <div class="export-modal-card" style="width: 320px;">
+        <h4 style="margin-top:0; font-size:14px; color:#b91c1c;">Confirm Delete Backup</h4>
+        <p style="font-size:11px; color:#64748b; margin-bottom:12px;">Enter Delete Pass Key to remove this backup:</p>
+        <input type="password" id="inputDeletePassKey" placeholder="Delete Key" style="width:100%; box-sizing:border-box; padding:6px 8px; margin-bottom:12px;" />
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button class="btn" style="background:#e2e8f0; color:#334155;" onclick="closeDeleteBackupModal()">Cancel</button>
+          <button class="btn" style="background:#ef4444; color:#fff;" onclick="submitDeleteBackup()">Delete</button>
+        </div>
+      </div>
+    </div>
+
     <div id="excelFilterMenu" class="excel-filter-menu" onclick="event.stopPropagation()">
       <div class="excel-filter-header">
         <button onclick="applySort('asc')">🔼 Sort A-Z</button>
@@ -440,7 +503,44 @@
       let currentFilterKey = "";
       let sortConfig = null;
 
+      let isAuthorizedSession = false;
+
+      async function submitSecurityVerification() {
+        const codeInput = document.getElementById("inputSecurityCode");
+        const errDiv = document.getElementById("securityErrorMsg");
+        const code = codeInput.value.trim();
+        if (!code) return;
+
+        try {
+          const res = await fetch("/py/johns-report/verify-code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code })
+          });
+          const data = await res.json();
+          if (data.success) {
+            sessionStorage.setItem("johns_report_auth", "true");
+            isAuthorizedSession = true;
+            document.getElementById("securityPromptModal").style.display = "none";
+          } else {
+            errDiv.style.display = "block";
+            codeInput.value = "";
+            codeInput.focus();
+          }
+        } catch (err) {
+          alert("Server error verifying security code.");
+        }
+      }
+
       document.addEventListener("DOMContentLoaded", () => {
+        if (sessionStorage.getItem("johns_report_auth") === "true") {
+          isAuthorizedSession = true;
+          document.getElementById("securityPromptModal").style.display = "none";
+        } else {
+          document.getElementById("securityPromptModal").style.display = "flex";
+          document.getElementById("inputSecurityCode").focus();
+        }
+
         const fromSel = document.getElementById("selFromM");
         const toSel = document.getElementById("selToM");
         const mFromSel = document.getElementById("modalFromM");
@@ -474,7 +574,13 @@
         return String(p || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
       }
 
+      let activeFetchAbortController = null;
+
       async function loadAllSelectedMonths() {
+        if (!isAuthorizedSession && sessionStorage.getItem("johns_report_auth") !== "true") {
+          document.getElementById("securityPromptModal").style.display = "flex";
+          return;
+        }
         const fromM = document.getElementById("selFromM").value;
         const fromY = parseInt(document.getElementById("selFromY").value, 10);
         const toM = document.getElementById("selToM").value;
@@ -491,35 +597,53 @@
           cur.setMonth(cur.getMonth() + 1);
         }
 
-        showEqualizer("Parallel Loading Months...");
-        monthsDataset = {};
-
-        try {
-          const res = await fetch("/py/johns-report/fetch-data", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ months: monthQueries })
-          });
-          const raw = await res.json();
-          if (!raw.success) throw new Error(raw.message);
-
-          await Promise.all(
-            monthQueries.map(async (mq) => {
-              const key = `${mq.m.substring(0, 3)} ${String(mq.y).slice(-2)}`;
-              monthsDataset[key] = transformData(raw, mq.m, mq.y);
-            })
-          );
-
-          renderBottomTabs();
-          if (monthQueries.length > 0) {
-            const firstKey = `${monthQueries[0].m.substring(0, 3)} ${String(monthQueries[0].y).slice(-2)}`;
-            switchTab(firstKey);
-          }
-        } catch (err) {
-          alert("Data Load Error: " + err.message);
-        } finally {
-          hideEqualizer();
+        if (activeFetchAbortController) {
+          activeFetchAbortController.abort();
         }
+        activeFetchAbortController = new AbortController();
+        const signal = activeFetchAbortController.signal;
+
+        monthsDataset = {};
+        activeMonthKey = "";
+        document.getElementById("bottomTabsContainer").innerHTML = "";
+        document.getElementById("reportTableBody").innerHTML = `<tr><td colspan="40" style="padding: 30px; color: #0ea5e9; font-weight: 600;">⚡ Loading ${monthQueries[0].m.substring(0, 3)} ${String(monthQueries[0].y).slice(-2)}...</td></tr>`;
+
+        const loader = document.getElementById("loader");
+        loader.style.display = "block";
+        loader.innerText = `Loading (0/${monthQueries.length})...`;
+
+        let loadedCount = 0;
+
+        for (let i = 0; i < monthQueries.length; i++) {
+          const mq = monthQueries[i];
+          const key = `${mq.m.substring(0, 3)} ${String(mq.y).slice(-2)}`;
+
+          try {
+            const res = await fetch("/py/johns-report/fetch-data", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ months: [mq] }),
+              signal: signal
+            });
+            const raw = await res.json();
+            if (!raw.success) throw new Error(raw.message);
+
+            monthsDataset[key] = transformData(raw, mq.m, mq.y);
+            loadedCount++;
+            loader.innerText = `Loading (${loadedCount}/${monthQueries.length})...`;
+
+            renderBottomTabs();
+
+            if (i === 0) {
+              switchTab(key);
+            }
+          } catch (err) {
+            if (err.name === "AbortError") return;
+            console.error(`Error loading ${key}:`, err);
+          }
+        }
+
+        loader.style.display = "none";
       }
 
       function transformData(raw, monthStr, yearNum) {
@@ -1048,6 +1172,200 @@
           alert("Export failed: " + e.message);
         } finally {
           hideEqualizer();
+        }
+      }
+
+      let targetDeleteBackupId = null;
+
+      async function createCurrentDataBackup() {
+        const keys = Object.keys(monthsDataset);
+        if (keys.length === 0) {
+          return alert("No report data loaded to backup! Please fetch data first.");
+        }
+
+        const fromM = document.getElementById("selFromM").value.substring(0, 3);
+        const fromY = document.getElementById("selFromY").value;
+        const toM = document.getElementById("selToM").value.substring(0, 3);
+        const toY = document.getElementById("selToY").value;
+        const periodRange = `${fromM} ${fromY} - ${toM} ${toY}`;
+
+        const now = new Date();
+        const dateStr = now.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeStr = now.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
+        const defaultName = `Snapshot - ${dateStr} ${timeStr}`;
+
+        const backupName = prompt("Enter Backup Name:", defaultName);
+        if (!backupName) return;
+
+        showEqualizer("Saving Snapshot Backup to Database...");
+        try {
+          const res = await fetch("/py/johns-report/create-backup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              backup_name: backupName,
+              period_range: periodRange,
+              report_data: monthsDataset
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert("✓ " + data.message);
+          } else {
+            alert("Backup failed: " + data.message);
+          }
+        } catch (err) {
+          alert("Network error creating backup.");
+        } finally {
+          hideEqualizer();
+        }
+      }
+
+      function openBackupListModal() {
+        document.getElementById("backupListModal").style.display = "flex";
+        loadBackupsList();
+      }
+
+      function closeBackupListModal() {
+        document.getElementById("backupListModal").style.display = "none";
+      }
+
+      async function loadBackupsList() {
+        const tbody = document.getElementById("backupListTableBody");
+        tbody.innerHTML = `<tr><td colspan="3" style="padding:15px; text-align:center; color:#64748b;">Loading backups...</td></tr>`;
+
+        try {
+          const res = await fetch("/py/johns-report/list-backups");
+          const resData = await res.json();
+          if (!resData.success) throw new Error(resData.message);
+
+          if (!resData.data || resData.data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="padding:20px; text-align:center; color:#64748b;">No saved backups found.</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = "";
+          resData.data.forEach(b => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td style="padding:6px 8px; text-align:left; border-bottom:1px solid #e2e8f0;">
+                <div style="font-weight:600; color:#0f172a;">${b.backup_name}</div>
+                <div style="font-size:10px; color:#64748b;">Saved: ${b.created_at}</div>
+              </td>
+              <td style="padding:6px 8px; border-bottom:1px solid #e2e8f0; font-size:11px;">${b.period_range}</td>
+              <td style="padding:6px 8px; border-bottom:1px solid #e2e8f0; white-space:nowrap;">
+                <button class="btn" style="background:#0ea5e9; color:#fff; padding:4px 8px; font-size:10px;" onclick="viewBackupInUI(${b.id})">👁️ View</button>
+                <button class="btn" style="background:#16a34a; color:#fff; padding:4px 8px; font-size:10px;" onclick="exportBackupDirectExcel(${b.id}, '${b.backup_name}')">📊 Excel</button>
+                <button class="btn" style="background:#ef4444; color:#fff; padding:4px 8px; font-size:10px;" onclick="promptDeleteBackup(${b.id})">🗑️ Delete</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="3" style="padding:15px; text-align:center; color:#ef4444;">Error loading backups: ${err.message}</td></tr>`;
+        }
+      }
+
+      async function viewBackupInUI(backupId) {
+        showEqualizer("Loading Backup Snapshot into UI...");
+        try {
+          const res = await fetch(`/py/johns-report/get-backup/${backupId}`);
+          const resData = await res.json();
+          if (!resData.success) throw new Error(resData.message);
+
+          monthsDataset = resData.data.report_data || {};
+          closeBackupListModal();
+
+          const keys = Object.keys(monthsDataset);
+          renderBottomTabs();
+          if (keys.length > 0) {
+            switchTab(keys[0]);
+          }
+        } catch (err) {
+          alert("Error opening backup: " + err.message);
+        } finally {
+          hideEqualizer();
+        }
+      }
+
+      async function exportBackupDirectExcel(backupId, backupName) {
+        showEqualizer("Generating Excel from Backup...");
+        try {
+          const res = await fetch(`/py/johns-report/get-backup/${backupId}`);
+          const resData = await res.json();
+          if (!resData.success) throw new Error(resData.message);
+
+          const bData = resData.data.report_data || {};
+          const keys = Object.keys(bData);
+          if (keys.length === 0) throw new Error("Backup contains no data.");
+
+          const sheets = keys.map(k => {
+            const rows = bData[k].map(r => [
+              r.sn, r.site, r.rate, r.vat, r.owner, r.driver,
+              r.site_co, r.field_co, r.v_type, r.plate,
+              r.ts_nr, r.ts_ot, r.inv_nr, r.inv_ot,
+              r.bill_nr, r.bill_ot, r.driver_ot, r.driver_amt,
+              r.logsheet_cf, r.bill_cf, r.supplier_cf,
+              r.diff_log_sup, r.diff_bill_sup, r.diff_net, r.diff_bill_log, r.vbill_notes,
+              r.bill_nrate, r.bill_otrate, r.bill_rent, r.rent_vat, r.rent_total, r.net_total,
+              r.inv_subtotal, r.inv_deduct, r.inv_total, r.deduct_reason, r.crn_no, r.inv_no, r.bill_no,
+              r.pl_status
+            ]);
+            return { sheet_name: k, rows: rows };
+          });
+
+          const safeFileName = `${backupName.replace(/[^a-zA-Z0-9_\-]/g, '_')}.xlsx`;
+          const expRes = await fetch("/py/johns-report/export-excel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file_name: safeFileName, sheets })
+          });
+          const blob = await expRes.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = safeFileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } catch (err) {
+          alert("Export Error: " + err.message);
+        } finally {
+          hideEqualizer();
+        }
+      }
+
+      function promptDeleteBackup(backupId) {
+        targetDeleteBackupId = backupId;
+        document.getElementById("inputDeletePassKey").value = "";
+        document.getElementById("deleteBackupModal").style.display = "flex";
+        document.getElementById("inputDeletePassKey").focus();
+      }
+
+      function closeDeleteBackupModal() {
+        document.getElementById("deleteBackupModal").style.display = "none";
+        targetDeleteBackupId = null;
+      }
+
+      async function submitDeleteBackup() {
+        const passKey = document.getElementById("inputDeletePassKey").value.trim();
+        if (!passKey) return alert("Please enter the delete pass key.");
+
+        try {
+          const res = await fetch(`/py/johns-report/delete-backup/${targetDeleteBackupId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pass_key: passKey })
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeDeleteBackupModal();
+            loadBackupsList();
+          } else {
+            alert(data.message);
+          }
+        } catch (err) {
+          alert("Network error deleting backup.");
         }
       }
     </script>

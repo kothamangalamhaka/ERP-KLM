@@ -36,6 +36,99 @@ class ExportPayload(BaseModel):
     file_name: str
     sheets: list[ExcelSheetPayload]
 
+class VerifyCodePayload(BaseModel):
+    code: str
+
+class CreateBackupPayload(BaseModel):
+    backup_name: str
+    period_range: str
+    report_data: dict
+
+class DeleteBackupPayload(BaseModel):
+    pass_key: str
+
+@router.post("/verify-code")
+def verify_security_code(payload: VerifyCodePayload):
+    valid_code = os.getenv("JOHN_REPORT_CODE", "John_Report")
+    if payload.code == valid_code:
+        return {"success": True}
+    return {"success": False, "message": "Invalid Security Code!"}
+
+@router.post("/create-backup")
+def create_report_backup(payload: CreateBackupPayload):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO johns_report_backups (backup_name, period_range, report_data)
+            VALUES (%s, %s, %s::jsonb)
+            RETURNING id, created_at
+            """,
+            (payload.backup_name, payload.period_range, psycopg2.extras.Json(payload.report_data))
+        )
+        res = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True, "message": "Backup created successfully!", "id": res[0], "created_at": res[1]}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@router.get("/list-backups")
+def get_backup_list():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            """
+            SELECT id, backup_name, period_range, TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at
+            FROM johns_report_backups
+            ORDER BY id DESC
+            """
+        )
+        backups = cur.fetchall()
+        cur.close()
+        conn.close()
+        return {"success": True, "data": backups}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@router.get("/get-backup/{backup_id}")
+def get_backup_detail(backup_id: int):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(
+            "SELECT id, backup_name, period_range, report_data, TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at FROM johns_report_backups WHERE id = %s",
+            (backup_id,)
+        )
+        backup = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not backup:
+            return {"success": False, "message": "Backup not found."}
+        return {"success": True, "data": backup}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@router.post("/delete-backup/{backup_id}")
+def delete_report_backup(backup_id: int, payload: DeleteBackupPayload):
+    try:
+        valid_key = os.getenv("JOHN_REPORT_DELETE_KEY", "John_Delete")
+        if payload.pass_key != valid_key:
+            return {"success": False, "message": "Invalid Delete Pass Key!"}
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM johns_report_backups WHERE id = %s", (backup_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True, "message": "Backup deleted successfully!"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
 @router.post("/fetch-data")
 def fetch_report_data(payload: FetchBatchPayload):
     try:
