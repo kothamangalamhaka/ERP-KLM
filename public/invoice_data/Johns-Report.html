@@ -203,6 +203,46 @@
         width: 360px;
         box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       }
+      .luxury-prompt-card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 24px;
+        width: 380px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        color: #ffffff;
+        text-align: left;
+      }
+      .luxury-prompt-card input {
+        width: 100%;
+        background: #0f172a;
+        border: 1px solid #475569;
+        color: #f8fafc;
+        border-radius: 6px;
+        padding: 10px;
+        box-sizing: border-box;
+        font-size: 13px;
+        outline: none;
+        margin-top: 10px;
+      }
+      .luxury-prompt-card input:focus {
+        border-color: var(--primary);
+      }
+      .toast-luxury {
+        display: none;
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #0f172a;
+        color: #ffffff;
+        border-left: 4px solid var(--primary);
+        padding: 12px 20px;
+        border-radius: 6px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        z-index: 1000000;
+        font-size: 13px;
+        font-weight: 500;
+      }
       .security-modal-overlay {
         display: flex;
         position: fixed;
@@ -444,7 +484,7 @@
     <div id="backupListModal" class="export-modal-overlay">
       <div class="export-modal-card" style="width: 680px; max-width: 95%;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="margin:0; font-size:15px; color:#0f172a;">Saved Report Snapshots (Backups)</h3>
+          <h3 style="margin:0; font-size:15px; color:#0f172a;">Analysis Report Backups</h3>
           <button style="border:none; background:transparent; font-size:16px; cursor:pointer;" onclick="closeBackupListModal()">✖</button>
         </div>
         <div style="max-height:350px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px;">
@@ -475,6 +515,20 @@
         </div>
       </div>
     </div>
+
+    <div id="luxuryPromptModal" class="export-modal-overlay">
+      <div class="luxury-prompt-card">
+        <h3 style="margin: 0; font-size: 15px; font-weight: 600;">Analysis Report Backup Name</h3>
+        <p style="margin: 6px 0 0; font-size: 11px; color: #94a3b8;">Enter a title to label this analysis report backup:</p>
+        <input type="text" id="luxuryPromptInput" onkeypress="if(event.key==='Enter') confirmLuxuryPrompt();" />
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px;">
+          <button class="btn" style="background: #334155; color: #cbd5e1;" onclick="cancelLuxuryPrompt()">Cancel</button>
+          <button class="btn btn-primary" onclick="confirmLuxuryPrompt()">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="luxuryToast" class="toast-luxury"></div>
 
     <div id="excelFilterMenu" class="excel-filter-menu" onclick="event.stopPropagation()">
       <div class="excel-filter-header">
@@ -1177,10 +1231,42 @@
 
       let targetDeleteBackupId = null;
 
+      function showToastMessage(msg) {
+        const toast = document.getElementById("luxuryToast");
+        toast.innerText = msg;
+        toast.style.display = "block";
+        setTimeout(() => { toast.style.display = "none"; }, 3500);
+      }
+
+      let luxuryPromptResolver = null;
+
+      function openLuxuryPrompt(defaultValue) {
+        return new Promise(resolve => {
+          luxuryPromptResolver = resolve;
+          const input = document.getElementById("luxuryPromptInput");
+          input.value = defaultValue;
+          document.getElementById("luxuryPromptModal").style.display = "flex";
+          setTimeout(() => { input.focus(); input.select(); }, 50);
+        });
+      }
+
+      function confirmLuxuryPrompt() {
+        const input = document.getElementById("luxuryPromptInput");
+        const val = input.value.trim();
+        document.getElementById("luxuryPromptModal").style.display = "none";
+        if (luxuryPromptResolver) luxuryPromptResolver(val);
+      }
+
+      function cancelLuxuryPrompt() {
+        document.getElementById("luxuryPromptModal").style.display = "none";
+        if (luxuryPromptResolver) luxuryPromptResolver(null);
+      }
+
       async function createCurrentDataBackup() {
         const keys = Object.keys(monthsDataset);
         if (keys.length === 0) {
-          return alert("No report data loaded to backup! Please fetch data first.");
+          showToastMessage("⚠️ Please fetch report data before backing up.");
+          return;
         }
 
         const fromM = document.getElementById("selFromM").value.substring(0, 3);
@@ -1192,12 +1278,12 @@
         const now = new Date();
         const dateStr = now.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' });
         const timeStr = now.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
-        const defaultName = `Snapshot - ${dateStr} ${timeStr}`;
+        const defaultName = `Analysis Report Backup - ${dateStr} ${timeStr}`;
 
-        const backupName = prompt("Enter Backup Name:", defaultName);
+        const backupName = await openLuxuryPrompt(defaultName);
         if (!backupName) return;
 
-        showEqualizer("Saving Snapshot Backup to Database...");
+        showEqualizer("Saving Analysis Report Backup to Database...");
         try {
           const res = await fetch("/py/johns-report/create-backup", {
             method: "POST",
@@ -1210,12 +1296,12 @@
           });
           const data = await res.json();
           if (data.success) {
-            alert("✓ " + data.message);
+            showToastMessage("✓ Analysis Report Backup saved successfully!");
           } else {
-            alert("Backup failed: " + data.message);
+            showToastMessage("⚠️ Backup failed: " + data.message);
           }
         } catch (err) {
-          alert("Network error creating backup.");
+          showToastMessage("⚠️ Network error while saving backup.");
         } finally {
           hideEqualizer();
         }
@@ -1267,7 +1353,7 @@
       }
 
       async function viewBackupInUI(backupId) {
-        showEqualizer("Loading Backup Snapshot into UI...");
+        showEqualizer("Loading Analysis Report Backup into UI...");
         try {
           const res = await fetch(`/py/johns-report/get-backup/${backupId}`);
           const resData = await res.json();

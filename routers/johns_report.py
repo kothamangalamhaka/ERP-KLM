@@ -295,6 +295,11 @@ def export_johns_excel(payload: ExportPayload):
                 col_letter = get_column_letter(col[0].column)
                 ws.column_dimensions[col_letter].width = max(max_len + 3, 9)
 
+            last_row = max(len(sheet_data.rows) + 2, 2)
+            last_col_letter = get_column_letter(len(sub_headers))
+            ws.auto_filter.ref = f"A2:{last_col_letter}{last_row}"
+            ws.sheet_view.zoomScale = 80
+
         wb.save(output)
         output.seek(0)
         return Response(
