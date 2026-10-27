@@ -30,7 +30,7 @@
         align-items: center;
         flex-direction: column;
       }
-      
+
       .remark-column-cell:empty:before {
         content: attr(data-placeholder);
         color: #94a3b8;
@@ -268,7 +268,7 @@
         left: 0;
         background-color: #ffffff;
         min-width: 190px;
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.15);
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.15);
         border: 1px solid #cbd5e1;
         border-radius: 6px;
         z-index: 10000;
@@ -312,8 +312,6 @@
         margin-top: 10px;
         table-layout: fixed;
       }
-
-     
 
       td {
         border: 1px solid #adb5bd;
@@ -384,7 +382,7 @@
         min-width: 30px;
       }
 
-     th {
+      th {
         background-color: #1a4d80;
         color: white;
         padding: 12px 6px;
@@ -841,7 +839,10 @@
                 <div class="dropdown-menu-item" onclick="arrangeOwnerCards()">
                   👤 By Owner
                 </div>
-                <div class="dropdown-menu-item" onclick="arrangeCompanyOwnerCards()">
+                <div
+                  class="dropdown-menu-item"
+                  onclick="arrangeCompanyOwnerCards()"
+                >
                   🏢+👤 Company + Owner
                 </div>
               </div>
@@ -987,25 +988,41 @@
                   <th class="th-general" style="width: 55px">Date</th>
                   <th class="th-general" style="width: 60px">Rate</th>
                   <th class="th-general" style="width: 35px">VAT</th>
-                  
+
                   <th class="th-general" style="width: 140px">
                     Site Name
-                    <span class="filter-icon" onclick="openExcelFilter(event, 'site')">▾</span>
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'site')"
+                      >▾</span
+                    >
                   </th>
 
                   <th class="th-general" style="width: 160px">
                     Owner Name
-                    <span class="filter-icon" onclick="openExcelFilter(event, 'owner')">▾</span>
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'owner')"
+                      >▾</span
+                    >
                   </th>
 
                   <th class="th-general" style="width: 160px">
                     Driver Name
-                    <span class="filter-icon" onclick="openExcelFilter(event, 'driver_name')">▾</span>
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'driver_name')"
+                      >▾</span
+                    >
                   </th>
 
                   <th class="th-general" style="width: 85px">
                     Plate No
-                    <span class="filter-icon" onclick="openExcelFilter(event, 'plate')">▾</span>
+                    <span
+                      class="filter-icon"
+                      onclick="openExcelFilter(event, 'plate')"
+                      >▾</span
+                    >
                   </th>
 
                   <th class="th-ts" style="width: 45px">
@@ -1196,7 +1213,6 @@
         },
       };
 
-
       function getCompanyFromSite(siteName) {
         if (!siteName) return "Haka";
         let s = siteName.toUpperCase();
@@ -1231,24 +1247,26 @@
       let currentFocusIndex = -1;
 
       document.addEventListener("DOMContentLoaded", () => {
-  // Set previous month and corresponding year dynamically
-  const currentDate = new Date();
-  currentDate.setMonth(currentDate.getMonth() - 1);
-  const prevMonth = currentDate.toLocaleString('default', { month: 'long' });
-  const targetYear = currentDate.getFullYear();
+        // Set previous month and corresponding year dynamically
+        const currentDate = new Date();
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        const prevMonth = currentDate.toLocaleString("default", {
+          month: "long",
+        });
+        const targetYear = currentDate.getFullYear();
 
-  const monthSelect = document.getElementById("selMonth");
-  const yearInput = document.getElementById("selYear");
+        const monthSelect = document.getElementById("selMonth");
+        const yearInput = document.getElementById("selYear");
 
-  if (monthSelect) monthSelect.value = prevMonth;
-  if (yearInput) yearInput.value = targetYear;
+        if (monthSelect) monthSelect.value = prevMonth;
+        if (yearInput) yearInput.value = targetYear;
 
-  const token = localStorage.getItem("view_bill_token");
+        const token = localStorage.getItem("view_bill_token");
 
-  if (token) {
-    verifySession(token);
-  }
-});
+        if (token) {
+          verifySession(token);
+        }
+      });
 
       /* Prevent Arrow Up / Arrow Down from changing edit values */
       document.addEventListener("keydown", function (e) {
@@ -1462,7 +1480,7 @@
         currentFocusIndex = -1;
 
         if (!val) {
-          box.style.display = "none"; 
+          box.style.display = "none";
           return;
         }
 
@@ -1609,24 +1627,39 @@
           const data = await res.json();
 
           if (data.success) {
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthNames = [
+              "January",
+              "February",
+              "March",
+              "April",
+              "May",
+              "June",
+              "July",
+              "August",
+              "September",
+              "October",
+              "November",
+              "December",
+            ];
             const curMonthIdx = monthNames.indexOf(month);
             const curYearInt = parseInt(year);
             const curMonthStart = new Date(curYearInt, curMonthIdx, 1);
             const curMonthEnd = new Date(curYearInt, curMonthIdx + 1, 0);
 
-            fetchedRowsCache = (data.rows || []).map(r => {
+            fetchedRowsCache = (data.rows || []).map((r) => {
               // 🟢 പ്ലേറ്റ് നമ്പർ മാറ്റം ആ മാസത്തിൽ വന്നിട്ടുണ്ടോ എന്ന് നിർണ്ണയിക്കുന്നു
               if (r.plate_logs && r.plate_logs.length > 0) {
                 for (let pl of r.plate_logs) {
                   if (!pl.change_date) continue;
-                  let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+                  let [cYear, cMonth, cDay] = pl.change_date
+                    .split("-")
+                    .map(Number);
                   let cDate = new Date(cYear, cMonth - 1, cDay);
 
                   let oPlate = (pl.old_plate_no || "").trim().toUpperCase();
                   let nPlate = (pl.new_plate_no || "").trim().toUpperCase();
 
-                  if (cYear === curYearInt && (cMonth - 1) === curMonthIdx) {
+                  if (cYear === curYearInt && cMonth - 1 === curMonthIdx) {
                     r.plate_no = `${oPlate} ➔ ${nPlate}`;
                   } else if (curMonthEnd < cDate) {
                     r.plate_no = oPlate;
@@ -1638,17 +1671,19 @@
               return r;
             });
 
-            fetchedReportCache = (data.reportData || []).map(r => {
+            fetchedReportCache = (data.reportData || []).map((r) => {
               if (r.plate_logs && r.plate_logs.length > 0) {
                 for (let pl of r.plate_logs) {
                   if (!pl.change_date) continue;
-                  let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+                  let [cYear, cMonth, cDay] = pl.change_date
+                    .split("-")
+                    .map(Number);
                   let cDate = new Date(cYear, cMonth - 1, cDay);
 
                   let oPlate = (pl.old_plate_no || "").trim().toUpperCase();
                   let nPlate = (pl.new_plate_no || "").trim().toUpperCase();
 
-                  if (cYear === curYearInt && (cMonth - 1) === curMonthIdx) {
+                  if (cYear === curYearInt && cMonth - 1 === curMonthIdx) {
                     r.plate = `${oPlate} ➔ ${nPlate}`;
                   } else if (curMonthEnd < cDate) {
                     r.plate = oPlate;
@@ -1845,24 +1880,40 @@
         }
 
         function getBaseSiteKey(sName) {
-          return String(sName || "").replace(/[\s\-_]*re[\s\-_]*running/gi, "").replace(/\s+/g, " ").trim().toLowerCase();
+          return String(sName || "")
+            .replace(/[\s\-_]*re[\s\-_]*running/gi, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
         }
 
         let displayRows = [];
         let mergeMap = new Map();
 
         function getReportForSite(row) {
-          return (fetchedReportCache || []).find(
-            (rep) =>
-              plateRecordsMatch(rep, row) &&
-              String(rep.site || "").trim().toLowerCase() ===
-                String(row.site || "").trim().toLowerCase(),
-          ) || null;
+          return (
+            (fetchedReportCache || []).find(
+              (rep) =>
+                plateRecordsMatch(rep, row) &&
+                String(rep.site || "")
+                  .trim()
+                  .toLowerCase() ===
+                  String(row.site || "")
+                    .trim()
+                    .toLowerCase(),
+            ) || null
+          );
         }
 
         rows.forEach((r) => {
           let sRaw = String(r.site || "").trim();
-          if (!sRaw || sRaw === "N/A" || sRaw === "-" || sRaw.startsWith("Prev:")) return;
+          if (
+            !sRaw ||
+            sRaw === "N/A" ||
+            sRaw === "-" ||
+            sRaw.startsWith("Prev:")
+          )
+            return;
 
           let pKey = normalizePlateKey(r.master_plate || r.plate_no);
           let sKey = getBaseSiteKey(sRaw);
@@ -1891,17 +1942,43 @@
             // Bill summary site-wise ആണ് -> sum ചെയ്യണം
             target._rep.inv_nr += repVals.inv_nr;
             target._rep.inv_ot += repVals.inv_ot;
-            target.nhr = Number(((parseFloat(target.nhr) || 0) + (parseFloat(r.nhr) || 0)).toFixed(2));
-            target.othr = Number(((parseFloat(target.othr) || 0) + (parseFloat(r.othr) || 0)).toFixed(2));
-            target.rent = Number(((parseFloat(target.rent) || 0) + (parseFloat(r.rent) || 0)).toFixed(2));
-            target.vat_amount = Number(((parseFloat(target.vat_amount) || 0) + (parseFloat(r.vat_amount) || 0)).toFixed(2));
-            target.total = Number(((parseFloat(target.total) || 0) + (parseFloat(r.total) || 0)).toFixed(2));
+            target.nhr = Number(
+              (
+                (parseFloat(target.nhr) || 0) + (parseFloat(r.nhr) || 0)
+              ).toFixed(2),
+            );
+            target.othr = Number(
+              (
+                (parseFloat(target.othr) || 0) + (parseFloat(r.othr) || 0)
+              ).toFixed(2),
+            );
+            target.rent = Number(
+              (
+                (parseFloat(target.rent) || 0) + (parseFloat(r.rent) || 0)
+              ).toFixed(2),
+            );
+            target.vat_amount = Number(
+              (
+                (parseFloat(target.vat_amount) || 0) +
+                (parseFloat(r.vat_amount) || 0)
+              ).toFixed(2),
+            );
+            target.total = Number(
+              (
+                (parseFloat(target.total) || 0) + (parseFloat(r.total) || 0)
+              ).toFixed(2),
+            );
 
-            if (target.site !== r.site && !target.site.toLowerCase().includes("re-running")) {
+            if (
+              target.site !== r.site &&
+              !target.site.toLowerCase().includes("re-running")
+            ) {
               target.site = `${target.site} / Re-Running`;
             }
             if (r.remark && r.remark.trim() !== "") {
-              target.remark = target.remark ? `${target.remark} | ${r.remark.trim()}` : r.remark.trim();
+              target.remark = target.remark
+                ? `${target.remark} | ${r.remark.trim()}`
+                : r.remark.trim();
             }
           }
         });
@@ -1948,7 +2025,7 @@
         const hasVat = rows.some(
           (r) =>
             parseFloat(r.vat_amount || 0) > 0 ||
-           parseFloat(r.vat_percent || 0) > 0,
+            parseFloat(r.vat_percent || 0) > 0,
         );
 
         rows.forEach((r, idx) => {
@@ -1973,7 +2050,7 @@
 
           const repMatch = r._rep
             ? r._rep
-            : (findMatchingPlateRecord(fetchedReportCache, r) || {});
+            : findMatchingPlateRecord(fetchedReportCache, r) || {};
 
           const tsNr = parseFloat(repMatch.ts_nr || 0);
           const tsOt = parseFloat(repMatch.ts_ot || 0);
@@ -1987,15 +2064,15 @@
 
           const rowOwner = r.owner || repMatch.owner || "COMPANY VEHICLE";
 
-            // 🟢 Fix 2: Added data-site to the tr tag
-            rowsHtml += `
+          // 🟢 Fix 2: Added data-site to the tr tag
+          rowsHtml += `
               <tr data-plate="${escapeHtmlAttribute(r.plate_no || "")}" 
                   data-master-plate="${escapeHtmlAttribute(r.master_plate || r.plate_no || "")}" 
                   data-owner="${escapeHtmlAttribute(rowOwner)}" 
                   data-company-display="${escapeHtmlAttribute(r.company_display_name || "")}" 
                   data-company-arabic="${escapeHtmlAttribute(r.company_arabic_name || "")}" 
                   data-vat-no="${escapeHtmlAttribute(r.vat_no || "")}" 
-                  data-site="${escapeHtmlAttribute(r.site || 'N/A')}"
+                  data-site="${escapeHtmlAttribute(r.site || "N/A")}"
                   data-merged="${r._mergedCount > 1 ? "1" : "0"}">
                 <td>${idx + 1}</td>
                 <td>${escapeHtml(r.date || "")}</td>
@@ -2020,22 +2097,26 @@
                   <input type="number" step="0.01" min="0" class="edit-number-input otrate-field" value="${otrateVal}" style="display:none;" oninput="recalculateCardRow(this)" />
                 </td>
                 <td class="rent-cell">${rentVal.toFixed(2)}</td>
-                ${hasVat ? `
+                ${
+                  hasVat
+                    ? `
                   <td class="vat-percent-column no-print editable-number-cell">
                     <span class="view-number-text">${formatNumberDisplay(vatPercentVal)}%</span>
                     <input type="number" step="0.01" min="0" max="100" class="edit-number-input vat-percent-field" value="${vatPercentVal}" style="display:none;" oninput="recalculateCardRow(this)" />
                   </td>
-                ` : ""}
+                `
+                    : ""
+                }
                  ${hasVat ? `<td class="vat-cell vat-amount-column">${vatVal.toFixed(2)}</td>` : ""}
                 <td style="font-weight:bold;" class="total-cell">${totalVal.toFixed(2)}</td>
                 <td class="remark-column-cell no-print" 
                     contenteditable="${r._mergedCount > 1 ? "false" : "true"}" 
                     spellcheck="false"
-                    data-month="${escapeHtmlAttribute(r.date || '')}" 
+                    data-month="${escapeHtmlAttribute(r.date || "")}" 
                     data-placeholder="Add remark..."
                     style="text-align:left; padding: 4px 8px !important; font-size: 11px; outline:none; cursor:text; color:#1e293b; background-color: #f8fafc; border: 1px dashed #cbd5e1;"
                     onblur="autoSaveInlineRemark(this)" 
-                    onkeypress="if(event.key === 'Enter') { event.preventDefault(); this.blur(); }">${escapeHtml(r.remark || '')}</td>
+                    onkeypress="if(event.key === 'Enter') { event.preventDefault(); this.blur(); }">${escapeHtml(r.remark || "")}</td>
                 <td class="extra-comparison-col" style="background:#f0fdf4;">${repMatch.ts_nr || 0}</td>
                 <td class="extra-comparison-col" style="background:#f0fdf4;">${repMatch.ts_ot || 0}</td>
                 <td class="extra-comparison-col" style="background:#eff6ff;">${repMatch.inv_nr || 0}</td>
@@ -2263,7 +2344,7 @@
             if (nhrInput) nhrInput.dataset.original = nhrInput.value;
             if (othrInput) othrInput.dataset.original = othrInput.value;
             if (nrateInput) nrateInput.dataset.original = nrateInput.value;
-           if (otrateInput) otrateInput.dataset.original = otrateInput.value;
+            if (otrateInput) otrateInput.dataset.original = otrateInput.value;
             if (vatPercentInput) {
               vatPercentInput.dataset.original = vatPercentInput.value;
             }
@@ -2271,13 +2352,23 @@
 
         card.querySelectorAll(".edit-number-input").forEach((input) => {
           const tr = input.closest("tr");
-          if (tr && (tr.getAttribute("data-merged") === "1" || tr.getAttribute("data-inactive") === "1")) return;
+          if (
+            tr &&
+            (tr.getAttribute("data-merged") === "1" ||
+              tr.getAttribute("data-inactive") === "1")
+          )
+            return;
           input.style.display = "inline-block";
         });
 
         card.querySelectorAll(".view-number-text").forEach((span) => {
           const tr = span.closest("tr");
-          if (tr && (tr.getAttribute("data-merged") === "1" || tr.getAttribute("data-inactive") === "1")) return;
+          if (
+            tr &&
+            (tr.getAttribute("data-merged") === "1" ||
+              tr.getAttribute("data-inactive") === "1")
+          )
+            return;
           span.style.display = "none";
         });
 
@@ -2416,9 +2507,9 @@
           row.querySelector(".otrate-field")?.value || 0,
         );
 
-       const rent = nhr * nrate + othr * otrate;
+        const rent = nhr * nrate + othr * otrate;
 
-       const vatPercent = parseFloat(
+        const vatPercent = parseFloat(
           row.querySelector(".vat-percent-field")?.value || 0,
         );
 
@@ -2432,7 +2523,6 @@
         if (vatCell) {
           vatCell.innerText = vat.toFixed(2);
         }
-
 
         row.querySelector(".total-cell").innerText = total.toFixed(2);
 
@@ -2466,14 +2556,13 @@
           "%",
         );
 
-
         /*
          * Recalculate card totals.
          */
         recalculateCardGrandTotals(card);
       }
 
-    function updateEditTextMirror(
+      function updateEditTextMirror(
         row,
         inputSelector,
         textSelector,
@@ -2489,7 +2578,7 @@
 
         const value = parseFloat(input.value || 0);
 
-           text.innerText = formatNumberDisplay(value) + suffix;
+        text.innerText = formatNumberDisplay(value) + suffix;
       }
 
       function recalculateCardGrandTotals(card) {
@@ -2589,7 +2678,11 @@
         let invalidFound = false;
 
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          if (r.getAttribute("data-merged") === "1" || r.getAttribute("data-inactive") === "1") return;
+          if (
+            r.getAttribute("data-merged") === "1" ||
+            r.getAttribute("data-inactive") === "1"
+          )
+            return;
 
           const displayPlate = r.getAttribute("data-plate");
           const plate = r.getAttribute("data-master-plate") || displayPlate;
@@ -2608,7 +2701,6 @@
 
           const vatPercentInput = r.querySelector(".vat-percent-field");
 
-
           /*
            * IMPORTANT:
            * Read the values directly from the inputs.
@@ -2626,7 +2718,6 @@
             ? parseFloat(vatPercentInput.value)
             : 0;
 
-
           if (
             !Number.isFinite(nhr) ||
             !Number.isFinite(othr) ||
@@ -2642,18 +2733,27 @@
 
           // Rent, VAT, Total എന്നിവ ടെക്സ്റ്റിൽ നിന്നോ ഫോർമുലയിൽ നിന്നോ കൃത്യമായി കണക്കാക്കുന്നു
           const calculatedRent = nhr * nrate + othr * otrate;
-          const rent = parseFloat(r.querySelector(".rent-cell")?.innerText) || Number(calculatedRent.toFixed(2)) || 0;
-          
-          const calculatedVat = rent * (vatPercent / 100);
-            const vatAmount = Number(calculatedVat.toFixed(2));
-          
-          // 🟢 FIX: സ്ക്രീനിൽ കാണുന്ന കൃത്യമായ റൗണ്ടഡ് ടോട്ടൽ തന്നെ എടുക്കുന്നു
-          const total = parseFloat(r.querySelector(".total-cell")?.innerText) || Number((rent + vatAmount).toFixed(2));
+          const rent =
+            parseFloat(r.querySelector(".rent-cell")?.innerText) ||
+            Number(calculatedRent.toFixed(2)) ||
+            0;
 
-          const site = r.getAttribute("data-site") || r.children[3]?.innerText?.trim() || "N/A";
+          const calculatedVat = rent * (vatPercent / 100);
+          const vatAmount = Number(calculatedVat.toFixed(2));
+
+          // 🟢 FIX: സ്ക്രീനിൽ കാണുന്ന കൃത്യമായ റൗണ്ടഡ് ടോട്ടൽ തന്നെ എടുക്കുന്നു
+          const total =
+            parseFloat(r.querySelector(".total-cell")?.innerText) ||
+            Number((rent + vatAmount).toFixed(2));
+
+          const site =
+            r.getAttribute("data-site") ||
+            r.children[3]?.innerText?.trim() ||
+            "N/A";
           const driver = r.children[4]?.innerText?.trim() || "";
           const vtype = r.children[2]?.innerText?.trim() || "";
-          const remark = r.querySelector(".remark-column-cell")?.innerText?.trim() || "";
+          const remark =
+            r.querySelector(".remark-column-cell")?.innerText?.trim() || "";
 
           const matchedCacheRow = findMatchingPlateRecord(
             fetchedRowsCache,
@@ -2688,7 +2788,7 @@
 
         if (invalidFound) {
           return showToast(
-             "Please enter valid hours/rates and a VAT percentage from 0 to 100.",
+            "Please enter valid hours/rates and a VAT percentage from 0 to 100.",
           );
         }
 
@@ -2823,8 +2923,7 @@
             r.querySelector(".vat-percent-field")?.value || 0,
           );
 
-
-        const originalRow = findOriginalRowByPlate(
+          const originalRow = findOriginalRowByPlate(
             card,
             displayPlate || plate,
           );
@@ -2868,13 +2967,13 @@
       function findOriginalRowByPlate(card, plate) {
         const rows = card._originalRows || [];
 
-          return findMatchingPlateRecord(rows, plate);
+        return findMatchingPlateRecord(rows, plate);
       }
 
       function updateFetchedRowsCacheFromItems(items) {
         items.forEach((item) => {
-          const index = fetchedRowsCache.findIndex(
-            (r) => plateRecordsMatch(r, item.plate),
+          const index = fetchedRowsCache.findIndex((r) =>
+            plateRecordsMatch(r, item.plate),
           );
 
           if (index !== -1) {
@@ -2944,7 +3043,7 @@
               row.querySelector(".vat-percent-field")?.value || 0,
             );
 
-           const nhrText = row.querySelector(".nhr-cell .view-number-text");
+            const nhrText = row.querySelector(".nhr-cell .view-number-text");
 
             const othrText = row.querySelector(".othr-cell .view-number-text");
 
@@ -2975,8 +3074,7 @@
             }
 
             if (vatPercentText) {
-              vatPercentText.innerText =
-                formatNumberDisplay(vatPercent) + "%";
+              vatPercentText.innerText = formatNumberDisplay(vatPercent) + "%";
             }
           });
       }
@@ -3087,7 +3185,9 @@
         const dateStr = `${selMonth} ${selYear}`;
 
         const isCurrentlyEditing = card.classList.contains("edit-mode");
-        const hasVatColumns = Boolean(card.querySelector(".vat-percent-column"));
+        const hasVatColumns = Boolean(
+          card.querySelector(".vat-percent-column"),
+        );
 
         const tr = document.createElement("tr");
         tr.setAttribute("data-plate", "");
@@ -3122,13 +3222,17 @@
             <input type="number" step="0.01" min="0" class="edit-number-input otrate-field" value="0" style="display:${isCurrentlyEditing ? "inline-block" : "none"};" oninput="recalculateCardRow(this)" />
           </td>
           <td class="rent-cell">0.00</td>
-           ${hasVatColumns ? `
+           ${
+             hasVatColumns
+               ? `
             <td class="vat-percent-column no-print editable-number-cell">
               <span class="view-number-text" style="display:${isCurrentlyEditing ? "none" : "inline-block"};">0%</span>
               <input type="number" step="0.01" min="0" max="100" class="edit-number-input vat-percent-field" value="0" style="display:${isCurrentlyEditing ? "inline-block" : "none"};" oninput="recalculateCardRow(this)" />
             </td>
             <td class="vat-cell vat-amount-column">0.00</td>
-          ` : ""}
+          `
+               : ""
+           }
           <td style="font-weight:bold;" class="total-cell">0.00</td>
           <td class="remark-column-cell no-print" 
               contenteditable="true" 
@@ -3157,13 +3261,17 @@
       async function downloadCardPNG(btn) {
         const card = btn.closest(".bill-card");
         if (!card) return;
-        if (card.classList.contains("edit-mode")) return showToast("Exit edit mode first.");
+        if (card.classList.contains("edit-mode"))
+          return showToast("Exit edit mode first.");
 
         await syncActiveCardDataBeforeAction(card);
 
         const hiddenBlankRows = [];
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          const plateVal = r.getAttribute("data-plate") || r.querySelector(".manual-plate-input")?.value?.trim() || "";
+          const plateVal =
+            r.getAttribute("data-plate") ||
+            r.querySelector(".manual-plate-input")?.value?.trim() ||
+            "";
           const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
           const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
           if (!plateVal && nhr === 0 && othr === 0) {
@@ -3173,9 +3281,13 @@
         });
 
         // 🟢 Forcefully Hide Remark Column & Others
-        card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => {
-          el.style.setProperty("display", "none", "important");
-        });
+        card
+          .querySelectorAll(
+            ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+          )
+          .forEach((el) => {
+            el.style.setProperty("display", "none", "important");
+          });
         card.querySelectorAll(".site-column-cell").forEach((el) => {
           el.style.setProperty("display", "none", "important");
         });
@@ -3186,7 +3298,11 @@
         const printArea = card.querySelector(".print-area");
 
         try {
-          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true, logging: false });
+          const canvas = await html2canvas(printArea, {
+            scale: 3,
+            useCORS: true,
+            logging: false,
+          });
           const link = document.createElement("a");
           link.download = `Bill_Report.png`;
           link.href = canvas.toDataURL("image/png");
@@ -3195,8 +3311,14 @@
           showToast("Unable to create PNG.");
         } finally {
           hiddenBlankRows.forEach((r) => (r.style.display = ""));
-          card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => (el.style.display = ""));
-          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          card
+            .querySelectorAll(
+              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+            )
+            .forEach((el) => (el.style.display = ""));
+          card
+            .querySelectorAll(".site-column-cell")
+            .forEach((el) => (el.style.display = ""));
           if (grandTotalCell) grandTotalCell.setAttribute("colspan", "6");
         }
       }
@@ -3204,13 +3326,17 @@
       async function copyCardHQ(btn) {
         const card = btn.closest(".bill-card");
         if (!card) return;
-        if (card.classList.contains("edit-mode")) return showToast("Exit edit mode first.");
+        if (card.classList.contains("edit-mode"))
+          return showToast("Exit edit mode first.");
 
         await syncActiveCardDataBeforeAction(card);
 
         const hiddenBlankRows = [];
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          const plateVal = r.getAttribute("data-plate") || r.querySelector(".manual-plate-input")?.value?.trim() || "";
+          const plateVal =
+            r.getAttribute("data-plate") ||
+            r.querySelector(".manual-plate-input")?.value?.trim() ||
+            "";
           const nhr = parseFloat(r.querySelector(".nhr-field")?.value || 0);
           const othr = parseFloat(r.querySelector(".othr-field")?.value || 0);
           if (!plateVal && nhr === 0 && othr === 0) {
@@ -3220,9 +3346,13 @@
         });
 
         // 🟢 Forcefully Hide Remark Column & Others
-        card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => {
-          el.style.setProperty("display", "none", "important");
-        });
+        card
+          .querySelectorAll(
+            ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+          )
+          .forEach((el) => {
+            el.style.setProperty("display", "none", "important");
+          });
         card.querySelectorAll(".site-column-cell").forEach((el) => {
           el.style.setProperty("display", "none", "important");
         });
@@ -3233,14 +3363,24 @@
         const printArea = card.querySelector(".print-area");
 
         try {
-          const canvas = await html2canvas(printArea, { scale: 3, useCORS: true, logging: false });
+          const canvas = await html2canvas(printArea, {
+            scale: 3,
+            useCORS: true,
+            logging: false,
+          });
           canvas.toBlob(async (blob) => {
             try {
-              if (!blob || !navigator.clipboard || typeof ClipboardItem === "undefined") {
+              if (
+                !blob ||
+                !navigator.clipboard ||
+                typeof ClipboardItem === "undefined"
+              ) {
                 showToast("Clipboard image is not supported in this browser.");
                 return;
               }
-              await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+              await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob }),
+              ]);
               showToast("Copied to Clipboard!");
             } catch (e) {
               showToast("Unable to copy image.");
@@ -3250,8 +3390,14 @@
           showToast("Unable to create image.");
         } finally {
           hiddenBlankRows.forEach((r) => (r.style.display = ""));
-          card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => (el.style.display = ""));
-          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          card
+            .querySelectorAll(
+              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+            )
+            .forEach((el) => (el.style.display = ""));
+          card
+            .querySelectorAll(".site-column-cell")
+            .forEach((el) => (el.style.display = ""));
           if (grandTotalCell) grandTotalCell.setAttribute("colspan", "6");
         }
       }
@@ -3430,7 +3576,7 @@
         const year = document.getElementById("selYear").value;
         const token = localStorage.getItem("view_bill_token");
 
-         let match = findMatchingPlateRecord(fetchedRowsCache, plate);
+        let match = findMatchingPlateRecord(fetchedRowsCache, plate);
 
         let repMatch = findMatchingPlateRecord(fetchedReportCache, plate);
 
@@ -3530,7 +3676,8 @@
           // 🟢 പുതിയ പ്ലേറ്റ് നമ്പർ വരുമ്പോൾ ടോപ്പ് ഹെഡറിലെ ടൈറ്റിൽ dynamic ആയി അപ്ഡേറ്റ് ചെയ്യുന്നു
           updateCardHeaderTitle(row.closest(".bill-card"));
 
-          const isMonthActive = match && (match.site && match.site !== "N/A" && match.site !== "-");
+          const isMonthActive =
+            match && match.site && match.site !== "N/A" && match.site !== "-";
           if (!isMonthActive) {
             row.setAttribute("data-inactive", "1");
             row.querySelectorAll(".edit-number-input").forEach((inp) => {
@@ -3541,7 +3688,9 @@
               span.style.display = "inline-block";
             });
             row.style.background = "#f1f5f9";
-            showToast(`Vehicle ${plate} has NO active site for this month (Read-Only)`);
+            showToast(
+              `Vehicle ${plate} has NO active site for this month (Read-Only)`,
+            );
           } else {
             row.removeAttribute("data-inactive");
             showToast(`Data loaded for Plate: ${plate}`);
@@ -3647,9 +3796,7 @@
               )
                 .trim()
                 .toUpperCase();
-              const masterPlate = (
-                r.getAttribute("data-master-plate") || plate
-              )
+              const masterPlate = (r.getAttribute("data-master-plate") || plate)
                 .trim()
                 .toUpperCase();
 
@@ -3697,7 +3844,7 @@
               );
 
               // 🟢 Cache-ൽ നിന്ന് യഥാർത്ഥ Owner കൃത്യമായി കണ്ടെത്തുന്നു
-            const matchedCache = findMatchingPlateRecord(
+              const matchedCache = findMatchingPlateRecord(
                 fetchedRowsCache,
                 plate,
               );
@@ -3707,8 +3854,16 @@
               );
 
               let owner = r.getAttribute("data-owner");
-              if (!owner || owner === "Manual Entry" || owner === "COMPANY VEHICLE" || owner.includes("Multiple Owners")) {
-                owner = matchedCache?.owner || matchedReport?.owner || "COMPANY VEHICLE";
+              if (
+                !owner ||
+                owner === "Manual Entry" ||
+                owner === "COMPANY VEHICLE" ||
+                owner.includes("Multiple Owners")
+              ) {
+                owner =
+                  matchedCache?.owner ||
+                  matchedReport?.owner ||
+                  "COMPANY VEHICLE";
               }
               owner = owner.trim();
 
@@ -3771,7 +3926,8 @@
         if (menu) menu.classList.remove("show");
 
         const screenItems = getScreenRowsData();
-        if (screenItems.length === 0) return showToast("No active bills on screen to arrange!");
+        if (screenItems.length === 0)
+          return showToast("No active bills on screen to arrange!");
 
         let groups = {};
         screenItems.forEach((item) => {
@@ -3784,7 +3940,9 @@
         container.innerHTML = "";
 
         Object.keys(groups).forEach((comp) => {
-          groups[comp].sort((a, b) => (a.plate_no || "").localeCompare(b.plate_no || ""));
+          groups[comp].sort((a, b) =>
+            (a.plate_no || "").localeCompare(b.plate_no || ""),
+          );
           renderCardsView(groups[comp], true, comp);
         });
 
@@ -3801,7 +3959,8 @@
         if (menu) menu.classList.remove("show");
 
         const screenItems = getScreenRowsData();
-        if (screenItems.length === 0) return showToast("No active bills on screen to arrange!");
+        if (screenItems.length === 0)
+          return showToast("No active bills on screen to arrange!");
 
         let groups = {};
         screenItems.forEach((item) => {
@@ -3813,9 +3972,13 @@
         const container = document.getElementById("cardsContainer");
         container.innerHTML = "";
 
-        const sortedOwners = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+        const sortedOwners = Object.keys(groups).sort((a, b) =>
+          a.localeCompare(b),
+        );
         sortedOwners.forEach((ownerName) => {
-          groups[ownerName].sort((a, b) => (a.plate_no || "").localeCompare(b.plate_no || ""));
+          groups[ownerName].sort((a, b) =>
+            (a.plate_no || "").localeCompare(b.plate_no || ""),
+          );
           renderCardsView(groups[ownerName], true, "");
         });
 
@@ -3832,13 +3995,14 @@
         if (menu) menu.classList.remove("show");
 
         const screenItems = getScreenRowsData();
-        if (screenItems.length === 0) return showToast("No active bills on screen to arrange!");
+        if (screenItems.length === 0)
+          return showToast("No active bills on screen to arrange!");
 
         let groups = {};
         screenItems.forEach((item) => {
           let comp = getCompanyFromSite(item.site);
           let owner = (item.owner || "COMPANY VEHICLE").trim().toUpperCase();
-          
+
           // 🟢 Owner ആദ്യം വരുന്ന വിധത്തിൽ key മാറ്റുന്നു
           let key = `${owner}|||${comp}`;
 
@@ -3846,7 +4010,7 @@
             groups[key] = {
               company: comp,
               owner: owner,
-              items: []
+              items: [],
             };
           }
           groups[key].items.push(item);
@@ -3856,15 +4020,21 @@
         container.innerHTML = "";
 
         // 🟢 Owner Alphabetical Order-ൽ സോർട്ട് ചെയ്യുമ്പോൾ ഒരേ Owner-ന്റെ എല്ലാ കമ്പനി ടേബിളുകളും താഴെ താഴെ വരും
-        const sortedKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b));
-        
+        const sortedKeys = Object.keys(groups).sort((a, b) =>
+          a.localeCompare(b),
+        );
+
         sortedKeys.forEach((key) => {
           const group = groups[key];
-          group.items.sort((a, b) => (a.plate_no || "").localeCompare(b.plate_no || ""));
+          group.items.sort((a, b) =>
+            (a.plate_no || "").localeCompare(b.plate_no || ""),
+          );
           renderCardsView(group.items, true, group.company);
         });
 
-        showToast(`Arranged into ${sortedKeys.length} Table(s) with Owners grouped consecutively!`);
+        showToast(
+          `Arranged into ${sortedKeys.length} Table(s) with Owners grouped consecutively!`,
+        );
       }
 
       /*
@@ -3896,7 +4066,6 @@
           .forEach((el) => (el.style.display = "none"));
 
         const vatColumnsHidden = hideZeroVatColumnsForExport(card);
-
 
         // Site കോളം ഡൗൺലോഡ്/കോപ്പി സമയത്ത് മാത്രം ഹൈഡ് ചെയ്യാൻ
         card
@@ -3978,7 +4147,7 @@
           .querySelectorAll(".site-column-cell")
           .forEach((el) => (el.style.display = "none"));
 
-          const vatColumnsHidden = hideZeroVatColumnsForExport(card);
+        const vatColumnsHidden = hideZeroVatColumnsForExport(card);
 
         // കോപ്പി ചെയ്യുന്ന സമയത്ത് colspan 6 എന്നത് 5 ആക്കി മാറ്റാൻ
         const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
@@ -4056,9 +4225,8 @@
             (cell) => (parseFloat(cell.innerText) || 0) === 0,
           );
 
-        const shouldHideVatColumns = vatPercentFields.length > 0
-          ? hasNoVatPercentage
-          : hasNoVatAmount;
+        const shouldHideVatColumns =
+          vatPercentFields.length > 0 ? hasNoVatPercentage : hasNoVatAmount;
         if (!shouldHideVatColumns) return false;
 
         card
@@ -4072,7 +4240,6 @@
           .querySelectorAll(".vat-percent-column, .vat-amount-column")
           .forEach((column) => (column.style.display = ""));
       }
-
 
       /*
        * ============================================================
@@ -4230,8 +4397,8 @@
        * HELPERS
        * ============================================================
        */
-      
-     function normalizePlateKey(value) {
+
+      function normalizePlateKey(value) {
         return String(value || "")
           .trim()
           .toUpperCase()
@@ -4289,7 +4456,6 @@
       function formatNumberDisplay(value) {
         const num = parseFloat(value);
 
-
         if (!Number.isFinite(num)) {
           return "0";
         }
@@ -4332,7 +4498,6 @@
         setTimeout(() => (t.className = ""), 3000);
       }
 
-
       // 🟢 1. Auto Save Remark on Blur or Enter Key (Clean Content Editable)
       async function autoSaveInlineRemark(cell) {
         const row = cell.closest("tr");
@@ -4340,28 +4505,47 @@
 
         const displayPlate = row.getAttribute("data-plate");
         const plate = row.getAttribute("data-master-plate") || displayPlate;
-        const site = row.getAttribute("data-site") || row.children[3]?.innerText?.trim() || "";
+        const site =
+          row.getAttribute("data-site") ||
+          row.children[3]?.innerText?.trim() ||
+          "";
         const remarkVal = cell.innerText.trim();
-        
+
         let rawMonth = cell.getAttribute("data-month") || "";
-        let fullMonth = document.getElementById("selMonth").value + " " + document.getElementById("selYear").value;
-        
+        let fullMonth =
+          document.getElementById("selMonth").value +
+          " " +
+          document.getElementById("selYear").value;
+
         if (rawMonth) {
-           const mParts = rawMonth.split(" ");
-           if (mParts.length === 2) {
-              const fullNames = { "Jan":"January", "Feb":"February", "Mar":"March", "Apr":"April", "May":"May", "Jun":"June", "Jul":"July", "Aug":"August", "Sep":"September", "Oct":"October", "Nov":"November", "Dec":"December" };
-              fullMonth = (fullNames[mParts[0]] || mParts[0]) + " 20" + mParts[1];
-           }
+          const mParts = rawMonth.split(" ");
+          if (mParts.length === 2) {
+            const fullNames = {
+              Jan: "January",
+              Feb: "February",
+              Mar: "March",
+              Apr: "April",
+              May: "May",
+              Jun: "June",
+              Jul: "July",
+              Aug: "August",
+              Sep: "September",
+              Oct: "October",
+              Nov: "November",
+              Dec: "December",
+            };
+            fullMonth = (fullNames[mParts[0]] || mParts[0]) + " 20" + mParts[1];
+          }
         }
 
         // 🟢 കാഷെയിൽ അപ്ഡേറ്റ് ചെയ്യുന്നു (റീലോഡ് ആകുമ്പോൾ ഡാറ്റ മാറാൻ)
-       let matchedCache = fetchedRowsCache.find(
+        let matchedCache = fetchedRowsCache.find(
           (cr) =>
             plateRecordsMatch(cr, displayPlate || plate) &&
             (cr.date || "") === rawMonth,
         );
         if (matchedCache) {
-            matchedCache.remark = remarkVal;
+          matchedCache.remark = remarkVal;
         }
 
         if (!plate) return;
@@ -4394,30 +4578,61 @@
 
       // 🟢 2. Sync Active Card Screen Data (Auto-save rates/rent before Copy & Download)
       async function syncActiveCardDataBeforeAction(card) {
-        const fullMonth = document.getElementById("selMonth").value + " " + document.getElementById("selYear").value;
+        const fullMonth =
+          document.getElementById("selMonth").value +
+          " " +
+          document.getElementById("selYear").value;
         const token = localStorage.getItem("view_bill_token");
         const items = [];
 
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((r) => {
-          if (r.getAttribute("data-merged") === "1" || r.getAttribute("data-inactive") === "1") return;
+          if (
+            r.getAttribute("data-merged") === "1" ||
+            r.getAttribute("data-inactive") === "1"
+          )
+            return;
 
           const displayPlate = r.getAttribute("data-plate");
           const plate = r.getAttribute("data-master-plate") || displayPlate;
           if (!plate) return;
 
-          const nhr = parseFloat(r.querySelector(".nhr-field")?.value || r.querySelector(".nhr-cell .view-number-text")?.innerText || 0);
-          const othr = parseFloat(r.querySelector(".othr-field")?.value || r.querySelector(".othr-cell .view-number-text")?.innerText || 0);
+          const nhr = parseFloat(
+            r.querySelector(".nhr-field")?.value ||
+              r.querySelector(".nhr-cell .view-number-text")?.innerText ||
+              0,
+          );
+          const othr = parseFloat(
+            r.querySelector(".othr-field")?.value ||
+              r.querySelector(".othr-cell .view-number-text")?.innerText ||
+              0,
+          );
           const cells = r.querySelectorAll(".rate-column-cell");
-          const nrate = parseFloat(cells[0]?.querySelector(".nrate-field")?.value || cells[0]?.querySelector(".view-number-text")?.innerText || 0);
-          const otrate = parseFloat(cells[1]?.querySelector(".otrate-field")?.value || cells[1]?.querySelector(".view-number-text")?.innerText || 0);
-          const rent = parseFloat(r.querySelector(".rent-cell")?.innerText || 0);
+          const nrate = parseFloat(
+            cells[0]?.querySelector(".nrate-field")?.value ||
+              cells[0]?.querySelector(".view-number-text")?.innerText ||
+              0,
+          );
+          const otrate = parseFloat(
+            cells[1]?.querySelector(".otrate-field")?.value ||
+              cells[1]?.querySelector(".view-number-text")?.innerText ||
+              0,
+          );
+          const rent = parseFloat(
+            r.querySelector(".rent-cell")?.innerText || 0,
+          );
           const vat = parseFloat(r.querySelector(".vat-cell")?.innerText || 0);
-          
+
           // 🟢 FIX: സ്ക്രീനിൽ കാണുന്ന കൃത്യമായ റൗണ്ടഡ് ടോട്ടൽ തന്നെ എടുക്കുന്നു
-          const total = parseFloat(r.querySelector(".total-cell")?.innerText) || Number((rent + vat).toFixed(2));
-          const remark = r.querySelector(".remark-column-cell")?.innerText?.trim() || "";
+          const total =
+            parseFloat(r.querySelector(".total-cell")?.innerText) ||
+            Number((rent + vat).toFixed(2));
+          const remark =
+            r.querySelector(".remark-column-cell")?.innerText?.trim() || "";
           const owner = r.getAttribute("data-owner") || "COMPANY VEHICLE";
-          const site = r.getAttribute("data-site") || r.children[3]?.innerText?.trim() || "N/A";
+          const site =
+            r.getAttribute("data-site") ||
+            r.children[3]?.innerText?.trim() ||
+            "N/A";
           const vatPercent = parseFloat(
             r.querySelector(".vat-percent-field")?.value || 0,
           );
@@ -4440,7 +4655,7 @@
             total: total,
             adjusted_amount: 0,
             after_adjustment: total,
-            remark: remark
+            remark: remark,
           });
         });
 
@@ -4479,26 +4694,57 @@
         const selYear = document.getElementById("selYear")?.value || "";
         const billingMonth = `${selMonth} ${selYear}`.trim();
 
-        const titleText = card.querySelector(".card-header-title-text")?.innerText || "";
+        const titleText =
+          card.querySelector(".card-header-title-text")?.innerText || "";
         const rows = [];
         let matchedOwnerInfo = null;
 
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((tr) => {
-          const displayPlate = tr.getAttribute("data-plate") || tr.querySelector(".manual-plate-input")?.value?.trim() || tr.children[5]?.innerText?.trim() || "";
-          const masterPlate = tr.getAttribute("data-master-plate") || displayPlate;
+          const displayPlate =
+            tr.getAttribute("data-plate") ||
+            tr.querySelector(".manual-plate-input")?.value?.trim() ||
+            tr.children[5]?.innerText?.trim() ||
+            "";
+          const masterPlate =
+            tr.getAttribute("data-master-plate") || displayPlate;
           const vtype = tr.children[2]?.innerText?.trim() || "";
-          const site = tr.getAttribute("data-site") || tr.children[3]?.innerText?.trim() || "";
+          const site =
+            tr.getAttribute("data-site") ||
+            tr.children[3]?.innerText?.trim() ||
+            "";
           const driver = tr.children[4]?.innerText?.trim() || "";
-          const nhr = parseFloat(tr.querySelector(".nhr-field")?.value || tr.querySelector(".nhr-cell .view-number-text")?.innerText || 0);
-          const othr = parseFloat(tr.querySelector(".othr-field")?.value || tr.querySelector(".othr-cell .view-number-text")?.innerText || 0);
+          const nhr = parseFloat(
+            tr.querySelector(".nhr-field")?.value ||
+              tr.querySelector(".nhr-cell .view-number-text")?.innerText ||
+              0,
+          );
+          const othr = parseFloat(
+            tr.querySelector(".othr-field")?.value ||
+              tr.querySelector(".othr-cell .view-number-text")?.innerText ||
+              0,
+          );
 
           const cells = tr.querySelectorAll(".rate-column-cell");
-          const nrate = parseFloat(cells[0]?.querySelector(".nrate-field")?.value || cells[0]?.querySelector(".view-number-text")?.innerText || 0);
-          const otrate = parseFloat(cells[1]?.querySelector(".otrate-field")?.value || cells[1]?.querySelector(".view-number-text")?.innerText || 0);
+          const nrate = parseFloat(
+            cells[0]?.querySelector(".nrate-field")?.value ||
+              cells[0]?.querySelector(".view-number-text")?.innerText ||
+              0,
+          );
+          const otrate = parseFloat(
+            cells[1]?.querySelector(".otrate-field")?.value ||
+              cells[1]?.querySelector(".view-number-text")?.innerText ||
+              0,
+          );
 
-          const rent = parseFloat(tr.querySelector(".rent-cell")?.innerText || (nhr * nrate + othr * otrate) || 0);
+          const rent = parseFloat(
+            tr.querySelector(".rent-cell")?.innerText ||
+              nhr * nrate + othr * otrate ||
+              0,
+          );
           const vat = parseFloat(tr.querySelector(".vat-cell")?.innerText || 0);
-          const total = parseFloat(tr.querySelector(".total-cell")?.innerText || (rent + vat) || 0);
+          const total = parseFloat(
+            tr.querySelector(".total-cell")?.innerText || rent + vat || 0,
+          );
 
           if (displayPlate || rent > 0 || nhr > 0) {
             rows.push({
@@ -4518,7 +4764,10 @@
           }
 
           if (!matchedOwnerInfo) {
-            const match = findMatchingPlateRecord(fetchedRowsCache, displayPlate || masterPlate);
+            const match = findMatchingPlateRecord(
+              fetchedRowsCache,
+              displayPlate || masterPlate,
+            );
             if (match) matchedOwnerInfo = match;
           }
         });
@@ -4528,19 +4777,38 @@
         }
 
         const firstTr = card.querySelector(".supplier-bill-table tbody tr");
-        const cardOwner = card.getAttribute("data-owner") || rows[0]?.owner || "";
-        const vendorArabicName = (firstTr?.getAttribute("data-company-arabic") || matchedOwnerInfo?.company_arabic_name || "").trim();
-        const vendorDisplayName = (firstTr?.getAttribute("data-company-display") || matchedOwnerInfo?.company_display_name || "").trim();
-        const vendorVatNo = (firstTr?.getAttribute("data-vat-no") || matchedOwnerInfo?.vat_no || "").trim();
+        const cardOwner =
+          card.getAttribute("data-owner") || rows[0]?.owner || "";
+        const vendorArabicName = (
+          firstTr?.getAttribute("data-company-arabic") ||
+          matchedOwnerInfo?.company_arabic_name ||
+          ""
+        ).trim();
+        const vendorDisplayName = (
+          firstTr?.getAttribute("data-company-display") ||
+          matchedOwnerInfo?.company_display_name ||
+          ""
+        ).trim();
+        const vendorVatNo = (
+          firstTr?.getAttribute("data-vat-no") ||
+          matchedOwnerInfo?.vat_no ||
+          ""
+        ).trim();
 
         // First site-il ninnu company theerumanikkunnu
         const firstSite = rows[0]?.site || "";
         const detectedComp = getCompanyFromSite(firstSite);
         const compConfig = companyData[detectedComp] || companyData["Haka"];
 
-        const grandRent = parseFloat(card.querySelector(".grand-rent")?.innerText || 0);
-        const grandVat = parseFloat(card.querySelector(".grand-vat")?.innerText || 0);
-        const grandTotal = parseFloat(card.querySelector(".grand-total")?.innerText || (grandRent + grandVat));
+        const grandRent = parseFloat(
+          card.querySelector(".grand-rent")?.innerText || 0,
+        );
+        const grandVat = parseFloat(
+          card.querySelector(".grand-vat")?.innerText || 0,
+        );
+        const grandTotal = parseFloat(
+          card.querySelector(".grand-total")?.innerText || grandRent + grandVat,
+        );
 
         const payload = {
           billingMonth: billingMonth,
@@ -4577,22 +4845,57 @@
         let matchedOwnerInfo = null;
 
         card.querySelectorAll(".supplier-bill-table tbody tr").forEach((tr) => {
-          const displayPlate = tr.getAttribute("data-plate") || tr.querySelector(".manual-plate-input")?.value?.trim() || tr.children[5]?.innerText?.trim() || "";
-          const masterPlate = tr.getAttribute("data-master-plate") || displayPlate;
+          const displayPlate =
+            tr.getAttribute("data-plate") ||
+            tr.querySelector(".manual-plate-input")?.value?.trim() ||
+            tr.children[5]?.innerText?.trim() ||
+            "";
+          const masterPlate =
+            tr.getAttribute("data-master-plate") || displayPlate;
           const vtype = tr.children[2]?.innerText?.trim() || "";
-          const site = tr.getAttribute("data-site") || tr.children[3]?.innerText?.trim() || "";
+          const site =
+            tr.getAttribute("data-site") ||
+            tr.children[3]?.innerText?.trim() ||
+            "";
           const driver = tr.children[4]?.innerText?.trim() || "";
-          const nhr = parseFloat(tr.querySelector(".nhr-field")?.value || tr.querySelector(".nhr-cell .view-number-text")?.innerText || 0);
-          const othr = parseFloat(tr.querySelector(".othr-field")?.value || tr.querySelector(".othr-cell .view-number-text")?.innerText || 0);
+          const nhr = parseFloat(
+            tr.querySelector(".nhr-field")?.value ||
+              tr.querySelector(".nhr-cell .view-number-text")?.innerText ||
+              0,
+          );
+          const othr = parseFloat(
+            tr.querySelector(".othr-field")?.value ||
+              tr.querySelector(".othr-cell .view-number-text")?.innerText ||
+              0,
+          );
 
           const cells = tr.querySelectorAll(".rate-column-cell");
-          const nrate = parseFloat(cells[0]?.querySelector(".nrate-field")?.value || cells[0]?.querySelector(".view-number-text")?.innerText || 0);
-          const otrate = parseFloat(cells[1]?.querySelector(".otrate-field")?.value || cells[1]?.querySelector(".view-number-text")?.innerText || 0);
+          const nrate = parseFloat(
+            cells[0]?.querySelector(".nrate-field")?.value ||
+              cells[0]?.querySelector(".view-number-text")?.innerText ||
+              0,
+          );
+          const otrate = parseFloat(
+            cells[1]?.querySelector(".otrate-field")?.value ||
+              cells[1]?.querySelector(".view-number-text")?.innerText ||
+              0,
+          );
 
-          const rent = parseFloat(tr.querySelector(".rent-cell")?.innerText || (nhr * nrate + othr * otrate) || 0);
-          const vatVal = parseFloat(tr.querySelector(".vat-cell")?.innerText || 0);
-          const vatPercent = parseFloat(tr.querySelector(".vat-percent-field")?.value || (vatVal > 0 ? 15 : 0));
-          const total = parseFloat(tr.querySelector(".total-cell")?.innerText || (rent + vatVal) || 0);
+          const rent = parseFloat(
+            tr.querySelector(".rent-cell")?.innerText ||
+              nhr * nrate + othr * otrate ||
+              0,
+          );
+          const vatVal = parseFloat(
+            tr.querySelector(".vat-cell")?.innerText || 0,
+          );
+          const vatPercent = parseFloat(
+            tr.querySelector(".vat-percent-field")?.value ||
+              (vatVal > 0 ? 15 : 0),
+          );
+          const total = parseFloat(
+            tr.querySelector(".total-cell")?.innerText || rent + vatVal || 0,
+          );
 
           if (displayPlate || rent > 0 || nhr > 0 || othr > 0) {
             rows.push({
@@ -4609,12 +4912,15 @@
               rent: rent,
               vat_percent: vatPercent,
               vat_amount: vatVal,
-              total: total
+              total: total,
             });
           }
 
           if (!matchedOwnerInfo) {
-            const match = findMatchingPlateRecord(fetchedRowsCache, displayPlate || masterPlate);
+            const match = findMatchingPlateRecord(
+              fetchedRowsCache,
+              displayPlate || masterPlate,
+            );
             if (match) matchedOwnerInfo = match;
           }
         });
@@ -4624,17 +4930,39 @@
         }
 
         const firstTr = card.querySelector(".supplier-bill-table tbody tr");
-        const cardOwner = (firstTr?.getAttribute("data-owner") || matchedOwnerInfo?.owner || "COMPANY VEHICLE").trim();
-        const vendorArabicName = (firstTr?.getAttribute("data-company-arabic") || matchedOwnerInfo?.company_arabic_name || "").trim();
-        const vendorDisplayName = (firstTr?.getAttribute("data-company-display") || matchedOwnerInfo?.company_display_name || cardOwner).trim();
-        const vendorVatNo = (firstTr?.getAttribute("data-vat-no") || matchedOwnerInfo?.vat_no || "").trim();
+        const cardOwner = (
+          firstTr?.getAttribute("data-owner") ||
+          matchedOwnerInfo?.owner ||
+          "COMPANY VEHICLE"
+        ).trim();
+        const vendorArabicName = (
+          firstTr?.getAttribute("data-company-arabic") ||
+          matchedOwnerInfo?.company_arabic_name ||
+          ""
+        ).trim();
+        const vendorDisplayName = (
+          firstTr?.getAttribute("data-company-display") ||
+          matchedOwnerInfo?.company_display_name ||
+          cardOwner
+        ).trim();
+        const vendorVatNo = (
+          firstTr?.getAttribute("data-vat-no") ||
+          matchedOwnerInfo?.vat_no ||
+          ""
+        ).trim();
 
         const firstSite = rows[0]?.site || "";
         const detectedComp = getCompanyFromSite(firstSite);
 
-        const grandRent = parseFloat(card.querySelector(".grand-rent")?.innerText || 0);
-        const grandVat = parseFloat(card.querySelector(".grand-vat")?.innerText || 0);
-        const grandTotal = parseFloat(card.querySelector(".grand-total")?.innerText || (grandRent + grandVat));
+        const grandRent = parseFloat(
+          card.querySelector(".grand-rent")?.innerText || 0,
+        );
+        const grandVat = parseFloat(
+          card.querySelector(".grand-vat")?.innerText || 0,
+        );
+        const grandTotal = parseFloat(
+          card.querySelector(".grand-total")?.innerText || grandRent + grandVat,
+        );
 
         showToast("Preparing Bill & Card Snapshot...");
 
@@ -4642,16 +4970,36 @@
         let cardImageData = "";
         try {
           const printArea = card.querySelector(".print-area") || card;
-          card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => el.style.setProperty("display", "none", "important"));
-          card.querySelectorAll(".site-column-cell").forEach((el) => el.style.setProperty("display", "none", "important"));
+          card
+            .querySelectorAll(
+              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+            )
+            .forEach((el) =>
+              el.style.setProperty("display", "none", "important"),
+            );
+          card
+            .querySelectorAll(".site-column-cell")
+            .forEach((el) =>
+              el.style.setProperty("display", "none", "important"),
+            );
           const grandTotalCell = card.querySelector("tfoot tr td[colspan]");
           if (grandTotalCell) grandTotalCell.setAttribute("colspan", "5");
 
-          const canvas = await html2canvas(printArea, { scale: 2.5, useCORS: true, logging: false });
+          const canvas = await html2canvas(printArea, {
+            scale: 2.5,
+            useCORS: true,
+            logging: false,
+          });
           cardImageData = canvas.toDataURL("image/jpeg", 0.95);
 
-          card.querySelectorAll(".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)").forEach((el) => (el.style.display = ""));
-          card.querySelectorAll(".site-column-cell").forEach((el) => (el.style.display = ""));
+          card
+            .querySelectorAll(
+              ".no-print, .rate-column-cell, .remark-column-cell, .extra-comparison-col, tfoot td:nth-last-child(-n+4)",
+            )
+            .forEach((el) => (el.style.display = ""));
+          card
+            .querySelectorAll(".site-column-cell")
+            .forEach((el) => (el.style.display = ""));
           if (grandTotalCell) grandTotalCell.setAttribute("colspan", "6");
         } catch (err) {
           console.warn("Site Co snapshot error:", err);
@@ -4670,7 +5018,7 @@
           grandRent: grandRent,
           grandVat: grandVat,
           grandTotal: grandTotal,
-          billingCardImage: cardImageData // 🟢 Second page-lekku merge cheyyaanulla image
+          billingCardImage: cardImageData, // 🟢 Second page-lekku merge cheyyaanulla image
         };
 
         sessionStorage.setItem("activeVendorBillData", JSON.stringify(payload));

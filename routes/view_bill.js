@@ -106,12 +106,10 @@ router.post("/signup", async (req, res) => {
   try {
     const { displayName, username, password } = req.body;
     if (!username || !password) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Username and password are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Username and password are required.",
+      });
     }
 
     const cleanUsername = username.trim();
@@ -159,12 +157,10 @@ router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Username and password are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Username and password are required.",
+      });
     }
 
     const result = await pool.query(
