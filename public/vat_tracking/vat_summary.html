@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VAT Summary - Timesheet ERP</title>
+    <script src="/node_xlsx_scripts/exceljs.min.js"></script>
+    <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f1f5f9;
+        margin: 0;
+        padding: 0;
+        font-size: 13px;
+      }
+      .navbar {
+        background: #0f2027;
+        color: white;
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+      }
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        height: calc(100vh - 65px);
+        box-sizing: border-box;
+      }
+      .nav-tools {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 13px;
+      }
+      .nav-tools label {
+        color: #cbd5e1;
+      }
+      .btn-success {
+        background: #10b981;
+        color: white;
+        padding: 7px 14px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .btn-success:hover {
+        filter: brightness(1.1);
+      }
+      .btn-nav-link {
+        color: white;
+        padding: 7px 12px;
+        border-radius: 4px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+      }
+      .input-box,
+      .select-box {
+        padding: 5px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        font-family: "Inter";
+      }
+      table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: max-content;
+        background: white;
+      }
+      th,
+      td {
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 1px solid #cbd5e1;
+        padding: 11px 10px;
+        text-align: center;
+      }
+      th {
+        background: #1e293b;
+        color: white;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        font-size: 12px;
+      }
+      th.sub-head {
+        top: 33px;
+        font-size: 11px;
+      }
+      .th-haka {
+        background: #1e3a8a;
+      }
+      .th-aljoda {
+        background: #0f766e;
+      }
+      .th-masar {
+        background: #b45309;
+      }
+      .th-we1 {
+        background: #4338ca;
+      }
+      .merged-cell {
+        vertical-align: middle;
+        font-weight: 600;
+        color: #334155;
+        background: #f8fafc;
+      }
+      .clip-text {
+        max-width: 140px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .amt-cell {
+        font-weight: 600;
+        color: #0f172a;
+        min-width: 80px;
+      }
+      .amt-empty {
+        color: #94a3b8;
+        font-weight: 400;
+      }
+      tfoot td {
+        background: #e2e8f0;
+        font-weight: 700;
+        color: #0f172a;
+        position: sticky;
+        bottom: 0;
+        z-index: 9;
+      }
+      #summaryTable {
+        width: max-content;
+        min-width: 100%;
+        min-height: 100%;
+      }
+      #summaryTable tbody tr:not(.empty-spacer-row):hover td {
+        background-color: #f8fafc;
+      }
+      .empty-spacer-row td {
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 1px solid #cbd5e1;
+        background: #ffffff;
+      }
+      .copy-interactive {
+        cursor: pointer;
+        transition: color 0.15s ease;
+      }
+      .copy-interactive:hover {
+        color: #0284c7 !important;
+        text-decoration: underline;
+      }
+      .breakdown-interactive {
+        cursor: pointer;
+      }
+      .breakdown-interactive:hover {
+        background-color: #f1f5f9 !important;
+      }
+      .login-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 32, 39, 0.95);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+      .login-box {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        text-align: center;
+        width: 300px;
+      }
+      .login-box input {
+        width: 100%;
+        padding: 10px;
+        margin: 15px 0;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      .login-box button {
+        width: 100%;
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 10px;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Breakdown Details Modal -->
+    <div id="breakdownModal" class="login-overlay" style="display: none; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); z-index: 10000;" onclick="if(event.target === this) closeBreakdownModal();">
+      <div style="background: white; border-radius: 8px; width: 550px; max-width: 90vw; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.3); overflow: hidden;">
+        <div style="padding: 12px 18px; background: #0f2027; color: white; display: flex; justify-content: space-between; align-items: center;">
+          <h3 id="breakdownModalTitle" style="margin: 0; font-size: 13px; font-weight: 600;">Breakdown Details</h3>
+          <button onclick="closeBreakdownModal()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; line-height: 1;">&times;</button>
+        </div>
+        <div style="padding: 15px; overflow-y: auto; flex: 1;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #cbd5e1;">
+            <thead>
+              <tr style="background: #f1f5f9; color: #334155;">
+                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">Site Name</th>
+                <th style="padding: 8px; border: 1px solid #cbd5e1;">Bill No</th>
+                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="breakdownModalBody"></tbody>
+            <tfoot id="breakdownModalFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-overlay">
+      <div class="login-box">
+        <h2 style="margin-top: 0; color: #0f2027">VAT Tracking Access</h2>
+        <p style="font-size: 12px; color: #64748b">
+          Please enter the secure access code.
+        </p>
+        <input
+          type="password"
+          id="vatAccessCode"
+          placeholder="Enter Access Code"
+          onkeydown="if (event.key === 'Enter') verifyLogin();"
+        />
+        <div id="loginError" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;">
+          Invalid Access Code.
+        </div>
+        <button onclick="verifyLogin()">Unlock</button>
+      </div>
+    </div>
+
+    <div class="navbar">
+      <div style="display: flex; align-items: center">
+        <a
+          href="index.html"
+          style="
+            color: white;
+            text-decoration: none;
+            margin-right: 15px;
+            font-size: 20px;
+          "
+          title="Back to Tracking"
+          >🔙</a
+        >
+        <span style="font-size: 18px; font-weight: 600; white-space: nowrap"
+          >Vat Customer Payment Track System</span
+        >
+        <span id="saveStatus" style="margin-left: 15px; font-weight: bold"></span>
+      </div>
+
+      <div class="nav-tools">
+        <div style="display: flex; align-items: center; gap: 5px">
+          <label><b>Year:</b></label>
+          <input
+            type="number"
+            id="yearFilter"
+            class="input-box"
+            style="width: 60px"
+            onchange="fetchData()"
+          />
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 5px">
+          <label><b>Quarter:</b></label>
+          <select
+            id="quarterFilter"
+            class="select-box"
+            onchange="renderSummaryTable()"
+          >
+            <option value="All">All (Jan - Dec)</option>
+            <option value="Q1">Q1 (Jan - Mar)</option>
+            <option value="Q2">Q2 (Apr - Jun)</option>
+            <option value="Q3">Q3 (Jul - Sep)</option>
+            <option value="Q4">Q4 (Oct - Dec)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 5px">
+          <label><b>Search:</b></label>
+          <input
+            type="text"
+            id="searchInput"
+            class="input-box"
+            placeholder="Search Supplier / VAT..."
+            onkeyup="renderSummaryTable()"
+            style="width: 160px"
+          />
+        </div>
+
+        <button
+          class="btn-success"
+          onclick="exportSummaryExcel()"
+          style="background: #0284c7"
+        >
+          ⬇ Export Summary
+        </button>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table id="summaryTable">
+        <thead id="summaryTableHead"></thead>
+        <tbody id="summaryTableBody">
+          <tr>
+            <td colspan="20">Loading data...</td>
+          </tr>
+        </tbody>
+        <tfoot id="summaryTableFoot"></tfoot>
+      </table>
+    </div>
+
+    <script>
+      const monthsFull = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      const companiesList = ["Haka", "Al Joda", "Masar Wheels", "We1"];
+
+      let rawData = [];
+      let currentYear = new Date().getFullYear();
+      document.getElementById("yearFilter").value = currentYear;
+
+      let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
+
+      if (vatCode) {
+        document.getElementById("loginModal").style.display = "none";
+        fetchData();
+      } else {
+        document.getElementById("loginModal").style.display = "flex";
+      }
+
+      function verifyLogin() {
+        const inputCode = document.getElementById("vatAccessCode").value.trim();
+        if (!inputCode) return;
+        vatCode = inputCode;
+        sessionStorage.setItem("vatTrackerCode", vatCode);
+        document.getElementById("loginError").style.display = "none";
+        document.getElementById("loginModal").style.display = "none";
+        fetchData();
+      }
+
+      function triggerLoginError() {
+        sessionStorage.removeItem("vatTrackerCode");
+        vatCode = "";
+        document.getElementById("loginModal").style.display = "flex";
+        document.getElementById("loginError").style.display = "block";
+      }
+
+      async function fetchData() {
+        currentYear = document.getElementById("yearFilter").value;
+        document.getElementById("summaryTableBody").innerHTML =
+          '<tr><td colspan="20">Loading Summary Data...</td></tr>';
+        document.getElementById("summaryTableFoot").innerHTML = "";
+
+        try {
+          const res = await fetch(
+            `/timesheet/api/vat-tracking/data?year=${currentYear}`,
+            {
+              headers: { "x-vat-code": vatCode },
+            },
+          );
+          if (res.status === 401) return triggerLoginError();
+          const json = await res.json();
+          if (json.success) {
+            rawData = json.data;
+            renderSummaryTable();
+          } else {
+            alert("Error fetching data: " + json.message);
+          }
+        } catch (err) {
+          alert("Network error occurred.");
+        }
+      }
+
+      function normalizeCompany(compName, siteName) {
+        const c = (compName || "").toLowerCase();
+        const s = (siteName || "").toLowerCase();
+
+        if (
+          c.includes("al joda") ||
+          c.includes("aljoda") ||
+          s.includes("al joda") ||
+          s.includes("aljoda")
+        )
+          return "Al Joda";
+        if (c.includes("masar") || s.includes("masar")) return "Masar Wheels";
+        if (c.includes("we1") || s.includes("we1")) return "We1";
+        return "Haka";
+      }
+
+      function parseAmount(val) {
+        if (!val) return 0;
+        let str = String(val).replace(/,/g, "").trim();
+        let num = parseFloat(str);
+        return isNaN(num) ? 0 : num;
+      }
+
+      function formatNumber(num) {
+        if (!num || num === 0) return "-";
+        return Number(num).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
+
+      function renderSummaryTable() {
+        const quarter = document.getElementById("quarterFilter").value;
+        const search = document.getElementById("searchInput").value.toLowerCase().trim();
+
+        let startMonth = 0,
+          endMonth = 11;
+        if (quarter === "Q1") {
+          startMonth = 0;
+          endMonth = 2;
+        } else if (quarter === "Q2") {
+          startMonth = 3;
+          endMonth = 5;
+        } else if (quarter === "Q3") {
+          startMonth = 6;
+          endMonth = 8;
+        } else if (quarter === "Q4") {
+          startMonth = 9;
+          endMonth = 11;
+        }
+
+        // Header Structure
+        let head1 = `<tr>
+          <th rowspan="2" style="width: 40px;">SN</th>
+          <th rowspan="2" style="min-width: 140px; max-width: 150px;">Display Name</th>
+          <th rowspan="2" style="min-width: 180px;">Supplier</th>
+          <th rowspan="2" style="min-width: 130px;">VAT No</th>`;
+        let head2 = `<tr>`;
+
+        for (let m = startMonth; m <= endMonth; m++) {
+          let mName = `${monthsFull[m].substring(0, 3)} - ${currentYear.toString().slice(-2)}`;
+          head1 += `<th colspan="4" style="border-left: 2px solid #64748b;">${mName}</th>`;
+          head2 += `
+            <th class="sub-head th-haka" style="border-left: 2px solid #64748b;">Haka</th>
+            <th class="sub-head th-aljoda">Al Joda</th>
+            <th class="sub-head th-masar">Masar Wheels</th>
+            <th class="sub-head th-we1">We1</th>
+          `;
+        }
+        head1 += `</tr>`;
+        head2 += `</tr>`;
+        document.getElementById("summaryTableHead").innerHTML = head1 + head2;
+
+        // Group data by Supplier
+        const supplierSummaryMap = new Map();
+
+        rawData.forEach((group) => {
+          const supKey = (group.supplier || "").trim();
+          if (!supKey) return;
+
+          if (!supplierSummaryMap.has(supKey)) {
+            supplierSummaryMap.set(supKey, {
+              supplier: supKey,
+              display_name: group.display_name || "",
+              vat_no: group.vat_no || "",
+              months: Array.from({ length: 12 }, () => ({
+                Haka: 0,
+                "Al Joda": 0,
+                "Masar Wheels": 0,
+                We1: 0,
+              })),
+            });
+          }
+
+          const sData = supplierSummaryMap.get(supKey);
+          if (!sData.display_name && group.display_name) sData.display_name = group.display_name;
+          if (!sData.vat_no && group.vat_no) sData.vat_no = group.vat_no;
+
+          group.sites.forEach((site) => {
+            const resolvedCompany = normalizeCompany(group.company, site.site_name);
+
+            for (let m = 0; m < 12; m++) {
+              if (site.billing && site.billing[m]) {
+                const amt = parseAmount(site.billing[m].amount);
+                sData.months[m][resolvedCompany] += amt;
+              }
+            }
+          });
+        });
+
+        let summaryRows = Array.from(supplierSummaryMap.values());
+
+        // Apply Search Filter
+        if (search) {
+          summaryRows = summaryRows.filter((r) => {
+            const targetStr = `${r.supplier} ${r.display_name} ${r.vat_no}`.toLowerCase();
+            return targetStr.includes(search);
+          });
+        }
+
+        // Sort Alphabetically
+        summaryRows.sort((a, b) => a.supplier.localeCompare(b.supplier));
+
+        if (summaryRows.length === 0) {
+          document.getElementById("summaryTableBody").innerHTML =
+            `<tr><td colspan="55" style="padding: 20px;">No records found.</td></tr>`;
+          document.getElementById("summaryTableFoot").innerHTML = "";
+          return;
+        }
+
+        // Columns Total Tracker for Footer
+        const grandTotals = Array.from({ length: 12 }, () => ({
+          Haka: 0,
+          "Al Joda": 0,
+          "Masar Wheels": 0,
+          We1: 0,
+        }));
+
+        let tbody = "";
+        let sn = 1;
+
+        const totalColCount = 4 + (endMonth - startMonth + 1) * 4;
+
+        summaryRows.forEach((row) => {
+          const escDisp = escapeQuotes(row.display_name || "");
+          const escVat = escapeQuotes(row.vat_no || "");
+
+          tbody += `<tr style="height: 44px;">
+            <td class="merged-cell">${sn++}</td>
+            <td class="merged-cell copy-interactive" style="text-align: left;" title="Right-click to copy" oncontextmenu="copyTextVal(event, '${escDisp}', 'Display Name')"><span class="clip-text" title="${escapeHTML(row.display_name)}">${escapeHTML(row.display_name || "-")}</span></td>
+            <td class="merged-cell" style="text-align: left; font-weight: 600;">${escapeHTML(row.supplier)}</td>
+            <td class="merged-cell copy-interactive" style="font-family: monospace; color: #0f172a; font-weight: 700;" title="Right-click to copy" oncontextmenu="copyTextVal(event, '${escVat}', 'VAT No')">${escapeHTML(row.vat_no || "-")}</td>`;
+
+          for (let m = startMonth; m <= endMonth; m++) {
+            const mValues = row.months[m];
+            companiesList.forEach((comp, cIdx) => {
+              const val = mValues[comp];
+              grandTotals[m][comp] += val;
+              const borderStyle = cIdx === 0 ? "border-left: 2px solid #cbd5e1;" : "";
+              const cellCls = val > 0 ? "amt-cell breakdown-interactive" : "amt-empty";
+              const clickAction = val > 0 ? `oncontextmenu="openBreakdownModal(event, '${escapeQuotes(row.supplier)}', '${escapeQuotes(comp)}', ${m})"` : "";
+              const titleAttr = val > 0 ? `title="Right-click to view breakdown"` : "";
+
+              tbody += `<td class="${cellCls}" style="${borderStyle}" ${clickAction} ${titleAttr}>${formatNumber(val)}</td>`;
+            });
+          }
+          tbody += `</tr>`;
+        });
+
+        tbody += `<tr class="empty-spacer-row" style="height: 100%;"><td colspan="${totalColCount}"></td></tr>`;
+
+        document.getElementById("summaryTableBody").innerHTML = tbody;
+
+        // Footer Total Generation
+        let tfoot = `<tr>
+          <td colspan="4" style="text-align: right; font-weight: bold; padding-right: 15px;">TOTAL:</td>`;
+
+        for (let m = startMonth; m <= endMonth; m++) {
+          companiesList.forEach((comp, cIdx) => {
+            const borderStyle = cIdx === 0 ? "border-left: 2px solid #94a3b8;" : "";
+            tfoot += `<td style="font-weight: 700; ${borderStyle}">${formatNumber(grandTotals[m][comp])}</td>`;
+          });
+        }
+        tfoot += `</tr>`;
+        document.getElementById("summaryTableFoot").innerHTML = tfoot;
+      }
+
+      function escapeQuotes(str) {
+        return str
+          ? String(str).replace(/'/g, "\\'").replace(/"/g, "&quot;")
+          : "";
+      }
+
+      function showStatus(msg, type) {
+        const s = document.getElementById("saveStatus");
+        if (!s) return;
+        s.innerText = msg;
+        s.style.color = type === "saved" ? "#10b981" : "#ef4444";
+        setTimeout(() => (s.innerText = ""), 2500);
+      }
+
+      function copyTextVal(e, text, label) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!text || text === "-" || text === "N/A") return;
+
+        navigator.clipboard.writeText(text).then(() => {
+          showStatus(`✓ ${label} Copied: ${text}`, "saved");
+        }).catch(() => {
+          showStatus(`Failed to copy ${label}`, "error");
+        });
+      }
+
+      function openBreakdownModal(e, supplier, company, monthIdx) {
+        if (e && e.preventDefault) e.preventDefault();
+
+        const mName = monthsFull[monthIdx];
+        document.getElementById("breakdownModalTitle").innerText = `${supplier} ➔ ${company} (${mName} - ${currentYear})`;
+
+        const modalBody = document.getElementById("breakdownModalBody");
+        const modalFoot = document.getElementById("breakdownModalFoot");
+
+        let siteBreakdowns = [];
+        let grandSum = 0;
+
+        rawData.forEach((group) => {
+          if ((group.supplier || "").trim() !== supplier) return;
+
+          group.sites.forEach((site) => {
+            const compResolved = normalizeCompany(group.company, site.site_name);
+            if (compResolved === company) {
+              const billing = site.billing && site.billing[monthIdx];
+              const amt = billing ? parseAmount(billing.amount) : 0;
+              if (amt > 0) {
+                siteBreakdowns.push({
+                  site_name: site.site_name,
+                  bill_no: billing.bill_no || "-",
+                  amount: amt
+                });
+                grandSum += amt;
+              }
+            }
+          });
+        });
+
+        if (siteBreakdowns.length === 0) {
+          modalBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 15px; color: #94a3b8;">No breakdown available</td></tr>`;
+          modalFoot.innerHTML = "";
+        } else {
+          let rowsHtml = "";
+          siteBreakdowns.forEach((item) => {
+            rowsHtml += `
+              <tr style="height: 42px;">
+                <td style="padding: 12px 12px; border: 1px solid #cbd5e1; text-align: left; font-weight: 500;">${escapeHTML(item.site_name)}</td>
+                <td style="padding: 12px 12px; border: 1px solid #cbd5e1; text-align: center;">${escapeHTML(item.bill_no)}</td>
+                <td style="padding: 12px 12px; border: 1px solid #cbd5e1; text-align: right; font-weight: 600; color: #0f172a;">${formatNumber(item.amount)}</td>
+              </tr>
+            `;
+          });
+          modalBody.innerHTML = rowsHtml;
+
+          modalFoot.innerHTML = `
+            <tr style="background: #f8fafc; font-weight: 700; height: 42px;">
+              <td colspan="2" style="padding: 12px 12px; border: 1px solid #cbd5e1; text-align: right;">Total:</td>
+              <td style="padding: 12px 12px; border: 1px solid #cbd5e1; text-align: right; color: #0f766e;">${formatNumber(grandSum)}</td>
+            </tr>
+          `;
+        }
+
+        document.getElementById("breakdownModal").style.display = "flex";
+      }
+
+      function closeBreakdownModal() {
+        document.getElementById("breakdownModal").style.display = "none";
+      }
+
+      function escapeHTML(str) {
+        return str
+          ? String(str).replace(
+              /[&<>'"]/g,
+              (t) =>
+                ({
+                  "&": "&amp;",
+                  "<": "&lt;",
+                  ">": "&gt;",
+                  "'": "&#39;",
+                  '"': "&quot;",
+                })[t] || t,
+            )
+          : "";
+      }
+
+      async function exportSummaryExcel() {
+        const quarter = document.getElementById("quarterFilter").value;
+        let startMonth = 0,
+          endMonth = 11;
+        if (quarter === "Q1") {
+          startMonth = 0;
+          endMonth = 2;
+        } else if (quarter === "Q2") {
+          startMonth = 3;
+          endMonth = 5;
+        } else if (quarter === "Q3") {
+          startMonth = 6;
+          endMonth = 8;
+        } else if (quarter === "Q4") {
+          startMonth = 9;
+          endMonth = 11;
+        }
+
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet("VAT Summary", {
+          views: [{ state: "frozen", ySplit: 2, xSplit: 4 }],
+        });
+
+        let row1 = ["SN", "Display Name", "Supplier", "VAT No"];
+        let row2 = ["", "", "", ""];
+
+        for (let m = startMonth; m <= endMonth; m++) {
+          let mName = `${monthsFull[m].substring(0, 3)} - ${currentYear.toString().slice(-2)}`;
+          row1.push(mName, "", "", "");
+          row2.push("Haka", "Al Joda", "Masar Wheels", "We1");
+        }
+
+        ws.addRow(row1);
+        ws.addRow(row2);
+
+        for (let c = 1; c <= 4; c++) ws.mergeCells(1, c, 2, c);
+
+        let colIndex = 5;
+        for (let m = startMonth; m <= endMonth; m++) {
+          ws.mergeCells(1, colIndex, 1, colIndex + 3);
+          colIndex += 4;
+        }
+
+        const borderStyle = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+
+        ws.getRow(1).height = 24;
+        ws.getRow(2).height = 22;
+
+        ws.getRow(1).eachCell((cell) => {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF0F2027" },
+          };
+          cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+          cell.alignment = { vertical: "middle", horizontal: "center" };
+          cell.border = borderStyle;
+        });
+
+        ws.getRow(2).eachCell((cell, colNum) => {
+          if (colNum > 4) {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FF334155" },
+            };
+            cell.font = { color: { argb: "FFFFFFFF" }, bold: true, size: 10 };
+            cell.alignment = { vertical: "middle", horizontal: "center" };
+            cell.border = borderStyle;
+          }
+        });
+
+        const tableBodyRows = document.querySelectorAll("#summaryTableBody tr");
+        let sn = 1;
+
+        tableBodyRows.forEach((tr) => {
+          const tds = tr.querySelectorAll("td");
+          if (tds.length < 5) return;
+
+          let rData = [
+            sn++,
+            tds[1].innerText.trim(),
+            tds[2].innerText.trim(),
+            tds[3].innerText.trim(),
+          ];
+
+          for (let i = 4; i < tds.length; i++) {
+            let val = tds[i].innerText.trim();
+            rData.push(val === "-" ? "" : parseAmount(val));
+          }
+
+          let addedRow = ws.addRow(rData);
+          addedRow.height = 20;
+          addedRow.eachCell((cell, colNumber) => {
+            cell.border = borderStyle;
+            if (colNumber > 4 && typeof cell.value === "number") {
+              cell.numFmt = "#,##0.00";
+              cell.alignment = { vertical: "middle", horizontal: "right" };
+            } else {
+              cell.alignment = { vertical: "middle", horizontal: "center" };
+            }
+          });
+        });
+
+        ws.getColumn(1).width = 6;
+        ws.getColumn(2).width = 20;
+        ws.getColumn(3).width = 26;
+        ws.getColumn(4).width = 16;
+        for (let c = 5; c <= ws.columnCount; c++) ws.getColumn(c).width = 13;
+
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        saveAs(blob, `VAT_Summary_${currentYear}_${quarter}.xlsx`);
+      }
+    </script>
+  </body>
+</html>

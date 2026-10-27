@@ -682,7 +682,7 @@ router.put("/notes/:id", verifyVatCode, async (req, res) => {
         const updateRes = await pool.query(`
             UPDATE supplier_notes 
             SET note_title = $1, 
-                note_content = $2, 
+                note_content = $2,  
                 ledger_folio = $3, 
                 site_name = $4, 
                 note_month = $5,
