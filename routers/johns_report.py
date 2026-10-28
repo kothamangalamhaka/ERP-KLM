@@ -31,6 +31,7 @@ class FetchBatchPayload(BaseModel):
 class ExcelSheetPayload(BaseModel):
     sheet_name: str
     rows: list[list]
+    custom_headers: dict = {}
 
 class ExportPayload(BaseModel):
     file_name: str
@@ -266,8 +267,23 @@ def export_johns_excel(payload: ExportPayload):
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 cell.border = thin_border
 
+            for col_idx, col_name in enumerate(sub_headers, 1):
+                cell = ws.cell(row=2, column=col_idx)
+                if col_idx == 22 and "diff_log_sup" in sheet_data.custom_headers:
+                    cell.value = sheet_data.custom_headers["diff_log_sup"]
+                    cell.font = Font(name="Calibri", size=8, bold=False, color="FFFFFF")
+                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                elif col_idx == 23 and "diff_bill_sup" in sheet_data.custom_headers:
+                    cell.value = sheet_data.custom_headers["diff_bill_sup"]
+                    cell.font = Font(name="Calibri", size=8, bold=False, color="FFFFFF")
+                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                elif col_idx == 24 and "diff_bill_log" in sheet_data.custom_headers:
+                    cell.value = sheet_data.custom_headers["diff_bill_log"]
+                    cell.font = Font(name="Calibri", size=8, bold=False, color="FFFFFF")
+                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
             ws.row_dimensions[1].height = 24
-            ws.row_dimensions[2].height = 22
+            ws.row_dimensions[2].height = 36
 
             for r_idx, row_values in enumerate(sheet_data.rows, 3):
                 for c_idx, val in enumerate(row_values, 1):
@@ -291,17 +307,23 @@ def export_johns_excel(payload: ExportPayload):
                                 cell.fill = neg_fill
                         except (ValueError, TypeError):
                             pass
-                    if c_idx in [1, 3, 4, 10]:
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
-                    elif c_idx in [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]:
-                        cell.alignment = Alignment(horizontal="right", vertical="center")
-                    else:
+                    if c_idx in [22, 23, 24] and "\n" in str(cell_val or ""):
+                        cell.font = Font(name="Calibri", size=9, bold=True)
+                        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                    elif c_idx in [2, 5, 6, 7, 8, 9]:
                         cell.alignment = Alignment(horizontal="left", vertical="center")
+                    else:
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
 
             for col in ws.columns:
-                max_len = max(len(str(cell.value or '')) for cell in col)
-                col_letter = get_column_letter(col[0].column)
-                ws.column_dimensions[col_letter].width = max(max_len + 3, 9)
+                c_num = col[0].column
+                if c_num in [22, 23, 24]:
+                    col_letter = get_column_letter(c_num)
+                    ws.column_dimensions[col_letter].width = 17
+                else:
+                    max_len = max(len(str(cell.value or '')) for cell in col)
+                    col_letter = get_column_letter(c_num)
+                    ws.column_dimensions[col_letter].width = max(max_len + 3, 9)
 
             last_row = max(len(sheet_data.rows) + 2, 2)
             last_col_letter = get_column_letter(len(sub_headers))

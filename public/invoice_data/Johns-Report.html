@@ -20,7 +20,7 @@
         background-color: var(--bg-color);
         margin: 0;
         padding: 0;
-        font-size: 12px;
+        font-size: 11px;
         color: var(--text-main);
         display: flex;
         flex-direction: column;
@@ -83,9 +83,10 @@
       th, td {
         border-right: 1px solid var(--border-color);
         border-bottom: 1px solid var(--border-color);
-        padding: 5px 6px;
+        padding: 4px 5px;
         text-align: center;
         white-space: nowrap;
+        font-size: 10.5px;
       }
       thead tr:first-child th {
         position: sticky;
@@ -376,7 +377,8 @@
         <input type="number" id="selToY" value="2026" style="width: 60px;" />
       </div>
       <button class="btn btn-primary" onclick="loadAllSelectedMonths()">⚡ Fetch Data</button>
-      <input type="text" id="tableSearch" placeholder="🔍 Search Plate, Site, Owner..." style="width: 200px;" onkeyup="applySearchFilter()" />
+      <input type="text" id="tableSearch" placeholder="🔍 Search Plate, Site, Owner..." style="width: 170px;" onkeyup="applySearchFilter()" />
+      <div id="diffSummaryBadges" style="display: flex; gap: 6px; align-items: center; margin-left: 4px;"></div>
       <div id="loader" class="loader">Loading Data...</div>
       <button class="btn" style="background: #0d9488; color: #fff; margin-left: auto;" onclick="createCurrentDataBackup()">💾 Backup</button>
       <button class="btn" style="background: #6366f1; color: #fff;" onclick="openBackupListModal()">📂 View Backups</button>
@@ -420,9 +422,9 @@
             <th style="width: 85px; cursor: pointer;" class="th-calc" onclick="openExcelFilterMenu(event, 'logsheet_cf')">Logsheet CF <span class="filter-icon" data-key="logsheet_cf">▼</span></th>
             <th style="width: 85px; cursor: pointer;" class="th-calc" onclick="openExcelFilterMenu(event, 'bill_cf')">Bill Summary CF <span class="filter-icon" data-key="bill_cf">▼</span></th>
             <th style="width: 85px; cursor: pointer;" class="th-calc" onclick="openExcelFilterMenu(event, 'supplier_cf')">Supplier CF <span class="filter-icon" data-key="supplier_cf">▼</span></th>
-            <th style="width: 80px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'diff_log_sup')">Log - Supplier <span class="filter-icon" data-key="diff_log_sup">▼</span></th>
-            <th style="width: 80px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'diff_bill_sup')">Bill - Supplier <span class="filter-icon" data-key="diff_bill_sup">▼</span></th>
-            <th style="width: 75px; min-width: 75px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'diff_bill_log')">Bill - Log <span class="filter-icon" data-key="diff_bill_log">▼</span></th>
+            <th style="width: 145px; min-width: 145px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'diff_log_sup')">Log - Supplier <span class="filter-icon" data-key="diff_log_sup">▼</span></th>
+            <th style="width: 145px; min-width: 145px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'diff_bill_sup')">Bill - Supplier <span class="filter-icon" data-key="diff_bill_sup">▼</span></th>
+            <th style="width: 145px; min-width: 145px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'diff_bill_log')">Bill - Log <span class="filter-icon" data-key="diff_bill_log">▼</span></th>
             <th style="width: 140px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'vbill_notes')">Notes <span class="filter-icon" data-key="vbill_notes">▼</span></th>
             <th style="width: 75px; background:#047857; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'bill_nrate')">NR Rate <span class="filter-icon" data-key="bill_nrate">▼</span></th>
             <th style="width: 75px; background:#047857; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'bill_otrate')">OT Rate <span class="filter-icon" data-key="bill_otrate">▼</span></th>
@@ -443,6 +445,7 @@
         <tbody id="reportTableBody">
           <tr><td colspan="40" style="padding: 30px; color: #64748b;">Select date period and click "Fetch Data".</td></tr>
         </tbody>
+        <tfoot id="reportTableFoot"></tfoot>
       </table>
     </div>
 
@@ -943,11 +946,42 @@
 
       function renderTableRows(data) {
         const tbody = document.getElementById("reportTableBody");
+        const tfoot = document.getElementById("reportTableFoot");
         tbody.innerHTML = "";
+        if (tfoot) tfoot.innerHTML = "";
         if (data.length === 0) {
           tbody.innerHTML = `<tr><td colspan="40" style="padding: 20px;">No records available for this month.</td></tr>`;
           return;
         }
+
+        let logNeg = 0, logPos = 0, logTot = 0;
+        let billSupNeg = 0, billSupPos = 0, billSupTot = 0;
+        let billLogNeg = 0, billLogPos = 0, billLogTot = 0;
+
+        data.forEach(r => {
+          let v1 = parseFloat(r.diff_log_sup);
+          if (!isNaN(v1) && v1 !== 0) { logTot += v1; if (v1 < 0) logNeg += v1; else logPos += v1; }
+          let v2 = parseFloat(r.diff_bill_sup);
+          if (!isNaN(v2) && v2 !== 0) { billSupTot += v2; if (v2 < 0) billSupNeg += v2; else billSupPos += v2; }
+          let v3 = parseFloat(r.diff_bill_log);
+          if (!isNaN(v3) && v3 !== 0) { billLogTot += v3; if (v3 < 0) billLogNeg += v3; else billLogPos += v3; }
+        });
+
+        const badgeContainer = document.getElementById("diffSummaryBadges");
+        if (badgeContainer) {
+          const createBadge = (label, neg, pos, tot) => {
+            let absNeg = Math.abs(neg);
+            return `<div style="background: #be123c; color: white; padding: 3px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; white-space: nowrap;">
+              <div style="font-weight: 700; font-size: 10.5px;">${label}</div>
+              <div style="font-size: 9px; font-weight: 500; background: rgba(0,0,0,0.25); padding: 1px 4px; border-radius: 3px; margin-top: 1px;">(${absNeg.toFixed(2)}) - ${pos.toFixed(2)} = <b style="color: #fef08a;">${tot.toFixed(2)}</b></div>
+            </div>`;
+          };
+          badgeContainer.innerHTML = createBadge("Log - Supplier", logNeg, logPos, logTot) +
+                                     createBadge("Bill - Supplier", billSupNeg, billSupPos, billSupTot) +
+                                     createBadge("Bill - Log", billLogNeg, billLogPos, billLogTot);
+        }
+        if (tfoot) tfoot.innerHTML = "";
+
         const frag = document.createDocumentFragment();
         data.forEach(r => {
           let plBg = "transparent";
@@ -1248,7 +1282,21 @@
         showEqualizer("Building Excel Sheets...");
         try {
           const sheets = keys.map(k => {
-            const rows = monthsDataset[k].map(r => [
+            const list = monthsDataset[k] || [];
+            let logNeg = 0, logPos = 0, logTot = 0;
+            let billSupNeg = 0, billSupPos = 0, billSupTot = 0;
+            let billLogNeg = 0, billLogPos = 0, billLogTot = 0;
+
+            list.forEach(r => {
+              let v1 = parseFloat(r.diff_log_sup);
+              if (!isNaN(v1) && v1 !== 0) { logTot += v1; if (v1 < 0) logNeg += v1; else logPos += v1; }
+              let v2 = parseFloat(r.diff_bill_sup);
+              if (!isNaN(v2) && v2 !== 0) { billSupTot += v2; if (v2 < 0) billSupNeg += v2; else billSupPos += v2; }
+              let v3 = parseFloat(r.diff_bill_log);
+              if (!isNaN(v3) && v3 !== 0) { billLogTot += v3; if (v3 < 0) billLogNeg += v3; else billLogPos += v3; }
+            });
+
+            const rows = list.map(r => [
               r.sn, r.site, r.rate, r.vat, r.owner, r.driver,
               r.site_co, r.field_co, r.v_type, r.plate,
               r.ts_nr, r.ts_ot, r.inv_nr, r.inv_ot,
@@ -1259,7 +1307,20 @@
               r.inv_subtotal, r.inv_deduct, r.inv_total, r.deduct_reason, r.crn_no, r.inv_no, r.bill_no,
               r.pl_status
             ]);
-            return { sheet_name: k, rows: rows };
+
+            const fmtHdrDiff = (title, neg, pos, tot) => {
+              if (neg === 0 && pos === 0 && tot === 0) return title;
+              let absNeg = Math.abs(neg);
+              return `${title}\n(${absNeg.toFixed(2)}) - ${pos.toFixed(2)} = ${tot.toFixed(2)}`;
+            };
+
+            let customHeaders = {
+              diff_log_sup: fmtHdrDiff("Log - Supplier", logNeg, logPos, logTot),
+              diff_bill_sup: fmtHdrDiff("Bill - Supplier", billSupNeg, billSupPos, billSupTot),
+              diff_bill_log: fmtHdrDiff("Bill - Log", billLogNeg, billLogPos, billLogTot)
+            };
+
+            return { sheet_name: k, rows: rows, custom_headers: customHeaders };
           });
           await sendExcelBlobRequest(sheets);
         } catch (e) {
