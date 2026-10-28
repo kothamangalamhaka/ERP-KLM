@@ -15,6 +15,38 @@ function normalizeCompanyName(rawSite) {
   return null;
 }
 
+// സൈറ്റ് നെയിമിൽ നിന്ന് അനാവശ്യ വാക്കുകളും കമ്പനി നെയിമും ട്രിം ചെയ്യാനുള്ള ഹെൽപ്പർ
+function cleanSiteName(rawSite) {
+  if (!rawSite) return "";
+  let clean = rawSite.toString().trim();
+
+  // ഒഴിവാക്കേണ്ട പ്രത്യേക വാക്കുകൾ
+  const unwantedPatterns = [
+    /\bL\s*&\s*T\s+Solar\b/gi,
+    /\bL\s*&\s*T\b/gi,
+    /\bHydro\b/gi,
+    /\brerunning\b/gi,
+    /\b22\b/g,
+    /\bZ\b/gi,
+    /\bHaka\b/gi,
+    /\bAl\s*Joda\b/gi,
+    /\bAljoda\b/gi,
+    /\bMasar\s*Wheels\b/gi,
+    /\bMasar\b/gi,
+    /\bWe\s*1\b/gi,
+    /\bWe1\b/gi,
+    /\bWe-1\b/gi
+  ];
+
+  unwantedPatterns.forEach(pattern => {
+    clean = clean.replace(pattern, " ");
+  });
+
+  // ചിഹ്നങ്ങളും അധിക സ്പേസുകളും ക്ലീൻ ചെയ്യുന്നു
+  clean = clean.replace(/[-–—_/\\,|]+/g, " ").replace(/\s+/g, " ").trim();
+  return clean;
+}
+
 // Year തിരിച്ചുള്ള മാസം തോറുമുള്ള Company മാപ്പിംഗ് API
 router.get("/monthly-companies", async (req, res) => {
   const year = parseInt(req.query.year) || new Date().getFullYear();
@@ -56,26 +88,33 @@ router.get("/monthly-companies", async (req, res) => {
 
         if (isStarted && isNotEnded) {
           const matchedComp = normalizeCompanyName(log.site_name);
-          if (matchedComp) {
-            if (!companyMap[pNo][m]) companyMap[pNo][m] = [];
-            if (!companyMap[pNo][m].includes(matchedComp)) {
-              companyMap[pNo][m].push(matchedComp);
+          const cleanedSite = cleanSiteName(log.site_name);
+          if (matchedComp || cleanedSite) {
+            if (!companyMap[pNo][m]) companyMap[pNo][m] = { comps: [], sites: [] };
+            if (matchedComp && !companyMap[pNo][m].comps.includes(matchedComp)) {
+              companyMap[pNo][m].comps.push(matchedComp);
+            }
+            if (cleanedSite && !companyMap[pNo][m].sites.includes(cleanedSite)) {
+              companyMap[pNo][m].sites.push(cleanedSite);
             }
           }
         }
       });
     }
 
-    // Array മാറ്റി "Haka & Al Joda" അല്ലെങ്കിൽ "Not Work" സ്ട്രിംഗ് ആക്കുന്നു
+    // കമ്പനിയും സൈറ്റ് നെയിമും ഒരുമിച്ച് ഫോർമാറ്റ് ചെയ്യുന്നു
     const finalResult = {};
     for (const [pNo, months] of Object.entries(companyMap)) {
       finalResult[pNo] = {};
       for (let m = 1; m <= 12; m++) {
-        const comps = months[m];
-        if (!comps || comps.length === 0) {
-          finalResult[pNo][m] = "Not Work";
+        const item = months[m];
+        if (!item || item.comps.length === 0) {
+          finalResult[pNo][m] = { company: "Not Work", site: "" };
         } else {
-          finalResult[pNo][m] = comps.join(" & ");
+          finalResult[pNo][m] = {
+            company: item.comps.join(" & "),
+            site: item.sites.join(" & ")
+          };
         }
       }
     }

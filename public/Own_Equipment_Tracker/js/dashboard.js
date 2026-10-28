@@ -7,7 +7,7 @@ let activeColumnFilters = {
   remaining_purchase_cost: null,
 };
 let currentFilterColumn = null;
-let currentSort = { column: null, direction: null }; 
+let currentSort = { column: null, direction: null };
 const monthNames = [
   "Jan",
   "Feb",
@@ -79,8 +79,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 function fmt(val, isDec = false) {
   const num = Number(val);
-  if (num === 0) return "";
-  return isDec ? num.toFixed(2) : num;
+  if (num === 0 || isNaN(num)) return "";
+  if (num % 1 === 0) return String(num);
+  return isDec ? Number(num.toFixed(2)) : Number(num.toFixed(1));
 }
 function initYearMonthDropdowns() {
   const yearSelect = document.getElementById("filterYear"),
@@ -101,7 +102,9 @@ function initYearMonthDropdowns() {
 function updateMonthSelectorLabel() {
   const lbl = document.getElementById("monthSelectorLabel");
   if (!lbl) return;
-  const checked = Array.from(document.querySelectorAll(".month-chk:checked")).map((c) => parseInt(c.value));
+  const checked = Array.from(
+    document.querySelectorAll(".month-chk:checked"),
+  ).map((c) => parseInt(c.value));
   if (checked.length === 12 || checked.length === 0) {
     lbl.innerText = "All Months";
   } else if (checked.length === 1) {
@@ -121,7 +124,9 @@ function uncheckAll(src) {
   if (!src.checked) {
     document.getElementById("chkAllMonths").checked = false;
   } else {
-    const allChecked = Array.from(document.querySelectorAll(".month-chk")).every((c) => c.checked);
+    const allChecked = Array.from(
+      document.querySelectorAll(".month-chk"),
+    ).every((c) => c.checked);
     document.getElementById("chkAllMonths").checked = allChecked;
   }
   updateMonthSelectorLabel();
@@ -130,8 +135,10 @@ function uncheckAll(src) {
 async function navigateMonth(direction) {
   const yearSelect = document.getElementById("filterYear");
   let currentYear = parseInt(yearSelect.value);
-  const checked = Array.from(document.querySelectorAll(".month-chk:checked")).map((c) => parseInt(c.value));
-  
+  const checked = Array.from(
+    document.querySelectorAll(".month-chk:checked"),
+  ).map((c) => parseInt(c.value));
+
   let targetMonth = 1;
   if (checked.length === 1) {
     targetMonth = checked[0] + direction;
@@ -151,7 +158,9 @@ async function navigateMonth(direction) {
   }
 
   if (yearChanged) {
-    let yearOption = Array.from(yearSelect.options).find((opt) => parseInt(opt.value) === currentYear);
+    let yearOption = Array.from(yearSelect.options).find(
+      (opt) => parseInt(opt.value) === currentYear,
+    );
     if (!yearOption) {
       yearSelect.innerHTML += `<option value="${currentYear}">${currentYear}</option>`;
     }
@@ -176,7 +185,9 @@ async function loadDashboardData() {
   try {
     const [resData, resComp] = await Promise.all([
       fetch(`/api/own-equipment/tracker/data?year=${y}`).then((r) => r.json()),
-      fetch(`/api/own-equipment/company-helper/monthly-companies?year=${y}`).then((r) => r.json()).catch(() => ({ companies: {} }))
+      fetch(`/api/own-equipment/company-helper/monthly-companies?year=${y}`)
+        .then((r) => r.json())
+        .catch(() => ({ companies: {} })),
     ]);
 
     rawEquipments = resData.equipments || [];
@@ -212,8 +223,12 @@ function renderTable() {
 
   const plateInd = activeColumnFilters.plate_no !== null ? " 🔽" : "";
   const dateInd = activeColumnFilters.purchase_date !== null ? " 🔽" : "";
-  const remInd = activeColumnFilters.remaining_purchase_cost !== null ? " 🔽" : "";
-  const fInd = (k) => (activeColumnFilters[k] !== undefined && activeColumnFilters[k] !== null ? " 🔽" : "");
+  const remInd =
+    activeColumnFilters.remaining_purchase_cost !== null ? " 🔽" : "";
+  const fInd = (k) =>
+    activeColumnFilters[k] !== undefined && activeColumnFilters[k] !== null
+      ? " 🔽"
+      : "";
 
   let r1 = `<tr><th rowspan="4" class="master-head">SN</th><th rowspan="4" class="master-head" id="thPlateNo" style="cursor:context-menu;" title="Right-click to filter">Plate No${plateInd}</th><th rowspan="4" class="master-head" id="thPurchaseDate" style="cursor:context-menu;" title="Right-click to filter">Date of <br> Purchase${dateInd}</th><th rowspan="4" class="master-head">Purchase <br> Cost Paid</th><th rowspan="4" class="master-head" id="thRemainingCost" style="cursor:context-menu;" title="Right-click to filter">Remaining <br> Purchase <br> Cost${remInd}</th>`;
   let r2 = `<tr>`,
@@ -221,17 +236,18 @@ function renderTable() {
     r4 = `<tr>`;
 
   vM.forEach((m) => {
-    r1 += `<th colspan="20" class="month-head">${fullMonthNames[m - 1]} ${y}</th>`;
+    r1 += `<th colspan="21" class="month-head">${fullMonthNames[m - 1]} ${y}</th>`;
     r2 += `<th rowspan="3" class="sub-head col-filter-th" data-col="maint_${m}" style="cursor:context-menu;" title="Right-click to filter">Equipment <br> Maintanance <br> Cost${fInd(`maint_${m}`)}</th>
-           <th colspan="14" class="sub-head bg-opc">Operating Expenses</th>
+           <th colspan="15" class="sub-head bg-opc">Operating Expenses</th>
            <th rowspan="3" class="sub-head bg-total-cost col-filter-th" data-col="tcost_${m}" style="cursor:context-menu;" title="Right-click to filter">Total Cost${fInd(`tcost_${m}`)}</th>
            <th rowspan="3" class="sub-head bg-revenue col-filter-th" data-col="rev_${m}" style="cursor:context-menu;" title="Right-click to filter">OPerational <br> Revenue${fInd(`rev_${m}`)}</th>
            <th rowspan="3" class="sub-head bg-gl col-filter-th" data-col="gl_${m}" style="cursor:context-menu;" title="Right-click to filter"> This Month <br> Gain / Loss${fInd(`gl_${m}`)}</th>
            <th rowspan="3" class="sub-head col-filter-th" data-col="prv_${m}" style="cursor:context-menu;" title="Right-click to filter">Prv Month <br> Balance${fInd(`prv_${m}`)}</th>
            <th rowspan="3" class="sub-head bg-net col-filter-th" data-col="net_${m}" style="cursor:context-menu;" title="Right-click to filter">Net OP <br> Gain/Loss${fInd(`net_${m}`)}</th>`;
     r3 += `<th colspan="5" class="sub-head bg-opc">Driver Side Expenses</th>
-           <th rowspan="2" class="sub-head bg-opc col-filter-th" data-col="santook_${m}" style="cursor:context-menu;" title="Right-click to filter">Santook <br> Rent${fInd(`santook_${m}`)}</th>
-           <th rowspan="2" class="sub-head bg-opc col-filter-th" data-col="company_${m}" style="cursor:context-menu; min-width: 90px;" title="Right-click to filter">Company${fInd(`company_${m}`)}</th>
+           <th rowspan="2" class="sub-head bg-opc col-filter-th" data-col="santook_${m}" style="cursor:context-menu; min-width: 50px; width: max-content;" title="Right-click to filter">Santook <br> Rent${fInd(`santook_${m}`)}</th>
+           <th rowspan="2" class="sub-head bg-opc col-filter-th" data-col="company_${m}" style="cursor:context-menu; min-width: 50px; width: max-content;" title="Right-click to filter">Company${fInd(`company_${m}`)}</th>
+           <th rowspan="2" class="sub-head bg-opc col-filter-th" data-col="site_${m}" style="cursor:context-menu; min-width: 50px; width: max-content;" title="Right-click to filter">Site Name${fInd(`site_${m}`)}</th>
            <th colspan="4" class="sub-head bg-opc">Commission Paid</th>
            <th colspan="3" class="sub-head bg-opc">Other Expense</th>`;
     r4 += `<th class="sub-head bg-opc col-filter-th" data-col="basic_${m}" style="cursor:context-menu;" title="Right-click to filter">Basic${fInd(`basic_${m}`)}</th>
@@ -260,8 +276,8 @@ function renderTable() {
         ? pA.localeCompare(pB, undefined, { numeric: true })
         : pB.localeCompare(pA, undefined, { numeric: true });
     }
-    const dateA = a.purchase_date ? new Date(a.purchase_date).getTime() : 0;
-    const dateB = b.purchase_date ? new Date(b.purchase_date).getTime() : 0;
+    const dateA = a.purchase_date ? new Date(a.purchase_date).getTime() : Infinity;
+    const dateB = b.purchase_date ? new Date(b.purchase_date).getTime() : Infinity;
     return dateA - dateB;
   });
 
@@ -270,30 +286,70 @@ function renderTable() {
     if (searchTerm && !pNo.toLowerCase().includes(searchTerm)) return false;
 
     // 1. Plate No Filter
-    if (activeColumnFilters.plate_no !== null && activeColumnFilters.plate_no !== undefined) {
-      if (pNo === "" && !activeColumnFilters.plate_no.includes("__BLANK__")) return false;
-      if (pNo !== "" && !activeColumnFilters.plate_no.includes(pNo)) return false;
+    if (
+      activeColumnFilters.plate_no !== null &&
+      activeColumnFilters.plate_no !== undefined
+    ) {
+      if (pNo === "" && !activeColumnFilters.plate_no.includes("__BLANK__"))
+        return false;
+      if (pNo !== "" && !activeColumnFilters.plate_no.includes(pNo))
+        return false;
     }
 
     // 2. Date of Purchase Filter
-    if (activeColumnFilters.purchase_date !== null && activeColumnFilters.purchase_date !== undefined) {
+    if (
+      activeColumnFilters.purchase_date !== null &&
+      activeColumnFilters.purchase_date !== undefined
+    ) {
       const formattedDate = formatPurchaseDate(eq.purchase_date);
-      if (formattedDate === "" && !activeColumnFilters.purchase_date.includes("__BLANK__")) return false;
-      if (formattedDate !== "" && !activeColumnFilters.purchase_date.includes(formattedDate)) return false;
+      if (
+        formattedDate === "" &&
+        !activeColumnFilters.purchase_date.includes("__BLANK__")
+      )
+        return false;
+      if (
+        formattedDate !== "" &&
+        !activeColumnFilters.purchase_date.includes(formattedDate)
+      )
+        return false;
     }
 
     // 3. Remaining Purchase Cost Filter
-    if (activeColumnFilters.remaining_purchase_cost !== null && activeColumnFilters.remaining_purchase_cost !== undefined) {
-      const remVal = eq.remaining_purchase_cost !== null && eq.remaining_purchase_cost !== undefined ? String(eq.remaining_purchase_cost) : "";
-      if (remVal === "" && !activeColumnFilters.remaining_purchase_cost.includes("__BLANK__")) return false;
-      if (remVal !== "" && !activeColumnFilters.remaining_purchase_cost.includes(remVal)) return false;
+    if (
+      activeColumnFilters.remaining_purchase_cost !== null &&
+      activeColumnFilters.remaining_purchase_cost !== undefined
+    ) {
+      const remVal =
+        eq.remaining_purchase_cost !== null &&
+        eq.remaining_purchase_cost !== undefined
+          ? String(eq.remaining_purchase_cost)
+          : "";
+      if (
+        remVal === "" &&
+        !activeColumnFilters.remaining_purchase_cost.includes("__BLANK__")
+      )
+        return false;
+      if (
+        remVal !== "" &&
+        !activeColumnFilters.remaining_purchase_cost.includes(remVal)
+      )
+        return false;
     }
 
     // Dynamic Monthly Columns Filter Check
     for (const [colKey, selectedVals] of Object.entries(activeColumnFilters)) {
-      if (selectedVals === null || ["plate_no", "purchase_date", "remaining_purchase_cost"].includes(colKey)) continue;
+      if (
+        selectedVals === null ||
+        ["plate_no", "purchase_date", "remaining_purchase_cost"].includes(
+          colKey,
+        )
+      )
+        continue;
       const val = getEquipmentColumnValue(eq, colKey);
-      const strVal = (val === "" || val === null || val === undefined) ? "__BLANK__" : String(val);
+      const strVal =
+        val === "" || val === null || val === undefined
+          ? "__BLANK__"
+          : String(val);
       if (!selectedVals.includes(strVal)) return false;
     }
 
@@ -323,10 +379,18 @@ function renderTable() {
         pwas = Number(l.pwas || 0),
         other_exp = Number(l.other_expense || 0);
       const netSal = basic + ot + allowance - penalty;
-      
-      // 🟢 1. Company Name കണ്ടെത്തുന്നു
+
+      // 🟢 1. Company Name & Site Name കണ്ടെത്തുന്നു
       const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
-      const compName = (companyMappingData[eqPlateClean] && companyMappingData[eqPlateClean][m]) || "Not Work";
+      const compObj =
+        (companyMappingData[eqPlateClean] &&
+          companyMappingData[eqPlateClean][m]) ||
+        {};
+      const compName =
+        typeof compObj === "object"
+          ? compObj.company || "Not Work"
+          : compObj || "Not Work";
+      const siteName = typeof compObj === "object" ? compObj.site || "" : "";
 
       // 🟢 2. Kafil % Intelligence:
       let kafilPctVal = 0;
@@ -335,7 +399,10 @@ function renderTable() {
       } else if (Number(l.kafil_comm || 0) > 0) {
         kafilPctVal = 0; // നേരിട്ട് നൽകിയ എമൗണ്ട് ആയതിനാൽ 3% കാണിക്കില്ല
       } else {
-        const isSingleNonWe1 = compName !== "Not Work" && compName !== "We1" && !compName.includes("&");
+        const isSingleNonWe1 =
+          compName !== "Not Work" &&
+          compName !== "We1" &&
+          !compName.includes("&");
         kafilPctVal = isSingleNonWe1 ? 3 : 0;
       }
 
@@ -366,7 +433,8 @@ function renderTable() {
           <td class="bg-opc editable-cell" style="color:red;" data-eq="${eq.id}" data-month="${m}" data-field="penalty">${fmt(penalty)}</td>
           <td class="bg-opc"><b>${fmt(netSal)}</b></td>
           <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="santook_rent">${fmt(santook)}</td>
-          <td class="bg-opc" style="font-weight: 600; color: ${compColor}; text-align: center; white-space: nowrap;">${compName}</td>
+          <td class="bg-opc" style="font-weight: 600; color: ${compColor}; text-align: center; white-space: nowrap; min-width: 50px;">${compName}</td>
+          <td class="bg-opc" style="font-weight: 600; color: #1e293b; text-align: center; white-space: nowrap; min-width: 50px;">${siteName}</td>
           <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="kafil_pct" id="cell_kafil_pct_${eq.id}_${m}">${kafilPctVal > 0 ? kafilPctVal : ""}</td>
           <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="kafil_comm" id="cell_kafil_${eq.id}_${m}">${fmt(kafil, 1)}</td>
           <td class="bg-opc editable-cell" data-eq="${eq.id}" data-month="${m}" data-field="owner_comm">${fmt(owner, 1)}</td>
@@ -420,7 +488,11 @@ function renderTable() {
 function getEquipmentColumnValue(eq, colKey) {
   if (colKey === "plate_no") return (eq.plate_no || "").toString().trim();
   if (colKey === "purchase_date") return formatPurchaseDate(eq.purchase_date);
-  if (colKey === "remaining_purchase_cost") return eq.remaining_purchase_cost !== null && eq.remaining_purchase_cost !== undefined ? String(eq.remaining_purchase_cost) : "";
+  if (colKey === "remaining_purchase_cost")
+    return eq.remaining_purchase_cost !== null &&
+      eq.remaining_purchase_cost !== undefined
+      ? String(eq.remaining_purchase_cost)
+      : "";
 
   const parts = colKey.split("_");
   const field = parts[0];
@@ -428,7 +500,9 @@ function getEquipmentColumnValue(eq, colKey) {
 
   let carryGL = 0;
   for (let m = 1; m <= 12; m++) {
-    const l = rawMonthlyLogs.find((x) => x.equipment_id === eq.id && x.month === m) || {};
+    const l =
+      rawMonthlyLogs.find((x) => x.equipment_id === eq.id && x.month === m) ||
+      {};
     const maint = Number(l.maintenance_cost || 0),
       basic = Number(l.basic_salary || 0),
       ot = Number(l.overtime || 0),
@@ -441,41 +515,72 @@ function getEquipmentColumnValue(eq, colKey) {
       other_exp = Number(l.other_expense || 0);
 
     const netSal = basic + ot + allowance - penalty;
-    const pctVal = (l.kafil_pct !== null && l.kafil_pct !== undefined) ? Number(l.kafil_pct) : 0;
-    const kafil = (pctVal > 0 && rev > 0) ? (rev * (pctVal / 100)) : Number(l.kafil_comm || 0);
+    const pctVal =
+      l.kafil_pct !== null && l.kafil_pct !== undefined
+        ? Number(l.kafil_pct)
+        : 0;
+    const kafil =
+      pctVal > 0 && rev > 0 ? rev * (pctVal / 100) : Number(l.kafil_comm || 0);
     const owner = Number(l.owner_comm || 0);
     const inv = Number(l.investor_comm || 0);
-    const opc = netSal + santook + kafil + owner + inv + debit + pwas + other_exp;
+    const opc =
+      netSal + santook + kafil + owner + inv + debit + pwas + other_exp;
     const tCost = maint + opc;
 
-    let gl = (tCost > 0 || rev > 0) ? (rev - tCost) : 0;
-    let net = (gl !== 0 || carryGL !== 0) ? (gl + carryGL) : 0;
+    let gl = tCost > 0 || rev > 0 ? rev - tCost : 0;
+    let net = gl !== 0 || carryGL !== 0 ? gl + carryGL : 0;
     let prv = carryGL;
 
     if (m === targetMonth) {
       const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
-      const currentComp = (companyMappingData[eqPlateClean] && companyMappingData[eqPlateClean][m]) || "Not Work";
-      
+      const compObj =
+        (companyMappingData[eqPlateClean] &&
+          companyMappingData[eqPlateClean][m]) ||
+        {};
+      const currentComp =
+        typeof compObj === "object"
+          ? compObj.company || "Not Work"
+          : compObj || "Not Work";
+      const currentSite = typeof compObj === "object" ? compObj.site || "" : "";
+
       let pctVal = 0;
       if (l.kafil_pct !== null && l.kafil_pct !== undefined) {
         pctVal = Number(l.kafil_pct);
       } else if (Number(l.kafil_comm || 0) > 0) {
         pctVal = 0;
       } else {
-        const isSingleNonWe1 = currentComp !== "Not Work" && currentComp !== "We1" && !currentComp.includes("&");
+        const isSingleNonWe1 =
+          currentComp !== "Not Work" &&
+          currentComp !== "We1" &&
+          !currentComp.includes("&");
         pctVal = isSingleNonWe1 ? 3 : 0;
       }
 
       const vMap = {
         company: currentComp,
-        maint: maint, basic: basic, ot: ot, allowance: allowance,
-        penalty: penalty, netSal: netSal, santook: santook, kafilpct: pctVal, kafil: Number(kafil.toFixed(1)),
-        owner: Number(owner.toFixed(1)), inv: Number(inv.toFixed(1)), debit: debit,
-        pwas: pwas, other: other_exp, tcost: Number(tCost.toFixed(1)), rev: rev,
-        gl: Number(gl.toFixed(1)), prv: Number(prv.toFixed(1)), net: Number(net.toFixed(1))
+        site: currentSite,
+        maint: maint,
+        basic: basic,
+        ot: ot,
+        allowance: allowance,
+        penalty: penalty,
+        netSal: netSal,
+        santook: santook,
+        kafilpct: pctVal,
+        kafil: Number(kafil.toFixed(1)),
+        owner: Number(owner.toFixed(1)),
+        inv: Number(inv.toFixed(1)),
+        debit: debit,
+        pwas: pwas,
+        other: other_exp,
+        tcost: Number(tCost.toFixed(1)),
+        rev: rev,
+        gl: Number(gl.toFixed(1)),
+        prv: Number(prv.toFixed(1)),
+        net: Number(net.toFixed(1)),
       };
       const numVal = vMap[field];
-      return (numVal === 0 || numVal === undefined) ? "" : String(numVal);
+      return numVal === 0 || numVal === undefined ? "" : String(numVal);
     }
     carryGL = net;
   }
@@ -509,13 +614,26 @@ function openColumnFilterMenu(columnKey, x, y) {
     purchase_date: "Date of Purchase",
     remaining_purchase_cost: "Remaining Purchase Cost",
     company: "Company",
+    site: "Site Name",
     kafilpct: "Kafil %",
-    maint: "Maint Cost", basic: "Basic Salary", ot: "Over Time",
-    allowance: "Allowance", penalty: "Penalty", netSal: "Net Salary",
-    santook: "Santook Rent", kafil: "Kafil Comm", owner: "Owner Comm",
-    inv: "Investor Comm", debit: "Debit Note", pwas: "PWAS", other: "Other Exp",
-    tcost: "Total Cost", rev: "OP Revenue", gl: "Gain / Loss",
-    prv: "Prv Month", net: "Net OP G/L"
+    maint: "Maint Cost",
+    basic: "Basic Salary",
+    ot: "Over Time",
+    allowance: "Allowance",
+    penalty: "Penalty",
+    netSal: "Net Salary",
+    santook: "Santook Rent",
+    kafil: "Kafil Comm",
+    owner: "Owner Comm",
+    inv: "Investor Comm",
+    debit: "Debit Note",
+    pwas: "PWAS",
+    other: "Other Exp",
+    tcost: "Total Cost",
+    rev: "OP Revenue",
+    gl: "Gain / Loss",
+    prv: "Prv Month",
+    net: "Net OP G/L",
   };
 
   let title = baseTitleMap[columnKey];
@@ -536,8 +654,12 @@ function openColumnFilterMenu(columnKey, x, y) {
   menu.style.display = "block";
   const menuWidth = 240;
   const menuHeight = 320;
-  const posX = (x + menuWidth > window.innerWidth) ? (window.innerWidth - menuWidth - 10) : x;
-  const posY = (y + menuHeight > window.innerHeight) ? (window.innerHeight - menuHeight - 10) : y;
+  const posX =
+    x + menuWidth > window.innerWidth ? window.innerWidth - menuWidth - 10 : x;
+  const posY =
+    y + menuHeight > window.innerHeight
+      ? window.innerHeight - menuHeight - 10
+      : y;
 
   menu.style.left = `${posX}px`;
   menu.style.top = `${posY}px`;
@@ -567,12 +689,17 @@ function populateColumnFilterItems(columnKey) {
 
   let sortedValues = [];
   if (columnKey === "plate_no" || columnKey === "purchase_date") {
-    sortedValues = Array.from(valueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    sortedValues = Array.from(valueSet).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true }),
+    );
   } else {
     sortedValues = Array.from(valueSet).sort((a, b) => Number(a) - Number(b));
   }
 
-  const selectedList = activeColumnFilters[columnKey] !== undefined ? activeColumnFilters[columnKey] : null;
+  const selectedList =
+    activeColumnFilters[columnKey] !== undefined
+      ? activeColumnFilters[columnKey]
+      : null;
 
   let html = `
     <li>
@@ -582,7 +709,8 @@ function populateColumnFilterItems(columnKey) {
   `;
 
   if (hasBlank) {
-    const isChecked = selectedList === null || selectedList.includes("__BLANK__");
+    const isChecked =
+      selectedList === null || selectedList.includes("__BLANK__");
     html += `
       <li class="plate-filter-item" data-text="(blanks)">
         <input type="checkbox" class="plate-chk" value="__BLANK__" id="filter_blank" ${isChecked ? "checked" : ""} onchange="onSinglePlateCheckChange()" />
@@ -606,7 +734,10 @@ function populateColumnFilterItems(columnKey) {
 }
 
 function searchPlateFilterItems() {
-  const q = document.getElementById("plateFilterSearch").value.trim().toLowerCase();
+  const q = document
+    .getElementById("plateFilterSearch")
+    .value.trim()
+    .toLowerCase();
   document.querySelectorAll(".plate-filter-item").forEach((li) => {
     const txt = li.getAttribute("data-text") || "";
     li.style.display = txt.includes(q) ? "flex" : "none";
@@ -614,7 +745,9 @@ function searchPlateFilterItems() {
 }
 
 function toggleSelectAllPlates(master) {
-  const visibleItems = Array.from(document.querySelectorAll(".plate-filter-item")).filter((li) => li.style.display !== "none");
+  const visibleItems = Array.from(
+    document.querySelectorAll(".plate-filter-item"),
+  ).filter((li) => li.style.display !== "none");
   visibleItems.forEach((li) => {
     const chk = li.querySelector(".plate-chk");
     if (chk) chk.checked = master.checked;
@@ -705,7 +838,10 @@ function applyInlineEditStateToRenderedCells() {
     }
 
     if (unsavedInlineChanges[key] !== undefined) {
-      cell.textContent = unsavedInlineChanges[key].value === 0 ? "" : unsavedInlineChanges[key].value;
+      cell.textContent =
+        unsavedInlineChanges[key].value === 0
+          ? ""
+          : unsavedInlineChanges[key].value;
       cell.classList.add("dirty-cell");
     }
 
@@ -715,19 +851,24 @@ function applyInlineEditStateToRenderedCells() {
 
       if (currentText !== initialText) {
         cell.classList.add("dirty-cell");
-        const parsedVal = currentText === "" || isNaN(parseFloat(currentText)) ? 0 : parseFloat(currentText);
+        const parsedVal =
+          currentText === "" || isNaN(parseFloat(currentText))
+            ? 0
+            : parseFloat(currentText);
         unsavedInlineChanges[key] = {
           equipment_id: Number(eqId),
           year: y,
           month: Number(month),
           field: field,
-          value: parsedVal
+          value: parsedVal,
         };
 
         // OP Revenue അല്ലെങ്കിൽ Kafil % മാറ്റുമ്പോൾ Kafil Commission തനിയെ recalculate ചെയ്യുക
         // 1. User Kafil Commission amount direct feed cheythal -> % auto blank & 0 aavunnu
         if (field === "kafil_comm") {
-          const pctCell = document.getElementById(`cell_kafil_pct_${eqId}_${month}`);
+          const pctCell = document.getElementById(
+            `cell_kafil_pct_${eqId}_${month}`,
+          );
           if (pctCell) {
             pctCell.textContent = ""; // UI-il percentage blank aakkunnu
           }
@@ -737,7 +878,7 @@ function applyInlineEditStateToRenderedCells() {
             year: y,
             month: Number(month),
             field: "kafil_pct",
-            value: 0 // DB-il percentage 0 aayi save aavunnu
+            value: 0, // DB-il percentage 0 aayi save aavunnu
           };
         }
 
@@ -751,44 +892,60 @@ function applyInlineEditStateToRenderedCells() {
               year: y,
               month: Number(month),
               field: "kafil_pct",
-              value: 0
+              value: 0,
             };
           } else {
             // Puthiya percentage koduthaal revenue vechu calculate cheyyunnu
-            const revCell = document.querySelector(`.editable-cell[data-eq="${eqId}"][data-month="${month}"][data-field="op_revenue"]`);
-            const commCell = document.getElementById(`cell_kafil_${eqId}_${month}`);
-            const cRev = revCell ? (parseFloat(revCell.textContent.trim()) || 0) : 0;
-            const calculatedComm = cRev > 0 ? Number(((cRev * pctVal) / 100).toFixed(1)) : 0;
+            const revCell = document.querySelector(
+              `.editable-cell[data-eq="${eqId}"][data-month="${month}"][data-field="op_revenue"]`,
+            );
+            const commCell = document.getElementById(
+              `cell_kafil_${eqId}_${month}`,
+            );
+            const cRev = revCell
+              ? parseFloat(revCell.textContent.trim()) || 0
+              : 0;
+            const calculatedComm =
+              cRev > 0 ? Number(((cRev * pctVal) / 100).toFixed(1)) : 0;
 
-            if (commCell) commCell.textContent = calculatedComm > 0 ? calculatedComm : "";
+            if (commCell)
+              commCell.textContent = calculatedComm > 0 ? calculatedComm : "";
             const commKey = `${eqId}_${month}_kafil_comm`;
             unsavedInlineChanges[commKey] = {
               equipment_id: Number(eqId),
               year: y,
               month: Number(month),
               field: "kafil_comm",
-              value: calculatedComm
+              value: calculatedComm,
             };
           }
         }
 
         // 3. OP Revenue maarumbol (percentage 0 allathe undenkil mathram commission maarrunnu)
         else if (field === "op_revenue") {
-          const pctCell = document.getElementById(`cell_kafil_pct_${eqId}_${month}`);
-          const commCell = document.getElementById(`cell_kafil_${eqId}_${month}`);
-          const cPct = pctCell ? (parseFloat(pctCell.textContent.trim()) || 0) : 0;
+          const pctCell = document.getElementById(
+            `cell_kafil_pct_${eqId}_${month}`,
+          );
+          const commCell = document.getElementById(
+            `cell_kafil_${eqId}_${month}`,
+          );
+          const cPct = pctCell
+            ? parseFloat(pctCell.textContent.trim()) || 0
+            : 0;
           const cRev = parseFloat(currentText) || 0;
 
           if (cPct > 0) {
-            const calculatedComm = cRev > 0 ? Number(((cRev * cPct) / 100).toFixed(1)) : 0;
-            if (commCell) commCell.textContent = calculatedComm > 0 ? calculatedComm : "";
+            const calculatedComm =
+              cRev > 0 ? Number(((cRev * cPct) / 100).toFixed(1)) : 0;
+            if (commCell)
+              commCell.textContent = calculatedComm > 0 ? calculatedComm : "";
             const commKey = `${eqId}_${month}_kafil_comm`;
             unsavedInlineChanges[commKey] = {
               equipment_id: Number(eqId),
               year: y,
               month: Number(month),
               field: "kafil_comm",
-              value: calculatedComm
+              value: calculatedComm,
             };
           }
         }
@@ -1036,7 +1193,9 @@ async function postLogData() {
     maintenance_cost: document.getElementById("inputMaint").value,
     basic_salary: document.getElementById("inputBasicSalary").value,
     overtime: document.getElementById("inputOT").value,
-    allowance: document.getElementById("inputAllowance") ? document.getElementById("inputAllowance").value : 0,
+    allowance: document.getElementById("inputAllowance")
+      ? document.getElementById("inputAllowance").value
+      : 0,
     penalty: document.getElementById("inputPenalty").value,
     santook_rent: document.getElementById("inputSantook").value,
     kafil_comm: kafilAmountVal,
@@ -1096,7 +1255,8 @@ function formatPurchaseDate(d) {
   if (!d) return "";
   const x = new Date(d);
   if (isNaN(x.getTime())) return "";
-  return `${monthNames[x.getMonth()]} ${x.getFullYear().toString().slice(-2)}`;
+  const day = String(x.getDate()).padStart(2, "0");
+  return `${day}-${monthNames[x.getMonth()]}-${x.getFullYear().toString().slice(-2)}`;
 }
 function exportToExcel() {
   document.getElementById("exportModal").style.display = "flex";
@@ -1330,9 +1490,20 @@ async function postRevenueData() {
 
       // 2. Kafil Commission Auto-Recalculate:
       // Current month-le kafil_pct check cheyyunnu
-      const log = rawMonthlyLogs.find((x) => x.equipment_id === eqId && x.year === y && x.month === monthNum) || {};
-      const eqPlateClean = (rawEquipments.find((e) => e.id === eqId)?.plate_no || "").trim().toUpperCase();
-      const compName = (companyMappingData[eqPlateClean] && companyMappingData[eqPlateClean][monthNum]) || "Not Work";
+      const log =
+        rawMonthlyLogs.find(
+          (x) =>
+            x.equipment_id === eqId && x.year === y && x.month === monthNum,
+        ) || {};
+      const eqPlateClean = (
+        rawEquipments.find((e) => e.id === eqId)?.plate_no || ""
+      )
+        .trim()
+        .toUpperCase();
+      const compName =
+        (companyMappingData[eqPlateClean] &&
+          companyMappingData[eqPlateClean][monthNum]) ||
+        "Not Work";
 
       let kafilPctVal = 0;
       if (log.kafil_pct !== null && log.kafil_pct !== undefined) {
@@ -1340,13 +1511,17 @@ async function postRevenueData() {
       } else if (Number(log.kafil_comm || 0) > 0) {
         kafilPctVal = 0; // Direct amount feed cheythathaaneenkil athu maattilla
       } else {
-        const isSingleNonWe1 = compName !== "Not Work" && compName !== "We1" && !compName.includes("&");
+        const isSingleNonWe1 =
+          compName !== "Not Work" &&
+          compName !== "We1" &&
+          !compName.includes("&");
         kafilPctVal = isSingleNonWe1 ? 3 : 0;
       }
 
       // Percentage undenkil athu vechu puthiya Kafil Commission calculate cheythu save list-il idunnu
       if (kafilPctVal > 0) {
-        const calculatedComm = newRev > 0 ? Number(((newRev * kafilPctVal) / 100).toFixed(1)) : 0;
+        const calculatedComm =
+          newRev > 0 ? Number(((newRev * kafilPctVal) / 100).toFixed(1)) : 0;
         updates.push({
           equipment_id: eqId,
           year: y,
@@ -1807,4 +1982,3 @@ async function saveAndNextCommission() {
     showToast("Saved & Moved Next!", "success");
   }
 }
-

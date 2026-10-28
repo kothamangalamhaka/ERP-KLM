@@ -234,6 +234,29 @@ router.get("/summary-data", async (req, res) => {
   }
 });
 
+function normalizeCompanyNameForExcel(rawSite) {
+  if (!rawSite) return null;
+  const s = rawSite.trim().toLowerCase();
+  if (s.includes("haka")) return "Haka";
+  if (s.includes("aljoda") || s.includes("al joda") || s.includes("joda")) return "Al Joda";
+  if (s.includes("masar") || s.includes("wheel")) return "Masar Wheels";
+  if (s.includes("we1") || s.includes("we 1") || s.includes("we-1")) return "We1";
+  return null;
+}
+
+function cleanSiteNameForExcel(rawSite) {
+  if (!rawSite) return "";
+  let clean = rawSite.toString().trim();
+  const unwanted = [
+    /\bL\s*&\s*T\s+Solar\b/gi, /\bL\s*&\s*T\b/gi, /\bHydro\b/gi,
+    /\brerunning\b/gi, /\b22\b/g, /\bZ\b/gi, /\bHaka\b/gi,
+    /\bAl\s*Joda\b/gi, /\bAljoda\b/gi, /\bMasar\s*Wheels\b/gi,
+    /\bMasar\b/gi, /\bWe\s*1\b/gi, /\bWe1\b/gi, /\bWe-1\b/gi
+  ];
+  unwanted.forEach(p => { clean = clean.replace(p, " "); });
+  return clean.replace(/[-–—_/\\,|]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
 // EXPORT EXCEL ROUTE (SINGLE & BATCH WITH DESIGNED SUMMARY SHEET - FIXED NaN & CARRY OVER BUGS)
 router.get('/export-excel', async (req, res) => {
     const type = req.query.type;
@@ -245,8 +268,10 @@ router.get('/export-excel', async (req, res) => {
     const fullMonthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     
     try {
-        const eqRes = await pool.query(`SELECT * FROM equipments ORDER BY id ASC`);
+        const eqRes = await pool.query(`SELECT * FROM equipments ORDER BY purchase_date ASC NULLS LAST, id ASC`);
         const logsRes = await pool.query(`SELECT * FROM equipment_monthly_logs ORDER BY year ASC`);
+        const siteLogsRes = await pool.query(`SELECT plate_no, site_name, work_start_date, work_end_date FROM vehicle_site_log ORDER BY id ASC`);
+        const siteLogs = siteLogsRes.rows;
         
         let years = [];
         if (type === 'batch') {
@@ -483,60 +508,82 @@ router.get('/export-excel', async (req, res) => {
             let monthsToRender = type === 'batch' ? [1,2,3,4,5,6,7,8,9,10,11,12] : visibleMonths;
 
             monthsToRender.forEach((m, idx) => {
-                let sC = 5 + (idx * 17);
-                for(let i=0; i<17; i++) ws.getColumn(sC + i).width = 12;
+                let sC = 5 + (idx * 19);
+                for(let i=0; i<19; i++) ws.getColumn(sC + i).width = (i === 6 || i === 7) ? 14 : 12;
 
-                setMergedCell(ws, 1, sC, 1, sC + 16, `${fullMonthNames[m-1]} ${yr}`, colors.month);
+                setMergedCell(ws, 1, sC, 1, sC + 18, `${fullMonthNames[m-1]} ${yr}`, colors.month);
                 
                 setMergedCell(ws, 2, sC, 4, sC, 'Maint. Cost', colors.sub);
-                setMergedCell(ws, 2, sC + 1, 2, sC + 11, 'Operating Expenses', colors.opc);
-                setMergedCell(ws, 2, sC + 12, 4, sC + 12, 'Total Cost', colors.total);
-                setMergedCell(ws, 2, sC + 13, 4, sC + 13, 'OP Revenue', colors.rev);
-                setMergedCell(ws, 2, sC + 14, 4, sC + 14, 'Gain / Loss', colors.gl);
-                setMergedCell(ws, 2, sC + 15, 4, sC + 15, 'Prv Month', colors.sub);
-                setMergedCell(ws, 2, sC + 16, 4, sC + 16, 'Net OP G/L', colors.net);
+                setMergedCell(ws, 2, sC + 1, 2, sC + 13, 'Operating Expenses', colors.opc);
+                setMergedCell(ws, 2, sC + 14, 4, sC + 14, 'Total Cost', colors.total);
+                setMergedCell(ws, 2, sC + 15, 4, sC + 15, 'OP Revenue', colors.rev);
+                setMergedCell(ws, 2, sC + 16, 4, sC + 16, 'Gain / Loss', colors.gl);
+                setMergedCell(ws, 2, sC + 17, 4, sC + 17, 'Prv Month', colors.sub);
+                setMergedCell(ws, 2, sC + 18, 4, sC + 18, 'Net OP G/L', colors.net);
 
                 setMergedCell(ws, 3, sC + 1, 3, sC + 4, 'For Driver', colors.opc);
                 setMergedCell(ws, 3, sC + 5, 4, sC + 5, 'Santook Rent', colors.opc);
-                setMergedCell(ws, 3, sC + 6, 3, sC + 8, 'Commission Paid', colors.opc);
-                setMergedCell(ws, 3, sC + 9, 3, sC + 11, 'Other Expense', colors.opc);
+                setMergedCell(ws, 3, sC + 6, 4, sC + 6, 'Company', colors.opc);
+                setMergedCell(ws, 3, sC + 7, 4, sC + 7, 'Site Name', colors.opc);
+                setMergedCell(ws, 3, sC + 8, 3, sC + 10, 'Commission Paid', colors.opc);
+                setMergedCell(ws, 3, sC + 11, 3, sC + 13, 'Other Expense', colors.opc);
 
                 setMergedCell(ws, 4, sC + 1, 4, sC + 1, 'Basic Sal', colors.opc);
                 setMergedCell(ws, 4, sC + 2, 4, sC + 2, 'OT', colors.opc);
                 setMergedCell(ws, 4, sC + 3, 4, sC + 3, 'Penalty', colors.opc);
                 setMergedCell(ws, 4, sC + 4, 4, sC + 4, 'Net Salary', colors.opc);
                 
-                setMergedCell(ws, 4, sC + 6, 4, sC + 6, 'Kafil', colors.opc);
-                setMergedCell(ws, 4, sC + 7, 4, sC + 7, 'Owner', colors.opc);
-                setMergedCell(ws, 4, sC + 8, 4, sC + 8, 'Investor', colors.opc);
-                setMergedCell(ws, 4, sC + 9, 4, sC + 9, 'Debit', colors.opc);
-                setMergedCell(ws, 4, sC + 10, 4, sC + 10, 'PWAS', colors.opc);
-                setMergedCell(ws, 4, sC + 11, 4, sC + 11, 'Other', colors.opc);
+                setMergedCell(ws, 4, sC + 8, 4, sC + 8, 'Kafil', colors.opc);
+                setMergedCell(ws, 4, sC + 9, 4, sC + 9, 'Owner', colors.opc);
+                setMergedCell(ws, 4, sC + 10, 4, sC + 10, 'Investor', colors.opc);
+                setMergedCell(ws, 4, sC + 11, 4, sC + 11, 'Debit', colors.opc);
+                setMergedCell(ws, 4, sC + 12, 4, sC + 12, 'PWAS', colors.opc);
+                setMergedCell(ws, 4, sC + 13, 4, sC + 13, 'Other', colors.opc);
             });
 
             for (let r = 1; r <= 4; r++) {
-                for (let c = 1; c <= 4 + (monthsToRender.length * 17); c++) {
+                for (let c = 1; c <= 4 + (monthsToRender.length * 19); c++) {
                     ws.getCell(r, c).border = borderStyle;
                 }
             }
 
             const v = (num) => (num === 0 || num === "0.00" || num === null || isNaN(num)) ? '' : Number(num);
             const formatPurchaseDate = (dateStr) => {
-                if (!dateStr) return '';
+                if (!dateStr) return null;
                 const date = new Date(dateStr);
-                if (isNaN(date.getTime())) return '';
-                return `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][date.getMonth()]} ${date.getFullYear().toString().slice(-2)}`;
+                return isNaN(date.getTime()) ? null : date;
             };
 
             // 🟢 FIXED: carryGL IS NOW INSIDE THE EQUIPMENT LOOP - PREVENTS ACCUMULATION ACROSS VEHICLES
             eqRes.rows.forEach((eq, idx) => {
                 let carryGL = 0; // Reset to 0 for each vehicle!
                 let rowData = [idx + 1, eq.plate_no, formatPurchaseDate(eq.purchase_date), v(eq.purchase_cost)];
+                const cleanPlate = (eq.plate_no || "").trim().toUpperCase();
 
                 monthsToRender.forEach(m => {
                     const l = logsRes.rows.find(x => x.equipment_id === eq.id && x.year === yr && x.month === m) || {};
                     const maint = Number(l.maintenance_cost||0), basic = Number(l.basic_salary||0), ot = Number(l.overtime||0), pen = Number(l.penalty||0), rent = Number(l.santook_rent||0), rev = Number(l.op_revenue||0);
                     
+                    // Identify Company & Site for vehicle & month
+                    const mStart = new Date(yr, m - 1, 1);
+                    const mEnd = new Date(yr, m, 0);
+                    let matchedCompanies = [];
+                    let matchedSites = [];
+                    siteLogs.forEach(sLog => {
+                        if ((sLog.plate_no || "").trim().toUpperCase() === cleanPlate) {
+                            const sStart = sLog.work_start_date ? new Date(sLog.work_start_date) : null;
+                            const sEnd = sLog.work_end_date ? new Date(sLog.work_end_date) : null;
+                            if ((!sStart || sStart <= mEnd) && (!sEnd || sEnd >= mStart)) {
+                                const cName = normalizeCompanyNameForExcel(sLog.site_name);
+                                const sClean = cleanSiteNameForExcel(sLog.site_name);
+                                if (cName && !matchedCompanies.includes(cName)) matchedCompanies.push(cName);
+                                if (sClean && !matchedSites.includes(sClean)) matchedSites.push(sClean);
+                            }
+                        }
+                    });
+                    const compDisplay = matchedCompanies.length > 0 ? matchedCompanies.join(" & ") : "Not Work";
+                    const siteDisplay = matchedSites.length > 0 ? matchedSites.join(" & ") : "";
+
                     const kaf = rev*(Number(l.kafil_comm||0)/100);
                     const own = Number(l.owner_comm||0);
                     const inv = Number(l.investor_comm||0);
@@ -551,23 +598,33 @@ router.get('/export-excel', async (req, res) => {
                     let prvMonthDisplay = carryGL;
                     carryGL = net;
                     
-                    rowData.push(v(maint), v(basic), v(ot), v(pen), v(netSal), v(rent), v(kaf), v(own), v(inv), v(deb), v(pwas), v(oth), v(tc), v(rev), v(gl), v(prvMonthDisplay), v(net));
+                    rowData.push(v(maint), v(basic), v(ot), v(pen), v(netSal), v(rent), compDisplay, siteDisplay, v(kaf), v(own), v(inv), v(deb), v(pwas), v(oth), v(tc), v(rev), v(gl), v(prvMonthDisplay), v(net));
                 });
 
                 let rowObj = ws.addRow(rowData);
                 rowObj.height = 33;
                 rowObj.alignment = centerAlign;
+                if (rowData[2] instanceof Date) {
+                    rowObj.getCell(3).numFmt = 'dd-mmm-yy';
+                }
 
-                for (let c = 1; c <= 4 + (monthsToRender.length * 17); c++) {
+                for (let c = 1; c <= 4 + (monthsToRender.length * 19); c++) {
                     let cell = rowObj.getCell(c);
                     cell.border = borderStyle;
                     if (c > 4) {
-                        let colIdx = (c - 5) % 17; 
-                        if (colIdx >= 1 && colIdx <= 11) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.opc } };
-                        else if (colIdx === 12) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.total } }; cell.font = { bold: true }; }
-                        else if (colIdx === 13) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.rev } }; cell.font = { bold: true }; }
-                        else if (colIdx === 14) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.gl } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF008000' } }; }
-                        else if (colIdx === 16) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.net } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF000000' } }; }
+                        let colIdx = (c - 5) % 19; 
+                        if (colIdx >= 1 && colIdx <= 13) {
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.opc } };
+                            if (colIdx === 6) {
+                                cell.font = { bold: true, color: { argb: cell.value === "Not Work" ? 'FF94A3B8' : 'FF0F172A' } };
+                            } else if (colIdx === 7) {
+                                cell.font = { bold: true, color: { argb: 'FF1E293B' } };
+                            }
+                        }
+                        else if (colIdx === 14) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.total } }; cell.font = { bold: true }; }
+                        else if (colIdx === 15) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.rev } }; cell.font = { bold: true }; }
+                        else if (colIdx === 16) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.gl } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF008000' } }; }
+                        else if (colIdx === 18) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.net } }; cell.font = { bold: true, color: { argb: Number(cell.value) < 0 ? 'FFFF0000' : 'FF000000' } }; }
                         
                         if (colIdx === 3 && cell.value !== '') cell.font = { color: { argb: 'FFFF0000' } };
                     }
