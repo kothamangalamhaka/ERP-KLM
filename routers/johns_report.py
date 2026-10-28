@@ -216,10 +216,10 @@ def export_johns_excel(payload: ExportPayload):
             ("Supplier", 15, 16, dark_fill),
             ("For Driver", 17, 18, dark_fill),
             ("CALCULATIONS", 19, 21, calc_fill),
-            ("DIFFERENCE", 22, 26, diff_fill),
-            ("SUPPLIER PAYMENTS", 27, 32, amt_fill),
-            ("INVOICE AMOUNT", 33, 39, inv_fill),
-            ("P&L", 40, 40, pl_fill)
+            ("DIFFERENCE", 22, 25, diff_fill),
+            ("SUPPLIER PAYMENTS", 26, 31, amt_fill),
+            ("INVOICE AMOUNT", 32, 38, inv_fill),
+            ("P&L", 39, 39, pl_fill)
         ]
 
         sub_headers = [
@@ -227,7 +227,7 @@ def export_johns_excel(payload: ExportPayload):
             "Site Co", "Field Co", "Vehicle Type", "Plate No",
             "NR", "OT", "NR", "OT", "NR", "OT", "OT", "AMT",
             "Logsheet CF", "Bill Summary CF", "Supplier CF",
-            "Log - Supplier", "Bill - Supplier", "Net CF", "Bill - Log", "Notes",
+            "Log - Supplier", "Bill - Supplier", "Bill - Log", "Notes",
             "NR Rate", "OT Rate", "Rent", "VAT", "Total", "Net Total",
             "Subtotal", "Deductions", "Total", "Reason", "CRN No", "Invoice No", "Bill No",
             "Profit / Loss"
@@ -252,13 +252,13 @@ def export_johns_excel(payload: ExportPayload):
                 cell = ws.cell(row=2, column=col_idx, value=col_name)
                 if col_idx in [19, 20, 21]:
                     cell.fill = calc_fill
-                elif 22 <= col_idx <= 26:
+                elif 22 <= col_idx <= 25:
                     cell.fill = diff_fill
-                elif 27 <= col_idx <= 32:
+                elif 26 <= col_idx <= 31:
                     cell.fill = amt_fill
-                elif 33 <= col_idx <= 39:
+                elif 32 <= col_idx <= 38:
                     cell.fill = inv_fill
-                elif col_idx == 40:
+                elif col_idx == 39:
                     cell.fill = pl_fill
                 else:
                     cell.fill = dark_fill
@@ -271,12 +271,20 @@ def export_johns_excel(payload: ExportPayload):
 
             for r_idx, row_values in enumerate(sheet_data.rows, 3):
                 for c_idx, val in enumerate(row_values, 1):
-                    cell = ws.cell(row=r_idx, column=c_idx, value=val)
+                    cell_val = val
+                    if c_idx in [22, 23, 24]:
+                        try:
+                            if val not in [None, "", "-"] and float(val) == 0:
+                                cell_val = ""
+                        except (ValueError, TypeError):
+                            pass
+
+                    cell = ws.cell(row=r_idx, column=c_idx, value=cell_val)
                     cell.font = cell_font
                     cell.border = thin_border
-                    if c_idx in [22, 23, 24, 25] and val not in [None, "", "-"]:
+                    if c_idx in [22, 23, 24] and cell_val not in [None, "", "-"]:
                         try:
-                            num_val = float(val)
+                            num_val = float(cell_val)
                             if num_val > 0:
                                 cell.fill = pos_fill
                             elif num_val < 0:
@@ -285,7 +293,7 @@ def export_johns_excel(payload: ExportPayload):
                             pass
                     if c_idx in [1, 3, 4, 10]:
                         cell.alignment = Alignment(horizontal="center", vertical="center")
-                    elif c_idx in [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]:
+                    elif c_idx in [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]:
                         cell.alignment = Alignment(horizontal="right", vertical="center")
                     else:
                         cell.alignment = Alignment(horizontal="left", vertical="center")

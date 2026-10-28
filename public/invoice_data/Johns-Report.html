@@ -393,7 +393,7 @@
             <th colspan="2">Supplier</th>
             <th colspan="2">For Driver</th>
             <th colspan="3" class="th-calc">CALCULATIONS</th>
-            <th colspan="5" style="background:#be123c !important;">DIFFERENCE</th>
+            <th colspan="4" style="background:#be123c !important;">DIFFERENCE</th>
             <th colspan="6" style="background:#059669 !important;">SUPPLIER PAYMENTS</th>
             <th colspan="7" style="background:#b91c1c !important;">INVOICE AMOUNT</th>
             <th colspan="1" style="background:#4338ca !important;">P&L</th>
@@ -422,7 +422,6 @@
             <th style="width: 85px; cursor: pointer;" class="th-calc" onclick="openExcelFilterMenu(event, 'supplier_cf')">Supplier CF <span class="filter-icon" data-key="supplier_cf">▼</span></th>
             <th style="width: 80px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'diff_log_sup')">Log - Supplier <span class="filter-icon" data-key="diff_log_sup">▼</span></th>
             <th style="width: 80px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'diff_bill_sup')">Bill - Supplier <span class="filter-icon" data-key="diff_bill_sup">▼</span></th>
-            <th style="width: 70px; min-width: 70px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'diff_net')">Net CF <span class="filter-icon" data-key="diff_net">▼</span></th>
             <th style="width: 75px; min-width: 75px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'diff_bill_log')">Bill - Log <span class="filter-icon" data-key="diff_bill_log">▼</span></th>
             <th style="width: 140px; background:#9f1239; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'vbill_notes')">Notes <span class="filter-icon" data-key="vbill_notes">▼</span></th>
             <th style="width: 75px; background:#047857; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'bill_nrate')">NR Rate <span class="filter-icon" data-key="bill_nrate">▼</span></th>
@@ -709,11 +708,51 @@
 
         let sn = 1;
         (raw.vehicles || []).forEach(v => {
-          let pClean = cleanPlate(v.plate_no);
+          let originalPlate = String(v.plate_no || "").trim();
+          let pClean = cleanPlate(originalPlate);
           if (!pClean) return;
 
-          let vSites = (raw.sites || []).filter(s => cleanPlate(s.plate_no) === pClean);
-          let vTimesheets = (raw.timesheets || []).filter(ts => cleanPlate(ts.plate_no) === pClean && ts.month === monthStr && Number(ts.year) === Number(yearNum));
+          // 🟢 പ്ലേറ്റ് മാറ്റ ലോഗ് പരിശോധിച്ച് ആ മാസത്തിലെ എഫക്റ്റീവ് പ്ലേറ്റും അലൈഡ് പ്ലേറ്റുകളും കണ്ടെത്തുന്നു
+          let effectivePlate = originalPlate;
+          let relatedPlates = [pClean];
+
+          let vPlateLogs = (raw.plateChanges || []).filter(pl => {
+            let oP = cleanPlate(pl.old_plate_no);
+            let nP = cleanPlate(pl.new_plate_no);
+            return oP === pClean || nP === pClean;
+          });
+
+          vPlateLogs.forEach(pl => {
+            let oP = cleanPlate(pl.old_plate_no);
+            let nP = cleanPlate(pl.new_plate_no);
+            if (oP && !relatedPlates.includes(oP)) relatedPlates.push(oP);
+            if (nP && !relatedPlates.includes(nP)) relatedPlates.push(nP);
+          });
+
+          if (vPlateLogs.length > 0) {
+            for (let pl of vPlateLogs) {
+              if (!pl.change_date) continue;
+              let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+              let cDate = new Date(cYear, cMonth - 1, cDay);
+
+              if (cYear === Number(yearNum) && cMonth - 1 === mIdx) {
+                effectivePlate = `${pl.old_plate_no} ➔ ${pl.new_plate_no}`;
+              } else if (monthEnd < cDate) {
+                effectivePlate = pl.old_plate_no;
+              } else if (monthStart >= cDate) {
+                effectivePlate = pl.new_plate_no;
+              }
+            }
+          }
+
+          let isPlateMatch = (targetPlate) => {
+            let rawP = String(targetPlate || "").toUpperCase();
+            let parts = rawP.split(/➔|→|->/).map(p => cleanPlate(p)).filter(Boolean);
+            return parts.some(cp => relatedPlates.includes(cp)) || relatedPlates.includes(cleanPlate(rawP));
+          };
+
+          let vSites = (raw.sites || []).filter(s => isPlateMatch(s.plate_no));
+          let vTimesheets = (raw.timesheets || []).filter(ts => isPlateMatch(ts.plate_no) && ts.month === monthStr && Number(ts.year) === Number(yearNum));
 
           let hasMonthTimesheetActivity = vTimesheets.some(ts => {
             let tm = parseFloat(ts.calc_time) || 0;
@@ -763,11 +802,11 @@
             }
           });
 
-          let inv = (raw.invoices || []).find(i => cleanPlate(i.plate_no) === pClean && i.month === fullMonth && (!i.site_name || i.site_name === siteName || siteName.startsWith("Prev:")));
+          let inv = (raw.invoices || []).find(i => isPlateMatch(i.plate_no) && i.month === fullMonth && (!i.site_name || i.site_name === siteName || siteName.startsWith("Prev:")));
           let inv_nr = inv && inv.bill_nr ? parseFloat(inv.bill_nr) : 0;
           let inv_ot = inv && inv.bill_ot ? parseFloat(inv.bill_ot) : 0;
 
-          let bill = (raw.billing || []).find(b => cleanPlate(b.plate_no) === pClean && b.billing_month === fullMonth && (!b.site_name || b.site_name === siteName || siteName.startsWith("Prev:")));
+          let bill = (raw.billing || []).find(b => isPlateMatch(b.plate_no) && b.billing_month === fullMonth && (!b.site_name || b.site_name === siteName || siteName.startsWith("Prev:")));
           let bill_nr = bill && bill.nhr ? parseFloat(bill.nhr) : 0;
           let bill_ot = bill && bill.othr ? parseFloat(bill.othr) : 0;
           let driver_ot = bill && bill.driver_ot ? parseFloat(bill.driver_ot) : 0;
@@ -781,18 +820,18 @@
           if (totalTsHrs === 0 && totalBillHrs === 0 && totalInvHrs === 0 && !strictlyActiveSites.length) return;
 
           let dLog = (raw.drivers || []).find(d => {
-            if (cleanPlate(d.plate_no) !== pClean) return false;
+            if (!isPlateMatch(d.plate_no)) return false;
             let dst = new Date(d.work_start_date || "2000-01-01");
             let ded = new Date(d.work_end_date || "2099-01-01");
             return dst <= monthEnd && ded >= monthStart;
-          }) || (raw.drivers || []).find(d => cleanPlate(d.plate_no) === pClean);
+          }) || (raw.drivers || []).find(d => isPlateMatch(d.plate_no));
 
           let oLog = (raw.owners || []).find(o => {
-            if (cleanPlate(o.plate_no) !== pClean) return false;
+            if (!isPlateMatch(o.plate_no)) return false;
             let ost = new Date(o.work_start_date || "2000-01-01");
             let oed = new Date(o.work_end_date || "2099-01-01");
             return ost <= monthEnd && oed >= monthStart;
-          }) || (raw.owners || []).find(o => cleanPlate(o.plate_no) === pClean);
+          }) || (raw.owners || []).find(o => isPlateMatch(o.plate_no));
 
           let isAfif = String(siteName || "").toUpperCase().includes("AFIF");
           let otMultiplier = isAfif ? 1.0 : 0.7;
@@ -805,10 +844,13 @@
           let valBill = typeof bill_cf === "number" ? bill_cf : 0;
           let valSup = typeof supplier_cf === "number" ? supplier_cf : 0;
 
-          let diffLogSup = (logsheet_cf !== "" || supplier_cf !== "") ? Number((valLog - valSup).toFixed(2)) : "";
-          let diffBillSup = (bill_cf !== "" || supplier_cf !== "") ? Number((valBill - valSup).toFixed(2)) : "";
-          let diffNet = (diffBillSup !== "" || diffLogSup !== "") ? Number(((valBill - valSup) - (valLog - valSup)).toFixed(2)) : "";
-          let diffBillLog = (bill_cf !== "" || logsheet_cf !== "") ? Number((valBill - valLog).toFixed(2)) : "";
+          let rawDiffLogSup = (logsheet_cf !== "" || supplier_cf !== "") ? Number((valLog - valSup).toFixed(2)) : "";
+          let rawDiffBillSup = (bill_cf !== "" || supplier_cf !== "") ? Number((valBill - valSup).toFixed(2)) : "";
+          let rawDiffBillLog = (bill_cf !== "" || logsheet_cf !== "") ? Number((valBill - valLog).toFixed(2)) : "";
+
+          let diffLogSup = rawDiffLogSup === 0 ? "" : rawDiffLogSup;
+          let diffBillSup = rawDiffBillSup === 0 ? "" : rawDiffBillSup;
+          let diffBillLog = rawDiffBillLog === 0 ? "" : rawDiffBillLog;
           let vbillNotes = bill && bill.remark ? bill.remark.trim() : "-";
 
           let bill_nrate = bill && bill.nrate ? parseFloat(bill.nrate) : 0;
@@ -846,7 +888,7 @@
             site_co: curSiteObj.site_co || "-",
             field_co: curSiteObj.field_co || "-",
             v_type: curSiteObj.vehicle_type || v.vehicle_type || "-",
-            plate: v.plate_no,
+            plate: effectivePlate,
             ts_nr: ts_nr || "",
             ts_ot: ts_ot || "",
             inv_nr: inv_nr || "",
@@ -860,7 +902,6 @@
             supplier_cf,
             diff_log_sup: diffLogSup,
             diff_bill_sup: diffBillSup,
-            diff_net: diffNet,
             diff_bill_log: diffBillLog,
             vbill_notes: vbillNotes,
             bill_nrate: bill_nrate ? bill_nrate.toFixed(2) : "",
@@ -949,7 +990,6 @@
             <td class="col-calc">${r.supplier_cf || ""}</td>
             <td style="color:#000; font-weight:600; background-color: ${r.diff_log_sup !== '' ? (Number(r.diff_log_sup) > 0 ? '#dcfce7' : (Number(r.diff_log_sup) < 0 ? '#fee2e2' : 'transparent')) : 'transparent'};">${r.diff_log_sup !== "" ? r.diff_log_sup : ""}</td>
             <td style="color:#000; font-weight:600; background-color: ${r.diff_bill_sup !== '' ? (Number(r.diff_bill_sup) > 0 ? '#dcfce7' : (Number(r.diff_bill_sup) < 0 ? '#fee2e2' : 'transparent')) : 'transparent'};">${r.diff_bill_sup !== "" ? r.diff_bill_sup : ""}</td>
-            <td style="color:#000; font-weight:700; background-color: ${r.diff_net !== '' ? (Number(r.diff_net) > 0 ? '#dcfce7' : (Number(r.diff_net) < 0 ? '#fee2e2' : 'transparent')) : 'transparent'};">${r.diff_net !== "" ? r.diff_net : ""}</td>
             <td style="color:#000; font-weight:600; background-color: ${r.diff_bill_log !== '' ? (Number(r.diff_bill_log) > 0 ? '#dcfce7' : (Number(r.diff_bill_log) < 0 ? '#fee2e2' : 'transparent')) : 'transparent'};">${r.diff_bill_log !== "" ? r.diff_bill_log : ""}</td>
             <td style="text-align:left; font-size:11px;">${r.vbill_notes || "-"}</td>
             <td>${r.bill_nrate || ""}</td>
@@ -1167,7 +1207,7 @@
               r.ts_nr, r.ts_ot, r.inv_nr, r.inv_ot,
               r.bill_nr, r.bill_ot, r.driver_ot, r.driver_amt,
               r.logsheet_cf, r.bill_cf, r.supplier_cf,
-              r.diff_log_sup, r.diff_bill_sup, r.diff_net, r.diff_bill_log, r.vbill_notes,
+              r.diff_log_sup, r.diff_bill_sup, r.diff_bill_log, r.vbill_notes,
               r.bill_nrate, r.bill_otrate, r.bill_rent, r.rent_vat, r.rent_total, r.net_total,
               r.inv_subtotal, r.inv_deduct, r.inv_total, r.deduct_reason, r.crn_no, r.inv_no, r.bill_no,
               r.pl_status
@@ -1214,7 +1254,7 @@
               r.ts_nr, r.ts_ot, r.inv_nr, r.inv_ot,
               r.bill_nr, r.bill_ot, r.driver_ot, r.driver_amt,
               r.logsheet_cf, r.bill_cf, r.supplier_cf,
-              r.diff_log_sup, r.diff_bill_sup, r.diff_net, r.diff_bill_log, r.vbill_notes,
+              r.diff_log_sup, r.diff_bill_sup, r.diff_bill_log, r.vbill_notes,
               r.bill_nrate, r.bill_otrate, r.bill_rent, r.rent_vat, r.rent_total, r.net_total,
               r.inv_subtotal, r.inv_deduct, r.inv_total, r.deduct_reason, r.crn_no, r.inv_no, r.bill_no,
               r.pl_status
@@ -1392,7 +1432,7 @@
               r.ts_nr, r.ts_ot, r.inv_nr, r.inv_ot,
               r.bill_nr, r.bill_ot, r.driver_ot, r.driver_amt,
               r.logsheet_cf, r.bill_cf, r.supplier_cf,
-              r.diff_log_sup, r.diff_bill_sup, r.diff_net, r.diff_bill_log, r.vbill_notes,
+              r.diff_log_sup, r.diff_bill_sup, r.diff_bill_log, r.vbill_notes,
               r.bill_nrate, r.bill_otrate, r.bill_rent, r.rent_vat, r.rent_total, r.net_total,
               r.inv_subtotal, r.inv_deduct, r.inv_total, r.deduct_reason, r.crn_no, r.inv_no, r.bill_no,
               r.pl_status
