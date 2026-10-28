@@ -232,20 +232,9 @@
 
     <div class="table-container">
       <table id="aksTable">
-        <thead>
-          <tr>
-            <th style="min-width: 50px">SN</th>
-            <th style="min-width: 120px">Plate No / Asset code</th>
-            <th style="min-width: 110px">Date Of Purchase</th>
-            <th style="min-width: 100px">Purchase Cost</th>
-            <th style="min-width: 100px">Insurance Cost</th>
-            <th style="min-width: 100px">Off Site MTC</th>
-            <th style="min-width: 130px">Work assign Site</th>
-            <th style="min-width: 120px">Reached Site Date</th>
-            <th style="min-width: 120px">Site End Date</th>
-            <th style="min-width: 140px">Site First Month MTC Only Expense</th>
-            <th style="min-width: 140px">Site Second Month MTC Only Expense</th>
-          </tr>
+        <thead id="aksTableHead">
+          <tr id="aksHeadRow1"></tr>
+          <tr id="aksHeadRow2"></tr>
         </thead>
         <tbody id="aksTableBody"></tbody>
       </table>
@@ -346,6 +335,27 @@
       </div>
     </div>
 
+    <!-- Export Options Modal -->
+    <div id="exportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10001; justify-content: center; align-items: center;">
+      <div style="background: #ffffff; border-radius: 8px; width: 360px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 15px;">📊 Export Excel Options</h4>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="exportOption" value="single" checked />
+            <span>Entire data in single sheet</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="exportOption" value="yearly" />
+            <span>Yearly data (Separate tabs for each year)</span>
+          </label>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeExportModal()">Cancel</button>
+          <button type="button" class="btn" style="background: #1e7e34; color: white;" onclick="confirmExcelExport()">Export</button>
+        </div>
+      </div>
+    </div>
+
     <div id="toast-container"></div>
 
     <script>
@@ -389,7 +399,7 @@
         setTimeout(() => t.remove(), 3000);
       }
 
-      let currentMaxMonths = 2;
+      let currentTimeline = [];
 
       async function loadAKSData() {
         try {
@@ -397,9 +407,9 @@
           const data = await res.json();
           if (data.success) {
             rawData = data.records || [];
-            currentMaxMonths = data.max_site_months || 2;
+            currentTimeline = data.timeline || [];
             pendingChanges = {};
-            renderTable(rawData, currentMaxMonths);
+            renderTable(rawData, currentTimeline);
           } else {
             showToast("Failed to load data", "error");
           }
@@ -424,150 +434,118 @@
       let activeFilters = {};
       let currentFilterCol = null;
 
-      function renderTable(list, maxMonths = 2) {
-        const theadTr = document.querySelector("#aksTable thead tr");
-        theadTr.innerHTML = `
-          <th style="min-width: 50px">SN <span class="filter-icon" onclick="openColumnFilter(event, 'sn', 'SN')">🔽</span></th>
-          <th style="min-width: 120px">Plate No / Asset code <span class="filter-icon" onclick="openColumnFilter(event, 'plate_no', 'Plate No')">🔽</span></th>
-          <th style="min-width: 110px">Date Of Purchase <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_date', 'Purchase Date')">🔽</span></th>
-          <th style="min-width: 100px">Purchase Cost <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_cost', 'Purchase Cost')">🔽</span></th>
-          <th style="min-width: 100px">Insurance Cost <span class="filter-icon" onclick="openColumnFilter(event, 'insurance_cost', 'Insurance Cost')">🔽</span></th>
-          <th style="min-width: 100px">Off Site MTC <span class="filter-icon" onclick="openColumnFilter(event, 'off_site_mtc', 'Off Site MTC')">🔽</span></th>
-          <th style="min-width: 130px">Work assign Site <span class="filter-icon" onclick="openColumnFilter(event, 'work_assign_site', 'Site Name')">🔽</span></th>
-          <th style="min-width: 120px">Reached Site Date <span class="filter-icon" onclick="openColumnFilter(event, 'reached_site_date', 'Reached Site Date')">🔽</span></th>
-          <th style="min-width: 120px">Site End Date <span class="filter-icon" onclick="openColumnFilter(event, 'site_end_date', 'Site End Date')">🔽</span></th>
-        `;
+      function renderTable(list, timeline = []) {
+        const r1 = document.getElementById("aksHeadRow1");
+        const r2 = document.getElementById("aksHeadRow2");
 
-        for (let i = 1; i <= maxMonths; i++) {
-          const suffix =
-            i === 1 ? "1st" : i === 2 ? "2nd" : i === 3 ? "3rd" : `${i}th`;
-          theadTr.innerHTML += `<th style="min-width: 120px">Site ${suffix} Month MTC <span class="filter-icon" onclick="openColumnFilter(event, 'month_exp_${i - 1}', 'Site ${suffix} Month MTC')">🔽</span></th>`;
-        }
+        r1.innerHTML = `
+          <th rowspan="2" style="min-width: 50px">SN <span class="filter-icon" onclick="openColumnFilter(event, 'sn', 'SN')">🔽</span></th>
+          <th rowspan="2" style="min-width: 120px">Plate No / Asset code <span class="filter-icon" onclick="openColumnFilter(event, 'plate_no', 'Plate No')">🔽</span></th>
+          <th rowspan="2" style="min-width: 110px">Date Of Purchase <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_date', 'Purchase Date')">🔽</span></th>
+          <th rowspan="2" style="min-width: 100px">Purchase Cost <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_cost', 'Purchase Cost')">🔽</span></th>
+          <th rowspan="2" style="min-width: 100px">Insurance Cost <span class="filter-icon" onclick="openColumnFilter(event, 'insurance_cost', 'Insurance Cost')">🔽</span></th>
+          <th rowspan="2" style="min-width: 100px">Off Site MTC <span class="filter-icon" onclick="openColumnFilter(event, 'off_site_mtc', 'Off Site MTC')">🔽</span></th>
+        `;
+        r2.innerHTML = "";
+
+        timeline.forEach((tm, tIdx) => {
+          r1.innerHTML += `<th colspan="3" style="background: #c6d9f1; border-left: 2px solid #94a3b8;">${tm.label}</th>`;
+          r2.innerHTML += `
+            <th style="min-width: 130px; background: #e9eef4; border-left: 2px solid #94a3b8;">Site <span class="filter-icon" onclick="openColumnFilter(event, 'month_site_${tIdx}', '${tm.label} Site')">🔽</span></th>
+            <th style="min-width: 90px; background: #e9eef4;">MTC <span class="filter-icon" onclick="openColumnFilter(event, 'month_mtc_${tIdx}', '${tm.label} MTC')">🔽</span></th>
+            <th style="min-width: 90px; background: #e9eef4;">OTC <span class="filter-icon" onclick="openColumnFilter(event, 'month_otc_${tIdx}', '${tm.label} OTC')">🔽</span></th>
+          `;
+        });
 
         const tbody = document.getElementById("aksTableBody");
         tbody.innerHTML = "";
 
-        const filteredList = [];
-
-        list.forEach((item, idx) => {
-          // 1. Vehicle-level (Parent) Filter Check
+        const filteredList = list.filter((item, idx) => {
           for (const [col, selectedVals] of Object.entries(activeFilters)) {
             if (!selectedVals) continue;
-            if (col === "sn" && !selectedVals.includes(String(idx + 1))) return;
-            if (col === "plate_no") {
-              const v = item.plate_no || "__BLANK__";
-              if (!selectedVals.includes(v)) return;
+            if (col === "sn" && !selectedVals.includes(String(idx + 1)))
+              return false;
+            if (
+              col === "plate_no" &&
+              !selectedVals.includes(item.plate_no || "__BLANK__")
+            )
+              return false;
+            if (
+              col === "purchase_date" &&
+              !selectedVals.includes(
+                formatDate(item.purchase_date) || "__BLANK__",
+              )
+            )
+              return false;
+            if (
+              col === "purchase_cost" &&
+              !selectedVals.includes(
+                fmtNumber(item.purchase_cost) || "__BLANK__",
+              )
+            )
+              return false;
+            if (
+              col === "insurance_cost" &&
+              !selectedVals.includes(
+                fmtNumber(item.insurance_cost) || "__BLANK__",
+              )
+            )
+              return false;
+            if (
+              col === "off_site_mtc" &&
+              !selectedVals.includes(
+                fmtNumber(item.off_site_mtc) || "__BLANK__",
+              )
+            )
+              return false;
+
+            if (col.startsWith("month_site_")) {
+              const tIdx = parseInt(col.replace("month_site_", ""));
+              const mData = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(mData.site || "__BLANK__"))
+                return false;
             }
-            if (col === "purchase_date") {
-              const v = formatDate(item.purchase_date) || "__BLANK__";
-              if (!selectedVals.includes(v)) return;
+            if (col.startsWith("month_mtc_")) {
+              const tIdx = parseInt(col.replace("month_mtc_", ""));
+              const mData = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(fmtNumber(mData.mtc) || "__BLANK__"))
+                return false;
             }
-            if (col === "purchase_cost") {
-              const v = fmtNumber(item.purchase_cost) || "__BLANK__";
-              if (!selectedVals.includes(v)) return;
-            }
-            if (col === "insurance_cost") {
-              const v = fmtNumber(item.insurance_cost) || "__BLANK__";
-              if (!selectedVals.includes(v)) return;
-            }
-            if (col === "off_site_mtc") {
-              const v = fmtNumber(item.off_site_mtc) || "__BLANK__";
-              if (!selectedVals.includes(v)) return;
+            if (col.startsWith("month_otc_")) {
+              const tIdx = parseInt(col.replace("month_otc_", ""));
+              const mData = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(fmtNumber(mData.otc) || "__BLANK__"))
+                return false;
             }
           }
-
-          // 2. Site-level (Child Rows) Filter Check
-          const originalSites = (item.sites && item.sites.length > 0)
-            ? item.sites
-            : [{ work_assign_site: "", reached_site_date: "", site_end_date: "", monthly_expenses: [] }];
-
-          const matchedSites = originalSites.filter((site) => {
-            for (const [col, selectedVals] of Object.entries(activeFilters)) {
-              if (!selectedVals) continue;
-              if (col === "work_assign_site") {
-                const v = site.work_assign_site || "__BLANK__";
-                if (!selectedVals.includes(v)) return false;
-              }
-              if (col === "reached_site_date") {
-                const v = formatDate(site.reached_site_date) || "__BLANK__";
-                if (!selectedVals.includes(v)) return false;
-              }
-              if (col === "site_end_date") {
-                const v = formatDate(site.site_end_date) || "__BLANK__";
-                if (!selectedVals.includes(v)) return false;
-              }
-              if (col.startsWith("month_exp_")) {
-                const mIdx = parseInt(col.replace("month_exp_", ""));
-                const expVal = (site.monthly_expenses || [])[mIdx];
-                const v = fmtNumber(expVal) || "__BLANK__";
-                if (!selectedVals.includes(v)) return false;
-              }
-            }
-            return true;
-          });
-
-          if (matchedSites.length > 0) {
-            filteredList.push({
-              ...item,
-              displaySN: idx + 1,
-              sites: matchedSites
-            });
-          }
+          return true;
         });
 
         filteredList.forEach((item, idx) => {
-          const sites =
-            item.sites && item.sites.length > 0
-              ? item.sites
-              : [
-                  {
-                    work_assign_site: "",
-                    reached_site_date: "",
-                    site_end_date: "",
-                    monthly_expenses: [],
-                  },
-                ];
-          const rowSpan = sites.length;
+          const tr = document.createElement("tr");
+          tr.setAttribute("data-plate", (item.plate_no || "").toLowerCase());
 
-          sites.forEach((site, sIdx) => {
-            const tr = document.createElement("tr");
-            tr.setAttribute("data-plate", (item.plate_no || "").toLowerCase());
+          let rowHtml = `
+            <td><b>${idx + 1}</b></td>
+            <td style="font-weight: 600;">${item.plate_no || ""}</td>
+            <td>${formatDate(item.purchase_date)}</td>
+            <td>${fmtNumber(item.purchase_cost)}</td>
+            <td class="insurance-cell calc-cell" contenteditable="false" data-id="${item.id}" data-field="insurance_cost">${fmtNumber(item.insurance_cost)}</td>
+            <td style="color: #1e293b;">${fmtNumber(item.off_site_mtc)}</td>
+          `;
 
-            let rowHtml = "";
-            if (sIdx === 0) {
-              rowHtml += `
-                <td rowspan="${rowSpan}"><b>${item.displaySN || idx + 1}</b></td>
-                <td rowspan="${rowSpan}" style="font-weight: 600;">${item.plate_no || ""}</td>
-                <td rowspan="${rowSpan}">${formatDate(item.purchase_date)}</td>
-                <td rowspan="${rowSpan}">${fmtNumber(item.purchase_cost)}</td>
-                <td rowspan="${rowSpan}" class="insurance-cell calc-cell" contenteditable="false" data-id="${item.id}" data-field="insurance_cost">${fmtNumber(item.insurance_cost)}</td>
-                <td rowspan="${rowSpan}" style="color: #1e293b;">${fmtNumber(item.off_site_mtc)}</td>
-              `;
-            }
-
-            const siteBg = site.site_end_date
-              ? "background-color: #fce8e6; color: #b91c1c;"
-              : "";
+          const mDataList = item.months_data || [];
+          timeline.forEach((_, tIdx) => {
+            const m = mDataList[tIdx] || { site: "", mtc: 0, otc: 0 };
             rowHtml += `
-              <td style="font-weight: 500; text-align: left; ${siteBg}">${site.work_assign_site || ""}</td>
-              <td>${formatDate(site.reached_site_date)}</td>
-              <td>${formatDate(site.site_end_date)}</td>
+              <td style="text-align: left; font-weight: 500; border-left: 2px solid #cbd5e1;">${m.site || ""}</td>
+              <td style="font-weight: 500;">${fmtNumber(m.mtc)}</td>
+              <td style="font-weight: 500; background-color: #fefce8;">${fmtNumber(m.otc)}</td>
             `;
-
-            const expenses = site.monthly_expenses || [];
-            for (let i = 0; i < maxMonths; i++) {
-              const val = expenses[i] !== undefined ? expenses[i] : "";
-              rowHtml += `<td style="font-weight: 500;">${fmtNumber(val)}</td>`;
-            }
-
-            tr.innerHTML = rowHtml;
-            tbody.appendChild(tr);
           });
-        });
 
-        document.querySelectorAll("#aksTableBody .date-cell").forEach((td) => {
-          const raw = td.getAttribute("data-excel-val");
-          if (raw) td.innerText = formatDate(raw);
+          tr.innerHTML = rowHtml;
+          tbody.appendChild(tr);
         });
 
         attachCellListeners();
@@ -664,8 +642,20 @@
       }
 
       function exportAKSToExcel() {
+        const modal = document.getElementById("exportModal");
+        if (modal) modal.style.display = "flex";
+      }
+
+      function closeExportModal() {
+        const modal = document.getElementById("exportModal");
+        if (modal) modal.style.display = "none";
+      }
+
+      function confirmExcelExport() {
+        const selectedMode = document.querySelector('input[name="exportOption"]:checked')?.value || "single";
+        closeExportModal();
         showToast("Generating Excel file...", "success");
-        window.location.href = "/py/aks/export-excel";
+        window.location.href = `/py/aks/export-excel?mode=${selectedMode}`;
       }
 
       function filterRows() {
@@ -740,15 +730,12 @@
           }
         });
 
-        const sortedVals = Array.from(valueSet)
-          .filter(Boolean)
-          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
         const selectedList = activeFilters[colKey] || null;
 
         let listHtml = `
-          <li>
+          <li style="padding: 4px 8px;">
             <input type="checkbox" id="chkFilterSelectAll" onchange="toggleSelectAllFilter(this)" checked />
-            <label for="chkFilterSelectAll"><b>(Select All)</b></label>
+            <label for="chkFilterSelectAll" style="cursor: pointer;"><b>(Select All)</b></label>
           </li>
         `;
 
@@ -756,22 +743,86 @@
           const isBlankChecked =
             selectedList === null || selectedList.includes("__BLANK__");
           listHtml += `
-            <li class="filter-item-row" data-text="(blanks)">
+            <li class="filter-item-row" data-text="(blanks)" style="padding: 3px 8px;">
               <input type="checkbox" class="col-filter-chk" value="__BLANK__" id="filter_chk_blank" ${isBlankChecked ? "checked" : ""} />
-              <label for="filter_chk_blank"><i>(Blanks)</i></label>
+              <label for="filter_chk_blank" style="cursor: pointer;"><i>(Blanks)</i></label>
             </li>
           `;
         }
 
-        sortedVals.forEach((val, i) => {
-          const isChecked = selectedList === null || selectedList.includes(val);
-          listHtml += `
-            <li class="filter-item-row" data-text="${val.toLowerCase()}">
-              <input type="checkbox" class="col-filter-chk" value="${val}" id="filter_chk_${i}" ${isChecked ? "checked" : ""} />
-              <label for="filter_chk_${i}">${val}</label>
-            </li>
-          `;
-        });
+        if (colKey === "purchase_date") {
+          // Excel Tree View: Year > Month > Date
+          const dateTree = {};
+          Array.from(valueSet)
+            .filter(Boolean)
+            .forEach((dStr) => {
+              const parts = dStr.split("-");
+              if (parts.length === 3) {
+                const [day, mon, yr] = parts;
+                const fullYr = "20" + yr;
+                if (!dateTree[fullYr]) dateTree[fullYr] = {};
+                if (!dateTree[fullYr][mon]) dateTree[fullYr][mon] = [];
+                dateTree[fullYr][mon].push(dStr);
+              }
+            });
+
+          Object.keys(dateTree)
+            .sort()
+            .reverse()
+            .forEach((yr) => {
+              listHtml += `
+              <li class="filter-item-row" data-text="${yr}" style="flex-direction: column; align-items: flex-start; padding: 2px 8px;">
+                <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+                  <span onclick="toggleTreeCollapse(this)" style="cursor: pointer; font-size: 10px; width: 12px;">▶</span>
+                  <input type="checkbox" class="tree-yr-chk" data-yr="${yr}" onchange="toggleYearCheck(this, '${yr}')" checked />
+                  <label style="font-weight: bold; cursor: pointer;">${yr}</label>
+                </div>
+                <ul class="tree-child-group" id="grp_${yr}" style="list-style: none; padding-left: 20px; width: 100%; margin: 2px 0; display: none;">
+            `;
+
+              Object.keys(dateTree[yr]).forEach((mon) => {
+                listHtml += `
+                <li style="margin: 2px 0; display: flex; flex-direction: column; align-items: flex-start; width: 100%; padding: 0;">
+                  <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+                    <span onclick="toggleTreeCollapse(this)" style="cursor: pointer; font-size: 10px; width: 12px;">▶</span>
+                    <input type="checkbox" class="tree-mon-chk" data-yr="${yr}" data-mon="${mon}" onchange="toggleMonthCheck(this, '${yr}', '${mon}')" checked />
+                    <label style="font-weight: 600; cursor: pointer;">${mon}</label>
+                  </div>
+                  <ul class="tree-child-group" id="grp_${yr}_${mon}" style="list-style: none; padding-left: 20px; margin: 2px 0; width: 100%; display: none; flex-direction: column;">
+              `;
+
+                dateTree[yr][mon].sort().forEach((fullDate) => {
+                  const isChecked =
+                    selectedList === null || selectedList.includes(fullDate);
+                  listHtml += `
+                  <li class="filter-item-row" data-text="${fullDate.toLowerCase()}" style="padding: 2px 0; display: flex; align-items: center; gap: 6px; width: 100%;">
+                    <input type="checkbox" class="col-filter-chk" data-yr="${yr}" data-mon="${mon}" value="${fullDate}" ${isChecked ? "checked" : ""} onchange="syncDateTreeCheck('${yr}', '${mon}')" />
+                    <label style="cursor: pointer; white-space: nowrap;">${fullDate}</label>
+                  </li>
+                `;
+                });
+
+                listHtml += `</ul></li>`;
+              });
+
+              listHtml += `</ul></li>`;
+            });
+        } else {
+          const sortedVals = Array.from(valueSet)
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+          sortedVals.forEach((val, i) => {
+            const isChecked =
+              selectedList === null || selectedList.includes(val);
+            listHtml += `
+              <li class="filter-item-row" data-text="${val.toLowerCase()}">
+                <input type="checkbox" class="col-filter-chk" value="${val}" id="filter_chk_${i}" ${isChecked ? "checked" : ""} />
+                <label for="filter_chk_${i}">${val}</label>
+              </li>
+            `;
+          });
+        }
 
         document.getElementById("filterItemList").innerHTML = listHtml;
         menu.style.display = "block";
@@ -797,8 +848,61 @@
 
       function toggleSelectAllFilter(master) {
         document
-          .querySelectorAll(".col-filter-chk")
+          .querySelectorAll(".col-filter-chk, .tree-yr-chk, .tree-mon-chk")
           .forEach((c) => (c.checked = master.checked));
+      }
+
+      function toggleTreeCollapse(btn) {
+        const parentLi = btn.closest("li");
+        const subGroup = parentLi.querySelector(".tree-child-group");
+        if (!subGroup) return;
+        if (subGroup.style.display === "none") {
+          subGroup.style.display = "block";
+          btn.innerText = "▼";
+        } else {
+          subGroup.style.display = "none";
+          btn.innerText = "▶";
+        }
+      }
+
+      function toggleYearCheck(yrChk, yr) {
+        const isChecked = yrChk.checked;
+        document
+          .querySelectorAll(
+            `.tree-mon-chk[data-yr="${yr}"], .col-filter-chk[data-yr="${yr}"]`,
+          )
+          .forEach((c) => (c.checked = isChecked));
+      }
+
+      function toggleMonthCheck(monChk, yr, mon) {
+        const isChecked = monChk.checked;
+        document
+          .querySelectorAll(
+            `.col-filter-chk[data-yr="${yr}"][data-mon="${mon}"]`,
+          )
+          .forEach((c) => (c.checked = isChecked));
+        syncDateTreeCheck(yr, mon);
+      }
+
+      function syncDateTreeCheck(yr, mon) {
+        const dateChks = Array.from(
+          document.querySelectorAll(
+            `.col-filter-chk[data-yr="${yr}"][data-mon="${mon}"]`,
+          ),
+        );
+        const monChk = document.querySelector(
+          `.tree-mon-chk[data-yr="${yr}"][data-mon="${mon}"]`,
+        );
+        if (monChk && dateChks.length > 0) {
+          monChk.checked = dateChks.some((c) => c.checked);
+        }
+        const yrDates = Array.from(
+          document.querySelectorAll(`.col-filter-chk[data-yr="${yr}"]`),
+        );
+        const yrChk = document.querySelector(`.tree-yr-chk[data-yr="${yr}"]`);
+        if (yrChk && yrDates.length > 0) {
+          yrChk.checked = yrDates.some((c) => c.checked);
+        }
       }
 
       function applyCurrentFilter() {
@@ -813,13 +917,13 @@
         }
 
         closeFilterMenu();
-        renderTable(rawData, currentMaxMonths);
+        renderTable(rawData, currentTimeline);
       }
 
       function clearCurrentFilter() {
         if (currentFilterCol) delete activeFilters[currentFilterCol];
         closeFilterMenu();
-        renderTable(rawData, currentMaxMonths);
+        renderTable(rawData, currentTimeline);
       }
 
       function sortAKSColumn(dir) {

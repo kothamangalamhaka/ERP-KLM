@@ -85,13 +85,13 @@ def clean_site_name(raw_site: str) -> str:
     clean = str(raw_site).strip()
     unwanted = [
         r'\bL\s*&\s*T\s+Solar\b', r'\bL\s*&\s*T\b', r'\bHydro\b',
-        r'\brerunning\b', r'\b22\b', r'\bZ\b', r'\bHaka\b',
+        r'\(?\s*re\s*running\s*\)?', r'\brerunning\b', r'\b22\b', r'\bZ\b', r'\bHaka\b',
         r'\bAl\s*Joda\b', r'\bAljoda\b', r'\bMasar\s*Wheels\b',
         r'\bMasar\b', r'\bWe\s*1\b', r'\bWe1\b', r'\bWe-1\b'
     ]
     for p in unwanted:
         clean = re.sub(p, ' ', clean, flags=re.IGNORECASE)
-    clean = re.sub(r'[-–—_/\\,|]+', ' ', clean)
+    clean = re.sub(r'[-–—_/\\,|()]+', ' ', clean)
     return re.sub(r'\s+', ' ', clean).strip()
 
 @router.get("/data")
@@ -121,9 +121,23 @@ def get_aks_data():
         site_logs = cur.fetchall()
 
         cur.execute("""
-            SELECT equipment_id, year, month, COALESCE(maintenance_cost, 0) as maintenance_cost 
-            FROM equipment_monthly_logs 
-            WHERE maintenance_cost > 0;
+            SELECT 
+                equipment_id, year, month, 
+                COALESCE(maintenance_cost, 0) AS maintenance_cost,
+                COALESCE(basic_salary, 0) AS basic_salary,
+                COALESCE(overtime, 0) AS overtime,
+                COALESCE(allowance, 0) AS allowance,
+                COALESCE(penalty, 0) AS penalty,
+                COALESCE(santook_rent, 0) AS santook_rent,
+                COALESCE(kafil_comm, 0) AS kafil_comm,
+                COALESCE(kafil_pct, 0) AS kafil_pct,
+                COALESCE(owner_comm, 0) AS owner_comm,
+                COALESCE(investor_comm, 0) AS investor_comm,
+                COALESCE(debit, 0) AS debit,
+                COALESCE(pwas, 0) AS pwas,
+                COALESCE(other_expense, 0) AS other_expense,
+                COALESCE(op_revenue, 0) AS op_revenue
+            FROM equipment_monthly_logs;
         """)
         maint_logs = cur.fetchall()
 
@@ -131,12 +145,59 @@ def get_aks_data():
         conn.close()
 
         maint_map = {}
+        otc_map = {}
+        all_logged_months = set()
         for ml in maint_logs:
             k = f"{ml['equipment_id']}_{ml['year']}_{ml['month']}"
-            maint_map[k] = float(ml["maintenance_cost"])
+            m_cost = float(ml["maintenance_cost"])
+            maint_map[k] = m_cost
+
+            # Calculate Operational Expenses (OTC)
+            rev = float(ml["op_revenue"])
+            pct = float(ml["kafil_pct"])
+            kaf = rev * (pct / 100.0) if (pct > 0 and rev > 0) else float(ml["kafil_comm"])
+            net_sal = float(ml["basic_salary"]) + float(ml["overtime"]) + float(ml["allowance"]) - float(ml["penalty"])
+            tot_otc = (
+                net_sal + float(ml["santook_rent"]) + kaf + float(ml["owner_comm"]) +
+                float(ml["investor_comm"]) + float(ml["debit"]) + float(ml["pwas"]) + float(ml["other_expense"])
+            )
+            otc_map[k] = tot_otc
+
+            if m_cost > 0 or tot_otc > 0 or rev > 0:
+                all_logged_months.add((ml["year"], ml["month"]))
+
+        # Build dynamic month timeline starting from earliest site/expense log up to current month
+        for s in site_logs:
+            if s["work_start_date"]:
+                all_logged_months.add((s["work_start_date"].year, s["work_start_date"].month))
+
+        today = date.today()
+        # Purchase date ഉള്ളതിൽ ഏറ്റവും പഴയ തീയതിയിൽ നിന്ന് മാത്രം ടൈംലൈൻ ആരംഭിക്കുന്നു
+        valid_p_dates = [eq["purchase_date"] for eq in equipments if eq["purchase_date"]]
+        if valid_p_dates:
+            earliest_p = min(valid_p_dates)
+            min_y, min_m = earliest_p.year, earliest_p.month
+        elif all_logged_months:
+            min_y, min_m = min(all_logged_months)
+        else:
+            min_y, min_m = today.year, today.month
+
+        timeline = []
+        cur_y, cur_m = min_y, min_m
+        while (cur_y < today.year) or (cur_y == today.year and cur_m <= today.month):
+            m_abbr = calendar.month_abbr[cur_m]
+            timeline.append({
+                "year": cur_y,
+                "month": cur_m,
+                "label": f"{m_abbr} {cur_y}"
+            })
+            if cur_m == 12:
+                cur_y += 1
+                cur_m = 1
+            else:
+                cur_m += 1
 
         records = []
-        max_months_count = 0
 
         for eq in equipments:
             eq_id = eq["id"]
@@ -191,69 +252,46 @@ def get_aks_data():
                     if not is_on_site:
                         calculated_off_site_mtc += daily_cost
 
-            sites_data = []
-            for s in matched_sites:
-                c_name = normalize_company_name(s["site_name"])
-                s_clean = clean_site_name(s["site_name"])
-                combined_site = f"{s_clean} - {c_name}" if (s_clean and c_name) else (s_clean or c_name or s["site_name"])
-                
-                st = s["work_start_date"]
-                en = s["work_end_date"]
-                monthly_expenses = []
+            month_columns_data = []
+            for tm in timeline:
+                yr, mn = tm["year"], tm["month"]
+                m_start = date(yr, mn, 1)
+                _, last_day = calendar.monthrange(yr, mn)
+                m_end = date(yr, mn, last_day)
 
-                if st:
-                    cur_y = st.year
-                    cur_m = st.month
-                    target_end = en or date.today()
+                # Site assignment matching
+                matched_site_names = []
+                for s in matched_sites:
+                    st = s["work_start_date"]
+                    en = s["work_end_date"]
+                    if st and ((not en and st <= m_end) or (en and st <= m_end and en >= m_start)):
+                        c_name = normalize_company_name(s["site_name"])
+                        s_clean = clean_site_name(s["site_name"])
+                        c_site = f"{s_clean} - {c_name}" if (s_clean and c_name) else (s_clean or c_name or s["site_name"])
+                        c_site = c_site.strip()
+                        if c_site and not any(existing.strip().lower() == c_site.lower() for existing in matched_site_names):
+                            matched_site_names.append(c_site)
 
-                    while True:
-                        if (cur_y > target_end.year) or (cur_y == target_end.year and cur_m > target_end.month):
-                            break
+                site_display = " / ".join(matched_site_names) if matched_site_names else ""
+                mtc_val = maint_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
+                otc_val = otc_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
 
-                        total_m_cost = maint_map.get(f"{eq_id}_{cur_y}_{cur_m}", 0.0)
-                        _, month_days = calendar.monthrange(cur_y, cur_m)
-                        m_start_day = 1
-                        m_end_day = month_days
-
-                        if cur_y == st.year and cur_m == st.month:
-                            m_start_day = st.day
-                        if en and cur_y == en.year and cur_m == en.month:
-                            m_end_day = min(m_end_day, en.day)
-
-                        active_days_in_month = max(0, m_end_day - m_start_day + 1)
-                        if total_m_cost > 0 and active_days_in_month > 0:
-                            portion = (total_m_cost / month_days) * active_days_in_month
-                        else:
-                            portion = 0.0
-
-                        monthly_expenses.append(round(portion, 2))
-
-                        if cur_m == 12:
-                            cur_y += 1
-                            cur_m = 1
-                        else:
-                            cur_m += 1
-
-                if len(monthly_expenses) > max_months_count:
-                    max_months_count = len(monthly_expenses)
-
-                sites_data.append({
-                    "work_assign_site": combined_site,
-                    "reached_site_date": str(st) if st else "",
-                    "site_end_date": str(en) if en else "",
-                    "monthly_expenses": monthly_expenses
+                month_columns_data.append({
+                    "site": site_display,
+                    "mtc": round(mtc_val, 2),
+                    "otc": round(otc_val, 2)
                 })
 
             records.append({
                 **eq,
                 "off_site_mtc": round(calculated_off_site_mtc, 2),
-                "sites": sites_data if len(sites_data) > 0 else [{"work_assign_site": "", "reached_site_date": "", "site_end_date": "", "monthly_expenses": []}]
+                "months_data": month_columns_data
             })
 
         return {
             "success": True, 
             "records": records, 
-            "max_site_months": max(max_months_count, 2)
+            "timeline": timeline
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -290,18 +328,19 @@ def save_aks_data(payload: AKSSavePayload):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/export-excel")
-def export_aks_excel():
+def export_aks_excel(mode: str = "single"):
     try:
         data_res = get_aks_data()
         records = data_res["records"]
-        max_months = data_res["max_site_months"]
+        timeline = data_res.get("timeline", [])
 
         wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "AKS Tracker"
+        default_sheet = wb.active
 
-        ws.row_dimensions[1].height = 30
-        head_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+        head_fill_main = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+        head_fill_month = PatternFill(start_color="C6D9F1", end_color="C6D9F1", fill_type="solid")
+        head_fill_sub = PatternFill(start_color="E9EEF4", end_color="E9EEF4", fill_type="solid")
+        otc_data_fill = PatternFill(start_color="FEFCE8", end_color="FEFCE8", fill_type="solid")
         head_font = Font(name="Segoe UI", size=11, bold=True, color="000000")
         regular_font = Font(name="Segoe UI", size=10)
         center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -313,46 +352,56 @@ def export_aks_excel():
             bottom=Side(style='thin', color='C0C0C0')
         )
 
-        headers = [
+        base_headers = [
             "SN", "Plate No / Asset code", "Date Of Purchase", "Purchase Cost",
-            "Insurance Cost", "Off Site MTC", "Work assign Site",
-            "Reached Site Date", "Site End Date"
+            "Insurance Cost", "Off Site MTC"
         ]
-        for m in range(1, max_months + 1):
-            suf = "1st" if m == 1 else "2nd" if m == 2 else "3rd" if m == 3 else f"{m}th"
-            headers.append(f"Site {suf} Month MTC")
 
-        for c_idx, h_text in enumerate(headers, 1):
-            c = ws.cell(row=1, column=c_idx, value=h_text)
-            c.fill = head_fill
-            c.font = head_font
-            c.alignment = center_align
-            c.border = thin_border
+        def build_tracker_sheet(ws, sheet_timeline):
+            ws.row_dimensions[1].height = 25
+            ws.row_dimensions[2].height = 25
 
-        curr_row = 2
-        for idx, item in enumerate(records, 1):
-            sites = item.get("sites", [])
-            if not sites:
-                sites = [{"work_assign_site": "", "reached_site_date": "", "site_end_date": "", "monthly_expenses": []}]
-            
-            row_span = len(sites)
-            start_row = curr_row
+            for c_idx, h_text in enumerate(base_headers, 1):
+                ws.merge_cells(start_row=1, start_column=c_idx, end_row=2, end_column=c_idx)
+                c = ws.cell(row=1, column=c_idx, value=h_text)
+                c.fill = head_fill_main
+                c.font = head_font
+                c.alignment = center_align
 
-            p_date = item.get("purchase_date")
-            p_date_obj = None
-            if p_date:
-                try:
-                    p_date_obj = datetime.strptime(str(p_date)[:10], "%Y-%m-%d").date()
-                except Exception:
-                    p_date_obj = None
+            col_cursor = len(base_headers) + 1
+            for tm in sheet_timeline:
+                ws.merge_cells(start_row=1, start_column=col_cursor, end_row=1, end_column=col_cursor + 2)
+                c_top = ws.cell(row=1, column=col_cursor, value=tm["label"])
+                c_top.fill = head_fill_month
+                c_top.font = head_font
+                c_top.alignment = center_align
 
-            for s_idx, s in enumerate(sites):
+                for sub_idx, sub_label in enumerate(["Site", "MTC", "OTC"]):
+                    c_sub = ws.cell(row=2, column=col_cursor + sub_idx, value=sub_label)
+                    c_sub.fill = head_fill_sub
+                    c_sub.font = head_font
+                    c_sub.alignment = center_align
+                col_cursor += 3
+
+            total_cols = col_cursor - 1
+            for r in [1, 2]:
+                for c in range(1, total_cols + 1):
+                    ws.cell(row=r, column=c).border = thin_border
+
+            curr_row = 3
+            for idx, item in enumerate(records, 1):
                 ws.row_dimensions[curr_row].height = 24
-                
-                # Base Columns
+                p_date = item.get("purchase_date")
+                p_date_obj = None
+                if p_date:
+                    try:
+                        p_date_obj = datetime.strptime(str(p_date)[:10], "%Y-%m-%d").date()
+                    except Exception:
+                        p_date_obj = None
+
                 ws.cell(row=curr_row, column=1, value=idx).alignment = center_align
                 ws.cell(row=curr_row, column=2, value=item.get("plate_no") or "").alignment = center_align
-                
+
                 c_date = ws.cell(row=curr_row, column=3, value=p_date_obj)
                 c_date.alignment = center_align
                 if p_date_obj:
@@ -366,77 +415,70 @@ def export_aks_excel():
                 c_icost.alignment = center_align
                 c_icost.number_format = '#,##0.00'
 
-                # Off Site MTC - Normal Black, Not Bold, Not Red
                 c_offmtc = ws.cell(row=curr_row, column=6, value=float(item.get("off_site_mtc") or 0))
                 c_offmtc.alignment = center_align
                 c_offmtc.font = regular_font
                 c_offmtc.number_format = '#,##0.00'
 
-                # Site Specific Columns
-                c_site = ws.cell(row=curr_row, column=7, value=s.get("work_assign_site") or "")
-                c_site.alignment = left_align
-                if s.get("site_end_date"):
-                    c_site.fill = PatternFill(start_color="FCE8E6", end_color="FCE8E6", fill_type="solid")
+                m_data_list = item.get("months_data", [])
+                for t_idx, tm in enumerate(sheet_timeline):
+                    orig_t_idx = next((i for i, x in enumerate(timeline) if x["year"] == tm["year"] and x["month"] == tm["month"]), -1)
+                    m_info = m_data_list[orig_t_idx] if orig_t_idx != -1 and orig_t_idx < len(m_data_list) else {"site": "", "mtc": 0, "otc": 0}
 
-                r_date_str = s.get("reached_site_date")
-                r_date_obj = None
-                if r_date_str:
-                    try:
-                        r_date_obj = datetime.strptime(str(r_date_str)[:10], "%Y-%m-%d").date()
-                    except Exception:
-                        r_date_obj = None
-                c_rdate = ws.cell(row=curr_row, column=8, value=r_date_obj)
-                c_rdate.alignment = center_align
-                if r_date_obj:
-                    c_rdate.number_format = 'dd-mmm-yy'
+                    site_col = 7 + (t_idx * 3)
+                    mtc_col = site_col + 1
+                    otc_col = site_col + 2
 
-                e_date_str = s.get("site_end_date")
-                e_date_obj = None
-                if e_date_str:
-                    try:
-                        e_date_obj = datetime.strptime(str(e_date_str)[:10], "%Y-%m-%d").date()
-                    except Exception:
-                        e_date_obj = None
-                c_edate = ws.cell(row=curr_row, column=9, value=e_date_obj)
-                c_edate.alignment = center_align
-                if e_date_obj:
-                    c_edate.number_format = 'dd-mmm-yy'
+                    c_site = ws.cell(row=curr_row, column=site_col, value=m_info.get("site") or "")
+                    c_site.alignment = left_align
 
-                # Monthly Expenses
-                exp_list = s.get("monthly_expenses", [])
-                for m_idx in range(max_months):
-                    col_num = 10 + m_idx
-                    val = float(exp_list[m_idx]) if m_idx < len(exp_list) else None
-                    c_exp = ws.cell(row=curr_row, column=col_num, value=val)
-                    c_exp.alignment = center_align
-                    if val is not None:
-                        c_exp.number_format = '#,##0.00'
+                    mtc_val = float(m_info.get("mtc") or 0)
+                    c_mtc = ws.cell(row=curr_row, column=mtc_col, value=mtc_val if mtc_val > 0 else "")
+                    c_mtc.alignment = center_align
+                    if mtc_val > 0:
+                        c_mtc.number_format = '#,##0.00'
 
-                for c_num in range(1, len(headers) + 1):
-                    ws.cell(row=curr_row, column=c_num).border = thin_border
-                    if ws.cell(row=curr_row, column=c_num).font == Font():
-                        ws.cell(row=curr_row, column=c_num).font = regular_font
+                    otc_val = float(m_info.get("otc") or 0)
+                    c_otc = ws.cell(row=curr_row, column=otc_col, value=otc_val if otc_val > 0 else "")
+                    c_otc.alignment = center_align
+                    c_otc.fill = otc_data_fill
+                    if otc_val > 0:
+                        c_otc.number_format = '#,##0.00'
 
+                for c_num in range(1, total_cols + 1):
+                    cell = ws.cell(row=curr_row, column=c_num)
+                    cell.border = thin_border
+                    if cell.font == Font():
+                        cell.font = regular_font
                 curr_row += 1
 
-            if row_span > 1:
-                end_row = curr_row - 1
-                for merge_col in [1, 2, 3, 4, 5, 6]:
-                    ws.merge_cells(start_row=start_row, start_column=merge_col, end_row=end_row, end_column=merge_col)
+            last_col_letter = get_column_letter(total_cols)
+            ws.auto_filter.ref = f"A2:{last_col_letter}{curr_row - 1}"
+            ws.sheet_view.zoomScale = 85
 
-        last_col_letter = get_column_letter(len(headers))
-        ws.auto_filter.ref = f"A1:{last_col_letter}{curr_row - 1}"
-        ws.sheet_view.zoomScale = 85
+            for col in ws.columns:
+                max_len = 0
+                col_letter = get_column_letter(col[0].column)
+                for cell in col:
+                    val = cell.value
+                    if val:
+                        val_str = val.strftime('%d-%b-%y') if isinstance(val, (datetime, date)) else str(val)
+                        max_len = max(max_len, len(val_str))
+                ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
 
-        for col in ws.columns:
-            max_len = 0
-            col_letter = get_column_letter(col[0].column)
-            for cell in col:
-                val = cell.value
-                if val:
-                    val_str = val.strftime('%d-%b-%y') if isinstance(val, (datetime, date)) else str(val)
-                    max_len = max(max_len, len(val_str))
-            ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
+        if mode == "yearly":
+            years_in_timeline = sorted(list(set(tm["year"] for tm in timeline)))
+            if not years_in_timeline:
+                years_in_timeline = [date.today().year]
+
+            for y_idx, yr in enumerate(years_in_timeline):
+                yr_timeline = [tm for tm in timeline if tm["year"] == yr]
+                ws = default_sheet if y_idx == 0 else wb.create_sheet(title=str(yr))
+                ws.title = str(yr)
+                build_tracker_sheet(ws, yr_timeline)
+        else:
+            default_sheet.title = "AKS Tracker"
+            build_tracker_sheet(default_sheet, timeline)
 
         output = io.BytesIO()
         wb.save(output)
