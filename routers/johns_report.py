@@ -286,6 +286,7 @@ def export_johns_excel(payload: ExportPayload):
             ws.row_dimensions[2].height = 36
 
             for r_idx, row_values in enumerate(sheet_data.rows, 3):
+                ws.row_dimensions[r_idx].height = 20
                 for c_idx, val in enumerate(row_values, 1):
                     cell_val = val
                     if c_idx in [22, 23, 24]:

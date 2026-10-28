@@ -884,7 +884,12 @@
           rows.push({
             sn: sn++,
             site: siteName,
-            rate: curSiteObj.rate || "-",
+            rate: (() => {
+              let rVal = curSiteObj.rate;
+              if (!rVal || rVal === "-" || rVal === "null") return "-";
+              let num = parseFloat(rVal);
+              return isNaN(num) ? rVal : (num % 1 !== 0 ? num.toFixed(2) : num.toString());
+            })(),
             vat: oLog ? (oLog.vat || "No") : (v.vat || "No"),
             owner: oLog ? oLog.owner_name : (v.owner_name || "-"),
             driver: dLog ? dLog.driver_name : "-",
@@ -957,6 +962,7 @@
         let logNeg = 0, logPos = 0, logTot = 0;
         let billSupNeg = 0, billSupPos = 0, billSupTot = 0;
         let billLogNeg = 0, billLogPos = 0, billLogTot = 0;
+        let plTot = 0;
 
         data.forEach(r => {
           let v1 = parseFloat(r.diff_log_sup);
@@ -965,20 +971,34 @@
           if (!isNaN(v2) && v2 !== 0) { billSupTot += v2; if (v2 < 0) billSupNeg += v2; else billSupPos += v2; }
           let v3 = parseFloat(r.diff_bill_log);
           if (!isNaN(v3) && v3 !== 0) { billLogTot += v3; if (v3 < 0) billLogNeg += v3; else billLogPos += v3; }
+          if (typeof r.pl_status === "number") { plTot += r.pl_status; }
         });
 
         const badgeContainer = document.getElementById("diffSummaryBadges");
         if (badgeContainer) {
-          const createBadge = (label, neg, pos, tot) => {
+          const createPlainBadge = (label, neg, pos, tot) => {
             let absNeg = Math.abs(neg);
-            return `<div style="background: #be123c; color: white; padding: 3px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; white-space: nowrap;">
-              <div style="font-weight: 700; font-size: 10.5px;">${label}</div>
-              <div style="font-size: 9px; font-weight: 500; background: rgba(0,0,0,0.25); padding: 1px 4px; border-radius: 3px; margin-top: 1px;">(${absNeg.toFixed(2)}) - ${pos.toFixed(2)} = <b style="color: #fef08a;">${tot.toFixed(2)}</b></div>
+            return `<div style="background: transparent; border: 1px solid #cbd5e1; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; white-space: nowrap;">
+              <div style="font-weight: 700; font-size: 10px; color: #334155;">${label}</div>
+              <div style="font-size: 9px; font-weight: 500; color: #64748b; margin-top: 1px;">(${absNeg.toFixed(2)}) - ${pos.toFixed(2)} = <b style="color: #0f172a;">${tot.toFixed(2)}</b></div>
             </div>`;
           };
-          badgeContainer.innerHTML = createBadge("Log - Supplier", logNeg, logPos, logTot) +
-                                     createBadge("Bill - Supplier", billSupNeg, billSupPos, billSupTot) +
-                                     createBadge("Bill - Log", billLogNeg, billLogPos, billLogTot);
+
+          const isProfit = plTot >= 0;
+          const plBg = isProfit ? "#dcfce7" : "#fee2e2";
+          const plBorder = isProfit ? "#86efac" : "#fca5a5";
+          const plColor = isProfit ? "#15803d" : "#b91c1c";
+          const plLabel = isProfit ? "Net Profit" : "Net Loss";
+
+          const plBadge = `<div style="background: ${plBg}; border: 1px solid ${plBorder}; color: ${plColor}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; white-space: nowrap;">
+            <div style="font-size: 10px;">${plLabel}</div>
+            <div style="font-size: 10.5px; font-weight: 800; margin-top: 1px;">${plTot.toFixed(2)}</div>
+          </div>`;
+
+          badgeContainer.innerHTML = createPlainBadge("Log - Supplier", logNeg, logPos, logTot) +
+                                     createPlainBadge("Bill - Supplier", billSupNeg, billSupPos, billSupTot) +
+                                     createPlainBadge("Bill - Log", billLogNeg, billLogPos, billLogTot) +
+                                     plBadge;
         }
         if (tfoot) tfoot.innerHTML = "";
 
@@ -1236,7 +1256,7 @@
             const label = `${q.m.substring(0, 3)} ${String(q.y).slice(-2)}`;
             const list = transformData(raw, q.m, q.y);
             const rows = list.map(r => [
-              r.sn, r.site, r.rate, r.vat, r.owner, r.driver,
+              r.sn, r.site, cleanExportRate(r.rate), r.vat, r.owner, r.driver,
               r.site_co, r.field_co, r.v_type, r.plate,
               r.ts_nr, r.ts_ot, r.inv_nr, r.inv_ot,
               r.bill_nr, r.bill_ot, r.driver_ot, r.driver_amt,
@@ -1296,8 +1316,15 @@
               if (!isNaN(v3) && v3 !== 0) { billLogTot += v3; if (v3 < 0) billLogNeg += v3; else billLogPos += v3; }
             });
 
+            const cleanRateForExcel = (val) => {
+              if (!val || val === "-" || val === "null") return "-";
+              let num = parseFloat(val);
+              if (isNaN(num)) return val;
+              return num % 1 !== 0 ? num : Math.round(num);
+            };
+
             const rows = list.map(r => [
-              r.sn, r.site, r.rate, r.vat, r.owner, r.driver,
+              r.sn, r.site, cleanRateForExcel(r.rate), r.vat, r.owner, r.driver,
               r.site_co, r.field_co, r.v_type, r.plate,
               r.ts_nr, r.ts_ot, r.inv_nr, r.inv_ot,
               r.bill_nr, r.bill_ot, r.driver_ot, r.driver_amt,
