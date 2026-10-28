@@ -190,6 +190,13 @@
     <div class="top-bar">
       <div class="controls">
         <h3 style="margin: 0; color: #2c3e50">Equipment AKS Tracker</h3>
+        <select
+          id="ribbonYearFilter"
+          onchange="onRibbonYearChange()"
+          style="padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; font-weight: 600; color: #1e293b;"
+        >
+          <option value="ALL">All Years</option>
+        </select>
         <input
           type="text"
           id="searchPlate"
@@ -337,17 +344,43 @@
 
     <!-- Export Options Modal -->
     <div id="exportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10001; justify-content: center; align-items: center;">
-      <div style="background: #ffffff; border-radius: 8px; width: 360px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <div style="background: #ffffff; border-radius: 8px; width: 380px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
         <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 15px;">📊 Export Excel Options</h4>
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
           <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
-            <input type="radio" name="exportOption" value="single" checked />
+            <input type="radio" name="exportOption" value="single" checked onchange="toggleExportPeriodInputs(false)" />
             <span>Entire data in single sheet</span>
           </label>
           <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
-            <input type="radio" name="exportOption" value="yearly" />
+            <input type="radio" name="exportOption" value="yearly" onchange="toggleExportPeriodInputs(false)" />
             <span>Yearly data (Separate tabs for each year)</span>
           </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="exportOption" value="period" onchange="toggleExportPeriodInputs(true)" />
+            <span>Choose period (Custom Month/Year Range)</span>
+          </label>
+        </div>
+        <div id="aksPeriodBox" style="display: none; background: #f8fafc; padding: 10px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 600; color: #475569;">Start Year</label>
+              <input type="number" id="aksStartYear" style="width: 100%; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;" />
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 600; color: #475569;">Start Month</label>
+              <input type="number" id="aksStartMonth" min="1" max="12" style="width: 100%; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;" />
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 600; color: #475569;">End Year</label>
+              <input type="number" id="aksEndYear" style="width: 100%; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;" />
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px; font-weight: 600; color: #475569;">End Month</label>
+              <input type="number" id="aksEndMonth" min="1" max="12" style="width: 100%; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;" />
+            </div>
+          </div>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
           <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeExportModal()">Cancel</button>
@@ -408,14 +441,35 @@
           if (data.success) {
             rawData = data.records || [];
             currentTimeline = data.timeline || [];
+            populateRibbonYears();
             pendingChanges = {};
-            renderTable(rawData, currentTimeline);
+            onRibbonYearChange();
           } else {
             showToast("Failed to load data", "error");
           }
         } catch (err) {
           showToast("Server connection error", "error");
         }
+      }
+
+      function populateRibbonYears() {
+        const sel = document.getElementById("ribbonYearFilter");
+        const prevVal = sel.value;
+        const years = [...new Set(currentTimeline.map((t) => t.year))].sort();
+        sel.innerHTML = '<option value="ALL">All Years</option>';
+        years.forEach((yr) => {
+          sel.innerHTML += `<option value="${yr}">${yr}</option>`;
+        });
+        if (years.includes(Number(prevVal))) sel.value = prevVal;
+      }
+
+      function onRibbonYearChange() {
+        const selVal = document.getElementById("ribbonYearFilter").value;
+        let visibleTimeline = currentTimeline;
+        if (selVal !== "ALL") {
+          visibleTimeline = currentTimeline.filter((t) => t.year === Number(selVal));
+        }
+        renderTable(rawData, visibleTimeline);
       }
 
       function calculateExpression(expr) {
@@ -439,8 +493,8 @@
         const r2 = document.getElementById("aksHeadRow2");
 
         r1.innerHTML = `
-          <th rowspan="2" style="min-width: 50px">SN <span class="filter-icon" onclick="openColumnFilter(event, 'sn', 'SN')">🔽</span></th>
-          <th rowspan="2" style="min-width: 120px">Plate No / Asset code <span class="filter-icon" onclick="openColumnFilter(event, 'plate_no', 'Plate No')">🔽</span></th>
+          <th rowspan="2" style="min-width: 50px; position: sticky; left: 0px; z-index: 20; background: #d9e1f2; border-right: 1px solid #c0c0c0;">SN <span class="filter-icon" onclick="openColumnFilter(event, 'sn', 'SN')">🔽</span></th>
+          <th rowspan="2" style="min-width: 120px; position: sticky; left: 50px; z-index: 20; background: #d9e1f2; border-right: 2px solid #94a3b8;">Plate No / Asset code <span class="filter-icon" onclick="openColumnFilter(event, 'plate_no', 'Plate No')">🔽</span></th>
           <th rowspan="2" style="min-width: 110px">Date Of Purchase <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_date', 'Purchase Date')">🔽</span></th>
           <th rowspan="2" style="min-width: 100px">Purchase Cost <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_cost', 'Purchase Cost')">🔽</span></th>
           <th rowspan="2" style="min-width: 100px">Insurance Cost <span class="filter-icon" onclick="openColumnFilter(event, 'insurance_cost', 'Insurance Cost')">🔽</span></th>
@@ -533,8 +587,8 @@
           tr.setAttribute("data-plate", (item.plate_no || "").toLowerCase());
 
           let rowHtml = `
-            <td><b>${idx + 1}</b></td>
-            <td style="font-weight: 600;">${item.plate_no || ""}</td>
+            <td style="position: sticky; left: 0px; background: #ffffff; z-index: 10; border-right: 1px solid #c0c0c0;"><b>${idx + 1}</b></td>
+            <td style="position: sticky; left: 50px; background: #ffffff; z-index: 10; font-weight: 600; border-right: 2px solid #94a3b8;">${item.plate_no || ""}</td>
             <td>${formatDate(item.purchase_date)}</td>
             <td>${fmtNumber(item.purchase_cost)}</td>
             <td class="insurance-cell calc-cell" contenteditable="false" data-id="${item.id}" data-field="insurance_cost">${fmtNumber(item.insurance_cost)}</td>
@@ -650,6 +704,11 @@
       }
 
       function exportAKSToExcel() {
+        const curY = new Date().getFullYear();
+        document.getElementById("aksStartYear").value = currentTimeline.length ? currentTimeline[0].year : curY;
+        document.getElementById("aksStartMonth").value = currentTimeline.length ? currentTimeline[0].month : 1;
+        document.getElementById("aksEndYear").value = currentTimeline.length ? currentTimeline[currentTimeline.length - 1].year : curY;
+        document.getElementById("aksEndMonth").value = currentTimeline.length ? currentTimeline[currentTimeline.length - 1].month : 12;
         const modal = document.getElementById("exportModal");
         if (modal) modal.style.display = "flex";
       }
@@ -659,11 +718,23 @@
         if (modal) modal.style.display = "none";
       }
 
+      function toggleExportPeriodInputs(show) {
+        document.getElementById("aksPeriodBox").style.display = show ? "block" : "none";
+      }
+
       function confirmExcelExport() {
         const selectedMode = document.querySelector('input[name="exportOption"]:checked')?.value || "single";
+        let url = `/py/aks/export-excel?mode=${selectedMode}`;
+        if (selectedMode === "period") {
+          const sy = document.getElementById("aksStartYear").value;
+          const sm = document.getElementById("aksStartMonth").value;
+          const ey = document.getElementById("aksEndYear").value;
+          const em = document.getElementById("aksEndMonth").value;
+          url += `&start_year=${sy}&start_month=${sm}&end_year=${ey}&end_month=${em}`;
+        }
         closeExportModal();
         showToast("Generating Excel file...", "success");
-        window.location.href = `/py/aks/export-excel?mode=${selectedMode}`;
+        window.location.href = url;
       }
 
       function filterRows() {

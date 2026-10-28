@@ -332,7 +332,13 @@ def save_aks_data(payload: AKSSavePayload):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/export-excel")
-def export_aks_excel(mode: str = "single"):
+def export_aks_excel(
+    mode: str = "single",
+    start_year: Optional[int] = None,
+    start_month: Optional[int] = None,
+    end_year: Optional[int] = None,
+    end_month: Optional[int] = None
+):
     try:
         data_res = get_aks_data()
         records = data_res["records"]
@@ -469,6 +475,7 @@ def export_aks_excel(mode: str = "single"):
             last_col_letter = get_column_letter(total_cols)
             ws.auto_filter.ref = f"A2:{last_col_letter}{curr_row - 1}"
             ws.sheet_view.zoomScale = 85
+            ws.freeze_panes = 'C3'
 
             for col in ws.columns:
                 max_len = 0
@@ -490,6 +497,21 @@ def export_aks_excel(mode: str = "single"):
                 ws = default_sheet if y_idx == 0 else wb.create_sheet(title=str(yr))
                 ws.title = str(yr)
                 build_tracker_sheet(ws, yr_timeline)
+        elif mode == "period":
+            s_y = start_year or (timeline[0]["year"] if timeline else date.today().year)
+            s_m = start_month or (timeline[0]["month"] if timeline else 1)
+            e_y = end_year or (timeline[-1]["year"] if timeline else date.today().year)
+            e_m = end_month or (timeline[-1]["month"] if timeline else 12)
+
+            period_timeline = []
+            for tm in timeline:
+                t_val = tm["year"] * 100 + tm["month"]
+                if (s_y * 100 + s_m) <= t_val <= (e_y * 100 + e_m):
+                    period_timeline.append(tm)
+            if not period_timeline:
+                period_timeline = timeline
+            default_sheet.title = "Period Export"
+            build_tracker_sheet(default_sheet, period_timeline)
         else:
             default_sheet.title = "AKS Tracker"
             build_tracker_sheet(default_sheet, timeline)
