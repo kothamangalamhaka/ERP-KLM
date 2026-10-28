@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Assets Own EQ Parts Tracker</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 15px;
+        background-color: #f4f7f6;
+      }
+      .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fff;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        margin-bottom: 15px;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .btn-blue {
+        background: #2980b9;
+        color: white;
+      }
+      .btn-dark {
+        background: #34495e;
+        color: white;
+      }
+      .table-container {
+        overflow-x: auto;
+        max-height: calc(100vh - 110px);
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      th, td {
+        border: 1px solid #c0c0c0;
+        padding: 8px 10px;
+        text-align: center;
+      }
+      thead th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: #d9e1f2;
+        color: #000;
+        font-weight: 700;
+      }
+      tbody tr:hover {
+        background: #f8fafc;
+      }
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+      }
+      .modal-box {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 400px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      }
+      .modal-box-large {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 780px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 12px;
+      }
+      .form-group label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #334155;
+      }
+      .form-group input, .form-group select {
+        padding: 7px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      #toast-container {
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .toast {
+        min-width: 240px;
+        background: #2c3e50;
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .toast.success { background: #27ae60; }
+      .toast.error { background: #e74c3c; }
+      .filter-icon {
+        cursor: pointer;
+        font-size: 11px;
+        margin-left: 4px;
+        color: #475569;
+      }
+      .excel-filter-menu {
+        display: none;
+        position: fixed;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        z-index: 10000;
+        width: 240px;
+        font-size: 13px;
+        color: #1e293b;
+      }
+      .excel-filter-header {
+        padding: 8px 10px;
+        background: #f1f5f9;
+        font-weight: 600;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .excel-filter-search {
+        padding: 8px 10px;
+        border-bottom: 1px solid #f1f1f1;
+      }
+      .excel-filter-search input {
+        width: 100%;
+        padding: 5px 8px;
+        font-size: 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        outline: none;
+      }
+      .excel-filter-list {
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 4px 0;
+        margin: 0;
+        list-style: none;
+      }
+      .excel-filter-list li {
+        padding: 5px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+      .excel-filter-list li:hover {
+        background-color: #f8fafc;
+      }
+      .excel-filter-actions {
+        padding: 8px 10px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+        background: #f8fafc;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top-bar">
+      <div class="controls">
+        <h3 style="margin: 0; color: #2c3e50">Assets EQ Parts Tracker</h3>
+        <input
+          type="text"
+          id="searchAsset"
+          placeholder="🔍 Search Code / Type..."
+          oninput="filterTableRows()"
+          style="padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 200px;"
+        />
+        <div style="display: flex; gap: 8px; margin-left: 10px;">
+          <div style="background: #e0f2fe; border: 1px solid #bae6fd; padding: 4px 10px; border-radius: 4px; font-size: 12px;">
+            <span style="color: #0369a1; font-weight: 600;">Total Purchase:</span>
+            <b id="summaryTotalPurchase" style="color: #0c4a6e; margin-left: 4px;">0.00</b>
+          </div>
+          <div style="background: #fef3c7; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 4px; font-size: 12px;">
+            <span style="color: #b45309; font-weight: 600;">Total Remaining:</span>
+            <b id="summaryTotalRemaining" style="color: #78350f; margin-left: 4px;">0.00</b>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn" style="background: #27ae60; color: white;" onclick="openNewAssetModal()">
+          ➕ Add Asset
+        </button>
+        <button class="btn" style="background: #d97706; color: white;" onclick="openEditAssetBarModal()">
+          🛠️ Edit Bar
+        </button>
+        <button class="btn" style="background: #8e44ad; color: white;" onclick="openEditSelectModal()">
+          ✏️ Edit Data
+        </button>
+        <button class="btn" style="background: #1e7e34; color: white;" onclick="openExportModal()">
+          📊 Export Excel
+        </button>
+        <button class="btn btn-blue" onclick="loadAssetsData()">🔄 Refresh</button>
+        <button class="btn" style="background: #0284c7; color: white;" onclick="window.location.href = 'AKS.html'">
+          🚜 AKS Tracker
+        </button>
+        <button class="btn btn-dark" onclick="window.location.href = 'Dashboard.html'">
+          📊 Dashboard
+        </button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="assetsTable">
+        <thead>
+          <tr id="headRow1"></tr>
+          <tr id="headRow2"></tr>
+        </thead>
+        <tbody id="assetsTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Excel Filter Popup Menu -->
+    <div id="assetsFilterMenu" class="excel-filter-menu" onclick="event.stopPropagation()">
+      <div class="excel-filter-header">
+        <span id="filterMenuTitle">Filter</span>
+        <span style="cursor: pointer; color: #64748b" onclick="closeFilterMenu()">✖</span>
+      </div>
+      <div id="filterSortSection" style="display: flex; flex-direction: column; border-bottom: 1px solid #e2e8f0; padding: 4px 0;">
+        <button type="button" onclick="sortAssetsColumn('asc')" style="background: none; border: none; text-align: left; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+          <span>🔤</span> Sort A to Z
+        </button>
+        <button type="button" onclick="sortAssetsColumn('desc')" style="background: none; border: none; text-align: left; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+          <span>🔤</span> Sort Z to A
+        </button>
+      </div>
+      <div class="excel-filter-search">
+        <input type="text" id="filterSearchInput" placeholder="Search..." oninput="searchFilterItems()" />
+      </div>
+      <ul class="excel-filter-list" id="filterItemList"></ul>
+      <div class="excel-filter-actions">
+        <button type="button" class="btn" style="background: #e2e8f0; color: #334155; padding: 4px 8px; font-size: 12px;" onclick="clearCurrentFilter()">Clear</button>
+        <button type="button" class="btn btn-blue" style="padding: 4px 8px; font-size: 12px;" onclick="applyCurrentFilter()">Apply</button>
+      </div>
+    </div>
+
+    <!-- 1. Add Asset Modal -->
+    <div id="newAssetModal" class="modal-overlay">
+      <div class="modal-box">
+        <h4 style="margin: 0 0 15px 0;">➕ Create New Asset</h4>
+        <div class="form-group">
+          <label>Asset Type</label>
+          <div style="display: flex; gap: 6px;">
+            <select id="modalAssetType" style="flex: 1;"></select>
+            <button type="button" class="btn" style="background: #e2e8f0;" onclick="openNewTypeModal()">Add Type</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Asset Code</label>
+          <input type="text" id="modalAssetCode" placeholder="e.g. ST-01 / FB-102" />
+        </div>
+        <div class="form-group">
+          <label>Date of Purchase</label>
+          <input type="date" id="modalPurchaseDate" />
+        </div>
+        <div class="form-group">
+          <label>Cost of Purchase</label>
+          <input type="number" step="0.01" id="modalPurchaseCost" placeholder="0.00" />
+        </div>
+        <div class="form-group">
+          <label>Remaining Purchase Price</label>
+          <input type="number" step="0.01" id="modalRemainingPrice" placeholder="0.00" />
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px;">
+          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('newAssetModal')">Cancel</button>
+          <button type="button" class="btn" style="background: #0284c7; color: white;" onclick="saveNewAssetMaster(true)">Save & Add New</button>
+          <button type="button" class="btn btn-blue" onclick="saveNewAssetMaster(false)">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Bar Modal for Purchase Details -->
+    <div id="editAssetBarModal" class="modal-overlay">
+      <div class="modal-box">
+        <h4 style="margin: 0 0 15px 0; color: #1e293b;">🛠️ Edit Asset Purchase Details</h4>
+        <div class="form-group">
+          <label>Select Asset Type</label>
+          <select id="barSelectType" onchange="onBarTypeChange()"></select>
+        </div>
+        <div class="form-group">
+          <label>Select Asset Code</label>
+          <select id="barSelectAsset" onchange="fillEditBarInputs()"></select>
+        </div>
+        <div class="form-group">
+          <label>Date of Purchase</label>
+          <input type="date" id="barPurchaseDate" />
+        </div>
+        <div class="form-group">
+          <label>Cost of Purchase</label>
+          <input type="number" step="0.01" id="barPurchaseCost" placeholder="0.00" />
+        </div>
+        <div class="form-group">
+          <label>Remaining Purchase Price</label>
+          <input type="number" step="0.01" id="barRemainingPrice" placeholder="0.00" />
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px;">
+          <button class="btn" style="background: #e2e8f0;" onclick="closeModal('editAssetBarModal')">Cancel</button>
+          <button class="btn" style="background: #d97706; color: white;" onclick="saveEditBarCosts()">Update</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Edit Selection Modal -->
+    <div id="editSelectModal" class="modal-overlay">
+      <div class="modal-box">
+        <h4 style="margin: 0 0 15px 0;">✏️ Select Asset & Year to Feed Data</h4>
+        <div class="form-group">
+          <label>Select Asset Type</label>
+          <select id="editSelectType" onchange="onEditTypeChange()"></select>
+        </div>
+        <div class="form-group">
+          <label>Select Asset Code</label>
+          <select id="editSelectAsset"></select>
+        </div>
+        <div class="form-group">
+          <label>Select Year</label>
+          <select id="editSelectYear"></select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px;">
+          <button class="btn" style="background: #e2e8f0;" onclick="closeModal('editSelectModal')">Cancel</button>
+          <button class="btn btn-blue" onclick="fetchAndOpenYearRecords()">Fetch Data</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Edit Year Records Modal -->
+    <div id="yearFeedModal" class="modal-overlay">
+      <div class="modal-box-large">
+        <h4 id="yearFeedTitle" style="margin: 0 0 15px 0;">Monthly Feeding</h4>
+        <table style="width: 100%; margin-bottom: 15px;">
+          <thead>
+            <tr>
+              <th style="width: 80px;">Month</th>
+              <th>Site</th>
+              <th style="width: 110px;">Plate No</th>
+              <th style="width: 100px;">Off Site Exp</th>
+              <th style="width: 100px;">On Site Exp</th>
+              <th style="width: 110px;">Revenue</th>
+            </tr>
+          </thead>
+          <tbody id="yearFeedTbody"></tbody>
+        </table>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="btn" style="background: #e2e8f0;" onclick="closeModal('yearFeedModal')">Cancel</button>
+          <button class="btn" style="background: #27ae60; color: white;" onclick="saveYearRecords()">Save Records</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Export Options Modal -->
+    <div id="exportModal" class="modal-overlay">
+      <div class="modal-box">
+        <h4 style="margin: 0 0 15px 0;">📊 Export Options</h4>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="radio" name="exportMode" value="single" checked onchange="togglePeriodInputs(false)" />
+            <span>Entire data in single tab</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="radio" name="exportMode" value="yearly" onchange="togglePeriodInputs(false)" />
+            <span>Year by year (Separate tab for each year)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="radio" name="exportMode" value="period" onchange="togglePeriodInputs(true)" />
+            <span>Choose period (Custom Month/Year Range)</span>
+          </label>
+        </div>
+        <div id="periodInputsBox" style="display: none; background: #f8fafc; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <div style="flex: 1;">
+              <label style="font-size: 11px;">Start Year</label>
+              <input type="number" id="expStartYear" style="width: 100%;" />
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px;">Start Month</label>
+              <input type="number" id="expStartMonth" min="1" max="12" style="width: 100%;" />
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <div style="flex: 1;">
+              <label style="font-size: 11px;">End Year</label>
+              <input type="number" id="expEndYear" style="width: 100%;" />
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 11px;">End Month</label>
+              <input type="number" id="expEndMonth" min="1" max="12" style="width: 100%;" />
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="btn" style="background: #e2e8f0;" onclick="closeModal('exportModal')">Cancel</button>
+          <button class="btn" style="background: #1e7e34; color: white;" onclick="confirmExport()">Export</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Custom Modal for Adding Asset Type -->
+    <div id="newTypeModal" class="modal-overlay" style="z-index: 10005;">
+      <div class="modal-box" style="width: 340px;">
+        <h4 style="margin: 0 0 12px 0; color: #1e293b;">➕ Add New Asset Type</h4>
+        <div class="form-group">
+          <label>Type Name</label>
+          <input type="text" id="customTypeNameInput" placeholder="e.g. Santhook, Generator..." />
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px;">
+          <button class="btn" style="background: #e2e8f0;" onclick="closeModal('newTypeModal')">Cancel</button>
+          <button class="btn btn-blue" onclick="submitCustomAssetType()">Save Type</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+      let rawAssets = [];
+      let currentTimeline = [];
+      let assetTypes = [];
+      let activeEditingAssetId = null;
+      let activeEditingYear = null;
+
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      function fmtNumber(val) {
+        const num = Number(val);
+        if (!num || isNaN(num)) return "";
+        return num % 1 === 0 ? String(num) : String(Number(num.toFixed(2)));
+      }
+
+      function formatDate(d) {
+        if (!d) return "";
+        const x = new Date(d);
+        if (isNaN(x.getTime())) return "";
+        const day = String(x.getDate()).padStart(2, "0");
+        return `${day}-${monthNames[x.getMonth()]}-${x.getFullYear().toString().slice(-2)}`;
+      }
+
+      function showToast(msg, type = "success") {
+        const c = document.getElementById("toast-container");
+        const t = document.createElement("div");
+        t.className = `toast ${type}`;
+        t.innerText = msg;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+      }
+
+      function openModal(id) { document.getElementById(id).style.display = "flex"; }
+      function closeModal(id) { document.getElementById(id).style.display = "none"; }
+
+      async function loadTypes(selectedId = null) {
+        try {
+          const res = await fetch("/py/assets-tracker/types");
+          const data = await res.json();
+          if (data.success) {
+            assetTypes = data.types || [];
+            const sel = document.getElementById("modalAssetType");
+            sel.innerHTML = "";
+            if (assetTypes.length === 0) {
+              sel.innerHTML = `<option value="">-- No Types Found --</option>`;
+            } else {
+              assetTypes.forEach(t => {
+                const isSel = selectedId && Number(selectedId) === Number(t.id) ? "selected" : "";
+                sel.innerHTML += `<option value="${t.id}" ${isSel}>${t.type_name}</option>`;
+              });
+            }
+          } else {
+            showToast("Failed to fetch asset types", "error");
+          }
+        } catch (e) {
+          showToast("Error loading asset types", "error");
+        }
+      }
+
+      function openNewTypeModal() {
+        document.getElementById("customTypeNameInput").value = "";
+        openModal("newTypeModal");
+        setTimeout(() => document.getElementById("customTypeNameInput").focus(), 100);
+      }
+
+      async function submitCustomAssetType() {
+        const input = document.getElementById("customTypeNameInput");
+        const name = input.value.trim();
+        if (!name) {
+          showToast("Please enter a type name", "error");
+          return;
+        }
+        try {
+          const res = await fetch("/py/assets-tracker/types/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type_name: name })
+          });
+          const d = await res.json();
+          if (d.success) {
+            showToast("Type added successfully!", "success");
+            closeModal("newTypeModal");
+            await loadTypes(d.id);
+          } else {
+            showToast(d.detail || "Failed to add type", "error");
+          }
+        } catch (e) {
+          showToast("Server error adding type", "error");
+        }
+      }
+
+      function updateRibbonTotals(list) {
+        const totalPurchase = list.reduce((sum, item) => sum + Number(item.purchase_cost || 0), 0);
+        const totalRemaining = list.reduce((sum, item) => sum + Number(item.remaining_purchase_price || 0), 0);
+        document.getElementById("summaryTotalPurchase").innerText = totalPurchase.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById("summaryTotalRemaining").innerText = totalRemaining.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      async function loadAssetsData() {
+        try {
+          const res = await fetch("/py/assets-tracker/data");
+          const data = await res.json();
+          if (data.success) {
+            rawAssets = data.assets || [];
+            currentTimeline = data.timeline || [];
+            updateRibbonTotals(rawAssets);
+            renderTableVirtual(rawAssets, currentTimeline);
+          } else {
+            showToast("Failed to fetch assets", "error");
+          }
+        } catch (err) {
+          showToast("Server connection error", "error");
+        }
+      }
+
+      let activeFilters = {};
+      let currentFilterCol = null;
+
+      function renderTableVirtual(list, timeline) {
+        const r1 = document.getElementById("headRow1");
+        const r2 = document.getElementById("headRow2");
+
+        r1.innerHTML = `
+          <th rowspan="2" style="min-width: 50px; position: sticky; left: 0px; z-index: 20; background: #d9e1f2; border-right: 1px solid #c0c0c0;">SN <span class="filter-icon" onclick="openColumnFilter(event, 'sn', 'SN')">🔽</span></th>
+          <th rowspan="2" style="min-width: 110px; position: sticky; left: 50px; z-index: 20; background: #d9e1f2; border-right: 1px solid #c0c0c0;">Asset Type <span class="filter-icon" onclick="openColumnFilter(event, 'type_name', 'Asset Type')">🔽</span></th>
+          <th rowspan="2" style="min-width: 120px; position: sticky; left: 160px; z-index: 20; background: #d9e1f2; border-right: 2px solid #94a3b8;">Asset Code <span class="filter-icon" onclick="openColumnFilter(event, 'asset_code', 'Asset Code')">🔽</span></th>
+          <th rowspan="2" style="min-width: 110px">Date of Purchase <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_date', 'Date of Purchase')">🔽</span></th>
+          <th rowspan="2" style="min-width: 120px">Cost of Purchase <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_cost', 'Cost of Purchase')">🔽</span></th>
+          <th rowspan="2" style="min-width: 130px">Remaining Purchase Price <span class="filter-icon" onclick="openColumnFilter(event, 'remaining_purchase_price', 'Remaining Price')">🔽</span></th>
+        `;
+        r2.innerHTML = "";
+
+        timeline.forEach((tm, tIdx) => {
+          r1.innerHTML += `<th colspan="5" style="background: #c6d9f1; border-left: 2px solid #94a3b8;">${tm.label}</th>`;
+          r2.innerHTML += `
+            <th style="min-width: 130px; background: #e9eef4; border-left: 2px solid #94a3b8;">Site <span class="filter-icon" onclick="openColumnFilter(event, 'm_site_${tIdx}', '${tm.label} Site')">🔽</span></th>
+            <th style="min-width: 100px; background: #e9eef4;">Plate No <span class="filter-icon" onclick="openColumnFilter(event, 'm_plate_${tIdx}', '${tm.label} Plate')">🔽</span></th>
+            <th style="min-width: 90px; background: #e9eef4;">Off Site Exp <span class="filter-icon" onclick="openColumnFilter(event, 'm_off_${tIdx}', '${tm.label} Off')">🔽</span></th>
+            <th style="min-width: 90px; background: #e9eef4;">On site <span class="filter-icon" onclick="openColumnFilter(event, 'm_on_${tIdx}', '${tm.label} On')">🔽</span></th>
+            <th style="min-width: 90px; background: #e2efda;">Revenue <span class="filter-icon" onclick="openColumnFilter(event, 'm_rev_${tIdx}', '${tm.label} Rev')">🔽</span></th>
+          `;
+        });
+
+        const tbody = document.getElementById("assetsTableBody");
+        tbody.innerHTML = "";
+
+        const filteredList = list.filter((item, idx) => {
+          for (const [col, selectedVals] of Object.entries(activeFilters)) {
+            if (!selectedVals) continue;
+            if (col === "sn" && !selectedVals.includes(String(idx + 1))) return false;
+            if (col === "type_name" && !selectedVals.includes(item.type_name || "__BLANK__")) return false;
+            if (col === "asset_code" && !selectedVals.includes(item.asset_code || "__BLANK__")) return false;
+            if (col === "purchase_date" && !selectedVals.includes(formatDate(item.purchase_date) || "__BLANK__")) return false;
+            if (col === "purchase_cost" && !selectedVals.includes(fmtNumber(item.purchase_cost) || "__BLANK__")) return false;
+            if (col === "remaining_purchase_price" && !selectedVals.includes(fmtNumber(item.remaining_purchase_price) || "__BLANK__")) return false;
+
+            if (col.startsWith("m_site_")) {
+              const tIdx = parseInt(col.replace("m_site_", ""));
+              const m = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(m.site_name || "__BLANK__")) return false;
+            }
+            if (col.startsWith("m_plate_")) {
+              const tIdx = parseInt(col.replace("m_plate_", ""));
+              const m = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(m.plate_no || "__BLANK__")) return false;
+            }
+            if (col.startsWith("m_off_")) {
+              const tIdx = parseInt(col.replace("m_off_", ""));
+              const m = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(fmtNumber(m.off_site_exp) || "__BLANK__")) return false;
+            }
+            if (col.startsWith("m_on_")) {
+              const tIdx = parseInt(col.replace("m_on_", ""));
+              const m = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(fmtNumber(m.on_site_exp) || "__BLANK__")) return false;
+            }
+            if (col.startsWith("m_rev_")) {
+              const tIdx = parseInt(col.replace("m_rev_", ""));
+              const m = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(fmtNumber(m.revenue) || "__BLANK__")) return false;
+            }
+          }
+          return true;
+        });
+
+        updateRibbonTotals(filteredList);
+
+        const chunkSize = 50;
+        let index = 0;
+
+        function processChunk() {
+          const fragment = document.createDocumentFragment();
+          const limit = Math.min(index + chunkSize, filteredList.length);
+
+          for (let i = index; i < limit; i++) {
+            const item = filteredList[i];
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-search", `${item.asset_code || ""} ${item.type_name || ""}`.toLowerCase());
+
+            let rowHtml = `
+              <td style="position: sticky; left: 0px; background: #ffffff; z-index: 10; border-right: 1px solid #c0c0c0;"><b>${i + 1}</b></td>
+              <td style="position: sticky; left: 50px; background: #ffffff; z-index: 10; border-right: 1px solid #c0c0c0;">${item.type_name || ""}</td>
+              <td style="position: sticky; left: 160px; background: #ffffff; z-index: 10; font-weight: 600; border-right: 2px solid #94a3b8;">${item.asset_code || ""}</td>
+              <td>${formatDate(item.purchase_date)}</td>
+              <td>${fmtNumber(item.purchase_cost)}</td>
+              <td>${fmtNumber(item.remaining_purchase_price)}</td>
+            `;
+
+            const mDataList = item.months_data || [];
+            timeline.forEach((_, tIdx) => {
+              const m = mDataList[tIdx] || { site_name: "", plate_no: "", off_site_exp: 0, on_site_exp: 0, revenue: 0 };
+              rowHtml += `
+                <td style="text-align: left; border-left: 2px solid #cbd5e1;">${m.site_name || ""}</td>
+                <td>${m.plate_no || ""}</td>
+                <td>${fmtNumber(m.off_site_exp)}</td>
+                <td>${fmtNumber(m.on_site_exp)}</td>
+                <td style="background-color: #f0fdf4; font-weight: 500;">${fmtNumber(m.revenue)}</td>
+              `;
+            });
+
+            tr.innerHTML = rowHtml;
+            fragment.appendChild(tr);
+          }
+
+          tbody.appendChild(fragment);
+          index = limit;
+
+          if (index < filteredList.length) {
+            requestAnimationFrame(processChunk);
+          }
+        }
+
+        processChunk();
+      }
+
+      function openColumnFilter(e, colKey, colTitle) {
+        e.stopPropagation();
+        currentFilterCol = colKey;
+        const menu = document.getElementById("assetsFilterMenu");
+        document.getElementById("filterMenuTitle").innerText = `Filter: ${colTitle}`;
+        document.getElementById("filterSearchInput").value = "";
+
+        const valueSet = new Set();
+        let hasBlank = false;
+
+        rawAssets.forEach((item, idx) => {
+          let val = "";
+          if (colKey === "sn") val = String(idx + 1);
+          else if (colKey === "type_name") val = item.type_name || "";
+          else if (colKey === "asset_code") val = item.asset_code || "";
+          else if (colKey === "purchase_date") val = formatDate(item.purchase_date);
+          else if (colKey === "purchase_cost") val = fmtNumber(item.purchase_cost);
+          else if (colKey === "remaining_purchase_price") val = fmtNumber(item.remaining_purchase_price);
+          else if (colKey.startsWith("m_site_")) {
+            const tIdx = parseInt(colKey.replace("m_site_", ""));
+            val = ((item.months_data || [])[tIdx] || {}).site_name || "";
+          } else if (colKey.startsWith("m_plate_")) {
+            const tIdx = parseInt(colKey.replace("m_plate_", ""));
+            val = ((item.months_data || [])[tIdx] || {}).plate_no || "";
+          } else if (colKey.startsWith("m_off_")) {
+            const tIdx = parseInt(colKey.replace("m_off_", ""));
+            val = fmtNumber(((item.months_data || [])[tIdx] || {}).off_site_exp);
+          } else if (colKey.startsWith("m_on_")) {
+            const tIdx = parseInt(colKey.replace("m_on_", ""));
+            val = fmtNumber(((item.months_data || [])[tIdx] || {}).on_site_exp);
+          } else if (colKey.startsWith("m_rev_")) {
+            const tIdx = parseInt(colKey.replace("m_rev_", ""));
+            val = fmtNumber(((item.months_data || [])[tIdx] || {}).revenue);
+          }
+
+          if (!val) hasBlank = true;
+          else valueSet.add(val);
+        });
+
+        const selectedList = activeFilters[colKey] || null;
+        let listHtml = `
+          <li style="padding: 4px 8px;">
+            <input type="checkbox" id="chkFilterSelectAll" onchange="toggleSelectAllFilter(this)" checked />
+            <label for="chkFilterSelectAll" style="cursor: pointer;"><b>(Select All)</b></label>
+          </li>
+        `;
+
+        if (hasBlank) {
+          const isBlankChecked = selectedList === null || selectedList.includes("__BLANK__");
+          listHtml += `
+            <li class="filter-item-row" data-text="(blanks)" style="padding: 3px 8px;">
+              <input type="checkbox" class="col-filter-chk" value="__BLANK__" id="filter_chk_blank" ${isBlankChecked ? "checked" : ""} />
+              <label for="filter_chk_blank" style="cursor: pointer;"><i>(Blanks)</i></label>
+            </li>
+          `;
+        }
+
+        if (colKey === "purchase_date") {
+          const dateTree = {};
+          Array.from(valueSet).filter(Boolean).forEach((dStr) => {
+            const parts = dStr.split("-");
+            if (parts.length === 3) {
+              const [day, mon, yr] = parts;
+              const fullYr = "20" + yr;
+              if (!dateTree[fullYr]) dateTree[fullYr] = {};
+              if (!dateTree[fullYr][mon]) dateTree[fullYr][mon] = [];
+              dateTree[fullYr][mon].push(dStr);
+            }
+          });
+
+          Object.keys(dateTree).sort().reverse().forEach((yr) => {
+            listHtml += `
+              <li class="filter-item-row" data-text="${yr}" style="flex-direction: column; align-items: flex-start; padding: 2px 8px;">
+                <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+                  <span onclick="toggleTreeCollapse(this)" style="cursor: pointer; font-size: 10px; width: 12px;">▶</span>
+                  <input type="checkbox" class="tree-yr-chk" data-yr="${yr}" onchange="toggleYearCheck(this, '${yr}')" checked />
+                  <label style="font-weight: bold; cursor: pointer;">${yr}</label>
+                </div>
+                <ul class="tree-child-group" id="grp_${yr}" style="list-style: none; padding-left: 20px; width: 100%; margin: 2px 0; display: none;">
+            `;
+
+            Object.keys(dateTree[yr]).forEach((mon) => {
+              listHtml += `
+                <li style="margin: 2px 0; display: flex; flex-direction: column; align-items: flex-start; width: 100%; padding: 0;">
+                  <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+                    <span onclick="toggleTreeCollapse(this)" style="cursor: pointer; font-size: 10px; width: 12px;">▶</span>
+                    <input type="checkbox" class="tree-mon-chk" data-yr="${yr}" data-mon="${mon}" onchange="toggleMonthCheck(this, '${yr}', '${mon}')" checked />
+                    <label style="font-weight: 600; cursor: pointer;">${mon}</label>
+                  </div>
+                  <ul class="tree-child-group" id="grp_${yr}_${mon}" style="list-style: none; padding-left: 20px; margin: 2px 0; width: 100%; display: none; flex-direction: column;">
+              `;
+
+              dateTree[yr][mon].sort().forEach((fullDate) => {
+                const isChecked = selectedList === null || selectedList.includes(fullDate);
+                listHtml += `
+                  <li class="filter-item-row" data-text="${fullDate.toLowerCase()}" style="padding: 2px 0; display: flex; align-items: center; gap: 6px; width: 100%;">
+                    <input type="checkbox" class="col-filter-chk" data-yr="${yr}" data-mon="${mon}" value="${fullDate}" ${isChecked ? "checked" : ""} onchange="syncDateTreeCheck('${yr}', '${mon}')" />
+                    <label style="cursor: pointer; white-space: nowrap;">${fullDate}</label>
+                  </li>
+                `;
+              });
+
+              listHtml += `</ul></li>`;
+            });
+
+            listHtml += `</ul></li>`;
+          });
+        } else {
+          const sortedVals = Array.from(valueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+          sortedVals.forEach((val, i) => {
+            const isChecked = selectedList === null || selectedList.includes(val);
+            listHtml += `
+              <li class="filter-item-row" data-text="${val.toLowerCase()}">
+                <input type="checkbox" class="col-filter-chk" value="${val}" id="filter_chk_${i}" ${isChecked ? "checked" : ""} />
+                <label for="filter_chk_${i}">${val}</label>
+              </li>
+            `;
+          });
+        }
+
+        document.getElementById("filterItemList").innerHTML = listHtml;
+        menu.style.display = "block";
+        menu.style.left = `${Math.min(e.clientX, window.innerWidth - 260)}px`;
+        menu.style.top = `${e.clientY + 15}px`;
+      }
+
+      function closeFilterMenu() {
+        const menu = document.getElementById("assetsFilterMenu");
+        if (menu) menu.style.display = "none";
+      }
+
+      function searchFilterItems() {
+        const q = document.getElementById("filterSearchInput").value.trim().toLowerCase();
+        document.querySelectorAll(".filter-item-row").forEach((li) => {
+          const txt = li.getAttribute("data-text") || "";
+          li.style.display = txt.includes(q) ? "flex" : "none";
+        });
+      }
+
+      function toggleSelectAllFilter(master) {
+        document.querySelectorAll(".col-filter-chk, .tree-yr-chk, .tree-mon-chk").forEach((c) => (c.checked = master.checked));
+      }
+
+      function toggleTreeCollapse(btn) {
+        const parentLi = btn.closest("li");
+        const subGroup = parentLi.querySelector(".tree-child-group");
+        if (!subGroup) return;
+        if (subGroup.style.display === "none") {
+          subGroup.style.display = "block";
+          btn.innerText = "▼";
+        } else {
+          subGroup.style.display = "none";
+          btn.innerText = "▶";
+        }
+      }
+
+      function toggleYearCheck(yrChk, yr) {
+        const isChecked = yrChk.checked;
+        document.querySelectorAll(`.tree-mon-chk[data-yr="${yr}"], .col-filter-chk[data-yr="${yr}"]`).forEach((c) => (c.checked = isChecked));
+      }
+
+      function toggleMonthCheck(monChk, yr, mon) {
+        const isChecked = monChk.checked;
+        document.querySelectorAll(`.col-filter-chk[data-yr="${yr}"][data-mon="${mon}"]`).forEach((c) => (c.checked = isChecked));
+        syncDateTreeCheck(yr, mon);
+      }
+
+      function syncDateTreeCheck(yr, mon) {
+        const dateChks = Array.from(document.querySelectorAll(`.col-filter-chk[data-yr="${yr}"][data-mon="${mon}"]`));
+        const monChk = document.querySelector(`.tree-mon-chk[data-yr="${yr}"][data-mon="${mon}"]`);
+        if (monChk && dateChks.length > 0) {
+          monChk.checked = dateChks.some((c) => c.checked);
+        }
+        const yrDates = Array.from(document.querySelectorAll(`.col-filter-chk[data-yr="${yr}"]`));
+        const yrChk = document.querySelector(`.tree-yr-chk[data-yr="${yr}"]`);
+        if (yrChk && yrDates.length > 0) {
+          yrChk.checked = yrDates.some((c) => c.checked);
+        }
+      }
+
+      function applyCurrentFilter() {
+        if (!currentFilterCol) return;
+        const chks = Array.from(document.querySelectorAll(".col-filter-chk"));
+        const checkedVals = chks.filter((c) => c.checked).map((c) => c.value);
+
+        if (checkedVals.length === chks.length) {
+          delete activeFilters[currentFilterCol];
+        } else {
+          activeFilters[currentFilterCol] = checkedVals;
+        }
+
+        closeFilterMenu();
+        renderTableVirtual(rawAssets, currentTimeline);
+      }
+
+      function clearCurrentFilter() {
+        if (currentFilterCol) delete activeFilters[currentFilterCol];
+        closeFilterMenu();
+        renderTableVirtual(rawAssets, currentTimeline);
+      }
+
+      function sortAssetsColumn(dir) {
+        if (!currentFilterCol) return;
+        rawAssets.sort((a, b) => {
+          let valA = "";
+          let valB = "";
+
+          if (["type_name", "asset_code", "purchase_date"].includes(currentFilterCol)) {
+            valA = a[currentFilterCol] || "";
+            valB = b[currentFilterCol] || "";
+          } else if (["purchase_cost", "remaining_purchase_price"].includes(currentFilterCol)) {
+            valA = Number(a[currentFilterCol] || 0);
+            valB = Number(b[currentFilterCol] || 0);
+            return dir === "asc" ? valA - valB : valB - valA;
+          } else if (currentFilterCol.startsWith("m_site_")) {
+            const tIdx = parseInt(currentFilterCol.replace("m_site_", ""));
+            valA = ((a.months_data || [])[tIdx] || {}).site_name || "";
+            valB = ((b.months_data || [])[tIdx] || {}).site_name || "";
+          } else if (currentFilterCol.startsWith("m_plate_")) {
+            const tIdx = parseInt(currentFilterCol.replace("m_plate_", ""));
+            valA = ((a.months_data || [])[tIdx] || {}).plate_no || "";
+            valB = ((b.months_data || [])[tIdx] || {}).plate_no || "";
+          } else if (currentFilterCol.startsWith("m_off_")) {
+            const tIdx = parseInt(currentFilterCol.replace("m_off_", ""));
+            valA = Number(((a.months_data || [])[tIdx] || {}).off_site_exp || 0);
+            valB = Number(((b.months_data || [])[tIdx] || {}).off_site_exp || 0);
+            return dir === "asc" ? valA - valB : valB - valA;
+          } else if (currentFilterCol.startsWith("m_on_")) {
+            const tIdx = parseInt(currentFilterCol.replace("m_on_", ""));
+            valA = Number(((a.months_data || [])[tIdx] || {}).on_site_exp || 0);
+            valB = Number(((b.months_data || [])[tIdx] || {}).on_site_exp || 0);
+            return dir === "asc" ? valA - valB : valB - valA;
+          } else if (currentFilterCol.startsWith("m_rev_")) {
+            const tIdx = parseInt(currentFilterCol.replace("m_rev_", ""));
+            valA = Number(((a.months_data || [])[tIdx] || {}).revenue || 0);
+            valB = Number(((b.months_data || [])[tIdx] || {}).revenue || 0);
+            return dir === "asc" ? valA - valB : valB - valA;
+          }
+
+          return dir === "asc"
+            ? String(valA).localeCompare(String(valB), undefined, { numeric: true })
+            : String(valB).localeCompare(String(valA), undefined, { numeric: true });
+        });
+
+        closeFilterMenu();
+        renderTableVirtual(rawAssets, currentTimeline);
+      }
+
+      window.addEventListener("click", () => closeFilterMenu());
+
+      function filterTableRows() {
+        const q = document.getElementById("searchAsset").value.trim().toLowerCase();
+        const filtered = rawAssets.filter(item => {
+          const searchStr = `${item.asset_code || ""} ${item.type_name || ""}`.toLowerCase();
+          return searchStr.includes(q);
+        });
+        updateRibbonTotals(filtered);
+        document.querySelectorAll("#assetsTableBody tr").forEach(tr => {
+          const txt = tr.getAttribute("data-search") || "";
+          tr.style.display = txt.includes(q) ? "" : "none";
+        });
+      }
+
+      function openNewAssetModal() {
+        loadTypes();
+        document.getElementById("modalAssetCode").value = "";
+        document.getElementById("modalPurchaseDate").value = "";
+        document.getElementById("modalPurchaseCost").value = "";
+        document.getElementById("modalRemainingPrice").value = "";
+        openModal("newAssetModal");
+      }
+
+      async function saveNewAssetMaster(keepOpen = false) {
+        const typeId = document.getElementById("modalAssetType").value;
+        const codeInput = document.getElementById("modalAssetCode");
+        const code = codeInput.value.trim();
+        const pDate = document.getElementById("modalPurchaseDate").value;
+        const cost = document.getElementById("modalPurchaseCost").value;
+        const price = document.getElementById("modalRemainingPrice").value;
+
+        if (!code) {
+          showToast("Please enter Asset Code", "error");
+          codeInput.focus();
+          return;
+        }
+
+        try {
+          const res = await fetch("/py/assets-tracker/master/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              asset_type_id: parseInt(typeId),
+              asset_code: code,
+              purchase_date: pDate || null,
+              purchase_cost: parseFloat(cost || 0),
+              remaining_purchase_price: parseFloat(price || 0)
+            })
+          });
+          const d = await res.json();
+          if (d.success) {
+            showToast("Asset saved successfully!", "success");
+            loadAssetsData();
+            if (keepOpen) {
+              codeInput.value = "";
+              document.getElementById("modalPurchaseCost").value = "";
+              document.getElementById("modalRemainingPrice").value = "";
+              codeInput.focus();
+            } else {
+              closeModal("newAssetModal");
+            }
+          } else {
+            showToast(d.detail || "Error saving asset", "error");
+          }
+        } catch (e) {
+          showToast("Server error", "error");
+        }
+      }
+
+      function openEditAssetBarModal() {
+        const typeSel = document.getElementById("barSelectType");
+        typeSel.innerHTML = "";
+        const distinctTypes = [...new Set(rawAssets.map(a => a.type_name).filter(Boolean))].sort();
+        distinctTypes.forEach(t => {
+          typeSel.innerHTML += `<option value="${t}">${t}</option>`;
+        });
+        onBarTypeChange();
+        openModal("editAssetBarModal");
+      }
+
+      function onBarTypeChange() {
+        const selectedType = document.getElementById("barSelectType").value;
+        const assetSel = document.getElementById("barSelectAsset");
+        assetSel.innerHTML = "";
+        const matched = rawAssets.filter(a => a.type_name === selectedType);
+        matched.forEach(a => {
+          assetSel.innerHTML += `<option value="${a.id}">${a.asset_code}</option>`;
+        });
+        fillEditBarInputs();
+      }
+
+      function fillEditBarInputs() {
+        const assetId = Number(document.getElementById("barSelectAsset").value);
+        const assetObj = rawAssets.find(a => a.id === assetId);
+        if (assetObj) {
+          document.getElementById("barPurchaseDate").value = assetObj.purchase_date ? String(assetObj.purchase_date).substring(0, 10) : "";
+          document.getElementById("barPurchaseCost").value = assetObj.purchase_cost || "";
+          document.getElementById("barRemainingPrice").value = assetObj.remaining_purchase_price || "";
+        }
+      }
+
+      async function saveEditBarCosts() {
+        const assetId = Number(document.getElementById("barSelectAsset").value);
+        const pDate = document.getElementById("barPurchaseDate").value;
+        const pCost = document.getElementById("barPurchaseCost").value;
+        const remPrice = document.getElementById("barRemainingPrice").value;
+
+        try {
+          const res = await fetch("/py/assets-tracker/master/edit-costs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              asset_id: assetId,
+              purchase_date: pDate || null,
+              purchase_cost: parseFloat(pCost || 0),
+              remaining_purchase_price: parseFloat(remPrice || 0)
+            })
+          });
+          const d = await res.json();
+          if (d.success) {
+            showToast("Asset details updated successfully!", "success");
+            closeModal("editAssetBarModal");
+            loadAssetsData();
+          } else {
+            showToast(d.detail || "Update failed", "error");
+          }
+        } catch (e) {
+          showToast("Server connection error", "error");
+        }
+      }
+
+      function openEditSelectModal() {
+        const typeSel = document.getElementById("editSelectType");
+        typeSel.innerHTML = "";
+        const distinctTypes = [...new Set(rawAssets.map(a => a.type_name).filter(Boolean))].sort();
+        distinctTypes.forEach(t => {
+          typeSel.innerHTML += `<option value="${t}">${t}</option>`;
+        });
+        onEditTypeChange();
+
+        const selYr = document.getElementById("editSelectYear");
+        selYr.innerHTML = "";
+        const curY = new Date().getFullYear();
+        for (let y = curY - 3; y <= curY + 2; y++) {
+          selYr.innerHTML += `<option value="${y}" ${y === curY ? "selected" : ""}>${y}</option>`;
+        }
+
+        openModal("editSelectModal");
+      }
+
+      function onEditTypeChange() {
+        const selectedType = document.getElementById("editSelectType").value;
+        const assetSel = document.getElementById("editSelectAsset");
+        assetSel.innerHTML = "";
+        const matched = rawAssets.filter(a => a.type_name === selectedType);
+        matched.forEach(a => {
+          assetSel.innerHTML += `<option value="${a.id}">${a.asset_code}</option>`;
+        });
+      }
+
+      async function fetchAndOpenYearRecords() {
+        const assetId = document.getElementById("editSelectAsset").value;
+        const year = document.getElementById("editSelectYear").value;
+        activeEditingAssetId = parseInt(assetId);
+        activeEditingYear = parseInt(year);
+
+        const assetObj = rawAssets.find(a => a.id === activeEditingAssetId);
+        document.getElementById("yearFeedTitle").innerText = `Feed Monthly Data: ${assetObj ? assetObj.asset_code : ""} (${year})`;
+
+        try {
+          const res = await fetch(`/py/assets-tracker/get-year-records?asset_id=${assetId}&year=${year}`);
+          const d = await res.json();
+          if (d.success) {
+            closeModal("editSelectModal");
+            renderYearFeedTable(d.records);
+            openModal("yearFeedModal");
+          } else {
+            showToast("Failed to fetch records", "error");
+          }
+        } catch (e) {
+          showToast("Server connection error", "error");
+        }
+      }
+
+      function renderYearFeedTable(records) {
+        const tbody = document.getElementById("yearFeedTbody");
+        tbody.innerHTML = "";
+        records.forEach(r => {
+          const tr = document.createElement("tr");
+          tr.setAttribute("data-month", r.month);
+          tr.innerHTML = `
+            <td><b>${monthNames[r.month - 1]}</b></td>
+            <td><input type="text" class="feed-site" value="${r.site_name || ""}" style="width: 100%; padding: 4px;" /></td>
+            <td><input type="text" class="feed-plate" value="${r.plate_no || ""}" style="width: 100%; padding: 4px;" /></td>
+            <td><input type="number" step="0.01" class="feed-off" value="${r.off_site_exp || ""}" style="width: 100%; padding: 4px;" /></td>
+            <td><input type="number" step="0.01" class="feed-on" value="${r.on_site_exp || ""}" style="width: 100%; padding: 4px;" /></td>
+            <td><input type="number" step="0.01" class="feed-rev" value="${r.revenue || ""}" style="width: 100%; padding: 4px;" /></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      async function saveYearRecords() {
+        const trs = document.querySelectorAll("#yearFeedTbody tr");
+        const records = [];
+        trs.forEach(tr => {
+          const m = parseInt(tr.getAttribute("data-month"));
+          records.push({
+            month: m,
+            site_name: tr.querySelector(".feed-site").value.trim(),
+            plate_no: tr.querySelector(".feed-plate").value.trim(),
+            off_site_exp: parseFloat(tr.querySelector(".feed-off").value || 0),
+            on_site_exp: parseFloat(tr.querySelector(".feed-on").value || 0),
+            revenue: parseFloat(tr.querySelector(".feed-rev").value || 0)
+          });
+        });
+
+        try {
+          const res = await fetch("/py/assets-tracker/save-year-records", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              asset_id: activeEditingAssetId,
+              year: activeEditingYear,
+              records: records
+            })
+          });
+          const d = await res.json();
+          if (d.success) {
+            showToast("Records saved successfully!", "success");
+            closeModal("yearFeedModal");
+            loadAssetsData();
+          } else {
+            showToast("Failed to save records", "error");
+          }
+        } catch (e) {
+          showToast("Server error during save", "error");
+        }
+      }
+
+      function openExportModal() {
+        const curY = new Date().getFullYear();
+        document.getElementById("expStartYear").value = curY;
+        document.getElementById("expStartMonth").value = 1;
+        document.getElementById("expEndYear").value = curY;
+        document.getElementById("expEndMonth").value = 12;
+        openModal("exportModal");
+      }
+
+      function togglePeriodInputs(show) {
+        document.getElementById("periodInputsBox").style.display = show ? "block" : "none";
+      }
+
+      function confirmExport() {
+        const mode = document.querySelector('input[name="exportMode"]:checked').value;
+        let url = `/py/assets-tracker/export-excel?mode=${mode}`;
+        if (mode === "period") {
+          const sy = document.getElementById("expStartYear").value;
+          const sm = document.getElementById("expStartMonth").value;
+          const ey = document.getElementById("expEndYear").value;
+          const em = document.getElementById("expEndMonth").value;
+          url += `&start_year=${sy}&start_month=${sm}&end_year=${ey}&end_month=${em}`;
+        }
+        closeModal("exportModal");
+        showToast("Generating Excel file...", "success");
+        window.location.href = url;
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        loadTypes();
+        loadAssetsData();
+      });
+    </script>
+  </body>
+</html>

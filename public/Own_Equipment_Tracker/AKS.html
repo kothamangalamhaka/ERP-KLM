@@ -449,11 +449,12 @@
         r2.innerHTML = "";
 
         timeline.forEach((tm, tIdx) => {
-          r1.innerHTML += `<th colspan="3" style="background: #c6d9f1; border-left: 2px solid #94a3b8;">${tm.label}</th>`;
+          r1.innerHTML += `<th colspan="4" style="background: #c6d9f1; border-left: 2px solid #94a3b8;">${tm.label}</th>`;
           r2.innerHTML += `
             <th style="min-width: 130px; background: #e9eef4; border-left: 2px solid #94a3b8;">Site <span class="filter-icon" onclick="openColumnFilter(event, 'month_site_${tIdx}', '${tm.label} Site')">🔽</span></th>
             <th style="min-width: 90px; background: #e9eef4;">MTC <span class="filter-icon" onclick="openColumnFilter(event, 'month_mtc_${tIdx}', '${tm.label} MTC')">🔽</span></th>
             <th style="min-width: 90px; background: #e9eef4;">OTC <span class="filter-icon" onclick="openColumnFilter(event, 'month_otc_${tIdx}', '${tm.label} OTC')">🔽</span></th>
+            <th style="min-width: 95px; background: #e2efda;">TOR <span class="filter-icon" onclick="openColumnFilter(event, 'month_tor_${tIdx}', '${tm.label} TOR')">🔽</span></th>
           `;
         });
 
@@ -517,6 +518,12 @@
               if (!selectedVals.includes(fmtNumber(mData.otc) || "__BLANK__"))
                 return false;
             }
+            if (col.startsWith("month_tor_")) {
+              const tIdx = parseInt(col.replace("month_tor_", ""));
+              const mData = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(fmtNumber(mData.tor) || "__BLANK__"))
+                return false;
+            }
           }
           return true;
         });
@@ -536,11 +543,12 @@
 
           const mDataList = item.months_data || [];
           timeline.forEach((_, tIdx) => {
-            const m = mDataList[tIdx] || { site: "", mtc: 0, otc: 0 };
+            const m = mDataList[tIdx] || { site: "", mtc: 0, otc: 0, tor: 0 };
             rowHtml += `
               <td style="text-align: left; font-weight: 500; border-left: 2px solid #cbd5e1;">${m.site || ""}</td>
               <td style="font-weight: 500;">${fmtNumber(m.mtc)}</td>
               <td style="font-weight: 500; background-color: #fefce8;">${fmtNumber(m.otc)}</td>
+              <td style="font-weight: 500; background-color: #f0fdf4;">${fmtNumber(m.tor)}</td>
             `;
           });
 
@@ -701,11 +709,22 @@
             (item.sites || []).forEach((s) =>
               valueSet.add(formatDate(s.site_end_date)),
             );
-          } else if (colKey.startsWith("month_exp_")) {
-            const mIdx = parseInt(colKey.replace("month_exp_", ""));
-            (item.sites || []).forEach((s) =>
-              valueSet.add(fmtNumber((s.monthly_expenses || [])[mIdx])),
-            );
+          } else if (colKey.startsWith("month_site_")) {
+            const tIdx = parseInt(colKey.replace("month_site_", ""));
+            const m = (item.months_data || [])[tIdx] || {};
+            valueSet.add(m.site || "");
+          } else if (colKey.startsWith("month_mtc_")) {
+            const tIdx = parseInt(colKey.replace("month_mtc_", ""));
+            const m = (item.months_data || [])[tIdx] || {};
+            valueSet.add(fmtNumber(m.mtc));
+          } else if (colKey.startsWith("month_otc_")) {
+            const tIdx = parseInt(colKey.replace("month_otc_", ""));
+            const m = (item.months_data || [])[tIdx] || {};
+            valueSet.add(fmtNumber(m.otc));
+          } else if (colKey.startsWith("month_tor_")) {
+            const tIdx = parseInt(colKey.replace("month_tor_", ""));
+            const m = (item.months_data || [])[tIdx] || {};
+            valueSet.add(fmtNumber(m.tor));
           }
         });
 

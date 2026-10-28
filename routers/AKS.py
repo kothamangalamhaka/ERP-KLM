@@ -146,11 +146,13 @@ def get_aks_data():
 
         maint_map = {}
         otc_map = {}
+        rev_map = {}
         all_logged_months = set()
         for ml in maint_logs:
             k = f"{ml['equipment_id']}_{ml['year']}_{ml['month']}"
             m_cost = float(ml["maintenance_cost"])
             maint_map[k] = m_cost
+            rev_map[k] = float(ml["op_revenue"])
 
             # Calculate Operational Expenses (OTC)
             rev = float(ml["op_revenue"])
@@ -275,11 +277,13 @@ def get_aks_data():
                 site_display = " / ".join(matched_site_names) if matched_site_names else ""
                 mtc_val = maint_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
                 otc_val = otc_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
+                tor_val = rev_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
 
                 month_columns_data.append({
                     "site": site_display,
                     "mtc": round(mtc_val, 2),
-                    "otc": round(otc_val, 2)
+                    "otc": round(otc_val, 2),
+                    "tor": round(tor_val, 2)
                 })
 
             records.append({
@@ -368,20 +372,22 @@ def export_aks_excel(mode: str = "single"):
                 c.font = head_font
                 c.alignment = center_align
 
+            # Timeline Headers (4 Columns per Month: Site, MTC, OTC, TOR)
+            rev_data_fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
             col_cursor = len(base_headers) + 1
             for tm in sheet_timeline:
-                ws.merge_cells(start_row=1, start_column=col_cursor, end_row=1, end_column=col_cursor + 2)
+                ws.merge_cells(start_row=1, start_column=col_cursor, end_row=1, end_column=col_cursor + 3)
                 c_top = ws.cell(row=1, column=col_cursor, value=tm["label"])
                 c_top.fill = head_fill_month
                 c_top.font = head_font
                 c_top.alignment = center_align
 
-                for sub_idx, sub_label in enumerate(["Site", "MTC", "OTC"]):
+                for sub_idx, sub_label in enumerate(["Site", "MTC", "OTC", "TOR"]):
                     c_sub = ws.cell(row=2, column=col_cursor + sub_idx, value=sub_label)
                     c_sub.fill = head_fill_sub
                     c_sub.font = head_font
                     c_sub.alignment = center_align
-                col_cursor += 3
+                col_cursor += 4
 
             total_cols = col_cursor - 1
             for r in [1, 2]:
@@ -423,11 +429,12 @@ def export_aks_excel(mode: str = "single"):
                 m_data_list = item.get("months_data", [])
                 for t_idx, tm in enumerate(sheet_timeline):
                     orig_t_idx = next((i for i, x in enumerate(timeline) if x["year"] == tm["year"] and x["month"] == tm["month"]), -1)
-                    m_info = m_data_list[orig_t_idx] if orig_t_idx != -1 and orig_t_idx < len(m_data_list) else {"site": "", "mtc": 0, "otc": 0}
+                    m_info = m_data_list[orig_t_idx] if orig_t_idx != -1 and orig_t_idx < len(m_data_list) else {"site": "", "mtc": 0, "otc": 0, "tor": 0}
 
-                    site_col = 7 + (t_idx * 3)
+                    site_col = 7 + (t_idx * 4)
                     mtc_col = site_col + 1
                     otc_col = site_col + 2
+                    tor_col = site_col + 3
 
                     c_site = ws.cell(row=curr_row, column=site_col, value=m_info.get("site") or "")
                     c_site.alignment = left_align
@@ -444,6 +451,13 @@ def export_aks_excel(mode: str = "single"):
                     c_otc.fill = otc_data_fill
                     if otc_val > 0:
                         c_otc.number_format = '#,##0.00'
+
+                    tor_val = float(m_info.get("tor") or 0)
+                    c_tor = ws.cell(row=curr_row, column=tor_col, value=tor_val if tor_val > 0 else "")
+                    c_tor.alignment = center_align
+                    c_tor.fill = rev_data_fill
+                    if tor_val > 0:
+                        c_tor.number_format = '#,##0.00'
 
                 for c_num in range(1, total_cols + 1):
                     cell = ws.cell(row=curr_row, column=c_num)
