@@ -653,6 +653,10 @@
           <select id="editCostEqId" onchange="populateEditCostFields()"></select>
         </div>
         <div class="form-group">
+          <label>Purchase Date</label>
+          <input type="date" id="editCostDate" />
+        </div>
+        <div class="form-group">
           <label>Purchase Cost Paid</label>
           <input type="number" id="editCostPaid" value="0" />
         </div>
@@ -662,7 +666,8 @@
         </div>
         <div class="modal-actions">
           <button class="btn" onclick="closeModal('editCostModal')">Cancel</button>
-          <button class="btn btn-primary" style="background: #e67e22;" onclick="saveEditedCost()">Update & Save</button>
+          <button class="btn btn-primary" style="background: #e67e22;" onclick="saveEditedCost(false)">Update & Save</button>
+          <button class="btn btn-blue" onclick="saveEditedCost(true)">Update & Next</button>
         </div>
       </div>
     </div>

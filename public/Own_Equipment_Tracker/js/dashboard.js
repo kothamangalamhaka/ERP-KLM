@@ -1122,6 +1122,7 @@ function populateEditCostFields() {
   const eqId = Number(document.getElementById("editCostEqId").value);
   const eq = rawEquipments.find((x) => x.id === eqId);
   if (eq) {
+    document.getElementById("editCostDate").value = eq.purchase_date ? String(eq.purchase_date).slice(0, 10) : "";
     document.getElementById("editCostPaid").value = eq.purchase_cost || 0;
     document.getElementById("editCostRemaining").value =
       eq.remaining_purchase_cost || 0;
@@ -1150,8 +1151,10 @@ function showToast(message, type = "success") {
 }
 
 // 🟢 SAVE EDITED PURCHASE COST TO DATABASE (WITH TOAST)
-async function saveEditedCost() {
-  const eqId = Number(document.getElementById("editCostEqId").value);
+async function saveEditedCost(isNext = false) {
+  const select = document.getElementById("editCostEqId");
+  const eqId = Number(select.value);
+  const pDate = document.getElementById("editCostDate").value || null;
   const paid = parseFloat(document.getElementById("editCostPaid").value) || 0;
   const remaining =
     parseFloat(document.getElementById("editCostRemaining").value) || 0;
@@ -1162,15 +1165,27 @@ async function saveEditedCost() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: eqId,
+        purchase_date: pDate,
         purchase_cost: paid,
         remaining_purchase_cost: remaining,
       }),
     });
     const data = await res.json();
     if (res.ok && data.success) {
-      closeModal("editCostModal");
       await loadDashboardData();
       showToast("Purchase Cost updated successfully!", "success");
+
+      if (isNext) {
+        if (select.selectedIndex < select.options.length - 1) {
+          select.selectedIndex += 1;
+          populateEditCostFields();
+        } else {
+          showToast("This was the last equipment in the list.", "success");
+          closeModal("editCostModal");
+        }
+      } else {
+        closeModal("editCostModal");
+      }
     } else {
       showToast(
         "Failed to update: " + (data.message || "Unknown error"),
