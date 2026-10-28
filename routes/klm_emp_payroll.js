@@ -178,7 +178,13 @@ router.get("/data", async (req, res) => {
 
     for (const emp of employees) {
       const shiftHrs = parseFloat(emp.shift_hours) || 10;
-      const baseSalary = parseFloat(emp.base_salary) || 0;
+      const histSalRes = await pool.query(
+        `SELECT base_salary FROM employee_salary_history 
+         WHERE emp_id = $1 AND start_date <= $2 AND (end_date IS NULL OR end_date >= $3) 
+         ORDER BY start_date DESC LIMIT 1`,
+        [emp.id, endDateStr, startDateStr]
+      );
+      const baseSalary = histSalRes.rows.length > 0 ? parseFloat(histSalRes.rows[0].base_salary) : (parseFloat(emp.base_salary) || 0);
       const expectedShiftHours = workingDays * shiftHrs;
       const divisorHours = Math.min(260, expectedShiftHours);
       const hourlyRate = divisorHours > 0 ? baseSalary / divisorHours : 0;

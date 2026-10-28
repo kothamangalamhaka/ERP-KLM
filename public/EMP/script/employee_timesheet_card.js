@@ -224,7 +224,29 @@ async function fetchData() {
   document.getElementById("displayName").innerText = emp.name;
   document.getElementById("displayMobile").innerText =
     `Mob: ${emp.mobile || "-"}`;
-  document.getElementById("dispBaseSal").innerText = emp.base_salary;
+
+  let effectiveBaseSalary = parseFloat(emp.base_salary) || 0;
+  try {
+    const histRes = await fetch(`/api/employees/${empId}/salary-history`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (histRes.ok) {
+      const historyList = await histRes.json();
+      const matched = historyList.find((h) => {
+        const sDate = h.start_date.split("T")[0];
+        const eDate = h.end_date ? h.end_date.split("T")[0] : "9999-12-31";
+        return sDate <= dateTo && eDate >= dateFrom;
+      });
+      if (matched) {
+        effectiveBaseSalary = parseFloat(matched.base_salary);
+      }
+    }
+  } catch (err) {
+    console.error("Error fetching salary history for card", err);
+  }
+
+  emp.current_effective_salary = effectiveBaseSalary;
+  document.getElementById("dispBaseSal").innerText = effectiveBaseSalary.toFixed(2);
   document.getElementById("dispShiftHrs").innerText = emp.shift_hours || 10;
 
   const fmt = { day: "2-digit", month: "short", year: "numeric" };
@@ -288,7 +310,7 @@ async function fetchData() {
         ? 'contenteditable="true" class="editable active"'
         : 'contenteditable="false" class="editable"';
 
-      tbody.innerHTML += `<tr ${rowCls} data-date="${dateStrDB}" data-day="${dayNameFull}" data-all-ot="${isAllOvertime}">
+      tbody.innerHTML += `<tr ${rowCls} data-emp-id="${empId}" data-date="${dateStrDB}" data-day="${dayNameFull}" data-all-ot="${isAllOvertime}">
                         <td style="white-space: nowrap;">${logDateUI}</td>
                         <td>${dayNameShort}</td>
                         <td ${editableState} data-field="shift_start">${formatVal(log.shift_start)}</td>
@@ -531,7 +553,13 @@ function attachEditListeners() {
 }
 
 async function calculateAndSaveRow(row, isInitialLoad = false) {
-  const empId = document.getElementById("empSelect").value;
+  // ടേബിൾ റോയിൽ കൃത്യമായി അറ്റാച്ച് ചെയ്ത empId ഇല്ലെങ്കിൽ യാതൊരു കാരണവശാലും സേവ് ചെയ്യരുത്
+  const empId = row.dataset.empId;
+  if (!empId) {
+    console.warn("Save aborted: No employee ID bound to this row.");
+    return;
+  }
+
   const dateStr = row.dataset.date;
   const dayName = row.dataset.day;
   const isAllOvertime = row.dataset.allOt === "true";
@@ -706,7 +734,7 @@ function updateSummary() {
   const emp = empDataMap[empId];
   if (!emp) return;
 
-  const baseSal = parseFloat(emp.base_salary) || 0;
+  const baseSal = emp.current_effective_salary !== undefined ? emp.current_effective_salary : (parseFloat(emp.base_salary) || 0);
   const empShiftHrPerDay = parseFloat(emp.shift_hours) || 10;
   const rateHr = baseSal / (empShiftHrPerDay * 26);
 
@@ -754,3 +782,43 @@ function exportToPNG() {
     });
   }, 100);
 }
+
+document.getElementById("empSelect").addEventListener("change", () => {
+  // എഡിറ്റ് മോഡ് ഓൺ ആണെങ്കിൽ സേവിംഗ് ട്രിഗർ ചെയ്യാതെ നേരിട്ട് റദ്ദാക്കുക
+  if (isEditMode) {
+    isEditMode = false;
+    const btn = document.getElementById("editBtn");
+    if (btn) {
+      btn.innerText = "Enable Edit Mode";
+      btn.classList.remove("locked");
+    }
+    const printArea = document.getElementById("printArea");
+    if (printArea) printArea.classList.remove("edit-mode-active");
+  }
+
+  // പഴയ ആളുടെ ടേബിൾ വിവരങ്ങളും ഹെഡറുകളും ഉടൻ തന്നെ നീക്കം ചെയ്യുക
+  document.getElementById("tableBody").innerHTML = `
+    <tr>
+      <td colspan="13" style="padding: 20px; color: #666; text-align: center;">
+        Employee changed. Please click <strong>Fetch Data</strong> to view records.
+      </td>
+    </tr>`;
+
+  // ഹെഡർ വിവരങ്ങൾ റീസെറ്റ് ചെയ്യുക
+  document.getElementById("displayName").innerText = "Select Employee & Fetch";
+  document.getElementById("displayMobile").innerText = "Mob: -";
+  document.getElementById("displayPeriod").innerText = "-";
+
+  // സമ്മറി & എക്സ്പെൻസസ് റീസെറ്റ് ചെയ്യുക
+  expensesData = [];
+  document.getElementById("expenseBody").innerHTML = "";
+  document.getElementById("expenseSection").style.display = "none";
+  document.getElementById("totExpenseAmt").innerText = "0.00";
+  document.getElementById("daysWorked").innerText = "0";
+  document.getElementById("totalNormal").innerText = "0";
+  document.getElementById("totalOT").innerText = "0";
+  document.getElementById("baseEarned").innerText = "0.00";
+  document.getElementById("otEarned").innerText = "0.00";
+  document.getElementById("miscEarned").innerText = "0.00";
+  document.getElementById("totalAmt").innerText = "0.00";
+});

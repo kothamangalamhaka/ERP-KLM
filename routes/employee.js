@@ -240,4 +240,64 @@ router.put("/expenses/:id", async (req, res) => {
   }
 });
 
+// 10. Get Employee Salary History
+router.get("/:id/salary-history", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      "SELECT * FROM employee_salary_history WHERE emp_id = $1 ORDER BY start_date DESC",
+      [id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+// 11. Add Salary Hike (Auto-closes previous record)
+router.post("/:id/salary-history", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { base_salary, start_date } = req.body;
+
+    // Previous active salary close cheyyunnu (start_date - 1 day)
+    await pool.query(
+      `UPDATE employee_salary_history 
+       SET end_date = ($2::date - INTERVAL '1 day') 
+       WHERE emp_id = $1 AND (end_date IS NULL OR end_date >= $2::date)`,
+      [id, start_date]
+    );
+
+    // Puthiya record insert cheyyunnu
+    const newHike = await pool.query(
+      "INSERT INTO employee_salary_history (emp_id, base_salary, start_date) VALUES ($1, $2, $3) RETURNING *",
+      [id, base_salary, start_date]
+    );
+
+    // employee_data table-il current base_salary update cheyyunnu
+    await pool.query(
+      "UPDATE employee_data SET base_salary = $1 WHERE id = $2",
+      [base_salary, id]
+    );
+
+    res.status(201).json(newHike.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+// 12. Delete a Salary Hike Record
+router.delete("/salary-history/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("DELETE FROM employee_salary_history WHERE id = $1", [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 module.exports = router;

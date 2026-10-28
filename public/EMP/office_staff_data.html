@@ -93,6 +93,37 @@
       </div>
     </div>
 
+    <!-- Salary Hike Modal -->
+    <div id="hikeModal" class="modal">
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+          <span id="hikeModalTitle">Manage Salary Hike</span>
+          <button class="close-btn" onclick="closeHikeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="hikeEmpId" />
+          <label>New Base Salary</label>
+          <input type="number" id="hikeBaseSalary" placeholder="e.g. 25000" />
+          <label>Effective Start Date</label>
+          <input type="date" id="hikeStartDate" />
+          <button class="save-btn" style="margin-top: 10px;" onclick="saveSalaryHike()">Add Salary Hike</button>
+
+          <h4 style="margin: 20px 0 10px 0; color: #333; font-size: 14px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Salary History</h4>
+          <table style="width: 100%; font-size: 12.5px; border-collapse: collapse;">
+            <thead>
+              <tr style="background: #f1f5f9; text-align: left;">
+                <th style="padding: 6px;">Salary</th>
+                <th style="padding: 6px;">Start Date</th>
+                <th style="padding: 6px;">End Date</th>
+                <th style="padding: 6px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="hikeHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div id="toastMessage" class="toast">Data Saved Successfully!</div>
 
     <script src="script/office_staff_data.js"></script>

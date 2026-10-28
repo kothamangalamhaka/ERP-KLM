@@ -61,6 +61,7 @@ async function loadEmployees() {
                         <td style="color: ${statusColor}; font-weight: bold;">${emp.status || "Active"}</td>
                         <td>
                             <button class="action-btn" onclick="editEmployee('${emp.id}', '${emp.name}', '${emp.mobile || ""}', '${emp.base_salary}', '${emp.shift_hours}', '${emp.mobile_allowance || 0}', '${emp.start_date || ""}', '${emp.end_date || ""}')">Edit</button>
+                            <button class="action-btn" style="background: #0284c7; margin-left: 5px;" onclick="openHikeModal('${emp.id}', '${emp.name}')">Salary Hike</button>
                         </td>
                     </tr>`;
       tableBody.innerHTML += row;
@@ -152,6 +153,106 @@ async function saveEmployee() {
       showToast("Failed to save data.", false);
     }
   } catch (error) {
+    showToast("Server Error", false);
+  }
+}
+
+async function openHikeModal(empId, empName) {
+  document.getElementById("hikeEmpId").value = empId;
+  document.getElementById("hikeModalTitle").innerText = `Salary Hike - ${empName}`;
+  document.getElementById("hikeBaseSalary").value = "";
+  document.getElementById("hikeStartDate").value = "";
+  document.getElementById("hikeModal").style.display = "block";
+  await loadSalaryHistory(empId);
+}
+
+function closeHikeModal() {
+  document.getElementById("hikeModal").style.display = "none";
+}
+
+async function loadSalaryHistory(empId) {
+  const token = sessionStorage.getItem("emp_token");
+  try {
+    const res = await fetch(`/api/employees/${empId}/salary-history`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const history = await res.json();
+    const tbody = document.getElementById("hikeHistoryBody");
+    tbody.innerHTML = "";
+
+    if (!history.length) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:8px; color:#888;">No hike records found</td></tr>`;
+      return;
+    }
+
+    history.forEach((item) => {
+      const endDisp = item.end_date ? item.end_date.split("T")[0] : "<span style='color:green;font-weight:bold;'>Ongoing</span>";
+      tbody.innerHTML += `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 6px; font-weight: bold;">${parseFloat(item.base_salary).toFixed(2)}</td>
+          <td style="padding: 6px;">${item.start_date.split("T")[0]}</td>
+          <td style="padding: 6px;">${endDisp}</td>
+          <td style="padding: 6px; text-align: center;">
+            <button class="del-btn" style="color:#ef4444; border:none; background:transparent; cursor:pointer;" onclick="deleteSalaryHike('${item.id}', '${empId}')">✖</button>
+          </td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    showToast("Error loading salary history", false);
+  }
+}
+
+async function saveSalaryHike() {
+  const empId = document.getElementById("hikeEmpId").value;
+  const baseSalary = parseFloat(document.getElementById("hikeBaseSalary").value);
+  const startDate = document.getElementById("hikeStartDate").value;
+  const token = sessionStorage.getItem("emp_token");
+
+  if (!baseSalary || !startDate) {
+    return showToast("Base Salary and Effective Date are required!", false);
+  }
+
+  try {
+    const res = await fetch(`/api/employees/${empId}/salary-history`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ base_salary: baseSalary, start_date: startDate }),
+    });
+
+    if (res.ok) {
+      showToast("Salary hike recorded!");
+      document.getElementById("hikeBaseSalary").value = "";
+      document.getElementById("hikeStartDate").value = "";
+      await loadSalaryHistory(empId);
+      loadEmployees();
+    } else {
+      showToast("Failed to save salary hike", false);
+    }
+  } catch (err) {
+    showToast("Server Error", false);
+  }
+}
+
+async function deleteSalaryHike(hikeId, empId) {
+  if (!confirm("Are you sure you want to delete this salary record?")) return;
+  const token = sessionStorage.getItem("emp_token");
+  try {
+    const res = await fetch(`/api/employees/salary-history/${hikeId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      showToast("Record deleted!");
+      await loadSalaryHistory(empId);
+      loadEmployees();
+    } else {
+      showToast("Failed to delete record", false);
+    }
+  } catch (err) {
     showToast("Server Error", false);
   }
 }
