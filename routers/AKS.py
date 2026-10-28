@@ -475,7 +475,7 @@ def export_aks_excel(
             last_col_letter = get_column_letter(total_cols)
             ws.auto_filter.ref = f"A2:{last_col_letter}{curr_row - 1}"
             ws.sheet_view.zoomScale = 85
-            ws.freeze_panes = 'C3'
+            ws.freeze_panes = 'A3'
 
             for col in ws.columns:
                 max_len = 0
