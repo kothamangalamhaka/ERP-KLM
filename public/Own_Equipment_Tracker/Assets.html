@@ -122,6 +122,15 @@
         border-radius: 4px;
         font-size: 13px;
       }
+      input[type=number]::-webkit-inner-spin-button,
+      input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type=number] {
+        appearance: textfield;
+        -moz-appearance: textfield;
+      }
       #toast-container {
         position: fixed;
         bottom: 25px;
@@ -1135,18 +1144,69 @@
       function renderYearFeedTable(records) {
         const tbody = document.getElementById("yearFeedTbody");
         tbody.innerHTML = "";
+        const assetObj = rawAssets.find(a => a.id === activeEditingAssetId);
+        let pYear = null, pMonth = null;
+        if (assetObj && assetObj.purchase_date) {
+          const pDate = new Date(assetObj.purchase_date);
+          if (!isNaN(pDate.getTime())) {
+            pYear = pDate.getFullYear();
+            pMonth = pDate.getMonth() + 1;
+          }
+        }
+
         records.forEach(r => {
+          const isBeforePurchase = pYear !== null && (
+            activeEditingYear < pYear || (activeEditingYear === pYear && r.month < pMonth)
+          );
+          const disabledAttr = isBeforePurchase ? "disabled" : "";
+          const bgStyle = isBeforePurchase ? "background: #f1f5f9; cursor: not-allowed;" : "";
+
           const tr = document.createElement("tr");
           tr.setAttribute("data-month", r.month);
           tr.innerHTML = `
             <td><b>${monthNames[r.month - 1]}</b></td>
-            <td><input type="text" class="feed-site" value="${r.site_name || ""}" style="width: 100%; padding: 4px;" /></td>
-            <td><input type="text" class="feed-plate" value="${r.plate_no || ""}" style="width: 100%; padding: 4px;" /></td>
-            <td><input type="number" step="0.01" class="feed-off" value="${r.off_site_exp || ""}" style="width: 100%; padding: 4px;" /></td>
-            <td><input type="number" step="0.01" class="feed-on" value="${r.on_site_exp || ""}" style="width: 100%; padding: 4px;" /></td>
-            <td><input type="number" step="0.01" class="feed-rev" value="${r.revenue || ""}" style="width: 100%; padding: 4px;" /></td>
+            <td><input type="text" class="feed-site" value="${r.site_name || ""}" ${disabledAttr} style="width: 100%; padding: 4px; ${bgStyle}" /></td>
+            <td><input type="text" class="feed-plate" value="${r.plate_no || ""}" ${disabledAttr} style="width: 100%; padding: 4px; ${bgStyle}" /></td>
+            <td><input type="number" step="0.01" class="feed-off" value="${r.off_site_exp || ""}" ${disabledAttr} style="width: 100%; padding: 4px; ${bgStyle}" /></td>
+            <td><input type="number" step="0.01" class="feed-on" value="${r.on_site_exp || ""}" ${disabledAttr} style="width: 100%; padding: 4px; ${bgStyle}" /></td>
+            <td><input type="number" step="0.01" class="feed-rev" value="${r.revenue || ""}" ${disabledAttr} style="width: 100%; padding: 4px; ${bgStyle}" /></td>
           `;
           tbody.appendChild(tr);
+        });
+        attachModalArrowNavigation();
+      }
+
+      function attachModalArrowNavigation() {
+        const inputs = Array.from(document.querySelectorAll("#yearFeedTbody input:not([disabled])"));
+        inputs.forEach(input => {
+          input.onkeydown = (e) => {
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+              e.preventDefault();
+              const currentTr = input.closest("tr");
+              const currentTd = input.closest("td");
+              const colIdx = Array.from(currentTr.children).indexOf(currentTd);
+              let targetTr = e.key === "ArrowUp" ? currentTr.previousElementSibling : currentTr.nextElementSibling;
+              while (targetTr) {
+                const targetInput = targetTr.children[colIdx]?.querySelector("input:not([disabled])");
+                if (targetInput) {
+                  targetInput.focus();
+                  targetInput.select();
+                  break;
+                }
+                targetTr = e.key === "ArrowUp" ? targetTr.previousElementSibling : targetTr.nextElementSibling;
+              }
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+              const currentTr = input.closest("tr");
+              const rowInputs = Array.from(currentTr.querySelectorAll("input:not([disabled])"));
+              const currIdx = rowInputs.indexOf(input);
+              const targetInput = e.key === "ArrowLeft" ? rowInputs[currIdx - 1] : rowInputs[currIdx + 1];
+              if (targetInput) {
+                e.preventDefault();
+                targetInput.focus();
+                targetInput.select();
+              }
+            }
+          };
         });
       }
 
