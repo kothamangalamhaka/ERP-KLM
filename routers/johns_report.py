@@ -150,7 +150,8 @@ def fetch_report_data(payload: FetchBatchPayload):
         cur.execute("SELECT plate_no, record_date, calc_time, bd, month, year FROM timesheet_daily_records WHERE (month, year::int) IN %s", (tuple((item.m, item.y) for item in payload.months),))
         timesheets = cur.fetchall()
 
-        cur.execute("SELECT * FROM invoice_records WHERE month = ANY(%s)", (full_months,))
+        month_patterns = list(set(full_months + [f"{item.m[:3]} {item.y}" for item in payload.months] + [f"{item.m[:3]}-{item.y}" for item in payload.months]))
+        cur.execute("SELECT * FROM invoice_records WHERE TRIM(month) = ANY(%s) OR UPPER(TRIM(month)) = ANY(%s)", (month_patterns, [m.upper() for m in month_patterns]))
         invoices = cur.fetchall()
 
         cur.execute("SELECT * FROM billing_records WHERE billing_month = ANY(%s)", (full_months,))
