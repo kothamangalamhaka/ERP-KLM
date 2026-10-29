@@ -122,6 +122,45 @@
       }
       .toast.success { background: #27ae60; }
       .toast.error { background: #e74c3c; }
+      .menu-btn {
+        display: none;
+        background: #1e293b;
+        color: white;
+        font-size: 18px;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      @media (max-width: 1100px) {
+        .menu-btn {
+          display: block;
+        }
+        .action-controls {
+          display: none;
+          position: absolute;
+          top: 55px;
+          right: 15px;
+          background: #ffffff;
+          flex-direction: column;
+          gap: 8px;
+          padding: 12px;
+          width: 170px;
+          border-radius: 8px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+          z-index: 1000;
+          border: 1px solid #cbd5e1;
+        }
+        .action-controls.show {
+          display: flex;
+        }
+        .action-controls .btn {
+          width: 100%;
+          justify-content: center;
+          margin: 0;
+          box-sizing: border-box;
+        }
+      }
     </style>
   </head>
   <body>
@@ -136,22 +175,31 @@
           style="padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 200px;"
         />
       </div>
-      <div class="controls">
-        <button id="btnEditAsset" class="btn" style="background: #d97706; color: white;" onclick="openEditAssetSelectModal()">
-          🛠️ Edit Asset
-        </button>
-        <button class="btn" style="background: #1e7e34; color: white;" onclick="exportSummaryExcel()">
-          📊 Export Excel
-        </button>
-        <button class="btn" style="background: #0d9488; color: white;" onclick="openCombinedExportModal()">
-          📑 AKS Export
-        </button>
-        <button class="btn btn-blue" onclick="loadSummaryData()">
-          🔄 Refresh
-        </button>
-        <button class="btn btn-dark" onclick="window.location.href = 'AKS.html'">
-          📋 Detailed AKS
-        </button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div id="summaryActionMenu" class="controls action-controls">
+          <button id="btnEditAsset" class="btn" style="background: #d97706; color: white;" onclick="openEditAssetSelectModal()">
+            🛠️ Edit Asset
+          </button>
+          <button class="btn" style="background: #1e7e34; color: white;" onclick="exportSummaryExcel()">
+            📊 Export Excel
+          </button>
+          <button class="btn" style="background: #0d9488; color: white;" onclick="openCombinedExportModal()">
+            📑 AKS Export
+          </button>
+          <button class="btn btn-blue" onclick="loadSummaryData()">
+            🔄 Refresh
+          </button>
+          <button class="btn" style="background: #0284c7; color: white;" onclick="window.location.href = 'Assets.html'">
+            🚜 Assets
+          </button>
+          <button class="btn btn-dark" onclick="window.location.href = 'AKS.html'">
+            📋 Detailed AKS
+          </button>
+          <button class="btn" style="background: #334155; color: white;" onclick="window.location.href = 'Dashboard.html'">
+            📊 Dashboard
+          </button>
+        </div>
+        <button type="button" class="menu-btn" onclick="toggleResponsiveMenu(event)">☰</button>
       </div>
     </div>
 
@@ -501,6 +549,19 @@
           const p = tr.getAttribute("data-plate") || "";
           tr.style.display = p.includes(term) ? "" : "none";
         });
+      }
+
+      window.addEventListener("click", (e) => {
+        const menu = document.getElementById("summaryActionMenu");
+        if (menu && !e.target.closest(".menu-btn") && !e.target.closest(".action-controls")) {
+          menu.classList.remove("show");
+        }
+      });
+
+      function toggleResponsiveMenu(e) {
+        e.stopPropagation();
+        const menu = document.getElementById("summaryActionMenu");
+        if (menu) menu.classList.toggle("show");
       }
 
       document.addEventListener("DOMContentLoaded", () => {

@@ -477,16 +477,12 @@ async function generatePendingReport() {
           let timeRaw = parseFloat(rec.calc_time) || 0;
           let bdStr = String(rec.bd || "").trim();
           let wsStr = String(rec.wrk_start || "").trim();
-          let hsStr = String(rec.hmr_start || "").trim();
-          let remStr = String(rec.remark || "").trim();
+          let weStr = String(rec.wrk_end || "").trim();
 
-          if (
-            timeRaw === 0 &&
-            bdStr === "" &&
-            wsStr === "" &&
-            hsStr === "" &&
-            remStr === ""
-          ) {
+          let hasValidWork = (wsStr !== "" && weStr !== "");
+          let hasValidBd = (bdStr !== "");
+
+          if (timeRaw === 0 && !hasValidWork && !hasValidBd) {
             blankDays.push(i);
           }
         }

@@ -291,6 +291,20 @@
           </button>
           <button class="btn btn-blue" onclick="loadAKSData()">🔄 Refresh</button>
           <button
+            class="btn"
+            style="background: #4f46e5; color: white"
+            onclick="window.location.href = 'AKS_Summary.html'"
+          >
+            📋 AKS Summary
+          </button>
+          <button
+            class="btn"
+            style="background: #0284c7; color: white"
+            onclick="window.location.href = 'Assets.html'"
+          >
+            🚜 Assets
+          </button>
+          <button
             class="btn btn-dark"
             onclick="window.location.href = 'Dashboard.html'"
           >
@@ -328,48 +342,53 @@
         id="filterSortSection"
         style="
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
           border-bottom: 1px solid #e2e8f0;
-          padding: 4px 0;
+          padding: 6px 8px;
+          gap: 6px;
         "
       >
         <button
           type="button"
           onclick="sortAKSColumn('asc')"
           style="
-            background: none;
-            border: none;
-            text-align: left;
-            padding: 6px 12px;
-            font-size: 12px;
+            flex: 1;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 5px 6px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 4px;
           "
         >
-          <span>🔤</span> Sort A to Z
+          <span>🔤</span> A to Z
         </button>
         <button
           type="button"
           onclick="sortAKSColumn('desc')"
           style="
-            background: none;
-            border: none;
-            text-align: left;
-            padding: 6px 12px;
-            font-size: 12px;
+            flex: 1;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 5px 6px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 4px;
           "
         >
-          <span>🔤</span> Sort Z to A
+          <span>🔤</span> Z to A
         </button>
       </div>
       <div class="excel-filter-search">
@@ -970,21 +989,19 @@
 
         let hasBlank = false;
         rawData.forEach((item) => {
-          if (
-            colKey === "site_end_date" ||
-            colKey === "reached_site_date" ||
-            colKey === "work_assign_site"
-          ) {
-            const hasEmpty = (item.sites || []).some((s) => !s[colKey]);
-            if (hasEmpty || !item.sites || item.sites.length === 0)
-              hasBlank = true;
-          } else if (colKey.startsWith("month_exp_")) {
-            const mIdx = parseInt(colKey.replace("month_exp_", ""));
-            const hasEmpty = (item.sites || []).some(
-              (s) => !fmtNumber((s.monthly_expenses || [])[mIdx]),
-            );
-            if (hasEmpty) hasBlank = true;
-          } else if (!item[colKey] && item[colKey] !== 0) {
+          if (["purchase_cost", "off_site_insurance", "on_site_insurance", "off_site_mtc"].includes(colKey)) {
+            if (!fmtNumber(item[colKey])) hasBlank = true;
+          } else if (colKey.startsWith("month_mtc_") || colKey.startsWith("month_otc_") || colKey.startsWith("month_tor_")) {
+            const parts = colKey.split("_");
+            const fType = parts[1];
+            const tIdx = parseInt(parts[2]);
+            const val = ((item.months_data || [])[tIdx] || {})[fType];
+            if (!fmtNumber(val)) hasBlank = true;
+          } else if (colKey.startsWith("month_site_")) {
+            const tIdx = parseInt(colKey.replace("month_site_", ""));
+            const sVal = ((item.months_data || [])[tIdx] || {}).site || "";
+            if (!sVal) hasBlank = true;
+          } else if (!item[colKey]) {
             hasBlank = true;
           }
         });
@@ -1191,58 +1208,32 @@
           let valA = "";
           let valB = "";
 
-          if (
-            currentFilterCol === "plate_no" ||
-            currentFilterCol === "purchase_date"
-          ) {
-            valA = a[currentFilterCol] || "";
-            valB = b[currentFilterCol] || "";
-          } else if (
-            ["purchase_cost", "off_site_insurance", "on_site_insurance", "off_site_mtc"].includes(
-              currentFilterCol,
-            )
-          ) {
+          if (["purchase_cost", "off_site_insurance", "on_site_insurance", "off_site_mtc"].includes(currentFilterCol)) {
             valA = Number(a[currentFilterCol] || 0);
             valB = Number(b[currentFilterCol] || 0);
             return dir === "asc" ? valA - valB : valB - valA;
-          } else if (
-            ["work_assign_site", "reached_site_date", "site_end_date"].includes(
-              currentFilterCol,
-            )
-          ) {
-            valA =
-              (a.sites && a.sites[0] && a.sites[0][currentFilterCol]) || "";
-            valB =
-              (b.sites && b.sites[0] && b.sites[0][currentFilterCol]) || "";
-          } else if (currentFilterCol.startsWith("month_exp_")) {
-            const mIdx = parseInt(currentFilterCol.replace("month_exp_", ""));
-            valA = Number(
-              (a.sites &&
-                a.sites[0] &&
-                a.sites[0].monthly_expenses &&
-                a.sites[0].monthly_expenses[mIdx]) ||
-                0,
-            );
-            valB = Number(
-              (b.sites &&
-                b.sites[0] &&
-                b.sites[0].monthly_expenses &&
-                b.sites[0].monthly_expenses[mIdx]) ||
-                0,
-            );
+          } else if (currentFilterCol.startsWith("month_mtc_") || currentFilterCol.startsWith("month_otc_") || currentFilterCol.startsWith("month_tor_")) {
+            const parts = currentFilterCol.split("_");
+            const fieldType = parts[1];
+            const tIdx = parseInt(parts[2]);
+            valA = Number(((a.months_data || [])[tIdx] || {})[fieldType] || 0);
+            valB = Number(((b.months_data || [])[tIdx] || {})[fieldType] || 0);
             return dir === "asc" ? valA - valB : valB - valA;
+          } else if (currentFilterCol.startsWith("month_site_")) {
+            const tIdx = parseInt(currentFilterCol.replace("month_site_", ""));
+            valA = ((a.months_data || [])[tIdx] || {}).site || "";
+            valB = ((b.months_data || [])[tIdx] || {}).site || "";
+          } else {
+            valA = a[currentFilterCol] != null ? a[currentFilterCol] : "";
+            valB = b[currentFilterCol] != null ? b[currentFilterCol] : "";
           }
 
           return dir === "asc"
-            ? String(valA).localeCompare(String(valB), undefined, {
-                numeric: true,
-              })
-            : String(valB).localeCompare(String(valA), undefined, {
-                numeric: true,
-              });
+            ? String(valA).localeCompare(String(valB), undefined, { numeric: true, sensitivity: "base" })
+            : String(valB).localeCompare(String(valA), undefined, { numeric: true, sensitivity: "base" });
         });
         closeFilterMenu();
-        renderTable(rawData, currentMaxMonths);
+        onRibbonYearChange();
       }
 
       window.addEventListener("click", (e) => {
