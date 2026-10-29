@@ -143,6 +143,9 @@
         <button class="btn" style="background: #1e7e34; color: white;" onclick="exportSummaryExcel()">
           📊 Export Excel
         </button>
+        <button class="btn" style="background: #0d9488; color: white;" onclick="openCombinedExportModal()">
+          📑 AKS Export
+        </button>
         <button class="btn btn-blue" onclick="loadSummaryData()">
           🔄 Refresh
         </button>
@@ -186,6 +189,27 @@
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
           <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('editAssetSelectModal')">Cancel</button>
           <button type="button" class="btn btn-blue" onclick="fetchAndOpenAssetEdit()">Fetch Data</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Combined 3-Tab Export Modal -->
+    <div id="combinedExportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10001; justify-content: center; align-items: center;">
+      <div style="background: #ffffff; border-radius: 8px; width: 380px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h4 style="margin: 0 0 15px 0; color: #0f766e; font-size: 15px;">📑 AKS Master 3-Tab Export</h4>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="combinedScope" value="all" checked />
+            <span><b>All Data</b> (Entire timeline)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="combinedScope" value="current" />
+            <span><b>Current Year Data</b> (2026 only)</span>
+          </label>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeCombinedExportModal()">Cancel</button>
+          <button type="button" class="btn" style="background: #0d9488; color: white;" onclick="confirmCombinedExport()">Download Excel</button>
         </div>
       </div>
     </div>
@@ -452,6 +476,23 @@
       function exportSummaryExcel() {
         showToast("Generating Excel file...", "success");
         window.location.href = "/py/aks-summary/export-excel";
+      }
+
+      function openCombinedExportModal() {
+        const m = document.getElementById("combinedExportModal");
+        if (m) m.style.display = "flex";
+      }
+
+      function closeCombinedExportModal() {
+        const m = document.getElementById("combinedExportModal");
+        if (m) m.style.display = "none";
+      }
+
+      function confirmCombinedExport() {
+        const scope = document.querySelector('input[name="combinedScope"]:checked')?.value || "all";
+        closeCombinedExportModal();
+        showToast("Generating 3-Tab Master Excel...", "success");
+        window.location.href = `/py/aks-combined/export?scope=${scope}`;
       }
 
       function filterRows() {
