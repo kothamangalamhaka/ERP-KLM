@@ -10,9 +10,9 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-from routers.AKS import get_aks_data
-from routers.Assets_own_EQ_parts import get_assets_data
-from routers.AKS_Summary import get_aks_summary_data
+from routers.AKS.AKS import get_aks_data
+from routers.AKS.Assets_own_EQ_parts import get_assets_data
+from routers.AKS.AKS_Summary import get_aks_summary_data
 
 router = APIRouter(prefix="/py/aks-combined", tags=["AKS Combined Export"])
 
@@ -26,6 +26,7 @@ def export_combined_aks_excel(scope: str = "all"):
         ws_eq.title = "EQ Assets"
         ws_assets = wb.create_sheet(title="Assets Tracker")
         ws_sum = wb.create_sheet(title="EQ Assets Exp - Summary")
+        ws_summarised = wb.create_sheet(title="Summarised")
 
         head_fill_main = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
         head_fill_month = PatternFill(start_color="C6D9F1", end_color="C6D9F1", fill_type="solid")
@@ -363,6 +364,152 @@ def export_combined_aks_excel(scope: str = "all"):
                     val_str = val.strftime('%d-%b-%y') if isinstance(val, (datetime, date)) else str(val)
                     max_len = max(max_len, len(val_str))
             ws_sum.column_dimensions[col_letter].width = max(max_len + 4, 14)
+
+        # -------------------------------------------------------------
+        # TAB 4: Summarised (Combined Summary + Assets Tracker)
+        # -------------------------------------------------------------
+        base_headers_4 = [
+            "SN", "Asset Type", "Model", "Make", "Plate No / Asset Code",
+            "Date Of Purchase", "Purchase Cost", "MTC During Purchase",
+            "Insurance Cost", "Total Cost", "Reached at Site", "Which Site"
+        ]
+        ws_summarised.row_dimensions[1].height = 26
+        for c_idx, h_text in enumerate(base_headers_4, 1):
+            c = ws_summarised.cell(row=1, column=c_idx, value=h_text)
+            c.fill = head_fill_main; c.font = head_font; c.alignment = center_align; c.border = thin_border
+
+        for t_idx, tm in enumerate(tab3_timeline):
+            c = ws_summarised.cell(row=1, column=len(base_headers_4) + 1 + t_idx, value=tm["label"])
+            c.fill = head_fill_month; c.font = head_font; c.alignment = center_align; c.border = thin_border
+
+        total_cols_4 = len(base_headers_4) + len(tab3_timeline)
+        curr_row_4 = 2
+        running_sn = 1
+
+        for item in sum_records:
+            ws_summarised.row_dimensions[curr_row_4].height = 22
+            p_date_obj = None
+            if item.get("purchase_date"):
+                try: p_date_obj = datetime.strptime(str(item["purchase_date"])[:10], "%Y-%m-%d").date()
+                except Exception: p_date_obj = None
+
+            r_date_obj = None
+            if item.get("reached_site_date"):
+                try: r_date_obj = datetime.strptime(str(item["reached_site_date"])[:10], "%Y-%m-%d").date()
+                except Exception: r_date_obj = None
+
+            p_cost = float(item.get("purchase_cost") or 0)
+            p_mtc = float(item.get("mtc_during_purchase") or 0)
+            p_ins = float(item.get("total_insurance") or 0)
+            tot_cost = p_cost + p_mtc + p_ins
+
+            ws_summarised.cell(row=curr_row_4, column=1, value=running_sn).alignment = center_align
+            ws_summarised.cell(row=curr_row_4, column=2, value=item.get("asset_type") or "").alignment = center_align
+            ws_summarised.cell(row=curr_row_4, column=3, value=item.get("model") or "").alignment = center_align
+            ws_summarised.cell(row=curr_row_4, column=4, value=item.get("make") or "").alignment = center_align
+            ws_summarised.cell(row=curr_row_4, column=5, value=item.get("plate_no") or "").alignment = center_align
+
+            c_pdate = ws_summarised.cell(row=curr_row_4, column=6, value=p_date_obj)
+            c_pdate.alignment = center_align
+            if p_date_obj: c_pdate.number_format = 'dd-mmm-yy'
+
+            c_pcost = ws_summarised.cell(row=curr_row_4, column=7, value=p_cost)
+            c_pcost.alignment = center_align; c_pcost.number_format = '#,##0.00'
+
+            c_pmtc = ws_summarised.cell(row=curr_row_4, column=8, value=p_mtc)
+            c_pmtc.alignment = center_align; c_pmtc.number_format = '#,##0.00'
+
+            c_pins = ws_summarised.cell(row=curr_row_4, column=9, value=p_ins)
+            c_pins.alignment = center_align; c_pins.number_format = '#,##0.00'
+
+            c_tot = ws_summarised.cell(row=curr_row_4, column=10, value=tot_cost)
+            c_tot.alignment = center_align; c_tot.number_format = '#,##0.00'; c_tot.fill = rev_data_fill
+
+            c_rdate = ws_summarised.cell(row=curr_row_4, column=11, value=r_date_obj)
+            c_rdate.alignment = center_align
+            if r_date_obj: c_rdate.number_format = 'dd-mmm-yy'
+
+            ws_summarised.cell(row=curr_row_4, column=12, value=item.get("first_site") or "").alignment = left_align
+
+            m_mtc_list = item.get("monthly_mtc", [])
+            for t_idx, tm in enumerate(tab3_timeline):
+                orig_idx = next((i for i, x in enumerate(sum_timeline) if x["year"] == tm["year"] and x["month"] == tm["month"]), -1)
+                val_num = float(m_mtc_list[orig_idx] or 0) if orig_idx != -1 and orig_idx < len(m_mtc_list) else 0.0
+                c_m = ws_summarised.cell(row=curr_row_4, column=13 + t_idx, value=val_num if val_num > 0 else "")
+                c_m.alignment = center_align
+                if val_num > 0: c_m.number_format = '#,##0.00'
+
+            for c_num in range(1, total_cols_4 + 1):
+                cell = ws_summarised.cell(row=curr_row_4, column=c_num)
+                cell.border = thin_border
+                cell.font = regular_font
+            curr_row_4 += 1
+            running_sn += 1
+
+        for a_item in assets_list:
+            ws_summarised.row_dimensions[curr_row_4].height = 22
+            p_date_obj = None
+            if a_item.get("purchase_date"):
+                try: p_date_obj = datetime.strptime(str(a_item["purchase_date"])[:10], "%Y-%m-%d").date()
+                except Exception: p_date_obj = None
+
+            p_cost_base = float(a_item.get("purchase_cost") or 0)
+            p_cost_rem = float(a_item.get("remaining_purchase_price") or 0)
+            p_cost_tot = p_cost_base + p_cost_rem
+
+            tot_mtc_assets = 0.0
+            for m_row in a_item.get("months_data", []):
+                tot_mtc_assets += float(m_row.get("off_site_exp") or 0) + float(m_row.get("on_site_exp") or 0)
+
+            tot_cost_a = p_cost_tot + tot_mtc_assets
+
+            ws_summarised.cell(row=curr_row_4, column=1, value=running_sn).alignment = center_align
+            ws_summarised.cell(row=curr_row_4, column=2, value=a_item.get("type_name") or "").alignment = center_align
+            ws_summarised.cell(row=curr_row_4, column=3, value="").alignment = center_align
+            ws_summarised.cell(row=curr_row_4, column=4, value="").alignment = center_align
+            ws_summarised.cell(row=curr_row_4, column=5, value=a_item.get("asset_code") or "").alignment = center_align
+
+            c_pdate = ws_summarised.cell(row=curr_row_4, column=6, value=p_date_obj)
+            c_pdate.alignment = center_align
+            if p_date_obj: c_pdate.number_format = 'dd-mmm-yy'
+
+            c_pcost = ws_summarised.cell(row=curr_row_4, column=7, value=p_cost_tot)
+            c_pcost.alignment = center_align; c_pcost.number_format = '#,##0.00'
+
+            c_pmtc = ws_summarised.cell(row=curr_row_4, column=8, value=tot_mtc_assets)
+            c_pmtc.alignment = center_align; c_pmtc.number_format = '#,##0.00'
+
+            ws_summarised.cell(row=curr_row_4, column=9, value="").alignment = center_align
+
+            c_tot = ws_summarised.cell(row=curr_row_4, column=10, value=tot_cost_a)
+            c_tot.alignment = center_align; c_tot.number_format = '#,##0.00'; c_tot.fill = rev_data_fill
+
+            ws_summarised.cell(row=curr_row_4, column=11, value="").alignment = center_align
+            ws_summarised.cell(row=curr_row_4, column=12, value="").alignment = left_align
+
+            for t_idx, tm in enumerate(tab3_timeline):
+                ws_summarised.cell(row=curr_row_4, column=13 + t_idx, value="").alignment = center_align
+
+            for c_num in range(1, total_cols_4 + 1):
+                cell = ws_summarised.cell(row=curr_row_4, column=c_num)
+                cell.border = thin_border
+                cell.font = regular_font
+            curr_row_4 += 1
+            running_sn += 1
+
+        ws_summarised.auto_filter.ref = f"A1:{get_column_letter(total_cols_4)}{curr_row_4 - 1}"
+        ws_summarised.sheet_view.zoomScale = 85
+        ws_summarised.freeze_panes = 'F2'
+
+        for col in ws_summarised.columns:
+            max_len = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                val = cell.value
+                if val:
+                    val_str = val.strftime('%d-%b-%y') if isinstance(val, (datetime, date)) else str(val)
+                    max_len = max(max_len, len(val_str))
+            ws_summarised.column_dimensions[col_letter].width = max(max_len + 4, 14)
 
         output = io.BytesIO()
         wb.save(output)

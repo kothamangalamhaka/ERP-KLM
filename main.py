@@ -25,11 +25,11 @@ from routers import monthly_list_summary
 from routers.pdf_tools import router as pdf_tools_router
 from routers.einvoice_export_py import router as einvoice_export_router
 from routers.johns_report import router as johns_report_router
-from routers.AKS import router as aks_router
-from routers.AKS_Summary import router as aks_summary_router
-from routers.AKS_Combined_Export import router as aks_combined_router
+from routers.AKS.AKS import router as aks_router
+from routers.AKS.AKS_Summary import router as aks_summary_router
+from routers.AKS.AKS_Combined_Export import router as aks_combined_router
 from routers.landtasset_routes import router as landtasset_router
-from routers.Assets_own_EQ_parts import router as assets_own_eq_router
+from routers.AKS.Assets_own_EQ_parts import router as assets_own_eq_router
 
 
 load_dotenv()
