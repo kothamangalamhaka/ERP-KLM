@@ -61,7 +61,8 @@
         font-size: 13px;
         white-space: nowrap;
       }
-      th, td {
+      th,
+      td {
         border: 1px solid #c0c0c0;
         padding: 8px 10px;
         text-align: center;
@@ -94,16 +95,86 @@
         padding: 20px;
         border-radius: 8px;
         width: 400px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
       }
       .modal-box-large {
-        background: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        width: 780px;
+        background: #ffffff;
+        padding: 24px;
+        border-radius: 12px;
+        width: 820px;
         max-height: 90vh;
         overflow-y: auto;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        box-shadow:
+          0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+
+      /* Modal Table & Inputs Spreadsheet Borders Styling */
+      #yearFeedModal table {
+        border-collapse: collapse;
+        width: 100%;
+        border: 1px solid #cbd5e1;
+      }
+
+      #yearFeedModal th {
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 8px 6px;
+        border: 1px solid #cbd5e1;
+        text-align: center;
+      }
+
+      #yearFeedModal td {
+        padding: 0;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+      }
+
+      #yearFeedModal td.feed-month-cell {
+        padding: 6px 10px;
+        background: #f8fafc;
+        color: #1e293b;
+        font-weight: 700;
+        text-align: center;
+        border: 1px solid #cbd5e1;
+        font-size: 12px;
+      }
+
+      #yearFeedModal td.feed-blocked-cell {
+        background: #e2e8f0;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-align: center;
+        cursor: not-allowed;
+        user-select: none;
+      }
+
+      .feed-input {
+        width: 100%;
+        height: 34px;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 13px;
+        color: #0f172a;
+        padding: 4px 8px;
+        box-sizing: border-box;
+      }
+
+      .feed-input:focus {
+        background: #ffffff;
+        box-shadow: inset 0 0 0 2px #2563eb;
+      }
+
+      .feed-rev-cell {
+        background: #f0fdf4 !important;
+      }
+      .feed-rev-cell:focus {
+        box-shadow: inset 0 0 0 2px #16a34a !important;
       }
       .form-group {
         display: flex;
@@ -116,18 +187,19 @@
         font-weight: 600;
         color: #334155;
       }
-      .form-group input, .form-group select {
+      .form-group input,
+      .form-group select {
         padding: 7px 10px;
         border: 1px solid #cbd5e1;
         border-radius: 4px;
         font-size: 13px;
       }
-      input[type=number]::-webkit-inner-spin-button,
-      input[type=number]::-webkit-outer-spin-button {
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
         -webkit-appearance: none;
         margin: 0;
       }
-      input[type=number] {
+      input[type="number"] {
         appearance: textfield;
         -moz-appearance: textfield;
       }
@@ -149,8 +221,12 @@
         font-size: 13px;
         font-weight: 600;
       }
-      .toast.success { background: #27ae60; }
-      .toast.error { background: #e74c3c; }
+      .toast.success {
+        background: #27ae60;
+      }
+      .toast.error {
+        background: #e74c3c;
+      }
       .filter-icon {
         cursor: pointer;
         font-size: 11px;
@@ -226,37 +302,96 @@
           id="searchAsset"
           placeholder="🔍 Search Code / Type..."
           oninput="filterTableRows()"
-          style="padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 200px;"
+          style="
+            padding: 7px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 200px;
+          "
         />
-        <div style="display: flex; gap: 8px; margin-left: 10px;">
-          <div style="background: #e0f2fe; border: 1px solid #bae6fd; padding: 4px 10px; border-radius: 4px; font-size: 12px;">
-            <span style="color: #0369a1; font-weight: 600;">Total Purchase:</span>
-            <b id="summaryTotalPurchase" style="color: #0c4a6e; margin-left: 4px;">0.00</b>
+        <div style="display: flex; gap: 8px; margin-left: 10px">
+          <div
+            style="
+              background: #e0f2fe;
+              border: 1px solid #bae6fd;
+              padding: 4px 10px;
+              border-radius: 4px;
+              font-size: 12px;
+            "
+          >
+            <span style="color: #0369a1; font-weight: 600"
+              >Total Purchase:</span
+            >
+            <b
+              id="summaryTotalPurchase"
+              style="color: #0c4a6e; margin-left: 4px"
+              >0.00</b
+            >
           </div>
-          <div style="background: #fef3c7; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 4px; font-size: 12px;">
-            <span style="color: #b45309; font-weight: 600;">Total Remaining:</span>
-            <b id="summaryTotalRemaining" style="color: #78350f; margin-left: 4px;">0.00</b>
+          <div
+            style="
+              background: #fef3c7;
+              border: 1px solid #fde68a;
+              padding: 4px 10px;
+              border-radius: 4px;
+              font-size: 12px;
+            "
+          >
+            <span style="color: #b45309; font-weight: 600"
+              >Total Remaining:</span
+            >
+            <b
+              id="summaryTotalRemaining"
+              style="color: #78350f; margin-left: 4px"
+              >0.00</b
+            >
           </div>
         </div>
       </div>
       <div class="controls">
-        <button class="btn" style="background: #27ae60; color: white;" onclick="openNewAssetModal()">
+        <button
+          class="btn"
+          style="background: #27ae60; color: white"
+          onclick="openNewAssetModal()"
+        >
           ➕ Add Asset
         </button>
-        <button class="btn" style="background: #d97706; color: white;" onclick="openEditAssetBarModal()">
+        <button
+          class="btn"
+          style="background: #d97706; color: white"
+          onclick="openEditAssetBarModal()"
+        >
           🛠️ Edit Bar
         </button>
-        <button class="btn" style="background: #8e44ad; color: white;" onclick="openEditSelectModal()">
+        <button
+          class="btn"
+          style="background: #8e44ad; color: white"
+          onclick="openEditSelectModal()"
+        >
           ✏️ Edit Data
         </button>
-        <button class="btn" style="background: #1e7e34; color: white;" onclick="openExportModal()">
+        <button
+          class="btn"
+          style="background: #1e7e34; color: white"
+          onclick="openExportModal()"
+        >
           📊 Export Excel
         </button>
-        <button class="btn btn-blue" onclick="loadAssetsData()">🔄 Refresh</button>
-        <button class="btn" style="background: #0284c7; color: white;" onclick="window.location.href = 'AKS.html'">
+        <button class="btn btn-blue" onclick="loadAssetsData()">
+          🔄 Refresh
+        </button>
+        <button
+          class="btn"
+          style="background: #0284c7; color: white"
+          onclick="window.location.href = 'AKS.html'"
+        >
           🚜 AKS Tracker
         </button>
-        <button class="btn btn-dark" onclick="window.location.href = 'Dashboard.html'">
+        <button
+          class="btn btn-dark"
+          onclick="window.location.href = 'Dashboard.html'"
+        >
           📊 Dashboard
         </button>
       </div>
@@ -273,43 +408,126 @@
     </div>
 
     <!-- Excel Filter Popup Menu -->
-    <div id="assetsFilterMenu" class="excel-filter-menu" onclick="event.stopPropagation()">
+    <div
+      id="assetsFilterMenu"
+      class="excel-filter-menu"
+      onclick="event.stopPropagation()"
+    >
       <div class="excel-filter-header">
         <span id="filterMenuTitle">Filter</span>
-        <span style="cursor: pointer; color: #64748b" onclick="closeFilterMenu()">✖</span>
+        <span
+          style="cursor: pointer; color: #64748b"
+          onclick="closeFilterMenu()"
+          >✖</span
+        >
       </div>
-      <div id="filterSortSection" style="display: flex; flex-direction: column; border-bottom: 1px solid #e2e8f0; padding: 4px 0;">
-        <button type="button" onclick="sortAssetsColumn('asc')" style="background: none; border: none; text-align: left; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+      <div
+        id="filterSortSection"
+        style="
+          display: flex;
+          flex-direction: column;
+          border-bottom: 1px solid #e2e8f0;
+          padding: 4px 0;
+        "
+      >
+        <button
+          type="button"
+          onclick="sortAssetsColumn('asc')"
+          style="
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
           <span>🔤</span> Sort A to Z
         </button>
-        <button type="button" onclick="sortAssetsColumn('desc')" style="background: none; border: none; text-align: left; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+        <button
+          type="button"
+          onclick="sortAssetsColumn('desc')"
+          style="
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
           <span>🔤</span> Sort Z to A
         </button>
       </div>
       <div class="excel-filter-search">
-        <input type="text" id="filterSearchInput" placeholder="Search..." oninput="searchFilterItems()" />
+        <input
+          type="text"
+          id="filterSearchInput"
+          placeholder="Search..."
+          oninput="searchFilterItems()"
+        />
       </div>
       <ul class="excel-filter-list" id="filterItemList"></ul>
       <div class="excel-filter-actions">
-        <button type="button" class="btn" style="background: #e2e8f0; color: #334155; padding: 4px 8px; font-size: 12px;" onclick="clearCurrentFilter()">Clear</button>
-        <button type="button" class="btn btn-blue" style="padding: 4px 8px; font-size: 12px;" onclick="applyCurrentFilter()">Apply</button>
+        <button
+          type="button"
+          class="btn"
+          style="
+            background: #e2e8f0;
+            color: #334155;
+            padding: 4px 8px;
+            font-size: 12px;
+          "
+          onclick="clearCurrentFilter()"
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          class="btn btn-blue"
+          style="padding: 4px 8px; font-size: 12px"
+          onclick="applyCurrentFilter()"
+        >
+          Apply
+        </button>
       </div>
     </div>
 
     <!-- 1. Add Asset Modal -->
     <div id="newAssetModal" class="modal-overlay">
       <div class="modal-box">
-        <h4 style="margin: 0 0 15px 0;">➕ Create New Asset</h4>
+        <h4 style="margin: 0 0 15px 0">➕ Create New Asset</h4>
         <div class="form-group">
           <label>Asset Type</label>
-          <div style="display: flex; gap: 6px;">
-            <select id="modalAssetType" style="flex: 1;"></select>
-            <button type="button" class="btn" style="background: #e2e8f0;" onclick="openNewTypeModal()">Add Type</button>
+          <div style="display: flex; gap: 6px">
+            <select id="modalAssetType" style="flex: 1"></select>
+            <button
+              type="button"
+              class="btn"
+              style="background: #e2e8f0"
+              onclick="openNewTypeModal()"
+            >
+              Add Type
+            </button>
           </div>
         </div>
         <div class="form-group">
           <label>Asset Code</label>
-          <input type="text" id="modalAssetCode" placeholder="e.g. ST-01 / FB-102" />
+          <input
+            type="text"
+            id="modalAssetCode"
+            placeholder="e.g. ST-01 / FB-102"
+          />
         </div>
         <div class="form-group">
           <label>Date of Purchase</label>
@@ -317,16 +535,53 @@
         </div>
         <div class="form-group">
           <label>Cost of Purchase</label>
-          <input type="number" step="0.01" id="modalPurchaseCost" placeholder="0.00" />
+          <input
+            type="number"
+            step="0.01"
+            id="modalPurchaseCost"
+            placeholder="0.00"
+          />
         </div>
         <div class="form-group">
           <label>Remaining Purchase Price</label>
-          <input type="number" step="0.01" id="modalRemainingPrice" placeholder="0.00" />
+          <input
+            type="number"
+            step="0.01"
+            id="modalRemainingPrice"
+            placeholder="0.00"
+          />
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px;">
-          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('newAssetModal')">Cancel</button>
-          <button type="button" class="btn" style="background: #0284c7; color: white;" onclick="saveNewAssetMaster(true)">Save & Add New</button>
-          <button type="button" class="btn btn-blue" onclick="saveNewAssetMaster(false)">Save</button>
+        <div
+          style="
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 15px;
+          "
+        >
+          <button
+            type="button"
+            class="btn"
+            style="background: #e2e8f0; color: #334155"
+            onclick="closeModal('newAssetModal')"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn"
+            style="background: #0284c7; color: white"
+            onclick="saveNewAssetMaster(true)"
+          >
+            Save & Add New
+          </button>
+          <button
+            type="button"
+            class="btn btn-blue"
+            onclick="saveNewAssetMaster(false)"
+          >
+            Save
+          </button>
         </div>
       </div>
     </div>
@@ -334,7 +589,9 @@
     <!-- Edit Bar Modal for Purchase Details -->
     <div id="editAssetBarModal" class="modal-overlay">
       <div class="modal-box">
-        <h4 style="margin: 0 0 15px 0; color: #1e293b;">🛠️ Edit Asset Purchase Details</h4>
+        <h4 style="margin: 0 0 15px 0; color: #1e293b">
+          🛠️ Edit Asset Purchase Details
+        </h4>
         <div class="form-group">
           <label>Select Asset Type</label>
           <select id="barSelectType" onchange="onBarTypeChange()"></select>
@@ -349,15 +606,44 @@
         </div>
         <div class="form-group">
           <label>Cost of Purchase</label>
-          <input type="number" step="0.01" id="barPurchaseCost" placeholder="0.00" />
+          <input
+            type="number"
+            step="0.01"
+            id="barPurchaseCost"
+            placeholder="0.00"
+          />
         </div>
         <div class="form-group">
           <label>Remaining Purchase Price</label>
-          <input type="number" step="0.01" id="barRemainingPrice" placeholder="0.00" />
+          <input
+            type="number"
+            step="0.01"
+            id="barRemainingPrice"
+            placeholder="0.00"
+          />
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px;">
-          <button class="btn" style="background: #e2e8f0;" onclick="closeModal('editAssetBarModal')">Cancel</button>
-          <button class="btn" style="background: #d97706; color: white;" onclick="saveEditBarCosts()">Update</button>
+        <div
+          style="
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 15px;
+          "
+        >
+          <button
+            class="btn"
+            style="background: #e2e8f0"
+            onclick="closeModal('editAssetBarModal')"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn"
+            style="background: #d97706; color: white"
+            onclick="saveEditBarCosts()"
+          >
+            Update
+          </button>
         </div>
       </div>
     </div>
@@ -365,7 +651,7 @@
     <!-- 2. Edit Selection Modal -->
     <div id="editSelectModal" class="modal-overlay">
       <div class="modal-box">
-        <h4 style="margin: 0 0 15px 0;">✏️ Select Asset & Year to Feed Data</h4>
+        <h4 style="margin: 0 0 15px 0">✏️ Select Asset & Year to Feed Data</h4>
         <div class="form-group">
           <label>Select Asset Type</label>
           <select id="editSelectType" onchange="onEditTypeChange()"></select>
@@ -378,9 +664,24 @@
           <label>Select Year</label>
           <select id="editSelectYear"></select>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px;">
-          <button class="btn" style="background: #e2e8f0;" onclick="closeModal('editSelectModal')">Cancel</button>
-          <button class="btn btn-blue" onclick="fetchAndOpenYearRecords()">Fetch Data</button>
+        <div
+          style="
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 15px;
+          "
+        >
+          <button
+            class="btn"
+            style="background: #e2e8f0"
+            onclick="closeModal('editSelectModal')"
+          >
+            Cancel
+          </button>
+          <button class="btn btn-blue" onclick="fetchAndOpenYearRecords()">
+            Fetch Data
+          </button>
         </div>
       </div>
     </div>
@@ -388,23 +689,35 @@
     <!-- 3. Edit Year Records Modal -->
     <div id="yearFeedModal" class="modal-overlay">
       <div class="modal-box-large">
-        <h4 id="yearFeedTitle" style="margin: 0 0 15px 0;">Monthly Feeding</h4>
-        <table style="width: 100%; margin-bottom: 15px;">
+        <h4 id="yearFeedTitle" style="margin: 0 0 15px 0">Monthly Feeding</h4>
+        <table style="width: 100%; margin-bottom: 15px">
           <thead>
             <tr>
-              <th style="width: 80px;">Month</th>
+              <th style="width: 80px">Month</th>
               <th>Site</th>
-              <th style="width: 110px;">Plate No</th>
-              <th style="width: 100px;">Off Site Exp</th>
-              <th style="width: 100px;">On Site Exp</th>
-              <th style="width: 110px;">Revenue</th>
+              <th style="width: 110px">Plate No</th>
+              <th style="width: 100px">Off Site Exp</th>
+              <th style="width: 100px">On Site Exp</th>
+              <th style="width: 110px">Revenue</th>
             </tr>
           </thead>
           <tbody id="yearFeedTbody"></tbody>
         </table>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button class="btn" style="background: #e2e8f0;" onclick="closeModal('yearFeedModal')">Cancel</button>
-          <button class="btn" style="background: #27ae60; color: white;" onclick="saveYearRecords()">Save Records</button>
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            class="btn"
+            style="background: #e2e8f0"
+            onclick="closeModal('yearFeedModal')"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn"
+            style="background: #27ae60; color: white"
+            onclick="saveYearRecords()"
+          >
+            Save Records
+          </button>
         </div>
       </div>
     </div>
@@ -412,61 +725,159 @@
     <!-- 4. Export Options Modal -->
     <div id="exportModal" class="modal-overlay">
       <div class="modal-box">
-        <h4 style="margin: 0 0 15px 0;">📊 Export Options</h4>
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="radio" name="exportMode" value="single" checked onchange="togglePeriodInputs(false)" />
+        <h4 style="margin: 0 0 15px 0">📊 Export Options</h4>
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+          "
+        >
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              cursor: pointer;
+            "
+          >
+            <input
+              type="radio"
+              name="exportMode"
+              value="single"
+              checked
+              onchange="togglePeriodInputs(false)"
+            />
             <span>Entire data in single tab</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="radio" name="exportMode" value="yearly" onchange="togglePeriodInputs(false)" />
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              cursor: pointer;
+            "
+          >
+            <input
+              type="radio"
+              name="exportMode"
+              value="yearly"
+              onchange="togglePeriodInputs(false)"
+            />
             <span>Year by year (Separate tab for each year)</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="radio" name="exportMode" value="period" onchange="togglePeriodInputs(true)" />
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              cursor: pointer;
+            "
+          >
+            <input
+              type="radio"
+              name="exportMode"
+              value="period"
+              onchange="togglePeriodInputs(true)"
+            />
             <span>Choose period (Custom Month/Year Range)</span>
           </label>
         </div>
-        <div id="periodInputsBox" style="display: none; background: #f8fafc; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <div style="flex: 1;">
-              <label style="font-size: 11px;">Start Year</label>
-              <input type="number" id="expStartYear" style="width: 100%;" />
+        <div
+          id="periodInputsBox"
+          style="
+            display: none;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+          "
+        >
+          <div style="display: flex; gap: 8px; margin-bottom: 8px">
+            <div style="flex: 1">
+              <label style="font-size: 11px">Start Year</label>
+              <input type="number" id="expStartYear" style="width: 100%" />
             </div>
-            <div style="flex: 1;">
-              <label style="font-size: 11px;">Start Month</label>
-              <input type="number" id="expStartMonth" min="1" max="12" style="width: 100%;" />
+            <div style="flex: 1">
+              <label style="font-size: 11px">Start Month</label>
+              <input
+                type="number"
+                id="expStartMonth"
+                min="1"
+                max="12"
+                style="width: 100%"
+              />
             </div>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <div style="flex: 1;">
-              <label style="font-size: 11px;">End Year</label>
-              <input type="number" id="expEndYear" style="width: 100%;" />
+          <div style="display: flex; gap: 8px">
+            <div style="flex: 1">
+              <label style="font-size: 11px">End Year</label>
+              <input type="number" id="expEndYear" style="width: 100%" />
             </div>
-            <div style="flex: 1;">
-              <label style="font-size: 11px;">End Month</label>
-              <input type="number" id="expEndMonth" min="1" max="12" style="width: 100%;" />
+            <div style="flex: 1">
+              <label style="font-size: 11px">End Month</label>
+              <input
+                type="number"
+                id="expEndMonth"
+                min="1"
+                max="12"
+                style="width: 100%"
+              />
             </div>
           </div>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px;">
-          <button class="btn" style="background: #e2e8f0;" onclick="closeModal('exportModal')">Cancel</button>
-          <button class="btn" style="background: #1e7e34; color: white;" onclick="confirmExport()">Export</button>
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button
+            class="btn"
+            style="background: #e2e8f0"
+            onclick="closeModal('exportModal')"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn"
+            style="background: #1e7e34; color: white"
+            onclick="confirmExport()"
+          >
+            Export
+          </button>
         </div>
       </div>
     </div>
 
     <!-- 5. Custom Modal for Adding Asset Type -->
-    <div id="newTypeModal" class="modal-overlay" style="z-index: 10005;">
-      <div class="modal-box" style="width: 340px;">
-        <h4 style="margin: 0 0 12px 0; color: #1e293b;">➕ Add New Asset Type</h4>
+    <div id="newTypeModal" class="modal-overlay" style="z-index: 10005">
+      <div class="modal-box" style="width: 340px">
+        <h4 style="margin: 0 0 12px 0; color: #1e293b">
+          ➕ Add New Asset Type
+        </h4>
         <div class="form-group">
           <label>Type Name</label>
-          <input type="text" id="customTypeNameInput" placeholder="e.g. Santhook, Generator..." />
+          <input
+            type="text"
+            id="customTypeNameInput"
+            placeholder="e.g. Santhook, Generator..."
+          />
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px;">
-          <button class="btn" style="background: #e2e8f0;" onclick="closeModal('newTypeModal')">Cancel</button>
-          <button class="btn btn-blue" onclick="submitCustomAssetType()">Save Type</button>
+        <div
+          style="
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 15px;
+          "
+        >
+          <button
+            class="btn"
+            style="background: #e2e8f0"
+            onclick="closeModal('newTypeModal')"
+          >
+            Cancel
+          </button>
+          <button class="btn btn-blue" onclick="submitCustomAssetType()">
+            Save Type
+          </button>
         </div>
       </div>
     </div>
@@ -480,7 +891,20 @@
       let activeEditingAssetId = null;
       let activeEditingYear = null;
 
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
 
       function fmtNumber(val) {
         const num = Number(val);
@@ -505,8 +929,12 @@
         setTimeout(() => t.remove(), 3000);
       }
 
-      function openModal(id) { document.getElementById(id).style.display = "flex"; }
-      function closeModal(id) { document.getElementById(id).style.display = "none"; }
+      function openModal(id) {
+        document.getElementById(id).style.display = "flex";
+      }
+      function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+      }
 
       async function loadTypes(selectedId = null) {
         try {
@@ -519,8 +947,11 @@
             if (assetTypes.length === 0) {
               sel.innerHTML = `<option value="">-- No Types Found --</option>`;
             } else {
-              assetTypes.forEach(t => {
-                const isSel = selectedId && Number(selectedId) === Number(t.id) ? "selected" : "";
+              assetTypes.forEach((t) => {
+                const isSel =
+                  selectedId && Number(selectedId) === Number(t.id)
+                    ? "selected"
+                    : "";
                 sel.innerHTML += `<option value="${t.id}" ${isSel}>${t.type_name}</option>`;
               });
             }
@@ -535,7 +966,10 @@
       function openNewTypeModal() {
         document.getElementById("customTypeNameInput").value = "";
         openModal("newTypeModal");
-        setTimeout(() => document.getElementById("customTypeNameInput").focus(), 100);
+        setTimeout(
+          () => document.getElementById("customTypeNameInput").focus(),
+          100,
+        );
       }
 
       async function submitCustomAssetType() {
@@ -549,7 +983,7 @@
           const res = await fetch("/py/assets-tracker/types/add", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type_name: name })
+            body: JSON.stringify({ type_name: name }),
           });
           const d = await res.json();
           if (d.success) {
@@ -565,10 +999,24 @@
       }
 
       function updateRibbonTotals(list) {
-        const totalPurchase = list.reduce((sum, item) => sum + Number(item.purchase_cost || 0), 0);
-        const totalRemaining = list.reduce((sum, item) => sum + Number(item.remaining_purchase_price || 0), 0);
-        document.getElementById("summaryTotalPurchase").innerText = totalPurchase.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        document.getElementById("summaryTotalRemaining").innerText = totalRemaining.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const totalPurchase = list.reduce(
+          (sum, item) => sum + Number(item.purchase_cost || 0),
+          0,
+        );
+        const totalRemaining = list.reduce(
+          (sum, item) => sum + Number(item.remaining_purchase_price || 0),
+          0,
+        );
+        document.getElementById("summaryTotalPurchase").innerText =
+          totalPurchase.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        document.getElementById("summaryTotalRemaining").innerText =
+          totalRemaining.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
       }
 
       async function loadAssetsData() {
@@ -622,37 +1070,73 @@
         const filteredList = list.filter((item, idx) => {
           for (const [col, selectedVals] of Object.entries(activeFilters)) {
             if (!selectedVals) continue;
-            if (col === "sn" && !selectedVals.includes(String(idx + 1))) return false;
-            if (col === "type_name" && !selectedVals.includes(item.type_name || "__BLANK__")) return false;
-            if (col === "asset_code" && !selectedVals.includes(item.asset_code || "__BLANK__")) return false;
-            if (col === "purchase_date" && !selectedVals.includes(formatDate(item.purchase_date) || "__BLANK__")) return false;
-            if (col === "purchase_cost" && !selectedVals.includes(fmtNumber(item.purchase_cost) || "__BLANK__")) return false;
-            if (col === "remaining_purchase_price" && !selectedVals.includes(fmtNumber(item.remaining_purchase_price) || "__BLANK__")) return false;
+            if (col === "sn" && !selectedVals.includes(String(idx + 1)))
+              return false;
+            if (
+              col === "type_name" &&
+              !selectedVals.includes(item.type_name || "__BLANK__")
+            )
+              return false;
+            if (
+              col === "asset_code" &&
+              !selectedVals.includes(item.asset_code || "__BLANK__")
+            )
+              return false;
+            if (
+              col === "purchase_date" &&
+              !selectedVals.includes(
+                formatDate(item.purchase_date) || "__BLANK__",
+              )
+            )
+              return false;
+            if (
+              col === "purchase_cost" &&
+              !selectedVals.includes(
+                fmtNumber(item.purchase_cost) || "__BLANK__",
+              )
+            )
+              return false;
+            if (
+              col === "remaining_purchase_price" &&
+              !selectedVals.includes(
+                fmtNumber(item.remaining_purchase_price) || "__BLANK__",
+              )
+            )
+              return false;
 
             if (col.startsWith("m_site_")) {
               const tIdx = parseInt(col.replace("m_site_", ""));
               const m = (item.months_data || [])[tIdx] || {};
-              if (!selectedVals.includes(m.site_name || "__BLANK__")) return false;
+              if (!selectedVals.includes(m.site_name || "__BLANK__"))
+                return false;
             }
             if (col.startsWith("m_plate_")) {
               const tIdx = parseInt(col.replace("m_plate_", ""));
               const m = (item.months_data || [])[tIdx] || {};
-              if (!selectedVals.includes(m.plate_no || "__BLANK__")) return false;
+              if (!selectedVals.includes(m.plate_no || "__BLANK__"))
+                return false;
             }
             if (col.startsWith("m_off_")) {
               const tIdx = parseInt(col.replace("m_off_", ""));
               const m = (item.months_data || [])[tIdx] || {};
-              if (!selectedVals.includes(fmtNumber(m.off_site_exp) || "__BLANK__")) return false;
+              if (
+                !selectedVals.includes(fmtNumber(m.off_site_exp) || "__BLANK__")
+              )
+                return false;
             }
             if (col.startsWith("m_on_")) {
               const tIdx = parseInt(col.replace("m_on_", ""));
               const m = (item.months_data || [])[tIdx] || {};
-              if (!selectedVals.includes(fmtNumber(m.on_site_exp) || "__BLANK__")) return false;
+              if (
+                !selectedVals.includes(fmtNumber(m.on_site_exp) || "__BLANK__")
+              )
+                return false;
             }
             if (col.startsWith("m_rev_")) {
               const tIdx = parseInt(col.replace("m_rev_", ""));
               const m = (item.months_data || [])[tIdx] || {};
-              if (!selectedVals.includes(fmtNumber(m.revenue) || "__BLANK__")) return false;
+              if (!selectedVals.includes(fmtNumber(m.revenue) || "__BLANK__"))
+                return false;
             }
           }
           return true;
@@ -670,7 +1154,10 @@
           for (let i = index; i < limit; i++) {
             const item = filteredList[i];
             const tr = document.createElement("tr");
-            tr.setAttribute("data-search", `${item.asset_code || ""} ${item.type_name || ""}`.toLowerCase());
+            tr.setAttribute(
+              "data-search",
+              `${item.asset_code || ""} ${item.type_name || ""}`.toLowerCase(),
+            );
 
             let rowHtml = `
               <td style="position: sticky; left: 0px; background: #ffffff; z-index: 10; border-right: 1px solid #c0c0c0;"><b>${i + 1}</b></td>
@@ -683,7 +1170,13 @@
 
             const mDataList = item.months_data || [];
             timeline.forEach((_, tIdx) => {
-              const m = mDataList[tIdx] || { site_name: "", plate_no: "", off_site_exp: 0, on_site_exp: 0, revenue: 0 };
+              const m = mDataList[tIdx] || {
+                site_name: "",
+                plate_no: "",
+                off_site_exp: 0,
+                on_site_exp: 0,
+                revenue: 0,
+              };
               rowHtml += `
                 <td style="text-align: left; border-left: 2px solid #cbd5e1;">${m.site_name || ""}</td>
                 <td>${m.plate_no || ""}</td>
@@ -712,7 +1205,8 @@
         e.stopPropagation();
         currentFilterCol = colKey;
         const menu = document.getElementById("assetsFilterMenu");
-        document.getElementById("filterMenuTitle").innerText = `Filter: ${colTitle}`;
+        document.getElementById("filterMenuTitle").innerText =
+          `Filter: ${colTitle}`;
         document.getElementById("filterSearchInput").value = "";
 
         const valueSet = new Set();
@@ -723,9 +1217,12 @@
           if (colKey === "sn") val = String(idx + 1);
           else if (colKey === "type_name") val = item.type_name || "";
           else if (colKey === "asset_code") val = item.asset_code || "";
-          else if (colKey === "purchase_date") val = formatDate(item.purchase_date);
-          else if (colKey === "purchase_cost") val = fmtNumber(item.purchase_cost);
-          else if (colKey === "remaining_purchase_price") val = fmtNumber(item.remaining_purchase_price);
+          else if (colKey === "purchase_date")
+            val = formatDate(item.purchase_date);
+          else if (colKey === "purchase_cost")
+            val = fmtNumber(item.purchase_cost);
+          else if (colKey === "remaining_purchase_price")
+            val = fmtNumber(item.remaining_purchase_price);
           else if (colKey.startsWith("m_site_")) {
             const tIdx = parseInt(colKey.replace("m_site_", ""));
             val = ((item.months_data || [])[tIdx] || {}).site_name || "";
@@ -734,7 +1231,9 @@
             val = ((item.months_data || [])[tIdx] || {}).plate_no || "";
           } else if (colKey.startsWith("m_off_")) {
             const tIdx = parseInt(colKey.replace("m_off_", ""));
-            val = fmtNumber(((item.months_data || [])[tIdx] || {}).off_site_exp);
+            val = fmtNumber(
+              ((item.months_data || [])[tIdx] || {}).off_site_exp,
+            );
           } else if (colKey.startsWith("m_on_")) {
             const tIdx = parseInt(colKey.replace("m_on_", ""));
             val = fmtNumber(((item.months_data || [])[tIdx] || {}).on_site_exp);
@@ -756,7 +1255,8 @@
         `;
 
         if (hasBlank) {
-          const isBlankChecked = selectedList === null || selectedList.includes("__BLANK__");
+          const isBlankChecked =
+            selectedList === null || selectedList.includes("__BLANK__");
           listHtml += `
             <li class="filter-item-row" data-text="(blanks)" style="padding: 3px 8px;">
               <input type="checkbox" class="col-filter-chk" value="__BLANK__" id="filter_chk_blank" ${isBlankChecked ? "checked" : ""} />
@@ -767,19 +1267,24 @@
 
         if (colKey === "purchase_date") {
           const dateTree = {};
-          Array.from(valueSet).filter(Boolean).forEach((dStr) => {
-            const parts = dStr.split("-");
-            if (parts.length === 3) {
-              const [day, mon, yr] = parts;
-              const fullYr = "20" + yr;
-              if (!dateTree[fullYr]) dateTree[fullYr] = {};
-              if (!dateTree[fullYr][mon]) dateTree[fullYr][mon] = [];
-              dateTree[fullYr][mon].push(dStr);
-            }
-          });
+          Array.from(valueSet)
+            .filter(Boolean)
+            .forEach((dStr) => {
+              const parts = dStr.split("-");
+              if (parts.length === 3) {
+                const [day, mon, yr] = parts;
+                const fullYr = "20" + yr;
+                if (!dateTree[fullYr]) dateTree[fullYr] = {};
+                if (!dateTree[fullYr][mon]) dateTree[fullYr][mon] = [];
+                dateTree[fullYr][mon].push(dStr);
+              }
+            });
 
-          Object.keys(dateTree).sort().reverse().forEach((yr) => {
-            listHtml += `
+          Object.keys(dateTree)
+            .sort()
+            .reverse()
+            .forEach((yr) => {
+              listHtml += `
               <li class="filter-item-row" data-text="${yr}" style="flex-direction: column; align-items: flex-start; padding: 2px 8px;">
                 <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
                   <span onclick="toggleTreeCollapse(this)" style="cursor: pointer; font-size: 10px; width: 12px;">▶</span>
@@ -789,8 +1294,8 @@
                 <ul class="tree-child-group" id="grp_${yr}" style="list-style: none; padding-left: 20px; width: 100%; margin: 2px 0; display: none;">
             `;
 
-            Object.keys(dateTree[yr]).forEach((mon) => {
-              listHtml += `
+              Object.keys(dateTree[yr]).forEach((mon) => {
+                listHtml += `
                 <li style="margin: 2px 0; display: flex; flex-direction: column; align-items: flex-start; width: 100%; padding: 0;">
                   <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
                     <span onclick="toggleTreeCollapse(this)" style="cursor: pointer; font-size: 10px; width: 12px;">▶</span>
@@ -800,25 +1305,29 @@
                   <ul class="tree-child-group" id="grp_${yr}_${mon}" style="list-style: none; padding-left: 20px; margin: 2px 0; width: 100%; display: none; flex-direction: column;">
               `;
 
-              dateTree[yr][mon].sort().forEach((fullDate) => {
-                const isChecked = selectedList === null || selectedList.includes(fullDate);
-                listHtml += `
+                dateTree[yr][mon].sort().forEach((fullDate) => {
+                  const isChecked =
+                    selectedList === null || selectedList.includes(fullDate);
+                  listHtml += `
                   <li class="filter-item-row" data-text="${fullDate.toLowerCase()}" style="padding: 2px 0; display: flex; align-items: center; gap: 6px; width: 100%;">
                     <input type="checkbox" class="col-filter-chk" data-yr="${yr}" data-mon="${mon}" value="${fullDate}" ${isChecked ? "checked" : ""} onchange="syncDateTreeCheck('${yr}', '${mon}')" />
                     <label style="cursor: pointer; white-space: nowrap;">${fullDate}</label>
                   </li>
                 `;
+                });
+
+                listHtml += `</ul></li>`;
               });
 
               listHtml += `</ul></li>`;
             });
-
-            listHtml += `</ul></li>`;
-          });
         } else {
-          const sortedVals = Array.from(valueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+          const sortedVals = Array.from(valueSet).sort((a, b) =>
+            a.localeCompare(b, undefined, { numeric: true }),
+          );
           sortedVals.forEach((val, i) => {
-            const isChecked = selectedList === null || selectedList.includes(val);
+            const isChecked =
+              selectedList === null || selectedList.includes(val);
             listHtml += `
               <li class="filter-item-row" data-text="${val.toLowerCase()}">
                 <input type="checkbox" class="col-filter-chk" value="${val}" id="filter_chk_${i}" ${isChecked ? "checked" : ""} />
@@ -840,7 +1349,10 @@
       }
 
       function searchFilterItems() {
-        const q = document.getElementById("filterSearchInput").value.trim().toLowerCase();
+        const q = document
+          .getElementById("filterSearchInput")
+          .value.trim()
+          .toLowerCase();
         document.querySelectorAll(".filter-item-row").forEach((li) => {
           const txt = li.getAttribute("data-text") || "";
           li.style.display = txt.includes(q) ? "flex" : "none";
@@ -848,7 +1360,9 @@
       }
 
       function toggleSelectAllFilter(master) {
-        document.querySelectorAll(".col-filter-chk, .tree-yr-chk, .tree-mon-chk").forEach((c) => (c.checked = master.checked));
+        document
+          .querySelectorAll(".col-filter-chk, .tree-yr-chk, .tree-mon-chk")
+          .forEach((c) => (c.checked = master.checked));
       }
 
       function toggleTreeCollapse(btn) {
@@ -866,22 +1380,38 @@
 
       function toggleYearCheck(yrChk, yr) {
         const isChecked = yrChk.checked;
-        document.querySelectorAll(`.tree-mon-chk[data-yr="${yr}"], .col-filter-chk[data-yr="${yr}"]`).forEach((c) => (c.checked = isChecked));
+        document
+          .querySelectorAll(
+            `.tree-mon-chk[data-yr="${yr}"], .col-filter-chk[data-yr="${yr}"]`,
+          )
+          .forEach((c) => (c.checked = isChecked));
       }
 
       function toggleMonthCheck(monChk, yr, mon) {
         const isChecked = monChk.checked;
-        document.querySelectorAll(`.col-filter-chk[data-yr="${yr}"][data-mon="${mon}"]`).forEach((c) => (c.checked = isChecked));
+        document
+          .querySelectorAll(
+            `.col-filter-chk[data-yr="${yr}"][data-mon="${mon}"]`,
+          )
+          .forEach((c) => (c.checked = isChecked));
         syncDateTreeCheck(yr, mon);
       }
 
       function syncDateTreeCheck(yr, mon) {
-        const dateChks = Array.from(document.querySelectorAll(`.col-filter-chk[data-yr="${yr}"][data-mon="${mon}"]`));
-        const monChk = document.querySelector(`.tree-mon-chk[data-yr="${yr}"][data-mon="${mon}"]`);
+        const dateChks = Array.from(
+          document.querySelectorAll(
+            `.col-filter-chk[data-yr="${yr}"][data-mon="${mon}"]`,
+          ),
+        );
+        const monChk = document.querySelector(
+          `.tree-mon-chk[data-yr="${yr}"][data-mon="${mon}"]`,
+        );
         if (monChk && dateChks.length > 0) {
           monChk.checked = dateChks.some((c) => c.checked);
         }
-        const yrDates = Array.from(document.querySelectorAll(`.col-filter-chk[data-yr="${yr}"]`));
+        const yrDates = Array.from(
+          document.querySelectorAll(`.col-filter-chk[data-yr="${yr}"]`),
+        );
         const yrChk = document.querySelector(`.tree-yr-chk[data-yr="${yr}"]`);
         if (yrChk && yrDates.length > 0) {
           yrChk.checked = yrDates.some((c) => c.checked);
@@ -915,10 +1445,18 @@
           let valA = "";
           let valB = "";
 
-          if (["type_name", "asset_code", "purchase_date"].includes(currentFilterCol)) {
+          if (
+            ["type_name", "asset_code", "purchase_date"].includes(
+              currentFilterCol,
+            )
+          ) {
             valA = a[currentFilterCol] || "";
             valB = b[currentFilterCol] || "";
-          } else if (["purchase_cost", "remaining_purchase_price"].includes(currentFilterCol)) {
+          } else if (
+            ["purchase_cost", "remaining_purchase_price"].includes(
+              currentFilterCol,
+            )
+          ) {
             valA = Number(a[currentFilterCol] || 0);
             valB = Number(b[currentFilterCol] || 0);
             return dir === "asc" ? valA - valB : valB - valA;
@@ -932,8 +1470,12 @@
             valB = ((b.months_data || [])[tIdx] || {}).plate_no || "";
           } else if (currentFilterCol.startsWith("m_off_")) {
             const tIdx = parseInt(currentFilterCol.replace("m_off_", ""));
-            valA = Number(((a.months_data || [])[tIdx] || {}).off_site_exp || 0);
-            valB = Number(((b.months_data || [])[tIdx] || {}).off_site_exp || 0);
+            valA = Number(
+              ((a.months_data || [])[tIdx] || {}).off_site_exp || 0,
+            );
+            valB = Number(
+              ((b.months_data || [])[tIdx] || {}).off_site_exp || 0,
+            );
             return dir === "asc" ? valA - valB : valB - valA;
           } else if (currentFilterCol.startsWith("m_on_")) {
             const tIdx = parseInt(currentFilterCol.replace("m_on_", ""));
@@ -948,8 +1490,12 @@
           }
 
           return dir === "asc"
-            ? String(valA).localeCompare(String(valB), undefined, { numeric: true })
-            : String(valB).localeCompare(String(valA), undefined, { numeric: true });
+            ? String(valA).localeCompare(String(valB), undefined, {
+                numeric: true,
+              })
+            : String(valB).localeCompare(String(valA), undefined, {
+                numeric: true,
+              });
         });
 
         closeFilterMenu();
@@ -959,13 +1505,17 @@
       window.addEventListener("click", () => closeFilterMenu());
 
       function filterTableRows() {
-        const q = document.getElementById("searchAsset").value.trim().toLowerCase();
-        const filtered = rawAssets.filter(item => {
-          const searchStr = `${item.asset_code || ""} ${item.type_name || ""}`.toLowerCase();
+        const q = document
+          .getElementById("searchAsset")
+          .value.trim()
+          .toLowerCase();
+        const filtered = rawAssets.filter((item) => {
+          const searchStr =
+            `${item.asset_code || ""} ${item.type_name || ""}`.toLowerCase();
           return searchStr.includes(q);
         });
         updateRibbonTotals(filtered);
-        document.querySelectorAll("#assetsTableBody tr").forEach(tr => {
+        document.querySelectorAll("#assetsTableBody tr").forEach((tr) => {
           const txt = tr.getAttribute("data-search") || "";
           tr.style.display = txt.includes(q) ? "" : "none";
         });
@@ -1003,8 +1553,8 @@
               asset_code: code,
               purchase_date: pDate || null,
               purchase_cost: parseFloat(cost || 0),
-              remaining_purchase_price: parseFloat(price || 0)
-            })
+              remaining_purchase_price: parseFloat(price || 0),
+            }),
           });
           const d = await res.json();
           if (d.success) {
@@ -1029,8 +1579,10 @@
       function openEditAssetBarModal() {
         const typeSel = document.getElementById("barSelectType");
         typeSel.innerHTML = "";
-        const distinctTypes = [...new Set(rawAssets.map(a => a.type_name).filter(Boolean))].sort();
-        distinctTypes.forEach(t => {
+        const distinctTypes = [
+          ...new Set(rawAssets.map((a) => a.type_name).filter(Boolean)),
+        ].sort();
+        distinctTypes.forEach((t) => {
           typeSel.innerHTML += `<option value="${t}">${t}</option>`;
         });
         onBarTypeChange();
@@ -1041,8 +1593,17 @@
         const selectedType = document.getElementById("barSelectType").value;
         const assetSel = document.getElementById("barSelectAsset");
         assetSel.innerHTML = "";
-        const matched = rawAssets.filter(a => a.type_name === selectedType);
-        matched.forEach(a => {
+        const matched = rawAssets
+          .filter((a) => a.type_name === selectedType)
+          .sort((a, b) =>
+            String(a.asset_code).localeCompare(
+              String(b.asset_code),
+              undefined,
+              { numeric: true },
+            ),
+          );
+
+        matched.forEach((a) => {
           assetSel.innerHTML += `<option value="${a.id}">${a.asset_code}</option>`;
         });
         fillEditBarInputs();
@@ -1050,11 +1611,16 @@
 
       function fillEditBarInputs() {
         const assetId = Number(document.getElementById("barSelectAsset").value);
-        const assetObj = rawAssets.find(a => a.id === assetId);
+        const assetObj = rawAssets.find((a) => a.id === assetId);
         if (assetObj) {
-          document.getElementById("barPurchaseDate").value = assetObj.purchase_date ? String(assetObj.purchase_date).substring(0, 10) : "";
-          document.getElementById("barPurchaseCost").value = assetObj.purchase_cost || "";
-          document.getElementById("barRemainingPrice").value = assetObj.remaining_purchase_price || "";
+          document.getElementById("barPurchaseDate").value =
+            assetObj.purchase_date
+              ? String(assetObj.purchase_date).substring(0, 10)
+              : "";
+          document.getElementById("barPurchaseCost").value =
+            assetObj.purchase_cost || "";
+          document.getElementById("barRemainingPrice").value =
+            assetObj.remaining_purchase_price || "";
         }
       }
 
@@ -1072,8 +1638,8 @@
               asset_id: assetId,
               purchase_date: pDate || null,
               purchase_cost: parseFloat(pCost || 0),
-              remaining_purchase_price: parseFloat(remPrice || 0)
-            })
+              remaining_purchase_price: parseFloat(remPrice || 0),
+            }),
           });
           const d = await res.json();
           if (d.success) {
@@ -1091,8 +1657,10 @@
       function openEditSelectModal() {
         const typeSel = document.getElementById("editSelectType");
         typeSel.innerHTML = "";
-        const distinctTypes = [...new Set(rawAssets.map(a => a.type_name).filter(Boolean))].sort();
-        distinctTypes.forEach(t => {
+        const distinctTypes = [
+          ...new Set(rawAssets.map((a) => a.type_name).filter(Boolean)),
+        ].sort();
+        distinctTypes.forEach((t) => {
           typeSel.innerHTML += `<option value="${t}">${t}</option>`;
         });
         onEditTypeChange();
@@ -1111,23 +1679,34 @@
         const selectedType = document.getElementById("editSelectType").value;
         const assetSel = document.getElementById("editSelectAsset");
         assetSel.innerHTML = "";
-        const matched = rawAssets.filter(a => a.type_name === selectedType);
-        matched.forEach(a => {
+        const matched = rawAssets
+          .filter((a) => a.type_name === selectedType)
+          .sort((a, b) =>
+            String(a.asset_code).localeCompare(
+              String(b.asset_code),
+              undefined,
+              { numeric: true },
+            ),
+          );
+
+        matched.forEach((a) => {
           assetSel.innerHTML += `<option value="${a.id}">${a.asset_code}</option>`;
         });
       }
-
       async function fetchAndOpenYearRecords() {
         const assetId = document.getElementById("editSelectAsset").value;
         const year = document.getElementById("editSelectYear").value;
         activeEditingAssetId = parseInt(assetId);
         activeEditingYear = parseInt(year);
 
-        const assetObj = rawAssets.find(a => a.id === activeEditingAssetId);
-        document.getElementById("yearFeedTitle").innerText = `Feed Monthly Data: ${assetObj ? assetObj.asset_code : ""} (${year})`;
+        const assetObj = rawAssets.find((a) => a.id === activeEditingAssetId);
+        document.getElementById("yearFeedTitle").innerText =
+          `Feed Monthly Data: ${assetObj ? assetObj.asset_code : ""} (${year})`;
 
         try {
-          const res = await fetch(`/py/assets-tracker/get-year-records?asset_id=${assetId}&year=${year}`);
+          const res = await fetch(
+            `/py/assets-tracker/get-year-records?asset_id=${assetId}&year=${year}`,
+          );
           const d = await res.json();
           if (d.success) {
             closeModal("editSelectModal");
@@ -1144,8 +1723,9 @@
       function renderYearFeedTable(records) {
         const tbody = document.getElementById("yearFeedTbody");
         tbody.innerHTML = "";
-        const assetObj = rawAssets.find(a => a.id === activeEditingAssetId);
-        let pYear = null, pMonth = null;
+        const assetObj = rawAssets.find((a) => a.id === activeEditingAssetId);
+        let pYear = null,
+          pMonth = null;
         if (assetObj && assetObj.purchase_date) {
           const pDate = new Date(assetObj.purchase_date);
           if (!isNaN(pDate.getTime())) {
@@ -1154,52 +1734,79 @@
           }
         }
 
-        records.forEach(r => {
-          const isBeforePurchase = pYear !== null && (
-            activeEditingYear < pYear || (activeEditingYear === pYear && r.month < pMonth)
-          );
-          const disabledAttr = isBeforePurchase ? "disabled" : "";
-          const bgStyle = isBeforePurchase ? "background: #f1f5f9; cursor: not-allowed;" : "";
+        records.forEach((r) => {
+          const isBeforePurchase =
+            pYear !== null &&
+            (activeEditingYear < pYear ||
+              (activeEditingYear === pYear && r.month < pMonth));
 
           const tr = document.createElement("tr");
           tr.setAttribute("data-month", r.month);
-          tr.innerHTML = `
-            <td><b>${monthNames[r.month - 1]}</b></td>
-            <td><input type="text" class="feed-site" value="${r.site_name || ""}" ${disabledAttr} style="width: 100%; padding: 4px; ${bgStyle}" /></td>
-            <td><input type="text" class="feed-plate" value="${r.plate_no || ""}" ${disabledAttr} style="width: 100%; padding: 4px; ${bgStyle}" /></td>
-            <td><input type="number" step="0.01" class="feed-off" value="${r.off_site_exp || ""}" ${disabledAttr} style="width: 100%; padding: 4px; ${bgStyle}" /></td>
-            <td><input type="number" step="0.01" class="feed-on" value="${r.on_site_exp || ""}" ${disabledAttr} style="width: 100%; padding: 4px; ${bgStyle}" /></td>
-            <td><input type="number" step="0.01" class="feed-rev" value="${r.revenue || ""}" ${disabledAttr} style="width: 100%; padding: 4px; ${bgStyle}" /></td>
-          `;
+
+          if (isBeforePurchase) {
+            tr.innerHTML = `
+              <td class="feed-month-cell">${monthNames[r.month - 1]}</td>
+              <td colspan="5" class="feed-blocked-cell" style="color: #94a3b8; font-size: 13px;"></td>
+              <input type="hidden" class="feed-site" value="" />
+              <input type="hidden" class="feed-plate" value="" />
+              <input type="hidden" class="feed-off" value="0" />
+              <input type="hidden" class="feed-on" value="0" />
+              <input type="hidden" class="feed-rev" value="0" />
+            `;
+          } else {
+            tr.innerHTML = `
+              <td class="feed-month-cell">${monthNames[r.month - 1]}</td>
+              <td><input type="text" class="feed-input feed-site" value="${r.site_name || ""}" /></td>
+              <td><input type="text" class="feed-input feed-plate" value="${r.plate_no || ""}" style="text-align: center;" /></td>
+              <td><input type="number" step="0.01" class="feed-input feed-off" value="${r.off_site_exp || ""}" style="text-align: right;" /></td>
+              <td><input type="number" step="0.01" class="feed-input feed-on" value="${r.on_site_exp || ""}" style="text-align: right;" /></td>
+              <td><input type="number" step="0.01" class="feed-input feed-rev feed-rev-cell" value="${r.revenue || ""}" style="text-align: right; font-weight: 600;" /></td>
+            `;
+          }
           tbody.appendChild(tr);
         });
         attachModalArrowNavigation();
       }
 
       function attachModalArrowNavigation() {
-        const inputs = Array.from(document.querySelectorAll("#yearFeedTbody input:not([disabled])"));
-        inputs.forEach(input => {
+        const inputs = Array.from(
+          document.querySelectorAll("#yearFeedTbody input:not([disabled])"),
+        );
+        inputs.forEach((input) => {
           input.onkeydown = (e) => {
             if (e.key === "ArrowUp" || e.key === "ArrowDown") {
               e.preventDefault();
               const currentTr = input.closest("tr");
               const currentTd = input.closest("td");
               const colIdx = Array.from(currentTr.children).indexOf(currentTd);
-              let targetTr = e.key === "ArrowUp" ? currentTr.previousElementSibling : currentTr.nextElementSibling;
+              let targetTr =
+                e.key === "ArrowUp"
+                  ? currentTr.previousElementSibling
+                  : currentTr.nextElementSibling;
               while (targetTr) {
-                const targetInput = targetTr.children[colIdx]?.querySelector("input:not([disabled])");
+                const targetInput = targetTr.children[colIdx]?.querySelector(
+                  "input:not([disabled])",
+                );
                 if (targetInput) {
                   targetInput.focus();
                   targetInput.select();
                   break;
                 }
-                targetTr = e.key === "ArrowUp" ? targetTr.previousElementSibling : targetTr.nextElementSibling;
+                targetTr =
+                  e.key === "ArrowUp"
+                    ? targetTr.previousElementSibling
+                    : targetTr.nextElementSibling;
               }
             } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
               const currentTr = input.closest("tr");
-              const rowInputs = Array.from(currentTr.querySelectorAll("input:not([disabled])"));
+              const rowInputs = Array.from(
+                currentTr.querySelectorAll("input:not([disabled])"),
+              );
               const currIdx = rowInputs.indexOf(input);
-              const targetInput = e.key === "ArrowLeft" ? rowInputs[currIdx - 1] : rowInputs[currIdx + 1];
+              const targetInput =
+                e.key === "ArrowLeft"
+                  ? rowInputs[currIdx - 1]
+                  : rowInputs[currIdx + 1];
               if (targetInput) {
                 e.preventDefault();
                 targetInput.focus();
@@ -1213,7 +1820,7 @@
       async function saveYearRecords() {
         const trs = document.querySelectorAll("#yearFeedTbody tr");
         const records = [];
-        trs.forEach(tr => {
+        trs.forEach((tr) => {
           const m = parseInt(tr.getAttribute("data-month"));
           records.push({
             month: m,
@@ -1221,7 +1828,7 @@
             plate_no: tr.querySelector(".feed-plate").value.trim(),
             off_site_exp: parseFloat(tr.querySelector(".feed-off").value || 0),
             on_site_exp: parseFloat(tr.querySelector(".feed-on").value || 0),
-            revenue: parseFloat(tr.querySelector(".feed-rev").value || 0)
+            revenue: parseFloat(tr.querySelector(".feed-rev").value || 0),
           });
         });
 
@@ -1232,8 +1839,8 @@
             body: JSON.stringify({
               asset_id: activeEditingAssetId,
               year: activeEditingYear,
-              records: records
-            })
+              records: records,
+            }),
           });
           const d = await res.json();
           if (d.success) {
@@ -1258,11 +1865,15 @@
       }
 
       function togglePeriodInputs(show) {
-        document.getElementById("periodInputsBox").style.display = show ? "block" : "none";
+        document.getElementById("periodInputsBox").style.display = show
+          ? "block"
+          : "none";
       }
 
       function confirmExport() {
-        const mode = document.querySelector('input[name="exportMode"]:checked').value;
+        const mode = document.querySelector(
+          'input[name="exportMode"]:checked',
+        ).value;
         let url = `/py/assets-tracker/export-excel?mode=${mode}`;
         if (mode === "period") {
           const sy = document.getElementById("expStartYear").value;

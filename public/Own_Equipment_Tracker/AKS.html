@@ -71,15 +71,22 @@
         padding: 8px 10px;
         text-align: center;
       }
-      thead th {
+      thead tr:first-child th {
         position: sticky;
         top: 0;
-        z-index: 5;
+        z-index: 6;
         background: #d9e1f2;
         color: #000;
         font-weight: 700;
         min-width: 50px;
         width: max-content;
+      }
+      thead tr:nth-child(2) th {
+        position: sticky;
+        top: 35px;
+        z-index: 5;
+        color: #000;
+        font-weight: 700;
       }
       tbody tr:hover {
         background: #f8fafc;
@@ -184,6 +191,45 @@
       .toast.error {
         background: #e74c3c;
       }
+      .menu-btn {
+        display: none;
+        background: #1e293b;
+        color: white;
+        font-size: 18px;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      @media (max-width: 1100px) {
+        .menu-btn {
+          display: block;
+        }
+        .action-controls {
+          display: none;
+          position: absolute;
+          top: 55px;
+          right: 15px;
+          background: #ffffff;
+          flex-direction: column;
+          gap: 8px;
+          padding: 12px;
+          width: 170px;
+          border-radius: 8px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+          z-index: 1000;
+          border: 1px solid #cbd5e1;
+        }
+        .action-controls.show {
+          display: flex;
+        }
+        .action-controls .btn {
+          width: 100%;
+          justify-content: center;
+          margin: 0;
+          box-sizing: border-box;
+        }
+      }
     </style>
   </head>
   <body>
@@ -211,29 +257,47 @@
           "
         />
       </div>
-      <div class="controls">
-        <button
-          id="btnEditInsurance"
-          class="btn"
-          style="background: #8e44ad; color: white"
-          onclick="toggleInsuranceEdit()"
-        >
-          ✏️ Edit Insurance
-        </button>
-        <button
-          class="btn"
-          style="background: #1e7e34; color: white"
-          onclick="exportAKSToExcel()"
-        >
-          📊 Export Excel
-        </button>
-        <button class="btn btn-blue" onclick="loadAKSData()">🔄 Refresh</button>
-        <button
-          class="btn btn-dark"
-          onclick="window.location.href = 'Dashboard.html'"
-        >
-          📊 Dashboard
-        </button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div id="aksActionMenu" class="controls action-controls">
+          <button
+            id="btnEditInsurance"
+            class="btn"
+            style="background: #8e44ad; color: white"
+            onclick="toggleInsuranceEdit()"
+          >
+            ✏️ Edit Insurance
+          </button>
+          <button
+            id="btnEditAsset"
+            class="btn"
+            style="background: #d97706; color: white"
+            onclick="openEditAssetSelectModal()"
+          >
+            🛠️ Edit Asset
+          </button>
+          <button
+            class="btn"
+            style="background: #1e7e34; color: white"
+            onclick="exportAKSToExcel()"
+          >
+            📊 Export Excel
+          </button>
+          <button
+            class="btn"
+            style="background: #0d9488; color: white"
+            onclick="openCombinedExportModal()"
+          >
+            📑 AKS Export
+          </button>
+          <button class="btn btn-blue" onclick="loadAKSData()">🔄 Refresh</button>
+          <button
+            class="btn btn-dark"
+            onclick="window.location.href = 'Dashboard.html'"
+          >
+            📊 Dashboard
+          </button>
+        </div>
+        <button type="button" class="menu-btn" onclick="toggleResponsiveMenu(event)">☰</button>
       </div>
     </div>
 
@@ -389,6 +453,73 @@
       </div>
     </div>
 
+    <!-- Combined 3-Tab Export Modal -->
+    <div id="combinedExportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10001; justify-content: center; align-items: center;">
+      <div style="background: #ffffff; border-radius: 8px; width: 380px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h4 style="margin: 0 0 15px 0; color: #0f766e; font-size: 15px;">📑 AKS Master 3-Tab Export</h4>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="combinedScope" value="all" checked />
+            <span><b>All Data</b> (Entire timeline)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="combinedScope" value="current" />
+            <span><b>Current Year Data</b> (2026 only)</span>
+          </label>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeCombinedExportModal()">Cancel</button>
+          <button type="button" class="btn" style="background: #0d9488; color: white;" onclick="confirmCombinedExport()">Download Excel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Asset Selection Modal -->
+    <div id="editAssetSelectModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10001; justify-content: center; align-items: center;">
+      <div style="background: #ffffff; border-radius: 8px; width: 350px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h4 style="margin: 0 0 15px 0; color: #1e293b;">🛠️ Select Plate No to Edit</h4>
+        <div style="margin-bottom: 15px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Plate No / Asset Code</label>
+          <select id="selectPlateToEdit" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px;"></select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('editAssetSelectModal')">Cancel</button>
+          <button type="button" class="btn btn-blue" onclick="fetchAndOpenAssetEdit()">Fetch Data</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Asset Details Modal -->
+    <div id="editAssetDetailsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10002; justify-content: center; align-items: center;">
+      <div style="background: #ffffff; border-radius: 8px; width: 380px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h4 id="editAssetDetailsTitle" style="margin: 0 0 15px 0; color: #d97706;">✏️ Edit Asset Details</h4>
+        <input type="hidden" id="editEquipmentId" />
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Asset Type</label>
+          <select id="editAssetTypeInput" onchange="onAssetTypeModalChange(this)" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px;"></select>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Model</label>
+          <input type="text" id="editModelInput" placeholder="Enter Model" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Make</label>
+          <input type="text" id="editMakeInput" placeholder="Enter Make" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+        <div style="margin-bottom: 20px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Owner Name</label>
+          <input type="text" id="editOwnerNameInput" placeholder="Enter Owner Name" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box;" />
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+          <button type="button" class="btn" style="background: #0284c7; color: white;" onclick="saveAssetModalDetails(true)">💾 Save & Next</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('editAssetDetailsModal')">Cancel</button>
+            <button type="button" class="btn" style="background: #27ae60; color: white;" onclick="saveAssetModalDetails(false)">Save Details</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="toast-container"></div>
 
     <script>
@@ -494,13 +625,20 @@
 
         r1.innerHTML = `
           <th rowspan="2" style="min-width: 50px; position: sticky; left: 0px; z-index: 20; background: #d9e1f2; border-right: 1px solid #c0c0c0;">SN <span class="filter-icon" onclick="openColumnFilter(event, 'sn', 'SN')">🔽</span></th>
+          <th rowspan="2" style="min-width: 110px">Asset Type <span class="filter-icon" onclick="openColumnFilter(event, 'asset_type', 'Asset Type')">🔽</span></th>
+          <th rowspan="2" style="min-width: 100px">Model <span class="filter-icon" onclick="openColumnFilter(event, 'model', 'Model')">🔽</span></th>
+          <th rowspan="2" style="min-width: 100px">Make <span class="filter-icon" onclick="openColumnFilter(event, 'make', 'Make')">🔽</span></th>
+          <th rowspan="2" style="min-width: 120px">Owner Name <span class="filter-icon" onclick="openColumnFilter(event, 'owner_name', 'Owner Name')">🔽</span></th>
           <th rowspan="2" style="min-width: 120px; position: sticky; left: 50px; z-index: 20; background: #d9e1f2; border-right: 2px solid #94a3b8;">Plate No / Asset code <span class="filter-icon" onclick="openColumnFilter(event, 'plate_no', 'Plate No')">🔽</span></th>
           <th rowspan="2" style="min-width: 110px">Date Of Purchase <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_date', 'Purchase Date')">🔽</span></th>
           <th rowspan="2" style="min-width: 100px">Purchase Cost <span class="filter-icon" onclick="openColumnFilter(event, 'purchase_cost', 'Purchase Cost')">🔽</span></th>
-          <th rowspan="2" style="min-width: 100px">Insurance Cost <span class="filter-icon" onclick="openColumnFilter(event, 'insurance_cost', 'Insurance Cost')">🔽</span></th>
+          <th colspan="2" style="min-width: 190px; background: #d9e1f2; border-right: 1px solid #c0c0c0;">Insurance Cost</th>
           <th rowspan="2" style="min-width: 100px">Off Site MTC <span class="filter-icon" onclick="openColumnFilter(event, 'off_site_mtc', 'Off Site MTC')">🔽</span></th>
         `;
-        r2.innerHTML = "";
+        r2.innerHTML = `
+          <th style="min-width: 95px; background: #e9eef4;">Off Site <span class="filter-icon" onclick="openColumnFilter(event, 'off_site_insurance', 'Off Site Insurance')">🔽</span></th>
+          <th style="min-width: 95px; background: #e9eef4; border-right: 1px solid #c0c0c0;">On Site <span class="filter-icon" onclick="openColumnFilter(event, 'on_site_insurance', 'On Site Insurance')">🔽</span></th>
+        `;
 
         timeline.forEach((tm, tIdx) => {
           r1.innerHTML += `<th colspan="4" style="background: #c6d9f1; border-left: 2px solid #94a3b8;">${tm.label}</th>`;
@@ -540,9 +678,16 @@
             )
               return false;
             if (
-              col === "insurance_cost" &&
+              col === "off_site_insurance" &&
               !selectedVals.includes(
-                fmtNumber(item.insurance_cost) || "__BLANK__",
+                fmtNumber(item.off_site_insurance) || "__BLANK__",
+              )
+            )
+              return false;
+            if (
+              col === "on_site_insurance" &&
+              !selectedVals.includes(
+                fmtNumber(item.on_site_insurance) || "__BLANK__",
               )
             )
               return false;
@@ -588,10 +733,15 @@
 
           let rowHtml = `
             <td style="position: sticky; left: 0px; background: #ffffff; z-index: 10; border-right: 1px solid #c0c0c0;"><b>${idx + 1}</b></td>
+            <td>${item.asset_type || ""}</td>
+            <td>${item.model || ""}</td>
+            <td>${item.make || ""}</td>
+            <td>${item.owner_name || ""}</td>
             <td style="position: sticky; left: 50px; background: #ffffff; z-index: 10; font-weight: 600; border-right: 2px solid #94a3b8;">${item.plate_no || ""}</td>
             <td>${formatDate(item.purchase_date)}</td>
             <td>${fmtNumber(item.purchase_cost)}</td>
-            <td class="insurance-cell calc-cell" contenteditable="false" data-id="${item.id}" data-field="insurance_cost">${fmtNumber(item.insurance_cost)}</td>
+            <td class="insurance-cell calc-cell" contenteditable="false" data-id="${item.id}" data-field="off_site_insurance">${fmtNumber(item.off_site_insurance)}</td>
+            <td class="insurance-cell calc-cell" contenteditable="false" data-id="${item.id}" data-field="on_site_insurance">${fmtNumber(item.on_site_insurance)}</td>
             <td style="color: #1e293b;">${fmtNumber(item.off_site_mtc)}</td>
           `;
 
@@ -737,6 +887,23 @@
         window.location.href = url;
       }
 
+      function openCombinedExportModal() {
+        const m = document.getElementById("combinedExportModal");
+        if (m) m.style.display = "flex";
+      }
+
+      function closeCombinedExportModal() {
+        const m = document.getElementById("combinedExportModal");
+        if (m) m.style.display = "none";
+      }
+
+      function confirmCombinedExport() {
+        const scope = document.querySelector('input[name="combinedScope"]:checked')?.value || "all";
+        closeCombinedExportModal();
+        showToast("Generating 3-Tab Master Excel...", "success");
+        window.location.href = `/py/aks-combined/export?scope=${scope}`;
+      }
+
       function filterRows() {
         const term = document
           .getElementById("searchPlate")
@@ -764,8 +931,10 @@
             valueSet.add(formatDate(item.purchase_date));
           else if (colKey === "purchase_cost")
             valueSet.add(fmtNumber(item.purchase_cost));
-          else if (colKey === "insurance_cost")
-            valueSet.add(fmtNumber(item.insurance_cost));
+          else if (colKey === "off_site_insurance")
+            valueSet.add(fmtNumber(item.off_site_insurance));
+          else if (colKey === "on_site_insurance")
+            valueSet.add(fmtNumber(item.on_site_insurance));
           else if (colKey === "off_site_mtc")
             valueSet.add(fmtNumber(item.off_site_mtc));
           else if (colKey === "work_assign_site") {
@@ -1029,7 +1198,7 @@
             valA = a[currentFilterCol] || "";
             valB = b[currentFilterCol] || "";
           } else if (
-            ["purchase_cost", "insurance_cost", "off_site_mtc"].includes(
+            ["purchase_cost", "off_site_insurance", "on_site_insurance", "off_site_mtc"].includes(
               currentFilterCol,
             )
           ) {
@@ -1076,7 +1245,136 @@
         renderTable(rawData, currentMaxMonths);
       }
 
-      window.addEventListener("click", () => closeFilterMenu());
+      window.addEventListener("click", (e) => {
+        closeFilterMenu();
+        const menu = document.getElementById("aksActionMenu");
+        if (menu && !e.target.closest(".menu-btn") && !e.target.closest(".action-controls")) {
+          menu.classList.remove("show");
+        }
+      });
+
+      function toggleResponsiveMenu(e) {
+        e.stopPropagation();
+        const menu = document.getElementById("aksActionMenu");
+        if (menu) menu.classList.toggle("show");
+      }
+
+      let customModalAssetTypes = ["Head", "Dyna"];
+
+      function closeModal(id) {
+        const m = document.getElementById(id);
+        if (m) m.style.display = "none";
+      }
+
+      function openEditAssetSelectModal() {
+        const sel = document.getElementById("selectPlateToEdit");
+        sel.innerHTML = "";
+        rawData.forEach((item) => {
+          sel.innerHTML += `<option value="${item.id}">${item.plate_no || "Asset ID: " + item.id}</option>`;
+        });
+        document.getElementById("editAssetSelectModal").style.display = "flex";
+      }
+
+      function fetchAndOpenAssetEdit() {
+        const eqId = Number(document.getElementById("selectPlateToEdit").value);
+        const item = rawData.find((x) => x.id === eqId);
+        if (!item) return;
+
+        closeModal("editAssetSelectModal");
+        const itemIdx = rawData.findIndex((x) => x.id === eqId);
+        document.getElementById("editEquipmentId").value = eqId;
+        document.getElementById("editAssetDetailsTitle").innerText = `✏️ [SN: ${itemIdx !== -1 ? itemIdx + 1 : ""}] Edit: ${item.plate_no || ""}`;
+
+        // Populate Types Dropdown
+        if (item.asset_type && !customModalAssetTypes.includes(item.asset_type)) {
+          customModalAssetTypes.push(item.asset_type);
+        }
+        const typeSel = document.getElementById("editAssetTypeInput");
+        typeSel.innerHTML = `<option value="">-- Select Type --</option>`;
+        customModalAssetTypes.forEach((t) => {
+          typeSel.innerHTML += `<option value="${t}" ${item.asset_type === t ? "selected" : ""}>${t}</option>`;
+        });
+        typeSel.innerHTML += `<option value="__ADD_NEW__">➕ Add New...</option>`;
+
+        document.getElementById("editModelInput").value = item.model || "";
+        document.getElementById("editMakeInput").value = item.make || "";
+        document.getElementById("editOwnerNameInput").value = item.owner_name || "";
+        document.getElementById("editAssetDetailsModal").style.display = "flex";
+      }
+
+      function onAssetTypeModalChange(sel) {
+        if (sel.value === "__ADD_NEW__") {
+          const newT = prompt("Enter new Asset Type:");
+          if (newT && newT.trim()) {
+            const cleanT = newT.trim();
+            if (!customModalAssetTypes.includes(cleanT)) {
+              customModalAssetTypes.push(cleanT);
+            }
+            sel.innerHTML = `<option value="">-- Select Type --</option>`;
+            customModalAssetTypes.forEach((t) => {
+              sel.innerHTML += `<option value="${t}" ${cleanT === t ? "selected" : ""}>${t}</option>`;
+            });
+            sel.innerHTML += `<option value="__ADD_NEW__">➕ Add New...</option>`;
+            sel.value = cleanT;
+          } else {
+            sel.value = "";
+          }
+        }
+      }
+
+      async function saveAssetModalDetails(isNext = false) {
+        const eqId = Number(document.getElementById("editEquipmentId").value);
+        const aType = document.getElementById("editAssetTypeInput").value;
+        const aModel = document.getElementById("editModelInput").value.trim();
+        const aMake = document.getElementById("editMakeInput").value.trim();
+        const aOwner = document.getElementById("editOwnerNameInput").value.trim();
+
+        const updates = [
+          { equipment_id: eqId, field: "asset_type", value: aType },
+          { equipment_id: eqId, field: "model", value: aModel },
+          { equipment_id: eqId, field: "make", value: aMake },
+          { equipment_id: eqId, field: "owner_name", value: aOwner },
+        ];
+
+        try {
+          const res = await fetch("/py/aks-summary/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ updates }),
+          });
+          const result = await res.json();
+          if (res.ok && result.success) {
+            const item = rawData.find((x) => x.id === eqId);
+            if (item) {
+              item.asset_type = aType;
+              item.model = aModel;
+              item.make = aMake;
+              item.owner_name = aOwner;
+            }
+            onRibbonYearChange();
+
+            if (isNext) {
+              const currIdx = rawData.findIndex((x) => x.id === eqId);
+              if (currIdx !== -1 && currIdx + 1 < rawData.length) {
+                const nextItem = rawData[currIdx + 1];
+                document.getElementById("selectPlateToEdit").value = nextItem.id;
+                fetchAndOpenAssetEdit();
+                showToast(`Saved! Loaded next: ${nextItem.plate_no || ""}`, "success");
+              } else {
+                closeModal("editAssetDetailsModal");
+                showToast("All items updated successfully!", "success");
+              }
+            } else {
+              showToast("Asset details updated successfully!", "success");
+              closeModal("editAssetDetailsModal");
+            }
+          } else {
+            showToast("Save failed", "error");
+          }
+        } catch (e) {
+          showToast("Server error during save", "error");
+        }
+      }
 
       document.addEventListener("DOMContentLoaded", () => {
         loadAKSData();

@@ -29,7 +29,8 @@ def init_aks_table():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS equipment_aks_details (
             equipment_id INT PRIMARY KEY REFERENCES equipments(id) ON DELETE CASCADE,
-            insurance_cost NUMERIC(12, 2) DEFAULT 0,
+            off_site_insurance NUMERIC(12, 2) DEFAULT 0,
+            on_site_insurance NUMERIC(12, 2) DEFAULT 0,
             off_site_mtc NUMERIC(12, 2) DEFAULT 0,
             work_assign_site VARCHAR(255) DEFAULT '',
             reached_site_date DATE,
@@ -37,6 +38,17 @@ def init_aks_table():
             site_second_month_mtc NUMERIC(12, 2) DEFAULT 0,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        ALTER TABLE equipment_aks_details ADD COLUMN IF NOT EXISTS off_site_insurance NUMERIC(12, 2) DEFAULT 0;
+        ALTER TABLE equipment_aks_details ADD COLUMN IF NOT EXISTS on_site_insurance NUMERIC(12, 2) DEFAULT 0;
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE table_name = 'equipment_aks_details' AND column_name = 'insurance_cost'
+            ) THEN
+                UPDATE equipment_aks_details SET off_site_insurance = insurance_cost WHERE off_site_insurance = 0 OR off_site_insurance IS NULL;
+            END IF;
+        END $$;
     """)
     conn.commit()
     cur.close()
@@ -56,7 +68,8 @@ class AKSSavePayload(BaseModel):
     updates: List[AKSCellUpdate]
 
 ALLOWED_FIELDS = {
-    "insurance_cost",
+    "off_site_insurance",
+    "on_site_insurance",
     "off_site_mtc",
     "work_assign_site",
     "reached_site_date",
@@ -104,9 +117,14 @@ def get_aks_data():
             SELECT 
                 e.id,
                 e.plate_no,
+                COALESCE(a.asset_type, '') AS asset_type,
+                COALESCE(a.model, '') AS model,
+                COALESCE(a.make, '') AS make,
+                COALESCE(a.owner_name, '') AS owner_name,
                 e.purchase_date,
                 COALESCE(e.purchase_cost, 0) AS purchase_cost,
-                COALESCE(a.insurance_cost, 0) AS insurance_cost
+                COALESCE(a.off_site_insurance, 0) AS off_site_insurance,
+                COALESCE(a.on_site_insurance, 0) AS on_site_insurance
             FROM equipments e
             LEFT JOIN equipment_aks_details a ON e.id = a.equipment_id
             ORDER BY e.purchase_date ASC NULLS LAST, e.id ASC;
@@ -218,6 +236,7 @@ def get_aks_data():
                     })
 
             calculated_off_site_mtc = 0.0
+            on_site_maint_map = {}
             p_date = eq["purchase_date"]
 
             all_eq_years_months = set()
@@ -235,8 +254,6 @@ def get_aks_data():
 
                 for day in range(1, num_days + 1):
                     current_d = date(yr, mn, day)
-                    if p_date and current_d < p_date:
-                        continue
 
                     is_on_site = False
                     for interval in site_intervals:
@@ -253,6 +270,8 @@ def get_aks_data():
 
                     if not is_on_site:
                         calculated_off_site_mtc += daily_cost
+                    else:
+                        on_site_maint_map[f"{yr}_{mn}"] = on_site_maint_map.get(f"{yr}_{mn}", 0.0) + daily_cost
 
             month_columns_data = []
             for tm in timeline:
@@ -275,7 +294,7 @@ def get_aks_data():
                             matched_site_names.append(c_site)
 
                 site_display = " / ".join(matched_site_names) if matched_site_names else ""
-                mtc_val = maint_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
+                mtc_val = on_site_maint_map.get(f"{yr}_{mn}", 0.0)
                 otc_val = otc_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
                 tor_val = rev_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
 
@@ -286,9 +305,10 @@ def get_aks_data():
                     "tor": round(tor_val, 2)
                 })
 
+            net_off_site_mtc = max(0.0, calculated_off_site_mtc - float(eq.get("off_site_insurance") or 0))
             records.append({
                 **eq,
-                "off_site_mtc": round(calculated_off_site_mtc, 2),
+                "off_site_mtc": round(net_off_site_mtc, 2),
                 "months_data": month_columns_data
             })
 
@@ -310,7 +330,7 @@ def save_aks_data(payload: AKSSavePayload):
                 continue
             
             val = item.value
-            if item.field in ["insurance_cost", "off_site_mtc", "site_first_month_mtc", "site_second_month_mtc"]:
+            if item.field in ["off_site_insurance", "on_site_insurance", "off_site_mtc", "site_first_month_mtc", "site_second_month_mtc"]:
                 val = float(val) if val not in [None, ""] else 0
             elif item.field == "reached_site_date":
                 val = val if val not in [None, ""] else None
@@ -363,20 +383,44 @@ def export_aks_excel(
         )
 
         base_headers = [
-            "SN", "Plate No / Asset code", "Date Of Purchase", "Purchase Cost",
-            "Insurance Cost", "Off Site MTC"
+            "SN", "Asset Type", "Model", "Make", "Owner Name", "Plate No / Asset code",
+            "Date Of Purchase", "Purchase Cost", "Off Site Insurance",
+            "On Site Insurance", "Off Site MTC"
         ]
 
         def build_tracker_sheet(ws, sheet_timeline):
             ws.row_dimensions[1].height = 25
             ws.row_dimensions[2].height = 25
 
-            for c_idx, h_text in enumerate(base_headers, 1):
+            single_headers = [
+                (1, "SN"),
+                (2, "Asset Type"),
+                (3, "Model"),
+                (4, "Make"),
+                (5, "Owner Name"),
+                (6, "Plate No / Asset code"),
+                (7, "Date Of Purchase"),
+                (8, "Purchase Cost"),
+                (11, "Off Site MTC")
+            ]
+            for c_idx, h_text in single_headers:
                 ws.merge_cells(start_row=1, start_column=c_idx, end_row=2, end_column=c_idx)
                 c = ws.cell(row=1, column=c_idx, value=h_text)
                 c.fill = head_fill_main
                 c.font = head_font
                 c.alignment = center_align
+
+            ws.merge_cells(start_row=1, start_column=9, end_row=1, end_column=10)
+            c_ins = ws.cell(row=1, column=9, value="Insurance Cost")
+            c_ins.fill = head_fill_main
+            c_ins.font = head_font
+            c_ins.alignment = center_align
+
+            for sub_c, sub_t in [(9, "Off Site"), (10, "On Site")]:
+                c_sub = ws.cell(row=2, column=sub_c, value=sub_t)
+                c_sub.fill = head_fill_sub
+                c_sub.font = head_font
+                c_sub.alignment = center_align
 
             # Timeline Headers (4 Columns per Month: Site, MTC, OTC, TOR)
             rev_data_fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
@@ -412,22 +456,30 @@ def export_aks_excel(
                         p_date_obj = None
 
                 ws.cell(row=curr_row, column=1, value=idx).alignment = center_align
-                ws.cell(row=curr_row, column=2, value=item.get("plate_no") or "").alignment = center_align
+                ws.cell(row=curr_row, column=2, value=item.get("asset_type") or "").alignment = center_align
+                ws.cell(row=curr_row, column=3, value=item.get("model") or "").alignment = center_align
+                ws.cell(row=curr_row, column=4, value=item.get("make") or "").alignment = center_align
+                ws.cell(row=curr_row, column=5, value=item.get("owner_name") or "").alignment = center_align
+                ws.cell(row=curr_row, column=6, value=item.get("plate_no") or "").alignment = center_align
 
-                c_date = ws.cell(row=curr_row, column=3, value=p_date_obj)
+                c_date = ws.cell(row=curr_row, column=7, value=p_date_obj)
                 c_date.alignment = center_align
                 if p_date_obj:
                     c_date.number_format = 'dd-mmm-yy'
 
-                c_pcost = ws.cell(row=curr_row, column=4, value=float(item.get("purchase_cost") or 0))
+                c_pcost = ws.cell(row=curr_row, column=8, value=float(item.get("purchase_cost") or 0))
                 c_pcost.alignment = center_align
                 c_pcost.number_format = '#,##0.00'
 
-                c_icost = ws.cell(row=curr_row, column=5, value=float(item.get("insurance_cost") or 0))
-                c_icost.alignment = center_align
-                c_icost.number_format = '#,##0.00'
+                c_off_ins = ws.cell(row=curr_row, column=9, value=float(item.get("off_site_insurance") or 0))
+                c_off_ins.alignment = center_align
+                c_off_ins.number_format = '#,##0.00'
 
-                c_offmtc = ws.cell(row=curr_row, column=6, value=float(item.get("off_site_mtc") or 0))
+                c_on_ins = ws.cell(row=curr_row, column=10, value=float(item.get("on_site_insurance") or 0))
+                c_on_ins.alignment = center_align
+                c_on_ins.number_format = '#,##0.00'
+
+                c_offmtc = ws.cell(row=curr_row, column=11, value=float(item.get("off_site_mtc") or 0))
                 c_offmtc.alignment = center_align
                 c_offmtc.font = regular_font
                 c_offmtc.number_format = '#,##0.00'
@@ -437,7 +489,7 @@ def export_aks_excel(
                     orig_t_idx = next((i for i, x in enumerate(timeline) if x["year"] == tm["year"] and x["month"] == tm["month"]), -1)
                     m_info = m_data_list[orig_t_idx] if orig_t_idx != -1 and orig_t_idx < len(m_data_list) else {"site": "", "mtc": 0, "otc": 0, "tor": 0}
 
-                    site_col = 7 + (t_idx * 4)
+                    site_col = 12 + (t_idx * 4)
                     mtc_col = site_col + 1
                     otc_col = site_col + 2
                     tor_col = site_col + 3

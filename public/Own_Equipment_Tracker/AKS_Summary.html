@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AKS Equipment Summary Tracker</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 15px;
+        background-color: #f4f7f6;
+      }
+      .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fff;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        margin-bottom: 15px;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .btn-blue {
+        background: #2980b9;
+        color: white;
+      }
+      .btn-dark {
+        background: #34495e;
+        color: white;
+      }
+      .btn-save {
+        background: #27ae60;
+        color: white;
+      }
+      .table-container {
+        overflow-x: auto;
+        max-height: calc(100vh - 110px);
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      th, td {
+        border: 1px solid #c0c0c0;
+        padding: 8px 10px;
+        text-align: center;
+      }
+      thead tr:first-child th {
+        position: sticky;
+        top: 0;
+        z-index: 6;
+        background: #d9e1f2;
+        color: #000;
+        font-weight: 700;
+      }
+      tbody tr:hover {
+        background: #f8fafc;
+      }
+      .editable-cell {
+        background: #fffdf0;
+        outline: none;
+      }
+      .editable-cell:focus {
+        background: #fff9c4;
+        box-shadow: inset 0 0 0 1px #f39c12;
+      }
+      .dirty-cell {
+        background-color: #ffeaa7 !important;
+      }
+      .type-select {
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        padding: 3px;
+        font-size: 12px;
+        background: #fff;
+        outline: none;
+        width: 100%;
+      }
+      #toast-container {
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .toast {
+        min-width: 240px;
+        background: #2c3e50;
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      .toast.success { background: #27ae60; }
+      .toast.error { background: #e74c3c; }
+    </style>
+  </head>
+  <body>
+    <div class="top-bar">
+      <div class="controls">
+        <h3 style="margin: 0; color: #2c3e50">AKS Equipment Summary</h3>
+        <input
+          type="text"
+          id="searchPlate"
+          placeholder="🔍 Search Plate / Code..."
+          oninput="filterRows()"
+          style="padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 200px;"
+        />
+      </div>
+      <div class="controls">
+        <button id="btnEditAsset" class="btn" style="background: #d97706; color: white;" onclick="openEditAssetSelectModal()">
+          🛠️ Edit Asset
+        </button>
+        <button class="btn" style="background: #1e7e34; color: white;" onclick="exportSummaryExcel()">
+          📊 Export Excel
+        </button>
+        <button class="btn btn-blue" onclick="loadSummaryData()">
+          🔄 Refresh
+        </button>
+        <button class="btn btn-dark" onclick="window.location.href = 'AKS.html'">
+          📋 Detailed AKS
+        </button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="summaryTable">
+        <thead>
+          <tr id="summaryHeadRow">
+            <th style="min-width: 50px;">SN</th>
+            <th style="min-width: 120px;">Asset Type</th>
+            <th style="min-width: 100px;">Model</th>
+            <th style="min-width: 100px;">Make</th>
+            <th style="min-width: 120px;">Owner Name</th>
+            <th style="min-width: 130px;">Plate No / Asset Code</th>
+            <th style="min-width: 110px;">Date Of Purchase</th>
+            <th style="min-width: 110px;">Purchase Cost</th>
+            <th style="min-width: 120px;">MTC During Purchase</th>
+            <th style="min-width: 110px;">Insurance Cost</th>
+            <th style="min-width: 110px; background: #e2efda;">Total Cost</th>
+            <th style="min-width: 120px;">Reached at Site</th>
+            <th style="min-width: 140px;">Which Site</th>
+          </tr>
+        </thead>
+        <tbody id="summaryTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Edit Asset Selection Modal -->
+    <div id="editAssetSelectModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10001; justify-content: center; align-items: center;">
+      <div style="background: #ffffff; border-radius: 8px; width: 350px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h4 style="margin: 0 0 15px 0; color: #1e293b;">🛠️ Select Plate No to Edit</h4>
+        <div style="margin-bottom: 15px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Plate No / Asset Code</label>
+          <select id="selectPlateToEdit" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; outline: none;"></select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('editAssetSelectModal')">Cancel</button>
+          <button type="button" class="btn btn-blue" onclick="fetchAndOpenAssetEdit()">Fetch Data</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Asset Details Modal -->
+    <div id="editAssetDetailsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10002; justify-content: center; align-items: center;">
+      <div style="background: #ffffff; border-radius: 8px; width: 380px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h4 id="editAssetDetailsTitle" style="margin: 0 0 15px 0; color: #d97706;">✏️ Edit Asset Details</h4>
+        <input type="hidden" id="editEquipmentId" />
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Asset Type</label>
+          <select id="editAssetTypeInput" onchange="onAssetTypeModalChange(this)" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; outline: none;"></select>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Model</label>
+          <input type="text" id="editModelInput" placeholder="Enter Model" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box; outline: none;" />
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Make</label>
+          <input type="text" id="editMakeInput" placeholder="Enter Make" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box; outline: none;" />
+        </div>
+        <div style="margin-bottom: 20px;">
+          <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px;">Owner Name</label>
+          <input type="text" id="editOwnerNameInput" placeholder="Enter Owner Name" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; box-sizing: border-box; outline: none;" />
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+          <button type="button" class="btn" style="background: #0284c7; color: white;" onclick="saveAssetModalDetails(true)">💾 Save & Next</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('editAssetDetailsModal')">Cancel</button>
+            <button type="button" class="btn" style="background: #27ae60; color: white;" onclick="saveAssetModalDetails(false)">Save Details</button>
+          </div>
+        </div>
+          <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeModal('editAssetDetailsModal')">Cancel</button>
+          <button type="button" class="btn" style="background: #27ae60; color: white;" onclick="saveAssetModalDetails()">Save Details</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+      let rawData = [];
+      let currentTimeline = [];
+      let pendingChanges = {};
+      let customAssetTypes = ["Head", "Dyna"];
+      let isEditMode = false;
+
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      function fmtNumber(val) {
+        const num = Number(val);
+        if (num === 0 || isNaN(num)) return "";
+        return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      function formatDate(d) {
+        if (!d) return "";
+        const x = new Date(d);
+        if (isNaN(x.getTime())) return "";
+        const day = String(x.getDate()).padStart(2, "0");
+        return `${day}-${monthNames[x.getMonth()]}-${x.getFullYear().toString().slice(-2)}`;
+      }
+
+      function showToast(msg, type = "success") {
+        const c = document.getElementById("toast-container");
+        const t = document.createElement("div");
+        t.className = `toast ${type}`;
+        t.innerText = msg;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+      }
+
+      async function loadSummaryData() {
+        try {
+          const res = await fetch("/py/aks-summary/data");
+          const data = await res.json();
+          if (data.success) {
+            rawData = data.records || [];
+            currentTimeline = data.timeline || [];
+            
+            // Gather any existing custom asset types from db
+            rawData.forEach(r => {
+              if (r.asset_type && !customAssetTypes.includes(r.asset_type)) {
+                customAssetTypes.push(r.asset_type);
+              }
+            });
+
+            pendingChanges = {};
+            renderTable();
+          } else {
+            showToast("Failed to load summary data", "error");
+          }
+        } catch (err) {
+          showToast("Server connection error", "error");
+        }
+      }
+
+      function renderTable() {
+        const headRow = document.getElementById("summaryHeadRow");
+        
+        // Remove dynamic month headers if already populated (Now 13 base headers)
+        while (headRow.children.length > 13) {
+          headRow.removeChild(headRow.lastChild);
+        }
+
+        // Add 1 Column per Month for MTC
+        currentTimeline.forEach((tm) => {
+          const th = document.createElement("th");
+          th.style.minWidth = "95px";
+          th.style.background = "#c6d9f1";
+          th.innerText = tm.label;
+          headRow.appendChild(th);
+        });
+
+        const tbody = document.getElementById("summaryTableBody");
+        tbody.innerHTML = "";
+
+        rawData.forEach((item, idx) => {
+          const tr = document.createElement("tr");
+          tr.setAttribute("data-plate", (item.plate_no || "").toLowerCase());
+
+          let rowHtml = `
+            <td><b>${idx + 1}</b></td>
+            <td>${item.asset_type || ""}</td>
+            <td>${item.model || ""}</td>
+            <td>${item.make || ""}</td>
+            <td>${item.owner_name || ""}</td>
+            <td style="font-weight: 600;">${item.plate_no || ""}</td>
+            <td>${formatDate(item.purchase_date)}</td>
+            <td>${fmtNumber(item.purchase_cost)}</td>
+            <td>${fmtNumber(item.mtc_during_purchase)}</td>
+            <td>${fmtNumber(item.total_insurance)}</td>
+            <td style="font-weight: 600; background-color: #f0fdf4;">${fmtNumber(Number(item.purchase_cost || 0) + Number(item.mtc_during_purchase || 0) + Number(item.total_insurance || 0))}</td>
+            <td>${formatDate(item.reached_site_date)}</td>
+            <td style="text-align: left;">${item.first_site || ""}</td>
+          `;
+
+          // Monthly MTC Single Columns
+          (item.monthly_mtc || []).forEach(val => {
+            rowHtml += `<td>${fmtNumber(val)}</td>`;
+          });
+
+          tr.innerHTML = rowHtml;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function closeModal(id) {
+        const m = document.getElementById(id);
+        if (m) m.style.display = "none";
+      }
+
+      function openEditAssetSelectModal() {
+        const sel = document.getElementById("selectPlateToEdit");
+        sel.innerHTML = "";
+        rawData.forEach((item) => {
+          sel.innerHTML += `<option value="${item.id}">${item.plate_no || "Asset ID: " + item.id}</option>`;
+        });
+        document.getElementById("editAssetSelectModal").style.display = "flex";
+      }
+
+      function fetchAndOpenAssetEdit() {
+        const eqId = Number(document.getElementById("selectPlateToEdit").value);
+        const item = rawData.find((x) => x.id === eqId);
+        if (!item) return;
+
+        closeModal("editAssetSelectModal");
+        document.getElementById("editEquipmentId").value = eqId;
+        document.getElementById("editAssetDetailsTitle").innerText = `✏️ Edit: ${item.plate_no || ""}`;
+
+        if (item.asset_type && !customAssetTypes.includes(item.asset_type)) {
+          customAssetTypes.push(item.asset_type);
+        }
+        const typeSel = document.getElementById("editAssetTypeInput");
+        typeSel.innerHTML = `<option value="">-- Select Type --</option>`;
+        customAssetTypes.forEach((t) => {
+          typeSel.innerHTML += `<option value="${t}" ${item.asset_type === t ? "selected" : ""}>${t}</option>`;
+        });
+        typeSel.innerHTML += `<option value="__ADD_NEW__">➕ Add New...</option>`;
+
+        const itemIdx = rawData.findIndex((x) => x.id === eqId);
+        document.getElementById("editAssetDetailsTitle").innerText = `✏️ [SN: ${itemIdx !== -1 ? itemIdx + 1 : ""}] Edit: ${item.plate_no || ""}`;
+        document.getElementById("editModelInput").value = item.model || "";
+        document.getElementById("editMakeInput").value = item.make || "";
+        document.getElementById("editOwnerNameInput").value = item.owner_name || "";
+        document.getElementById("editAssetDetailsModal").style.display = "flex";
+      }
+
+      function onAssetTypeModalChange(sel) {
+        if (sel.value === "__ADD_NEW__") {
+          const newT = prompt("Enter new Asset Type:");
+          if (newT && newT.trim()) {
+            const cleanT = newT.trim();
+            if (!customAssetTypes.includes(cleanT)) {
+              customAssetTypes.push(cleanT);
+            }
+            sel.innerHTML = `<option value="">-- Select Type --</option>`;
+            customAssetTypes.forEach((t) => {
+              sel.innerHTML += `<option value="${t}" ${cleanT === t ? "selected" : ""}>${t}</option>`;
+            });
+            sel.innerHTML += `<option value="__ADD_NEW__">➕ Add New...</option>`;
+            sel.value = cleanT;
+          } else {
+            sel.value = "";
+          }
+        }
+      }
+
+      async function saveAssetModalDetails(isNext = false) {
+        const eqId = Number(document.getElementById("editEquipmentId").value);
+        const aType = document.getElementById("editAssetTypeInput").value;
+        const aModel = document.getElementById("editModelInput").value.trim();
+        const aMake = document.getElementById("editMakeInput").value.trim();
+        const aOwner = document.getElementById("editOwnerNameInput").value.trim();
+
+        const updates = [
+          { equipment_id: eqId, field: "asset_type", value: aType },
+          { equipment_id: eqId, field: "model", value: aModel },
+          { equipment_id: eqId, field: "make", value: aMake },
+          { equipment_id: eqId, field: "owner_name", value: aOwner },
+        ];
+
+        try {
+          const res = await fetch("/py/aks-summary/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ updates }),
+          });
+          const result = await res.json();
+          if (res.ok && result.success) {
+            const item = rawData.find((x) => x.id === eqId);
+            if (item) {
+              item.asset_type = aType;
+              item.model = aModel;
+              item.make = aMake;
+              item.owner_name = aOwner;
+            }
+            renderTable();
+
+            if (isNext) {
+              const currIdx = rawData.findIndex((x) => x.id === eqId);
+              if (currIdx !== -1 && currIdx + 1 < rawData.length) {
+                const nextItem = rawData[currIdx + 1];
+                document.getElementById("selectPlateToEdit").value = nextItem.id;
+                fetchAndOpenAssetEdit();
+                showToast(`Saved! Loaded next: ${nextItem.plate_no || ""}`, "success");
+              } else {
+                closeModal("editAssetDetailsModal");
+                showToast("All items updated successfully!", "success");
+              }
+            } else {
+              showToast("Asset details updated successfully!", "success");
+              closeModal("editAssetDetailsModal");
+            }
+          } else {
+            showToast(result.detail || "Save failed", "error");
+          }
+        } catch (e) {
+          console.error("Save error:", e);
+          showToast("Server error during save", "error");
+        }
+      }
+
+      function exportSummaryExcel() {
+        showToast("Generating Excel file...", "success");
+        window.location.href = "/py/aks-summary/export-excel";
+      }
+
+      function filterRows() {
+        const term = document.getElementById("searchPlate").value.trim().toLowerCase();
+        document.querySelectorAll("#summaryTableBody tr").forEach((tr) => {
+          const p = tr.getAttribute("data-plate") || "";
+          tr.style.display = p.includes(term) ? "" : "none";
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        loadSummaryData();
+      });
+    </script>
+  </body>
+</html>

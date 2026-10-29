@@ -26,6 +26,8 @@ from routers.pdf_tools import router as pdf_tools_router
 from routers.einvoice_export_py import router as einvoice_export_router
 from routers.johns_report import router as johns_report_router
 from routers.AKS import router as aks_router
+from routers.AKS_Summary import router as aks_summary_router
+from routers.AKS_Combined_Export import router as aks_combined_router
 from routers.landtasset_routes import router as landtasset_router
 from routers.Assets_own_EQ_parts import router as assets_own_eq_router
 
@@ -57,6 +59,8 @@ app.include_router(pdf_tools_router)
 app.include_router(einvoice_export_router)
 app.include_router(johns_report_router)
 app.include_router(aks_router)
+app.include_router(aks_summary_router)
+app.include_router(aks_combined_router)
 app.include_router(landtasset_router)
 app.include_router(assets_own_eq_router)
 
