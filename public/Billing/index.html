@@ -92,103 +92,97 @@
         <div id="faceLoginModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center; flex-direction:column;">
             <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
                 <h3>Position your face in front of the camera</h3>
+                <h4 id="livenessInstruction" style="margin-top:5px; margin-bottom:15px; font-weight:bold; color:#d97706; min-height: 20px;">Loading Security Module...</h4>
                 <video id="faceVideo" width="320" height="240" autoplay style="border-radius:6px; transform: scaleX(-1);"></video>
                 <canvas id="faceCanvas" width="320" height="240" style="display:none;"></canvas>
                 <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                    <button onclick="autoScanFace(true)" style="background:#2563eb; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Verify Face</button>
                     <button onclick="closeFaceModal()" style="background:#dc2626; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
                 </div>
             </div>
         </div>
 
+        <script src="/node_xlsx_scripts/mediapipe/camera_utils.js"></script>
+        <script src="/node_xlsx_scripts/mediapipe/face_mesh.js"></script>
         <script>
             let videoStream = null;
+            let faceMesh = null;
+            let mpCamera = null;
+            let livenessChallenge = null;
+            let challengePassed = false;
+            let isVerifying = false;
 
             async function executeFaceLogin() {
                 const modal = document.getElementById("faceLoginModal");
                 const video = document.getElementById("faceVideo");
+                const instruction = document.getElementById("livenessInstruction");
                 modal.style.display = "flex";
+                challengePassed = false;
+                isVerifying = false;
+                
+                const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
+                livenessChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+                instruction.innerText = livenessChallenge;
+                instruction.style.color = "#d97706";
+                
                 try {
+                    if (!faceMesh) {
+                        faceMesh = new FaceMesh({locateFile: (file) => {
+                            return `/node_xlsx_scripts/mediapipe/${file}`;
+                        }});
+                        faceMesh.setOptions({ maxNumFaces: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+                        faceMesh.onResults(onFaceMeshResults);
+                    }
+                    
                     videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
                     video.srcObject = videoStream;
-                    clearInterval(autoScanTimer);
-                    autoScanTimer = setInterval(autoScanFace, 2500);
+                    
+                    mpCamera = new Camera(video, {
+                        onFrame: async () => { await faceMesh.send({image: video}); },
+                        width: 320, height: 240
+                    });
+                    mpCamera.start();
                 } catch (err) {
                     showToast("Camera access denied or not available.");
-                    modal.style.display = "none";
+                    closeFaceModal();
                 }
             }
 
-            function closeFaceModal() {
-                const modal = document.getElementById("faceLoginModal");
-                clearInterval(autoScanTimer);
-                scanning = false;
-                modal.style.display = "none";
-                if (videoStream) {
-                    videoStream.getTracks().forEach(track => track.stop());
-                    videoStream = null;
-                }
-            }
-
-                        let lastScanToast = 0;
-
-            async function autoScanFace(isManual) {
-                // Event object varunnath (onclick) ozhivaakkan
-                isManual = isManual === true;
-
-                if (!videoStream) return;
-                if (scanning) {
-                    if (isManual) showToast("Scanning... please wait.");
-                    return;
-                }
-                scanning = true;
-
-                const video = document.getElementById("faceVideo");
-                const canvas = document.getElementById("faceCanvas");
-                canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                if (isManual) showToast("Verifying face...");
-
-                try {
-                    const res = await fetch("/py/face-login", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ image: canvas.toDataURL("image/jpeg") })
-                    });
-                    const data = await res.json();
-
-                    if (data.success) {
-                        localStorage.setItem("invoiceToken", data.token);
-                        localStorage.setItem("token", data.token);
-                        closeFaceModal();
-                        loadApp();
-                        showToast("Welcome " + (data.user.displayName || ""));
-                        return;
+            async function onFaceMeshResults(results) {
+                if (isVerifying || challengePassed) return;
+                
+                const instruction = document.getElementById("livenessInstruction");
+                
+                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                    const landmarks = results.multiFaceLandmarks[0];
+                    const nose = landmarks[1];
+                    const leftEdge = landmarks[234];
+                    const rightEdge = landmarks[454];
+                    
+                    // Calculate Yaw (Head Turn). Video is mirrored, so directions are inverted
+                    const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
+                    
+                    let passed = false;
+                    if (livenessChallenge === "Turn your head LEFT" && yawRatio > 0.65) passed = true;
+                    if (livenessChallenge === "Turn your head RIGHT" && yawRatio < 0.35) passed = true;
+                    
+                    if (passed) {
+                        challengePassed = true;
+                        instruction.innerText = "Challenge Passed! Verifying...";
+                        instruction.style.color = "#10b981";
+                        await captureAndVerifyFace(results.image);
                     }
-
-                    // Fail: manual aanenkil eppozhum, auto aanenkil 4 s-il oru thavana maathram
-                    const now = Date.now();
-                    const isAccessIssue = data.code === "NOT_APPROVED";
-                    if (isManual || isAccessIssue || now - lastScanToast > 4000) {
-                        showToast(data.message || "Face recognition failed.");
-                        lastScanToast = now;
-                    }
-                } catch (e) {
-                    if (isManual) showToast("Server connection failed. Try again.");
-                    console.log("Scan error:", e);
                 }
-                scanning = false;
             }
-
-            async function captureAndVerifyFace() {
-                const video = document.getElementById("faceVideo");
+            
+            async function captureAndVerifyFace(videoFrame) {
+                isVerifying = true;
                 const canvas = document.getElementById("faceCanvas");
-                const context = canvas.getContext("2d");
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(videoFrame, 0, 0, canvas.width, canvas.height);
                 const imageData = canvas.toDataURL("image/jpeg");
 
                 document.getElementById("loader").style.display = "flex";
-                document.getElementById("loaderText").innerText = "Verifying Face...";
+                document.getElementById("loaderText").innerText = "Verifying Face Identity...";
 
                 try {
                     const res = await fetch("/py/face-login", {
@@ -204,13 +198,27 @@
                         localStorage.setItem("token", data.token);
                         closeFaceModal();
                         loadApp();
-                        showToast("Face Login Successful!");
+                        showToast("Welcome " + (data.user.displayName || ""));
                     } else {
                         showToast(data.message || "Face recognition failed.");
+                        closeFaceModal();
                     }
                 } catch (err) {
                     document.getElementById("loader").style.display = "none";
                     showToast("Python Server Connection Failed.");
+                    closeFaceModal();
+                }
+            }
+
+            function closeFaceModal() {
+                const modal = document.getElementById("faceLoginModal");
+                modal.style.display = "none";
+                isVerifying = false;
+                challengePassed = false;
+                if (mpCamera) { mpCamera.stop(); mpCamera = null; }
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                    videoStream = null;
                 }
             }
         </script>

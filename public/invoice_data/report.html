@@ -1043,6 +1043,21 @@
           onkeypress="if (event.key === 'Enter') executeLogin();"
         />
         <button onclick="executeLogin()">Secure Login</button>
+        <button onclick="executeReportFaceLogin()" style="background: #10b981; margin-top: 10px;">📸 Face Login</button>
+
+        <!-- Hidden Video & Canvas for Face Capture -->
+        <div id="reportFaceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; flex-direction:column;">
+            <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
+                <h3 style="margin:0 0 10px 0; color:#0f172a;">Position your face in front of the camera</h3>
+                <h4 id="reportLivenessInstruction" style="margin-top:5px; margin-bottom:15px; font-weight:bold; color:#d97706; min-height: 20px;">Loading Security Module...</h4>
+                <video id="reportFaceVideo" width="320" height="240" autoplay style="border-radius:6px; transform: scaleX(-1);"></video>
+                <canvas id="reportFaceCanvas" width="320" height="240" style="display:none;"></canvas>
+                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+                    <button onclick="closeReportFaceModal()" style="background:#dc2626; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <div style="margin-top: 15px; font-size: 14px">
           <a
             href="#"
@@ -2428,6 +2443,11 @@
           loadApp();
         } else {
           document.getElementById("loginUserId").focus();
+          if (sessionStorage.getItem("skipReportAutoFace")) {
+            sessionStorage.removeItem("skipReportAutoFace");
+          } else {
+            executeReportFaceLogin();
+          }
         }
       });
 
@@ -2529,6 +2549,7 @@
       function executeLogout() {
         localStorage.removeItem("invoiceToken");
         localStorage.removeItem("timesheetToken");
+        sessionStorage.setItem("skipReportAutoFace", "1");
         window.location.reload();
       }
 
@@ -5945,6 +5966,132 @@
           cb.checked = !cb.checked; // എറർ വന്നാൽ ചെക്ക്ബോക്സ് പഴയതുപോലെ ആക്കും
         }
       }
+
+      // ---------- 🟢 Face Login Logic with Active Liveness (MediaPipe) ----------
+      let reportVideoStream = null;
+      let reportFaceMesh = null;
+      let reportMpCamera = null;
+      let reportLivenessChallenge = null;
+      let reportChallengePassed = false;
+      let isReportVerifying = false;
+
+      async function executeReportFaceLogin() {
+        const modal = document.getElementById("reportFaceModal");
+        const video = document.getElementById("reportFaceVideo");
+        const instruction = document.getElementById("reportLivenessInstruction");
+        modal.style.display = "flex";
+        reportChallengePassed = false;
+        isReportVerifying = false;
+
+        const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
+        reportLivenessChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+        instruction.innerText = reportLivenessChallenge;
+        instruction.style.color = "#d97706";
+
+        try {
+          if (!reportFaceMesh) {
+            reportFaceMesh = new FaceMesh({
+              locateFile: (file) => `/node_xlsx_scripts/mediapipe/${file}`
+            });
+            reportFaceMesh.setOptions({ maxNumFaces: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+            reportFaceMesh.onResults(onReportFaceMeshResults);
+          }
+
+          reportVideoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = reportVideoStream;
+
+          reportMpCamera = new Camera(video, {
+            onFrame: async () => { await reportFaceMesh.send({ image: video }); },
+            width: 320,
+            height: 240
+          });
+          reportMpCamera.start();
+        } catch (err) {
+          showToast("Camera access denied or not available.");
+          closeReportFaceModal();
+        }
+      }
+
+      async function onReportFaceMeshResults(results) {
+        if (isReportVerifying || reportChallengePassed) return;
+
+        const instruction = document.getElementById("reportLivenessInstruction");
+
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+          const landmarks = results.multiFaceLandmarks[0];
+          const nose = landmarks[1];
+          const leftEdge = landmarks[234];
+          const rightEdge = landmarks[454];
+
+          const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
+
+          let passed = false;
+          if (reportLivenessChallenge === "Turn your head LEFT" && yawRatio > 0.65) passed = true;
+          if (reportLivenessChallenge === "Turn your head RIGHT" && yawRatio < 0.35) passed = true;
+
+          if (passed) {
+            reportChallengePassed = true;
+            instruction.innerText = "Challenge Passed! Verifying...";
+            instruction.style.color = "#10b981";
+            await captureAndVerifyReportFace(results.image);
+          }
+        }
+      }
+
+      async function captureAndVerifyReportFace(videoFrame) {
+        isReportVerifying = true;
+        const canvas = document.getElementById("reportFaceCanvas");
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(videoFrame, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL("image/jpeg");
+
+        document.getElementById("loader").style.display = "block";
+        document.getElementById("loader").innerText = "Verifying Face Identity...";
+
+        try {
+          const res = await fetch("/py/face-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: imageData })
+          });
+          const data = await res.json();
+          document.getElementById("loader").style.display = "none";
+          document.getElementById("loader").innerText = "Processing Data... Please wait.";
+
+          if (data.success) {
+            localStorage.setItem("invoiceToken", data.token);
+            localStorage.setItem("timesheetToken", data.token);
+            closeReportFaceModal();
+            loadApp();
+            showToast("Welcome " + (data.user.displayName || ""));
+          } else {
+            showToast(data.message || "Face recognition failed.");
+            closeReportFaceModal();
+          }
+        } catch (err) {
+          document.getElementById("loader").style.display = "none";
+          document.getElementById("loader").innerText = "Processing Data... Please wait.";
+          showToast("Python Server Connection Failed.");
+          closeReportFaceModal();
+        }
+      }
+
+      function closeReportFaceModal() {
+        const modal = document.getElementById("reportFaceModal");
+        modal.style.display = "none";
+        isReportVerifying = false;
+        reportChallengePassed = false;
+        if (reportMpCamera) {
+          reportMpCamera.stop();
+          reportMpCamera = null;
+        }
+        if (reportVideoStream) {
+          reportVideoStream.getTracks().forEach((track) => track.stop());
+          reportVideoStream = null;
+        }
+      }
     </script>
+    <script src="/node_xlsx_scripts/mediapipe/camera_utils.js"></script>
+    <script src="/node_xlsx_scripts/mediapipe/face_mesh.js"></script>
   </body>
 </html>

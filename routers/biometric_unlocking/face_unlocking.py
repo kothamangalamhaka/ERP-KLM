@@ -16,11 +16,16 @@ from pydantic import BaseModel
 load_dotenv()
 
 router = APIRouter(prefix="/py", tags=["Biometric Face Login"])
-JWT_SECRET = os.getenv("JWT_SECRET", "fallback_secret")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET or JWT_SECRET == "fallback_secret":
+    raise RuntimeError("CRITICAL SECURITY ERROR: JWT_SECRET must be explicitly set in .env and cannot be 'fallback_secret'.")
 
+
+from typing import Optional, List
 
 class FaceRequest(BaseModel):
-    image: str
+    image: Optional[str] = None
+    frames: Optional[List[str]] = None
 
 
 def get_conn():
@@ -52,41 +57,63 @@ async def face_encode(payload: FaceRequest):
         return {"success": False, "message": f"Encode error: {e}"}
 
 
+# In-memory cache optimized with vectorized encodings
+FACE_CACHE = {"users": [], "encodings": [], "last_updated": 0.0}
+CACHE_TTL = 300.0  # 5 minutes cache validity
+
 @router.post("/face-login")
 async def face_login(payload: FaceRequest):
     try:
+        # Frontend MediaPipe Face Mesh strictly handles the active liveness check.
+        # We only need to securely match the extracted face to our database.
         current = image_to_encoding(payload.image)
         if current is None:
             return {"success": False, "message": "No face detected in the image."}
 
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute(
-            """SELECT id, username, role, email, display_name, face_descriptor, status
-               FROM invoicedatauser
-               WHERE face_descriptor IS NOT NULL"""
-        )
-        users = cur.fetchall()
-        cur.close()
-        conn.close()
+        global FACE_CACHE
+        current_time = datetime.now(timezone.utc).timestamp()
+        
+        # Fetch from DB and build vectorized encodings only if cache is expired or empty
+        if current_time - FACE_CACHE["last_updated"] > CACHE_TTL or not FACE_CACHE["users"]:
+            conn = get_conn()
+            cur = conn.cursor()
+            cur.execute(
+                """SELECT id, username, role, email, display_name, face_descriptor, status
+                   FROM invoicedatauser
+                   WHERE face_descriptor IS NOT NULL"""
+            )
+            raw_users = cur.fetchall()
+            cur.close()
+            conn.close()
 
-        best_user, best_dist = None, 1.0
-        for db_id, username, role, email, display_name, desc, status in users:
-            try:
-                stored = np.array(json.loads(desc), dtype=float)
-                if stored.shape != (128,):
-                    continue  # pazhaya/invalid data skip
-            except Exception:
-                continue
-            dist = face_recognition.face_distance([stored], current)[0]
-            if dist < best_dist:
-                best_dist = dist
-                best_user = (db_id, username, role, email, display_name, status)
+            valid_users, valid_encodings = [], []
+            for user in raw_users:
+                try:
+                    stored = np.array(json.loads(user[5]), dtype=float)
+                    if stored.shape == (128,):
+                        valid_users.append(user)
+                        valid_encodings.append(stored)
+                except Exception:
+                    continue
+            
+            FACE_CACHE["users"] = valid_users
+            FACE_CACHE["encodings"] = valid_encodings
+            FACE_CACHE["last_updated"] = current_time
 
-        if not best_user or best_dist > 0.5:
+        if not FACE_CACHE["encodings"]:
+            return {"success": False, "code": "NOT_RECOGNIZED", "message": "No valid face data in database."}
+
+        # Vectorized distance calculation (Fast & CPU efficient)
+        distances = face_recognition.face_distance(FACE_CACHE["encodings"], current)
+        best_match_index = np.argmin(distances)
+        best_dist = distances[best_match_index]
+
+        # 0.5 is strict, optimized threshold (adjust to 0.53 if false rejections happen)
+        if best_dist > 0.5:
             return {"success": False, "code": "NOT_RECOGNIZED", "message": "Face not recognized."}
 
-        db_id, username, role, email, display_name, status = best_user
+        best_user = FACE_CACHE["users"][best_match_index]
+        db_id, username, role, email, display_name, _, status = best_user
 
         if status != "Approved":
             return {
