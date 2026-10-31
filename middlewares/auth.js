@@ -32,7 +32,7 @@ const pool = require('../config/db');
 
 const verifyEditor = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.json({ success: false, message: 'No token provided' });
+    if (!token) return res.status(401).json({ success: false, message: 'No token provided' });
     
     let decoded;
     try {
@@ -40,14 +40,14 @@ const verifyEditor = async (req, res, next) => {
         decoded = jwt.verify(token, JWT_SECRET);
     } catch (e) {
         // Only trigger token errors for actual JWT failures
-        return res.json({ success: false, message: 'Invalid token' });
+        return res.status(401).json({ success: false, message: 'Invalid token' });
     }
 
     try {
         // Step 2: Perform the Database Query separately
         const userRes = await pool.query("SELECT role, status FROM timesheet_users WHERE id = $1", [decoded.id]);
         if (userRes.rows.length === 0 || userRes.rows[0].status !== 'Active') {
-            return res.json({ success: false, message: 'User inactive or not found.' });
+            return res.status(401).json({ success: false, message: 'User inactive or not found.' });
         }
 
         const currentRole = userRes.rows[0].role;

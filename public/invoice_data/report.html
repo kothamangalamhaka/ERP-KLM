@@ -1081,6 +1081,22 @@
         <input type="text" id="regUser" placeholder="Username" />
         <input type="email" id="regEmail" placeholder="Email" />
         <input type="password" id="regPass" placeholder="Password" />
+        <button onclick="openSignupFaceCapture()" style="background: #0ea5e9; margin-bottom: 10px;">📸 Capture Face for Login</button>
+        <div id="signupFaceStatus" style="font-size: 12px; color: #10b981; margin-bottom: 10px; font-weight: bold;"></div>
+        
+        <!-- Hidden Video & Canvas for Signup Face Capture -->
+        <div id="signupFaceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; flex-direction:column;">
+            <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
+                <h3 style="margin:0 0 10px 0; color:#0f172a;">Position your face for registration</h3>
+                <video id="signupFaceVideo" width="320" height="240" autoplay style="border-radius:6px; transform: scaleX(-1);"></video>
+                <canvas id="signupFaceCanvas" width="320" height="240" style="display:none;"></canvas>
+                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+                    <button onclick="captureSignupFace()" style="background:#10b981; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Capture</button>
+                    <button onclick="closeSignupFaceModal()" style="background:#dc2626; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <button onclick="executeSignup()" style="background: #10b981">
           Sign Up
         </button>
@@ -5974,6 +5990,41 @@
       let reportLivenessChallenge = null;
       let reportChallengePassed = false;
       let isReportVerifying = false;
+
+      let signupFaceStream = null;
+      let capturedSignupFaceData = null;
+
+      async function openSignupFaceCapture() {
+        const modal = document.getElementById("signupFaceModal");
+        const video = document.getElementById("signupFaceVideo");
+        modal.style.display = "flex";
+        try {
+          signupFaceStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = signupFaceStream;
+        } catch (err) {
+          window.alert("Camera access denied or not available.");
+          closeSignupFaceModal();
+        }
+      }
+
+      function captureSignupFace() {
+        const video = document.getElementById("signupFaceVideo");
+        const canvas = document.getElementById("signupFaceCanvas");
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        capturedSignupFaceData = canvas.toDataURL("image/jpeg");
+        document.getElementById("signupFaceStatus").innerText = "✓ Face Captured Successfully!";
+        closeSignupFaceModal();
+      }
+
+      function closeSignupFaceModal() {
+        const modal = document.getElementById("signupFaceModal");
+        modal.style.display = "none";
+        if (signupFaceStream) {
+          signupFaceStream.getTracks().forEach((track) => track.stop());
+          signupFaceStream = null;
+        }
+      }
 
       async function executeReportFaceLogin() {
         const modal = document.getElementById("reportFaceModal");
