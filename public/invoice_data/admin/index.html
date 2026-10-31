@@ -191,6 +191,12 @@
           onkeypress="if (event.key === 'Enter') adminLogin();"
         />
         <button onclick="adminLogin()">Verify</button>
+        <button
+          onclick="startAdminFaceLogin()"
+          style="background: #10b981; margin-top: 10px; box-shadow: none"
+        >
+          📸 Face Login
+        </button>
         <div
           id="adminAuthError"
           style="
@@ -236,10 +242,168 @@
       </table>
     </div>
 
+    <!-- Admin Face Login Modal -->
+    <div
+      id="adminFaceModal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10000;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        style="
+          background: white;
+          padding: 20px;
+          border-radius: 12px;
+          text-align: center;
+        "
+      >
+        <h3 style="margin-top: 0; color: #0f172a">Super Admin Face Login</h3>
+        <video
+          id="adminFaceVideo"
+          width="320"
+          height="240"
+          autoplay
+          muted
+          playsinline
+          style="border-radius: 6px; transform: scaleX(-1)"
+        ></video>
+        <canvas
+          id="adminFaceCanvas"
+          width="320"
+          height="240"
+          style="display: none"
+        ></canvas>
+        <div
+          id="adminFaceStatus"
+          style="font-size: 13px; color: #64748b; margin: 10px 0"
+        >
+          Scanning...
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: center">
+          <button
+            onclick="adminFaceScan(true)"
+            style="background: #2563eb; color: white"
+          >
+            Verify Face
+          </button>
+          <button
+            onclick="closeAdminFace()"
+            style="background: #dc2626; color: white"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="toast"></div>
 
     <script>
       let token = "";
+
+      // Evidennu vannuvo avide thirichu pokan (illenkil report.html)
+      function goBackToWhereCameFrom() {
+        const ref = document.referrer;
+        const sameSite = ref && ref.startsWith(window.location.origin);
+        const isThisPage = ref && ref.includes("/invoice_data/admin");
+        if (sameSite && !isThisPage) {
+          window.location.replace(ref);
+        } else {
+          window.location.replace("../report.html");
+        }
+      }
+
+      // ---------- Face Login (Super Admin) ----------
+      let adminVideoStream = null;
+      let adminScanTimer = null;
+      let adminScanning = false;
+
+      async function startAdminFaceLogin() {
+        const modal = document.getElementById("adminFaceModal");
+        const video = document.getElementById("adminFaceVideo");
+        document.getElementById("adminFaceStatus").innerText = "Scanning...";
+        modal.style.display = "flex";
+        try {
+          adminVideoStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          video.srcObject = adminVideoStream;
+          clearInterval(adminScanTimer);
+          adminScanTimer = setInterval(() => adminFaceScan(false), 2500);
+        } catch (err) {
+          modal.style.display = "none";
+          showToast("Camera access denied or not available.");
+        }
+      }
+
+      function closeAdminFace() {
+        clearInterval(adminScanTimer);
+        adminScanning = false;
+        document.getElementById("adminFaceModal").style.display = "none";
+        if (adminVideoStream) {
+          adminVideoStream.getTracks().forEach((t) => t.stop());
+          adminVideoStream = null;
+        }
+      }
+
+      async function adminFaceScan(isManual) {
+        isManual = isManual === true;
+        if (!adminVideoStream || adminScanning) return;
+        adminScanning = true;
+
+        const status = document.getElementById("adminFaceStatus");
+        const video = document.getElementById("adminFaceVideo");
+        const canvas = document.getElementById("adminFaceCanvas");
+        canvas
+          .getContext("2d")
+          .drawImage(video, 0, 0, canvas.width, canvas.height);
+        if (isManual) status.innerText = "Verifying...";
+
+        try {
+          const res = await fetch("/py/face-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: canvas.toDataURL("image/jpeg") }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            if (data.user && data.user.role === "Super Admin") {
+              token = data.token;
+              closeAdminFace();
+              document.getElementById("adminAuthModal").style.display = "none";
+              document.getElementById("mainAdminContent").style.display =
+                "block";
+              fetchUsers();
+              showToast("Welcome " + (data.user.displayName || ""));
+              return;
+            }
+            // Face OK pakshe Super Admin alla
+            closeAdminFace();
+            const errDiv = document.getElementById("adminAuthError");
+            errDiv.innerText = "Access Denied: Super Admin Only.";
+            errDiv.style.display = "block";
+            return;
+          }
+
+          if (data.code === "NOT_APPROVED") {
+            status.innerText = data.message;
+          } else if (isManual) {
+            status.innerText = data.message || "Face not recognized.";
+          } else {
+            status.innerText = "Scanning...";
+          }
+        } catch (e) {
+          if (isManual) status.innerText = "Server connection failed.";
+        }
+        adminScanning = false;
+      }
 
       // Initial check blocked to force dedicated login
       async function adminLogin() {
@@ -266,6 +430,7 @@
 
           if (data.success && data.user && data.user.role === "Super Admin") {
             token = data.token;
+            closeAdminFace();
             document.getElementById("adminAuthModal").style.display = "none";
             document.getElementById("mainAdminContent").style.display = "block";
             fetchUsers();
@@ -290,8 +455,10 @@
 
       function logout() {
         localStorage.removeItem("invoiceToken");
+        localStorage.removeItem("token");
         localStorage.removeItem("timesheetToken");
-        window.location.replace("../report.html");
+        sessionStorage.setItem("skipAdminAutoFace", "1");
+        goBackToWhereCameFrom();
       }
 
       async function fetchUsers() {
@@ -304,7 +471,7 @@
           if (!data.success) {
             alert(data.message);
             if (data.message.includes("Super Admin")) {
-              window.location.replace() = "../report.html";
+              goBackToWhereCameFrom();
             }
             return;
           }
@@ -381,6 +548,11 @@
       }
 
       // fetchUsers(); is now called only after successful adminLogin()
+      if (sessionStorage.getItem("skipAdminAutoFace")) {
+        sessionStorage.removeItem("skipAdminAutoFace");
+      } else {
+        startAdminFaceLogin(); // auto face scan on page open
+      }
     </script>
   </body>
 </html>
