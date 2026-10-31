@@ -84,17 +84,17 @@ async function executeSignup() {
       });
       const data = await res.json();
       document.getElementById("loader").style.display = "none";
-      alert(data.message);
+      showToast(data.message);
       if (data.success) toggleAuthView('loginBox');
   } catch (err) { 
       document.getElementById("loader").style.display = "none";
-      alert("Server Error"); 
+      showToast("Server Error"); 
   }
 }
 
 async function requestOtp() {
   const email = document.getElementById("forgotEmail").value;
-  if (!email) return alert("Enter email");
+  if (!email) return showToast("Enter email");
   
   document.getElementById("loader").style.display = "flex";
   try {
@@ -105,14 +105,14 @@ async function requestOtp() {
       });
       const data = await res.json();
       document.getElementById("loader").style.display = "none";
-      alert(data.message);
+      showToast(data.message);
       if (data.success) {
           document.getElementById("otpRequestSection").style.display = "none";
           document.getElementById("otpVerifySection").style.display = "block";
       }
   } catch (err) { 
       document.getElementById("loader").style.display = "none";
-      alert("Server Error"); 
+      showToast("Server Error"); 
   }
 }
 
@@ -120,7 +120,7 @@ async function resetPassword() {
   const email = document.getElementById("forgotEmail").value;
   const otp = document.getElementById("resetOtp").value;
   const newPassword = document.getElementById("newPass").value;
-  if (!otp || !newPassword) return alert("Enter OTP and new password");
+  if (!otp || !newPassword) return showToast("Enter OTP and new password");
   
   document.getElementById("loader").style.display = "flex";
   try {
@@ -131,18 +131,18 @@ async function resetPassword() {
       });
       const data = await res.json();
       document.getElementById("loader").style.display = "none";
-      alert(data.message);
+      showToast(data.message);
       if (data.success) toggleAuthView('loginBox');
   } catch (err) { 
       document.getElementById("loader").style.display = "none";
-      alert("Server Error"); 
+      showToast("Server Error"); 
   }
 }
 
 async function executeLogin() {
   const username = document.getElementById("loginUserId").value;
   const password = document.getElementById("loginPass").value;
-  if (!username || !password) return alert("Enter credentials");
+  if (!username || !password) return showToast("Enter credentials");
 
   document.getElementById("loader").style.display = "flex";
   try {
@@ -159,10 +159,10 @@ async function executeLogin() {
       localStorage.setItem("token", data.token); 
       localStorage.setItem("savedBillingUsername", username);
       loadApp();
-    } else alert(data.message);
+    } else showToast(data.message);
   } catch (err) {
     document.getElementById("loader").style.display = "none";
-    alert("Server Error.");
+    showToast("Server Error.");
   }
 }
 
