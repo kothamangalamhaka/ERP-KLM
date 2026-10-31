@@ -1408,6 +1408,9 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
         else if (sUpper.includes("WE1") || sUpper.includes("WE 1"))
           autoCompany = "We1 Track";
 
+        let normVatF = (matchedOwnerLog?.vat || vehicleInfo.vat || "No").trim().toLowerCase().replace(/\s+/g, "");
+        let fallbackVat = (normVatF.includes("yes") || ["true", "15", "15%"].includes(normVatF)) ? 15 : 0;
+
         let matchedMonthSiteLog = siteLogs.find((s) => {
           let st = s.work_start_date
             ? new Date(s.work_start_date)
@@ -1437,7 +1440,7 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
           nrate: fallbackNRate,
           otrate: fallbackOTRate,
           rent: 0,
-          vat_percent: 0,
+          vat_percent: fallbackVat,
           vat_amount: 0,
           total: 0,
           adjustment_desc: "",

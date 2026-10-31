@@ -235,7 +235,12 @@
       }
 
       window.addEventListener("pageshow", checkAuthAndRedirect);
-      window.addEventListener("DOMContentLoaded", checkAuthAndRedirect);
+      window.addEventListener("DOMContentLoaded", () => {
+        checkAuthAndRedirect();
+        const handleEnter = (e) => { if (e.key === "Enter") login(); };
+        document.getElementById("logUsername").addEventListener("keydown", handleEnter);
+        document.getElementById("logPassword").addEventListener("keydown", handleEnter);
+      });
 
       function switchSection(id) {
         document.querySelectorAll(".section").forEach((sec) => {
@@ -252,10 +257,20 @@
           .forEach((ldr) => (ldr.style.display = "none"));
       }
 
+      let loginAttempts = 0;
+      let lockoutTime = 0;
+
       async function login() {
+        const msgDiv = document.getElementById("logMessage");
+        if (Date.now() < lockoutTime) {
+          const remaining = Math.ceil((lockoutTime - Date.now()) / 1000);
+          msgDiv.innerText = `Too many failed attempts. Please wait ${remaining} seconds.`;
+          msgDiv.style.color = "#dc3545";
+          return;
+        }
+
         const u = document.getElementById("logUsername").value;
         const p = document.getElementById("logPassword").value;
-        const msgDiv = document.getElementById("logMessage");
         const loader = document.getElementById("logLoader");
 
         if (!u || !p) {
@@ -277,12 +292,19 @@
           loader.style.display = "none";
 
           if (data.success) {
+            loginAttempts = 0;
             localStorage.setItem("timesheetToken", data.token);
             localStorage.setItem("timesheetUser", JSON.stringify(data.user));
             // 🟢 REDIRECT TO THE PAGE THEY CAME FROM, OR DASHBOARD (REPLACE HISTORY)
             window.location.replace(redirectUrl);
           } else {
-            msgDiv.innerText = data.message;
+            loginAttempts++;
+            if (loginAttempts >= 5) {
+              lockoutTime = Date.now() + 30000; // 30 seconds lockout
+              msgDiv.innerText = "Security Alert: Too many failed attempts. Locked for 30 seconds.";
+            } else {
+              msgDiv.innerText = data.message;
+            }
             msgDiv.style.color = "#dc3545";
           }
         } catch (e) {

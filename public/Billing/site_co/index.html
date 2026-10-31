@@ -4889,9 +4889,11 @@
           const vatVal = parseFloat(
             tr.querySelector(".vat-cell")?.innerText || 0,
           );
+          const viewVatTxt = tr.querySelector(".vat-percent-column .view-number-text")?.innerText || "0";
           const vatPercent = parseFloat(
             tr.querySelector(".vat-percent-field")?.value ||
-              (vatVal > 0 ? 15 : 0),
+            parseFloat(viewVatTxt.replace("%", "")) ||
+            (vatVal > 0 ? 15 : 0)
           );
           const total = parseFloat(
             tr.querySelector(".total-cell")?.innerText || rent + vatVal || 0,
