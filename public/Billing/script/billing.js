@@ -50,21 +50,21 @@ async function verifyToken(token) {
 
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("invoiceToken");
-  
+
   if (token) {
-      verifyToken(token);
+    verifyToken(token);
   } else {
-      document.getElementById("loginScreen").style.display = "flex";
-      document.getElementById("mainAppContainer").style.display = "none";
-      document.getElementById("loginUserId").focus();
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("mainAppContainer").style.display = "none";
+    document.getElementById("loginUserId").focus();
   }
 });
 
 function toggleAuthView(viewId) {
-  document.getElementById('loginBox').style.display = 'none';
-  document.getElementById('signupBox').style.display = 'none';
-  document.getElementById('forgotBox').style.display = 'none';
-  document.getElementById(viewId).style.display = 'block';
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("signupBox").style.display = "none";
+  document.getElementById("forgotBox").style.display = "none";
+  document.getElementById(viewId).style.display = "block";
 }
 
 async function executeSignup() {
@@ -73,46 +73,47 @@ async function executeSignup() {
   const email = document.getElementById("regEmail").value;
   const password = document.getElementById("regPass").value;
 
-  if (!username || !email || !password) return showToast("Fill all required fields");
+  if (!username || !email || !password)
+    return showToast("Fill all required fields");
 
   document.getElementById("loader").style.display = "flex";
   try {
-      const res = await fetch("/api/invoice-auth/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ displayName, username, email, password })
-      });
-      const data = await res.json();
-      document.getElementById("loader").style.display = "none";
-      showToast(data.message);
-      if (data.success) toggleAuthView('loginBox');
-  } catch (err) { 
-      document.getElementById("loader").style.display = "none";
-      showToast("Server Error"); 
+    const res = await fetch("/api/invoice-auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName, username, email, password }),
+    });
+    const data = await res.json();
+    document.getElementById("loader").style.display = "none";
+    showToast(data.message);
+    if (data.success) toggleAuthView("loginBox");
+  } catch (err) {
+    document.getElementById("loader").style.display = "none";
+    showToast("Server Error");
   }
 }
 
 async function requestOtp() {
   const email = document.getElementById("forgotEmail").value;
   if (!email) return showToast("Enter email");
-  
+
   document.getElementById("loader").style.display = "flex";
   try {
-      const res = await fetch("/api/invoice-auth/forgot-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email })
-      });
-      const data = await res.json();
-      document.getElementById("loader").style.display = "none";
-      showToast(data.message);
-      if (data.success) {
-          document.getElementById("otpRequestSection").style.display = "none";
-          document.getElementById("otpVerifySection").style.display = "block";
-      }
-  } catch (err) { 
-      document.getElementById("loader").style.display = "none";
-      showToast("Server Error"); 
+    const res = await fetch("/api/invoice-auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    document.getElementById("loader").style.display = "none";
+    showToast(data.message);
+    if (data.success) {
+      document.getElementById("otpRequestSection").style.display = "none";
+      document.getElementById("otpVerifySection").style.display = "block";
+    }
+  } catch (err) {
+    document.getElementById("loader").style.display = "none";
+    showToast("Server Error");
   }
 }
 
@@ -121,21 +122,21 @@ async function resetPassword() {
   const otp = document.getElementById("resetOtp").value;
   const newPassword = document.getElementById("newPass").value;
   if (!otp || !newPassword) return showToast("Enter OTP and new password");
-  
+
   document.getElementById("loader").style.display = "flex";
   try {
-      const res = await fetch("/api/invoice-auth/reset-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, otp, newPassword })
-      });
-      const data = await res.json();
-      document.getElementById("loader").style.display = "none";
-      showToast(data.message);
-      if (data.success) toggleAuthView('loginBox');
-  } catch (err) { 
-      document.getElementById("loader").style.display = "none";
-      showToast("Server Error"); 
+    const res = await fetch("/api/invoice-auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp, newPassword }),
+    });
+    const data = await res.json();
+    document.getElementById("loader").style.display = "none";
+    showToast(data.message);
+    if (data.success) toggleAuthView("loginBox");
+  } catch (err) {
+    document.getElementById("loader").style.display = "none";
+    showToast("Server Error");
   }
 }
 
@@ -153,10 +154,10 @@ async function executeLogin() {
     });
     const data = await res.json();
     document.getElementById("loader").style.display = "none";
-    
+
     if (data.success) {
       localStorage.setItem("invoiceToken", data.token);
-      localStorage.setItem("token", data.token); 
+      localStorage.setItem("token", data.token);
       localStorage.setItem("savedBillingUsername", username);
       loadApp();
     } else showToast(data.message);
@@ -169,8 +170,8 @@ async function executeLogin() {
 function executeLogout() {
   localStorage.removeItem("invoiceToken");
   localStorage.removeItem("token");
-  localStorage.removeItem("timesheetToken"); 
-  window.location.replace("index.html"); 
+  localStorage.removeItem("timesheetToken");
+  window.location.replace("index.html");
 }
 
 function loadApp() {
@@ -208,8 +209,18 @@ function initMonth() {
 }
 
 const monthsList = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 function formatShortMonth(fullVal) {
@@ -345,7 +356,8 @@ let billingAbortController = null;
 function fetchDataFromERP(autoArrangeOwners = []) {
   const textEl = document.getElementById("selectedMonthText");
   const fullMonth = (textEl.dataset.fullMonth || textEl.innerText).trim();
-  const token = localStorage.getItem("token") || localStorage.getItem("invoiceToken");
+  const token =
+    localStorage.getItem("token") || localStorage.getItem("invoiceToken");
   if (!fullMonth || fullMonth === "Loading...")
     return showToast("Select a month.");
 
@@ -355,7 +367,9 @@ function fetchDataFromERP(autoArrangeOwners = []) {
   }
   billingAbortController = new AbortController();
 
-  let isFirstLoad = document.getElementById("siteList").querySelectorAll(".dynamic-item").length === 0;
+  let isFirstLoad =
+    document.getElementById("siteList").querySelectorAll(".dynamic-item")
+      .length === 0;
   let prevOwners = getSelectedCheckboxes("ownerList");
   let prevSites = getSelectedCheckboxes("siteList");
 
@@ -367,7 +381,7 @@ function fetchDataFromERP(autoArrangeOwners = []) {
 
   fetch("/billing/vehicles?month=" + encodeURIComponent(fullMonth), {
     headers: { Authorization: `Bearer ${token}` },
-    signal: billingAbortController.signal
+    signal: billingAbortController.signal,
   })
     .then(async (res) => {
       if (res.status === 401 || res.status === 403) {
@@ -405,7 +419,8 @@ function fetchDataFromERP(autoArrangeOwners = []) {
         return;
       }
       if (loaderEl) loaderEl.style.display = "none";
-      if (err.message !== "Session Expired") showToast("Server Connection Failed!");
+      if (err.message !== "Session Expired")
+        showToast("Server Connection Failed!");
     });
 }
 
@@ -437,14 +452,14 @@ function autoArrangeForOwners(ownerNames) {
         (a.plate_number || "").localeCompare(b.plate_number || ""),
       );
       groupCount++;
-      container.appendChild(createBillCard(group, `month_switch_${groupCount}`));
+      container.appendChild(
+        createBillCard(group, `month_switch_${groupCount}`),
+      );
     });
   });
 
   // Trigger calculation only via .nhr to preserve custom otrate from being overwritten
-  document
-    .querySelectorAll(".nhr")
-    .forEach((el) => calculateRow(el));
+  document.querySelectorAll(".nhr").forEach((el) => calculateRow(el));
 
   if (groupCount > 0) {
     showToast(`Month changed! ${groupCount} table(s) re-loaded.`);
@@ -454,7 +469,11 @@ function autoArrangeForOwners(ownerNames) {
   }
 }
 
-function populateCheckboxes(isFirstLoad = true, prevOwners = [], prevSites = []) {
+function populateCheckboxes(
+  isFirstLoad = true,
+  prevOwners = [],
+  prevSites = [],
+) {
   let owners = [
     ...new Set(
       masterData.map(
@@ -470,24 +489,38 @@ function populateCheckboxes(isFirstLoad = true, prevOwners = [], prevSites = [])
   let sList = document.getElementById("siteList");
 
   // മുൻപ് 'Select All' ആയിരുന്നോ അതോ യൂസർ ചിലത് മാത്രം മാറ്റി വെച്ചതാണോ എന്ന് പരിശോധിക്കുന്നു
-  let wasAllOwnersSelected = isFirstLoad || (document.getElementById("selectAllOwners") && document.getElementById("selectAllOwners").checked);
-  let wasAllSitesSelected = isFirstLoad || (document.getElementById("selectAllSites") && document.getElementById("selectAllSites").checked);
+  let wasAllOwnersSelected =
+    isFirstLoad ||
+    (document.getElementById("selectAllOwners") &&
+      document.getElementById("selectAllOwners").checked);
+  let wasAllSitesSelected =
+    isFirstLoad ||
+    (document.getElementById("selectAllSites") &&
+      document.getElementById("selectAllSites").checked);
 
   oList.querySelectorAll(".dynamic-item").forEach((e) => e.remove());
   sList.querySelectorAll(".dynamic-item").forEach((e) => e.remove());
 
   owners.forEach((o) => {
     // മുൻപ് Select All ആയിരുന്നെങ്കിൽ പുതിയ ഓണറും select ആകണം; അല്ലെങ്കിൽ പഴയ ലിസ്റ്റിൽ ഉള്ളതോ എന്ന് നോക്കണം
-    let isChecked = wasAllOwnersSelected ? "checked" : (prevOwners.includes(o) ? "checked" : "");
+    let isChecked = wasAllOwnersSelected
+      ? "checked"
+      : prevOwners.includes(o)
+        ? "checked"
+        : "";
     oList.innerHTML += `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${o}" ${isChecked} onchange="updateSelectTexts()"> ${o}</label>`;
   });
 
   sites.forEach((s) => {
     // മുൻപ് Select All ആയിരുന്നെങ്കിൽ ആ മാസത്തിൽ വരുന്ന പുതിയ എല്ലാ സൈറ്റുകളും സ്വയം select ആകുന്നു
-    let isChecked = wasAllSitesSelected ? "checked" : (prevSites.includes(s) ? "checked" : "");
+    let isChecked = wasAllSitesSelected
+      ? "checked"
+      : prevSites.includes(s)
+        ? "checked"
+        : "";
     sList.innerHTML += `<label class="check-item dynamic-item"><input type="checkbox" class="dynamic-check" value="${s}" ${isChecked} onchange="updateSelectTexts()"> ${s}</label>`;
   });
-  
+
   // Select All ചെക്ക്ബോക്സുകളുടെ നില അപ്ഡേറ്റ് ചെയ്യുന്നു
   if (document.getElementById("selectAllOwners")) {
     document.getElementById("selectAllOwners").checked = wasAllOwnersSelected;
@@ -504,7 +537,8 @@ function getCompanyFromSite(siteName, fallbackCompany = "") {
   let s = siteName.toUpperCase().replace(/[\s\-_]/g, "");
   if (s.includes("ALJODA")) return "Aljoda";
   if (s.includes("MASARWHEELS") || s.includes("MASAR")) return "Masar Wheels";
-  if (s.includes("WE1TRACK") || s.includes("WE1") || s.includes("WETRACK")) return "We1 Track";
+  if (s.includes("WE1TRACK") || s.includes("WE1") || s.includes("WETRACK"))
+    return "We1 Track";
   if (s.includes("HAKA")) return "Haka";
   return fallbackCompany || "Haka";
 }
@@ -562,10 +596,18 @@ function rearrangeScreenData() {
         (m) => (m.plate_number || m.plate || "").toUpperCase() === plate,
       );
       let vatSelect = row.querySelector(".vat-rate");
-      let vatPerc = vatSelect 
-        ? parseFloat(vatSelect.value) 
-        : (masterMatch && (masterMatch.vat_bill === "Yes" || masterMatch.vat === "Yes") ? 15 : 0);
-      let isVat = (vatPerc === 15 || (masterMatch && (masterMatch.vat_bill === "Yes" || masterMatch.vat === "Yes"))) ? "Yes" : "No";
+      let vatPerc = vatSelect
+        ? parseFloat(vatSelect.value)
+        : masterMatch &&
+            (masterMatch.vat_bill === "Yes" || masterMatch.vat === "Yes")
+          ? 15
+          : 0;
+      let isVat =
+        vatPerc === 15 ||
+        (masterMatch &&
+          (masterMatch.vat_bill === "Yes" || masterMatch.vat === "Yes"))
+          ? "Yes"
+          : "No";
 
       if (!plate && !site && nhr === 0 && othr === 0) return;
 
@@ -598,7 +640,11 @@ function rearrangeScreenData() {
         log_othr: parseFloat(row.querySelector(".log-ot")?.innerText) || 0,
         bill_nhr: parseFloat(row.querySelector(".bill-nr")?.innerText) || 0,
         bill_othr: parseFloat(row.querySelector(".bill-ot")?.innerText) || 0,
-        driver_ot: parseFloat(row.querySelector(".driver-ot-input")?.value || row.querySelector(".driver-ot")?.innerText || 0),
+        driver_ot: parseFloat(
+          row.querySelector(".driver-ot-input")?.value ||
+            row.querySelector(".driver-ot")?.innerText ||
+            0,
+        ),
         driver_amount: parseFloat(row.dataset.driverAmount) || 0,
         temp_nhr: nhr,
         temp_othr: othr,
@@ -771,15 +817,13 @@ function arrangeProperly() {
         }
 
         groupCount++;
-      container.appendChild(createBillCard(group, `group_${groupCount}`));
-    });
-    
-    // Trigger calculation only via .nhr to preserve custom otrate from being overwritten
-    document
-      .querySelectorAll(".nhr")
-      .forEach((el) => calculateRow(el));
-      
-    showToast(`Successfully generated ${groupCount} table(s)!`);
+        container.appendChild(createBillCard(group, `group_${groupCount}`));
+      });
+
+      // Trigger calculation only via .nhr to preserve custom otrate from being overwritten
+      document.querySelectorAll(".nhr").forEach((el) => calculateRow(el));
+
+      showToast(`Successfully generated ${groupCount} table(s)!`);
     }
     document.getElementById("loader").style.display = "none";
     document.getElementById("loaderText").innerText = "Processing Data...";
@@ -876,7 +920,9 @@ function createBillCard(group, id) {
     parsedAdjs = group.manual_adjustments;
   } else {
     for (let item of group.items) {
-      let itemPlates = Array.isArray(item.related_plates) ? item.related_plates : [(item.plate_number || item.plate || "").trim().toUpperCase()];
+      let itemPlates = Array.isArray(item.related_plates)
+        ? item.related_plates
+        : [(item.plate_number || item.plate || "").trim().toUpperCase()];
       let saved = savedBillingData.find(
         (s) =>
           itemPlates.includes((s.plate_no || "").trim().toUpperCase()) &&
@@ -992,31 +1038,34 @@ function createBillCard(group, id) {
     if (!str) return [];
     return String(str)
       .split(/➔|→|->|\/|,/)
-      .map(p => p.toUpperCase().replace(/[^A-Z0-9]/g, ""))
-      .filter(p => p.length > 0);
+      .map((p) => p.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+      .filter((p) => p.length > 0);
   }
 
   group.items.forEach((item, index) => {
-    let itemPlates = Array.isArray(item.related_plates) && item.related_plates.length > 0
-      ? item.related_plates
-      : [item.plate_number, item.plate, item.master_plate].filter(Boolean);
+    let itemPlates =
+      Array.isArray(item.related_plates) && item.related_plates.length > 0
+        ? item.related_plates
+        : [item.plate_number, item.plate, item.master_plate].filter(Boolean);
 
     let cleanItemTokens = [
-      ...new Set(itemPlates.flatMap(p => extractCleanPlateTokens(p)))
+      ...new Set(itemPlates.flatMap((p) => extractCleanPlateTokens(p))),
     ];
 
     function matchesBillingPlate(bPlate) {
       if (!bPlate) return false;
       let bTokens = extractCleanPlateTokens(bPlate);
       if (bTokens.length === 0 || cleanItemTokens.length === 0) return false;
-      return bTokens.some(tok => cleanItemTokens.includes(tok));
+      return bTokens.some((tok) => cleanItemTokens.includes(tok));
     }
 
     let itemSite = (item.site || "").trim().toUpperCase();
     let saved = savedBillingData.find(
       (s) =>
         matchesBillingPlate(s.plate_no) &&
-        ((s.site_name || "").trim().toUpperCase() === itemSite || !itemSite || itemSite === "N/A")
+        ((s.site_name || "").trim().toUpperCase() === itemSite ||
+          !itemSite ||
+          itemSite === "N/A"),
     );
 
     let nhr = saved ? saved.nhr : 0;
@@ -1033,14 +1082,23 @@ function createBillCard(group, id) {
     }
 
     // 🟢 Owner Log / Master പ്രകാരമുള്ള VAT തന്നെ അടിസ്ഥാനമായി എടുക്കുന്നു
-    let isVatVehicle = (item.vat_bill === "Yes" || item.vat === "Yes" || item.vat === "15" || item.vat === true);
+    let isVatVehicle =
+      item.vat_bill === "Yes" ||
+      item.vat === "Yes" ||
+      item.vat === "15" ||
+      item.vat === true;
     let vatPerc = isVatVehicle ? 15 : 0;
 
     // മുൻപ് ബില്ലിംഗിൽ എഡിറ്റ് ചെയ്തു സേവ് ചെയ്ത റെക്കോർഡ് ഉണ്ടെങ്കിൽ മാത്രം അത് പരിഗണിക്കുക, അല്ലെങ്കിൽ വെഹിക്കിൾ ലോഗ് തുക തന്നെ നിൽക്കണം
-    if (saved && saved.vat_percent !== null && saved.vat_percent !== undefined && (parseFloat(saved.nrate) > 0 || parseFloat(saved.rent) > 0)) {
-        vatPerc = parseFloat(saved.vat_percent);
+    if (
+      saved &&
+      saved.vat_percent !== null &&
+      saved.vat_percent !== undefined &&
+      (parseFloat(saved.nrate) > 0 || parseFloat(saved.rent) > 0)
+    ) {
+      vatPerc = parseFloat(saved.vat_percent);
     } else {
-        vatPerc = isVatVehicle ? 15 : 0;
+      vatPerc = isVatVehicle ? 15 : 0;
     }
     let driverName = item.driver_name || item.driver || "";
     if (saved && saved.driver) driverName = saved.driver;
@@ -1277,7 +1335,11 @@ window.arrangeSingleCard = function (cardId) {
       log_othr: parseFloat(row.querySelector(".log-ot")?.innerText) || 0,
       bill_nhr: parseFloat(row.querySelector(".bill-nr")?.innerText) || 0,
       bill_othr: parseFloat(row.querySelector(".bill-ot")?.innerText) || 0,
-      driver_ot: parseFloat(row.querySelector(".driver-ot-input")?.value || row.querySelector(".driver-ot")?.innerText || 0),
+      driver_ot: parseFloat(
+        row.querySelector(".driver-ot-input")?.value ||
+          row.querySelector(".driver-ot")?.innerText ||
+          0,
+      ),
       driver_amount: parseFloat(row.dataset.driverAmount) || 0,
       temp_nhr: nhr,
       temp_othr: othr,
@@ -1340,7 +1402,7 @@ window.arrangeSingleCard = function (cardId) {
         let siteA = (a.site || "").toUpperCase();
         let siteB = (b.site || "").toUpperCase();
         if (siteA !== siteB) return siteA.localeCompare(siteB);
-        
+
         let plateA = (a.plate_number || a.plate || "").toUpperCase();
         let plateB = (b.plate_number || b.plate || "").toUpperCase();
         return plateA.localeCompare(plateB);
@@ -1417,16 +1479,30 @@ function showSuggestions(input) {
   }
 
   let selectedSites = getSelectedCheckboxes("siteList");
-  let filteredData = selectedSites.length > 0 ? masterData.filter(d => selectedSites.includes(d.site || "N/A")) : masterData;
-  
+  let filteredData =
+    selectedSites.length > 0
+      ? masterData.filter((d) => selectedSites.includes(d.site || "N/A"))
+      : masterData;
+
   let matches = [];
-  filteredData.forEach(r => {
+  filteredData.forEach((r) => {
     let p = r.plate_number || r.plate || "";
     let matchFound = false;
 
-    if (p && p.toUpperCase().replace(/\s+/g, "").includes(val)) matchFound = true;
-    if (r.master_plate && r.master_plate.toUpperCase().replace(/\s+/g, "").includes(val)) matchFound = true;
-    if (Array.isArray(r.related_plates) && r.related_plates.some(rp => rp.toUpperCase().replace(/\s+/g, "").includes(val))) matchFound = true;
+    if (p && p.toUpperCase().replace(/\s+/g, "").includes(val))
+      matchFound = true;
+    if (
+      r.master_plate &&
+      r.master_plate.toUpperCase().replace(/\s+/g, "").includes(val)
+    )
+      matchFound = true;
+    if (
+      Array.isArray(r.related_plates) &&
+      r.related_plates.some((rp) =>
+        rp.toUpperCase().replace(/\s+/g, "").includes(val),
+      )
+    )
+      matchFound = true;
 
     if (matchFound && !matches.includes(p)) {
       matches.push(p);
@@ -1586,10 +1662,14 @@ function autoFill(input) {
   let matches = masterData.filter((d) => {
     let p = (d.plate_number || d.plate || "").toUpperCase();
     let mp = (d.master_plate || "").toUpperCase();
-    let rp = Array.isArray(d.related_plates) ? d.related_plates.map(x => x.toUpperCase()) : [];
+    let rp = Array.isArray(d.related_plates)
+      ? d.related_plates.map((x) => x.toUpperCase())
+      : [];
 
-    let isPlateMatch = (p === val || mp === val || rp.includes(val) || p.includes(val));
-    let isSiteMatch = (selectedSites.length === 0 || selectedSites.includes(d.site || "N/A"));
+    let isPlateMatch =
+      p === val || mp === val || rp.includes(val) || p.includes(val);
+    let isSiteMatch =
+      selectedSites.length === 0 || selectedSites.includes(d.site || "N/A");
 
     return isPlateMatch && isSiteMatch;
   });
@@ -1683,13 +1763,23 @@ function applyAutoFillData(input, match, addBlankRow = true) {
   if (drOtInput) drOtInput.value = match.driver_ot || 0;
   row.dataset.driverAmount = match.driver_amount || 0;
 
-  let matchPlates = Array.isArray(match.related_plates) ? match.related_plates : [(match.plate_number || match.plate || "").trim().toUpperCase()];
+  let matchPlates = Array.isArray(match.related_plates)
+    ? match.related_plates
+    : [(match.plate_number || match.plate || "").trim().toUpperCase()];
   function matchesSavedBillingPlate(bPlate) {
     if (!bPlate) return false;
     let raw = String(bPlate).trim().toUpperCase();
-    let parts = raw.split(/➔|→|->/).map((p) => p.trim().replace(/[^A-Z0-9]/g, "")).filter(Boolean);
-    let cleanMatchPlates = matchPlates.map((p) => String(p).replace(/[^A-Z0-9]/g, ""));
-    return parts.some((p) => cleanMatchPlates.includes(p)) || cleanMatchPlates.includes(raw.replace(/[^A-Z0-9]/g, ""));
+    let parts = raw
+      .split(/➔|→|->/)
+      .map((p) => p.trim().replace(/[^A-Z0-9]/g, ""))
+      .filter(Boolean);
+    let cleanMatchPlates = matchPlates.map((p) =>
+      String(p).replace(/[^A-Z0-9]/g, ""),
+    );
+    return (
+      parts.some((p) => cleanMatchPlates.includes(p)) ||
+      cleanMatchPlates.includes(raw.replace(/[^A-Z0-9]/g, ""))
+    );
   }
 
   let saved = savedBillingData.find(
@@ -1705,9 +1795,9 @@ function applyAutoFillData(input, match, addBlankRow = true) {
     row.dataset.driverAmount = saved.driver_amount || 0;
     row.querySelector(".nhr").value = saved.nhr || 0;
     row.querySelector(".othr").value = saved.othr || 0;
-    if (row.querySelector(".remark") && saved.remark) {      
+    if (row.querySelector(".remark") && saved.remark) {
       row.querySelector(".remark").value = saved.remark;
-    } 
+    }
 
     let fillNrate = match.nrate || 0;
     if (saved.nrate !== null && saved.nrate !== undefined) {
@@ -1733,14 +1823,23 @@ function applyAutoFillData(input, match, addBlankRow = true) {
       (s) =>
         matchesSavedBillingPlate(s.plate_no) &&
         (s.site_name || "").trim().toUpperCase() ===
-          (match.site || match.site_name || "").trim().toUpperCase()
+          (match.site || match.site_name || "").trim().toUpperCase(),
     );
-    
+
     // 🟢 വണ്ടിക്ക് VAT ഉണ്ടോ ഇല്ലയോ എന്ന് കൃത്യമായി വേർതിരിക്കുന്നു
-    let isVat = (match.vat_bill === "Yes" || match.vat === "Yes" || match.vat === "15" || match.vat === true);
+    let isVat =
+      match.vat_bill === "Yes" ||
+      match.vat === "Yes" ||
+      match.vat === "15" ||
+      match.vat === true;
     let vatVal = isVat ? "15" : "0";
 
-    if (saved && saved.vat_percent !== null && saved.vat_percent !== undefined && (parseFloat(saved.nrate) > 0 || parseFloat(saved.rent) > 0)) {
+    if (
+      saved &&
+      saved.vat_percent !== null &&
+      saved.vat_percent !== undefined &&
+      (parseFloat(saved.nrate) > 0 || parseFloat(saved.rent) > 0)
+    ) {
       vatVal = String(parseFloat(saved.vat_percent));
     }
     vatSelect.value = vatVal;
@@ -2099,15 +2198,16 @@ async function shareSingleWhatsApp(id) {
   const filename = getDynamicFileName(card);
 
   document.getElementById("loader").style.display = "flex";
-  document.getElementById("loaderText").innerText = "Generating HD Image for WhatsApp...";
+  document.getElementById("loaderText").innerText =
+    "Generating HD Image for WhatsApp...";
 
   convertInputsToText(printArea);
   // High Quality (HD) ലഭിക്കാനായി scale 4 ആക്കി മാറ്റിയിരിക്കുന്നു
-  const canvas = await html2canvas(printArea, { 
-    scale: 4, 
+  const canvas = await html2canvas(printArea, {
+    scale: 4,
     useCORS: true,
     logging: false,
-    imageTimeout: 0
+    imageTimeout: 0,
   });
   revertInputsFromText(printArea);
 
@@ -2119,7 +2219,9 @@ async function shareSingleWhatsApp(id) {
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file] });
         } else {
-          showToast("Direct Share not supported on this device. Downloading instead.");
+          showToast(
+            "Direct Share not supported on this device. Downloading instead.",
+          );
           exportSingleImage(id);
         }
       } catch (error) {
@@ -2127,7 +2229,7 @@ async function shareSingleWhatsApp(id) {
       }
     },
     "image/png",
-    1.0
+    1.0,
   );
 }
 
@@ -2137,14 +2239,15 @@ async function copyHighQualityCard(id) {
   const printArea = document.getElementById(`printArea_${id}`);
 
   document.getElementById("loader").style.display = "flex";
-  document.getElementById("loaderText").innerText = "Copying Card in High Quality...";
+  document.getElementById("loaderText").innerText =
+    "Copying Card in High Quality...";
 
   convertInputsToText(printArea);
-  const canvas = await html2canvas(printArea, { 
-    scale: 4, 
+  const canvas = await html2canvas(printArea, {
+    scale: 4,
     useCORS: true,
     logging: false,
-    imageTimeout: 0
+    imageTimeout: 0,
   });
   revertInputsFromText(printArea);
 
@@ -2169,7 +2272,7 @@ async function copyHighQualityCard(id) {
       }
     },
     "image/png",
-    1.0
+    1.0,
   );
 }
 
@@ -2256,9 +2359,11 @@ function submitBulkData() {
       if (plate) {
         let rentVal = parseFloat(row.querySelector(".rent").value) || 0;
         let vatAmt = parseFloat(row.querySelector(".vat")?.innerText || 0);
-        
+
         // 🟢 FIX: സ്ക്രീനിൽ കാണുന്ന കൃത്യമായ റൗണ്ടഡ് ടോട്ടൽ തന്നെ എടുക്കുന്നു (0.01 പൈസ വ്യത്യാസം വരാതിരിക്കാൻ)
-        let totalVal = parseFloat(row.querySelector(".total")?.innerText) || Number((rentVal + vatAmt).toFixed(2));
+        let totalVal =
+          parseFloat(row.querySelector(".total")?.innerText) ||
+          Number((rentVal + vatAmt).toFixed(2));
 
         // 🟢 BUG FIX: Match Adjustment Plate dynamically
         let rowAdjs = adjDataArray.filter((a) => {
@@ -2295,7 +2400,7 @@ function submitBulkData() {
 
         let siteVal = row.querySelector(".site").value.trim();
         let cardComp = card.dataset.company || "";
-        let masterComp = masterMatch ? (masterMatch.company || "") : "";
+        let masterComp = masterMatch ? masterMatch.company || "" : "";
         let rowCompany = getCompanyFromSite(siteVal, masterComp || cardComp);
 
         dataToUpdate.push({
@@ -2317,9 +2422,15 @@ function submitBulkData() {
           adjustment_desc: rowAdjDescStr,
           adjusted_amount: rowAdjAmtTotal,
           after_adjustment: Number((totalVal + rowAdjAmtTotal).toFixed(2)),
-          driver_ot: parseFloat(row.querySelector(".driver-ot-input")?.value || row.querySelector(".driver-ot")?.innerText || 0),
+          driver_ot: parseFloat(
+            row.querySelector(".driver-ot-input")?.value ||
+              row.querySelector(".driver-ot")?.innerText ||
+              0,
+          ),
           driver_amount: parseFloat(row.dataset.driverAmount) || 0,
-          remark: row.querySelector(".remark") ? row.querySelector(".remark").value.trim() : "",
+          remark: row.querySelector(".remark")
+            ? row.querySelector(".remark").value.trim()
+            : "",
         });
       }
     });
@@ -2328,7 +2439,8 @@ function submitBulkData() {
   document.getElementById("loader").style.display = "flex";
   document.getElementById("loaderText").innerText = "Saving to ERP...";
 
-  const authToken = localStorage.getItem("invoiceToken") || localStorage.getItem("token");
+  const authToken =
+    localStorage.getItem("invoiceToken") || localStorage.getItem("token");
 
   fetch("/billing/save", {
     method: "POST",
@@ -2515,9 +2627,11 @@ function submitSingleCard(cardId) {
     if (plate) {
       let rentVal = parseFloat(row.querySelector(".rent").value) || 0;
       let vatAmt = parseFloat(row.querySelector(".vat")?.innerText || 0);
-      
+
       // 🟢 FIX: സ്ക്രീനിൽ കാണുന്ന കൃത്യമായ റൗണ്ടഡ് ടോട്ടൽ തന്നെ എടുക്കുന്നു (0.01 പൈസ വ്യത്യാസം വരാതിരിക്കാൻ)
-      let totalVal = parseFloat(row.querySelector(".total")?.innerText) || Number((rentVal + vatAmt).toFixed(2));
+      let totalVal =
+        parseFloat(row.querySelector(".total")?.innerText) ||
+        Number((rentVal + vatAmt).toFixed(2));
 
       // 🟢 BUG FIX: Match Adjustment Plate dynamically for single card
       let rowAdjs = adjDataArray.filter((a) => {
@@ -2549,7 +2663,7 @@ function submitSingleCard(cardId) {
 
       let siteVal = row.querySelector(".site").value.trim();
       let cardComp = card.dataset.company || "";
-      let masterComp = masterMatch ? (masterMatch.company || "") : "";
+      let masterComp = masterMatch ? masterMatch.company || "" : "";
       let rowCompany = getCompanyFromSite(siteVal, masterComp || cardComp);
 
       dataToUpdate.push({
@@ -2571,7 +2685,11 @@ function submitSingleCard(cardId) {
         adjustment_desc: rowAdjDescStr,
         adjusted_amount: rowAdjAmtTotal,
         after_adjustment: Number((totalVal + rowAdjAmtTotal).toFixed(2)),
-        driver_ot: parseFloat(row.querySelector(".driver-ot-input")?.value || row.querySelector(".driver-ot")?.innerText || 0),
+        driver_ot: parseFloat(
+          row.querySelector(".driver-ot-input")?.value ||
+            row.querySelector(".driver-ot")?.innerText ||
+            0,
+        ),
         driver_amount: parseFloat(row.dataset.driverAmount) || 0,
         remark: row.querySelector(".remark")
           ? row.querySelector(".remark").value.trim()
@@ -2586,7 +2704,8 @@ function submitSingleCard(cardId) {
   document.getElementById("loader").style.display = "flex";
   document.getElementById("loaderText").innerText = "Saving Single Table...";
 
-  const authToken = localStorage.getItem("invoiceToken") || localStorage.getItem("token");
+  const authToken =
+    localStorage.getItem("invoiceToken") || localStorage.getItem("token");
 
   fetch("/billing/save", {
     method: "POST",
@@ -2702,27 +2821,31 @@ function autoFillOwnerData(cardId, ownerName) {
   // 1. ഫിൽറ്റർ ചെയ്ത സൈറ്റ് ഡാറ്റ മാത്രം എടുക്കാൻ
   let selectedSites = getSelectedCheckboxes("siteList");
   let ownerVehicles = masterData.filter(
-    (v) => (v.owner || "").trim().toUpperCase() === ownerName.toUpperCase() &&
-           (selectedSites.length === 0 || selectedSites.includes(v.site || v.site_name || "N/A"))
+    (v) =>
+      (v.owner || "").trim().toUpperCase() === ownerName.toUpperCase() &&
+      (selectedSites.length === 0 ||
+        selectedSites.includes(v.site || v.site_name || "N/A")),
   );
-  
+
   if (ownerVehicles.length === 0)
-    return showToast("No vehicles found for " + ownerName + " in selected sites");
+    return showToast(
+      "No vehicles found for " + ownerName + " in selected sites",
+    );
 
   // 2. സൈറ്റിന്റെ ആദ്യത്തെ വാക്ക് (First Name) മാത്രം നോക്കി Alphabetical ആയി അറേഞ്ച് ചെയ്യുന്നു
   ownerVehicles.sort((a, b) => {
     let siteA = (a.site || a.site_name || "").toUpperCase().trim();
     let siteB = (b.site || b.site_name || "").toUpperCase().trim();
-    
+
     // സൈറ്റിന്റെ ആദ്യത്തെ വാക്ക് മാത്രം എടുക്കുന്നു (ഉദാഹരണത്തിന് "BISHA L&T WE1" ൽ നിന്ന് "BISHA" മാത്രം)
     let firstWordA = siteA.split(" ")[0];
     let firstWordB = siteB.split(" ")[0];
-    
+
     // ആദ്യത്തെ വാക്ക് വെച്ച് അറേഞ്ച് ചെയ്യുന്നു
     if (firstWordA !== firstWordB) {
       return firstWordA.localeCompare(firstWordB);
     }
-    
+
     // ആദ്യത്തെ വാക്ക് തുല്യമാണെങ്കിൽ പ്ലേറ്റ് നമ്പർ വെച്ച് അറേഞ്ച് ചെയ്യുന്നു
     let plateA = (a.plate_number || a.plate || "").toUpperCase();
     let plateB = (b.plate_number || b.plate || "").toUpperCase();
@@ -2851,9 +2974,17 @@ function loadSavedAdjustmentsToCard(card) {
     let cleanInputPlate = plate.replace(/[^A-Z0-9]/g, "");
     let saved = savedBillingData.find((s) => {
       let sPlateRaw = String(s.plate_no || "").toUpperCase();
-      let parts = sPlateRaw.split(/➔|→|->/).map((p) => p.replace(/[^A-Z0-9]/g, "")).filter(Boolean);
-      let plateMatches = parts.includes(cleanInputPlate) || sPlateRaw.replace(/[^A-Z0-9]/g, "") === cleanInputPlate;
-      return plateMatches && (s.site_name || "").trim().toUpperCase() === site.toUpperCase();
+      let parts = sPlateRaw
+        .split(/➔|→|->/)
+        .map((p) => p.replace(/[^A-Z0-9]/g, ""))
+        .filter(Boolean);
+      let plateMatches =
+        parts.includes(cleanInputPlate) ||
+        sPlateRaw.replace(/[^A-Z0-9]/g, "") === cleanInputPlate;
+      return (
+        plateMatches &&
+        (s.site_name || "").trim().toUpperCase() === site.toUpperCase()
+      );
     });
 
     if (saved && saved.adjustment_desc) {
@@ -2979,12 +3110,17 @@ async function copyCardAndWhatsApp(cardId, ownerName) {
           document.getElementById("loader").style.display = "none";
 
           // Get selected month text
-          const currentMonth = document.getElementById("selectedMonthText")?.innerText.trim() || "";
+          const currentMonth =
+            document.getElementById("selectedMonthText")?.innerText.trim() ||
+            "";
           const msgText = encodeURIComponent(`*${currentMonth} Bill*`);
 
           // Open WhatsApp Desktop / Web link with prefilled month text
           setTimeout(() => {
-            window.open(`whatsapp://send?phone=${mobile}&text=${msgText}`, "_self");
+            window.open(
+              `whatsapp://send?phone=${mobile}&text=${msgText}`,
+              "_self",
+            );
           }, 1000);
         } catch (err) {
           document.getElementById("loader").style.display = "none";
@@ -3004,7 +3140,6 @@ async function copyCardAndWhatsApp(cardId, ownerName) {
   }
 }
 
-
 /* ==========================================================
    🟢 DYNAMIC RE-LOGIN & AUDIO ALERT ON SESSION EXPIRY
    ========================================================== */
@@ -3014,7 +3149,9 @@ function playSessionAlertSound() {
   const audio = document.getElementById("sessionAlertAudio");
   if (audio) {
     audio.currentTime = 0;
-    audio.play().catch((err) => console.log("Audio play blocked by browser:", err));
+    audio
+      .play()
+      .catch((err) => console.log("Audio play blocked by browser:", err));
   }
 }
 
@@ -3033,7 +3170,8 @@ function openReLoginModal(resumeCallback) {
   // Saved username or decoded username auto-fill cheyyunnu
   let lastUser = localStorage.getItem("savedBillingUsername") || "";
   if (!lastUser) {
-    const token = localStorage.getItem("invoiceToken") || localStorage.getItem("token");
+    const token =
+      localStorage.getItem("invoiceToken") || localStorage.getItem("token");
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
@@ -3134,15 +3272,23 @@ document.addEventListener(
       document.activeElement.blur();
     }
   },
-  { passive: true }
+  { passive: true },
 );
 
 // Prevent wheel scrolling on any number input directly
-document.addEventListener("wheel", function (e) {
-  if (e.target && e.target.tagName === "INPUT" && e.target.type === "number") {
-    e.preventDefault();
-  }
-}, { passive: false });
+document.addEventListener(
+  "wheel",
+  function (e) {
+    if (
+      e.target &&
+      e.target.tagName === "INPUT" &&
+      e.target.type === "number"
+    ) {
+      e.preventDefault();
+    }
+  },
+  { passive: false },
+);
 
 async function openVendorBillForCard(cardId) {
   const card = document.getElementById(`billCard_${cardId}`);
@@ -3157,46 +3303,98 @@ async function openVendorBillForCard(cardId) {
   const billingMonth = (textEl.dataset.fullMonth || textEl.innerText).trim();
 
   const ownerInput = card.querySelector(".owner-input");
-  const ownerName = ownerInput ? ownerInput.value.trim() : (card.dataset.owner || "");
+  const ownerName = ownerInput
+    ? ownerInput.value.trim()
+    : card.dataset.owner || "";
   const companyName = card.dataset.company || "Haka";
 
   // Owner Info Lookup
   let matchedOwnerInfo = null;
   card.querySelectorAll(".tableBody tr").forEach((tr) => {
     if (matchedOwnerInfo) return;
-    const plate = tr.querySelector(".plate") ? tr.querySelector(".plate").value.trim().toUpperCase() : "";
+    const plate = tr.querySelector(".plate")
+      ? tr.querySelector(".plate").value.trim().toUpperCase()
+      : "";
     if (plate) {
       const match = masterData.find((m) => {
         const p1 = (m.plate_number || m.plate || "").toUpperCase();
         const p2 = (m.master_plate || "").toUpperCase();
-        return p1 === plate || p2 === plate || (Array.isArray(m.related_plates) && m.related_plates.map(x => x.toUpperCase()).includes(plate));
+        return (
+          p1 === plate ||
+          p2 === plate ||
+          (Array.isArray(m.related_plates) &&
+            m.related_plates.map((x) => x.toUpperCase()).includes(plate))
+        );
       });
       if (match) matchedOwnerInfo = match;
     }
   });
 
-  const vendorArabicName = matchedOwnerInfo?.company_arabic_name ? matchedOwnerInfo.company_arabic_name.trim() : "";
-  const vendorDisplayName = vendorArabicName || (matchedOwnerInfo?.company_display_name ? matchedOwnerInfo.company_display_name.trim() : (ownerName || ""));
-  const vendorVatNo = matchedOwnerInfo?.vat_no ? matchedOwnerInfo.vat_no.trim() : "";
+  const vendorArabicName = matchedOwnerInfo?.company_arabic_name
+    ? matchedOwnerInfo.company_arabic_name.trim()
+    : "";
+  const vendorDisplayName =
+    vendorArabicName ||
+    (matchedOwnerInfo?.company_display_name
+      ? matchedOwnerInfo.company_display_name.trim()
+      : ownerName || "");
+  const vendorVatNo = matchedOwnerInfo?.vat_no
+    ? matchedOwnerInfo.vat_no.trim()
+    : "";
 
   const rows = [];
   card.querySelectorAll(".tableBody tr").forEach((tr) => {
-    const plate = tr.querySelector(".plate") ? tr.querySelector(".plate").value.trim() : "";
-    const vtype = tr.querySelector(".vtype") ? tr.querySelector(".vtype").value.trim() : "";
-    
-    let vMatch = masterData.find(m => (m.plate_number || m.plate || "").toUpperCase() === plate.toUpperCase());
+    const plate = tr.querySelector(".plate")
+      ? tr.querySelector(".plate").value.trim()
+      : "";
+    const vtype = tr.querySelector(".vtype")
+      ? tr.querySelector(".vtype").value.trim()
+      : "";
+
+    let vMatch = masterData.find(
+      (m) =>
+        (m.plate_number || m.plate || "").toUpperCase() === plate.toUpperCase(),
+    );
     const vtypeAr = vMatch?.vehicle_type_ar || vMatch?.vtype_ar || "";
 
-    const driver = tr.querySelector(".driver") ? tr.querySelector(".driver").value.trim() : "";
-    const site = tr.querySelector(".site") ? tr.querySelector(".site").value.trim() : "";
-    const nhr = parseFloat(tr.querySelector(".nhr") ? tr.querySelector(".nhr").value : 0) || 0;
-    const nrate = parseFloat(tr.querySelector(".nrate") ? tr.querySelector(".nrate").value : 0) || 0;
-    const othr = parseFloat(tr.querySelector(".othr") ? tr.querySelector(".othr").value : 0) || 0;
-    const otrate = parseFloat(tr.querySelector(".otrate") ? tr.querySelector(".otrate").value : 0) || 0;
-    const rent = parseFloat(tr.querySelector(".rent") ? tr.querySelector(".rent").value : 0) || 0;
-    const vatPercent = parseFloat(tr.querySelector(".vat-rate") ? tr.querySelector(".vat-rate").value : 0) || 0;
-    const vatVal = parseFloat(tr.querySelector(".vat") ? tr.querySelector(".vat").innerText : 0) || 0;
-    const totalVal = parseFloat(tr.querySelector(".total") ? tr.querySelector(".total").innerText : 0) || (rent + vatVal);
+    const driver = tr.querySelector(".driver")
+      ? tr.querySelector(".driver").value.trim()
+      : "";
+    const site = tr.querySelector(".site")
+      ? tr.querySelector(".site").value.trim()
+      : "";
+    const nhr =
+      parseFloat(
+        tr.querySelector(".nhr") ? tr.querySelector(".nhr").value : 0,
+      ) || 0;
+    const nrate =
+      parseFloat(
+        tr.querySelector(".nrate") ? tr.querySelector(".nrate").value : 0,
+      ) || 0;
+    const othr =
+      parseFloat(
+        tr.querySelector(".othr") ? tr.querySelector(".othr").value : 0,
+      ) || 0;
+    const otrate =
+      parseFloat(
+        tr.querySelector(".otrate") ? tr.querySelector(".otrate").value : 0,
+      ) || 0;
+    const rent =
+      parseFloat(
+        tr.querySelector(".rent") ? tr.querySelector(".rent").value : 0,
+      ) || 0;
+    const vatPercent =
+      parseFloat(
+        tr.querySelector(".vat-rate") ? tr.querySelector(".vat-rate").value : 0,
+      ) || 0;
+    const vatVal =
+      parseFloat(
+        tr.querySelector(".vat") ? tr.querySelector(".vat").innerText : 0,
+      ) || 0;
+    const totalVal =
+      parseFloat(
+        tr.querySelector(".total") ? tr.querySelector(".total").innerText : 0,
+      ) || rent + vatVal;
 
     if (plate || rent > 0 || nhr > 0 || othr > 0) {
       rows.push({
@@ -3212,26 +3410,50 @@ async function openVendorBillForCard(cardId) {
         rent,
         vat_percent: vatPercent,
         vat_amount: vatVal,
-        total: totalVal
+        total: totalVal,
       });
     }
   });
 
-  const grandRent = parseFloat(card.querySelector(".grandRent") ? card.querySelector(".grandRent").innerText : 0) || 0;
-  const grandVat = parseFloat(card.querySelector(".grandVat") ? card.querySelector(".grandVat").innerText : 0) || 0;
-  const grandTotal = parseFloat(card.querySelector(".grandTotal") ? card.querySelector(".grandTotal").innerText : 0) || (grandRent + grandVat);
-  const cleanOwnerNick = (ownerName && ownerName !== "VARIOUS OWNERS") ? ownerName.trim() : (matchedOwnerInfo?.owner_name || "");
+  const grandRent =
+    parseFloat(
+      card.querySelector(".grandRent")
+        ? card.querySelector(".grandRent").innerText
+        : 0,
+    ) || 0;
+  const grandVat =
+    parseFloat(
+      card.querySelector(".grandVat")
+        ? card.querySelector(".grandVat").innerText
+        : 0,
+    ) || 0;
+  const grandTotal =
+    parseFloat(
+      card.querySelector(".grandTotal")
+        ? card.querySelector(".grandTotal").innerText
+        : 0,
+    ) || grandRent + grandVat;
+  const cleanOwnerNick =
+    ownerName && ownerName !== "VARIOUS OWNERS"
+      ? ownerName.trim()
+      : matchedOwnerInfo?.owner_name || "";
 
   // Fast & Optimized Snapshot generation
   let cardImageData = "";
   try {
     const printArea = card.querySelector(".print-area") || card;
-    if (typeof convertInputsToText === "function") convertInputsToText(printArea);
-    
+    if (typeof convertInputsToText === "function")
+      convertInputsToText(printArea);
+
     // Scale 1.8 avoids extreme lag & heavy memory blocks while keeping high clarity
-    const canvas = await html2canvas(printArea, { scale: 1.8, useCORS: true, logging: false });
-    if (typeof revertInputsFromText === "function") revertInputsFromText(printArea);
-    cardImageData = canvas.toDataURL("image/jpeg", 0.90);
+    const canvas = await html2canvas(printArea, {
+      scale: 1.8,
+      useCORS: true,
+      logging: false,
+    });
+    if (typeof revertInputsFromText === "function")
+      revertInputsFromText(printArea);
+    cardImageData = canvas.toDataURL("image/jpeg", 0.9);
   } catch (err) {
     console.warn("Card snapshot error:", err);
   } finally {
@@ -3251,7 +3473,7 @@ async function openVendorBillForCard(cardId) {
     grandRent: grandRent,
     grandVat: grandVat,
     grandTotal: grandTotal,
-    billingCardImage: cardImageData
+    billingCardImage: cardImageData,
   };
 
   // 🟢 Billing-ൽ നിന്ന് പോകുമ്പോൾ വെണ്ടർ ബിൽ ലോക്ക് തുറന്ന് നേരിട്ട് കാണിക്കുന്നു
