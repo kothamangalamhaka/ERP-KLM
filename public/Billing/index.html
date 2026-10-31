@@ -86,6 +86,134 @@
           onkeypress="if (event.key === 'Enter') executeLogin();"
         />
         <button onclick="executeLogin()">Secure Login</button>
+        <button onclick="executeFaceLogin()" style="background: #10b981; margin-top: 10px;">📸 Face Login</button>
+
+        <!-- Hidden Video & Canvas for Face Capture -->
+        <div id="faceLoginModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center; flex-direction:column;">
+            <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
+                <h3>Position your face in front of the camera</h3>
+                <video id="faceVideo" width="320" height="240" autoplay style="border-radius:6px; transform: scaleX(-1);"></video>
+                <canvas id="faceCanvas" width="320" height="240" style="display:none;"></canvas>
+                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+                    <button onclick="autoScanFace(true)" style="background:#2563eb; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Verify Face</button>
+                    <button onclick="closeFaceModal()" style="background:#dc2626; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let videoStream = null;
+
+            async function executeFaceLogin() {
+                const modal = document.getElementById("faceLoginModal");
+                const video = document.getElementById("faceVideo");
+                modal.style.display = "flex";
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = videoStream;
+                    clearInterval(autoScanTimer);
+                    autoScanTimer = setInterval(autoScanFace, 2500);
+                } catch (err) {
+                    showToast("Camera access denied or not available.");
+                    modal.style.display = "none";
+                }
+            }
+
+            function closeFaceModal() {
+                const modal = document.getElementById("faceLoginModal");
+                clearInterval(autoScanTimer);
+                scanning = false;
+                modal.style.display = "none";
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                    videoStream = null;
+                }
+            }
+
+                        let lastScanToast = 0;
+
+            async function autoScanFace(isManual) {
+                // Event object varunnath (onclick) ozhivaakkan
+                isManual = isManual === true;
+
+                if (!videoStream) return;
+                if (scanning) {
+                    if (isManual) showToast("Scanning... please wait.");
+                    return;
+                }
+                scanning = true;
+
+                const video = document.getElementById("faceVideo");
+                const canvas = document.getElementById("faceCanvas");
+                canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                if (isManual) showToast("Verifying face...");
+
+                try {
+                    const res = await fetch("/py/face-login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ image: canvas.toDataURL("image/jpeg") })
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        localStorage.setItem("invoiceToken", data.token);
+                        localStorage.setItem("token", data.token);
+                        closeFaceModal();
+                        loadApp();
+                        showToast("Welcome " + (data.user.displayName || ""));
+                        return;
+                    }
+
+                    // Fail: manual aanenkil eppozhum, auto aanenkil 4 s-il oru thavana maathram
+                    const now = Date.now();
+                    const isAccessIssue = data.code === "NOT_APPROVED";
+                    if (isManual || isAccessIssue || now - lastScanToast > 4000) {
+                        showToast(data.message || "Face recognition failed.");
+                        lastScanToast = now;
+                    }
+                } catch (e) {
+                    if (isManual) showToast("Server connection failed. Try again.");
+                    console.log("Scan error:", e);
+                }
+                scanning = false;
+            }
+
+            async function captureAndVerifyFace() {
+                const video = document.getElementById("faceVideo");
+                const canvas = document.getElementById("faceCanvas");
+                const context = canvas.getContext("2d");
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = canvas.toDataURL("image/jpeg");
+
+                document.getElementById("loader").style.display = "flex";
+                document.getElementById("loaderText").innerText = "Verifying Face...";
+
+                try {
+                    const res = await fetch("/py/face-login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ image: imageData })
+                    });
+                    const data = await res.json();
+                    document.getElementById("loader").style.display = "none";
+
+                    if (data.success) {
+                        localStorage.setItem("invoiceToken", data.token);
+                        localStorage.setItem("token", data.token);
+                        closeFaceModal();
+                        loadApp();
+                        showToast("Face Login Successful!");
+                    } else {
+                        showToast(data.message || "Face recognition failed.");
+                    }
+                } catch (err) {
+                    document.getElementById("loader").style.display = "none";
+                    showToast("Python Server Connection Failed.");
+                }
+            }
+        </script>
         <div style="margin-top: 15px; font-size: 14px">
           <a
             href="#"
@@ -105,12 +233,18 @@
 
       <!-- Signup Box -->
       <div class="login-box" id="signupBox" style="display: none">
-        <h2>Create Account</h2>
+        <h2>Create Account with Face ID</h2>
         <input type="text" id="regName" placeholder="Display Name" />
         <input type="text" id="regUser" placeholder="Username" />
         <input type="email" id="regEmail" placeholder="Email" />
         <input type="password" id="regPass" placeholder="Password" />
-        <button onclick="executeSignup()" style="background: #28a745">
+        <div style="margin: 10px 0;">
+            <video id="regVideo" width="280" height="180" autoplay style="border-radius:6px; transform: scaleX(-1); display:none; margin: 0 auto;"></video>
+            <img id="regPreview" alt="Captured face" style="display:none; width:280px; height:180px; object-fit:cover; border-radius:6px; margin:0 auto; transform: scaleX(-1); border:2px solid #10b981;" />
+            <canvas id="regCanvas" width="280" height="180" style="display:none;"></canvas>
+            <button type="button" onclick="startRegCamera()" id="regCamBtn" style="background: #0284c7; padding: 8px; margin-bottom: 8px;">📷 Capture Face for Signup</button>
+        </div>
+        <button id="regSignupBtn" onclick="executeSignupWithFace()" style="background: #28a745">
           Sign Up
         </button>
         <div style="margin-top: 15px; font-size: 14px">

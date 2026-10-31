@@ -8,7 +8,7 @@ const nodemailer = require("nodemailer");
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
 
 // 1. Token Verification Middleware
-const verifyInvoiceToken = (req, res, next) => {
+const verifyInvoiceToken = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(" ")[1];
     
@@ -18,6 +18,10 @@ const verifyInvoiceToken = (req, res, next) => {
 
     try {
         req.user = jwt.verify(token, JWT_SECRET);
+        const u = await pool.query("SELECT status FROM invoicedatauser WHERE id = $1", [req.user.id]);
+        if (u.rows.length === 0 || u.rows[0].status !== "Approved") {
+            return res.status(401).json({ success: false, message: "Account not active." });
+        }
         next();
     } catch (e) {
         return res.status(401).json({ success: false, message: "Invalid or expired session." });
@@ -34,10 +38,10 @@ const verifyInvoiceAdmin = (req, res, next) => {
 
 // --- AUTHENTICATION ROUTES ---
 
-// Signup
+// Signup (Updated to support Face Login Data)
 router.post("/signup", async (req, res) => {
     try {
-        const { displayName, username, email, password } = req.body;
+        const { displayName, username, email, password, faceDescriptor } = req.body;
         
         const userCheck = await pool.query(
             "SELECT id FROM invoicedatauser WHERE username = $1 OR email = $2", 
@@ -51,11 +55,11 @@ router.post("/signup", async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         await pool.query(
-            "INSERT INTO invoicedatauser (display_name, username, email, password_hash, role, status) VALUES ($1, $2, $3, $4, 'User', 'Pending')",
-            [displayName, username, email, hashedPassword]
+            "INSERT INTO invoicedatauser (display_name, username, email, password_hash, role, status, face_descriptor) VALUES ($1, $2, $3, $4, 'User', 'Pending', $5)",
+            [displayName, username, email, hashedPassword, faceDescriptor ? JSON.stringify(faceDescriptor) : null]
         );
 
-        res.json({ success: true, message: "Registration successful! Awaiting Admin Approval." });
+        res.json({ success: true, message: "Registration successful with Face ID! Awaiting Admin Approval." });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

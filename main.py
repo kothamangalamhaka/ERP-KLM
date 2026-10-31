@@ -30,6 +30,7 @@ from routers.AKS.AKS_Summary import router as aks_summary_router
 from routers.AKS.AKS_Combined_Export import router as aks_combined_router
 from routers.landtasset_routes import router as landtasset_router
 from routers.AKS.Assets_own_EQ_parts import router as assets_own_eq_router
+from routers.biometric_unlocking.face_unlocking import router as face_unlocking_router
 
 
 load_dotenv()
@@ -63,6 +64,7 @@ app.include_router(aks_summary_router)
 app.include_router(aks_combined_router)
 app.include_router(landtasset_router)
 app.include_router(assets_own_eq_router)
+app.include_router(face_unlocking_router)
 
 class ExportRequest(BaseModel):
     headers: list

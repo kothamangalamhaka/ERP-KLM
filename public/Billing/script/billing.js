@@ -57,6 +57,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("mainAppContainer").style.display = "none";
     document.getElementById("loginUserId").focus();
+    if (sessionStorage.getItem("skipAutoFace")) {
+      // Logout-il ninnu vannathu: auto scan venda
+      sessionStorage.removeItem("skipAutoFace");
+    } else {
+      executeFaceLogin(); // Windows Hello pole auto face scan
+    }
   }
 });
 
@@ -171,6 +177,7 @@ function executeLogout() {
   localStorage.removeItem("invoiceToken");
   localStorage.removeItem("token");
   localStorage.removeItem("timesheetToken");
+  sessionStorage.setItem("skipAutoFace", "1");
   window.location.replace("index.html");
 }
 
@@ -3480,4 +3487,121 @@ async function openVendorBillForCard(cardId) {
   sessionStorage.setItem("vbill_system_unlocked", "true");
   sessionStorage.setItem("activeVendorBillData", JSON.stringify(payload));
   window.open("/Office/e-invoice/vendorbill.html", "_blank");
+}
+
+
+
+
+
+let regVideoStream = null;
+let capturedFaceDescriptor = null;
+let signupInProgress = false;
+let autoScanTimer = null;
+let scanning = false;
+
+async function startRegCamera() {
+    const video = document.getElementById("regVideo");
+    const btn = document.getElementById("regCamBtn");
+    const preview = document.getElementById("regPreview");
+
+    // 2nd click = Capture (frame freeze)
+    if (regVideoStream) {
+        const canvas = document.getElementById("regCanvas");
+        canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+        capturedFaceDescriptor = canvas.toDataURL("image/jpeg");
+
+        regVideoStream.getTracks().forEach((t) => t.stop());
+        regVideoStream = null;
+        video.style.display = "none";
+
+        preview.src = capturedFaceDescriptor;
+        preview.style.display = "block";
+
+        btn.innerText = "🔄 Retake Photo";
+        btn.style.background = "#f59e0b";
+        showToast("Face captured! Now click Sign Up.");
+        return;
+    }
+
+    // 1st click (or Retake) = start camera
+    capturedFaceDescriptor = null;
+    preview.style.display = "none";
+    video.style.display = "block";
+    try {
+        regVideoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = regVideoStream;
+        btn.innerText = "📸 Capture Now";
+        btn.style.background = "#10b981";
+    } catch (err) {
+        video.style.display = "none";
+        showToast("Camera access failed.");
+    }
+}
+
+async function executeSignupWithFace() {
+    if (signupInProgress) return; // duplicate tap block
+
+    const displayName = document.getElementById("regName").value.trim();
+    const username = document.getElementById("regUser").value.trim();
+    const email = document.getElementById("regEmail").value.trim();
+    const password = document.getElementById("regPass").value;
+    const signupBtn = document.getElementById("regSignupBtn");
+
+    if (!username || !email || !password)
+        return showToast("Fill all required fields");
+    if (!capturedFaceDescriptor)
+        return showToast("Please capture your face first.");
+
+    signupInProgress = true;
+    if (signupBtn) {
+        signupBtn.disabled = true;
+        signupBtn.style.opacity = "0.6";
+        signupBtn.innerText = "Please wait...";
+    }
+    document.getElementById("loader").style.display = "flex";
+    document.getElementById("loaderText").innerText = "Registering Face ID...";
+
+    try {
+        // 1. Image -> 128-d face encoding
+        const encRes = await fetch("/py/face-encode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: capturedFaceDescriptor }),
+        });
+        const encData = await encRes.json();
+        if (!encData.success) {
+            showToast(encData.message || "Face encoding failed.");
+            return;
+        }
+
+        // 2. Signup
+        const res = await fetch("/api/invoice-auth/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                displayName,
+                username,
+                email,
+                password,
+                faceDescriptor: encData.descriptor,
+            }),
+        });
+        const data = await res.json();
+        showToast(data.message);
+        if (data.success) {
+            capturedFaceDescriptor = null;
+            toggleAuthView("loginBox");
+        }
+    } catch (err) {
+        showToast("Server Error");
+    } finally {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("loaderText").innerText = "Processing Data...";
+        signupInProgress = false;
+        if (signupBtn) {
+            signupBtn.disabled = false;
+            signupBtn.style.opacity = "1";
+            signupBtn.innerText = "Sign Up";
+        }
+    }
 }
