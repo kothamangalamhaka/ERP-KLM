@@ -1043,19 +1043,86 @@
           onkeypress="if (event.key === 'Enter') executeLogin();"
         />
         <button onclick="executeLogin()">Secure Login</button>
-        <button onclick="executeReportFaceLogin()" style="background: #10b981; margin-top: 10px;">📸 Face Login</button>
+        <button
+          onclick="executeReportFaceLogin()"
+          style="background: #10b981; margin-top: 10px"
+        >
+          📸 Face Login
+        </button>
 
         <!-- Hidden Video & Canvas for Face Capture -->
-        <div id="reportFaceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; flex-direction:column;">
-            <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
-                <h3 style="margin:0 0 10px 0; color:#0f172a;">Position your face in front of the camera</h3>
-                <h4 id="reportLivenessInstruction" style="margin-top:5px; margin-bottom:15px; font-weight:bold; color:#d97706; min-height: 20px;">Loading Security Module...</h4>
-                <video id="reportFaceVideo" width="320" height="240" autoplay style="border-radius:6px; transform: scaleX(-1);"></video>
-                <canvas id="reportFaceCanvas" width="320" height="240" style="display:none;"></canvas>
-                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                    <button onclick="closeReportFaceModal()" style="background:#dc2626; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
-                </div>
+        <div
+          id="reportFaceModal"
+          style="
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+          "
+        >
+          <div
+            style="
+              background: white;
+              padding: 20px;
+              border-radius: 8px;
+              text-align: center;
+            "
+          >
+            <h3 style="margin: 0 0 10px 0; color: #0f172a">
+              Position your face in front of the camera
+            </h3>
+            <h4
+              id="reportLivenessInstruction"
+              style="
+                margin-top: 5px;
+                margin-bottom: 15px;
+                font-weight: bold;
+                color: #d97706;
+                min-height: 20px;
+              "
+            >
+              Loading Security Module...
+            </h4>
+            <video
+              id="reportFaceVideo"
+              width="320"
+              height="240"
+              autoplay
+              style="border-radius: 6px; transform: scaleX(-1)"
+            ></video>
+            <canvas
+              id="reportFaceCanvas"
+              width="320"
+              height="240"
+              style="display: none"
+            ></canvas>
+            <div
+              style="
+                margin-top: 15px;
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+              "
+            >
+              <button
+                onclick="closeReportFaceModal()"
+                style="
+                  background: #dc2626;
+                  color: white;
+                  padding: 8px 15px;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                "
+              >
+                Cancel
+              </button>
             </div>
+          </div>
         </div>
 
         <div style="margin-top: 15px; font-size: 14px">
@@ -1081,20 +1148,96 @@
         <input type="text" id="regUser" placeholder="Username" />
         <input type="email" id="regEmail" placeholder="Email" />
         <input type="password" id="regPass" placeholder="Password" />
-        <button onclick="openSignupFaceCapture()" style="background: #0ea5e9; margin-bottom: 10px;">📸 Capture Face for Login</button>
-        <div id="signupFaceStatus" style="font-size: 12px; color: #10b981; margin-bottom: 10px; font-weight: bold;"></div>
-        
+        <button
+          onclick="openSignupFaceCapture()"
+          style="background: #0ea5e9; margin-bottom: 10px"
+        >
+          📸 Capture Face for Login
+        </button>
+        <div
+          id="signupFaceStatus"
+          style="
+            font-size: 12px;
+            color: #10b981;
+            margin-bottom: 10px;
+            font-weight: bold;
+          "
+        ></div>
+
         <!-- Hidden Video & Canvas for Signup Face Capture -->
-        <div id="signupFaceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; justify-content:center; align-items:center; flex-direction:column;">
-            <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
-                <h3 style="margin:0 0 10px 0; color:#0f172a;">Position your face for registration</h3>
-                <video id="signupFaceVideo" width="320" height="240" autoplay style="border-radius:6px; transform: scaleX(-1);"></video>
-                <canvas id="signupFaceCanvas" width="320" height="240" style="display:none;"></canvas>
-                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                    <button onclick="captureSignupFace()" style="background:#10b981; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Capture</button>
-                    <button onclick="closeSignupFaceModal()" style="background:#dc2626; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
-                </div>
+        <div
+          id="signupFaceModal"
+          style="
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+          "
+        >
+          <div
+            style="
+              background: white;
+              padding: 20px;
+              border-radius: 8px;
+              text-align: center;
+            "
+          >
+            <h3 style="margin: 0 0 10px 0; color: #0f172a">
+              Position your face for registration
+            </h3>
+            <video
+              id="signupFaceVideo"
+              width="320"
+              height="240"
+              autoplay
+              style="border-radius: 6px; transform: scaleX(-1)"
+            ></video>
+            <canvas
+              id="signupFaceCanvas"
+              width="320"
+              height="240"
+              style="display: none"
+            ></canvas>
+            <div
+              style="
+                margin-top: 15px;
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+              "
+            >
+              <button
+                onclick="captureSignupFace()"
+                style="
+                  background: #10b981;
+                  color: white;
+                  padding: 8px 15px;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                "
+              >
+                Capture
+              </button>
+              <button
+                onclick="closeSignupFaceModal()"
+                style="
+                  background: #dc2626;
+                  color: white;
+                  padding: 8px 15px;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                "
+              >
+                Cancel
+              </button>
             </div>
+          </div>
         </div>
 
         <button onclick="executeSignup()" style="background: #10b981">
@@ -1126,7 +1269,17 @@
           </button>
         </div>
         <div style="margin-top: 15px; font-size: 14px">
-          <a href="#" onclick="openBillingResetFaceModal()" style="color: #0ea5e9; text-decoration: none; display: block; margin-bottom: 10px;">📸 Reset / Update Face Data</a>
+          <a
+            href="#"
+            onclick="openBillingResetFaceModal()"
+            style="
+              color: #0ea5e9;
+              text-decoration: none;
+              display: block;
+              margin-bottom: 10px;
+            "
+            >📸 Reset / Update Face Data</a
+          >
           <a
             href="#"
             onclick="toggleAuthView('loginBox')"
@@ -1138,29 +1291,175 @@
     </div>
 
     <!-- Credentials Modal for Reset Face -->
-    <div id="billingResetVerifyModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 10001; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
-      <div style="background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 320px; box-sizing: border-box; text-align: center;">
-        <h3 style="margin-top: 0; color: #111;">Verify Credentials</h3>
-        <p style="font-size: 12px; color: #64748b; margin-bottom: 15px;">Enter username and password to re-register Face ID.</p>
-        <input type="text" id="billingRfUsername" placeholder="Username" autocomplete="off" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;" />
-        <input type="password" id="billingRfPassword" placeholder="Password" autocomplete="off" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;" />
-        <button type="button" onclick="verifyAndStartBillingFaceReset()" style="width: 100%; padding: 10px; background-color: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Continue to Face Scan</button>
-        <button type="button" onclick="closeBillingResetFaceModal()" style="width: 100%; padding: 10px; background-color: #64748b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 8px;">Cancel</button>
-        <div id="billingRfMessage" style="margin-top: 10px; font-size: 12px; font-weight: bold;"></div>
+    <div
+      id="billingResetVerifyModal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10001;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+      "
+    >
+      <div
+        style="
+          background: white;
+          padding: 25px;
+          border-radius: 12px;
+          width: 90%;
+          max-width: 320px;
+          box-sizing: border-box;
+          text-align: center;
+        "
+      >
+        <h3 style="margin-top: 0; color: #111">Verify Credentials</h3>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 15px">
+          Enter username and password to re-register Face ID.
+        </p>
+        <input
+          type="text"
+          id="billingRfUsername"
+          placeholder="Username"
+          autocomplete="off"
+          style="
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            outline: none;
+          "
+        />
+        <input
+          type="password"
+          id="billingRfPassword"
+          placeholder="Password"
+          autocomplete="off"
+          style="
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            outline: none;
+          "
+        />
+        <button
+          type="button"
+          onclick="verifyAndStartBillingFaceReset()"
+          style="
+            width: 100%;
+            padding: 10px;
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+          "
+        >
+          Continue to Face Scan
+        </button>
+        <button
+          type="button"
+          onclick="closeBillingResetFaceModal()"
+          style="
+            width: 100%;
+            padding: 10px;
+            background-color: #64748b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 8px;
+          "
+        >
+          Cancel
+        </button>
+        <div
+          id="billingRfMessage"
+          style="margin-top: 10px; font-size: 12px; font-weight: bold"
+        ></div>
       </div>
     </div>
 
     <!-- Face Capture Modal for Reset -->
-    <div id="billingResetFaceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10002; justify-content:center; align-items:center; flex-direction:column;">
-        <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
-            <h3 style="margin:0 0 10px 0; color:#0f172a;">Position your face for re-registration</h3>
-            <h4 id="billingResetInstruction" style="margin-top:5px; margin-bottom:15px; font-weight:bold; color:#d97706; min-height: 20px;">Loading Security Module...</h4>
-            <video id="billingResetFaceVideo" width="320" height="240" autoplay style="border-radius:6px; transform: scaleX(-1);"></video>
-            <canvas id="billingResetFaceCanvas" width="320" height="240" style="display:none;"></canvas>
-            <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                <button onclick="closeBillingResetFaceModalAll()" style="background:#dc2626; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
-            </div>
+    <div
+      id="billingResetFaceModal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10002;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      "
+    >
+      <div
+        style="
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          text-align: center;
+        "
+      >
+        <h3 style="margin: 0 0 10px 0; color: #0f172a">
+          Position your face for re-registration
+        </h3>
+        <h4
+          id="billingResetInstruction"
+          style="
+            margin-top: 5px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #d97706;
+            min-height: 20px;
+          "
+        >
+          Loading Security Module...
+        </h4>
+        <video
+          id="billingResetFaceVideo"
+          width="320"
+          height="240"
+          autoplay
+          style="border-radius: 6px; transform: scaleX(-1)"
+        ></video>
+        <canvas
+          id="billingResetFaceCanvas"
+          width="320"
+          height="240"
+          style="display: none"
+        ></canvas>
+        <div
+          style="
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+          "
+        >
+          <button
+            onclick="closeBillingResetFaceModalAll()"
+            style="
+              background: #dc2626;
+              color: white;
+              padding: 8px 15px;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+            "
+          >
+            Cancel
+          </button>
         </div>
+      </div>
     </div>
 
     <div id="mainAppContainer">
@@ -1169,7 +1468,7 @@
           <h2 style="display: flex; align-items: center; margin: 0">
             <a
               href="javascript:void(0);"
-              onclick="window.location.href = 'Johns-Report.html';"
+              onclick="window.location.href = 'Johns-Report.html'"
               style="text-decoration: none; cursor: pointer; color: whitesmoke"
             >
               Analysis Report</a
@@ -3626,8 +3925,16 @@
         // വാല്യൂസ് റീ-സെറ്റ് ചെയ്യുന്നു (പുതിയ മാസത്തിൽ ആ സൈറ്റ്/ഓണർ ഇല്ലെങ്കിൽ ഓട്ടോമാറ്റിക് ആയി ALL ലേക്ക് മാറും)
         const ownerSelect = document.getElementById("filterOwner");
         const siteSelect = document.getElementById("filterSite");
-        ownerSelect.value = Array.from(ownerSelect.options).some(o => o.value === currentOwner) ? currentOwner : "ALL";
-        siteSelect.value = Array.from(siteSelect.options).some(o => o.value === currentSite) ? currentSite : "ALL";
+        ownerSelect.value = Array.from(ownerSelect.options).some(
+          (o) => o.value === currentOwner,
+        )
+          ? currentOwner
+          : "ALL";
+        siteSelect.value = Array.from(siteSelect.options).some(
+          (o) => o.value === currentSite,
+        )
+          ? currentSite
+          : "ALL";
         document.getElementById("filterPlate").value = currentPlate;
 
         applyFilters();
@@ -4906,28 +5213,90 @@
       function createSheetFromData(dataArray) {
         let aoa = [
           [
-            "VEHICLE INFO", "", "", "", "", "", "", "", "", "",
-            "Logsheet Collected", "",
-            "Bill Summary", "",
-            "To Supplier", "",
-            "For Driver", "",
-            "DIFFERENCE", "", "", "", "",
-            "AMOUNT", "", "", "", "",
-            "INVOICE", "", "", "", "", "", "",
-            "EXTRA DETAILS", "", "", "",
-            "31 Considered as NR", ""
+            "VEHICLE INFO",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Logsheet Collected",
+            "",
+            "Bill Summary",
+            "",
+            "To Supplier",
+            "",
+            "For Driver",
+            "",
+            "DIFFERENCE",
+            "",
+            "",
+            "",
+            "",
+            "AMOUNT",
+            "",
+            "",
+            "",
+            "",
+            "INVOICE",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "EXTRA DETAILS",
+            "",
+            "",
+            "",
+            "31 Considered as NR",
+            "",
           ],
           [
-            "Date", "Site", "Rate", "VAT", "Owner Name", "Driver Name", "Field Co", "Site Co", "Vehicle Type", "Plate No",
-            "NR", "OT",
-            "NR", "OT",
-            "NR", "OT",
-            "OT", "AMT",
-            "NR", "OT", "IDN", "Clear", "V.Bill Notes",
-            "NR Rate", "OT Rate", "Rent", "VAT", "Total",
-            "Subtotal", "Deductions", "Total", "Reason", "CRN No", "Invoice No", "Bill No",
-            "PWAS", "ERP", "Payment Status", "Accounts Note",
-            "NR", "OT"
+            "Date",
+            "Site",
+            "Rate",
+            "VAT",
+            "Owner Name",
+            "Driver Name",
+            "Field Co",
+            "Site Co",
+            "Vehicle Type",
+            "Plate No",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "NR",
+            "OT",
+            "OT",
+            "AMT",
+            "NR",
+            "OT",
+            "IDN",
+            "Clear",
+            "V.Bill Notes",
+            "NR Rate",
+            "OT Rate",
+            "Rent",
+            "VAT",
+            "Total",
+            "Subtotal",
+            "Deductions",
+            "Total",
+            "Reason",
+            "CRN No",
+            "Invoice No",
+            "Bill No",
+            "PWAS",
+            "ERP",
+            "Payment Status",
+            "Accounts Note",
+            "NR",
+            "OT",
           ],
         ];
 
@@ -4979,7 +5348,7 @@
 
         // Total 41 columns (Indices 0 to 40)
         let merges = [
-          { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } },   // VEHICLE INFO (Cols 0..9)
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }, // VEHICLE INFO (Cols 0..9)
           { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, // Logsheet Collected (Cols 10..11)
           { s: { r: 0, c: 12 }, e: { r: 0, c: 13 } }, // Bill Summary (Cols 12..13)
           { s: { r: 0, c: 14 }, e: { r: 0, c: 15 } }, // To Supplier (Cols 14..15)
@@ -4988,7 +5357,7 @@
           { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMOUNT (Cols 23..27)
           { s: { r: 0, c: 28 }, e: { r: 0, c: 34 } }, // INVOICE (Cols 28..34)
           { s: { r: 0, c: 35 }, e: { r: 0, c: 38 } }, // EXTRA DETAILS (Cols 35..38)
-          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }  // 31 Considered as NR (Cols 39..40)
+          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }, // 31 Considered as NR (Cols 39..40)
         ];
         return {
           sheet_name: "Report",
@@ -5002,16 +5371,47 @@
         let aoa = [
           [
             "REPORT MONTH",
-            "VEHICLE INFO", "", "", "", "", "", "", "", "", "",
-            "Logsheet Collected", "",
-            "Bill Summary", "",
-            "To Supplier", "",
-            "For Driver", "",
-            "DIFFERENCE", "", "", "", "",
-            "AMOUNT", "", "", "", "",
-            "INVOICE", "", "", "", "", "", "",
-            "EXTRA DETAILS", "", "", "",
-            "31 Considered as NR", ""
+            "VEHICLE INFO",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Logsheet Collected",
+            "",
+            "Bill Summary",
+            "",
+            "To Supplier",
+            "",
+            "For Driver",
+            "",
+            "DIFFERENCE",
+            "",
+            "",
+            "",
+            "",
+            "AMOUNT",
+            "",
+            "",
+            "",
+            "",
+            "INVOICE",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "EXTRA DETAILS",
+            "",
+            "",
+            "",
+            "31 Considered as NR",
+            "",
           ],
           [
             "Month",
@@ -5509,7 +5909,9 @@
           td.removeAttribute("contenteditable");
           td.classList.remove("edit-active", "formula-error");
         });
-        document.querySelectorAll("#reportBody tr.row-edited").forEach((tr) => tr.classList.remove("row-edited"));
+        document
+          .querySelectorAll("#reportBody tr.row-edited")
+          .forEach((tr) => tr.classList.remove("row-edited"));
         lockSpecialEditMode();
       }
 
@@ -6026,7 +6428,9 @@
         const video = document.getElementById("signupFaceVideo");
         modal.style.display = "flex";
         try {
-          signupFaceStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          signupFaceStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
           video.srcObject = signupFaceStream;
         } catch (err) {
           window.alert("Camera access denied or not available.");
@@ -6040,7 +6444,8 @@
         const ctx = canvas.getContext("2d");
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         capturedSignupFaceData = canvas.toDataURL("image/jpeg");
-        document.getElementById("signupFaceStatus").innerText = "✓ Face Captured Successfully!";
+        document.getElementById("signupFaceStatus").innerText =
+          "✓ Face Captured Successfully!";
         closeSignupFaceModal();
       }
 
@@ -6056,32 +6461,43 @@
       async function executeReportFaceLogin() {
         const modal = document.getElementById("reportFaceModal");
         const video = document.getElementById("reportFaceVideo");
-        const instruction = document.getElementById("reportLivenessInstruction");
+        const instruction = document.getElementById(
+          "reportLivenessInstruction",
+        );
         modal.style.display = "flex";
         reportChallengePassed = false;
         isReportVerifying = false;
 
         const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
-        reportLivenessChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+        reportLivenessChallenge =
+          challenges[Math.floor(Math.random() * challenges.length)];
         instruction.innerText = reportLivenessChallenge;
         instruction.style.color = "#d97706";
 
         try {
           if (!reportFaceMesh) {
             reportFaceMesh = new FaceMesh({
-              locateFile: (file) => `/node_xlsx_scripts/mediapipe/${file}`
+              locateFile: (file) => `/node_xlsx_scripts/mediapipe/${file}`,
             });
-            reportFaceMesh.setOptions({ maxNumFaces: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+            reportFaceMesh.setOptions({
+              maxNumFaces: 1,
+              minDetectionConfidence: 0.7,
+              minTrackingConfidence: 0.7,
+            });
             reportFaceMesh.onResults(onReportFaceMeshResults);
           }
 
-          reportVideoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          reportVideoStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
           video.srcObject = reportVideoStream;
 
           reportMpCamera = new Camera(video, {
-            onFrame: async () => { await reportFaceMesh.send({ image: video }); },
+            onFrame: async () => {
+              await reportFaceMesh.send({ image: video });
+            },
             width: 320,
-            height: 240
+            height: 240,
           });
           reportMpCamera.start();
         } catch (err) {
@@ -6093,9 +6509,14 @@
       async function onReportFaceMeshResults(results) {
         if (isReportVerifying || reportChallengePassed) return;
 
-        const instruction = document.getElementById("reportLivenessInstruction");
+        const instruction = document.getElementById(
+          "reportLivenessInstruction",
+        );
 
-        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        if (
+          results.multiFaceLandmarks &&
+          results.multiFaceLandmarks.length > 0
+        ) {
           const landmarks = results.multiFaceLandmarks[0];
           const nose = landmarks[1];
           const leftEdge = landmarks[234];
@@ -6105,8 +6526,16 @@
 
           let passed = false;
           // 🟢 Strict Bank KYC Logic
-          if (reportLivenessChallenge === "Turn your head LEFT" && yawRatio > 0.65) passed = true;
-          if (reportLivenessChallenge === "Turn your head RIGHT" && yawRatio < 0.35) passed = true;
+          if (
+            reportLivenessChallenge === "Turn your head LEFT" &&
+            yawRatio > 0.65
+          )
+            passed = true;
+          if (
+            reportLivenessChallenge === "Turn your head RIGHT" &&
+            yawRatio < 0.35
+          )
+            passed = true;
 
           if (passed) {
             reportChallengePassed = true;
@@ -6125,17 +6554,19 @@
         const imageData = canvas.toDataURL("image/jpeg");
 
         document.getElementById("loader").style.display = "block";
-        document.getElementById("loader").innerText = "Verifying Face Identity...";
+        document.getElementById("loader").innerText =
+          "Verifying Face Identity...";
 
         try {
           const res = await fetch("/py/face-login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: imageData })
+            body: JSON.stringify({ image: imageData }),
           });
           const data = await res.json();
           document.getElementById("loader").style.display = "none";
-          document.getElementById("loader").innerText = "Processing Data... Please wait.";
+          document.getElementById("loader").innerText =
+            "Processing Data... Please wait.";
 
           if (data.success) {
             localStorage.setItem("invoiceToken", data.token);
@@ -6149,7 +6580,8 @@
           }
         } catch (err) {
           document.getElementById("loader").style.display = "none";
-          document.getElementById("loader").innerText = "Processing Data... Please wait.";
+          document.getElementById("loader").innerText =
+            "Processing Data... Please wait.";
           showToast("Python Server Connection Failed.");
           closeReportFaceModal();
         }
@@ -6180,162 +6612,191 @@
       let isResetProcessing = false;
 
       function openBillingResetFaceModal() {
-          document.getElementById("billingRfUsername").value = "";
-          document.getElementById("billingRfPassword").value = "";
-          document.getElementById("billingRfMessage").innerText = "";
-          document.getElementById("billingResetVerifyModal").style.display = "flex";
+        document.getElementById("billingRfUsername").value = "";
+        document.getElementById("billingRfPassword").value = "";
+        document.getElementById("billingRfMessage").innerText = "";
+        document.getElementById("billingResetVerifyModal").style.display =
+          "flex";
       }
 
       function closeBillingResetFaceModal() {
-          document.getElementById("billingResetVerifyModal").style.display = "none";
-          billingRfTempCreds = null;
+        document.getElementById("billingResetVerifyModal").style.display =
+          "none";
+        billingRfTempCreds = null;
       }
 
       async function verifyAndStartBillingFaceReset() {
-          const u = document.getElementById("billingRfUsername").value.trim();
-          const p = document.getElementById("billingRfPassword").value;
-          const msg = document.getElementById("billingRfMessage");
-          
-          if (!u || !p) {
-              msg.innerText = "Enter both username and password.";
-              msg.style.color = "#dc3545";
-              return;
+        const u = document.getElementById("billingRfUsername").value.trim();
+        const p = document.getElementById("billingRfPassword").value;
+        const msg = document.getElementById("billingRfMessage");
+
+        if (!u || !p) {
+          msg.innerText = "Enter both username and password.";
+          msg.style.color = "#dc3545";
+          return;
+        }
+
+        msg.innerText = "Verifying...";
+        msg.style.color = "#0ea5e9";
+
+        try {
+          const res = await fetch("/api/invoice-auth/verify-credentials", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: u, password: p }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            billingRfTempCreds = { username: u, password: p };
+            document.getElementById("billingResetVerifyModal").style.display =
+              "none";
+            startBillingResetCamera();
+          } else {
+            msg.innerText = data.message || "Invalid credentials.";
+            msg.style.color = "#dc3545";
           }
-
-          msg.innerText = "Verifying...";
-          msg.style.color = "#0ea5e9";
-
-          try {
-              const res = await fetch("/api/invoice-auth/verify-credentials", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ username: u, password: p }),
-              });
-              const data = await res.json();
-
-              if (data.success) {
-                  billingRfTempCreds = { username: u, password: p };
-                  document.getElementById("billingResetVerifyModal").style.display = "none";
-                  startBillingResetCamera();
-              } else {
-                  msg.innerText = data.message || "Invalid credentials.";
-                  msg.style.color = "#dc3545";
-              }
-          } catch (e) {
-              msg.innerText = "Error connecting to server.";
-              msg.style.color = "#dc3545";
-          }
+        } catch (e) {
+          msg.innerText = "Error connecting to server.";
+          msg.style.color = "#dc3545";
+        }
       }
 
       async function startBillingResetCamera() {
-          const modal = document.getElementById("billingResetFaceModal");
-          const video = document.getElementById("billingResetFaceVideo");
-          const instruction = document.getElementById("billingResetInstruction");
-          modal.style.display = "flex";
-          resetChallengePassed = false;
-          isResetProcessing = false;
+        const modal = document.getElementById("billingResetFaceModal");
+        const video = document.getElementById("billingResetFaceVideo");
+        const instruction = document.getElementById("billingResetInstruction");
+        modal.style.display = "flex";
+        resetChallengePassed = false;
+        isResetProcessing = false;
 
-          const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
-          resetLivenessChallenge = challenges[Math.floor(Math.random() * challenges.length)];
-          instruction.innerText = resetLivenessChallenge;
-          instruction.style.color = "#d97706";
+        const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
+        resetLivenessChallenge =
+          challenges[Math.floor(Math.random() * challenges.length)];
+        instruction.innerText = resetLivenessChallenge;
+        instruction.style.color = "#d97706";
 
-          try {
-              if (!resetFaceMesh) {
-                  resetFaceMesh = new FaceMesh({locateFile: (file) => `/node_xlsx_scripts/mediapipe/${file}`});
-                  resetFaceMesh.setOptions({ maxNumFaces: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
-                  resetFaceMesh.onResults(onResetFaceMeshResults);
-              }
-              resetFaceStream = await navigator.mediaDevices.getUserMedia({ video: true });
-              video.srcObject = resetFaceStream;
-              resetMpCamera = new Camera(video, {
-                  onFrame: async () => { await resetFaceMesh.send({image: video}); },
-                  width: 320, height: 240
-              });
-              resetMpCamera.start();
-          } catch (err) {
-              window.alert("Camera access denied.");
-              closeBillingResetFaceModalAll();
+        try {
+          if (!resetFaceMesh) {
+            resetFaceMesh = new FaceMesh({
+              locateFile: (file) => `/node_xlsx_scripts/mediapipe/${file}`,
+            });
+            resetFaceMesh.setOptions({
+              maxNumFaces: 1,
+              minDetectionConfidence: 0.7,
+              minTrackingConfidence: 0.7,
+            });
+            resetFaceMesh.onResults(onResetFaceMeshResults);
           }
+          resetFaceStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          video.srcObject = resetFaceStream;
+          resetMpCamera = new Camera(video, {
+            onFrame: async () => {
+              await resetFaceMesh.send({ image: video });
+            },
+            width: 320,
+            height: 240,
+          });
+          resetMpCamera.start();
+        } catch (err) {
+          window.alert("Camera access denied.");
+          closeBillingResetFaceModalAll();
+        }
       }
 
       async function onResetFaceMeshResults(results) {
-          if (isResetProcessing || resetChallengePassed) return;
-          const instruction = document.getElementById("billingResetInstruction");
+        if (isResetProcessing || resetChallengePassed) return;
+        const instruction = document.getElementById("billingResetInstruction");
 
-          if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-              const landmarks = results.multiFaceLandmarks[0];
-              const nose = landmarks[1];
-              const leftEdge = landmarks[234];
-              const rightEdge = landmarks[454];
-              const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
+        if (
+          results.multiFaceLandmarks &&
+          results.multiFaceLandmarks.length > 0
+        ) {
+          const landmarks = results.multiFaceLandmarks[0];
+          const nose = landmarks[1];
+          const leftEdge = landmarks[234];
+          const rightEdge = landmarks[454];
+          const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
 
-              let passed = false;
-              // 🟢 Strict Bank KYC Logic for Reset
-              if (resetLivenessChallenge === "Turn your head LEFT" && yawRatio > 0.65) passed = true;
-              if (resetLivenessChallenge === "Turn your head RIGHT" && yawRatio < 0.35) passed = true;
+          let passed = false;
+          // 🟢 Strict Bank KYC Logic for Reset
+          if (
+            resetLivenessChallenge === "Turn your head LEFT" &&
+            yawRatio > 0.65
+          )
+            passed = true;
+          if (
+            resetLivenessChallenge === "Turn your head RIGHT" &&
+            yawRatio < 0.35
+          )
+            passed = true;
 
-              if (passed) {
-                  resetChallengePassed = true;
-                  instruction.innerText = "Challenge Passed! Processing...";
-                  instruction.style.color = "#10b981";
-                  await captureAndSubmitResetFace(results.image);
-              }
+          if (passed) {
+            resetChallengePassed = true;
+            instruction.innerText = "Challenge Passed! Processing...";
+            instruction.style.color = "#10b981";
+            await captureAndSubmitResetFace(results.image);
           }
+        }
       }
 
       async function captureAndSubmitResetFace(videoFrame) {
-          isResetProcessing = true;
-          const canvas = document.getElementById("billingResetFaceCanvas");
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(videoFrame, 0, 0, canvas.width, canvas.height);
-          const imageData = canvas.toDataURL("image/jpeg");
+        isResetProcessing = true;
+        const canvas = document.getElementById("billingResetFaceCanvas");
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(videoFrame, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL("image/jpeg");
 
-          try {
-              const encRes = await fetch("/py/face-encode", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ image: imageData })
-              });
-              const encData = await encRes.json();
+        try {
+          const encRes = await fetch("/py/face-encode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: imageData }),
+          });
+          const encData = await encRes.json();
 
-              if (!encData.success || !encData.descriptor) {
-                  window.alert(encData.message || "Failed to scan face.");
-                  closeBillingResetFaceModalAll();
-                  return;
-              }
-
-              const resetRes = await fetch("/api/invoice-auth/reset-face-data", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                      username: billingRfTempCreds.username,
-                      password: billingRfTempCreds.password,
-                      faceDescriptor: encData.descriptor
-                  })
-              });
-              const resetData = await resetRes.json();
-              window.alert(resetData.message);
-              
-              closeBillingResetFaceModalAll();
-              if (resetData.success) {
-                  toggleAuthView("loginBox");
-              }
-          } catch (e) {
-              window.alert("Error connecting to server.");
-              closeBillingResetFaceModalAll();
+          if (!encData.success || !encData.descriptor) {
+            window.alert(encData.message || "Failed to scan face.");
+            closeBillingResetFaceModalAll();
+            return;
           }
+
+          const resetRes = await fetch("/api/invoice-auth/reset-face-data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: billingRfTempCreds.username,
+              password: billingRfTempCreds.password,
+              faceDescriptor: encData.descriptor,
+            }),
+          });
+          const resetData = await resetRes.json();
+          window.alert(resetData.message);
+
+          closeBillingResetFaceModalAll();
+          if (resetData.success) {
+            toggleAuthView("loginBox");
+          }
+        } catch (e) {
+          window.alert("Error connecting to server.");
+          closeBillingResetFaceModalAll();
+        }
       }
 
       function closeBillingResetFaceModalAll() {
-          document.getElementById("billingResetFaceModal").style.display = "none";
-          isResetProcessing = false;
-          resetChallengePassed = false;
-          if (resetMpCamera) { resetMpCamera.stop(); resetMpCamera = null; }
-          if (resetFaceStream) {
-              resetFaceStream.getTracks().forEach(track => track.stop());
-              resetFaceStream = null;
-          }
+        document.getElementById("billingResetFaceModal").style.display = "none";
+        isResetProcessing = false;
+        resetChallengePassed = false;
+        if (resetMpCamera) {
+          resetMpCamera.stop();
+          resetMpCamera = null;
+        }
+        if (resetFaceStream) {
+          resetFaceStream.getTracks().forEach((track) => track.stop());
+          resetFaceStream = null;
+        }
       }
     </script>
     <script src="/node_xlsx_scripts/mediapipe/camera_utils.js"></script>
