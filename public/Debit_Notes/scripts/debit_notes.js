@@ -267,6 +267,7 @@ async function initDebitNotes() {
     }
 
     records = recRes.data;
+    sortRecordsLatestFirst();
     ensureEmptyRowBuffer();
     renderTable();
     setupRealtimeSync();
@@ -297,13 +298,9 @@ function setupRealtimeSync() {
         if (existingIdx !== -1) {
           records[existingIdx] = incomingRow;
         } else {
-          const bufferIdx = records.findIndex((r) => !r.id);
-          if (bufferIdx !== -1) {
-            records.splice(bufferIdx, 0, incomingRow);
-          } else {
-            records.push(incomingRow);
-          }
+          records.push(incomingRow);
         }
+        sortRecordsLatestFirst();
         ensureEmptyRowBuffer();
         renderTable();
         showStatus("⚡ Live Synced", "saved");
@@ -391,6 +388,24 @@ function handleLastRowLiveInput(idx) {
     records.push(createBlankRowObj());
     renderTable();
   }
+}
+
+function sortRecordsLatestFirst() {
+  const dated = records.filter((r) => r.id);
+  const blanks = records.filter((r) => !r.id);
+
+  dated.sort((a, b) => {
+    const da = a.received_date || "";
+    const db = b.received_date || "";
+    if (da !== db) {
+      if (!da) return 1; // received date ഇല്ലാത്തത് താഴെ
+      if (!db) return -1;
+      return db.localeCompare(da); // latest ആദ്യം
+    }
+    return Number(b.id) - Number(a.id); // same date ആണെങ്കിൽ പുതിയ id ആദ്യം
+  });
+
+  records = [...dated, ...blanks];
 }
 
 function renderTable() {
@@ -1064,14 +1079,10 @@ async function submitNewRecordModal(e) {
     if (existingIdx !== -1) {
       records[existingIdx] = newRec;
     } else {
-      const bufferIdx = records.findIndex((r) => !r.id);
-      if (bufferIdx !== -1) {
-        records.splice(bufferIdx, 0, newRec);
-      } else {
-        records.push(newRec);
-      }
+      records.push(newRec);
     }
 
+    sortRecordsLatestFirst();
     ensureEmptyRowBuffer();
     renderTable();
     closeAddNewDataModal();
@@ -1240,6 +1251,92 @@ async function contextDeleteRow() {
   }
 }
 
+const DATE_FILTER_COLS = ["received_date", "submitted_date"];
+const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function buildDateTreeHTML(values, col) {
+  const isChecked = (v) => !activeFilters[col] || activeFilters[col].includes(v);
+
+  const leaf = (value, label) => `
+    <div class="filter-item tree-leaf">
+      <input type="checkbox" value="${escapeHTML(value)}" ${isChecked(value) ? "checked" : ""} class="col-filter-cb" onchange="onLeafChange()">
+      <label>${escapeHTML(label)}</label>
+    </div>`;
+
+  const node = (label, inner, expanded) => `
+    <div class="tree-node">
+      <div class="tree-row">
+        <span class="tree-toggle" onclick="toggleTreeNode(this)">${expanded ? "▼" : "▶"}</span>
+        <input type="checkbox" class="tree-cb" onchange="onTreeParentChange(this)">
+        <label>${label}</label>
+      </div>
+      <div class="tree-children" style="display:${expanded ? "block" : "none"}">${inner}</div>
+    </div>`;
+
+  const tree = {};
+  const blanks = [];
+  const others = [];
+
+  values.forEach((v) => {
+    if (v === "(Blanks)") return blanks.push(v);
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v);
+    if (!m) return others.push(v);
+    const y = m[1], mo = parseInt(m[2], 10) - 1;
+    tree[y] = tree[y] || {};
+    tree[y][mo] = tree[y][mo] || [];
+    tree[y][mo].push(v);
+  });
+
+  let html = "";
+  blanks.forEach((v) => (html += leaf(v, "(Blanks)")));
+  others.forEach((v) => (html += leaf(v, v)));
+
+  Object.keys(tree).sort().forEach((y) => {
+    let monthsHtml = "";
+    Object.keys(tree[y]).map(Number).sort((a, b) => a - b).forEach((mo) => {
+      const daysHtml = tree[y][mo].sort().map((v) => leaf(v, formatDateDisplay(v))).join("");
+      monthsHtml += node(MONTH_SHORT[mo], daysHtml, false);
+    });
+    html += node(y, monthsHtml, false);
+  });
+
+  return html;
+}
+
+function toggleTreeNode(el) {
+  const node = el.closest(".tree-node");
+  const children = node.querySelector(":scope > .tree-children");
+  const open = children.style.display === "none";
+  children.style.display = open ? "block" : "none";
+  el.innerText = open ? "▼" : "▶";
+}
+
+function onTreeParentChange(cb) {
+  const node = cb.closest(".tree-node");
+  node.querySelectorAll(".tree-leaf").forEach((item) => {
+    if (item.style.display !== "none") {
+      item.querySelector(".col-filter-cb").checked = cb.checked;
+    }
+  });
+  cb.indeterminate = false;
+  syncSelectAllCheckbox();
+}
+
+function onLeafChange() {
+  syncSelectAllCheckbox();
+}
+
+function updateTreeStates() {
+  const nodes = Array.from(document.querySelectorAll("#filterList .tree-node")).reverse();
+  nodes.forEach((node) => {
+    const cb = node.querySelector(":scope > .tree-row > .tree-cb");
+    const leaves = Array.from(node.querySelectorAll(".col-filter-cb"));
+    const checkedCount = leaves.filter((l) => l.checked).length;
+    cb.checked = leaves.length > 0 && checkedCount === leaves.length;
+    cb.indeterminate = checkedCount > 0 && checkedCount < leaves.length;
+  });
+}
+
 function openHeaderFilter(e, col) {
   e.preventDefault();
   activeHeaderCol = col;
@@ -1270,6 +1367,12 @@ function openHeaderFilter(e, col) {
   const listEl = document.getElementById("filterList");
   listEl.innerHTML = "";
 
+  if (DATE_FILTER_COLS.includes(col)) {
+    listEl.innerHTML = buildDateTreeHTML(sorted, col);
+    syncSelectAllCheckbox();
+    return;
+  }
+
   let allChecked = true;
   sorted.forEach((v) => {
     const isChecked = !activeFilters[col] || activeFilters[col].includes(v);
@@ -1290,10 +1393,25 @@ function openHeaderFilter(e, col) {
 
 function searchFilterList() {
   const q = document.getElementById("filterSearchInput").value.toLowerCase();
+
   document.querySelectorAll("#filterList .filter-item").forEach((item) => {
     const lbl = item.querySelector("label").innerText.toLowerCase();
-    item.style.display = lbl.includes(q) ? "flex" : "none";
+    const raw = item.querySelector(".col-filter-cb").value.toLowerCase();
+    item.style.display = lbl.includes(q) || raw.includes(q) ? "flex" : "none";
   });
+
+  const nodes = Array.from(document.querySelectorAll("#filterList .tree-node")).reverse();
+  nodes.forEach((node) => {
+    const anyVisible = Array.from(node.querySelectorAll(".tree-leaf")).some(
+      (l) => l.style.display !== "none",
+    );
+    node.style.display = anyVisible ? "" : "none";
+    if (q && anyVisible) {
+      node.querySelector(":scope > .tree-children").style.display = "block";
+      node.querySelector(":scope > .tree-row > .tree-toggle").innerText = "▼";
+    }
+  });
+
   syncSelectAllCheckbox();
 }
 
@@ -1307,6 +1425,7 @@ function toggleSelectAllFilters(checkState) {
   });
   const selectAllCb = document.getElementById("filterSelectAllCb");
   if (selectAllCb) selectAllCb.checked = checkState;
+  updateTreeStates();
 }
 
 function syncSelectAllCheckbox() {
@@ -1316,10 +1435,12 @@ function syncSelectAllCheckbox() {
     .filter(Boolean);
 
   const selectAllCb = document.getElementById("filterSelectAllCb");
-  if (!selectAllCb || visibleCbs.length === 0) return;
-
-  const allSelected = visibleCbs.every((cb) => cb.checked);
-  selectAllCb.checked = allSelected;
+  if (selectAllCb && visibleCbs.length > 0) {
+    const checkedCount = visibleCbs.filter((cb) => cb.checked).length;
+    selectAllCb.checked = checkedCount === visibleCbs.length;
+    selectAllCb.indeterminate = checkedCount > 0 && checkedCount < visibleCbs.length;
+  }
+  updateTreeStates();
 }
 
 function applyCurrentFilter() {
