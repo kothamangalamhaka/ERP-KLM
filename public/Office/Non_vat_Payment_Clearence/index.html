@@ -96,7 +96,7 @@
         position: relative;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-start;
         border: 6px solid #2563eb;
         outline: 2px solid #f97316;
         outline-offset: -8px;
@@ -166,13 +166,14 @@
         font-weight: bold;
         padding: 2px 4px;
         margin: 4px 0;
+        white-space: pre-line;
       }
       .signature-director {
         margin-top: 10px;
         text-align: left;
         padding-left: 50px;
         font-weight: bold;
-        margin-bottom: 40px;
+        margin-bottom: 90px;
       }
 
       /* Bottom Divider & Signatory */
@@ -193,7 +194,7 @@
         text-align: center;
         font-weight: bold;
         font-size: 14.5px;
-        margin-bottom: 30px;
+        margin-bottom: 15px;
         display: table;
         margin-left: auto;
         margin-right: auto;
@@ -207,7 +208,8 @@
         text-align: center;
         font-weight: bold;
         font-size: 13px;
-        margin-bottom: 15px;
+        margin-top: 70px;
+        margin-bottom: 35px;
       }
 
       /* Modals */
@@ -423,7 +425,7 @@
                 stamping this letter.
               </p>
               <div>
-                <span class="highlight-box"
+                <span class="highlight-box" id="viewCustomNote"
                   >This is the last payment/ هذا هو الدفعة الأخيرة</span
                 >
               </div>
@@ -497,6 +499,10 @@
         <div class="form-group">
           <label>5. Amount (SAR)</label>
           <input type="text" id="inpAmount" placeholder="9500.00" />
+        </div>
+        <div class="form-group">
+          <label>6. Custom Note / Clearance Remarks</label>
+          <textarea id="inpCustomNote" rows="3" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit;">This is the last payment/ هذا هو الدفعة الأخيرة</textarea>
         </div>
         <button
           class="btn btn-edit"
@@ -625,6 +631,7 @@
 
         const rawAmt = document.getElementById("inpAmount").value.trim();
         const amtVal = parseFloat(rawAmt) || 0;
+        const customNote = document.getElementById("inpCustomNote").value.trim() || "This is the last payment/ هذا هو الدفعة الأخيرة";
 
         document.getElementById("viewName").innerText = name;
         document.getElementById("viewArabicName").innerText = arName;
@@ -646,6 +653,7 @@
         document.getElementById("viewDateEng").innerText = dateValEng;
         document.getElementById("viewDateArabic").innerText = dateValAr;
         document.getElementById("viewDateFooter").innerText = dateValAr;
+        document.getElementById("viewCustomNote").innerText = customNote;
 
         closeModal("editModal");
       }
@@ -661,6 +669,7 @@
           .getElementById("viewAmountSAR2")
           .innerText.replace(/[^0-9.-]+/g, "");
         const amtVal = parseFloat(rawAmt) || 0;
+        const customNoteVal = document.getElementById("viewCustomNote").innerText;
 
         if (name === "........" || plate === "........") {
           alert("Please apply details using Edit first!");
@@ -681,6 +690,7 @@
             plate_no: plate,
             date: dateVal,
             amount: amtVal,
+            custom_note: customNoteVal,
           }),
         })
           .then((res) => res.json())
@@ -723,7 +733,7 @@
               <td><b>${parseFloat(r.amount).toLocaleString()} SAR</b></td>
               <td>${r.created_at_formatted}</td>
               <td>
-                <button class="btn btn-edit" style="padding:4px 8px; font-size:11px;" onclick="viewRecord(${r.id}, '${r.name.replace(/'/g, "\\'")}', '${r.arabic_name.replace(/'/g, "\\'")}', '${r.plate_no}', '${r.clearance_date}', ${r.amount})">👁️ View / Modify</button>
+                <button class="btn btn-edit" style="padding:4px 8px; font-size:11px;" onclick="viewRecord(${r.id}, '${r.name.replace(/'/g, "\\'")}', '${r.arabic_name.replace(/'/g, "\\'")}', '${r.plate_no}', '${r.clearance_date}', ${r.amount}, encodeURIComponent('${(r.custom_note || "").replace(/'/g, "\\'")}'))">👁️ View / Modify</button>
               </td>
             </tr>
           `,
@@ -753,14 +763,19 @@
         plateNo,
         clearanceDate,
         amount,
+        encodedNote = ""
       ) {
         document.getElementById("currentRecordId").value = id;
+        const decodedNote = encodedNote ? decodeURIComponent(encodedNote) : "This is the last payment/ هذا هو الدفعة الأخيرة";
 
         // Populate Form inputs
         document.getElementById("inpName").value = name;
         document.getElementById("inpArabicName").value = arabicName;
         document.getElementById("inpPlate").value = plateNo;
         document.getElementById("inpAmount").value = amount;
+        document.getElementById("inpCustomNote").value = decodedNote;
+        document.getElementById("viewCustomNote").innerText = decodedNote;
+        document.getElementById("inpCustomNote").value = document.getElementById("viewCustomNote").innerText;
 
         // Parse date back if needed or set view directly
         document.getElementById("viewName").innerText = name;
