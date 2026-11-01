@@ -138,7 +138,10 @@
             autocomplete="off"
           />
         </div>
-        <button onclick="login()">Login</button>
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 10px;">
+          <button onclick="login()" style="flex: 1; margin-top: 0;">Login</button>
+          <button type="button" onclick="startTsFaceAuth('login')" title="Face Login" style="width: auto; padding: 12px 16px; background-color: #10b981; margin-top: 0; font-size: 18px;">📸</button>
+        </div>
         <div class="toggle-link" onclick="switchSection('registerSection')">
           Need an account? Register
         </div>
@@ -175,6 +178,10 @@
             autocomplete="off"
           />
         </div>
+        <div style="margin-bottom: 12px;">
+          <button type="button" id="regFaceBtn" onclick="startTsFaceAuth('register')" style="background-color: #4b5563; font-size: 14px; padding: 10px; margin-top: 0;">📸 Scan Face ID (Optional)</button>
+          <div id="regFaceStatus" style="font-size: 12px; color: #10b981; margin-top: 5px; text-align: center; display: none;">✓ Face captured successfully</div>
+        </div>
         <button onclick="register()">Create Account</button>
         <div class="toggle-link" onclick="switchSection('loginSection')">
           Back to Login
@@ -208,6 +215,9 @@
           <button onclick="resetPassword()">Confirm New Password</button>
         </div>
 
+        <div class="toggle-link" onclick="openResetFaceModal()" style="color: #0284c7; margin-top: 15px;">
+          📸 Reset / Update Face Data
+        </div>
         <div class="toggle-link" onclick="switchSection('loginSection')">
           Back to Login
         </div>
@@ -216,7 +226,159 @@
       </div>
     </div>
 
+    <!-- Credentials Modal for Reset Face -->
+    <div id="resetFaceVerifyModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 10001; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+      <div style="background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 360px; box-sizing: border-box;">
+        <h3 style="margin-top: 0; text-align: center; color: #111;">Verify Credentials</h3>
+        <p style="font-size: 13px; color: #64748b; text-align: center; margin-bottom: 15px;">Enter your username and password to re-register Face ID.</p>
+        <div class="input-group">
+          <input type="text" id="rfUsername" placeholder="Username" autocomplete="off" />
+        </div>
+        <div class="input-group">
+          <input type="password" id="rfPassword" placeholder="Password" autocomplete="off" />
+        </div>
+        <button type="button" onclick="verifyAndStartFaceReset()" style="background-color: #0284c7;">Continue to Face Scan</button>
+        <button type="button" onclick="closeResetFaceModal()" style="background-color: #64748b; margin-top: 8px;">Cancel</button>
+        <div id="rfMessage" class="message"></div>
+      </div>
+    </div>
+
+    <!-- MediaPipe Camera Verification Modal -->
+    <div id="tsUniversalFaceModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 10002; justify-content: center; align-items: center;">
+      <div style="background: white; padding: 20px; border-radius: 12px; text-align: center; width: 90%; max-width: 360px; box-sizing: border-box;">
+        <h3 id="tsFaceModalTitle" style="margin-top: 0; color: #0f172a;">Face Verification</h3>
+        <h4 id="tsUniversalInstruction" style="margin-top: 5px; margin-bottom: 15px; font-weight: bold; color: #d97706; min-height: 20px;">Initializing Camera...</h4>
+        <video id="tsUniversalVideo" width="320" height="240" autoplay muted playsinline style="border-radius: 8px; transform: scaleX(-1); max-width: 100%;"></video>
+        <canvas id="tsUniversalCanvas" width="320" height="240" style="display: none;"></canvas>
+        <div style="margin-top: 15px;">
+          <button type="button" onclick="closeUniversalFace()" style="background: #dc2626; color: white; padding: 8px 16px; width: auto; margin-top: 0;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
     <script>
+      // ---------- Timesheet Face Login Logic ----------
+      let tsVideoStream = null;
+      let tsFaceMesh = null;
+      let tsMpCamera = null;
+      let tsLivenessChallenge = null;
+      let tsChallengePassed = false;
+      let isTsVerifying = false;
+
+      async function startTimesheetFaceLogin() {
+        const modal = document.getElementById("tsFaceModal");
+        const video = document.getElementById("tsFaceVideo");
+        const instruction = document.getElementById("tsLivenessInstruction");
+        modal.style.display = "flex";
+        tsChallengePassed = false;
+        isTsVerifying = false;
+
+        const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
+        tsLivenessChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+        instruction.innerText = tsLivenessChallenge;
+        instruction.style.color = "#d97706";
+
+        try {
+          if (!tsFaceMesh) {
+            tsFaceMesh = new FaceMesh({
+              locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+            });
+            tsFaceMesh.setOptions({ maxNumFaces: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+            tsFaceMesh.onResults(onTsFaceMeshResults);
+          }
+
+          tsVideoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = tsVideoStream;
+
+          tsMpCamera = new Camera(video, {
+            onFrame: async () => { await tsFaceMesh.send({ image: video }); },
+            width: 320,
+            height: 240
+          });
+          tsMpCamera.start();
+        } catch (err) {
+          alert("Camera access denied or not available.");
+          closeTimesheetFace();
+        }
+      }
+
+      async function onTsFaceMeshResults(results) {
+        if (isTsVerifying || tsChallengePassed) return;
+
+        const instruction = document.getElementById("tsLivenessInstruction");
+
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+          const landmarks = results.multiFaceLandmarks[0];
+          const nose = landmarks[1];
+          const leftEdge = landmarks[234];
+          const rightEdge = landmarks[454];
+
+          const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
+
+          let passed = false;
+          if (tsLivenessChallenge === "Turn your head LEFT" && yawRatio > 0.65) passed = true;
+          if (tsLivenessChallenge === "Turn your head RIGHT" && yawRatio < 0.35) passed = true;
+
+          if (passed) {
+            tsChallengePassed = true;
+            instruction.innerText = "Challenge Passed! Verifying...";
+            instruction.style.color = "#10b981";
+            await captureAndVerifyTsFace(results.image);
+          }
+        }
+      }
+
+      async function captureAndVerifyTsFace(videoFrame) {
+        isTsVerifying = true;
+        const canvas = document.getElementById("tsFaceCanvas");
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(videoFrame, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL("image/jpeg");
+
+        try {
+          const res = await fetch("/py/timesheet-face-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: imageData }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            closeTimesheetFace();
+            localStorage.setItem("timesheetToken", data.token);
+            localStorage.setItem("timesheetUser", JSON.stringify(data.user));
+            window.location.replace(redirectUrl);
+            return;
+          }
+
+          closeTimesheetFace();
+          const msgDiv = document.getElementById("logMessage");
+          msgDiv.innerText = data.message || "Face recognition failed.";
+          msgDiv.style.color = "#dc3545";
+        } catch (e) {
+          closeTimesheetFace();
+          const msgDiv = document.getElementById("logMessage");
+          msgDiv.innerText = "Error connecting to face server.";
+          msgDiv.style.color = "#dc3545";
+        }
+      }
+
+      function closeTimesheetFace() {
+        document.getElementById("tsFaceModal").style.display = "none";
+        isTsVerifying = false;
+        tsChallengePassed = false;
+        if (tsMpCamera) {
+          tsMpCamera.stop();
+          tsMpCamera = null;
+        }
+        if (tsVideoStream) {
+          tsVideoStream.getTracks().forEach((t) => t.stop());
+          tsVideoStream = null;
+        }
+      }
+
       // 🟢 GET INTENDED REDIRECT URL FROM ADDRESS BAR OR REFERRER
       const urlParams = new URLSearchParams(window.location.search);
       let redirectUrl = urlParams.get("redirect");
@@ -314,6 +476,218 @@
         }
       }
 
+      let registeredFaceDescriptor = null;
+      let activeFaceAction = null; // 'login' | 'register' | 'reset'
+      let rfTempCreds = null;
+      let tsCamStream = null;
+      let tsFaceMeshInstance = null;
+      let tsMpCameraInstance = null;
+      let tsLivenessTarget = null;
+      let tsLivenessPassed = false;
+      let isTsProcessing = false;
+
+      function openResetFaceModal() {
+        document.getElementById("rfUsername").value = "";
+        document.getElementById("rfPassword").value = "";
+        document.getElementById("rfMessage").innerText = "";
+        document.getElementById("resetFaceVerifyModal").style.display = "flex";
+      }
+
+      function closeResetFaceModal() {
+        document.getElementById("resetFaceVerifyModal").style.display = "none";
+        rfTempCreds = null;
+      }
+
+      async function verifyAndStartFaceReset() {
+        const u = document.getElementById("rfUsername").value.trim();
+        const p = document.getElementById("rfPassword").value;
+        const msg = document.getElementById("rfMessage");
+        if (!u || !p) {
+          msg.innerText = "Enter both username and password.";
+          msg.style.color = "#dc3545";
+          return;
+        }
+
+        msg.innerText = "Verifying...";
+        msg.style.color = "#0284c7";
+
+        try {
+          const res = await fetch("/timesheet/verify-credentials", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: u, password: p }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            rfTempCreds = { username: u, password: p };
+            document.getElementById("resetFaceVerifyModal").style.display = "none";
+            startTsFaceAuth("reset");
+          } else {
+            msg.innerText = data.message || "Invalid credentials.";
+            msg.style.color = "#dc3545";
+          }
+        } catch (e) {
+          msg.innerText = "Error connecting to server.";
+          msg.style.color = "#dc3545";
+        }
+      }
+
+      async function startTsFaceAuth(action) {
+        activeFaceAction = action;
+        const modal = document.getElementById("tsUniversalFaceModal");
+        const video = document.getElementById("tsUniversalVideo");
+        const instruction = document.getElementById("tsUniversalInstruction");
+        const title = document.getElementById("tsFaceModalTitle");
+
+        title.innerText = action === "login" ? "Face Login" : (action === "register" ? "Register Face ID" : "Reset Face ID");
+        modal.style.display = "flex";
+        tsLivenessPassed = false;
+        isTsProcessing = false;
+
+        const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
+        tsLivenessTarget = challenges[Math.floor(Math.random() * challenges.length)];
+        instruction.innerText = tsLivenessTarget;
+        instruction.style.color = "#d97706";
+
+        try {
+          if (!tsFaceMeshInstance) {
+            tsFaceMeshInstance = new FaceMesh({
+              locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+            });
+            tsFaceMeshInstance.setOptions({ maxNumFaces: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+            tsFaceMeshInstance.onResults(onTsUniversalMeshResults);
+          }
+
+          tsCamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = tsCamStream;
+
+          tsMpCameraInstance = new Camera(video, {
+            onFrame: async () => { await tsFaceMeshInstance.send({ image: video }); },
+            width: 320,
+            height: 240
+          });
+          tsMpCameraInstance.start();
+        } catch (err) {
+          alert("Camera access denied or unavailable.");
+          closeUniversalFace();
+        }
+      }
+
+      async function onTsUniversalMeshResults(results) {
+        if (isTsProcessing || tsLivenessPassed) return;
+        const instruction = document.getElementById("tsUniversalInstruction");
+
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+          const landmarks = results.multiFaceLandmarks[0];
+          const nose = landmarks[1];
+          const leftEdge = landmarks[234];
+          const rightEdge = landmarks[454];
+          const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
+
+          let passed = false;
+          // Mirrored webcam: Screen-il LEFT thiriyumbozhum yaw ratio adjust aakunnu
+          if (tsLivenessTarget === "Turn your head LEFT" && (yawRatio < 0.40 || yawRatio > 0.60)) passed = true;
+          if (tsLivenessTarget === "Turn your head RIGHT" && (yawRatio > 0.60 || yawRatio < 0.40)) passed = true;
+
+          if (passed) {
+            tsLivenessPassed = true;
+            instruction.innerText = "Challenge Passed! Processing...";
+            instruction.style.color = "#10b981";
+            const currentVideoEl = document.getElementById("tsUniversalVideo");
+            await handleTsFaceCapture(currentVideoEl);
+          }
+        }
+      }
+
+      async function handleTsFaceCapture(frame) {
+        isTsProcessing = true;
+        const canvas = document.getElementById("tsUniversalCanvas");
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL("image/jpeg");
+
+        if (activeFaceAction === "login") {
+          try {
+            const res = await fetch("/py/timesheet-face-login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image: imageData }),
+            });
+            const data = await res.json();
+            closeUniversalFace();
+            if (data.success) {
+              localStorage.setItem("timesheetToken", data.token);
+              localStorage.setItem("timesheetUser", JSON.stringify(data.user));
+              window.location.replace(redirectUrl);
+            } else {
+              const msgDiv = document.getElementById("logMessage");
+              msgDiv.innerText = data.message || "Face recognition failed.";
+              msgDiv.style.color = "#dc3545";
+            }
+          } catch (e) {
+            closeUniversalFace();
+            const msgDiv = document.getElementById("logMessage");
+            msgDiv.innerText = "Error connecting to server.";
+            msgDiv.style.color = "#dc3545";
+          }
+        } else if (activeFaceAction === "register" || activeFaceAction === "reset") {
+          try {
+            const res = await fetch("/py/face-encode", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image: imageData }),
+            });
+            const data = await res.json();
+            closeUniversalFace();
+
+            if (!data.success || !data.descriptor) {
+              alert(data.message || "Failed to encode face. Please retry.");
+              return;
+            }
+
+            if (activeFaceAction === "register") {
+              registeredFaceDescriptor = data.descriptor;
+              document.getElementById("regFaceBtn").style.backgroundColor = "#10b981";
+              document.getElementById("regFaceBtn").innerText = "✓ Face ID Captured";
+              document.getElementById("regFaceStatus").style.display = "block";
+            } else if (activeFaceAction === "reset") {
+              const resetRes = await fetch("/timesheet/reset-face-data", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  username: rfTempCreds.username,
+                  password: rfTempCreds.password,
+                  faceDescriptor: data.descriptor,
+                }),
+              });
+              const resetData = await resetRes.json();
+              alert(resetData.message);
+              if (resetData.success) {
+                switchSection("loginSection");
+              }
+            }
+          } catch (e) {
+            closeUniversalFace();
+            alert("Error processing face descriptor.");
+          }
+        }
+      }
+
+      function closeUniversalFace() {
+        document.getElementById("tsUniversalFaceModal").style.display = "none";
+        isTsProcessing = false;
+        tsLivenessPassed = false;
+        if (tsMpCameraInstance) {
+          tsMpCameraInstance.stop();
+          tsMpCameraInstance = null;
+        }
+        if (tsCamStream) {
+          tsCamStream.getTracks().forEach((t) => t.stop());
+          tsCamStream = null;
+        }
+      }
+
       async function register() {
         const u = document.getElementById("regUsername").value;
         const e = document.getElementById("regEmail").value;
@@ -334,7 +708,7 @@
           const res = await fetch("/timesheet/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: u, email: e, password: p }),
+            body: JSON.stringify({ username: u, email: e, password: p, faceDescriptor: registeredFaceDescriptor }),
           });
           const data = await res.json();
           loader.style.display = "none";
@@ -342,6 +716,7 @@
           msgDiv.innerText = data.message;
           msgDiv.style.color = data.success ? "#28a745" : "#dc3545";
           if (data.success) {
+            registeredFaceDescriptor = null;
             setTimeout(() => switchSection("loginSection"), 3000);
           }
         } catch (err) {

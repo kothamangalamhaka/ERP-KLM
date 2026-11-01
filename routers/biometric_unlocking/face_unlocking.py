@@ -172,6 +172,14 @@ def get_cache_snapshot():
         return FACE_CACHE
 
 
+@router.post("/billing-invalidate-cache")
+def billing_invalidate_cache():
+    global FACE_CACHE
+    with _cache_lock:
+        FACE_CACHE = {"users": [], "encodings": [], "last_updated": 0.0}
+    return {"success": True, "message": "Billing cache cleared"}
+
+
 def get_fresh_user_status(user_id: int):
     """Cache-ലെ status വിശ്വസിക്കാതെ DB-യിൽ നിന്ന് പുതിയത് എടുക്കുന്നു."""
     conn = get_conn()
@@ -304,6 +312,158 @@ def face_login(payload: FaceRequest, request: Request):
         }
     except Exception:
         logger.exception("Face login error")
+        return {"success": False, "message": "Server error. Please try again."}
+    finally:
+        _face_jobs.release()
+
+
+# ---------------- Timesheet Face Cache ----------------
+TIMESHEET_FACE_CACHE = {"users": [], "encodings": [], "last_updated": 0.0}
+
+def get_timesheet_cache_snapshot():
+    global TIMESHEET_FACE_CACHE
+    now = time.time()
+    snap = TIMESHEET_FACE_CACHE
+    if snap["users"] and now - snap["last_updated"] <= CACHE_TTL:
+        return snap
+
+    with _cache_lock:
+        snap = TIMESHEET_FACE_CACHE
+        if snap["users"] and now - snap["last_updated"] <= CACHE_TTL:
+            return snap
+
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """SELECT id, username, role, email, status, face_descriptor
+                   FROM timesheet_users
+                   WHERE face_descriptor IS NOT NULL"""
+            )
+            raw_users = cur.fetchall()
+            cur.close()
+        finally:
+            conn.close()
+
+        valid_users, valid_encodings = [], []
+        for user in raw_users:
+            try:
+                stored = np.array(json.loads(user[5]), dtype=float)
+                if stored.shape == (128,):
+                    valid_users.append(user)
+                    valid_encodings.append(stored)
+            except Exception:
+                continue
+
+        TIMESHEET_FACE_CACHE = {
+            "users": valid_users,
+            "encodings": valid_encodings,
+            "last_updated": time.time(),
+        }
+        return TIMESHEET_FACE_CACHE
+
+
+@router.post("/timesheet-invalidate-cache")
+def timesheet_invalidate_cache():
+    global TIMESHEET_FACE_CACHE
+    with _cache_lock:
+        TIMESHEET_FACE_CACHE = {"users": [], "encodings": [], "last_updated": 0.0}
+    return {"success": True, "message": "Timesheet cache cleared"}
+
+
+@router.post("/timesheet-face-login")
+def timesheet_face_login(payload: FaceRequest, request: Request):
+    ip = get_client_ip(request)
+
+    remaining = check_locked(ip)
+    if remaining > 0:
+        return locked_response(remaining)
+
+    if not payload.image or len(payload.image) > MAX_IMAGE_CHARS:
+        record_failure(ip)
+        return {"success": False, "message": "Invalid image."}
+
+    if not _face_jobs.acquire(timeout=JOB_WAIT_SECONDS):
+        return {"success": False, "code": "BUSY", "message": "Server busy. Please try again."}
+
+    try:
+        current = image_to_encoding(payload.image)
+        if current is None:
+            left = record_failure(ip)
+            if left == 0:
+                return locked_response(LOCKOUT_SECONDS)
+            return {"success": False, "message": f"No face detected in the image. {left} attempt(s) left."}
+
+        snap = get_timesheet_cache_snapshot()
+        if not snap["encodings"]:
+            return {"success": False, "code": "NOT_RECOGNIZED", "message": "No registered face data found for Timesheet users."}
+
+        distances = face_recognition.face_distance(snap["encodings"], current)
+        best_idx = int(np.argmin(distances))
+        best_dist = float(distances[best_idx])
+
+        ambiguous = False
+        if len(distances) > 1:
+            second = float(np.partition(distances, 1)[1])
+            if second - best_dist < 0.03:
+                ambiguous = True
+
+        if best_dist > MATCH_THRESHOLD or ambiguous:
+            left = record_failure(ip)
+            if left == 0:
+                return locked_response(LOCKOUT_SECONDS)
+            return {
+                "success": False,
+                "code": "NOT_RECOGNIZED",
+                "message": f"Face not recognized. {left} attempt(s) left.",
+            }
+
+        matched_user = snap["users"][best_idx]
+        user_id = matched_user[0]
+
+        # Fetch latest status directly from DB
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT username, role, email, status FROM timesheet_users WHERE id = %s", (user_id,))
+            fresh = cur.fetchone()
+            cur.close()
+        finally:
+            conn.close()
+
+        if not fresh:
+            record_failure(ip)
+            return {"success": False, "code": "NOT_RECOGNIZED", "message": "User record not found."}
+
+        username, role, email, status = fresh
+
+        if status != "Active":
+            return {
+                "success": False,
+                "code": "ACCOUNT_PENDING",
+                "message": f"Account is {status}. Access denied. Contact admin.",
+            }
+
+        token = jwt.encode(
+            {
+                "id": user_id,
+                "username": username,
+                "role": role,
+                "email": email,
+            },
+            JWT_SECRET,
+            algorithm="HS256",
+        )
+
+        record_success(ip)
+        return {
+            "success": True,
+            "token": token,
+            "user": {"id": user_id, "username": username, "role": role, "email": email},
+            "message": "Face login successful!",
+        }
+    except Exception:
+        logger.exception("Timesheet face login error")
         return {"success": False, "message": "Server error. Please try again."}
     finally:
         _face_jobs.release()

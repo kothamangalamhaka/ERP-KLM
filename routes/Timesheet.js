@@ -44,7 +44,7 @@ router.get("/api/audit-logs", verifySuperAdmin, async (req, res) => {
 // ==========================================
 router.post("/register", async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, faceDescriptor } = req.body;
     const userCheck = await pool.query(
       "SELECT * FROM timesheet_users WHERE username = $1 OR email = $2",
       [username, email],
@@ -53,8 +53,8 @@ router.post("/register", async (req, res) => {
       return res.json({ success: false, message: "Username or Email exists." });
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
-      "INSERT INTO timesheet_users (username, email, password_hash, role, status) VALUES ($1, $2, $3, $4, $5)",
-      [username, email, hashedPassword, "Viewer", "Pending"],
+      "INSERT INTO timesheet_users (username, email, password_hash, role, status, face_descriptor) VALUES ($1, $2, $3, $4, $5, $6)",
+      [username, email, hashedPassword, "Viewer", "Pending", faceDescriptor ? JSON.stringify(faceDescriptor) : null],
     );
     await logAudit(
       { username },
@@ -62,6 +62,61 @@ router.post("/register", async (req, res) => {
       `New user registration request for ${username}`,
     );
     res.json({ success: true, message: "Registration successful!" });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+router.post("/verify-credentials", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.json({ success: false, message: "Missing credentials." });
+    }
+    const result = await pool.query("SELECT * FROM timesheet_users WHERE username = $1", [username]);
+    if (result.rows.length === 0) {
+      return res.json({ success: false, message: "User not found." });
+    }
+    const user = result.rows[0];
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) {
+      return res.json({ success: false, message: "Invalid credentials." });
+    }
+    res.json({ success: true, message: "Credentials verified." });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+});
+
+router.post("/reset-face-data", async (req, res) => {
+  try {
+    const { username, password, faceDescriptor } = req.body;
+    if (!username || !password || !faceDescriptor) {
+      return res.json({ success: false, message: "All fields and face scan required." });
+    }
+    const result = await pool.query(
+      "SELECT * FROM timesheet_users WHERE username = $1",
+      [username]
+    );
+    if (result.rows.length === 0) {
+      return res.json({ success: false, message: "User not found." });
+    }
+    const user = result.rows[0];
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) {
+      return res.json({ success: false, message: "Invalid credentials." });
+    }
+    await pool.query(
+      "UPDATE timesheet_users SET face_descriptor = $1 WHERE id = $2",
+      [JSON.stringify(faceDescriptor), user.id]
+    );
+    try {
+      await fetch("http://127.0.0.1:8001/py/timesheet-invalidate-cache", { method: "POST" });
+    } catch (e) {
+      console.warn("Timesheet cache invalidate failed:", e.message);
+    }
+    await logAudit(user, "RESET_FACE", `Face data re-registered for ${username}`);
+    res.json({ success: true, message: "Face data updated successfully!" });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

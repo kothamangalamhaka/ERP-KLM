@@ -65,6 +65,42 @@ router.post("/signup", async (req, res) => {
     }
 });
 
+router.post("/verify-credentials", async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        if (!username || !password) return res.json({ success: false, message: "Missing credentials." });
+        const result = await pool.query("SELECT * FROM invoicedatauser WHERE username = $1", [username]);
+        if (result.rows.length === 0) return res.json({ success: false, message: "User not found." });
+        const user = result.rows[0];
+        const isValid = await bcrypt.compare(password, user.password_hash);
+        if (!isValid) return res.json({ success: false, message: "Invalid credentials." });
+        res.json({ success: true, message: "Credentials verified." });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
+router.post("/reset-face-data", async (req, res) => {
+    try {
+        const { username, password, faceDescriptor } = req.body;
+        if (!username || !password || !faceDescriptor) return res.json({ success: false, message: "All fields required." });
+        const result = await pool.query("SELECT * FROM invoicedatauser WHERE username = $1", [username]);
+        if (result.rows.length === 0) return res.json({ success: false, message: "User not found." });
+        const user = result.rows[0];
+        const isValid = await bcrypt.compare(password, user.password_hash);
+        if (!isValid) return res.json({ success: false, message: "Invalid credentials." });
+        await pool.query("UPDATE invoicedatauser SET face_descriptor = $1 WHERE id = $2", [JSON.stringify(faceDescriptor), user.id]);
+        try {
+            await fetch("http://127.0.0.1:8001/py/billing-invalidate-cache", { method: "POST" });
+        } catch (e) {
+            console.warn("Billing cache invalidate failed:", e.message);
+        }
+        res.json({ success: true, message: "Face data updated successfully!" });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
 // Login
 router.post("/login", async (req, res) => {
     try {
