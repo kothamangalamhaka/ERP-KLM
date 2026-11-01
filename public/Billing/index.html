@@ -86,142 +86,13 @@
           onkeypress="if (event.key === 'Enter') executeLogin();"
         />
         <button onclick="executeLogin()">Secure Login</button>
-        <button onclick="executeFaceLogin()" style="background: #10b981; margin-top: 10px;">📸 Face Login</button>
+        <button
+          onclick="startBillingAppFaceAuth('login')"
+          style="background: #10b981; margin-top: 10px"
+        >
+          📸 Face Login
+        </button>
 
-        <!-- Hidden Video & Canvas for Face Capture -->
-        <div id="faceLoginModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center; flex-direction:column;">
-            <div style="background:white; padding:20px; border-radius:8px; text-align:center;">
-                <h3>Position your face in front of the camera</h3>
-                <h4 id="livenessInstruction" style="margin-top:5px; margin-bottom:15px; font-weight:bold; color:#d97706; min-height: 20px;">Loading Security Module...</h4>
-                <video id="faceVideo" width="320" height="240" autoplay style="border-radius:6px; transform: scaleX(-1);"></video>
-                <canvas id="faceCanvas" width="320" height="240" style="display:none;"></canvas>
-                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                    <button onclick="closeFaceModal()" style="background:#dc2626; color:white; padding:8px 15px; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
-                </div>
-            </div>
-        </div>
-
-        <script src="/node_xlsx_scripts/mediapipe/camera_utils.js"></script>
-        <script src="/node_xlsx_scripts/mediapipe/face_mesh.js"></script>
-        <script>
-            let videoStream = null;
-            let faceMesh = null;
-            let mpCamera = null;
-            let livenessChallenge = null;
-            let challengePassed = false;
-            let isVerifying = false;
-
-            async function executeFaceLogin() {
-                const modal = document.getElementById("faceLoginModal");
-                const video = document.getElementById("faceVideo");
-                const instruction = document.getElementById("livenessInstruction");
-                modal.style.display = "flex";
-                challengePassed = false;
-                isVerifying = false;
-                
-                const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
-                livenessChallenge = challenges[Math.floor(Math.random() * challenges.length)];
-                instruction.innerText = livenessChallenge;
-                instruction.style.color = "#d97706";
-                
-                try {
-                    if (!faceMesh) {
-                        faceMesh = new FaceMesh({locateFile: (file) => {
-                            return `/node_xlsx_scripts/mediapipe/${file}`;
-                        }});
-                        faceMesh.setOptions({ maxNumFaces: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
-                        faceMesh.onResults(onFaceMeshResults);
-                    }
-                    
-                    videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    video.srcObject = videoStream;
-                    
-                    mpCamera = new Camera(video, {
-                        onFrame: async () => { await faceMesh.send({image: video}); },
-                        width: 320, height: 240
-                    });
-                    mpCamera.start();
-                } catch (err) {
-                    showToast("Camera access denied or not available.");
-                    closeFaceModal();
-                }
-            }
-
-            async function onFaceMeshResults(results) {
-                if (isVerifying || challengePassed) return;
-                
-                const instruction = document.getElementById("livenessInstruction");
-                
-                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                    const landmarks = results.multiFaceLandmarks[0];
-                    const nose = landmarks[1];
-                    const leftEdge = landmarks[234];
-                    const rightEdge = landmarks[454];
-                    
-                    // Calculate Yaw (Head Turn). Video is mirrored, so directions are inverted
-                    const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
-                    
-                    let passed = false;
-                    if (livenessChallenge === "Turn your head LEFT" && yawRatio > 0.65) passed = true;
-                    if (livenessChallenge === "Turn your head RIGHT" && yawRatio < 0.35) passed = true;
-                    
-                    if (passed) {
-                        challengePassed = true;
-                        instruction.innerText = "Challenge Passed! Verifying...";
-                        instruction.style.color = "#10b981";
-                        await captureAndVerifyFace(results.image);
-                    }
-                }
-            }
-            
-            async function captureAndVerifyFace(videoFrame) {
-                isVerifying = true;
-                const canvas = document.getElementById("faceCanvas");
-                const ctx = canvas.getContext("2d");
-                ctx.drawImage(videoFrame, 0, 0, canvas.width, canvas.height);
-                const imageData = canvas.toDataURL("image/jpeg");
-
-                document.getElementById("loader").style.display = "flex";
-                document.getElementById("loaderText").innerText = "Verifying Face Identity...";
-
-                try {
-                    const res = await fetch("/py/face-login", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ image: imageData })
-                    });
-                    const data = await res.json();
-                    document.getElementById("loader").style.display = "none";
-
-                    if (data.success) {
-                        localStorage.setItem("invoiceToken", data.token);
-                        localStorage.setItem("token", data.token);
-                        closeFaceModal();
-                        loadApp();
-                        showToast("Welcome " + (data.user.displayName || ""));
-                    } else {
-                        showToast(data.message || "Face recognition failed.");
-                        closeFaceModal();
-                    }
-                } catch (err) {
-                    document.getElementById("loader").style.display = "none";
-                    showToast("Python Server Connection Failed.");
-                    closeFaceModal();
-                }
-            }
-
-            function closeFaceModal() {
-                const modal = document.getElementById("faceLoginModal");
-                modal.style.display = "none";
-                isVerifying = false;
-                challengePassed = false;
-                if (mpCamera) { mpCamera.stop(); mpCamera = null; }
-                if (videoStream) {
-                    videoStream.getTracks().forEach(track => track.stop());
-                    videoStream = null;
-                }
-            }
-        </script>
         <div style="margin-top: 15px; font-size: 14px">
           <a
             href="#"
@@ -241,18 +112,38 @@
 
       <!-- Signup Box -->
       <div class="login-box" id="signupBox" style="display: none">
-        <h2>Create Account with Face ID</h2>
+        <h2>Create Account</h2>
         <input type="text" id="regName" placeholder="Display Name" />
         <input type="text" id="regUser" placeholder="Username" />
         <input type="email" id="regEmail" placeholder="Email" />
         <input type="password" id="regPass" placeholder="Password" />
-        <div style="margin: 10px 0;">
-            <video id="regVideo" width="280" height="180" autoplay style="border-radius:6px; transform: scaleX(-1); display:none; margin: 0 auto;"></video>
-            <img id="regPreview" alt="Captured face" style="display:none; width:280px; height:180px; object-fit:cover; border-radius:6px; margin:0 auto; transform: scaleX(-1); border:2px solid #10b981;" />
-            <canvas id="regCanvas" width="280" height="180" style="display:none;"></canvas>
-            <button type="button" onclick="startRegCamera()" id="regCamBtn" style="background: #0284c7; padding: 8px; margin-bottom: 8px;">📷 Capture Face for Signup</button>
+        <div style="margin: 10px 0">
+          <button
+            type="button"
+            id="regFaceBtn"
+            onclick="startBillingAppFaceAuth('register')"
+            style="background: #0284c7; padding: 8px; margin-bottom: 8px"
+          >
+            📷 Capture Face for Signup
+          </button>
+          <div
+            id="regFaceStatus"
+            style="
+              font-size: 12px;
+              color: #10b981;
+              margin-bottom: 10px;
+              font-weight: bold;
+              display: none;
+            "
+          >
+            ✓ Face Captured Successfully!
+          </div>
         </div>
-        <button id="regSignupBtn" onclick="executeSignupWithFace()" style="background: #28a745">
+        <button
+          id="regSignupBtn"
+          onclick="executeSignupWithFace()"
+          style="background: #28a745"
+        >
           Sign Up
         </button>
         <div style="margin-top: 15px; font-size: 14px">
@@ -292,10 +183,131 @@
         <div style="margin-top: 15px; font-size: 14px">
           <a
             href="#"
+            onclick="openBillingAppResetFaceModal()"
+            style="
+              color: #0ea5e9;
+              text-decoration: none;
+              display: block;
+              margin-bottom: 10px;
+            "
+            >📸 Reset / Update Face Data</a
+          >
+          <a
+            href="#"
             onclick="toggleAuthView('loginBox')"
             style="color: #6c757d; text-decoration: none"
             >Back to Login</a
           >
+        </div>
+      </div>
+
+      <!-- Credentials Modal for Reset Face -->
+      <div
+        id="billingAppResetVerifyModal"
+        style="
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.85);
+          z-index: 10001;
+          justify-content: center;
+          align-items: center;
+          backdrop-filter: blur(5px);
+        "
+      >
+        <div class="login-box" style="padding: 30px; width: 350px">
+          <h2 style="font-size: 20px">Verify Credentials</h2>
+          <p style="font-size: 13px; color: #64748b; margin-bottom: 20px">
+            Enter username and password to re-register Face ID.
+          </p>
+          <input
+            type="text"
+            id="billingAppRfUsername"
+            placeholder="Username"
+            autocomplete="off"
+          />
+          <input
+            type="password"
+            id="billingAppRfPassword"
+            placeholder="Password"
+            autocomplete="off"
+          />
+          <button
+            type="button"
+            onclick="verifyAndStartBillingAppFaceReset()"
+            style="background-color: #0ea5e9; margin-bottom: 10px"
+          >
+            Continue to Face Scan
+          </button>
+          <button
+            type="button"
+            onclick="closeBillingAppResetFaceModal()"
+            style="background-color: #64748b"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <!-- Universal MediaPipe Camera Modal -->
+      <div
+        id="billingAppUniversalFaceModal"
+        style="
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.85);
+          z-index: 10002;
+          justify-content: center;
+          align-items: center;
+          backdrop-filter: blur(5px);
+        "
+      >
+        <div class="login-box" style="padding: 25px; width: 350px">
+          <h2 id="billingAppFaceModalTitle" style="font-size: 20px">
+            Face Verification
+          </h2>
+          <h4
+            id="billingAppUniversalInstruction"
+            style="
+              margin-top: 5px;
+              margin-bottom: 15px;
+              font-weight: bold;
+              color: #d97706;
+              min-height: 20px;
+            "
+          >
+            Initializing Camera...
+          </h4>
+          <video
+            id="billingAppUniversalVideo"
+            width="300"
+            height="225"
+            autoplay
+            muted
+            playsinline
+            style="
+              border-radius: 8px;
+              transform: scaleX(-1);
+              max-width: 100%;
+              border: 2px solid #cbd5e1;
+            "
+          ></video>
+          <canvas
+            id="billingAppUniversalCanvas"
+            width="300"
+            height="225"
+            style="display: none"
+          ></canvas>
+          <div style="margin-top: 20px">
+            <button
+              type="button"
+              onclick="closeBillingAppUniversalFace()"
+              style="background: #ef4444"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -853,6 +865,8 @@
       </div>
     </div>
 
+    <script src="/node_xlsx_scripts/mediapipe/camera_utils.js"></script>
+    <script src="/node_xlsx_scripts/mediapipe/face_mesh.js"></script>
     <script src="script/billing.js"></script>
   </body>
 </html>

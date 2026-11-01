@@ -3493,88 +3493,242 @@ async function openVendorBillForCard(cardId) {
 
 
 
-let regVideoStream = null;
-let capturedFaceDescriptor = null;
-let signupInProgress = false;
-let autoScanTimer = null;
-let scanning = false;
+// ---------- Universal Face Login, Registration & Reset Logic ----------
+let registeredAppFaceDescriptor = null;
+let activeAppFaceAction = null;
+let appRfTempCreds = null;
+let appCamStream = null;
+let appFaceMeshInstance = null;
+let appMpCameraInstance = null;
+let appLivenessTarget = null;
+let appLivenessPassed = false;
+let isAppProcessing = false;
 
-async function startRegCamera() {
-    const video = document.getElementById("regVideo");
-    const btn = document.getElementById("regCamBtn");
-    const preview = document.getElementById("regPreview");
+window.executeFaceLogin = function() {
+    startBillingAppFaceAuth('login');
+};
 
-    // 2nd click = Capture (frame freeze)
-    if (regVideoStream) {
-        const canvas = document.getElementById("regCanvas");
-        canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-        capturedFaceDescriptor = canvas.toDataURL("image/jpeg");
+window.openBillingAppResetFaceModal = function() {
+    document.getElementById("billingAppRfUsername").value = "";
+    document.getElementById("billingAppRfPassword").value = "";
+    document.getElementById("billingAppResetVerifyModal").style.display = "flex";
+};
 
-        regVideoStream.getTracks().forEach((t) => t.stop());
-        regVideoStream = null;
-        video.style.display = "none";
+window.closeBillingAppResetFaceModal = function() {
+    document.getElementById("billingAppResetVerifyModal").style.display = "none";
+    appRfTempCreds = null;
+};
 
-        preview.src = capturedFaceDescriptor;
-        preview.style.display = "block";
-
-        btn.innerText = "🔄 Retake Photo";
-        btn.style.background = "#f59e0b";
-        showToast("Face captured! Now click Sign Up.");
+window.verifyAndStartBillingAppFaceReset = async function() {
+    const u = document.getElementById("billingAppRfUsername").value.trim();
+    const p = document.getElementById("billingAppRfPassword").value;
+    
+    if (!u || !p) {
+        showToast("Enter both username and password.");
         return;
     }
 
-    // 1st click (or Retake) = start camera
-    capturedFaceDescriptor = null;
-    preview.style.display = "none";
-    video.style.display = "block";
     try {
-        regVideoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = regVideoStream;
-        btn.innerText = "📸 Capture Now";
-        btn.style.background = "#10b981";
+        const res = await fetch("/api/invoice-auth/verify-credentials", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: u, password: p }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            appRfTempCreds = { username: u, password: p };
+            document.getElementById("billingAppResetVerifyModal").style.display = "none";
+            startBillingAppFaceAuth("reset");
+        } else {
+            showToast(data.message || "Invalid credentials.");
+        }
+    } catch (e) {
+        showToast("Error connecting to server.");
+    }
+};
+
+window.startBillingAppFaceAuth = async function(action) {
+    // 🟢 പുതിയ റിക്വസ്റ്റ് വരുന്നതിന് മുൻപ് പഴയ ക്യാമറ പൂർണ്ണമായും ക്ലോസ് ചെയ്തു എന്ന് ഉറപ്പാക്കുന്നു
+    closeBillingAppUniversalFace(); 
+
+    activeAppFaceAction = action;
+    const modal = document.getElementById("billingAppUniversalFaceModal");
+    const video = document.getElementById("billingAppUniversalVideo");
+    const instruction = document.getElementById("billingAppUniversalInstruction");
+    const title = document.getElementById("billingAppFaceModalTitle");
+
+    title.innerText = action === "login" ? "Face Login" : (action === "register" ? "Register Face ID" : "Reset Face ID");
+    modal.style.display = "flex";
+    appLivenessPassed = false;
+    isAppProcessing = false;
+
+    const challenges = ["Turn your head LEFT", "Turn your head RIGHT"];
+    appLivenessTarget = challenges[Math.floor(Math.random() * challenges.length)];
+    instruction.innerText = appLivenessTarget;
+    instruction.style.color = "#f59e0b";
+
+    try {
+        if (!appFaceMeshInstance) {
+            appFaceMeshInstance = new FaceMesh({
+                locateFile: (file) => `/node_xlsx_scripts/mediapipe/${file}`
+            });
+            appFaceMeshInstance.setOptions({ maxNumFaces: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+            appFaceMeshInstance.onResults(onBillingAppUniversalMeshResults);
+        }
+
+        appCamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = appCamStream;
+
+        appMpCameraInstance = new Camera(video, {
+            onFrame: async () => { 
+                if (video.videoWidth > 0 && video.videoHeight > 0 && appFaceMeshInstance) {
+                    await appFaceMeshInstance.send({ image: video }); 
+                }
+            },
+            width: 300,
+            height: 225
+        });
+        await appMpCameraInstance.start();
     } catch (err) {
-        video.style.display = "none";
-        showToast("Camera access failed.");
+        console.error("Camera Init Error: ", err);
+        showToast("Camera access denied or unavailable.");
+        closeBillingAppUniversalFace();
+    }
+};
+
+async function onBillingAppUniversalMeshResults(results) {
+    if (isAppProcessing || appLivenessPassed) return;
+    const instruction = document.getElementById("billingAppUniversalInstruction");
+
+    if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        const landmarks = results.multiFaceLandmarks[0];
+        const nose = landmarks[1];
+        const leftEdge = landmarks[234];
+        const rightEdge = landmarks[454];
+        const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
+
+        let passed = false;
+        // 🟢 Strict Bank KYC Logic (Turn strictly > 0.65 or < 0.35)
+        if (appLivenessTarget === "Turn your head LEFT" && yawRatio > 0.65) passed = true;
+        if (appLivenessTarget === "Turn your head RIGHT" && yawRatio < 0.35) passed = true;
+
+        if (passed) {
+            appLivenessPassed = true;
+            instruction.innerText = "Challenge Passed! Processing...";
+            instruction.style.color = "#10b981";
+            const currentVideoEl = document.getElementById("billingAppUniversalVideo");
+            await handleBillingAppFaceCapture(currentVideoEl);
+        }
     }
 }
 
-async function executeSignupWithFace() {
-    if (signupInProgress) return; // duplicate tap block
+async function handleBillingAppFaceCapture(frame) {
+    isAppProcessing = true;
+    const canvas = document.getElementById("billingAppUniversalCanvas");
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+    const imageData = canvas.toDataURL("image/jpeg");
 
+    if (activeAppFaceAction === "login") {
+        document.getElementById("loader").style.display = "flex";
+        document.getElementById("loaderText").innerText = "Verifying Identity...";
+        try {
+            const res = await fetch("/py/face-login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: imageData }),
+            });
+            const data = await res.json();
+            closeBillingAppUniversalFace();
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("loaderText").innerText = "Processing Data... Please wait.";
+
+            if (data.success) {
+                localStorage.setItem("invoiceToken", data.token);
+                localStorage.setItem("token", data.token);
+                showToast("Welcome " + (data.user.displayName || ""));
+                loadApp();
+            } else {
+                showToast(data.message || "Face recognition failed.");
+            }
+        } catch (e) {
+            closeBillingAppUniversalFace();
+            document.getElementById("loader").style.display = "none";
+            showToast("Error connecting to server.");
+        }
+    } else if (activeAppFaceAction === "register" || activeAppFaceAction === "reset") {
+        try {
+            const res = await fetch("/py/face-encode", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: imageData }),
+            });
+            const data = await res.json();
+            closeBillingAppUniversalFace();
+
+            if (!data.success || !data.descriptor) {
+                showToast(data.message || "Failed to encode face. Please retry.");
+                return;
+            }
+
+            if (activeAppFaceAction === "register") {
+                registeredAppFaceDescriptor = data.descriptor;
+                document.getElementById("regFaceBtn").style.backgroundColor = "#10b981";
+                document.getElementById("regFaceBtn").innerText = "✓ Face ID Captured";
+                document.getElementById("regFaceStatus").style.display = "block";
+            } else if (activeAppFaceAction === "reset") {
+                const resetRes = await fetch("/api/invoice-auth/reset-face-data", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        username: appRfTempCreds.username,
+                        password: appRfTempCreds.password,
+                        faceDescriptor: data.descriptor,
+                    }),
+                });
+                const resetData = await resetRes.json();
+                showToast(resetData.message);
+                if (resetData.success) {
+                    toggleAuthView("loginBox");
+                }
+            }
+        } catch (e) {
+            closeBillingAppUniversalFace();
+            showToast("Error processing face descriptor.");
+        }
+    }
+}
+
+window.closeBillingAppUniversalFace = function() {
+    document.getElementById("billingAppUniversalFaceModal").style.display = "none";
+    isAppProcessing = false;
+    appLivenessPassed = false;
+    if (appMpCameraInstance) {
+        appMpCameraInstance.stop();
+        appMpCameraInstance = null;
+    }
+    if (appCamStream) {
+        appCamStream.getTracks().forEach((t) => t.stop());
+        appCamStream = null;
+    }
+};
+
+window.executeSignupWithFace = async function() {
     const displayName = document.getElementById("regName").value.trim();
     const username = document.getElementById("regUser").value.trim();
     const email = document.getElementById("regEmail").value.trim();
     const password = document.getElementById("regPass").value;
-    const signupBtn = document.getElementById("regSignupBtn");
 
     if (!username || !email || !password)
         return showToast("Fill all required fields");
-    if (!capturedFaceDescriptor)
+    if (!registeredAppFaceDescriptor)
         return showToast("Please capture your face first.");
 
-    signupInProgress = true;
-    if (signupBtn) {
-        signupBtn.disabled = true;
-        signupBtn.style.opacity = "0.6";
-        signupBtn.innerText = "Please wait...";
-    }
     document.getElementById("loader").style.display = "flex";
-    document.getElementById("loaderText").innerText = "Registering Face ID...";
+    document.getElementById("loaderText").innerText = "Registering Account...";
 
     try {
-        // 1. Image -> 128-d face encoding
-        const encRes = await fetch("/py/face-encode", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: capturedFaceDescriptor }),
-        });
-        const encData = await encRes.json();
-        if (!encData.success) {
-            showToast(encData.message || "Face encoding failed.");
-            return;
-        }
-
-        // 2. Signup
         const res = await fetch("/api/invoice-auth/signup", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -3583,13 +3737,13 @@ async function executeSignupWithFace() {
                 username,
                 email,
                 password,
-                faceDescriptor: encData.descriptor,
+                faceDescriptor: registeredAppFaceDescriptor,
             }),
         });
         const data = await res.json();
         showToast(data.message);
         if (data.success) {
-            capturedFaceDescriptor = null;
+            registeredAppFaceDescriptor = null;
             toggleAuthView("loginBox");
         }
     } catch (err) {
@@ -3597,11 +3751,5 @@ async function executeSignupWithFace() {
     } finally {
         document.getElementById("loader").style.display = "none";
         document.getElementById("loaderText").innerText = "Processing Data...";
-        signupInProgress = false;
-        if (signupBtn) {
-            signupBtn.disabled = false;
-            signupBtn.style.opacity = "1";
-            signupBtn.innerText = "Sign Up";
-        }
     }
-}
+};

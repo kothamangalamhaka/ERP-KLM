@@ -6104,9 +6104,9 @@
           const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
 
           let passed = false;
-          // Mirrored webcam direction fix
-          if (reportLivenessChallenge === "Turn your head LEFT" && (yawRatio < 0.40 || yawRatio > 0.60)) passed = true;
-          if (reportLivenessChallenge === "Turn your head RIGHT" && (yawRatio > 0.60 || yawRatio < 0.40)) passed = true;
+          // 🟢 Strict Bank KYC Logic
+          if (reportLivenessChallenge === "Turn your head LEFT" && yawRatio > 0.65) passed = true;
+          if (reportLivenessChallenge === "Turn your head RIGHT" && yawRatio < 0.35) passed = true;
 
           if (passed) {
             reportChallengePassed = true;
@@ -6271,8 +6271,9 @@
               const yawRatio = (nose.x - leftEdge.x) / (rightEdge.x - leftEdge.x);
 
               let passed = false;
-              if (resetLivenessChallenge === "Turn your head LEFT" && (yawRatio < 0.40 || yawRatio > 0.60)) passed = true;
-              if (resetLivenessChallenge === "Turn your head RIGHT" && (yawRatio > 0.60 || yawRatio < 0.40)) passed = true;
+              // 🟢 Strict Bank KYC Logic for Reset
+              if (resetLivenessChallenge === "Turn your head LEFT" && yawRatio > 0.65) passed = true;
+              if (resetLivenessChallenge === "Turn your head RIGHT" && yawRatio < 0.35) passed = true;
 
               if (passed) {
                   resetChallengePassed = true;
