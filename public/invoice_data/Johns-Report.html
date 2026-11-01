@@ -1217,6 +1217,71 @@
           .replace(/[^A-Z0-9]/g, "");
       }
 
+            let specialRulesCache = [];
+
+      async function ensureSpecialRules() {
+        try {
+          const token =
+            localStorage.getItem("timesheetToken") ||
+            localStorage.getItem("invoiceToken") ||
+            "";
+          const srRes = await fetch("/timesheet/api/special-rules", {
+            headers: { Authorization: "Bearer " + token },
+          });
+          if (srRes.ok) {
+            const srData = await srRes.json();
+            if (srData.success) specialRulesCache = srData.data;
+          }
+        } catch (err) {
+          console.warn("Could not fetch special rules", err);
+        }
+      }
+
+      function getDayName(dayNum, monthStr, year) {
+        const dateObj = new Date(`${monthStr} ${dayNum}, ${year}`);
+        return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+          dateObj.getDay()
+        ];
+      }
+
+      function safeDate(dStr, fallback) {
+        if (!dStr || String(dStr).trim() === "" || String(dStr).trim() === "-")
+          return new Date(fallback);
+        let parts = String(dStr).split("T")[0].split("-");
+        if (parts.length === 3) {
+          return new Date(
+            parseInt(parts[0], 10),
+            parseInt(parts[1], 10) - 1,
+            parseInt(parts[2], 10),
+            0, 0, 0, 0,
+          );
+        }
+        let d = new Date(dStr);
+        if (isNaN(d.getTime())) return new Date(fallback);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+      }
+
+      function formatRateValue(rateVal) {
+        if (!rateVal || rateVal === "-" || rateVal === "null") return "-";
+        let num = parseFloat(rateVal);
+        if (isNaN(num)) return rateVal;
+        return num % 1 !== 0 ? num.toFixed(2) : num.toString();
+      }
+
+      function getSiteBaseAndRank(site) {
+        let s = (site || "").toUpperCase();
+        let rank = 1;
+        if (s.includes("HAKA")) rank = 2;
+        else if (s.includes("ALJODA") || s.includes("AL JODA")) rank = 3;
+        else if (s.includes("MASAR")) rank = 4;
+        else if (s.includes("WE1")) rank = 5;
+        let base = s
+          .replace(/HAKA|ALJODA|AL\sJODA|MASAR\s*WHEELS|MASAR|WE1/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        return { base, rank };
+      }
+
       let activeFetchAbortController = null;
 
       async function loadAllSelectedMonths() {
@@ -1264,6 +1329,8 @@
 
         let loadedCount = 0;
 
+        await ensureSpecialRules();
+
         for (let i = 0; i < monthQueries.length; i++) {
           const mq = monthQueries[i];
           const key = `${mq.m.substring(0, 3)} ${String(mq.y).slice(-2)}`;
@@ -1299,132 +1366,97 @@
         loader.style.display = "none";
       }
 
-      function transformData(raw, monthStr, yearNum) {
+            function transformData(raw, monthStr, yearNum) {
         let rows = [];
         const mIdx = monthNames.indexOf(monthStr);
         const monthStart = new Date(yearNum, mIdx, 1, 0, 0, 0, 0);
         const monthEnd = new Date(yearNum, mIdx + 1, 0, 23, 59, 59, 999);
+        const daysInMonth = monthEnd.getDate();
         const fullMonth = `${monthStr} ${yearNum}`;
+        const shortMonths = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        ];
 
-        let sn = 1;
+        const endDateSuffix = (log) => {
+          if (!log || !log.work_end_date) return "";
+          let d = safeDate(log.work_end_date, "");
+          if (isNaN(d.getTime())) return "";
+          return ` - ${String(d.getDate()).padStart(2, "0")}-${shortMonths[d.getMonth()]}-${d.getFullYear()}`;
+        };
+
+        const sortedBilling = [...(raw.billing || [])].sort(
+          (a, b) => (b.id || 0) - (a.id || 0),
+        );
+
         (raw.vehicles || []).forEach((v) => {
           let originalPlate = String(v.plate_no || "").trim();
           let pClean = cleanPlate(originalPlate);
+          let defaultSite = (v.site_name || "N/A").trim();
+          let vehicle_type = v.vehicle_type || "-";
           if (!pClean) return;
 
-          // 🟢 പ്ലേറ്റ് മാറ്റ ലോഗ് പരിശോധിച്ച് ആ മാസത്തിലെ എഫക്റ്റീവ് പ്ലേറ്റും അലൈഡ് പ്ലേറ്റുകളും കണ്ടെത്തുന്നു
-          let effectivePlate = originalPlate;
-          let relatedPlates = [pClean];
-
-          // 🟢 Recursive alias graph: plate changes chain-il ulla ellaa plates-um add cheyyunnu
-          let added = true;
-          while (added) {
-            added = false;
-            (raw.plateChanges || []).forEach((pl) => {
-              let oP = cleanPlate(pl.old_plate_no);
-              let nP = cleanPlate(pl.new_plate_no);
-              if (
-                oP &&
-                relatedPlates.includes(oP) &&
-                nP &&
-                !relatedPlates.includes(nP)
-              ) {
-                relatedPlates.push(nP);
-                added = true;
-              }
-              if (
-                nP &&
-                relatedPlates.includes(nP) &&
-                oP &&
-                !relatedPlates.includes(oP)
-              ) {
-                relatedPlates.push(oP);
-                added = true;
-              }
-            });
+          // ---- Owner & VAT ----
+          let vOwners = (raw.owners || []).filter(
+            (o) => cleanPlate(o.plate_no) === pClean,
+          );
+          let activeOwners = vOwners.filter((o) => {
+            let st = safeDate(o.work_start_date, "2000-01-01");
+            let ed = safeDate(o.work_end_date, "2099-01-01");
+            st.setHours(0, 0, 0, 0);
+            ed.setHours(23, 59, 59, 999);
+            return st <= monthEnd && ed >= monthStart;
+          });
+          if (activeOwners.length === 0 && vOwners.length > 0) {
+            activeOwners = vOwners.filter((o) => o.status === "Running");
+            if (activeOwners.length === 0) {
+              activeOwners = [
+                [...vOwners].sort(
+                  (a, b) =>
+                    safeDate(b.work_start_date || "2000-01-01") -
+                    safeDate(a.work_start_date || "2000-01-01"),
+                )[0],
+              ];
+            }
           }
+          let owner =
+            activeOwners.length > 0
+              ? activeOwners[0].owner_name || v.owner_name || "N/A"
+              : v.owner_name || "N/A";
+          let vat =
+            activeOwners.length > 0
+              ? activeOwners[0].vat || v.vat || "No"
+              : v.vat || "No";
 
-          // Plates-nte digits-only (eg: '1999', '2380') koodi match cheyyan relatedPlates-il cherthukodukkunnu
-          let relatedDigits = relatedPlates
-            .map((p) => p.replace(/[^0-9]/g, ""))
-            .filter((d) => d.length >= 3);
-
-          let vPlateLogs = (raw.plateChanges || []).filter((pl) => {
-            let oP = cleanPlate(pl.old_plate_no);
-            let nP = cleanPlate(pl.new_plate_no);
-            return relatedPlates.includes(oP) || relatedPlates.includes(nP);
+          let vSites = (raw.sites || []).filter(
+            (s) => cleanPlate(s.plate_no) === pClean,
+          );
+          let strictlyActiveSites = vSites.filter((s) => {
+            let st = safeDate(s.work_start_date, "2000-01-01");
+            let ed = safeDate(s.work_end_date, "2099-01-01");
+            st.setHours(0, 0, 0, 0);
+            ed.setHours(23, 59, 59, 999);
+            return st <= monthEnd && ed >= monthStart;
           });
 
-          if (vPlateLogs.length > 0) {
-            // Change date order cheythu aa masathe correct plate determine cheyyunnu
-            let sortedLogs = [...vPlateLogs].sort(
-              (a, b) =>
-                new Date(a.change_date || "1970-01-01") -
-                new Date(b.change_date || "1970-01-01"),
-            );
-            for (let pl of sortedLogs) {
-              if (!pl.change_date) continue;
-              let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
-              let cDate = new Date(cYear, cMonth - 1, cDay);
-
-              if (cYear === Number(yearNum) && cMonth - 1 === mIdx) {
-                effectivePlate = `${pl.old_plate_no} ➔ ${pl.new_plate_no}`;
-              } else if (monthEnd < cDate) {
-                effectivePlate = pl.old_plate_no;
-              } else if (monthStart >= cDate) {
-                effectivePlate = pl.new_plate_no;
-              }
-            }
-          }
-
-          let isPlateMatch = (targetPlate) => {
-            let rawP = String(targetPlate || "").toUpperCase();
-            let parts = rawP
-              .split(/➔|→|->/)
-              .map((p) => cleanPlate(p))
-              .filter(Boolean);
-            let cleanedTarget = cleanPlate(rawP);
-            let targetDigits = cleanedTarget.replace(/[^0-9]/g, "");
-
-            let exactMatch =
-              parts.some((cp) => relatedPlates.includes(cp)) ||
-              relatedPlates.includes(cleanedTarget);
-            if (exactMatch) return true;
-
-            // Numbers-only check (1999 or 2380) matching fallback
-            if (
-              targetDigits.length >= 3 &&
-              relatedDigits.includes(targetDigits)
-            ) {
-              return true;
-            }
-            return false;
-          };
-
-          let vSites = (raw.sites || []).filter((s) =>
-            isPlateMatch(s.plate_no),
-          );
           let vTimesheets = (raw.timesheets || []).filter(
             (ts) =>
-              isPlateMatch(ts.plate_no) &&
+              cleanPlate(ts.plate_no) === pClean &&
               ts.month === monthStr &&
               Number(ts.year) === Number(yearNum),
+          );
+          let vDrivers = (raw.drivers || []).filter(
+            (d) => cleanPlate(d.plate_no) === pClean,
+          );
+          let vRates = (raw.rates || []).filter(
+            (r) => cleanPlate(r.plate_no) === pClean,
           );
 
           let hasMonthTimesheetActivity = vTimesheets.some((ts) => {
             let tm = parseFloat(ts.calc_time) || 0;
-            let bd = String(ts.bd || "")
-              .trim()
-              .toUpperCase();
-            return tm > 0 || bd !== "";
-          });
-
-          let strictlyActiveSites = vSites.filter((s) => {
-            let st = new Date(s.work_start_date || "2000-01-01");
-            let ed = new Date(s.work_end_date || "2099-01-01");
-            st.setHours(0, 0, 0, 0);
-            ed.setHours(23, 59, 59, 999);
-            return st <= monthEnd && ed >= monthStart;
+            let bd = String(ts.bd || "").trim().toUpperCase();
+            let wrkStart = String(ts.wrk_start || "").trim();
+            return tm > 0 || bd !== "" || wrkStart !== "";
           });
 
           if (strictlyActiveSites.length === 0 && !hasMonthTimesheetActivity)
@@ -1434,286 +1466,431 @@
           if (activeSites.length === 0 && hasMonthTimesheetActivity) {
             let endedPastSites = vSites.filter((s) => {
               if (!s.work_end_date) return false;
-              let ed = new Date(s.work_end_date);
+              let ed = safeDate(s.work_end_date, "2099-01-01");
               return ed <= monthEnd;
             });
             let lastSiteLog = [...endedPastSites].sort(
               (a, b) =>
-                new Date(b.work_end_date || "2000-01-01") -
-                new Date(a.work_end_date || "2000-01-01"),
+                safeDate(b.work_end_date || "2000-01-01") -
+                safeDate(a.work_end_date || "2000-01-01"),
             )[0];
-            let naLabel =
-              lastSiteLog && lastSiteLog.site_name
-                ? `Prev: ${lastSiteLog.site_name.trim()}`
-                : "N/A";
+
+            let naLabel = "N/A";
+            let statusType = "";
+            if (lastSiteLog && lastSiteLog.site_name) {
+              naLabel = `Prev: ${lastSiteLog.site_name.trim()}${endDateSuffix(lastSiteLog)}`;
+              statusType = String(lastSiteLog.status || "").trim().toLowerCase();
+            }
             activeSites = [
               {
                 site_name: naLabel,
+                work_start_date: monthStart.toISOString().split("T")[0],
+                work_end_date: monthEnd.toISOString().split("T")[0],
                 rate: lastSiteLog ? lastSiteLog.rate || "-" : "-",
                 field_co: lastSiteLog ? lastSiteLog.field_co || "-" : "-",
                 site_co: lastSiteLog ? lastSiteLog.site_co || "-" : "-",
                 vehicle_type:
                   lastSiteLog && lastSiteLog.vehicle_type
                     ? lastSiteLog.vehicle_type
-                    : v.vehicle_type || "-",
+                    : vehicle_type,
+                siteStatusType: statusType,
               },
             ];
           }
 
-          let curSiteObj = activeSites[0] || {};
-          let siteName = (curSiteObj.site_name || "N/A").trim();
+          // ---- Site map (rate / driver / coordinators) ----
+          let siteDataMap = {};
+          activeSites.forEach((s) => {
+            let sName = (s.site_name || "N/A").trim();
+            let siteStart = safeDate(s.work_start_date, "2000-01-01");
+            let siteEnd = safeDate(s.work_end_date, "2099-01-01");
+            let overlapStart = new Date(Math.max(monthStart, siteStart));
+            let overlapEnd = new Date(Math.min(monthEnd, siteEnd));
 
-          let ts_nr = 0,
-            ts_ot = 0;
-          vTimesheets.forEach((r) => {
-            let tm = parseFloat(r.calc_time) || 0;
-            let bd = String(r.bd || "")
-              .trim()
-              .toUpperCase();
-            if (bd === "ID" || bd === "NP") {
-              ts_nr += 10;
-            } else if (tm > 0) {
-              if (tm > 10) {
-                ts_nr += 10;
-                ts_ot += tm - 10;
-              } else {
-                ts_nr += tm;
+            let matchedRates = vRates.filter((r) => {
+              let rSite = (r.site_name || "").trim().toUpperCase();
+              if (rSite !== sName.toUpperCase() && rSite !== "ALL") return false;
+              let rStart = safeDate(r.work_start_date, "2000-01-01");
+              let rEnd = safeDate(r.work_end_date, "2099-01-01");
+              return rStart <= overlapEnd && rEnd >= overlapStart;
+            });
+            let finalRate = s.rate || "-";
+            if (matchedRates.length > 0)
+              finalRate = matchedRates[0].rate || finalRate;
+
+            let activeDrivers = [];
+            vDrivers.forEach((d) => {
+              let dStart = safeDate(d.work_start_date, "2000-01-01");
+              let dEnd = safeDate(d.work_end_date, "2099-01-01");
+              if (dStart <= overlapEnd && dEnd >= overlapStart) {
+                if (
+                  d.driver_name &&
+                  d.driver_name.trim() !== "" &&
+                  d.driver_name.trim() !== "-"
+                )
+                  activeDrivers.push(d.driver_name.trim());
               }
+            });
+            let uniqueDrivers = [...new Set(activeDrivers)];
+
+            if (!siteDataMap[sName]) {
+              siteDataMap[sName] = {
+                ts_nr: 0,
+                ts_ot: 0,
+                rate: formatRateValue(finalRate),
+                driver_name:
+                  uniqueDrivers.length > 0 ? uniqueDrivers.join(" / ") : "-",
+                field_co: s.field_co || "-",
+                site_co: s.site_co || "-",
+                vehicle_type:
+                  s.vehicle_type &&
+                  s.vehicle_type.trim() !== "" &&
+                  s.vehicle_type !== "-"
+                    ? s.vehicle_type
+                    : vehicle_type,
+              };
             }
           });
 
-          let cleanSiteStr = (s) =>
-            String(s || "")
-              .toUpperCase()
-              .replace(/[^A-Z0-9]/g, "");
-          let isMonthMatch = (mStr) => {
-            let m = String(mStr || "")
-              .trim()
-              .toUpperCase();
-            return (
-              m.includes(monthStr.toUpperCase()) ||
-              m.includes(monthStr.substring(0, 3).toUpperCase())
-            );
+          const getPreviousSiteBeforeDate = (targetDate) => {
+            let endedBefore = vSites.filter((s) => {
+              if (!s.work_end_date) return false;
+              let ed = safeDate(s.work_end_date, "2099-01-01");
+              ed.setHours(23, 59, 59, 999);
+              return ed < targetDate;
+            });
+            let lastSiteLog = [...endedBefore].sort(
+              (a, b) =>
+                safeDate(b.work_end_date || "2000-01-01") -
+                safeDate(a.work_end_date || "2000-01-01"),
+            )[0];
+            if (lastSiteLog && lastSiteLog.site_name) {
+              return {
+                name: `Prev: ${lastSiteLog.site_name.trim()}${endDateSuffix(lastSiteLog)}`,
+                log: lastSiteLog,
+              };
+            }
+            return { name: "N/A", log: null };
           };
 
-          let monthInvs = (raw.invoices || []).filter(
-            (i) => isPlateMatch(i.plate_no) && isMonthMatch(i.month),
-          );
-          let inv = monthInvs.find(
-            (i) => cleanSiteStr(i.site_name) === cleanSiteStr(siteName),
-          );
-          if (!inv && siteName.startsWith("Prev:"))
-            inv = monthInvs.find((i) =>
-              (i.site_name || "").trim().startsWith("Prev:"),
+          // ---- Day-by-day logsheet (same as report.html) ----
+          for (let i = 1; i <= daysInMonth; i++) {
+            let checkDate = new Date(yearNum, mIdx, i, 0, 0, 0, 0);
+            let currentSite = "N/A";
+
+            if (vSites.length === 0) {
+              currentSite = defaultSite;
+            } else {
+              for (let s of activeSites) {
+                let st = safeDate(s.work_start_date, "2000-01-01");
+                let ed = safeDate(s.work_end_date, "2099-01-01");
+                st.setHours(0, 0, 0, 0);
+                ed.setHours(23, 59, 59, 999);
+                if (checkDate >= st && checkDate <= ed) {
+                  currentSite = (s.site_name || "N/A").trim();
+                  break;
+                }
+              }
+            }
+
+            if (currentSite === "N/A") {
+              let prevInfo = getPreviousSiteBeforeDate(checkDate);
+              currentSite = prevInfo.name;
+              if (!siteDataMap[currentSite]) {
+                let lastLog = prevInfo.log;
+                siteDataMap[currentSite] = {
+                  ts_nr: 0,
+                  ts_ot: 0,
+                  rate: lastLog ? lastLog.rate || "-" : "-",
+                  driver_name: lastLog ? lastLog.driver_name || "-" : "-",
+                  field_co: lastLog ? lastLog.field_co || "-" : "-",
+                  site_co: lastLog ? lastLog.site_co || "-" : "-",
+                  displayName: currentSite,
+                  vehicle_type:
+                    lastLog && lastLog.vehicle_type
+                      ? lastLog.vehicle_type
+                      : vehicle_type,
+                };
+              }
+            }
+
+            let formattedDate = checkDate.toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            });
+            let siteForRule = currentSite.split("&")[0].trim().toUpperCase();
+            let specialRule = specialRulesCache.find(
+              (r) =>
+                r.is_active &&
+                (r.sites.includes("ALL") || r.sites.includes(siteForRule)) &&
+                r.dates.includes(formattedDate),
             );
-          if (!inv)
-            inv = monthInvs.find(
-              (i) =>
-                !i.site_name ||
-                cleanSiteStr(i.site_name) === "NA" ||
-                cleanSiteStr(i.site_name) === "",
-            );
 
-          let inv_nr =
-            inv && inv.bill_nr !== null && inv.bill_nr !== ""
-              ? parseFloat(inv.bill_nr)
-              : 0;
-          let inv_ot =
-            inv && inv.bill_ot !== null && inv.bill_ot !== ""
-              ? parseFloat(inv.bill_ot)
-              : 0;
+            let ts = vTimesheets.find((r) => parseInt(r.record_date) === i);
+            let tm = ts ? parseFloat(ts.calc_time) || 0 : 0;
+            let bd = ts ? String(ts.bd || "").trim().toUpperCase() : "";
+            let hasData = tm > 0 || bd !== "" || (ts && ts.wrk_start);
 
-          let monthBills = (raw.billing || []).filter(
-            (b) => isPlateMatch(b.plate_no) && b.billing_month === fullMonth,
-          );
-          let bill = monthBills.find(
-            (b) => cleanSiteStr(b.site_name) === cleanSiteStr(siteName),
-          );
-          if (!bill && siteName.startsWith("Prev:"))
-            bill = monthBills.find((b) =>
-              (b.site_name || "").trim().startsWith("Prev:"),
-            );
-          if (!bill)
-            bill = monthBills.find(
-              (b) =>
-                !b.site_name ||
-                cleanSiteStr(b.site_name) === "NA" ||
-                cleanSiteStr(b.site_name) === "",
-            );
+            if (!hasData && specialRule && specialRule.rule_type !== "FULL_OT") {
+              bd = specialRule.rule_type;
+              hasData = true;
+            }
+            if (!hasData) continue;
 
-          let bill_nr =
-            bill && bill.nhr !== null && bill.nhr !== ""
-              ? parseFloat(bill.nhr)
-              : 0;
-          let bill_ot =
-            bill && bill.othr !== null && bill.othr !== ""
-              ? parseFloat(bill.othr)
-              : 0;
-          let driver_ot =
-            bill && bill.driver_ot ? parseFloat(bill.driver_ot) : 0;
-          let driver_amt =
-            bill && bill.driver_amount ? parseFloat(bill.driver_amount) : 0;
+            let dayName = getDayName(i, monthStr, yearNum);
+            let isFullOT = dayName === "Fri" || i === 31;
+            if (specialRule && specialRule.rule_type === "FULL_OT")
+              isFullOT = true;
 
-          let totalTsHrs = ts_nr + ts_ot;
-          let totalBillHrs = bill_nr + bill_ot;
-          let totalInvHrs = inv_nr + inv_ot;
+            let nHr = 0,
+              otHr = 0;
+            if (bd === "ID" || bd === "NP") {
+              if (isFullOT) otHr = 10;
+              else nHr = 10;
+            } else if (bd === "B" || bd === "H") {
+              nHr = 0;
+              otHr = 0;
+            } else if (tm > 0) {
+              if (isFullOT) otHr = tm;
+              else if (tm > 10) {
+                nHr = 10;
+                otHr = tm - 10;
+              } else nHr = tm;
+            }
 
-          if (
-            (siteName === "N/A" || siteName.startsWith("Prev:")) &&
-            totalTsHrs === 0 &&
-            totalBillHrs === 0 &&
-            totalInvHrs === 0
-          )
-            return;
-          if (
-            totalTsHrs === 0 &&
-            totalBillHrs === 0 &&
-            totalInvHrs === 0 &&
-            !strictlyActiveSites.length
-          )
-            return;
-
-          let dLog =
-            (raw.drivers || []).find((d) => {
-              if (!isPlateMatch(d.plate_no)) return false;
-              let dst = new Date(d.work_start_date || "2000-01-01");
-              let ded = new Date(d.work_end_date || "2099-01-01");
-              return dst <= monthEnd && ded >= monthStart;
-            }) || (raw.drivers || []).find((d) => isPlateMatch(d.plate_no));
-
-          let oLog =
-            (raw.owners || []).find((o) => {
-              if (!isPlateMatch(o.plate_no)) return false;
-              let ost = new Date(o.work_start_date || "2000-01-01");
-              let oed = new Date(o.work_end_date || "2099-01-01");
-              return ost <= monthEnd && oed >= monthStart;
-            }) || (raw.owners || []).find((o) => isPlateMatch(o.plate_no));
-
-          let isAfif = String(siteName || "")
-            .toUpperCase()
-            .includes("AFIF");
-          let otMultiplier = isAfif ? 1.0 : 0.7;
-
-          let logsheet_cf =
-            totalTsHrs > 0
-              ? Number((ts_nr + ts_ot * otMultiplier).toFixed(2))
-              : "";
-          let bill_cf =
-            totalInvHrs > 0
-              ? Number((inv_nr + inv_ot * otMultiplier).toFixed(2))
-              : "";
-          let supplier_cf =
-            totalBillHrs > 0
-              ? Number((bill_nr + bill_ot * otMultiplier).toFixed(2))
-              : "";
-
-          let valLog = typeof logsheet_cf === "number" ? logsheet_cf : 0;
-          let valBill = typeof bill_cf === "number" ? bill_cf : 0;
-          let valSup = typeof supplier_cf === "number" ? supplier_cf : 0;
-
-          let rawDiffLogSup =
-            logsheet_cf !== "" || supplier_cf !== ""
-              ? Number((valLog - valSup).toFixed(2))
-              : "";
-          let rawDiffBillSup =
-            bill_cf !== "" || supplier_cf !== ""
-              ? Number((valBill - valSup).toFixed(2))
-              : "";
-          let rawDiffBillLog =
-            bill_cf !== "" || logsheet_cf !== ""
-              ? Number((valBill - valLog).toFixed(2))
-              : "";
-
-          let diffLogSup = rawDiffLogSup === 0 ? "" : rawDiffLogSup;
-          let diffBillSup = rawDiffBillSup === 0 ? "" : rawDiffBillSup;
-          let diffBillLog = rawDiffBillLog === 0 ? "" : rawDiffBillLog;
-          let vbillNotes = bill && bill.remark ? bill.remark.trim() : "-";
-
-          let bill_nrate = bill && bill.nrate ? parseFloat(bill.nrate) : 0;
-          let bill_otrate = bill && bill.otrate ? parseFloat(bill.otrate) : 0;
-          let bill_rent = bill && bill.rent ? parseFloat(bill.rent) : 0;
-          let rent_vat =
-            bill && bill.vat_amount ? parseFloat(bill.vat_amount) : 0;
-          let rent_total = bill && bill.total ? parseFloat(bill.total) : 0;
-          let net_total = rent_total;
-
-          let inv_amount =
-            inv && inv.invoice_amount ? parseFloat(inv.invoice_amount) : 0;
-          let inv_deduct =
-            inv && inv.inv_deduct ? parseFloat(inv.inv_deduct) : 0;
-          let inv_total =
-            inv_amount > 0 || inv_deduct > 0
-              ? Number(((inv_amount - inv_deduct) * 1.15).toFixed(2))
-              : "";
-
-          let hasInvTotal = inv_total !== "";
-          let hasNetTotal = rent_total > 0;
-          let plStatus = "";
-
-          if (hasInvTotal && hasNetTotal) {
-            plStatus = Number((inv_total - net_total).toFixed(2));
-          } else if (hasInvTotal && !hasNetTotal) {
-            plStatus = "Not given to Supplier";
-          } else if (!hasInvTotal && hasNetTotal) {
-            plStatus = "Issued Adv to Supplier";
-          } else {
-            plStatus = "Bill Summary Not Received";
+            if (!siteDataMap[currentSite])
+              siteDataMap[currentSite] = { ts_nr: 0, ts_ot: 0 };
+            siteDataMap[currentSite].ts_nr += nHr;
+            siteDataMap[currentSite].ts_ot += otHr;
           }
 
-          rows.push({
-            sn: sn++,
-            site: siteName,
-            rate: (() => {
-              let rVal = curSiteObj.rate;
-              if (!rVal || rVal === "-" || rVal === "null") return "-";
-              let num = parseFloat(rVal);
-              return isNaN(num)
-                ? rVal
-                : num % 1 !== 0
-                  ? num.toFixed(2)
-                  : num.toString();
-            })(),
-            vat: oLog ? oLog.vat || "No" : v.vat || "No",
-            owner: oLog ? oLog.owner_name : v.owner_name || "-",
-            driver: dLog ? dLog.driver_name : "-",
-            site_co: curSiteObj.site_co || "-",
-            field_co: curSiteObj.field_co || "-",
-            v_type: curSiteObj.vehicle_type || v.vehicle_type || "-",
-            plate: effectivePlate,
-            ts_nr: ts_nr || "",
-            ts_ot: ts_ot || "",
-            inv_nr: inv_nr || "",
-            inv_ot: inv_ot || "",
-            bill_nr: bill_nr || "",
-            bill_ot: bill_ot || "",
-            driver_ot: driver_ot || "",
-            driver_amt: driver_amt ? driver_amt.toFixed(2) : "",
-            logsheet_cf,
-            bill_cf,
-            supplier_cf,
-            diff_log_sup: diffLogSup,
-            diff_bill_sup: diffBillSup,
-            diff_bill_log: diffBillLog,
-            vbill_notes: vbillNotes,
-            bill_nrate: bill_nrate ? bill_nrate.toFixed(2) : "",
-            bill_otrate: bill_otrate ? bill_otrate.toFixed(2) : "",
-            bill_rent: bill_rent ? bill_rent.toFixed(2) : "",
-            rent_vat: rent_vat ? rent_vat.toFixed(2) : "",
-            rent_total: rent_total ? rent_total.toFixed(2) : "",
-            net_total: net_total ? net_total.toFixed(2) : "",
-            inv_subtotal: inv_amount ? inv_amount.toFixed(2) : "",
-            inv_deduct: inv_deduct ? inv_deduct.toFixed(2) : "",
-            inv_total: inv_total || "",
-            deduct_reason: inv ? inv.deduct_reason || "" : "",
-            crn_no: inv ? inv.crn_no || "" : "",
-            inv_no: inv ? inv.invoice_no || "" : "",
-            bill_no: inv ? inv.bill_no || "" : "",
-            pl_status: plStatus,
+          // ---- One row per site ----
+          Object.keys(siteDataMap).forEach((sName) => {
+            let sd = siteDataMap[sName];
+            let ts_nr = parseFloat(sd.ts_nr) || 0;
+            let ts_ot = parseFloat(sd.ts_ot) || 0;
+            let displaySiteName = sd.displayName || sName;
+
+            let totalTsHrs = ts_nr + ts_ot;
+            if (
+              (sName === "N/A" || displaySiteName.startsWith("Prev:")) &&
+              totalTsHrs === 0
+            )
+              return;
+
+            // plate aliases (one-hop, same as report)
+            let relatedCleanPlates = [pClean];
+            (raw.plateChanges || []).forEach((pl) => {
+              let oP = cleanPlate(pl.old_plate_no);
+              let nP = cleanPlate(pl.new_plate_no);
+              if (oP === pClean && !relatedCleanPlates.includes(nP))
+                relatedCleanPlates.push(nP);
+              if (nP === pClean && !relatedCleanPlates.includes(oP))
+                relatedCleanPlates.push(oP);
+            });
+            const matchPlateWithAliases = (targetPlate) => {
+              let rawP = String(targetPlate || "").toUpperCase();
+              let parts = rawP
+                .split(/➔|→|->/)
+                .map((p) => cleanPlate(p))
+                .filter(Boolean);
+              return (
+                parts.some((cp) => relatedCleanPlates.includes(cp)) ||
+                relatedCleanPlates.includes(cleanPlate(rawP))
+              );
+            };
+
+            // ---- Bill summary (billing_records) ----
+            let bill = sortedBilling.find(
+              (b) =>
+                matchPlateWithAliases(b.plate_no) &&
+                (b.site_name || "").trim() === sName,
+            );
+            if (!bill && sName.startsWith("Prev:"))
+              bill = sortedBilling.find(
+                (b) =>
+                  matchPlateWithAliases(b.plate_no) &&
+                  (b.site_name || "").trim().startsWith("Prev:"),
+              );
+            if (!bill && sName !== "N/A")
+              bill = sortedBilling.find(
+                (b) =>
+                  matchPlateWithAliases(b.plate_no) &&
+                  (!b.site_name || b.site_name === "N/A"),
+              );
+
+            // ---- Invoice (invoice_records) ----
+            let vInvoices = (raw.invoices || []).filter(
+              (i) =>
+                matchPlateWithAliases(i.plate_no) &&
+                String(i.month || "").trim() === fullMonth,
+            );
+            let inv = vInvoices.find(
+              (i) => (i.site_name || "").trim() === sName,
+            );
+            if (!inv && sName.startsWith("Prev:"))
+              inv = vInvoices.find((i) =>
+                (i.site_name || "").trim().startsWith("Prev:"),
+              );
+            if (!inv && sName !== "N/A")
+              inv = vInvoices.find((i) => !i.site_name || i.site_name === "N/A");
+
+            let inv_nr =
+              inv && inv.bill_nr !== null && inv.bill_nr !== ""
+                ? parseFloat(inv.bill_nr) || 0
+                : 0;
+            let inv_ot =
+              inv && inv.bill_ot !== null && inv.bill_ot !== ""
+                ? parseFloat(inv.bill_ot) || 0
+                : 0;
+
+            let bill_nr = bill ? parseFloat(bill.nhr) || 0 : 0;
+            let bill_ot = bill ? parseFloat(bill.othr) || 0 : 0;
+            let driver_ot = bill ? parseFloat(bill.driver_ot) || 0 : 0;
+            let driver_amt = bill ? parseFloat(bill.driver_amount) || 0 : 0;
+
+            let totalBillHrs = bill_nr + bill_ot;
+            let totalInvHrs = inv_nr + inv_ot;
+
+            // ---- Plate display (same as report) ----
+            let effectivePlate = originalPlate;
+            let vPlateLogs = (raw.plateChanges || []).filter((pl) => {
+              let oP = cleanPlate(pl.old_plate_no);
+              let nP = cleanPlate(pl.new_plate_no);
+              return oP === pClean || nP === pClean;
+            });
+            for (let pl of vPlateLogs) {
+              if (!pl.change_date) continue;
+              let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
+              let cDate = new Date(cYear, cMonth - 1, cDay);
+              if (cYear === Number(yearNum) && cMonth - 1 === mIdx) {
+                effectivePlate = `${pl.old_plate_no} ➔ ${pl.new_plate_no}`;
+              } else if (monthEnd < cDate) {
+                effectivePlate = pl.old_plate_no;
+              } else if (monthStart >= cDate) {
+                effectivePlate = pl.new_plate_no;
+              }
+            }
+
+            // ---- Calculations ----
+            let isAfif = displaySiteName.toUpperCase().includes("AFIF");
+            let otMultiplier = isAfif ? 1.0 : 0.7;
+
+            let logsheet_cf =
+              totalTsHrs > 0
+                ? Number((ts_nr + ts_ot * otMultiplier).toFixed(2))
+                : "";
+            let bill_cf =
+              totalInvHrs > 0
+                ? Number((inv_nr + inv_ot * otMultiplier).toFixed(2))
+                : "";
+            let supplier_cf =
+              totalBillHrs > 0
+                ? Number((bill_nr + bill_ot * otMultiplier).toFixed(2))
+                : "";
+
+            let valLog = typeof logsheet_cf === "number" ? logsheet_cf : 0;
+            let valBill = typeof bill_cf === "number" ? bill_cf : 0;
+            let valSup = typeof supplier_cf === "number" ? supplier_cf : 0;
+
+            let rawDiffLogSup =
+              logsheet_cf !== "" || supplier_cf !== ""
+                ? Number((valLog - valSup).toFixed(2))
+                : "";
+            let rawDiffBillSup =
+              bill_cf !== "" || supplier_cf !== ""
+                ? Number((valBill - valSup).toFixed(2))
+                : "";
+            let rawDiffBillLog =
+              bill_cf !== "" || logsheet_cf !== ""
+                ? Number((valBill - valLog).toFixed(2))
+                : "";
+
+            let bill_nrate = bill && bill.nrate ? parseFloat(bill.nrate) : 0;
+            let bill_otrate = bill && bill.otrate ? parseFloat(bill.otrate) : 0;
+            let bill_rent = bill && bill.rent ? parseFloat(bill.rent) : 0;
+            let rent_vat = bill && bill.vat_amount ? parseFloat(bill.vat_amount) : 0;
+            let rent_total = bill && bill.total ? parseFloat(bill.total) : 0;
+            let net_total = rent_total;
+
+            let inv_amount =
+              inv && inv.invoice_amount ? parseFloat(inv.invoice_amount) : 0;
+            let inv_deduct =
+              inv && inv.inv_deduct ? parseFloat(inv.inv_deduct) : 0;
+            let inv_total =
+              inv_amount > 0 || inv_deduct > 0
+                ? Number(((inv_amount - inv_deduct) * 1.15).toFixed(2))
+                : "";
+
+            let hasInvTotal = inv_total !== "";
+            let hasNetTotal = rent_total > 0;
+            let plStatus = "";
+            if (hasInvTotal && hasNetTotal)
+              plStatus = Number((inv_total - net_total).toFixed(2));
+            else if (hasInvTotal && !hasNetTotal)
+              plStatus = "Not given to Supplier";
+            else if (!hasInvTotal && hasNetTotal)
+              plStatus = "Issued Adv to Supplier";
+            else plStatus = "Bill Summary Not Received";
+
+            rows.push({
+              sn: 0,
+              site: displaySiteName,
+              rate: sd.rate || "-",
+              vat: vat,
+              owner: owner,
+              driver: sd.driver_name || "-",
+              site_co: sd.site_co || "-",
+              field_co: sd.field_co || "-",
+              v_type: sd.vehicle_type || vehicle_type || "-",
+              plate: effectivePlate,
+              ts_nr: ts_nr || "",
+              ts_ot: ts_ot || "",
+              inv_nr: inv_nr || "",
+              inv_ot: inv_ot || "",
+              bill_nr: bill_nr || "",
+              bill_ot: bill_ot || "",
+              driver_ot: driver_ot || "",
+              driver_amt: driver_amt ? driver_amt.toFixed(2) : "",
+              logsheet_cf,
+              bill_cf,
+              supplier_cf,
+              diff_log_sup: rawDiffLogSup === 0 ? "" : rawDiffLogSup,
+              diff_bill_sup: rawDiffBillSup === 0 ? "" : rawDiffBillSup,
+              diff_bill_log: rawDiffBillLog === 0 ? "" : rawDiffBillLog,
+              vbill_notes: bill && bill.remark ? bill.remark.trim() : "-",
+              bill_nrate: bill_nrate ? bill_nrate.toFixed(2) : "",
+              bill_otrate: bill_otrate ? bill_otrate.toFixed(2) : "",
+              bill_rent: bill_rent ? bill_rent.toFixed(2) : "",
+              rent_vat: rent_vat ? rent_vat.toFixed(2) : "",
+              rent_total: rent_total ? rent_total.toFixed(2) : "",
+              net_total: net_total ? net_total.toFixed(2) : "",
+              inv_subtotal: inv_amount ? inv_amount.toFixed(2) : "",
+              inv_deduct: inv_deduct ? inv_deduct.toFixed(2) : "",
+              inv_total: inv_total || "",
+              deduct_reason: inv ? inv.deduct_reason || "" : "",
+              crn_no: inv ? inv.crn_no || "" : "",
+              inv_no: inv ? inv.invoice_no || "" : "",
+              bill_no: inv ? inv.bill_no || "" : "",
+              pl_status: plStatus,
+            });
           });
         });
+
+        // ---- Same sort order as report.html ----
+        rows.sort((a, b) => {
+          let infoA = getSiteBaseAndRank(a.site);
+          let infoB = getSiteBaseAndRank(b.site);
+          let baseCompare = infoA.base.localeCompare(infoB.base);
+          if (baseCompare !== 0) return baseCompare;
+          if (infoA.rank !== infoB.rank) return infoA.rank - infoB.rank;
+          return (a.plate || "").localeCompare(b.plate || "");
+        });
+        rows.forEach((r, idx) => (r.sn = idx + 1));
         return rows;
       }
-
+      
       function renderBottomTabs() {
         const bar = document.getElementById("bottomTabsContainer");
         bar.innerHTML = "";
@@ -2348,6 +2525,8 @@
 
         closeDirectExportModal();
         showEqualizer("Generating Direct Excel Export...");
+
+        await ensureSpecialRules();
 
         try {
           const res = await fetch("/py/johns-report/fetch-data", {
