@@ -1200,11 +1200,65 @@ async function saveEditedCost(isNext = false) {
 
 // സേവ് ചെയ്യാൻ മാത്രമുള്ള ഒരു കോമൺ ഫംഗ്ഷൻ
 async function postLogData() {
-  const kafilAmountVal = document.getElementById("inputKafil").value;
+  const eqId = Number(document.getElementById("inputEquipmentId").value);
+  const y = Number(document.getElementById("inputYear").value);
+  const m = Number(document.getElementById("inputMonth").value);
+  const kafilAmountVal = document.getElementById("inputKafil").value.trim();
+  const rev = Number(document.getElementById("inputRevenue").value) || 0;
+
+  // Existing log & company mapping nokki % calculate cheyyunnu
+  const existingLog =
+    rawMonthlyLogs.find(
+      (x) => x.equipment_id === eqId && x.year === y && x.month === m,
+    ) || {};
+  const eqPlateClean = (
+    rawEquipments.find((e) => e.id === eqId)?.plate_no || ""
+  )
+    .trim()
+    .toUpperCase();
+  const compObj =
+    (companyMappingData[eqPlateClean] &&
+      companyMappingData[eqPlateClean][m]) ||
+    {};
+  const compName =
+    typeof compObj === "object"
+      ? compObj.company || "Not Work"
+      : compObj || "Not Work";
+
+  let finalKafilComm = 0;
+  let finalKafilPct = null;
+
+  if (kafilAmountVal !== "" && Number(kafilAmountVal) > 0) {
+    finalKafilComm = Number(kafilAmountVal);
+    finalKafilPct = 0;
+  } else {
+    let kafilPctVal = 0;
+    if (
+      existingLog.kafil_pct !== null &&
+      existingLog.kafil_pct !== undefined &&
+      Number(existingLog.kafil_pct) > 0
+    ) {
+      kafilPctVal = Number(existingLog.kafil_pct);
+    } else {
+      const isSingleNonWe1 =
+        compName !== "Not Work" &&
+        compName !== "We1" &&
+        !compName.includes("&");
+      kafilPctVal = isSingleNonWe1 ? 3 : 0;
+    }
+
+    finalKafilPct = kafilPctVal;
+    if (kafilPctVal > 0 && rev > 0) {
+      finalKafilComm = Number(((rev * kafilPctVal) / 100).toFixed(1));
+    } else {
+      finalKafilComm = 0;
+    }
+  }
+
   const d = {
-    equipment_id: document.getElementById("inputEquipmentId").value,
-    year: document.getElementById("inputYear").value,
-    month: document.getElementById("inputMonth").value,
+    equipment_id: eqId,
+    year: y,
+    month: m,
     maintenance_cost: document.getElementById("inputMaint").value,
     basic_salary: document.getElementById("inputBasicSalary").value,
     overtime: document.getElementById("inputOT").value,
@@ -1213,14 +1267,14 @@ async function postLogData() {
       : 0,
     penalty: document.getElementById("inputPenalty").value,
     santook_rent: document.getElementById("inputSantook").value,
-    kafil_comm: kafilAmountVal,
-    kafil_pct: Number(kafilAmountVal) > 0 ? 0 : 0, // Direct amount nalkiyaal % 0 aayi save aavunnu
+    kafil_comm: finalKafilComm,
+    kafil_pct: finalKafilPct,
     owner_comm: document.getElementById("inputOwner").value,
     investor_comm: document.getElementById("inputInvestor").value,
     debit: document.getElementById("inputDebit").value,
     pwas: document.getElementById("inputPwas").value,
     other_expense: document.getElementById("inputOtherExpense").value,
-    op_revenue: document.getElementById("inputRevenue").value,
+    op_revenue: rev,
   };
   const res = await fetch("/api/own-equipment/tracker/save-log", {
     method: "POST",
@@ -1324,8 +1378,11 @@ function populateModalFields() {
     log && Number(log.penalty) !== 0 ? log.penalty : "";
   document.getElementById("inputSantook").value =
     log && Number(log.santook_rent) !== 0 ? log.santook_rent : "";
-  document.getElementById("inputKafil").value =
-    log && Number(log.kafil_comm) !== 0 ? log.kafil_comm : "";
+  const isManualKafil =
+    log && Number(log.kafil_pct) === 0 && Number(log.kafil_comm) !== 0;
+  document.getElementById("inputKafil").value = isManualKafil
+    ? log.kafil_comm
+    : "";
   document.getElementById("inputOwner").value =
     log && Number(log.owner_comm) !== 0 ? log.owner_comm : "";
   document.getElementById("inputInvestor").value =
