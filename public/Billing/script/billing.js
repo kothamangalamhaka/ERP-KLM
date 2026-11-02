@@ -2241,46 +2241,83 @@ async function shareSingleWhatsApp(id) {
 }
 
 // പുതിയതായി ചേർക്കുന്ന High Quality Copy ഫങ്ക്ഷൻ
+// പുതിയതും എററുകൾ പരിഹരിച്ചതുമായ copyHighQualityCard ഫങ്ക്ഷൻ
 async function copyHighQualityCard(id) {
   const card = document.getElementById(`billCard_${id}`);
   const printArea = document.getElementById(`printArea_${id}`);
+
+  // 1. ഡോക്യുമെന്റിലേക്ക് ഫോക്കസ് കൊണ്ടുവരുന്നു
+  window.focus();
 
   document.getElementById("loader").style.display = "flex";
   document.getElementById("loaderText").innerText =
     "Copying Card in High Quality...";
 
-  convertInputsToText(printArea);
-  const canvas = await html2canvas(printArea, {
-    scale: 4,
-    useCORS: true,
-    logging: false,
-    imageTimeout: 0,
-  });
-  revertInputsFromText(printArea);
+  try {
+    convertInputsToText(printArea);
 
-  canvas.toBlob(
-    async (blob) => {
-      document.getElementById("loader").style.display = "none";
-      try {
-        if (navigator.clipboard && window.isSecureContext) {
-          const item = new ClipboardItem({ "image/png": blob });
-          await navigator.clipboard.write([item]);
-          showToast("High Quality Card Copied to Clipboard!");
-        } else {
-          showToast("Clipboard not supported. Downloading HD instead.");
+    const canvas = await html2canvas(printArea, {
+      scale: 3, // scale 4 മെമ്മറി ക്രാഷ് ഒഴിവാക്കാൻ 3 ആക്കുന്നു
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      imageTimeout: 5000,
+      ignoreElements: (element) => {
+        // ക്യാമറ/വീഡിയോ എലമെന്റുകൾ ക്ലോൺ ചെയ്യുന്നത് ഒഴിവാക്കുന്നു
+        return element.tagName === "VIDEO" || element.id === "billingAppUniversalVideo";
+      },
+      onclone: (clonedDoc) => {
+        let clonedEl = clonedDoc.getElementById(printArea.id);
+        if (clonedEl) {
+          clonedEl.style.width = "1400px";
+          clonedEl.style.minWidth = "1400px";
+        }
+      }
+    });
+
+    revertInputsFromText(printArea);
+
+    canvas.toBlob(
+      async (blob) => {
+        document.getElementById("loader").style.display = "none";
+
+        if (!blob) {
+          showToast("Error creating image blob.");
+          return;
+        }
+
+        try {
+          // വിൻഡോ ആക്ടീവ് ആണെങ്കിൽ മാത്രം ക്ലിപ്പ്ബോർഡിലേക്ക് കോപ്പി ചെയ്യുക
+          if (document.hasFocus() && navigator.clipboard && window.isSecureContext) {
+            const item = new ClipboardItem({ "image/png": blob });
+            await navigator.clipboard.write([item]);
+            showToast("High Quality Card Copied to Clipboard!");
+          } else {
+            // ഫോക്കസ് നഷ്ടപ്പെട്ടാലോ ക്ലിപ്പ്ബോർഡ് എറർ വന്നാലോ ഫയൽ ഡൗൺലോഡ് ചെയ്യുക
+            const link = document.createElement("a");
+            link.download = getDynamicFileName(card);
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            showToast("Window not focused. Card downloaded as HD image instead!");
+          }
+        } catch (err) {
+          console.warn("Clipboard write failed, downloading fallback:", err);
           const link = document.createElement("a");
           link.download = getDynamicFileName(card);
           link.href = URL.createObjectURL(blob);
           link.click();
+          showToast("Card downloaded as HD image!");
         }
-      } catch (err) {
-        showToast("Failed to copy image. Check browser permissions.");
-        console.error(err);
-      }
-    },
-    "image/png",
-    1.0,
-  );
+      },
+      "image/png",
+      0.95,
+    );
+  } catch (err) {
+    revertInputsFromText(printArea);
+    document.getElementById("loader").style.display = "none";
+    console.error("html2canvas execution error:", err);
+    showToast("Failed to process card image.");
+  }
 }
 
 async function downloadAllAsZip() {
@@ -3057,14 +3094,14 @@ function loadSavedAdjustmentsToCard(card) {
 }
 
 /* =========================================
-   🟢 COPY CARD & OPEN WHATSAPP DESKTOP
+   🟢 COPY CARD & OPEN WHATSAPP DESKTOP (FIXED)
 ========================================= */
 async function copyCardAndWhatsApp(cardId, ownerName) {
   if (ownerName === "Manual Entry" || !ownerName) {
     return showToast("Please select a valid Owner first!");
   }
 
-  // Find mobile number from masterData (Improved matching to ignore spaces)
+  // Find mobile number from masterData
   let mobile = "";
   let safeOwnerName = ownerName.trim().toUpperCase();
 
@@ -3074,17 +3111,19 @@ async function copyCardAndWhatsApp(cardId, ownerName) {
   });
 
   if (match && match.owner_mobile) {
-    mobile = String(match.owner_mobile).replace(/[^0-9+]/g, ""); // Extract only numbers
+    mobile = String(match.owner_mobile).replace(/[^0-9+]/g, "");
   }
 
   if (!mobile) {
     return showToast(`Mobile number not found for ${ownerName} in Database!`);
   }
 
-  // Saudi Number Formatting Check (Change to 91 if it's India)
   if (mobile.startsWith("05") && mobile.length === 10) {
     mobile = "966" + mobile.substring(1);
   }
+
+  // വിൻഡോ ഫോക്കസ് ക്ലിപ്പ്ബോർഡിനായി നിലനിർത്തുന്നു
+  window.focus();
 
   document.getElementById("loader").style.display = "flex";
   document.getElementById("loaderText").innerText =
@@ -3094,56 +3133,76 @@ async function copyCardAndWhatsApp(cardId, ownerName) {
   convertInputsToText(printArea);
 
   try {
-    const canvas = await html2canvas(printArea, { scale: 3, useCORS: true });
+    const canvas = await html2canvas(printArea, {
+      scale: 3,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      imageTimeout: 5000,
+      ignoreElements: (element) => {
+        // ക്യാമറ/വീഡിയോ എലമെന്റുകൾ ക്ലോണിംഗിൽ നിന്ന് പൂർണ്ണമായി ഒഴിവാക്കുന്നു
+        return (
+          element.tagName === "VIDEO" ||
+          element.id === "billingAppUniversalVideo" ||
+          element.id === "billingAppUniversalCanvas"
+        );
+      },
+      onclone: (clonedDoc) => {
+        let clonedEl = clonedDoc.getElementById(printArea.id);
+        if (clonedEl) {
+          clonedEl.style.width = "1400px";
+          clonedEl.style.minWidth = "1400px";
+        }
+      },
+    });
+
     revertInputsFromText(printArea);
 
     canvas.toBlob(
       async (blob) => {
+        document.getElementById("loader").style.display = "none";
+        if (!blob) {
+          showToast("Failed to generate image.");
+          return;
+        }
+
+        let copiedSuccessfully = false;
+
         try {
-          // Try copying to clipboard (Works perfectly if HTTPS or localhost)
-          if (navigator.clipboard && window.isSecureContext) {
+          if (document.hasFocus() && navigator.clipboard && window.isSecureContext) {
             const item = new ClipboardItem({ "image/png": blob });
             await navigator.clipboard.write([item]);
+            copiedSuccessfully = true;
             showToast("Card copied! Opening WhatsApp...");
           } else {
-            // Fallback for non-HTTPS local IP - Downloads the file automatically instead
-            const link = document.createElement("a");
-            link.download = `${ownerName.replace(/\s+/g, "_")}_Bill.png`;
-            link.href = URL.createObjectURL(blob);
-            link.click();
-            showToast("Image Downloaded. Opening WhatsApp...");
+            throw new Error("Document not focused or clipboard unavailable");
           }
-
-          document.getElementById("loader").style.display = "none";
-
-          // Get selected month text
-          const currentMonth =
-            document.getElementById("selectedMonthText")?.innerText.trim() ||
-            "";
-          const msgText = encodeURIComponent(`*${currentMonth} Bill*`);
-
-          // Open WhatsApp Desktop / Web link with prefilled month text
-          setTimeout(() => {
-            window.open(
-              `whatsapp://send?phone=${mobile}&text=${msgText}`,
-              "_self",
-            );
-          }, 1000);
-        } catch (err) {
-          document.getElementById("loader").style.display = "none";
-          showToast(
-            "Clipboard write failed. Please check browser permissions.",
-          );
-          console.error(err);
+        } catch (clipErr) {
+          console.warn("Clipboard copy bypassed, downloading fallback:", clipErr);
+          const link = document.createElement("a");
+          link.download = `${ownerName.replace(/\s+/g, "_")}_Bill.png`;
+          link.href = URL.createObjectURL(blob);
+          link.click();
+          showToast("Image downloaded. Opening WhatsApp...");
         }
+
+        // WhatsApp ലിങ്ക് ഓപ്പൺ ചെയ്യുന്നു
+        const currentMonth =
+          document.getElementById("selectedMonthText")?.innerText.trim() || "";
+        const msgText = encodeURIComponent(`*${currentMonth} Bill*`);
+
+        setTimeout(() => {
+          window.location.href = `whatsapp://send?phone=${mobile}&text=${msgText}`;
+        }, 600);
       },
       "image/png",
-      1.0,
+      0.95,
     );
   } catch (err) {
     revertInputsFromText(printArea);
     document.getElementById("loader").style.display = "none";
-    showToast("Error generating image.");
+    console.error("WhatsApp export error:", err);
+    showToast("Error generating bill image.");
   }
 }
 
