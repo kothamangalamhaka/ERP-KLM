@@ -31,8 +31,12 @@
 
     <div id="rowContextMenu" class="context-menu">
       <button onclick="editPlateNo()">✏️ Edit Plate No</button>
-      <button onclick="openPlateLogModal(event, activeRowPlate)">🔄 Plate Change Log</button>
-      <button onclick="openOwnerLog(event, activeRowPlate)">👤 Owner Log</button>
+      <button onclick="openPlateLogModal(event, activeRowPlate)">
+        🔄 Plate Change Log
+      </button>
+      <button onclick="openOwnerLog(event, activeRowPlate)">
+        👤 Owner Log
+      </button>
       <button onclick="rowAbout()">ℹ️ About Vehicle</button>
       <button id="rcm-delete" class="text-danger" onclick="rowDelete()">
         🗑️ Delete Row
@@ -66,8 +70,10 @@
       </div>
     </div>
 
-    <div class="navbar" style="gap: 15px; padding: 6px 16px;">
-      <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+    <div class="navbar" style="gap: 15px; padding: 6px 16px">
+      <div
+        style="display: flex; align-items: center; gap: 12px; flex-shrink: 0"
+      >
         <a href="Timesheet.html"
           ><img src="../icons/dd.png" class="dd" alt="Menu"
         /></a>
@@ -85,12 +91,32 @@
         <span id="saveStatus" class="save-indicator">✓ Saved</span>
       </div>
 
-      <div style="display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end;">
-        <button class="btn btn-primary" onclick="exportExcel()" style="font-size: 12px; padding: 6px 12px; white-space: nowrap;">
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex: 1;
+          justify-content: flex-end;
+        "
+      >
+        <button
+          class="btn btn-primary"
+          onclick="exportExcel()"
+          style="font-size: 12px; padding: 6px 12px; white-space: nowrap"
+        >
           ⬇ Export Excel
         </button>
 
-        <div style="display: flex; gap: 4px; align-items: center; max-width: 320px; width: 100%;">
+        <div
+          style="
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            max-width: 320px;
+            width: 100%;
+          "
+        >
           <select
             id="searchType"
             onchange="applyGridFilters()"
@@ -108,7 +134,7 @@
             <option value="general">General</option>
             <option value="plate">Plate No</option>
           </select>
-          <div style="position: relative; flex: 1;">
+          <div style="position: relative; flex: 1">
             <input
               type="text"
               id="searchInput"
@@ -126,20 +152,41 @@
                 box-sizing: border-box;
               "
             />
-            <span style="position: absolute; left: 8px; top: 6px; font-size: 12px; opacity: 0.7;">🔍</span>
+            <span
+              style="
+                position: absolute;
+                left: 8px;
+                top: 6px;
+                font-size: 12px;
+                opacity: 0.7;
+              "
+              >🔍</span
+            >
           </div>
         </div>
 
-        <button id="adminAddVehicleBtn" class="btn btn-primary" onclick="openAddVehicleModal()" style="display: none; font-size: 12px; padding: 6px 14px; background: #2563eb; white-space: nowrap; font-weight: 600;">
+        <button
+          id="adminAddVehicleBtn"
+          class="btn btn-primary"
+          onclick="openAddVehicleModal()"
+          style="
+            display: none;
+            font-size: 12px;
+            padding: 6px 14px;
+            background: #2563eb;
+            white-space: nowrap;
+            font-weight: 600;
+          "
+        >
           + Add Vehicle
         </button>
 
-        <div class="user-profile-container" style="margin-left: 5px;">
+        <div class="user-profile-container" style="margin-left: 5px">
           <div
             id="userInfo"
             class="user-info-btn"
             onclick="toggleUserMenu(event)"
-            style="padding: 5px 10px; font-size: 12px;"
+            style="padding: 5px 10px; font-size: 12px"
           >
             <span class="user-icon">👤</span
             ><span class="user-text">Loading...</span>
@@ -159,7 +206,7 @@
       </div>
     </div>
 
-    <div class="main-wrapper" style="padding-top: 8px;">
+    <div class="main-wrapper" style="padding-top: 8px">
       <div id="errorBanner"></div>
 
       <div class="table-responsive">
@@ -334,7 +381,8 @@
           </button>
         </h3>
         <p style="font-size: 13px; color: #64748b; margin-bottom: 20px">
-          Fill in the details below. Site, Driver, Owner, and Rate logs will automatically sync.
+          Fill in the details below. Site, Driver, Owner, and Rate logs will
+          automatically sync.
         </p>
         <div
           id="addVehicleForm"
@@ -522,7 +570,8 @@
         <div class="modal-split">
           <div class="modal-form-side">
             <span class="edit-hint"
-              >Click a row on the right to edit, or use 'Clear / New' to add.</span
+              >Click a row on the right to edit, or use 'Clear / New' to
+              add.</span
             >
             <div
               style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px"
@@ -551,7 +600,12 @@
                     type="button"
                     class="btn btn-outline"
                     title="Manage Rate Period Logs"
-                    onclick="openRateLogModal(document.getElementById('slPlate').innerText, document.getElementById('slName').value)"
+                    onclick="
+                      openRateLogModal(
+                        document.getElementById('slPlate').innerText,
+                        document.getElementById('slName').value,
+                      )
+                    "
                     style="padding: 0 8px; font-size: 13px"
                   >
                     📈
@@ -598,14 +652,28 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            >
               <div class="form-group">
                 <label>Vehicle Type</label>
-                <input type="text" id="slVehicleType" class="modal-input" list="vehicleTypeList" />
+                <input
+                  type="text"
+                  id="slVehicleType"
+                  class="modal-input"
+                  list="vehicleTypeList"
+                />
               </div>
               <div class="form-group">
-                <label style="color: #2563eb;">Project Name</label>
-                <input type="text" id="slProjectName" class="modal-input" list="globalProjectNameList" placeholder="e.g. Master Gas III" autocomplete="off" />
+                <label style="color: #2563eb">Project Name</label>
+                <input
+                  type="text"
+                  id="slProjectName"
+                  class="modal-input"
+                  list="globalProjectNameList"
+                  placeholder="e.g. Master Gas III"
+                  autocomplete="off"
+                />
               </div>
             </div>
             <div
@@ -714,7 +782,8 @@
         <div class="modal-split">
           <div class="modal-form-side">
             <span class="edit-hint"
-              >Adjust site rate variations across custom start and end dates.</span
+              >Adjust site rate variations across custom start and end
+              dates.</span
             >
             <div class="form-group">
               <label>Site Name</label
@@ -779,22 +848,44 @@
     </div>
 
     <!-- PLATE NUMBER CHANGE LOG MODAL -->
-    <div id="plateLogModal" class="modal-overlay" style="z-index: 2200;">
-      <div class="modal-box modal-wide" style="max-width: 850px;">
+    <div id="plateLogModal" class="modal-overlay" style="z-index: 2200">
+      <div class="modal-box modal-wide" style="max-width: 850px">
         <h3>
-          Plate Number Change History - <span id="plPlateCurrent" style="color: #0d6efd"></span>
-          <button class="close-btn" style="color: #64748b" onclick="closeModal('plateLogModal')">✖</button>
+          Plate Number Change History -
+          <span id="plPlateCurrent" style="color: #0d6efd"></span>
+          <button
+            class="close-btn"
+            style="color: #64748b"
+            onclick="closeModal('plateLogModal')"
+          >
+            ✖
+          </button>
         </h3>
         <div class="modal-split">
           <div class="modal-form-side">
-            <span class="edit-hint">Change plate number and auto-sync records across all periods.</span>
+            <span class="edit-hint"
+              >Change plate number and auto-sync records across all
+              periods.</span
+            >
             <div class="form-group">
               <label>Current Plate No</label>
-              <input type="text" id="plOldInput" class="modal-input" readonly style="font-weight: bold; background: #f1f5f9;" />
+              <input
+                type="text"
+                id="plOldInput"
+                class="modal-input"
+                readonly
+                style="font-weight: bold; background: #f1f5f9"
+              />
             </div>
             <div class="form-group">
-              <label style="color: #0d6efd;">New Plate No</label>
-              <input type="text" id="plNewInput" class="modal-input uppercase-input" placeholder="e.g. 1677 ENA -1" style="border-color: #0d6efd; font-weight: bold;" />
+              <label style="color: #0d6efd">New Plate No</label>
+              <input
+                type="text"
+                id="plNewInput"
+                class="modal-input uppercase-input"
+                placeholder="e.g. 1677 ENA -1"
+                style="border-color: #0d6efd; font-weight: bold"
+              />
             </div>
             <div class="form-group">
               <label>Effective Date</label>
@@ -802,15 +893,33 @@
             </div>
             <div class="form-group">
               <label>Reason / Note</label>
-              <textarea id="plReasonInput" class="modal-input" style="height: 55px; resize: none;" placeholder="e.g. Istimara renewal, physical plate swap"></textarea>
+              <textarea
+                id="plReasonInput"
+                class="modal-input"
+                style="height: 55px; resize: none"
+                placeholder="e.g. Istimara renewal, physical plate swap"
+              ></textarea>
             </div>
             <div class="modal-actions">
-              <button class="btn btn-secondary" onclick="closeModal('plateLogModal')">Close</button>
-              <button class="btn btn-primary" id="plSaveBtn" onclick="submitPlateChangeFromModal()">Apply Plate Change</button>
+              <button
+                class="btn btn-secondary"
+                onclick="closeModal('plateLogModal')"
+              >
+                Close
+              </button>
+              <button
+                class="btn btn-primary"
+                id="plSaveBtn"
+                onclick="submitPlateChangeFromModal()"
+              >
+                Apply Plate Change
+              </button>
             </div>
           </div>
           <div class="modal-history-side">
-            <h4 style="margin-top: 0; color: #0f2027; margin-bottom: 8px">Change Logs</h4>
+            <h4 style="margin-top: 0; color: #0f2027; margin-bottom: 8px">
+              Change Logs
+            </h4>
             <table class="log-table">
               <thead>
                 <tr>
@@ -829,12 +938,12 @@
 
     <!-- OWNER LOG MODAL -->
     <div id="ownerLogModal" class="modal-overlay">
-      <div class="modal-box modal-wide" style="width:70vw;">
+      <div class="modal-box modal-wide" style="width: 70vw">
         <h3>
           Owner History Log - <span id="olPlate" style="color: #0d6efd"></span>
         </h3>
-        <div class="modal-split" style="gap: 25px;">
-          <div class="modal-form-side" style="flex: 1; min-width: 310px;">
+        <div class="modal-split" style="gap: 25px">
+          <div class="modal-form-side" style="flex: 1; min-width: 310px">
             <span class="edit-hint"
               >Manage ownership history and company billing details.</span
             >
@@ -869,13 +978,25 @@
                 ><input type="text" id="olCompany" class="modal-input" />
               </div>
               <div class="form-group">
-                <label style="color: #0284c7;">Ledger Folio</label
-                ><input type="text" id="olLedgerFolio" class="modal-input uppercase-input" placeholder="e.g. L01, L01528" />
+                <label style="color: #0284c7">Ledger Folio</label
+                ><input
+                  type="text"
+                  id="olLedgerFolio"
+                  class="modal-input uppercase-input"
+                  placeholder="e.g. L01, L01528"
+                />
               </div>
             </div>
             <div class="form-group">
-              <label style="color: #10b981;">Arabic Name (الاسم بالعربي)</label>
-              <input type="text" id="olCompanyArabic" class="modal-input" placeholder="e.g. مؤسسة حسن يحيى عسيري" dir="rtl" style="font-size: 14px;" />
+              <label style="color: #10b981">Arabic Name (الاسم بالعربي)</label>
+              <input
+                type="text"
+                id="olCompanyArabic"
+                class="modal-input"
+                placeholder="e.g. مؤسسة حسن يحيى عسيري"
+                dir="rtl"
+                style="font-size: 14px"
+              />
             </div>
             <div
               style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
@@ -923,19 +1044,19 @@
               </button>
             </div>
           </div>
-          <div class="modal-history-side log-table-container" style="flex: 2.2;">
-            <table class="log-table" style="min-width: 890px;">
+          <div class="modal-history-side log-table-container" style="flex: 2.2">
+            <table class="log-table" style="min-width: 890px">
               <colgroup>
-                <col style="width: 130px;">
-                <col style="width: 100px;">
-                <col style="width: 50px;">
-                <col style="width: 130px;">
-                <col style="width: 80px;">
-                <col style="width: 140px;">
-                <col style="width: 85px;">
-                <col style="width: 85px;">
-                <col style="width: 60px;">
-                <col style="width: 35px;">
+                <col style="width: 130px" />
+                <col style="width: 100px" />
+                <col style="width: 50px" />
+                <col style="width: 130px" />
+                <col style="width: 80px" />
+                <col style="width: 140px" />
+                <col style="width: 85px" />
+                <col style="width: 85px" />
+                <col style="width: 60px" />
+                <col style="width: 35px" />
               </colgroup>
               <tbody id="olHistory"></tbody>
             </table>

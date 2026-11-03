@@ -39,6 +39,8 @@ let tableData = [];
 let activeFilters = {};
 let hiddenColumns = JSON.parse(localStorage.getItem("dbHiddenCols")) || [];
 let customColOrder = [];
+let lastSyncVersion = "";
+let isSyncing = false;
 
 const colLabels = {
   vehicle_type: "Vehicle Type",
@@ -530,16 +532,43 @@ function saveColumnOrderFromUI() {
   renderTable();
 }
 
+const monthNamesList = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
+function isDateColumn(colName) {
+  const c = (colName || "").toLowerCase();
+  return c.includes("date") || c === "last day" || c === "driver_end_date";
+}
+
+function parseDateComponents(dateStr) {
+  if (!dateStr || dateStr === "(Blanks)" || dateStr === "-") return null;
+  const parts = String(dateStr).trim().split(/[-/]/);
+  if (parts.length === 3) {
+    let y, m, d;
+    if (parts[0].length === 4) {
+      y = parts[0];
+      m = parseInt(parts[1], 10);
+      d = parts[2].padStart(2, "0");
+    } else if (parts[2].length === 4) {
+      d = parts[0].padStart(2, "0");
+      m = parseInt(parts[1], 10);
+      y = parts[2];
+    }
+    if (y && m >= 1 && m <= 12) {
+      return { year: y, monthIndex: m - 1, monthName: monthNamesList[m - 1], day: d, fullDate: String(dateStr).trim() };
+    }
+  }
+  return null;
+}
+
 function openAdvancedFilter(e) {
   e.stopPropagation();
   document.getElementById("headerContextMenu").style.display = "none";
   const popup = document.getElementById("filterPopup");
   popup.style.display = "flex";
-  let left = e.pageX;
-  let top = e.pageY;
-  if (left + 260 > window.innerWidth) left = window.innerWidth - 270;
-  popup.style.left = left + "px";
-  popup.style.top = top + "px";
+  popup.style.visibility = "hidden";
   document.getElementById("filterSearchInput").value = "";
 
   const globalSearch = document
@@ -603,15 +632,169 @@ function openAdvancedFilter(e) {
     !activeFilters[activeHeaderCol] ||
     activeFilters[activeHeaderCol].length === sortedValues.length;
 
-  listContainer.innerHTML += `<div class="filter-item" style="font-weight:bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;"><input type="checkbox" id="filterSelectAll" onchange="toggleAllFilters(this)" ${isAllSelected ? "checked" : ""}><label for="filterSelectAll" style="font-size: 13px;">(Select All Visible)</label></div>`;
+  listContainer.innerHTML += `<div class="filter-item" style="font-weight:bold; border-bottom: 1px solid var(--border-light, #e2e8f0); padding-bottom: 8px;"><input type="checkbox" id="filterSelectAll" onchange="toggleAllFilters(this)" ${isAllSelected ? "checked" : ""}><label for="filterSelectAll" style="font-size: 13px;">(Select All Visible)</label></div>`;
+
+  if (isDateColumn(activeHeaderCol)) {
+    renderDateHierarchyFilter(listContainer, sortedValues, isAllSelected);
+  } else {
+    sortedValues.forEach((val) => {
+      let isChecked =
+        isAllSelected ||
+        (activeFilters[activeHeaderCol] &&
+          activeFilters[activeHeaderCol].includes(val));
+      let safeVal = escapeHTML(val);
+      let randId = "flt_" + Math.random().toString(36).substr(2, 9);
+      listContainer.innerHTML += `<div class="filter-item data-item"><input type="checkbox" id="${randId}" class="filter-checkbox" value="${safeVal}" ${isChecked ? "checked" : ""} onchange="checkSelectAll()"><label for="${randId}" title="${safeVal}">${safeVal}</label></div>`;
+    });
+  }
+
+  const popupWidth = popup.offsetWidth || 300;
+  let left = e.pageX;
+  let top = e.pageY;
+  if (left + popupWidth > window.innerWidth - 10) {
+    left = Math.max(10, window.innerWidth - popupWidth - 15);
+  }
+  popup.style.left = left + "px";
+  popup.style.top = top + "px";
+  popup.style.visibility = "visible";
+}
+
+function renderDateHierarchyFilter(container, sortedValues, isAllSelected) {
+  const yearsMap = {};
+  let hasBlanks = false;
+
   sortedValues.forEach((val) => {
-    let isChecked =
-      isAllSelected ||
-      (activeFilters[activeHeaderCol] &&
-        activeFilters[activeHeaderCol].includes(val));
-    let safeVal = escapeHTML(val);
-    let randId = "flt_" + Math.random().toString(36).substr(2, 9);
-    listContainer.innerHTML += `<div class="filter-item data-item"><input type="checkbox" id="${randId}" class="filter-checkbox" value="${safeVal}" ${isChecked ? "checked" : ""} onchange="checkSelectAll()"><label for="${randId}" title="${safeVal}">${safeVal}</label></div>`;
+    if (val === "(Blanks)") {
+      hasBlanks = true;
+      return;
+    }
+    const parsed = parseDateComponents(val);
+    if (!parsed) {
+      if (!yearsMap["Other"]) yearsMap["Other"] = { months: {} };
+      if (!yearsMap["Other"].months["Other"]) yearsMap["Other"].months["Other"] = [];
+      yearsMap["Other"].months["Other"].push(val);
+      return;
+    }
+    if (!yearsMap[parsed.year]) yearsMap[parsed.year] = { months: {} };
+    if (!yearsMap[parsed.year].months[parsed.monthName]) yearsMap[parsed.year].months[parsed.monthName] = [];
+    yearsMap[parsed.year].months[parsed.monthName].push(parsed.fullDate);
+  });
+
+  const sortedYears = Object.keys(yearsMap).sort((a, b) => b.localeCompare(a));
+
+  sortedYears.forEach((year) => {
+    const yearId = "yr_" + year.replace(/\W/g, "");
+    let yearHtml = `
+      <div class="date-tree-node data-item">
+        <div class="date-tree-row">
+          <span class="date-tree-expander" onclick="toggleDateTreeExpand(this)">▶</span>
+          <input type="checkbox" id="${yearId}" class="filter-tree-year" onchange="toggleYearCheckbox(this)">
+          <label for="${yearId}">${escapeHTML(year)}</label>
+        </div>
+        <div class="date-tree-children">
+    `;
+
+    const monthsObj = yearsMap[year].months;
+    const sortedMonths = Object.keys(monthsObj).sort((a, b) => {
+      return monthNamesList.indexOf(a) - monthNamesList.indexOf(b);
+    });
+
+    sortedMonths.forEach((month) => {
+      const monthId = `${yearId}_mo_${month.replace(/\W/g, "")}`;
+      yearHtml += `
+        <div class="date-tree-node">
+          <div class="date-tree-row">
+            <span class="date-tree-expander" onclick="toggleDateTreeExpand(this)">▶</span>
+            <input type="checkbox" id="${monthId}" class="filter-tree-month" onchange="toggleMonthCheckbox(this)">
+            <label for="${monthId}">${escapeHTML(month)}</label>
+          </div>
+          <div class="date-tree-children">
+      `;
+
+      const datesList = monthsObj[month].sort();
+      datesList.forEach((fullDate) => {
+        const isChecked = isAllSelected || (activeFilters[activeHeaderCol] && activeFilters[activeHeaderCol].includes(fullDate));
+        const dateId = "dt_" + Math.random().toString(36).substr(2, 9);
+        const displayDay = fullDate.split(/[-/]/)[2] || fullDate;
+        yearHtml += `
+          <div class="date-tree-row data-item">
+            <span style="width:14px; display:inline-block;"></span>
+            <input type="checkbox" id="${dateId}" class="filter-checkbox filter-tree-date" value="${escapeHTML(fullDate)}" ${isChecked ? "checked" : ""} onchange="onDateLeafChange(this)">
+            <label for="${dateId}" title="${escapeHTML(fullDate)}">${escapeHTML(displayDay)} (${escapeHTML(fullDate)})</label>
+          </div>
+        `;
+      });
+
+      yearHtml += `</div></div>`;
+    });
+
+    yearHtml += `</div></div>`;
+    container.insertAdjacentHTML("beforeend", yearHtml);
+  });
+
+  if (hasBlanks) {
+    const isChecked = isAllSelected || (activeFilters[activeHeaderCol] && activeFilters[activeHeaderCol].includes("(Blanks)"));
+    const blankId = "dt_blanks";
+    container.insertAdjacentHTML(
+      "beforeend",
+      `<div class="filter-item data-item" style="margin-top: 4px; border-top: 1px dashed var(--border-light, #e2e8f0); padding-top: 4px;"><input type="checkbox" id="${blankId}" class="filter-checkbox" value="(Blanks)" ${isChecked ? "checked" : ""} onchange="checkSelectAll()"><label for="${blankId}">(Blanks)</label></div>`
+    );
+  }
+
+  syncAllDateTreeParentStates();
+  checkSelectAll();
+}
+
+function toggleDateTreeExpand(el) {
+  el.classList.toggle("open");
+  const nextChildren = el.closest(".date-tree-row").nextElementSibling;
+  if (nextChildren && nextChildren.classList.contains("date-tree-children")) {
+    nextChildren.classList.toggle("open");
+  }
+}
+
+function toggleYearCheckbox(yearCb) {
+  const parentNode = yearCb.closest(".date-tree-node");
+  const allChildDates = parentNode.querySelectorAll(".filter-tree-date");
+  allChildDates.forEach((cb) => {
+    cb.checked = yearCb.checked;
+  });
+  syncAllDateTreeParentStates();
+  checkSelectAll();
+}
+
+function toggleMonthCheckbox(monthCb) {
+  const parentNode = monthCb.closest(".date-tree-node");
+  const allChildDates = parentNode.querySelectorAll(".filter-tree-date");
+  allChildDates.forEach((cb) => {
+    cb.checked = monthCb.checked;
+  });
+  syncAllDateTreeParentStates();
+  checkSelectAll();
+}
+
+function onDateLeafChange(leafCb) {
+  syncAllDateTreeParentStates();
+  checkSelectAll();
+}
+
+function syncAllDateTreeParentStates() {
+  document.querySelectorAll(".filter-tree-month").forEach((mCb) => {
+    const pNode = mCb.closest(".date-tree-node");
+    const childDates = Array.from(pNode.querySelectorAll(".filter-tree-date"));
+    const total = childDates.length;
+    const checked = childDates.filter((c) => c.checked).length;
+    mCb.checked = checked === total && total > 0;
+    mCb.indeterminate = checked > 0 && checked < total;
+  });
+
+  document.querySelectorAll(".filter-tree-year").forEach((yCb) => {
+    const pNode = yCb.closest(".date-tree-node");
+    const childDates = Array.from(pNode.querySelectorAll(".filter-tree-date"));
+    const total = childDates.length;
+    const checked = childDates.filter((c) => c.checked).length;
+    yCb.checked = checked === total && total > 0;
+    yCb.indeterminate = checked > 0 && checked < total;
   });
 }
 
@@ -620,15 +803,27 @@ function searchFilterList() {
   const items = document.querySelectorAll("#filterList .data-item");
   items.forEach((item) => {
     const label = item.querySelector("label").innerText.toLowerCase();
-    item.style.display = label.includes(term) ? "flex" : "none";
+    const matches = label.includes(term);
+    item.style.display = matches ? "flex" : "none";
+    if (matches && term !== "") {
+      let parent = item.closest(".date-tree-children");
+      while (parent) {
+        parent.classList.add("open");
+        const expander = parent.previousElementSibling?.querySelector(".date-tree-expander");
+        if (expander) expander.classList.add("open");
+        parent = parent.parentElement.closest(".date-tree-children");
+      }
+    }
   });
 }
 
 function toggleAllFilters(source) {
   const checkboxes = document.querySelectorAll("#filterList .filter-checkbox");
   checkboxes.forEach((cb) => {
-    if (cb.parentElement.style.display !== "none") cb.checked = source.checked;
+    const parentRow = cb.closest(".date-tree-row") || cb.parentElement;
+    if (parentRow.style.display !== "none") cb.checked = source.checked;
   });
+  syncAllDateTreeParentStates();
 }
 function checkSelectAll() {
   const total = document.querySelectorAll(
@@ -2870,23 +3065,30 @@ function applySheetDesign(ws, headerStyle, cellStyleLeft, cellStyleCenter) {
       if (R === 0) {
         cell.s = headerStyle;
       } else {
-        const isCenterCol = [
-          "SL NO",
-          "START DATE",
-          "END DATE",
-          "STATUS",
-          "VAT",
-          "RATE",
-          "LAST DAY",
-          "OLD",
-          "NEW",
-        ].some((h) =>
-          String(ws[XLSX.utils.encode_cell({ c: C, r: 0 })]?.v || "")
-            .toUpperCase()
-            .includes(h),
-        );
+        const colHeaderStr = String(ws[XLSX.utils.encode_cell({ c: C, r: 0 })]?.v || "").toUpperCase();
+  const isDateCol = colHeaderStr.includes("START") || colHeaderStr.includes("END") || colHeaderStr.includes("LAST DAY") || colHeaderStr.includes("DATE");
+  const isCenterCol = [
+    "SL NO",
+    "START DATE",
+    "END DATE",
+    "STATUS",
+    "VAT",
+    "RATE",
+    "LAST DAY",
+    "OLD",
+    "NEW",
+  ].some((h) => colHeaderStr.includes(h));
 
-        cell.s = C === 0 || isCenterCol ? cellStyleCenter : cellStyleLeft;
+  if (isDateCol && cell.v && cell.v !== "-") {
+    const dMatch = String(cell.v).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dMatch) {
+      cell.t = "d";
+      cell.v = new Date(cell.v);
+      cell.z = "yyyy-mm-dd";
+    }
+  }
+
+  cell.s = C === 0 || isCenterCol ? cellStyleCenter : cellStyleLeft;
       }
     }
     colWidths.push({ wch: Math.max(maxWidth, 12) });
@@ -2951,7 +3153,190 @@ async function importExcel() {
   });
 }
 
+// 🟢 Intelligent In-place Table Value Updater (No layout blink / cursor loss)
+function updateTableCellsInPlace(freshData) {
+  tableData = freshData;
+  const activeEl = document.activeElement;
+  const trs = Array.from(document.getElementById("dbBody").querySelectorAll("tr"));
+
+  // Create a plate-to-row map for exact DOM matching
+  const rowMap = new Map();
+  trs.forEach((tr) => {
+    const plateInput = tr.querySelector("input.primary-col");
+    if (plateInput) {
+      const p = (plateInput.value || "").trim().toUpperCase();
+      if (p) rowMap.set(p, tr);
+    }
+  });
+
+  tableData.forEach((row) => {
+    const p = (row.plate_no || "").trim().toUpperCase();
+    const tr = rowMap.get(p);
+    if (!tr) return;
+
+    // 1. Text Inputs, Number Inputs, Selects, and Textareas with data-col
+    const cellInputs = tr.querySelectorAll("input[data-col], select[data-col], textarea[data-col]");
+    cellInputs.forEach((el) => {
+      if (el === activeEl) return;
+      const col = el.getAttribute("data-col");
+      if (col) {
+        let freshVal = row[col] === null || row[col] === undefined || row[col] === "null" ? "" : String(row[col]);
+        if (el.value !== freshVal) {
+          el.value = freshVal;
+        }
+      }
+    });
+
+    // 2. Log-driven text inputs (Site Name, Driver Name, Owner Name)
+    const logWrappers = tr.querySelectorAll(".cell-log-wrapper input[readonly]");
+    if (logWrappers.length >= 1 && logWrappers[0] && logWrappers[0].value !== (row.site_name || "")) {
+      logWrappers[0].value = row.site_name || "";
+    }
+    if (logWrappers.length >= 2 && logWrappers[1] && logWrappers[1].value !== (row.driver_name || "")) {
+      logWrappers[1].value = row.driver_name || "";
+    }
+    if (logWrappers.length >= 3 && logWrappers[2] && logWrappers[2].value !== (row.owner_name || "")) {
+      logWrappers[2].value = row.owner_name || "";
+    }
+
+    // 3. Fast-update inputs (Site Rate, Dates, Old/New vehicle)
+    const rateInput = tr.querySelector("input[type='number']");
+    if (rateInput && rateInput !== activeEl) {
+      let freshRate = row.site_rate === null || row.site_rate === undefined || row.site_rate === "null" ? "" : String(row.site_rate);
+      if (rateInput.value !== freshRate) {
+        rateInput.value = freshRate;
+      }
+    }
+
+    // 4. Update Status Indicators for End Dates
+    const siteEndInputs = tr.querySelectorAll("input[type='date'], input[type='text']");
+    siteEndInputs.forEach((inputEl) => {
+      if (inputEl === activeEl) return;
+      const changeAttr = inputEl.getAttribute("onchange") || "";
+      if (changeAttr.includes("'site', 'start'") && inputEl.value !== (row.site_start_date || "")) {
+        inputEl.value = row.site_start_date || "";
+      } else if (changeAttr.includes("'site', 'end'") && inputEl.value !== (row.site_end_date || "")) {
+        inputEl.value = row.site_end_date || "";
+      } else if (changeAttr.includes("'driver', 'end'") && inputEl.value !== (row.driver_end_date || "")) {
+        inputEl.value = row.driver_end_date || "";
+      } else if (changeAttr.includes("'site', 'old_veh'") && inputEl.value !== (row.site_old_veh || "")) {
+        inputEl.value = row.site_old_veh || "";
+      } else if (changeAttr.includes("'site', 'new_veh'") && inputEl.value !== (row.site_new_veh || "")) {
+        inputEl.value = row.site_new_veh || "";
+      }
+    });
+  });
+
+  updateGlobalDatalists();
+}
+
+// 🟢 Smart Live Sync Loop (Server load minimal, 4.5 sec interval)
+async function startLiveSyncWorker() {
+  setInterval(async () => {
+    // 1. യൂസർ ഇൻപുട്ട് ടൈപ്പ് ചെയ്യുകയാണെങ്കിലോ മോഡൽ ഓപ്പൺ ആണെങ്കിലോ ഫുൾ റീ-റെൻഡറിംഗ് ഒഴിവാക്കുന്നു
+    const anyModalOpen = Array.from(document.querySelectorAll(".modal-overlay")).some(
+      (m) => window.getComputedStyle(m).display !== "none"
+    );
+    if (anyModalOpen || isSyncing) return;
+
+    try {
+      isSyncing = true;
+      const verRes = await safeFetch("/timesheet/api/db/sync-version", {
+        headers: { Authorization: "Bearer " + token },
+      });
+
+      if (verRes.success && verRes.version && verRes.version !== lastSyncVersion) {
+        if (!lastSyncVersion) {
+          lastSyncVersion = verRes.version;
+          isSyncing = false;
+          return;
+        }
+
+        // മാറ്റം വന്നിട്ടുണ്ടെങ്കിൽ മാത്രം ഡാറ്റ എടുക്കുന്നു
+        const [dataJson, logData] = await Promise.all([
+          safeFetch("/timesheet/api/db/data", { headers: { Authorization: "Bearer " + token } }),
+          safeFetch("/timesheet/api/all-logs", { headers: { Authorization: "Bearer " + token } }),
+        ]);
+
+        if (dataJson.success) {
+          lastSyncVersion = verRes.version;
+          let drivers = logData.success ? logData.drivers : [];
+          let sites = logData.success ? logData.sites : [];
+          let owners = logData.success ? logData.owners || [] : [];
+          let rates = logData.success ? logData.rates || [] : [];
+
+          let freshTableData = dataJson.data.map((row) => {
+            let dLog = drivers.find((d) => d.plate_no === row.plate_no);
+            row.current_driver_status = dLog ? dLog.status : "N/A";
+            row.latest_driver_log_id = dLog ? dLog.id : null;
+            row.driver_start_date = dLog && dLog.start_date !== "-" ? dLog.start_date : "";
+            row.driver_end_date = dLog && dLog.end_date !== "-" ? dLog.end_date : "";
+
+            let sLog = sites.find((s) => s.plate_no === row.plate_no);
+            row.current_site_status = sLog ? sLog.status : "N/A";
+            row.latest_site_log_id = sLog ? sLog.id : null;
+            row.site_start_date = sLog && sLog.start_date !== "-" ? sLog.start_date : "";
+            row.site_end_date = sLog && sLog.end_date !== "-" ? sLog.end_date : "";
+            if (sLog && sLog.site_name) row.site_name = sLog.site_name;
+            if (sLog && sLog.project_name !== undefined) row.project_name = sLog.project_name || "";
+
+            let curSiteName = sLog && sLog.site_name ? sLog.site_name.trim().toUpperCase() : "";
+            let rLog = rates.find((r) => {
+              let pMatch = (r.plate_no || "").trim().toUpperCase() === (row.plate_no || "").trim().toUpperCase();
+              let sMatch = !r.site_name || r.site_name.trim() === "" || r.site_name.trim().toUpperCase() === curSiteName;
+              return pMatch && sMatch && r.status === "Running";
+            });
+            if (!rLog) {
+              rLog = rates.find((r) => (r.plate_no || "").trim().toUpperCase() === (row.plate_no || "").trim().toUpperCase() && r.status === "Running");
+            }
+
+            function formatCleanRate(val) {
+              if (val === null || val === undefined || val === "" || val === "null") return "";
+              let num = parseFloat(val);
+              if (isNaN(num)) return val;
+              return num % 1 !== 0 ? num.toFixed(2) : num.toString();
+            }
+
+            row.site_rate = rLog && rLog.rate ? formatCleanRate(rLog.rate) : formatCleanRate(sLog && sLog.rate ? sLog.rate : row.rate || "");
+            row.site_old_veh = sLog && sLog.old_vehicle_no ? sLog.old_vehicle_no : "";
+            row.site_new_veh = sLog && sLog.new_vehicle_no ? sLog.new_vehicle_no : "";
+            row.field_co = sLog && sLog.field_co ? sLog.field_co : row.field_co || "";
+            row.site_co = sLog && sLog.site_co ? sLog.site_co : row.site_co || "";
+
+            let oLog = owners.find((o) => o.plate_no === row.plate_no && o.status === "Running");
+            if (oLog) {
+              row.owner_name = oLog.owner_name || row.owner_name || "";
+              row.owner_mobile = oLog.owner_mobile || row.owner_mobile || "";
+              row.vat = oLog.vat || row.vat || "No";
+              row.vat_no = oLog.vat_no || row.vat_no || "";
+              row.ledger_folio = oLog.ledger_folio !== undefined && oLog.ledger_folio !== null ? oLog.ledger_folio : row.ledger_folio || "";
+              row.company_display_name_ = oLog.company_display_name || row.company_display_name_ || row.company_display_name || "";
+              row.company_display_name = row.company_display_name_;
+              row.company_arabic_name = oLog.company_arabic_name || row.company_arabic_name || "";
+            }
+            return row;
+          });
+
+          // Row count-ൽ വ്യത്യാസമുണ്ടെങ്കിൽ (വാഹനം ആഡ് ചെയ്താലോ ഡിലീറ്റ് ചെയ്താലോ) ഫുൾ റെൻഡർ ചെയ്യണം
+          if (freshTableData.length !== tableData.length) {
+            tableData = freshTableData;
+            renderTable();
+          } else {
+            // വാല്യൂസ് മാത്രം മാറിയിട്ടുണ്ടെങ്കിൽ UI ഫ്ലിക്കർ ആവാതെ വാല്യൂസ് മാത്രം അപ്ഡേറ്റ് ചെയ്യുന്നു
+            updateTableCellsInPlace(freshTableData);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Background sync paused:", e.message);
+    } finally {
+      isSyncing = false;
+    }
+  }, 1500);
+}
+
 initDB();
+startLiveSyncWorker();
 
 async function editPlateNo() {
   const oldPlate = activeRowPlate;

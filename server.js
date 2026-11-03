@@ -60,7 +60,7 @@ const poRoutes = require("./routes/purchaseOrder");
 const vendorBillRouter = require("./routes/vendorBill");
 const companyIdentifierRoutes = require("./routes/own_eq_tracker_company_identifier");
 const paymentClearanceRoutes = require("./routes/KSAOffice/nonvat_payment_clearence_note");
-
+const { router: tsdbPart2Routes } = require("./routes/TSDB_part2");
 
 
 const app = express();
@@ -107,6 +107,7 @@ app.use("/purchase-order", poRoutes);
 app.use("/vendor-bill", vendorBillRouter);
 app.use("/api/own-equipment/company-helper", companyIdentifierRoutes);
 app.use("/office/nonvat-clearance", paymentClearanceRoutes);
+app.use("/timesheet", tsdbPart2Routes);
 
 
 

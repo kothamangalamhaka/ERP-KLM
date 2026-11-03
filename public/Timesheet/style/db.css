@@ -316,16 +316,97 @@ td select:focus {
   color: #0d6efd;
 }
 #filterPopup {
-  width: 260px;
+  min-width: 260px;
+  max-width: 420px;
+  width: max-content;
   padding: 12px;
+  box-sizing: border-box;
 }
 .filter-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid #e2e8f0;
   padding: 5px;
   margin-bottom: 10px;
-  max-height: 250px;
+  max-height: 260px;
+}
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.filter-item label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  font-size: 12px;
+}
+.date-tree-node {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.date-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.date-tree-row:hover {
+  background-color: var(--row-hover, #f1f5f9);
+  border-radius: 4px;
+}
+.date-tree-expander {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #64748b;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.date-tree-expander.open {
+  transform: rotate(90deg);
+}
+.date-tree-children {
+  display: none;
+  flex-direction: column;
+  margin-left: 18px;
+  border-left: 1px dashed var(--border-light, #cbd5e1);
+  padding-left: 4px;
+}
+.date-tree-children.open {
+  display: flex;
+}
+.date-tree-row label {
+  font-size: 12px;
+  cursor: pointer;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.filter-search {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  box-sizing: border-box;
+  outline: none;
 }
 .column-list-wrapper {
   max-height: 350px;

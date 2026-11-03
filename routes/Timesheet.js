@@ -1,6 +1,7 @@
 const express = require("express");
 const pool = require("../config/db");
 const bcrypt = require("bcrypt");
+const { bumpDbSyncVersion } = require("./TSDB_part2");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const {
@@ -840,6 +841,7 @@ router.post("/api/fast-update-log", verifyEditor, async (req, res) => {
       `Updated ${type} log for vehicle ${plate_no}. Field: ${field}`,
     );
     await client.query("COMMIT");
+    bumpDbSyncVersion();
     res.json({ success: true });
   } catch (e) {
     await client.query("ROLLBACK");
@@ -1762,6 +1764,7 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
       }
     }
 
+    bumpDbSyncVersion();
     res.json({ success: true });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -1775,6 +1778,7 @@ router.post("/api/db/delete-row", verifyEditor, async (req, res) => {
       plate_no,
     ]);
     await logAudit(req.user, "VEHICLE_DELETE", `Deleted vehicle ${plate_no}`);
+    bumpDbSyncVersion();
     res.json({ success: true });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -1790,6 +1794,7 @@ router.post("/api/db/add-row", verifyEditor, async (req, res) => {
       [plate_no],
     );
     await logAudit(req.user, "VEHICLE_ADD", `Added new vehicle ${plate_no}`);
+    bumpDbSyncVersion();
     res.json({ success: true });
   } catch (error) {
     res.json({ success: false, message: error.message });
