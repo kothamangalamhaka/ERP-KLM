@@ -413,7 +413,15 @@ router.get("/export-excel", async (req, res) => {
 
       const rev = Number(log.op_revenue || 0);
       y.revenue += rev;
-      y.kafil += rev * (Number(log.kafil_comm || 0) / 100);
+      const kPct =
+        log.kafil_pct !== null && log.kafil_pct !== undefined
+          ? Number(log.kafil_pct)
+          : 0;
+      const kafilAmt =
+        kPct > 0 && rev > 0
+          ? Number(((rev * kPct) / 100).toFixed(1))
+          : Number(log.kafil_comm || 0);
+      y.kafil += kafilAmt;
       y.owner += Number(log.owner_comm || 0);
       y.inv += Number(log.investor_comm || 0);
     });
@@ -903,7 +911,23 @@ router.get("/export-excel", async (req, res) => {
           const siteDisplay =
             matchedSites.length > 0 ? matchedSites.join(" & ") : "";
 
-          const kaf = rev * (Number(l.kafil_comm || 0) / 100);
+          let kafilPctVal = 0;
+          if (l.kafil_pct !== null && l.kafil_pct !== undefined) {
+            kafilPctVal = Number(l.kafil_pct);
+          } else if (Number(l.kafil_comm || 0) > 0) {
+            kafilPctVal = 0;
+          } else {
+            const isSingleNonWe1 =
+              compDisplay !== "Not Work" &&
+              compDisplay !== "We1" &&
+              !compDisplay.includes("&");
+            kafilPctVal = isSingleNonWe1 ? 3 : 0;
+          }
+
+          const kaf =
+            kafilPctVal > 0 && rev > 0
+              ? Number(((rev * kafilPctVal) / 100).toFixed(1))
+              : Number(l.kafil_comm || 0);
           const own = Number(l.owner_comm || 0);
           const inv = Number(l.investor_comm || 0);
 

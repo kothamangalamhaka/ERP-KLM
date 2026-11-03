@@ -117,6 +117,38 @@ function updateTableVisibility() {
   loadMonthlyData();
 }
 
+let companyMappingData = {};
+let activeSummaryFilters = {};
+let currentFilterCol = null;
+let currentSortCol = { col: null, dir: null };
+let rawEquipmentsCache = [];
+let rawLogsCache = [];
+
+const colTitleMap = {
+  plate_no: "Plate no",
+  maint: "EQ Maintenance Cost",
+  netSal: "Net Salary",
+  rent: "Santook Rent",
+  debt: "Debt",
+  pwas: "PWAS",
+  other: "Other",
+  totOpExp: "Total Operational Expenses",
+  opRev: "Operational revenue",
+  netOpRev: "Net OP Revenue",
+  kafil: "Kafil",
+  owner: "Owner",
+  inv: "Investor",
+  pl: "Profit or Loss"
+};
+
+function getRowColValue(item, colKey) {
+  if (colKey === "plate_no") {
+    return item.plate_no ? String(item.plate_no).trim() : "__BLANK__";
+  }
+  const val = Number(item[colKey] || 0);
+  return val === 0 ? "__BLANK__" : val.toFixed(2);
+}
+
 async function loadMonthlyData() {
   const container = document.getElementById("dataContainer");
   container.innerHTML = "<p style='text-align:center;'>Loading data...</p>";
@@ -124,7 +156,10 @@ async function loadMonthlyData() {
   try {
     const res = await fetch(`/api/monthly-summary/data?year=${selectedYear}`);
     const data = await res.json();
-    renderTables(data.equipments, data.logs, selectedYear, selectedMonth);
+    companyMappingData = data.companies || {};
+    rawEquipmentsCache = data.equipments || [];
+    rawLogsCache = data.logs || [];
+    renderTables(rawEquipmentsCache, rawLogsCache, selectedYear, selectedMonth);
   } catch (err) {
     console.error(err);
     showToast("Error loading data", "error");
@@ -132,6 +167,8 @@ async function loadMonthlyData() {
 }
 
 function renderTables(equipments, logs, year, currentSelectedMonth) {
+  rawEquipmentsCache = equipments;
+  rawLogsCache = logs;
   const container = document.getElementById("dataContainer");
   container.innerHTML = "";
 
@@ -139,6 +176,8 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
     currentSelectedMonth === "ALL"
       ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
       : [parseInt(currentSelectedMonth)];
+
+  const fInd = (k) => (activeSummaryFilters[k] !== undefined && activeSummaryFilters[k] !== null ? " 🔽" : "");
 
   monthsToRender.forEach((m) => {
     const monthLogs = logs.filter((l) => l.month === m);
@@ -168,20 +207,20 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
                         </tr>
                         <tr>
                             <th>SN</th>
-                            <th class="eq-width">Plate no</th>
-                            <th>EQ Maintenance Cost</th>
-                            <th class="eq-width">Net Salary</th>
-                            <th>Santook Rent</th>
-                            <th class="eq-width">Debt</th>
-                            <th class="eq-width">PWAS</th>
-                            <th class="eq-width">Other</th>
-                            <th class="bg-op-exp">Total Operational Expenses</th>
-                            <th class="bg-op-rev">Operational revenue</th>
-                            <th class="bg-net-op">Net OP Revenue</th>
-                            <th class="eq-width">Kafil</th>
-                            <th class="eq-width">Owner</th>
-                            <th class="eq-width">Investor</th>
-                            <th class="bg-pl pl-width">Profit or Loss</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('plate_no', event)" title="Right-click to filter">Plate no${fInd('plate_no')}</th>
+                            <th class="col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('maint', event)" title="Right-click to filter">EQ Maintenance Cost${fInd('maint')}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('netSal', event)" title="Right-click to filter">Net Salary${fInd('netSal')}</th>
+                            <th class="col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('rent', event)" title="Right-click to filter">Santook Rent${fInd('rent')}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('debt', event)" title="Right-click to filter">Debt${fInd('debt')}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('pwas', event)" title="Right-click to filter">PWAS${fInd('pwas')}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('other', event)" title="Right-click to filter">Other${fInd('other')}</th>
+                            <th class="bg-op-exp col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('totOpExp', event)" title="Right-click to filter">Total Operational Expenses${fInd('totOpExp')}</th>
+                            <th class="bg-op-rev col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('opRev', event)" title="Right-click to filter">Operational revenue${fInd('opRev')}</th>
+                            <th class="bg-net-op col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('netOpRev', event)" title="Right-click to filter">Net OP Revenue${fInd('netOpRev')}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('kafil', event)" title="Right-click to filter">Kafil${fInd('kafil')}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('owner', event)" title="Right-click to filter">Owner${fInd('owner')}</th>
+                            <th class="eq-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('inv', event)" title="Right-click to filter">Investor${fInd('inv')}</th>
+                            <th class="bg-pl pl-width col-filter-th" oncontextmenu="handleHeaderFilterContextMenu('pl', event)" title="Right-click to filter">Profit or Loss${fInd('pl')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -203,7 +242,9 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
       pl: 0,
     };
 
-    equipments.forEach((eq, idx) => {
+    let processedRows = [];
+
+    equipments.forEach((eq) => {
       const log = monthLogs.find((x) => x.equipment_id === eq.id) || {};
       const maint = Number(log.maintenance_cost || 0),
         basic = Number(log.basic_salary || 0),
@@ -215,45 +256,112 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
         pwas = Number(log.pwas || 0),
         other = Number(log.other_expense || 0);
       const opRev = Number(log.op_revenue || 0);
+      const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
+      const compObj =
+        (companyMappingData[eqPlateClean] &&
+          companyMappingData[eqPlateClean][m]) ||
+        {};
+      const compName =
+        typeof compObj === "object"
+          ? compObj.company || "Not Work"
+          : compObj || "Not Work";
+
+      let kafilPctVal = 0;
+      if (log.kafil_pct !== null && log.kafil_pct !== undefined) {
+        kafilPctVal = Number(log.kafil_pct);
+      } else if (Number(log.kafil_comm || 0) > 0) {
+        kafilPctVal = 0;
+      } else {
+        const isSingleNonWe1 =
+          compName !== "Not Work" &&
+          compName !== "We1" &&
+          !compName.includes("&");
+        kafilPctVal = isSingleNonWe1 ? 3 : 0;
+      }
+
+      let kafil = 0;
+      if (kafilPctVal > 0 && opRev > 0) {
+        kafil = Number(((opRev * kafilPctVal) / 100).toFixed(1));
+      } else {
+        kafil = Number(log.kafil_comm || 0);
+      }
+
       const totOpExp = maint + netSal + rent + debt + pwas + other;
       const netOpRev = opRev - totOpExp;
-      const kafil = opRev * (Number(log.kafil_comm || 0) / 100),
-        owner = Number(log.owner_comm || 0),
+      const owner = Number(log.owner_comm || 0),
         inv = Number(log.investor_comm || 0);
       const totComm = kafil + owner + inv;
       const pl = netOpRev - totComm;
 
-      totals.maint += maint;
-      totals.netSal += netSal;
-      totals.rent += rent;
-      totals.debt += debt;
-      totals.pwas += pwas;
-      totals.other += other;
-      totals.totOpExp += totOpExp;
-      totals.opRev += opRev;
-      totals.netOpRev += netOpRev;
-      totals.kafil += kafil;
-      totals.owner += owner;
-      totals.inv += inv;
-      totals.pl += pl;
+      processedRows.push({
+        eq_id: eq.id,
+        plate_no: (eq.plate_no || "").trim(),
+        maint, netSal, rent, debt, pwas, other,
+        totOpExp, opRev, netOpRev, kafil, owner, inv, pl
+      });
+    });
+
+    // 1. Column Filter Check
+    const filteredRows = processedRows.filter((rowItem) => {
+      for (const [colKey, selectedVals] of Object.entries(activeSummaryFilters)) {
+        if (selectedVals === null || selectedVals === undefined) continue;
+        const val = getRowColValue(rowItem, colKey);
+        if (!selectedVals.includes(val)) return false;
+      }
+      return true;
+    });
+
+    // 2. Sorting
+    if (currentSortCol.col) {
+      filteredRows.sort((a, b) => {
+        let valA = a[currentSortCol.col];
+        let valB = b[currentSortCol.col];
+        if (currentSortCol.col === "plate_no") {
+          valA = (valA || "").toString().trim();
+          valB = (valB || "").toString().trim();
+          return currentSortCol.dir === "asc"
+            ? valA.localeCompare(valB, undefined, { numeric: true })
+            : valB.localeCompare(valA, undefined, { numeric: true });
+        } else {
+          valA = Number(valA || 0);
+          valB = Number(valB || 0);
+          return currentSortCol.dir === "asc" ? valA - valB : valB - valA;
+        }
+      });
+    }
+
+    filteredRows.forEach((r, idx) => {
+      totals.maint += r.maint;
+      totals.netSal += r.netSal;
+      totals.rent += r.rent;
+      totals.debt += r.debt;
+      totals.pwas += r.pwas;
+      totals.other += r.other;
+      totals.totOpExp += r.totOpExp;
+      totals.opRev += r.opRev;
+      totals.netOpRev += r.netOpRev;
+      totals.kafil += r.kafil;
+      totals.owner += r.owner;
+      totals.inv += r.inv;
+      totals.pl += r.pl;
 
       html += `
                 <tr>
                     <td>${idx + 1}</td>
-                    <td><b>${eq.plate_no}</b></td>
-                    <td>${fmt(maint)}</td>
-                    <td>${fmt(netSal)}</td>
-                    <td>${fmt(rent)}</td>
-                    <td>${fmt(debt)}</td>
-                    <td>${fmt(pwas)}</td>
-                    <td>${fmt(other)}</td>
-                    <td class="bg-op-exp">${fmt(totOpExp)}</td>
-                    <td class="bg-op-rev">${fmt(opRev)}</td>
-                    <td class="bg-net-op">${fmt(netOpRev)}</td>
-                    <td>${fmt(kafil)}</td>
-                    <td>${fmt(owner)}</td>
-                    <td>${fmt(inv)}</td>
-                    <td class="bg-pl pl-width" style="color: ${pl < 0 ? "red" : "black"};">${fmt(pl)}</td>
+                    <td><b>${r.plate_no}</b></td>
+                    <td>${fmt(r.maint)}</td>
+                    <td>${fmt(r.netSal)}</td>
+                    <td>${fmt(r.rent)}</td>
+                    <td>${fmt(r.debt)}</td>
+                    <td>${fmt(r.pwas)}</td>
+                    <td>${fmt(r.other)}</td>
+                    <td class="bg-op-exp">${fmt(r.totOpExp)}</td>
+                    <td class="bg-op-rev">${fmt(r.opRev)}</td>
+                    <td class="bg-net-op">${fmt(r.netOpRev)}</td>
+                    <td>${fmt(r.kafil)}</td>
+                    <td>${fmt(r.owner)}</td>
+                    <td>${fmt(r.inv)}</td>
+                    <td class="bg-pl pl-width" style="color: ${r.pl < 0 ? "red" : "black"};">${fmt(r.pl)}</td>
                 </tr>
             `;
     });
@@ -286,6 +394,186 @@ function renderTables(equipments, logs, year, currentSelectedMonth) {
       "<p style='text-align:center;'>No operational data found for the selected period.</p>";
   }
 }
+
+/* ==========================================================
+   🟢 EXCEL-STYLE COLUMN FILTER POPUP LOGIC
+   ========================================================== */
+function handleHeaderFilterContextMenu(colKey, e) {
+  e.preventDefault();
+  e.stopPropagation();
+  openColumnFilterMenu(colKey, e.clientX, e.clientY);
+}
+
+function openColumnFilterMenu(colKey, x, y) {
+  currentFilterCol = colKey;
+  const menu = document.getElementById("columnFilterMenu");
+  const list = document.getElementById("columnFilterList");
+  const title = document.getElementById("columnFilterTitle");
+  if (!menu || !list) return;
+
+  title.innerText = `Filter: ${colTitleMap[colKey] || colKey}`;
+  const searchInput = document.getElementById("columnFilterSearch");
+  if (searchInput) searchInput.value = "";
+
+  // Collect all values for this column across currently viewed month data
+  const valueSet = new Set();
+  let hasBlank = false;
+
+  let activeMonths = selectedMonth === "ALL" || !selectedMonth
+    ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    : [parseInt(selectedMonth)];
+
+  activeMonths.forEach((m) => {
+    const monthLogs = rawLogsCache.filter((l) => l.month === m);
+    rawEquipmentsCache.forEach((eq) => {
+      const log = monthLogs.find((x) => x.equipment_id === eq.id) || {};
+      const maint = Number(log.maintenance_cost || 0);
+      const basic = Number(log.basic_salary || 0);
+      const ot = Number(log.overtime || 0);
+      const penalty = Number(log.penalty || 0);
+      const netSal = basic + ot - penalty;
+      const rent = Number(log.santook_rent || 0);
+      const debt = Number(log.debit || 0);
+      const pwas = Number(log.pwas || 0);
+      const other = Number(log.other_expense || 0);
+      const opRev = Number(log.op_revenue || 0);
+      const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
+      const compObj = (companyMappingData[eqPlateClean] && companyMappingData[eqPlateClean][m]) || {};
+      const compName = typeof compObj === "object" ? compObj.company || "Not Work" : compObj || "Not Work";
+      let kafilPctVal = (log.kafil_pct !== null && log.kafil_pct !== undefined)
+        ? Number(log.kafil_pct)
+        : (Number(log.kafil_comm || 0) > 0 ? 0 : ((compName !== "Not Work" && compName !== "We1" && !compName.includes("&")) ? 3 : 0));
+      let kafil = (kafilPctVal > 0 && opRev > 0) ? Number(((opRev * kafilPctVal) / 100).toFixed(1)) : Number(log.kafil_comm || 0);
+      const totOpExp = maint + netSal + rent + debt + pwas + other;
+      const netOpRev = opRev - totOpExp;
+      const owner = Number(log.owner_comm || 0);
+      const inv = Number(log.investor_comm || 0);
+      const pl = netOpRev - (kafil + owner + inv);
+
+      const rowItem = {
+        plate_no: (eq.plate_no || "").trim(),
+        maint, netSal, rent, debt, pwas, other,
+        totOpExp, opRev, netOpRev, kafil, owner, inv, pl
+      };
+
+      const val = getRowColValue(rowItem, colKey);
+      if (val === "__BLANK__") {
+        hasBlank = true;
+      } else {
+        valueSet.add(val);
+      }
+    });
+  });
+
+  let sortedValues = [];
+  if (colKey === "plate_no") {
+    sortedValues = Array.from(valueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  } else {
+    sortedValues = Array.from(valueSet).sort((a, b) => Number(a) - Number(b));
+  }
+
+  const selectedList = activeSummaryFilters[colKey] !== undefined ? activeSummaryFilters[colKey] : null;
+
+  let html = `
+    <li>
+      <input type="checkbox" id="colFilterSelectAll" onchange="toggleSelectAllColumnItems(this)" checked />
+      <label for="colFilterSelectAll"><b>(Select All)</b></label>
+    </li>
+  `;
+
+  if (hasBlank) {
+    const isChecked = selectedList === null || selectedList.includes("__BLANK__");
+    html += `
+      <li class="col-filter-item" data-text="(blanks)">
+        <input type="checkbox" class="col-filter-chk" value="__BLANK__" id="col_chk_blank" ${isChecked ? "checked" : ""} onchange="onSingleColumnCheckChange()" />
+        <label for="col_chk_blank">(Blanks)</label>
+      </li>
+    `;
+  }
+
+  sortedValues.forEach((val, i) => {
+    const isChecked = selectedList === null || selectedList.includes(val);
+    html += `
+      <li class="col-filter-item" data-text="${String(val).toLowerCase()}">
+        <input type="checkbox" class="col-filter-chk" value="${val}" id="col_chk_${i}" ${isChecked ? "checked" : ""} onchange="onSingleColumnCheckChange()" />
+        <label for="col_chk_${i}">${val}</label>
+      </li>
+    `;
+  });
+
+  list.innerHTML = html;
+  syncSelectAllColumnState();
+
+  menu.style.display = "block";
+  const menuW = 250;
+  const menuH = 340;
+  const posX = x + menuW > window.innerWidth ? window.innerWidth - menuW - 15 : x;
+  const posY = y + menuH > window.innerHeight ? window.innerHeight - menuH - 15 : y;
+  menu.style.left = `${posX}px`;
+  menu.style.top = `${posY}px`;
+}
+
+function closeColumnFilterMenu() {
+  const menu = document.getElementById("columnFilterMenu");
+  if (menu) menu.style.display = "none";
+}
+
+function toggleSelectAllColumnItems(master) {
+  const visible = Array.from(document.querySelectorAll(".col-filter-item")).filter((li) => li.style.display !== "none");
+  visible.forEach((li) => {
+    const chk = li.querySelector(".col-filter-chk");
+    if (chk) chk.checked = master.checked;
+  });
+}
+
+function onSingleColumnCheckChange() {
+  syncSelectAllColumnState();
+}
+
+function syncSelectAllColumnState() {
+  const chks = Array.from(document.querySelectorAll(".col-filter-chk"));
+  const master = document.getElementById("colFilterSelectAll");
+  if (master) master.checked = chks.length > 0 && chks.every((c) => c.checked);
+}
+
+function searchColumnFilterItems() {
+  const q = document.getElementById("columnFilterSearch").value.trim().toLowerCase();
+  document.querySelectorAll(".col-filter-item").forEach((li) => {
+    const txt = li.getAttribute("data-text") || "";
+    li.style.display = txt.includes(q) ? "flex" : "none";
+  });
+}
+
+function applyColumnFilter() {
+  if (!currentFilterCol) return;
+  const chks = Array.from(document.querySelectorAll(".col-filter-chk"));
+  const checked = chks.filter((c) => c.checked).map((c) => c.value);
+
+  if (checked.length === chks.length) {
+    activeSummaryFilters[currentFilterCol] = null;
+  } else {
+    activeSummaryFilters[currentFilterCol] = checked;
+  }
+
+  closeColumnFilterMenu();
+  renderTables(rawEquipmentsCache, rawLogsCache, selectedYear, selectedMonth);
+}
+
+function clearColumnFilter() {
+  if (!currentFilterCol) return;
+  activeSummaryFilters[currentFilterCol] = null;
+  closeColumnFilterMenu();
+  renderTables(rawEquipmentsCache, rawLogsCache, selectedYear, selectedMonth);
+}
+
+function sortCurrentColumn(dir) {
+  if (!currentFilterCol) return;
+  currentSortCol = { col: currentFilterCol, dir };
+  closeColumnFilterMenu();
+  renderTables(rawEquipmentsCache, rawLogsCache, selectedYear, selectedMonth);
+}
+
+window.addEventListener("click", () => closeColumnFilterMenu());
 
 function fmt(val) {
   return Number(val) === 0 ? "" : Number(val).toFixed(2);
@@ -373,6 +661,7 @@ async function executeBatchExport() {
 
       for (let p of periods) {
         const data = allData[p.year];
+        companyMappingData = data.companies || {};
         renderTables(data.equipments, data.logs, p.year, p.month);
         await new Promise((r) => setTimeout(r, 400));
 

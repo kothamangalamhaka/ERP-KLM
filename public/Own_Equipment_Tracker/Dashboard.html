@@ -564,8 +564,15 @@
 
         <!-- Collapsible Action Menu -->
         <div id="actionMenu" class="action-menu-collapse">
-          <button class="btn btn-blue" onclick="window.location.href = 'monthly_list_summary.html'"> Month Summary</button>
-          <button class="btn btn-dark" onclick="window.location.href = 'summary.html'">Summary</button>
+          <!-- Group 0: Summary Options -->
+          <div class="dropdown-btn-group">
+            <button class="btn btn-dark" onclick="toggleSubMenu(this, event)">📊 Summary ▼</button>
+            <div class="dropdown-content-menu">
+              <button onclick="window.location.href = 'summary.html'">📅 Yearly Summary</button>
+              <button onclick="window.location.href = 'monthly_list_summary.html'">🗓️ Monthly Summary</button>
+              <button onclick="window.location.href = 'list.html'">📋 List View</button>
+            </div>
+          </div>
 
           <!-- Group 1: Yearly Data -->
           <div class="dropdown-btn-group">
@@ -598,7 +605,6 @@
           </div>
 
           <button class="btn btn-excel" onclick="exportToExcel()">Export Excel</button>
-          <button class="btn btn-dark" onclick="window.location.href = 'list.html'">List View</button>
 
           <button class="btn btn-logout" onclick="logout()" title="Logout">
             <svg style="margin-right: 5px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

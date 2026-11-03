@@ -2199,7 +2199,49 @@
             ? `${rawVtype} (${plateStr})`
             : rawVtype;
 
-          if (nhr > 0 || (nhr === 0 && othr === 0)) {
+          if (othr > 0 && nhr > 0) {
+            // Normal Hour portion
+            seqCount++;
+            const nSub = Number((nhr * nrate).toFixed(2));
+            const nVat = Number((nSub * (vatPct / 100)).toFixed(2));
+            const nTot = Number((nSub + nVat).toFixed(2));
+
+            activeBillItems.push({
+              seq: String(seqCount),
+              vtype: descWithPlate,
+              vtype_ar: arabicDesc,
+              qty: nhr,
+              rate: nrate,
+              subTotal: nSub,
+              vatPercent: vatPct,
+              vatAmount: nVat,
+              total: nTot,
+            });
+
+            // OT Hour portion
+            seqCount++;
+            const otSub = Number((parseFloat(row.rent || 0) - nSub).toFixed(2)) > 0
+              ? Number((parseFloat(row.rent || 0) - nSub).toFixed(2))
+              : Number((othr * otrate).toFixed(2));
+            const otVat = Number((parseFloat(row.vat_amount || row.vatVal || 0) - nVat).toFixed(2)) > 0
+              ? Number((parseFloat(row.vat_amount || row.vatVal || 0) - nVat).toFixed(2))
+              : Number((otSub * (vatPct / 100)).toFixed(2));
+            const otTot = Number((parseFloat(row.total || row.totalVal || 0) - nTot).toFixed(2)) > 0
+              ? Number((parseFloat(row.total || row.totalVal || 0) - nTot).toFixed(2))
+              : Number((otSub + otVat).toFixed(2));
+
+            activeBillItems.push({
+              seq: String(seqCount),
+              vtype: plateStr ? `Over Time (${plateStr})` : "Over Time",
+              vtype_ar: "وقت إضافي",
+              qty: othr,
+              rate: otrate,
+              subTotal: otSub,
+              vatPercent: vatPct,
+              vatAmount: otVat,
+              total: otTot,
+            });
+          } else if (nhr > 0 || (nhr === 0 && othr === 0)) {
             seqCount++;
             const qty = nhr > 0 ? nhr : 1;
             const rate = nhr > 0 ? nrate : parseFloat(row.rent) || 0;
@@ -2208,13 +2250,13 @@
                 ? parseFloat(row.rent)
                 : Number((qty * rate).toFixed(2));
             const vat =
-              parseFloat(row.vat_amount || row.vat) !== undefined &&
-              parseFloat(row.vat_amount || row.vat) > 0
-                ? parseFloat(row.vat_amount || row.vat)
+              parseFloat(row.vat_amount || row.vat || row.vatVal) !== undefined &&
+              parseFloat(row.vat_amount || row.vat || row.vatVal) > 0
+                ? parseFloat(row.vat_amount || row.vat || row.vatVal)
                 : Number((sub * (vatPct / 100)).toFixed(2));
             const tot =
-              parseFloat(row.total) !== undefined && parseFloat(row.total) > 0
-                ? parseFloat(row.total)
+              parseFloat(row.total || row.totalVal) !== undefined && parseFloat(row.total || row.totalVal) > 0
+                ? parseFloat(row.total || row.totalVal)
                 : Number((sub + vat).toFixed(2));
 
             activeBillItems.push({
@@ -2228,15 +2270,23 @@
               vatAmount: vat,
               total: tot,
             });
-          }
-
-          if (othr > 0) {
+          } else if (othr > 0) {
             seqCount++;
             const qty = othr;
             const rate = otrate;
-            const sub = Number((qty * rate).toFixed(2));
-            const vat = Number((sub * (vatPct / 100)).toFixed(2));
-            const tot = Number((sub + vat).toFixed(2));
+            const sub =
+              parseFloat(row.rent) !== undefined && parseFloat(row.rent) > 0
+                ? parseFloat(row.rent)
+                : Number((qty * rate).toFixed(2));
+            const vat =
+              parseFloat(row.vat_amount || row.vat || row.vatVal) !== undefined &&
+              parseFloat(row.vat_amount || row.vat || row.vatVal) > 0
+                ? parseFloat(row.vat_amount || row.vat || row.vatVal)
+                : Number((sub * (vatPct / 100)).toFixed(2));
+            const tot =
+              parseFloat(row.total || row.totalVal) !== undefined && parseFloat(row.total || row.totalVal) > 0
+                ? parseFloat(row.total || row.totalVal)
+                : Number((sub + vat).toFixed(2));
 
             activeBillItems.push({
               seq: String(seqCount),

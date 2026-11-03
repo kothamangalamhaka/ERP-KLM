@@ -266,6 +266,93 @@
         border-bottom: 2px solid #eee;
         padding-bottom: 10px;
       }
+
+      /* Excel-Style Column Filter Menu */
+      .col-filter-th {
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.2s;
+      }
+      .col-filter-th:hover {
+        background-color: #e2e8f0 !important;
+      }
+      .excel-filter-menu {
+        display: none;
+        position: fixed;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        z-index: 10000;
+        width: 250px;
+        font-size: 13px;
+        color: #1e293b;
+        user-select: none;
+      }
+      .excel-filter-header {
+        padding: 8px 10px;
+        background: #f1f5f9;
+        font-weight: 700;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .excel-filter-search {
+        padding: 8px 10px;
+        border-bottom: 1px solid #f1f1f1;
+      }
+      .excel-filter-search input {
+        width: 100%;
+        padding: 5px 8px;
+        font-size: 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        outline: none;
+        box-sizing: border-box;
+      }
+      .excel-filter-list {
+        max-height: 220px;
+        overflow-y: auto;
+        padding: 4px 0;
+        margin: 0;
+        list-style: none;
+      }
+      .excel-filter-list li {
+        padding: 5px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+      .excel-filter-list li:hover {
+        background-color: #f8fafc;
+      }
+      .excel-filter-list label {
+        cursor: pointer;
+        font-size: 12px;
+        flex: 1;
+        margin: 0;
+        font-weight: 500;
+      }
+      .excel-filter-actions {
+        padding: 8px 10px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+        background: #f8fafc;
+        border-bottom-left-radius: 6px;
+        border-bottom-right-radius: 6px;
+      }
+      .excel-filter-actions button {
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 4px;
+        cursor: pointer;
+        border: none;
+      }
     </style>
   </head>
   <body>
@@ -416,6 +503,30 @@
             Export Now
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Excel-Style Column Filter Menu -->
+    <div id="columnFilterMenu" class="excel-filter-menu" onclick="event.stopPropagation()">
+      <div class="excel-filter-header">
+        <span id="columnFilterTitle">Filter</span>
+        <span style="cursor: pointer; color: #64748b;" onclick="closeColumnFilterMenu()">✖</span>
+      </div>
+      <div id="columnSortSection" style="display: flex; gap: 4px; border-bottom: 1px solid #e2e8f0; padding: 6px 8px; justify-content: space-between;">
+        <button type="button" onclick="sortCurrentColumn('asc')" style="flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 4px; font-size: 11px; font-weight: 700; cursor: pointer; color: #1e293b; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
+          <span>🔤</span> A-Z (Asc)
+        </button>
+        <button type="button" onclick="sortCurrentColumn('desc')" style="flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 4px; font-size: 11px; font-weight: 700; cursor: pointer; color: #1e293b; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
+          <span>🔤</span> Z-A (Desc)
+        </button>
+      </div>
+      <div class="excel-filter-search">
+        <input type="text" id="columnFilterSearch" placeholder="Search..." oninput="searchColumnFilterItems()" />
+      </div>
+      <ul class="excel-filter-list" id="columnFilterList"></ul>
+      <div class="excel-filter-actions">
+        <button type="button" style="background:#e2e8f0; color:#334155;" onclick="clearColumnFilter()">Clear</button>
+        <button type="button" class="btn btn-blue" style="color:white; padding:5px 12px;" onclick="applyColumnFilter()">Apply</button>
       </div>
     </div>
 

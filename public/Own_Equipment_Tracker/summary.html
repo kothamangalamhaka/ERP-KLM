@@ -241,11 +241,11 @@
                                 <td>Total Purchase Cost
                                     <table class="inner-table">
                                         <tr><td style="padding-left: 15px;">Actual Purchase Cost Paid</td><td class="text-right">${Number(d.purchaseCost || 0).toFixed(2)}</td></tr>
-                                        <tr><td style="padding-left: 15px;">Remaining Purchase Cost</td><td class="text-right">${Number(d.remainingPurchaseCost || 0).toFixed(2)}</td></tr>
-                                        <tr style="background-color: #f1f5f9;"><td style="font-weight: bold;"><br>Total Asset Value ::</td><td class="text-right" style="font-weight: bold; color: #1e40af;"><br>${(Number(d.purchaseCost || 0) + Number(d.remainingPurchaseCost || 0)).toFixed(2)}</td></tr>
+                                        <tr><td style="padding-left: 15px;">Remaining Purchase Cost</td><td class="text-right">${Number(d.remainingCost || 0).toFixed(2)}</td></tr>
+                                        <tr style="background-color: #f1f5f9;"><td style="font-weight: bold;"><br>Total Asset Value ::</td><td class="text-right" style="font-weight: bold; color: #1e40af;"><br>${(Number(d.totalAssetCost || (Number(d.purchaseCost || 0) + Number(d.remainingCost || 0)))).toFixed(2)}</td></tr>
                                     </table>
                                 </td>
-                                <td class="text-right" style="vertical-align:bottom; font-weight: bold; color: #1e40af;">${(Number(d.purchaseCost || 0) + Number(d.remainingPurchaseCost || 0)).toFixed(2)}</td>
+                                <td class="text-right" style="vertical-align:bottom; font-weight: bold; color: #1e40af;">${(Number(d.totalAssetCost || (Number(d.purchaseCost || 0) + Number(d.remainingCost || 0)))).toFixed(2)}</td>
                                 <td class="text-center">${d.year}</td>
                                 <td>Total Operational Revenue</td>
                                 <td class="text-right" style="color: #166534; font-weight: bold;">${Number(d.revenue || 0).toFixed(2)}</td>
@@ -256,7 +256,7 @@
                                 <td></td>
                                 <td class="text-center">${d.year}</td>
                                 <td style="padding-left: 15px; font-weight: 600; color: #b91c1c;">Remaining Purchase Cost</td>
-                                <td class="text-right" style="color: #b91c1c; font-weight: 600;">${Number(d.remainingPurchaseCost || 0).toFixed(2)}</td>
+                                <td class="text-right" style="color: #b91c1c; font-weight: 600;">${Number(d.remainingCost || 0).toFixed(2)}</td>
                             </tr>
                             ${prevHtml}
                             <tr>

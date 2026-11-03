@@ -33,6 +33,33 @@ async def export_monthly_summary_excel(from_y: int, from_m: int, to_y: int, to_m
         logs = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
         logs_dicts = [dict(zip(columns, row)) for row in logs]
+
+        # 🟢 Fetch company mapping for accurate Kafil % calculation
+        comp_query = """
+            SELECT DISTINCT ON (UPPER(TRIM(plate_no)), EXTRACT(YEAR FROM date)::int, EXTRACT(MONTH FROM date)::int)
+                UPPER(TRIM(plate_no)) as plate_no,
+                EXTRACT(YEAR FROM date)::int as year,
+                EXTRACT(MONTH FROM date)::int as month,
+                company
+            FROM billing_records
+            WHERE (EXTRACT(YEAR FROM date)::int > %s OR (EXTRACT(YEAR FROM date)::int = %s AND EXTRACT(MONTH FROM date)::int >= %s))
+              AND (EXTRACT(YEAR FROM date)::int < %s OR (EXTRACT(YEAR FROM date)::int = %s AND EXTRACT(MONTH FROM date)::int <= %s))
+            ORDER BY UPPER(TRIM(plate_no)), EXTRACT(YEAR FROM date)::int, EXTRACT(MONTH FROM date)::int, id DESC
+        """
+        try:
+            cur.execute(comp_query, (from_y, from_y, from_m, to_y, to_y, to_m))
+            comp_rows = cur.fetchall()
+        except Exception:
+            comp_rows = []
+
+        company_map = {}
+        for r in comp_rows:
+            p_no, yr, mn, comp = r[0], r[1], r[2], r[3]
+            if p_no not in company_map:
+                company_map[p_no] = {}
+            if yr not in company_map[p_no]:
+                company_map[p_no][yr] = {}
+            company_map[p_no][yr][mn] = comp or "Not Work"
         
         cur.close()
         conn.close()
@@ -101,6 +128,9 @@ async def export_monthly_summary_excel(from_y: int, from_m: int, to_y: int, to_m
                     
                 # Data Rows
                 r_idx = 4
+                maint_tot = sal_tot = rent_tot = debt_tot = pwas_tot = other_tot = 0.0
+                tot_exp_tot = rev_tot = net_rev_tot = kafil_tot = owner_tot = inv_tot = pl_tot = 0.0
+
                 for i, eq in enumerate(equipments, 1):
                     log = next((item for item in month_logs if item["equipment_id"] == eq[0]), {})
                     
@@ -120,12 +150,44 @@ async def export_monthly_summary_excel(from_y: int, from_m: int, to_y: int, to_m
                     tot_op_exp = maint + net_sal + rent + debt + pwas + other
                     net_op_rev = op_rev - tot_op_exp
                     
-                    kafil = op_rev * (float(log.get("kafil_comm", 0) or 0) / 100)
+                    eq_plate_clean = (eq[1] or "").strip().upper()
+                    comp_name = company_map.get(eq_plate_clean, {}).get(y, {}).get(m, "Not Work")
+
+                    raw_kafil_pct = log.get("kafil_pct")
+                    raw_kafil_comm = float(log.get("kafil_comm", 0) or 0)
+
+                    if raw_kafil_pct is not None:
+                        kafil_pct_val = float(raw_kafil_pct)
+                    elif raw_kafil_comm > 0:
+                        kafil_pct_val = 0.0
+                    else:
+                        is_single_non_we1 = (comp_name != "Not Work" and comp_name != "We1" and "&" not in comp_name)
+                        kafil_pct_val = 3.0 if is_single_non_we1 else 0.0
+
+                    if kafil_pct_val > 0 and op_rev > 0:
+                        kafil = round((op_rev * kafil_pct_val) / 100.0, 1)
+                    else:
+                        kafil = raw_kafil_comm
+
                     owner = float(log.get("owner_comm", 0) or 0)
                     inv = float(log.get("investor_comm", 0) or 0)
                     
                     tot_comm = kafil + owner + inv
                     pl = net_op_rev - tot_comm
+
+                    maint_tot += maint
+                    sal_tot += net_sal
+                    rent_tot += rent
+                    debt_tot += debt
+                    pwas_tot += pwas
+                    other_tot += other
+                    tot_exp_tot += tot_op_exp
+                    rev_tot += op_rev
+                    net_rev_tot += net_op_rev
+                    kafil_tot += kafil
+                    owner_tot += owner
+                    inv_tot += inv
+                    pl_tot += pl
                     
                     v = lambda x: "" if x == 0 else round(x, 2)
                     
@@ -145,6 +207,35 @@ async def export_monthly_summary_excel(from_y: int, from_m: int, to_y: int, to_m
                             cell.fill = fill_pl
                             if pl < 0: cell.font = Font(color="FF0000")
                     r_idx += 1
+
+                # 🟢 Enable Auto Filter on Data Rows (Row 3, Columns A to O) before Total
+                ws.auto_filter.ref = f"A3:O{r_idx - 1}"
+
+                # 🟢 Add TOTAL Row (Matching Web Statement)
+                ws.merge_cells(f"A{r_idx}:B{r_idx}")
+                tot_lbl = ws.cell(row=r_idx, column=1, value="TOTAL")
+                tot_lbl.font = bold_font
+                tot_lbl.alignment = center_align
+                ws.cell(row=r_idx, column=1).border = thin_border
+                ws.cell(row=r_idx, column=2).border = thin_border
+
+                tot_vals = [
+                    v(maint_tot), v(sal_tot), v(rent_tot), v(debt_tot), v(pwas_tot), v(other_tot),
+                    v(tot_exp_tot), v(rev_tot), v(net_rev_tot), v(kafil_tot), v(owner_tot), v(inv_tot), v(pl_tot)
+                ]
+                for c_offset, t_val in enumerate(tot_vals, 3):
+                    c = ws.cell(row=r_idx, column=c_offset, value=t_val)
+                    c.font = bold_font
+                    c.border = thin_border
+                    c.alignment = center_align
+                    if c_offset == 9: c.fill = fill_op_exp
+                    elif c_offset == 10: c.fill = fill_op_rev
+                    elif c_offset == 11: c.fill = fill_net_op
+                    elif c_offset == 15:
+                        c.fill = fill_pl
+                        if pl_tot < 0: c.font = Font(color="FF0000", bold=True)
+                ws.row_dimensions[r_idx].height = 25
+                r_idx += 1
                     
                 # Formatting Columns width
                 equal_width_cols = [2, 4, 6, 7, 8, 12, 13, 14] 
@@ -158,9 +249,6 @@ async def export_monthly_summary_excel(from_y: int, from_m: int, to_y: int, to_m
                         
                 # 🟢 NEW: Freeze Row 3 and Columns A & B (SN & Plate No)
                 ws.freeze_panes = "C4"
-                
-                # 🟢 NEW: Enable Auto Filter on Header Row (Row 3, Columns A to O)
-                ws.auto_filter.ref = f"A3:O{r_idx - 1}"
 
         if len(wb.sheetnames) == 0:
             wb.create_sheet("No Data")

@@ -23,6 +23,7 @@
         border-radius: 8px;
         margin-bottom: 20px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        position: relative;
       }
       .btn {
         padding: 8px 15px;
@@ -31,6 +32,51 @@
         cursor: pointer;
         font-weight: bold;
         font-size: 13px;
+        white-space: nowrap;
+      }
+      .mobile-menu-btn {
+        display: none;
+        background: #34495e;
+        color: white;
+        font-size: 20px;
+        padding: 6px 14px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+      }
+      .action-menu-collapse {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      @media (max-width: 1200px) {
+        .mobile-menu-btn {
+          display: block;
+        }
+        .action-menu-collapse {
+          display: none;
+          position: absolute;
+          top: 65px;
+          right: 20px;
+          background: #ffffff;
+          flex-direction: column;
+          padding: 15px;
+          border-radius: 8px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+          z-index: 2000;
+          border: 1px solid #cbd5e1;
+          align-items: stretch;
+          min-width: 220px;
+          gap: 8px;
+        }
+        .action-menu-collapse.show {
+          display: flex;
+        }
+        .action-menu-collapse .btn {
+          width: 100%;
+          text-align: left;
+          justify-content: flex-start;
+        }
       }
       .btn-blue {
         background: #2980b9;
@@ -43,26 +89,39 @@
 
       /* Plate Number Buttons Container */
       .plate-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 12px;
         background: white;
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        margin-bottom: 20px;
+        margin: 0 auto 20px auto;
+        width: 100%;
+        box-sizing: border-box;
       }
       .plate-btn {
         background: #27ae60;
         color: white;
-        padding: 12px 22px;
+        width: 100%;
+        height: 44px;
+        padding: 0 8px;
         border: none;
         border-radius: 6px;
-        font-size: 15px;
-        font-weight: bold;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
         cursor: pointer;
-        transition: 0.2s;
+        transition: all 0.2s ease;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-sizing: border-box;
       }
       .plate-btn:hover {
         background: #219653;
@@ -70,6 +129,71 @@
       }
       .plate-btn.active {
         background: #c0392b;
+      }
+
+      /* Year Filter Context Menu Popup */
+      .year-context-menu {
+        display: none;
+        position: fixed;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        z-index: 10000;
+        width: 200px;
+        font-size: 13px;
+        color: #1e293b;
+        user-select: none;
+        overflow: hidden;
+      }
+      .year-context-header {
+        padding: 10px 14px;
+        background: #f1f5f9;
+        font-weight: 700;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .year-context-list {
+        max-height: 220px;
+        overflow-y: auto;
+        padding: 8px 0;
+        margin: 0;
+        list-style: none;
+      }
+      .year-context-list li {
+        padding: 6px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+      }
+      .year-context-list li:hover {
+        background-color: #f8fafc;
+      }
+      .year-context-list label {
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        flex: 1;
+        margin: 0;
+      }
+      .year-context-actions {
+        padding: 8px 12px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+        background: #f8fafc;
+      }
+      .year-context-actions button {
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
       }
 
       /* Details Table Box */
@@ -95,6 +219,20 @@
         border-collapse: collapse;
         margin-top: 10px;
         font-size: 13px;
+      }
+
+      @media print {
+        @page {
+          size: A4 landscape;
+          margin: 8mm;
+        }
+        thead {
+          display: table-header-group;
+        }
+        tr {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
       }
       th,
       td {
@@ -210,7 +348,10 @@
       <h2 style="margin: 0; color: #2c3e50">
         Detailed Review of Each Equipment
       </h2>
-      <div style="display: flex; gap: 10px">
+      <!-- Mobile Hamburger Toggle Button -->
+      <button class="mobile-menu-btn" onclick="toggleActionMenu(event)">☰</button>
+
+      <div id="actionMenu" class="action-menu-collapse">
         <!-- 🟢 Export All as Excel, PDF & PNG Buttons -->
         <button class="btn btn-excel" onclick="exportAllEquipmentsExcel()">
           Export All as Excel
@@ -278,6 +419,19 @@
       </table>
     </div>
 
+    <!-- Year Filter Context Menu Popup -->
+    <div id="yearContextMenu" class="year-context-menu" onclick="event.stopPropagation()">
+      <div class="year-context-header">
+        <span>📅 Filter Years</span>
+        <span style="cursor: pointer; color: #64748b; font-size: 14px;" onclick="closeYearContextMenu()">✖</span>
+      </div>
+      <ul class="year-context-list" id="yearContextList"></ul>
+      <div class="year-context-actions">
+        <button type="button" style="background:#e2e8f0; color:#334155;" onclick="closeYearContextMenu()">Close</button>
+        <button type="button" class="btn-blue" style="color:white;" onclick="applyYearFilter()">Apply</button>
+      </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div id="toast-container"></div>
 
@@ -288,26 +442,51 @@
       let allEquipments = [];
       let allLogs = [];
       let activeEquipmentId = null;
+      let availableYears = [];
+      let selectedYears = [];
 
       async function loadData() {
         loadEquipmentsAndLogs();
       }
+
+      let companyMappingData = {};
 
       async function loadEquipmentsAndLogs() {
         const currentYear = new Date().getFullYear();
         try {
           let logsArray = [];
           for (let y = currentYear - 2; y <= currentYear + 2; y++) {
-            const res = await fetch(
-              `/api/own-equipment/tracker/data?year=${y}`,
-            );
-            const data = await res.json();
-            if (data.equipments) allEquipments = data.equipments;
-            if (data.logs) {
-              data.logs.forEach((l) => logsArray.push(l));
+            const [res, compRes] = await Promise.all([
+              fetch(`/api/own-equipment/tracker/data?year=${y}`).then((r) => r.json()),
+              fetch(`/api/own-equipment/company-helper/monthly-companies?year=${y}`)
+                .then((r) => r.json())
+                .catch(() => ({ companies: {} }))
+            ]);
+            if (res.equipments) {
+              allEquipments = res.equipments;
+              allEquipments.sort((a, b) => {
+                const pA = (a.plate_no || "").toString().trim();
+                const pB = (b.plate_no || "").toString().trim();
+                return pA.localeCompare(pB, undefined, { numeric: true, sensitivity: "base" });
+              });
+            }
+            if (res.logs) {
+              res.logs.forEach((l) => logsArray.push(l));
+            }
+            if (compRes.companies) {
+              for (const [pNo, mData] of Object.entries(compRes.companies)) {
+                if (!companyMappingData[pNo]) companyMappingData[pNo] = {};
+                companyMappingData[pNo][y] = mData;
+              }
             }
           }
           allLogs = logsArray;
+
+          // Distinct years set cheyyunnu (Default aayi ellaam selected aayirikkum)
+          const distinctYears = [...new Set(allLogs.map((l) => Number(l.year)).filter((y) => !isNaN(y) && y > 0))].sort((a, b) => a - b);
+          availableYears = distinctYears.length > 0 ? distinctYears : [new Date().getFullYear()];
+          selectedYears = [...availableYears];
+
           renderPlateButtons();
         } catch (err) {
           console.error("Error loading tracker data:", err);
@@ -323,11 +502,29 @@
           return;
         }
 
+        allEquipments.sort((a, b) => {
+          const pA = (a.plate_no || "").toString().trim();
+          const pB = (b.plate_no || "").toString().trim();
+          return pA.localeCompare(pB, undefined, { numeric: true, sensitivity: "base" });
+        });
+
         allEquipments.forEach((eq) => {
           const btn = document.createElement("button");
           btn.className = "plate-btn";
           btn.id = `btn-plate-${eq.id}`;
-          btn.innerText = `Plate: ${eq.plate_no}`;
+          const cleanPlate = (eq.plate_no || "").trim();
+          btn.innerText = cleanPlate;
+
+          // Dynamic font size adjustment based on plate string length
+          if (cleanPlate.length > 12) {
+            btn.style.fontSize = "11px";
+          } else if (cleanPlate.length > 9) {
+            btn.style.fontSize = "12px";
+          } else {
+            btn.style.fontSize = "13px";
+          }
+
+          btn.title = cleanPlate;
           btn.onclick = () => toggleEquipmentLogs(eq);
           wrapper.appendChild(btn);
         });
@@ -396,10 +593,13 @@
         title.innerHTML = `Plate No: ${eq.plate_no} | Purchase Date: ${formattedDate} | Purchase Cost: ${formattedCost} SAR${remText}`;
 
         tbody.innerHTML = "";
-        const eqLogs = allLogs.filter((l) => l.equipment_id === eq.id);
+        // Selected years mathram filter cheyyunnu
+        const eqLogs = allLogs.filter(
+          (l) => l.equipment_id === eq.id && selectedYears.includes(Number(l.year))
+        );
 
         if (eqLogs.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="14" style="color:gray;">No monthly records found for this equipment.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="14" style="color:gray;">No monthly records found for the selected year(s).</td></tr>`;
           return;
         }
 
@@ -432,18 +632,55 @@
         let totRev = 0,
           totGl = 0;
 
-        eqLogs.forEach((l) => {
-          const maint = Number(l.maintenance_cost || 0);
-          const basicOt = Number(l.basic_salary || 0) + Number(l.overtime || 0) + Number(l.allowance || 0);
-          const penalty = Number(l.penalty || 0);
-          const rent = Number(l.santook_rent || 0);
-          const rev = Number(l.op_revenue || 0);
-          const debit = Number(l.debit || 0);
-          const pwas = Number(l.pwas || 0);
-          const other = Number(l.other_expense || 0);
+        // Filter cheytha logs-le years edukkunnu
+        const yearsSet = [...new Set(eqLogs.map((l) => Number(l.year)))].sort((a, b) => a - b);
 
-          // 🟢 Kafil is % of Revenue, Owner and Investor are Direct SAR Amounts
-          const kafil = rev * (Number(l.kafil_comm || 0) / 100);
+        yearsSet.forEach((yr) => {
+          const yrLogs = eqLogs.filter((l) => l.year === yr);
+          let yrMaint = 0, yrBasicOt = 0, yrPenalty = 0, yrRent = 0, yrKafil = 0;
+          let yrOwner = 0, yrInv = 0, yrDebit = 0, yrPwas = 0, yrOther = 0, yrRev = 0, yrGl = 0;
+
+          yrLogs.forEach((l) => {
+            const maint = Number(l.maintenance_cost || 0);
+            const basicOt = Number(l.basic_salary || 0) + Number(l.overtime || 0) + Number(l.allowance || 0);
+            const penalty = Number(l.penalty || 0);
+            const rent = Number(l.santook_rent || 0);
+            const rev = Number(l.op_revenue || 0);
+            const debit = Number(l.debit || 0);
+            const pwas = Number(l.pwas || 0);
+            const other = Number(l.other_expense || 0);
+
+          const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
+          const compObj =
+            (companyMappingData[eqPlateClean] &&
+              companyMappingData[eqPlateClean][l.year] &&
+              companyMappingData[eqPlateClean][l.year][l.month]) ||
+            {};
+          const compName =
+            typeof compObj === "object"
+              ? compObj.company || "Not Work"
+              : compObj || "Not Work";
+
+          let kafilPctVal = 0;
+          if (l.kafil_pct !== null && l.kafil_pct !== undefined) {
+            kafilPctVal = Number(l.kafil_pct);
+          } else if (Number(l.kafil_comm || 0) > 0) {
+            kafilPctVal = 0;
+          } else {
+            const isSingleNonWe1 =
+              compName !== "Not Work" &&
+              compName !== "We1" &&
+              !compName.includes("&");
+            kafilPctVal = isSingleNonWe1 ? 3 : 0;
+          }
+
+          let kafil = 0;
+          if (kafilPctVal > 0 && rev > 0) {
+            kafil = Number(((rev * kafilPctVal) / 100).toFixed(1));
+          } else {
+            kafil = Number(l.kafil_comm || 0);
+          }
+
           const owner = Number(l.owner_comm || 0);
           const inv = Number(l.investor_comm || 0);
 
@@ -453,54 +690,71 @@
           const gl = rev - totalCost;
           const monthName = shortMonths[l.month - 1] || l.month;
 
-          totMaint += maint;
-          totBasicOt += basicOt;
-          totPenalty += penalty;
-          totRent += rent;
-          totKafil += kafil;
-          totOwner += owner;
-          totInv += inv;
-          totDebit += debit;
-          totPwas += pwas;
-          totOther += other;
-          totRev += rev;
-          totGl += gl;
+          totMaint += maint; totBasicOt += basicOt; totPenalty += penalty; totRent += rent;
+            totKafil += kafil; totOwner += owner; totInv += inv; totDebit += debit;
+            totPwas += pwas; totOther += other; totRev += rev; totGl += gl;
 
-          tbody.innerHTML += `
-                <tr>
-                    <td><b>${l.year}</b></td>
-                    <td><b>${monthName}</b></td>
-                    <td>${maint.toFixed(2)}</td>
-                    <td>${basicOt.toFixed(2)}</td>
-                    <td style="color:red;">${penalty.toFixed(2)}</td>
-                    <td>${rent.toFixed(2)}</td>
-                    <td>${kafil.toFixed(2)}</td>
-                    <td>${owner.toFixed(2)}</td>
-                    <td>${inv.toFixed(2)}</td>
-                    <td>${debit.toFixed(2)}</td>
-                    <td>${pwas.toFixed(2)}</td>
-                    <td>${other.toFixed(2)}</td>
-                    <td>${rev.toFixed(2)}</td>
-                    <td style="color:${gl < 0 ? "red" : "green"}; font-weight:bold;">${gl.toFixed(2)}</td>
-                </tr>
+            yrMaint += maint; yrBasicOt += basicOt; yrPenalty += penalty; yrRent += rent;
+            yrKafil += kafil; yrOwner += owner; yrInv += inv; yrDebit += debit;
+            yrPwas += pwas; yrOther += other; yrRev += rev; yrGl += gl;
+
+            tbody.innerHTML += `
+                  <tr style="height: 38px;">
+                      <td><b>${l.year}</b></td>
+                      <td><b>${monthName}</b></td>
+                      <td>${fmtList(maint)}</td>
+                      <td>${fmtList(basicOt)}</td>
+                      <td style="color:red;">${fmtList(penalty)}</td>
+                      <td>${fmtList(rent)}</td>
+                      <td>${fmtList(kafil)}</td>
+                      <td>${fmtList(owner)}</td>
+                      <td>${fmtList(inv)}</td>
+                      <td>${fmtList(debit)}</td>
+                      <td>${fmtList(pwas)}</td>
+                      <td>${fmtList(other)}</td>
+                      <td>${fmtList(rev)}</td>
+                      <td style="color:${gl < 0 ? "red" : gl > 0 ? "green" : "#64748b"}; font-weight:bold;">${gl.toFixed(2)}</td>
+                  </tr>
+              `;
+          });
+
+          // Year sub-total (multiple years undenkil year-wise clear aayi kaanan)
+          if (yearsSet.length > 1) {
+            tbody.innerHTML += `
+              <tr style="background-color: #f1f5f9; font-weight: bold; border-top: 1.5px solid #64748b; height: 38px;" class="year-subtotal-row">
+                  <td colspan="2">TOTAL ${yr}</td>
+                  <td>${fmtList(yrMaint)}</td>
+                  <td>${fmtList(yrBasicOt)}</td>
+                  <td style="color:red;">${fmtList(yrPenalty)}</td>
+                  <td>${fmtList(yrRent)}</td>
+                  <td>${fmtList(yrKafil)}</td>
+                  <td>${fmtList(yrOwner)}</td>
+                  <td>${fmtList(yrInv)}</td>
+                  <td>${fmtList(yrDebit)}</td>
+                  <td>${fmtList(yrPwas)}</td>
+                  <td>${fmtList(yrOther)}</td>
+                  <td>${fmtList(yrRev)}</td>
+                  <td style="color:${yrGl < 0 ? "red" : yrGl > 0 ? "green" : "#64748b"}; font-weight:bold;">${yrGl.toFixed(2)}</td>
+              </tr>
             `;
+          }
         });
 
         tbody.innerHTML += `
-            <tr style="background-color: #eaeff8; font-weight: bold; border-top: 2px solid #333;">
-                <td colspan="2">TOTAL</td>
-                <td>${totMaint.toFixed(2)}</td>
-                <td>${totBasicOt.toFixed(2)}</td>
-                <td style="color:red;">${totPenalty.toFixed(2)}</td>
-                <td>${totRent.toFixed(2)}</td>
-                <td>${totKafil.toFixed(2)}</td>
-                <td>${totOwner.toFixed(2)}</td>
-                <td>${totInv.toFixed(2)}</td>
-                <td>${totDebit.toFixed(2)}</td>
-                <td>${totPwas.toFixed(2)}</td>
-                <td>${totOther.toFixed(2)}</td>
-                <td>${totRev.toFixed(2)}</td>
-                <td style="color:${totGl < 0 ? "red" : "green"}; font-weight:bold;">${totGl.toFixed(2)}</td>
+            <tr style="background-color: #eaeff8; font-weight: bold; border-top: 2px solid #333; height: 42px;">
+                <td colspan="2">OVERALL TOTAL</td>
+                <td>${fmtList(totMaint)}</td>
+                <td>${fmtList(totBasicOt)}</td>
+                <td style="color:red;">${fmtList(totPenalty)}</td>
+                <td>${fmtList(totRent)}</td>
+                <td>${fmtList(totKafil)}</td>
+                <td>${fmtList(totOwner)}</td>
+                <td>${fmtList(totInv)}</td>
+                <td>${fmtList(totDebit)}</td>
+                <td>${fmtList(totPwas)}</td>
+                <td>${fmtList(totOther)}</td>
+                <td>${fmtList(totRev)}</td>
+                <td style="color:${totGl < 0 ? "red" : totGl > 0 ? "green" : "#64748b"}; font-weight:bold;">${totGl.toFixed(2)}</td>
             </tr>
         `;
       }
@@ -548,8 +802,37 @@
           const pwas = Number(l.pwas || 0);
           const other = Number(l.other_expense || 0);
 
-          // 🟢 Kafil is % of Revenue, Owner and Investor are Direct SAR Amounts
-          const kafil = rev * (Number(l.kafil_comm || 0) / 100);
+          const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
+          const compObj =
+            (companyMappingData[eqPlateClean] &&
+              companyMappingData[eqPlateClean][l.year] &&
+              companyMappingData[eqPlateClean][l.year][l.month]) ||
+            {};
+          const compName =
+            typeof compObj === "object"
+              ? compObj.company || "Not Work"
+              : compObj || "Not Work";
+
+          let kafilPctVal = 0;
+          if (l.kafil_pct !== null && l.kafil_pct !== undefined) {
+            kafilPctVal = Number(l.kafil_pct);
+          } else if (Number(l.kafil_comm || 0) > 0) {
+            kafilPctVal = 0;
+          } else {
+            const isSingleNonWe1 =
+              compName !== "Not Work" &&
+              compName !== "We1" &&
+              !compName.includes("&");
+            kafilPctVal = isSingleNonWe1 ? 3 : 0;
+          }
+
+          let kafil = 0;
+          if (kafilPctVal > 0 && rev > 0) {
+            kafil = Number(((rev * kafilPctVal) / 100).toFixed(1));
+          } else {
+            kafil = Number(l.kafil_comm || 0);
+          }
+
           const owner = Number(l.owner_comm || 0);
           const inv = Number(l.investor_comm || 0);
 
@@ -572,40 +855,44 @@
           totRev += rev;
           totGl += gl;
 
+          const vClean = (n) => (Number(n || 0) === 0 ? "" : round2(n));
+
           rows.push([
             l.year,
             monthName,
-            round2(maint),
-            round2(basicOt),
-            round2(penalty),
-            round2(rent),
-            round2(kafil),
-            round2(owner),
-            round2(inv),
-            round2(debit),
-            round2(pwas),
-            round2(other),
-            round2(rev),
+            vClean(maint),
+            vClean(basicOt),
+            vClean(penalty),
+            vClean(rent),
+            vClean(kafil),
+            vClean(owner),
+            vClean(inv),
+            vClean(debit),
+            vClean(pwas),
+            vClean(other),
+            vClean(rev),
             round2(gl),
           ]);
         });
+
+        const vClean = (n) => (Number(n || 0) === 0 ? "" : round2(n));
 
         let totals =
           rows.length > 0
             ? [
                 "TOTAL",
                 "",
-                round2(totMaint),
-                round2(totBasicOt),
-                round2(totPenalty),
-                round2(totRent),
-                round2(totKafil),
-                round2(totOwner),
-                round2(totInv),
-                round2(totDebit),
-                round2(totPwas),
-                round2(totOther),
-                round2(totRev),
+                vClean(totMaint),
+                vClean(totBasicOt),
+                vClean(totPenalty),
+                vClean(totRent),
+                vClean(totKafil),
+                vClean(totOwner),
+                vClean(totInv),
+                vClean(totDebit),
+                vClean(totPwas),
+                vClean(totOther),
+                vClean(totRev),
                 round2(totGl),
               ]
             : [];
@@ -622,6 +909,11 @@
 
       function round2(num) {
         return Number(Number(num || 0).toFixed(2));
+      }
+
+      function fmtList(num) {
+        const n = Number(num || 0);
+        return n === 0 ? "" : n.toFixed(2);
       }
 
       // 🟢 TOAST NOTIFICATION HELPER FUNCTION
@@ -683,36 +975,73 @@
         }
       }
 
-      // 🟢 1.1 EXPORT SINGLE EQUIPMENT PDF
-      function exportSinglePDF() {
-        const element = document.getElementById("detailsWrapper");
-        if (!element || element.style.display === "none") return;
+      // 🟢 1.1 EXPORT SINGLE EQUIPMENT PDF (Year-wise A4 Landscape Multi-page)
+      async function exportSinglePDF() {
+        if (!activeEquipmentId) return;
         const eq = allEquipments.find((e) => e.id === activeEquipmentId);
-        const fileName = eq ? `Equipment_${eq.plate_no}.pdf` : "Equipment_Details.pdf";
-        showToast("Generating PDF...", "success");
+        if (!eq) return;
 
-        const HTML_Width = element.scrollWidth;
-        const HTML_Height = element.scrollHeight;
+        showToast("Generating Year-wise A4 PDF...", "success");
+        const jsPdfClass = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
+        if (!jsPdfClass) {
+          showToast("jsPDF library not available.", "error");
+          return;
+        }
 
-        const opt = {
-          margin: 10,
-          filename: fileName,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, windowWidth: HTML_Width },
-          pagebreak: { mode: "avoid-all" },
-          jsPDF: {
-            unit: "px",
-            format: [HTML_Width + 20, HTML_Height + 40],
-            orientation: "landscape",
-          },
-        };
+        const eqLogs = allLogs.filter((l) => l.equipment_id === eq.id);
+        eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
+        const years = [...new Set(eqLogs.map((l) => l.year))].sort();
 
-        html2pdf().set(opt).from(element).save().then(() => {
-          showToast("PDF Downloaded Successfully!", "success");
-        }).catch((err) => {
-          console.error(err);
+        const offscreenHolder = document.createElement("div");
+        offscreenHolder.style.cssText = "position: absolute; left: -9999px; top: 0;";
+        document.body.appendChild(offscreenHolder);
+
+        try {
+          const pdf = new jsPdfClass({ orientation: "landscape", unit: "mm", format: "a4" });
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const margin = 8;
+          const printableWidth = pageWidth - (margin * 2);
+          const printableHeight = pageHeight - (margin * 2);
+
+          for (let yIdx = 0; yIdx < years.length; yIdx++) {
+            const yr = years[yIdx];
+            const yrLogs = eqLogs.filter((l) => l.year === yr);
+            const cardEl = buildOffscreenEquipmentYearCard(eq, yr, yrLogs);
+            offscreenHolder.innerHTML = "";
+            offscreenHolder.appendChild(cardEl);
+
+            await new Promise((r) => setTimeout(r, 40));
+
+            const canvas = await html2canvas(cardEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+            const imgData = canvas.toDataURL("image/jpeg", 0.95);
+            const w = canvas.width / 2;
+            const h = canvas.height / 2;
+
+            if (yIdx > 0) pdf.addPage("a4", "landscape");
+
+            const imgRatio = w / h;
+            let renderWidth = printableWidth;
+            let renderHeight = renderWidth / imgRatio;
+            if (renderHeight > printableHeight) {
+              renderHeight = printableHeight;
+              renderWidth = renderHeight * imgRatio;
+            }
+
+            const posX = margin + ((printableWidth - renderWidth) / 2);
+            const posY = margin;
+
+            pdf.addImage(imgData, "JPEG", posX, posY, renderWidth, renderHeight, undefined, "FAST");
+          }
+
+          pdf.save(`Equipment_${eq.plate_no}.pdf`);
+          showToast("Single Equipment A4 PDF Downloaded!", "success");
+        } catch (err) {
+          console.error("Single PDF Error:", err);
           showToast("Failed to generate PDF.", "error");
-        });
+        } finally {
+          offscreenHolder.remove();
+        }
       }
 
       // 🟢 2. EXPORT SINGLE EQUIPMENT EXCEL
@@ -755,56 +1084,53 @@
         }
       }
 
-      // 🟢 Helper to generate temporary offscreen Card DOM for clean captures
-      function buildOffscreenEquipmentCard(eq) {
+      // 🟢 Helper to generate temporary offscreen Card DOM (Year-wise page/card)
+      function buildOffscreenEquipmentYearCard(eq, yr, yrLogs) {
         const formattedDate = formatPurchaseDate(eq.purchase_date);
         const formattedCost = Number(eq.purchase_cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         let remCostVal = parseFloat(eq.remaining_purchase_cost || 0);
         let remText = remCostVal > 0 ? ` | <span style="color: #c0392b;">Remaining Cost: ${remCostVal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR</span>` : "";
 
         const card = document.createElement("div");
-        card.style.cssText = "background: #ffffff; padding: 20px; border-radius: 8px; width: 1250px; box-sizing: border-box; font-family: 'Segoe UI', sans-serif;";
+        card.style.cssText = "background: #ffffff; padding: 24px; border-radius: 8px; width: 1350px; box-sizing: border-box; font-family: 'Segoe UI', sans-serif;";
 
         const titleRow = document.createElement("div");
-        titleRow.style.cssText = "border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 10px;";
-        titleRow.innerHTML = `<h3 style="margin: 0; color: #2c3e50; font-size: 18px;">Plate No: ${eq.plate_no} | Purchase Date: ${formattedDate} | Purchase Cost: ${formattedCost} SAR${remText}</h3>`;
+        titleRow.style.cssText = "border-bottom: 2px solid #cbd5e1; padding-bottom: 12px; margin-bottom: 14px;";
+        titleRow.innerHTML = `<h3 style="margin: 0; color: #1e3a8a; font-size: 20px; font-weight: 800;">Plate No: ${eq.plate_no} | Year: ${yr} | Purchase Date: ${formattedDate} | Purchase Cost: ${formattedCost} SAR${remText}</h3>`;
         card.appendChild(titleRow);
 
         const tbl = document.createElement("table");
-        tbl.style.cssText = "width: 100%; border-collapse: collapse; font-size: 13px;";
+        tbl.style.cssText = "width: 100%; border-collapse: collapse; font-size: 13.5px;";
         tbl.innerHTML = `
           <thead>
-            <tr style="height: 38px;">
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Year</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Month</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Maintenance<br>Cost</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Driver (Basic +<br>OT + Allowance)</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Penalty</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Santook<br>Rent</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Kafil<br>Commission</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Owner<br>Commission</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Investor<br>Commission</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Debit<br>Note</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">PWAS</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Other<br>Expenses</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Operational<br>Revenue</th>
-              <th style="background: #d9e1f2; color: #000; border: 1px solid #ccc; padding: 10px 6px; font-size: 12px;">Gain / Loss</th>
+            <tr style="height: 48px;">
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Year</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Month</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Maintenance<br>Cost</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Driver (Basic +<br>OT + Allowance)</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Penalty</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Santook<br>Rent</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Kafil<br>Commission</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Owner<br>Commission</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Investor<br>Commission</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Debit<br>Note</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">PWAS</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Other<br>Expenses</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Operational<br>Revenue</th>
+              <th style="background: #d9e1f2; color: #000; border: 1px solid #94a3b8; padding: 10px 6px; font-size: 13px;">Gain / Loss</th>
             </tr>
           </thead>
           <tbody></tbody>
         `;
 
         const tb = tbl.querySelector("tbody");
-        const eqLogs = allLogs.filter((l) => l.equipment_id === eq.id);
-        eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
-
         const shortM = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         let tMaint = 0, tBasicOt = 0, tPenalty = 0, tRent = 0, tKafil = 0, tOwner = 0, tInv = 0, tDebit = 0, tPwas = 0, tOther = 0, tRev = 0, tGl = 0;
 
-        if (eqLogs.length === 0) {
-          tb.innerHTML = `<tr><td colspan="14" style="border: 1px solid #ccc; padding: 8px; text-align: center; color: gray;">No records found.</td></tr>`;
+        if (!yrLogs || yrLogs.length === 0) {
+          tb.innerHTML = `<tr><td colspan="14" style="border: 1px solid #94a3b8; padding: 12px; text-align: center; color: gray;">No records found.</td></tr>`;
         } else {
-          eqLogs.forEach((l) => {
+          yrLogs.forEach((l) => {
             const maint = Number(l.maintenance_cost || 0);
             const basicOt = Number(l.basic_salary || 0) + Number(l.overtime || 0) + Number(l.allowance || 0);
             const penalty = Number(l.penalty || 0);
@@ -813,7 +1139,38 @@
             const debit = Number(l.debit || 0);
             const pwas = Number(l.pwas || 0);
             const other = Number(l.other_expense || 0);
-            const kafil = rev * (Number(l.kafil_comm || 0) / 100);
+
+            const eqPlateClean = (eq.plate_no || "").trim().toUpperCase();
+            const compObj =
+              (companyMappingData[eqPlateClean] &&
+                companyMappingData[eqPlateClean][l.year] &&
+                companyMappingData[eqPlateClean][l.year][l.month]) ||
+              {};
+            const compName =
+              typeof compObj === "object"
+                ? compObj.company || "Not Work"
+                : compObj || "Not Work";
+
+            let kafilPctVal = 0;
+            if (l.kafil_pct !== null && l.kafil_pct !== undefined) {
+              kafilPctVal = Number(l.kafil_pct);
+            } else if (Number(l.kafil_comm || 0) > 0) {
+              kafilPctVal = 0;
+            } else {
+              const isSingleNonWe1 =
+                compName !== "Not Work" &&
+                compName !== "We1" &&
+                !compName.includes("&");
+              kafilPctVal = isSingleNonWe1 ? 3 : 0;
+            }
+
+            let kafil = 0;
+            if (kafilPctVal > 0 && rev > 0) {
+              kafil = Number(((rev * kafilPctVal) / 100).toFixed(1));
+            } else {
+              kafil = Number(l.kafil_comm || 0);
+            }
+
             const owner = Number(l.owner_comm || 0);
             const inv = Number(l.investor_comm || 0);
             const netSal = basicOt - penalty;
@@ -823,41 +1180,42 @@
             tKafil += kafil; tOwner += owner; tInv += inv; tDebit += debit; tPwas += pwas;
             tOther += other; tRev += rev; tGl += gl;
 
+            // 🟢 Row height 10% kootti 42px aakki (paddings 9px 6px)
             tb.innerHTML += `
-              <tr style="height: 32px;">
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;"><b>${l.year}</b></td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;"><b>${shortM[l.month - 1] || l.month}</b></td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${maint.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${basicOt.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center; color: red;">${penalty.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${rent.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${kafil.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${owner.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${inv.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${debit.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${pwas.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${other.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${rev.toFixed(2)}</td>
-                <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center; font-weight: bold; color: ${gl < 0 ? "red" : "green"};">${gl.toFixed(2)}</td>
+              <tr style="height: 42px;">
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;"><b>${l.year}</b></td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;"><b>${shortM[l.month - 1] || l.month}</b></td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(maint)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(basicOt)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center; color: red;">${fmtList(penalty)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(rent)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(kafil)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(owner)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(inv)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(debit)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(pwas)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(other)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center;">${fmtList(rev)}</td>
+                <td style="border: 1px solid #94a3b8; padding: 9px 6px; text-align: center; font-weight: bold; color: ${gl < 0 ? "red" : gl > 0 ? "green" : "#64748b"};">${gl.toFixed(2)}</td>
               </tr>
             `;
           });
 
           tb.innerHTML += `
-            <tr style="background-color: #eaeff8; font-weight: bold; border-top: 2px solid #333; height: 35px;">
-              <td colspan="2" style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">TOTAL</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tMaint.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tBasicOt.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center; color: red;">${tPenalty.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tRent.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tKafil.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tOwner.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tInv.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tDebit.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tPwas.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tOther.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center;">${tRev.toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px 6px; text-align: center; font-weight: bold; color: ${tGl < 0 ? "red" : "green"};">${tGl.toFixed(2)}</td>
+            <tr style="background-color: #eaeff8; font-weight: bold; border-top: 2px solid #1e293b; height: 46px;">
+              <td colspan="2" style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">TOTAL ${yr}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">${fmtList(tMaint)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">${fmtList(tBasicOt)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center; color: red;">${fmtList(tPenalty)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">${fmtList(tRent)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">${fmtList(tKafil)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">${fmtList(tOwner)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">${fmtList(tInv)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">${fmtList(tDebit)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">${fmtList(tPwas)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">${fmtList(tOther)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center;">${fmtList(tRev)}</td>
+              <td style="border: 1px solid #94a3b8; padding: 10px 6px; text-align: center; font-weight: bold; color: ${tGl < 0 ? "red" : tGl > 0 ? "green" : "#64748b"};">${tGl.toFixed(2)}</td>
             </tr>
           `;
         }
@@ -888,27 +1246,57 @@
         let pdf = null;
 
         try {
+          let pageCount = 0;
+
           for (let i = 0; i < allEquipments.length; i++) {
             const eq = allEquipments[i];
-            const cardEl = buildOffscreenEquipmentCard(eq);
-            offscreenHolder.innerHTML = "";
-            offscreenHolder.appendChild(cardEl);
+            const eqLogs = allLogs.filter((l) => l.equipment_id === eq.id);
+            eqLogs.sort((a, b) => a.year - b.year || a.month - b.month);
+            const years = [...new Set(eqLogs.map((l) => l.year))].sort();
+            if (years.length === 0) years.push(new Date().getFullYear());
 
-            await new Promise((r) => setTimeout(r, 40));
+            for (let yIdx = 0; yIdx < years.length; yIdx++) {
+              const yr = years[yIdx];
+              const yrLogs = eqLogs.filter((l) => l.year === yr);
+              const cardEl = buildOffscreenEquipmentYearCard(eq, yr, yrLogs);
+              offscreenHolder.innerHTML = "";
+              offscreenHolder.appendChild(cardEl);
 
-            const canvas = await html2canvas(cardEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-            const imgData = canvas.toDataURL("image/jpeg", 0.95);
-            const w = canvas.width / 2;
-            const h = canvas.height / 2;
+              await new Promise((r) => setTimeout(r, 40));
 
-            if (i === 0) {
-              pdf = new jsPdfClass({ orientation: "landscape", unit: "px", format: [w + 20, h + 20] });
-            } else {
-              pdf.addPage([w + 20, h + 20], "landscape");
+              const canvas = await html2canvas(cardEl, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+              const imgData = canvas.toDataURL("image/jpeg", 0.95);
+              const w = canvas.width / 2;
+              const h = canvas.height / 2;
+
+              if (pageCount === 0) {
+                pdf = new jsPdfClass({ orientation: "landscape", unit: "mm", format: "a4" });
+              } else {
+                pdf.addPage("a4", "landscape");
+              }
+              pageCount++;
+
+              const pageWidth = pdf.internal.pageSize.getWidth();
+              const pageHeight = pdf.internal.pageSize.getHeight();
+              const margin = 8;
+              const printableWidth = pageWidth - (margin * 2);
+              const printableHeight = pageHeight - (margin * 2);
+
+              const imgRatio = w / h;
+              let renderWidth = printableWidth;
+              let renderHeight = renderWidth / imgRatio;
+
+              if (renderHeight > printableHeight) {
+                renderHeight = printableHeight;
+                renderWidth = renderHeight * imgRatio;
+              }
+
+              const posX = margin + ((printableWidth - renderWidth) / 2);
+              const posY = margin;
+
+              pdf.addImage(imgData, "JPEG", posX, posY, renderWidth, renderHeight, undefined, "FAST");
+              showToast(`Rendered Equipment ${eq.plate_no} (${yr})...`, "success");
             }
-
-            pdf.addImage(imgData, "JPEG", 10, 10, w, h);
-            showToast(`Rendered ${i + 1}/${allEquipments.length} pages...`, "success");
           }
 
           if (pdf) {
@@ -1025,6 +1413,115 @@
         a.download = fileName;
         a.click();
       }
+
+      function toggleActionMenu(e) {
+        if (e) {
+          e.stopPropagation();
+        }
+        const menu = document.getElementById("actionMenu");
+        if (menu) {
+          menu.classList.toggle("show");
+        }
+      }
+
+      /* ==========================================================
+         🟢 RIGHT CLICK YEAR FILTER POPUP (CONTEXT MENU)
+         ========================================================== */
+      window.addEventListener("contextmenu", (e) => {
+        // Form inputs/links ozhikeyulla edathu right click cheythaal year filter popup kaanikkunnu
+        if (["INPUT", "TEXTAREA", "SELECT", "A"].includes(e.target.tagName)) return;
+        e.preventDefault();
+        openYearContextMenu(e.clientX, e.clientY);
+      });
+
+      function openYearContextMenu(x, y) {
+        const menu = document.getElementById("yearContextMenu");
+        const list = document.getElementById("yearContextList");
+        if (!menu || !list) return;
+
+        const isAllSelected = availableYears.length > 0 && availableYears.every((yr) => selectedYears.includes(yr));
+
+        let html = `
+          <li>
+            <input type="checkbox" id="chkYearSelectAll" ${isAllSelected ? "checked" : ""} onchange="toggleSelectAllYears(this)">
+            <label for="chkYearSelectAll"><b>(All Years)</b></label>
+          </li>
+          <li style="padding: 0; margin: 2px 0; border-top: 1px solid #e2e8f0;"></li>
+        `;
+
+        availableYears.forEach((yr) => {
+          const isChecked = selectedYears.includes(yr);
+          html += `
+            <li>
+              <input type="checkbox" class="year-item-chk" value="${yr}" id="chk_yr_${yr}" ${isChecked ? "checked" : ""} onchange="onSingleYearCheckChange()">
+              <label for="chk_yr_${yr}">${yr}</label>
+            </li>
+          `;
+        });
+
+        list.innerHTML = html;
+
+        menu.style.display = "block";
+        const menuW = 200;
+        const menuH = 260;
+        const posX = x + menuW > window.innerWidth ? window.innerWidth - menuW - 10 : x;
+        const posY = y + menuH > window.innerHeight ? window.innerHeight - menuH - 10 : y;
+
+        menu.style.left = `${posX}px`;
+        menu.style.top = `${posY}px`;
+      }
+
+      function closeYearContextMenu() {
+        const menu = document.getElementById("yearContextMenu");
+        if (menu) menu.style.display = "none";
+      }
+
+      function toggleSelectAllYears(master) {
+        document.querySelectorAll(".year-item-chk").forEach((chk) => {
+          chk.checked = master.checked;
+        });
+      }
+
+      function onSingleYearCheckChange() {
+        const chks = Array.from(document.querySelectorAll(".year-item-chk"));
+        const master = document.getElementById("chkYearSelectAll");
+        if (master) {
+          master.checked = chks.length > 0 && chks.every((c) => c.checked);
+        }
+      }
+
+      function applyYearFilter() {
+        const checked = Array.from(document.querySelectorAll(".year-item-chk:checked")).map((c) => Number(c.value));
+        if (checked.length === 0) {
+          showToast("Please select at least one year!", "error");
+          return;
+        }
+
+        selectedYears = checked;
+        closeYearContextMenu();
+        showToast(`Filter applied: ${selectedYears.length} Year(s) selected`, "success");
+
+        // Currently selected equipment-nte table refresh cheyyunnu
+        if (activeEquipmentId) {
+          const eq = allEquipments.find((e) => e.id === activeEquipmentId);
+          if (eq) {
+            activeEquipmentId = null; // Re-toggle cheyyan
+            toggleEquipmentLogs(eq);
+          }
+        }
+      }
+
+      document.addEventListener("click", (e) => {
+        closeYearContextMenu();
+
+        const menu = document.getElementById("actionMenu");
+        const toggleBtn = document.querySelector(".mobile-menu-btn");
+        if (menu && menu.classList.contains("show")) {
+          if (!menu.contains(e.target) && !toggleBtn.contains(e.target)) {
+            menu.classList.remove("show");
+          }
+        }
+      });
 
       window.onload = loadData;
     </script>
