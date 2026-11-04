@@ -32,8 +32,13 @@ router.get("/events", (req, res) => {
   const clientId = Date.now() + Math.random().toString(36).substr(2, 5);
   reportSseClients.push({ id: clientId, res });
 
-  // Initial connection handshake
-  res.write(`data: ${JSON.stringify({ type: "CONNECTED", clientId })}\n\n`);
+  // Initial connection handshake with current active drafts & locks
+  res.write(`data: ${JSON.stringify({
+    type: "CONNECTED",
+    clientId,
+    activeDrafts: Object.values(activeLiveDrafts),
+    activeLocks: Object.entries(activeCellLocks).map(([sId, lKey]) => ({ senderId: sId, lockKey: lKey }))
+  })}\n\n`);
 
   // Heartbeat ping every 20 seconds
   const heartbeat = setInterval(() => {
@@ -47,6 +52,27 @@ router.get("/events", (req, res) => {
   req.on("close", () => {
     clearInterval(heartbeat);
     reportSseClients = reportSseClients.filter((c) => c.id !== clientId);
+    if (activeCellLocks[clientId]) {
+      const lockKey = activeCellLocks[clientId];
+      delete activeCellLocks[clientId];
+      broadcastReportSync({ type: "CELL_UNLOCKED_BY_KEY", lockKey });
+    }
+
+    const cancelledKeys = [];
+    Object.keys(activeLiveDrafts).forEach((key) => {
+      if (activeLiveDrafts[key].senderId === clientId) {
+        cancelledKeys.push(activeLiveDrafts[key]);
+        delete activeLiveDrafts[key];
+      }
+    });
+
+    if (cancelledKeys.length > 0) {
+      broadcastReportSync({
+        type: "LIVE_DRAFTS_CANCELLED",
+        senderId: clientId,
+        drafts: cancelledKeys
+      });
+    }
   });
 });
 
@@ -205,6 +231,16 @@ router.post("/save-inline-edits", async (req, res) => {
     }
 
     await client.query("COMMIT");
+    records.forEach((r) => {
+      const p = String(r.plate || "").trim();
+      const s = String(r.site || "").trim();
+      const m = String(r.month || "").trim();
+      Object.keys(activeLiveDrafts).forEach((k) => {
+        if (k.startsWith(`${p}_${s}_${m}_`)) {
+          delete activeLiveDrafts[k];
+        }
+      });
+    });
     broadcastReportSync({ type: "INLINE_EDITS_SAVED", records });
     res.json({ success: true, message: "Edits saved successfully!" });
   } catch (err) {
@@ -221,6 +257,105 @@ router.post("/notify-sync", (req, res) => {
   const { eventType, records } = req.body;
   if (records && Array.isArray(records)) {
     broadcastReportSync({ type: eventType || "INLINE_EDITS_SAVED", records });
+  }
+  res.json({ success: true });
+});
+
+// 🟢 In-memory Active Cell Locks and Active Unsaved Drafts
+let activeCellLocks = {};
+let activeLiveDrafts = {}; // Key: plate_site_month_field -> { plate, site, month, field, value, senderId }
+
+// 🟢 Realtime Input Keystroke Sync (without saving to DB)
+router.post("/live-typing-sync", (req, res) => {
+  const { senderId, plate, site, month, field, value } = req.body;
+  if (plate && field !== undefined) {
+    const cleanPlate = String(plate).trim();
+    const cleanSite = String(site || "").trim();
+    const cleanMonth = String(month || "").trim();
+    const cleanField = String(field).trim();
+    const draftKey = `${cleanPlate}_${cleanSite}_${cleanMonth}_${cleanField}`;
+
+    activeLiveDrafts[draftKey] = {
+      plate: cleanPlate,
+      site: cleanSite,
+      month: cleanMonth,
+      field: cleanField,
+      value: value !== null && value !== undefined ? String(value) : "",
+      senderId
+    };
+
+    broadcastReportSync({
+      type: "LIVE_TYPING_UPDATE",
+      senderId,
+      plate: cleanPlate,
+      site: cleanSite,
+      month: cleanMonth,
+      field: cleanField,
+      value: value !== null && value !== undefined ? String(value) : ""
+    });
+  }
+  res.json({ success: true });
+});
+
+// 🟢 Cell Focus Lock/Unlock Sync
+router.post("/cell-lock-sync", (req, res) => {
+  const { senderId, action, plate, site, month, field } = req.body;
+  const lockKey = `${String(plate).trim()}_${String(site || "").trim()}_${String(month || "").trim()}_${String(field).trim()}`;
+
+  if (action === "LOCK") {
+    activeCellLocks[senderId] = lockKey;
+    broadcastReportSync({
+      type: "CELL_LOCKED",
+      senderId,
+      lockKey,
+      plate: String(plate).trim(),
+      site: String(site || "").trim(),
+      month: String(month || "").trim(),
+      field: String(field).trim()
+    });
+  } else if (action === "UNLOCK") {
+    delete activeCellLocks[senderId];
+    broadcastReportSync({
+      type: "CELL_UNLOCKED",
+      senderId,
+      lockKey,
+      plate: String(plate).trim(),
+      site: String(site || "").trim(),
+      month: String(month || "").trim(),
+      field: String(field).trim()
+    });
+  }
+  res.json({ success: true });
+});
+
+// 🟢 Clear all locks and unsaved live drafts held by a client (on Save, Cancel or Exit edit mode)
+router.post("/clear-client-locks", (req, res) => {
+  const { senderId } = req.body;
+  if (senderId) {
+    if (activeCellLocks[senderId]) {
+      const lockKey = activeCellLocks[senderId];
+      delete activeCellLocks[senderId];
+      broadcastReportSync({
+        type: "CELL_UNLOCKED_BY_KEY",
+        lockKey
+      });
+    }
+
+    const cancelledKeys = [];
+    Object.keys(activeLiveDrafts).forEach((key) => {
+      if (activeLiveDrafts[key].senderId === senderId) {
+        cancelledKeys.push(activeLiveDrafts[key]);
+        delete activeLiveDrafts[key];
+      }
+    });
+
+    if (cancelledKeys.length > 0) {
+      broadcastReportSync({
+        type: "LIVE_DRAFTS_CANCELLED",
+        senderId,
+        drafts: cancelledKeys
+      });
+    }
   }
   res.json({ success: true });
 });
@@ -456,6 +591,16 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
       }
     }
     await client.query("COMMIT");
+    records.forEach((r) => {
+      const p = String(r.plate_no || "").trim();
+      const s = String(r.site_name || "").trim();
+      const m = String(r.month || "").trim();
+      Object.keys(activeLiveDrafts).forEach((k) => {
+        if (k.startsWith(`${p}_${s}_${m}_`)) {
+          delete activeLiveDrafts[k];
+        }
+      });
+    });
     broadcastReportSync({ type: "SPECIAL_EDITS_SAVED", records });
     res.json({ success: true });
   } catch (err) {
@@ -584,6 +729,26 @@ router.post("/save-master-edits", async (req, res) => {
     }
 
     await client.query("COMMIT");
+    if (Array.isArray(invoiceRecords)) {
+      invoiceRecords.forEach((r) => {
+        const p = String(r.plate || "").trim();
+        const s = String(r.site || "").trim();
+        const m = String(r.month || "").trim();
+        Object.keys(activeLiveDrafts).forEach((k) => {
+          if (k.startsWith(`${p}_${s}_${m}_`)) delete activeLiveDrafts[k];
+        });
+      });
+    }
+    if (Array.isArray(billingRecords)) {
+      billingRecords.forEach((r) => {
+        const p = String(r.plate_no || "").trim();
+        const s = String(r.site_name || "").trim();
+        const m = String(r.month || "").trim();
+        Object.keys(activeLiveDrafts).forEach((k) => {
+          if (k.startsWith(`${p}_${s}_${m}_`)) delete activeLiveDrafts[k];
+        });
+      });
+    }
     broadcastReportSync({
       type: "MASTER_EDITS_SAVED",
       invoiceRecords,
