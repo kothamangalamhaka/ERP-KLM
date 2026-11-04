@@ -499,6 +499,22 @@
         background-color: #5b21b6;
       }
 
+      .btn-arrow {
+        background: #334155;
+        color: white;
+        border: 1px solid #475569;
+        border-radius: 4px;
+        height: 35px;
+        padding: 0 12px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 700;
+        transition: background 0.2s;
+      }
+      .btn-arrow:hover {
+        background: #475569;
+      }
+
       /* 🟢 MOBILE RESPONSIVE FIXES */
       @media (max-width: 768px) {
         .controls-wrapper {
@@ -697,6 +713,7 @@
 
   <body>
     <div class="controls-wrapper">
+        <button type="button" class="btn-arrow" onclick="changeMonth(-1)" title="Previous Month">◀</button>
         <div class="form-group" style="width: 110px">
           <label>Month</label>
           <select id="selMonth">
@@ -718,6 +735,7 @@
           <label>Year</label>
           <input type="number" id="selYear" value="2026" />
         </div>
+        <button type="button" class="btn-arrow" onclick="changeMonth(1)" title="Next Month">▶</button>
         <div class="form-group" style="width: 140px">
           <label>Filter By</label>
           <select id="filterType" onchange="setupFilterUI()">
@@ -897,6 +915,25 @@
       let selectedSecondarySites = [];
       let specialRulesCache = [];
       let isLtMode = false; // 🟢 Toggle flag for Normal vs LT View
+
+      function changeMonth(delta) {
+        if (document.getElementById("btnGen").disabled) return;
+        const mSel = document.getElementById("selMonth");
+        const yInp = document.getElementById("selYear");
+        let idx = months.indexOf(mSel.value) + delta;
+        let yr = parseInt(yInp.value) || new Date().getFullYear();
+        if (idx < 0) {
+          idx = 11;
+          yr--;
+        } else if (idx > 11) {
+          idx = 0;
+          yr++;
+        }
+        mSel.value = months[idx];
+        yInp.value = yr;
+        const area = document.getElementById("reportArea");
+        if (area && area.querySelector(".ts-card")) generateReport();
+      }
 
       function toggleTimesheetMode() {
         isLtMode = !isLtMode;
