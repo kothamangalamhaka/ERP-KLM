@@ -413,14 +413,8 @@
       </div>
     </div>
 
-    <script
-      src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"
-      crossorigin="anonymous"
-    ></script>
+    <script src="/node_xlsx_scripts/camera_utils.js"></script>
+    <script src="/node_xlsx_scripts/face_mesh.js"></script>
     <script>
       // ---------- Timesheet Face Login Logic ----------
       let tsVideoStream = null;
@@ -447,8 +441,7 @@
         try {
           if (!tsFaceMesh) {
             tsFaceMesh = new FaceMesh({
-              locateFile: (file) =>
-                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+              locateFile: (file) => "/node_xlsx_scripts/mediapipe/" + file,
             });
             tsFaceMesh.setOptions({
               maxNumFaces: 1,
@@ -752,8 +745,7 @@
         try {
           if (!tsFaceMeshInstance) {
             tsFaceMeshInstance = new FaceMesh({
-              locateFile: (file) =>
-                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+              locateFile: (file) => "/node_xlsx_scripts/mediapipe/" + file,
             });
             tsFaceMeshInstance.setOptions({
               maxNumFaces: 1,
