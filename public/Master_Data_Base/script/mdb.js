@@ -1,3 +1,18 @@
+// Number inputs-il mouse scroll vazhi value maarunnath thadayunnu
+document.addEventListener(
+  "wheel",
+  function (e) {
+    if (
+      document.activeElement &&
+      document.activeElement.type === "number" &&
+      document.activeElement.classList.contains("modal-input")
+    ) {
+      document.activeElement.blur();
+    }
+  },
+  { passive: true }
+);
+
 // ? FONT & THEME LOGIC
 function changeFont(fontName) {
   document.body.style.fontFamily = fontName;
@@ -2005,6 +2020,9 @@ function renderTable(response) {
   tbodyHtml += "</tbody>";
   tableEl.innerHTML = theadHtml + tbodyHtml;
 
+  // Pagination buttons purathekku povathe 1 2 3 ... 14 aayi churukkaan
+  $.fn.DataTable.ext.pager.numbers_length = 5;
+
   erpDataTable = $("#erpTable").DataTable({
     deferRender: true, // സ്ക്രീനിൽ കാണുന്ന വരികൾ മാത്രം DOM-ലേക്ക് വരയ്ക്കുന്നു
     bDestroy: true,
@@ -2019,6 +2037,7 @@ function renderTable(response) {
       searchPlaceholder: "Search records...",
       lengthMenu: "_MENU_ rows",
       info: "_START_ - _END_ of _TOTAL_",
+      infoFiltered: "(_MAX_)",
       paginate: { previous: "Prev", next: "Next" },
     },
 lengthMenu: [
@@ -2849,16 +2868,25 @@ function openAddEntryModal(dbId = null, clone = false) {
   editingRowDbId = isCloneMode ? null : dbId;
   const sourceDbId = dbId; // For populating data from the existing row
 
+  // 🟢 SN വാല്യൂ കണ്ടുപിടിച്ച് ഹെഡർ ബാഡ്ജിൽ സെറ്റ് ചെയ്യുന്നു
+  let currentModalSN = globalNextSN;
+  if (sourceDbId && !isCloneMode) {
+    let $sourceRow = $(`#erpTable tbody tr[data-sheetrow="${sourceDbId}"]`);
+    currentModalSN = $sourceRow.find(`td[data-colname="SN"]`).text().trim() || $sourceRow.find("td.sn-column").text().trim() || globalNextSN;
+  }
+  $("#entryModalSnBadge").text("SN :: " + currentModalSN);
+  $("#entryModalSnInput").val(currentModalSN);
+
   if (isCloneMode) {
-    $("#entryModalOverlay h3").text("Clone Record (New Cycle Entry)");
+    $("#entryModalTitle").text("Clone Record (New Cycle Entry)");
     $("#entryModalOverlay .btn-primary").show(); // Save & New
     $("#entryModalOverlay .btn-success").text("Save Cloned Entry");
   } else if (editingRowDbId) {
-    $("#entryModalOverlay h3").text("Edit Entire Row");
+    $("#entryModalTitle").text("Edit Entire Row");
     $("#entryModalOverlay .btn-primary").hide(); // Hide 'Save & New' when editing
     $("#entryModalOverlay .btn-success").text("Update Record");
   } else {
-    $("#entryModalOverlay h3").text("Create New Entry");
+    $("#entryModalTitle").text("Create New Entry");
     $("#entryModalOverlay .btn-primary").show();
     $("#entryModalOverlay .btn-success").text("Save Entry");
   }
@@ -2900,39 +2928,53 @@ function openAddEntryModal(dbId = null, clone = false) {
   });
   $("#dynamicFormFields").append(listsHtml);
 
-  // --- NEW CUSTOM ORDERING & HIDING LOGIC ---
-  const isEditing = !!editingRowDbId;
-
+  // 🟢 ഒഴിവാക്കേണ്ട കോളങ്ങൾ (PAY FROM, OFFICE REMARK എന്നിവ Others-ലേക്ക് വരാൻ അനുവദിച്ചു)
   const excludedCols = [
-    "DAYS WORKED", "PAY FROM", "MUBARAK REMARK", "OFFICE REMARK",
+    "SN", "DAYS WORKED", "MUBARAK REMARK",
     "LAST WORKING DAY", "RELEASE DATE", "RELEASED DATE", 
     "REPLACED DATE", "REPLACEDATE", "REPLACED NEW VEHICLE",
-    "DRIVER STATUS REMARK", "OD WRK END", "OLD DRIVER NAME", "OD MOB"
+    "DRIVER STATUS REMARK", "OD WRK END", "OLD DRIVER NAME", "OD MOB",
+    "INFORMATION RECEIVED BY", "INFORMATIONRECEIVEDBY",
+    "LAST LOG SHEET AVAILABLE ON", "LASTLOGSHEETAVAILABLEON"
   ];
 
-  const priorityOrder = [
-    "SN", "WORK START", "PLATE NUMBER", "PLATE NO", "EQUIPMENT REACHED AT SITE",
-    "TYPE OF VEHICLE", "RATE", "SITE", "IF SUB", "COMPANY", "CUSTOMER",
-    "STATUS", "STATUS REMARK", "LAST WORKING DAY", "RELEASE DATE", "REPLACED DATE", 
-    "REPLACED NEW VEHICLE", "OLD VEHICLE", "OWNER NAME", "OWNER", "OWNER NUMBER", 
-    "MOBILE (OWNER)", "VAT BILL OR NOT", "VAT BILL STATUS", "DRIVER NAME", "MOBILE", 
-    "MOBILE (DRIVER)", "OLD DRIVER NAME", "OD MOB",
-    "IQAMA NUMBER", "IQAMA EXPIRE DATE", "IQAMA EXPIRE", "LICENSE EXPIRE DATE", 
-    "LICENSE EXPIRE", "LICENCE EXPIRE DATE", "LICENCE EXPIRE", 
-    "EQ INSURANSE EXPIRE DATE", "EQ INSURAN", "FAHS MVPI EXPIRE", "FAHS MVPI", 
-    "IQAMA NOTE", "LICENCE NOTE", "LICENSE NOTE", "NATIONALITY", 
-    "CHASIS NO.", "CHASIS NO", "MODEL", "DAYS WORKED", "DRIVER STATUS REMARK"
+  // നോർമലൈസേഷൻ ഹെൽപ്പർ (Spaces, punctuations നീക്കം ചെയ്ത് താരതമ്യം ചെയ്യാൻ)
+  const normStr = (s) => String(s || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+
+  // 5 സെക്ഷനുകളിലെയും കൃത്യമായ ഫീൽഡ് ഓർഡർ
+  const section1Keys = [
+    "ASSETCODE", "EQUIPMENTREACHEDATSITE", "WORKSTART", "PLATENUMBER", "PLATENO",
+    "TYPEOFVEHICLE", "VEHICLETYPE", "RATE", "SITE", "IFSUB", "COMPANY", "CUSTOMER",
+    "STATUS", "STATUSREMARK", "OLDVEHICLE", "CHASISNO", "CHASISNO.", "SERIALNUMBER", "SERIALNO",
+    "MODEL", "ORIGINALMODEL", "EQINSURANSEEXPIREDATE", "EQINSURAN", "FAHSMVPIEXPIRE", "FAHSMVPI",
+    "EQTUVEXPIREDATE", "EQTUVEXPIRE", "REMARK"
   ];
 
+  const section2Keys = [
+    "OWNER", "OWNERNAME", "OWNERNUMBER", "MOBILEOWNER", "MOBILENUMBEROWNER",
+    "VATBILLORNOT", "VATBILLSTATUS"
+  ];
+
+  const section3Keys = [
+    "DRIVERNAME", "MOBILE", "MOBILES", "NATIONALITY", "IQAMANUMBER", "IQAMANO",
+    "IQAMAEXPIREDATE", "IQAMAEXPIRE", "LICENSEEXPIREDATE", "LICENCEEXPIREDATE",
+    "LICENSEEXPIRE", "LICENCEEXPIRE", "OPERATORTUVEXPIREDATE", "OPERATORTUVEXPIRE",
+    "IQAMANOTE", "LICENCENOTE", "LICENSENOTE"
+  ];
+
+  const section4Keys = [
+    "FIELDCOORDINATOR", "FIELDCO", "SITECOORDINATOR", "SITECO", "REMARKS"
+  ];
+
+  // ഹെഡർ ഇൻപുട്ട് ജനറേഷൻ
   let generatedHtmlMap = {};
-  let remainingHeaders = [];
-
   cachedHeaders.forEach((header, index) => {
     let colTypeObj = cachedColTypes.find((c) => c.name === header),
       cType = colTypeObj ? colTypeObj.type : "varchar",
-      colUpper = header.replace(/\s+/g, " ").trim().toUpperCase();
+      colUpper = header.replace(/\s+/g, " ").trim().toUpperCase(),
+      norm = normStr(header);
 
-    if (excludedCols.includes(colUpper)) return;
+    if (excludedCols.some((exc) => normStr(exc) === norm)) return;
 
     let isDateCol =
         cType === "date" ||
@@ -2946,7 +2988,6 @@ function openAddEntryModal(dbId = null, clone = false) {
     let isSuggestionCol = suggestionTargetCols.includes(colUpper);
     let listAttr = isSuggestionCol ? `list="datalist_entry_${index}"` : "";
 
-    // Fix: Link 'Old Vehicle' to 'Plate Number' suggestions
     if (colUpper === "OLD VEHICLE") {
       let plateIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, " ").trim().toUpperCase() === "PLATE NUMBER");
       if (plateIdx !== -1) {
@@ -2974,8 +3015,6 @@ function openAddEntryModal(dbId = null, clone = false) {
       inputHtml = `<select class="modal-input entry-input company-modal-select" data-colname="${header}" onchange="handleModalCompanyChange(this)"><option value="">Select Company</option>${optionsCompHtml}</select>`;
     } else if (colUpper === "VAT BILL OR NOT") {
       inputHtml = `<select class="modal-input entry-input" data-colname="${header}"><option value="">Select Option</option><option value="Yes">Yes</option><option value="No">No</option></select>`;
-    } else if (colUpper === "SN") {
-      inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}" value="${globalNextSN}" readonly style="background-color:#f8fafc; cursor:not-allowed;">`;
     } else if (
       colUpper === "SITE" &&
       currentUser.role !== "Admin" &&
@@ -2984,26 +3023,10 @@ function openAddEntryModal(dbId = null, clone = false) {
       inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}" value="${currentUser.site}" readonly style="background-color:#f8fafc; cursor:not-allowed;">`;
     }
 
-    generatedHtmlMap[colUpper] = `<div class="form-group"><label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#334155; font-size:12px;">${header}</label>${inputHtml}</div>`;
-    remainingHeaders.push({ original: header, upper: colUpper });
+    generatedHtmlMap[norm] = `<div class="form-group"><label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#334155; font-size:12px;">${header}</label>${inputHtml}</div>`;
   });
 
-  let finalHtml = "";
-  // 1. Process items that match the priority order
-  priorityOrder.forEach(priorityCol => {
-    let matchingIndex = remainingHeaders.findIndex(h => h.upper === priorityCol);
-    if (matchingIndex !== -1) {
-      finalHtml += generatedHtmlMap[priorityCol];
-      remainingHeaders.splice(matchingIndex, 1);
-    }
-  });
-
-  // 2. Append any remaining fields that were not in the priority list
-  remainingHeaders.forEach(h => {
-    finalHtml += generatedHtmlMap[h.upper];
-  });
-
-  // 🟢 Dynamic Status Fields (Status field-nte thottu aduthu thanne flow aavaan ulla single definition)
+  // Dynamic Status Fields (Status field-ന് സമീപം കാണിക്കാൻ)
   const statusDynamicBlock = `
     <div class="form-group dyn-status-field" id="group_dyn_lwd" style="display: none;">
       <label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#0284c7; font-size:12px;">Last Working Day <span style="color:#ef4444;">*</span></label>
@@ -3021,17 +3044,65 @@ function openAddEntryModal(dbId = null, clone = false) {
       <label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#0284c7; font-size:12px;">Replaced New Vehicle</label>
       <input type="text" class="modal-input entry-input uppercase-input" data-colname="REPLACED NEW VEHICLE" id="dyn_input_repveh" placeholder="e.g. 5678 BCD">
     </div>
+    <div class="form-group dyn-status-field" id="group_dyn_info_received" style="display: none;">
+      <label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#0284c7; font-size:12px;">Information Received By</label>
+      <input type="text" class="modal-input entry-input" data-colname="INFORMATION RECEIVED BY" id="dyn_input_inforeceived" placeholder="Received by...">
+    </div>
   `;
 
-  $("#dynamicFormFields").append(finalHtml);
+  let usedNorms = new Set();
+  const buildSectionHtml = (targetKeys, includeStatusDyn = false) => {
+    let html = "";
+    targetKeys.forEach((k) => {
+      let matchedNorm = Object.keys(generatedHtmlMap).find((n) => n === k && !usedNorms.has(n));
+      if (matchedNorm) {
+        html += generatedHtmlMap[matchedNorm];
+        usedNorms.add(matchedNorm);
+        if (includeStatusDyn && matchedNorm === "STATUS") {
+          html += statusDynamicBlock;
+        }
+      }
+    });
+    return html;
+  };
 
-  // 🟢 STATUS field kandupidichu athinte thottu aduthu thanne insert cheyyunnu
-  const $statusWrapper =$(".entry-input[data-colname='STATUS'], .entry-input[data-colname='Status']").closest(".form-group");
-  if ($statusWrapper.length) {
-    $(statusDynamicBlock).insertAfter($statusWrapper);
-  } else {
-    $("#dynamicFormFields").append(statusDynamicBlock);
-  }
+  let sec1Html = buildSectionHtml(section1Keys, true);
+  let sec2Html = buildSectionHtml(section2Keys);
+  let sec3Html = buildSectionHtml(section3Keys);
+  let sec4Html = buildSectionHtml(section4Keys);
+
+  // Others കാറ്റഗറി: ബാക്കി വന്ന എല്ലാ ഫീൽഡുകളും ഇതിൽ ചേർക്കുന്നു
+  let sec5Html = "";
+  Object.keys(generatedHtmlMap).forEach((norm) => {
+    if (!usedNorms.has(norm)) {
+      sec5Html += generatedHtmlMap[norm];
+      usedNorms.add(norm);
+    }
+  });
+
+  const wrapSection = (title, icon, content) => {
+    if (!content || content.trim() === "") return "";
+    return `
+      <div class="entry-section-container">
+        <div class="entry-section-header">
+          <span class="material-icons" style="font-size: 16px;">${icon}</span>
+          <span>${title}</span>
+        </div>
+        <div class="entry-section-grid">
+          ${content}
+        </div>
+      </div>
+    `;
+  };
+
+  let fullFormHtml = "";
+  fullFormHtml += wrapSection("1. Vehicle & Company Info", "directions_car", sec1Html);
+  fullFormHtml += wrapSection("2. Owner Info", "badge", sec2Html);
+  fullFormHtml += wrapSection("3. Driver Info", "person", sec3Html);
+  fullFormHtml += wrapSection("4. Co-Ordinators Info", "support_agent", sec4Html);
+  fullFormHtml += wrapSection("5. Others", "more_horiz", sec5Html);
+
+  $("#dynamicFormFields").append(fullFormHtml);
 
   // 🟢 Status select cheyyumbol inline aayi flow cheyyunna toggle function
   function updateModalStatusToggle(statusVal) {
@@ -3040,22 +3111,32 @@ function openAddEntryModal(dbId = null, clone = false) {
     const grpRel = $("#group_dyn_rel_date");
     const grpRep = $("#group_dyn_rep_date");
     const grpRepVeh = $("#group_dyn_rep_veh");
+    const grpInfoRec = $("#group_dyn_info_received");
 
     if (s === "released") {
       grpLwd.show();
       grpRel.show();
       grpRep.hide();
       grpRepVeh.hide();
+      grpInfoRec.show();
     } else if (s === "replaced") {
       grpLwd.show();
       grpRel.hide();
       grpRep.show();
       grpRepVeh.show();
+      grpInfoRec.show();
+    } else if (s === "ideal") {
+      grpLwd.hide();
+      grpRel.hide();
+      grpRep.hide();
+      grpRepVeh.hide();
+      grpInfoRec.show();
     } else {
       grpLwd.hide();
       grpRel.hide();
       grpRep.hide();
       grpRepVeh.hide();
+      grpInfoRec.hide();
     }
   }
 
@@ -3097,7 +3178,8 @@ function openAddEntryModal(dbId = null, clone = false) {
       "ODMOB",
       "DRIVERSTATUSREMARK",
       "WORKSTART",
-      "EQUIPMENTREACHEDATSITE"
+      "EQUIPMENTREACHEDATSITE",
+      "INFORMATIONRECEIVEDBY"
     ];
 
     $(".entry-input").each(function () {

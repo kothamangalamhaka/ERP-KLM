@@ -684,19 +684,20 @@ td.sn-column {
    ----------------------------- */
 .top-ribbon {
   display: flex;
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   padding-bottom: 8px;
   margin-bottom: 8px;
   border-bottom: 1px solid var(--border-color);
-  gap: 10px;
+  gap: 8px;
+  width: 100%;
 }
 
 .dt-buttons {
   display: flex;
   gap: 5px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .dt-button {
@@ -735,8 +736,9 @@ td.sn-column {
 .right-controls {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 8px;
   white-space: nowrap;
+  margin-left: auto;
 }
 
 .dataTables_length,
@@ -748,8 +750,14 @@ td.sn-column {
   color: #64748b;
 }
 
+.dataTables_paginate {
+  display: flex;
+  align-items: center;
+}
+
 .dataTables_paginate .paginate_button {
-  padding: 2px 8px !important;
+  padding: 2px 6px !important;
+  font-size: 11px !important;
   border-radius: 4px;
   margin-left: 2px;
   border: 1px solid transparent;
@@ -1031,6 +1039,74 @@ body.dark-mode table.dataTable.bulk-edit-grid-active tbody td:hover {
   font-weight: 600;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   z-index: 9999;
+}
+
+/* -----------------------------
+   ENTRY MODAL SECTION STYLES
+   ----------------------------- */
+.entry-section-container {
+  margin-bottom: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px 14px 16px;
+  transition: all 0.2s ease;
+}
+
+body.dark-mode .entry-section-container {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.entry-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed #cbd5e1;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+body.dark-mode .entry-section-header {
+  border-bottom-color: #475569;
+  color: #38bdf8;
+}
+
+/* Dark mode-il labels-inu light green color */
+body.dark-mode .entry-section-container .form-label,
+body.dark-mode #dynamicFormFields .form-label {
+  color: #4ade80 !important;
+}
+
+/* Dark mode-il SN badge styling */
+body.dark-mode #entryModalSnBadge {
+  background: rgba(14, 165, 233, 0.2) !important;
+  color: #38bdf8 !important;
+  border-color: #0369a1 !important;
+}
+
+.entry-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+/* Chrome, Safari, Edge, Opera: number input arrows hide cheyyal */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+/* Firefox: number input arrows hide cheyyal */
+input[type="number"] {
+  appearance: textfield !important;
+  -moz-appearance: textfield !important;
 }
 
 /* -----------------------------

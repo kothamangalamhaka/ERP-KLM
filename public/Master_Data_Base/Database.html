@@ -691,24 +691,48 @@
         class="modal-box"
         style="
           min-width: 800px;
-          width: 90vw;
-          max-height: 85vh;
+          width: 92vw;
+          height: 94vh;
+          max-height: 94vh;
           display: flex;
           flex-direction: column;
-          padding: 30px;
+          padding: 20px 28px;
         "
       >
-        <h3>Create New Entry</h3>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+          "
+        >
+          <h3 id="entryModalTitle" style="margin: 0; font-size: 18px; font-weight: 700;">Create New Entry</h3>
+          <span
+            id="entryModalSnBadge"
+            style="
+              background: #e0f2fe;
+              color: #0284c7;
+              padding: 5px 14px;
+              border-radius: 20px;
+              font-weight: 700;
+              font-size: 13px;
+              border: 1px solid #bae6fd;
+              letter-spacing: 0.5px;
+            "
+            >SN :: -</span
+          >
+        </div>
+        <input type="hidden" class="entry-input" data-colname="SN" id="entryModalSnInput" />
         <div
           id="dynamicFormFields"
           style="
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 16px;
             overflow-y: auto;
             flex-grow: 1;
-            padding-right: 10px;
-            margin-bottom: 20px;
+            padding-right: 8px;
+            margin-bottom: 16px;
           "
         ></div>
         <div

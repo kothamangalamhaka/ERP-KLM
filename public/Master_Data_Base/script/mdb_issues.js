@@ -33,6 +33,8 @@ let isWorkStartEditing = false;
 let pendingWorkStartEdits = new Map();
 let isPlateOwnerEditing = false;
 let pendingPlateOwnerEdits = new Map();
+let isOwnerMobileEditing = false;
+let pendingOwnerMobileEdits = new Map();
 const tableExcelFilters = new Map();
 const tableSorts = new Map();
 const EXPIRY_EXPORT_SCOPES = {
@@ -513,14 +515,22 @@ function buildOwnerMobileConflicts(groups) {
     });
     if (mobiles.size < 2) return;
 
+    const reviewRecord = rows.find((row) => row.reviews.owner_mobile_conflict);
+    const record = reviewRecord || rows.reduce((first, row) => (row.id < first.id ? row : first));
+    const review = reviewRecord?.reviews.owner_mobile_conflict || {};
+
     output.push({
+      recordId: record.id,
       owner: rows[0].owner,
+      review,
+      cleared: review.cleared === true,
       mobiles: [...mobiles.values()].sort((a, b) =>
         normalizeMobile(a).localeCompare(normalizeMobile(b)),
       ),
     });
   });
   return output.sort((a, b) =>
+    Number(a.cleared) - Number(b.cleared) ||
     normalizeName(a.owner).localeCompare(normalizeName(b.owner)),
   );
 }
@@ -529,7 +539,7 @@ function getOpenOwnerIssueCount(issues) {
   return (
     issues.byPlate.filter((row) => !row.cleared).length +
     issues.byMobile.length +
-    issues.byOwner.length
+    issues.byOwner.filter((row) => !row.cleared).length
   );
 }
 
@@ -850,14 +860,27 @@ function renderOwnerIssues(issues) {
     1,
     ...issues.byOwner.map((row) => row.mobiles.length),
   );
-  const plateOwnerColumns = Array.from(
-    { length: plateOwnerColumnCount },
-    (_, index) => ({
+  const plateOwnerColumns = [];
+  for (let index = 0; index < plateOwnerColumnCount; index++) {
+    plateOwnerColumns.push({
       label: `Owner Name ${index + 1}`,
-      value: (row) => ownerDetailText(row.owners[index]),
-      render: (row) => ownerDetailMarkup(row.owners[index]),
-    }),
-  );
+      value: (row) => row.owners[index]?.name || "",
+      render: (row) => escapeHtml(row.owners[index]?.name || ""),
+    });
+    plateOwnerColumns.push({
+      label: `Site Name ${index + 1}`,
+      cellClass: () => "site-cell-gray",
+      value: (row) => {
+        const sites = row.owners[index]?.sites.map((s) => s.name).filter(Boolean) || [];
+        return sites.map((s, idx) => `${idx + 1}. ${s}`).join("\n");
+      },
+      render: (row) => {
+        const sites = row.owners[index]?.sites.map((s) => s.name).filter(Boolean) || [];
+        if (sites.length === 0) return "-";
+        return `<div class="site-number-list">${sites.map((s, idx) => `<div>${idx + 1}. ${escapeHtml(s)}</div>`).join("")}</div>`;
+      },
+    });
+  }
   const mobileOwnerColumns = Array.from(
     { length: mobileOwnerColumnCount },
     (_, index) => ({
@@ -892,7 +915,7 @@ function renderOwnerIssues(issues) {
         render: (row) => {
           const pending = pendingPlateOwnerEdits.get(row.recordId);
           const isCleared = pending !== undefined ? pending.cleared : row.cleared;
-          return `<input class="review-checkbox" type="checkbox" ${isCleared ? "checked" : ""} ${canEdit && isPlateOwnerEditing ? "" : "disabled"} aria-label="Mark owner conflict cleared" onchange="onPlateOwnerFieldChange(${row.recordId}, this.checked, this.closest('tr').querySelector('.review-remark').value)" />`;
+          return `<input class="review-checkbox" type="checkbox" ${isCleared ? "checked" : ""} ${canEdit && isPlateOwnerEditing ? "" : "disabled"} aria-label="Mark owner conflict cleared" onchange="onPlateOwnerFieldChange(${row.recordId}, this.checked, this.closest('tr').querySelector('.review-remark')?.value ?? '${escapeHtml(row.review.remark || '')}')" />`;
         },
       },
       {
@@ -904,7 +927,12 @@ function renderOwnerIssues(issues) {
         render: (row) => {
           const pending = pendingPlateOwnerEdits.get(row.recordId);
           const remarkVal = (pending !== undefined ? pending.remark : row.review.remark) || "";
-          return `<textarea class="review-remark" maxlength="2000" placeholder="Owner change reason…" ${canEdit && isPlateOwnerEditing ? "" : "disabled"} oninput="onPlateOwnerFieldChange(${row.recordId}, this.closest('tr').querySelector('.review-checkbox').checked, this.value)">${escapeHtml(remarkVal)}</textarea>`;
+          if (!isPlateOwnerEditing) {
+            return remarkVal
+              ? `<span class="inline-remark-display">${escapeHtml(remarkVal)}</span>`
+              : `<span class="inline-remark-empty">-</span>`;
+          }
+          return `<textarea class="review-remark inline-remark-input" maxlength="2000" rows="1" placeholder="Owner change reason…" oninput="onPlateOwnerFieldChange(${row.recordId}, this.closest('tr').querySelector('.review-checkbox').checked, this.value)">${escapeHtml(remarkVal)}</textarea>`;
         },
       },
     ],
@@ -927,13 +955,48 @@ function renderOwnerIssues(issues) {
     title: "Same Owner · Different Mobile",
     subtitle:
       "Each owner name is shown once with all of its different mobile numbers.",
-    columns: [textColumn("Owner Name", "owner"), ...ownerMobileColumns],
+    columns: [
+      textColumn("Owner Name", "owner"),
+      ...ownerMobileColumns,
+      {
+        label: "Check",
+        value: (row) => {
+          const pending = pendingOwnerMobileEdits.get(row.recordId);
+          const isCleared = pending !== undefined ? pending.cleared : row.cleared;
+          return isCleared ? "Cleared" : "Open";
+        },
+        render: (row) => {
+          const pending = pendingOwnerMobileEdits.get(row.recordId);
+          const isCleared = pending !== undefined ? pending.cleared : row.cleared;
+          return `<input class="review-checkbox" type="checkbox" ${isCleared ? "checked" : ""} ${canEdit && isOwnerMobileEditing ? "" : "disabled"} aria-label="Mark owner mobile conflict cleared" onchange="onOwnerMobileFieldChange(${row.recordId}, this.checked, this.closest('tr').querySelector('.review-remark')?.value ?? '${escapeHtml(row.review.remark || '')}')" />`;
+        },
+      },
+      {
+        label: "Remark",
+        value: (row) => {
+          const pending = pendingOwnerMobileEdits.get(row.recordId);
+          return (pending !== undefined ? pending.remark : row.review.remark) || "";
+        },
+        render: (row) => {
+          const pending = pendingOwnerMobileEdits.get(row.recordId);
+          const remarkVal = (pending !== undefined ? pending.remark : row.review.remark) || "";
+          if (!isOwnerMobileEditing) {
+            return remarkVal
+              ? `<span class="inline-remark-display">${escapeHtml(remarkVal)}</span>`
+              : `<span class="inline-remark-empty">-</span>`;
+          }
+          return `<textarea class="review-remark inline-remark-input" maxlength="2000" rows="1" placeholder="Mobile review remark…" oninput="onOwnerMobileFieldChange(${row.recordId}, this.closest('tr').querySelector('.review-checkbox').checked, this.value)">${escapeHtml(remarkVal)}</textarea>`;
+        },
+      },
+    ],
     rows: issues.byOwner,
+    rowClass: (row) => (row.cleared ? "review-cleared" : ""),
+    customActionsHtml: canEdit ? getOwnerMobileActionButtonsHtml() : "",
   });
 
-  setCount("countPlateOwner", issues.byPlate.length);
+  setCount("countPlateOwner", issues.byPlate.filter((row) => !row.cleared).length);
   setCount("countMobileOwner", issues.byMobile.length);
-  setCount("countOwnerMobile", issues.byOwner.length);
+  setCount("countOwnerMobile", issues.byOwner.filter((row) => !row.cleared).length);
 
   applyTableExcelFilters("plate-owner-issues");
   applyTableExcelFilters("mobile-owner-issues");
@@ -1783,6 +1846,76 @@ function onPlateOwnerFieldChange(recordId, cleared, remark) {
   pendingPlateOwnerEdits.set(recordId, { cleared, remark });
 }
 
+function getOwnerMobileActionButtonsHtml() {
+  if (!isOwnerMobileEditing) {
+    return `<button class="excel-export-button" type="button" onclick="startOwnerMobileEdit()" title="Edit Owner Mobile Issues">✏️</button>`;
+  }
+  return `
+    <button class="excel-export-button" type="button" onclick="saveAllOwnerMobileEdits()" title="Save all changes">💾</button>
+    <button class="excel-export-button" type="button" onclick="cancelOwnerMobileEdit()" title="Cancel changes">❌</button>
+  `;
+}
+
+function startOwnerMobileEdit() {
+  isOwnerMobileEditing = true;
+  pendingOwnerMobileEdits.clear();
+  renderOwnerIssues(buildOwnerIssues());
+}
+
+function cancelOwnerMobileEdit() {
+  isOwnerMobileEditing = false;
+  pendingOwnerMobileEdits.clear();
+  renderOwnerIssues(buildOwnerIssues());
+  showToast("Edit cancelled.");
+}
+
+function onOwnerMobileFieldChange(recordId, cleared, remark) {
+  pendingOwnerMobileEdits.set(recordId, { cleared, remark });
+}
+
+async function saveAllOwnerMobileEdits() {
+  if (pendingOwnerMobileEdits.size === 0) {
+    isOwnerMobileEditing = false;
+    renderOwnerIssues(buildOwnerIssues());
+    showToast("No changes to save.");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    for (const [recordId, editData] of pendingOwnerMobileEdits.entries()) {
+      const response = await fetch("/api/mdb-issues/review", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${issueToken}`,
+        },
+        body: JSON.stringify({
+          recordId,
+          issueKey: "owner_mobile_conflict",
+          cleared: editData.cleared,
+          remark: editData.remark,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        const record = issueRecords.find((item) => item.id === recordId);
+        if (record) record.reviews.owner_mobile_conflict = data.review;
+      }
+    }
+    isOwnerMobileEditing = false;
+    pendingOwnerMobileEdits.clear();
+    const ownerIssues = buildOwnerIssues();
+    renderOwnerIssues(ownerIssues);
+    setCount("ownerCount", getOpenOwnerIssueCount(ownerIssues));
+    showToast("Owner mobile changes saved successfully.");
+  } catch (error) {
+    showToast(error.message || "Failed to save changes.", true);
+  } finally {
+    setLoading(false);
+  }
+}
+
 async function saveAllPlateOwnerEdits() {
   if (pendingPlateOwnerEdits.size === 0) {
     isPlateOwnerEditing = false;
@@ -2186,6 +2319,16 @@ function getExcelExportCellTheme(className, isCleared) {
       font: { color: { argb: "FF14532D" } },
     };
   }
+  if (/site-cell-gray/.test(classes)) {
+    return {
+      fill: {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF1F5F9" },
+      },
+      font: { color: { argb: "FF334155" }, bold: false },
+    };
+  }
   return null;
 }
 
@@ -2200,19 +2343,40 @@ function downloadIssueTablePdf(tableId) {
   }
 
   const table = card.querySelector("table");
-  const headers = [...table.querySelectorAll("thead th")].map(
+  const allHeaders = [...table.querySelectorAll("thead th")].map(
     (cell) =>
       cell.querySelector(".table-header-content > span")?.innerText.trim() ||
       cell.innerText.trim(),
   );
+
+  // PDF-ൽ ഒഴിവാക്കേണ്ട കോളങ്ങൾ (Check, Remarks മുതലായവ)
+  const excludedPdfColumns = new Set([
+    "CHECK",
+    "OWNER CHANGE REMARK",
+    "CHECK DATA REMARK",
+    "REMARK",
+  ]);
+
+  const activeIndices = [];
+  const headers = [];
+  allHeaders.forEach((h, idx) => {
+    if (!excludedPdfColumns.has(h.trim().toUpperCase())) {
+      activeIndices.push(idx);
+      headers.push(h);
+    }
+  });
+
   const rowElements = [...table.querySelectorAll("tbody .data-row")].filter(
     (row) => row.style.display !== "none",
   );
   const rows = rowElements.map((row) =>
-    [...row.cells].map((cell) => ({
-      text: cell.dataset.filterValue || cell.innerText.trim(),
-      className: cell.className,
-    })),
+    activeIndices.map((idx) => {
+      const cell = row.cells[idx];
+      return {
+        text: cell ? (cell.dataset.filterValue || cell.innerText.trim()) : "",
+        className: cell ? cell.className : "",
+      };
+    }),
   );
   if (rows.length === 0) {
     showToast("No visible rows to export.", true);

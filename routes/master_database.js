@@ -389,17 +389,6 @@ module.exports = function (pool, middlewares, helpers) {
   // 🚀 API ROUTES (Memory-Optimized)
   // ==========================================
 
-  pool
-    .query(
-      `
-    CREATE TABLE IF NOT EXISTS active_users (
-      username VARCHAR PRIMARY KEY,
-      last_seen TIMESTAMP
-    )
-  `,
-    )
-    .catch((err) => console.error("Failed to create active_users table:", err));
-
 // 🟢 NEW CODE: Add Column 
   router.post("/add-column", verifyToken, async (req, res) => {
     try {
@@ -684,7 +673,7 @@ module.exports = function (pool, middlewares, helpers) {
 
       const recordId = Number.parseInt(req.body.recordId, 10);
       const issueKey = String(req.body.issueKey || "").trim();
-       const allowedIssueKeys = new Set(["work_start_gap", "plate_owner_conflict"]);
+      const allowedIssueKeys = new Set(["work_start_gap", "plate_owner_conflict", "owner_mobile_conflict"]);
       const remark = String(req.body.remark || "").trim().slice(0, 2000);
       const review = {
         cleared: Boolean(req.body.cleared),
