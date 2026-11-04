@@ -267,7 +267,7 @@
 
       .btn-log-window {
         position: absolute;
-        top: 10mm;
+        top: 3mm;
         right: 12mm;
         background: #8b5cf6;
         color: white;
@@ -745,6 +745,8 @@
             <option value="Asset Code">Asset Code</option>
             <option value="Site Name">Site Name</option>
             <option value="Bulk Mode">Bulk Mode</option>
+            <option value="Plate Range">Month Range (Plate No)</option>
+            <option value="Asset Range">Month Range (Asset Code)</option>
           </select>
         </div>
 
@@ -772,6 +774,14 @@
             placeholder="Plate1, Plate2..."
             style="display: none; height: 35px; resize: none"
           ></textarea>
+        </div>
+
+        <div class="form-group" id="rangeEndGroup" style="display: none; width: 210px">
+          <label>End Month / Year</label>
+          <div style="display: flex; gap: 6px">
+            <select id="rangeEndMonth" style="flex: 1"></select>
+            <input type="number" id="rangeEndYear" style="width: 70px" />
+          </div>
         </div>
 
         <div
@@ -966,6 +976,17 @@
         "December",
       ];
       document.getElementById("selMonth").value = months[dDate.getMonth()];
+      (function initRangeEnd() {
+        const endSel = document.getElementById("rangeEndMonth");
+        months.forEach((mn) => {
+          const o = document.createElement("option");
+          o.value = mn;
+          o.textContent = mn;
+          endSel.appendChild(o);
+        });
+        endSel.value = months[dDate.getMonth()];
+        document.getElementById("rangeEndYear").value = dDate.getFullYear();
+      })();
 
       function cleanSiteNameDisplay(siteStr) {
         if (!siteStr || siteStr === "N/A" || siteStr === "-") return siteStr || "N/A";
@@ -1046,6 +1067,7 @@
         sugg.style.display = "none";
         multiSite.style.display = "none";
         secGroup.style.display = "none";
+        document.getElementById("rangeEndGroup").style.display = "none";
         inp.value = "";
         selectedSites = [];
         selectedSecondarySites = [];
@@ -1069,8 +1091,12 @@
             inp.style.display = "block";
             txtArea.style.display = "none";
             inp.readOnly = false;
-            inp.placeholder = `Type ${type}...`;
+            inp.placeholder = `Type ${type === "Plate Range" ? "Plate No" : type === "Asset Range" ? "Asset Code" : type}...`;
             if (type === "Owner Name") secGroup.style.display = "flex";
+            if (type === "Plate Range" || type === "Asset Range") {
+              lbl.innerText = type === "Plate Range" ? "Plate No" : "Asset Code";
+              document.getElementById("rangeEndGroup").style.display = "flex";
+            }
           }
         }
       }
@@ -1093,7 +1119,7 @@
           const curM = document.getElementById("selMonth").value;
           const curY = document.getElementById("selYear").value;
 
-          if (type === "Plate No") {
+          if (type === "Plate No" || type === "Plate Range") {
             let plateSet = new Set();
             dbVehicles.forEach((v) => {
               if (v.plate_no) {
@@ -1114,7 +1140,7 @@
             matches = [...new Set(dbVehicles.map((v) => v.owner_name))].filter(
               Boolean,
             );
-          else if (type === "Asset Code")
+          else if (type === "Asset Code" || type === "Asset Range")
             matches = [...new Set(dbVehicles.map((v) => v.asset_code))].filter(
               Boolean,
             );
@@ -1397,11 +1423,85 @@
         return "ACTIVE";
       }
 
+      async function generatePlateRangeReport() {
+        const rangeType = document.getElementById("filterType").value;
+        const apiType = rangeType === "Asset Range" ? "Asset Code" : "Plate No";
+        const plate = document.getElementById("filterVal").value.trim();
+        if (!plate) return alert(`Please enter a ${apiType}.`);
+        const startIdx =
+          parseInt(document.getElementById("selYear").value) * 12 +
+          months.indexOf(document.getElementById("selMonth").value);
+        const endIdx =
+          parseInt(document.getElementById("rangeEndYear").value) * 12 +
+          months.indexOf(document.getElementById("rangeEndMonth").value);
+        if (endIdx < startIdx)
+          return alert("End month must be after start month.");
+        if (endIdx - startIdx > 23) return alert("Maximum 24 months allowed.");
+
+        document.getElementById("filterSuggestions").style.display = "none";
+        const btn = document.getElementById("btnGen");
+        const loader = document.getElementById("genLoader");
+        const area = document.getElementById("reportArea");
+        btn.disabled = true;
+        loader.style.display = "inline-block";
+        if (document.body.classList.contains("split-active"))
+          closeSplitLogsheet();
+
+        try {
+          await ensureSpecialRules();
+          let allCardsHTML = "";
+          for (let k = startIdx; k <= endIdx; k++) {
+            const y = Math.floor(k / 12);
+            const m = months[k % 12];
+            area.innerHTML = `<div style="color:#64748b; margin-top:50px;">Loading ${m} ${y}...</div>`;
+            const res = await fetch("/timesheet/api/public/view-report", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                month: m,
+                year: String(y),
+                filterType: apiType,
+                filterValue: plate,
+              }),
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+            data.vehicles.forEach((v) => {
+              const pl = v.plate_no;
+              allCardsHTML += buildCardHTML(
+                v,
+                m,
+                y,
+                data.records.filter((r) => r.plate_no === pl),
+                data.logs.drivers.filter((l) => l.plate_no === pl),
+                data.logs.sites.filter((l) => l.plate_no === pl),
+                [],
+                data.logs.plates || [],
+              );
+            });
+          }
+          if (!allCardsHTML) {
+            area.innerHTML =
+              '<div style="color: #b91c1c; margin-top: 50px; font-weight:bold;">No data found for this plate in the selected range.</div>';
+            return;
+          }
+          area.innerHTML = allCardsHTML;
+          setupScrollTracking();
+        } catch (error) {
+          area.innerHTML = `<div style="color: #b91c1c; margin-top: 50px; font-weight:bold;">Error: ${error.message}</div>`;
+        } finally {
+          btn.disabled = false;
+          loader.style.display = "none";
+        }
+      }
+
       async function generateReport() {
         const m = document.getElementById("selMonth").value;
         const y = document.getElementById("selYear").value;
         const type = document.getElementById("filterType").value;
         let val = "";
+        if (type === "Plate Range" || type === "Asset Range")
+          return generatePlateRangeReport();
 
         if (type === "Bulk Mode")
           val = document.getElementById("filterBulk").value.trim();
@@ -1786,8 +1886,8 @@
         let rawLogPlate = displayPlate.includes("➔") ? displayPlate.split("➔")[0].trim() : displayPlate;
 
         return `
-        <div class="ts-card" id="card_${vehicle.plate_no}" data-plate="${rawLogPlate}">
-            <button class="btn-log-window" onclick="toggleSplitLogsheet('${rawLogPlate}')">📁 Log Window</button>
+        <div class="ts-card" id="card_${vehicle.plate_no}_${month}_${year}" data-plate="${rawLogPlate}" data-month="${month}" data-year="${year}">
+            <button class="btn-log-window" onclick="toggleSplitLogsheet(this)">📁 Log Window</button>
             ${invoiceInfoHtml}
             <div class="ts-month-title">${month} - ${year}</div>
             
@@ -1915,7 +2015,14 @@
 
           const m = document.getElementById("selMonth").value;
           const y = document.getElementById("selYear").value;
-          pdf.save(`Timesheet_Reports_${m}_${y}.pdf`);
+          if (["Plate Range", "Asset Range"].includes(document.getElementById("filterType").value)) {
+            const pn = document.getElementById("filterVal").value.trim();
+            const em = document.getElementById("rangeEndMonth").value;
+            const ey = document.getElementById("rangeEndYear").value;
+            pdf.save(`Timesheet_${pn}_${m}${y}_to_${em}${ey}.pdf`);
+          } else {
+            pdf.save(`Timesheet_Reports_${m}_${y}.pdf`);
+          }
           
         } catch (err) {
           alert("Error generating PDF.");
@@ -1953,7 +2060,7 @@
               }
             });
             const link = document.createElement("a");
-            link.download = `Timesheet_${plateNo}_${document.getElementById("selMonth").value}.png`;
+            link.download = `Timesheet_${plateNo}_${card.dataset.month}_${card.dataset.year}.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
           } catch (e) {
@@ -2019,24 +2126,23 @@
       // ==========================================
       let cardObserver;
       let currentActivePlate = "";
+      let currentActiveKey = "";
 
-      function toggleSplitLogsheet(plateNo) {
-        // Only works well on larger screens, ignore on mobile
+      function toggleSplitLogsheet(btn) {
         if (window.innerWidth < 768) {
           alert("Log Window is available only on PC view.");
           return;
         }
+        const card = btn.closest(".ts-card");
+        const plateNo = card.dataset.plate;
+        const m = card.dataset.month;
+        const y = card.dataset.year;
 
         document.body.classList.add("split-active");
-
-        // Scroll specifically to the card that opened it
-        const card = document.getElementById(`card_${plateNo}`);
-        if (card) {
-          card.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-
-        // Load the logsheet for this plate
-        loadLogsheetPanel(plateNo);
+        currentActivePlate = plateNo;
+        currentActiveKey = `${plateNo}|${m}|${y}`;
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
+        loadLogsheetPanel(plateNo, m, y);
       }
 
       function closeSplitLogsheet() {
@@ -2044,6 +2150,7 @@
         document.getElementById("logsheetViewerContainerPanel").innerHTML =
           '<div style="text-align: center; padding: 50px; color: #64748b">Select a file from the list to view</div>';
         document.getElementById("logsheetFileListPanel").innerHTML = "";
+        currentActiveKey = "";
         currentActivePlate = "";
       }
 
@@ -2064,9 +2171,13 @@
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
               const plate = entry.target.dataset.plate;
-              if (plate && currentActivePlate !== plate) {
+              const m = entry.target.dataset.month;
+              const y = entry.target.dataset.year;
+              const key = `${plate}|${m}|${y}`;
+              if (plate && currentActiveKey !== key) {
+                currentActiveKey = key;
                 currentActivePlate = plate;
-                loadLogsheetPanel(plate);
+                loadLogsheetPanel(plate, m, y);
               }
             }
           });
@@ -2089,15 +2200,15 @@
       let isDragging = false;
       let startX, startY;
 
-      async function loadLogsheetPanel(plate) {
+      async function loadLogsheetPanel(plate, monthArg, yearArg) {
         const title = document.getElementById("logsheetTitlePanel");
         const sidebar = document.getElementById("logsheetFileListPanel");
         const viewer = document.getElementById("logsheetViewerContainerPanel");
 
-        const month = document.getElementById("selMonth").value;
-        const year = document.getElementById("selYear").value;
+        const month = monthArg || document.getElementById("selMonth").value;
+        const year = yearArg || document.getElementById("selYear").value;
 
-        title.innerText = `Logsheets - ${plate}`;
+        title.innerText = `Logsheets - ${plate} (${month} ${year})`;
         sidebar.innerHTML =
           '<div style="text-align:center; padding:20px;">Loading...</div>';
         viewer.innerHTML =

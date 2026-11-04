@@ -65,6 +65,29 @@ function setDefaultDate() {
   }
 }
 
+function changeMonth(delta) {
+  if (document.getElementById("btnGen").disabled) return;
+  const mSel = document.getElementById("selMonth");
+  const yInp = document.getElementById("selYear");
+  let idx = months.indexOf(mSel.value) + delta;
+  let yr = parseInt(yInp.value) || new Date().getFullYear();
+  if (idx < 0) {
+    idx = 11;
+    yr--;
+  } else if (idx > 11) {
+    idx = 0;
+    yr++;
+  }
+  mSel.value = months[idx];
+  yInp.value = yr;
+  setDefaultDate();
+
+  const container = document.getElementById("tableContainer");
+  if (!container.innerText.includes("Select Date Limit")) {
+    generatePendingReport();
+  }
+}
+
 function toggleSearch() {
   const input = document.getElementById("globalSearch");
   input.classList.toggle("active");
@@ -1112,81 +1135,103 @@ async function exportToPDF() {
   const m = document.getElementById("selMonth").value;
   const y = document.getElementById("selYear").value;
 
-  const container = document.createElement("div");
-  container.style.position = "absolute";
-  container.style.left = "-9999px";
-  container.style.top = "0";
-  container.style.width = "1123px"; // Standard A4 Landscape pixel width
-  container.style.padding = "25px";
-  container.style.background = "#ffffff";
-  container.style.fontFamily = "Arial, sans-serif";
+  const PAGE_W = 1123;
+  const PAGE_H = 794;
+  const PAD = 30;
+  const FOOT_H = 30;
+  const th =
+    "border:1px solid #000;padding:8px;background-color:#e67e22;color:#fff;";
+  const td = "border:1px solid #000;padding:6px;word-wrap:break-word;";
 
-  let html = `
-    <h2 style="text-align: center; color: #e67e22; margin-bottom: 20px;">Pending Logs - ${m} ${y}</h2>
-    <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;">
-        <thead>
-            <tr>
-                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: center; width: 5%;">SN</th>
-                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: left; width: 16%;">Owner Name</th>
-                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: left; width: 16%;">Driver Name</th>
-                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: left; width: 15%;">Site Name</th>
-                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: center; width: 11%;">Vehicle Type</th>
-                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: center; width: 10%;">Plate No</th>
-                <th style="border: 1px solid #000; padding: 8px; background-color: #e67e22; color: #fff; text-align: left; width: 27%;">Pending Dates</th>
-            </tr>
-        </thead>
-        <tbody>
-  `;
+  const titleHTML = `<h2 style="text-align:center;color:#e67e22;margin:0 0 15px 0;">Pending Logs - ${m} ${y}</h2>`;
+  const tableOpen = `<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">`;
+  const headHTML = `<thead><tr>
+    <th style="${th}text-align:center;width:5%;">SN</th>
+    <th style="${th}text-align:left;width:16%;">Owner Name</th>
+    <th style="${th}text-align:left;width:16%;">Driver Name</th>
+    <th style="${th}text-align:left;width:15%;">Site Name</th>
+    <th style="${th}text-align:center;width:11%;">Vehicle Type</th>
+    <th style="${th}text-align:center;width:10%;">Plate No</th>
+    <th style="${th}text-align:left;width:27%;">Pending Dates</th>
+  </tr></thead>`;
 
-  data.forEach((row) => {
-    html += `
-        <tr>
-            <td style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">${row.sn}</td>
-            <td style="border: 1px solid #000; padding: 6px; word-wrap: break-word;">${row.owner}</td>
-            <td style="border: 1px solid #000; padding: 6px; word-wrap: break-word;">${row.driver}</td>
-            <td style="border: 1px solid #000; padding: 6px; word-wrap: break-word;">${row.site}</td>
-            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${row.vehicleType}</td>
-            <td style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; white-space: nowrap;">${row.plate}</td>
-            <td style="border: 1px solid #000; padding: 6px; color: #b91c1c; word-wrap: break-word; line-height: 1.4;">${row.pendingDates}</td>
-        </tr>
-    `;
-  });
+  const rowsHTML = data.map(
+    (row) => `<tr>
+      <td style="${td}text-align:center;font-weight:bold;">${row.sn}</td>
+      <td style="${td}">${row.owner}</td>
+      <td style="${td}">${row.driver}</td>
+      <td style="${td}">${row.site}</td>
+      <td style="${td}text-align:center;">${row.vehicleType}</td>
+      <td style="${td}text-align:center;font-weight:bold;white-space:nowrap;">${row.plate}</td>
+      <td style="${td}color:#b91c1c;line-height:1.4;">${row.pendingDates}</td>
+    </tr>`,
+  );
 
-  html += `</tbody></table>`;
-  container.innerHTML = html;
-  document.body.appendChild(container);
+  const makeBox = (inner) => {
+    const box = document.createElement("div");
+    box.style.cssText = `position:absolute;left:-9999px;top:0;width:${PAGE_W}px;box-sizing:border-box;padding:${PAD}px;background:#fff;font-family:Arial,sans-serif;`;
+    box.innerHTML = inner;
+    document.body.appendChild(box);
+    return box;
+  };
 
   try {
-    const canvas = await html2canvas(container, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    // Measure row heights to paginate without cutting rows
+    const probe = makeBox(
+      titleHTML + tableOpen + headHTML + "<tbody>" + rowsHTML.join("") + "</tbody></table>",
+    );
+    const titleH = probe.querySelector("h2").offsetHeight + 15;
+    const headH = probe.querySelector("thead").offsetHeight;
+    const rowH = Array.from(probe.querySelectorAll("tbody tr")).map(
+      (r) => r.offsetHeight,
+    );
+    document.body.removeChild(probe);
+
+    const avail = PAGE_H - PAD * 2 - titleH - headH - FOOT_H;
+    const pages = [];
+    let cur = [];
+    let used = 0;
+    rowH.forEach((h, i) => {
+      if (cur.length && used + h > avail) {
+        pages.push(cur);
+        cur = [];
+        used = 0;
+      }
+      cur.push(i);
+      used += h;
+    });
+    if (cur.length) pages.push(cur);
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
 
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-    const imgHeight = (canvasHeight * pageWidth) / canvasWidth;
-
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    pdf.addImage(imgData, "JPEG", 0, position, pageWidth, imgHeight);
-    heightLeft -= pageHeight;
-
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, "JPEG", 0, position, pageWidth, imgHeight);
-      heightLeft -= pageHeight;
+    for (let p = 0; p < pages.length; p++) {
+      const body = pages[p].map((i) => rowsHTML[i]).join("");
+      const page = makeBox(
+        titleHTML +
+          tableOpen +
+          headHTML +
+          `<tbody>${body}</tbody></table>` +
+          `<div style="position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:10px;color:#64748b;">Page ${p + 1} / ${pages.length}</div>`,
+      );
+      page.style.height = PAGE_H + "px";
+      try {
+        const canvas = await html2canvas(page, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+        });
+        if (p > 0) pdf.addPage();
+        pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, 297, 210);
+      } finally {
+        document.body.removeChild(page);
+      }
     }
 
     pdf.save(`Pending_Logs_${m}_${y}.pdf`);
   } catch (err) {
     await customAlert("Error", "Failed to generate PDF: " + err.message);
   } finally {
-    document.body.removeChild(container);
     toggleLoad(false);
   }
 }
