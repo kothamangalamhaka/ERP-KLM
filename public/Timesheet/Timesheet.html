@@ -9,17 +9,12 @@
     <script src="/node_xlsx_scripts/xlsx.full.min.js"></script>
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      href="/node_xlsx_scripts/flatpickr.min.css"
     />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
-    />
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="/node_xlsx_scripts/flatpickr.min.js"></script>
     <!-- Link the external CSS -->
     <link rel="stylesheet" href="style/timesheet.css" />
 
-    <!-- 🟢 SECURITY FIX: Immediate Auth Check to prevent page flashing -->
     <script>
       if (
         !localStorage.getItem("timesheetToken") ||
@@ -56,10 +51,6 @@
     <div class="container">
       <div class="welcome-section">
         <h1 id="welcomeText">Welcome back!</h1>
-        <p>
-          Select a module below to manage your Monthly Timesheet and Vehicle
-          Operations.
-        </p>
       </div>
 
       <div class="module-grid">
@@ -67,7 +58,7 @@
           <div class="module-icon">🏠</div>
           <div class="module-title">Monthly Time Sheet</div>
           <div class="module-desc">
-            View main timesheet analytics, overall metrics, and dashboard
+            View main timesheet analytics & dashboard
             insights.
           </div>
           <div class="arrow-icon">➔</div>
@@ -91,7 +82,7 @@
           <div class="module-icon">🗄️</div>
           <div class="module-title">Time Sheet Database</div>
           <div class="module-desc">
-            Manage vehicles, site allocation logs, driver assignments, and Excel
+            Manage vehicles site allocation logs, driver Logs, and Excel
             Sync.
           </div>
           <div class="arrow-icon">➔</div>
@@ -106,8 +97,7 @@
           <div class="module-icon">📝</div>
           <div class="module-title">Live Grid Entry</div>
           <div class="module-desc">
-            Enter daily working hours, fuel, distance, and manage operational
-            records.
+            Daily Working Hours, Fuel, Distance & Manage Operational Records.
           </div>
           <div class="arrow-icon">➔</div>
         </a>
@@ -137,10 +127,9 @@
 
         <a href="../invoice_data/report.html" class="module-card card-report">
           <div class="module-icon">📊</div>
-          <div class="module-title">Invoice & Payment</div>
+          <div class="module-title">Invoice Reports</div>
           <div class="module-desc">
-            View and Analyze Invoice Data, TimeSheet Data & Vendor Bill Summary
-            - In One Place.
+            View and Analyze Invoice, TimeSheet & Vendor Bill 
           </div>
           <div class="arrow-icon">➔</div>
         </a>
@@ -152,17 +141,16 @@
           <div class="module-icon">📩</div>
           <div class="module-title">Download Invoices</div>
           <div class="module-desc">
-            Download daily invoices as individual PDFs, ZIP archives, or
-            synchronized bill numbers.
+            Download invoices with synchronized bill numbers.
           </div>
           <div class="arrow-icon">➔</div>
         </a>
 
         <a href="../Billing/" class="module-card card-vendor" id="cardVendor">
           <div class="module-icon">🧾</div>
-          <div class="module-title">Vendor Bill Summary Generator</div>
+          <div class="module-title">Vendor Bill Generator</div>
           <div class="module-desc">
-            Monthly summary of vendor bills based on timesheet data & invoice
+            Monthly Vendor Bills Based on Timesheet & invoices
           </div>
           <div class="arrow-icon">➔</div>
         </a>
@@ -175,7 +163,7 @@
           <div class="module-icon">🚛</div>
           <div class="module-title">Own EQ Tracker</div>
           <div class="module-desc">
-            Track maintenance costs, operational expenses, and total revenue.
+            Track Overall Costs, Expenses & Revenue.
           </div>
           <div class="arrow-icon">➔</div>
         </a>
