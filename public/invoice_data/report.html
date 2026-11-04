@@ -833,6 +833,13 @@
         color: var(--primary);
         text-decoration: underline;
       }
+      .live-sync-pulse {
+        animation: liveSyncFlash 1.5s ease-out;
+      }
+      @keyframes liveSyncFlash {
+        0% { background-color: rgba(16, 185, 129, 0.45); }
+        100% { background-color: transparent; }
+      }
 
       .th-gen {
         background-color: #1e293b;
@@ -2877,8 +2884,26 @@
           const data = await res.json();
           if (data.success) {
             localStorage.setItem("invoiceToken", data.token);
-            localStorage.setItem("timesheetToken", data.token); // maintain backwards compatibility in this file
+            // Timesheet auth sync: fallback to invoiceToken or session token
+            localStorage.setItem("timesheetToken", data.timesheetToken || data.token);
+            
+            // Try fetching valid timesheet session token if available
+            try {
+              const tsRes = await fetch("/timesheet/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+              });
+              const tsData = await tsRes.json();
+              if (tsData.success && tsData.token) {
+                localStorage.setItem("timesheetToken", tsData.token);
+              }
+            } catch (e) {
+              // fallback remains active
+            }
+
             loadApp();
+            initLiveSyncStream();
           } else {
             window.alert(data.message || "Invalid Credentials!");
             document.getElementById("loginPass").value = "";
@@ -2889,6 +2914,10 @@
       }
 
       function executeLogout() {
+        if (sseConnection) {
+          sseConnection.close();
+          sseConnection = null;
+        }
         localStorage.removeItem("invoiceToken");
         localStorage.removeItem("timesheetToken");
         sessionStorage.setItem("skipReportAutoFace", "1");
@@ -2931,6 +2960,7 @@
       function loadApp() {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("mainAppContainer").style.display = "block";
+        initLiveSyncStream();
 
         const dDate = new Date();
         const currentMonth = months[dDate.getMonth()];
@@ -2983,17 +3013,20 @@
       }
 
       async function ensureSpecialRules() {
+        if (specialRulesCache.length > 0) return;
         try {
-          let token = localStorage.getItem("timesheetToken") || "";
-          const srRes = await fetch("/timesheet/api/special-rules", {
+          let token = localStorage.getItem("invoiceToken") || localStorage.getItem("timesheetToken") || "";
+          const res = await fetch("/payment/special-rules-cache", {
             headers: { Authorization: "Bearer " + token },
           });
-          if (srRes.ok) {
-            const srData = await srRes.json();
-            if (srData.success) specialRulesCache = srData.data;
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+              specialRulesCache = data.data || [];
+            }
           }
         } catch (err) {
-          console.warn("Could not fetch special rules", err);
+          specialRulesCache = [];
         }
       }
 
@@ -3978,12 +4011,11 @@
                 : ""
             ).toUpperCase();
 
-            // 🟢 Reason കോളം വന്നതിനാൽ inv_no = 30, bill_no = 31
-            let inv_no = tr.cells[30]
-              ? tr.cells[30].innerText.toUpperCase()
+            let inv_no = tr.querySelector('[data-field="inv_no"]')
+              ? tr.querySelector('[data-field="inv_no"]').innerText.toUpperCase()
               : "";
-            let bill_no = tr.cells[31]
-              ? tr.cells[31].innerText.toUpperCase()
+            let bill_no = tr.querySelector('[data-field="bill_no"]')
+              ? tr.querySelector('[data-field="bill_no"]').innerText.toUpperCase()
               : "";
 
             let matchO =
@@ -4518,6 +4550,8 @@
 
           let crn_no =
             tr.querySelector('[data-field="crn_no"]')?.innerText.trim() || "";
+          let reasonTd = tr.querySelector(".deduct-reason-cell");
+          let deduct_reason = reasonTd ? reasonTd.innerText.trim() : "";
           let inv_no =
             tr.querySelector('[data-field="inv_no"]')?.innerText.trim() || "";
           let bill_no =
@@ -4543,6 +4577,8 @@
             inv_ot,
             inv_amount,
             inv_deduct,
+            deduct_reason,
+            crn_no,
             inv_no,
             bill_no,
           });
@@ -6570,9 +6606,10 @@
 
           if (data.success) {
             localStorage.setItem("invoiceToken", data.token);
-            localStorage.setItem("timesheetToken", data.token);
+            localStorage.setItem("timesheetToken", data.timesheetToken || data.token);
             closeReportFaceModal();
             loadApp();
+            initLiveSyncStream();
             showToast("Welcome " + (data.user.displayName || ""));
           } else {
             showToast(data.message || "Face recognition failed.");
@@ -6796,6 +6833,131 @@
         if (resetFaceStream) {
           resetFaceStream.getTracks().forEach((track) => track.stop());
           resetFaceStream = null;
+        }
+      }
+
+      // 🟢 Realtime SSE Connection for Multi-User Sync
+      let sseConnection = null;
+      function initLiveSyncStream() {
+        const token = localStorage.getItem("timesheetToken") || localStorage.getItem("invoiceToken") || "";
+        if (!token) return;
+
+        if (sseConnection) {
+          sseConnection.close();
+          sseConnection = null;
+        }
+
+        sseConnection = new EventSource(`/payment/events?token=${encodeURIComponent(token)}`);
+
+        sseConnection.onmessage = function (event) {
+          try {
+            const data = JSON.parse(event.data);
+            handleLiveSyncEvent(data);
+          } catch (err) {
+            console.error("SSE parse error", err);
+          }
+        };
+
+        sseConnection.onerror = function () {
+          if (sseConnection && sseConnection.readyState === EventSource.CLOSED) {
+            setTimeout(initLiveSyncStream, 5000);
+          }
+        };
+      }
+
+      function findRowElement(plate, site, month) {
+        const targetClean = cleanPlate(plate);
+        const rows = document.querySelectorAll("#reportBody tr");
+        for (let tr of rows) {
+          const rowClean = cleanPlate(tr.dataset.masterPlate || tr.dataset.plate);
+          const rSite = (tr.dataset.site || "").trim();
+          const targetSite = (site || "").trim();
+          const rPrecise = `${tr.dataset.month} ${tr.dataset.year}`.trim();
+          const targetMonth = (month || "").trim();
+
+          const siteMatches = !targetSite || rSite === targetSite || (targetSite.startsWith("Prev:") && rSite.startsWith("Prev:"));
+          const monthMatches = !targetMonth || rPrecise === targetMonth;
+
+          if (rowClean === targetClean && siteMatches && monthMatches) {
+            return tr;
+          }
+        }
+        return null;
+      }
+
+      function handleLiveSyncEvent(data) {
+        if (!data || !data.type) return;
+
+        if (data.type === "INLINE_EDITS_SAVED" && Array.isArray(data.records)) {
+          data.records.forEach((rec) => {
+            const tr = findRowElement(rec.plate, rec.site, rec.month);
+            if (!tr || tr.classList.contains("row-edited")) return; // Don't disrupt active editor
+
+            const invNrTd = tr.querySelector('[data-field="inv_nr"]');
+            const invOtTd = tr.querySelector('[data-field="inv_ot"]');
+            const invAmtTd = tr.querySelector('[data-field="inv_amount"]');
+            const invNoTd = tr.querySelector('[data-field="inv_no"]');
+            const billNoTd = tr.querySelector('[data-field="bill_no"]');
+
+            if (invNrTd && rec.inv_nr !== undefined) invNrTd.innerText = rec.inv_nr !== null ? rec.inv_nr : "";
+            if (invOtTd && rec.inv_ot !== undefined) invOtTd.innerText = rec.inv_ot !== null ? rec.inv_ot : "";
+            if (invAmtTd && rec.inv_amount !== undefined) invAmtTd.innerText = rec.inv_amount ? Number(rec.inv_amount).toFixed(2) : "";
+            if (invNoTd && rec.inv_no !== undefined) invNoTd.innerText = rec.inv_no || "";
+            if (billNoTd && rec.bill_no !== undefined) billNoTd.innerText = rec.bill_no || "";
+
+            tr.classList.add("live-sync-pulse");
+            setTimeout(() => tr.classList.remove("live-sync-pulse"), 1500);
+          });
+        } else if (data.type === "SPECIAL_EDITS_SAVED" && Array.isArray(data.records)) {
+          data.records.forEach((rec) => {
+            const tr = findRowElement(rec.plate_no, rec.site_name, rec.month);
+            if (!tr || tr.classList.contains("special-row-edited")) return;
+
+            const vbillTd = tr.querySelector(".vbill-cell");
+            const billNrTd = tr.querySelector(".bill-nr-cell");
+            const billOtTd = tr.querySelector(".bill-ot-cell");
+            const drvOtTd = tr.querySelector(".driver-ot-cell");
+            const drvAmtTd = tr.querySelector(".driver-amount-cell");
+            const dedTd = tr.querySelector(".inv-deduct-cell");
+            const reasonTd = tr.querySelector(".deduct-reason-cell");
+            const crnTd = tr.querySelector(".crn-no-cell");
+
+            if (vbillTd && rec.remark !== undefined) vbillTd.innerText = rec.remark || "-";
+            if (billNrTd && rec.bill_nr !== undefined) billNrTd.innerText = rec.bill_nr !== null ? rec.bill_nr : "";
+            if (billOtTd && rec.bill_ot !== undefined) billOtTd.innerText = rec.bill_ot !== null ? rec.bill_ot : "";
+            if (drvOtTd && rec.driver_ot !== undefined) drvOtTd.innerText = rec.driver_ot !== null ? rec.driver_ot : "";
+            if (drvAmtTd && rec.driver_amount !== undefined) drvAmtTd.innerText = rec.driver_amount !== null ? Number(rec.driver_amount).toFixed(2) : "";
+            if (dedTd && rec.inv_deduct !== undefined) dedTd.innerText = rec.inv_deduct || "";
+            if (reasonTd && rec.deduct_reason !== undefined) reasonTd.innerText = rec.deduct_reason || "";
+            if (crnTd && rec.crn_no !== undefined) crnTd.innerText = rec.crn_no || "";
+
+            tr.classList.add("live-sync-pulse");
+            setTimeout(() => tr.classList.remove("live-sync-pulse"), 1500);
+          });
+        } else if (data.type === "TEXT_NOTE_SAVED" && data.record) {
+          const rec = data.record;
+          const tr = findRowElement(rec.plate_no, rec.site_name, rec.month);
+          if (!tr) return;
+
+          if (rec.field === "diff_clear") {
+            const cb = tr.querySelector(".clear-checkbox");
+            if (cb) {
+              cb.checked = rec.value === "Yes";
+              if (rec.value === "Yes") {
+                tr.cells[15].innerText = "";
+                tr.cells[16].innerText = "";
+                tr.cells[17].innerText = "";
+              }
+            }
+          } else {
+            const td = tr.querySelector(`[data-field="${rec.field}"]`) || Array.from(tr.querySelectorAll(".editable-cell")).find(c => c.getAttribute("ondblclick")?.includes(rec.field));
+            if (td) td.innerText = rec.value || "-";
+          }
+          tr.classList.add("live-sync-pulse");
+          setTimeout(() => tr.classList.remove("live-sync-pulse"), 1500);
+        } else if (data.type === "MASTER_EDITS_SAVED") {
+          handleLiveSyncEvent({ type: "INLINE_EDITS_SAVED", records: data.invoiceRecords });
+          handleLiveSyncEvent({ type: "SPECIAL_EDITS_SAVED", records: data.billingRecords });
         }
       }
     </script>

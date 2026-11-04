@@ -69,6 +69,21 @@ async def bulk_save_invoices(payload: BulkInvoiceRequest):
         cur.close()
         conn.close()
 
+        # 🟢 Notify Node.js SSE Stream to push live sync to all browser clients
+        try:
+            import urllib.request
+            import json
+            node_port = os.getenv("PORT", "5000")
+            req_data = json.dumps({"eventType": "INLINE_EDITS_SAVED", "records": record_dicts}).encode('utf-8')
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{node_port}/payment/notify-sync",
+                data=req_data,
+                headers={"Content-Type": "application/json"}
+            )
+            urllib.request.urlopen(req, timeout=2)
+        except Exception as notify_err:
+            print("Sync notify failed:", notify_err)
+
         return {"success": True, "message": f"Successfully updated {len(record_dicts)} records via Python Engine!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -2,6 +2,54 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/db");
 
+// 🟢 Live SSE Sync Subscriptions Manager
+let reportSseClients = [];
+
+function broadcastReportSync(eventPayload) {
+  const dataString = `data: ${JSON.stringify(eventPayload)}\n\n`;
+  reportSseClients.forEach((client) => {
+    try {
+      client.res.write(dataString);
+    } catch (e) {
+      // dead client will be cleaned up on close
+    }
+  });
+}
+
+// 🟢 SSE Stream Endpoint for Realtime Dashboard
+router.get("/events", (req, res) => {
+  const token = req.query.token || req.headers["authorization"]?.replace("Bearer ", "");
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Unauthorized stream" });
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  if (typeof res.flushHeaders === "function") res.flushHeaders();
+
+  const clientId = Date.now() + Math.random().toString(36).substr(2, 5);
+  reportSseClients.push({ id: clientId, res });
+
+  // Initial connection handshake
+  res.write(`data: ${JSON.stringify({ type: "CONNECTED", clientId })}\n\n`);
+
+  // Heartbeat ping every 20 seconds
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(": ping\n\n");
+    } catch (e) {
+      clearInterval(heartbeat);
+    }
+  }, 20000);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    reportSseClients = reportSseClients.filter((c) => c.id !== clientId);
+  });
+});
+
 // 🟢 Get existing invoice data
 router.get("/get-invoice", async (req, res) => {
   try {
@@ -157,6 +205,7 @@ router.post("/save-inline-edits", async (req, res) => {
     }
 
     await client.query("COMMIT");
+    broadcastReportSync({ type: "INLINE_EDITS_SAVED", records });
     res.json({ success: true, message: "Edits saved successfully!" });
   } catch (err) {
     if (client) await client.query("ROLLBACK");
@@ -166,7 +215,28 @@ router.post("/save-inline-edits", async (req, res) => {
     if (client) client.release();
   }
 });
+
+// 🟢 Broadcast Hook for Python Bulk Save
+router.post("/notify-sync", (req, res) => {
+  const { eventType, records } = req.body;
+  if (records && Array.isArray(records)) {
+    broadcastReportSync({ type: eventType || "INLINE_EDITS_SAVED", records });
+  }
+  res.json({ success: true });
+});
  
+// 🟢 Internal Fallback for Special Rules (Avoids 401 token mismatch across modules)
+router.get("/special-rules-cache", async (req, res) => {
+  try {
+    const rules = await pool.query(
+      "SELECT * FROM timesheet_special_rules WHERE is_active = true"
+    );
+    res.json({ success: true, data: rules.rows });
+  } catch (err) {
+    res.json({ success: false, data: [] });
+  }
+});
+
 // 🟢 Fetch Master Report Data (With Owner, Rate & Plate Change Logs)
 router.get("/master-report-data", async (req, res) => {
   try {
@@ -386,6 +456,7 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
       }
     }
     await client.query("COMMIT");
+    broadcastReportSync({ type: "SPECIAL_EDITS_SAVED", records });
     res.json({ success: true });
   } catch (err) {
     if (client) await client.query("ROLLBACK");
@@ -424,6 +495,10 @@ router.post("/save-text-note", async (req, res) => {
       );
     }
     
+    broadcastReportSync({
+      type: "TEXT_NOTE_SAVED",
+      record: { plate_no, month, site_name, field, value },
+    });
     res.json({ success: true });
   } catch (err) {
     console.error(`Error saving text note (${field}):`, err.message); 
@@ -509,6 +584,11 @@ router.post("/save-master-edits", async (req, res) => {
     }
 
     await client.query("COMMIT");
+    broadcastReportSync({
+      type: "MASTER_EDITS_SAVED",
+      invoiceRecords,
+      billingRecords,
+    });
     res.json({ success: true, message: "Master Edits Saved Successfully!" });
   } catch (err) {
     if (client) await client.query("ROLLBACK");
