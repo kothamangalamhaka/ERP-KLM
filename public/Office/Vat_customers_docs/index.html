@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VAT Customers Documents</title>
+  <script>
+    (function() {
+      const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+  </script>
+  <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css">
+  <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css">
+  <link rel="stylesheet" href="/node_xlsx_scripts/jquery.dataTables.min.css">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --table-header-bg: #0f172a;
+      --table-header-color: #ffffff;
+    }
+    [data-theme="dark"] {
+      --bg: #0b1329;
+      --surface: #131f37;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #233554;
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+      --table-header-bg: #080d1a;
+      --table-header-color: #f8fafc;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 8px 12px;
+      overflow-x: hidden;
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 4px 6px;
+    }
+    .header-bar h5 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .header-btn {
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .theme-toggle-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .table-container {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      box-shadow: var(--card-shadow);
+      max-height: calc(100vh - 54px);
+      overflow-y: auto;
+      position: relative;
+    }
+    table.custom-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13px;
+    }
+    table.custom-table thead th {
+      position: sticky;
+      top: 0;
+      background: var(--table-header-bg) !important;
+      color: var(--table-header-color) !important;
+      z-index: 20;
+      padding: 10px 8px;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+      cursor: context-menu;
+      user-select: none;
+    }
+    .header-filter-popup {
+      display: none;
+      position: fixed;
+      z-index: 1050;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      width: 260px;
+      color: var(--text);
+    }
+    .header-filter-popup #filterSearchInput {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      width: 100%;
+      margin-bottom: 8px;
+      outline: none;
+    }
+    .header-filter-popup #filterSearchInput:focus {
+      border-color: var(--primary);
+    }
+    .header-filter-list {
+      max-height: 190px;
+      overflow-y: auto;
+      margin-bottom: 8px;
+      padding-right: 2px;
+    }
+    .header-filter-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-bottom: 2px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      user-select: none;
+      transition: background-color 0.15s ease;
+    }
+    .header-filter-item:hover {
+      background-color: rgba(37, 99, 235, 0.08);
+    }
+    [data-theme="dark"] .header-filter-item:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+    .header-filter-check {
+      width: 14px !important;
+      height: 14px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .header-filter-item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .filter-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 4px;
+      line-height: 1;
+    }
+    .filter-close-btn:hover {
+      color: var(--text);
+    }
+    table.custom-table td {
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .doc-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 11px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .doc-badge.uploaded {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+    }
+    [data-theme="dark"] .doc-badge.uploaded {
+      background-color: #064e3b;
+      color: #6ee7b7;
+      border: 1px solid #047857;
+    }
+    .doc-badge.empty {
+      background-color: #f1f5f9;
+      color: #64748b;
+      border: 1px dashed #cbd5e1;
+    }
+    [data-theme="dark"] .doc-badge.empty {
+      background-color: #1e293b;
+      color: #94a3b8;
+      border: 1px dashed #475569;
+    }
+    .bill-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .context-menu {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+      padding: 6px 0;
+      min-width: 140px;
+    }
+    .context-menu-item {
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .context-menu-item:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar">
+    <h5 class="m-0"><i class="fa-solid fa-folder-open me-2 text-primary"></i>VAT Customers Documents</h5>
+    <div class="d-flex align-items-center gap-2">
+      <div class="position-relative">
+        <input type="text" id="ribbonSearch" class="form-control form-control-sm" placeholder="Search customer, VAT, site..." style="width: 220px; height: 30px; font-size: 12px; padding-left: 28px; background: var(--surface); color: var(--text); border-color: var(--border);" oninput="handleGlobalSearch(this.value)">
+        <i class="fa-solid fa-magnifying-glass position-absolute" style="left: 9px; top: 8px; font-size: 12px; color: var(--text-muted);"></i>
+      </div>
+      <button class="btn btn-primary header-btn" onclick="openAddCustomerModal()"><i class="fa-solid fa-plus me-1"></i> Add Customer</button>
+      <button class="btn btn-outline-secondary header-btn" onclick="toggleFullScreen()" title="Full Screen"><i class="fa-solid fa-expand" id="fsIcon"></i></button>
+      <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="custom-table" id="vatTable">
+      <thead>
+        <tr>
+          <th>SN</th>
+          <th>Joining Date</th>
+          <th>Customer Name</th>
+          <th>VAT No</th>
+          <th>CR No</th>
+          <th>Site</th>
+          <th>Company</th>
+          <th>Status</th>
+          <th>Release Date</th>
+          <th>Agreement</th>
+          <th>VAT Doc</th>
+          <th>CRN Doc</th>
+          <th>Bills</th>
+          <th>Last Doc</th>
+          <th>Remark</th>
+          <th>Project Name</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Custom Context Menu for Right Tap -->
+  <div id="contextMenu" class="context-menu">
+    <div class="context-menu-item" onclick="triggerUpload()"><i class="fa-solid fa-upload me-2"></i>Upload / Replace</div>
+    <div class="context-menu-item" onclick="editCustomerFromContext()"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Details</div>
+  </div>
+  <input type="file" id="hiddenFileInput" style="display: none;" accept=".png,.jpg,.jpeg,.pdf">
+
+  <!-- Column Header Right Click Filter Popup -->
+  <div id="headerFilterPopup" class="header-filter-popup">
+    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom" style="border-color: var(--border)!important;">
+      <span class="fw-bold small d-flex align-items-center gap-1" id="filterPopupTitle"><i class="fa-solid fa-filter text-primary" style="font-size: 11px;"></i> Filter</span>
+      <button type="button" class="filter-close-btn" onclick="closeHeaderFilter()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="text" id="filterSearchInput" placeholder="Search values..." oninput="filterCheckboxItems(this.value)">
+    <div class="d-flex justify-content-between mb-2 px-1">
+      <a href="javascript:void(0)" class="small fw-semibold text-primary text-decoration-none" onclick="toggleAllFilterCheckboxes(true)">Select All</a>
+      <a href="javascript:void(0)" class="small fw-semibold text-danger text-decoration-none" onclick="toggleAllFilterCheckboxes(false)">Clear</a>
+    </div>
+    <div id="filterCheckboxList" class="header-filter-list border rounded p-1" style="border-color: var(--border)!important; background: var(--bg);"></div>
+    <div class="d-flex justify-content-end gap-2 border-top pt-2" style="border-color: var(--border)!important;">
+      <button class="btn btn-sm btn-secondary py-1 px-2" style="font-size: 11px;" onclick="resetColumnFilter()">Reset</button>
+      <button class="btn btn-sm btn-primary py-1 px-3" style="font-size: 11px;" onclick="applyColumnFilter()">Apply</button>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit Customer -->
+  <div class="modal fade" id="customerModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title" id="custModalTitle">Customer Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="customerForm">
+            <input type="hidden" id="cust_id">
+            
+            <div class="row g-3">
+              <div class="col-12 col-sm-6 col-md-4 col-xl">
+                <label class="form-label small fw-semibold">Joining Date</label>
+                <input type="date" class="form-control" id="cust_joining_date">
+              </div>
+              <div class="col-12 col-sm-6 col-md-4 col-xl">
+                <label class="form-label small fw-semibold">Customer Name</label>
+                <input type="text" class="form-control" id="cust_name" required>
+              </div>
+              <div class="col-12 col-sm-6 col-md-4 col-xl">
+                <label class="form-label small fw-semibold">VAT No</label>
+                <input type="text" class="form-control" id="cust_vat" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+              </div>
+              <div class="col-12 col-sm-6 col-md-4 col-xl">
+                <label class="form-label small fw-semibold">CR No</label>
+                <input type="text" class="form-control" id="cust_cr" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+              </div>
+              <div class="col-12 col-sm-6 col-md-4 col-xl">
+                <label class="form-label small fw-semibold">Site</label>
+                <input type="text" class="form-control" id="cust_site">
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-sm-6 col-md-4 col-xl">
+                <label class="form-label small fw-semibold">Company</label>
+                <select class="form-select" id="cust_company" onchange="checkNewCompany(this.value)">
+                  <option value="Haka">Haka</option>
+                  <option value="Al Joda">Al Joda</option>
+                  <option value="Masar Wheels">Masar Wheels</option>
+                  <option value="We1">We1</option>
+                  <option value="__NEW__">+ Add New</option>
+                </select>
+              </div>
+              <div class="col-12 col-sm-6 col-md-4 col-xl">
+                <label class="form-label small fw-semibold">Status</label>
+                <select class="form-select" id="cust_status">
+                  <option value="Active">Active</option>
+                  <option value="Released">Released</option>
+                </select>
+              </div>
+              <div class="col-12 col-sm-6 col-md-4 col-xl">
+                <label class="form-label small fw-semibold">Release Date</label>
+                <input type="date" class="form-control" id="cust_release_date">
+              </div>
+              <div class="col-12 col-sm-6 col-md-4 col-xl">
+                <label class="form-label small fw-semibold">Remark</label>
+                <input type="text" class="form-control" id="cust_remark">
+              </div>
+              <div class="col-12 col-sm-6 col-md-4 col-xl">
+                <label class="form-label small fw-semibold">Project Name</label>
+                <input type="text" class="form-control" id="cust_project_name">
+              </div>
+            </div>
+
+            <hr class="my-4" style="border-color: var(--border);">
+
+            <div class="row g-3">
+              <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold">Agreement Doc</label>
+                <input type="file" class="form-control" id="cust_file_agreement" accept=".png,.jpg,.jpeg,.pdf">
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold">VAT Doc</label>
+                <input type="file" class="form-control" id="cust_file_vat" accept=".png,.jpg,.jpeg,.pdf">
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold">CRN Doc</label>
+                <input type="file" class="form-control" id="cust_file_crn" accept=".png,.jpg,.jpeg,.pdf">
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold">Last Doc</label>
+                <input type="file" class="form-control" id="cust_file_last" accept=".png,.jpg,.jpeg,.pdf">
+              </div>
+            </div>
+
+          </form>
+        </div>
+        <div class="modal-footer border-top">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" onclick="saveCustomer()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Bills Multi-Feature Popup -->
+  <div class="modal fade" id="billModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Bills Management</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <ul class="nav nav-pills mb-3" id="billPills">
+            <li class="nav-item">
+              <button class="nav-link active" onclick="switchBillTab('view')">1. View Bill</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" onclick="switchBillTab('add')">2. Add Bill</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" onclick="switchBillTab('download')">3. Download Bill</button>
+            </li>
+          </ul>
+
+          <div id="billTabContent">
+            <!-- Dynamic Content based on tab -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/node_xlsx_scripts/jquery-3.7.0.min.js"></script>
+  <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
+  <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
+
+  <script>
+    let customersList = [];
+    let currentContextTarget = null;
+    let selectedCustomerId = null;
+    let currentBillCustomer = null;
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const target = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', target);
+      localStorage.setItem('theme', target);
+      document.getElementById('themeIcon').className = target === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+
+    function toggleFullScreen() {
+      const icon = document.getElementById('fsIcon');
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.log(err));
+        if (icon) icon.className = 'fa-solid fa-compress';
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+          if (icon) icon.className = 'fa-solid fa-expand';
+        }
+      }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      const icon = document.getElementById('fsIcon');
+      if (icon) {
+        icon.className = document.fullscreenElement ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+      }
+    });
+
+    function formatDateDDMMMYY(val) {
+      if (!val) return '';
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return val;
+      const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mmm = mNames[d.getMonth()];
+      const yy = String(d.getFullYear()).slice(-2);
+      return `${dd} ${mmm} ${yy}`;
+    }
+
+    async function loadCompanies() {
+      const res = await fetch('/py/vat-customers/companies');
+      const json = await res.json();
+      if (json.success) {
+        const select = document.getElementById('cust_company');
+        select.innerHTML = '';
+        json.data.forEach(c => {
+          select.innerHTML += `<option value="${c}">${c}</option>`;
+        });
+        select.innerHTML += `<option value="__NEW__">+ Add New</option>`;
+      }
+    }
+
+    async function checkNewCompany(val) {
+      if (val === '__NEW__') {
+        const { value: newComp } = await Swal.fire({
+          title: 'Add New Company',
+          input: 'text',
+          inputLabel: 'Company Name',
+          showCancelButton: true
+        });
+        if (newComp && newComp.trim()) {
+          const res = await fetch('/py/vat-customers/companies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ company_name: newComp.trim() })
+          });
+          const json = await res.json();
+          if (json.success) {
+            await loadCompanies();
+            document.getElementById('cust_company').value = json.name;
+          }
+        } else {
+          document.getElementById('cust_company').selectedIndex = 0;
+        }
+      }
+    }
+
+    let activeFilters = {};
+    let globalSearchQuery = '';
+    let currentFilterKey = null;
+
+    const columnKeyMap = {
+      0: 'sn',
+      1: 'joining_date',
+      2: 'customer_name',
+      3: 'vat_no',
+      4: 'cr_no',
+      5: 'site',
+      6: 'company',
+      7: 'status',
+      8: 'release_date',
+      12: 'remark',
+      13: 'project_name'
+    };
+
+    async function fetchTableData() {
+      try {
+        const res = await fetch('/py/vat-customers/records');
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Server returned ${res.status}: ${errText}`);
+        }
+        const json = await res.json();
+        if (json.success) {
+          customersList = (json.data || []).sort((a, b) => {
+            const nameA = (a.customer_name || '').trim().toLowerCase();
+            const nameB = (b.customer_name || '').trim().toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+          renderTable();
+          attachHeaderRightClick();
+        } else {
+          Swal.fire({ icon: 'error', title: 'Data Fetch Error', text: json.error || 'Failed to load records' });
+        }
+      } catch (err) {
+        console.error('Fetch records error:', err);
+        Swal.fire({ icon: 'error', title: 'Network / Server Error', text: err.message });
+      }
+    }
+
+    function handleGlobalSearch(val) {
+      globalSearchQuery = (val || '').trim().toLowerCase();
+      renderTable();
+    }
+
+    function getFilteredData() {
+      return customersList.filter(row => {
+        if (globalSearchQuery) {
+          const searchHaystack = [
+            row.customer_name,
+            row.vat_no,
+            row.cr_no,
+            row.site,
+            row.company,
+            row.status,
+            row.remark,
+            row.project_name
+          ].join(' ').toLowerCase();
+          if (!searchHaystack.includes(globalSearchQuery)) return false;
+        }
+
+        for (const [key, selectedVals] of Object.entries(activeFilters)) {
+          if (!selectedVals || selectedVals.length === 0) continue;
+          let cellVal = row[key];
+          if (key === 'joining_date' || key === 'release_date') {
+            cellVal = formatDateDDMMMYY(cellVal);
+          }
+          cellVal = String(cellVal || '(Blanks)').trim();
+          if (!selectedVals.includes(cellVal)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      const displayData = getFilteredData();
+
+      displayData.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        tr.dataset.id = r.id;
+
+        tr.innerHTML = `
+          <td class="sn-cell" data-id="${r.id}" style="cursor: context-menu; font-weight: bold;">${idx + 1}</td>
+          <td>${formatDateDDMMMYY(r.joining_date)}</td>
+          <td><strong>${r.customer_name || ''}</strong></td>
+          <td>${r.vat_no || ''}</td>
+          <td>${r.cr_no || ''}</td>
+          <td>${r.site || ''}</td>
+          <td>${r.company || ''}</td>
+          <td><span class="badge ${r.status === 'Active' ? 'bg-success' : 'bg-danger'}">${r.status}</span></td>
+          <td>${formatDateDDMMMYY(r.release_date)}</td>
+          <td>${renderDocCell(r.id, 'agreement', r.agreement_doc)}</td>
+          <td>${renderDocCell(r.id, 'vat', r.vat_doc)}</td>
+          <td>${renderDocCell(r.id, 'crn', r.crn_doc)}</td>
+          <td><button class="bill-btn" onclick="openBillPopup(${r.id})"><i class="fa-solid fa-receipt me-1"></i>Bills (${(r.bills_data || []).length})</button></td>
+          <td>${renderDocCell(r.id, 'last', r.last_doc)}</td>
+          <td>${r.remark || ''}</td>
+          <td>${r.project_name || ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      attachContextListeners();
+    }
+
+    function renderDocCell(id, type, url) {
+      if (url) {
+        return `<span class="doc-badge uploaded doc-trigger" data-id="${id}" data-type="${type}" data-url="${url}"><i class="fa-solid fa-file-check me-1"></i>Uploaded</span>`;
+      }
+      return `<span class="doc-badge empty doc-trigger" data-id="${id}" data-type="${type}"><i class="fa-solid fa-cloud-arrow-up me-1"></i>Empty</span>`;
+    }
+
+    function attachContextListeners() {
+      // SN right-click -> Direct edit popup
+      document.querySelectorAll('.sn-cell').forEach(el => {
+        el.oncontextmenu = function(e) {
+          e.preventDefault();
+          const custId = this.dataset.id;
+          openEditModalById(custId);
+        };
+      });
+
+      document.querySelectorAll('.doc-trigger').forEach(el => {
+        // Left click = Open file if uploaded
+        el.onclick = function(e) {
+          const url = this.dataset.url;
+          if (url) {
+            window.open(url, '_blank');
+          }
+        };
+        // Right click = Upload / Edit option
+        el.oncontextmenu = function(e) {
+          e.preventDefault();
+          currentContextTarget = {
+            id: this.dataset.id,
+            type: this.dataset.type
+          };
+          const menu = document.getElementById('contextMenu');
+          menu.style.display = 'block';
+          menu.style.left = `${e.pageX}px`;
+          menu.style.top = `${e.pageY}px`;
+        };
+      });
+    }
+
+    function openEditModalById(custId) {
+      const cust = customersList.find(c => Number(c.id) === Number(custId));
+      if (!cust) return;
+      
+      document.getElementById('customerForm').reset();
+      document.getElementById('cust_id').value = String(cust.id);
+      
+      document.getElementById('cust_joining_date').value = cust.joining_date ? cust.joining_date.split('T')[0] : '';
+      document.getElementById('cust_name').value = cust.customer_name || '';
+      document.getElementById('cust_vat').value = cust.vat_no || '';
+      document.getElementById('cust_cr').value = cust.cr_no || '';
+      document.getElementById('cust_site').value = cust.site || '';
+      document.getElementById('cust_company').value = cust.company || 'Haka';
+      document.getElementById('cust_status').value = cust.status || 'Active';
+      document.getElementById('cust_release_date').value = cust.release_date ? cust.release_date.split('T')[0] : '';
+      document.getElementById('cust_remark').value = cust.remark || '';
+      document.getElementById('cust_project_name').value = cust.project_name || '';
+
+      document.getElementById('custModalTitle').innerText = `Edit Customer (SN: ${cust.sn || cust.id})`;
+      const modalEl = document.getElementById('customerModal');
+      const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+      modalInstance.show();
+    }
+
+    function attachHeaderRightClick() {
+      document.querySelectorAll('#vatTable thead th').forEach((th, colIdx) => {
+        th.oncontextmenu = function(e) {
+          e.preventDefault();
+          const key = columnKeyMap[colIdx];
+          if (!key) return; // Docs & Bills columns-il custom context menu skip cheyyunnu
+          openHeaderFilter(key, th.innerText.trim(), e.pageX, e.pageY);
+        };
+      });
+    }
+
+    function openHeaderFilter(key, title, x, y) {
+      currentFilterKey = key;
+      const popup = document.getElementById('headerFilterPopup');
+      document.getElementById('filterPopupTitle').innerText = `Filter: ${title}`;
+      document.getElementById('filterSearchInput').value = '';
+
+      const valuesSet = new Set();
+      customersList.forEach(r => {
+        let val = r[key];
+        if (key === 'joining_date' || key === 'release_date') val = formatDateDDMMMYY(val);
+        valuesSet.add(String(val || '(Blanks)').trim());
+      });
+
+      const sortedVals = Array.from(valuesSet).sort((a, b) => a.localeCompare(b));
+      const currentlySelected = activeFilters[key] || sortedVals;
+
+      const listDiv = document.getElementById('filterCheckboxList');
+      listDiv.innerHTML = sortedVals.map(val => `
+        <label class="header-filter-item" title="${val}">
+          <input type="checkbox" class="header-filter-check" value="${val}" ${currentlySelected.includes(val) ? 'checked' : ''}>
+          <span>${val}</span>
+        </label>
+      `).join('');
+
+      popup.style.display = 'block';
+      const maxLeft = window.innerWidth - 280;
+      popup.style.left = `${Math.max(10, Math.min(x, maxLeft))}px`;
+      popup.style.top = `${y + 10}px`;
+    }
+
+    function filterCheckboxItems(query) {
+      const q = (query || '').toLowerCase();
+      document.querySelectorAll('#filterCheckboxList .header-filter-item').forEach(lbl => {
+        const txt = lbl.innerText.toLowerCase();
+        lbl.style.display = txt.includes(q) ? 'flex' : 'none';
+      });
+    }
+
+    function toggleAllFilterCheckboxes(selectAll) {
+      document.querySelectorAll('.header-filter-check').forEach(chk => {
+        const item = chk.closest('.header-filter-item');
+        if (item && item.style.display !== 'none') {
+          chk.checked = selectAll;
+        }
+      });
+    }
+
+    function applyColumnFilter() {
+      if (!currentFilterKey) return;
+      const checkedVals = Array.from(document.querySelectorAll('.header-filter-check:checked')).map(c => c.value);
+      activeFilters[currentFilterKey] = checkedVals;
+      closeHeaderFilter();
+      renderTable();
+    }
+
+    function resetColumnFilter() {
+      if (!currentFilterKey) return;
+      delete activeFilters[currentFilterKey];
+      closeHeaderFilter();
+      renderTable();
+    }
+
+    function closeHeaderFilter() {
+      document.getElementById('headerFilterPopup').style.display = 'none';
+      currentFilterKey = null;
+    }
+
+    window.onclick = function(e) {
+      document.getElementById('contextMenu').style.display = 'none';
+      const popup = document.getElementById('headerFilterPopup');
+      if (popup && popup.style.display === 'block' && !popup.contains(e.target) && !e.target.closest('th')) {
+        closeHeaderFilter();
+      }
+    };
+
+    function triggerUpload() {
+      if (!currentContextTarget) return;
+      document.getElementById('hiddenFileInput').click();
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.getElementById('hiddenFileInput').onchange = async function() {
+      if (!this.files.length || !currentContextTarget) return;
+      const file = this.files[0];
+      try {
+        const b64 = await readFileAsBase64(file);
+        const res = await fetch('/py/vat-customers/upload-doc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: Number(currentContextTarget.id),
+            doc_type: currentContextTarget.type,
+            file_name: file.name,
+            file_base64: b64
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          Swal.fire({ icon: 'success', title: 'File Uploaded', timer: 1500, showConfirmButton: false });
+          fetchTableData();
+        } else {
+          Swal.fire({ icon: 'error', title: 'Upload Failed', text: json.error || 'Error' });
+        }
+      } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Upload Error', text: e.message });
+      }
+      this.value = '';
+    };
+
+    function openAddCustomerModal() {
+      document.getElementById('customerForm').reset();
+      document.getElementById('cust_id').value = '';
+      document.getElementById('cust_project_name').value = '';
+      document.getElementById('custModalTitle').innerText = 'Add Customer';
+      new bootstrap.Modal(document.getElementById('customerModal')).show();
+    }
+
+    function editCustomerFromContext() {
+      if (!currentContextTarget) return;
+      const cust = customersList.find(c => c.id == currentContextTarget.id);
+      if (!cust) return;
+      document.getElementById('cust_id').value = cust.id;
+      document.getElementById('cust_joining_date').value = cust.joining_date ? cust.joining_date.split('T')[0] : '';
+      document.getElementById('cust_name').value = cust.customer_name || '';
+      document.getElementById('cust_vat').value = cust.vat_no || '';
+      document.getElementById('cust_cr').value = cust.cr_no || '';
+      document.getElementById('cust_site').value = cust.site || '';
+      document.getElementById('cust_company').value = cust.company || 'Haka';
+      document.getElementById('cust_status').value = cust.status || 'Active';
+      document.getElementById('cust_release_date').value = cust.release_date ? cust.release_date.split('T')[0] : '';
+      document.getElementById('cust_remark').value = cust.remark || '';
+      document.getElementById('cust_project_name').value = cust.project_name || '';
+      document.getElementById('custModalTitle').innerText = 'Edit Customer';
+      new bootstrap.Modal(document.getElementById('customerModal')).show();
+    }
+
+    async function saveCustomer() {
+      const nameVal = document.getElementById('cust_name').value.trim();
+      if (!nameVal) {
+        Swal.fire({ icon: 'warning', title: 'Customer Name Required', text: 'Customer name enter cheyyuka.' });
+        return;
+      }
+
+      const payload = {
+        id: document.getElementById('cust_id').value.trim() || null,
+        joining_date: document.getElementById('cust_joining_date').value || null,
+        customer_name: nameVal,
+        vat_no: document.getElementById('cust_vat').value.trim(),
+        cr_no: document.getElementById('cust_cr').value.trim(),
+        site: document.getElementById('cust_site').value.trim(),
+        company: document.getElementById('cust_company').value || 'Haka',
+        status: document.getElementById('cust_status').value || 'Active',
+        release_date: document.getElementById('cust_release_date').value || null,
+        remark: document.getElementById('cust_remark').value.trim(),
+        project_name: document.getElementById('cust_project_name').value.trim()
+      };
+
+      try {
+        const res = await fetch('/py/vat-customers/upsert-customer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        
+        if (!json.success) {
+          Swal.fire({ icon: 'error', title: 'Save Failed', text: json.error || 'Server error' });
+          return;
+        }
+
+        const savedId = json.id;
+        const filesMap = {
+          'agreement': document.getElementById('cust_file_agreement').files[0],
+          'vat': document.getElementById('cust_file_vat').files[0],
+          'crn': document.getElementById('cust_file_crn').files[0],
+          'last': document.getElementById('cust_file_last').files[0]
+        };
+
+        const uploadTasks = [];
+        for (const [docType, fileObj] of Object.entries(filesMap)) {
+          if (fileObj) {
+            const b64 = await readFileAsBase64(fileObj);
+            uploadTasks.push(fetch('/py/vat-customers/upload-doc', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                customer_id: Number(savedId),
+                doc_type: docType,
+                file_name: fileObj.name,
+                file_base64: b64
+              })
+            }));
+          }
+        }
+
+        if (uploadTasks.length > 0) {
+          await Promise.all(uploadTasks);
+        }
+
+        const modalEl = document.getElementById('customerModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) modalInstance.hide();
+
+        Swal.fire({ icon: 'success', title: 'Saved Successfully', timer: 1200, showConfirmButton: false });
+        await fetchTableData();
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+      }
+    }
+
+    // --- BILLS SYSTEM ---
+    function openBillPopup(id) {
+      currentBillCustomer = customersList.find(c => c.id == id);
+      if (!currentBillCustomer) return;
+      switchBillTab('view');
+      new bootstrap.Modal(document.getElementById('billModal')).show();
+    }
+
+    function generateMonthsRange(startDateStr) {
+      const months = [];
+      const start = startDateStr ? new Date(startDateStr) : new Date();
+      const end = new Date();
+      let cur = new Date(start.getFullYear(), start.getMonth(), 1);
+      const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      while (cur <= end) {
+        months.push(`${mNames[cur.getMonth()]} ${String(cur.getFullYear()).slice(-2)}`);
+        cur.setMonth(cur.getMonth() + 1);
+      }
+      return months.reverse(); // Latest month first
+    }
+
+    function switchBillTab(tab) {
+      const container = document.getElementById('billTabContent');
+      const bills = currentBillCustomer.bills_data || [];
+      const months = generateMonthsRange(currentBillCustomer.joining_date);
+
+      if (tab === 'view') {
+        let html = '<div class="list-group">';
+        if (bills.length === 0) html += '<p class="text-muted p-2">No bills uploaded yet.</p>';
+        bills.forEach(b => {
+          html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center" style="background: var(--surface); color: var(--text); border-color: var(--border);">
+              <div><strong>${b.month}</strong> - <span class="text-muted">${b.filename}</span></div>
+              <button class="btn btn-sm btn-outline-primary" onclick="window.open('${b.file_url}', '_blank')"><i class="fa-solid fa-eye me-1"></i>View</button>
+            </div>
+          `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+      } else if (tab === 'add') {
+        let html = '<div class="table-responsive"><table class="table table-bordered" style="color: var(--text); border-color: var(--border);">';
+        html += '<thead><tr><th>Month</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+        months.forEach(m => {
+          const existing = bills.find(b => b.month === m);
+          html += `
+            <tr>
+              <td><strong>${m}</strong></td>
+              <td>${existing ? `<span class="badge bg-success">Uploaded</span>` : `<span class="badge bg-secondary">Pending</span>`}</td>
+              <td>
+                <input type="file" id="bill_file_${m.replace(' ', '_')}" style="display:none;" accept=".png,.jpg,.jpeg,.pdf" onchange="uploadMonthBill('${m}', this)">
+                <button class="btn btn-sm btn-primary me-2" onclick="document.getElementById('bill_file_${m.replace(' ', '_')}').click()"><i class="fa-solid fa-upload"></i></button>
+                ${existing ? `<button class="btn btn-sm btn-danger" onclick="confirmDeleteBill('${m}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+              </td>
+            </tr>
+          `;
+        });
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+      } else if (tab === 'download') {
+        let html = `
+          <div class="card p-3 mb-3" style="background: var(--surface); border: 1px solid var(--border);">
+            <h6><i class="fa-solid fa-layer-group me-2"></i>Combined Chronological Download</h6>
+            <p class="text-muted small">Merges first month bill through latest bill into a single PDF (PNG/JPG/PDF auto-merged).</p>
+            <button class="btn btn-success" onclick="downloadCombinedBill()"><i class="fa-solid fa-file-pdf me-1"></i> Download Combined PDF</button>
+          </div>
+          <h6>Single Month Download</h6>
+          <div class="list-group">
+        `;
+        bills.forEach(b => {
+          html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center" style="background: var(--surface); color: var(--text); border-color: var(--border);">
+              <span>${b.month}</span>
+              <button class="btn btn-sm btn-outline-success" onclick="downloadSingleBill('${b.month}')"><i class="fa-solid fa-download me-1"></i>Download PDF</button>
+            </div>
+          `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+      }
+    }
+
+    async function uploadMonthBill(month, input) {
+      if (!input.files.length) return;
+      const file = input.files[0];
+      try {
+        const b64 = await readFileAsBase64(file);
+        const res = await fetch('/py/vat-customers/upload-bill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: Number(currentBillCustomer.id),
+            month_year: month,
+            file_name: file.name,
+            file_base64: b64
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          currentBillCustomer.bills_data = json.bills;
+          switchBillTab('add');
+          fetchTableData();
+        } else {
+          Swal.fire({ icon: 'error', title: 'Upload Failed', text: json.error || 'Server error' });
+        }
+      } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Upload Error', text: e.message });
+      }
+    }
+
+    async function confirmDeleteBill(month) {
+      const confirm = await Swal.fire({
+        title: 'Delete Bill?',
+        text: `Delete bill for ${month}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Yes, Delete'
+      });
+      if (confirm.isConfirmed) {
+        const res = await fetch('/py/vat-customers/delete-bill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: Number(currentBillCustomer.id),
+            month_year: month
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          currentBillCustomer.bills_data = json.bills;
+          switchBillTab('add');
+          fetchTableData();
+        }
+      }
+    }
+
+    function downloadCombinedBill() {
+      window.location.href = `/py/vat-customers/download-bill-combined?customer_id=${currentBillCustomer.id}&mode=combine`;
+    }
+
+    function downloadSingleBill(month) {
+      window.location.href = `/py/vat-customers/download-bill-combined?customer_id=${currentBillCustomer.id}&mode=single&month_year=${encodeURIComponent(month)}`;
+    }
+
+    loadCompanies();
+    fetchTableData();
+  </script>
+</body>
+</html>

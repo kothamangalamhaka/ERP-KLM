@@ -427,7 +427,6 @@ async function fetchData(isSilent = false) {
     )
       return performLogout();
 
-    // Fix: Always update Global SN even during silent background fetch
     globalNextSN = data.nextSN || globalNextSN;
 
     let currentHash =
@@ -438,11 +437,9 @@ async function fetchData(isSilent = false) {
 
     if (isSilent) {
       if (currentHash !== lastDataHash) {
-        // Headers or settings changed, full re-render needed
         lastDataHash = currentHash;
-        renderTable(data);
+        renderTable(data, true);
       } else {
-        // Only data might have changed, update specific rows smoothly without destroying DOM
         updateTableDataSmoothly(data.rows);
         updateSyncUI("live");
       }
@@ -450,7 +447,7 @@ async function fetchData(isSilent = false) {
     }
     
     lastDataHash = currentHash;
-    renderTable(data);
+    renderTable(data, false);
   } catch (e) {
     console.error("Fetch Data Error:", e);
     showToast("Connection failed", "error");
@@ -1751,14 +1748,19 @@ function updateActiveUsersUI(users) {
   };
 }
 
-function renderTable(response) {
+function renderTable(response, preserveState = true) {
   if ($(".edit-input").length > 0 || saveQueue.length > 0) return;
   let scrollWrapper = document.querySelector(".table-scroll-wrapper"),
     preserveScrollTop = scrollWrapper ? scrollWrapper.scrollTop : 0,
     preserveScrollLeft = scrollWrapper ? scrollWrapper.scrollLeft : 0;
   let currentPage = 0;
+  let currentOrder = [];
+  let currentSearch = "";
   if ($.fn.DataTable.isDataTable("#erpTable")) {
-    currentPage = $("#erpTable").DataTable().page();
+    const existingDt = $("#erpTable").DataTable();
+    currentPage = existingDt.page();
+    currentOrder = existingDt.order();
+    currentSearch = existingDt.search();
   }
   document.getElementById("loader").style.display = "none";
   if (response.success) {
@@ -2024,12 +2026,12 @@ function renderTable(response) {
   $.fn.DataTable.ext.pager.numbers_length = 5;
 
   erpDataTable = $("#erpTable").DataTable({
-    deferRender: true, // സ്ക്രീനിൽ കാണുന്ന വരികൾ മാത്രം DOM-ലേക്ക് വരയ്ക്കുന്നു
+    deferRender: true,
     bDestroy: true,
     processing: true,
     dom: '<"top-ribbon"<"ribbon-left"B> f <"right-controls"l i p>><"table-scroll-wrapper"t>',
     ordering: true,
-    order: [],
+    order: (preserveState && currentOrder && currentOrder.length > 0) ? currentOrder : [],
     colReorder: { realtime: false },
     orderCellsTop: true,
     language: {
@@ -2426,7 +2428,10 @@ lengthMenu: [
         });
     });
 
-  if (currentPage > 0) {
+  if (preserveState && currentSearch) {
+    erpDataTable.search(currentSearch);
+  }
+  if (preserveState && currentPage > 0) {
     erpDataTable.page(currentPage).draw(false);
   } else {
     erpDataTable.draw(false);
@@ -3393,7 +3398,14 @@ function applyColumnResizing() {
         let userWidths = JSON.parse(localStorage.getItem("erpColWidths_" + currentUser.username)) || {};
         userWidths[colName] = finalWidth;
         localStorage.setItem("erpColWidths_" + currentUser.username, JSON.stringify(userWidths));
-        showToast("Column width saved locally", "info");
+        
+        let existingWidthObj = cachedColWidths.find((w) => w.name === colName);
+        if (existingWidthObj) {
+          existingWidthObj.width = finalWidth;
+        } else {
+          cachedColWidths.push({ name: colName, width: finalWidth });
+        }
+        showToast("Column width saved", "info");
       }
     };
   });
@@ -3796,7 +3808,7 @@ function attachEditListeners() {
             }).catch(()=> console.warn("Unlock bypass"));
 
             if (newVal !== oldVal) {
-              erpDataTable.cell($cell[0]).data(newVal);
+              erpDataTable.cell($cell[0]).data(newVal).draw(false);
 
               undoStack.push({
                 sheetRow: sheetRow,

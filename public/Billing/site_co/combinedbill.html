@@ -6,38 +6,105 @@
     <meta name="viewport" content="width=1650" />
     <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     <script src="/node_xlsx_scripts/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
     <link rel="stylesheet" href="../style/billing.css" />
     <style>
-      .autocomplete-wrapper { position: relative; }
+      .autocomplete-wrapper {
+        position: relative;
+      }
       .suggestion-box {
-        position: absolute; top: 100%; left: 0; background: white;
-        border: 1px solid #1a4d80; z-index: 9999; max-height: 250px;
-        overflow-y: auto; display: none; text-align: left;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); border-radius: 0 0 4px 4px; width: 100%;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: white;
+        border: 1px solid #1a4d80;
+        z-index: 9999;
+        max-height: 250px;
+        overflow-y: auto;
+        display: none;
+        text-align: left;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        border-radius: 0 0 4px 4px;
+        width: 100%;
       }
-      .suggestion-item { padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; font-weight: bold; color: #333; }
-      .suggestion-item:hover, .suggestion-item.active { background-color: #1a4d80; color: white; }
-      .hidden-image { display: none !important; }
+      .suggestion-item {
+        padding: 8px 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        font-size: 13px;
+        font-weight: bold;
+        color: #333;
+      }
+      .suggestion-item:hover,
+      .suggestion-item.active {
+        background-color: #1a4d80;
+        color: white;
+      }
+      .hidden-image {
+        display: none !important;
+      }
       #toast {
-        visibility: hidden; min-width: 250px; background-color: #333; color: #fff;
-        text-align: center; border-radius: 5px; padding: 14px; position: fixed;
-        z-index: 9999; left: 50%; bottom: 30px; transform: translateX(-50%);
-        font-size: 15px; font-weight: bold; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+        visibility: hidden;
+        min-width: 250px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 5px;
+        padding: 14px;
+        position: fixed;
+        z-index: 9999;
+        left: 50%;
+        bottom: 30px;
+        transform: translateX(-50%);
+        font-size: 15px;
+        font-weight: bold;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
       }
-      #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-      @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
-      @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+      #toast.show {
+        visibility: visible;
+        animation:
+          fadein 0.5s,
+          fadeout 0.5s 2.5s;
+      }
+      @keyframes fadein {
+        from {
+          bottom: 0;
+          opacity: 0;
+        }
+        to {
+          bottom: 30px;
+          opacity: 1;
+        }
+      }
+      @keyframes fadeout {
+        from {
+          bottom: 30px;
+          opacity: 1;
+        }
+        to {
+          bottom: 0;
+          opacity: 0;
+        }
+      }
     </style>
   </head>
   <body>
-
     <!-- 🟢 Login Screen Overlay -->
     <div id="loginScreen">
       <div class="login-box">
         <h2>Haka ERP Login (Site Co)</h2>
-        <input type="text" id="loginUserId" placeholder="Username" onkeypress="if (event.key === 'Enter') executeLogin();" />
-        <input type="password" id="loginPass" placeholder="Password" onkeypress="if (event.key === 'Enter') executeLogin();" />
+        <input
+          type="text"
+          id="loginUserId"
+          placeholder="Username"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
+        <input
+          type="password"
+          id="loginPass"
+          placeholder="Password"
+          onkeypress="if (event.key === 'Enter') executeLogin();"
+        />
         <button onclick="executeLogin()">Secure Login</button>
       </div>
     </div>
@@ -46,28 +113,102 @@
     <div id="mainAppContainer" style="display: none">
       <div class="top-controls-wrapper">
         <div class="top-controls">
-          <a href="./index.html" class="btn btn-dash" title="Back to Dashboard" style="text-decoration: none;">
-            <i class="material-icons" style="font-size: 20px; color: #007bff">arrow_back</i>
+          <a
+            href="./index.html"
+            class="btn btn-dash"
+            title="Back to Dashboard"
+            style="text-decoration: none"
+          >
+            <i class="material-icons" style="font-size: 20px; color: #007bff"
+              >arrow_back</i
+            >
           </a>
 
           <!-- Plate / Owner Type Selector -->
-          <div class="selector-wrapper" style="width: 135px;">
-            <select id="searchType" onchange="document.getElementById('plateSearch').value=''; document.getElementById('plateSuggestions').style.display='none'; document.getElementById('plateSearch').focus();" style="height:32px; border:none; background:transparent; font-weight:bold; font-size:12px; width:100%;">
+          <div class="selector-wrapper" style="width: 135px">
+            <select
+              id="searchType"
+              onchange="
+                document.getElementById('plateSearch').value = '';
+                document.getElementById('plateSuggestions').style.display =
+                  'none';
+                document.getElementById('plateSearch').focus();
+              "
+              style="
+                height: 32px;
+                border: none;
+                background: transparent;
+                font-weight: bold;
+                font-size: 12px;
+                width: 100%;
+              "
+            >
               <option value="all">Plate / Owner</option>
               <option value="plate">Plate No</option>
               <option value="owner">Owner Name</option>
             </select>
           </div>
 
-          <div class="selector-wrapper autocomplete-wrapper" style="width: 200px; display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;">
-            <input type="text" id="plateSearch" placeholder="Type Plate/Owner..." oninput="searchPlateOrOwner(this)" autocomplete="off" style="text-transform: uppercase; font-weight: bold; flex: 1; min-width: 130px; border:none; background:transparent; outline:none; font-size:12px;" />
+          <div
+            class="selector-wrapper autocomplete-wrapper"
+            style="
+              width: 200px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              flex-wrap: nowrap;
+            "
+          >
+            <input
+              type="text"
+              id="plateSearch"
+              placeholder="Type Plate/Owner..."
+              oninput="searchPlateOrOwner(this)"
+              autocomplete="off"
+              style="
+                text-transform: uppercase;
+                font-weight: bold;
+                flex: 1;
+                min-width: 130px;
+                border: none;
+                background: transparent;
+                outline: none;
+                font-size: 12px;
+              "
+            />
             <div class="suggestion-box" id="plateSuggestions"></div>
           </div>
 
           <!-- From Month (Default: January) -->
-          <div class="selector-wrapper" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
-            <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">From:</label>
-            <select id="fromMonth" style="height:32px; border:none; background:transparent; font-weight:bold;">
+          <div
+            class="selector-wrapper"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              flex-wrap: nowrap;
+            "
+          >
+            <label
+              style="
+                white-space: nowrap;
+                font-weight: bold;
+                color: #1a4d80;
+                font-size: 13px;
+                margin: 0;
+                flex-shrink: 0;
+              "
+              >From:</label
+            >
+            <select
+              id="fromMonth"
+              style="
+                height: 32px;
+                border: none;
+                background: transparent;
+                font-weight: bold;
+              "
+            >
               <option value="January" selected>January</option>
               <option value="February">February</option>
               <option value="March">March</option>
@@ -81,13 +222,44 @@
               <option value="November">November</option>
               <option value="December">December</option>
             </select>
-            <input type="number" id="fromYear" value="2026" style="width:65px; height:32px; border:none; font-weight:bold;" />
+            <input
+              type="number"
+              id="fromYear"
+              value="2026"
+              style="width: 65px; height: 32px; border: none; font-weight: bold"
+            />
           </div>
 
           <!-- To Month (Auto Selected: Current Month - 1) -->
-          <div class="selector-wrapper" style="display: flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
-            <label style="white-space: nowrap; font-weight: bold; color: #1a4d80; font-size: 13px; margin: 0; flex-shrink: 0;">To:</label>
-            <select id="toMonth" style="height:32px; border:none; background:transparent; font-weight:bold;">
+          <div
+            class="selector-wrapper"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 5px;
+              flex-wrap: nowrap;
+            "
+          >
+            <label
+              style="
+                white-space: nowrap;
+                font-weight: bold;
+                color: #1a4d80;
+                font-size: 13px;
+                margin: 0;
+                flex-shrink: 0;
+              "
+              >To:</label
+            >
+            <select
+              id="toMonth"
+              style="
+                height: 32px;
+                border: none;
+                background: transparent;
+                font-weight: bold;
+              "
+            >
               <option value="January">January</option>
               <option value="February">February</option>
               <option value="March">March</option>
@@ -101,54 +273,184 @@
               <option value="November">November</option>
               <option value="December">December</option>
             </select>
-            <input type="number" id="toYear" value="2026" style="width:65px; height:32px; border:none; font-weight:bold;" />
+            <input
+              type="number"
+              id="toYear"
+              value="2026"
+              style="width: 65px; height: 32px; border: none; font-weight: bold"
+            />
           </div>
 
-          <button type="button" class="btn btn-fetch" onclick="fetchCombinedBill()">
+          <button
+            type="button"
+            class="btn btn-fetch"
+            onclick="fetchCombinedBill()"
+          >
             Generate Bill ✨
           </button>
 
           <!-- By Company Button -->
-          <button type="button" class="btn" style="background:#b40000;" onclick="fetchCombinedBill()">
+          <button
+            type="button"
+            class="btn"
+            style="background: #b40000"
+            onclick="fetchCombinedBill()"
+          >
             🏢 Refresh / All Companies
           </button>
 
-          <button type="button" class="btn" style="background:#6f42c1;" onclick="toggleCardImages()">
-            <i class="material-icons" style="font-size:16px;">visibility</i> Seal/Sign
+          <button
+            type="button"
+            class="btn"
+            style="background: #6f42c1"
+            onclick="toggleCardImages()"
+          >
+            <i class="material-icons" style="font-size: 16px">visibility</i>
+            Seal/Sign
           </button>
 
           <!-- Split Cards Toggle Button -->
-          <button type="button" id="btnToggleSplit" class="btn" style="background:#ff9800;" onclick="toggleSplitCards()">
-            <i class="material-icons" style="font-size:16px;">call_split</i> Split Cards 🔀
+          <button
+            type="button"
+            id="btnToggleSplit"
+            class="btn"
+            style="background: #ff9800"
+            onclick="toggleSplitCards()"
+          >
+            <i class="material-icons" style="font-size: 16px">call_split</i>
+            Split Cards 🔀
           </button>
 
-          <button type="button" class="btn" style="background:#1d6f42;" onclick="exportToExcel()">
-            <i class="material-icons" style="font-size:16px;">table_chart</i> Excel
+          <button
+            type="button"
+            class="btn"
+            style="background: #1d6f42"
+            onclick="exportToExcel()"
+          >
+            <i class="material-icons" style="font-size: 16px">table_chart</i>
+            Excel
           </button>
-          
-          <button type="button" class="btn" style="background:#dc3545; margin-left: 10px;" onclick="executeLogout()">
+
+          <button
+            type="button"
+            class="btn"
+            style="background: #dc3545; margin-left: 10px"
+            onclick="executeLogout()"
+          >
             Logout
           </button>
         </div>
       </div>
 
       <!-- 🟢 Multiple Cards Container -->
-      <div class="container" id="cardsContainer" style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px;">
-        <div style="text-align: center; padding: 40px; color: #888; background:white; border: 1px dashed #ccc; border-radius: 8px;">
+      <div
+        class="container"
+        id="cardsContainer"
+        style="
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: 40px;
+        "
+      >
+        <div
+          style="
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            background: white;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+          "
+        >
           Type Plate No or Owner Name and click "Generate Bill ✨"
         </div>
       </div>
     </div>
 
     <!-- Security Verification Modal -->
-    <div id="imageSecurityModal" class="modal-overlay" style="display: none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center;">
-      <div class="modal-box" style="width: 380px; text-align: center; background:white; padding:20px; border-radius:8px;">
-        <h3 style="color: #1a4d80; margin-top: 0; font-size: 18px;">Security Verification</h3>
-        <p style="font-size: 14px; color: #334155; margin: 15px 0 20px 0; font-weight: 600;">Ask Lince to provide Seal and Signature</p>
-        <input type="password" id="imgSecurityCode" placeholder="Enter Security Code" style="text-align: center; font-size: 15px; letter-spacing: 2px; margin-bottom: 20px; width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;" onkeypress="if (event.key === 'Enter') submitImageSecurityCode();" />
-        <div style="display: flex; gap: 10px; justify-content: center;">
-          <button type="button" class="btn" style="background: #6c757d; flex: 1; padding: 10px; justify-content: center;" onclick="closeImageSecurityModal()">Cancel</button>
-          <button type="button" class="btn" style="background: #2563eb; flex: 1; padding: 10px; justify-content: center;" onclick="submitImageSecurityCode()">Verify & Show</button>
+    <div
+      id="imageSecurityModal"
+      class="modal-overlay"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        class="modal-box"
+        style="
+          width: 380px;
+          text-align: center;
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+        "
+      >
+        <h3 style="color: #1a4d80; margin-top: 0; font-size: 18px">
+          Security Verification
+        </h3>
+        <p
+          style="
+            font-size: 14px;
+            color: #334155;
+            margin: 15px 0 20px 0;
+            font-weight: 600;
+          "
+        >
+          Ask Lince to provide Seal and Signature
+        </p>
+        <input
+          type="password"
+          id="imgSecurityCode"
+          placeholder="Enter Security Code"
+          style="
+            text-align: center;
+            font-size: 15px;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            outline: none;
+          "
+          onkeypress="if (event.key === 'Enter') submitImageSecurityCode();"
+        />
+        <div style="display: flex; gap: 10px; justify-content: center">
+          <button
+            type="button"
+            class="btn"
+            style="
+              background: #6c757d;
+              flex: 1;
+              padding: 10px;
+              justify-content: center;
+            "
+            onclick="closeImageSecurityModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn"
+            style="
+              background: #2563eb;
+              flex: 1;
+              padding: 10px;
+              justify-content: center;
+            "
+            onclick="submitImageSecurityCode()"
+          >
+            Verify & Show
+          </button>
         </div>
       </div>
     </div>
@@ -163,32 +465,45 @@
       let imagesGloballyVisible = false;
       let isSplitMode = false;
 
-      const ALL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const ALL_MONTHS = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
 
       const companyData = {
         Haka: {
-          header: "https://i.ibb.co/Ld752yD5/hd.png",
-          seal: "https://i.ibb.co/mrLFJdBy/sl.png",
+          header: "../img/haka_hd.png",
+          seal: "../img/haka_seal.png",
           text: "Approved By Accounts Team",
-          signature: "https://i.ibb.co/CK8X4YpV/Screenshot-2026-03-28-111438.png",
+          signature: "../img/haka_sig.png",
         },
         Aljoda: {
-          header: "https://i.ibb.co/3yMwhgD5/Screenshot-2026-03-28-103621.png",
-          seal: "https://i.ibb.co/4gRPdGXc/Screenshot-2026-03-28-103653.png",
+          header: "../img/aljoda_hd.png",
+          seal: "../img/aljoda_seal.png",
           text: "Approved By Accounts Team",
-          signature: "https://i.ibb.co/Z1b8gCwT/Screenshot-2026-03-28-111323.png",
+          signature: "../img/aljoda_sig.png",
         },
         "Masar Wheels": {
-          header: "https://i.ibb.co/gM7QnS59/Screenshot-2026-03-28-103016.png",
-          seal: "https://i.ibb.co/Y63vHZ9/Screenshot-2026-03-28-103341.png",
+          header: "../img/masar_hd.png",
+          seal: "../img/masar_seal.png",
           text: "Approved By Accounts Team",
-          signature: "https://i.ibb.co/bMPNp3SJ/Screenshot-2026-03-28-111529.png",
+          signature: "../img/masar_sig.png",
         },
         "We1 Track": {
-          header: "https://i.ibb.co/3mfqVqWF/we1-logo.png",
-          seal: "https://i.ibb.co/XfybvXzL/Screenshot-2026-03-28-103519.png",
+          header: "../img/we1.png",
+          seal: "../img/we1_seal.png",
           text: "Approved By Accounts Team",
-          signature: "https://i.ibb.co/pBmhnB2j/Screenshot-2026-03-28-111612.png",
+          signature: "../img/we1_sig.png",
         },
       };
 
@@ -264,7 +579,8 @@
           document.getElementById("toMonth").value = "December";
           document.getElementById("toYear").value = currentYear - 1;
         } else {
-          document.getElementById("toMonth").value = ALL_MONTHS[currentMonthIdx - 1];
+          document.getElementById("toMonth").value =
+            ALL_MONTHS[currentMonthIdx - 1];
           document.getElementById("toYear").value = currentYear;
         }
       }
@@ -301,7 +617,10 @@
         const box = document.getElementById("plateSuggestions");
         currentFocus = -1;
 
-        if (!val) { box.style.display = "none"; return; }
+        if (!val) {
+          box.style.display = "none";
+          return;
+        }
 
         let pool = [];
         if (type === "plate") pool = suggestionPlates;
@@ -312,7 +631,10 @@
           if (!p) return false;
           let pUpper = p.toUpperCase();
           if (type === "owner") return pUpper.includes(val);
-          return pUpper.includes(val) || pUpper.replace(/[^A-Z0-9]/g, "").includes(cleanVal);
+          return (
+            pUpper.includes(val) ||
+            pUpper.replace(/[^A-Z0-9]/g, "").includes(cleanVal)
+          );
         });
 
         if (matches.length > 0) {
@@ -391,7 +713,11 @@
       }
 
       function toggleSplitCards() {
-        if (!combinedDataCache || !combinedDataCache.rows || combinedDataCache.rows.length === 0) {
+        if (
+          !combinedDataCache ||
+          !combinedDataCache.rows ||
+          combinedDataCache.rows.length === 0
+        ) {
           return showToast("Please generate a bill first!");
         }
 
@@ -400,7 +726,9 @@
         const searchVal = document.getElementById("plateSearch").value.trim();
         let searchType = document.getElementById("searchType").value;
         if (searchType === "all") {
-          const isPlate = suggestionPlates.some(p => p.toUpperCase() === searchVal.toUpperCase());
+          const isPlate = suggestionPlates.some(
+            (p) => p.toUpperCase() === searchVal.toUpperCase(),
+          );
           searchType = isPlate ? "plate" : "owner";
         }
 
@@ -430,26 +758,33 @@
         }
 
         if (searchType === "all") {
-          const isPlate = suggestionPlates.some(p => p.toUpperCase() === searchVal.toUpperCase());
+          const isPlate = suggestionPlates.some(
+            (p) => p.toUpperCase() === searchVal.toUpperCase(),
+          );
           searchType = isPlate ? "plate" : "owner";
         }
 
         const token = localStorage.getItem("view_bill_token");
         const container = document.getElementById("cardsContainer");
-        container.innerHTML = '<div style="text-align:center; padding:30px; color:#1a4d80; font-weight:bold;">Fetching data...</div>';
+        container.innerHTML =
+          '<div style="text-align:center; padding:30px; color:#1a4d80; font-weight:bold;">Fetching data...</div>';
 
         try {
           let data = null;
 
           if (searchType === "plate") {
             const url = `/api/view-bill/combined-bill?plate_no=${encodeURIComponent(searchVal)}&from_month=${fromM}&from_year=${fromY}&to_month=${toM}&to_year=${toY}`;
-            const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+            const res = await fetch(url, {
+              headers: { Authorization: "Bearer " + token },
+            });
             if (res.status === 401) return executeLogout();
             data = await res.json();
-            
+
             if (data && !data.success) {
               container.innerHTML = `<div style="text-align:center; padding:30px; color:#be123c; font-weight:bold;">${data.message || "Plate no not exist. Contact Administrator."}</div>`;
-              showToast(data.message || "Plate no not exist. Contact Administrator.");
+              showToast(
+                data.message || "Plate no not exist. Contact Administrator.",
+              );
               return;
             }
           } else {
@@ -460,20 +795,22 @@
             for (let i = fromIdx; i <= toIdx; i++) {
               let y = Math.floor(i / 12);
               let m = ALL_MONTHS[i % 12];
-              
+
               const url = `/api/view-bill/data?month=${m}&year=${y}&search_type=owner&search_value=${encodeURIComponent(searchVal)}`;
-              const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
-              
+              const res = await fetch(url, {
+                headers: { Authorization: "Bearer " + token },
+              });
+
               if (res.status === 401) return executeLogout();
-              
+
               const monthData = await res.json();
               if (monthData.success && monthData.rows) {
                 const shortYear = y.toString().slice(-2);
                 const shortMonth = m.substring(0, 3);
                 const formattedDate = `${shortMonth} ${shortYear}`;
-                
-                monthData.rows.forEach(r => {
-                  r.date = formattedDate; 
+
+                monthData.rows.forEach((r) => {
+                  r.date = formattedDate;
                   r.month = m;
                   allRows.push(r);
                 });
@@ -483,7 +820,10 @@
             if (allRows.length > 0) {
               data = { success: true, rows: allRows };
             } else {
-              data = { success: false, message: "No records found for this period." };
+              data = {
+                success: false,
+                message: "No records found for this period.",
+              };
             }
           }
 
@@ -494,7 +834,8 @@
             container.innerHTML = `<div style="text-align:center; padding:30px; color:#be123c; font-weight:bold;">${data ? data.message : "No data found!"}</div>`;
           }
         } catch (e) {
-          container.innerHTML = '<div style="text-align:center; padding:30px; color:#be123c; font-weight:bold;">Server Connection Error.</div>';
+          container.innerHTML =
+            '<div style="text-align:center; padding:30px; color:#be123c; font-weight:bold;">Server Connection Error.</div>';
         }
       }
 
@@ -502,19 +843,27 @@
         const container = document.getElementById("cardsContainer");
         container.innerHTML = "";
 
-        let dispOwner = searchType === "owner" ? searchVal : (data.rows[0].owner || "COMPANY VEHICLE");
+        let dispOwner =
+          searchType === "owner"
+            ? searchVal
+            : data.rows[0].owner || "COMPANY VEHICLE";
         dispOwner = dispOwner.toUpperCase();
 
-        const hasVat = data.rows.some((r) => parseFloat(r.vat_amount || 0) > 0 || parseFloat(r.vat_percent || 0) > 0);
+        const hasVat = data.rows.some(
+          (r) =>
+            parseFloat(r.vat_amount || 0) > 0 ||
+            parseFloat(r.vat_percent || 0) > 0,
+        );
 
         const companyGroups = {};
-        data.rows.forEach(r => {
-          let comp = getCompanyFromSite(r.site || r.site_name) || r.company || "Haka";
+        data.rows.forEach((r) => {
+          let comp =
+            getCompanyFromSite(r.site || r.site_name) || r.company || "Haka";
           if (!companyGroups[comp]) companyGroups[comp] = [];
           companyGroups[comp].push(r);
         });
 
-        Object.keys(companyGroups).forEach(compName => {
+        Object.keys(companyGroups).forEach((compName) => {
           const compRows = companyGroups[compName];
           const compConfig = companyData[compName] || companyData["Haka"];
 
@@ -524,7 +873,7 @@
               const monthName = r.month || r.date || "Month";
               const rVat = parseFloat(r.vat_amount || 0);
               const rRent = parseFloat(r.rent || 0);
-              const rTotal = parseFloat(r.total || (rRent + rVat) || 0);
+              const rTotal = parseFloat(r.total || rRent + rVat || 0);
               const cardPlate = r.plate_no || r.plate || "";
 
               const singleRowTableHtml = `
@@ -587,7 +936,7 @@
                   </div>
 
                   <div class="print-area" style="background: white; padding: 10px;">
-                    <img src="${compConfig.header}" class="header-img ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Header" crossorigin="anonymous" style="width:100%; height:auto; max-height:200px; display:block; margin: 0 auto 15px auto;" />
+                    <img src="${compConfig.header}" class="header-img ${imagesGloballyVisible ? "" : "hidden-image"}" alt="Header" crossorigin="anonymous" style="width:100%; height:auto; max-height:200px; display:block; margin: 0 auto 15px auto;" />
 
                     <!-- Owner Wrapper with class for export hiding -->
                     <div class="card-owner-print-wrapper" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
@@ -606,12 +955,12 @@
 
                     <div class="footer card-footer-sign" style="margin-top:40px; display:flex; justify-content:space-between; align-items:flex-end;">
                       <div style="text-align: left; padding-bottom: 10px;">
-                        <p class="company-text ${imagesGloballyVisible ? '' : 'hidden-image'}" style="margin-bottom: 5px; font-size: 13px; color: #1e293b;"><b>${compConfig.text}</b></p>
-                        <p class="company-text ${imagesGloballyVisible ? '' : 'hidden-image'}" style="border-top: 1px solid #333; width: 250px; margin: 0;"></p>
+                        <p class="company-text ${imagesGloballyVisible ? "" : "hidden-image"}" style="margin-bottom: 5px; font-size: 13px; color: #1e293b;"><b>${compConfig.text}</b></p>
+                        <p class="company-text ${imagesGloballyVisible ? "" : "hidden-image"}" style="border-top: 1px solid #333; width: 250px; margin: 0;"></p>
                       </div>
                       <div style="display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
-                        <img src="${compConfig.signature}" class="signature-img ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Signature" crossorigin="anonymous" style="max-height: 75px;" />
-                        <img src="${compConfig.seal}" class="seal ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Company Seal" crossorigin="anonymous" style="max-height: 75px;"/>
+                        <img src="${compConfig.signature}" class="signature-img ${imagesGloballyVisible ? "" : "hidden-image"}" alt="Signature" crossorigin="anonymous" style="max-height: 75px;" />
+                        <img src="${compConfig.seal}" class="seal ${imagesGloballyVisible ? "" : "hidden-image"}" alt="Company Seal" crossorigin="anonymous" style="max-height: 75px;"/>
                       </div>
                     </div>
                   </div>
@@ -637,8 +986,12 @@
             });
 
             const sortedMonths = Object.keys(monthGroups);
-            sortedMonths.forEach(mName => {
-              innerContentHtml += buildMonthTableHtml(mName, monthGroups[mName], hasVat);
+            sortedMonths.forEach((mName) => {
+              innerContentHtml += buildMonthTableHtml(
+                mName,
+                monthGroups[mName],
+                hasVat,
+              );
             });
           }
 
@@ -659,7 +1012,7 @@
               </div>
 
               <div class="print-area" style="background: white; padding: 10px;">
-                <img src="${compConfig.header}" class="header-img ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Header" crossorigin="anonymous" style="width:100%; height:auto; max-height:200px; display:block; margin: 0 auto 15px auto;" />
+                <img src="${compConfig.header}" class="header-img ${imagesGloballyVisible ? "" : "hidden-image"}" alt="Header" crossorigin="anonymous" style="width:100%; height:auto; max-height:200px; display:block; margin: 0 auto 15px auto;" />
 
                 <div style="border:1px solid #cbd5e1; padding:12px; margin:15px 0; text-align:center; background:#f8fafc; font-weight:bold; font-size:18px; color:#1e293b;">
                   Bill Summary for Each Month ملخص فاتورة الشهر
@@ -671,12 +1024,12 @@
 
                 <div class="footer card-footer-sign" style="margin-top:40px; display:flex; justify-content:space-between; align-items:flex-end;">
                   <div style="text-align: left; padding-bottom: 10px;">
-                    <p class="company-text ${imagesGloballyVisible ? '' : 'hidden-image'}" style="margin-bottom: 5px; font-size: 13px; color: #1e293b;"><b>${compConfig.text}</b></p>
-                    <p class="company-text ${imagesGloballyVisible ? '' : 'hidden-image'}" style="border-top: 1px solid #333; width: 250px; margin: 0;"></p>
+                    <p class="company-text ${imagesGloballyVisible ? "" : "hidden-image"}" style="margin-bottom: 5px; font-size: 13px; color: #1e293b;"><b>${compConfig.text}</b></p>
+                    <p class="company-text ${imagesGloballyVisible ? "" : "hidden-image"}" style="border-top: 1px solid #333; width: 250px; margin: 0;"></p>
                   </div>
                   <div style="display: flex; align-items: center; gap: 10px; justify-content: flex-end;">
-                    <img src="${compConfig.signature}" class="signature-img ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Signature" crossorigin="anonymous" style="max-height: 75px;" />
-                    <img src="${compConfig.seal}" class="seal ${imagesGloballyVisible ? '' : 'hidden-image'}" alt="Company Seal" crossorigin="anonymous" style="max-height: 75px;"/>
+                    <img src="${compConfig.signature}" class="signature-img ${imagesGloballyVisible ? "" : "hidden-image"}" alt="Signature" crossorigin="anonymous" style="max-height: 75px;" />
+                    <img src="${compConfig.seal}" class="seal ${imagesGloballyVisible ? "" : "hidden-image"}" alt="Company Seal" crossorigin="anonymous" style="max-height: 75px;"/>
                   </div>
                 </div>
               </div>
@@ -691,7 +1044,11 @@
 
       function buildSingleTableHtml(rows, hasVat) {
         let tbodyHtml = "";
-        let totalNHr = 0, totalOTHr = 0, totalRent = 0, totalVat = 0, totalSum = 0;
+        let totalNHr = 0,
+          totalOTHr = 0,
+          totalRent = 0,
+          totalVat = 0,
+          totalSum = 0;
 
         rows.forEach((r, idx) => {
           const nhr = parseFloat(r.nhr || 0);
@@ -700,11 +1057,14 @@
           const otrate = parseFloat(r.otrate || 0);
 
           // 🟢 Herreega rent, vat, fi total kallattiin fooyyessuu
-          const rent = (nhr * nrate) + (othr * otrate);
+          const rent = nhr * nrate + othr * otrate;
           const vatPercent = parseFloat(r.vat_percent || 0);
-          const vat = r.vat_amount !== undefined && parseFloat(r.vat_amount) > 0 
-            ? parseFloat(r.vat_amount) 
-            : (vatPercent > 0 ? (rent * (vatPercent / 100)) : 0);
+          const vat =
+            r.vat_amount !== undefined && parseFloat(r.vat_amount) > 0
+              ? parseFloat(r.vat_amount)
+              : vatPercent > 0
+                ? rent * (vatPercent / 100)
+                : 0;
           const total = rent + vat;
 
           totalNHr += nhr;
@@ -762,14 +1122,18 @@
 
       function buildMonthTableHtml(mName, rows, hasVat) {
         let tbodyHtml = "";
-        let mNHr = 0, mOTHr = 0, mRent = 0, mVat = 0, mTotal = 0;
+        let mNHr = 0,
+          mOTHr = 0,
+          mRent = 0,
+          mVat = 0,
+          mTotal = 0;
 
         rows.forEach((r, idx) => {
           const nhr = parseFloat(r.nhr || 0);
           const othr = parseFloat(r.othr || 0);
           const rent = parseFloat(r.rent || 0);
           const vat = parseFloat(r.vat_amount || 0);
-          const total = parseFloat(r.total || (rent + vat) || 0);
+          const total = parseFloat(r.total || rent + vat || 0);
 
           mNHr += nhr;
           mOTHr += othr;
@@ -831,7 +1195,17 @@
 
       function escapeHTML(str) {
         if (!str) return "";
-        return String(str).replace(/[&<>'"]/g, (tag) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        return String(str).replace(
+          /[&<>'"]/g,
+          (tag) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              "'": "&#39;",
+              '"': "&quot;",
+            })[tag] || tag,
+        );
       }
 
       function toggleCardImages() {
@@ -843,19 +1217,23 @@
         }
 
         if (imagesGloballyVisible) {
-          cards.forEach(card => revealImages(card));
+          cards.forEach((card) => revealImages(card));
         } else {
-          cards.forEach(card => hideImages(card));
+          cards.forEach((card) => hideImages(card));
         }
       }
 
       function revealImages(card) {
-        card.querySelectorAll(".header-img, .seal, .signature-img, .company-text").forEach((img) => img.classList.remove("hidden-image"));
+        card
+          .querySelectorAll(".header-img, .seal, .signature-img, .company-text")
+          .forEach((img) => img.classList.remove("hidden-image"));
         showToast("Header & Stamps Enabled!");
       }
 
       function hideImages(card) {
-        card.querySelectorAll(".header-img, .seal, .signature-img, .company-text").forEach((img) => img.classList.add("hidden-image"));
+        card
+          .querySelectorAll(".header-img, .seal, .signature-img, .company-text")
+          .forEach((img) => img.classList.add("hidden-image"));
         showToast("Header & Stamps Hidden!");
       }
 
@@ -888,8 +1266,10 @@
           if (data.success) {
             imagesGloballyVisible = true;
             closeImageSecurityModal();
-            const cards = document.querySelectorAll("#cardsContainer .bill-card");
-            cards.forEach(card => revealImages(card));
+            const cards = document.querySelectorAll(
+              "#cardsContainer .bill-card",
+            );
+            cards.forEach((card) => revealImages(card));
           } else {
             showToast(data.message || "Invalid Security Code!");
             document.getElementById("imgSecurityCode").value = "";
@@ -907,11 +1287,15 @@
       }
 
       function exportToExcel() {
-        if (!combinedDataCache || combinedDataCache.rows.length === 0) return showToast("No data to export!");
+        if (!combinedDataCache || combinedDataCache.rows.length === 0)
+          return showToast("No data to export!");
         const ws = XLSX.utils.json_to_sheet(combinedDataCache.rows);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Combined_Bill");
-        XLSX.writeFile(wb, `Combined_Bill_${document.getElementById("plateSearch").value.trim() || 'Export'}.xlsx`);
+        XLSX.writeFile(
+          wb,
+          `Combined_Bill_${document.getElementById("plateSearch").value.trim() || "Export"}.xlsx`,
+        );
       }
 
       async function downloadSingleCard(btn) {
@@ -927,8 +1311,10 @@
             imageTimeout: 0,
             onclone: (clonedDoc) => {
               // Hide owner name wrapper in exported image
-              clonedDoc.querySelectorAll(".card-owner-print-wrapper").forEach(el => el.style.display = "none");
-            }
+              clonedDoc
+                .querySelectorAll(".card-owner-print-wrapper")
+                .forEach((el) => (el.style.display = "none"));
+            },
           });
           const link = document.createElement("a");
           link.download = `Bill_${Date.now()}.png`;
@@ -953,12 +1339,16 @@
             imageTimeout: 0,
             onclone: (clonedDoc) => {
               // Hide owner name wrapper in copied image
-              clonedDoc.querySelectorAll(".card-owner-print-wrapper").forEach(el => el.style.display = "none");
-            }
+              clonedDoc
+                .querySelectorAll(".card-owner-print-wrapper")
+                .forEach((el) => (el.style.display = "none"));
+            },
           });
           canvas.toBlob(async (blob) => {
             if (navigator.clipboard && window.isSecureContext) {
-              await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+              await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob }),
+              ]);
               showToast("Card copied to clipboard (Without Owner Name)!");
             } else {
               showToast("Clipboard not supported. Downloading instead.");

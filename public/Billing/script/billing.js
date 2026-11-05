@@ -1,27 +1,27 @@
 const companyData = {
   Haka: {
-    header: "https://i.ibb.co/Ld752yD5/hd.png",
-    seal: "https://i.ibb.co/mrLFJdBy/sl.png",
+    header: "./img/haka_hd.png",
+    seal: "./img/haka_seal.png",
     text: "Approved By Accounts Team",
-    signature: "https://i.ibb.co/CK8X4YpV/Screenshot-2026-03-28-111438.png",
+    signature: "./img/haka_sig.png",
   },
   Aljoda: {
-    header: "https://i.ibb.co/3yMwhgD5/Screenshot-2026-03-28-103621.png",
-    seal: "https://i.ibb.co/4gRPdGXc/Screenshot-2026-03-28-103653.png",
+    header: "./img/aljoda_hd.png",
+    seal: "./img/aljoda_seal.png",
     text: "Approved By Accounts Team",
-    signature: "https://i.ibb.co/Z1b8gCwT/Screenshot-2026-03-28-111323.png",
+    signature: "./img/aljoda_sig.png",
   },
   "Masar Wheels": {
-    header: "https://i.ibb.co/gM7QnS59/Screenshot-2026-03-28-103016.png",
-    seal: "https://i.ibb.co/Y63vHZ9/Screenshot-2026-03-28-103341.png",
+    header: "./img/masar_hd.png",
+    seal: "./img/masar_seal.png",
     text: "Approved By Accounts Team",
-    signature: "https://i.ibb.co/bMPNp3SJ/Screenshot-2026-03-28-111529.png",
+    signature: "./img/masar_sig.png",
   },
   "We1 Track": {
     header: "./img/we1.png",
-    seal: "https://i.ibb.co/XfybvXzL/Screenshot-2026-03-28-103519.png",
+    seal: "./img/we1_seal.png",
     text: "Approved By Accounts Team",
-    signature: "https://i.ibb.co/pBmhnB2j/Screenshot-2026-03-28-111612.png",
+    signature: "./img/we1_sig.png",
   },
 };
 
