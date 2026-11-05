@@ -1774,20 +1774,35 @@
             }
 
             // ---- Calculations ----
-            let isAfif = displaySiteName.toUpperCase().includes("AFIF");
-            let otMultiplier = isAfif ? 1.0 : 0.7;
+            let cleanUpperSite = displaySiteName.trim().toUpperCase();
+            let isAfifOrZ = cleanUpperSite.includes("AFIF") || cleanUpperSite.startsWith("Z");
+            let clientOtMultiplier = isAfifOrZ ? 1.0 : 0.7;
+
+            let bill_nrate = bill && bill.nrate ? parseFloat(bill.nrate) : 0;
+            let bill_otrate = bill && bill.otrate ? parseFloat(bill.otrate) : 0;
+
+            let supplierOtMultiplier = 0.7;
+            if (bill_nrate > 0 && bill_otrate > 0) {
+              if (bill_nrate === bill_otrate) {
+                supplierOtMultiplier = 1.0;
+              } else {
+                supplierOtMultiplier = bill_otrate / bill_nrate;
+              }
+            } else if (isAfifOrZ) {
+              supplierOtMultiplier = 1.0;
+            }
 
             let logsheet_cf =
               totalTsHrs > 0
-                ? Number((ts_nr + ts_ot * otMultiplier).toFixed(2))
+                ? Number((ts_nr + ts_ot * clientOtMultiplier).toFixed(2))
                 : "";
             let bill_cf =
               totalInvHrs > 0
-                ? Number((inv_nr + inv_ot * otMultiplier).toFixed(2))
+                ? Number((inv_nr + inv_ot * clientOtMultiplier).toFixed(2))
                 : "";
             let supplier_cf =
               totalBillHrs > 0
-                ? Number((bill_nr + bill_ot * otMultiplier).toFixed(2))
+                ? Number((bill_nr + bill_ot * supplierOtMultiplier).toFixed(2))
                 : "";
 
             let valLog = typeof logsheet_cf === "number" ? logsheet_cf : 0;
@@ -1795,20 +1810,18 @@
             let valSup = typeof supplier_cf === "number" ? supplier_cf : 0;
 
             let rawDiffLogSup =
-              logsheet_cf !== "" || supplier_cf !== ""
+              logsheet_cf !== "" && supplier_cf !== ""
                 ? Number((valLog - valSup).toFixed(2))
                 : "";
             let rawDiffBillSup =
-              bill_cf !== "" || supplier_cf !== ""
+              bill_cf !== "" && supplier_cf !== ""
                 ? Number((valBill - valSup).toFixed(2))
                 : "";
             let rawDiffBillLog =
-              bill_cf !== "" || logsheet_cf !== ""
+              bill_cf !== "" && logsheet_cf !== ""
                 ? Number((valBill - valLog).toFixed(2))
                 : "";
 
-            let bill_nrate = bill && bill.nrate ? parseFloat(bill.nrate) : 0;
-            let bill_otrate = bill && bill.otrate ? parseFloat(bill.otrate) : 0;
             let bill_rent = bill && bill.rent ? parseFloat(bill.rent) : 0;
             let rent_vat = bill && bill.vat_amount ? parseFloat(bill.vat_amount) : 0;
             let rent_total = bill && bill.total ? parseFloat(bill.total) : 0;
@@ -1926,7 +1939,7 @@
             let bCf = parseFloat(r.bill_cf) || 0;
             let sCf = parseFloat(r.supplier_cf) || 0;
             let diffBillSup =
-              r.bill_cf !== "" || r.supplier_cf !== ""
+              r.bill_cf !== "" && r.supplier_cf !== ""
                 ? Number((bCf - sCf).toFixed(2))
                 : "";
 
@@ -1957,6 +1970,7 @@
               r.supplier_cf !== "" &&
               r.supplier_cf !== null;
             let netCfVal = hasBothCf ? Number((bCf - sCf).toFixed(2)) : "";
+            if (netCfVal === 0) netCfVal = "";
             let nRateVal =
               r.bill_nrate !== "" && r.bill_nrate !== "-"
                 ? parseFloat(r.bill_nrate)
@@ -1968,17 +1982,22 @@
               !isNaN(nRateVal)
                 ? Number((netCfVal * nRateVal).toFixed(2))
                 : "";
+            if (amtVal === 0) amtVal = "";
+
+            let displayDiffBillSup = diffBillSup === 0 ? "" : diffBillSup;
 
             masterRows.push({
               sn: 0,
               month: k,
               site: r.site,
+              rate: r.rate || "-",
+              vat: r.vat || "No",
               owner: r.owner,
               plate: r.plate,
               logsheet_cf: r.logsheet_cf,
               bill_cf: r.bill_cf,
               supplier_cf: r.supplier_cf,
-              diff_bill_sup: diffBillSup,
+              diff_bill_sup: displayDiffBillSup,
               supplier_payment: r.net_total,
               invoice_amount: r.inv_total,
               gain_loss: gainLossVal,
@@ -1986,7 +2005,7 @@
               remark: r.vbill_notes || "-",
               field_co: r.field_co || "-",
               site_co: r.site_co || "-",
-              net_cf: netCfVal !== "" ? netCfVal : "",
+              net_cf: netCfVal,
               sup_nr_rate: nRateVal !== null ? nRateVal.toFixed(2) : "",
               net_amt: amtVal !== "" ? amtVal.toFixed(2) : "",
             });
@@ -2010,7 +2029,7 @@
         renderBottomTabs();
         updateTableHeadersForActiveTab();
         const tbody = document.getElementById("reportTableBody");
-        const colSpan = activeMonthKey === "Master Data" ? 19 : 40;
+        const colSpan = activeMonthKey === "Master Data" ? 21 : 40;
         tbody.innerHTML = `<tr><td colspan="${colSpan}" style="padding: 35px; text-align: center;"><div style="display:inline-flex; align-items:center; gap:8px; font-weight:600; color:#0ea5e9;"><div class="equalizer" style="height:20px; display:inline-flex;"><div class="equalizer-bar" style="width:4px;"></div><div class="equalizer-bar" style="width:4px;"></div><div class="equalizer-bar" style="width:4px;"></div></div> Loading ${key}...</div></td></tr>`;
         setTimeout(() => {
           applyAllFilters();
@@ -2022,7 +2041,7 @@
         if (activeMonthKey === "Master Data") {
           thead.innerHTML = `
             <tr>
-              <th colspan="5" style="background:#1e293b; color:#fff;">BASIC INFO</th>
+              <th colspan="7" style="background:#1e293b; color:#fff;">BASIC INFO</th>
               <th colspan="4" class="th-calc">CALCULATIONS</th>
               <th colspan="5" style="background:#047857; color:#fff;">FINANCIAL CALCULATIONS</th>
               <th colspan="2" style="background:#334155; color:#fff;">COORDINATORS</th>
@@ -2032,6 +2051,8 @@
               <th style="width: 45px;">SN</th>
               <th style="width: 80px; cursor: pointer;" onclick="openExcelFilterMenu(event, 'month')">Month <span class="filter-icon" data-key="month">▼</span></th>
               <th style="width: 140px; cursor: pointer;" onclick="openExcelFilterMenu(event, 'site')">Site Name <span class="filter-icon" data-key="site">▼</span></th>
+              <th style="width: 70px; cursor: pointer;" onclick="openExcelFilterMenu(event, 'rate')">Rate <span class="filter-icon" data-key="rate">▼</span></th>
+              <th style="width: 50px; cursor: pointer;" onclick="openExcelFilterMenu(event, 'vat')">VAT <span class="filter-icon" data-key="vat">▼</span></th>
               <th style="width: 140px; cursor: pointer;" onclick="openExcelFilterMenu(event, 'owner')">Owner Name <span class="filter-icon" data-key="owner">▼</span></th>
               <th style="width: 90px; cursor: pointer;" onclick="openExcelFilterMenu(event, 'plate')">Plate No <span class="filter-icon" data-key="plate">▼</span></th>
               <th style="width: 85px; cursor: pointer;" class="th-calc" onclick="openExcelFilterMenu(event, 'logsheet_cf')">Logsheet CF <span class="filter-icon" data-key="logsheet_cf">▼</span></th>
@@ -2114,7 +2135,7 @@
         const tfoot = document.getElementById("reportTableFoot");
         tbody.innerHTML = "";
         if (tfoot) tfoot.innerHTML = "";
-        const colSpan = activeMonthKey === "Master Data" ? 19 : 40;
+        const colSpan = activeMonthKey === "Master Data" ? 21 : 40;
         if (data.length === 0) {
           tbody.innerHTML = `<tr><td colspan="${colSpan}" style="padding: 20px;">No records available for this view.</td></tr>`;
           return;
@@ -2180,12 +2201,14 @@
               <td>${r.sn}</td>
               <td style="font-weight: 600; color: #0284c7;">${r.month}</td>
               <td style="text-align: left;">${r.site}</td>
+              <td>${r.rate || "-"}</td>
+              <td>${r.vat || "No"}</td>
               <td style="text-align: left;" class="col-owner-name">${r.owner}</td>
               <td style="font-weight: 700;">${r.plate}</td>
               <td class="col-calc">${r.logsheet_cf || ""}</td>
               <td class="col-calc">${r.bill_cf || ""}</td>
               <td class="col-calc">${r.supplier_cf || ""}</td>
-              <td style="color:#000; font-weight:600; background-color: ${r.diff_bill_sup !== "" ? (Number(r.diff_bill_sup) > 0 ? "#dcfce7" : Number(r.diff_bill_sup) < 0 ? "#fee2e2" : "transparent") : "transparent"};">${r.diff_bill_sup !== "" ? r.diff_bill_sup : ""}</td>
+              <td style="color:#000; font-weight:600; background-color: ${r.diff_bill_sup !== "" && Number(r.diff_bill_sup) !== 0 ? (Number(r.diff_bill_sup) > 0 ? "#dcfce7" : "#fee2e2") : "transparent"};">${r.diff_bill_sup !== "" && Number(r.diff_bill_sup) !== 0 ? r.diff_bill_sup : ""}</td>
               <td style="font-weight:700; color:#059669;">${r.supplier_payment || ""}</td>
               <td style="font-weight:700; color:#b91c1c;">${r.invoice_amount || ""}</td>
               <td style="font-weight:700; background-color:${glBg}; color:${glColor}; font-size:11px;">${r.gain_loss}</td>
@@ -2388,8 +2411,30 @@
         listContainer.innerHTML = "";
 
         let curMonthRows = monthsDataset[activeMonthKey] || [];
+        const q = (document.getElementById("tableSearch").value || "")
+          .trim()
+          .toUpperCase();
+
+        let visibleFilteredRows = curMonthRows.filter((r) => {
+          if (q) {
+            let rowText = Object.values(r).join(" ").toUpperCase();
+            if (!rowText.includes(q)) return false;
+          }
+          for (let fKey in headerFilters) {
+            if (fKey === key) continue;
+            let allowed = headerFilters[fKey];
+            if (allowed && allowed.length > 0) {
+              let val = String(
+                r[fKey] !== undefined && r[fKey] !== null ? r[fKey] : "",
+              );
+              if (!allowed.includes(val)) return false;
+            }
+          }
+          return true;
+        });
+
         let allOptions = new Set();
-        curMonthRows.forEach((r) => {
+        visibleFilteredRows.forEach((r) => {
           let val =
             r[key] !== undefined && r[key] !== null ? String(r[key]) : "";
           allOptions.add(val);
@@ -2621,6 +2666,40 @@
         try {
           const sheets = keys.map((k) => {
             const list = monthsDataset[k] || [];
+
+            const cleanRateForExcel = (val) => {
+              if (!val || val === "-" || val === "null") return "-";
+              let num = parseFloat(val);
+              if (isNaN(num)) return val;
+              return num % 1 !== 0 ? num : Math.round(num);
+            };
+
+            if (k === "Master Data") {
+              const rows = list.map((r) => [
+                r.month,
+                r.site,
+                cleanRateForExcel(r.rate),
+                r.vat,
+                r.owner,
+                r.plate,
+                r.logsheet_cf,
+                r.bill_cf,
+                r.supplier_cf,
+                r.diff_bill_sup,
+                r.supplier_payment,
+                r.invoice_amount,
+                r.gain_loss,
+                r.status,
+                r.remark,
+                r.field_co,
+                r.site_co,
+                r.net_cf,
+                cleanRateForExcel(r.sup_nr_rate),
+                r.net_amt,
+              ]);
+              return { sheet_name: k, rows: rows, is_master: true };
+            }
+
             let logNeg = 0,
               logPos = 0,
               logTot = 0;
@@ -2651,13 +2730,6 @@
                 else billLogPos += v3;
               }
             });
-
-            const cleanRateForExcel = (val) => {
-              if (!val || val === "-" || val === "null") return "-";
-              let num = parseFloat(val);
-              if (isNaN(num)) return val;
-              return num % 1 !== 0 ? num : Math.round(num);
-            };
 
             const rows = list.map((r) => [
               r.sn,

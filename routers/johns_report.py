@@ -32,6 +32,7 @@ class ExcelSheetPayload(BaseModel):
     sheet_name: str
     rows: list[list]
     custom_headers: dict = {}
+    is_master: bool = False
 
 class ExportPayload(BaseModel):
     file_name: str
@@ -235,9 +236,123 @@ def export_johns_excel(payload: ExportPayload):
             "Profit / Loss"
         ]
 
+        master_top_headers = [
+            ("BASIC INFO", 1, 6, dark_fill),
+            ("CALCULATIONS", 7, 10, calc_fill),
+            ("FINANCIAL CALCULATIONS", 11, 15, amt_fill),
+            ("COORDINATORS", 16, 17, dark_fill),
+            ("NET DIFFERENCE", 18, 20, calc_fill)
+        ]
+
+        master_sub_headers = [
+            "Month", "Site Name", "Rate", "VAT", "Owner Name", "Plate No",
+            "Logsheet CF", "Bill Summary CF", "Supplier CF", "Bill Summary - Supplier",
+            "Supplier", "Invoices", "Gain / Loss", "Status", "Remark",
+            "Field Co", "Site Co", "Net CF", "Rate", "AMT"
+        ]
+
         for s_idx, sheet_data in enumerate(payload.sheets):
             ws = wb.create_sheet(title=sheet_data.sheet_name[:31])
             ws.views.sheetView[0].showGridLines = True
+            ws.freeze_panes = 'A3'
+
+            if sheet_data.is_master:
+                for title, sc, ec, fill in master_top_headers:
+                    ws.merge_cells(start_row=1, start_column=sc, end_row=1, end_column=ec)
+                    for col in range(sc, ec + 1):
+                        cell = ws.cell(row=1, column=col)
+                        cell.fill = fill
+                        cell.border = thin_border
+                        if col == sc:
+                            cell.value = title
+                            cell.font = hdr_font
+                            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+                for col_idx, col_name in enumerate(master_sub_headers, 1):
+                    cell = ws.cell(row=2, column=col_idx, value=col_name)
+                    if 7 <= col_idx <= 9:
+                        cell.fill = calc_fill
+                    elif col_idx == 10:
+                        cell.fill = diff_fill
+                    elif col_idx == 11:
+                        cell.fill = amt_fill
+                    elif col_idx == 12:
+                        cell.fill = inv_fill
+                    elif col_idx == 13:
+                        cell.fill = pl_fill
+                    elif col_idx in [14, 15]:
+                        cell.fill = dark_fill
+                    elif 18 <= col_idx <= 20:
+                        cell.fill = calc_fill
+                    else:
+                        cell.fill = dark_fill
+                    cell.font = hdr_font
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                    cell.border = thin_border
+
+                ws.row_dimensions[1].height = 24
+                ws.row_dimensions[2].height = 28
+
+                for r_idx, row_values in enumerate(sheet_data.rows, 3):
+                    ws.row_dimensions[r_idx].height = 20
+                    for c_idx, val in enumerate(row_values, 1):
+                        cell_val = val
+                        if c_idx == 10:
+                            try:
+                                if val not in [None, "", "-"] and float(val) == 0:
+                                    cell_val = ""
+                            except (ValueError, TypeError):
+                                pass
+
+                        cell = ws.cell(row=r_idx, column=c_idx, value=cell_val)
+                        cell.font = cell_font
+                        cell.border = thin_border
+
+                        if c_idx == 10 and cell_val not in [None, "", "-"]:
+                            try:
+                                num_val = float(cell_val)
+                                if num_val > 0:
+                                    cell.fill = pos_fill
+                                elif num_val < 0:
+                                    cell.fill = neg_fill
+                            except (ValueError, TypeError):
+                                pass
+                        elif c_idx == 13:
+                            try:
+                                num_gl = float(cell_val)
+                                cell.fill = pos_fill if num_gl >= 0 else neg_fill
+                            except (ValueError, TypeError):
+                                cell.fill = PatternFill(start_color="FFFBEB", end_color="FFFBEB", fill_type="solid")
+                        elif c_idx == 14:
+                            st_val = str(cell_val or "").strip()
+                            if st_val == "Gain":
+                                cell.fill = pos_fill
+                            elif st_val == "Loss":
+                                cell.fill = neg_fill
+                            elif st_val == "Pending":
+                                cell.fill = PatternFill(start_color="FEF9C3", end_color="FEF9C3", fill_type="solid")
+
+                        if c_idx in [2, 5]:
+                            cell.alignment = Alignment(horizontal="left", vertical="center")
+                        elif c_idx == 15:
+                            cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+                        else:
+                            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+                for col in ws.columns:
+                    c_num = col[0].column
+                    col_letter = get_column_letter(c_num)
+                    if c_num == 15:
+                        ws.column_dimensions[col_letter].width = 30
+                    else:
+                        max_len = max(len(str(cell.value or '')) for cell in col)
+                        ws.column_dimensions[col_letter].width = max(max_len + 3, 10)
+
+                last_row = max(len(sheet_data.rows) + 2, 2)
+                last_col_letter = get_column_letter(len(master_sub_headers))
+                ws.auto_filter.ref = f"A2:{last_col_letter}{last_row}"
+                ws.sheet_view.zoomScale = 80
+                continue
 
             for title, sc, ec, fill in top_headers:
                 ws.merge_cells(start_row=1, start_column=sc, end_row=1, end_column=ec)
