@@ -115,6 +115,78 @@ def add_company(payload: CompanyPayload):
     conn.close()
     return {"success": True, "name": name}
 
+class CustomerMasterEditPayload(BaseModel):
+    old_customer_name: str
+    new_customer_name: str
+    vat_no: Optional[str] = ""
+    cr_no: Optional[str] = ""
+
+@router.post("/update-customer-master")
+def update_customer_master(payload: CustomerMasterEditPayload):
+    conn = None
+    cur = None
+    try:
+        old_name = payload.old_customer_name.strip()
+        new_name = " ".join(w.capitalize() for w in payload.new_customer_name.strip().split())
+        if not new_name:
+            return {"success": False, "error": "Customer name cannot be empty"}
+
+        v_no = "".join(filter(str.isdigit, str(payload.vat_no or "")))
+        c_no = "".join(filter(str.isdigit, str(payload.cr_no or "")))
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Update all site rows belonging to this customer
+        cur.execute("""
+            UPDATE vat_customer_records
+            SET customer_name = %s,
+                vat_no = %s,
+                cr_no = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE LOWER(customer_name) = LOWER(%s)
+        """, (new_name, v_no, c_no, old_name))
+
+        # Rename disk folder if customer name was changed
+        old_folder_san = sanitize_name(old_name)
+        new_folder_san = sanitize_name(new_name)
+        if old_folder_san != new_folder_san:
+            old_dir = os.path.join(UPLOAD_BASE, old_folder_san)
+            new_dir = os.path.join(UPLOAD_BASE, new_folder_san)
+            if os.path.exists(old_dir):
+                try:
+                    os.rename(old_dir, new_dir)
+                    # Update saved doc paths in database
+                    cur.execute("""
+                        UPDATE vat_customer_records
+                        SET agreement_doc = REPLACE(agreement_doc, %s, %s),
+                            conf_letter_doc = REPLACE(conf_letter_doc, %s, %s),
+                            vat_doc = REPLACE(vat_doc, %s, %s),
+                            crn_doc = REPLACE(crn_doc, %s, %s),
+                            last_doc = REPLACE(last_doc, %s, %s),
+                            bills_data = REPLACE(bills_data::text, %s, %s)::jsonb
+                        WHERE LOWER(customer_name) = LOWER(%s)
+                    """, (
+                        f"/{old_folder_san}/", f"/{new_folder_san}/",
+                        f"/{old_folder_san}/", f"/{new_folder_san}/",
+                        f"/{old_folder_san}/", f"/{new_folder_san}/",
+                        f"/{old_folder_san}/", f"/{new_folder_san}/",
+                        f"/{old_folder_san}/", f"/{new_folder_san}/",
+                        f"/{old_folder_san}/", f"/{new_folder_san}/",
+                        new_name
+                    ))
+                except Exception as ren_err:
+                    print("Folder rename error:", ren_err)
+
+        conn.commit()
+        return {"success": True, "new_name": new_name}
+    except Exception as e:
+        if conn: conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        if cur: cur.close()
+        if conn: conn.close()
+
 class CustomerUpsertPayload(BaseModel):
     id: Optional[str] = None
     joining_date: Optional[str] = None

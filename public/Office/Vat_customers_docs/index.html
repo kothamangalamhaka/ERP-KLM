@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VAT Customers Documents</title>
+  <title>VAT Customers Documents & Bills</title>
   <script>
     (function() {
       const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -369,7 +369,7 @@
 <body>
 
   <div class="header-bar">
-    <h5 class="m-0"><i class="fa-solid fa-folder-open me-2 text-primary"></i>VAT Customers Documents</h5>
+    <h5 class="m-0"><i class="fa-solid fa-folder-open me-2 text-primary"></i>VAT Customers Documents & Bills</h5>
     <div class="d-flex align-items-center gap-2">
       <div class="position-relative">
         <input type="text" id="ribbonSearch" class="form-control form-control-sm" placeholder="Search customer, VAT, site, project..." style="width: 250px; height: 32px; font-size: 12px; padding-left: 28px; background: var(--surface); color: var(--text); border-color: var(--border);" oninput="handleSearch(this.value)">
@@ -414,7 +414,10 @@
       <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
         <div class="modal-header border-bottom py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div>
-            <h5 class="modal-title m-0 fw-bold" id="detailCustomerName">Customer Name</h5>
+            <div class="d-flex align-items-center gap-2">
+              <h5 class="modal-title m-0 fw-bold" id="detailCustomerName">Customer Name</h5>
+              <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px; height: 22px;" onclick="openEditMasterModal()" title="Edit Customer, VAT & CR"><i class="fa-solid fa-pen"></i></button>
+            </div>
             <div class="small text-muted" id="detailCustomerMeta">VAT: - | CR: -</div>
           </div>
           <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -451,6 +454,39 @@
               <tbody id="detailSitesTbody"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🟢 Modal 0: Edit Customer Master (Name, VAT No, CR No) -->
+  <div class="modal fade" id="editCustomerMasterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square text-primary me-2"></i>Edit Customer Info</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="editCustomerMasterForm">
+            <input type="hidden" id="edit_old_cust_name">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Customer Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="edit_cust_name" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">VAT No</label>
+              <input type="text" class="form-control" id="edit_cust_vat" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">CR No</label>
+              <input type="text" class="form-control" id="edit_cust_cr" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer border-top">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary px-4 fw-semibold" onclick="saveCustomerMasterChanges()">Save Changes</button>
         </div>
       </div>
     </div>
@@ -1149,6 +1185,57 @@
       }
       this.value = '';
     };
+
+    function openEditMasterModal() {
+      if (!selectedActiveCustomerKey || !groupedCustomers[selectedActiveCustomerKey]) return;
+      const cust = groupedCustomers[selectedActiveCustomerKey];
+      document.getElementById('edit_old_cust_name').value = cust.customer_name;
+      document.getElementById('edit_cust_name').value = cust.customer_name;
+      document.getElementById('edit_cust_vat').value = cust.vat_no || '';
+      document.getElementById('edit_cust_cr').value = cust.cr_no || '';
+      const modalEl = document.getElementById('editCustomerMasterModal');
+      (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
+    }
+
+    async function saveCustomerMasterChanges() {
+      const oldName = document.getElementById('edit_old_cust_name').value.trim();
+      const newName = document.getElementById('edit_cust_name').value.trim();
+      const vatNo = document.getElementById('edit_cust_vat').value.trim();
+      const crNo = document.getElementById('edit_cust_cr').value.trim();
+
+      if (!newName) {
+        Swal.fire({ icon: 'warning', title: 'Name Required', text: 'Customer name cannot be empty.' });
+        return;
+      }
+
+      try {
+        const res = await fetch('/py/vat-customers/update-customer-master', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            old_customer_name: oldName,
+            new_customer_name: newName,
+            vat_no: vatNo,
+            cr_no: crNo
+          })
+        });
+        const json = await res.json();
+        if (!json.success) {
+          Swal.fire({ icon: 'error', title: 'Update Failed', text: json.error || 'Server error' });
+          return;
+        }
+
+        const modalEl = document.getElementById('editCustomerMasterModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) modalInstance.hide();
+
+        selectedActiveCustomerKey = json.new_name.toLowerCase();
+        Swal.fire({ icon: 'success', title: 'Customer Updated', timer: 1200, showConfirmButton: false });
+        await fetchTableData();
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+      }
+    }
 
     function openAddCustomerModal() {
       document.getElementById('addCustomerMasterForm').reset();
