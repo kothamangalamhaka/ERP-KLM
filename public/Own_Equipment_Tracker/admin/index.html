@@ -1,47 +1,320 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Equipment Tracker - User Management</title>
     <script src="../js/eq-session.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-        h2 { color: #2c3e50; margin: 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background: #34495e; color: white; }
-        .btn-approve { background: #2ecc71; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; margin-right: 5px; }
-        .btn-reject { background: #e67e22; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; margin-right: 5px; }
-        .btn-delete { background: #e74c3c; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; }
-        .btn-logout { background: #c0392b; color: white; border: none; padding: 9px 14px; cursor: pointer; border-radius: 5px; font-weight: 600; }
-        .btn-logout:hover { background: #a93226; }
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #0f172a; /* Premium Dark Background */
+        padding: 20px;
+        min-height: 100vh;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      .container {
+        max-width: 900px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        display: none; /* Authenticate aavunnathu vare dashboard content hide cheyyunnu */
+      }
+      .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      h2 {
+        color: #2c3e50;
+        margin: 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+      }
+      th {
+        background: #34495e;
+        color: white;
+      }
+      .btn-approve {
+        background: #2ecc71;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        margin-right: 5px;
+      }
+      .btn-reject {
+        background: #e67e22;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        margin-right: 5px;
+      }
+      .btn-delete {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      .btn-logout {
+        background: #c0392b;
+        color: white;
+        border: none;
+        padding: 9px 14px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: 600;
+      }
+      .btn-logout:hover {
+        background: #a93226;
+      }
+
+      /* ================= Glassmorphism Modal Styles ================= */
+      .glass-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+
+      .glass-modal {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-radius: 16px;
+        padding: 30px;
+        width: 100%;
+        max-width: 360px;
+        color: #ffffff;
+        box-sizing: border-box;
+        animation: fadeInScale 0.3s ease-out;
+      }
+
+      @keyframes fadeInScale {
+        from {
+          opacity: 0;
+          transform: scale(0.92);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .glass-modal h3 {
+        margin: 0 0 8px 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #f8fafc;
+      }
+
+      .glass-modal p {
+        margin: 0 0 18px 0;
+        font-size: 0.88rem;
+        color: #94a3b8;
+      }
+
+      .glass-modal input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.05);
+        color: #ffffff;
+        font-size: 0.95rem;
+        outline: none;
+        box-sizing: border-box;
+        margin-bottom: 15px;
+        transition: all 0.2s ease;
+      }
+
+      .glass-modal input:focus {
+        border-color: #38bdf8;
+        background: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+      }
+
+      .glass-modal input::placeholder {
+        color: #64748b;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .btn-glass-cancel {
+        background: rgba(255, 255, 255, 0.1);
+        color: #e2e8f0;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 9px 16px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.2s;
+      }
+
+      .btn-glass-cancel:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-glass-submit {
+        background: linear-gradient(135deg, #0284c7, #0369a1);
+        color: white;
+        border: none;
+        padding: 9px 20px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        transition: filter 0.2s;
+      }
+
+      .btn-glass-submit:hover {
+        filter: brightness(1.1);
+      }
+
+      .error-msg {
+        color: #f87171;
+        font-size: 0.8rem;
+        margin-top: -10px;
+        margin-bottom: 12px;
+        display: none;
+      }
     </style>
-</head>
-<body>
-<div class="container">
-    <div class="page-header">
-        <h2>User Management</h2>
-        <button class="btn-logout" onclick="logout()" type="button">Logout</button>
+  </head>
+  <body>
+    <!-- Glassmorphism Login Modal -->
+    <div id="superAdminModal" class="glass-overlay">
+      <div class="glass-modal">
+        <h3>Super Admin Verification</h3>
+        <p>Enter your credentials to access this console.</p>
+        
+        <form id="glassLoginForm" onsubmit="handleSuperAdminAuth(event)">
+          <input 
+            type="text" 
+            id="superAdminUser" 
+            placeholder="Username" 
+            autocomplete="username"
+            autofocus 
+            required
+          />
+          <input 
+            type="password" 
+            id="superAdminPass" 
+            placeholder="Password" 
+            autocomplete="current-password"
+            required
+          />
+          <div id="errorText" class="error-msg">Incorrect Username or Password!</div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn-glass-cancel" onclick="returnBack()">Cancel</button>
+            <button type="submit" class="btn-glass-submit">Unlock</button>
+          </div>
+        </form>
+      </div>
     </div>
-    <table>
+
+    <!-- Main Container -->
+    <div class="container" id="mainContainer">
+      <div class="page-header">
+        <h2>User Management</h2>
+        <button class="btn-logout" onclick="logout()" type="button">
+          Logout
+        </button>
+      </div>
+      <table>
         <thead>
-            <tr>
-                <th>ID</th>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
         </thead>
         <tbody id="userTable"></tbody>
-    </table>
-    <br>
-    <button onclick="window.location.href='../Dashboard.html'" style="padding:10px 15px;">Go to Dashboard</button>
-</div>
+      </table>
+      <br />
+      <button
+        onclick="window.location.href = '../Dashboard.html'"
+        style="padding: 10px 15px"
+      >
+        Go to Dashboard
+      </button>
+    </div>
 
-<!-- External JS Link -->
-<script src="../js/admin.js"></script>
-</body>
+    <script>
+      function returnBack() {
+        // Browser history undenkil vannath thanne thirichu pookum, allenkil referrer / fallback dashboard
+        if (window.history.length > 1) {
+          window.history.back();
+        } else if (document.referrer && document.referrer !== window.location.href) {
+          window.location.replace(document.referrer);
+        } else {
+          window.location.replace("../Dashboard.html");
+        }
+      }
+
+      function unlockScreen() {
+        const modal = document.getElementById("superAdminModal");
+        const container = document.getElementById("mainContainer");
+        if (modal) modal.style.display = "none";
+        if (container) container.style.display = "block";
+      }
+
+      function handleSuperAdminAuth(event) {
+        event.preventDefault();
+        const enteredUser = document.getElementById("superAdminUser").value.trim();
+        const enteredPass = document.getElementById("superAdminPass").value;
+        const errorText = document.getElementById("errorText");
+
+        // Super Admin Username & Password verification
+        if (enteredUser === "superadmin" && enteredPass === "admin123") {
+          sessionStorage.setItem("userRole", "super_admin");
+          unlockScreen();
+        } else {
+          errorText.style.display = "block";
+          document.getElementById("superAdminPass").value = "";
+        }
+      }
+
+      // Initial Session Validation
+      (function init() {
+        const currentUserRole = sessionStorage.getItem("userRole") || localStorage.getItem("userRole");
+        if (currentUserRole === "super_admin") {
+          document.addEventListener("DOMContentLoaded", unlockScreen);
+        }
+      })();
+    </script>
+
+    <!-- External JS Link -->
+    <script src="../js/admin.js"></script>
+  </body>
 </html>

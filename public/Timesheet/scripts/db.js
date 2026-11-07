@@ -851,11 +851,29 @@ function getSearchableText(row, searchType) {
 function applyGridFilters() {
   const globalSearch = document
     .getElementById("searchInput")
-    .value.toUpperCase();
-  const trs = document.getElementById("dbBody").getElementsByTagName("tr");
+    .value.trim()
+    .toUpperCase();
+  const trs = Array.from(document.getElementById("dbBody").getElementsByTagName("tr"));
   if (trs.length === 1 && trs[0].cells.length === 1) return;
 
-  tableData.forEach((row, index) => {
+  const dataMap = new Map();
+  tableData.forEach((r) => {
+    if (r.plate_no) dataMap.set(String(r.plate_no).trim().toUpperCase(), r);
+  });
+
+  const searchType = document.getElementById("searchType").value;
+
+  trs.forEach((tr) => {
+    const pInput = tr.querySelector("input.primary-col");
+    if (!pInput) return;
+    const pNo = (pInput.value || "").trim().toUpperCase();
+    const row = dataMap.get(pNo);
+
+    if (!row) {
+      tr.style.display = "none";
+      return;
+    }
+
     let showRow = true;
     for (const colName in activeFilters) {
       const selectedVals = activeFilters[colName];
@@ -867,15 +885,14 @@ function applyGridFilters() {
         break;
       }
     }
-    const searchType = document.getElementById("searchType").value;
+
     if (showRow && globalSearch !== "") {
       if (!getSearchableText(row, searchType).includes(globalSearch)) {
         showRow = false;
       }
     }
-    if (trs[index]) {
-      trs[index].style.display = showRow ? "" : "none";
-    }
+
+    tr.style.display = showRow ? "" : "none";
   });
 }
 
@@ -3302,6 +3319,7 @@ async function startLiveSyncWorker() {
           } else {
             // വാല്യൂസ് മാത്രം മാറിയിട്ടുണ്ടെങ്കിൽ UI ഫ്ലിക്കർ ആവാതെ വാല്യൂസ് മാത്രം അപ്ഡേറ്റ് ചെയ്യുന്നു
             updateTableCellsInPlace(freshTableData);
+            applyGridFilters();
           }
         }
       }
