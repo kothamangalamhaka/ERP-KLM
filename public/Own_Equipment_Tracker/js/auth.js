@@ -42,7 +42,9 @@ async function handleLogin() {
       }
       localStorage.setItem("eq_user", JSON.stringify(data.user));
 
-      window.location.href = "Dashboard.html";
+      window.location.replace(
+        window.ownEquipmentSession.getLoginDestination(),
+      );
     } else {
       showAlert(data.message, "error");
     }
@@ -95,16 +97,20 @@ function clearAuthForms() {
 
 // Normal page load + browser Back/Forward restore & Enter key listener
 window.addEventListener("pageshow", function () {
-  if (localStorage.getItem("eq_user")) {
-    window.location.replace("Dashboard.html");
+  if (localStorage.getItem("eq_token")) {
+    window.location.replace(
+      window.ownEquipmentSession.getLoginDestination(),
+    );
     return;
   }
   clearAuthForms();
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (localStorage.getItem("eq_user")) {
-    window.location.replace("Dashboard.html");
+  if (localStorage.getItem("eq_token")) {
+    window.location.replace(
+      window.ownEquipmentSession.getLoginDestination(),
+    );
     return;
   }
   ["loginUser", "loginPass"].forEach((id) => {

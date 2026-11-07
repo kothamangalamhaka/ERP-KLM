@@ -18,9 +18,7 @@ let selectedMonth = null;
 let currentExportType = "";
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (!localStorage.getItem("eq_user")) {
-    window.location.replace("index.html");
-  }
+  if (!window.ownEquipmentSession.requirePage()) return;
   initFilters();
 });
 

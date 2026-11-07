@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Equipment Wise Details</title>
+    <script src="js/eq-session.js"></script>
     <!-- 🟢 Include Libraries for PDF, ZIP & High Quality Image Copy -->
     <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
     <script src="/node_xlsx_scripts/html2pdf.bundle.min.js"></script>
@@ -436,9 +437,6 @@
     <div id="toast-container"></div>
 
     <script>
-      if (!localStorage.getItem("eq_user")) {
-        window.location.replace("index.html");
-      }
       let allEquipments = [];
       let allLogs = [];
       let activeEquipmentId = null;

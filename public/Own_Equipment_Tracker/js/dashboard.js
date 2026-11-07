@@ -38,9 +38,7 @@ const fullMonthNames = [
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (!localStorage.getItem("eq_user")) {
-    window.location.replace("index.html");
-  }
+  if (!window.ownEquipmentSession.requirePage()) return;
   initYearMonthDropdowns();
   loadDashboardData();
   startActiveUserTracking();
@@ -1353,6 +1351,7 @@ window.onclick = (e) => {
       .forEach((el) => el.classList.remove("visible"));
 };
 function logout() {
+  localStorage.removeItem("eq_token");
   localStorage.removeItem("eq_user");
   window.location.replace("index.html");
 }
