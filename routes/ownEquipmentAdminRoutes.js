@@ -1,6 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const jwt = require('jsonwebtoken');
+
+function requireAdmin(req, res, next) {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ message: 'Authentication required.' });
+    }
+
+    try {
+        const user = jwt.verify(token, process.env.JWT_SECRET);
+        const role = String(user.role || '').trim().toLowerCase().replace(/[_\s-]/g, '');
+        if (!['admin', 'superadmin'].includes(role)) {
+            return res.status(403).json({ message: 'Admin access required.' });
+        }
+        req.user = user;
+        next();
+    } catch (err) {
+        return res.status(401).json({ message: 'Invalid or expired session.' });
+    }
+}
+
+router.use(requireAdmin);
 
 // Get ALL users
 router.get('/all-users', async (req, res) => {

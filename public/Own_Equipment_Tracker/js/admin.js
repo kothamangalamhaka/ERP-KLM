@@ -1,8 +1,20 @@
 const token = localStorage.getItem("eq_token");
-const eqUser = localStorage.getItem("eq_user");
+let eqUser = null;
+try {
+  eqUser = JSON.parse(localStorage.getItem("eq_user") || "null");
+} catch (err) {
+  eqUser = null;
+}
+const normalizedRole = String(eqUser?.role || "")
+  .trim()
+  .toLowerCase()
+  .replace(/[_\s-]/g, "");
+const isAdminUser = Boolean(token && ["admin", "superadmin"].includes(normalizedRole));
 
-if (!token && !eqUser) {
-  window.location.href = "../";
+if (!token) {
+  window.location.replace("../");
+} else if (!isAdminUser) {
+  window.location.replace("../Dashboard.html");
 }
 
 function getAuthHeaders() {
@@ -14,7 +26,20 @@ function getAuthHeaders() {
   };
 }
 
+function handleAdminAccessFailure(res) {
+  if (res.status === 401) {
+    logout();
+    return true;
+  }
+  if (res.status === 403) {
+    window.location.replace("../Dashboard.html");
+    return true;
+  }
+  return false;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  if (!isAdminUser) return;
   loadAllUsers();
 });
 
@@ -24,10 +49,7 @@ async function loadAllUsers() {
       headers: getAuthHeaders(),
     });
 
-    if (res.status === 401 || res.status === 403) {
-      logout();
-      return;
-    }
+    if (handleAdminAccessFailure(res)) return;
 
     const users = await res.json();
     const tbody = document.getElementById("userTable");
@@ -94,10 +116,7 @@ async function updateStatus(id, status) {
       body: JSON.stringify({ id, status }),
     });
 
-    if (res.status === 401 || res.status === 403) {
-      logout();
-      return;
-    }
+    if (handleAdminAccessFailure(res)) return;
 
     if (res.ok) {
       loadAllUsers();
@@ -120,10 +139,7 @@ async function makeSuperAdmin(id) {
       body: JSON.stringify({ id }),
     });
 
-    if (res.status === 401 || res.status === 403) {
-      logout();
-      return;
-    }
+    if (handleAdminAccessFailure(res)) return;
 
     if (res.ok) {
       loadAllUsers();
@@ -150,10 +166,7 @@ async function demoteUser(id) {
       body: JSON.stringify({ id }),
     });
 
-    if (res.status === 401 || res.status === 403) {
-      logout();
-      return;
-    }
+    if (handleAdminAccessFailure(res)) return;
 
     if (res.ok) {
       loadAllUsers();
@@ -179,10 +192,7 @@ async function deleteUser(id) {
       headers: getAuthHeaders(),
     });
 
-    if (res.status === 401 || res.status === 403) {
-      logout();
-      return;
-    }
+    if (handleAdminAccessFailure(res)) return;
 
     if (res.ok) {
       loadAllUsers();
@@ -197,5 +207,5 @@ async function deleteUser(id) {
 function logout() {
   localStorage.removeItem("eq_token");
   localStorage.removeItem("eq_user");
-  window.location.href = "../";
+  window.location.replace("../");
 }
