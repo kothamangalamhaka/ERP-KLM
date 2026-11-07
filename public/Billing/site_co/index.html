@@ -247,6 +247,66 @@
         background: linear-gradient(135deg, #34d399, #047857);
       }
 
+      /* ===== Card top action buttons - enhanced look ===== */
+      .edit-action-buttons .btn {
+        padding: 0 12px;
+        height: 32px;
+        border-radius: 7px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+        gap: 6px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s ease;
+      }
+
+      .edit-action-buttons .btn svg {
+        width: 14px;
+        height: 14px;
+        flex: 0 0 14px;
+        display: block;
+      }
+
+      .edit-action-buttons .btn:hover {
+        opacity: 1;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        filter: brightness(1.08);
+      }
+
+      .edit-action-buttons .btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+      }
+
+      .cbtn-seal {
+        background: linear-gradient(135deg, #8b5cf6, #6f42c1);
+      }
+
+      .cbtn-summary {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      }
+
+      .cbtn-edit {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+      }
+
+      .cbtn-download {
+        background: linear-gradient(135deg, #3b82f6, #007bff);
+      }
+
+      .cbtn-copy {
+        background: linear-gradient(135deg, #22d3ee, #0891b2);
+      }
+
+      .cbtn-save {
+        background: linear-gradient(135deg, #22c55e, #28a745);
+      }
+
+      .cbtn-cancel {
+        background: linear-gradient(135deg, #ef4444, #dc3545);
+      }
+
       .selector-wrapper {
         display: flex;
         align-items: center;
@@ -2251,64 +2311,84 @@
             <div class="edit-action-buttons">
               <!-- 🟢 SEAL & SIGN TOGGLE BUTTON -->
               <button
-                class="btn"
+                class="btn cbtn-seal"
                 title="Toggle Seal & Signature"
-                style="background:#6f42c1;"
                 onclick="toggleCardImages(this)"
               >
-                <i class="material-icons" style="font-size:16px;">visibility</i> Seal/Sign
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                Seal/Sign
               </button>
 
               <!-- 🟢 VENDOR BILL SUMMARY BUTTON -->
               <button
-                class="btn"
+                class="btn cbtn-summary"
                 title="Open Vendor Bill Summary"
-                style="background:#ff9800;"
                 onclick="openVendorBillFromSiteCoCard(this)"
               >
-                <i class="material-icons" style="font-size:16px;">receipt</i> Bill Summary
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z" />
+                  <path d="M8 8h8M8 12h8M8 16h4" />
+                </svg>
+                Bill Summary
               </button>
 
               <!-- NORMAL MODE -->
               <button
-                class="btn card-edit-btn"
-                style="background:#2563eb;"
+                class="btn card-edit-btn cbtn-edit"
                 onclick="enableCardEdit(this)"
               >
-                ✏️ Edit
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m15 5 4 4M4 20l4.5-1L19 8.5a2.1 2.1 0 0 0-3-3L5.5 16 4 20Z" />
+                </svg>
+                Edit
               </button>
 
               <button
-                class="btn card-download-btn"
-                style="background:#007bff;"
+                class="btn card-download-btn cbtn-download"
                 onclick="downloadCardPNG(this)"
               >
-                ⬇️ Download PNG
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v12m-5-5 5 5 5-5M4 20h16" />
+                </svg>
+                Download PNG
               </button>
 
               <button
-                class="btn card-copy-btn"
-                style="background:#17a2b8;"
+                class="btn card-copy-btn cbtn-copy"
                 onclick="copyCardHQ(this)"
               >
-                📋 Copy HQ Image
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="8" y="8" width="13" height="13" rx="2" />
+                  <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+                </svg>
+                Copy HQ Image
               </button>
 
               <!-- EDIT MODE -->
               <button
-                class="btn card-save-btn"
-                style="background:#28a745; display:none;"
+                class="btn card-save-btn cbtn-save"
+                style="display: none"
                 onclick="saveEditedCardToERP(this)"
               >
-                💾 Save
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 3h12l4 4v14H3V3h2Z" />
+                  <path d="M7 3v6h10V3M7 21v-8h10v8" />
+                </svg>
+                Save
               </button>
 
               <button
-                class="btn card-cancel-btn"
-                style="background:#dc3545; display:none;"
+                class="btn card-cancel-btn cbtn-cancel"
+                style="display: none"
                 onclick="cancelCardEdit(this)"
               >
-                ✖ Cancel
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                  <path d="m6 6 12 12M18 6 6 18" />
+                </svg>
+                Cancel
               </button>
             </div>
           </div>

@@ -17,13 +17,57 @@ function getCompanyFromSite(siteName, fallback = "Haka") {
   return fallback;
 }
 
-function calculateLogHours(records, monthIndex, year, siteName, specialRules) {
+function calculateLogHours(
+  records,
+  monthIndex,
+  year,
+  siteName,
+  specialRules,
+  siteLogs = [],
+) {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const normalizedSite = String(siteName || "").split("&")[0].trim().toUpperCase();
+  const targetSite = String(siteName || "").trim().toUpperCase();
   let nhr = 0;
   let othr = 0;
 
   for (let day = 1; day <= daysInMonth; day++) {
+    const dayDate = new Date(year, monthIndex, day, 12, 0, 0, 0);
+    if (siteLogs.length > 0) {
+      const activeSiteLog = siteLogs.find((log) => {
+        const start = log.work_start_date
+          ? new Date(log.work_start_date)
+          : new Date(2000, 0, 1);
+        const end = log.work_end_date
+          ? new Date(log.work_end_date)
+          : new Date(2099, 11, 31);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        return dayDate >= start && dayDate <= end;
+      });
+
+      const previousSiteLog = activeSiteLog
+        ? null
+        : siteLogs
+            .filter((log) => {
+              if (!log.work_end_date) return false;
+              const end = new Date(log.work_end_date);
+              end.setHours(23, 59, 59, 999);
+              return end < dayDate;
+            })
+            .sort(
+              (a, b) =>
+                new Date(b.work_end_date) - new Date(a.work_end_date),
+            )[0];
+      const assignedSite = String(
+        activeSiteLog?.site_name || previousSiteLog?.site_name || "N/A",
+      )
+        .trim()
+        .toUpperCase();
+
+      if (assignedSite !== targetSite) continue;
+    }
+
     const record = records.find((item) => parseInt(item.record_date, 10) === day);
     const workHours = record ? parseFloat(record.calc_time) || 0 : 0;
     let status = record ? String(record.bd || "").trim().toUpperCase() : "";
@@ -368,8 +412,18 @@ router.get("/vehicles", async (req, res) => {
         const vehicleTimesheets = timesheetRows.filter((timesheet) =>
           isPlateMatchingSet(timesheet.plate_no)
         );
+        const vehicleSiteLogs = siteLogs.rows.filter((log) =>
+          isPlateMatchingSet(log.plate_no),
+        );
         const logHours = targetMonthIdx >= 0
-          ? calculateLogHours(vehicleTimesheets, targetMonthIdx, targetYearNum, pSite, specialRules)
+          ? calculateLogHours(
+              vehicleTimesheets,
+              targetMonthIdx,
+              targetYearNum,
+              pSite,
+              specialRules,
+              vehicleSiteLogs,
+            )
           : { nhr: 0, othr: 0 };
         const matchingInvoices = invoiceRows.filter((invoice) =>
           isPlateMatchingSet(invoice.plate_no)
