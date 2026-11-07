@@ -349,7 +349,11 @@ function applyGridFilters(tableId = "dashboardTable") {
       matchesFilters = false;
     if (activeFilters.site.length > 0 && !activeFilters.site.includes(tSite))
       matchesFilters = false;
-    if (activeFilters.plate.length > 0 && !activeFilters.plate.includes(tPlate) && !activeFilters.plate.includes(masterPlateAttr))
+    if (
+      activeFilters.plate.length > 0 &&
+      !activeFilters.plate.includes(tPlate) &&
+      !activeFilters.plate.includes(masterPlateAttr)
+    )
       matchesFilters = false;
 
     let matchesGlobal = globalSearch === "" || rowText.includes(globalSearch);
@@ -542,6 +546,32 @@ function adjustStickyHeaders(tableId = "dashboardTable") {
 }
 window.addEventListener("resize", () => adjustStickyHeaders("dashboardTable"));
 
+// 🟢 Left/Right arrows - Month switch (Dec/Jan year rollover handle cheyyunnu)
+function changeMonth(delta) {
+  const selMonth = document.getElementById("selMonth");
+  const selYear = document.getElementById("selYear");
+
+  let mIdx = months.indexOf(selMonth.value);
+  let y = parseInt(selYear.value, 10) || new Date().getFullYear();
+
+  mIdx += delta;
+  if (mIdx < 0) {
+    mIdx = 11;
+    y -= 1;
+  } else if (mIdx > 11) {
+    mIdx = 0;
+    y += 1;
+  }
+
+  selMonth.value = months[mIdx];
+  selYear.value = y;
+
+  // Dashboard already load aayi kazhinjengil, puthiya month auto re-fetch cheyyunnu
+  if (cachedDashboardData) {
+    fetchAndGenerateDashboard();
+  }
+}
+
 async function fetchAndGenerateDashboard() {
   const m = document.getElementById("selMonth").value;
   const y = document.getElementById("selYear").value;
@@ -713,7 +743,7 @@ function getTableHTMLString(
     let vPlateChanges = pLogs.filter(
       (pl) =>
         (pl.old_plate_no || "").trim().toUpperCase() === masterPlate ||
-        (pl.new_plate_no || "").trim().toUpperCase() === masterPlate
+        (pl.new_plate_no || "").trim().toUpperCase() === masterPlate,
     );
 
     if (vPlateChanges.length > 0) {
@@ -722,7 +752,7 @@ function getTableHTMLString(
         let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
         let cDate = new Date(cYear, cMonth - 1, cDay);
 
-        if (cYear === curYearInt && (cMonth - 1) === mIdx) {
+        if (cYear === curYearInt && cMonth - 1 === mIdx) {
           displayPlate = `${pl.old_plate_no.trim().toUpperCase()} ➔ ${pl.new_plate_no.trim().toUpperCase()}`;
         } else if (monthEnd < cDate) {
           displayPlate = pl.old_plate_no.trim().toUpperCase();
@@ -764,7 +794,10 @@ function getTableHTMLString(
 
     // 🟢 Historical Owner mapping for selected month
     v.currOwner =
-      activeOwners.map((o) => o.owner_name).filter(Boolean).join(" & ") ||
+      activeOwners
+        .map((o) => o.owner_name)
+        .filter(Boolean)
+        .join(" & ") ||
       v.owner_name ||
       "";
 
