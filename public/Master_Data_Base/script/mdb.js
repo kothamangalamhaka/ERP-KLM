@@ -195,6 +195,47 @@ function parseDateStr(dStr) {
   }
   return null;
 }
+
+// 🟢 Custom Chronological Date Sorting Plugin for DataTables
+function isDateColumnHeader(h) {
+  if (!h) return false;
+  let colTypeObj = (cachedColTypes || []).find((c) => c.name === h);
+  let cType = colTypeObj ? colTypeObj.type : "varchar";
+  let colHead = String(h).replace(/\s+/g, " ").trim().toUpperCase();
+  return (
+    cType === "date" ||
+    colHead.includes("DATE") ||
+    colHead.includes("EXPIRE") ||
+    colHead.includes("EQUIPMENT REACHED") ||
+    colHead === "LAST WORKING DAY" ||
+    colHead === "WORK START"
+  );
+}
+
+if ($.fn.dataTable && $.fn.dataTable.ext) {
+  $.fn.dataTable.ext.type.order["date-custom-pre"] = function (d) {
+    if (!d || String(d).trim() === "" || d === "-" || d === "N/A") {
+      return 0;
+    }
+    let parsed = parseDateStr(d);
+    return parsed ? parsed.getTime() : 0;
+  };
+
+  $.fn.dataTable.ext.type.order["date-custom-asc"] = function (a, b) {
+    if (a === 0 && b === 0) return 0;
+    if (a === 0) return 1;
+    if (b === 0) return -1;
+    return a < b ? -1 : a > b ? 1 : 0;
+  };
+
+  $.fn.dataTable.ext.type.order["date-custom-desc"] = function (a, b) {
+    if (a === 0 && b === 0) return 0;
+    if (a === 0) return 1;
+    if (b === 0) return -1;
+    return a < b ? 1 : a > b ? -1 : 0;
+  };
+}
+
 const FIXED_COLUMNS = [
   "EQUIPMENT REACHED AT SITE",
   "WORK START",
@@ -1412,6 +1453,15 @@ function attachContextMenus() {
       $("#contextWrapText").text(
         currentWrap === "wrap" ? "Unwrap Text" : "Wrap Text",
       );
+
+      if (isDateColumnHeader(contextColName)) {
+        $("#contextSortAscText").text("Sort Oldest ➔ Newest");
+        $("#contextSortDescText").text("Sort Newest ➔ Oldest");
+      } else {
+        $("#contextSortAscText").text("Sort A-Z / Low");
+        $("#contextSortDescText").text("Sort Z-A / High");
+      }
+
       $("#headerContextMenu")
         .css({ top: e.pageY + "px", left: e.pageX + "px" })
         .fadeIn(200);
@@ -1542,10 +1592,12 @@ async function handleMenuAction(action) {
     if (erpDataTable) erpDataTable.rows().invalidate().draw(false);
   } else if (action === "sort_asc") {
     erpDataTable.order([contextColIdx, "asc"]).draw();
-    showToast("Sorted A-Z", "info");
+    let isDate = isDateColumnHeader(contextColName);
+    showToast(isDate ? "Sorted Oldest ➔ Newest" : "Sorted A-Z", "info");
   } else if (action === "sort_desc") {
     erpDataTable.order([contextColIdx, "desc"]).draw();
-    showToast("Sorted Z-A", "info");
+    let isDate = isDateColumnHeader(contextColName);
+    showToast(isDate ? "Sorted Newest ➔ Oldest" : "Sorted Z-A", "info");
   } else if (action === "hide_column") {
     erpDataTable.column(contextColIdx).visible(false);
     showToast("Column Hidden", "info");
@@ -2032,6 +2084,12 @@ function renderTable(response, preserveState = true) {
     dom: '<"top-ribbon"<"ribbon-left"B> f <"right-controls"l i p>><"table-scroll-wrapper"t>',
     ordering: true,
     order: (preserveState && currentOrder && currentOrder.length > 0) ? currentOrder : [],
+    columnDefs: cachedHeaders.map((h, idx) => {
+      if (isDateColumnHeader(h)) {
+        return { type: "date-custom", targets: idx };
+      }
+      return null;
+    }).filter(Boolean),
     colReorder: { realtime: false },
     orderCellsTop: true,
     language: {
@@ -2261,8 +2319,19 @@ lengthMenu: [
           document.querySelector(".dt-buttons").classList.remove("show");
           activeFilters = {};
           $(".filter-icon").removeClass("filter-active").text("filter_list");
-          erpDataTable.draw();
-          showToast("All Filters Cleared", "success");
+          
+          // 🟢 Preserve search text when clearing column filters
+          const $searchInput = $('.dataTables_filter input');
+          const currentSearchText = $searchInput.val() || "";
+          const currentMode = $("#searchModeSelector").val() || globalSearchMode || "general";
+
+          if (currentMode === "general") {
+            erpDataTable.search(currentSearchText).draw();
+          } else {
+            erpDataTable.draw();
+          }
+          $searchInput.val(currentSearchText);
+          showToast("All Column Filters Cleared", "success");
         },
       },
       {
@@ -2536,23 +2605,94 @@ function openFilterMenu(event, colName, iconElement) {
   // --- END COLOR FILTER UI INJECTION ---
 
   let allOptions = new Set();
-  erpDataTable.rows().every(function () {
+  
+  // 🟢 FIX: Cascading filter logic - Check other active column filters, color filters, and global search
+  erpDataTable.rows().every(function (rowIdx) {
     let rowData = this.data();
     let passesOtherFilters = true;
+
+    // 1. Check all other active column filters
     for (let filterCol in activeFilters) {
       if (filterCol === colName) continue;
       let allowedValues = activeFilters[filterCol];
       if (!allowedValues || allowedValues.length === 0) continue;
       let fIdx = cachedHeaders.indexOf(filterCol);
       if (fIdx === -1) continue;
+
+      // Handle Color Filter in cascading check
+      let colorFilterVal = allowedValues.find(v => String(v).startsWith("__COLOR_"));
+      if (colorFilterVal) {
+        let statusIdx = cachedHeaders.findIndex(h => String(h).toUpperCase().trim() === "STATUS");
+        let statusVal = statusIdx !== -1 ? String(rowData[statusIdx]).trim().toLowerCase() : "";
+        let cellColor = "__COLOR_NONE__";
+
+        if (statusVal === "running") {
+          let dateStr = rowData[fIdx];
+          if (dateStr && String(dateStr).trim() !== "") {
+            let parsedDateStr = convertToInputDate(dateStr);
+            if (parsedDateStr) {
+              let expDate = new Date(`${parsedDateStr}T00:00:00`);
+              if (!isNaN(expDate.getTime())) {
+                let today = new Date();
+                today.setHours(0, 0, 0, 0);
+                expDate.setHours(0, 0, 0, 0);
+                let diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                if (diffDays < 0) cellColor = "__COLOR_EXPIRED__";
+                else if (diffDays >= 0 && diffDays <= 15) cellColor = "__COLOR_15_DAYS__";
+                else if (diffDays > 15 && diffDays <= 30) cellColor = "__COLOR_30_DAYS__";
+              }
+            }
+          }
+        }
+        if (colorFilterVal !== cellColor) {
+          passesOtherFilters = false;
+          break;
+        }
+        continue;
+      }
+
       let cellVal = String(rowData[fIdx] || "").trim();
       if (!allowedValues.includes(cellVal)) {
         passesOtherFilters = false;
         break;
       }
     }
-    if (passesOtherFilters)
+
+    // 2. Check active search box / dropdown filter (if user typed something in search)
+    if (passesOtherFilters) {
+      let searchVal = ($('.dataTables_filter input').val() || "").trim().toLowerCase();
+      if (searchVal) {
+        let mode = $("#searchModeSelector").val() || globalSearchMode || "general";
+        let getColIdxByMatch = (aliases) => {
+          return cachedHeaders.findIndex((h) => {
+            const norm = h.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+            return aliases.some((a) => norm.includes(a.replace(/[^A-Z0-9]/gi, "").toUpperCase()));
+          });
+        };
+
+        if (mode === "general") {
+          let rowTextBlob = rowData.map(v => String(v || "")).join(" ").toLowerCase();
+          if (!rowTextBlob.includes(searchVal)) passesOtherFilters = false;
+        } else {
+          let targetColIdx = -1;
+          if (mode === "plate") targetColIdx = getColIdxByMatch(["PLATENUMBER", "PLATENO"]);
+          else if (mode === "iqama") targetColIdx = getColIdxByMatch(["IQAMANUMBER", "IQAMANO"]);
+          else if (mode === "driver") targetColIdx = getColIdxByMatch(["DRIVERNAME"]);
+          else if (mode === "driver_mob") targetColIdx = getColIdxByMatch(["MOBILE", "DRIVERMOBILE"]);
+          else if (mode === "owner") targetColIdx = getColIdxByMatch(["OWNERNAME", "OWNER"]);
+          else if (mode === "owner_mob") targetColIdx = getColIdxByMatch(["OWNERNUMBER", "OWNERMOBILE", "MOBILEOWNER"]);
+
+          if (targetColIdx !== -1) {
+            let targetText = String(rowData[targetColIdx] || "").toLowerCase();
+            if (!targetText.includes(searchVal)) passesOtherFilters = false;
+          }
+        }
+      }
+    }
+
+    if (passesOtherFilters) {
       allOptions.add(String(rowData[colIdx] || "").trim());
+    }
   });
 
   let allData = Array.from(allOptions).sort(),
@@ -2792,7 +2932,40 @@ function applyCustomFilter() {
     }
   }
   closeCustomFilter();
-  erpDataTable.draw();
+
+  // 🟢 FIX: Search input value preserve cheyyunnu, maanju pokilla
+  const $searchInput = $('.dataTables_filter input');
+  const currentSearchText = $searchInput.val() || "";
+  const currentMode = $("#searchModeSelector").val() || globalSearchMode || "general";
+
+  let getColIdxByMatch = (aliases) => {
+    return cachedHeaders.findIndex((h) => {
+      const norm = h.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+      return aliases.some((a) => norm.includes(a.replace(/[^A-Z0-9]/gi, "").toUpperCase()));
+    });
+  };
+
+  if (currentMode === "general") {
+    erpDataTable.search(currentSearchText).draw();
+  } else {
+    erpDataTable.search("");
+    let targetColIdx = -1;
+    if (currentMode === "plate") targetColIdx = getColIdxByMatch(["PLATENUMBER", "PLATENO"]);
+    else if (currentMode === "iqama") targetColIdx = getColIdxByMatch(["IQAMANUMBER", "IQAMANO"]);
+    else if (currentMode === "driver") targetColIdx = getColIdxByMatch(["DRIVERNAME"]);
+    else if (currentMode === "driver_mob") targetColIdx = getColIdxByMatch(["MOBILE", "DRIVERMOBILE"]);
+    else if (currentMode === "owner") targetColIdx = getColIdxByMatch(["OWNERNAME", "OWNER"]);
+    else if (currentMode === "owner_mob") targetColIdx = getColIdxByMatch(["OWNERNUMBER", "OWNERMOBILE", "MOBILEOWNER"]);
+
+    if (targetColIdx !== -1) {
+      erpDataTable.column(targetColIdx).search(currentSearchText).draw();
+    } else {
+      erpDataTable.search(currentSearchText).draw();
+    }
+  }
+
+  // Ensure DOM input value remains visible
+  $searchInput.val(currentSearchText);
 }
 
 function openAddColumnModal() {
