@@ -13,6 +13,41 @@ function cleanPlate(p) {
     .replace(/[^A-Z0-9]/g, "");
 }
 
+function hasVatStatus(vat) {
+  return vat !== null && vat !== undefined && String(vat).trim() !== "";
+}
+
+function getVatPercent(vat) {
+  const normalized = String(vat || "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  return normalized.includes("yes") ||
+    ["true", "15", "15%"].includes(normalized)
+    ? 15
+    : 0;
+}
+
+function getLatestLogForPeriod(logs, monthStart, monthEnd) {
+  return (
+    logs
+      .filter((log) => {
+        const start = log.work_start_date
+          ? new Date(log.work_start_date)
+          : new Date(2000, 0, 1);
+        const end = log.work_end_date
+          ? new Date(log.work_end_date)
+          : new Date(2099, 11, 31);
+        return start <= monthEnd && end >= monthStart;
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.work_start_date || "2000-01-01") -
+            new Date(a.work_start_date || "2000-01-01") ||
+          (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0),
+      )[0] || null
+  );
+}
+
 // 🟢 Middlewares (Fixed Token Splitting .split(" ")[1])
 const verifyViewBillUser = async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -494,7 +529,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         "SELECT plate_no, site_name, rate, work_start_date, work_end_date FROM vehicle_rate_log",
       ),
       pool.query(
-        "SELECT plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, company_arabic_name, work_start_date, work_end_date FROM vehicle_owner_log",
+        "SELECT id, plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, company_arabic_name, work_start_date, work_end_date FROM vehicle_owner_log ORDER BY id DESC",
       ),
       pool.query(
         "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
@@ -791,15 +826,11 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         let vOwnerLogs = ownerLogs.filter((o) =>
           allRelatedNorms.includes(cleanPlate(o.plate_no)),
         );
-        let validOLogs = vOwnerLogs.filter((o) => {
-          let st = o.work_start_date
-            ? new Date(o.work_start_date)
-            : new Date(2000, 0, 1);
-          let ed = o.work_end_date
-            ? new Date(o.work_end_date)
-            : new Date(2100, 11, 31);
-          return st <= monthEnd && ed >= monthStart;
-        });
+        let activeOwnerLog = getLatestLogForPeriod(
+          vOwnerLogs,
+          monthStart,
+          monthEnd,
+        );
 
         let effectiveOwner = (v.owner_name || "COMPANY VEHICLE").trim();
         let effectiveVat = (v.vat || "No").trim();
@@ -812,16 +843,10 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
         let effectiveCompanyArabicName = (v.company_arabic_name || "").trim();
         let effectiveVatNo = (v.vat_no || "").trim();
 
-        if (validOLogs.length > 0) {
-          validOLogs.sort(
-            (a, b) =>
-              new Date(b.work_start_date || "2000-01-01") -
-              new Date(a.work_start_date || "2000-01-01"),
-          );
-          let activeOwnerLog = validOLogs[0];
+        if (activeOwnerLog) {
           if (activeOwnerLog.owner_name)
             effectiveOwner = activeOwnerLog.owner_name.trim();
-          if (activeOwnerLog.vat)
+          if (hasVatStatus(activeOwnerLog.vat))
             effectiveVat = String(activeOwnerLog.vat).trim();
           if (activeOwnerLog.company_display_name)
             effectiveCompanyDisplayName = String(
@@ -861,13 +886,22 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
           saved && parseFloat(saved.rent) > 0
             ? parseFloat(saved.rent)
             : nhr * nrate + othr * otrate;
-        let vatAmt = saved
-          ? parseFloat(saved.vat_amount) || 0
-          : isEffectiveVatYes === "Yes"
-            ? rent * 0.15
-            : 0;
-        let total =
-          saved && parseFloat(saved.total) > 0
+        const hasHistoricalVatStatus =
+          activeOwnerLog && hasVatStatus(activeOwnerLog.vat);
+        const rowVatPercent = hasHistoricalVatStatus
+          ? getVatPercent(activeOwnerLog.vat)
+          : saved
+            ? parseFloat(saved.vat_percent) || 0
+            : isEffectiveVatYes === "Yes"
+              ? 15
+              : 0;
+        let vatAmt =
+          hasHistoricalVatStatus || !saved
+            ? Number((rent * (rowVatPercent / 100)).toFixed(2))
+            : parseFloat(saved.vat_amount) || 0;
+        let total = hasHistoricalVatStatus
+          ? Number((rent + vatAmt).toFixed(2))
+          : saved && parseFloat(saved.total) > 0
             ? parseFloat(saved.total)
             : rent + vatAmt;
 
@@ -900,11 +934,7 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
           otrate: otrate,
           rent,
           vat_amount: vatAmt,
-          vat_percent: saved
-            ? parseFloat(saved.vat_percent) || 0
-            : isEffectiveVatYes === "Yes"
-              ? 15
-              : 0,
+          vat_percent: rowVatPercent,
           total,
           invoice_no: invData.invoice_no || "",
           bill_no: invData.bill_no || "",
@@ -1323,15 +1353,17 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
         : 0;
 
       // Find historical owner from vehicle_owner_log for this specific month
-      let matchedOwnerLog = ownerLogs.find((o) => {
-        let st = o.work_start_date
-          ? new Date(o.work_start_date)
-          : new Date("2000-01-01");
-        let ed = o.work_end_date
-          ? new Date(o.work_end_date)
-          : new Date("2099-01-01");
-        return st <= mEnd && ed >= mStart;
-      });
+      let matchedOwnerLog = getLatestLogForPeriod(
+        ownerLogs.filter((o) => plateMatchesRelated(o.plate_no)),
+        mStart,
+        mEnd,
+      );
+      const hasHistoricalVatStatus =
+        matchedOwnerLog && hasVatStatus(matchedOwnerLog.vat);
+      const fallbackVatStatus = hasHistoricalVatStatus
+        ? matchedOwnerLog.vat
+        : vehicleInfo.vat;
+      const fallbackVatPercent = getVatPercent(fallbackVatStatus);
       let fallbackOwnerName =
         matchedOwnerLog?.owner_name ||
         vehicleInfo.owner_name ||
@@ -1361,7 +1393,16 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
 
         // 🟢 Herreega rent, vat_amount, fi total kallattiin haaromsuu
         let rent = Number((nhr * rowNRate + othr * rowOTRate).toFixed(2));
-        let vatPercent = parseFloat(savedRow.vat_percent) || 0;
+        const hasSavedVatPercent =
+          savedRow.vat_percent !== null &&
+          savedRow.vat_percent !== undefined &&
+          String(savedRow.vat_percent).trim() !== "" &&
+          Number.isFinite(parseFloat(savedRow.vat_percent));
+        let vatPercent = hasHistoricalVatStatus
+          ? fallbackVatPercent
+          : hasSavedVatPercent
+            ? parseFloat(savedRow.vat_percent)
+            : fallbackVatPercent;
         let vatAmt = Number((rent * (vatPercent / 100)).toFixed(2));
         let total = Number((rent + vatAmt).toFixed(2));
 
@@ -1390,7 +1431,7 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
           othr: othr,
           otrate: rowOTRate,
           rent: rent,
-          vat_percent: parseFloat(savedRow.vat_percent) || 0,
+          vat_percent: vatPercent,
           vat_amount: vatAmt,
           total: total,
           adjustment_desc: savedRow.adjustment_desc || "",
@@ -1407,9 +1448,6 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
         else if (sUpper.includes("MASAR")) autoCompany = "Masar Wheels";
         else if (sUpper.includes("WE1") || sUpper.includes("WE 1"))
           autoCompany = "We1 Track";
-
-        let normVatF = (matchedOwnerLog?.vat || vehicleInfo.vat || "No").trim().toLowerCase().replace(/\s+/g, "");
-        let fallbackVat = (normVatF.includes("yes") || ["true", "15", "15%"].includes(normVatF)) ? 15 : 0;
 
         let matchedMonthSiteLog = siteLogs.find((s) => {
           let st = s.work_start_date
@@ -1440,7 +1478,7 @@ router.get("/combined-bill", verifyViewBillUser, async (req, res) => {
           nrate: fallbackNRate,
           otrate: fallbackOTRate,
           rent: 0,
-          vat_percent: fallbackVat,
+          vat_percent: fallbackVatPercent,
           vat_amount: 0,
           total: 0,
           adjustment_desc: "",
@@ -1604,6 +1642,29 @@ router.post("/save-bill", verifyViewBillUser, async (req, res) => {
   try {
     await client.query("BEGIN");
     const { billing_period, items } = req.body;
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const [periodMonth, periodYearText] = String(billing_period || "")
+      .trim()
+      .split(/\s+/);
+    const periodMonthIndex = monthNames.indexOf(periodMonth);
+    const periodYear = parseInt(periodYearText, 10);
+    const periodStartDate =
+      periodMonthIndex >= 0 && Number.isInteger(periodYear)
+        ? `${periodYear}-${String(periodMonthIndex + 1).padStart(2, "0")}-01`
+        : null;
 
     for (let row of items) {
       const cleanPlate = (row.plate || row.plate_no || "").trim().toUpperCase();
@@ -1613,11 +1674,6 @@ router.post("/save-bill", verifyViewBillUser, async (req, res) => {
       const otrate = parseFloat(row.otrate) || 0;
       const adjAmt = parseFloat(row.adjusted_amount) || 0;
       const remark = (row.remark || "").trim();
-      const parsedVatPercent = parseFloat(row.vat_percent);
-      const vatPercent = Number.isFinite(parsedVatPercent)
-        ? parsedVatPercent
-        : 15;
-
       const rent = parseFloat(row.rent) || 0;
 
       if (
@@ -1629,15 +1685,6 @@ router.post("/save-bill", verifyViewBillUser, async (req, res) => {
       ) {
         continue;
       }
-
-      // 🟢 ഫുൾ പ്രിസിഷൻ കാൽക്കുലേഷൻ & കൃത്യമായ റൗണ്ടിംഗ്
-      const exactRent = nhr * nrate + othr * otrate;
-      const calculatedRent =
-        exactRent > 0 ? Number(exactRent.toFixed(2)) : rent;
-
-      const total = Number((exactRent * (1 + vatPercent / 100)).toFixed(2));
-      const vat_amount = Number((total - calculatedRent).toFixed(2));
-      const after_adjustment = Number((total + adjAmt).toFixed(2));
 
       let rawSplitPlates = cleanPlate
         .split(/➔|→|->/)
@@ -1656,6 +1703,33 @@ router.post("/save-bill", verifyViewBillUser, async (req, res) => {
         if (op && !cleanupPlates.includes(op)) cleanupPlates.push(op);
         if (np && !cleanupPlates.includes(np)) cleanupPlates.push(np);
       });
+
+      const ownerLogRes = periodStartDate
+        ? await client.query(
+            `SELECT vat FROM vehicle_owner_log
+             WHERE UPPER(TRIM(plate_no)) = ANY($1::text[])
+               AND (work_start_date IS NULL OR work_start_date <= ($2::date + INTERVAL '1 month - 1 day')::date)
+               AND (work_end_date IS NULL OR work_end_date >= $2::date)
+             ORDER BY work_start_date DESC NULLS LAST, id DESC
+             LIMIT 1`,
+            [cleanupPlates, periodStartDate],
+          )
+        : { rows: [] };
+      const activeOwnerVat = ownerLogRes.rows[0]?.vat;
+      const hasHistoricalVatStatus = hasVatStatus(activeOwnerVat);
+      const parsedVatPercent = parseFloat(row.vat_percent);
+      const vatPercent = hasHistoricalVatStatus
+        ? getVatPercent(activeOwnerVat)
+        : Number.isFinite(parsedVatPercent)
+          ? parsedVatPercent
+          : 15;
+
+      const exactRent = nhr * nrate + othr * otrate;
+      const calculatedRent =
+        exactRent > 0 ? Number(exactRent.toFixed(2)) : rent;
+      const total = Number((exactRent * (1 + vatPercent / 100)).toFixed(2));
+      const vat_amount = Number((total - calculatedRent).toFixed(2));
+      const after_adjustment = Number((total + adjAmt).toFixed(2));
 
       await client.query(
         `DELETE FROM billing_records WHERE billing_month = $1 AND UPPER(TRIM(plate_no)) = ANY($2::text[]) AND site_name = $3`,
