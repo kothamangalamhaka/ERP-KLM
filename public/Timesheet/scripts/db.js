@@ -592,24 +592,8 @@ function openAdvancedFilter(e) {
 
     const searchType = document.getElementById("searchType").value;
     if (passesOtherFilters && globalSearch !== "") {
-      if (searchType === "plate") {
-        const p1 = (row.plate_no || "").toUpperCase();
-        const p2 = (row.site_old_veh || "").toUpperCase();
-        const p3 = (row.site_new_veh || "").toUpperCase();
-        if (
-          !p1.includes(globalSearch) &&
-          !p2.includes(globalSearch) &&
-          !p3.includes(globalSearch)
-        ) {
-          passesOtherFilters = false;
-        }
-      } else {
-        let rowText = Object.values(row)
-          .map((v) => (v ? String(v).toUpperCase() : ""))
-          .join(" ");
-        if (!rowText.includes(globalSearch)) {
-          passesOtherFilters = false;
-        }
+      if (!getSearchableText(row, searchType).includes(globalSearch)) {
+        passesOtherFilters = false;
       }
     }
 
@@ -854,6 +838,16 @@ function clearFilter() {
   renderTable();
 }
 
+function getSearchableText(row, searchType) {
+  const up = (v) => (v === null || v === undefined ? "" : String(v).toUpperCase());
+  if (searchType === "plate")
+    return [row.plate_no, row.site_old_veh, row.site_new_veh].map(up).join(" ");
+  if (searchType === "owner") return up(row.owner_name);
+  if (searchType === "lf") return up(row.ledger_folio);
+  if (searchType === "vat") return up(row.vat_no);
+  return Object.values(row).map(up).join(" ");
+}
+
 function applyGridFilters() {
   const globalSearch = document
     .getElementById("searchInput")
@@ -875,24 +869,8 @@ function applyGridFilters() {
     }
     const searchType = document.getElementById("searchType").value;
     if (showRow && globalSearch !== "") {
-      if (searchType === "plate") {
-        const p1 = (row.plate_no || "").toUpperCase();
-        const p2 = (row.site_old_veh || "").toUpperCase();
-        const p3 = (row.site_new_veh || "").toUpperCase();
-        if (
-          !p1.includes(globalSearch) &&
-          !p2.includes(globalSearch) &&
-          !p3.includes(globalSearch)
-        ) {
-          showRow = false;
-        }
-      } else {
-        let rowText = Object.values(row)
-          .map((v) => (v ? String(v).toUpperCase() : ""))
-          .join(" ");
-        if (!rowText.includes(globalSearch)) {
-          showRow = false;
-        }
+      if (!getSearchableText(row, searchType).includes(globalSearch)) {
+        showRow = false;
       }
     }
     if (trs[index]) {
