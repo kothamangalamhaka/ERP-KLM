@@ -150,6 +150,103 @@
         color: white;
       }
 
+      /* ===== Ribbon buttons - enhanced look (ribbon scoped) ===== */
+      .ribbon-single-row .btn {
+        padding: 0 14px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 12.5px;
+        letter-spacing: 0.3px;
+        gap: 7px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+        transition: all 0.2s ease;
+      }
+
+      .ribbon-single-row .btn i {
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      .ribbon-single-row .btn:hover {
+        opacity: 1;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+        filter: brightness(1.08);
+      }
+
+      .ribbon-single-row .btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+      }
+
+      .ribbon-single-row .btn-dash {
+        background: linear-gradient(135deg, #ffffff, #dbe4ee);
+        color: #1a4d80;
+        border: 1px solid #cbd5e1;
+        padding: 0 12px;
+      }
+
+      .ribbon-single-row .btn-fetch {
+        background: linear-gradient(135deg, #fb923c, #ea580c);
+        color: #fff;
+      }
+
+      .ribbon-single-row .btn-arrange {
+        background: linear-gradient(135deg, #ef4444, #b91c1c);
+        color: #fff;
+      }
+
+      .ribbon-single-row .btn-manual {
+        background: linear-gradient(135deg, #22d3ee, #0891b2);
+        color: #fff;
+      }
+
+      .ribbon-single-row .btn-excel {
+        background: linear-gradient(135deg, #22c55e, #15803d);
+        color: #fff;
+      }
+
+      .ribbon-single-row .btn-reset {
+        background: linear-gradient(135deg, #ef4444, #dc3545);
+        color: #fff;
+      }
+
+      .ribbon-single-row .tab-btn {
+        padding: 0 16px;
+        gap: 7px;
+        border: 1px solid #d8e0ea;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        transition: all 0.2s ease;
+      }
+
+      .ribbon-single-row .tab-btn i {
+        font-size: 14px;
+      }
+
+      .ribbon-single-row .tab-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+        background: #e2e8f0;
+      }
+
+      .ribbon-single-row .tab-btn.active {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: #fff;
+        border-color: #2563eb;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+      }
+
+      .ribbon-single-row .tab-combined {
+        background: linear-gradient(135deg, #34d399, #059669);
+        color: #fff !important;
+        border-color: #059669;
+      }
+
+      .ribbon-single-row .tab-combined:hover {
+        background: linear-gradient(135deg, #34d399, #047857);
+      }
+
       .selector-wrapper {
         display: flex;
         align-items: center;
@@ -714,11 +811,8 @@
               href="../index.html"
               class="btn btn-dash"
               title="Back to Billing"
-              style="padding: 4px 8px"
             >
-              <i class="material-icons" style="font-size: 18px; color: #007bff">
-                arrow_back
-              </i>
+              <i class="fa-solid fa-arrow-left"></i>
             </a>
 
             <div class="selector-wrapper" style="width: 120px">
@@ -814,20 +908,19 @@
               type="button"
               class="btn btn-fetch"
               onclick="fetchViewBillData()"
-              style="padding: 6px 12px; font-size: 12px"
             >
-              Change Month
+              <i class="fa-solid fa-arrows-rotate"></i> Change Month
             </button>
 
             <div class="dropdown-menu-container" id="arrangeDropdownContainer">
               <button
                 id="btnArrangeMain"
                 type="button"
-                class="btn"
-                style="background: #b40000; padding: 6px 12px; font-size: 12px"
+                class="btn btn-arrange"
                 onclick="toggleArrangeDropdown(event)"
               >
-                Arrange ✨ ▾
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Arrange
+                <i class="fa-solid fa-caret-down" style="font-size: 11px"></i>
               </button>
               <div class="dropdown-content-menu" id="arrangeDropdownMenu">
                 <div class="dropdown-menu-item" onclick="arrangeCompanyCards()">
@@ -847,20 +940,18 @@
 
             <button
               type="button"
-              class="btn"
-              style="background: #17a2b8; padding: 6px 12px; font-size: 12px"
+              class="btn btn-manual"
               onclick="addManualCardRow()"
             >
-              + Manual Entry
+              <i class="fa-solid fa-circle-plus"></i> Manual Entry
             </button>
 
             <button
               type="button"
-              class="btn"
-              style="background: #1d6f42; padding: 6px 12px; font-size: 12px"
+              class="btn btn-excel"
               onclick="exportDataToExcel()"
             >
-              Excel
+              <i class="fa-solid fa-file-excel"></i> Excel
             </button>
           </div>
 
@@ -870,7 +961,7 @@
               class="tab-btn active"
               onclick="switchViewTab('cards')"
             >
-              📄 Cards
+              <i class="fa-solid fa-table-cells-large"></i> Cards
             </button>
 
             <button
@@ -878,15 +969,11 @@
               class="tab-btn"
               onclick="switchViewTab('report')"
             >
-              📊 Report
+              <i class="fa-solid fa-chart-column"></i> Report
             </button>
 
-            <a
-              href="./combinedbill.html"
-              class="tab-btn"
-              style="background: #10b981; color: white"
-            >
-              📑 Combined Bill
+            <a href="./combinedbill.html" class="tab-btn tab-combined">
+              <i class="fa-solid fa-file-invoice"></i> Combined Bill
             </a>
 
             <div
@@ -922,13 +1009,10 @@
                   right: 0;
                   top: 110%;
                   height: 32px;
-                  padding: 6px 14px;
-                  font-size: 12px;
-                  background: #dc3545;
                   z-index: 1000;
                 "
               >
-                Logout
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
               </button>
             </div>
           </div>

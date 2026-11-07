@@ -86,6 +86,121 @@
           opacity: 0;
         }
       }
+
+      /* ===== Enhanced button look ===== */
+      .top-controls .btn,
+      .bill-card .btn,
+      #imageSecurityModal .btn {
+        border-radius: 8px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        gap: 7px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+        opacity: 1;
+      }
+
+      .top-controls .btn:hover,
+      .bill-card .btn:hover,
+      #imageSecurityModal .btn:hover {
+        opacity: 1;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+        filter: brightness(1.08);
+      }
+
+      .top-controls .btn:active,
+      .bill-card .btn:active,
+      #imageSecurityModal .btn:active {
+        transform: translateY(0);
+      }
+
+      .top-controls .btn i,
+      .bill-card .btn i,
+      #imageSecurityModal .btn i {
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      /* Ribbon colors */
+      .top-controls .btn-dash {
+        background: linear-gradient(135deg, #ffffff, #dbe4ee);
+        color: #1a4d80;
+        border: 1px solid #cbd5e1;
+        padding: 0 12px;
+      }
+
+      .top-controls .btn-fetch {
+        background: linear-gradient(135deg, #fb923c, #ea580c);
+        color: #fff;
+      }
+
+      .top-controls .btn-refresh {
+        background: linear-gradient(135deg, #ef4444, #b91c1c);
+        color: #fff;
+      }
+
+      .top-controls .btn-seal {
+        background: linear-gradient(135deg, #8b5cf6, #6f42c1);
+        color: #fff;
+      }
+
+      .top-controls .btn-split {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: #fff;
+      }
+
+      .top-controls .btn-combined-view {
+        background: linear-gradient(135deg, #22c55e, #15803d);
+        color: #fff;
+      }
+
+      .top-controls .btn-excel {
+        background: linear-gradient(135deg, #22c55e, #15803d);
+        color: #fff;
+      }
+
+      .top-controls .btn-logout {
+        background: linear-gradient(135deg, #ef4444, #dc3545);
+        color: #fff;
+        margin-left: 10px;
+      }
+
+      /* Card top buttons */
+      .bill-card .cbtn-dl,
+      .bill-card .cbtn-copy {
+        padding: 0 10px;
+        height: 30px;
+        font-size: 11px;
+        border-radius: 6px;
+      }
+
+      .bill-card .cbtn-dl {
+        background: linear-gradient(135deg, #3b82f6, #007bff);
+        color: #fff;
+      }
+
+      .bill-card .cbtn-copy {
+        background: linear-gradient(135deg, #22d3ee, #0891b2);
+        color: #fff;
+      }
+
+      /* Security modal buttons */
+      #imageSecurityModal .btn {
+        flex: 1;
+        padding: 10px;
+        justify-content: center;
+      }
+
+      #imageSecurityModal .btn-cancel {
+        background: linear-gradient(135deg, #94a3b8, #6c757d);
+        color: #fff;
+      }
+
+      #imageSecurityModal .btn-verify {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: #fff;
+      }
     </style>
   </head>
   <body>
@@ -119,9 +234,7 @@
             title="Back to Dashboard"
             style="text-decoration: none"
           >
-            <i class="material-icons" style="font-size: 20px; color: #007bff"
-              >arrow_back</i
-            >
+            <i class="fa-solid fa-arrow-left"></i>
           </a>
 
           <!-- Plate / Owner Type Selector -->
@@ -286,26 +399,24 @@
             class="btn btn-fetch"
             onclick="fetchCombinedBill()"
           >
-            Generate Bill ✨
+            <i class="fa-solid fa-file-invoice-dollar"></i> Generate Bill
           </button>
 
           <!-- By Company Button -->
           <button
             type="button"
-            class="btn"
-            style="background: #b40000"
+            class="btn btn-refresh"
             onclick="fetchCombinedBill()"
           >
-            🏢 Refresh / All Companies
+            <i class="fa-solid fa-building"></i> Refresh / All Companies
           </button>
 
           <button
             type="button"
-            class="btn"
-            style="background: #6f42c1"
+            class="btn btn-seal"
             onclick="toggleCardImages()"
           >
-            <i class="material-icons" style="font-size: 16px">visibility</i>
+            <i class="fa-solid fa-eye"></i>
             Seal/Sign
           </button>
 
@@ -313,31 +424,24 @@
           <button
             type="button"
             id="btnToggleSplit"
-            class="btn"
-            style="background: #ff9800"
+            class="btn btn-split"
             onclick="toggleSplitCards()"
           >
-            <i class="material-icons" style="font-size: 16px">call_split</i>
-            Split Cards 🔀
+            <i class="fa-solid fa-table-columns"></i>
+            Split Cards
           </button>
 
-          <button
-            type="button"
-            class="btn"
-            style="background: #1d6f42"
-            onclick="exportToExcel()"
-          >
-            <i class="material-icons" style="font-size: 16px">table_chart</i>
+          <button type="button" class="btn btn-excel" onclick="exportToExcel()">
+            <i class="fa-solid fa-file-excel"></i>
             Excel
           </button>
 
           <button
             type="button"
-            class="btn"
-            style="background: #dc3545; margin-left: 10px"
+            class="btn btn-logout"
             onclick="executeLogout()"
           >
-            Logout
+            <i class="fa-solid fa-right-from-bracket"></i> Logout
           </button>
         </div>
       </div>
@@ -427,29 +531,17 @@
         <div style="display: flex; gap: 10px; justify-content: center">
           <button
             type="button"
-            class="btn"
-            style="
-              background: #6c757d;
-              flex: 1;
-              padding: 10px;
-              justify-content: center;
-            "
+            class="btn btn-cancel"
             onclick="closeImageSecurityModal()"
           >
-            Cancel
+            <i class="fa-solid fa-xmark"></i> Cancel
           </button>
           <button
             type="button"
-            class="btn"
-            style="
-              background: #2563eb;
-              flex: 1;
-              padding: 10px;
-              justify-content: center;
-            "
+            class="btn btn-verify"
             onclick="submitImageSecurityCode()"
           >
-            Verify & Show
+            <i class="fa-solid fa-shield-halved"></i> Verify & Show
           </button>
         </div>
       </div>
@@ -733,13 +825,15 @@
         }
 
         if (isSplitMode) {
-          toggleBtn.innerHTML = `<i class="material-icons" style="font-size:16px;">view_agenda</i> Combined View 📑`;
-          toggleBtn.style.background = "#28a745";
+          toggleBtn.innerHTML = `<i class="fa-solid fa-layer-group"></i> Combined View`;
+          toggleBtn.classList.remove("btn-split");
+          toggleBtn.classList.add("btn-combined-view");
           renderMultiCompanyCards(combinedDataCache, searchType, searchVal);
           showToast("Split into individual month cards!");
         } else {
-          toggleBtn.innerHTML = `<i class="material-icons" style="font-size:16px;">call_split</i> Split Cards 🔀`;
-          toggleBtn.style.background = "#ff9800";
+          toggleBtn.innerHTML = `<i class="fa-solid fa-table-columns"></i> Split Cards`;
+          toggleBtn.classList.remove("btn-combined-view");
+          toggleBtn.classList.add("btn-split");
           renderMultiCompanyCards(combinedDataCache, searchType, searchVal);
           showToast("Switched back to Combined view!");
         }
@@ -926,11 +1020,11 @@
                       ${escapeHTML(monthName)} — ${escapeHTML(dispOwner)} (${escapeHTML(cardPlate)}) | <span style="color: #b40000;">${escapeHTML(compName)}</span>
                     </div>
                     <div style="display: flex; gap: 8px;">
-                      <button type="button" class="btn" style="background: #007bff; padding: 4px 10px; font-size: 11px; height: 30px;" onclick="downloadSingleCard(this)" title="Download this card as PNG">
-                        <i class="material-icons" style="font-size: 14px;">download</i> Download
+                      <button type="button" class="btn cbtn-dl" onclick="downloadSingleCard(this)" title="Download this card as PNG">
+                        <i class="fa-solid fa-download"></i> Download
                       </button>
-                      <button type="button" class="btn" style="background: #17a2b8; padding: 4px 10px; font-size: 11px; height: 30px;" onclick="copySingleCardHQ(this)" title="Copy this card image">
-                        <i class="material-icons" style="font-size: 14px;">content_copy</i> Copy
+                      <button type="button" class="btn cbtn-copy" onclick="copySingleCardHQ(this)" title="Copy this card image">
+                        <i class="fa-solid fa-copy"></i> Copy
                       </button>
                     </div>
                   </div>
@@ -1002,11 +1096,11 @@
                   OWNER : <span>${escapeHTML(dispOwner)}</span> | <span style="color: #b40000;">${escapeHTML(compName)}</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                  <button type="button" class="btn" style="background: #007bff; padding: 4px 10px; font-size: 11px; height: 30px;" onclick="downloadSingleCard(this)" title="Download this card as PNG">
-                    <i class="material-icons" style="font-size: 14px;">download</i> Download
+                  <button type="button" class="btn cbtn-dl" onclick="downloadSingleCard(this)" title="Download this card as PNG">
+                    <i class="fa-solid fa-download"></i> Download
                   </button>
-                  <button type="button" class="btn" style="background: #17a2b8; padding: 4px 10px; font-size: 11px; height: 30px;" onclick="copySingleCardHQ(this)" title="Copy this card image">
-                    <i class="material-icons" style="font-size: 14px;">content_copy</i> Copy
+                  <button type="button" class="btn cbtn-copy" onclick="copySingleCardHQ(this)" title="Copy this card image">
+                    <i class="fa-solid fa-copy"></i> Copy
                   </button>
                 </div>
               </div>
