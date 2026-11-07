@@ -132,7 +132,7 @@
 
         <div class="header-divider desktop-only"></div>
 
-       <button
+        <button
           class="btn"
           onclick="window.location.href = './MDB_issues.html'"
           style="background: #7c3aed; color: #ffffff"
@@ -318,10 +318,12 @@
       </div>
       <div class="menu-divider"></div>
       <div class="menu-item" onclick="handleMenuAction('sort_asc')">
-        <i class="material-icons">sort_by_alpha</i> <span id="contextSortAscText">Sort A-Z / Low</span>
+        <i class="material-icons">sort_by_alpha</i>
+        <span id="contextSortAscText">Sort A-Z / Low</span>
       </div>
       <div class="menu-item" onclick="handleMenuAction('sort_desc')">
-        <i class="material-icons">sort</i> <span id="contextSortDescText">Sort Z-A / High</span>
+        <i class="material-icons">sort</i>
+        <span id="contextSortDescText">Sort Z-A / High</span>
       </div>
       <div class="menu-item" onclick="handleMenuAction('hide_column')">
         <i class="material-icons">visibility_off</i> Hide Column
@@ -361,7 +363,9 @@
       </div>
       <div class="menu-divider"></div>
       <div class="menu-item" onclick="handleDriverActionFromRow('update')">
-        <i class="material-icons" style="color: var(--success)">manage_accounts</i>
+        <i class="material-icons" style="color: var(--success)"
+          >manage_accounts</i
+        >
         Update Driver
       </div>
       <div class="menu-item" onclick="handleDriverActionFromRow('view_log')">
@@ -709,7 +713,12 @@
             border-bottom: 1px solid var(--border-color);
           "
         >
-          <h3 id="entryModalTitle" style="margin: 0; font-size: 18px; font-weight: 700;">Create New Entry</h3>
+          <h3
+            id="entryModalTitle"
+            style="margin: 0; font-size: 18px; font-weight: 700"
+          >
+            Create New Entry
+          </h3>
           <span
             id="entryModalSnBadge"
             style="
@@ -725,7 +734,12 @@
             >SN :: -</span
           >
         </div>
-        <input type="hidden" class="entry-input" data-colname="SN" id="entryModalSnInput" />
+        <input
+          type="hidden"
+          class="entry-input"
+          data-colname="SN"
+          id="entryModalSnInput"
+        />
         <div
           id="dynamicFormFields"
           style="
@@ -1449,14 +1463,37 @@
 
     <div id="driverLogModalOverlay" class="modal-overlay">
       <div class="modal-box">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <h3 style="margin: 0; font-size: 18px; display: flex; align-items: center; gap: 6px;">
-            <span class="material-icons" style="color: var(--primary);">history</span> Driver History
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+          "
+        >
+          <h3
+            style="
+              margin: 0;
+              font-size: 18px;
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            "
+          >
+            <span class="material-icons" style="color: var(--primary)"
+              >history</span
+            >
+            Driver History
           </h3>
         </div>
         <p
           id="drvLogPlateDisplay"
-          style="font-weight: 700; color: var(--primary); font-size: 15px; margin-bottom: 14px;"
+          style="
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 15px;
+            margin-bottom: 14px;
+          "
         ></p>
         <div class="driver-history-table-wrapper">
           <table class="driver-history-table">
@@ -1464,10 +1501,10 @@
               <tr>
                 <th>Driver</th>
                 <th>Mobile</th>
-                <th style="text-align: center;">Start</th>
-                <th style="text-align: center;">End</th>
+                <th style="text-align: center">Start</th>
+                <th style="text-align: center">End</th>
                 <th>Updated By</th>
-                <th style="text-align: center; width: 80px;">Action</th>
+                <th style="text-align: center; width: 80px">Action</th>
               </tr>
             </thead>
             <tbody id="driverLogTableBody"></tbody>
@@ -1476,7 +1513,7 @@
         <div style="display: flex; justify-content: flex-end; margin-top: 18px">
           <button
             class="btn btn-primary"
-            style="padding: 8px 24px; font-weight: 600;"
+            style="padding: 8px 24px; font-weight: 600"
             onclick="$('#driverLogModalOverlay').hide()"
           >
             Close

@@ -10,7 +10,7 @@ document.addEventListener(
       document.activeElement.blur();
     }
   },
-  { passive: true }
+  { passive: true },
 );
 
 // ? FONT & THEME LOGIC
@@ -312,7 +312,7 @@ resetInactivityTimer();
 window.addEventListener("beforeunload", function (e) {
   if (saveQueue.length > 0) {
     clearTimeout(editDebounceTimer);
-    processQueue(); 
+    processQueue();
 
     const confirmationMessage = "Data is saving in background. Leave site?";
     e.returnValue = confirmationMessage;
@@ -361,7 +361,7 @@ let DYNAMIC_COMPANIES = ["Haka", "Aljoda", "Masar Wheels", "We1"];
 let globalNextSN = 1,
   saveQueue = [],
   isProcessingQueue = false,
-  editDebounceTimer = null, 
+  editDebounceTimer = null,
   activeFilters = {},
   currentFilterColName = "";
 let globalLockedCols = [],
@@ -383,7 +383,7 @@ let contextColName = "",
   contextDriverLicenceNote = "",
   contextDriverNationality = "";
 
-let globalSearchMode = "general"; 
+let globalSearchMode = "general";
 
 function updateUndoRedoUI() {
   $(".dt-undo-btn").prop("disabled", undoStack.length === 0);
@@ -486,7 +486,7 @@ async function fetchData(isSilent = false) {
       }
       return;
     }
-    
+
     lastDataHash = currentHash;
     renderTable(data, false);
   } catch (e) {
@@ -510,7 +510,7 @@ setInterval(async () => {
   ) {
     try {
       const res = await fetch("/api/master-data-version", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
 
@@ -520,12 +520,17 @@ setInterval(async () => {
           if (previousActiveUsersList.length > 0) {
             // Puthiyathaayi login cheytha aalkkaare kandupidikkunnu (current user allathavar)
             let newlyJoinedUsers = data.activeUsers.filter(
-              (u) => !previousActiveUsersList.includes(u) && u !== currentUser.username
+              (u) =>
+                !previousActiveUsersList.includes(u) &&
+                u !== currentUser.username,
             );
 
             if (newlyJoinedUsers.length > 0) {
               playUserJoinedSound();
-              showToast(`👤 ${newlyJoinedUsers.join(", ")} joined online!`, "info");
+              showToast(
+                `👤 ${newlyJoinedUsers.join(", ")} joined online!`,
+                "info",
+              );
             }
           }
 
@@ -550,15 +555,16 @@ setInterval(async () => {
       console.warn("Version check silent bypass:", e);
     }
   }
-}, 30000); 
+}, 30000);
 fetchData();
 
 // 🟢 Instant Silent Refresh (Preserves Active Filters, Search & Custom Views)
 async function fetchMasterDataInstant() {
   try {
     // 1. Nilavile search value-um custom column filters-um save cheythu vekkunnu
-    const preservedSearchText = $('.dataTables_filter input').val() || "";
-    const preservedSearchMode = $("#searchModeSelector").val() || globalSearchMode;
+    const preservedSearchText = $(".dataTables_filter input").val() || "";
+    const preservedSearchMode =
+      $("#searchModeSelector").val() || globalSearchMode;
     const preservedFilters = { ...activeFilters }; // Clone active filters
 
     const res = await fetch("/api/get-master-data", {
@@ -570,11 +576,15 @@ async function fetchMasterDataInstant() {
     });
     if (res.status === 401 || res.status === 403) return performLogout();
     const data = await res.json();
-    
+
     if (data.success) {
       globalNextSN = data.nextSN || globalNextSN;
-      lastDataHash = JSON.stringify(data.lockedCols) + JSON.stringify(data.alignments) + JSON.stringify(data.colTypes) + JSON.stringify(data.colWidths);
-      
+      lastDataHash =
+        JSON.stringify(data.lockedCols) +
+        JSON.stringify(data.alignments) +
+        JSON.stringify(data.colTypes) +
+        JSON.stringify(data.colWidths);
+
       // 2. Table fresh aayi render cheyyunnu
       renderTable(data);
 
@@ -589,13 +599,17 @@ async function fetchMasterDataInstant() {
             return $(this).find(".col-title-text").text().trim() === colName;
           });
           if (targetTh.length > 0) {
-            targetTh.find(".filter-icon").addClass("filter-active").text("filter_alt");
+            targetTh
+              .find(".filter-icon")
+              .addClass("filter-active")
+              .text("filter_alt");
           }
         }
       }
 
       // Search box-il text thirike set cheyyunnu
-      if ($('.dataTables_filter input').length) {$('.dataTables_filter input').val(preservedSearchText);
+      if ($(".dataTables_filter input").length) {
+        $(".dataTables_filter input").val(preservedSearchText);
         if ($("#searchModeSelector").length) {
           $("#searchModeSelector").val(preservedSearchMode);
         }
@@ -605,10 +619,12 @@ async function fetchMasterDataInstant() {
       if (erpDataTable) {
         erpDataTable.columns().search("");
         let getColIdxByMatch = (aliases) => {
-            return cachedHeaders.findIndex((h) => {
-                const norm = h.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-                return aliases.some((a) => norm.includes(a.replace(/[^A-Z0-9]/gi, "").toUpperCase()));
-            });
+          return cachedHeaders.findIndex((h) => {
+            const norm = h.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+            return aliases.some((a) =>
+              norm.includes(a.replace(/[^A-Z0-9]/gi, "").toUpperCase()),
+            );
+          });
         };
 
         if (preservedSearchMode === "general") {
@@ -616,15 +632,28 @@ async function fetchMasterDataInstant() {
         } else {
           erpDataTable.search("");
           let targetColIdx = -1;
-          if (preservedSearchMode === "plate") targetColIdx = getColIdxByMatch(["PLATENUMBER", "PLATENO"]);
-          else if (preservedSearchMode === "iqama") targetColIdx = getColIdxByMatch(["IQAMANUMBER", "IQAMANO"]);
-          else if (preservedSearchMode === "driver") targetColIdx = getColIdxByMatch(["DRIVERNAME"]);
-          else if (preservedSearchMode === "driver_mob") targetColIdx = getColIdxByMatch(["MOBILE", "DRIVERMOBILE"]);
-          else if (preservedSearchMode === "owner") targetColIdx = getColIdxByMatch(["OWNERNAME", "OWNER"]);
-          else if (preservedSearchMode === "owner_mob") targetColIdx = getColIdxByMatch(["OWNERNUMBER", "OWNERMOBILE", "MOBILEOWNER"]);
+          if (preservedSearchMode === "plate")
+            targetColIdx = getColIdxByMatch(["PLATENUMBER", "PLATENO"]);
+          else if (preservedSearchMode === "iqama")
+            targetColIdx = getColIdxByMatch(["IQAMANUMBER", "IQAMANO"]);
+          else if (preservedSearchMode === "driver")
+            targetColIdx = getColIdxByMatch(["DRIVERNAME"]);
+          else if (preservedSearchMode === "driver_mob")
+            targetColIdx = getColIdxByMatch(["MOBILE", "DRIVERMOBILE"]);
+          else if (preservedSearchMode === "owner")
+            targetColIdx = getColIdxByMatch(["OWNERNAME", "OWNER"]);
+          else if (preservedSearchMode === "owner_mob")
+            targetColIdx = getColIdxByMatch([
+              "OWNERNUMBER",
+              "OWNERMOBILE",
+              "MOBILEOWNER",
+            ]);
 
           if (targetColIdx !== -1) {
-            erpDataTable.column(targetColIdx).search(preservedSearchText).draw();
+            erpDataTable
+              .column(targetColIdx)
+              .search(preservedSearchText)
+              .draw();
           } else {
             erpDataTable.search(preservedSearchText).draw();
           }
@@ -647,33 +676,44 @@ $.fn.dataTable.ext.search.push(
       if (cIdx === -1) continue;
 
       // --- COLOR FILTER LOGIC ---
-      let colorFilterVal = allowedValues.find(v => String(v).startsWith("__COLOR_"));
+      let colorFilterVal = allowedValues.find((v) =>
+        String(v).startsWith("__COLOR_"),
+      );
       if (colorFilterVal) {
-          let statusIdx = cachedHeaders.findIndex(h => String(h).toUpperCase().trim() === "STATUS");
-          let statusVal = statusIdx !== -1 ? String(rowData[statusIdx]).trim().toLowerCase() : "";
-          let cellColor = "__COLOR_NONE__";
+        let statusIdx = cachedHeaders.findIndex(
+          (h) => String(h).toUpperCase().trim() === "STATUS",
+        );
+        let statusVal =
+          statusIdx !== -1
+            ? String(rowData[statusIdx]).trim().toLowerCase()
+            : "";
+        let cellColor = "__COLOR_NONE__";
 
-          if (statusVal === "running") {
-              let dateStr = rowData[cIdx];
-              if (dateStr && String(dateStr).trim() !== "") {
-                  let parsedDateStr = convertToInputDate(dateStr);
-                  if (parsedDateStr) {
-                      let expDate = new Date(`${parsedDateStr}T00:00:00`);
-                      if (!isNaN(expDate.getTime())) {
-                          let today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          expDate.setHours(0, 0, 0, 0);
-                          let diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                          
-                          if (diffDays < 0) cellColor = "__COLOR_EXPIRED__";
-                          else if (diffDays >= 0 && diffDays <= 15) cellColor = "__COLOR_15_DAYS__";
-                          else if (diffDays > 15 && diffDays <= 30) cellColor = "__COLOR_30_DAYS__";
-                      }
-                  }
+        if (statusVal === "running") {
+          let dateStr = rowData[cIdx];
+          if (dateStr && String(dateStr).trim() !== "") {
+            let parsedDateStr = convertToInputDate(dateStr);
+            if (parsedDateStr) {
+              let expDate = new Date(`${parsedDateStr}T00:00:00`);
+              if (!isNaN(expDate.getTime())) {
+                let today = new Date();
+                today.setHours(0, 0, 0, 0);
+                expDate.setHours(0, 0, 0, 0);
+                let diffDays = Math.ceil(
+                  (expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+                );
+
+                if (diffDays < 0) cellColor = "__COLOR_EXPIRED__";
+                else if (diffDays >= 0 && diffDays <= 15)
+                  cellColor = "__COLOR_15_DAYS__";
+                else if (diffDays > 15 && diffDays <= 30)
+                  cellColor = "__COLOR_30_DAYS__";
               }
+            }
           }
-          if (colorFilterVal !== cellColor) return false;
-          continue;
+        }
+        if (colorFilterVal !== cellColor) return false;
+        continue;
       }
       // --- END COLOR FILTER LOGIC ---
 
@@ -681,7 +721,7 @@ $.fn.dataTable.ext.search.push(
       if (!allowedValues.includes(cellVal)) return false;
     }
     return true;
-  }
+  },
 );
 
 let isQuickEditMode = false;
@@ -689,7 +729,7 @@ let isQuickEditMode = false;
 function toggleQuickEditMode() {
   isQuickEditMode = !isQuickEditMode;
   const btn = $(".quick-edit-btn");
-  
+
   if (isQuickEditMode) {
     btn.addClass("active-green");
     showToast("Quick Edit Mode ON (Single tap to edit)", "success");
@@ -702,11 +742,21 @@ function toggleQuickEditMode() {
 let currentDriverModalMode = "handover";
 function setDriverMode(mode) {
   currentDriverModalMode = mode;
-  const activeStyle = { background: "white", color: "#0f172a", "box-shadow": "0 1px 3px rgba(0,0,0,0.1)" };
-  const inactiveStyle = { background: "transparent", color: "#64748b", "box-shadow": "none" };
+  const activeStyle = {
+    background: "white",
+    color: "#0f172a",
+    "box-shadow": "0 1px 3px rgba(0,0,0,0.1)",
+  };
+  const inactiveStyle = {
+    background: "transparent",
+    color: "#64748b",
+    "box-shadow": "none",
+  };
 
   $("#tabHandover").css(mode === "handover" ? activeStyle : inactiveStyle);
-  $("#tabCurrentUpdate").css(mode === "current_update" ? activeStyle : inactiveStyle);
+  $("#tabCurrentUpdate").css(
+    mode === "current_update" ? activeStyle : inactiveStyle,
+  );
   $("#tabPastLog").css(mode === "past" ? activeStyle : inactiveStyle);
 
   if (mode === "handover") {
@@ -717,7 +767,9 @@ function setDriverMode(mode) {
     $("#pastLogDates").hide();
     $("#documentsBlock").show();
     $("#lblDriverName").text("New Driver Name");
-    $("#lblDriverStart").text("New Driver Start Date").css("color", "var(--success)");
+    $("#lblDriverStart")
+      .text("New Driver Start Date")
+      .css("color", "var(--success)");
     $("#btnSaveDriverAction")
       .text("Save & Change Driver")
       .removeClass("btn-primary")
@@ -725,7 +777,7 @@ function setDriverMode(mode) {
       .addClass("btn-success")
       .css("background", "")
       .css("color", "");
-      
+
     // Clear out current specific data so user enters fresh
     $("#drvUpdateNewName").val("");
     $("#drvUpdateNewMob").val("");
@@ -746,7 +798,9 @@ function setDriverMode(mode) {
     $("#pastLogDates").hide();
     $("#documentsBlock").show();
     $("#lblDriverName").text("Current Driver Name (Edit)");
-    $("#lblDriverStart").text("Current Driver Start Date (Edit)").css("color", "var(--primary)");
+    $("#lblDriverStart")
+      .text("Current Driver Start Date (Edit)")
+      .css("color", "var(--primary)");
     $("#btnSaveDriverAction")
       .text("Update Current Details")
       .removeClass("btn-success")
@@ -757,10 +811,10 @@ function setDriverMode(mode) {
     // Auto-fill existing current driver details & all documents
     $("#drvUpdateNewName").val(contextDriverName || "");
     $("#drvUpdateNewMob").val(contextDriverMob || "");
-    if(contextDriverStart && contextDriverStart !== "IDK") {
-       $("#drvUpdateNewStart").val(convertToInputDate(contextDriverStart));
+    if (contextDriverStart && contextDriverStart !== "IDK") {
+      $("#drvUpdateNewStart").val(convertToInputDate(contextDriverStart));
     } else {
-       $("#drvUpdateNewStart").val("");
+      $("#drvUpdateNewStart").val("");
     }
     $("#drvUpdateIqamaNo").val(contextDriverIqamaNo || "");
     $("#drvUpdateIqamaExp").val(convertToInputDate(contextDriverIqamaExp));
@@ -844,10 +898,12 @@ async function fetchDriverLogsForModal(dbId) {
         let badge = isCurrent
           ? '<span style="background:#059669; color:#ffffff; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; margin-left:8px; letter-spacing:0.5px; box-shadow:0 1px 2px rgba(0,0,0,0.1);">CURRENT</span>'
           : "";
-        let rowClass = isCurrent ? 'class="current-driver-row" style="background:#ecfdf5; font-weight:600;"' : '';
+        let rowClass = isCurrent
+          ? 'class="current-driver-row" style="background:#ecfdf5; font-weight:600;"'
+          : "";
         let endVal = isCurrent
           ? '<span style="color:#059669; font-weight:700;">Present</span>'
-          : (l.end || l.work_end || "-");
+          : l.end || l.work_end || "-";
 
         html += `<tr ${rowClass}>
           <td style="font-weight: 600;">${l.name || l.driver_name || "-"}${badge}</td>
@@ -887,17 +943,21 @@ async function fetchDriverLogsForSidePanel(dbId) {
     if (data.success) {
       let html = "";
       let logs = data.logs || [];
-      
+
       // 🟢 FIX: കറന്റ് ഡ്രൈവറുടെ Start Date ഹിസ്റ്ററിയിൽ നിന്നോ DB റെക്കോർഡിൽ നിന്നോ എടുക്കുന്നു
       if (data.currentDriverStart) {
         contextDriverStart = data.currentDriverStart;
       } else if (logs.length > 0) {
         // ഹിസ്റ്ററി ഉണ്ടെങ്കിൽ അവസാനത്തെ ഡ്രൈവറുടെ End Date ആയിരിക്കും കറന്റ് ഡ്രൈവറുടെ തുടക്കം
-        let sortedLogs = [...logs].sort((a, b) => new Date(a.end === "01-Jan-1990" ? 0 : a.end) - new Date(b.end === "01-Jan-1990" ? 0 : b.end));
+        let sortedLogs = [...logs].sort(
+          (a, b) =>
+            new Date(a.end === "01-Jan-1990" ? 0 : a.end) -
+            new Date(b.end === "01-Jan-1990" ? 0 : b.end),
+        );
         let lastPastLog = sortedLogs[sortedLogs.length - 1];
         contextDriverStart = lastPastLog.end;
       }
-      
+
       $("#drvUpdateOldStart").val(convertToInputDate(contextDriverStart));
       if (currentDriverModalMode === "current_update") {
         $("#drvUpdateNewStart").val(convertToInputDate(contextDriverStart));
@@ -970,17 +1030,23 @@ async function submitEditLog() {
         cachedHeaders.find((h) => h.toUpperCase() === "MOBILE") || "Mobile";
       // 🟢 FIX: മെയിൻ WORK START മാറ്റി DRIVER START DATE ആക്കുന്നു
       let dStartCol =
-        cachedHeaders.find((h) => h.replace(/\s+/g, "").toUpperCase() === "DRIVERSTARTDATE") ||
-        "DRIVER START DATE";
-      let srCol = 
-        cachedHeaders.find((h) => h.replace(/\s+/g, "").toUpperCase() === "DRIVERSTATUSREMARK") || 
-        "Driver Status Remark";
+        cachedHeaders.find(
+          (h) => h.replace(/\s+/g, "").toUpperCase() === "DRIVERSTARTDATE",
+        ) || "DRIVER START DATE";
+      let srCol =
+        cachedHeaders.find(
+          (h) => h.replace(/\s+/g, "").toUpperCase() === "DRIVERSTATUSREMARK",
+        ) || "Driver Status Remark";
 
       let edits = [
         { dbId: contextDriverDbId, colName: dNameCol, newValue: name },
         { dbId: contextDriverDbId, colName: mobCol, newValue: mob },
         { dbId: contextDriverDbId, colName: dStartCol, newValue: start },
-        { dbId: contextDriverDbId, colName: srCol, newValue: $("#editLogStatusRemark").val().trim() }
+        {
+          dbId: contextDriverDbId,
+          colName: srCol,
+          newValue: $("#editLogStatusRemark").val().trim(),
+        },
       ];
       const res = await fetch("/api/update-cells-batch", {
         method: "POST",
@@ -1016,7 +1082,7 @@ async function submitEditLog() {
           mobile: mob,
           workStart: start,
           workEnd: formatToDDMMMYYYY(end),
-          statusRemark: $("#editLogStatusRemark").val().trim()
+          statusRemark: $("#editLogStatusRemark").val().trim(),
         }),
       });
       const data = await res.json();
@@ -1075,7 +1141,7 @@ async function submitDriverUpdate() {
   if (currentDriverModalMode === "current_update") {
     let nStartRaw = $("#drvUpdateNewStart").val();
     if (!nName) return showToast("Name is required", "error");
-    
+
     let start = nStartRaw ? formatToDDMMMYYYY(nStartRaw) : "IDK";
     let iqamaNo = $("#drvUpdateIqamaNo").val().trim();
     let iqamaExpRaw = $("#drvUpdateIqamaExp").val();
@@ -1089,46 +1155,116 @@ async function submitDriverUpdate() {
     showToast("Updating Current Driver...", "info");
 
     let edits = [
-        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.toUpperCase() === "DRIVER NAME") || "Driver Name", newValue: nName },
-        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.toUpperCase() === "MOBILE") || "Mobile", newValue: nMob },
-        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "DRIVERSTARTDATE") || "DRIVER START DATE", newValue: start },
-        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "IQAMANUMBER") || "Iqama Number", newValue: iqamaNo },
-        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "IQAMAEXPIREDATE" || h.replace(/\s+/g, "").toUpperCase() === "IQAMAEXPIRE") || "Iqama Expire Date", newValue: iqamaExp },
-        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "LICENSEEXPIREDATE" || h.replace(/\s+/g, "").toUpperCase() === "LICENSEEXPIRE" || h.replace(/\s+/g, "").toUpperCase() === "LICENCEEXPIREDATE") || "License Expire Date", newValue: licenceExp },
-        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "IQAMANOTE") || "Iqama Note", newValue: iqamaNote },
-        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "LICENCENOTE" || h.replace(/\s+/g, "").toUpperCase() === "LICENSENOTE") || "Licence Note", newValue: licenceNote },
-        { dbId: contextDriverDbId, colName: cachedHeaders.find(h => h.replace(/\s+/g, "").toUpperCase() === "NATIONALITY") || "Nationality", newValue: nationality },
+      {
+        dbId: contextDriverDbId,
+        colName:
+          cachedHeaders.find((h) => h.toUpperCase() === "DRIVER NAME") ||
+          "Driver Name",
+        newValue: nName,
+      },
+      {
+        dbId: contextDriverDbId,
+        colName:
+          cachedHeaders.find((h) => h.toUpperCase() === "MOBILE") || "Mobile",
+        newValue: nMob,
+      },
+      {
+        dbId: contextDriverDbId,
+        colName:
+          cachedHeaders.find(
+            (h) => h.replace(/\s+/g, "").toUpperCase() === "DRIVERSTARTDATE",
+          ) || "DRIVER START DATE",
+        newValue: start,
+      },
+      {
+        dbId: contextDriverDbId,
+        colName:
+          cachedHeaders.find(
+            (h) => h.replace(/\s+/g, "").toUpperCase() === "IQAMANUMBER",
+          ) || "Iqama Number",
+        newValue: iqamaNo,
+      },
+      {
+        dbId: contextDriverDbId,
+        colName:
+          cachedHeaders.find(
+            (h) =>
+              h.replace(/\s+/g, "").toUpperCase() === "IQAMAEXPIREDATE" ||
+              h.replace(/\s+/g, "").toUpperCase() === "IQAMAEXPIRE",
+          ) || "Iqama Expire Date",
+        newValue: iqamaExp,
+      },
+      {
+        dbId: contextDriverDbId,
+        colName:
+          cachedHeaders.find(
+            (h) =>
+              h.replace(/\s+/g, "").toUpperCase() === "LICENSEEXPIREDATE" ||
+              h.replace(/\s+/g, "").toUpperCase() === "LICENSEEXPIRE" ||
+              h.replace(/\s+/g, "").toUpperCase() === "LICENCEEXPIREDATE",
+          ) || "License Expire Date",
+        newValue: licenceExp,
+      },
+      {
+        dbId: contextDriverDbId,
+        colName:
+          cachedHeaders.find(
+            (h) => h.replace(/\s+/g, "").toUpperCase() === "IQAMANOTE",
+          ) || "Iqama Note",
+        newValue: iqamaNote,
+      },
+      {
+        dbId: contextDriverDbId,
+        colName:
+          cachedHeaders.find(
+            (h) =>
+              h.replace(/\s+/g, "").toUpperCase() === "LICENCENOTE" ||
+              h.replace(/\s+/g, "").toUpperCase() === "LICENSENOTE",
+          ) || "Licence Note",
+        newValue: licenceNote,
+      },
+      {
+        dbId: contextDriverDbId,
+        colName:
+          cachedHeaders.find(
+            (h) => h.replace(/\s+/g, "").toUpperCase() === "NATIONALITY",
+          ) || "Nationality",
+        newValue: nationality,
+      },
     ];
 
     try {
-        const res = await fetch("/api/update-cells-batch", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ edits: edits }),
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast("Current driver updated!", "success");
-            fetchData(true);
-            fetchDriverLogsForSidePanel(contextDriverDbId);
-            contextDriverName = nName;
-            contextDriverMob = nMob;
-            contextDriverStart = start;
-            contextDriverIqamaNo = iqamaNo;
-            contextDriverIqamaExp = iqamaExp;
-            contextDriverLicenceExp = licenceExp;
-            contextDriverIqamaNote = iqamaNote;
-            contextDriverLicenceNote = licenceNote;
-            contextDriverNationality = nationality;
-            $("#drvUpdateCurrentName").text(nName);
-            $("#drvUpdateCurrentMob").text(nMob);
-            $("#drvUpdateOldStart").val(convertToInputDate(start));
-            $('#driverUpdateModalOverlay').hide();
-        } else {
-            showToast(data.message, "error");
-        }
+      const res = await fetch("/api/update-cells-batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ edits: edits }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("Current driver updated!", "success");
+        fetchData(true);
+        fetchDriverLogsForSidePanel(contextDriverDbId);
+        contextDriverName = nName;
+        contextDriverMob = nMob;
+        contextDriverStart = start;
+        contextDriverIqamaNo = iqamaNo;
+        contextDriverIqamaExp = iqamaExp;
+        contextDriverLicenceExp = licenceExp;
+        contextDriverIqamaNote = iqamaNote;
+        contextDriverLicenceNote = licenceNote;
+        contextDriverNationality = nationality;
+        $("#drvUpdateCurrentName").text(nName);
+        $("#drvUpdateCurrentMob").text(nMob);
+        $("#drvUpdateOldStart").val(convertToInputDate(start));
+        $("#driverUpdateModalOverlay").hide();
+      } else {
+        showToast(data.message, "error");
+      }
     } catch (e) {
-        showToast("Failed to update driver", "error");
+      showToast("Failed to update driver", "error");
     }
   } else if (currentDriverModalMode === "handover") {
     let oldStartRaw = $("#drvUpdateOldStart").val();
@@ -1200,7 +1336,7 @@ async function submitDriverUpdate() {
           licenceExp: licenceExp,
           iqamaNote: iqamaNote,
           licenceNote: licenceNote,
-          nationality: nationality
+          nationality: nationality,
         }),
       });
       const data = await res.json();
@@ -1248,7 +1384,7 @@ async function submitDriverUpdate() {
           mobile: nMob,
           workStart: formatToDDMMMYYYY(pStartRaw),
           workEnd: formatToDDMMMYYYY(pEndRaw),
-          statusRemark: pRemark
+          statusRemark: pRemark,
         }),
       });
       const data = await res.json();
@@ -1471,36 +1607,51 @@ function attachContextMenus() {
     .off("contextmenu", "#erpTable tbody td")
     .on("contextmenu", "#erpTable tbody td", function (e) {
       if ($(this).hasClass("sn-column")) {
-          e.preventDefault();
-          e.stopPropagation();
-          let $row = $(this).closest("tr");
-          contextRowDbId = $row.data("sheetrow");
-          contextDriverDbId = contextRowDbId;
+        e.preventDefault();
+        e.stopPropagation();
+        let $row = $(this).closest("tr");
+        contextRowDbId = $row.data("sheetrow");
+        contextDriverDbId = contextRowDbId;
 
-          let plateIdx = cachedHeaders.findIndex(
-            (h) => h.trim().toLowerCase() === "plate number",
+        let plateIdx = cachedHeaders.findIndex(
+          (h) => h.trim().toLowerCase() === "plate number",
+        );
+        contextDriverPlate =
+          plateIdx !== -1 ? $row.find("td").eq(plateIdx).text().trim() : "";
+
+        let getCellVal = (matchStr) => {
+          let foundH = cachedHeaders.find(
+            (h) =>
+              h.replace(/\s+/g, "").toUpperCase() ===
+              matchStr.replace(/\s+/g, "").toUpperCase(),
           );
-          contextDriverPlate = plateIdx !== -1 ? $row.find("td").eq(plateIdx).text().trim() : "";
-          
-          let getCellVal = (matchStr) => {
-            let foundH = cachedHeaders.find((h) => h.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase());
-            return foundH ? $row.find(`td[data-colname="${foundH}"]`).text().trim() : "";
-          };
+          return foundH
+            ? $row.find(`td[data-colname="${foundH}"]`).text().trim()
+            : "";
+        };
 
-          contextDriverName = getCellVal("DRIVERNAME");
-          contextDriverMob = getCellVal("MOBILE");
-          contextDriverStart = getCellVal("DRIVERSTARTDATE") || getCellVal("DRIVERSTART") || "";
-          contextDriverIqamaNo = getCellVal("IQAMANUMBER") || getCellVal("IQAMANO");
-          contextDriverIqamaExp = getCellVal("IQAMAEXPIREDATE") || getCellVal("IQAMAEXPIRE");
-          contextDriverLicenceExp = getCellVal("LICENSEEXPIREDATE") || getCellVal("LICENCEEXPIREDATE") || getCellVal("LICENSEEXPIRE") || getCellVal("LICENCEEXPIRE");
-          contextDriverIqamaNote = getCellVal("IQAMANOTE");
-          contextDriverLicenceNote = getCellVal("LICENCENOTE") || getCellVal("LICENSENOTE");
-          contextDriverNationality = getCellVal("NATIONALITY");
+        contextDriverName = getCellVal("DRIVERNAME");
+        contextDriverMob = getCellVal("MOBILE");
+        contextDriverStart =
+          getCellVal("DRIVERSTARTDATE") || getCellVal("DRIVERSTART") || "";
+        contextDriverIqamaNo =
+          getCellVal("IQAMANUMBER") || getCellVal("IQAMANO");
+        contextDriverIqamaExp =
+          getCellVal("IQAMAEXPIREDATE") || getCellVal("IQAMAEXPIRE");
+        contextDriverLicenceExp =
+          getCellVal("LICENSEEXPIREDATE") ||
+          getCellVal("LICENCEEXPIREDATE") ||
+          getCellVal("LICENSEEXPIRE") ||
+          getCellVal("LICENCEEXPIRE");
+        contextDriverIqamaNote = getCellVal("IQAMANOTE");
+        contextDriverLicenceNote =
+          getCellVal("LICENCENOTE") || getCellVal("LICENSENOTE");
+        contextDriverNationality = getCellVal("NATIONALITY");
 
-          $("#rowContextMenu")
-            .css({ top: e.pageY + "px", left: e.pageX + "px" })
-            .fadeIn(200);
-          return;
+        $("#rowContextMenu")
+          .css({ top: e.pageY + "px", left: e.pageX + "px" })
+          .fadeIn(200);
+        return;
       }
 
       let colName = $(this).data("colname");
@@ -1513,19 +1664,33 @@ function attachContextMenus() {
         contextDriverDbId = $row.data("sheetrow");
         contextDriverPlate = $row.find("td").eq(plateIdx).text().trim();
         contextDriverName = $(this).text().trim();
-        
+
         let getCellVal = (matchStr) => {
-          let foundH = cachedHeaders.find((h) => h.replace(/\s+/g, "").toUpperCase() === matchStr.replace(/\s+/g, "").toUpperCase());
-          return foundH ? $row.find(`td[data-colname="${foundH}"]`).text().trim() : "";
+          let foundH = cachedHeaders.find(
+            (h) =>
+              h.replace(/\s+/g, "").toUpperCase() ===
+              matchStr.replace(/\s+/g, "").toUpperCase(),
+          );
+          return foundH
+            ? $row.find(`td[data-colname="${foundH}"]`).text().trim()
+            : "";
         };
 
         contextDriverMob = getCellVal("MOBILE");
-        contextDriverStart = getCellVal("DRIVERSTARTDATE") || getCellVal("DRIVERSTART") || "";
-        contextDriverIqamaNo = getCellVal("IQAMANUMBER") || getCellVal("IQAMANO");
-        contextDriverIqamaExp = getCellVal("IQAMAEXPIREDATE") || getCellVal("IQAMAEXPIRE");
-        contextDriverLicenceExp = getCellVal("LICENSEEXPIREDATE") || getCellVal("LICENCEEXPIREDATE") || getCellVal("LICENSEEXPIRE") || getCellVal("LICENCEEXPIRE");
+        contextDriverStart =
+          getCellVal("DRIVERSTARTDATE") || getCellVal("DRIVERSTART") || "";
+        contextDriverIqamaNo =
+          getCellVal("IQAMANUMBER") || getCellVal("IQAMANO");
+        contextDriverIqamaExp =
+          getCellVal("IQAMAEXPIREDATE") || getCellVal("IQAMAEXPIRE");
+        contextDriverLicenceExp =
+          getCellVal("LICENSEEXPIREDATE") ||
+          getCellVal("LICENCEEXPIREDATE") ||
+          getCellVal("LICENSEEXPIRE") ||
+          getCellVal("LICENCEEXPIRE");
         contextDriverIqamaNote = getCellVal("IQAMANOTE");
-        contextDriverLicenceNote = getCellVal("LICENCENOTE") || getCellVal("LICENSENOTE");
+        contextDriverLicenceNote =
+          getCellVal("LICENCENOTE") || getCellVal("LICENSENOTE");
         contextDriverNationality = getCellVal("NATIONALITY");
 
         $("#driverContextMenu")
@@ -1555,23 +1720,34 @@ async function handleMenuAction(action) {
     $("#deleteColPassword").focus();
   } else if (action.startsWith("align_")) {
     const align = action.split("_")[1];
-    
+
     // 1. Local Storage-ൽ സേവ് ചെയ്യുന്നു
-    let userAligns = JSON.parse(localStorage.getItem("erpColAligns_" + currentUser.username)) || {};
+    let userAligns =
+      JSON.parse(
+        localStorage.getItem("erpColAligns_" + currentUser.username),
+      ) || {};
     userAligns[contextColName] = align;
-    localStorage.setItem("erpColAligns_" + currentUser.username, JSON.stringify(userAligns));
-    
+    localStorage.setItem(
+      "erpColAligns_" + currentUser.username,
+      JSON.stringify(userAligns),
+    );
+
     // 2. Cache-ൽ അപ്‌ഡേറ്റ് ചെയ്യുന്നു (പിന്നീട് ടേബിൾ വരയ്ക്കുമ്പോൾ നഷ്ടപ്പെടാതിരിക്കാൻ)
-    let existingAlign = cachedAlignments.find(a => a.name === contextColName);
+    let existingAlign = cachedAlignments.find((a) => a.name === contextColName);
     if (existingAlign) {
       existingAlign.align = align;
     } else {
-      cachedAlignments.push({name: contextColName, align: align});
+      cachedAlignments.push({ name: contextColName, align: align });
     }
 
     // 3. Header-ന്റെ Alignment അപ്പോൾ തന്നെ മാറ്റുന്നു (Live DOM Update)
     let $header = $(erpDataTable.column(contextColIdx).header());
-    let justify = align === "center" ? "center" : align === "right" ? "flex-end" : "space-between";
+    let justify =
+      align === "center"
+        ? "center"
+        : align === "right"
+          ? "flex-end"
+          : "space-between";
     $header.find(".header-content").css("justify-content", justify);
     $header.find(".col-title-text").css("text-align", align);
 
@@ -1603,14 +1779,20 @@ async function handleMenuAction(action) {
     showToast("Column Hidden", "info");
   } else if (action === "copy_col_data") {
     if (erpDataTable) {
-      let colData = erpDataTable.column(contextColIdx, { search: 'applied', order: 'applied' }).data().toArray();
+      let colData = erpDataTable
+        .column(contextColIdx, { search: "applied", order: "applied" })
+        .data()
+        .toArray();
       let textToCopy = colData.join("\n");
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        showToast("Column data copied to clipboard!", "success");
-      }).catch(err => {
-        showToast("Failed to copy data", "error");
-        console.error("Clipboard Error:", err);
-      });
+      navigator.clipboard
+        .writeText(textToCopy)
+        .then(() => {
+          showToast("Column data copied to clipboard!", "success");
+        })
+        .catch((err) => {
+          showToast("Failed to copy data", "error");
+          console.error("Clipboard Error:", err);
+        });
     }
   }
 }
@@ -1635,42 +1817,45 @@ function openCloneRowModal() {
 }
 
 function deleteSelectedRow() {
-   $("#rowContextMenu").hide();
-   if(!contextRowDbId) return;
+  $("#rowContextMenu").hide();
+  if (!contextRowDbId) return;
 
-   if (currentUser.role !== "Super Admin" && currentUser.role !== "Admin") {
-      return showToast("Only Admins can delete rows.", "error");
-   }
+  if (currentUser.role !== "Super Admin" && currentUser.role !== "Admin") {
+    return showToast("Only Admins can delete rows.", "error");
+  }
 
-   Swal.fire({
-      title: 'Move Row to Recycle Bin?',
-      text: 'This row and all its data will be hidden from the master DB.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'var(--danger)',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: 'Yes, move it!'
-   }).then(async (result) => {
-      if (result.isConfirmed) {
-         showToast("Moving to recycle bin...", "info");
-         try {
-            const res = await fetch("/api/delete-row", {
-               method: "POST",
-               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-               body: JSON.stringify({ dbId: contextRowDbId })
-            });
-            const data = await res.json();
-            if(data.success) {
-               showToast("Row moved to Recycle Bin", "success");
-               fetchData(true);
-            } else {
-               showToast(data.message, "error");
-            }
-         } catch(e) {
-            showToast("Delete failed", "error");
-         }
+  Swal.fire({
+    title: "Move Row to Recycle Bin?",
+    text: "This row and all its data will be hidden from the master DB.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "var(--danger)",
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "Yes, move it!",
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      showToast("Moving to recycle bin...", "info");
+      try {
+        const res = await fetch("/api/delete-row", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ dbId: contextRowDbId }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast("Row moved to Recycle Bin", "success");
+          fetchData(true);
+        } else {
+          showToast(data.message, "error");
+        }
+      } catch (e) {
+        showToast("Delete failed", "error");
       }
-   });
+    }
+  });
 }
 
 async function submitRelativeColumn() {
@@ -1768,15 +1953,16 @@ function toggleHeaderWrap() {
 function updateActiveUsersUI(users) {
   const count = users.length;
   document.getElementById("activeCountDisplay").innerText = `${count} active`;
-  
+
   const badge = document.getElementById("activeUsersBadge");
   badge.removeAttribute("title");
-  
-  badge.onclick = function() {
+
+  badge.onclick = function () {
     // Creating a premium badge layout for usernames
-    let usersHtml = '<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px;">';
-    
-    users.forEach(user => {
+    let usersHtml =
+      '<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px;">';
+
+    users.forEach((user) => {
       usersHtml += `
         <div style="background: #f8fafc; color: #0f172a; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
           <span class="material-icons" style="font-size: 18px; color: #10b981;">account_circle</span>
@@ -1784,18 +1970,18 @@ function updateActiveUsersUI(users) {
         </div>
       `;
     });
-    
-    usersHtml += '</div>';
+
+    usersHtml += "</div>";
 
     Swal.fire({
-      title: '<strong>Currently Active</strong>',
+      title: "<strong>Currently Active</strong>",
       html: usersHtml,
       showConfirmButton: true,
-      confirmButtonColor: '#0ea5e9',
-      confirmButtonText: 'Done',
+      confirmButtonColor: "#0ea5e9",
+      confirmButtonText: "Done",
       customClass: {
-        popup: 'animated fadeIn faster'
-      }
+        popup: "animated fadeIn faster",
+      },
     });
   };
 }
@@ -1869,16 +2055,26 @@ function renderTable(response, preserveState = true) {
   ].sort();
 
   // Merge per-user alignments and column widths from localStorage
-  let userAligns = JSON.parse(localStorage.getItem("erpColAligns_" + currentUser.username)) || {};
-  cachedAlignments = cachedHeaders.map(h => ({
+  let userAligns =
+    JSON.parse(localStorage.getItem("erpColAligns_" + currentUser.username)) ||
+    {};
+  cachedAlignments = cachedHeaders.map((h) => ({
     name: h,
-    align: userAligns[h] || (cachedAlignments.find(a => a.name === h)?.align || "left")
+    align:
+      userAligns[h] ||
+      cachedAlignments.find((a) => a.name === h)?.align ||
+      "left",
   }));
 
-  let userWidths = JSON.parse(localStorage.getItem("erpColWidths_" + currentUser.username)) || {};
-  cachedColWidths = cachedHeaders.map(h => ({
+  let userWidths =
+    JSON.parse(localStorage.getItem("erpColWidths_" + currentUser.username)) ||
+    {};
+  cachedColWidths = cachedHeaders.map((h) => ({
     name: h,
-    width: userWidths[h] || (cachedColWidths.find(w => w.name === h)?.width || "100px")
+    width:
+      userWidths[h] ||
+      cachedColWidths.find((w) => w.name === h)?.width ||
+      "100px",
   }));
   globalNextSN = response.nextSN || 1;
   globalLockedCols = response.lockedCols || [];
@@ -2054,7 +2250,11 @@ function renderTable(response, preserveState = true) {
       else if (!isSN && isRight) stylesArr.push("text-align: right");
 
       let isPlate = colHead === "PLATE NUMBER" || colHead === "PLATE NO";
-      let tdClass = isSN ? 'class="sn-column"' : isPlate ? 'class="plate-column"' : "";
+      let tdClass = isSN
+        ? 'class="sn-column"'
+        : isPlate
+          ? 'class="plate-column"'
+          : "";
       let styleAttr =
         stylesArr.length > 0 ? `style="${stylesArr.join("; ")}"` : "";
 
@@ -2083,13 +2283,18 @@ function renderTable(response, preserveState = true) {
     processing: true,
     dom: '<"top-ribbon"<"ribbon-left"B> f <"right-controls"l i p>><"table-scroll-wrapper"t>',
     ordering: true,
-    order: (preserveState && currentOrder && currentOrder.length > 0) ? currentOrder : [],
-    columnDefs: cachedHeaders.map((h, idx) => {
-      if (isDateColumnHeader(h)) {
-        return { type: "date-custom", targets: idx };
-      }
-      return null;
-    }).filter(Boolean),
+    order:
+      preserveState && currentOrder && currentOrder.length > 0
+        ? currentOrder
+        : [],
+    columnDefs: cachedHeaders
+      .map((h, idx) => {
+        if (isDateColumnHeader(h)) {
+          return { type: "date-custom", targets: idx };
+        }
+        return null;
+      })
+      .filter(Boolean),
     colReorder: { realtime: false },
     orderCellsTop: true,
     language: {
@@ -2100,15 +2305,14 @@ function renderTable(response, preserveState = true) {
       infoFiltered: "(_MAX_)",
       paginate: { previous: "Prev", next: "Next" },
     },
-lengthMenu: [
+    lengthMenu: [
       [50, 100, 200, 500, 1000, 2500, 5000],
       ["50", "100", "200", "500", "1000", "2500", "5000"],
     ],
     pageLength: 50, // പേജ് സൈസ് 50 ആയി നിലനിർത്തുന്നത് മെമ്മറി ക്രാഷ് ഒഴിവാക്കും
     autoWidth: false,
     stateSave: false, // ബ്രൗസർ ലോക്കൽ സ്റ്റോറേജ് ഓവർഫ്ലോ ആയി ക്രാഷ് ആവാതിരിക്കാൻ stateSave ഒഴിവാക്കുന്നു
-    
-   
+
     rowCallback: function (row, data) {
       if (data._dbId) $(row).attr("data-sheetrow", data._dbId);
 
@@ -2118,13 +2322,14 @@ lengthMenu: [
         statusVal = "";
       if (sIdx !== -1) {
         statusVal = String(data[sIdx]).trim().toLowerCase();
-        $(row).removeClass("status-released status-replaced status-mobilizing status-ideal");
+        $(row).removeClass(
+          "status-released status-replaced status-mobilizing status-ideal",
+        );
         if (statusVal === "released") $(row).addClass("status-released");
         else if (statusVal === "replaced") $(row).addClass("status-replaced");
         else if (statusVal === "mobilizing")
           $(row).addClass("status-mobilizing");
-        else if (statusVal === "ideal")
-          $(row).addClass("status-ideal");
+        else if (statusVal === "ideal") $(row).addClass("status-ideal");
       }
       let today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -2135,11 +2340,11 @@ lengthMenu: [
       cachedHeaders.forEach((h, idx) => {
         // Safely get the specific cell node (skips if column is hidden)
         let cellNode = api.cell(row, idx).node();
-        
+
         if (cellNode) {
           let $td = $(cellNode);
           let colHead = String(h).replace(/\s+/g, " ").trim().toUpperCase();
-          
+
           if (colWraps[h] === "wrap") {
             $td[0].style.setProperty("white-space", "normal", "important");
             $td[0].style.setProperty("word-break", "break-word", "important");
@@ -2171,7 +2376,7 @@ lengthMenu: [
             // Reset previous manual styles if any
             $td[0].style.removeProperty("background-color");
             $td[0].style.removeProperty("color");
-            
+
             if (statusVal === "running") {
               let dateStr = data[idx];
               if (dateStr && String(dateStr).trim() !== "") {
@@ -2184,18 +2389,30 @@ lengthMenu: [
                       (expDate.getTime() - today.getTime()) /
                         (1000 * 60 * 60 * 24),
                     );
-                    
+
                     if (diffDays < 0) {
                       // Already Expired (< 0 days)
-                      $td[0].style.setProperty("background-color", "#800000", "important");
+                      $td[0].style.setProperty(
+                        "background-color",
+                        "#800000",
+                        "important",
+                      );
                       $td[0].style.setProperty("color", "#ffffff", "important");
                     } else if (diffDays >= 0 && diffDays <= 15) {
                       // 15 Days Gap (0 to 15 days)
-                      $td[0].style.setProperty("background-color", "#FF9999", "important");
+                      $td[0].style.setProperty(
+                        "background-color",
+                        "#FF9999",
+                        "important",
+                      );
                       $td[0].style.setProperty("color", "#000000", "important");
                     } else if (diffDays > 15 && diffDays <= 30) {
                       // 30 Days Gap (16 to 30 days)
-                      $td[0].style.setProperty("background-color", "#FFFF71", "important");
+                      $td[0].style.setProperty(
+                        "background-color",
+                        "#FFFF71",
+                        "important",
+                      );
                       $td[0].style.setProperty("color", "#000000", "important");
                     }
                   }
@@ -2213,15 +2430,21 @@ lengthMenu: [
         action: async function (e, dt, node, config) {
           document.querySelector(".dt-buttons").classList.remove("show");
           showToast("Generating Premium Excel via Python Engine...", "info");
-          
+
           const $btn = $(node);
           const originalText = $btn.html();
-          $btn.prop("disabled", true).html('<span class="material-icons" style="font-size:16px; animation: spin 1s linear infinite;">sync</span> Exporting...');
-          
+          $btn
+            .prop("disabled", true)
+            .html(
+              '<span class="material-icons" style="font-size:16px; animation: spin 1s linear infinite;">sync</span> Exporting...',
+            );
+
           try {
             let visibleHeaders = [];
             erpDataTable.columns({ visible: true }).every(function () {
-              let title = $(this.header()).find(".col-title-text").text().trim() || $(this.header()).text().trim();
+              let title =
+                $(this.header()).find(".col-title-text").text().trim() ||
+                $(this.header()).text().trim();
               visibleHeaders.push(title);
             });
 
@@ -2241,11 +2464,14 @@ lengthMenu: [
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify({ headers: visibleHeaders, rows: visibleRows }),
+              body: JSON.stringify({
+                headers: visibleHeaders,
+                rows: visibleRows,
+              }),
             });
 
             if (!res.ok) throw new Error("Export failed");
-            
+
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -2319,11 +2545,12 @@ lengthMenu: [
           document.querySelector(".dt-buttons").classList.remove("show");
           activeFilters = {};
           $(".filter-icon").removeClass("filter-active").text("filter_list");
-          
+
           // 🟢 Preserve search text when clearing column filters
-          const $searchInput = $('.dataTables_filter input');
+          const $searchInput = $(".dataTables_filter input");
           const currentSearchText = $searchInput.val() || "";
-          const currentMode = $("#searchModeSelector").val() || globalSearchMode || "general";
+          const currentMode =
+            $("#searchModeSelector").val() || globalSearchMode || "general";
 
           if (currentMode === "general") {
             erpDataTable.search(currentSearchText).draw();
@@ -2391,71 +2618,93 @@ lengthMenu: [
       }
       if (currentUser.role !== "Super Admin") {
         $(".bulk-edit-toggle-btn").remove();
-        $(".dt-button").filter(function () {
-          return $(this).text().includes("Import") || $(this).text().includes("Bulk Edit");
-        }).remove();
+        $(".dt-button")
+          .filter(function () {
+            return (
+              $(this).text().includes("Import") ||
+              $(this).text().includes("Bulk Edit")
+            );
+          })
+          .remove();
       }
 
       // --- CUSTOM SEARCH DROPDOWN LOGIC ---
       if ($("#searchModeSelector").length === 0) {
-        let $searchLabel =$('.dataTables_filter label');
-        $searchLabel.css({ 'display': 'flex', 'align-items': 'center', 'gap': '5px' });$searchLabel.prepend(`
+        let $searchLabel = $(".dataTables_filter label");
+        $searchLabel.css({
+          display: "flex",
+          "align-items": "center",
+          gap: "5px",
+        });
+        $searchLabel.prepend(`
             <select id="searchModeSelector" style="padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; outline: none; cursor: pointer; background: #f8fafc; color: #0f172a; font-weight: normal;">
-                <option value="general" ${globalSearchMode === 'general' ? 'selected' : ''}>General</option>
-                <option value="plate" ${globalSearchMode === 'plate' ? 'selected' : ''}>Plate No</option>
-                <option value="iqama" ${globalSearchMode === 'iqama' ? 'selected' : ''}>Iqama</option>
-                <option value="driver" ${globalSearchMode === 'driver' ? 'selected' : ''}>Driver</option>
-                <option value="driver_mob" ${globalSearchMode === 'driver_mob' ? 'selected' : ''}>Drv Mobile</option>
-                <option value="owner" ${globalSearchMode === 'owner' ? 'selected' : ''}>Owner</option>
-                <option value="owner_mob" ${globalSearchMode === 'owner_mob' ? 'selected' : ''}>Ownr Mob</option>
+                <option value="general" ${globalSearchMode === "general" ? "selected" : ""}>General</option>
+                <option value="plate" ${globalSearchMode === "plate" ? "selected" : ""}>Plate No</option>
+                <option value="iqama" ${globalSearchMode === "iqama" ? "selected" : ""}>Iqama</option>
+                <option value="driver" ${globalSearchMode === "driver" ? "selected" : ""}>Driver</option>
+                <option value="driver_mob" ${globalSearchMode === "driver_mob" ? "selected" : ""}>Drv Mobile</option>
+                <option value="owner" ${globalSearchMode === "owner" ? "selected" : ""}>Owner</option>
+                <option value="owner_mob" ${globalSearchMode === "owner_mob" ? "selected" : ""}>Ownr Mob</option>
             </select>
         `);
 
-        let $searchInput = $('.dataTables_filter input');
+        let $searchInput = $(".dataTables_filter input");
         $searchInput.off(); // Remove default DataTables search behavior
 
         let getColIdxByMatch = (aliases) => {
-            return cachedHeaders.findIndex((h) => {
-                const norm = h.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-                return aliases.some((a) => norm.includes(a.replace(/[^A-Z0-9]/gi, "").toUpperCase()));
-            });
+          return cachedHeaders.findIndex((h) => {
+            const norm = h.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+            return aliases.some((a) =>
+              norm.includes(a.replace(/[^A-Z0-9]/gi, "").toUpperCase()),
+            );
+          });
         };
 
         let applyCustomSearch = () => {
-            let val = $searchInput.val();
-            let mode = $("#searchModeSelector").val();
+          let val = $searchInput.val();
+          let mode = $("#searchModeSelector").val();
 
-            // Clear all specific column searches first
-            erpDataTable.columns().search("");
+          // Clear all specific column searches first
+          erpDataTable.columns().search("");
 
-            if (mode === "general") {
-                erpDataTable.search(val).draw();
+          if (mode === "general") {
+            erpDataTable.search(val).draw();
+          } else {
+            erpDataTable.search(""); // Clear global search
+            let targetColIdx = -1;
+            if (mode === "plate")
+              targetColIdx = getColIdxByMatch(["PLATENUMBER", "PLATENO"]);
+            else if (mode === "iqama")
+              targetColIdx = getColIdxByMatch(["IQAMANUMBER", "IQAMANO"]);
+            else if (mode === "driver")
+              targetColIdx = getColIdxByMatch(["DRIVERNAME"]);
+            else if (mode === "driver_mob")
+              targetColIdx = getColIdxByMatch(["MOBILE", "DRIVERMOBILE"]);
+            else if (mode === "owner")
+              targetColIdx = getColIdxByMatch(["OWNERNAME", "OWNER"]);
+            else if (mode === "owner_mob")
+              targetColIdx = getColIdxByMatch([
+                "OWNERNUMBER",
+                "OWNERMOBILE",
+                "MOBILEOWNER",
+              ]);
+
+            if (targetColIdx !== -1) {
+              erpDataTable.column(targetColIdx).search(val).draw();
             } else {
-                erpDataTable.search(""); // Clear global search
-                let targetColIdx = -1;
-                if (mode === "plate") targetColIdx = getColIdxByMatch(["PLATENUMBER", "PLATENO"]);
-                else if (mode === "iqama") targetColIdx = getColIdxByMatch(["IQAMANUMBER", "IQAMANO"]);
-                else if (mode === "driver") targetColIdx = getColIdxByMatch(["DRIVERNAME"]);
-                else if (mode === "driver_mob") targetColIdx = getColIdxByMatch(["MOBILE", "DRIVERMOBILE"]);
-                else if (mode === "owner") targetColIdx = getColIdxByMatch(["OWNERNAME", "OWNER"]);
-                else if (mode === "owner_mob") targetColIdx = getColIdxByMatch(["OWNERNUMBER", "OWNERMOBILE", "MOBILEOWNER"]);
-
-                if (targetColIdx !== -1) {
-                    erpDataTable.column(targetColIdx).search(val).draw();
-                } else {
-                    erpDataTable.search(val).draw();
-                }
+              erpDataTable.search(val).draw();
             }
+          }
         };
 
         // Bind our custom search function
-        $searchInput.on('keyup input search clear', applyCustomSearch);
-        
+        $searchInput.on("keyup input search clear", applyCustomSearch);
+
         // Handle Dropdown change
-        $("#searchModeSelector").on('change', function() {
-            globalSearchMode = $(this).val(); // Save state
-            applyCustomSearch();
-            $searchInput.focus();
+        $("#searchModeSelector").on("change", function () {
+          globalSearchMode = $(this).val(); // Save state
+          applyCustomSearch();
+          $searchInput.focus();
         });
       }
       // ------------------------------------
@@ -2487,15 +2736,14 @@ lengthMenu: [
     },
   });
 
-  erpDataTable
-    .on("order.dt", function () {
-      let i = 1;
-      erpDataTable
-        .cells(null, 0, { search: "none", order: "applied" })
-        .every(function (cell) {
-          this.data(i++);
-        });
-    });
+  erpDataTable.on("order.dt", function () {
+    let i = 1;
+    erpDataTable
+      .cells(null, 0, { search: "none", order: "applied" })
+      .every(function (cell) {
+        this.data(i++);
+      });
+  });
 
   if (preserveState && currentSearch) {
     erpDataTable.search(currentSearch);
@@ -2561,51 +2809,78 @@ function openFilterMenu(event, colName, iconElement) {
   // --- COLOR FILTER UI INJECTION ---
   $("#colorFilterContainer").remove();
   let colUpperForColor = String(colName).toUpperCase();
-  let isDateAlertCol = colUpperForColor.includes("IQAMA EXPIRE") || colUpperForColor.includes("LICENSE EXPIRE") || colUpperForColor.includes("LICENCE EXPIRE") || colUpperForColor.includes("EQ INSURAN") || colUpperForColor.includes("FAHS MVPI");
-  
+  let isDateAlertCol =
+    colUpperForColor.includes("IQAMA EXPIRE") ||
+    colUpperForColor.includes("LICENSE EXPIRE") ||
+    colUpperForColor.includes("LICENCE EXPIRE") ||
+    colUpperForColor.includes("EQ INSURAN") ||
+    colUpperForColor.includes("FAHS MVPI");
+
   let prevSelectedColorData = activeFilters[colName] || [];
-  let selectedColor = prevSelectedColorData.find(v => String(v).startsWith('__COLOR_'));
+  let selectedColor = prevSelectedColorData.find((v) =>
+    String(v).startsWith("__COLOR_"),
+  );
 
   if (isDateAlertCol) {
-    let getBorder = (val) => selectedColor === val ? "3px solid #0f172a" : (val === "__COLOR_NONE__" && selectedColor !== val ? "1px solid #cbd5e1" : "2px solid transparent");
-    
+    let getBorder = (val) =>
+      selectedColor === val
+        ? "3px solid #0f172a"
+        : val === "__COLOR_NONE__" && selectedColor !== val
+          ? "1px solid #cbd5e1"
+          : "2px solid transparent";
+
     let colorFilterHtml = `
       <div id="colorFilterContainer" style="border-bottom: 1px solid #e2e8f0; background: #fff; padding: 12px 15px;">
         <div style="font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 10px;">Filter by Color:</div>
         <div style="display:flex; gap: 12px; align-items:center;">
-          <div class="color-filter-btn" data-color="__COLOR_EXPIRED__" style="width: 26px; height: 26px; background: #800000; border-radius: 4px; cursor: pointer; border: ${getBorder('__COLOR_EXPIRED__')}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="Expired (Red)"></div>
-          <div class="color-filter-btn" data-color="__COLOR_15_DAYS__" style="width: 26px; height: 26px; background: #FF9999; border-radius: 4px; cursor: pointer; border: ${getBorder('__COLOR_15_DAYS__')}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="15 Days Gap (Light Red)"></div>
-          <div class="color-filter-btn" data-color="__COLOR_30_DAYS__" style="width: 26px; height: 26px; background: #FFFF71; border-radius: 4px; cursor: pointer; border: ${getBorder('__COLOR_30_DAYS__')}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="30 Days Gap (Yellow)"></div>
-          <div class="color-filter-btn" data-color="__COLOR_NONE__" style="width: 26px; height: 26px; background: #ffffff; border-radius: 4px; cursor: pointer; border: ${getBorder('__COLOR_NONE__')}; display:flex; align-items:center; justify-content:center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="Clear Color Filter">
+          <div class="color-filter-btn" data-color="__COLOR_EXPIRED__" style="width: 26px; height: 26px; background: #800000; border-radius: 4px; cursor: pointer; border: ${getBorder("__COLOR_EXPIRED__")}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="Expired (Red)"></div>
+          <div class="color-filter-btn" data-color="__COLOR_15_DAYS__" style="width: 26px; height: 26px; background: #FF9999; border-radius: 4px; cursor: pointer; border: ${getBorder("__COLOR_15_DAYS__")}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="15 Days Gap (Light Red)"></div>
+          <div class="color-filter-btn" data-color="__COLOR_30_DAYS__" style="width: 26px; height: 26px; background: #FFFF71; border-radius: 4px; cursor: pointer; border: ${getBorder("__COLOR_30_DAYS__")}; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="30 Days Gap (Yellow)"></div>
+          <div class="color-filter-btn" data-color="__COLOR_NONE__" style="width: 26px; height: 26px; background: #ffffff; border-radius: 4px; cursor: pointer; border: ${getBorder("__COLOR_NONE__")}; display:flex; align-items:center; justify-content:center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="Clear Color Filter">
              <span class="material-icons" style="font-size: 14px; color: #94a3b8;">format_color_reset</span>
           </div>
         </div>
       </div>
     `;
-    $(colorFilterHtml).insertBefore($(".excel-filter-menu .filter-item").first());
-    
-    $("#colorFilterContainer").off('click', '.color-filter-btn').on('click', '.color-filter-btn', function() {
-        let colorVal = $(this).data('color');
+    $(colorFilterHtml).insertBefore(
+      $(".excel-filter-menu .filter-item").first(),
+    );
+
+    $("#colorFilterContainer")
+      .off("click", ".color-filter-btn")
+      .on("click", ".color-filter-btn", function () {
+        let colorVal = $(this).data("color");
         if (selectedColor === colorVal || colorVal === "__COLOR_NONE__") {
-            activeFilters[currentFilterColName] = []; // Deselect or Clear
+          activeFilters[currentFilterColName] = []; // Deselect or Clear
         } else {
-            activeFilters[currentFilterColName] = [colorVal]; // Select Color
+          activeFilters[currentFilterColName] = [colorVal]; // Select Color
         }
         closeCustomFilter();
         erpDataTable.draw();
-        
-        let targetTh = $("#erpTable th").filter(function () { return $(this).find(".col-title-text").text().trim() === currentFilterColName; });
+
+        let targetTh = $("#erpTable th").filter(function () {
+          return (
+            $(this).find(".col-title-text").text().trim() ===
+            currentFilterColName
+          );
+        });
         if (activeFilters[currentFilterColName].length > 0) {
-            targetTh.find(".filter-icon").addClass("filter-active").text("filter_alt");
+          targetTh
+            .find(".filter-icon")
+            .addClass("filter-active")
+            .text("filter_alt");
         } else {
-            targetTh.find(".filter-icon").removeClass("filter-active").text("filter_list");
+          targetTh
+            .find(".filter-icon")
+            .removeClass("filter-active")
+            .text("filter_list");
         }
-    });
+      });
   }
   // --- END COLOR FILTER UI INJECTION ---
 
   let allOptions = new Set();
-  
+
   // 🟢 FIX: Cascading filter logic - Check other active column filters, color filters, and global search
   erpDataTable.rows().every(function (rowIdx) {
     let rowData = this.data();
@@ -2620,10 +2895,17 @@ function openFilterMenu(event, colName, iconElement) {
       if (fIdx === -1) continue;
 
       // Handle Color Filter in cascading check
-      let colorFilterVal = allowedValues.find(v => String(v).startsWith("__COLOR_"));
+      let colorFilterVal = allowedValues.find((v) =>
+        String(v).startsWith("__COLOR_"),
+      );
       if (colorFilterVal) {
-        let statusIdx = cachedHeaders.findIndex(h => String(h).toUpperCase().trim() === "STATUS");
-        let statusVal = statusIdx !== -1 ? String(rowData[statusIdx]).trim().toLowerCase() : "";
+        let statusIdx = cachedHeaders.findIndex(
+          (h) => String(h).toUpperCase().trim() === "STATUS",
+        );
+        let statusVal =
+          statusIdx !== -1
+            ? String(rowData[statusIdx]).trim().toLowerCase()
+            : "";
         let cellColor = "__COLOR_NONE__";
 
         if (statusVal === "running") {
@@ -2636,10 +2918,14 @@ function openFilterMenu(event, colName, iconElement) {
                 let today = new Date();
                 today.setHours(0, 0, 0, 0);
                 expDate.setHours(0, 0, 0, 0);
-                let diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                let diffDays = Math.ceil(
+                  (expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+                );
                 if (diffDays < 0) cellColor = "__COLOR_EXPIRED__";
-                else if (diffDays >= 0 && diffDays <= 15) cellColor = "__COLOR_15_DAYS__";
-                else if (diffDays > 15 && diffDays <= 30) cellColor = "__COLOR_30_DAYS__";
+                else if (diffDays >= 0 && diffDays <= 15)
+                  cellColor = "__COLOR_15_DAYS__";
+                else if (diffDays > 15 && diffDays <= 30)
+                  cellColor = "__COLOR_30_DAYS__";
               }
             }
           }
@@ -2660,27 +2946,45 @@ function openFilterMenu(event, colName, iconElement) {
 
     // 2. Check active search box / dropdown filter (if user typed something in search)
     if (passesOtherFilters) {
-      let searchVal = ($('.dataTables_filter input').val() || "").trim().toLowerCase();
+      let searchVal = ($(".dataTables_filter input").val() || "")
+        .trim()
+        .toLowerCase();
       if (searchVal) {
-        let mode = $("#searchModeSelector").val() || globalSearchMode || "general";
+        let mode =
+          $("#searchModeSelector").val() || globalSearchMode || "general";
         let getColIdxByMatch = (aliases) => {
           return cachedHeaders.findIndex((h) => {
             const norm = h.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-            return aliases.some((a) => norm.includes(a.replace(/[^A-Z0-9]/gi, "").toUpperCase()));
+            return aliases.some((a) =>
+              norm.includes(a.replace(/[^A-Z0-9]/gi, "").toUpperCase()),
+            );
           });
         };
 
         if (mode === "general") {
-          let rowTextBlob = rowData.map(v => String(v || "")).join(" ").toLowerCase();
+          let rowTextBlob = rowData
+            .map((v) => String(v || ""))
+            .join(" ")
+            .toLowerCase();
           if (!rowTextBlob.includes(searchVal)) passesOtherFilters = false;
         } else {
           let targetColIdx = -1;
-          if (mode === "plate") targetColIdx = getColIdxByMatch(["PLATENUMBER", "PLATENO"]);
-          else if (mode === "iqama") targetColIdx = getColIdxByMatch(["IQAMANUMBER", "IQAMANO"]);
-          else if (mode === "driver") targetColIdx = getColIdxByMatch(["DRIVERNAME"]);
-          else if (mode === "driver_mob") targetColIdx = getColIdxByMatch(["MOBILE", "DRIVERMOBILE"]);
-          else if (mode === "owner") targetColIdx = getColIdxByMatch(["OWNERNAME", "OWNER"]);
-          else if (mode === "owner_mob") targetColIdx = getColIdxByMatch(["OWNERNUMBER", "OWNERMOBILE", "MOBILEOWNER"]);
+          if (mode === "plate")
+            targetColIdx = getColIdxByMatch(["PLATENUMBER", "PLATENO"]);
+          else if (mode === "iqama")
+            targetColIdx = getColIdxByMatch(["IQAMANUMBER", "IQAMANO"]);
+          else if (mode === "driver")
+            targetColIdx = getColIdxByMatch(["DRIVERNAME"]);
+          else if (mode === "driver_mob")
+            targetColIdx = getColIdxByMatch(["MOBILE", "DRIVERMOBILE"]);
+          else if (mode === "owner")
+            targetColIdx = getColIdxByMatch(["OWNERNAME", "OWNER"]);
+          else if (mode === "owner_mob")
+            targetColIdx = getColIdxByMatch([
+              "OWNERNUMBER",
+              "OWNERMOBILE",
+              "MOBILEOWNER",
+            ]);
 
           if (targetColIdx !== -1) {
             let targetText = String(rowData[targetColIdx] || "").toLowerCase();
@@ -2934,14 +3238,17 @@ function applyCustomFilter() {
   closeCustomFilter();
 
   // 🟢 FIX: Search input value preserve cheyyunnu, maanju pokilla
-  const $searchInput = $('.dataTables_filter input');
+  const $searchInput = $(".dataTables_filter input");
   const currentSearchText = $searchInput.val() || "";
-  const currentMode = $("#searchModeSelector").val() || globalSearchMode || "general";
+  const currentMode =
+    $("#searchModeSelector").val() || globalSearchMode || "general";
 
   let getColIdxByMatch = (aliases) => {
     return cachedHeaders.findIndex((h) => {
       const norm = h.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-      return aliases.some((a) => norm.includes(a.replace(/[^A-Z0-9]/gi, "").toUpperCase()));
+      return aliases.some((a) =>
+        norm.includes(a.replace(/[^A-Z0-9]/gi, "").toUpperCase()),
+      );
     });
   };
 
@@ -2950,12 +3257,22 @@ function applyCustomFilter() {
   } else {
     erpDataTable.search("");
     let targetColIdx = -1;
-    if (currentMode === "plate") targetColIdx = getColIdxByMatch(["PLATENUMBER", "PLATENO"]);
-    else if (currentMode === "iqama") targetColIdx = getColIdxByMatch(["IQAMANUMBER", "IQAMANO"]);
-    else if (currentMode === "driver") targetColIdx = getColIdxByMatch(["DRIVERNAME"]);
-    else if (currentMode === "driver_mob") targetColIdx = getColIdxByMatch(["MOBILE", "DRIVERMOBILE"]);
-    else if (currentMode === "owner") targetColIdx = getColIdxByMatch(["OWNERNAME", "OWNER"]);
-    else if (currentMode === "owner_mob") targetColIdx = getColIdxByMatch(["OWNERNUMBER", "OWNERMOBILE", "MOBILEOWNER"]);
+    if (currentMode === "plate")
+      targetColIdx = getColIdxByMatch(["PLATENUMBER", "PLATENO"]);
+    else if (currentMode === "iqama")
+      targetColIdx = getColIdxByMatch(["IQAMANUMBER", "IQAMANO"]);
+    else if (currentMode === "driver")
+      targetColIdx = getColIdxByMatch(["DRIVERNAME"]);
+    else if (currentMode === "driver_mob")
+      targetColIdx = getColIdxByMatch(["MOBILE", "DRIVERMOBILE"]);
+    else if (currentMode === "owner")
+      targetColIdx = getColIdxByMatch(["OWNERNAME", "OWNER"]);
+    else if (currentMode === "owner_mob")
+      targetColIdx = getColIdxByMatch([
+        "OWNERNUMBER",
+        "OWNERMOBILE",
+        "MOBILEOWNER",
+      ]);
 
     if (targetColIdx !== -1) {
       erpDataTable.column(targetColIdx).search(currentSearchText).draw();
@@ -3050,7 +3367,10 @@ function openAddEntryModal(dbId = null, clone = false) {
   let currentModalSN = globalNextSN;
   if (sourceDbId && !isCloneMode) {
     let $sourceRow = $(`#erpTable tbody tr[data-sheetrow="${sourceDbId}"]`);
-    currentModalSN = $sourceRow.find(`td[data-colname="SN"]`).text().trim() || $sourceRow.find("td.sn-column").text().trim() || globalNextSN;
+    currentModalSN =
+      $sourceRow.find(`td[data-colname="SN"]`).text().trim() ||
+      $sourceRow.find("td.sn-column").text().trim() ||
+      globalNextSN;
   }
   $("#entryModalSnBadge").text("SN :: " + currentModalSN);
   $("#entryModalSnInput").val(currentModalSN);
@@ -3108,40 +3428,99 @@ function openAddEntryModal(dbId = null, clone = false) {
 
   // 🟢 ഒഴിവാക്കേണ്ട കോളങ്ങൾ (PAY FROM, OFFICE REMARK എന്നിവ Others-ലേക്ക് വരാൻ അനുവദിച്ചു)
   const excludedCols = [
-    "SN", "DAYS WORKED", "MUBARAK REMARK",
-    "LAST WORKING DAY", "RELEASE DATE", "RELEASED DATE", 
-    "REPLACED DATE", "REPLACEDATE", "REPLACED NEW VEHICLE",
-    "DRIVER STATUS REMARK", "OD WRK END", "OLD DRIVER NAME", "OD MOB",
-    "INFORMATION RECEIVED BY", "INFORMATIONRECEIVEDBY",
-    "LAST LOG SHEET AVAILABLE ON", "LASTLOGSHEETAVAILABLEON"
+    "SN",
+    "DAYS WORKED",
+    "MUBARAK REMARK",
+    "LAST WORKING DAY",
+    "RELEASE DATE",
+    "RELEASED DATE",
+    "REPLACED DATE",
+    "REPLACEDATE",
+    "REPLACED NEW VEHICLE",
+    "DRIVER STATUS REMARK",
+    "OD WRK END",
+    "OLD DRIVER NAME",
+    "OD MOB",
+    "INFORMATION RECEIVED BY",
+    "INFORMATIONRECEIVEDBY",
+    "LAST LOG SHEET AVAILABLE ON",
+    "LASTLOGSHEETAVAILABLEON",
   ];
 
   // നോർമലൈസേഷൻ ഹെൽപ്പർ (Spaces, punctuations നീക്കം ചെയ്ത് താരതമ്യം ചെയ്യാൻ)
-  const normStr = (s) => String(s || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  const normStr = (s) =>
+    String(s || "")
+      .replace(/[^A-Z0-9]/gi, "")
+      .toUpperCase();
 
   // 5 സെക്ഷനുകളിലെയും കൃത്യമായ ഫീൽഡ് ഓർഡർ
   const section1Keys = [
-    "ASSETCODE", "EQUIPMENTREACHEDATSITE", "WORKSTART", "PLATENUMBER", "PLATENO",
-    "TYPEOFVEHICLE", "VEHICLETYPE", "RATE", "SITE", "IFSUB", "COMPANY", "CUSTOMER",
-    "STATUS", "STATUSREMARK", "OLDVEHICLE", "CHASISNO", "CHASISNO.", "SERIALNUMBER", "SERIALNO",
-    "MODEL", "ORIGINALMODEL", "EQINSURANSEEXPIREDATE", "EQINSURAN", "FAHSMVPIEXPIRE", "FAHSMVPI",
-    "EQTUVEXPIREDATE", "EQTUVEXPIRE", "REMARK"
+    "ASSETCODE",
+    "EQUIPMENTREACHEDATSITE",
+    "WORKSTART",
+    "PLATENUMBER",
+    "PLATENO",
+    "TYPEOFVEHICLE",
+    "VEHICLETYPE",
+    "RATE",
+    "SITE",
+    "IFSUB",
+    "COMPANY",
+    "CUSTOMER",
+    "STATUS",
+    "STATUSREMARK",
+    "OLDVEHICLE",
+    "CHASISNO",
+    "CHASISNO.",
+    "SERIALNUMBER",
+    "SERIALNO",
+    "MODEL",
+    "ORIGINALMODEL",
+    "EQINSURANSEEXPIREDATE",
+    "EQINSURAN",
+    "FAHSMVPIEXPIRE",
+    "FAHSMVPI",
+    "EQTUVEXPIREDATE",
+    "EQTUVEXPIRE",
+    "REMARK",
   ];
 
   const section2Keys = [
-    "OWNER", "OWNERNAME", "OWNERNUMBER", "MOBILEOWNER", "MOBILENUMBEROWNER",
-    "VATBILLORNOT", "VATBILLSTATUS"
+    "OWNER",
+    "OWNERNAME",
+    "OWNERNUMBER",
+    "MOBILEOWNER",
+    "MOBILENUMBEROWNER",
+    "VATBILLORNOT",
+    "VATBILLSTATUS",
   ];
 
   const section3Keys = [
-    "DRIVERNAME", "MOBILE", "MOBILES", "NATIONALITY", "IQAMANUMBER", "IQAMANO",
-    "IQAMAEXPIREDATE", "IQAMAEXPIRE", "LICENSEEXPIREDATE", "LICENCEEXPIREDATE",
-    "LICENSEEXPIRE", "LICENCEEXPIRE", "OPERATORTUVEXPIREDATE", "OPERATORTUVEXPIRE",
-    "IQAMANOTE", "LICENCENOTE", "LICENSENOTE"
+    "DRIVERNAME",
+    "MOBILE",
+    "MOBILES",
+    "NATIONALITY",
+    "IQAMANUMBER",
+    "IQAMANO",
+    "IQAMAEXPIREDATE",
+    "IQAMAEXPIRE",
+    "LICENSEEXPIREDATE",
+    "LICENCEEXPIREDATE",
+    "LICENSEEXPIRE",
+    "LICENCEEXPIRE",
+    "OPERATORTUVEXPIREDATE",
+    "OPERATORTUVEXPIRE",
+    "IQAMANOTE",
+    "LICENCENOTE",
+    "LICENSENOTE",
   ];
 
   const section4Keys = [
-    "FIELDCOORDINATOR", "FIELDCO", "SITECOORDINATOR", "SITECO", "REMARKS"
+    "FIELDCOORDINATOR",
+    "FIELDCO",
+    "SITECOORDINATOR",
+    "SITECO",
+    "REMARKS",
   ];
 
   // ഹെഡർ ഇൻപുട്ട് ജനറേഷൻ
@@ -3155,19 +3534,21 @@ function openAddEntryModal(dbId = null, clone = false) {
     if (excludedCols.some((exc) => normStr(exc) === norm)) return;
 
     let isDateCol =
-        cType === "date" ||
-        colUpper.includes("DATE") ||
-        colUpper.includes("EXPIRE") ||
-        colUpper.includes("EQUIPMENT REACHED") ||
-        colUpper === "LAST WORKING DAY" ||
-        colUpper === "WORK START";
+      cType === "date" ||
+      colUpper.includes("DATE") ||
+      colUpper.includes("EXPIRE") ||
+      colUpper.includes("EQUIPMENT REACHED") ||
+      colUpper === "LAST WORKING DAY" ||
+      colUpper === "WORK START";
     let isIntCol = cType === "int";
-    
+
     let isSuggestionCol = suggestionTargetCols.includes(colUpper);
     let listAttr = isSuggestionCol ? `list="datalist_entry_${index}"` : "";
 
     if (colUpper === "OLD VEHICLE") {
-      let plateIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, " ").trim().toUpperCase() === "PLATE NUMBER");
+      let plateIdx = cachedHeaders.findIndex(
+        (h) => h.replace(/\s+/g, " ").trim().toUpperCase() === "PLATE NUMBER",
+      );
       if (plateIdx !== -1) {
         listAttr = `list="datalist_entry_${plateIdx}"`;
       }
@@ -3179,7 +3560,10 @@ function openAddEntryModal(dbId = null, clone = false) {
       inputHtml = `<input type="date" class="modal-input entry-input" data-colname="${header}">`;
     } else if (isIntCol) {
       inputHtml = `<input type="number" class="modal-input entry-input" data-colname="${header}">`;
-    } else if (["REMARK", "REMARKS", "DRIVER LOG"].includes(colUpper) || colUpper.includes("REMARK")) {
+    } else if (
+      ["REMARK", "REMARKS", "DRIVER LOG"].includes(colUpper) ||
+      colUpper.includes("REMARK")
+    ) {
       inputHtml = `<textarea class="modal-input entry-input" data-colname="${header}" style="height: 38px; min-height: 38px; padding: 7px 10px; resize: vertical; margin-bottom: 0; box-sizing: border-box; line-height: 1.4;"></textarea>`;
     } else if (colUpper === "IF SUB") {
       inputHtml = `<select class="modal-input entry-input" data-colname="${header}"><option value="">(Blank)</option><option value="Sub">Sub</option></select>`;
@@ -3201,7 +3585,8 @@ function openAddEntryModal(dbId = null, clone = false) {
       inputHtml = `<input type="text" class="modal-input entry-input" data-colname="${header}" value="${currentUser.site}" readonly style="background-color:#f8fafc; cursor:not-allowed;">`;
     }
 
-    generatedHtmlMap[norm] = `<div class="form-group"><label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#334155; font-size:12px;">${header}</label>${inputHtml}</div>`;
+    generatedHtmlMap[norm] =
+      `<div class="form-group"><label class="form-label" style="display:block; margin-bottom:5px; font-weight:600; color:#334155; font-size:12px;">${header}</label>${inputHtml}</div>`;
   });
 
   // Dynamic Status Fields (Status field-ന് സമീപം കാണിക്കാൻ)
@@ -3232,7 +3617,9 @@ function openAddEntryModal(dbId = null, clone = false) {
   const buildSectionHtml = (targetKeys, includeStatusDyn = false) => {
     let html = "";
     targetKeys.forEach((k) => {
-      let matchedNorm = Object.keys(generatedHtmlMap).find((n) => n === k && !usedNorms.has(n));
+      let matchedNorm = Object.keys(generatedHtmlMap).find(
+        (n) => n === k && !usedNorms.has(n),
+      );
       if (matchedNorm) {
         html += generatedHtmlMap[matchedNorm];
         usedNorms.add(matchedNorm);
@@ -3274,17 +3661,27 @@ function openAddEntryModal(dbId = null, clone = false) {
   };
 
   let fullFormHtml = "";
-  fullFormHtml += wrapSection("1. Vehicle & Company Info", "directions_car", sec1Html);
+  fullFormHtml += wrapSection(
+    "1. Vehicle & Company Info",
+    "directions_car",
+    sec1Html,
+  );
   fullFormHtml += wrapSection("2. Owner Info", "badge", sec2Html);
   fullFormHtml += wrapSection("3. Driver Info", "person", sec3Html);
-  fullFormHtml += wrapSection("4. Co-Ordinators Info", "support_agent", sec4Html);
+  fullFormHtml += wrapSection(
+    "4. Co-Ordinators Info",
+    "support_agent",
+    sec4Html,
+  );
   fullFormHtml += wrapSection("5. Others", "more_horiz", sec5Html);
 
   $("#dynamicFormFields").append(fullFormHtml);
 
   // 🟢 Status select cheyyumbol inline aayi flow cheyyunna toggle function
   function updateModalStatusToggle(statusVal) {
-    let s = String(statusVal || "").trim().toLowerCase();
+    let s = String(statusVal || "")
+      .trim()
+      .toLowerCase();
     const grpLwd = $("#group_dyn_lwd");
     const grpRel = $("#group_dyn_rel_date");
     const grpRep = $("#group_dyn_rep_date");
@@ -3319,27 +3716,43 @@ function openAddEntryModal(dbId = null, clone = false) {
   }
 
   // Event listener for Status Select Dropdown
-  $(document).off("change", ".entry-input[data-colname='STATUS'], .entry-input[data-colname='Status']");
-  $(document).on("change", ".entry-input[data-colname='STATUS'], .entry-input[data-colname='Status']", function() {
-    updateModalStatusToggle($(this).val());
-  });
+  $(document).off(
+    "change",
+    ".entry-input[data-colname='STATUS'], .entry-input[data-colname='Status']",
+  );
+  $(document).on(
+    "change",
+    ".entry-input[data-colname='STATUS'], .entry-input[data-colname='Status']",
+    function () {
+      updateModalStatusToggle($(this).val());
+    },
+  );
 
   // 🟢 FIX: WORK START മാറ്റുമ്പോൾ DRIVER START DATE തനിയെ അപ്ഡേറ്റ് ആകാൻ ഈവന്റ് നൽകുന്നു
-  $(document).off("change", ".entry-input[data-colname='WORK START'], .entry-input[data-colname='Work Start']");
-  $(document).on("change", ".entry-input[data-colname='WORK START'], .entry-input[data-colname='Work Start']", function() {
-    let wsVal = $(this).val();
-    let $drvStart = $(".entry-input").filter(function() {
-      let c = String($(this).data("colname")).replace(/\s+/g, "").toUpperCase();
-      return c === "DRIVERSTARTDATE" || c === "DRIVERSTART";
-    });
-    if ($drvStart.length && (!$drvStart.val() || $drvStart.val() === "")) {
-      $drvStart.val(wsVal);
-    }
-  });
+  $(document).off(
+    "change",
+    ".entry-input[data-colname='WORK START'], .entry-input[data-colname='Work Start']",
+  );
+  $(document).on(
+    "change",
+    ".entry-input[data-colname='WORK START'], .entry-input[data-colname='Work Start']",
+    function () {
+      let wsVal = $(this).val();
+      let $drvStart = $(".entry-input").filter(function () {
+        let c = String($(this).data("colname"))
+          .replace(/\s+/g, "")
+          .toUpperCase();
+        return c === "DRIVERSTARTDATE" || c === "DRIVERSTART";
+      });
+      if ($drvStart.length && (!$drvStart.val() || $drvStart.val() === "")) {
+        $drvStart.val(wsVal);
+      }
+    },
+  );
 
   // If editing an existing row OR cloning an existing row:
   if (sourceDbId) {
-    let $row =$(`#erpTable tbody tr[data-sheetrow="${sourceDbId}"]`);
+    let $row = $(`#erpTable tbody tr[data-sheetrow="${sourceDbId}"]`);
 
     // Strict fields that MUST be wiped clean on clone
     const cloneBlankCols = [
@@ -3357,13 +3770,15 @@ function openAddEntryModal(dbId = null, clone = false) {
       "DRIVERSTATUSREMARK",
       "WORKSTART",
       "EQUIPMENTREACHEDATSITE",
-      "INFORMATIONRECEIVEDBY"
+      "INFORMATIONRECEIVEDBY",
     ];
 
     $(".entry-input").each(function () {
       let colName = $(this).data("colname");
       if (colName === "SN") return;
-      let colClean = String(colName).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+      let colClean = String(colName)
+        .replace(/[^A-Z0-9]/gi, "")
+        .toUpperCase();
 
       if (isCloneMode) {
         if (colClean === "STATUS") {
@@ -3385,27 +3800,42 @@ function openAddEntryModal(dbId = null, clone = false) {
       }
 
       // Lock Driver Name & Mobile only in normal Edit Entire Row (NOT in Clone)
-      if (!isCloneMode && (colClean === "DRIVERNAME" || colClean === "MOBILE" || colClean === "MOBILES")) {
-        $(this).prop("readonly", true).css({
-          "background-color": "#f1f5f9",
-          "cursor": "not-allowed",
-          "border": "1px solid #cbd5e1"
-        }).attr("title", "Please update driver details via Driver Management (Right-click Driver Name or SN)");
+      if (
+        !isCloneMode &&
+        (colClean === "DRIVERNAME" ||
+          colClean === "MOBILE" ||
+          colClean === "MOBILES")
+      ) {
+        $(this)
+          .prop("readonly", true)
+          .css({
+            "background-color": "#f1f5f9",
+            cursor: "not-allowed",
+            border: "1px solid #cbd5e1",
+          })
+          .attr(
+            "title",
+            "Please update driver details via Driver Management (Right-click Driver Name or SN)",
+          );
       }
     });
 
     if (!isCloneMode) {
-      let snVal = $row.find(`td[data-colname="SN"]`).text().trim() || $row.find("td.sn-column").text().trim();
+      let snVal =
+        $row.find(`td[data-colname="SN"]`).text().trim() ||
+        $row.find("td.sn-column").text().trim();
       $(".entry-input[data-colname='SN']").val(snVal);
     } else {
       $(".entry-input[data-colname='SN']").val(globalNextSN);
     }
   }
 
-  let currentModalStatus = $(".entry-input").filter(function() {
+  let currentModalStatus = $(".entry-input")
+    .filter(function () {
       return String($(this).data("colname")).toUpperCase() === "STATUS";
-    }).val();
-    updateModalStatusToggle(currentModalStatus);
+    })
+    .val();
+  updateModalStatusToggle(currentModalStatus);
 
   $("#entryModalOverlay").css("display", "flex");
 }
@@ -3430,10 +3860,17 @@ async function submitNewEntry(keepOpen = false) {
   });
 
   // 🟢 FIX: DRIVER START DATE എംപ്റ്റി ആണെങ്കിൽ WORK START ഓട്ടോമാറ്റിക് ആയി വെക്കുന്നു
-  let wsColKey = Object.keys(rowDataObj).find(k => k.replace(/\s+/g, "").toUpperCase() === "WORKSTART");
-  let drvStartKey = Object.keys(rowDataObj).find(k => k.replace(/\s+/g, "").toUpperCase() === "DRIVERSTARTDATE");
+  let wsColKey = Object.keys(rowDataObj).find(
+    (k) => k.replace(/\s+/g, "").toUpperCase() === "WORKSTART",
+  );
+  let drvStartKey = Object.keys(rowDataObj).find(
+    (k) => k.replace(/\s+/g, "").toUpperCase() === "DRIVERSTARTDATE",
+  );
   if (wsColKey && rowDataObj[wsColKey]) {
-    if (drvStartKey && (!rowDataObj[drvStartKey] || rowDataObj[drvStartKey] === "")) {
+    if (
+      drvStartKey &&
+      (!rowDataObj[drvStartKey] || rowDataObj[drvStartKey] === "")
+    ) {
       rowDataObj[drvStartKey] = rowDataObj[wsColKey];
     } else if (!drvStartKey) {
       rowDataObj["DRIVER START DATE"] = rowDataObj[wsColKey];
@@ -3451,17 +3888,24 @@ async function submitNewEntry(keepOpen = false) {
 
   try {
     let res, data;
-    
+
     if (editingRowDbId) {
       let edits = [];
       for (let col in rowDataObj) {
-         if (col.toUpperCase() === "SN") continue;
-         edits.push({ dbId: editingRowDbId, colName: col, newValue: rowDataObj[col] });
+        if (col.toUpperCase() === "SN") continue;
+        edits.push({
+          dbId: editingRowDbId,
+          colName: col,
+          newValue: rowDataObj[col],
+        });
       }
       res = await fetch("/api/update-cells-batch", {
-         method: "POST",
-         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-         body: JSON.stringify({ edits: edits }),
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ edits: edits }),
       });
       data = await res.json();
     } else {
@@ -3475,16 +3919,16 @@ async function submitNewEntry(keepOpen = false) {
       });
       data = await res.json();
     }
-    
+
     if (data.success) {
       showToast(editingRowDbId ? "Record Updated!" : "Added!", "success");
-      if (!editingRowDbId) globalNextSN++; 
-      
+      if (!editingRowDbId) globalNextSN++;
+
       // 🟢 30s delay ozhivaakki instant silent full refresh nalkunnu
       await fetchMasterDataInstant();
-      
+
       if (keepOpen && !editingRowDbId) {
-        openAddEntryModal(); 
+        openAddEntryModal();
       }
     } else {
       updateSyncUI("error");
@@ -3568,10 +4012,16 @@ function applyColumnResizing() {
         document.removeEventListener("mousemove", mouseMoveHandler);
         document.removeEventListener("mouseup", mouseUpHandler);
         let finalWidth = col.style.width;
-        let userWidths = JSON.parse(localStorage.getItem("erpColWidths_" + currentUser.username)) || {};
+        let userWidths =
+          JSON.parse(
+            localStorage.getItem("erpColWidths_" + currentUser.username),
+          ) || {};
         userWidths[colName] = finalWidth;
-        localStorage.setItem("erpColWidths_" + currentUser.username, JSON.stringify(userWidths));
-        
+        localStorage.setItem(
+          "erpColWidths_" + currentUser.username,
+          JSON.stringify(userWidths),
+        );
+
         let existingWidthObj = cachedColWidths.find((w) => w.name === colName);
         if (existingWidthObj) {
           existingWidthObj.width = finalWidth;
@@ -3602,7 +4052,7 @@ async function processQueue() {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ edits: currentBatch }),
-      keepalive: true 
+      keepalive: true,
     });
     const data = await res.json();
     isProcessingQueue = false;
@@ -3647,7 +4097,9 @@ function applyHistoricalState(dbId, colName, value) {
   let colUpper = String(colName).replace(/\s+/g, " ").trim().toUpperCase(),
     $row = $(`#erpTable tbody tr[data-sheetrow="${dbId}"]`);
   if (colUpper === "STATUS" && $row.length) {
-    $row.removeClass("status-released status-replaced status-mobilizing status-ideal");
+    $row.removeClass(
+      "status-released status-replaced status-mobilizing status-ideal",
+    );
     let sVal = value.trim().toLowerCase();
     if (sVal === "released") $row.addClass("status-released");
     else if (sVal === "replaced") $row.addClass("status-replaced");
@@ -3675,76 +4127,91 @@ function applyHistoricalState(dbId, colName, value) {
 
 // 🟢 INSTANT FRONT-END CALCULATION ENGINE
 function autoCalculateRow(dbId) {
-    let $row =$(`#erpTable tbody tr[data-sheetrow="${dbId}"]`);
-    if (!$row.length) return;
+  let $row = $(`#erpTable tbody tr[data-sheetrow="${dbId}"]`);
+  if (!$row.length) return;
 
-    let getVal = (headerMatch) => {
-        let colIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, "").toUpperCase().includes(headerMatch.replace(/\s+/g, "").toUpperCase()));
-        if (colIdx === -1) return "";
-        return $row.find(`td[data-colname="${cachedHeaders[colIdx]}"]`).text().trim();
-    };
+  let getVal = (headerMatch) => {
+    let colIdx = cachedHeaders.findIndex((h) =>
+      h
+        .replace(/\s+/g, "")
+        .toUpperCase()
+        .includes(headerMatch.replace(/\s+/g, "").toUpperCase()),
+    );
+    if (colIdx === -1) return "";
+    return $row
+      .find(`td[data-colname="${cachedHeaders[colIdx]}"]`)
+      .text()
+      .trim();
+  };
 
-    let setVal = (headerMatch, val) => {
-        let colIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, "").toUpperCase().includes(headerMatch.replace(/\s+/g, "").toUpperCase()));
-        if (colIdx === -1) return;
-        let colName = cachedHeaders[colIdx];
-        let $td =$row.find(`td[data-colname="${colName}"]`);
-        let oldVal = $td.text().trim();
-        let targetVal = val !== undefined && val !== null ? String(val) : "";
-        
-        if (oldVal !== targetVal) {
-            $td.text(targetVal);
-            if (erpDataTable) erpDataTable.cell($td[0]).data(targetVal);
-            
-            let plateIdx = cachedHeaders.findIndex(h => h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER"));
-            let plateNo = plateIdx !== -1 ? $row.find("td").eq(plateIdx).text().trim() : "N/A";
-            
-            // Queue for instant backend sync
-            saveQueue.push({
-                dbId: dbId,
-                colName: colName,
-                newValue: targetVal,
-                plate: plateNo
-            });
-        }
-    };
+  let setVal = (headerMatch, val) => {
+    let colIdx = cachedHeaders.findIndex((h) =>
+      h
+        .replace(/\s+/g, "")
+        .toUpperCase()
+        .includes(headerMatch.replace(/\s+/g, "").toUpperCase()),
+    );
+    if (colIdx === -1) return;
+    let colName = cachedHeaders[colIdx];
+    let $td = $row.find(`td[data-colname="${colName}"]`);
+    let oldVal = $td.text().trim();
+    let targetVal = val !== undefined && val !== null ? String(val) : "";
 
-    let wsVal = getVal("WORKSTART");
-    let lwdVal = getVal("LASTWORKINGDAY");
-    let statusVal = getVal("STATUS").toLowerCase();
-    let mobVal = getVal("EQUIPMENTREACHED");
+    if (oldVal !== targetVal) {
+      $td.text(targetVal);
+      if (erpDataTable) erpDataTable.cell($td[0]).data(targetVal);
 
-    if (mobVal && !wsVal) {
-        setVal("WORKSTART", mobVal);
-        wsVal = mobVal;
+      let plateIdx = cachedHeaders.findIndex((h) =>
+        h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER"),
+      );
+      let plateNo =
+        plateIdx !== -1 ? $row.find("td").eq(plateIdx).text().trim() : "N/A";
+
+      // Queue for instant backend sync
+      saveQueue.push({
+        dbId: dbId,
+        colName: colName,
+        newValue: targetVal,
+        plate: plateNo,
+      });
     }
+  };
 
-    if (wsVal && lwdVal && String(lwdVal).trim() !== "") {
-        let d1 = parseDateStr(wsVal);
-        let d2 = parseDateStr(lwdVal);
-        if (d1 && d2 && !isNaN(d1) && !isNaN(d2)) {
-            let diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-            if (diffDays > 0) {
-                setVal("DAYSWORKED", diffDays);
-            } else {
-                setVal("DAYSWORKED", "");
-            }
-        } else {
-            setVal("DAYSWORKED", "");
-        }
-    } else {
-        // Last Working Day ഒഴിവാക്കിയാൽ DAYS WORKED ഉം അപ്പോൾ തന്നെ ക്ലിയർ ആകുന്നു
+  let wsVal = getVal("WORKSTART");
+  let lwdVal = getVal("LASTWORKINGDAY");
+  let statusVal = getVal("STATUS").toLowerCase();
+  let mobVal = getVal("EQUIPMENTREACHED");
+
+  if (mobVal && !wsVal) {
+    setVal("WORKSTART", mobVal);
+    wsVal = mobVal;
+  }
+
+  if (wsVal && lwdVal && String(lwdVal).trim() !== "") {
+    let d1 = parseDateStr(wsVal);
+    let d2 = parseDateStr(lwdVal);
+    if (d1 && d2 && !isNaN(d1) && !isNaN(d2)) {
+      let diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+      if (diffDays > 0) {
+        setVal("DAYSWORKED", diffDays);
+      } else {
         setVal("DAYSWORKED", "");
+      }
+    } else {
+      setVal("DAYSWORKED", "");
     }
+  } else {
+    // Last Working Day ഒഴിവാക്കിയാൽ DAYS WORKED ഉം അപ്പോൾ തന്നെ ക്ലിയർ ആകുന്നു
+    setVal("DAYSWORKED", "");
+  }
 
-    if (statusVal === "released" && lwdVal) {
-        if (!getVal("RELEASEDATE")) setVal("RELEASEDATE", lwdVal);
-    }
-    if (statusVal === "replaced" && lwdVal) {
-        if (!getVal("REPLACEDDATE")) setVal("REPLACEDDATE", lwdVal);
-    }
+  if (statusVal === "released" && lwdVal) {
+    if (!getVal("RELEASEDATE")) setVal("RELEASEDATE", lwdVal);
+  }
+  if (statusVal === "replaced" && lwdVal) {
+    if (!getVal("REPLACEDDATE")) setVal("REPLACEDDATE", lwdVal);
+  }
 }
-
 
 function attachEditListeners() {
   $("#erpTable tbody")
@@ -3776,8 +4243,11 @@ function attachEditListeners() {
       let $cell = $(this),
         colName = $cell.data("colname"),
         colUpper = String(colName).replace(/\s+/g, " ").trim().toUpperCase();
-        
-      if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin")
+
+      if (
+        globalLockedCols.includes(colName) &&
+        currentUser.role !== "Super Admin"
+      )
         return showToast("Column is locked by Super Admin.", "error");
       if (colUpper === "SN")
         return showToast("Access Denied: SN is auto-generated.", "error");
@@ -3786,14 +4256,17 @@ function attachEditListeners() {
 
       // STRICT READ-ONLY COLUMNS TO PREVENT DATA LOSS & MAINTAIN ACCURACY
       const strictReadOnlyCols = [
-        "OLD DRIVER NAME", 
-        "OD MOB", 
-        "OD WRK END", 
+        "OLD DRIVER NAME",
+        "OD MOB",
+        "OD WRK END",
         "DRIVER STATUS REMARK",
-        "DRIVER NAME"
+        "DRIVER NAME",
       ];
       if (strictReadOnlyCols.includes(colUpper)) {
-        return showToast(`Access Denied: '${colUpper}' is strictly Read-Only.`, "error");
+        return showToast(
+          `Access Denied: '${colUpper}' is strictly Read-Only.`,
+          "error",
+        );
       }
 
       let oldVal = $cell.text(),
@@ -3801,221 +4274,245 @@ function attachEditListeners() {
 
       // Helper function to open cell (Safe Fallback)
       const openCellForEditing = () => {
-          let colTypeObj = cachedColTypes.find((c) => c.name === colName),
-            cType = colTypeObj ? colTypeObj.type : "varchar";
-          let inputHtml = "",
-            isSelect = false,
-            isDateCol =
-              cType === "date" ||
-              colUpper.includes("DATE") ||
-              colUpper.includes("EXPIRE") ||
-              colUpper.includes("EQUIPMENT REACHED") ||
-              colUpper === "LAST WORKING DAY" ||
-              colUpper === "WORK START",
-            isIntCol = cType === "int";
+        let colTypeObj = cachedColTypes.find((c) => c.name === colName),
+          cType = colTypeObj ? colTypeObj.type : "varchar";
+        let inputHtml = "",
+          isSelect = false,
+          isDateCol =
+            cType === "date" ||
+            colUpper.includes("DATE") ||
+            colUpper.includes("EXPIRE") ||
+            colUpper.includes("EQUIPMENT REACHED") ||
+            colUpper === "LAST WORKING DAY" ||
+            colUpper === "WORK START",
+          isIntCol = cType === "int";
 
-          if (isDateCol) {
-            inputHtml = `<input type="date" class="edit-input" value="${convertToInputDate(oldVal)}">`;
-          } else if (isIntCol) {
-            inputHtml = `<input type="number" class="edit-input" value="${oldVal.replace(/"/g, "&quot;")}">`;
-          } else if (["REMARK", "REMARKS", "DRIVER LOG"].includes(colUpper)) {
-            inputHtml = `<textarea class="edit-input">${oldVal}</textarea>`;
-          } else if (colUpper === "STATUS") {
-            let optsStatus = ["Running", "Released", "Replaced", "Mobilizing", "Ideal"],
-              optionsStatusHtml = optsStatus
-                .map(function (o) {
-                  return `<option value="${o}" ${oldVal.toLowerCase() === o.toLowerCase() ? "selected" : ""}>${o}</option>`;
-                })
-                .join("");
-            inputHtml = `<select class="edit-input"><option value=""></option>${optionsStatusHtml}</select>`;
-            isSelect = true;
-          } else if (colUpper === "IF SUB") {
-            let optsSub = ["Sub"],
-              optionsSubHtml = optsSub
-                .map(function (o) {
-                  return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
-                })
-                .join("");
-            inputHtml = `<select class="edit-input"><option value=""></option>${optionsSubHtml}</select>`;
-            isSelect = true;
-          } else if (colUpper === "COMPANY") {
-            let optionsCompHtml = DYNAMIC_COMPANIES.map(function (o) {
-              return `<option value="${o.replace(/"/g, "&quot;")}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
-            }).join("");
-            optionsCompHtml += `<option value="ADD_NEW_COMPANY" style="font-weight:bold; color:#2563eb;">+ Add New</option>`;
-            inputHtml = `<select class="edit-input"><option value=""></option>${optionsCompHtml}</select>`;
-            isSelect = true;
-          } else if (colUpper === "VAT BILL OR NOT") {
-            let optsVat = ["Yes", "No"],
-              optionsVatHtml = optsVat
-                .map(function (o) {
-                  return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
-                })
-                .join("");
-            inputHtml = `<select class="edit-input"><option value=""></option>${optionsVatHtml}</select>`;
-            isSelect = true;
-          } else {
-            inputHtml = `<input type="text" class="edit-input" value="${oldVal.replace(/"/g, "&quot;")}">`;
-          }
+        if (isDateCol) {
+          inputHtml = `<input type="date" class="edit-input" value="${convertToInputDate(oldVal)}">`;
+        } else if (isIntCol) {
+          inputHtml = `<input type="number" class="edit-input" value="${oldVal.replace(/"/g, "&quot;")}">`;
+        } else if (["REMARK", "REMARKS", "DRIVER LOG"].includes(colUpper)) {
+          inputHtml = `<textarea class="edit-input">${oldVal}</textarea>`;
+        } else if (colUpper === "STATUS") {
+          let optsStatus = [
+              "Running",
+              "Released",
+              "Replaced",
+              "Mobilizing",
+              "Ideal",
+            ],
+            optionsStatusHtml = optsStatus
+              .map(function (o) {
+                return `<option value="${o}" ${oldVal.toLowerCase() === o.toLowerCase() ? "selected" : ""}>${o}</option>`;
+              })
+              .join("");
+          inputHtml = `<select class="edit-input"><option value=""></option>${optionsStatusHtml}</select>`;
+          isSelect = true;
+        } else if (colUpper === "IF SUB") {
+          let optsSub = ["Sub"],
+            optionsSubHtml = optsSub
+              .map(function (o) {
+                return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
+              })
+              .join("");
+          inputHtml = `<select class="edit-input"><option value=""></option>${optionsSubHtml}</select>`;
+          isSelect = true;
+        } else if (colUpper === "COMPANY") {
+          let optionsCompHtml = DYNAMIC_COMPANIES.map(function (o) {
+            return `<option value="${o.replace(/"/g, "&quot;")}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
+          }).join("");
+          optionsCompHtml += `<option value="ADD_NEW_COMPANY" style="font-weight:bold; color:#2563eb;">+ Add New</option>`;
+          inputHtml = `<select class="edit-input"><option value=""></option>${optionsCompHtml}</select>`;
+          isSelect = true;
+        } else if (colUpper === "VAT BILL OR NOT") {
+          let optsVat = ["Yes", "No"],
+            optionsVatHtml = optsVat
+              .map(function (o) {
+                return `<option value="${o}" ${oldVal === o ? "selected" : ""}>${o}</option>`;
+              })
+              .join("");
+          inputHtml = `<select class="edit-input"><option value=""></option>${optionsVatHtml}</select>`;
+          isSelect = true;
+        } else {
+          inputHtml = `<input type="text" class="edit-input" value="${oldVal.replace(/"/g, "&quot;")}">`;
+        }
 
-          let $input = $(inputHtml);
-          $cell.html($input);
-          $input.focus();
+        let $input = $(inputHtml);
+        $cell.html($input);
+        $input.focus();
 
-          if (colUpper === "COMPANY") {
-            $input.on("change", function () {
-              if ($(this).val() === "ADD_NEW_COMPANY") {
-                let newComp = prompt("Enter New Company Name:")?.trim();
-                if (newComp) {
-                  if (!DYNAMIC_COMPANIES.includes(newComp)) {
-                    DYNAMIC_COMPANIES.push(newComp);
-                    DYNAMIC_COMPANIES.sort();
-                  }
-                  $(this).append(
-                    `<option value="${newComp.replace(/"/g, "&quot;")}" selected>${newComp}</option>`,
-                  );
-                  $(this).val(newComp);
-                } else {
-                  $(this).val(oldVal);
+        if (colUpper === "COMPANY") {
+          $input.on("change", function () {
+            if ($(this).val() === "ADD_NEW_COMPANY") {
+              let newComp = prompt("Enter New Company Name:")?.trim();
+              if (newComp) {
+                if (!DYNAMIC_COMPANIES.includes(newComp)) {
+                  DYNAMIC_COMPANIES.push(newComp);
+                  DYNAMIC_COMPANIES.sort();
                 }
-              }
-            });
-          }
-
-          if (!isSelect && !isDateCol) {
-            let v = $input.val();
-            $input.val("");
-            $input.val(v);
-            if ($input.is("textarea")) {
-              $input.css("height", Math.max($cell.outerHeight(), $input[0].scrollHeight) + "px");
-            } else {
-              $input.css("height", $cell.outerHeight() + "px");
-            }
-          }
-
-          $input.on("keydown", function (e) {
-            if (e.key === "Escape") {
-              $cell.text(oldVal);
-              erpDataTable.cell($cell[0]).data(oldVal);
-              
-              // Unlock cell if cancelled
-              fetch("/api/unlock-cell", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ dbId: sheetRow, colName: colName }),
-              }).catch(()=> console.warn("Unlock bypass"));
-              return;
-            }
-            if (e.key === "Enter" && e.altKey && $(this).is("textarea")) {
-              e.preventDefault();
-              let start = this.selectionStart,
-                end = this.selectionEnd,
-                val = $(this).val();
-              $(this).val(val.substring(0, start) + "\n" + val.substring(end));
-              this.selectionStart = this.selectionEnd = start + 1;
-              $(this).css("height", "auto");
-              $(this).css("height", this.scrollHeight + "px");
-              return;
-            }
-            if (["Enter", "Tab", "ArrowUp", "ArrowDown"].includes(e.key)) {
-              if (!isSelect || ["Enter", "Tab"].includes(e.key)) {
-                if (e.key === "Enter") e.preventDefault();
-                let direction = "";
-                if (e.key === "Enter") direction = e.shiftKey ? "UP" : "DOWN";
-                else if (e.key === "Tab") {
-                  direction = e.shiftKey ? "LEFT" : "RIGHT";
-                  e.preventDefault();
-                } else if (e.key === "ArrowUp" && !isDateCol) direction = "UP";
-                else if (e.key === "ArrowDown" && !isDateCol) direction = "DOWN";
-
-                if (direction) {
-                  let $currentRow = $cell.closest("tr"),
-                    colIndex = $cell.index(),
-                    $nextCell = null;
-                  function getValidHorizontalCell($td, dir) {
-                    let $nxt = dir === "RIGHT" ? $td.next("td") : $td.prev("td");
-                    if ($nxt.length) {
-                      if (
-                        String($nxt.data("colname")).trim().toUpperCase() === "SN" ||
-                        $nxt.css("display") === "none"
-                      )
-                        return getValidHorizontalCell($nxt, dir);
-                      return $nxt;
-                    }
-                    return null;
-                  }
-                  if (direction === "DOWN")
-                    $nextCell = $currentRow.next("tr").find("td").eq(colIndex);
-                  else if (direction === "UP")
-                    $nextCell = $currentRow.prev("tr").find("td").eq(colIndex);
-                  else if (direction === "RIGHT")
-                    $nextCell = getValidHorizontalCell($cell, "RIGHT");
-                  else if (direction === "LEFT")
-                    $nextCell = getValidHorizontalCell($cell, "LEFT");
-
-                  $(this).blur();
-
-                  if ($nextCell && $nextCell.length) {
-                    requestAnimationFrame(() => $nextCell.trigger("dblclick"));
-                  }
-                }
+                $(this).append(
+                  `<option value="${newComp.replace(/"/g, "&quot;")}" selected>${newComp}</option>`,
+                );
+                $(this).val(newComp);
+              } else {
+                $(this).val(oldVal);
               }
             }
           });
+        }
 
-          // BLUR EVENT TO RELEASE LOCK AND SAVE
-          $input.on("blur", function () {
-            if ($cell.find(".edit-input").length === 0) return;
-            let newVal = $(this).val();
-            if (isDateCol && newVal) newVal = formatToDDMMMYYYY(newVal);
-            else if (colUpper === "PLATE NUMBER") newVal = formatPlateNumber(newVal);
+        if (!isSelect && !isDateCol) {
+          let v = $input.val();
+          $input.val("");
+          $input.val(v);
+          if ($input.is("textarea")) {
+            $input.css(
+              "height",
+              Math.max($cell.outerHeight(), $input[0].scrollHeight) + "px",
+            );
+          } else {
+            $input.css("height", $cell.outerHeight() + "px");
+          }
+        }
 
-            $cell.removeClass("editing-cell").css({ height: "", width: "", "min-width": "" });
-            $cell.text(newVal);
+        $input.on("keydown", function (e) {
+          if (e.key === "Escape") {
+            $cell.text(oldVal);
+            erpDataTable.cell($cell[0]).data(oldVal);
 
-            // Release the lock in backend
+            // Unlock cell if cancelled
             fetch("/api/unlock-cell", {
               method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
               body: JSON.stringify({ dbId: sheetRow, colName: colName }),
-            }).catch(()=> console.warn("Unlock bypass"));
+            }).catch(() => console.warn("Unlock bypass"));
+            return;
+          }
+          if (e.key === "Enter" && e.altKey && $(this).is("textarea")) {
+            e.preventDefault();
+            let start = this.selectionStart,
+              end = this.selectionEnd,
+              val = $(this).val();
+            $(this).val(val.substring(0, start) + "\n" + val.substring(end));
+            this.selectionStart = this.selectionEnd = start + 1;
+            $(this).css("height", "auto");
+            $(this).css("height", this.scrollHeight + "px");
+            return;
+          }
+          if (["Enter", "Tab", "ArrowUp", "ArrowDown"].includes(e.key)) {
+            if (!isSelect || ["Enter", "Tab"].includes(e.key)) {
+              if (e.key === "Enter") e.preventDefault();
+              let direction = "";
+              if (e.key === "Enter") direction = e.shiftKey ? "UP" : "DOWN";
+              else if (e.key === "Tab") {
+                direction = e.shiftKey ? "LEFT" : "RIGHT";
+                e.preventDefault();
+              } else if (e.key === "ArrowUp" && !isDateCol) direction = "UP";
+              else if (e.key === "ArrowDown" && !isDateCol) direction = "DOWN";
 
-            if (newVal !== oldVal) {
-              erpDataTable.cell($cell[0]).data(newVal).draw(false);
+              if (direction) {
+                let $currentRow = $cell.closest("tr"),
+                  colIndex = $cell.index(),
+                  $nextCell = null;
+                function getValidHorizontalCell($td, dir) {
+                  let $nxt = dir === "RIGHT" ? $td.next("td") : $td.prev("td");
+                  if ($nxt.length) {
+                    if (
+                      String($nxt.data("colname")).trim().toUpperCase() ===
+                        "SN" ||
+                      $nxt.css("display") === "none"
+                    )
+                      return getValidHorizontalCell($nxt, dir);
+                    return $nxt;
+                  }
+                  return null;
+                }
+                if (direction === "DOWN")
+                  $nextCell = $currentRow.next("tr").find("td").eq(colIndex);
+                else if (direction === "UP")
+                  $nextCell = $currentRow.prev("tr").find("td").eq(colIndex);
+                else if (direction === "RIGHT")
+                  $nextCell = getValidHorizontalCell($cell, "RIGHT");
+                else if (direction === "LEFT")
+                  $nextCell = getValidHorizontalCell($cell, "LEFT");
 
-              undoStack.push({
-                sheetRow: sheetRow,
-                colName: colName,
-                oldVal: oldVal,
-                newVal: newVal,
-              });
-              if (undoStack.length > 50) undoStack.shift();
-              redoStack = [];
-              updateUndoRedoUI();
+                $(this).blur();
 
-              let plateIdxInTable = cachedHeaders.findIndex((h) =>
-                h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER")
-              );
-              let rowPlateNo =
-                plateIdxInTable !== -1
-                  ? $cell.closest("tr").find("td").eq(plateIdxInTable).text().trim()
-                  : "N/A";
-
-              saveQueue.push({
-                dbId: sheetRow,
-                colName: colName,
-                newValue: newVal,
-                plate: rowPlateNo,
-              });
-
-              autoCalculateRow(sheetRow);
-
-              clearTimeout(editDebounceTimer);
-              editDebounceTimer = setTimeout(() => {
-                processQueue();
-              }, 800);
+                if ($nextCell && $nextCell.length) {
+                  requestAnimationFrame(() => $nextCell.trigger("dblclick"));
+                }
+              }
             }
-          });
+          }
+        });
+
+        // BLUR EVENT TO RELEASE LOCK AND SAVE
+        $input.on("blur", function () {
+          if ($cell.find(".edit-input").length === 0) return;
+          let newVal = $(this).val();
+          if (isDateCol && newVal) newVal = formatToDDMMMYYYY(newVal);
+          else if (colUpper === "PLATE NUMBER")
+            newVal = formatPlateNumber(newVal);
+
+          $cell
+            .removeClass("editing-cell")
+            .css({ height: "", width: "", "min-width": "" });
+          $cell.text(newVal);
+
+          // Release the lock in backend
+          fetch("/api/unlock-cell", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ dbId: sheetRow, colName: colName }),
+          }).catch(() => console.warn("Unlock bypass"));
+
+          if (newVal !== oldVal) {
+            erpDataTable.cell($cell[0]).data(newVal).draw(false);
+
+            undoStack.push({
+              sheetRow: sheetRow,
+              colName: colName,
+              oldVal: oldVal,
+              newVal: newVal,
+            });
+            if (undoStack.length > 50) undoStack.shift();
+            redoStack = [];
+            updateUndoRedoUI();
+
+            let plateIdxInTable = cachedHeaders.findIndex((h) =>
+              h.replace(/\s+/g, "").toUpperCase().includes("PLATENUMBER"),
+            );
+            let rowPlateNo =
+              plateIdxInTable !== -1
+                ? $cell
+                    .closest("tr")
+                    .find("td")
+                    .eq(plateIdxInTable)
+                    .text()
+                    .trim()
+                : "N/A";
+
+            saveQueue.push({
+              dbId: sheetRow,
+              colName: colName,
+              newValue: newVal,
+              plate: rowPlateNo,
+            });
+
+            autoCalculateRow(sheetRow);
+
+            clearTimeout(editDebounceTimer);
+            editDebounceTimer = setTimeout(() => {
+              processQueue();
+            }, 800);
+          }
+        });
       };
 
       // 🟢 Check Lock with Safe Fallback
@@ -4028,19 +4525,22 @@ function attachEditListeners() {
         body: JSON.stringify({ dbId: sheetRow, colName: colName }),
       })
         .then(async (res) => {
-            if (!res.ok) throw new Error("API not ready");
-            return res.json();
+          if (!res.ok) throw new Error("API not ready");
+          return res.json();
         })
-        .then(lockData => {
+        .then((lockData) => {
           if (lockData && lockData.locked) {
-            showToast(`This cell is currently being edited by @${lockData.lockedBy}`, "error");
+            showToast(
+              `This cell is currently being edited by @${lockData.lockedBy}`,
+              "error",
+            );
             return; // Cell is locked by someone else
           }
           openCellForEditing(); // Open successfully
         })
-        .catch(err => {
-            console.warn("Lock API offline, opening anyway.");
-            openCellForEditing(); // Safe Fallback: Open even if API fails!
+        .catch((err) => {
+          console.warn("Lock API offline, opening anyway.");
+          openCellForEditing(); // Safe Fallback: Open even if API fails!
         });
     });
 }
@@ -4091,7 +4591,8 @@ $(document).on(
     let $currentTr = $startTr;
     let bulkEditsBatch = [];
     let updatedRowIndexes = new Set();
-    let isSmallBatch = (rows.length * (rows[0] ? rows[0].split("\t").length : 1)) <= 40;
+    let isSmallBatch =
+      rows.length * (rows[0] ? rows[0].split("\t").length : 1) <= 40;
 
     // 🟢 NEW CODE: AUTO-CREATE ROWS WHEN PASTING FROM EXCEL
     let newRowsToCreate = [];
@@ -4115,7 +4616,11 @@ $(document).on(
 
           let colUpper = String(colName).toUpperCase();
           if (colUpper === "SN" || colUpper === "DAYS WORKED") return;
-          if (globalLockedCols.includes(colName) && currentUser.role !== "Super Admin") return;
+          if (
+            globalLockedCols.includes(colName) &&
+            currentUser.role !== "Super Admin"
+          )
+            return;
 
           let newValue = cellText.trim();
           let oldValue = $targetTd.text().trim();
@@ -4131,7 +4636,8 @@ $(document).on(
             colUpper === "WORK START";
 
           if (isDateCol && newValue) newValue = formatToDDMMMYYYY(newValue);
-          else if (colUpper === "PLATE NUMBER") newValue = formatPlateNumber(newValue);
+          else if (colUpper === "PLATE NUMBER")
+            newValue = formatPlateNumber(newValue);
 
           if (oldValue !== newValue) {
             let colIdxInDataTable = cachedHeaders.indexOf(colName);
@@ -4167,7 +4673,7 @@ $(document).on(
         });
 
         $currentTr = $currentTr.next("tr");
-      } 
+      }
       // 2. 🟢 അധികമായി വരുന്ന വരികളെ പുതിയ റെക്കോർഡുകളായി മാറ്റുന്നു
       else {
         let newRowData = {};
@@ -4222,25 +4728,28 @@ $(document).on(
     // നിലവിലുള്ള വരികളിൽ അപ്ഡേറ്റുകൾ ഉണ്ടെങ്കിൽ അവ സേവ് ചെയ്യുന്നു
     if (bulkEditsBatch.length > 0) {
       saveQueue.push(...bulkEditsBatch);
-      
+
       updatedRowIndexes.forEach((rIdx) => {
         let dbId = erpDataTable.row(rIdx).node().getAttribute("data-sheetrow");
         // 🟢 AUTO-CALCULATE PASTED ROWS INSTANTLY
         autoCalculateRow(dbId);
         erpDataTable.row(rIdx).invalidate("data");
       });
-      
+
       erpDataTable.draw(false);
       processQueue();
-      
-      showToast(`Pasted ${bulkEditsBatch.length} cells instantly! Syncing to DB...`, "success");
+
+      showToast(
+        `Pasted ${bulkEditsBatch.length} cells instantly! Syncing to DB...`,
+        "success",
+      );
     } else if (newRowsToCreate.length === 0) {
       showToast("No valid changes detected in paste.", "info");
     }
   },
 );
 
-document.addEventListener("visibilitychange", function() {
+document.addEventListener("visibilitychange", function () {
   if (document.visibilityState === "hidden") {
     if (saveQueue.length > 0) {
       clearTimeout(editDebounceTimer); // Cancels the 800ms wait
@@ -4250,93 +4759,104 @@ document.addEventListener("visibilitychange", function() {
 });
 
 function updateTableDataSmoothly(newRows) {
-    if (!erpDataTable) return;
+  if (!erpDataTable) return;
 
-    // യൂസർ എന്തെങ്കിലും എഡിറ്റ് ചെയ്തുകൊണ്ടിരിക്കുകയാണെങ്കിൽ ബാക്ക്ഗ്രൗണ്ട് അപ്ഡേറ്റ് ഒഴിവാക്കുന്നു
-    if ($(".edit-input").length > 0 || saveQueue.length > 0) return;
+  // യൂസർ എന്തെങ്കിലും എഡിറ്റ് ചെയ്തുകൊണ്ടിരിക്കുകയാണെങ്കിൽ ബാക്ക്ഗ്രൗണ്ട് അപ്ഡേറ്റ് ഒഴിവാക്കുന്നു
+  if ($(".edit-input").length > 0 || saveQueue.length > 0) return;
 
-    let existingRows = {};
-    let hasChanges = false;
-    
-    erpDataTable.rows().every(function () {
-        let node = this.node();
-        let dbId = node ? $(node).attr("data-sheetrow") : (this.data()._dbId || null);
-        if (dbId) existingRows[String(dbId)] = this.index();
-    });
+  let existingRows = {};
+  let hasChanges = false;
 
-    let currentScroll = $('.table-scroll-wrapper').scrollTop();
+  erpDataTable.rows().every(function () {
+    let node = this.node();
+    let dbId = node ? $(node).attr("data-sheetrow") : this.data()._dbId || null;
+    if (dbId) existingRows[String(dbId)] = this.index();
+  });
 
-    newRows.forEach(newRow => {
-        let dbId = String(newRow[newRow.length - 1]);
-        let rowDataForTable = [...newRow];
-        rowDataForTable.pop();
-        rowDataForTable._dbId = dbId;
+  let currentScroll = $(".table-scroll-wrapper").scrollTop();
 
-        if (existingRows.hasOwnProperty(dbId)) {
-            let rowIndex = existingRows[dbId];
-            let oldRowData = erpDataTable.row(rowIndex).data();
-            
-            if (JSON.stringify(oldRowData) !== JSON.stringify(rowDataForTable)) {
-                erpDataTable.row(rowIndex).data(rowDataForTable);
-                let node = erpDataTable.row(rowIndex).node();
-                if (node) $(node).attr("data-sheetrow", dbId);
-                hasChanges = true;
-            }
-            delete existingRows[dbId];
-        } else {
-            let addedRow = erpDataTable.row.add(rowDataForTable);
-            let node = addedRow.node();
-            if (node) $(node).attr("data-sheetrow", dbId);
-            hasChanges = true;
-        }
-    });
+  newRows.forEach((newRow) => {
+    let dbId = String(newRow[newRow.length - 1]);
+    let rowDataForTable = [...newRow];
+    rowDataForTable.pop();
+    rowDataForTable._dbId = dbId;
 
-    for (let dbId in existingRows) {
-        erpDataTable.row(existingRows[dbId]).remove();
+    if (existingRows.hasOwnProperty(dbId)) {
+      let rowIndex = existingRows[dbId];
+      let oldRowData = erpDataTable.row(rowIndex).data();
+
+      if (JSON.stringify(oldRowData) !== JSON.stringify(rowDataForTable)) {
+        erpDataTable.row(rowIndex).data(rowDataForTable);
+        let node = erpDataTable.row(rowIndex).node();
+        if (node) $(node).attr("data-sheetrow", dbId);
         hasChanges = true;
+      }
+      delete existingRows[dbId];
+    } else {
+      let addedRow = erpDataTable.row.add(rowDataForTable);
+      let node = addedRow.node();
+      if (node) $(node).attr("data-sheetrow", dbId);
+      hasChanges = true;
     }
+  });
 
-    // മാറ്റങ്ങൾ ഉണ്ടെങ്കിൽ മാത്രം ബ്രൗസർ റീ-ഡ്രോ ചെയ്യുക (CPU യൂസേജ് ഗണ്യമായി കുറയും)
-    if (hasChanges) {
-        erpDataTable.draw(false);
+  for (let dbId in existingRows) {
+    erpDataTable.row(existingRows[dbId]).remove();
+    hasChanges = true;
+  }
 
-        // 🟢 FIX: പുതിയ വരികൾക്ക് attributes, alignment, listeners റീ-അറ്റാച്ച് ചെയ്യുന്നു
-        erpDataTable.rows().every(function () {
-            let rowNode = this.node();
-            let rowData = this.data();
-            if (!rowNode) return;
+  // മാറ്റങ്ങൾ ഉണ്ടെങ്കിൽ മാത്രം ബ്രൗസർ റീ-ഡ്രോ ചെയ്യുക (CPU യൂസേജ് ഗണ്യമായി കുറയും)
+  if (hasChanges) {
+    erpDataTable.draw(false);
 
-            let dbId = rowData._dbId || $(rowNode).attr("data-sheetrow");
-            if (dbId) $(rowNode).attr("data-sheetrow", dbId);
+    // 🟢 FIX: പുതിയ വരികൾക്ക് attributes, alignment, listeners റീ-അറ്റാച്ച് ചെയ്യുന്നു
+    erpDataTable.rows().every(function () {
+      let rowNode = this.node();
+      let rowData = this.data();
+      if (!rowNode) return;
 
-            cachedHeaders.forEach((h, colIdx) => {
-                let cellNode = erpDataTable.cell(rowNode, colIdx).node();
-                if (cellNode) {
-                    let $td = $(cellNode);
-                    $td.attr("data-colname", h);
+      let dbId = rowData._dbId || $(rowNode).attr("data-sheetrow");
+      if (dbId) $(rowNode).attr("data-sheetrow", dbId);
 
-                    let colHead = String(h).replace(/\s+/g, " ").trim().toUpperCase();
-                    let alignObj = cachedAlignments.find((a) => a.name === h);
-                    let alignVal = alignObj ? alignObj.align : "left";
-                    let isCenter = [
-                        "PLATE NUMBER", "SITE", "IF SUB", "COMPANY", "CUSTOMER",
-                        "ASSET CODE", "VAT BILL OR NOT", "LAST WORKING DAY",
-                        "WORK START", "DAYS WORKED"
-                    ].includes(colHead) || colHead.includes("DATE") || colHead.includes("EXPIRE") || alignVal === "center";
-                    let isRight = alignVal === "right";
+      cachedHeaders.forEach((h, colIdx) => {
+        let cellNode = erpDataTable.cell(rowNode, colIdx).node();
+        if (cellNode) {
+          let $td = $(cellNode);
+          $td.attr("data-colname", h);
 
-                    if (isCenter) $td.css("text-align", "center");
-                    else if (isRight) $td.css("text-align", "right");
-                    else $td.css("text-align", "left");
-                }
-            });
-        });
+          let colHead = String(h).replace(/\s+/g, " ").trim().toUpperCase();
+          let alignObj = cachedAlignments.find((a) => a.name === h);
+          let alignVal = alignObj ? alignObj.align : "left";
+          let isCenter =
+            [
+              "PLATE NUMBER",
+              "SITE",
+              "IF SUB",
+              "COMPANY",
+              "CUSTOMER",
+              "ASSET CODE",
+              "VAT BILL OR NOT",
+              "LAST WORKING DAY",
+              "WORK START",
+              "DAYS WORKED",
+            ].includes(colHead) ||
+            colHead.includes("DATE") ||
+            colHead.includes("EXPIRE") ||
+            alignVal === "center";
+          let isRight = alignVal === "right";
 
-        attachContextMenus();
-        attachEditListeners();
+          if (isCenter) $td.css("text-align", "center");
+          else if (isRight) $td.css("text-align", "right");
+          else $td.css("text-align", "left");
+        }
+      });
+    });
 
-        $('.table-scroll-wrapper').scrollTop(currentScroll);
-    }
+    attachContextMenus();
+    attachEditListeners();
+
+    $(".table-scroll-wrapper").scrollTop(currentScroll);
+  }
 }
 
 // 🟢 Helper for Add New Company in Modal
@@ -4367,7 +4887,7 @@ async function runLegacyMigration() {
     icon: "warning",
     showCancelButton: true,
     confirmButtonText: "Yes, Start Migration!",
-    confirmButtonColor: "#0ea5e9"
+    confirmButtonColor: "#0ea5e9",
   }).then(async (result) => {
     if (result.isConfirmed) {
       showToast("Migration Started...", "info");
@@ -4377,7 +4897,7 @@ async function runLegacyMigration() {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
-          }
+          },
         });
         const data = await res.json();
         if (data.success) {
