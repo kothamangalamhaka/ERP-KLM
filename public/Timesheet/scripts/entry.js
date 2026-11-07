@@ -1412,6 +1412,8 @@ function renderGrid(
       ? 'disabled style="background-color: #f1f5f9; cursor: not-allowed;"'
       : "";
 
+    let modHtml = renderModifiedCellHtml(i, rowData.modified_by, rowData.edit_history);
+
     let tr = document.createElement("tr");
     tr.className = rowClass;
     tr.innerHTML = `
@@ -1428,7 +1430,7 @@ function renderGrid(
       <td><input type="text" class="grid-readonly" id="dist_${i}" value="${dbDist}" tabindex="-1" readonly></td>
       <td><input type="text" class="grid-readonly" id="time_${i}" value="${cleanVal(rowData.calc_time)}" tabindex="-1" readonly></td>
       <td><textarea class="grid-input" data-col="remark" data-row="${i}" ${disabledAttr}>${rowRemark}</textarea></td>
-      <td><input type="text" class="grid-readonly" id="mod_${i}" value="${cleanVal(rowData.modified_by)}" tabindex="-1" readonly style="font-size: 11px; color: #64748b; background: transparent; text-transform: capitalize;"></td>
+      <td id="mod_cell_${i}">${modHtml}</td>
     `;
     tbody.appendChild(tr);
   }
@@ -1893,10 +1895,9 @@ async function saveCellData(rowIdx, colName, colValue) {
     }
 
     try {
-      const user = JSON.parse(localStorage.getItem("timesheetUser"));
-      if (user && user.username) {
-        const modInput = document.getElementById(`mod_${rowIdx}`);
-        if (modInput) modInput.value = user.username;
+      const modCell = document.getElementById(`mod_cell_${rowIdx}`);
+      if (modCell && (data.modified_by || data.edit_history)) {
+        modCell.innerHTML = renderModifiedCellHtml(rowIdx, data.modified_by, data.edit_history);
       }
     } catch (e) {}
 
@@ -2091,6 +2092,9 @@ async function triggerGridUnlock() {
       );
 
       systemLockData = { month: null, year: null };
+
+      const lockBtn = document.getElementById("btnPeriodLock");
+      if (lockBtn) lockBtn.style.display = "none";
 
       document.querySelectorAll(".grid-input").forEach((el) => {
         el.disabled = false;
@@ -2720,13 +2724,24 @@ async function applyLockStatus(
     selectedAbsolute <= lockAbsolute;
 
   if (isCurrentlyLockedInDB) {
-    document.querySelectorAll(".grid-input").forEach((el) => {
+    document.querySelectorAll(".grid-input:not([data-col='remark'])").forEach((el) => {
       el.disabled = true;
       el.style.backgroundColor = "transparent";
       el.style.cursor = "not-allowed";
       el.style.color = "Black";
       el.style.opacity = "0.9";
     });
+
+    const remarkInputs = document.querySelectorAll(".grid-input[data-col='remark']");
+    if (!isReadOnlyMode) {
+      remarkInputs.forEach((el) => {
+        el.disabled = false;
+        el.style.backgroundColor = "";
+        el.style.cursor = "text";
+        el.style.color = "";
+        el.style.opacity = "1";
+      });
+    }
 
     const invBtn = document.querySelector(".btn-inv-save");
     if (invBtn) {
@@ -3141,6 +3156,171 @@ function makeGridReadOnlyLive() {
   saveLabel.innerText = "Read Only";
   saveLabel.className = "save-indicator status-saving";
   saveLabel.style.opacity = "1";
+}
+
+// Format column labels for readable tooltip
+function formatColName(c) {
+  const map = {
+    wrk_start: "Work Start",
+    wrk_end: "Work End",
+    hmr_start: "HMR Start",
+    hmr_end: "HMR End",
+    fuel: "Fuel",
+    bd: "BD",
+    nl_checked: "NL",
+    remark: "Remark"
+  };
+  return map[c] || c || "Cell";
+}
+
+// Format ISO date into: 07-Nov-2026 11:15 AM
+function formatAuditTime(tStr) {
+  if (!tStr) return "";
+  const d = new Date(tStr);
+  if (isNaN(d.getTime())) return tStr;
+  const pad = (n) => String(n).padStart(2, "0");
+  const monthsArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  let hh = d.getHours();
+  const ampm = hh >= 12 ? "PM" : "AM";
+  hh = hh % 12 || 12;
+  return `${pad(d.getDate())}-${monthsArr[d.getMonth()]}-${d.getFullYear()} ${pad(hh)}:${pad(d.getMinutes())} ${ampm}`;
+}
+
+// Global memory store for row-level audit trails to avoid inline JSON string escape issues
+window.rowAuditTrails = window.rowAuditTrails || {};
+
+function showAuditModal(rowIdx) {
+  const auditData = window.rowAuditTrails[rowIdx];
+  if (!auditData || !auditData.hist || auditData.hist.length === 0) {
+    if (auditData && auditData.user) {
+      Swal.fire({
+        title: `Row ${rowIdx} - Edit History`,
+        html: `<p style="font-size: 13px; color: #475569;">Created / Modified by: <b>${auditData.user}</b></p>`,
+        confirmButtonColor: '#0ea5e9'
+      });
+    }
+    return;
+  }
+
+  // Group edits by user and minute-level timestamp to prevent repeated username rows
+  const groupedEdits = [];
+  auditData.hist.forEach((item) => {
+    const timeFormatted = formatAuditTime(item.t);
+    const userClean = (item.u || "User").trim().toLowerCase();
+    const lastGroup = groupedEdits[groupedEdits.length - 1];
+
+    if (lastGroup && lastGroup.userKey === userClean && lastGroup.timeStr === timeFormatted) {
+      lastGroup.changes.push(item);
+    } else {
+      groupedEdits.push({
+        userKey: userClean,
+        userName: item.u || "User",
+        timeStr: timeFormatted,
+        changes: [item]
+      });
+    }
+  });
+
+  const tableRows = groupedEdits.map((group, index) => {
+    const changesHtml = group.changes.map((item, cIdx) => {
+      const colName = formatColName(item.c);
+      const oldValDisplay = (item.o === "" || item.o === null || item.o === undefined)
+        ? '<span style="color:#94a3b8; font-style:italic;">(blank)</span>'
+        : `<span style="color:#dc2626; word-break:break-all;">${item.o}</span>`;
+      const newValDisplay = (item.v === "" || item.v === null || item.v === undefined)
+        ? '<span style="color:#94a3b8; font-style:italic;">(cleared)</span>'
+        : `<span style="color:#16a34a; font-weight:600; word-break:break-all;">${item.v}</span>`;
+
+      const separatorBorder = cIdx > 0 ? 'border-top: 1px dashed #e2e8f0; margin-top: 5px; padding-top: 5px;' : '';
+
+      return `
+        <div style="font-size:12px; line-height:1.6; ${separatorBorder}">
+          <b style="color:#0f172a;">${colName}</b> <span style="color:#cbd5e1; margin:0 4px;">::</span> ${oldValDisplay} <span style="color:#0284c7; font-weight:bold; margin:0 4px;">➔</span> ${newValDisplay}
+        </div>
+      `;
+    }).join("");
+
+    const nameLen = (group.userName || "").length;
+    let userFontSize = "12px";
+    if (nameLen > 18) userFontSize = "10px";
+    else if (nameLen > 13) userFontSize = "11px";
+
+    return `
+      <tr>
+        <td style="padding: 8px 6px; border: 1px solid #cbd5e1; font-weight:600; text-align:center; vertical-align:top;">${index + 1}</td>
+        <td style="padding: 8px; border: 1px solid #cbd5e1; color:#0284c7; font-weight:700; text-transform:capitalize; vertical-align:top; font-size:${userFontSize}; line-height:1.3; word-break:break-word;">${group.userName}</td>
+        <td style="padding: 8px; border: 1px solid #cbd5e1; white-space:nowrap; font-size:11px; color:#64748b; vertical-align:top;">${group.timeStr}</td>
+        <td style="padding: 8px; border: 1px solid #cbd5e1; text-align:left; vertical-align:top;">
+          ${changesHtml}
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  const modalHtml = `
+    <div style="max-height: 420px; overflow-y: auto; overflow-x: hidden; margin-top: 10px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed;">
+        <thead>
+          <tr style="background: #0f172a; color: #ffffff;">
+            <th style="padding: 8px 6px; border: 1px solid #0f172a; width: 35px; text-align:center;">#</th>
+            <th style="padding: 8px; border: 1px solid #0f172a; width: 155px; text-align:left;">User</th>
+            <th style="padding: 8px; border: 1px solid #0f172a; width: 140px; text-align:left;">Date & Time</th>
+            <th style="padding: 8px; border: 1px solid #0f172a; text-align:left;">Changes (Column :: Old ➔ New)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  Swal.fire({
+    title: `<span style="font-size: 16px; font-weight:700;">Date ${rowIdx} - Audit History (${auditData.hist.length})</span>`,
+    html: modalHtml,
+    width: '850px',
+    confirmButtonColor: '#0ea5e9',
+    confirmButtonText: 'Close'
+  });
+}
+
+// Generate clickable badge with count indicator
+function renderModifiedCellHtml(rowIdx, modifiedBy, history) {
+  const cleanMod = (modifiedBy || "").trim();
+  let hist = [];
+  if (Array.isArray(history)) {
+    hist = history;
+  } else if (typeof history === "string" && history.trim() !== "") {
+    try { hist = JSON.parse(history); } catch (e) { hist = []; }
+  }
+
+  window.rowAuditTrails[rowIdx] = { user: cleanMod, hist: hist };
+
+  if (hist.length === 0 && !cleanMod) {
+    return `<input type="text" class="grid-readonly" id="mod_${rowIdx}" value="" tabindex="-1" readonly style="font-size: 11px; color: #64748b; background: transparent;">`;
+  }
+
+  const uniqueUsers = hist.length > 0 
+    ? [...new Set(hist.map((h) => h.u || "User"))]
+    : [cleanMod];
+
+  const firstUser = hist.length > 0 ? (hist[0].u || cleanMod) : cleanMod;
+  const totalEdits = hist.length > 0 ? hist.length : 1;
+  const otherUsersCount = Math.max(0, uniqueUsers.length - 1);
+
+  let labelText = firstUser;
+  if (otherUsersCount > 0) {
+    labelText = `${firstUser} +${otherUsersCount}`;
+  } else if (totalEdits > 1) {
+    labelText = `${firstUser} (${totalEdits})`;
+  }
+
+  return `
+    <div class="mod-cell-wrapper" id="mod_wrapper_${rowIdx}" onclick="showAuditModal(${rowIdx})" title="Click to view history">
+      <span class="mod-tag clickable-mod-tag">${labelText} 🔍</span>
+      <input type="hidden" id="mod_${rowIdx}" value="${cleanMod}">
+    </div>
+  `;
 }
 
 /* ==========================================================

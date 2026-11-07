@@ -1429,20 +1429,43 @@ router.post("/api/upsert-grid-cell", verifyEditor, async (req, res) => {
     if (!allowedCols.includes(col_name))
       return res.json({ success: false, message: "Invalid column parameter" });
 
-    const username = req.user.username; // Extracting user from token via verifyEditor
+    const username = req.user.username;
 
-const query = `
-            INSERT INTO timesheet_daily_records (month, year, plate_no, record_date, "${col_name}", calc_distance, calc_time, modified_by) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+    // Fetch previous value of this specific cell directly from DB without extra joins
+    const oldRowRes = await pool.query(
+      `SELECT "${col_name}" FROM timesheet_daily_records WHERE month=$1 AND year=$2 AND plate_no=$3 AND record_date=$4`,
+      [month, year, plate_no, record_date]
+    );
+    const prevVal = oldRowRes.rows.length > 0 ? (oldRowRes.rows[0][col_name] ?? "") : "";
+    const newVal = col_value === null || col_value === undefined ? "" : String(col_value);
+
+    // Build audit entry containing column, old value, and new value
+    const newAuditEntry = JSON.stringify([{
+      u: username,
+      t: new Date().toISOString(),
+      c: col_name,
+      o: String(prevVal),
+      v: newVal
+    }]);
+
+    const query = `
+            INSERT INTO timesheet_daily_records (month, year, plate_no, record_date, "${col_name}", calc_distance, calc_time, modified_by, edit_history) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb) 
             ON CONFLICT (month, year, plate_no, record_date) 
             DO UPDATE SET 
                 "${col_name}" = EXCLUDED."${col_name}", 
                 calc_distance = EXCLUDED.calc_distance, 
                 calc_time = EXCLUDED.calc_time, 
                 modified_by = EXCLUDED.modified_by,
+                edit_history = CASE 
+                    WHEN timesheet_daily_records.edit_history IS NULL OR jsonb_typeof(timesheet_daily_records.edit_history) != 'array' 
+                        THEN $9::jsonb
+                    ELSE timesheet_daily_records.edit_history || $9::jsonb
+                END,
                 updated_at = CURRENT_TIMESTAMP
+            RETURNING modified_by, edit_history
         `;
-    await pool.query(query, [
+    const upsertRes = await pool.query(query, [
       month,
       year,
       plate_no,
@@ -1450,9 +1473,15 @@ const query = `
       col_value,
       calc_distance,
       calc_time,
-      username
+      username,
+      newAuditEntry
     ]);
-    res.json({ success: true });
+    const row = upsertRes.rows[0];
+    res.json({ 
+      success: true, 
+      modified_by: row?.modified_by || username,
+      edit_history: row?.edit_history || []
+    });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

@@ -1573,3 +1573,54 @@ body.dark-mode .month-nav-btn:hover {
     display: inline-block !important;
   }
 }
+
+/* 🟢 Modified By Clickable Cell Badge */
+.mod-cell-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 32px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.clickable-mod-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #0284c7;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 4px;
+  padding: 3px 6px;
+  max-width: 92%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mod-cell-wrapper:hover .clickable-mod-tag {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+body.dark-mode .clickable-mod-tag {
+  background: #082f49;
+  border-color: #0369a1;
+  color: #38bdf8;
+}
+
+body.dark-mode .mod-cell-wrapper:hover .clickable-mod-tag {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 2px 6px rgba(56, 189, 248, 0.25);
+}
