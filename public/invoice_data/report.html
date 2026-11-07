@@ -2820,9 +2820,8 @@
           const tr = findRowElement(draft.plate, draft.site, draft.month);
           if (!tr) return;
           const targetCell = resolveTargetCell(tr, draft.field);
-          if (targetCell && document.activeElement !== targetCell) {
+          if (targetCell && document.activeElement !== targetCell && targetCell.dataset.myEdited !== "true") {
             targetCell.innerText = draft.value;
-            delete targetCell.dataset.myEdited;
             targetCell.dataset.remoteDraft = "true";
 
             if (draft.field === "inv_amount" || draft.field === "inv_deduct") {
@@ -3720,6 +3719,16 @@
                 matchPlateWithAliases(b.plate_no) &&
                 (b.site_name || "").trim() === sName,
             );
+
+            if (!billData) {
+              const baseSName = cleanSiteCompare(sName);
+              billData = sortedBilling.find((b) => {
+                if (!matchPlateWithAliases(b.plate_no)) return false;
+                const baseBillSite = cleanSiteCompare(b.site_name);
+                return baseBillSite && baseSName && (baseBillSite === baseSName || baseBillSite.includes(baseSName) || baseSName.includes(baseBillSite));
+              });
+            }
+
             if (!billData && sName.startsWith("Prev:")) {
               billData = sortedBilling.find(
                 (b) =>
@@ -3731,8 +3740,15 @@
               billData = sortedBilling.find(
                 (b) =>
                   matchPlateWithAliases(b.plate_no) &&
-                  (!b.site_name || b.site_name === "N/A"),
+                  (!b.site_name || b.site_name === "N/A" || b.site_name.trim() === ""),
               );
+            }
+
+            if (!billData) {
+              let vehicleMonthBills = sortedBilling.filter(b => matchPlateWithAliases(b.plate_no));
+              if (vehicleMonthBills.length === 1) {
+                billData = vehicleMonthBills[0];
+              }
             }
 
             let bill_db_nr = billData ? parseFloat(billData.nhr) || 0 : 0;
@@ -3757,18 +3773,44 @@
               return;
             }
 
+            function cleanSiteCompare(str) {
+              return String(str || "")
+                .toLowerCase()
+                .replace(/prev:|\(re-running\)|re-running|re running|running|released|replaced|[^a-z0-9]/g, "")
+                .trim();
+            }
+
             let invData = vInvoices.find(
               (i) => (i.site_name || "").trim() === sName,
             );
+
+            // 1. Fallback: Base site match ignoring "Re-Running", "Prev:", etc.
+            if (!invData) {
+              const baseSName = cleanSiteCompare(sName);
+              invData = vInvoices.find((i) => {
+                const baseInvSite = cleanSiteCompare(i.site_name);
+                return baseInvSite && baseSName && (baseInvSite === baseSName || baseInvSite.includes(baseSName) || baseSName.includes(baseInvSite));
+              });
+            }
+
+            // 2. Fallback: match starting with "Prev:"
             if (!invData && sName.startsWith("Prev:")) {
               invData = vInvoices.find((i) =>
-                (i.site_name || "").trim().startsWith("Prev:"),
+                (i.site_name || "").trim().toLowerCase().startsWith("prev:"),
               );
             }
-            if (!invData && sName !== "N/A")
+
+            // 3. Fallback: match N/A or Blank site
+            if (!invData && sName !== "N/A") {
               invData = vInvoices.find(
-                (i) => !i.site_name || i.site_name === "N/A",
+                (i) => !i.site_name || i.site_name === "N/A" || i.site_name.trim() === "",
               );
+            }
+
+            // 4. Safe single invoice fallback: If vehicle has exactly 1 invoice for this month, assign it
+            if (!invData && vInvoices.length === 1) {
+              invData = vInvoices[0];
+            }
 
             let inv_nr_raw = invData ? invData.bill_nr : null;
             let inv_nr =
@@ -4176,13 +4218,13 @@
               bill_no.includes(fPlate);
 
             let passesHeaders = true;
-            // headerFilters check using dataset
+            let rowVals = {};
+            try {
+              rowVals = JSON.parse(tr.dataset.fvals || "{}");
+            } catch (e) {}
             for (const key in headerFilters) {
-              if (
-                headerFilters[key].length > 0 &&
-                tr.dataset[key] !== undefined
-              ) {
-                if (!headerFilters[key].includes(String(tr.dataset[key]))) {
+              if (headerFilters[key].length > 0) {
+                if (!headerFilters[key].includes(String(rowVals[key]))) {
                   passesHeaders = false;
                   break;
                 }
@@ -4251,6 +4293,29 @@
       function applySort(dir) {
         sortConfig = { key: currentFilterColInfo.key, dir: dir };
         closeExcelFilter();
+        if (isEditMode) {
+          const tbody = document.getElementById("reportBody");
+          const rows = Array.from(tbody.querySelectorAll("tr"));
+          const key = sortConfig.key;
+          const getVal = (tr) => {
+            try {
+              return String(JSON.parse(tr.dataset.fvals || "{}")[key] ?? "").toLowerCase();
+            } catch (e) {
+              return "";
+            }
+          };
+          rows.sort((a, b) => {
+            let valA = getVal(a), valB = getVal(b);
+            let numA = parseFloat(valA), numB = parseFloat(valB);
+            if (!isNaN(numA) && !isNaN(numB) && /^[\d.]+$/.test(valA) && /^[\d.]+$/.test(valB))
+              return dir === "asc" ? numA - numB : numB - numA;
+            if (valA < valB) return dir === "asc" ? -1 : 1;
+            if (valA > valB) return dir === "asc" ? 1 : -1;
+            return 0;
+          });
+          rows.forEach((tr) => tbody.appendChild(tr));
+          return;
+        }
         applyFilters();
       }
 
@@ -4274,6 +4339,7 @@
           tr.dataset.relatedPlates = (row.related_plates || []).join(",");
           tr.dataset.month = row.raw_month;
           tr.dataset.year = row.raw_year;
+          tr.dataset.fvals = JSON.stringify(row);
           tr.innerHTML = `
             <td style="font-weight: 600; text-align: center; color: #b91c1c; font-size: 11px;">${row.report_date}</td>
             <td style="font-weight: 600; text-align: left; padding-left: 15px; word-wrap: break-word; color: ${row.site.startsWith("Prev:") ? (row.site_status.includes("replace") ? "#ea580c" : "#dc2626") : "inherit"};">${row.site}</td>
@@ -7114,7 +7180,7 @@
           sseConnection = null;
         }
 
-        sseConnection = new EventSource(`/payment/events?token=${encodeURIComponent(token)}`);
+        sseConnection = new EventSource(`/payment/events?token=${encodeURIComponent(token)}&cid=${encodeURIComponent(myClientId)}`);
 
         sseConnection.onopen = function () {
           console.log("SSE Live Sync Stream Connected successfully.");
@@ -7271,9 +7337,8 @@
           let targetCell = resolveTargetCell(tr, data.field);
 
           if (targetCell) {
-            if (document.activeElement === targetCell) return;
+            if (document.activeElement === targetCell || targetCell.dataset.myEdited === "true") return;
             targetCell.innerText = data.value;
-            delete targetCell.dataset.myEdited;
             targetCell.dataset.remoteDraft = "true";
 
             if (data.field === "inv_amount" || data.field === "inv_deduct") {

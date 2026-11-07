@@ -1057,12 +1057,15 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
         [newSite, cleanPlate, previousSiteName, sDate, eDate]
       );
 
-      // 2. Update invoice_records
+      // 2. Update invoice_records strictly within the active site log period
       await client.query(
         `UPDATE invoice_records 
          SET site_name = $1 
-         WHERE UPPER(TRIM(plate_no)) = $2 AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))`,
-        [newSite, cleanPlate, previousSiteName]
+         WHERE UPPER(TRIM(plate_no)) = $2 
+           AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))
+           AND TO_DATE(month, 'Month YYYY') >= DATE_TRUNC('month', $4::date)
+           AND TO_DATE(month, 'Month YYYY') <= DATE_TRUNC('month', $5::date)`,
+        [newSite, cleanPlate, previousSiteName, sDate, eDate]
       );
 
       // 3. Update vehicle_rate_log
@@ -1668,12 +1671,15 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
             [newSite, cleanPlate, oldSiteName, sDate, eDate]
           );
 
-          // 2. Update invoice_records for this vehicle
+          // 2. Update invoice_records for this vehicle strictly within site period
           await pool.query(
             `UPDATE invoice_records 
              SET site_name = $1 
-             WHERE UPPER(TRIM(plate_no)) = $2 AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))`,
-            [newSite, cleanPlate, oldSiteName]
+             WHERE UPPER(TRIM(plate_no)) = $2 
+               AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))
+               AND TO_DATE(month, 'Month YYYY') >= DATE_TRUNC('month', $4::date)
+               AND TO_DATE(month, 'Month YYYY') <= DATE_TRUNC('month', $5::date)`,
+            [newSite, cleanPlate, oldSiteName, sDate, eDate]
           );
 
           // 3. Update vehicle_rate_log for this vehicle

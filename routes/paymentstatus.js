@@ -29,7 +29,7 @@ router.get("/events", (req, res) => {
   res.setHeader("X-Accel-Buffering", "no");
   if (typeof res.flushHeaders === "function") res.flushHeaders();
 
-  const clientId = Date.now() + Math.random().toString(36).substr(2, 5);
+  const clientId = req.query.cid || (Date.now() + Math.random().toString(36).substr(2, 5));
   reportSseClients.push({ id: clientId, res });
 
   // Initial connection handshake with current active drafts & locks
