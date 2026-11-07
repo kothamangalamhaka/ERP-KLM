@@ -12,7 +12,6 @@
   </script>
   <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css">
   <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css">
-  <link rel="stylesheet" href="/node_xlsx_scripts/jquery.dataTables.min.css">
   <style>
     :root {
       --bg: #f8fafc;
@@ -22,7 +21,11 @@
       --border: #e2e8f0;
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
-      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      --card-hover-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+      --badge-uploaded-bg: #dcfce7;
+      --badge-uploaded-text: #15803d;
+      --badge-uploaded-border: #86efac;
       --table-header-bg: #0f172a;
       --table-header-color: #ffffff;
     }
@@ -34,7 +37,11 @@
       --border: #233554;
       --primary: #3b82f6;
       --primary-hover: #60a5fa;
-      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --card-hover-shadow: 0 10px 24px rgba(59, 130, 246, 0.25);
+      --badge-uploaded-bg: #064e3b;
+      --badge-uploaded-text: #6ee7b7;
+      --badge-uploaded-border: #047857;
       --table-header-bg: #080d1a;
       --table-header-color: #f8fafc;
     }
@@ -43,84 +50,256 @@
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
-      padding: 8px 12px;
-      overflow-x: hidden;
+      padding: 12px 18px;
+      min-height: 100vh;
     }
     .header-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
-      padding: 4px 6px;
+      margin-bottom: 16px;
+      padding: 6px 4px;
     }
     .header-bar h5 {
-      font-size: 15px;
-      font-weight: 600;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
     }
     .header-btn {
-      padding: 4px 10px;
+      padding: 4px 12px;
       font-size: 12px;
       border-radius: 6px;
-      height: 30px;
+      height: 32px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      font-weight: 600;
     }
     .theme-toggle-btn {
       background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text);
       padding: 4px 10px;
-      font-size: 12px;
+      font-size: 13px;
       border-radius: 6px;
       cursor: pointer;
-      height: 30px;
+      height: 32px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
-    .table-container {
+    
+    /* 🟢 Grid Cards Layout */
+    .customers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      padding-bottom: 30px;
+    }
+    .customer-card {
       background: var(--surface);
-      border-radius: 8px;
-      padding: 8px;
       border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
       box-shadow: var(--card-shadow);
-      max-height: calc(100vh - 54px);
-      overflow-y: auto;
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
       position: relative;
     }
-    table.custom-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 13px;
+    .customer-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--card-hover-shadow);
+      border-color: var(--primary);
     }
-    table.custom-table thead th {
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+    .card-count-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(37, 99, 235, 0.12);
+      color: var(--primary);
+      padding: 3px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .card-info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+    }
+    .card-info-row strong {
+      color: var(--text);
+    }
+    .card-sites-preview {
+      margin: 10px 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .preview-mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10.5px;
+      table-layout: fixed;
+    }
+    .preview-mini-table th {
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--text-muted);
+      padding: 4px 6px;
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .preview-mini-table th {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .preview-mini-table td {
+      padding: 4px 6px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+    .preview-mini-table tr:last-child td {
+      border-bottom: none;
+    }
+    .card-doc-strip {
+      display: flex;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+    }
+    .doc-pill {
+      flex: 1;
+      text-align: center;
+      padding: 5px 6px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      text-decoration: none;
+    }
+    .doc-pill.uploaded {
+      background: var(--badge-uploaded-bg);
+      color: var(--badge-uploaded-text);
+      border: 1px solid var(--badge-uploaded-border);
+    }
+    .doc-pill.empty {
+      background: var(--bg);
+      color: var(--text-muted);
+      border: 1px dashed var(--border);
+    }
+    .doc-pill:hover {
+      filter: brightness(0.95);
+    }
+
+    /* Sub-Table inside Modal */
+    .modal-xl {
+      max-width: 95vw;
+    }
+    .detail-table-wrapper {
+      max-height: 480px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+    .detail-table th {
       position: sticky;
       top: 0;
-      background: var(--table-header-bg) !important;
-      color: var(--table-header-color) !important;
-      z-index: 20;
-      padding: 10px 8px;
-      text-transform: uppercase;
+      background: var(--table-header-bg);
+      color: var(--table-header-color);
+      padding: 8px 10px;
       font-size: 11px;
+      text-transform: uppercase;
       letter-spacing: 0.5px;
       border-bottom: 2px solid var(--border);
       white-space: nowrap;
-      cursor: context-menu;
-      user-select: none;
+      z-index: 10;
     }
-    .header-filter-popup {
+    .detail-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .detail-table tr:hover {
+      background: rgba(37, 99, 235, 0.04);
+    }
+
+    /* Context Menu */
+    .context-menu {
       display: none;
       position: fixed;
-      z-index: 1050;
+      z-index: 2000;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 8px;
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
-      padding: 12px;
-      width: 260px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      padding: 6px 0;
+      min-width: 150px;
+    }
+    .context-menu-item {
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 12px;
       color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .context-menu-item:hover {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    /* 🟢 Floating Header Filter Popup for Modal Table */
+    .header-filter-popup {
+      display: none;
+      position: fixed;
+      z-index: 100000 !important; /* Modal-nte z-index (1055)-nekaal munnil nilkkaan */
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+      padding: 12px;
+      width: 250px !important;
+      max-width: 280px !important;
+      color: var(--text);
+      box-sizing: border-box;
     }
     .header-filter-popup #filterSearchInput {
       background: var(--bg);
@@ -140,7 +319,7 @@
       max-height: 190px;
       overflow-y: auto;
       margin-bottom: 8px;
-      padding-right: 2px;
+      padding: 4px;
     }
     .header-filter-item {
       display: flex;
@@ -164,7 +343,6 @@
       width: 14px !important;
       height: 14px !important;
       margin: 0 !important;
-      padding: 0 !important;
       cursor: pointer;
       flex-shrink: 0;
     }
@@ -186,71 +364,6 @@
     .filter-close-btn:hover {
       color: var(--text);
     }
-    table.custom-table td {
-      padding: 8px;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-      vertical-align: middle;
-    }
-    .doc-badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-weight: 500;
-      font-size: 11px;
-      cursor: pointer;
-      user-select: none;
-    }
-    .doc-badge.uploaded {
-      background-color: #dcfce7;
-      color: #15803d;
-      border: 1px solid #86efac;
-    }
-    [data-theme="dark"] .doc-badge.uploaded {
-      background-color: #064e3b;
-      color: #6ee7b7;
-      border: 1px solid #047857;
-    }
-    .doc-badge.empty {
-      background-color: #f1f5f9;
-      color: #64748b;
-      border: 1px dashed #cbd5e1;
-    }
-    [data-theme="dark"] .doc-badge.empty {
-      background-color: #1e293b;
-      color: #94a3b8;
-      border: 1px dashed #475569;
-    }
-    .bill-btn {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .context-menu {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-      padding: 6px 0;
-      min-width: 140px;
-    }
-    .context-menu-item {
-      padding: 8px 16px;
-      cursor: pointer;
-      font-size: 13px;
-      color: var(--text);
-    }
-    .context-menu-item:hover {
-      background: var(--primary);
-      color: #fff;
-    }
   </style>
 </head>
 <body>
@@ -259,8 +372,8 @@
     <h5 class="m-0"><i class="fa-solid fa-folder-open me-2 text-primary"></i>VAT Customers Documents</h5>
     <div class="d-flex align-items-center gap-2">
       <div class="position-relative">
-        <input type="text" id="ribbonSearch" class="form-control form-control-sm" placeholder="Search customer, VAT, site..." style="width: 220px; height: 30px; font-size: 12px; padding-left: 28px; background: var(--surface); color: var(--text); border-color: var(--border);" oninput="handleGlobalSearch(this.value)">
-        <i class="fa-solid fa-magnifying-glass position-absolute" style="left: 9px; top: 8px; font-size: 12px; color: var(--text-muted);"></i>
+        <input type="text" id="ribbonSearch" class="form-control form-control-sm" placeholder="Search customer, VAT, site, project..." style="width: 250px; height: 32px; font-size: 12px; padding-left: 28px; background: var(--surface); color: var(--text); border-color: var(--border);" oninput="handleSearch(this.value)">
+        <i class="fa-solid fa-magnifying-glass position-absolute" style="left: 9px; top: 9px; font-size: 12px; color: var(--text-muted);"></i>
       </div>
       <button class="btn btn-primary header-btn" onclick="openAddCustomerModal()"><i class="fa-solid fa-plus me-1"></i> Add Customer</button>
       <button class="btn btn-outline-secondary header-btn" onclick="toggleFullScreen()" title="Full Screen"><i class="fa-solid fa-expand" id="fsIcon"></i></button>
@@ -268,40 +381,16 @@
     </div>
   </div>
 
-  <div class="table-container">
-    <table class="custom-table" id="vatTable">
-      <thead>
-        <tr>
-          <th>SN</th>
-          <th>Joining Date</th>
-          <th>Customer Name</th>
-          <th>VAT No</th>
-          <th>CR No</th>
-          <th>Site</th>
-          <th>Company</th>
-          <th>Status</th>
-          <th>Release Date</th>
-          <th>Agreement</th>
-          <th>VAT Doc</th>
-          <th>CRN Doc</th>
-          <th>Bills</th>
-          <th>Last Doc</th>
-          <th>Remark</th>
-          <th>Project Name</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
+  <!-- 🟢 Customers Card Grid Container -->
+  <div class="customers-grid" id="customersGrid"></div>
 
-  <!-- Custom Context Menu for Right Tap -->
+  <!-- Custom Right Click Context Menu -->
   <div id="contextMenu" class="context-menu">
-    <div class="context-menu-item" onclick="triggerUpload()"><i class="fa-solid fa-upload me-2"></i>Upload / Replace</div>
-    <div class="context-menu-item" onclick="editCustomerFromContext()"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Details</div>
+    <div class="context-menu-item" onclick="triggerUpload()"><i class="fa-solid fa-upload"></i>Upload / Replace</div>
   </div>
   <input type="file" id="hiddenFileInput" style="display: none;" accept=".png,.jpg,.jpeg,.pdf">
 
-  <!-- Column Header Right Click Filter Popup -->
+  <!-- Column Header Right Click Filter Popup for Inner Table -->
   <div id="headerFilterPopup" class="header-filter-popup">
     <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom" style="border-color: var(--border)!important;">
       <span class="fw-bold small d-flex align-items-center gap-1" id="filterPopupTitle"><i class="fa-solid fa-filter text-primary" style="font-size: 11px;"></i> Filter</span>
@@ -319,45 +408,124 @@
     </div>
   </div>
 
-  <!-- Modal: Add / Edit Customer -->
-  <div class="modal fade" id="customerModal" tabindex="-1">
+  <!-- 🟢 Modal: Customer Full Details & Sites Table -->
+  <div class="modal fade" id="customerDetailModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
+        <div class="modal-header border-bottom py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <h5 class="modal-title m-0 fw-bold" id="detailCustomerName">Customer Name</h5>
+            <div class="small text-muted" id="detailCustomerMeta">VAT: - | CR: -</div>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="d-flex align-items-center gap-1 p-1 rounded border" style="background: var(--bg); border-color: var(--border)!important;">
+              <span class="small fw-bold text-muted px-1" style="font-size: 10px;">COMMON:</span>
+              <div id="modalVatDocSlot"></div>
+              <div id="modalCrnDocSlot"></div>
+            </div>
+            <button class="btn btn-sm btn-primary py-1 px-3" onclick="openAddSiteForCurrentCustomer()"><i class="fa-solid fa-plus me-1"></i> Add Site / Project</button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+        </div>
+        <div class="modal-body p-3">
+          <!-- Sites Sub Table -->
+          <div class="detail-table-wrapper">
+            <table class="detail-table" id="innerDetailTable">
+              <thead>
+                <tr>
+                  <th style="width: 35px; text-align: center;">SN</th>
+                  <th>Start Date</th>
+                  <th>Site Name</th>
+                  <th>Company</th>
+                  <th>Status</th>
+                  <th>Release Date</th>
+                  <th>Remark</th>
+                  <th>Agreement</th>
+                  <th>Conf Letter</th>
+                  <th>Bills</th>
+                  <th>Last Doc</th>
+                  <th>Project Name</th>
+                  <th style="width: 50px; text-align: center;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="detailSitesTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🟢 Modal 1: Add New Customer (Master Only: Name, VAT No, CR No, VAT Doc, CRN Doc) -->
+  <div class="modal fade" id="addCustomerMasterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
         <div class="modal-header border-bottom">
-          <h5 class="modal-title" id="custModalTitle">Customer Details</h5>
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus text-primary me-2"></i>Add New Customer</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body p-4">
-          <form id="customerForm">
-            <input type="hidden" id="cust_id">
-            
+          <form id="addCustomerMasterForm">
             <div class="row g-3">
-              <div class="col-12 col-sm-6 col-md-4 col-xl">
-                <label class="form-label small fw-semibold">Joining Date</label>
-                <input type="date" class="form-control" id="cust_joining_date">
+              <div class="col-12">
+                <label class="form-label small fw-semibold">Customer Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="master_cust_name" placeholder="Enter Company / Customer Name" required>
               </div>
-              <div class="col-12 col-sm-6 col-md-4 col-xl">
-                <label class="form-label small fw-semibold">Customer Name</label>
-                <input type="text" class="form-control" id="cust_name" required>
-              </div>
-              <div class="col-12 col-sm-6 col-md-4 col-xl">
+              <div class="col-12 col-sm-6">
                 <label class="form-label small fw-semibold">VAT No</label>
-                <input type="text" class="form-control" id="cust_vat" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                <input type="text" class="form-control" id="master_cust_vat" placeholder="15 Digit VAT No" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
               </div>
-              <div class="col-12 col-sm-6 col-md-4 col-xl">
+              <div class="col-12 col-sm-6">
                 <label class="form-label small fw-semibold">CR No</label>
-                <input type="text" class="form-control" id="cust_cr" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-              </div>
-              <div class="col-12 col-sm-6 col-md-4 col-xl">
-                <label class="form-label small fw-semibold">Site</label>
-                <input type="text" class="form-control" id="cust_site">
+                <input type="text" class="form-control" id="master_cust_cr" placeholder="10 Digit CR No" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
               </div>
             </div>
 
-            <div class="row g-3 mt-1">
-              <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <hr class="my-4" style="border-color: var(--border);">
+
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-semibold"><i class="fa-solid fa-file-pdf me-1 text-danger"></i>VAT Doc (Certificate)</label>
+                <input type="file" class="form-control" id="master_file_vat" accept=".png,.jpg,.jpeg,.pdf">
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-semibold"><i class="fa-solid fa-file-pdf me-1 text-primary"></i>CRN Doc (Certificate)</label>
+                <input type="file" class="form-control" id="master_file_crn" accept=".png,.jpg,.jpeg,.pdf">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer border-top">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary px-4 fw-semibold" onclick="saveNewCustomerMaster()">Create Customer Card</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🟢 Modal 2: Add / Edit Site Project Details (Opened from inside Card Detail) -->
+  <div class="modal fade" id="siteEngagementModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title" id="siteEngagementModalTitle">Site / Project Engagement Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="siteEngagementForm">
+            <input type="hidden" id="site_row_id">
+            <input type="hidden" id="site_cust_name">
+            <input type="hidden" id="site_cust_vat">
+            <input type="hidden" id="site_cust_cr">
+            
+            <div class="row g-3">
+              <div class="col-12 col-sm-6 col-md-4">
+                <label class="form-label small fw-semibold">Site Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="engagement_site" placeholder="Site name (eg: Bisha, Afif)" required>
+              </div>
+              <div class="col-12 col-sm-6 col-md-4">
                 <label class="form-label small fw-semibold">Company</label>
-                <select class="form-select" id="cust_company" onchange="checkNewCompany(this.value)">
+                <select class="form-select" id="engagement_company" onchange="checkNewCompany(this.value)">
                   <option value="Haka">Haka</option>
                   <option value="Al Joda">Al Joda</option>
                   <option value="Masar Wheels">Masar Wheels</option>
@@ -365,82 +533,78 @@
                   <option value="__NEW__">+ Add New</option>
                 </select>
               </div>
-              <div class="col-12 col-sm-6 col-md-4 col-xl">
+              <div class="col-12 col-sm-6 col-md-4">
                 <label class="form-label small fw-semibold">Status</label>
-                <select class="form-select" id="cust_status">
+                <select class="form-select" id="engagement_status">
                   <option value="Active">Active</option>
                   <option value="Released">Released</option>
                 </select>
               </div>
-              <div class="col-12 col-sm-6 col-md-4 col-xl">
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-sm-6 col-md-4">
+                <label class="form-label small fw-semibold">Start Date</label>
+                <input type="date" class="form-control" id="engagement_joining_date">
+              </div>
+              <div class="col-12 col-sm-6 col-md-4">
                 <label class="form-label small fw-semibold">Release Date</label>
-                <input type="date" class="form-control" id="cust_release_date">
+                <input type="date" class="form-control" id="engagement_release_date">
               </div>
-              <div class="col-12 col-sm-6 col-md-4 col-xl">
+              <div class="col-12 col-sm-6 col-md-4">
                 <label class="form-label small fw-semibold">Remark</label>
-                <input type="text" class="form-control" id="cust_remark">
+                <input type="text" class="form-control" id="engagement_remark" placeholder="Remarks if any">
               </div>
-              <div class="col-12 col-sm-6 col-md-4 col-xl">
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12">
                 <label class="form-label small fw-semibold">Project Name</label>
-                <input type="text" class="form-control" id="cust_project_name">
+                <input type="text" class="form-control" id="engagement_project_name" maxlength="255" placeholder="Enter Full Project Name">
               </div>
             </div>
 
             <hr class="my-4" style="border-color: var(--border);">
 
             <div class="row g-3">
-              <div class="col-12 col-sm-6 col-md-3">
+              <div class="col-12 col-sm-6 col-md-4">
                 <label class="form-label small fw-semibold">Agreement Doc</label>
-                <input type="file" class="form-control" id="cust_file_agreement" accept=".png,.jpg,.jpeg,.pdf">
+                <input type="file" class="form-control" id="engagement_file_agreement" accept=".png,.jpg,.jpeg,.pdf">
               </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold">VAT Doc</label>
-                <input type="file" class="form-control" id="cust_file_vat" accept=".png,.jpg,.jpeg,.pdf">
+              <div class="col-12 col-sm-6 col-md-4">
+                <label class="form-label small fw-semibold">Conf Letter Doc</label>
+                <input type="file" class="form-control" id="engagement_file_conf" accept=".png,.jpg,.jpeg,.pdf">
               </div>
-              <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label small fw-semibold">CRN Doc</label>
-                <input type="file" class="form-control" id="cust_file_crn" accept=".png,.jpg,.jpeg,.pdf">
-              </div>
-              <div class="col-12 col-sm-6 col-md-3">
+              <div class="col-12 col-sm-6 col-md-4">
                 <label class="form-label small fw-semibold">Last Doc</label>
-                <input type="file" class="form-control" id="cust_file_last" accept=".png,.jpg,.jpeg,.pdf">
+                <input type="file" class="form-control" id="engagement_file_last" accept=".png,.jpg,.jpeg,.pdf">
               </div>
             </div>
-
           </form>
         </div>
         <div class="modal-footer border-top">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button class="btn btn-primary" onclick="saveCustomer()">Save</button>
+          <button class="btn btn-primary px-4 fw-semibold" onclick="saveSiteEngagement()">Save Site</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Bills Multi-Feature Popup -->
+  <!-- Modal: Bills Management Popup -->
   <div class="modal fade" id="billModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content" style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">
         <div class="modal-header border-bottom">
-          <h5 class="modal-title"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Bills Management</h5>
+          <h5 class="modal-title"><i class="fa-solid fa-file-invoice-dollar me-2 text-primary"></i>Bills Management</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <ul class="nav nav-pills mb-3" id="billPills">
-            <li class="nav-item">
-              <button class="nav-link active" onclick="switchBillTab('view')">1. View Bill</button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" onclick="switchBillTab('add')">2. Add Bill</button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" onclick="switchBillTab('download')">3. Download Bill</button>
-            </li>
+            <li class="nav-item"><button class="nav-link active" onclick="switchBillTab('view')">1. View Bills</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchBillTab('add')">2. Add Bill</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="switchBillTab('download')">3. Download Bill</button></li>
           </ul>
-
-          <div id="billTabContent">
-            <!-- Dynamic Content based on tab -->
-          </div>
+          <div id="billTabContent"></div>
         </div>
       </div>
     </div>
@@ -451,10 +615,25 @@
   <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
 
   <script>
-    let customersList = [];
+    let rawRecords = [];
+    let groupedCustomers = {};
+    let currentSearchTerm = '';
     let currentContextTarget = null;
-    let selectedCustomerId = null;
-    let currentBillCustomer = null;
+    let selectedActiveCustomerKey = null;
+    let currentBillRecord = null;
+
+    let innerActiveFilters = {};
+    let currentFilterKey = null;
+
+    const innerColumnKeyMap = {
+      1: 'joining_date',
+      2: 'site',
+      3: 'company',
+      4: 'status',
+      5: 'release_date',
+      6: 'remark',
+      11: 'project_name'
+    };
 
     function toggleTheme() {
       const current = document.documentElement.getAttribute('data-theme') || 'light';
@@ -476,13 +655,6 @@
         }
       }
     }
-
-    document.addEventListener('fullscreenchange', () => {
-      const icon = document.getElementById('fsIcon');
-      if (icon) {
-        icon.className = document.fullscreenElement ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
-      }
-    });
 
     function formatDateDDMMMYY(val) {
       if (!val) return '';
@@ -533,73 +705,206 @@
       }
     }
 
-    let activeFilters = {};
-    let globalSearchQuery = '';
-    let currentFilterKey = null;
-
-    const columnKeyMap = {
-      0: 'sn',
-      1: 'joining_date',
-      2: 'customer_name',
-      3: 'vat_no',
-      4: 'cr_no',
-      5: 'site',
-      6: 'company',
-      7: 'status',
-      8: 'release_date',
-      12: 'remark',
-      13: 'project_name'
-    };
-
     async function fetchTableData() {
       try {
         const res = await fetch('/py/vat-customers/records');
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(`Server returned ${res.status}: ${errText}`);
-        }
         const json = await res.json();
         if (json.success) {
-          customersList = (json.data || []).sort((a, b) => {
-            const nameA = (a.customer_name || '').trim().toLowerCase();
-            const nameB = (b.customer_name || '').trim().toLowerCase();
-            return nameA.localeCompare(nameB);
-          });
-          renderTable();
-          attachHeaderRightClick();
-        } else {
-          Swal.fire({ icon: 'error', title: 'Data Fetch Error', text: json.error || 'Failed to load records' });
+          rawRecords = json.data || [];
+          groupCustomers();
+          renderGrid();
+          if (selectedActiveCustomerKey && groupedCustomers[selectedActiveCustomerKey]) {
+            renderDetailModal(selectedActiveCustomerKey);
+          }
         }
       } catch (err) {
-        console.error('Fetch records error:', err);
-        Swal.fire({ icon: 'error', title: 'Network / Server Error', text: err.message });
+        console.error('Fetch error:', err);
       }
     }
 
-    function handleGlobalSearch(val) {
-      globalSearchQuery = (val || '').trim().toLowerCase();
-      renderTable();
+    // Company priority ordering function
+    function getCompanyOrderRank(companyName) {
+      const c = (companyName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (c === 'haka') return 1;
+      if (c === 'aljoda') return 2;
+      if (c === 'masarwheels') return 3;
+      if (c === 'we1') return 4;
+      return 999;
     }
 
-    function getFilteredData() {
-      return customersList.filter(row => {
-        if (globalSearchQuery) {
-          const searchHaystack = [
-            row.customer_name,
-            row.vat_no,
-            row.cr_no,
-            row.site,
-            row.company,
-            row.status,
-            row.remark,
-            row.project_name
-          ].join(' ').toLowerCase();
-          if (!searchHaystack.includes(globalSearchQuery)) return false;
+    // Group rows by customer_name (Blank dummy sites excluded from list)
+    function groupCustomers() {
+      groupedCustomers = {};
+      rawRecords.forEach(r => {
+        const name = (r.customer_name || 'Unnamed Customer').trim();
+        const key = name.toLowerCase();
+        if (!groupedCustomers[key]) {
+          groupedCustomers[key] = {
+            customer_name: name,
+            vat_no: r.vat_no || '',
+            cr_no: r.cr_no || '',
+            vat_doc: r.vat_doc || null,
+            crn_doc: r.crn_doc || null,
+            sites: []
+          };
+        }
+        if (r.vat_doc && !groupedCustomers[key].vat_doc) groupedCustomers[key].vat_doc = r.vat_doc;
+        if (r.crn_doc && !groupedCustomers[key].crn_doc) groupedCustomers[key].crn_doc = r.crn_doc;
+        if (r.vat_no && !groupedCustomers[key].vat_no) groupedCustomers[key].vat_no = r.vat_no;
+        if (r.cr_no && !groupedCustomers[key].cr_no) groupedCustomers[key].cr_no = r.cr_no;
+
+        // Add to sites only if an actual site or project is assigned
+        const hasSiteData = (r.site && r.site.trim()) || (r.project_name && r.project_name.trim()) || r.agreement_doc || r.conf_letter_doc;
+        if (hasSiteData) {
+          groupedCustomers[key].sites.push(r);
+        }
+      });
+    }
+
+    function handleSearch(term) {
+      currentSearchTerm = (term || '').trim().toLowerCase();
+      renderGrid();
+    }
+
+    function renderGrid() {
+      const container = document.getElementById('customersGrid');
+      container.innerHTML = '';
+
+      const keys = Object.keys(groupedCustomers).sort((a, b) => 
+        groupedCustomers[a].customer_name.localeCompare(groupedCustomers[b].customer_name)
+      );
+
+      keys.forEach(k => {
+        const cust = groupedCustomers[k];
+        const searchBlob = [
+          cust.customer_name,
+          cust.vat_no,
+          cust.cr_no,
+          cust.sites.map(s => `${s.site} ${s.project_name} ${s.company}`).join(' ')
+        ].join(' ').toLowerCase();
+
+        if (currentSearchTerm && !searchBlob.includes(currentSearchTerm)) return;
+
+        const card = document.createElement('div');
+        card.className = 'customer-card';
+        card.onclick = (e) => {
+          if (e.target.closest('.doc-pill')) return; // Ignore card click if doc pill clicked
+          openCustomerDetailModal(k);
+        };
+
+        const firstRowId = cust.sites[0]?.id || rawRecords.find(r => (r.customer_name || '').trim().toLowerCase() === k)?.id;
+        const vatBadge = renderDocPill(firstRowId, 'vat', cust.vat_doc, 'VAT Doc');
+        const crnBadge = renderDocPill(firstRowId, 'crn', cust.crn_doc, 'CRN Doc');
+
+        // Sort sites for outer grid card: 1. Haka, 2. Al Joda, 3. Masar Wheels, 4. We1, then Site Alphabetical
+        const sortedCardSites = [...cust.sites].sort((a, b) => {
+          const rankA = getCompanyOrderRank(a.company);
+          const rankB = getCompanyOrderRank(b.company);
+          if (rankA !== rankB) return rankA - rankB;
+          const siteA = (a.site || '').toLowerCase();
+          const siteB = (b.site || '').toLowerCase();
+          return siteA.localeCompare(siteB);
+        });
+
+        let miniTableHtml = '';
+        if (sortedCardSites.length > 0) {
+          const rowsHtml = sortedCardSites.slice(0, 5).map(s => `
+            <tr>
+              <td style="font-weight: 600; color: #0284c7;">${s.company || '-'}</td>
+              <td style="font-weight: 500;">${s.site || '-'}</td>
+              <td style="color: var(--text-muted);">${formatDateDDMMMYY(s.joining_date) || '-'}</td>
+              <td style="color: var(--text-muted);">${formatDateDDMMMYY(s.release_date) || '-'}</td>
+            </tr>
+          `).join('');
+
+          miniTableHtml = `
+            <div class="card-sites-preview">
+              <table class="preview-mini-table">
+                <thead>
+                  <tr>
+                    <th style="width: 25%;">Company</th>
+                    <th style="width: 27%;">Site</th>
+                    <th style="width: 24%;">Start</th>
+                    <th style="width: 24%;">Release</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+            </div>
+          `;
+        } else {
+          miniTableHtml = `<div class="card-sites-preview text-center py-2 text-muted" style="font-size: 11px;">No sites registered yet</div>`;
         }
 
-        for (const [key, selectedVals] of Object.entries(activeFilters)) {
+        card.innerHTML = `
+          <div class="card-top">
+            <h6 class="card-title">${cust.customer_name}</h6>
+            <span class="card-count-badge"><i class="fa-solid fa-location-dot me-1"></i>${cust.sites.length} Sites</span>
+          </div>
+          <div class="card-info-row">
+            <span>VAT No:</span>
+            <strong>${cust.vat_no || 'N/A'}</strong>
+          </div>
+          <div class="card-info-row">
+            <span>CR No:</span>
+            <strong>${cust.cr_no || 'N/A'}</strong>
+          </div>
+          ${miniTableHtml}
+          <div class="card-doc-strip">
+            ${vatBadge}
+            ${crnBadge}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      attachDocEvents();
+    }
+
+    function renderDocPill(recordId, docType, url, label) {
+      if (url) {
+        return `<span class="doc-pill uploaded doc-trigger" data-id="${recordId}" data-type="${docType}" data-url="${url}"><i class="fa-solid fa-file-check"></i> ${label}</span>`;
+      }
+      return `<span class="doc-pill empty doc-trigger" data-id="${recordId}" data-type="${docType}"><i class="fa-solid fa-cloud-arrow-up"></i> ${label}</span>`;
+    }
+
+    function openCustomerDetailModal(custKey) {
+      selectedActiveCustomerKey = custKey;
+      innerActiveFilters = {};
+      renderDetailModal(custKey);
+      const modalEl = document.getElementById('customerDetailModal');
+      const inst = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+      inst.show();
+    }
+
+    function renderDetailModal(custKey) {
+      const cust = groupedCustomers[custKey];
+      if (!cust) return;
+
+      document.getElementById('detailCustomerName').innerText = cust.customer_name;
+      document.getElementById('detailCustomerMeta').innerText = `VAT: ${cust.vat_no || 'N/A'} | CR: ${cust.cr_no || 'N/A'}`;
+
+      const firstRowId = cust.sites[0]?.id || rawRecords.find(r => (r.customer_name || '').trim().toLowerCase() === custKey)?.id;
+      document.getElementById('modalVatDocSlot').innerHTML = renderDocPill(firstRowId, 'vat', cust.vat_doc, 'VAT Doc');
+      document.getElementById('modalCrnDocSlot').innerHTML = renderDocPill(firstRowId, 'crn', cust.crn_doc, 'CRN Doc');
+
+      const tbody = document.getElementById('detailSitesTbody');
+      tbody.innerHTML = '';
+
+      if (cust.sites.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="13" class="text-center py-4 text-muted">No sites or projects registered for this customer. Click "+ Add Site / Project" to add.</td></tr>`;
+        attachDocEvents();
+        attachInnerHeaderRightClick();
+        return;
+      }
+
+      // Filter sites by active column filters
+      const filteredSites = cust.sites.filter(siteRec => {
+        for (const [key, selectedVals] of Object.entries(innerActiveFilters)) {
           if (!selectedVals || selectedVals.length === 0) continue;
-          let cellVal = row[key];
+          let cellVal = siteRec[key];
           if (key === 'joining_date' || key === 'release_date') {
             cellVal = formatDateDDMMMYY(cellVal);
           }
@@ -610,130 +915,108 @@
         }
         return true;
       });
-    }
 
-    function renderTable() {
-      const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = '';
-      const displayData = getFilteredData();
+      // Split into Active and Released
+      const activeSites = filteredSites.filter(s => (s.status || '').toLowerCase() === 'active');
+      const releasedSites = filteredSites.filter(s => (s.status || '').toLowerCase() !== 'active');
 
-      displayData.forEach((r, idx) => {
+      // Sort both groups by Start/Joining Date order (Ascending)
+      const sortByDateAsc = (a, b) => {
+        const timeA = a.joining_date ? new Date(a.joining_date).getTime() : 0;
+        const timeB = b.joining_date ? new Date(b.joining_date).getTime() : 0;
+        return timeA - timeB;
+      };
+
+      activeSites.sort(sortByDateAsc);
+      releasedSites.sort(sortByDateAsc);
+
+      let counter = 1;
+
+      const appendSiteRow = (siteRec) => {
         const tr = document.createElement('tr');
-        tr.dataset.id = r.id;
-
         tr.innerHTML = `
-          <td class="sn-cell" data-id="${r.id}" style="cursor: context-menu; font-weight: bold;">${idx + 1}</td>
-          <td>${formatDateDDMMMYY(r.joining_date)}</td>
-          <td><strong>${r.customer_name || ''}</strong></td>
-          <td>${r.vat_no || ''}</td>
-          <td>${r.cr_no || ''}</td>
-          <td>${r.site || ''}</td>
-          <td>${r.company || ''}</td>
-          <td><span class="badge ${r.status === 'Active' ? 'bg-success' : 'bg-danger'}">${r.status}</span></td>
-          <td>${formatDateDDMMMYY(r.release_date)}</td>
-          <td>${renderDocCell(r.id, 'agreement', r.agreement_doc)}</td>
-          <td>${renderDocCell(r.id, 'vat', r.vat_doc)}</td>
-          <td>${renderDocCell(r.id, 'crn', r.crn_doc)}</td>
-          <td><button class="bill-btn" onclick="openBillPopup(${r.id})"><i class="fa-solid fa-receipt me-1"></i>Bills (${(r.bills_data || []).length})</button></td>
-          <td>${renderDocCell(r.id, 'last', r.last_doc)}</td>
-          <td>${r.remark || ''}</td>
-          <td>${r.project_name || ''}</td>
+          <td style="text-align: center; font-weight: bold;">${counter++}</td>
+          <td>${formatDateDDMMMYY(siteRec.joining_date)}</td>
+          <td><strong>${siteRec.site || ''}</strong></td>
+          <td>${siteRec.company || ''}</td>
+          <td><span class="badge ${siteRec.status === 'Active' ? 'bg-success' : 'bg-danger'}">${siteRec.status || 'Active'}</span></td>
+          <td>${formatDateDDMMMYY(siteRec.release_date)}</td>
+          <td>${siteRec.remark || ''}</td>
+          <td>${renderDocPill(siteRec.id, 'agreement', siteRec.agreement_doc, 'Agreement')}</td>
+          <td>${renderDocPill(siteRec.id, 'conf_letter', siteRec.conf_letter_doc, 'Conf Letter')}</td>
+          <td><button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openBillPopup(${siteRec.id})"><i class="fa-solid fa-receipt me-1"></i>Bills (${(siteRec.bills_data || []).length})</button></td>
+          <td>${renderDocPill(siteRec.id, 'last', siteRec.last_doc, 'Last Doc')}</td>
+          <td>${siteRec.project_name || ''}</td>
+          <td style="text-align: center;">
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="openEditSiteModal(${siteRec.id})" title="Edit Site"><i class="fa-solid fa-pen"></i></button>
+          </td>
         `;
         tbody.appendChild(tr);
-      });
-      attachContextListeners();
-    }
+      };
 
-    function renderDocCell(id, type, url) {
-      if (url) {
-        return `<span class="doc-badge uploaded doc-trigger" data-id="${id}" data-type="${type}" data-url="${url}"><i class="fa-solid fa-file-check me-1"></i>Uploaded</span>`;
+      // 1. Active Sites Division
+      if (activeSites.length > 0) {
+        const activeHeaderTr = document.createElement('tr');
+        activeHeaderTr.style.background = 'rgba(21, 128, 61, 0.08)';
+        activeHeaderTr.innerHTML = `
+          <td colspan="13" class="py-1 px-3 fw-bold small text-success" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+            <i class="fa-solid fa-circle-check me-1"></i> ACTIVE SITES (${activeSites.length})
+          </td>
+        `;
+        tbody.appendChild(activeHeaderTr);
+        activeSites.forEach(appendSiteRow);
       }
-      return `<span class="doc-badge empty doc-trigger" data-id="${id}" data-type="${type}"><i class="fa-solid fa-cloud-arrow-up me-1"></i>Empty</span>`;
+
+      // 2. Released Sites Division
+      if (releasedSites.length > 0) {
+        const releasedHeaderTr = document.createElement('tr');
+        releasedHeaderTr.style.background = 'rgba(239, 68, 68, 0.08)';
+        releasedHeaderTr.innerHTML = `
+          <td colspan="13" class="py-1 px-3 fw-bold small text-danger" style="border-top: 2px solid var(--border); border-bottom: 1px solid var(--border);">
+            <i class="fa-solid fa-clock-rotate-left me-1"></i> RELEASED SITES (${releasedSites.length})
+          </td>
+        `;
+        tbody.appendChild(releasedHeaderTr);
+        releasedSites.forEach(appendSiteRow);
+      }
+
+      if (filteredSites.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="13" class="text-center py-4 text-muted">No sites match the selected column filter.</td></tr>`;
+      }
+
+      attachDocEvents();
+      attachInnerHeaderRightClick();
     }
 
-    function attachContextListeners() {
-      // SN right-click -> Direct edit popup
-      document.querySelectorAll('.sn-cell').forEach(el => {
-        el.oncontextmenu = function(e) {
-          e.preventDefault();
-          const custId = this.dataset.id;
-          openEditModalById(custId);
-        };
-      });
-
-      document.querySelectorAll('.doc-trigger').forEach(el => {
-        // Left click = Open file if uploaded
-        el.onclick = function(e) {
-          const url = this.dataset.url;
-          if (url) {
-            window.open(url, '_blank');
-          }
-        };
-        // Right click = Upload / Edit option
-        el.oncontextmenu = function(e) {
-          e.preventDefault();
-          currentContextTarget = {
-            id: this.dataset.id,
-            type: this.dataset.type
-          };
-          const menu = document.getElementById('contextMenu');
-          menu.style.display = 'block';
-          menu.style.left = `${e.pageX}px`;
-          menu.style.top = `${e.pageY}px`;
-        };
-      });
-    }
-
-    function openEditModalById(custId) {
-      const cust = customersList.find(c => Number(c.id) === Number(custId));
-      if (!cust) return;
-      
-      document.getElementById('customerForm').reset();
-      document.getElementById('cust_id').value = String(cust.id);
-      
-      document.getElementById('cust_joining_date').value = cust.joining_date ? cust.joining_date.split('T')[0] : '';
-      document.getElementById('cust_name').value = cust.customer_name || '';
-      document.getElementById('cust_vat').value = cust.vat_no || '';
-      document.getElementById('cust_cr').value = cust.cr_no || '';
-      document.getElementById('cust_site').value = cust.site || '';
-      document.getElementById('cust_company').value = cust.company || 'Haka';
-      document.getElementById('cust_status').value = cust.status || 'Active';
-      document.getElementById('cust_release_date').value = cust.release_date ? cust.release_date.split('T')[0] : '';
-      document.getElementById('cust_remark').value = cust.remark || '';
-      document.getElementById('cust_project_name').value = cust.project_name || '';
-
-      document.getElementById('custModalTitle').innerText = `Edit Customer (SN: ${cust.sn || cust.id})`;
-      const modalEl = document.getElementById('customerModal');
-      const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-      modalInstance.show();
-    }
-
-    function attachHeaderRightClick() {
-      document.querySelectorAll('#vatTable thead th').forEach((th, colIdx) => {
+    function attachInnerHeaderRightClick() {
+      document.querySelectorAll('#innerDetailTable thead th').forEach((th, colIdx) => {
+        th.style.cursor = 'context-menu';
         th.oncontextmenu = function(e) {
           e.preventDefault();
-          const key = columnKeyMap[colIdx];
-          if (!key) return; // Docs & Bills columns-il custom context menu skip cheyyunnu
+          const key = innerColumnKeyMap[colIdx];
+          if (!key) return;
           openHeaderFilter(key, th.innerText.trim(), e.pageX, e.pageY);
         };
       });
     }
 
     function openHeaderFilter(key, title, x, y) {
+      if (!selectedActiveCustomerKey || !groupedCustomers[selectedActiveCustomerKey]) return;
       currentFilterKey = key;
       const popup = document.getElementById('headerFilterPopup');
       document.getElementById('filterPopupTitle').innerText = `Filter: ${title}`;
       document.getElementById('filterSearchInput').value = '';
 
       const valuesSet = new Set();
-      customersList.forEach(r => {
+      const currentSites = groupedCustomers[selectedActiveCustomerKey].sites || [];
+      currentSites.forEach(r => {
         let val = r[key];
         if (key === 'joining_date' || key === 'release_date') val = formatDateDDMMMYY(val);
         valuesSet.add(String(val || '(Blanks)').trim());
       });
 
       const sortedVals = Array.from(valuesSet).sort((a, b) => a.localeCompare(b));
-      const currentlySelected = activeFilters[key] || sortedVals;
+      const currentlySelected = innerActiveFilters[key] || sortedVals;
 
       const listDiv = document.getElementById('filterCheckboxList');
       listDiv.innerHTML = sortedVals.map(val => `
@@ -744,9 +1027,14 @@
       `).join('');
 
       popup.style.display = 'block';
-      const maxLeft = window.innerWidth - 280;
-      popup.style.left = `${Math.max(10, Math.min(x, maxLeft))}px`;
-      popup.style.top = `${y + 10}px`;
+      // Calculate viewport boundary coordinates so it never stretches or goes offscreen
+      const popupWidth = 250;
+      const popupHeight = 310;
+      const posX = Math.max(15, Math.min(x, window.innerWidth - popupWidth - 20));
+      const posY = Math.max(15, Math.min(y + 8, window.innerHeight - popupHeight - 20));
+
+      popup.style.left = `${posX}px`;
+      popup.style.top = `${posY}px`;
     }
 
     function filterCheckboxItems(query) {
@@ -769,21 +1057,47 @@
     function applyColumnFilter() {
       if (!currentFilterKey) return;
       const checkedVals = Array.from(document.querySelectorAll('.header-filter-check:checked')).map(c => c.value);
-      activeFilters[currentFilterKey] = checkedVals;
+      innerActiveFilters[currentFilterKey] = checkedVals;
       closeHeaderFilter();
-      renderTable();
+      if (selectedActiveCustomerKey) renderDetailModal(selectedActiveCustomerKey);
     }
 
     function resetColumnFilter() {
       if (!currentFilterKey) return;
-      delete activeFilters[currentFilterKey];
+      delete innerActiveFilters[currentFilterKey];
       closeHeaderFilter();
-      renderTable();
+      if (selectedActiveCustomerKey) renderDetailModal(selectedActiveCustomerKey);
     }
 
     function closeHeaderFilter() {
       document.getElementById('headerFilterPopup').style.display = 'none';
       currentFilterKey = null;
+    }
+
+    function attachDocEvents() {
+      document.querySelectorAll('.doc-trigger').forEach(el => {
+        el.onclick = function(e) {
+          e.stopPropagation();
+          const url = this.dataset.url;
+          if (url) {
+            window.open(url, '_blank');
+          } else {
+            // Trigger upload if empty
+            currentContextTarget = { id: this.dataset.id, type: this.dataset.type };
+            document.getElementById('hiddenFileInput').click();
+          }
+        };
+
+        el.oncontextmenu = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          currentContextTarget = { id: this.dataset.id, type: this.dataset.type };
+          const menu = document.getElementById('contextMenu');
+          menu.style.display = 'block';
+          menu.style.left = `${e.pageX}px`;
+          menu.style.top = `${e.pageY}px`;
+        };
+      });
     }
 
     window.onclick = function(e) {
@@ -825,7 +1139,7 @@
         });
         const json = await res.json();
         if (json.success) {
-          Swal.fire({ icon: 'success', title: 'File Uploaded', timer: 1500, showConfirmButton: false });
+          Swal.fire({ icon: 'success', title: 'File Uploaded', timer: 1200, showConfirmButton: false });
           fetchTableData();
         } else {
           Swal.fire({ icon: 'error', title: 'Upload Failed', text: json.error || 'Error' });
@@ -837,51 +1151,25 @@
     };
 
     function openAddCustomerModal() {
-      document.getElementById('customerForm').reset();
-      document.getElementById('cust_id').value = '';
-      document.getElementById('cust_project_name').value = '';
-      document.getElementById('custModalTitle').innerText = 'Add Customer';
-      new bootstrap.Modal(document.getElementById('customerModal')).show();
+      document.getElementById('addCustomerMasterForm').reset();
+      const modalEl = document.getElementById('addCustomerMasterModal');
+      (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
     }
 
-    function editCustomerFromContext() {
-      if (!currentContextTarget) return;
-      const cust = customersList.find(c => c.id == currentContextTarget.id);
-      if (!cust) return;
-      document.getElementById('cust_id').value = cust.id;
-      document.getElementById('cust_joining_date').value = cust.joining_date ? cust.joining_date.split('T')[0] : '';
-      document.getElementById('cust_name').value = cust.customer_name || '';
-      document.getElementById('cust_vat').value = cust.vat_no || '';
-      document.getElementById('cust_cr').value = cust.cr_no || '';
-      document.getElementById('cust_site').value = cust.site || '';
-      document.getElementById('cust_company').value = cust.company || 'Haka';
-      document.getElementById('cust_status').value = cust.status || 'Active';
-      document.getElementById('cust_release_date').value = cust.release_date ? cust.release_date.split('T')[0] : '';
-      document.getElementById('cust_remark').value = cust.remark || '';
-      document.getElementById('cust_project_name').value = cust.project_name || '';
-      document.getElementById('custModalTitle').innerText = 'Edit Customer';
-      new bootstrap.Modal(document.getElementById('customerModal')).show();
-    }
-
-    async function saveCustomer() {
-      const nameVal = document.getElementById('cust_name').value.trim();
+    async function saveNewCustomerMaster() {
+      const nameVal = document.getElementById('master_cust_name').value.trim();
       if (!nameVal) {
         Swal.fire({ icon: 'warning', title: 'Customer Name Required', text: 'Customer name enter cheyyuka.' });
         return;
       }
 
       const payload = {
-        id: document.getElementById('cust_id').value.trim() || null,
-        joining_date: document.getElementById('cust_joining_date').value || null,
         customer_name: nameVal,
-        vat_no: document.getElementById('cust_vat').value.trim(),
-        cr_no: document.getElementById('cust_cr').value.trim(),
-        site: document.getElementById('cust_site').value.trim(),
-        company: document.getElementById('cust_company').value || 'Haka',
-        status: document.getElementById('cust_status').value || 'Active',
-        release_date: document.getElementById('cust_release_date').value || null,
-        remark: document.getElementById('cust_remark').value.trim(),
-        project_name: document.getElementById('cust_project_name').value.trim()
+        vat_no: document.getElementById('master_cust_vat').value.trim(),
+        cr_no: document.getElementById('master_cust_cr').value.trim(),
+        site: '',
+        company: 'Haka',
+        status: 'Active'
       };
 
       try {
@@ -891,7 +1179,131 @@
           body: JSON.stringify(payload)
         });
         const json = await res.json();
-        
+        if (!json.success) {
+          Swal.fire({ icon: 'error', title: 'Save Failed', text: json.error || 'Server error' });
+          return;
+        }
+
+        const savedId = json.id;
+        const uploadTasks = [];
+
+        const vatFile = document.getElementById('master_file_vat').files[0];
+        if (vatFile) {
+          const b64 = await readFileAsBase64(vatFile);
+          uploadTasks.push(fetch('/py/vat-customers/upload-doc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customer_id: Number(savedId),
+              doc_type: 'vat',
+              file_name: vatFile.name,
+              file_base64: b64
+            })
+          }));
+        }
+
+        const crnFile = document.getElementById('master_file_crn').files[0];
+        if (crnFile) {
+          const b64 = await readFileAsBase64(crnFile);
+          uploadTasks.push(fetch('/py/vat-customers/upload-doc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customer_id: Number(savedId),
+              doc_type: 'crn',
+              file_name: crnFile.name,
+              file_base64: b64
+            })
+          }));
+        }
+
+        if (uploadTasks.length > 0) {
+          await Promise.all(uploadTasks);
+        }
+
+        const modalEl = document.getElementById('addCustomerMasterModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) modalInstance.hide();
+
+        Swal.fire({ icon: 'success', title: 'Customer Card Created', timer: 1200, showConfirmButton: false });
+        await fetchTableData();
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+      }
+    }
+
+    function openAddSiteForCurrentCustomer() {
+      if (!selectedActiveCustomerKey) return;
+      const cust = groupedCustomers[selectedActiveCustomerKey];
+      document.getElementById('siteEngagementForm').reset();
+      
+      // If customer was newly created with an empty site placeholder row, reuse that ID instead of creating another row
+      const placeholderRow = rawRecords.find(r => 
+        (r.customer_name || '').trim().toLowerCase() === selectedActiveCustomerKey && 
+        (!r.site || !r.site.trim())
+      );
+      document.getElementById('site_row_id').value = placeholderRow ? placeholderRow.id : '';
+
+      document.getElementById('site_cust_name').value = cust.customer_name;
+      document.getElementById('site_cust_vat').value = cust.vat_no;
+      document.getElementById('site_cust_cr').value = cust.cr_no;
+      document.getElementById('siteEngagementModalTitle').innerText = `Add Site / Project for ${cust.customer_name}`;
+      const modalEl = document.getElementById('siteEngagementModal');
+      (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
+    }
+
+    function openEditSiteModal(siteRecordId) {
+      const siteRec = rawRecords.find(r => Number(r.id) === Number(siteRecordId));
+      if (!siteRec) return;
+
+      document.getElementById('siteEngagementForm').reset();
+      document.getElementById('site_row_id').value = siteRec.id;
+      document.getElementById('site_cust_name').value = siteRec.customer_name || '';
+      document.getElementById('site_cust_vat').value = siteRec.vat_no || '';
+      document.getElementById('site_cust_cr').value = siteRec.cr_no || '';
+      document.getElementById('engagement_site').value = siteRec.site || '';
+      document.getElementById('engagement_company').value = siteRec.company || 'Haka';
+      document.getElementById('engagement_status').value = siteRec.status || 'Active';
+      document.getElementById('engagement_joining_date').value = siteRec.joining_date ? siteRec.joining_date.split('T')[0] : '';
+      document.getElementById('engagement_release_date').value = siteRec.release_date ? siteRec.release_date.split('T')[0] : '';
+      document.getElementById('engagement_remark').value = siteRec.remark || '';
+      document.getElementById('engagement_project_name').value = siteRec.project_name || '';
+
+      document.getElementById('siteEngagementModalTitle').innerText = `Edit Site Details (SN: ${siteRec.sn || siteRec.id})`;
+      const modalEl = document.getElementById('siteEngagementModal');
+      (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).show();
+    }
+
+    async function saveSiteEngagement() {
+      const siteVal = document.getElementById('engagement_site').value.trim();
+      const custName = document.getElementById('site_cust_name').value.trim();
+      if (!siteVal) {
+        Swal.fire({ icon: 'warning', title: 'Site Name Required', text: 'Please enter site name.' });
+        return;
+      }
+
+      const rowId = document.getElementById('site_row_id').value.trim() || null;
+      const payload = {
+        id: rowId,
+        customer_name: custName,
+        vat_no: document.getElementById('site_cust_vat').value.trim(),
+        cr_no: document.getElementById('site_cust_cr').value.trim(),
+        site: siteVal,
+        company: document.getElementById('engagement_company').value || 'Haka',
+        status: document.getElementById('engagement_status').value || 'Active',
+        joining_date: document.getElementById('engagement_joining_date').value || null,
+        release_date: document.getElementById('engagement_release_date').value || null,
+        remark: document.getElementById('engagement_remark').value.trim(),
+        project_name: document.getElementById('engagement_project_name').value.trim()
+      };
+
+      try {
+        const res = await fetch('/py/vat-customers/upsert-customer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
         if (!json.success) {
           Swal.fire({ icon: 'error', title: 'Save Failed', text: json.error || 'Server error' });
           return;
@@ -899,10 +1311,9 @@
 
         const savedId = json.id;
         const filesMap = {
-          'agreement': document.getElementById('cust_file_agreement').files[0],
-          'vat': document.getElementById('cust_file_vat').files[0],
-          'crn': document.getElementById('cust_file_crn').files[0],
-          'last': document.getElementById('cust_file_last').files[0]
+          'agreement': document.getElementById('engagement_file_agreement').files[0],
+          'conf_letter': document.getElementById('engagement_file_conf').files[0],
+          'last': document.getElementById('engagement_file_last').files[0]
         };
 
         const uploadTasks = [];
@@ -926,11 +1337,11 @@
           await Promise.all(uploadTasks);
         }
 
-        const modalEl = document.getElementById('customerModal');
+        const modalEl = document.getElementById('siteEngagementModal');
         const modalInstance = bootstrap.Modal.getInstance(modalEl);
         if (modalInstance) modalInstance.hide();
 
-        Swal.fire({ icon: 'success', title: 'Saved Successfully', timer: 1200, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: 'Site Saved Successfully', timer: 1200, showConfirmButton: false });
         await fetchTableData();
       } catch (err) {
         Swal.fire({ icon: 'error', title: 'Error', text: err.message });
@@ -939,8 +1350,8 @@
 
     // --- BILLS SYSTEM ---
     function openBillPopup(id) {
-      currentBillCustomer = customersList.find(c => c.id == id);
-      if (!currentBillCustomer) return;
+      currentBillRecord = rawRecords.find(c => Number(c.id) === Number(id));
+      if (!currentBillRecord) return;
       switchBillTab('view');
       new bootstrap.Modal(document.getElementById('billModal')).show();
     }
@@ -956,13 +1367,13 @@
         months.push(`${mNames[cur.getMonth()]} ${String(cur.getFullYear()).slice(-2)}`);
         cur.setMonth(cur.getMonth() + 1);
       }
-      return months.reverse(); // Latest month first
+      return months.reverse();
     }
 
     function switchBillTab(tab) {
       const container = document.getElementById('billTabContent');
-      const bills = currentBillCustomer.bills_data || [];
-      const months = generateMonthsRange(currentBillCustomer.joining_date);
+      const bills = currentBillRecord.bills_data || [];
+      const months = generateMonthsRange(currentBillRecord.joining_date);
 
       if (tab === 'view') {
         let html = '<div class="list-group">';
@@ -978,8 +1389,8 @@
         html += '</div>';
         container.innerHTML = html;
       } else if (tab === 'add') {
-        let html = '<div class="table-responsive"><table class="table table-bordered" style="color: var(--text); border-color: var(--border);">';
-        html += '<thead><tr><th>Month</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+        let html = '<div class="table-responsive"><table class="table table-bordered" style="color: var(--text); border-color: var(--border); font-size: 13px;">';
+        html += '<thead><tr><th>Month</th><th>Status</th><th style="width: 120px;">Action</th></tr></thead><tbody>';
         months.forEach(m => {
           const existing = bills.find(b => b.month === m);
           html += `
@@ -999,11 +1410,11 @@
       } else if (tab === 'download') {
         let html = `
           <div class="card p-3 mb-3" style="background: var(--surface); border: 1px solid var(--border);">
-            <h6><i class="fa-solid fa-layer-group me-2"></i>Combined Chronological Download</h6>
-            <p class="text-muted small">Merges first month bill through latest bill into a single PDF (PNG/JPG/PDF auto-merged).</p>
-            <button class="btn btn-success" onclick="downloadCombinedBill()"><i class="fa-solid fa-file-pdf me-1"></i> Download Combined PDF</button>
+            <h6><i class="fa-solid fa-layer-group me-2 text-primary"></i>Combined Chronological Download</h6>
+            <p class="text-muted small">Merges first month bill through latest bill into a single PDF.</p>
+            <button class="btn btn-success btn-sm py-2 px-3 fw-bold" onclick="downloadCombinedBill()"><i class="fa-solid fa-file-pdf me-1"></i> Download Combined PDF</button>
           </div>
-          <h6>Single Month Download</h6>
+          <h6 class="small fw-bold text-muted text-uppercase mb-2">Single Month Download</h6>
           <div class="list-group">
         `;
         bills.forEach(b => {
@@ -1028,7 +1439,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            customer_id: Number(currentBillCustomer.id),
+            customer_id: Number(currentBillRecord.id),
             month_year: month,
             file_name: file.name,
             file_base64: b64
@@ -1036,7 +1447,7 @@
         });
         const json = await res.json();
         if (json.success) {
-          currentBillCustomer.bills_data = json.bills;
+          currentBillRecord.bills_data = json.bills;
           switchBillTab('add');
           fetchTableData();
         } else {
@@ -1061,13 +1472,13 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            customer_id: Number(currentBillCustomer.id),
+            customer_id: Number(currentBillRecord.id),
             month_year: month
           })
         });
         const json = await res.json();
         if (json.success) {
-          currentBillCustomer.bills_data = json.bills;
+          currentBillRecord.bills_data = json.bills;
           switchBillTab('add');
           fetchTableData();
         }
@@ -1075,11 +1486,11 @@
     }
 
     function downloadCombinedBill() {
-      window.location.href = `/py/vat-customers/download-bill-combined?customer_id=${currentBillCustomer.id}&mode=combine`;
+      window.location.href = `/py/vat-customers/download-bill-combined?customer_id=${currentBillRecord.id}&mode=combine`;
     }
 
     function downloadSingleBill(month) {
-      window.location.href = `/py/vat-customers/download-bill-combined?customer_id=${currentBillCustomer.id}&mode=single&month_year=${encodeURIComponent(month)}`;
+      window.location.href = `/py/vat-customers/download-bill-combined?customer_id=${currentBillRecord.id}&mode=single&month_year=${encodeURIComponent(month)}`;
     }
 
     loadCompanies();
