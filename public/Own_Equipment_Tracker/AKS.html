@@ -475,17 +475,43 @@
 
     <!-- Combined 3-Tab Export Modal -->
     <div id="combinedExportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10001; justify-content: center; align-items: center;">
-      <div style="background: #ffffff; border-radius: 8px; width: 380px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <div style="background: #ffffff; border-radius: 8px; width: 420px; max-width: calc(100vw - 30px); padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
         <h4 style="margin: 0 0 15px 0; color: #0f766e; font-size: 15px;">📑 AKS Master 3-Tab Export</h4>
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
           <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
-            <input type="radio" name="combinedScope" value="all" checked />
+            <input type="radio" name="combinedScope" value="all" checked onchange="toggleCombinedPeriodInputs(false)" />
             <span><b>All Data</b> (Entire timeline)</span>
           </label>
           <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
-            <input type="radio" name="combinedScope" value="current" />
+            <input type="radio" name="combinedScope" value="current" onchange="toggleCombinedPeriodInputs(false)" />
             <span><b>Current Year Data</b> (2026 only)</span>
           </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="combinedScope" value="period" onchange="toggleCombinedPeriodInputs(true)" />
+            <span><b>Custom Period</b> (Choose start and end month)</span>
+          </label>
+        </div>
+        <div id="combinedPeriodBox" style="display: none; background: #f8fafc; padding: 10px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <div style="flex: 1;">
+              <label for="combinedStartYear" style="font-size: 11px; font-weight: 600; color: #475569;">Start Year</label>
+              <input type="number" id="combinedStartYear" min="1900" max="2100" style="width: 100%; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;" />
+            </div>
+            <div style="flex: 1;">
+              <label for="combinedStartMonth" style="font-size: 11px; font-weight: 600; color: #475569;">Start Month</label>
+              <input type="number" id="combinedStartMonth" min="1" max="12" style="width: 100%; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;" />
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <div style="flex: 1;">
+              <label for="combinedEndYear" style="font-size: 11px; font-weight: 600; color: #475569;">End Year</label>
+              <input type="number" id="combinedEndYear" min="1900" max="2100" style="width: 100%; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;" />
+            </div>
+            <div style="flex: 1;">
+              <label for="combinedEndMonth" style="font-size: 11px; font-weight: 600; color: #475569;">End Month</label>
+              <input type="number" id="combinedEndMonth" min="1" max="12" style="width: 100%; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;" />
+            </div>
+          </div>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
           <button type="button" class="btn" style="background: #e2e8f0; color: #334155;" onclick="closeCombinedExportModal()">Cancel</button>
@@ -584,6 +610,13 @@
       }
 
       let currentTimeline = [];
+      let displayedMonthIndexes = [];
+
+      function getDisplayedMonthData(item, timelineIndex) {
+        const dataIndex = displayedMonthIndexes[timelineIndex];
+        if (dataIndex === undefined || dataIndex < 0) return {};
+        return (item.months_data || [])[dataIndex] || {};
+      }
 
       async function loadAKSData() {
         try {
@@ -640,6 +673,12 @@
       let currentFilterCol = null;
 
       function renderTable(list, timeline = []) {
+        displayedMonthIndexes = timeline.map((tm) =>
+          currentTimeline.findIndex(
+            (currentMonth) =>
+              currentMonth.year === tm.year && currentMonth.month === tm.month,
+          ),
+        );
         const r1 = document.getElementById("aksHeadRow1");
         const r2 = document.getElementById("aksHeadRow2");
 
@@ -666,10 +705,17 @@
             <th style="min-width: 130px; background: #e9eef4; border-left: 2px solid #94a3b8;">Site <span class="filter-icon" onclick="openColumnFilter(event, 'month_site_${tIdx}', '${tm.label} Site')">🔽</span></th>
             <th style="min-width: 90px; background: #e9eef4;">MTC <span class="filter-icon" onclick="openColumnFilter(event, 'month_mtc_${tIdx}', '${tm.label} MTC')">🔽</span></th>
             <th style="min-width: 90px; background: #e9eef4;">OTC <span class="filter-icon" onclick="openColumnFilter(event, 'month_otc_${tIdx}', '${tm.label} OTC')">🔽</span></th>
-            <th style="min-width: 90px; background: #f5f3ff;">COM <span class="filter-icon" onclick="openColumnFilter(event, 'month_COM_${tIdx}', '${tm.label} COM')">🔽</span></th>
+            <th style="min-width: 90px; background: #f5f3ff;">TOC <span class="filter-icon" onclick="openColumnFilter(event, 'month_toc_${tIdx}', '${tm.label} TOC')">🔽</span></th>
             <th style="min-width: 95px; background: #e2efda;">TOR <span class="filter-icon" onclick="openColumnFilter(event, 'month_tor_${tIdx}', '${tm.label} TOR')">🔽</span></th>
           `;
         });
+        r1.innerHTML += `<th colspan="4" style="background: #b7c9e2; border-left: 2px solid #64748b;">Total</th>`;
+        r2.innerHTML += `
+          <th style="min-width: 95px; background: #e9eef4; border-left: 2px solid #64748b;">T-MTC</th>
+          <th style="min-width: 95px; background: #fefce8;">T-OTC</th>
+          <th style="min-width: 95px; background: #f5f3ff;">T-COM</th>
+          <th style="min-width: 95px; background: #e2efda;">T-TOR</th>
+        `;
 
         const tbody = document.getElementById("aksTableBody");
         tbody.innerHTML = "";
@@ -722,31 +768,31 @@
 
             if (col.startsWith("month_site_")) {
               const tIdx = parseInt(col.replace("month_site_", ""));
-              const mData = (item.months_data || [])[tIdx] || {};
+              const mData = getDisplayedMonthData(item, tIdx);
               if (!selectedVals.includes(mData.site || "__BLANK__"))
                 return false;
             }
             if (col.startsWith("month_mtc_")) {
               const tIdx = parseInt(col.replace("month_mtc_", ""));
-              const mData = (item.months_data || [])[tIdx] || {};
+              const mData = getDisplayedMonthData(item, tIdx);
               if (!selectedVals.includes(fmtNumber(mData.mtc) || "__BLANK__"))
                 return false;
             }
             if (col.startsWith("month_otc_")) {
               const tIdx = parseInt(col.replace("month_otc_", ""));
-              const mData = (item.months_data || [])[tIdx] || {};
+              const mData = getDisplayedMonthData(item, tIdx);
               if (!selectedVals.includes(fmtNumber(mData.otc) || "__BLANK__"))
                 return false;
             }
-            if (col.startsWith("month_COM_")) {
-              const tIdx = parseInt(col.replace("month_COM_", ""));
-              const mData = (item.months_data || [])[tIdx] || {};
-              if (!selectedVals.includes(fmtNumber(mData.COM) || "__BLANK__"))
+            if (col.startsWith("month_toc_")) {
+              const tIdx = parseInt(col.replace("month_toc_", ""));
+              const mData = getDisplayedMonthData(item, tIdx);
+              if (!selectedVals.includes(fmtNumber(mData.toc) || "__BLANK__"))
                 return false;
             }
             if (col.startsWith("month_tor_")) {
               const tIdx = parseInt(col.replace("month_tor_", ""));
-              const mData = (item.months_data || [])[tIdx] || {};
+              const mData = getDisplayedMonthData(item, tIdx);
               if (!selectedVals.includes(fmtNumber(mData.tor) || "__BLANK__"))
                 return false;
             }
@@ -772,17 +818,27 @@
             <td style="color: #1e293b;">${fmtNumber(item.off_site_mtc)}</td>
           `;
 
-          const mDataList = item.months_data || [];
+          const rowTotals = { mtc: 0, otc: 0, toc: 0, tor: 0 };
           timeline.forEach((_, tIdx) => {
-            const m = mDataList[tIdx] || { site: "", mtc: 0, otc: 0, COM: 0, tor: 0 };
+            const m = getDisplayedMonthData(item, tIdx);
+            rowTotals.mtc += Number(m.mtc) || 0;
+            rowTotals.otc += Number(m.otc) || 0;
+            rowTotals.toc += Number(m.toc) || 0;
+            rowTotals.tor += Number(m.tor) || 0;
             rowHtml += `
               <td style="text-align: left; font-weight: 500; border-left: 2px solid #cbd5e1;">${m.site || ""}</td>
               <td style="font-weight: 500;">${fmtNumber(m.mtc)}</td>
               <td style="font-weight: 500; background-color: #fefce8;">${fmtNumber(m.otc)}</td>
-              <td style="font-weight: 500; background-color: #f5f3ff;">${fmtNumber(m.COM)}</td>
+              <td style="font-weight: 500; background-color: #f5f3ff;">${fmtNumber(m.toc)}</td>
               <td style="font-weight: 500; background-color: #f0fdf4;">${fmtNumber(m.tor)}</td>
             `;
           });
+          rowHtml += `
+            <td style="font-weight: 700; background: #e9eef4; border-left: 2px solid #64748b;">${fmtNumber(rowTotals.mtc)}</td>
+            <td style="font-weight: 700; background: #fefce8;">${fmtNumber(rowTotals.otc)}</td>
+            <td style="font-weight: 700; background: #f5f3ff;">${fmtNumber(rowTotals.toc)}</td>
+            <td style="font-weight: 700; background: #e2efda;">${fmtNumber(rowTotals.tor)}</td>
+          `;
 
           tr.innerHTML = rowHtml;
           tbody.appendChild(tr);
@@ -917,7 +973,24 @@
 
       function openCombinedExportModal() {
         const m = document.getElementById("combinedExportModal");
+        const now = new Date();
+        const first = currentTimeline[0] || { year: now.getFullYear(), month: 1 };
+        const last = currentTimeline[currentTimeline.length - 1] || {
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+        };
+        document.getElementById("combinedStartYear").value = first.year;
+        document.getElementById("combinedStartMonth").value = first.month;
+        document.getElementById("combinedEndYear").value = last.year;
+        document.getElementById("combinedEndMonth").value = last.month;
+        document.querySelector('input[name="combinedScope"][value="all"]').checked = true;
+        toggleCombinedPeriodInputs(false);
         if (m) m.style.display = "flex";
+      }
+
+      function toggleCombinedPeriodInputs(show) {
+        const box = document.getElementById("combinedPeriodBox");
+        if (box) box.style.display = show ? "block" : "none";
       }
 
       function closeCombinedExportModal() {
@@ -927,9 +1000,27 @@
 
       function confirmCombinedExport() {
         const scope = document.querySelector('input[name="combinedScope"]:checked')?.value || "all";
+        const params = new URLSearchParams({ scope });
+        if (scope === "period") {
+          const startYear = Number(document.getElementById("combinedStartYear").value);
+          const startMonth = Number(document.getElementById("combinedStartMonth").value);
+          const endYear = Number(document.getElementById("combinedEndYear").value);
+          const endMonth = Number(document.getElementById("combinedEndMonth").value);
+          const validRange = [startYear, endYear].every((year) => Number.isInteger(year) && year >= 1900 && year <= 2100)
+            && [startMonth, endMonth].every((month) => Number.isInteger(month) && month >= 1 && month <= 12)
+            && startYear * 100 + startMonth <= endYear * 100 + endMonth;
+          if (!validRange) {
+            showToast("Please enter a valid start and end month/year.", "error");
+            return;
+          }
+          params.set("start_year", startYear);
+          params.set("start_month", startMonth);
+          params.set("end_year", endYear);
+          params.set("end_month", endMonth);
+        }
         closeCombinedExportModal();
-        showToast("Generating 3-Tab Master Excel...", "success");
-        window.location.href = `/py/aks-combined/export?scope=${scope}`;
+        showToast("Generating AKS Master Excel...", "success");
+        window.location.href = `/py/aks-combined/export?${params.toString()}`;
       }
 
       function filterRows() {
@@ -979,23 +1070,23 @@
             );
           } else if (colKey.startsWith("month_site_")) {
             const tIdx = parseInt(colKey.replace("month_site_", ""));
-            const m = (item.months_data || [])[tIdx] || {};
+            const m = getDisplayedMonthData(item, tIdx);
             valueSet.add(m.site || "");
           } else if (colKey.startsWith("month_mtc_")) {
             const tIdx = parseInt(colKey.replace("month_mtc_", ""));
-            const m = (item.months_data || [])[tIdx] || {};
+            const m = getDisplayedMonthData(item, tIdx);
             valueSet.add(fmtNumber(m.mtc));
           } else if (colKey.startsWith("month_otc_")) {
             const tIdx = parseInt(colKey.replace("month_otc_", ""));
-            const m = (item.months_data || [])[tIdx] || {};
+            const m = getDisplayedMonthData(item, tIdx);
             valueSet.add(fmtNumber(m.otc));
-          } else if (colKey.startsWith("month_COM_")) {
-            const tIdx = parseInt(colKey.replace("month_COM_", ""));
-            const m = (item.months_data || [])[tIdx] || {};
-            valueSet.add(fmtNumber(m.COM));
+          } else if (colKey.startsWith("month_toc_")) {
+            const tIdx = parseInt(colKey.replace("month_toc_", ""));
+            const m = getDisplayedMonthData(item, tIdx);
+            valueSet.add(fmtNumber(m.toc));
           } else if (colKey.startsWith("month_tor_")) {
             const tIdx = parseInt(colKey.replace("month_tor_", ""));
-            const m = (item.months_data || [])[tIdx] || {};
+            const m = getDisplayedMonthData(item, tIdx);
             valueSet.add(fmtNumber(m.tor));
           }
         });
@@ -1004,15 +1095,15 @@
         rawData.forEach((item) => {
           if (["purchase_cost", "off_site_insurance", "on_site_insurance", "off_site_mtc"].includes(colKey)) {
             if (!fmtNumber(item[colKey])) hasBlank = true;
-          } else if (colKey.startsWith("month_mtc_") || colKey.startsWith("month_otc_") || colKey.startsWith("month_COM_") || colKey.startsWith("month_tor_")) {
+          } else if (colKey.startsWith("month_mtc_") || colKey.startsWith("month_otc_") || colKey.startsWith("month_toc_") || colKey.startsWith("month_tor_")) {
             const parts = colKey.split("_");
             const fType = parts[1];
             const tIdx = parseInt(parts[2]);
-            const val = ((item.months_data || [])[tIdx] || {})[fType];
+            const val = getDisplayedMonthData(item, tIdx)[fType];
             if (!fmtNumber(val)) hasBlank = true;
           } else if (colKey.startsWith("month_site_")) {
             const tIdx = parseInt(colKey.replace("month_site_", ""));
-            const sVal = ((item.months_data || [])[tIdx] || {}).site || "";
+            const sVal = getDisplayedMonthData(item, tIdx).site || "";
             if (!sVal) hasBlank = true;
           } else if (!item[colKey]) {
             hasBlank = true;
@@ -1206,13 +1297,13 @@
         }
 
         closeFilterMenu();
-        renderTable(rawData, currentTimeline);
+        onRibbonYearChange();
       }
 
       function clearCurrentFilter() {
         if (currentFilterCol) delete activeFilters[currentFilterCol];
         closeFilterMenu();
-        renderTable(rawData, currentTimeline);
+        onRibbonYearChange();
       }
 
       function sortAKSColumn(dir) {
@@ -1225,17 +1316,17 @@
             valA = Number(a[currentFilterCol] || 0);
             valB = Number(b[currentFilterCol] || 0);
             return dir === "asc" ? valA - valB : valB - valA;
-          } else if (currentFilterCol.startsWith("month_mtc_") || currentFilterCol.startsWith("month_otc_") || currentFilterCol.startsWith("month_COM_") || currentFilterCol.startsWith("month_tor_")) {
+          } else if (currentFilterCol.startsWith("month_mtc_") || currentFilterCol.startsWith("month_otc_") || currentFilterCol.startsWith("month_toc_") || currentFilterCol.startsWith("month_tor_")) {
             const parts = currentFilterCol.split("_");
             const fieldType = parts[1];
             const tIdx = parseInt(parts[2]);
-            valA = Number(((a.months_data || [])[tIdx] || {})[fieldType] || 0);
-            valB = Number(((b.months_data || [])[tIdx] || {})[fieldType] || 0);
+            valA = Number(getDisplayedMonthData(a, tIdx)[fieldType] || 0);
+            valB = Number(getDisplayedMonthData(b, tIdx)[fieldType] || 0);
             return dir === "asc" ? valA - valB : valB - valA;
           } else if (currentFilterCol.startsWith("month_site_")) {
             const tIdx = parseInt(currentFilterCol.replace("month_site_", ""));
-            valA = ((a.months_data || [])[tIdx] || {}).site || "";
-            valB = ((b.months_data || [])[tIdx] || {}).site || "";
+            valA = getDisplayedMonthData(a, tIdx).site || "";
+            valB = getDisplayedMonthData(b, tIdx).site || "";
           } else {
             valA = a[currentFilterCol] != null ? a[currentFilterCol] : "";
             valB = b[currentFilterCol] != null ? b[currentFilterCol] : "";

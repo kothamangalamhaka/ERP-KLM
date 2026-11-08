@@ -446,7 +446,19 @@ def export_aks_excel(
                     c_sub.alignment = center_align
                 col_cursor += 5
 
-            total_cols = col_cursor - 1
+            ws.merge_cells(start_row=1, start_column=col_cursor, end_row=1, end_column=col_cursor + 3)
+            c_total = ws.cell(row=1, column=col_cursor, value="Total")
+            c_total.fill = head_fill_main
+            c_total.font = head_font
+            c_total.alignment = center_align
+            total_labels = ["T-MTC", "T-OTC", "T-COM", "T-TOR"]
+            for total_idx, label in enumerate(total_labels):
+                c_sub = ws.cell(row=2, column=col_cursor + total_idx, value=label)
+                c_sub.fill = head_fill_sub
+                c_sub.font = head_font
+                c_sub.alignment = center_align
+
+            total_cols = col_cursor + 3
             for r in [1, 2]:
                 for c in range(1, total_cols + 1):
                     ws.cell(row=r, column=c).border = thin_border
@@ -492,6 +504,7 @@ def export_aks_excel(
                 c_offmtc.number_format = '#,##0.00'
 
                 m_data_list = item.get("months_data", [])
+                row_totals = {"mtc": 0.0, "otc": 0.0, "toc": 0.0, "tor": 0.0}
                 for t_idx, tm in enumerate(sheet_timeline):
                     orig_t_idx = next((i for i, x in enumerate(timeline) if x["year"] == tm["year"] and x["month"] == tm["month"]), -1)
                     m_info = m_data_list[orig_t_idx] if orig_t_idx != -1 and orig_t_idx < len(m_data_list) else {"site": "", "mtc": 0, "otc": 0, "toc": 0, "tor": 0}
@@ -506,12 +519,14 @@ def export_aks_excel(
                     c_site.alignment = left_align
 
                     mtc_val = float(m_info.get("mtc") or 0)
+                    row_totals["mtc"] += mtc_val
                     c_mtc = ws.cell(row=curr_row, column=mtc_col, value=mtc_val if mtc_val > 0 else "")
                     c_mtc.alignment = center_align
                     if mtc_val > 0:
                         c_mtc.number_format = '#,##0.00'
 
                     otc_val = float(m_info.get("otc") or 0)
+                    row_totals["otc"] += otc_val
                     c_otc = ws.cell(row=curr_row, column=otc_col, value=otc_val if otc_val > 0 else "")
                     c_otc.alignment = center_align
                     c_otc.fill = otc_data_fill
@@ -519,6 +534,7 @@ def export_aks_excel(
                         c_otc.number_format = '#,##0.00'
 
                     toc_val = float(m_info.get("toc") or 0)
+                    row_totals["toc"] += toc_val
                     c_toc = ws.cell(row=curr_row, column=toc_col, value=toc_val if toc_val > 0 else "")
                     c_toc.alignment = center_align
                     c_toc.fill = toc_data_fill
@@ -526,11 +542,25 @@ def export_aks_excel(
                         c_toc.number_format = '#,##0.00'
 
                     tor_val = float(m_info.get("tor") or 0)
+                    row_totals["tor"] += tor_val
                     c_tor = ws.cell(row=curr_row, column=tor_col, value=tor_val if tor_val > 0 else "")
                     c_tor.alignment = center_align
                     c_tor.fill = rev_data_fill
                     if tor_val > 0:
                         c_tor.number_format = '#,##0.00'
+
+                for total_idx, field in enumerate(["mtc", "otc", "toc", "tor"]):
+                    total_val = row_totals[field]
+                    total_cell = ws.cell(
+                        row=curr_row,
+                        column=col_cursor + total_idx,
+                        value=total_val if total_val != 0 else "",
+                    )
+                    total_cell.alignment = center_align
+                    total_cell.font = head_font
+                    total_cell.fill = [head_fill_sub, otc_data_fill, toc_data_fill, rev_data_fill][total_idx]
+                    if total_val != 0:
+                        total_cell.number_format = '#,##0.00'
 
                 for c_num in range(1, total_cols + 1):
                     cell = ws.cell(row=curr_row, column=c_num)
@@ -575,8 +605,6 @@ def export_aks_excel(
                 t_val = tm["year"] * 100 + tm["month"]
                 if (s_y * 100 + s_m) <= t_val <= (e_y * 100 + e_m):
                     period_timeline.append(tm)
-            if not period_timeline:
-                period_timeline = timeline
             default_sheet.title = "Period Export"
             build_tracker_sheet(default_sheet, period_timeline)
         else:

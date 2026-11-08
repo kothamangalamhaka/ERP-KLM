@@ -2,6 +2,7 @@ import os
 import io
 import calendar
 from datetime import datetime, date
+from typing import Optional
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 import psycopg2
@@ -17,9 +18,40 @@ from routers.AKS.AKS_Summary import get_aks_summary_data
 router = APIRouter(prefix="/py/aks-combined", tags=["AKS Combined Export"])
 
 @router.get("/export")
-def export_combined_aks_excel(scope: str = "all"):
+def export_combined_aks_excel(
+    scope: str = "all",
+    start_year: Optional[int] = None,
+    start_month: Optional[int] = None,
+    end_year: Optional[int] = None,
+    end_month: Optional[int] = None,
+):
     try:
         cur_year = date.today().year
+        if scope == "period":
+            if (
+                start_year is None
+                or start_month is None
+                or end_year is None
+                or end_month is None
+                or not 1 <= start_month <= 12
+                or not 1 <= end_month <= 12
+                or not 1900 <= start_year <= 2100
+                or not 1900 <= end_year <= 2100
+                or start_year * 100 + start_month > end_year * 100 + end_month
+            ):
+                raise HTTPException(status_code=400, detail="Invalid export period.")
+
+        def select_timeline(timeline):
+            if scope == "current":
+                return [tm for tm in timeline if tm["year"] == cur_year]
+            if scope == "period":
+                start_key = start_year * 100 + start_month
+                end_key = end_year * 100 + end_month
+                return [
+                    tm for tm in timeline
+                    if start_key <= tm["year"] * 100 + tm["month"] <= end_key
+                ]
+            return timeline
 
         wb = openpyxl.Workbook()
         ws_eq = wb.active
@@ -51,10 +83,7 @@ def export_combined_aks_excel(scope: str = "all"):
         aks_res = get_aks_data()
         aks_records = aks_res.get("records", [])
         aks_timeline = aks_res.get("timeline", [])
-        if scope == "current":
-            tab1_timeline = [tm for tm in aks_timeline if tm["year"] == cur_year]
-        else:
-            tab1_timeline = aks_timeline
+        tab1_timeline = select_timeline(aks_timeline)
 
         ws_eq.row_dimensions[1].height = 25
         ws_eq.row_dimensions[2].height = 25
@@ -85,7 +114,14 @@ def export_combined_aks_excel(scope: str = "all"):
                 c_sub.fill = head_fill_sub; c_sub.font = head_font; c_sub.alignment = center_align
             col_cursor += 5
 
-        total_cols_1 = col_cursor - 1
+        ws_eq.merge_cells(start_row=1, start_column=col_cursor, end_row=1, end_column=col_cursor + 3)
+        c_total = ws_eq.cell(row=1, column=col_cursor, value="Total")
+        c_total.fill = head_fill_main; c_total.font = head_font; c_total.alignment = center_align
+        for total_idx, label in enumerate(["T-MTC", "T-OTC", "T-COM", "T-TOR"]):
+            c_sub = ws_eq.cell(row=2, column=col_cursor + total_idx, value=label)
+            c_sub.fill = head_fill_sub; c_sub.font = head_font; c_sub.alignment = center_align
+
+        total_cols_1 = col_cursor + 3
         for r in [1, 2]:
             for c in range(1, total_cols_1 + 1):
                 ws_eq.cell(row=r, column=c).border = thin_border
@@ -122,6 +158,7 @@ def export_combined_aks_excel(scope: str = "all"):
             c_offmtc.alignment = center_align; c_offmtc.font = regular_font; c_offmtc.number_format = '#,##0.00'
 
             m_data_list = item.get("months_data", [])
+            row_totals = {"mtc": 0.0, "otc": 0.0, "toc": 0.0, "tor": 0.0}
             for t_idx, tm in enumerate(tab1_timeline):
                 orig_idx = next((i for i, x in enumerate(aks_timeline) if x["year"] == tm["year"] and x["month"] == tm["month"]), -1)
                 m_info = m_data_list[orig_idx] if orig_idx != -1 and orig_idx < len(m_data_list) else {"site": "", "mtc": 0, "otc": 0, "toc": 0, "tor": 0}
@@ -129,24 +166,42 @@ def export_combined_aks_excel(scope: str = "all"):
                 ws_eq.cell(row=curr_row, column=site_col, value=m_info.get("site") or "").alignment = left_align
 
                 mtc_val = float(m_info.get("mtc") or 0)
+                row_totals["mtc"] += mtc_val
                 c_m = ws_eq.cell(row=curr_row, column=site_col + 1, value=mtc_val if mtc_val > 0 else "")
                 c_m.alignment = center_align
                 if mtc_val > 0: c_m.number_format = '#,##0.00'
 
                 otc_val = float(m_info.get("otc") or 0)
+                row_totals["otc"] += otc_val
                 c_o = ws_eq.cell(row=curr_row, column=site_col + 2, value=otc_val if otc_val > 0 else "")
                 c_o.alignment = center_align; c_o.fill = otc_data_fill
                 if otc_val > 0: c_o.number_format = '#,##0.00'
 
                 toc_val = float(m_info.get("toc") or 0)
+                row_totals["toc"] += toc_val
                 c_toc = ws_eq.cell(row=curr_row, column=site_col + 3, value=toc_val if toc_val > 0 else "")
                 c_toc.alignment = center_align; c_toc.fill = toc_data_fill
                 if toc_val > 0: c_toc.number_format = '#,##0.00'
 
                 tor_val = float(m_info.get("tor") or 0)
+                row_totals["tor"] += tor_val
                 c_t = ws_eq.cell(row=curr_row, column=site_col + 4, value=tor_val if tor_val > 0 else "")
                 c_t.alignment = center_align; c_t.fill = rev_data_fill
                 if tor_val > 0: c_t.number_format = '#,##0.00'
+
+            total_fills = [head_fill_sub, otc_data_fill, toc_data_fill, rev_data_fill]
+            for total_idx, field in enumerate(["mtc", "otc", "toc", "tor"]):
+                total_val = row_totals[field]
+                c_total_value = ws_eq.cell(
+                    row=curr_row,
+                    column=col_cursor + total_idx,
+                    value=total_val if total_val != 0 else "",
+                )
+                c_total_value.alignment = center_align
+                c_total_value.font = head_font
+                c_total_value.fill = total_fills[total_idx]
+                if total_val != 0:
+                    c_total_value.number_format = '#,##0.00'
 
             for c_num in range(1, total_cols_1 + 1):
                 cell = ws_eq.cell(row=curr_row, column=c_num)
@@ -174,10 +229,7 @@ def export_combined_aks_excel(scope: str = "all"):
         assets_res = get_assets_data()
         assets_list = assets_res.get("assets", [])
         assets_timeline = assets_res.get("timeline", [])
-        if scope == "current":
-            tab2_timeline = [tm for tm in assets_timeline if tm["year"] == cur_year]
-        else:
-            tab2_timeline = assets_timeline
+        tab2_timeline = select_timeline(assets_timeline)
 
         ws_assets.row_dimensions[1].height = 25
         ws_assets.row_dimensions[2].height = 25
@@ -277,10 +329,7 @@ def export_combined_aks_excel(scope: str = "all"):
         sum_res = get_aks_summary_data()
         sum_records = sum_res.get("records", [])
         sum_timeline = sum_res.get("timeline", [])
-        if scope == "current":
-            tab3_timeline = [tm for tm in sum_timeline if tm["year"] == cur_year]
-        else:
-            tab3_timeline = sum_timeline
+        tab3_timeline = select_timeline(sum_timeline)
 
         base_headers_3 = [
             "SN", "Asset Type", "Model", "Make", "Plate No / Asset Code",
@@ -526,5 +575,7 @@ def export_combined_aks_excel(scope: str = "all"):
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
