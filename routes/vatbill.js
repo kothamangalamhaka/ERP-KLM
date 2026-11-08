@@ -420,20 +420,41 @@ router.post("/update-bulk", verifyVatCode, async (req, res) => {
                 const validFields = ["bill_no", "status", "amount", "quick_dice"];
                 if (!validFields.includes(field)) continue;
 
-                let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();
-                const cleanLf = parseInt(year) >= 2027 ? (ledger_folio || "").trim() : "";
+                let valToSave = (value === null || value === undefined) ? "" : String(value).trim();
+                const cleanYear = parseInt(year);
+                const cleanLf = cleanYear >= 2027 ? (ledger_folio || "").trim() : "";
+                const cleanSup = (supplier || "").trim();
 
-                const query = `
-                    INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, ${field})
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                    ON CONFLICT (year, company, supplier, site_name, COALESCE(ledger_folio, ''), month_index) 
-                    DO UPDATE SET 
-                        ${field} = EXCLUDED.${field},
-                        vat_no = EXCLUDED.vat_no,
-                        display_name = EXCLUDED.display_name,
-                        updated_at = CURRENT_TIMESTAMP
+                let checkQuery = `
+                    SELECT id FROM vat_billing_records 
+                    WHERE year = $1 AND company = $2 
+                      AND LOWER(TRIM(supplier)) = LOWER(TRIM($3))
+                      AND site_name = $4 
+                      AND month_index = $5
                 `;
-                await client.query(query, [year, company, supplier, vat_no, display_name, site_name, cleanLf, month_index, valToSave]);
+                const checkParams = [cleanYear, company, cleanSup, site_name, month_index];
+
+                if (cleanYear >= 2027) {
+                    checkQuery += ` AND COALESCE(ledger_folio, '') = $6 LIMIT 1`;
+                    checkParams.push(cleanLf);
+                } else {
+                    checkQuery += ` LIMIT 1`;
+                }
+
+                const existingRecord = await client.query(checkQuery, checkParams);
+
+                if (existingRecord.rows.length > 0) {
+                    await client.query(`
+                        UPDATE vat_billing_records 
+                        SET ${field} = $1, vat_no = $2, display_name = $3, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = $4
+                    `, [valToSave, vat_no, display_name, existingRecord.rows[0].id]);
+                } else {
+                    await client.query(`
+                        INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, ${field})
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    `, [cleanYear, company, cleanSup, vat_no, display_name, site_name, cleanLf, month_index, valToSave]);
+                }
             }
             await client.query("COMMIT");
         } catch (err) {

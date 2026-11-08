@@ -1324,13 +1324,13 @@
             } else {
               for (let m = 0; m < 12; m++) {
                 if (st.active_months[m]) existingSite.active_months[m] = true;
-                if (st.billing[m]?.bill_no)
+                if (st.billing[m]?.bill_no !== undefined)
                   existingSite.billing[m].bill_no = st.billing[m].bill_no;
-                if (st.billing[m]?.amount)
+                if (st.billing[m]?.amount !== undefined)
                   existingSite.billing[m].amount = st.billing[m].amount;
-                if (st.billing[m]?.erp_total)
+                if (st.billing[m]?.erp_total !== undefined)
                   existingSite.billing[m].erp_total = st.billing[m].erp_total;
-                if (st.billing[m]?.quick_dice)
+                if (st.billing[m]?.quick_dice !== undefined)
                   existingSite.billing[m].quick_dice = st.billing[m].quick_dice;
                 if (st.billing[m]?.qc_checked !== undefined)
                   existingSite.billing[m].qc_checked = st.billing[m].qc_checked;
@@ -1452,7 +1452,7 @@
         document.getElementById("saveBtn").style.display = "none";
         document.getElementById("cancelBtn").style.display = "none";
         const supData = consolidatedSuppliers[selectedSupplierKey];
-        renderTable(supData);
+        if (supData) renderTable(supData);
         showStatus("Edit cancelled", "saved");
       }
       async function refreshCurrentTable(btnEl) {
@@ -1580,8 +1580,14 @@
           });
           const json = await res.json();
           if (json.success) {
+            isEditMode = false;
+            document.getElementById("editToggleBtn").style.display = "inline-flex";
+            document.getElementById("saveBtn").style.display = "none";
+            document.getElementById("cancelBtn").style.display = "none";
+
+            // 🟢 ബാക്ക്-എൻഡിൽ നിന്ന് പുതിയ ഡാറ്റ വീണ്ടും ഫെച്ച് ചെയ്ത് ടേബിൾ അപ്‌ഡേറ്റ് ചെയ്യുന്നു
+            await refreshCurrentTable(null);
             showStatus("✓ Saved successfully", "saved");
-            cancelEditMode();
           } else {
             showStatus("Error saving", "error");
           }
