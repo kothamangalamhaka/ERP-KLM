@@ -164,6 +164,7 @@ def get_aks_data():
 
         maint_map = {}
         otc_map = {}
+        toc_map = {}
         rev_map = {}
         all_logged_months = set()
         for ml in maint_logs:
@@ -172,18 +173,21 @@ def get_aks_data():
             maint_map[k] = m_cost
             rev_map[k] = float(ml["op_revenue"])
 
-            # Calculate Operational Expenses (OTC)
+            # Calculate Operational Expenses (OTC) - without commission
             rev = float(ml["op_revenue"])
             pct = float(ml["kafil_pct"])
             kaf = rev * (pct / 100.0) if (pct > 0 and rev > 0) else float(ml["kafil_comm"])
             net_sal = float(ml["basic_salary"]) + float(ml["overtime"]) + float(ml["allowance"]) - float(ml["penalty"])
             tot_otc = (
-                net_sal + float(ml["santook_rent"]) + kaf + float(ml["owner_comm"]) +
-                float(ml["investor_comm"]) + float(ml["debit"]) + float(ml["pwas"]) + float(ml["other_expense"])
+                net_sal + float(ml["santook_rent"]) +
+                float(ml["debit"]) + float(ml["pwas"]) + float(ml["other_expense"])
             )
+            # TOC = Commission paid (Kafil + Owner). Investor commission is omitted from this screen.
+            tot_toc = kaf + float(ml["owner_comm"])
             otc_map[k] = tot_otc
+            toc_map[k] = tot_toc
 
-            if m_cost > 0 or tot_otc > 0 or rev > 0:
+            if m_cost > 0 or tot_otc > 0 or tot_toc > 0 or rev > 0:
                 all_logged_months.add((ml["year"], ml["month"]))
 
         # Build dynamic month timeline starting from earliest site/expense log up to current month
@@ -296,12 +300,14 @@ def get_aks_data():
                 site_display = " / ".join(matched_site_names) if matched_site_names else ""
                 mtc_val = on_site_maint_map.get(f"{yr}_{mn}", 0.0)
                 otc_val = otc_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
+                toc_val = toc_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
                 tor_val = rev_map.get(f"{eq_id}_{yr}_{mn}", 0.0)
 
                 month_columns_data.append({
                     "site": site_display,
                     "mtc": round(mtc_val, 2),
                     "otc": round(otc_val, 2),
+                    "toc": round(toc_val, 2),
                     "tor": round(tor_val, 2)
                 })
 
@@ -371,6 +377,7 @@ def export_aks_excel(
         head_fill_month = PatternFill(start_color="C6D9F1", end_color="C6D9F1", fill_type="solid")
         head_fill_sub = PatternFill(start_color="E9EEF4", end_color="E9EEF4", fill_type="solid")
         otc_data_fill = PatternFill(start_color="FEFCE8", end_color="FEFCE8", fill_type="solid")
+        toc_data_fill = PatternFill(start_color="F5F3FF", end_color="F5F3FF", fill_type="solid")
         head_font = Font(name="Segoe UI", size=11, bold=True, color="000000")
         regular_font = Font(name="Segoe UI", size=10)
         center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -422,22 +429,22 @@ def export_aks_excel(
                 c_sub.font = head_font
                 c_sub.alignment = center_align
 
-            # Timeline Headers (4 Columns per Month: Site, MTC, OTC, TOR)
+            # Timeline Headers (5 Columns per Month: Site, MTC, OTC, TOC, TOR)
             rev_data_fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
             col_cursor = len(base_headers) + 1
             for tm in sheet_timeline:
-                ws.merge_cells(start_row=1, start_column=col_cursor, end_row=1, end_column=col_cursor + 3)
+                ws.merge_cells(start_row=1, start_column=col_cursor, end_row=1, end_column=col_cursor + 4)
                 c_top = ws.cell(row=1, column=col_cursor, value=tm["label"])
                 c_top.fill = head_fill_month
                 c_top.font = head_font
                 c_top.alignment = center_align
 
-                for sub_idx, sub_label in enumerate(["Site", "MTC", "OTC", "TOR"]):
+                for sub_idx, sub_label in enumerate(["Site", "MTC", "OTC", "TOC", "TOR"]):
                     c_sub = ws.cell(row=2, column=col_cursor + sub_idx, value=sub_label)
                     c_sub.fill = head_fill_sub
                     c_sub.font = head_font
                     c_sub.alignment = center_align
-                col_cursor += 4
+                col_cursor += 5
 
             total_cols = col_cursor - 1
             for r in [1, 2]:
@@ -487,12 +494,13 @@ def export_aks_excel(
                 m_data_list = item.get("months_data", [])
                 for t_idx, tm in enumerate(sheet_timeline):
                     orig_t_idx = next((i for i, x in enumerate(timeline) if x["year"] == tm["year"] and x["month"] == tm["month"]), -1)
-                    m_info = m_data_list[orig_t_idx] if orig_t_idx != -1 and orig_t_idx < len(m_data_list) else {"site": "", "mtc": 0, "otc": 0, "tor": 0}
+                    m_info = m_data_list[orig_t_idx] if orig_t_idx != -1 and orig_t_idx < len(m_data_list) else {"site": "", "mtc": 0, "otc": 0, "toc": 0, "tor": 0}
 
-                    site_col = 12 + (t_idx * 4)
+                    site_col = 12 + (t_idx * 5)
                     mtc_col = site_col + 1
                     otc_col = site_col + 2
-                    tor_col = site_col + 3
+                    toc_col = site_col + 3
+                    tor_col = site_col + 4
 
                     c_site = ws.cell(row=curr_row, column=site_col, value=m_info.get("site") or "")
                     c_site.alignment = left_align
@@ -509,6 +517,13 @@ def export_aks_excel(
                     c_otc.fill = otc_data_fill
                     if otc_val > 0:
                         c_otc.number_format = '#,##0.00'
+
+                    toc_val = float(m_info.get("toc") or 0)
+                    c_toc = ws.cell(row=curr_row, column=toc_col, value=toc_val if toc_val > 0 else "")
+                    c_toc.alignment = center_align
+                    c_toc.fill = toc_data_fill
+                    if toc_val > 0:
+                        c_toc.number_format = '#,##0.00'
 
                     tor_val = float(m_info.get("tor") or 0)
                     c_tor = ws.cell(row=curr_row, column=tor_col, value=tor_val if tor_val > 0 else "")

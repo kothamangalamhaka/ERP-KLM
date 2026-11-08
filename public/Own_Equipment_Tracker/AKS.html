@@ -661,11 +661,12 @@
         `;
 
         timeline.forEach((tm, tIdx) => {
-          r1.innerHTML += `<th colspan="4" style="background: #c6d9f1; border-left: 2px solid #94a3b8;">${tm.label}</th>`;
+          r1.innerHTML += `<th colspan="5" style="background: #c6d9f1; border-left: 2px solid #94a3b8;">${tm.label}</th>`;
           r2.innerHTML += `
             <th style="min-width: 130px; background: #e9eef4; border-left: 2px solid #94a3b8;">Site <span class="filter-icon" onclick="openColumnFilter(event, 'month_site_${tIdx}', '${tm.label} Site')">🔽</span></th>
             <th style="min-width: 90px; background: #e9eef4;">MTC <span class="filter-icon" onclick="openColumnFilter(event, 'month_mtc_${tIdx}', '${tm.label} MTC')">🔽</span></th>
             <th style="min-width: 90px; background: #e9eef4;">OTC <span class="filter-icon" onclick="openColumnFilter(event, 'month_otc_${tIdx}', '${tm.label} OTC')">🔽</span></th>
+            <th style="min-width: 90px; background: #f5f3ff;">COM <span class="filter-icon" onclick="openColumnFilter(event, 'month_COM_${tIdx}', '${tm.label} COM')">🔽</span></th>
             <th style="min-width: 95px; background: #e2efda;">TOR <span class="filter-icon" onclick="openColumnFilter(event, 'month_tor_${tIdx}', '${tm.label} TOR')">🔽</span></th>
           `;
         });
@@ -737,6 +738,12 @@
               if (!selectedVals.includes(fmtNumber(mData.otc) || "__BLANK__"))
                 return false;
             }
+            if (col.startsWith("month_COM_")) {
+              const tIdx = parseInt(col.replace("month_COM_", ""));
+              const mData = (item.months_data || [])[tIdx] || {};
+              if (!selectedVals.includes(fmtNumber(mData.COM) || "__BLANK__"))
+                return false;
+            }
             if (col.startsWith("month_tor_")) {
               const tIdx = parseInt(col.replace("month_tor_", ""));
               const mData = (item.months_data || [])[tIdx] || {};
@@ -767,11 +774,12 @@
 
           const mDataList = item.months_data || [];
           timeline.forEach((_, tIdx) => {
-            const m = mDataList[tIdx] || { site: "", mtc: 0, otc: 0, tor: 0 };
+            const m = mDataList[tIdx] || { site: "", mtc: 0, otc: 0, COM: 0, tor: 0 };
             rowHtml += `
               <td style="text-align: left; font-weight: 500; border-left: 2px solid #cbd5e1;">${m.site || ""}</td>
               <td style="font-weight: 500;">${fmtNumber(m.mtc)}</td>
               <td style="font-weight: 500; background-color: #fefce8;">${fmtNumber(m.otc)}</td>
+              <td style="font-weight: 500; background-color: #f5f3ff;">${fmtNumber(m.COM)}</td>
               <td style="font-weight: 500; background-color: #f0fdf4;">${fmtNumber(m.tor)}</td>
             `;
           });
@@ -981,6 +989,10 @@
             const tIdx = parseInt(colKey.replace("month_otc_", ""));
             const m = (item.months_data || [])[tIdx] || {};
             valueSet.add(fmtNumber(m.otc));
+          } else if (colKey.startsWith("month_COM_")) {
+            const tIdx = parseInt(colKey.replace("month_COM_", ""));
+            const m = (item.months_data || [])[tIdx] || {};
+            valueSet.add(fmtNumber(m.COM));
           } else if (colKey.startsWith("month_tor_")) {
             const tIdx = parseInt(colKey.replace("month_tor_", ""));
             const m = (item.months_data || [])[tIdx] || {};
@@ -992,7 +1004,7 @@
         rawData.forEach((item) => {
           if (["purchase_cost", "off_site_insurance", "on_site_insurance", "off_site_mtc"].includes(colKey)) {
             if (!fmtNumber(item[colKey])) hasBlank = true;
-          } else if (colKey.startsWith("month_mtc_") || colKey.startsWith("month_otc_") || colKey.startsWith("month_tor_")) {
+          } else if (colKey.startsWith("month_mtc_") || colKey.startsWith("month_otc_") || colKey.startsWith("month_COM_") || colKey.startsWith("month_tor_")) {
             const parts = colKey.split("_");
             const fType = parts[1];
             const tIdx = parseInt(parts[2]);
@@ -1213,7 +1225,7 @@
             valA = Number(a[currentFilterCol] || 0);
             valB = Number(b[currentFilterCol] || 0);
             return dir === "asc" ? valA - valB : valB - valA;
-          } else if (currentFilterCol.startsWith("month_mtc_") || currentFilterCol.startsWith("month_otc_") || currentFilterCol.startsWith("month_tor_")) {
+          } else if (currentFilterCol.startsWith("month_mtc_") || currentFilterCol.startsWith("month_otc_") || currentFilterCol.startsWith("month_COM_") || currentFilterCol.startsWith("month_tor_")) {
             const parts = currentFilterCol.split("_");
             const fieldType = parts[1];
             const tIdx = parseInt(parts[2]);

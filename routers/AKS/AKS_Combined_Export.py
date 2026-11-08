@@ -32,6 +32,7 @@ def export_combined_aks_excel(scope: str = "all"):
         head_fill_month = PatternFill(start_color="C6D9F1", end_color="C6D9F1", fill_type="solid")
         head_fill_sub = PatternFill(start_color="E9EEF4", end_color="E9EEF4", fill_type="solid")
         otc_data_fill = PatternFill(start_color="FEFCE8", end_color="FEFCE8", fill_type="solid")
+        toc_data_fill = PatternFill(start_color="F5F3FF", end_color="F5F3FF", fill_type="solid")
         rev_data_fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
         head_font = Font(name="Segoe UI", size=11, bold=True, color="000000")
         regular_font = Font(name="Segoe UI", size=10)
@@ -76,13 +77,13 @@ def export_combined_aks_excel(scope: str = "all"):
 
         col_cursor = 12
         for tm in tab1_timeline:
-            ws_eq.merge_cells(start_row=1, start_column=col_cursor, end_row=1, end_column=col_cursor + 3)
+            ws_eq.merge_cells(start_row=1, start_column=col_cursor, end_row=1, end_column=col_cursor + 4)
             c_top = ws_eq.cell(row=1, column=col_cursor, value=tm["label"])
             c_top.fill = head_fill_month; c_top.font = head_font; c_top.alignment = center_align
-            for sub_idx, sub_label in enumerate(["Site", "MTC", "OTC", "TOR"]):
+            for sub_idx, sub_label in enumerate(["Site", "MTC", "OTC", "TOC", "TOR"]):
                 c_sub = ws_eq.cell(row=2, column=col_cursor + sub_idx, value=sub_label)
                 c_sub.fill = head_fill_sub; c_sub.font = head_font; c_sub.alignment = center_align
-            col_cursor += 4
+            col_cursor += 5
 
         total_cols_1 = col_cursor - 1
         for r in [1, 2]:
@@ -123,8 +124,8 @@ def export_combined_aks_excel(scope: str = "all"):
             m_data_list = item.get("months_data", [])
             for t_idx, tm in enumerate(tab1_timeline):
                 orig_idx = next((i for i, x in enumerate(aks_timeline) if x["year"] == tm["year"] and x["month"] == tm["month"]), -1)
-                m_info = m_data_list[orig_idx] if orig_idx != -1 and orig_idx < len(m_data_list) else {"site": "", "mtc": 0, "otc": 0, "tor": 0}
-                site_col = 12 + (t_idx * 4)
+                m_info = m_data_list[orig_idx] if orig_idx != -1 and orig_idx < len(m_data_list) else {"site": "", "mtc": 0, "otc": 0, "toc": 0, "tor": 0}
+                site_col = 12 + (t_idx * 5)
                 ws_eq.cell(row=curr_row, column=site_col, value=m_info.get("site") or "").alignment = left_align
 
                 mtc_val = float(m_info.get("mtc") or 0)
@@ -137,8 +138,13 @@ def export_combined_aks_excel(scope: str = "all"):
                 c_o.alignment = center_align; c_o.fill = otc_data_fill
                 if otc_val > 0: c_o.number_format = '#,##0.00'
 
+                toc_val = float(m_info.get("toc") or 0)
+                c_toc = ws_eq.cell(row=curr_row, column=site_col + 3, value=toc_val if toc_val > 0 else "")
+                c_toc.alignment = center_align; c_toc.fill = toc_data_fill
+                if toc_val > 0: c_toc.number_format = '#,##0.00'
+
                 tor_val = float(m_info.get("tor") or 0)
-                c_t = ws_eq.cell(row=curr_row, column=site_col + 3, value=tor_val if tor_val > 0 else "")
+                c_t = ws_eq.cell(row=curr_row, column=site_col + 4, value=tor_val if tor_val > 0 else "")
                 c_t.alignment = center_align; c_t.fill = rev_data_fill
                 if tor_val > 0: c_t.number_format = '#,##0.00'
 
