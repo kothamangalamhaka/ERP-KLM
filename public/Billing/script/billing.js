@@ -620,15 +620,29 @@ function rearrangeScreenData() {
 
       let itemOwner = fallbackOwner;
       if (plate) {
-        let masterMatch = masterData.find(
-          (m) => (m.plate_number || m.plate || "").toUpperCase() === plate,
-        );
-        if (
-          masterMatch &&
-          masterMatch.owner &&
-          masterMatch.owner.trim() !== ""
-        ) {
-          itemOwner = masterMatch.owner.trim();
+        let savedMatch = savedBillingData.find((s) => {
+          let sPlate = (s.plate_no || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+          let rowPlate = plate.replace(/[^A-Z0-9]/g, "");
+          let sSite = (s.site_name || "").trim().toUpperCase();
+          return sPlate === rowPlate && (!site || sSite === site.toUpperCase());
+        });
+
+        if (savedMatch && savedMatch.owner && savedMatch.owner.trim() !== "") {
+          itemOwner = savedMatch.owner.trim();
+        } else {
+          let masterMatch = masterData.find(
+            (m) => (m.plate_number || m.plate || "").toUpperCase() === plate &&
+                   (!site || (m.site || "").trim().toUpperCase() === site.toUpperCase()),
+          ) || masterData.find(
+            (m) => (m.plate_number || m.plate || "").toUpperCase() === plate,
+          );
+          if (
+            masterMatch &&
+            masterMatch.owner &&
+            masterMatch.owner.trim() !== ""
+          ) {
+            itemOwner = masterMatch.owner.trim();
+          }
         }
       }
       if (!itemOwner || itemOwner === "VARIOUS OWNERS")
@@ -1320,13 +1334,27 @@ window.arrangeSingleCard = function (cardId) {
     if (!plate && !site && nhr === 0 && othr === 0) return;
 
     let itemOwner = fallbackOwner;
-    if (plate) {
-      let masterMatch = masterData.find(
-        (m) => (m.plate_number || m.plate || "").toUpperCase() === plate,
-      );
-      if (masterMatch && masterMatch.owner)
-        itemOwner = masterMatch.owner.trim();
-    }
+      if (plate) {
+        let savedMatch = savedBillingData.find((s) => {
+          let sPlate = (s.plate_no || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+          let rowPlate = plate.replace(/[^A-Z0-9]/g, "");
+          let sSite = (s.site_name || "").trim().toUpperCase();
+          return sPlate === rowPlate && (!site || sSite === site.toUpperCase());
+        });
+
+        if (savedMatch && savedMatch.owner && savedMatch.owner.trim() !== "") {
+          itemOwner = savedMatch.owner.trim();
+        } else {
+          let masterMatch = masterData.find(
+            (m) => (m.plate_number || m.plate || "").toUpperCase() === plate &&
+                   (!site || (m.site || "").trim().toUpperCase() === site.toUpperCase()),
+          ) || masterData.find(
+            (m) => (m.plate_number || m.plate || "").toUpperCase() === plate,
+          );
+          if (masterMatch && masterMatch.owner)
+            itemOwner = masterMatch.owner.trim();
+        }
+      }
     if (!itemOwner) itemOwner = "COMPANY VEHICLE";
 
     itemsToGroup.push({

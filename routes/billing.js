@@ -297,35 +297,6 @@ router.get("/vehicles", async (req, res) => {
           correctDriver = (tsItem.driver_name || tsItem.driver || "N/A").trim();
         }
 
-        // --- OWNER LOGIC (Month-wise lookup from vehicle_owner_log) ---
-        let oLogs = ownerLogs.rows.filter(
-          (l) => (l.plate_no || "").toUpperCase() === plate,
-        );
-        let validOLogs = oLogs.filter((l) => {
-          let st = l.work_start_date
-            ? new Date(l.work_start_date)
-            : new Date("2000-01-01");
-          let ed = l.work_end_date
-            ? new Date(l.work_end_date)
-            : new Date("2099-01-01");
-          return st <= targetEnd && ed >= targetStart;
-        });
-
-        if (validOLogs.length > 0) {
-          validOLogs.sort(
-            (a, b) =>
-              new Date(b.work_start_date || "2000-01-01") -
-              new Date(a.work_start_date || "2000-01-01"),
-          );
-          let activeOwnerLog = validOLogs[0];
-          if (activeOwnerLog.owner_name) correctOwner = activeOwnerLog.owner_name.trim();
-          if (activeOwnerLog.owner_mobile) correctOwnerMobile = activeOwnerLog.owner_mobile.trim();
-          if (activeOwnerLog.vat) correctVat = String(activeOwnerLog.vat).trim();
-          tsItem.company_display_name = activeOwnerLog.company_display_name || tsItem.company_display_name || "";
-          tsItem.company_arabic_name = activeOwnerLog.company_arabic_name || tsItem.company_arabic_name || "";
-          tsItem.vat_no = activeOwnerLog.vat_no || tsItem.vat_no || "";
-        }
-
         // --- SITE LOGIC ---
         let sLogs = siteLogs.rows.filter(
           (l) => (l.plate_no || "").toUpperCase() === plate,
@@ -350,12 +321,52 @@ router.get("/vehicles", async (req, res) => {
 
         let uniqueSitesMap = new Map();
         validSLogs.forEach((s) => {
-          if (s.site_name) uniqueSitesMap.set(s.site_name, { rate: s.rate, vehicle_type: s.vehicle_type });
+          if (s.site_name) uniqueSitesMap.set(s.site_name, { rate: s.rate, vehicle_type: s.vehicle_type, start_date: s.work_start_date, end_date: s.work_end_date });
         });
 
         uniqueSitesMap.forEach((sLogData, siteName) => {
           let sLogRate = sLogData.rate;
           let sLogVType = sLogData.vehicle_type;
+
+          // Priority 1: Check saved billing_records owner for this month & site
+          let savedRowMatch = savedResult.rows.find((sb) => {
+            let sbPlate = (sb.plate_no || "").trim().toUpperCase();
+            let isPlateOk = relatedPlates.some(rp => rp.replace(/[^A-Z0-9]/g, "") === sbPlate.replace(/[^A-Z0-9]/g, ""));
+            let isSiteOk = (sb.site_name || "").trim().toUpperCase() === siteName.trim().toUpperCase();
+            return isPlateOk && isSiteOk;
+          });
+
+          // Priority 2: Site-specific Owner Resolution based on Dates
+          let siteStart = sLogData.start_date ? new Date(sLogData.start_date) : targetStart;
+          let siteEnd = sLogData.end_date ? new Date(sLogData.end_date) : targetEnd;
+
+          let oLogs = ownerLogs.rows.filter((l) => (l.plate_no || "").toUpperCase() === plate);
+          let validOLogs = oLogs.filter((l) => {
+            let st = l.work_start_date ? new Date(l.work_start_date) : new Date("2000-01-01");
+            let ed = l.work_end_date ? new Date(l.work_end_date) : new Date("2099-01-01");
+            return st <= siteEnd && ed >= siteStart;
+          });
+
+          let siteOwner = correctOwner;
+          let siteOwnerMobile = correctOwnerMobile;
+          let siteVat = correctVat;
+
+          if (validOLogs.length > 0) {
+            validOLogs.sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"));
+            let activeOwnerLog = validOLogs[0];
+            if (activeOwnerLog.owner_name) siteOwner = activeOwnerLog.owner_name.trim();
+            if (activeOwnerLog.owner_mobile) siteOwnerMobile = activeOwnerLog.owner_mobile.trim();
+            if (activeOwnerLog.vat) siteVat = String(activeOwnerLog.vat).trim();
+            tsItem.company_display_name = activeOwnerLog.company_display_name || tsItem.company_display_name || "";
+            tsItem.company_arabic_name = activeOwnerLog.company_arabic_name || tsItem.company_arabic_name || "";
+            tsItem.vat_no = activeOwnerLog.vat_no || tsItem.vat_no || "";
+          }
+
+          // Override with saved bill owner if exists
+          if (savedRowMatch && savedRowMatch.owner && savedRowMatch.owner.trim() !== "") {
+            siteOwner = savedRowMatch.owner.trim();
+          }
+
           let validRLogs = rLogs.filter((r) => {
             let matchesSite = !r.site_name || r.site_name.trim() === "" || r.site_name.trim().toUpperCase() === siteName.trim().toUpperCase();
             let st = r.work_start_date ? new Date(r.work_start_date) : new Date("2000-01-01");
@@ -373,7 +384,7 @@ router.get("/vehicles", async (req, res) => {
             finalRateVal = parseFloat(sLogRate) || parseFloat(tsItem.rate) || 0;
           }
 
-          pushVehicle(plate, tsItem, correctDriver, siteName, finalRateVal, correctOwner, correctOwnerMobile, correctVat, sLogVType);
+          pushVehicle(plate, tsItem, correctDriver, siteName, finalRateVal, siteOwner, siteOwnerMobile, siteVat, sLogVType);
         });
       } else {
         // All മോഡ്

@@ -215,19 +215,90 @@
   </head>
   <body>
     <!-- Breakdown Details Modal -->
-    <div id="breakdownModal" class="login-overlay" style="display: none; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); z-index: 10000;" onclick="if(event.target === this) closeBreakdownModal();">
-      <div style="background: white; border-radius: 8px; width: 550px; max-width: 90vw; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.3); overflow: hidden;">
-        <div style="padding: 12px 18px; background: #0f2027; color: white; display: flex; justify-content: space-between; align-items: center;">
-          <h3 id="breakdownModalTitle" style="margin: 0; font-size: 13px; font-weight: 600;">Breakdown Details</h3>
-          <button onclick="closeBreakdownModal()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; line-height: 1;">&times;</button>
+    <div
+      id="breakdownModal"
+      class="login-overlay"
+      style="
+        display: none;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(2px);
+        z-index: 10000;
+      "
+      onclick="if (event.target === this) closeBreakdownModal();"
+    >
+      <div
+        style="
+          background: white;
+          border-radius: 8px;
+          width: 550px;
+          max-width: 90vw;
+          max-height: 85vh;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+          overflow: hidden;
+        "
+      >
+        <div
+          style="
+            padding: 12px 18px;
+            background: #0f2027;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <h3
+            id="breakdownModalTitle"
+            style="margin: 0; font-size: 13px; font-weight: 600"
+          >
+            Breakdown Details
+          </h3>
+          <button
+            onclick="closeBreakdownModal()"
+            style="
+              background: none;
+              border: none;
+              color: #94a3b8;
+              font-size: 20px;
+              cursor: pointer;
+              line-height: 1;
+            "
+          >
+            &times;
+          </button>
         </div>
-        <div style="padding: 15px; overflow-y: auto; flex: 1;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #cbd5e1;">
+        <div style="padding: 15px; overflow-y: auto; flex: 1">
+          <table
+            style="
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 12px;
+              border: 1px solid #cbd5e1;
+            "
+          >
             <thead>
-              <tr style="background: #f1f5f9; color: #334155;">
-                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">Site Name</th>
-                <th style="padding: 8px; border: 1px solid #cbd5e1;">Bill No</th>
-                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Amount</th>
+              <tr style="background: #f1f5f9; color: #334155">
+                <th
+                  style="
+                    padding: 8px;
+                    border: 1px solid #cbd5e1;
+                    text-align: left;
+                  "
+                >
+                  Site Name
+                </th>
+                <th style="padding: 8px; border: 1px solid #cbd5e1">Bill No</th>
+                <th
+                  style="
+                    padding: 8px;
+                    border: 1px solid #cbd5e1;
+                    text-align: right;
+                  "
+                >
+                  Amount
+                </th>
               </tr>
             </thead>
             <tbody id="breakdownModalBody"></tbody>
@@ -250,7 +321,15 @@
           placeholder="Enter Access Code"
           onkeydown="if (event.key === 'Enter') verifyLogin();"
         />
-        <div id="loginError" style="color: #ef4444; font-size: 12px; margin-bottom: 10px; display: none;">
+        <div
+          id="loginError"
+          style="
+            color: #ef4444;
+            font-size: 12px;
+            margin-bottom: 10px;
+            display: none;
+          "
+        >
           Invalid Access Code.
         </div>
         <button onclick="verifyLogin()">Unlock</button>
@@ -273,7 +352,10 @@
         <span style="font-size: 18px; font-weight: 600; white-space: nowrap"
           >Vat Customer Payment Track System</span
         >
-        <span id="saveStatus" style="margin-left: 15px; font-weight: bold"></span>
+        <span
+          id="saveStatus"
+          style="margin-left: 15px; font-weight: bold"
+        ></span>
       </div>
 
       <div class="nav-tools">
@@ -443,7 +525,10 @@
 
       function renderSummaryTable() {
         const quarter = document.getElementById("quarterFilter").value;
-        const search = document.getElementById("searchInput").value.toLowerCase().trim();
+        const search = document
+          .getElementById("searchInput")
+          .value.toLowerCase()
+          .trim();
 
         let startMonth = 0,
           endMonth = 11;
@@ -505,11 +590,15 @@
           }
 
           const sData = supplierSummaryMap.get(supKey);
-          if (!sData.display_name && group.display_name) sData.display_name = group.display_name;
+          if (!sData.display_name && group.display_name)
+            sData.display_name = group.display_name;
           if (!sData.vat_no && group.vat_no) sData.vat_no = group.vat_no;
 
           group.sites.forEach((site) => {
-            const resolvedCompany = normalizeCompany(group.company, site.site_name);
+            const resolvedCompany = normalizeCompany(
+              group.company,
+              site.site_name,
+            );
 
             for (let m = 0; m < 12; m++) {
               if (site.billing && site.billing[m]) {
@@ -525,7 +614,8 @@
         // Apply Search Filter
         if (search) {
           summaryRows = summaryRows.filter((r) => {
-            const targetStr = `${r.supplier} ${r.display_name} ${r.vat_no}`.toLowerCase();
+            const targetStr =
+              `${r.supplier} ${r.display_name} ${r.vat_no}`.toLowerCase();
             return targetStr.includes(search);
           });
         }
@@ -568,10 +658,16 @@
             companiesList.forEach((comp, cIdx) => {
               const val = mValues[comp];
               grandTotals[m][comp] += val;
-              const borderStyle = cIdx === 0 ? "border-left: 2px solid #cbd5e1;" : "";
-              const cellCls = val > 0 ? "amt-cell breakdown-interactive" : "amt-empty";
-              const clickAction = val > 0 ? `oncontextmenu="openBreakdownModal(event, '${escapeQuotes(row.supplier)}', '${escapeQuotes(comp)}', ${m})"` : "";
-              const titleAttr = val > 0 ? `title="Right-click to view breakdown"` : "";
+              const borderStyle =
+                cIdx === 0 ? "border-left: 2px solid #cbd5e1;" : "";
+              const cellCls =
+                val > 0 ? "amt-cell breakdown-interactive" : "amt-empty";
+              const clickAction =
+                val > 0
+                  ? `oncontextmenu="openBreakdownModal(event, '${escapeQuotes(row.supplier)}', '${escapeQuotes(comp)}', ${m})"`
+                  : "";
+              const titleAttr =
+                val > 0 ? `title="Right-click to view breakdown"` : "";
 
               tbody += `<td class="${cellCls}" style="${borderStyle}" ${clickAction} ${titleAttr}>${formatNumber(val)}</td>`;
             });
@@ -589,7 +685,8 @@
 
         for (let m = startMonth; m <= endMonth; m++) {
           companiesList.forEach((comp, cIdx) => {
-            const borderStyle = cIdx === 0 ? "border-left: 2px solid #94a3b8;" : "";
+            const borderStyle =
+              cIdx === 0 ? "border-left: 2px solid #94a3b8;" : "";
             tfoot += `<td style="font-weight: 700; ${borderStyle}">${formatNumber(grandTotals[m][comp])}</td>`;
           });
         }
@@ -615,18 +712,22 @@
         if (e && e.preventDefault) e.preventDefault();
         if (!text || text === "-" || text === "N/A") return;
 
-        navigator.clipboard.writeText(text).then(() => {
-          showStatus(`✓ ${label} Copied: ${text}`, "saved");
-        }).catch(() => {
-          showStatus(`Failed to copy ${label}`, "error");
-        });
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            showStatus(`✓ ${label} Copied: ${text}`, "saved");
+          })
+          .catch(() => {
+            showStatus(`Failed to copy ${label}`, "error");
+          });
       }
 
       function openBreakdownModal(e, supplier, company, monthIdx) {
         if (e && e.preventDefault) e.preventDefault();
 
         const mName = monthsFull[monthIdx];
-        document.getElementById("breakdownModalTitle").innerText = `${supplier} ➔ ${company} (${mName} - ${currentYear})`;
+        document.getElementById("breakdownModalTitle").innerText =
+          `${supplier} ➔ ${company} (${mName} - ${currentYear})`;
 
         const modalBody = document.getElementById("breakdownModalBody");
         const modalFoot = document.getElementById("breakdownModalFoot");
@@ -638,7 +739,10 @@
           if ((group.supplier || "").trim() !== supplier) return;
 
           group.sites.forEach((site) => {
-            const compResolved = normalizeCompany(group.company, site.site_name);
+            const compResolved = normalizeCompany(
+              group.company,
+              site.site_name,
+            );
             if (compResolved === company) {
               const billing = site.billing && site.billing[monthIdx];
               const amt = billing ? parseAmount(billing.amount) : 0;
@@ -646,7 +750,7 @@
                 siteBreakdowns.push({
                   site_name: site.site_name,
                   bill_no: billing.bill_no || "-",
-                  amount: amt
+                  amount: amt,
                 });
                 grandSum += amt;
               }

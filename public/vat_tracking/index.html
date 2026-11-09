@@ -1734,6 +1734,8 @@
               if (sit) sit.billing[month_index][field] = newValue;
             }
 
+            const cleanLfToPass = currentYear >= 2027 ? (ledger_folio || (sit ? sit.ledger_folio : "") || "") : "";
+
             if (isBulkMode) {
               td.style.backgroundColor = "#fef08a";
               const existingIdx = pendingChanges.findIndex(
@@ -1744,8 +1746,6 @@
                   p.month_index === month_index &&
                   p.field === field,
               );
-
-              const cleanLfToPass = currentYear >= 2027 ? (ledger_folio || (sit ? sit.ledger_folio : "") || "") : "";
 
               if (existingIdx > -1) {
                 pendingChanges[existingIdx].value = newValue;

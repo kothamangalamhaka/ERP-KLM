@@ -3290,40 +3290,9 @@
 
           if (!pClean) return;
 
-          // 🟢 1. Owner & VAT from vehicle_owner_log (Date Period Filter)
           let vOwners = (data.owners || []).filter(
             (o) => cleanPlate(o.plate_no) === pClean,
           );
-          let activeOwners = vOwners.filter((o) => {
-            let st = safeDate(o.work_start_date, "2000-01-01");
-            let ed = safeDate(o.work_end_date, "2099-01-01");
-            st.setHours(0, 0, 0, 0);
-            ed.setHours(23, 59, 59, 999);
-            return st <= monthEnd && ed >= monthStart;
-          });
-
-          if (activeOwners.length === 0 && vOwners.length > 0) {
-            activeOwners = vOwners.filter((o) => o.status === "Running");
-            if (activeOwners.length === 0) {
-              activeOwners = [
-                [...vOwners].sort(
-                  (a, b) =>
-                    safeDate(b.work_start_date || "2000-01-01") -
-                    safeDate(a.work_start_date || "2000-01-01"),
-                )[0],
-              ];
-            }
-          }
-
-          let owner =
-            activeOwners.length > 0
-              ? activeOwners[0].owner_name || v.owner_name || "N/A"
-              : v.owner_name || "N/A";
-          let vat =
-            activeOwners.length > 0
-              ? activeOwners[0].vat || v.vat || "No"
-              : v.vat || "No";
-
           let vSites = (data.sites || []).filter(
             (s) => cleanPlate(s.plate_no) === pClean,
           );
@@ -3477,6 +3446,35 @@
               return num % 1 !== 0 ? num.toFixed(2) : num.toString();
             }
 
+            // 🟢 SITE-SPECIFIC OWNER RESOLUTION: Aa site work cheytha overlap date-il ulla owner mathram
+            let siteOwners = vOwners.filter((o) => {
+              let oStart = safeDate(o.work_start_date, "2000-01-01");
+              let oEnd = safeDate(o.work_end_date, "2099-01-01");
+              oStart.setHours(0, 0, 0, 0);
+              oEnd.setHours(23, 59, 59, 999);
+              return oStart <= overlapEnd && oEnd >= overlapStart;
+            });
+
+            if (siteOwners.length === 0) {
+              siteOwners = vOwners.filter((o) => {
+                let oStart = safeDate(o.work_start_date, "2000-01-01");
+                let oEnd = safeDate(o.work_end_date, "2099-01-01");
+                return oStart <= monthEnd && oEnd >= monthStart;
+              });
+            }
+
+            let resolvedSiteOwner = v.owner_name || "N/A";
+            let resolvedSiteVat = v.vat || "No";
+            if (siteOwners.length > 0) {
+              siteOwners.sort(
+                (a, b) =>
+                  safeDate(b.work_start_date || "2000-01-01") -
+                  safeDate(a.work_start_date || "2000-01-01"),
+              );
+              resolvedSiteOwner = siteOwners[0].owner_name || resolvedSiteOwner;
+              resolvedSiteVat = siteOwners[0].vat || resolvedSiteVat;
+            }
+
             if (!siteDataMap[sName]) {
               siteDataMap[sName] = {
                 ts_nr: 0,
@@ -3484,6 +3482,8 @@
                 ts_31st_shift: 0,
                 rate: formatRateValue(finalRate),
                 driver_name: driverString,
+                owner: resolvedSiteOwner,
+                vat: resolvedSiteVat,
                 field_co: s.field_co || "-",
                 site_co: s.site_co || "-",
                 vehicle_type:
@@ -3987,8 +3987,8 @@
               plate: effectivePlate,
               master_plate: originalPlate,
               related_plates: relatedPlatesList,
-              owner,
-              vat,
+              owner: siteDataMap[sName].owner || v.owner_name || "N/A",
+              vat: siteDataMap[sName].vat || v.vat || "No",
               site: displaySiteName,
               site_status: siteDataMap[sName].siteStatusType || "",
               rate: siteDataMap[sName].rate,

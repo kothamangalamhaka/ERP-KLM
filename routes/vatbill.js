@@ -2,75 +2,93 @@ const express = require("express");
 const pool = require("../config/db");
 const { getPlateForMonth } = require("../utils/plateHistory");
 const router = express.Router();
- 
+
 // Custom Middleware to verify VAT code from .env
 const verifyVatCode = (req, res, next) => {
-    const clientCode = req.headers['x-vat-code'];
-    const serverCode = process.env.VAT_TRACKER_CODE;
-    
-    if (!serverCode) {
-        return res.status(500).json({ success: false, message: "Server configuration error: VAT_TRACKER_CODE not set" });
-    }
-    
-    if (clientCode === serverCode) {
-        next();
-    } else {
-        res.status(401).json({ success: false, message: "Invalid Access Code" });
-    }
+  const clientCode = req.headers["x-vat-code"];
+  const serverCode = process.env.VAT_TRACKER_CODE;
+
+  if (!serverCode) {
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Server configuration error: VAT_TRACKER_CODE not set",
+      });
+  }
+
+  if (clientCode === serverCode) {
+    next();
+  } else {
+    res.status(401).json({ success: false, message: "Invalid Access Code" });
+  }
 };
- 
+
 // Helper to determine company from site name
 function getCompanyFromSite(siteName) {
-    if (!siteName) return "Haka";
-    const lowerSite = siteName.toLowerCase();
-    if (lowerSite.includes("aljoda") || lowerSite.includes("al joda") || lowerSite.includes("al-joda")) return "Al Joda";
-    if (lowerSite.includes("masar wheels")) return "Masar Wheels";
-    if (lowerSite.includes("we1")) return "We1";
-    return "Haka";
+  if (!siteName) return "Haka";
+  const lowerSite = siteName.toLowerCase();
+  if (
+    lowerSite.includes("aljoda") ||
+    lowerSite.includes("al joda") ||
+    lowerSite.includes("al-joda")
+  )
+    return "Al Joda";
+  if (lowerSite.includes("masar wheels")) return "Masar Wheels";
+  if (lowerSite.includes("we1")) return "We1";
+  return "Haka";
 }
- 
+
 // GET DATA for VAT Tracking (With vehicle_owner_log mapping)
 router.get("/data", verifyVatCode, async (req, res) => {
-    try {
-        const { year } = req.query;
-        if (!year) throw new Error("Year is required");
-        const currentYear = parseInt(year);
- 
-        // 1. Fetch exact column names safely
-        const colCheck = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='timesheet_vehicles'");
-        const dbCols = colCheck.rows.map(r => r.column_name.toLowerCase());
- 
-        // Dynamic column mapping
-        const getCol = (possibleNames) => {
-            const normalizedDbCols = dbCols.map(c => c.replace(/[_ ]/g, ''));
-            for (let name of possibleNames) {
-                const normName = name.replace(/[_ ]/g, '');
-                const idx = normalizedDbCols.indexOf(normName);
-                if (idx !== -1) return `"${dbCols[idx]}"`;
-            }
-            return "''";
-        };
- 
-        let displayCol = getCol(['company_display_name', 'display_name', 'company display name']);
-        let vatNoCol = getCol(['vat_no', 'vat no']);
-        let ownerCol = getCol(['owner_name', 'owner name']);
- 
-        // 2. Fetch unique vehicles where VAT is Yes (Including ledger_folio)
-        const vehicleQuery = `
+  try {
+    const { year } = req.query;
+    if (!year) throw new Error("Year is required");
+    const currentYear = parseInt(year);
+
+    // 1. Fetch exact column names safely
+    const colCheck = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name='timesheet_vehicles'",
+    );
+    const dbCols = colCheck.rows.map((r) => r.column_name.toLowerCase());
+
+    // Dynamic column mapping
+    const getCol = (possibleNames) => {
+      const normalizedDbCols = dbCols.map((c) => c.replace(/[_ ]/g, ""));
+      for (let name of possibleNames) {
+        const normName = name.replace(/[_ ]/g, "");
+        const idx = normalizedDbCols.indexOf(normName);
+        if (idx !== -1) return `"${dbCols[idx]}"`;
+      }
+      return "''";
+    };
+
+    let displayCol = getCol([
+      "company_display_name",
+      "display_name",
+      "company display name",
+    ]);
+    let vatNoCol = getCol(["vat_no", "vat no"]);
+    let ownerCol = getCol(["owner_name", "owner name"]);
+
+    // 2. Fetch unique vehicles where VAT is Yes (Including ledger_folio)
+    const vehicleQuery = `
             SELECT plate_no, ${ownerCol} as supplier, ${vatNoCol} as vat_no, ${displayCol} as display_name, COALESCE(ledger_folio, '') as ledger_folio 
             FROM timesheet_vehicles 
             WHERE LOWER(TRIM(vat)) IN ('yes', 'true', '15')
         `;
-        const vehicleResult = await pool.query(vehicleQuery);
-        if (vehicleResult.rows.length === 0) return res.json({ success: true, data: [] });
+    const vehicleResult = await pool.query(vehicleQuery);
+    if (vehicleResult.rows.length === 0)
+      return res.json({ success: true, data: [] });
 
-        const vehicles = vehicleResult.rows;
-        const plates = vehicles.map(v => v.plate_no);
+    const vehicles = vehicleResult.rows;
+    const plates = vehicles.map((v) => v.plate_no);
 
-        // 2.1 Fetch Owner Logs with VAT status, LF and safe fallback
-        let ownerLogs = [];
-        try {
-            const ownerLogRes = await pool.query(`
+    // 2.1 Fetch Owner Logs with VAT status, LF and safe fallback
+    let ownerLogs = [];
+    try {
+      const ownerLogRes = await pool.query(
+        `
                 SELECT 
                     plate_no, 
                     owner_name, 
@@ -81,62 +99,112 @@ router.get("/data", verifyVatCode, async (req, res) => {
                 FROM vehicle_owner_log 
                 WHERE plate_no = ANY($1) 
                 ORDER BY COALESCE(work_start_date, start_date, '2000-01-01') ASC
-            `, [plates]);
-            ownerLogs = ownerLogRes.rows;
-        } catch (e) {
-            try {
-                const fbRes = await pool.query(`SELECT *, COALESCE(ledger_folio, '') as ledger_folio FROM vehicle_owner_log WHERE plate_no = ANY($1)`, [plates]);
-                ownerLogs = fbRes.rows.map(r => ({
-                    plate_no: r.plate_no,
-                    owner_name: r.owner_name,
-                    vat: r.vat,
-                    ledger_folio: r.ledger_folio || "",
-                    start_date: r.work_start_date || r.start_date,
-                    end_date: r.work_end_date || r.end_date
-                }));
-            } catch (err) {
-                console.warn("vehicle_owner_log query warning:", err.message);
-            }
-        }
+            `,
+        [plates],
+      );
+      ownerLogs = ownerLogRes.rows;
+    } catch (e) {
+      try {
+        const fbRes = await pool.query(
+          `SELECT *, COALESCE(ledger_folio, '') as ledger_folio FROM vehicle_owner_log WHERE plate_no = ANY($1)`,
+          [plates],
+        );
+        ownerLogs = fbRes.rows.map((r) => ({
+          plate_no: r.plate_no,
+          owner_name: r.owner_name,
+          vat: r.vat,
+          ledger_folio: r.ledger_folio || "",
+          start_date: r.work_start_date || r.start_date,
+          end_date: r.work_end_date || r.end_date,
+        }));
+      } catch (err) {
+        console.warn("vehicle_owner_log query warning:", err.message);
+      }
+    }
 
-        // Helper to determine accurate owner, VAT, and LF status for a specific month
-        const getOwnerLogForMonth = (plateNo, mIdx, fallbackOwner, fallbackVat, fallbackLf = "") => {
-            const mStart = new Date(currentYear, mIdx, 1);
-            const mEnd = new Date(currentYear, mIdx + 1, 0);
+    // Helper to determine accurate owner, VAT, and LF status for a specific site & month
+    const getOwnerLogForMonth = (
+      plateNo,
+      mIdx,
+      fallbackOwner,
+      fallbackVat,
+      fallbackLf = "",
+      siteStart = null,
+      siteEnd = null,
+    ) => {
+      const mStart = new Date(currentYear, mIdx, 1, 0, 0, 0, 0);
+      const mEnd = new Date(currentYear, mIdx + 1, 0, 23, 59, 59, 999);
 
-            const matchedLogs = ownerLogs.filter(l => {
-                if ((l.plate_no || "").trim().toUpperCase() !== plateNo.trim().toUpperCase()) return false;
-                const sDate = l.start_date ? new Date(l.start_date) : new Date(2000, 0, 1);
-                const eDate = l.end_date ? new Date(l.end_date) : new Date(2099, 11, 31);
-                return sDate <= mEnd && eDate >= mStart;
-            });
+      const checkStart = siteStart
+        ? new Date(Math.max(mStart.getTime(), new Date(siteStart).getTime()))
+        : mStart;
+      const checkEnd = siteEnd
+        ? new Date(Math.min(mEnd.getTime(), new Date(siteEnd).getTime()))
+        : mEnd;
 
-            if (matchedLogs.length > 0) {
-                const active = matchedLogs[matchedLogs.length - 1];
-                const oName = (active.owner_name && active.owner_name.trim()) ? active.owner_name.trim() : fallbackOwner;
-                const isVat = active.vat ? ['yes', 'true', '15'].includes(String(active.vat).trim().toLowerCase()) : fallbackVat;
-                const lf = (active.ledger_folio || "").trim() || fallbackLf;
-                return { owner: oName, isVat: isVat, ledger_folio: lf };
-            }
+      const matchedLogs = ownerLogs.filter((l) => {
+        if (
+          (l.plate_no || "").trim().toUpperCase() !==
+          plateNo.trim().toUpperCase()
+        )
+          return false;
+        const sDate = l.start_date
+          ? new Date(l.start_date)
+          : new Date(2000, 0, 1);
+        const eDate = l.end_date
+          ? new Date(l.end_date)
+          : new Date(2099, 11, 31);
+        sDate.setHours(0, 0, 0, 0);
+        eDate.setHours(23, 59, 59, 999);
+        return sDate <= checkEnd && eDate >= checkStart;
+      });
 
-            return { owner: fallbackOwner, isVat: fallbackVat, ledger_folio: fallbackLf };
-        };
- 
-        // 3. Fetch SITE LOGS history (Calculates active months)
-        const siteLogQuery = `
+      if (matchedLogs.length > 0) {
+        matchedLogs.sort((a, b) => {
+          const da = a.start_date
+            ? new Date(a.start_date)
+            : new Date("2000-01-01");
+          const db = b.start_date
+            ? new Date(b.start_date)
+            : new Date("2000-01-01");
+          return db - da;
+        });
+        const active = matchedLogs[0];
+        const oName =
+          active.owner_name && active.owner_name.trim()
+            ? active.owner_name.trim()
+            : fallbackOwner;
+        const isVat = active.vat
+          ? ["yes", "true", "15"].includes(
+              String(active.vat).trim().toLowerCase(),
+            )
+          : fallbackVat;
+        const lf = (active.ledger_folio || "").trim() || fallbackLf;
+        return { owner: oName, isVat: isVat, ledger_folio: lf };
+      }
+
+      return {
+        owner: fallbackOwner,
+        isVat: fallbackVat,
+        ledger_folio: fallbackLf,
+      };
+    };
+
+    // 3. Fetch SITE LOGS history (Calculates active months)
+    const siteLogQuery = `
             SELECT plate_no, site_name, work_start_date, work_end_date, status 
             FROM vehicle_site_log 
             WHERE plate_no = ANY($1) 
             AND site_name IS NOT NULL AND TRIM(site_name) != ''
         `;
-        const siteLogResult = await pool.query(siteLogQuery, [plates]);
- 
-        // 4. Fetch billing records & ERP Totals
-        const billingQuery = `SELECT * FROM vat_billing_records WHERE year = $1 ORDER BY COALESCE(NULLIF(TRIM(quick_dice), ''), '0') DESC, updated_at DESC, id DESC`;
-        const billingResult = await pool.query(billingQuery, [currentYear]);
-        const billingData = billingResult.rows;
- 
-const erpQuery = `
+    const siteLogResult = await pool.query(siteLogQuery, [plates]);
+
+    // 4. Fetch billing records & ERP Totals
+    const billingQuery = `SELECT * FROM vat_billing_records WHERE year = $1 ORDER BY COALESCE(NULLIF(TRIM(quick_dice), ''), '0') DESC, updated_at DESC, id DESC`;
+    const billingResult = await pool.query(billingQuery, [currentYear]);
+    const billingData = billingResult.rows;
+
+    const erpQuery = `
             SELECT 
                 COALESCE(NULLIF(TRIM(plate_no), ''), '') as plate_no,
                 LOWER(REPLACE(TRIM(COALESCE(company, '')), ' ', '')) as norm_company,
@@ -149,398 +217,542 @@ const erpQuery = `
             WHERE billing_month LIKE $1  
             ORDER BY id DESC
         `;
-        const erpResult = await pool.query(erpQuery, [`%${currentYear}`]);
-        const erpData = erpResult.rows;
- 
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
- 
-        // 5. Pre-process supplier master metadata (Vat No & Display Name)
-        const supplierInfo = {};
-        vehicles.forEach(v => {
-            const sup = (v.supplier || "").trim();
-            if (!sup) return;
-            if (!supplierInfo[sup]) {
-                supplierInfo[sup] = { vat_no: v.vat_no || "", display_name: v.display_name || "" };
-            } else {
-                if (!supplierInfo[sup].vat_no && v.vat_no) supplierInfo[sup].vat_no = v.vat_no;
-                if (!supplierInfo[sup].display_name && v.display_name) supplierInfo[sup].display_name = v.display_name;
-            }
-        });
- 
-        // Helper to normalize site display name (strips re-running so it groups under the main site)
-        const normalizeBaseSiteName = (s) => {
-            if (!s) return "";
-            return s
-                .replace(/[\s\-_]*re[\s\-_]*running/gi, "")
-                .replace(/[\s\-_]*running/gi, "")
-                .trim();
+    const erpResult = await pool.query(erpQuery, [`%${currentYear}`]);
+    const erpData = erpResult.rows;
+
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    // 5. Pre-process supplier master metadata (Vat No & Display Name)
+    const supplierInfo = {};
+    vehicles.forEach((v) => {
+      const sup = (v.supplier || "").trim();
+      if (!sup) return;
+      if (!supplierInfo[sup]) {
+        supplierInfo[sup] = {
+          vat_no: v.vat_no || "",
+          display_name: v.display_name || "",
         };
+      } else {
+        if (!supplierInfo[sup].vat_no && v.vat_no)
+          supplierInfo[sup].vat_no = v.vat_no;
+        if (!supplierInfo[sup].display_name && v.display_name)
+          supplierInfo[sup].display_name = v.display_name;
+      }
+    });
 
-        // 6. Process and Group Data using Month-wise Accurate Owner
-        const groupedData = {};
-  
-        siteLogResult.rows.forEach(log => {
-            const vehicle = vehicles.find(v => v.plate_no === log.plate_no);
-            if (!vehicle) return;
-  
-            const defaultOwner = (vehicle.supplier || "").trim();
-            const company = getCompanyFromSite(log.site_name);
-            const site = normalizeBaseSiteName(log.site_name) || log.site_name.trim();
- 
-            let sd = log.work_start_date ? new Date(log.work_start_date) : new Date(2000, 0, 1);
-            let ed = log.work_end_date ? new Date(log.work_end_date) : (log.status === 'Running' ? new Date(2100, 11, 31) : new Date(sd));
- 
-            const defaultIsVat = vehicle.vat ? ['yes', 'true', '15'].includes(String(vehicle.vat).trim().toLowerCase()) : true;
+    // Helper to normalize site display name (strips re-running so it groups under the main site)
+    const normalizeBaseSiteName = (s) => {
+      if (!s) return "";
+      return s
+        .replace(/[\s\-_]*re[\s\-_]*running/gi, "")
+        .replace(/[\s\-_]*running/gi, "")
+        .trim();
+    };
 
-            for (let m = 0; m < 12; m++) {
-                let mStart = new Date(currentYear, m, 1);
-                let mEnd = new Date(currentYear, m + 1, 0);
+    // 6. Process and Group Data using Month-wise Accurate Owner
+    const groupedData = {};
 
-                if (sd <= mEnd && ed >= mStart) {
-                    const defaultLf = (vehicle.ledger_folio || "").trim();
-                    const ownerInfo = getOwnerLogForMonth(log.plate_no, m, defaultOwner, defaultIsVat, defaultLf);
-                    
-                    // 🟢 STRICT CHECK: ആ പ്രത്യേക മാസത്തിൽ വാഹനം VAT അല്ലെങ്കിൽ VAT ട്രാക്കിംഗിൽ ചേർക്കില്ല!
-                    if (!ownerInfo.isVat) {
-                        continue;
-                    }
+    siteLogResult.rows.forEach((log) => {
+      const vehicle = vehicles.find((v) => v.plate_no === log.plate_no);
+      if (!vehicle) return;
 
-                    const actualSupplier = ownerInfo.owner;
-                    if (!actualSupplier || actualSupplier === "Unknown") continue;
+      const defaultOwner = (vehicle.supplier || "").trim();
+      const company = getCompanyFromSite(log.site_name);
+      const site = normalizeBaseSiteName(log.site_name) || log.site_name.trim();
 
-                    // 🟢 2027 മുതൽ മാത്രം LF വെച്ച് സൈറ്റ് സ്പ്ലിറ്റ് ചെയ്യുക, 2026-ൽ പഴയതുപോലെ ഒരൊറ്റ സൈറ്റ് മാത്രം
-                    const activeLf = currentYear >= 2027 ? (ownerInfo.ledger_folio || "").trim() : "";
-                    const siteKey = (currentYear >= 2027 && activeLf) ? `${site}__${activeLf}` : site;
+      let sd = log.work_start_date
+        ? new Date(log.work_start_date)
+        : new Date(2000, 0, 1);
+      let ed = log.work_end_date
+        ? new Date(log.work_end_date)
+        : log.status === "Running"
+          ? new Date(2100, 11, 31)
+          : new Date(sd);
 
-                    const groupKey = `${company}_${actualSupplier}`;
+      const defaultIsVat = vehicle.vat
+        ? ["yes", "true", "15"].includes(
+            String(vehicle.vat).trim().toLowerCase(),
+          )
+        : true;
 
-                    if (!groupedData[groupKey]) {
-                        const meta = supplierInfo[actualSupplier] || supplierInfo[defaultOwner] || { vat_no: "", display_name: "" };
-                        groupedData[groupKey] = {
-                            company: company,
-                            supplier: actualSupplier,
-                            vat_no: meta.vat_no || vehicle.vat_no || "",
-                            display_name: meta.display_name || vehicle.display_name || "",
-                            sites: {}
-                        };
-                    }
+      for (let m = 0; m < 12; m++) {
+        let mStart = new Date(currentYear, m, 1, 0, 0, 0, 0);
+        let mEnd = new Date(currentYear, m + 1, 0, 23, 59, 59, 999);
 
-                    if (!groupedData[groupKey].sites[siteKey]) {
-                        groupedData[groupKey].sites[siteKey] = {
-                            site_name: site,
-                            ledger_folio: activeLf,
-                            site_key: siteKey,
-                            active_months: Array(12).fill(false),
-                            billing: {}
-                        };
-                    }
+        if (sd <= mEnd && ed >= mStart) {
+          const defaultLf = (vehicle.ledger_folio || "").trim();
+          const ownerInfo = getOwnerLogForMonth(
+            log.plate_no,
+            m,
+            defaultOwner,
+            defaultIsVat,
+            defaultLf,
+            sd,
+            ed,
+          );
 
-                    groupedData[groupKey].sites[siteKey].active_months[m] = true;
-                }
+          // 🟢 STRICT CHECK: ആ പ്രത്യേക മാസത്തിൽ വാഹനം VAT അല്ലെങ്കിൽ VAT ട്രാക്കിംഗിൽ ചേർക്കില്ല!
+          if (!ownerInfo.isVat) {
+            continue;
+          }
+
+          const actualSupplier = ownerInfo.owner;
+          if (!actualSupplier || actualSupplier === "Unknown") continue;
+
+          // 🟢 2027 മുതൽ മാത്രം LF വെച്ച് സൈറ്റ് സ്പ്ലിറ്റ് ചെയ്യുക, 2026-ൽ പഴയതുപോലെ ഒരൊറ്റ സൈറ്റ് മാത്രം
+          const activeLf =
+            currentYear >= 2027 ? (ownerInfo.ledger_folio || "").trim() : "";
+          const siteKey =
+            currentYear >= 2027 && activeLf ? `${site}__${activeLf}` : site;
+
+          const groupKey = `${company}_${actualSupplier}`;
+
+          if (!groupedData[groupKey]) {
+            const meta = supplierInfo[actualSupplier] ||
+              supplierInfo[defaultOwner] || { vat_no: "", display_name: "" };
+            groupedData[groupKey] = {
+              company: company,
+              supplier: actualSupplier,
+              vat_no: meta.vat_no || vehicle.vat_no || "",
+              display_name: meta.display_name || vehicle.display_name || "",
+              sites: {},
+            };
+          }
+
+          if (!groupedData[groupKey].sites[siteKey]) {
+            groupedData[groupKey].sites[siteKey] = {
+              site_name: site,
+              ledger_folio: activeLf,
+              site_key: siteKey,
+              active_months: Array(12).fill(false),
+              billing: {},
+            };
+          }
+
+          groupedData[groupKey].sites[siteKey].active_months[m] = true;
+        }
+      }
+    });
+
+    // 7. Convert object to array and attach billing & ERP Totals
+    Object.values(groupedData).forEach((group) => {
+      group.sites = Object.values(group.sites).filter((s) =>
+        s.active_months.includes(true),
+      );
+
+      group.sites.forEach((siteObj) => {
+        const siteLf = (siteObj.ledger_folio || "").trim().toLowerCase();
+        for (let i = 0; i < 12; i++) {
+          // Helper to clean site name by stripping 're-running', 'running', spacing and symbols
+          const cleanSiteName = (s) => {
+            return (s || "")
+              .toLowerCase()
+              .replace(/re[\s\-_]*running/gi, "")
+              .replace(/running/gi, "")
+              .replace(/[\s\-_]/g, "")
+              .trim();
+          };
+
+          const targetSiteClean = cleanSiteName(siteObj.site_name);
+
+          // 🟢 2027 muthal Owner Name maariyaalum data miss aavathe LF + Site vechu match cheyyunnu
+          const bill = billingData.find((b) => {
+            const billSiteClean = cleanSiteName(b.site_name);
+            const isSiteMatch =
+              b.site_name === siteObj.site_name ||
+              billSiteClean === targetSiteClean;
+
+            if (
+              b.company !== group.company ||
+              !isSiteMatch ||
+              b.month_index !== i
+            ) {
+              return false;
             }
-        });
- 
-        // 7. Convert object to array and attach billing & ERP Totals
-        Object.values(groupedData).forEach(group => {
-            group.sites = Object.values(group.sites).filter(s => s.active_months.includes(true));
- 
-            group.sites.forEach(siteObj => {
-                const siteLf = (siteObj.ledger_folio || "").trim().toLowerCase();
-                for (let i = 0; i < 12; i++) {
-                    // Helper to clean site name by stripping 're-running', 'running', spacing and symbols
-                    const cleanSiteName = (s) => {
-                        return (s || "")
-                            .toLowerCase()
-                            .replace(/re[\s\-_]*running/gi, "")
-                            .replace(/running/gi, "")
-                            .replace(/[\s\-_]/g, "")
-                            .trim();
-                    };
+            if (currentYear >= 2027 && siteLf) {
+              // 2027+: Ledger Folio match aayal mathi (owner name maariyaalum data varum)
+              return (b.ledger_folio || "").trim().toLowerCase() === siteLf;
+            }
+            // 2026 & older: Standard supplier matching (case-insensitive & trimmed)
+            return (
+              (b.supplier || "").trim().toLowerCase() ===
+              (group.supplier || "").trim().toLowerCase()
+            );
+          });
 
-                    const targetSiteClean = cleanSiteName(siteObj.site_name);
+          const monthString = `${monthNames[i]} ${currentYear}`;
+          const normSite = siteObj.site_name.trim().toLowerCase();
+          const normSupplier = group.supplier.trim().toLowerCase();
+          const cleanSupplier = normSupplier.replace(/[^a-zA-Z0-9]/g, "");
+          const normComp = group.company
+            .replace(/\s+/g, "")
+            .trim()
+            .toLowerCase();
 
-                    // 🟢 2027 muthal Owner Name maariyaalum data miss aavathe LF + Site vechu match cheyyunnu
-                    const bill = billingData.find(b => {
-                        const billSiteClean = cleanSiteName(b.site_name);
-                        const isSiteMatch = (b.site_name === siteObj.site_name) || (billSiteClean === targetSiteClean);
+          let erpTotal = "";
+          let monthSum = 0;
+          const processedRows = new Set();
 
-                        if (b.company !== group.company || !isSiteMatch || b.month_index !== i) {
-                            return false;
-                        }
-                        if (currentYear >= 2027 && siteLf) {
-                            // 2027+: Ledger Folio match aayal mathi (owner name maariyaalum data varum)
-                            return (b.ledger_folio || "").trim().toLowerCase() === siteLf;
-                        }
-                        // 2026 & older: Standard supplier matching (case-insensitive & trimmed)
-                        return (b.supplier || "").trim().toLowerCase() === (group.supplier || "").trim().toLowerCase();
-                    });
- 
-                    const monthString = `${monthNames[i]} ${currentYear}`;
-                    const normSite = siteObj.site_name.trim().toLowerCase();
-                    const normSupplier = group.supplier.trim().toLowerCase();
-                    const cleanSupplier = normSupplier.replace(/[^a-zA-Z0-9]/g, '');
-                    const normComp = group.company.replace(/\s+/g, '').trim().toLowerCase();
- 
-                    let erpTotal = "";
-                    let monthSum = 0;
-                    const processedRows = new Set();
+          // Site name-il ninnu re-running, running, space, symbols strip cheyyanulla helper
+          const cleanErpSite = (s) => {
+            return (s || "")
+              .toLowerCase()
+              .replace(/re[\s\-_]*running/gi, "")
+              .replace(/running/gi, "")
+              .replace(/[\s\-_]/g, "")
+              .trim();
+          };
+          const targetErpSiteClean = cleanErpSite(siteObj.site_name);
 
-                    // Site name-il ninnu re-running, running, space, symbols strip cheyyanulla helper
-                    const cleanErpSite = (s) => {
-                        return (s || "")
-                            .toLowerCase()
-                            .replace(/re[\s\-_]*running/gi, "")
-                            .replace(/running/gi, "")
-                            .replace(/[\s\-_]/g, "")
-                            .trim();
-                    };
-                    const targetErpSiteClean = cleanErpSite(siteObj.site_name);
+          erpData.forEach((e) => {
+            const isMonthMatch = e.billing_month === monthString;
+            const rowSiteClean = cleanErpSite(e.norm_site);
+            const isSiteMatch =
+              e.norm_site === normSite || rowSiteClean === targetErpSiteClean;
+            const isOwnerMatch =
+              e.norm_owner === normSupplier || e.clean_owner === cleanSupplier;
 
-                    erpData.forEach(e => {
-                        const isMonthMatch = e.billing_month === monthString;
-                        const rowSiteClean = cleanErpSite(e.norm_site);
-                        const isSiteMatch = (e.norm_site === normSite) || (rowSiteClean === targetErpSiteClean);
-                        const isOwnerMatch = (e.norm_owner === normSupplier || e.clean_owner === cleanSupplier);
+            if (isMonthMatch && isSiteMatch && isOwnerMatch) {
+              const pKey = (e.plate_no || "").trim().toUpperCase();
 
-                        if (isMonthMatch && isSiteMatch && isOwnerMatch) {
-                            const pKey = (e.plate_no || "").trim().toUpperCase();
-
-                            if (currentYear >= 2027) {
-                                // 🟢 2027 muthal mathram Ledger Folio (LF) vechu check cheyyunnu
-                                let vehLf = "";
-                                if (pKey) {
-                                    const rVeh = vehicles.find(v => (v.plate_no || "").trim().toUpperCase() === pKey);
-                                    const oInfo = getOwnerLogForMonth(pKey, i, (rVeh ? rVeh.supplier : ""), true, (rVeh ? rVeh.ledger_folio : ""));
-                                    vehLf = (oInfo.ledger_folio || "").trim().toLowerCase();
-                                }
-
-                                if (vehLf === siteLf) {
-                                    const uKey = `${pKey}_${e.norm_site}_${e.row_total}`;
-                                    if (!processedRows.has(uKey)) {
-                                        processedRows.add(uKey);
-                                        monthSum += parseFloat(e.row_total || 0);
-                                    }
-                                }
-                            } else {
-                                // 🟢 2026-il LF thirivilla; aa site-il ulla ella vahanangaleyum SUM cheyyunnu
-                                const uKey = `${pKey}_${e.norm_site}_${e.row_total}`;
-                                if (!processedRows.has(uKey)) {
-                                    processedRows.add(uKey);
-                                    monthSum += parseFloat(e.row_total || 0);
-                                }
-                            }
-                        }
-                    });
-
-                    erpTotal = monthSum > 0 ? Number(monthSum.toFixed(2)) : "";
- 
-                    siteObj.billing[i] = bill 
-                        ? { 
-                            bill_no: bill.bill_no, 
-                            status: bill.status, 
-                            amount: bill.amount, 
-                            erp_total: erpTotal, 
-                            quick_dice: bill.quick_dice || "" 
-                          } 
-                        : { bill_no: "", status: "", amount: "", erp_total: erpTotal, quick_dice: "" };
+              if (currentYear >= 2027) {
+                // 🟢 2027 muthal mathram Ledger Folio (LF) vechu check cheyyunnu
+                let vehLf = "";
+                if (pKey) {
+                  const rVeh = vehicles.find(
+                    (v) => (v.plate_no || "").trim().toUpperCase() === pKey,
+                  );
+                  const oInfo = getOwnerLogForMonth(
+                    pKey,
+                    i,
+                    rVeh ? rVeh.supplier : "",
+                    true,
+                    rVeh ? rVeh.ledger_folio : "",
+                    null,
+                    null,
+                  );
+                  vehLf = (oInfo.ledger_folio || "").trim().toLowerCase();
                 }
-            });
-        });
- 
-        const finalArray = Object.values(groupedData)
-            .filter(g => g.sites.length > 0)
-            .sort((a, b) => a.company.localeCompare(b.company) || a.supplier.localeCompare(b.supplier));
- 
-        res.json({ success: true, data: finalArray });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
+
+                if (vehLf === siteLf) {
+                  const uKey = `${pKey}_${e.norm_site}_${e.row_total}`;
+                  if (!processedRows.has(uKey)) {
+                    processedRows.add(uKey);
+                    monthSum += parseFloat(e.row_total || 0);
+                  }
+                }
+              } else {
+                // 🟢 2026-il LF thirivilla; aa site-il ulla ella vahanangaleyum SUM cheyyunnu
+                const uKey = `${pKey}_${e.norm_site}_${e.row_total}`;
+                if (!processedRows.has(uKey)) {
+                  processedRows.add(uKey);
+                  monthSum += parseFloat(e.row_total || 0);
+                }
+              }
+            }
+          });
+
+          erpTotal = monthSum > 0 ? Number(monthSum.toFixed(2)) : "";
+
+          siteObj.billing[i] = bill
+            ? {
+                bill_no: bill.bill_no,
+                status: bill.status,
+                amount: bill.amount,
+                erp_total: erpTotal,
+                quick_dice: bill.quick_dice || "",
+              }
+            : {
+                bill_no: "",
+                status: "",
+                amount: "",
+                erp_total: erpTotal,
+                quick_dice: "",
+              };
+        }
+      });
+    });
+
+    const finalArray = Object.values(groupedData)
+      .filter((g) => g.sites.length > 0)
+      .sort(
+        (a, b) =>
+          a.company.localeCompare(b.company) ||
+          a.supplier.localeCompare(b.supplier),
+      );
+
+    res.json({ success: true, data: finalArray });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 });
- 
- 
+
 // UPSERT Single Billing Cell (With year >= 2027 ledger_folio support)
 router.post("/update-cell", verifyVatCode, async (req, res) => {
-    try {
-        const { year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, field, value } = req.body;
-        
-        const validFields = ["bill_no", "status", "amount", "quick_dice"];
-        if (!validFields.includes(field)) throw new Error("Invalid field update");
+  try {
+    const {
+      year,
+      company,
+      supplier,
+      vat_no,
+      display_name,
+      site_name,
+      ledger_folio,
+      month_index,
+      field,
+      value,
+    } = req.body;
 
-        let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();
-        const currentYearNum = parseInt(year);
-        const cleanLf = currentYearNum >= 2027 ? (ledger_folio || "").trim() : "";
-        const cleanSup = (supplier || "").trim();
-        const cleanSite = (site_name || "").trim();
+    const validFields = ["bill_no", "status", "amount", "quick_dice"];
+    if (!validFields.includes(field)) throw new Error("Invalid field update");
 
-        let checkQuery = `
+    let valToSave =
+      value === null || value === undefined || String(value).trim() === ""
+        ? null
+        : String(value).trim();
+    const currentYearNum = parseInt(year);
+    const cleanLf = currentYearNum >= 2027 ? (ledger_folio || "").trim() : "";
+    const cleanSup = (supplier || "").trim();
+    const cleanSite = (site_name || "").trim();
+
+    let checkQuery = `
             SELECT id FROM vat_billing_records 
             WHERE year = $1 AND company = $2 
               AND LOWER(TRIM(supplier)) = LOWER(TRIM($3))
               AND LOWER(TRIM(site_name)) = LOWER(TRIM($4))
               AND month_index = $5
         `;
-        const checkParams = [currentYearNum, company, cleanSup, cleanSite, parseInt(month_index)];
+    const checkParams = [
+      currentYearNum,
+      company,
+      cleanSup,
+      cleanSite,
+      parseInt(month_index),
+    ];
 
-        if (currentYearNum >= 2027) {
-            checkQuery += ` AND LOWER(TRIM(COALESCE(ledger_folio, ''))) = LOWER(TRIM($6)) LIMIT 1`;
-            checkParams.push(cleanLf);
-        } else {
-            checkQuery += ` LIMIT 1`;
-        }
+    if (currentYearNum >= 2027) {
+      checkQuery += ` AND LOWER(TRIM(COALESCE(ledger_folio, ''))) = LOWER(TRIM($6)) LIMIT 1`;
+      checkParams.push(cleanLf);
+    } else {
+      checkQuery += ` LIMIT 1`;
+    }
 
-        const existingCheck = await pool.query(checkQuery, checkParams);
+    const existingCheck = await pool.query(checkQuery, checkParams);
 
-        if (existingCheck.rows.length > 0) {
-            await pool.query(`
+    if (existingCheck.rows.length > 0) {
+      await pool.query(
+        `
                 UPDATE vat_billing_records 
                 SET ${field} = $1, vat_no = $2, display_name = $3, updated_at = CURRENT_TIMESTAMP 
                 WHERE id = $4
-            `, [valToSave, vat_no, display_name, existingCheck.rows[0].id]);
-        } else {
-            await pool.query(`
+            `,
+        [valToSave, vat_no, display_name, existingCheck.rows[0].id],
+      );
+    } else {
+      await pool.query(
+        `
                 INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, ${field})
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            `, [currentYearNum, company, cleanSup, vat_no, display_name, cleanSite, cleanLf, parseInt(month_index), valToSave]);
-        }
-        
-        // Real-time live update for bill_no, amount, and quick_dice to other users without reload
-        if (["bill_no", "amount", "quick_dice"].includes(field)) {
-            broadcastQcUpdate({
-                year: parseInt(year),
-                supplier,
-                site_name,
-                month_index: parseInt(month_index),
-                field: field,
-                value: valToSave || ""
-            });
-        }
- 
-        res.json({ success: true });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
+            `,
+        [
+          currentYearNum,
+          company,
+          cleanSup,
+          vat_no,
+          display_name,
+          cleanSite,
+          cleanLf,
+          parseInt(month_index),
+          valToSave,
+        ],
+      );
     }
+
+    // Real-time live update for bill_no, amount, and quick_dice to other users without reload
+    if (["bill_no", "amount", "quick_dice"].includes(field)) {
+      broadcastQcUpdate({
+        year: parseInt(year),
+        supplier,
+        site_name,
+        month_index: parseInt(month_index),
+        field: field,
+        value: valToSave || "",
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 });
- 
- 
+
 // NEW API FOR BULK SAVE
 router.post("/update-bulk", verifyVatCode, async (req, res) => {
+  try {
+    const { changes } = req.body;
+    if (!changes || !Array.isArray(changes)) throw new Error("Invalid payload");
+
+    const client = await pool.connect();
     try {
-        const { changes } = req.body;
-        if (!changes || !Array.isArray(changes)) throw new Error("Invalid payload");
- 
-        const client = await pool.connect();
-        try {
-            await client.query("BEGIN");
-            for (let change of changes) {
-                const { year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, field, value } = change;
-                
-                const validFields = ["bill_no", "status", "amount", "quick_dice"];
-                if (!validFields.includes(field)) continue;
+      await client.query("BEGIN");
+      for (let change of changes) {
+        const {
+          year,
+          company,
+          supplier,
+          vat_no,
+          display_name,
+          site_name,
+          ledger_folio,
+          month_index,
+          field,
+          value,
+        } = change;
 
-                let valToSave = (value === null || value === undefined) ? "" : String(value).trim();
-                const cleanYear = parseInt(year);
-                const cleanLf = cleanYear >= 2027 ? (ledger_folio || "").trim() : "";
-                const cleanSup = (supplier || "").trim();
+        const validFields = ["bill_no", "status", "amount", "quick_dice"];
+        if (!validFields.includes(field)) continue;
 
-                const cleanSite = (site_name || "").trim();
-                let checkQuery = `
+        let valToSave =
+          value === null || value === undefined ? "" : String(value).trim();
+        const cleanYear = parseInt(year);
+        const cleanLf = cleanYear >= 2027 ? (ledger_folio || "").trim() : "";
+        const cleanSup = (supplier || "").trim();
+
+        const cleanSite = (site_name || "").trim();
+        let checkQuery = `
                     SELECT id FROM vat_billing_records 
                     WHERE year = $1 AND company = $2 
                       AND LOWER(TRIM(supplier)) = LOWER(TRIM($3))
                       AND LOWER(TRIM(site_name)) = LOWER(TRIM($4))
                       AND month_index = $5
                 `;
-                const checkParams = [cleanYear, company, cleanSup, cleanSite, month_index];
+        const checkParams = [
+          cleanYear,
+          company,
+          cleanSup,
+          cleanSite,
+          month_index,
+        ];
 
-                if (cleanYear >= 2027) {
-                    checkQuery += ` AND LOWER(TRIM(COALESCE(ledger_folio, ''))) = LOWER(TRIM($6)) LIMIT 1`;
-                    checkParams.push(cleanLf);
-               breakdown_site_clean = cleanSite;
-                } else {
-                    checkQuery += ` LIMIT 1`;
-                }
+        if (cleanYear >= 2027) {
+          checkQuery += ` AND LOWER(TRIM(COALESCE(ledger_folio, ''))) = LOWER(TRIM($6)) LIMIT 1`;
+          checkParams.push(cleanLf);
+        } else {
+          checkQuery += ` LIMIT 1`;
+        }
 
-                const existingRecord = await client.query(checkQuery, checkParams);
+        const existingRecord = await client.query(checkQuery, checkParams);
 
-                if (existingRecord.rows.length > 0) {
-                    await client.query(`
+        if (existingRecord.rows.length > 0) {
+          await client.query(
+            `
                         UPDATE vat_billing_records 
                         SET ${field} = $1, vat_no = $2, display_name = $3, updated_at = CURRENT_TIMESTAMP
                         WHERE id = $4
-                    `, [valToSave, vat_no, display_name, existingRecord.rows[0].id]);
-                } else {
-                    await client.query(`
+                    `,
+            [valToSave, vat_no, display_name, existingRecord.rows[0].id],
+          );
+        } else {
+          await client.query(
+            `
                         INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, ${field})
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                    `, [cleanYear, company, cleanSup, vat_no, display_name, site_name, cleanLf, month_index, valToSave]);
-                }
-            }
-            await client.query("COMMIT");
-        } catch (err) {
-            await client.query("ROLLBACK");
-            throw err;
-        } finally {
-            client.release();
+                    `,
+            [
+              cleanYear,
+              company,
+              cleanSup,
+              vat_no,
+              display_name,
+              site_name,
+              cleanLf,
+              month_index,
+              valToSave,
+            ],
+          );
         }
-        res.json({ success: true });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
+      }
+      await client.query("COMMIT");
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
     }
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 });
- 
+
 // Vendor TS breakdown - using exact billing_records columns (nhr, othr, plate_no)
 router.get("/vendor-breakdown", verifyVatCode, async (req, res) => {
+  try {
+    const { supplier, site, ledger_folio, year, month } = req.query;
+    if (!supplier || !site || !year || !month) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required query params" });
+    }
+
+    const currentYearNum = parseInt(year);
+    const cleanReqLf = (ledger_folio || "").trim().toLowerCase();
+
+    // 🟢 2027-ൽ LF വെച്ച് ഫിൽറ്റർ ചെയ്യാൻ വാഹനങ്ങളുടെയും ലോഗുകളുടെയും ഡാറ്റ എടുക്കുന്നു
+    const vRes = await pool.query(
+      `SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio FROM timesheet_vehicles`,
+    );
+    const allVehs = vRes.rows;
+    const allPlates = allVehs.map((v) => v.plate_no);
+
+    let oLogs = [];
     try {
-        const { supplier, site, ledger_folio, year, month } = req.query;
-        if (!supplier || !site || !year || !month) {
-            return res.status(400).json({ success: false, message: "Missing required query params" });
-        }
- 
-        const currentYearNum = parseInt(year);
-        const cleanReqLf = (ledger_folio || "").trim().toLowerCase();
+      const oRes = await pool.query(
+        `SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio, work_start_date, work_end_date FROM vehicle_owner_log WHERE plate_no = ANY($1)`,
+        [allPlates],
+      );
+      oLogs = oRes.rows;
+    } catch (err) {}
 
-        // 🟢 2027-ൽ LF വെച്ച് ഫിൽറ്റർ ചെയ്യാൻ വാഹനങ്ങളുടെയും ലോഗുകളുടെയും ഡാറ്റ എടുക്കുന്നു
-        const vRes = await pool.query(`SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio FROM timesheet_vehicles`);
-        const allVehs = vRes.rows;
-        const allPlates = allVehs.map(v => v.plate_no);
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const mIdx = parseInt(month) - 1;
+    const monthString = `${monthNames[mIdx]} ${year}`;
 
-        let oLogs = [];
-        try {
-            const oRes = await pool.query(`SELECT plate_no, owner_name, vat, COALESCE(ledger_folio, '') as ledger_folio, work_start_date, work_end_date FROM vehicle_owner_log WHERE plate_no = ANY($1)`, [allPlates]);
-            oLogs = oRes.rows;
-        } catch(err) {}
+    // Exact match with billing_records using plate_no, nhr, othr, after_adjustment
+    const cleanSiteParam = (site || "")
+      .toLowerCase()
+      .replace(/re[\s\-_]*running/gi, "")
+      .replace(/running/gi, "")
+      .replace(/[\s\-_]/g, "")
+      .trim();
 
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        const mIdx = parseInt(month) - 1;
-        const monthString = `${monthNames[mIdx]} ${year}`;
- 
-        // Exact match with billing_records using plate_no, nhr, othr, after_adjustment
-        const query = `
-            SELECT 
-                COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
-                ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
-                ROUND(COALESCE(SUM(othr::numeric), 0), 2) AS ot_hours,
-                ROUND(COALESCE(SUM(after_adjustment::numeric), 0), 2) AS total_amount
-            FROM billing_records
-            WHERE LOWER(TRIM(owner)) = LOWER(TRIM($1))
-              AND LOWER(TRIM(site_name)) = LOWER(TRIM($2))
-              AND billing_month = $3
-            GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
-            ORDER BY plate_no ASC;
-        `;
-        
-        let result = await pool.query(query, [supplier, site, monthString]);
-        let rows = result.rows;
- 
-        // Fallback and Re-Running support: includes both normal and re-running rows under the main site
-        const cleanSiteParam = (site || "")
-            .toLowerCase()
-            .replace(/re[\s\-_]*running/gi, "")
-            .replace(/running/gi, "")
-            .replace(/[\s\-_]/g, "")
-            .trim();
-
-        const fallbackQuery = `
+    const fallbackQuery = `
             SELECT 
                 COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
                 ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
@@ -556,102 +768,120 @@ router.get("/vendor-breakdown", verifyVatCode, async (req, res) => {
             GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
             ORDER BY plate_no ASC;
         `;
-        const fbResult = await pool.query(fallbackQuery, [supplier, site, monthString, cleanSiteParam]);
-        rows = fbResult.rows;
- 
-        let plateLogs = [];
-        try {
-            const plateLogRes = await pool.query(`
+    const fbResult = await pool.query(fallbackQuery, [
+      supplier,
+      site,
+      monthString,
+      cleanSiteParam,
+    ]);
+    let rows = fbResult.rows;
+
+    let plateLogs = [];
+    try {
+      const plateLogRes = await pool.query(`
                 SELECT old_plate_no, new_plate_no,
                        TO_CHAR(change_date, 'YYYY-MM-DD') AS change_date
                 FROM vehicle_plate_log
                 ORDER BY change_date ASC, id ASC
             `);
-            plateLogs = plateLogRes.rows;
-        } catch (err) {
-            console.warn("vehicle_plate_log query warning:", err.message);
-        }
- 
-        // 🟢 2027 മുതൽ മാത്രം LF ഉണ്ടെങ്കിൽ ആ LF-ലെ വാഹനം മാത്രമായി വേർതിരിക്കുന്നു (2026-ൽ പഴയതുപോലെ തന്നെ)
-        if (currentYearNum >= 2027 && cleanReqLf !== "") {
-            const mStart = new Date(currentYearNum, mIdx, 1);
-            const mEnd = new Date(currentYearNum, mIdx + 1, 0);
-
-            rows = rows.filter(row => {
-                const p = (row.plate_no || "").trim().toUpperCase();
-                const matched = oLogs.filter(l => {
-                    if ((l.plate_no || '').trim().toUpperCase() !== p) return false;
-                    const s = l.work_start_date ? new Date(l.work_start_date) : new Date(2000, 0, 1);
-                    const e = l.work_end_date ? new Date(l.work_end_date) : new Date(2099, 11, 31);
-                    return s <= mEnd && e >= mStart;
-                });
-
-                let curLf = "";
-                if (matched.length > 0) {
-                    curLf = String(matched[matched.length - 1].ledger_folio || '').trim().toLowerCase();
-                } else {
-                    const vObj = allVehs.find(v => (v.plate_no || '').trim().toUpperCase() === p);
-                    curLf = String(vObj ? vObj.ledger_folio : '').trim().toLowerCase();
-                }
-                return curLf === cleanReqLf;
-            });
-        }
-
-        rows = rows.map((row) => {
-            let p = row.plate_no;
-            // 🟢 ബില്ലിംഗ് റെക്കോർഡിൽ '2380 XSB ➔ 1999 NTA' എന്ന് നേരിട്ട് കിടക്കുന്നുണ്ടെങ്കിൽ
-            if (p && (p.includes("➔") || p.includes("->"))) {
-                return { ...row, plate_no: p };
-            }
-            return {
-                ...row,
-                plate_no: getPlateForMonth(p, parseInt(year, 10), mIdx, plateLogs),
-            };
-        });
- 
-        res.json({ success: true, data: rows });
+      plateLogs = plateLogRes.rows;
     } catch (err) {
-        console.error("Error in vendor-breakdown:", err);
-        res.status(500).json({ success: false, message: err.message });
+      console.warn("vehicle_plate_log query warning:", err.message);
     }
+
+    // 🟢 2027 മുതൽ മാത്രം LF ഉണ്ടെങ്കിൽ ആ LF-ലെ വാഹനം മാത്രമായി വേർതിരിക്കുന്നു (2026-ൽ പഴയതുപോലെ തന്നെ)
+    if (currentYearNum >= 2027 && cleanReqLf !== "") {
+      const mStart = new Date(currentYearNum, mIdx, 1);
+      const mEnd = new Date(currentYearNum, mIdx + 1, 0);
+
+      rows = rows.filter((row) => {
+        const p = (row.plate_no || "").trim().toUpperCase();
+        const matched = oLogs.filter((l) => {
+          if ((l.plate_no || "").trim().toUpperCase() !== p) return false;
+          const s = l.work_start_date
+            ? new Date(l.work_start_date)
+            : new Date(2000, 0, 1);
+          const e = l.work_end_date
+            ? new Date(l.work_end_date)
+            : new Date(2099, 11, 31);
+          return s <= mEnd && e >= mStart;
+        });
+
+        let curLf = "";
+        if (matched.length > 0) {
+          curLf = String(matched[matched.length - 1].ledger_folio || "")
+            .trim()
+            .toLowerCase();
+        } else {
+          const vObj = allVehs.find(
+            (v) => (v.plate_no || "").trim().toUpperCase() === p,
+          );
+          curLf = String(vObj ? vObj.ledger_folio : "")
+            .trim()
+            .toLowerCase();
+        }
+        return curLf === cleanReqLf;
+      });
+    }
+
+    rows = rows.map((row) => {
+      let p = row.plate_no;
+      // 🟢 ബില്ലിംഗ് റെക്കോർഡിൽ '2380 XSB ➔ 1999 NTA' എന്ന് നേരിട്ട് കിടക്കുന്നുണ്ടെങ്കിൽ
+      if (p && (p.includes("➔") || p.includes("->"))) {
+        return { ...row, plate_no: p };
+      }
+      return {
+        ...row,
+        plate_no: getPlateForMonth(p, parseInt(year, 10), mIdx, plateLogs),
+      };
+    });
+
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error("Error in vendor-breakdown:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
- 
+
 // Keep track of connected clients for live sync
 let sseClients = [];
- 
+
 // SSE Connection Endpoint
 router.get("/live-updates", (req, res) => {
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache, no-transform");
-    res.setHeader("Connection", "keep-alive");
-    res.setHeader("X-Accel-Buffering", "no"); 
-    res.flushHeaders();
- 
-    const clientId = Date.now();
-    const newClient = { id: clientId, res };
-    sseClients.push(newClient);
- 
-    req.on("close", () => {
-        sseClients = sseClients.filter(c => c.id !== clientId);
-    });
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const clientId = Date.now();
+  const newClient = { id: clientId, res };
+  sseClients.push(newClient);
+
+  req.on("close", () => {
+    sseClients = sseClients.filter((c) => c.id !== clientId);
+  });
 });
 
 // Helper function to broadcast updates to other users
 function broadcastQcUpdate(payload) {
-    sseClients.forEach(c => {
-        c.res.write(`data: ${JSON.stringify(payload)}\n\n`);
-    });
+  sseClients.forEach((c) => {
+    c.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  });
 }
 
 // ==========================================
 // VAT SUPPLIER NOTES APIS
 // ==========================================
 router.get("/notes", verifyVatCode, async (req, res) => {
-    try {
-        const { supplier, ledger_folio, month, site_name } = req.query;
-        if (!supplier) return res.status(400).json({ success: false, message: "Supplier name is required" });
+  try {
+    const { supplier, ledger_folio, month, site_name } = req.query;
+    if (!supplier)
+      return res
+        .status(400)
+        .json({ success: false, message: "Supplier name is required" });
 
-        let query = `
+    let query = `
             SELECT id, supplier_name, note_title, note_content, 
                    COALESCE(ledger_folio, '') as ledger_folio,
                    COALESCE(site_name, '') as site_name,
@@ -661,73 +891,119 @@ router.get("/notes", verifyVatCode, async (req, res) => {
             FROM supplier_notes
             WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($1))
         `;
-        const params = [supplier.trim()];
+    const params = [supplier.trim()];
 
-        if (ledger_folio !== undefined && ledger_folio !== null && String(ledger_folio).trim() !== "") {
-            params.push(String(ledger_folio).trim());
-            query += ` AND (ledger_folio IS NULL OR ledger_folio = '' OR LOWER(TRIM(ledger_folio)) = LOWER(TRIM($${params.length})))`;
-        }
-
-        if (site_name !== undefined && site_name !== null && String(site_name).trim() !== "") {
-            params.push(String(site_name).trim());
-            query += ` AND (site_name IS NULL OR site_name = '' OR LOWER(TRIM(site_name)) = LOWER(TRIM($${params.length})))`;
-        }
-
-        if (month !== undefined && month !== null && String(month).trim() !== "") {
-            params.push(parseInt(month, 10));
-            query += ` AND (note_month IS NULL OR note_month = $${params.length})`;
-        }
-
-        query += ` ORDER BY created_at DESC, id DESC`;
-
-        const result = await pool.query(query, params);
-        res.json({ success: true, data: result.rows });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+    if (
+      ledger_folio !== undefined &&
+      ledger_folio !== null &&
+      String(ledger_folio).trim() !== ""
+    ) {
+      params.push(String(ledger_folio).trim());
+      query += ` AND (ledger_folio IS NULL OR ledger_folio = '' OR LOWER(TRIM(ledger_folio)) = LOWER(TRIM($${params.length})))`;
     }
+
+    if (
+      site_name !== undefined &&
+      site_name !== null &&
+      String(site_name).trim() !== ""
+    ) {
+      params.push(String(site_name).trim());
+      query += ` AND (site_name IS NULL OR site_name = '' OR LOWER(TRIM(site_name)) = LOWER(TRIM($${params.length})))`;
+    }
+
+    if (month !== undefined && month !== null && String(month).trim() !== "") {
+      params.push(parseInt(month, 10));
+      query += ` AND (note_month IS NULL OR note_month = $${params.length})`;
+    }
+
+    query += ` ORDER BY created_at DESC, id DESC`;
+
+    const result = await pool.query(query, params);
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 router.post("/notes", verifyVatCode, async (req, res) => {
-    try {
-        const { supplier, title, content, ledger_folio, site_name, note_month, note_year } = req.body;
-        if (!supplier || !content || !content.trim()) {
-            return res.status(400).json({ success: false, message: "Content is required" });
-        }
+  try {
+    const {
+      supplier,
+      title,
+      content,
+      ledger_folio,
+      site_name,
+      note_month,
+      note_year,
+    } = req.body;
+    if (!supplier || !content || !content.trim()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Content is required" });
+    }
 
-        const cleanTitle = (title || "").trim() || "Remark";
-        const cleanContent = content.trim();
-        const cleanLf = ledger_folio ? String(ledger_folio).trim() : null;
-        const cleanSite = site_name ? String(site_name).trim() : null;
-        const cleanMonth = (note_month !== undefined && note_month !== null && note_month !== "") ? parseInt(note_month, 10) : null;
-        const cleanYear = (note_year !== undefined && note_year !== null && note_year !== "") ? parseInt(note_year, 10) : null;
+    const cleanTitle = (title || "").trim() || "Remark";
+    const cleanContent = content.trim();
+    const cleanLf = ledger_folio ? String(ledger_folio).trim() : null;
+    const cleanSite = site_name ? String(site_name).trim() : null;
+    const cleanMonth =
+      note_month !== undefined && note_month !== null && note_month !== ""
+        ? parseInt(note_month, 10)
+        : null;
+    const cleanYear =
+      note_year !== undefined && note_year !== null && note_year !== ""
+        ? parseInt(note_year, 10)
+        : null;
 
-        const insertRes = await pool.query(`
+    const insertRes = await pool.query(
+      `
             INSERT INTO supplier_notes (supplier_name, note_title, note_content, ledger_folio, site_name, note_month, note_year)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id, supplier_name, note_title, note_content, ledger_folio, site_name, note_month, note_year,
                       TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date
-        `, [supplier.trim(), cleanTitle, cleanContent, cleanLf, cleanSite, cleanMonth, cleanYear]);
+        `,
+      [
+        supplier.trim(),
+        cleanTitle,
+        cleanContent,
+        cleanLf,
+        cleanSite,
+        cleanMonth,
+        cleanYear,
+      ],
+    );
 
-        res.json({ success: true, data: insertRes.rows[0] });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.json({ success: true, data: insertRes.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 router.put("/notes/:id", verifyVatCode, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { title, content, ledger_folio, site_name, note_month, note_year } = req.body;
-        if (!content || !content.trim()) return res.status(400).json({ success: false, message: "Content is required" });
+  try {
+    const { id } = req.params;
+    const { title, content, ledger_folio, site_name, note_month, note_year } =
+      req.body;
+    if (!content || !content.trim())
+      return res
+        .status(400)
+        .json({ success: false, message: "Content is required" });
 
-        const cleanTitle = (title || "").trim() || "Remark";
-        const cleanContent = content.trim();
-        const cleanLf = ledger_folio ? String(ledger_folio).trim() : null;
-        const cleanSite = site_name ? String(site_name).trim() : null;
-        const cleanMonth = (note_month !== undefined && note_month !== null && note_month !== "") ? parseInt(note_month, 10) : null;
-        const cleanYear = (note_year !== undefined && note_year !== null && note_year !== "") ? parseInt(note_year, 10) : null;
+    const cleanTitle = (title || "").trim() || "Remark";
+    const cleanContent = content.trim();
+    const cleanLf = ledger_folio ? String(ledger_folio).trim() : null;
+    const cleanSite = site_name ? String(site_name).trim() : null;
+    const cleanMonth =
+      note_month !== undefined && note_month !== null && note_month !== ""
+        ? parseInt(note_month, 10)
+        : null;
+    const cleanYear =
+      note_year !== undefined && note_year !== null && note_year !== ""
+        ? parseInt(note_year, 10)
+        : null;
 
-        const updateRes = await pool.query(`
+    const updateRes = await pool.query(
+      `
             UPDATE supplier_notes 
             SET note_title = $1, 
                 note_content = $2,  
@@ -738,23 +1014,34 @@ router.put("/notes/:id", verifyVatCode, async (req, res) => {
             WHERE id = $7 
             RETURNING id, supplier_name, note_title, note_content, ledger_folio, site_name, note_month, note_year,
                       TO_CHAR(created_at, 'DD-Mon-YYYY hh12:MI AM') as formatted_date
-        `, [cleanTitle, cleanContent, cleanLf, cleanSite, cleanMonth, cleanYear, parseInt(id)]);
+        `,
+      [
+        cleanTitle,
+        cleanContent,
+        cleanLf,
+        cleanSite,
+        cleanMonth,
+        cleanYear,
+        parseInt(id),
+      ],
+    );
 
-        res.json({ success: true, data: updateRes.rows[0] });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.json({ success: true, data: updateRes.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 router.delete("/notes/:id", verifyVatCode, async (req, res) => {
-    try {
-        const { id } = req.params;
-        await pool.query("DELETE FROM supplier_notes WHERE id = $1", [parseInt(id)]);
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+  try {
+    const { id } = req.params;
+    await pool.query("DELETE FROM supplier_notes WHERE id = $1", [
+      parseInt(id),
+    ]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
- 
+
 module.exports = router;
- 
