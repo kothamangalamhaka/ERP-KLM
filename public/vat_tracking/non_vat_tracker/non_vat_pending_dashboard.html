@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Non-VAT Pending Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
         * { box-sizing: border-box; 
         text-decoration: none;}
@@ -517,7 +516,11 @@
             display: flex; justify-content: center; align-items: center; 
             z-index: 10000; 
         }
-        .login-box { background: white; padding: 30px; border-radius: 8px; width: 300px; text-align: center; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; width: 300px; text-align: center; color: #0f172a; }
+        body.dark-mode .login-box { background: #111e38; color: #f1f5f9; border: 1px solid #1e293b; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        body.dark-mode .login-box h2 { color: #f8fafc; }
+        body.dark-mode .login-box p { color: #94a3b8 !important; }
+        body.dark-mode .login-box input { background: #0b1329; border-color: #334155; color: #ffffff; }
     </style>
 </head>
 <body>
@@ -642,26 +645,28 @@
     <script>
         const monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         let rawData = [];
+        let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
 
-        // 🟢 Light / Dark Mode Toggle Logic
+        // 🟢 Dark Mode Logic
         function initTheme() {
-            const savedTheme = localStorage.getItem("nv_dashboard_theme") || "light";
+            const savedTheme = localStorage.getItem("nv_tracker_theme") || "light";
+            const btn = document.getElementById("themeToggleBtn");
             if (savedTheme === "dark") {
                 document.body.classList.add("dark-mode");
-                document.getElementById("themeToggleBtn").innerText = "☀️";
+                if (btn) btn.innerText = "☀️";
             } else {
                 document.body.classList.remove("dark-mode");
-                document.getElementById("themeToggleBtn").innerText = "🌙";
+                if (btn) btn.innerText = "🌙";
             }
         }
 
         function toggleTheme() {
             const isDark = document.body.classList.toggle("dark-mode");
-            localStorage.setItem("nv_dashboard_theme", isDark ? "dark" : "light");
-            document.getElementById("themeToggleBtn").innerText = isDark ? "☀️" : "🌙";
+            localStorage.setItem("nv_tracker_theme", isDark ? "dark" : "light");
+            const btn = document.getElementById("themeToggleBtn");
+            if (btn) btn.innerText = isDark ? "☀️" : "🌙";
         }
-        initTheme();
-        let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
+
         let currentYear = new Date().getFullYear();
         let currentDashboardMode = "quick_dice"; // 'quick_dice' or 'vendor_ts'
 
@@ -756,6 +761,7 @@
         }
         initYearOptions();
         initMonthDropdown();
+        initTheme();
 
         if (vatCode) {
             document.getElementById("loginModal").style.display = "none";
@@ -1234,12 +1240,19 @@
                 }
             }
 
-            // 3. 🟢 സ്ക്രീനിൽ നിലവിൽ പെൻഡിങ് ഉള്ള റെക്കോർഡുകൾ മാത്രം ഫിൽറ്ററിലേക്ക് എടുക്കുന്നു
+            // 3. 🟢 സ്ക്രീനിൽ നിലവിലെ Mode അനുസരിച്ച് പെൻഡിങ് ഉള്ള റെക്കോർഡുകൾ മാത്രം ഫിൽറ്ററിലേക്ക് എടുക്കുന്നു
             rawData.forEach(sup => {
                 sup.sites.forEach(st => {
                     let hasPending = visibleMonths.some(m => {
                         const b = st.billing[m] || {};
-                        return parseFloat(b.vendor_ts || 0) > 0 && String(b.quick_dice || "").trim() === "";
+                        const vTs = parseFloat(b.vendor_ts || 0);
+                        const qDice = String(b.quick_dice || "").trim();
+                        const isActiveMonth = st.active_months && st.active_months[m];
+                        if (currentDashboardMode === "quick_dice") {
+                            return vTs > 0 && qDice === "";
+                        } else {
+                            return isActiveMonth && (!vTs || vTs === 0);
+                        }
                     });
 
                     // നിലവിൽ പെൻഡിങ് ഉള്ള സപ്ലയർ/സൈറ്റുകൾ മാത്രം ലിസ്റ്റിൽ ഉൾപ്പെടുത്തുന്നു

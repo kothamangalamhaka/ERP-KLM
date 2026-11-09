@@ -327,7 +327,10 @@
         <div class="nav-tools">
             <!-- Mode Switcher Toggle Button -->
             <div class="mode-toggle-group">
-                <button id="btnModeZoho" class="mode-btn active" onclick="switchDashboardMode('zoho')" title="Quick Dice entered, but Missing Bill No / Amount">
+                <button id="btnModeBill" class="mode-btn active" onclick="switchDashboardMode('bill')" title="Vendor TS present, but Missing Bill No or Amount">
+                    📄 Bill
+                </button>
+                <button id="btnModeZoho" class="mode-btn" onclick="switchDashboardMode('zoho')" title="Quick Dice present, but Missing Bill No or Amount">
                     📘 Zoho
                 </button>
                 <button id="btnModeQuickDice" class="mode-btn" onclick="switchDashboardMode('quick_dice')" title="Bill No / Amount present, but Missing Quick Dice">
@@ -460,10 +463,11 @@
         let vatCode = sessionStorage.getItem("vatTrackerCode") || "";
         let currentYear = new Date().getFullYear();
         let visibleMonthIndices = []; // Holds only months having pending entries
-        let currentDashboardMode = "zoho"; // 'zoho' or 'quick_dice'
+        let currentDashboardMode = "bill"; // 'bill', 'zoho' or 'quick_dice'
 
         function switchDashboardMode(mode) {
             currentDashboardMode = mode;
+            document.getElementById("btnModeBill").classList.toggle("active", mode === "bill");
             document.getElementById("btnModeZoho").classList.toggle("active", mode === "zoho");
             document.getElementById("btnModeQuickDice").classList.toggle("active", mode === "quick_dice");
             renderDashboard();
@@ -601,15 +605,19 @@
             const erpTotal = billing.erp_total ? parseFloat(billing.erp_total) : 0;
 
             const hasVendorTs = !isNaN(erpTotal) && erpTotal > 0;
-            const isDiceEmpty = !quickDice || quickDice === "0" || quickDice.toLowerCase() === "null";
+            const hasQuickDice = (quickDice !== "" && quickDice !== "0" && quickDice.toLowerCase() !== "null");
+            const isBillingMissing = (!billNo || !amount || amount === "0");
             const hasBillingData = (billNo !== "") || (amount !== "" && amount !== "0");
 
-            if (currentDashboardMode === "zoho") {
-                // 1. Zoho Mode: Vendor TS-il data undu, ennaal Bill No-yo Amount-o blank/0 aayal pending
-                return hasVendorTs && (!billNo || !amount || amount === "0");
+            if (currentDashboardMode === "bill") {
+                // 1. Bill Mode: Vendor TS undu, ennaal Bill No-yo Amount-o missing/0 aayal pending
+                return hasVendorTs && isBillingMissing;
+            } else if (currentDashboardMode === "zoho") {
+                // 2. Zoho Mode: Quick Dice cell-il value undu, ennaal Bill No-yo Amount-o missing/0 aayal pending
+                return hasQuickDice && isBillingMissing;
             } else {
-                // 2. Quick Dice Mode: Bill No-yo Amount-o undu, ennaal Quick Dice blank aayal pending
-                return hasBillingData && isDiceEmpty;
+                // 3. Quick Dice Mode: Bill No-yo Amount-o undu, ennaal Quick Dice blank aayal pending
+                return hasBillingData && !hasQuickDice;
             }
         }
 
@@ -774,7 +782,7 @@
             ws['!cols'] = colWidths;
 
             XLSX.utils.book_append_sheet(wb, ws, "QC_Pending");
-            const filePrefix = currentDashboardMode === "zoho" ? "Zoho_Pending" : "QuickDice_Pending";
+            const filePrefix = currentDashboardMode === "bill" ? "Bill_Pending" : (currentDashboardMode === "zoho" ? "Zoho_Pending" : "QuickDice_Pending");
             XLSX.writeFile(wb, `${filePrefix}_Dashboard_${currentYear}.xlsx`);
         }
 
@@ -834,7 +842,12 @@
                 billing: billing
             };
 
-            const modeTitle = currentDashboardMode === "zoho" ? "Zoho Pending - Edit QC Entry" : "Quick Dice Pending - Enter QC Dice";
+            let modeTitle = "Bill Pending - Edit QC Entry";
+            if (currentDashboardMode === "zoho") {
+                modeTitle = "Zoho Pending - Edit QC Entry";
+            } else if (currentDashboardMode === "quick_dice") {
+                modeTitle = "Quick Dice Pending - Enter QC Dice";
+            }
             document.getElementById("modalTitle").innerText = modeTitle;
 
             document.getElementById("modalSupplier").innerText = activeModalRecord.supplier;

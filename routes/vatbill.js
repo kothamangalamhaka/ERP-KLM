@@ -167,16 +167,25 @@ const erpQuery = `
             }
         });
  
+        // Helper to normalize site display name (strips re-running so it groups under the main site)
+        const normalizeBaseSiteName = (s) => {
+            if (!s) return "";
+            return s
+                .replace(/[\s\-_]*re[\s\-_]*running/gi, "")
+                .replace(/[\s\-_]*running/gi, "")
+                .trim();
+        };
+
         // 6. Process and Group Data using Month-wise Accurate Owner
         const groupedData = {};
- 
+  
         siteLogResult.rows.forEach(log => {
             const vehicle = vehicles.find(v => v.plate_no === log.plate_no);
             if (!vehicle) return;
- 
+  
             const defaultOwner = (vehicle.supplier || "").trim();
             const company = getCompanyFromSite(log.site_name);
-            const site = log.site_name.trim();
+            const site = normalizeBaseSiteName(log.site_name) || log.site_name.trim();
  
             let sd = log.work_start_date ? new Date(log.work_start_date) : new Date(2000, 0, 1);
             let ed = log.work_end_date ? new Date(log.work_end_date) : (log.status === 'Running' ? new Date(2100, 11, 31) : new Date(sd));
@@ -358,20 +367,28 @@ router.post("/update-cell", verifyVatCode, async (req, res) => {
         if (!validFields.includes(field)) throw new Error("Invalid field update");
 
         let valToSave = (value === null || value === undefined || String(value).trim() === "") ? null : String(value).trim();
-        const cleanLf = parseInt(year) >= 2027 ? (ledger_folio || "").trim() : "";
-
         const currentYearNum = parseInt(year);
-
-        // 🟢 2027+: Supplier + Company + Site + LF കൃത്യമായി പരിശോധിച്ച് Overwrite ഒഴിവാക്കുന്നു
+        const cleanLf = currentYearNum >= 2027 ? (ledger_folio || "").trim() : "";
         const cleanSup = (supplier || "").trim();
-        const existingCheck = await pool.query(`
+        const cleanSite = (site_name || "").trim();
+
+        let checkQuery = `
             SELECT id FROM vat_billing_records 
             WHERE year = $1 AND company = $2 
               AND LOWER(TRIM(supplier)) = LOWER(TRIM($3))
-              AND site_name = $4 
-              AND COALESCE(ledger_folio, '') = $5 
-              AND month_index = $6 LIMIT 1
-        `, [currentYearNum, company, cleanSup, site_name, cleanLf, parseInt(month_index)]);
+              AND LOWER(TRIM(site_name)) = LOWER(TRIM($4))
+              AND month_index = $5
+        `;
+        const checkParams = [currentYearNum, company, cleanSup, cleanSite, parseInt(month_index)];
+
+        if (currentYearNum >= 2027) {
+            checkQuery += ` AND LOWER(TRIM(COALESCE(ledger_folio, ''))) = LOWER(TRIM($6)) LIMIT 1`;
+            checkParams.push(cleanLf);
+        } else {
+            checkQuery += ` LIMIT 1`;
+        }
+
+        const existingCheck = await pool.query(checkQuery, checkParams);
 
         if (existingCheck.rows.length > 0) {
             await pool.query(`
@@ -383,7 +400,7 @@ router.post("/update-cell", verifyVatCode, async (req, res) => {
             await pool.query(`
                 INSERT INTO vat_billing_records (year, company, supplier, vat_no, display_name, site_name, ledger_folio, month_index, ${field})
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            `, [currentYearNum, company, cleanSup, vat_no, display_name, site_name, cleanLf, parseInt(month_index), valToSave]);
+            `, [currentYearNum, company, cleanSup, vat_no, display_name, cleanSite, cleanLf, parseInt(month_index), valToSave]);
         }
         
         // Real-time live update for bill_no, amount, and quick_dice to other users without reload
@@ -425,18 +442,20 @@ router.post("/update-bulk", verifyVatCode, async (req, res) => {
                 const cleanLf = cleanYear >= 2027 ? (ledger_folio || "").trim() : "";
                 const cleanSup = (supplier || "").trim();
 
+                const cleanSite = (site_name || "").trim();
                 let checkQuery = `
                     SELECT id FROM vat_billing_records 
                     WHERE year = $1 AND company = $2 
                       AND LOWER(TRIM(supplier)) = LOWER(TRIM($3))
-                      AND site_name = $4 
+                      AND LOWER(TRIM(site_name)) = LOWER(TRIM($4))
                       AND month_index = $5
                 `;
-                const checkParams = [cleanYear, company, cleanSup, site_name, month_index];
+                const checkParams = [cleanYear, company, cleanSup, cleanSite, month_index];
 
                 if (cleanYear >= 2027) {
-                    checkQuery += ` AND COALESCE(ledger_folio, '') = $6 LIMIT 1`;
+                    checkQuery += ` AND LOWER(TRIM(COALESCE(ledger_folio, ''))) = LOWER(TRIM($6)) LIMIT 1`;
                     checkParams.push(cleanLf);
+               breakdown_site_clean = cleanSite;
                 } else {
                     checkQuery += ` LIMIT 1`;
                 }
@@ -513,24 +532,32 @@ router.get("/vendor-breakdown", verifyVatCode, async (req, res) => {
         let result = await pool.query(query, [supplier, site, monthString]);
         let rows = result.rows;
  
-        // Fallback for slight differences in site name spacing
-        if (rows.length === 0) {
-            const fallbackQuery = `
-                SELECT 
-                    COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
-                    ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
-                    ROUND(COALESCE(SUM(othr::numeric), 0), 2) AS ot_hours,
-                    ROUND(COALESCE(SUM(after_adjustment::numeric), 0), 2) AS total_amount
-                FROM billing_records
-                WHERE LOWER(TRIM(owner)) = LOWER(TRIM($1))
-                  AND LOWER(REGEXP_REPLACE(site_name, '[\\s\\-_]', '', 'g')) = LOWER(REGEXP_REPLACE($2, '[\\s\\-_]', '', 'g'))
-                  AND billing_month = $3
-                GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
-                ORDER BY plate_no ASC;
-            `;
-            const fbResult = await pool.query(fallbackQuery, [supplier, site, monthString]);
-            rows = fbResult.rows;
-        }
+        // Fallback and Re-Running support: includes both normal and re-running rows under the main site
+        const cleanSiteParam = (site || "")
+            .toLowerCase()
+            .replace(/re[\s\-_]*running/gi, "")
+            .replace(/running/gi, "")
+            .replace(/[\s\-_]/g, "")
+            .trim();
+
+        const fallbackQuery = `
+            SELECT 
+                COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A') AS plate_no,
+                ROUND(COALESCE(SUM(nhr::numeric), 0), 2) AS nr_hours,
+                ROUND(COALESCE(SUM(othr::numeric), 0), 2) AS ot_hours,
+                ROUND(COALESCE(SUM(after_adjustment::numeric), 0), 2) AS total_amount
+            FROM billing_records
+            WHERE LOWER(TRIM(owner)) = LOWER(TRIM($1))
+              AND (
+                LOWER(TRIM(site_name)) = LOWER(TRIM($2))
+                OR LOWER(REGEXP_REPLACE(REGEXP_REPLACE(site_name, 're[\\s\\-_]*running|running', '', 'gi'), '[\\s\\-_]', '', 'g')) = $4
+              )
+              AND billing_month = $3
+            GROUP BY COALESCE(NULLIF(TRIM(plate_no), ''), 'N/A')
+            ORDER BY plate_no ASC;
+        `;
+        const fbResult = await pool.query(fallbackQuery, [supplier, site, monthString, cleanSiteParam]);
+        rows = fbResult.rows;
  
         let plateLogs = [];
         try {

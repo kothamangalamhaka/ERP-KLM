@@ -1112,13 +1112,16 @@
             let firstMatchedSupplier = null;
 
             rawData.forEach(s => {
-                // 🟢 Supplier Name allenkil Sites-le Ledger Folio match aavunundo ennu nokkunnu
+                // 🟢 Supplier Name, Ledger Folio, allenkil Plate Number match aavunundo ennu nokkunnu
                 const hasLfMatch = Array.isArray(s.sites) && s.sites.some(st => 
                     (st.ledger_folio || "").toLowerCase().includes(search)
                 );
+                const hasPlateMatch = Array.isArray(s.sites) && s.sites.some(st => 
+                    Array.isArray(st.plates) && st.plates.some(p => p.toLowerCase().includes(search))
+                );
                 const hasSupplierMatch = s.supplier.toLowerCase().includes(search);
 
-                if (search && !hasSupplierMatch && !hasLfMatch) return;
+                if (search && !hasSupplierMatch && !hasLfMatch && !hasPlateMatch) return;
 
                 matchCount++;
                 if (!firstMatchedSupplier) {
@@ -1316,7 +1319,7 @@
                         <span style="font-size: 11px; font-weight: 700; color: #38bdf8; min-width: 60px; text-align: left;">${lfText}</span>
                         <span style="font-size: 13px; font-weight: 800; color: #ffffff; text-align: center; flex: 1; letter-spacing: 0.5px;">${escapeHTML(sFirstName.toUpperCase())}</span>
                         <div style="min-width: 60px; text-align: right;">
-                            <button class="site-refresh-btn" title="Refresh this site table" onclick="refreshSingleSite('${escapeQuotes(supData.supplier)}', '${escapeQuotes(sFirstName)}', this)">🔄</button>
+                            <button class="site-refresh-btn" title="Refresh this site table" onclick="refreshSingleSite('${escapeQuotes(supData.supplier)}', '${escapeQuotes(sFirstName)}', this, '${escapeQuotes(siteObj.ledger_folio || '')}')">🔄</button>
                         </div>
                     </div>
                     <table class="qc-table">
@@ -1335,7 +1338,7 @@
             });
         }
 
-       async function refreshSingleSite(supplierName, siteFirstName, btnEl) {
+       async function refreshSingleSite(supplierName, siteFirstName, btnEl, ledgerFolio = "") {
             if (btnEl) {
                 btnEl.style.transform = "rotate(360deg)";
                 btnEl.style.transition = "transform 0.5s ease";
@@ -1350,17 +1353,18 @@
                 const json = await res.json();
 
                 if (json.success && Array.isArray(json.data)) {
-                    // 1. Updated supplier data in-memory cache-il update cheyyunnu
+                    // 1. Fresh backend data in-memory-il update cheyyunnu
                     rawData = json.data;
-                    const supData = rawData.find(s => s.supplier === supplierName);
+                    const supData = rawData.find(s => s.supplier.trim().toLowerCase() === supplierName.trim().toLowerCase());
 
-                    // 2. Aa site-nte old modal cache clear cheyyunnu (puthiya breakdown kittaan)
+                    // 2. Old modal cache clear cheyyunnu
+                    const cleanLf = (ledgerFolio || "").trim();
                     for (let m = 0; m < 12; m++) {
-                        const cacheKey = `${supplierName}_${siteFirstName}_${currentYear}_${m}`;
+                        const cacheKey = `${supplierName}_${siteFirstName}_${cleanLf}_${currentYear}_${m}`;
                         delete tsDetailsCache[cacheKey];
                     }
 
-                    // 3. Current active site card table mathram re-render cheyyunnu
+                    // 3. Current active site card table mathram fresh aayi re-render cheyyunnu
                     if (supData) {
                         renderSiteTables(supData);
                     }

@@ -1035,7 +1035,7 @@
           class="btn-action"
           style="background: #dc2626"
           title="View QC Verified entries with missing Bill No or Amount"
-          >⚠️ QC Issues</a
+          >⚠️ Pending Chart</a
         >
         <a
           href="non_vat_tracker/index.html"
@@ -1314,9 +1314,12 @@
           }
 
           group.sites.forEach((st) => {
-            const existingSite = consolidatedSuppliers[supKey].sites.find(
-              (s) => s.site_name === st.site_name,
-            );
+            const existingSite = consolidatedSuppliers[supKey].sites.find((s) => {
+              if (currentYear >= 2027) {
+                return s.site_name === st.site_name && (s.ledger_folio || "").trim().toLowerCase() === (st.ledger_folio || "").trim().toLowerCase();
+              }
+              return s.site_name === st.site_name;
+            });
             if (!existingSite) {
               consolidatedSuppliers[supKey].sites.push(
                 JSON.parse(JSON.stringify(st)),
@@ -1555,6 +1558,7 @@
               vat_no: supData.vat_no,
               display_name: supData.display_name,
               site_name: siteName,
+              ledger_folio: currentYear >= 2027 ? (site.ledger_folio || "") : "",
               month_index: m,
               field: field,
               value: newVal,

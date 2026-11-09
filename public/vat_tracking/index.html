@@ -1062,7 +1062,8 @@
                 };
                 let isActive = siteData.active_months[i];
                 let cellClass = isActive ? "" : "inactive-cell";
-                let baseArgsStr = `this, 'FIELD_PLACEHOLDER', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}`;
+                const siteLfVal = currentYear >= 2027 ? (siteData.ledger_folio || "") : "";
+                let baseArgsStr = `this, 'FIELD_PLACEHOLDER', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}, '${escapeQuotes(siteLfVal)}'`;
 
                 let actionBillNo = isActive
                   ? `ondblclick="if(!isBulkMode) editCell(${baseArgsStr.replace("FIELD_PLACEHOLDER", "bill_no")})" onclick="if(isBulkMode) editCell(${baseArgsStr.replace("FIELD_PLACEHOLDER", "bill_no")})"`
@@ -1078,9 +1079,10 @@
                   ? Number(bill.erp_total).toFixed(2)
                   : "";
                 let displayErp = isActive ? erpVal : "";
+                const siteLfParam = currentYear >= 2027 ? (siteData.ledger_folio || "") : "";
                 let clickTsAction =
                   isActive && erpVal
-                    ? `class="vendor-ts-cell" style="font-weight: 600; color: #0f766e; cursor: pointer;" onclick="openTsDetailsModal('${escapeQuotes(group.supplier)}', '${escapeQuotes(siteData.site_name)}', ${i})"`
+                    ? `class="vendor-ts-cell" style="font-weight: 600; color: #0f766e; cursor: pointer;" onclick="openTsDetailsModal('${escapeQuotes(group.supplier)}', '${escapeQuotes(siteData.site_name)}', ${i}, '${escapeQuotes(siteLfParam)}')"`
                     : `class="${cellClass}"`;
 
                 tbody += `
@@ -1333,6 +1335,7 @@
               vat_no: item.group.vat_no,
               display_name: item.group.display_name,
               site_name: item.site.site_name,
+              ledger_folio: currentYear >= 2027 ? (item.site.ledger_folio || "") : "",
               month_index: m,
               field: field,
               value: newVal,
@@ -1673,6 +1676,7 @@
         display_name,
         site_name,
         month_index,
+        ledger_folio = "",
       ) {
         if (td.classList.contains("inactive-cell")) return;
         const span = td.querySelector("span");
@@ -1741,10 +1745,12 @@
                   p.field === field,
               );
 
+              const cleanLfToPass = currentYear >= 2027 ? (ledger_folio || (sit ? sit.ledger_folio : "") || "") : "";
+
               if (existingIdx > -1) {
                 pendingChanges[existingIdx].value = newValue;
+                pendingChanges[existingIdx].ledger_folio = cleanLfToPass;
               } else {
-                const targetSiteObj = sit || {};
                 pendingChanges.push({
                   year: currentYear,
                   company,
@@ -1752,24 +1758,25 @@
                   vat_no,
                   display_name,
                   site_name,
-                  ledger_folio: currentYear >= 2027 ? (targetSiteObj.ledger_folio || "") : "",
+                  ledger_folio: cleanLfToPass,
                   month_index,
                   field,
                   value: newValue,
                 });
-              }
-            } else {
-              await saveCell(
-                company,
-                supplier,
-                vat_no,
-                display_name,
-                site_name,
-                month_index,
-                field,
-                newValue,
-              );
             }
+          } else {
+            await saveCell(
+              company,
+              supplier,
+              vat_no,
+              display_name,
+              site_name,
+              month_index,
+              field,
+              newValue,
+              cleanLfToPass,
+            );
+          }
           }
         };
 
@@ -1790,6 +1797,7 @@
         month_index,
         field,
         value,
+        ledger_folio = "",
       ) {
         showStatus("Saving...", "saving");
         try {
@@ -1806,6 +1814,7 @@
               vat_no,
               display_name,
               site_name,
+              ledger_folio: currentYear >= 2027 ? (ledger_folio || "") : "",
               month_index,
               field,
               value,
@@ -2410,12 +2419,13 @@
 
       const tsDetailsCache = {};
 
-      async function fetchVehicleBreakdown(supplier, siteName, monthIdx) {
-        const cacheKey = `${supplier}_${siteName}_${currentYear}_${monthIdx}`;
+      async function fetchVehicleBreakdown(supplier, siteName, monthIdx, ledgerFolio = "") {
+        const cleanLf = currentYear >= 2027 ? (ledgerFolio || "").trim() : "";
+        const cacheKey = `${supplier}_${siteName}_${cleanLf}_${currentYear}_${monthIdx}`;
         if (tsDetailsCache[cacheKey]) return tsDetailsCache[cacheKey];
 
         try {
-          const url = `/timesheet/api/vat-tracking/vendor-breakdown?supplier=${encodeURIComponent(supplier)}&site=${encodeURIComponent(siteName)}&year=${currentYear}&month=${monthIdx + 1}`;
+          const url = `/timesheet/api/vat-tracking/vendor-breakdown?supplier=${encodeURIComponent(supplier)}&site=${encodeURIComponent(siteName)}&ledger_folio=${encodeURIComponent(cleanLf)}&year=${currentYear}&month=${monthIdx + 1}`;
           const res = await fetch(url, {
             headers: { "x-vat-code": vatCode },
           });
@@ -2444,10 +2454,11 @@
         return [];
       }
 
-      async function openTsDetailsModal(supplier, siteName, monthIdx) {
+      async function openTsDetailsModal(supplier, siteName, monthIdx, ledgerFolio = "") {
         const mName = monthsFull[monthIdx];
+        const lfTag = (currentYear >= 2027 && ledgerFolio) ? ` [LF: ${ledgerFolio}]` : "";
         document.getElementById("tsModalTitle").innerText =
-          `${mName} - ${siteName} Breakdown (${supplier})`;
+          `${mName} - ${siteName}${lfTag} Breakdown (${supplier})`;
         const tbody = document.getElementById("tsBreakdownBody");
         const tfoot = document.getElementById("tsBreakdownFoot");
 
@@ -2459,6 +2470,7 @@
           supplier,
           siteName,
           monthIdx,
+          ledgerFolio,
         );
 
         tbody.innerHTML = "";

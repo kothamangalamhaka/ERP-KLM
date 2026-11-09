@@ -306,6 +306,7 @@ router.get("/data", verifyAccessCode, async (req, res) => {
               active_months: Array(12).fill(false),
               billing: {},
               plateCompanies: {},
+              plates: [],
             };
             for (let i = 0; i < 12; i++) {
               suppliersMap[supName].sites[siteGroupKey].billing[i] = {
@@ -316,8 +317,11 @@ router.get("/data", verifyAccessCode, async (req, res) => {
           }
 
           suppliersMap[supName].sites[siteGroupKey].active_months[m] = true;
-          // 🟢 വണ്ടിയുടെ കമ്പനി രേഖപ്പെടുത്തുന്നു (Fixed siteGroupKey)
           const pKeyLog = (log.plate_no || "").trim().toUpperCase();
+          if (pKeyLog && !suppliersMap[supName].sites[siteGroupKey].plates.includes(pKeyLog)) {
+            suppliersMap[supName].sites[siteGroupKey].plates.push(pKeyLog);
+          }
+          // 🟢 വണ്ടിയുടെ കമ്പനി രേഖപ്പെടുത്തുന്നു (Fixed siteGroupKey)
           if (pKeyLog && suppliersMap[supName].sites[siteGroupKey]) {
             if (!suppliersMap[supName].sites[siteGroupKey].plateCompanies) {
               suppliersMap[supName].sites[siteGroupKey].plateCompanies = {};
@@ -696,14 +700,15 @@ router.post("/update-cell", verifyAccessCode, async (req, res) => {
     const cleanSup = String(supplier).trim();
 
     // 🟢 Supplier + Site + LF moonnum koodi nokki check cheyyunnu (Same LF ullavar collision aavilla)
+    const cleanSiteName = site_first_name.trim().toLowerCase();
     const existingCheck = await pool.query(
       `SELECT id FROM vat_billing_records 
        WHERE year = $1 AND company = 'NON_VAT' 
          AND LOWER(TRIM(supplier)) = LOWER(TRIM($2))
-         AND site_name = $3 
-         AND COALESCE(ledger_folio, '') = $4 
+         AND LOWER(TRIM(site_name)) = $3 
+         AND LOWER(TRIM(COALESCE(ledger_folio, ''))) = LOWER(TRIM($4)) 
          AND month_index = $5 LIMIT 1`,
-      [parseInt(year), cleanSup, site_first_name.trim().toLowerCase(), cleanLfStr, parseInt(month_index)]
+      [parseInt(year), cleanSup, cleanSiteName, cleanLfStr, parseInt(month_index)]
     );
 
     if (existingCheck.rows.length > 0) {
