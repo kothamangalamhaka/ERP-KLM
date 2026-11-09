@@ -4725,8 +4725,41 @@
               );
               for (let j = 0; j < cols.length; j++) {
                 let targetCol = startColIndex + j;
-                if (targetCol < editables.length)
-                  editables[targetCol].innerText = cols[j].trim();
+                if (targetCol < editables.length) {
+                  let targetCell = editables[targetCol];
+                  let val = cols[j].trim();
+                  targetCell.innerText = val;
+                  targetCell.dataset.myEdited = "true";
+                  delete targetCell.dataset.remoteDraft;
+
+                  let fieldName = targetCell.dataset.field;
+                  if (!fieldName) {
+                    if (targetCell.classList.contains("vbill-cell")) fieldName = "vbill_notes";
+                    else if (targetCell.classList.contains("bill-nr-cell")) fieldName = "bill_nr";
+                    else if (targetCell.classList.contains("bill-ot-cell")) fieldName = "bill_ot";
+                    else if (targetCell.classList.contains("driver-ot-cell")) fieldName = "driver_ot";
+                    else if (targetCell.classList.contains("driver-amount-cell")) fieldName = "driver_amount";
+                    else if (targetCell.classList.contains("inv-deduct-cell")) fieldName = "inv_deduct";
+                    else if (targetCell.classList.contains("deduct-reason-cell")) fieldName = "deduct_reason";
+                    else if (targetCell.classList.contains("crn-no-cell")) fieldName = "crn_no";
+                  }
+
+                  if (targetCell.dataset.field === "inv_amount") {
+                    let subText = val.replace(/,/g, "");
+                    let dedCell = currentRow.querySelector(".inv-deduct-cell");
+                    let dedText = dedCell ? dedCell.innerText.replace(/,/g, "") : "0";
+                    let sub = parseFloat(subText) || 0;
+                    let ded = parseFloat(dedText) || 0;
+                    let totCell = currentRow.querySelector(".inv-total-cell");
+                    if (totCell) {
+                      totCell.innerText = sub > 0 || ded > 0 ? ((sub - ded) * 1.15).toFixed(2) : "";
+                    }
+                  }
+
+                  if (fieldName) {
+                    emitTypingUpdate(currentRow, fieldName, val);
+                  }
+                }
               }
               currentRow = currentRow.nextElementSibling;
             }

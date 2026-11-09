@@ -18,9 +18,12 @@ function broadcastReportSync(eventPayload) {
 
 // 🟢 SSE Stream Endpoint for Realtime Dashboard
 router.get("/events", (req, res) => {
-  const token = req.query.token || req.headers["authorization"]?.replace("Bearer ", "");
+  const token =
+    req.query.token || req.headers["authorization"]?.replace("Bearer ", "");
   if (!token) {
-    return res.status(401).json({ success: false, message: "Unauthorized stream" });
+    return res
+      .status(401)
+      .json({ success: false, message: "Unauthorized stream" });
   }
 
   res.setHeader("Content-Type", "text/event-stream");
@@ -29,16 +32,22 @@ router.get("/events", (req, res) => {
   res.setHeader("X-Accel-Buffering", "no");
   if (typeof res.flushHeaders === "function") res.flushHeaders();
 
-  const clientId = req.query.cid || (Date.now() + Math.random().toString(36).substr(2, 5));
+  const clientId =
+    req.query.cid || Date.now() + Math.random().toString(36).substr(2, 5);
   reportSseClients.push({ id: clientId, res });
 
   // Initial connection handshake with current active drafts & locks
-  res.write(`data: ${JSON.stringify({
-    type: "CONNECTED",
-    clientId,
-    activeDrafts: Object.values(activeLiveDrafts),
-    activeLocks: Object.entries(activeCellLocks).map(([sId, lKey]) => ({ senderId: sId, lockKey: lKey }))
-  })}\n\n`);
+  res.write(
+    `data: ${JSON.stringify({
+      type: "CONNECTED",
+      clientId,
+      activeDrafts: Object.values(activeLiveDrafts),
+      activeLocks: Object.entries(activeCellLocks).map(([sId, lKey]) => ({
+        senderId: sId,
+        lockKey: lKey,
+      })),
+    })}\n\n`,
+  );
 
   // Heartbeat ping every 20 seconds
   const heartbeat = setInterval(() => {
@@ -70,7 +79,7 @@ router.get("/events", (req, res) => {
       broadcastReportSync({
         type: "LIVE_DRAFTS_CANCELLED",
         senderId: clientId,
-        drafts: cancelledKeys
+        drafts: cancelledKeys,
       });
     }
   });
@@ -164,7 +173,7 @@ router.post("/verify-special-security", (req, res) => {
 
   if (code === validCode) {
     res.json({ success: true });
-  } else { 
+  } else {
     res.json({ success: false, message: "Invalid Security Code!" });
   }
 });
@@ -215,16 +224,40 @@ router.post("/save-inline-edits", async (req, res) => {
       );
 
       if (checkInv.rows.length > 0) {
-
         await client.query(
-  "UPDATE invoice_records SET invoice_no=$1, bill_no=$2, bill_nr=$3, bill_ot=$4, invoice_amount=$5, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$6 AND month=$7 AND site_name=$8",
-  [inv_no, bill_no, inv_nr ?? null, inv_ot ?? null, inv_amount ?? null, plate, month, site],
-);
+          "UPDATE invoice_records SET invoice_no=$1, bill_no=$2, bill_nr=$3, bill_ot=$4, invoice_amount=$5, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$6 AND month=$7 AND site_name=$8",
+          [
+            inv_no,
+            bill_no,
+            inv_nr ?? null,
+            inv_ot ?? null,
+            inv_amount ?? null,
+            plate,
+            month,
+            site,
+          ],
+        );
       } else {
-        if (inv_no !== "" || bill_no !== "" || inv_nr !== null || inv_ot !== null || inv_amount !== null) {
+        if (
+          inv_no !== "" ||
+          bill_no !== "" ||
+          inv_nr !== null ||
+          inv_ot !== null ||
+          inv_amount !== null
+        ) {
           await client.query(
             "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_no, bill_nr, bill_ot, invoice_amount, zoho) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-            [plate, month, site, inv_no, bill_no, inv_nr, inv_ot, inv_amount, 'No'],
+            [
+              plate,
+              month,
+              site,
+              inv_no,
+              bill_no,
+              inv_nr,
+              inv_ot,
+              inv_amount,
+              "No",
+            ],
           );
         }
       }
@@ -281,7 +314,7 @@ router.post("/live-typing-sync", (req, res) => {
       month: cleanMonth,
       field: cleanField,
       value: value !== null && value !== undefined ? String(value) : "",
-      senderId
+      senderId,
     };
 
     broadcastReportSync({
@@ -291,7 +324,7 @@ router.post("/live-typing-sync", (req, res) => {
       site: cleanSite,
       month: cleanMonth,
       field: cleanField,
-      value: value !== null && value !== undefined ? String(value) : ""
+      value: value !== null && value !== undefined ? String(value) : "",
     });
   }
   res.json({ success: true });
@@ -311,7 +344,7 @@ router.post("/cell-lock-sync", (req, res) => {
       plate: String(plate).trim(),
       site: String(site || "").trim(),
       month: String(month || "").trim(),
-      field: String(field).trim()
+      field: String(field).trim(),
     });
   } else if (action === "UNLOCK") {
     delete activeCellLocks[senderId];
@@ -322,7 +355,7 @@ router.post("/cell-lock-sync", (req, res) => {
       plate: String(plate).trim(),
       site: String(site || "").trim(),
       month: String(month || "").trim(),
-      field: String(field).trim()
+      field: String(field).trim(),
     });
   }
   res.json({ success: true });
@@ -337,7 +370,7 @@ router.post("/clear-client-locks", (req, res) => {
       delete activeCellLocks[senderId];
       broadcastReportSync({
         type: "CELL_UNLOCKED_BY_KEY",
-        lockKey
+        lockKey,
       });
     }
 
@@ -353,18 +386,18 @@ router.post("/clear-client-locks", (req, res) => {
       broadcastReportSync({
         type: "LIVE_DRAFTS_CANCELLED",
         senderId,
-        drafts: cancelledKeys
+        drafts: cancelledKeys,
       });
     }
   }
   res.json({ success: true });
 });
- 
+
 // 🟢 Internal Fallback for Special Rules (Avoids 401 token mismatch across modules)
 router.get("/special-rules-cache", async (req, res) => {
   try {
     const rules = await pool.query(
-      "SELECT * FROM timesheet_special_rules WHERE is_active = true"
+      "SELECT * FROM timesheet_special_rules WHERE is_active = true",
     );
     res.json({ success: true, data: rules.rows });
   } catch (err) {
@@ -378,16 +411,43 @@ router.get("/master-report-data", async (req, res) => {
     const { month, year } = req.query;
     const fullMonth = `${month} ${year}`;
 
-    const [vehicles, sites, drivers, timesheets, invoices, billing, owners, rates, plateChanges] = await Promise.all([
-      pool.query("SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles"),
-      pool.query("SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co, vehicle_type, status FROM vehicle_site_log"),
-      pool.query("SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log"),
-      pool.query("SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month=$1 AND year=$2", [month, year]),
+    const [
+      vehicles,
+      sites,
+      drivers,
+      timesheets,
+      invoices,
+      billing,
+      owners,
+      rates,
+      plateChanges,
+    ] = await Promise.all([
+      pool.query(
+        "SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles",
+      ),
+      pool.query(
+        "SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co, vehicle_type, status FROM vehicle_site_log",
+      ),
+      pool.query(
+        "SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log",
+      ),
+      pool.query(
+        "SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month=$1 AND year=$2",
+        [month, year],
+      ),
       pool.query("SELECT * FROM invoice_records WHERE month=$1", [fullMonth]),
-      pool.query("SELECT * FROM billing_records WHERE billing_month=$1", [fullMonth]),
-      pool.query("SELECT plate_no, owner_name, vat, work_start_date, work_end_date, status FROM vehicle_owner_log"),
-      pool.query("SELECT plate_no, site_name, rate, work_start_date, work_end_date, status FROM vehicle_rate_log"),
-      pool.query("SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC")
+      pool.query("SELECT * FROM billing_records WHERE billing_month=$1", [
+        fullMonth,
+      ]),
+      pool.query(
+        "SELECT plate_no, owner_name, vat, work_start_date, work_end_date, status FROM vehicle_owner_log",
+      ),
+      pool.query(
+        "SELECT plate_no, site_name, rate, work_start_date, work_end_date, status FROM vehicle_rate_log",
+      ),
+      pool.query(
+        "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
+      ),
     ]);
 
     res.json({
@@ -400,7 +460,7 @@ router.get("/master-report-data", async (req, res) => {
       billing: billing.rows,
       owners: owners.rows,
       rates: rates.rows,
-      plateChanges: plateChanges.rows
+      plateChanges: plateChanges.rows,
     });
   } catch (err) {
     res.json({ success: false, message: err.message });
@@ -413,8 +473,18 @@ router.get("/master-report-data", async (req, res) => {
 router.post("/master-report-data-batch", async (req, res) => {
   try {
     const validMonths = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
     const requestedMonths = Array.isArray(req.body?.months)
       ? req.body.months
@@ -456,25 +526,51 @@ router.post("/master-report-data-batch", async (req, res) => {
       timesheetParams.push(item.month, item.year);
       return `(month=$${index * 2 + 1} AND year=$${index * 2 + 2})`;
     });
-    const fullMonths = uniqueMonths.map(
-      (item) => `${item.month} ${item.year}`,
-    );
+    const fullMonths = uniqueMonths.map((item) => `${item.month} ${item.year}`);
 
-    const [vehicles, sites, drivers, timesheets, invoices, billing, owners, rates, plateChanges] = await Promise.all([
-      pool.query("SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles"),
-      pool.query("SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co, vehicle_type, status FROM vehicle_site_log"),
-      pool.query("SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log"),
+    const [
+      vehicles,
+      sites,
+      drivers,
+      timesheets,
+      invoices,
+      billing,
+      owners,
+      rates,
+      plateChanges,
+    ] = await Promise.all([
+      pool.query(
+        "SELECT plate_no, owner_name, site_name, vehicle_type, vat FROM timesheet_vehicles",
+      ),
+      pool.query(
+        "SELECT plate_no, site_name, work_start_date, work_end_date, rate, field_co, site_co, vehicle_type, status FROM vehicle_site_log",
+      ),
+      pool.query(
+        "SELECT plate_no, driver_name, work_start_date, work_end_date FROM vehicle_driver_log",
+      ),
       pool.query(
         `SELECT plate_no, record_date, calc_time, bd, month, year
          FROM timesheet_daily_records
          WHERE ${timesheetConditions.join(" OR ")}`,
         timesheetParams,
       ),
-      pool.query("SELECT * FROM invoice_records WHERE month = ANY($1::text[])", [fullMonths]),
-      pool.query("SELECT * FROM billing_records WHERE billing_month = ANY($1::text[])", [fullMonths]),
-      pool.query("SELECT plate_no, owner_name, vat, work_start_date, work_end_date, status FROM vehicle_owner_log"),
-      pool.query("SELECT plate_no, site_name, rate, work_start_date, work_end_date, status FROM vehicle_rate_log"),
-      pool.query("SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC"),
+      pool.query(
+        "SELECT * FROM invoice_records WHERE month = ANY($1::text[])",
+        [fullMonths],
+      ),
+      pool.query(
+        "SELECT * FROM billing_records WHERE billing_month = ANY($1::text[])",
+        [fullMonths],
+      ),
+      pool.query(
+        "SELECT plate_no, owner_name, vat, work_start_date, work_end_date, status FROM vehicle_owner_log",
+      ),
+      pool.query(
+        "SELECT plate_no, site_name, rate, work_start_date, work_end_date, status FROM vehicle_rate_log",
+      ),
+      pool.query(
+        "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
+      ),
     ]);
 
     res.json({
@@ -535,12 +631,12 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
     for (let row of records) {
       const checkBill = await client.query(
         "SELECT id FROM billing_records WHERE plate_no=$1 AND billing_month=$2 AND site_name=$3",
-        [row.plate_no, row.month, row.site_name]
+        [row.plate_no, row.month, row.site_name],
       );
 
       if (checkBill.rows.length > 0) {
         await client.query(
-         `UPDATE billing_records
+          `UPDATE billing_records
            SET remark=$1, nhr=$5, othr=$6, driver_ot=$7, driver_amount=$8
            WHERE plate_no=$2 AND billing_month=$3 AND site_name=$4`,
           [
@@ -552,11 +648,11 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
             row.bill_ot,
             row.driver_ot,
             row.driver_amount,
-          ]
+          ],
         );
       } else {
         await client.query(
-           `INSERT INTO billing_records
+          `INSERT INTO billing_records
            (plate_no, billing_month, site_name, remark, nhr, othr, driver_ot, driver_amount)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
           [
@@ -568,24 +664,42 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
             row.bill_ot,
             row.driver_ot,
             row.driver_amount,
-          ]
+          ],
         );
       }
 
-      if (row.inv_deduct !== undefined || row.deduct_reason !== undefined || row.crn_no !== undefined) {
+      if (
+        row.inv_deduct !== undefined ||
+        row.deduct_reason !== undefined ||
+        row.crn_no !== undefined
+      ) {
         const checkInv = await client.query(
           "SELECT id FROM invoice_records WHERE plate_no = $1 AND month = $2 AND site_name = $3",
-          [row.plate_no, row.month, row.site_name]
+          [row.plate_no, row.month, row.site_name],
         );
         if (checkInv.rows.length > 0) {
           await client.query(
             "UPDATE invoice_records SET inv_deduct = COALESCE($1, inv_deduct), deduct_reason = COALESCE($2, deduct_reason), crn_no = COALESCE($3, crn_no), updated_at = CURRENT_TIMESTAMP WHERE plate_no = $4 AND month = $5 AND site_name = $6",
-            [row.inv_deduct, row.deduct_reason, row.crn_no, row.plate_no, row.month, row.site_name]
+            [
+              row.inv_deduct,
+              row.deduct_reason,
+              row.crn_no,
+              row.plate_no,
+              row.month,
+              row.site_name,
+            ],
           );
         } else {
           await client.query(
             "INSERT INTO invoice_records (plate_no, month, site_name, inv_deduct, deduct_reason, crn_no, invoice_no, bill_nr, bill_ot) VALUES ($1, $2, $3, $4, $5, $6, '', 0, 0)",
-            [row.plate_no, row.month, row.site_name, row.inv_deduct || 0, row.deduct_reason || '', row.crn_no || '']
+            [
+              row.plate_no,
+              row.month,
+              row.site_name,
+              row.inv_deduct || 0,
+              row.deduct_reason || "",
+              row.crn_no || "",
+            ],
           );
         }
       }
@@ -615,38 +729,48 @@ router.post("/save-bulk-vbill-notes", async (req, res) => {
 router.post("/save-text-note", async (req, res) => {
   try {
     const { plate_no, month, site_name, field, value } = req.body;
-    
-    const allowedFields = ["accounts_note", "pwas", "erp", "payment_status", "zoho", "diff_clear"];
+
+    const allowedFields = [
+      "accounts_note",
+      "pwas",
+      "erp",
+      "payment_status",
+      "zoho",
+      "diff_clear",
+    ];
     if (!allowedFields.includes(field)) {
-      return res.json({ success: false, message: "Invalid field name: " + field });
+      return res.json({
+        success: false,
+        message: "Invalid field name: " + field,
+      });
     }
 
     // 🟢 ഡാറ്റ കൃത്യമായി ഉണ്ടോ എന്ന് നോക്കി Update അല്ലെങ്കിൽ Insert ചെയ്യുന്നു
     const check = await pool.query(
       "SELECT id FROM invoice_records WHERE plate_no = $1 AND month = $2 AND site_name = $3",
-      [plate_no, month, site_name]
+      [plate_no, month, site_name],
     );
 
     if (check.rows.length > 0) {
       await pool.query(
         `UPDATE invoice_records SET ${field} = $1, updated_at = CURRENT_TIMESTAMP WHERE plate_no = $2 AND month = $3 AND site_name = $4`,
-        [value, plate_no, month, site_name]
+        [value, plate_no, month, site_name],
       );
     } else {
       await pool.query(
         `INSERT INTO invoice_records (plate_no, month, site_name, ${field}, invoice_no, bill_nr, bill_ot) 
          VALUES ($1, $2, $3, $4, '', 0, 0)`,
-        [plate_no, month, site_name, value]
+        [plate_no, month, site_name, value],
       );
     }
-    
+
     broadcastReportSync({
       type: "TEXT_NOTE_SAVED",
       record: { plate_no, month, site_name, field, value },
     });
     res.json({ success: true });
   } catch (err) {
-    console.error(`Error saving text note (${field}):`, err.message); 
+    console.error(`Error saving text note (${field}):`, err.message);
     res.json({ success: false, message: err.message });
   }
 });
@@ -662,23 +786,59 @@ router.post("/save-master-edits", async (req, res) => {
     // 1. Save Normal Invoice Records (including inv_deduct & deduct_reason)
     if (Array.isArray(invoiceRecords)) {
       for (let row of invoiceRecords) {
-        const { month, plate, site, inv_nr, inv_ot, inv_no, inv_amount, bill_no, inv_deduct, deduct_reason, crn_no } = row;
+        const {
+          month,
+          plate,
+          site,
+          inv_nr,
+          inv_ot,
+          inv_no,
+          inv_amount,
+          bill_no,
+          inv_deduct,
+          deduct_reason,
+          crn_no,
+        } = row;
         if (!month || !plate) continue;
 
         const checkInv = await client.query(
           "SELECT id FROM invoice_records WHERE plate_no = $1 AND month = $2 AND site_name = $3",
-          [plate, month, site]
+          [plate, month, site],
         );
 
         if (checkInv.rows.length > 0) {
           await client.query(
             "UPDATE invoice_records SET invoice_no=$1, bill_no=$2, bill_nr=$3, bill_ot=$4, invoice_amount=$5, inv_deduct=$6, deduct_reason=$7, crn_no=$8, updated_at=CURRENT_TIMESTAMP WHERE plate_no=$9 AND month=$10 AND site_name=$11",
-            [inv_no, bill_no, inv_nr ?? null, inv_ot ?? null, inv_amount ?? null, inv_deduct ?? 0, deduct_reason ?? '', crn_no ?? '', plate, month, site]
+            [
+              inv_no,
+              bill_no,
+              inv_nr ?? null,
+              inv_ot ?? null,
+              inv_amount ?? null,
+              inv_deduct ?? 0,
+              deduct_reason ?? "",
+              crn_no ?? "",
+              plate,
+              month,
+              site,
+            ],
           );
         } else {
           await client.query(
             "INSERT INTO invoice_records (plate_no, month, site_name, invoice_no, bill_no, bill_nr, bill_ot, invoice_amount, inv_deduct, deduct_reason, crn_no, zoho) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'No')",
-            [plate, month, site, inv_no, bill_no, inv_nr, inv_ot, inv_amount, inv_deduct ?? 0, deduct_reason ?? '', crn_no ?? '']
+            [
+              plate,
+              month,
+              site,
+              inv_no,
+              bill_no,
+              inv_nr,
+              inv_ot,
+              inv_amount,
+              inv_deduct ?? 0,
+              deduct_reason ?? "",
+              crn_no ?? "",
+            ],
           );
         }
       }
@@ -689,7 +849,7 @@ router.post("/save-master-edits", async (req, res) => {
       for (let row of billingRecords) {
         const checkBill = await client.query(
           "SELECT id FROM billing_records WHERE plate_no=$1 AND billing_month=$2 AND site_name=$3",
-          [row.plate_no, row.month, row.site_name]
+          [row.plate_no, row.month, row.site_name],
         );
 
         if (checkBill.rows.length > 0) {
@@ -706,7 +866,7 @@ router.post("/save-master-edits", async (req, res) => {
               row.bill_ot,
               row.driver_ot,
               row.driver_amount,
-            ]
+            ],
           );
         } else {
           await client.query(
@@ -722,7 +882,7 @@ router.post("/save-master-edits", async (req, res) => {
               row.bill_ot,
               row.driver_ot,
               row.driver_amount,
-            ]
+            ],
           );
         }
       }
@@ -764,4 +924,4 @@ router.post("/save-master-edits", async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;
