@@ -31,24 +31,6 @@ def sanitize_name(val: str) -> str:
     cleaned = re.sub(r'[^a-zA-Z0-9_\- ]', '', str(val or '')).strip()
     return cleaned.replace(' ', '_') or "Unknown"
 
-# Auto-heal table columns if missing
-def ensure_columns():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            ALTER TABLE vat_customer_records 
-            ADD COLUMN IF NOT EXISTS conf_letter_doc TEXT,
-            ADD COLUMN IF NOT EXISTS project_name VARCHAR(255);
-        """)
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        print("ensure_columns error:", e)
-
-ensure_columns()
-
 @router.get("/records")
 def get_records():
     conn = None
@@ -69,6 +51,7 @@ def get_records():
                 status,
                 to_char(release_date, 'YYYY-MM-DD') AS release_date,
                 agreement_doc,
+                po_doc,
                 conf_letter_doc,
                 vat_doc,
                 crn_doc,
@@ -160,6 +143,7 @@ def update_customer_master(payload: CustomerMasterEditPayload):
                     cur.execute("""
                         UPDATE vat_customer_records
                         SET agreement_doc = REPLACE(agreement_doc, %s, %s),
+                            po_doc = REPLACE(po_doc, %s, %s),
                             conf_letter_doc = REPLACE(conf_letter_doc, %s, %s),
                             vat_doc = REPLACE(vat_doc, %s, %s),
                             crn_doc = REPLACE(crn_doc, %s, %s),
@@ -167,6 +151,7 @@ def update_customer_master(payload: CustomerMasterEditPayload):
                             bills_data = REPLACE(bills_data::text, %s, %s)::jsonb
                         WHERE LOWER(customer_name) = LOWER(%s)
                     """, (
+                        f"/{old_folder_san}/", f"/{new_folder_san}/",
                         f"/{old_folder_san}/", f"/{new_folder_san}/",
                         f"/{old_folder_san}/", f"/{new_folder_san}/",
                         f"/{old_folder_san}/", f"/{new_folder_san}/",
@@ -286,6 +271,7 @@ class DocUploadPayload(BaseModel):
 def upload_doc(payload: DocUploadPayload):
     valid_cols = {
         "agreement": "agreement_doc",
+        "po": "po_doc",
         "conf_letter": "conf_letter_doc",
         "vat": "vat_doc",
         "crn": "crn_doc",
@@ -363,6 +349,7 @@ class BillUploadPayload(BaseModel):
     month_year: str
     file_name: str
     file_base64: str
+    note: Optional[str] = ""
 
 @router.post("/upload-bill")
 def upload_bill(payload: BillUploadPayload):
@@ -401,14 +388,62 @@ def upload_bill(payload: BillUploadPayload):
         rel_url = f"/uploads/Vat_Customers_docs/{cust_folder_name}/Bills/{saved_filename}"
 
         bills = rec["bills_data"] if rec and rec["bills_data"] else []
+        existing_item = next((b for b in bills if b.get("month") == payload.month_year), {})
+        old_note = existing_item.get("note", "")
         bills = [b for b in bills if b.get("month") != payload.month_year]
         bills.append({
             "month": payload.month_year,
             "file_path": dest_path,
             "file_url": rel_url,
             "filename": payload.file_name,
+            "note": payload.note if payload.note is not None and payload.note.strip() != "" else old_note,
             "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
+
+        cur.execute("UPDATE vat_customer_records SET bills_data = %s::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = %s", (json.dumps(bills), payload.customer_id))
+        conn.commit()
+        return {"success": True, "bills": bills}
+    except Exception as e:
+        if conn: conn.rollback()
+        return {"success": False, "error": str(e)}
+    finally:
+        if cur: cur.close()
+        if conn: conn.close()
+
+class BillNotePayload(BaseModel):
+    customer_id: int
+    month_year: str
+    note: str
+
+@router.post("/update-bill-note")
+def update_bill_note(payload: BillNotePayload):
+    conn = None
+    cur = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT bills_data FROM vat_customer_records WHERE id = %s", (payload.customer_id,))
+        rec = cur.fetchone()
+        if not rec:
+            return {"success": False, "error": "Record not found"}
+
+        bills = rec["bills_data"] if rec and rec["bills_data"] else []
+        found = False
+        for b in bills:
+            if b.get("month") == payload.month_year:
+                b["note"] = payload.note.strip()
+                found = True
+                break
+
+        if not found:
+            bills.append({
+                "month": payload.month_year,
+                "note": payload.note.strip(),
+                "file_path": None,
+                "file_url": None,
+                "filename": None,
+                "uploaded_at": None
+            })
 
         cur.execute("UPDATE vat_customer_records SET bills_data = %s::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = %s", (json.dumps(bills), payload.customer_id))
         conn.commit()

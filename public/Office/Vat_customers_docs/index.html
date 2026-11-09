@@ -444,6 +444,7 @@
                   <th>Release Date</th>
                   <th>Remark</th>
                   <th>Agreement</th>
+                  <th>PO</th>
                   <th>Conf Letter</th>
                   <th>Bills</th>
                   <th>Last Doc</th>
@@ -603,15 +604,19 @@
             <hr class="my-4" style="border-color: var(--border);">
 
             <div class="row g-3">
-              <div class="col-12 col-sm-6 col-md-4">
+              <div class="col-12 col-sm-6 col-md-3">
                 <label class="form-label small fw-semibold">Agreement Doc</label>
                 <input type="file" class="form-control" id="engagement_file_agreement" accept=".png,.jpg,.jpeg,.pdf">
               </div>
-              <div class="col-12 col-sm-6 col-md-4">
+              <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold">PO Doc</label>
+                <input type="file" class="form-control" id="engagement_file_po" accept=".png,.jpg,.jpeg,.pdf">
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
                 <label class="form-label small fw-semibold">Conf Letter Doc</label>
                 <input type="file" class="form-control" id="engagement_file_conf" accept=".png,.jpg,.jpeg,.pdf">
               </div>
-              <div class="col-12 col-sm-6 col-md-4">
+              <div class="col-12 col-sm-6 col-md-3">
                 <label class="form-label small fw-semibold">Last Doc</label>
                 <input type="file" class="form-control" id="engagement_file_last" accept=".png,.jpg,.jpeg,.pdf">
               </div>
@@ -636,12 +641,28 @@
         </div>
         <div class="modal-body">
           <ul class="nav nav-pills mb-3" id="billPills">
-            <li class="nav-item"><button class="nav-link active" onclick="switchBillTab('view')">1. View Bills</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="switchBillTab('add')">2. Add Bill</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="switchBillTab('download')">3. Download Bill</button></li>
+            <li class="nav-item"><button class="nav-link active" id="tabBtn_view" onclick="switchBillTab('view')">1. View Bills</button></li>
+            <li class="nav-item"><button class="nav-link" id="tabBtn_add" onclick="switchBillTab('add')">2. Add Bill</button></li>
+            <li class="nav-item"><button class="nav-link" id="tabBtn_download" onclick="switchBillTab('download')">3. Download Bill</button></li>
           </ul>
           <div id="billTabContent"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Document & Bill Preview Modal -->
+  <div class="modal fade" id="filePreviewModal" tabindex="-1" style="z-index: 1065;">
+    <div class="modal-dialog modal-lg modal-dialog-centered" style="max-width: 720px;">
+      <div class="modal-content shadow-lg" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; height: 80vh;">
+        <div class="modal-header py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+          <h6 class="modal-title fw-bold m-0 fs-6" id="filePreviewTitle"><i class="fa-solid fa-file-invoice text-primary me-2"></i>Bill Preview</h6>
+          <div class="d-flex align-items-center gap-2">
+            <a href="#" id="previewOpenNewTab" target="_blank" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 11px;"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open New Tab</a>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+        </div>
+        <div class="modal-body p-0" id="filePreviewBody" style="height: calc(80vh - 50px); overflow: hidden; background: #1e293b;"></div>
       </div>
     </div>
   </div>
@@ -668,7 +689,7 @@
       4: 'status',
       5: 'release_date',
       6: 'remark',
-      11: 'project_name'
+      12: 'project_name'
     };
 
     function toggleTheme() {
@@ -790,7 +811,7 @@
         if (r.cr_no && !groupedCustomers[key].cr_no) groupedCustomers[key].cr_no = r.cr_no;
 
         // Add to sites only if an actual site or project is assigned
-        const hasSiteData = (r.site && r.site.trim()) || (r.project_name && r.project_name.trim()) || r.agreement_doc || r.conf_letter_doc;
+        const hasSiteData = (r.site && r.site.trim()) || (r.project_name && r.project_name.trim()) || r.agreement_doc || r.po_doc || r.conf_letter_doc;
         if (hasSiteData) {
           groupedCustomers[key].sites.push(r);
         }
@@ -930,7 +951,7 @@
       tbody.innerHTML = '';
 
       if (cust.sites.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="13" class="text-center py-4 text-muted">No sites or projects registered for this customer. Click "+ Add Site / Project" to add.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" class="text-center py-4 text-muted">No sites or projects registered for this customer. Click "+ Add Site / Project" to add.</td></tr>`;
         attachDocEvents();
         attachInnerHeaderRightClick();
         return;
@@ -979,6 +1000,7 @@
           <td>${formatDateDDMMMYY(siteRec.release_date)}</td>
           <td>${siteRec.remark || ''}</td>
           <td>${renderDocPill(siteRec.id, 'agreement', siteRec.agreement_doc, 'Agreement')}</td>
+          <td>${renderDocPill(siteRec.id, 'po', siteRec.po_doc, 'PO')}</td>
           <td>${renderDocPill(siteRec.id, 'conf_letter', siteRec.conf_letter_doc, 'Conf Letter')}</td>
           <td><button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openBillPopup(${siteRec.id})"><i class="fa-solid fa-receipt me-1"></i>Bills (${(siteRec.bills_data || []).length})</button></td>
           <td>${renderDocPill(siteRec.id, 'last', siteRec.last_doc, 'Last Doc')}</td>
@@ -995,7 +1017,7 @@
         const activeHeaderTr = document.createElement('tr');
         activeHeaderTr.style.background = 'rgba(21, 128, 61, 0.08)';
         activeHeaderTr.innerHTML = `
-          <td colspan="13" class="py-1 px-3 fw-bold small text-success" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+          <td colspan="14" class="py-1 px-3 fw-bold small text-success" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
             <i class="fa-solid fa-circle-check me-1"></i> ACTIVE SITES (${activeSites.length})
           </td>
         `;
@@ -1008,7 +1030,7 @@
         const releasedHeaderTr = document.createElement('tr');
         releasedHeaderTr.style.background = 'rgba(239, 68, 68, 0.08)';
         releasedHeaderTr.innerHTML = `
-          <td colspan="13" class="py-1 px-3 fw-bold small text-danger" style="border-top: 2px solid var(--border); border-bottom: 1px solid var(--border);">
+          <td colspan="14" class="py-1 px-3 fw-bold small text-danger" style="border-top: 2px solid var(--border); border-bottom: 1px solid var(--border);">
             <i class="fa-solid fa-clock-rotate-left me-1"></i> RELEASED SITES (${releasedSites.length})
           </td>
         `;
@@ -1017,7 +1039,7 @@
       }
 
       if (filteredSites.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="13" class="text-center py-4 text-muted">No sites match the selected column filter.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" class="text-center py-4 text-muted">No sites match the selected column filter.</td></tr>`;
       }
 
       attachDocEvents();
@@ -1399,6 +1421,7 @@
         const savedId = json.id;
         const filesMap = {
           'agreement': document.getElementById('engagement_file_agreement').files[0],
+          'po': document.getElementById('engagement_file_po').files[0],
           'conf_letter': document.getElementById('engagement_file_conf').files[0],
           'last': document.getElementById('engagement_file_last').files[0]
         };
@@ -1457,36 +1480,79 @@
       return months.reverse();
     }
 
+    function previewDocPopup(url, title) {
+      if (!url) return;
+      document.getElementById('filePreviewTitle').innerHTML = `<i class="fa-solid fa-file me-2 text-primary"></i>${title || 'Document Preview'}`;
+      document.getElementById('previewOpenNewTab').href = url;
+      const body = document.getElementById('filePreviewBody');
+      const ext = url.split('.').pop().toLowerCase();
+      if (ext === 'pdf') {
+        body.innerHTML = `<iframe src="${url}#toolbar=1" style="width:100%; height:100%; border:none;"></iframe>`;
+      } else {
+        body.innerHTML = `<div class="d-flex align-items-center justify-content-center h-100 p-2" style="background: #1e293b;"><img src="${url}" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:4px;"></div>`;
+      }
+      const prevModal = bootstrap.Modal.getInstance(document.getElementById('filePreviewModal')) || new bootstrap.Modal(document.getElementById('filePreviewModal'));
+      prevModal.show();
+    }
+
     function switchBillTab(tab) {
+      ['view', 'add', 'download'].forEach(t => {
+        const btn = document.getElementById(`tabBtn_${t}`);
+        if (btn) btn.classList.toggle('active', t === tab);
+      });
+
       const container = document.getElementById('billTabContent');
       const bills = currentBillRecord.bills_data || [];
       const months = generateMonthsRange(currentBillRecord.joining_date);
 
       if (tab === 'view') {
         let html = '<div class="list-group">';
-        if (bills.length === 0) html += '<p class="text-muted p-2">No bills uploaded yet.</p>';
-        bills.forEach(b => {
-          html += `
-            <div class="list-group-item d-flex justify-content-between align-items-center" style="background: var(--surface); color: var(--text); border-color: var(--border);">
-              <div><strong>${b.month}</strong> - <span class="text-muted">${b.filename}</span></div>
-              <button class="btn btn-sm btn-outline-primary" onclick="window.open('${b.file_url}', '_blank')"><i class="fa-solid fa-eye me-1"></i>View</button>
-            </div>
-          `;
-        });
+        const uploadedBills = bills.filter(b => b.file_url);
+
+        if (uploadedBills.length === 0) {
+          html += '<p class="text-muted p-3 text-center mb-0">No bills uploaded yet.</p>';
+        } else {
+          uploadedBills.forEach(b => {
+            const noteHtml = (b.note && b.note.trim())
+              ? `<div class="mt-1 small text-muted"><i class="fa-solid fa-note-sticky text-warning me-1"></i>${b.note.trim()}</div>`
+              : '';
+
+            html += `
+              <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3" style="background: var(--surface); color: var(--text); border-color: var(--border);">
+                <div>
+                  <span class="fw-bold fs-6">${b.month}</span>
+                  ${noteHtml}
+                </div>
+                <button class="btn btn-sm btn-outline-primary py-1 px-3 d-inline-flex align-items-center gap-1" style="font-size: 12px; font-weight: 500;" onclick="previewDocPopup('${b.file_url}', 'Bill: ${b.month}')">
+                  <i class="fa-solid fa-eye"></i> View
+                </button>
+              </div>
+            `;
+          });
+        }
         html += '</div>';
         container.innerHTML = html;
       } else if (tab === 'add') {
-        let html = '<div class="table-responsive"><table class="table table-bordered" style="color: var(--text); border-color: var(--border); font-size: 13px;">';
-        html += '<thead><tr><th>Month</th><th>Status</th><th style="width: 120px;">Action</th></tr></thead><tbody>';
+        let html = '<div class="table-responsive"><table class="table table-bordered align-middle" style="color: var(--text); border-color: var(--border); font-size: 13px;">';
+        html += '<thead><tr><th style="width: 110px;">Month</th><th style="width: 100px; text-align: center;">Status</th><th>Note</th><th style="width: 110px; text-align: center;">Action</th></tr></thead><tbody>';
         months.forEach(m => {
-          const existing = bills.find(b => b.month === m);
+          const existing = bills.find(b => b.month === m && b.file_url);
+          const billItem = bills.find(b => b.month === m);
+          const existingNote = billItem ? (billItem.note || '') : '';
+          const statusBadge = existing
+            ? `<span class="badge bg-success" style="background-color: #198754 !important; font-weight: 600; padding: 5px 8px;">Uploaded</span>`
+            : `<span class="badge bg-danger" style="background-color: #dc3545 !important; font-weight: 600; padding: 5px 8px;">Pending</span>`;
+
           html += `
             <tr>
               <td><strong>${m}</strong></td>
-              <td>${existing ? `<span class="badge bg-success">Uploaded</span>` : `<span class="badge bg-secondary">Pending</span>`}</td>
+              <td style="text-align: center;">${statusBadge}</td>
               <td>
+                <input type="text" id="bill_note_${m.replace(' ', '_')}" class="form-control form-control-sm" style="font-size: 12px; background: var(--bg); color: var(--text); border-color: var(--border);" placeholder="Add note..." value="${existingNote.replace(/"/g, '&quot;')}" onblur="saveBillNote('${m}', this.value)">
+              </td>
+              <td style="text-align: center; white-space: nowrap;">
                 <input type="file" id="bill_file_${m.replace(' ', '_')}" style="display:none;" accept=".png,.jpg,.jpeg,.pdf" onchange="uploadMonthBill('${m}', this)">
-                <button class="btn btn-sm btn-primary me-2" onclick="document.getElementById('bill_file_${m.replace(' ', '_')}').click()"><i class="fa-solid fa-upload"></i></button>
+                <button class="btn btn-sm btn-primary me-1" onclick="handleBillUploadClick('${m}', ${!!existing})"><i class="fa-solid fa-upload"></i></button>
                 ${existing ? `<button class="btn btn-sm btn-danger" onclick="confirmDeleteBill('${m}')"><i class="fa-solid fa-trash"></i></button>` : ''}
               </td>
             </tr>
@@ -1495,31 +1561,87 @@
         html += '</tbody></table></div>';
         container.innerHTML = html;
       } else if (tab === 'download') {
+        const validBills = bills.filter(b => b.file_url);
+
         let html = `
           <div class="card p-3 mb-3" style="background: var(--surface); border: 1px solid var(--border);">
             <h6><i class="fa-solid fa-layer-group me-2 text-primary"></i>Combined Chronological Download</h6>
             <p class="text-muted small">Merges first month bill through latest bill into a single PDF.</p>
-            <button class="btn btn-success btn-sm py-2 px-3 fw-bold" onclick="downloadCombinedBill()"><i class="fa-solid fa-file-pdf me-1"></i> Download Combined PDF</button>
+            <button class="btn btn-success btn-sm py-2 px-3 fw-bold" ${validBills.length === 0 ? 'disabled' : ''} onclick="downloadCombinedBill()"><i class="fa-solid fa-file-pdf me-1"></i> Download Combined PDF</button>
           </div>
           <h6 class="small fw-bold text-muted text-uppercase mb-2">Single Month Download</h6>
           <div class="list-group">
         `;
-        bills.forEach(b => {
-          html += `
-            <div class="list-group-item d-flex justify-content-between align-items-center" style="background: var(--surface); color: var(--text); border-color: var(--border);">
-              <span>${b.month}</span>
-              <button class="btn btn-sm btn-outline-success" onclick="downloadSingleBill('${b.month}')"><i class="fa-solid fa-download me-1"></i>Download PDF</button>
-            </div>
-          `;
-        });
+
+        if (validBills.length === 0) {
+          html += '<p class="text-muted p-2 text-center mb-0">No bills uploaded yet to download.</p>';
+        } else {
+          validBills.forEach(b => {
+            html += `
+              <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3" style="background: var(--surface); color: var(--text); border-color: var(--border);">
+                <div>
+                  <span class="fw-bold fs-6">${b.month}</span>
+                </div>
+                <button class="btn btn-sm btn-outline-success py-1 px-3 d-inline-flex align-items-center gap-1" style="font-size: 12px; font-weight: 500;" onclick="downloadSingleBill('${b.month}')">
+                  <i class="fa-solid fa-download"></i> Download PDF
+                </button>
+              </div>
+            `;
+          });
+        }
         html += '</div>';
         container.innerHTML = html;
+      }
+    }
+
+    async function handleBillUploadClick(month, isAlreadyUploaded) {
+      const fileInput = document.getElementById(`bill_file_${month.replace(' ', '_')}`);
+      if (!fileInput) return;
+
+      if (isAlreadyUploaded) {
+        const result = await Swal.fire({
+          title: 'Replace Bill Confirmation',
+          text: `A bill for ${month} has already been uploaded. Are you sure you want to replace this file? Once replaced, this action cannot be undone!`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#e11d48',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: 'Yes, Replace File'
+        });
+        if (!result.isConfirmed) return;
+      }
+      fileInput.click();
+    }
+
+    async function saveBillNote(month, noteVal) {
+      if (!currentBillRecord) return;
+      try {
+        const res = await fetch('/py/vat-customers/update-bill-note', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: Number(currentBillRecord.id),
+            month_year: month,
+            note: noteVal
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          currentBillRecord.bills_data = json.bills;
+          const recInRaw = rawRecords.find(r => Number(r.id) === Number(currentBillRecord.id));
+          if (recInRaw) recInRaw.bills_data = json.bills;
+        }
+      } catch (err) {
+        console.error('Note save error:', err);
       }
     }
 
     async function uploadMonthBill(month, input) {
       if (!input.files.length) return;
       const file = input.files[0];
+      const noteInput = document.getElementById(`bill_note_${month.replace(' ', '_')}`);
+      const currentNote = noteInput ? noteInput.value.trim() : '';
+
       try {
         const b64 = await readFileAsBase64(file);
         const res = await fetch('/py/vat-customers/upload-bill', {
@@ -1529,12 +1651,15 @@
             customer_id: Number(currentBillRecord.id),
             month_year: month,
             file_name: file.name,
-            file_base64: b64
+            file_base64: b64,
+            note: currentNote
           })
         });
         const json = await res.json();
         if (json.success) {
           currentBillRecord.bills_data = json.bills;
+          const recInRaw = rawRecords.find(r => Number(r.id) === Number(currentBillRecord.id));
+          if (recInRaw) recInRaw.bills_data = json.bills;
           switchBillTab('add');
           fetchTableData();
         } else {
@@ -1542,6 +1667,8 @@
         }
       } catch (e) {
         Swal.fire({ icon: 'error', title: 'Upload Error', text: e.message });
+      } finally {
+        input.value = '';
       }
     }
 
