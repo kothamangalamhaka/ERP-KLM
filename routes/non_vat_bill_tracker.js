@@ -593,8 +593,7 @@ router.get("/vendor-breakdown", verifyAccessCode, async (req, res) => {
         // 🟢 VAT ഉള്ള വാഹനം ആണെങ്കിൽ Non-VAT ബ്രേക്ക്ഡൗണിൽ ഉൾപ്പെടുത്തില്ല
         if (['yes', 'true', '15'].includes(curVat)) return;
 
-        // 🟢 Ledger Folio നൽകിയിട്ടുണ്ടെങ്കിൽ ആ കാർഡിലെ വാഹനം മാത്രമായി കൃത്യമായി വേർതിരിക്കുന്നു
-        if (cleanReqLf !== "" && curLf !== cleanReqLf) return;
+        if (cleanReqLf !== "" && curLf !== "" && curLf !== cleanReqLf) return;
 
         const displayPlate = getPlateForMonth(
           p,

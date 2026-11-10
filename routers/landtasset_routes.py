@@ -225,3 +225,35 @@ async def get_filtered_data(asset_code: str, month_year: str):
         return {"success": True, "data": rows}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+# 5. Multi-Asset Monthly Filter Data Retrieval
+@router.get("/filter-multi")
+async def get_multi_filtered_data(asset_codes: str, month_year: str):
+    try:
+        code_list = [c.strip().upper() for c in asset_codes.split(",") if c.strip()]
+        if not code_list:
+            return {"success": False, "message": "Asset codes provided alla"}
+
+        year, month = map(int, month_year.split('-'))
+        start_date = f"{year:04d}-{month:02d}-01"
+        end_date = f"{year + 1 if month == 12 else year:04d}-{1 if month == 12 else month + 1:02d}-01"
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        query = """
+            SELECT asset_code, COALESCE(TO_CHAR(log_date, 'DD-Mon-YYYY'), ''), col3, col4, col5, col6,
+                   col7, col8, col9, col10, col11, col12
+            FROM landtasset
+            WHERE TRIM(UPPER(asset_code)) = ANY(%s)
+              AND log_date >= %s::date
+              AND log_date < %s::date
+            ORDER BY asset_code ASC, log_date ASC
+        """
+        cur.execute(query, (code_list, start_date, end_date))
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        return {"success": True, "data": rows}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
