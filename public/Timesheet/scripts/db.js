@@ -533,8 +533,18 @@ function saveColumnOrderFromUI() {
 }
 
 const monthNamesList = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 function isDateColumn(colName) {
@@ -557,7 +567,13 @@ function parseDateComponents(dateStr) {
       y = parts[2];
     }
     if (y && m >= 1 && m <= 12) {
-      return { year: y, monthIndex: m - 1, monthName: monthNamesList[m - 1], day: d, fullDate: String(dateStr).trim() };
+      return {
+        year: y,
+        monthIndex: m - 1,
+        monthName: monthNamesList[m - 1],
+        day: d,
+        fullDate: String(dateStr).trim(),
+      };
     }
   }
   return null;
@@ -655,12 +671,14 @@ function renderDateHierarchyFilter(container, sortedValues, isAllSelected) {
     const parsed = parseDateComponents(val);
     if (!parsed) {
       if (!yearsMap["Other"]) yearsMap["Other"] = { months: {} };
-      if (!yearsMap["Other"].months["Other"]) yearsMap["Other"].months["Other"] = [];
+      if (!yearsMap["Other"].months["Other"])
+        yearsMap["Other"].months["Other"] = [];
       yearsMap["Other"].months["Other"].push(val);
       return;
     }
     if (!yearsMap[parsed.year]) yearsMap[parsed.year] = { months: {} };
-    if (!yearsMap[parsed.year].months[parsed.monthName]) yearsMap[parsed.year].months[parsed.monthName] = [];
+    if (!yearsMap[parsed.year].months[parsed.monthName])
+      yearsMap[parsed.year].months[parsed.monthName] = [];
     yearsMap[parsed.year].months[parsed.monthName].push(parsed.fullDate);
   });
 
@@ -697,7 +715,10 @@ function renderDateHierarchyFilter(container, sortedValues, isAllSelected) {
 
       const datesList = monthsObj[month].sort();
       datesList.forEach((fullDate) => {
-        const isChecked = isAllSelected || (activeFilters[activeHeaderCol] && activeFilters[activeHeaderCol].includes(fullDate));
+        const isChecked =
+          isAllSelected ||
+          (activeFilters[activeHeaderCol] &&
+            activeFilters[activeHeaderCol].includes(fullDate));
         const dateId = "dt_" + Math.random().toString(36).substr(2, 9);
         const displayDay = fullDate.split(/[-/]/)[2] || fullDate;
         yearHtml += `
@@ -717,11 +738,14 @@ function renderDateHierarchyFilter(container, sortedValues, isAllSelected) {
   });
 
   if (hasBlanks) {
-    const isChecked = isAllSelected || (activeFilters[activeHeaderCol] && activeFilters[activeHeaderCol].includes("(Blanks)"));
+    const isChecked =
+      isAllSelected ||
+      (activeFilters[activeHeaderCol] &&
+        activeFilters[activeHeaderCol].includes("(Blanks)"));
     const blankId = "dt_blanks";
     container.insertAdjacentHTML(
       "beforeend",
-      `<div class="filter-item data-item" style="margin-top: 4px; border-top: 1px dashed var(--border-light, #e2e8f0); padding-top: 4px;"><input type="checkbox" id="${blankId}" class="filter-checkbox" value="(Blanks)" ${isChecked ? "checked" : ""} onchange="checkSelectAll()"><label for="${blankId}">(Blanks)</label></div>`
+      `<div class="filter-item data-item" style="margin-top: 4px; border-top: 1px dashed var(--border-light, #e2e8f0); padding-top: 4px;"><input type="checkbox" id="${blankId}" class="filter-checkbox" value="(Blanks)" ${isChecked ? "checked" : ""} onchange="checkSelectAll()"><label for="${blankId}">(Blanks)</label></div>`,
     );
   }
 
@@ -793,7 +817,9 @@ function searchFilterList() {
       let parent = item.closest(".date-tree-children");
       while (parent) {
         parent.classList.add("open");
-        const expander = parent.previousElementSibling?.querySelector(".date-tree-expander");
+        const expander = parent.previousElementSibling?.querySelector(
+          ".date-tree-expander",
+        );
         if (expander) expander.classList.add("open");
         parent = parent.parentElement.closest(".date-tree-children");
       }
@@ -839,7 +865,8 @@ function clearFilter() {
 }
 
 function getSearchableText(row, searchType) {
-  const up = (v) => (v === null || v === undefined ? "" : String(v).toUpperCase());
+  const up = (v) =>
+    v === null || v === undefined ? "" : String(v).toUpperCase();
   if (searchType === "plate")
     return [row.plate_no, row.site_old_veh, row.site_new_veh].map(up).join(" ");
   if (searchType === "owner") return up(row.owner_name);
@@ -853,7 +880,9 @@ function applyGridFilters() {
     .getElementById("searchInput")
     .value.trim()
     .toUpperCase();
-  const trs = Array.from(document.getElementById("dbBody").getElementsByTagName("tr"));
+  const trs = Array.from(
+    document.getElementById("dbBody").getElementsByTagName("tr"),
+  );
   if (trs.length === 1 && trs[0].cells.length === 1) return;
 
   const dataMap = new Map();
@@ -994,7 +1023,9 @@ async function rowAbout() {
             : '<span class="status-badge bg-rel">REL</span>';
       let start = s.work_start_date ? s.work_start_date.split("T")[0] : "-";
       let end = s.work_end_date ? s.work_end_date.split("T")[0] : "-";
-      let projTxt = s.project_name ? `<br><span style="font-size:10px; color:#2563eb;">Project: ${escapeHTML(s.project_name)}</span>` : "";
+      let projTxt = s.project_name
+        ? `<br><span style="font-size:10px; color:#2563eb;">Project: ${escapeHTML(s.project_name)}</span>`
+        : "";
       slHtml += `<tr><td><b>${escapeHTML(s.site_name)}</b>${projTxt}<br><span style="font-size:10px; color:#000;">Rate: ${escapeHTML(s.rate || "-")}</span></td><td>${start}</td><td>${end}</td><td>${badge}</td></tr>`;
 
       if (s.reason && s.reason.trim() !== "") {
@@ -1195,9 +1226,7 @@ async function initDB() {
             "";
           row.company_display_name = row.company_display_name_;
           row.company_arabic_name =
-            oLog.company_arabic_name ||
-            row.company_arabic_name ||
-            "";
+            oLog.company_arabic_name || row.company_arabic_name || "";
         }
 
         return row;
@@ -1614,7 +1643,7 @@ function manageColumn(colName) {
 }
 
 function toggleNewVehicleVatFields(vatVal) {
-  const isYes = (vatVal === "Yes");
+  const isYes = vatVal === "Yes";
   const vatNoEl = document.getElementById("group_vat_no");
   const compEl = document.getElementById("group_comp_name");
 
@@ -1841,7 +1870,12 @@ async function submitNewVehicle() {
       let sName = document.getElementById("new_site_name").value.trim();
       let sRate = document.getElementById("new_site_rate").value.trim();
       let sStart = document.getElementById("new_site_start").value;
-      let oldVehVal = document.getElementById("new_old_vehicle_no") ? document.getElementById("new_old_vehicle_no").value.trim().toUpperCase() : null;
+      let oldVehVal = document.getElementById("new_old_vehicle_no")
+        ? document
+            .getElementById("new_old_vehicle_no")
+            .value.trim()
+            .toUpperCase()
+        : null;
       let fCo = document.getElementById("new_field_co")
         ? document.getElementById("new_field_co").value
         : null;
@@ -1921,10 +1955,18 @@ async function submitNewVehicle() {
     let oVatEl = document.getElementById("new_vat");
     let vatVal = oVatEl ? oVatEl.value : "No";
 
-    let vatNoVal = (vatVal === "Yes" && document.getElementById("new_vat_no")) ? document.getElementById("new_vat_no").value.trim() : "";
-    let compDisplayVal = (vatVal === "Yes" && document.getElementById("new_company_display_name")) ? document.getElementById("new_company_display_name").value.trim() : "";
+    let vatNoVal =
+      vatVal === "Yes" && document.getElementById("new_vat_no")
+        ? document.getElementById("new_vat_no").value.trim()
+        : "";
+    let compDisplayVal =
+      vatVal === "Yes" && document.getElementById("new_company_display_name")
+        ? document.getElementById("new_company_display_name").value.trim()
+        : "";
     // 🟢 VAT Yes aano No aano ennu nokkathe eppozhum Ledger Folio edukkunnu
-    let ledgerFolioVal = document.getElementById("new_ledger_folio") ? document.getElementById("new_ledger_folio").value.trim().toUpperCase() : "";
+    let ledgerFolioVal = document.getElementById("new_ledger_folio")
+      ? document.getElementById("new_ledger_folio").value.trim().toUpperCase()
+      : "";
 
     if (oNameEl && oNameEl.value.trim()) {
       await safeFetch("/timesheet/api/update-owner-log", {
@@ -2272,7 +2314,10 @@ async function fetchLogs(plate, type) {
             ? `<button class="btn-delete-icon" onclick="deleteLogEntry(event, 'site', ${s.id}, '${plate}')" title="Delete Log">&#x1F5D1;&#xFE0F;</button>`
             : "";
         let escapedReasonS = escapeHTML(s.reason || "").replace(/'/g, "\\'");
-        let escapedProjS = escapeHTML(s.project_name || "").replace(/'/g, "\\'");
+        let escapedProjS = escapeHTML(s.project_name || "").replace(
+          /'/g,
+          "\\'",
+        );
         slHtml += `<tr style="cursor:pointer;" onclick="editSiteLog(${s.id}, '${escapeHTML(s.site_name)}', '${start}', '${end}', '${s.status}', '${escapeHTML(s.old_vehicle_no)}', '${escapeHTML(s.new_vehicle_no)}', '${escapeHTML(s.asset_code)}', '${escapeHTML(s.work_order_no)}', '${escapeHTML(s.rate)}', '${escapeHTML(s.field_co)}', '${escapeHTML(s.site_co)}', '${escapedReasonS}', '${escapeHTML(s.vehicle_type || "")}', '${escapedProjS}')">
                 <td><span style="font-weight:600; color:#0d6efd;">${escapeHTML(s.site_name)}</span><br><span style="font-size:10px; color:#888;">Tap to edit &#x270E;</span></td>
                 <td><span style="font-weight:600; color:#2563eb;">${escapeHTML(s.project_name || "-")}</span></td>
@@ -2358,7 +2403,10 @@ async function fetchLogs(plate, type) {
             : "";
         let escapedReasonO = escapeHTML(o.reason || "").replace(/'/g, "\\'");
         let escapedLf = escapeHTML(o.ledger_folio || "").replace(/'/g, "\\'");
-        let escapedArabic = escapeHTML(o.company_arabic_name || "").replace(/'/g, "\\'");
+        let escapedArabic = escapeHTML(o.company_arabic_name || "").replace(
+          /'/g,
+          "\\'",
+        );
 
         olHtml += `
           <tr style="cursor:pointer;" onclick="editOwnerLog(${o.id}, '${escapeHTML(o.owner_name)}', '${escapeHTML(o.owner_mobile)}', '${escapeHTML(o.vat)}', '${escapeHTML(o.vat_no)}', '${escapeHTML(o.company_display_name)}', '${start}', '${end}', '${escapedReasonO}', '${escapedLf}', '${escapedArabic}')">
@@ -3060,30 +3108,36 @@ function applySheetDesign(ws, headerStyle, cellStyleLeft, cellStyleCenter) {
       if (R === 0) {
         cell.s = headerStyle;
       } else {
-        const colHeaderStr = String(ws[XLSX.utils.encode_cell({ c: C, r: 0 })]?.v || "").toUpperCase();
-  const isDateCol = colHeaderStr.includes("START") || colHeaderStr.includes("END") || colHeaderStr.includes("LAST DAY") || colHeaderStr.includes("DATE");
-  const isCenterCol = [
-    "SL NO",
-    "START DATE",
-    "END DATE",
-    "STATUS",
-    "VAT",
-    "RATE",
-    "LAST DAY",
-    "OLD",
-    "NEW",
-  ].some((h) => colHeaderStr.includes(h));
+        const colHeaderStr = String(
+          ws[XLSX.utils.encode_cell({ c: C, r: 0 })]?.v || "",
+        ).toUpperCase();
+        const isDateCol =
+          colHeaderStr.includes("START") ||
+          colHeaderStr.includes("END") ||
+          colHeaderStr.includes("LAST DAY") ||
+          colHeaderStr.includes("DATE");
+        const isCenterCol = [
+          "SL NO",
+          "START DATE",
+          "END DATE",
+          "STATUS",
+          "VAT",
+          "RATE",
+          "LAST DAY",
+          "OLD",
+          "NEW",
+        ].some((h) => colHeaderStr.includes(h));
 
-  if (isDateCol && cell.v && cell.v !== "-") {
-    const dMatch = String(cell.v).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (dMatch) {
-      cell.t = "d";
-      cell.v = new Date(cell.v);
-      cell.z = "yyyy-mm-dd";
-    }
-  }
+        if (isDateCol && cell.v && cell.v !== "-") {
+          const dMatch = String(cell.v).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (dMatch) {
+            cell.t = "d";
+            cell.v = new Date(cell.v);
+            cell.z = "yyyy-mm-dd";
+          }
+        }
 
-  cell.s = C === 0 || isCenterCol ? cellStyleCenter : cellStyleLeft;
+        cell.s = C === 0 || isCenterCol ? cellStyleCenter : cellStyleLeft;
       }
     }
     colWidths.push({ wch: Math.max(maxWidth, 12) });
@@ -3152,7 +3206,9 @@ async function importExcel() {
 function updateTableCellsInPlace(freshData) {
   tableData = freshData;
   const activeEl = document.activeElement;
-  const trs = Array.from(document.getElementById("dbBody").querySelectorAll("tr"));
+  const trs = Array.from(
+    document.getElementById("dbBody").querySelectorAll("tr"),
+  );
 
   // Create a plate-to-row map for exact DOM matching
   const rowMap = new Map();
@@ -3170,12 +3226,17 @@ function updateTableCellsInPlace(freshData) {
     if (!tr) return;
 
     // 1. Text Inputs, Number Inputs, Selects, and Textareas with data-col
-    const cellInputs = tr.querySelectorAll("input[data-col], select[data-col], textarea[data-col]");
+    const cellInputs = tr.querySelectorAll(
+      "input[data-col], select[data-col], textarea[data-col]",
+    );
     cellInputs.forEach((el) => {
       if (el === activeEl) return;
       const col = el.getAttribute("data-col");
       if (col) {
-        let freshVal = row[col] === null || row[col] === undefined || row[col] === "null" ? "" : String(row[col]);
+        let freshVal =
+          row[col] === null || row[col] === undefined || row[col] === "null"
+            ? ""
+            : String(row[col]);
         if (el.value !== freshVal) {
           el.value = freshVal;
         }
@@ -3183,40 +3244,76 @@ function updateTableCellsInPlace(freshData) {
     });
 
     // 2. Log-driven text inputs (Site Name, Driver Name, Owner Name)
-    const logWrappers = tr.querySelectorAll(".cell-log-wrapper input[readonly]");
-    if (logWrappers.length >= 1 && logWrappers[0] && logWrappers[0].value !== (row.site_name || "")) {
+    const logWrappers = tr.querySelectorAll(
+      ".cell-log-wrapper input[readonly]",
+    );
+    if (
+      logWrappers.length >= 1 &&
+      logWrappers[0] &&
+      logWrappers[0].value !== (row.site_name || "")
+    ) {
       logWrappers[0].value = row.site_name || "";
     }
-    if (logWrappers.length >= 2 && logWrappers[1] && logWrappers[1].value !== (row.driver_name || "")) {
+    if (
+      logWrappers.length >= 2 &&
+      logWrappers[1] &&
+      logWrappers[1].value !== (row.driver_name || "")
+    ) {
       logWrappers[1].value = row.driver_name || "";
     }
-    if (logWrappers.length >= 3 && logWrappers[2] && logWrappers[2].value !== (row.owner_name || "")) {
+    if (
+      logWrappers.length >= 3 &&
+      logWrappers[2] &&
+      logWrappers[2].value !== (row.owner_name || "")
+    ) {
       logWrappers[2].value = row.owner_name || "";
     }
 
     // 3. Fast-update inputs (Site Rate, Dates, Old/New vehicle)
     const rateInput = tr.querySelector("input[type='number']");
     if (rateInput && rateInput !== activeEl) {
-      let freshRate = row.site_rate === null || row.site_rate === undefined || row.site_rate === "null" ? "" : String(row.site_rate);
+      let freshRate =
+        row.site_rate === null ||
+        row.site_rate === undefined ||
+        row.site_rate === "null"
+          ? ""
+          : String(row.site_rate);
       if (rateInput.value !== freshRate) {
         rateInput.value = freshRate;
       }
     }
 
     // 4. Update Status Indicators for End Dates
-    const siteEndInputs = tr.querySelectorAll("input[type='date'], input[type='text']");
+    const siteEndInputs = tr.querySelectorAll(
+      "input[type='date'], input[type='text']",
+    );
     siteEndInputs.forEach((inputEl) => {
       if (inputEl === activeEl) return;
       const changeAttr = inputEl.getAttribute("onchange") || "";
-      if (changeAttr.includes("'site', 'start'") && inputEl.value !== (row.site_start_date || "")) {
+      if (
+        changeAttr.includes("'site', 'start'") &&
+        inputEl.value !== (row.site_start_date || "")
+      ) {
         inputEl.value = row.site_start_date || "";
-      } else if (changeAttr.includes("'site', 'end'") && inputEl.value !== (row.site_end_date || "")) {
+      } else if (
+        changeAttr.includes("'site', 'end'") &&
+        inputEl.value !== (row.site_end_date || "")
+      ) {
         inputEl.value = row.site_end_date || "";
-      } else if (changeAttr.includes("'driver', 'end'") && inputEl.value !== (row.driver_end_date || "")) {
+      } else if (
+        changeAttr.includes("'driver', 'end'") &&
+        inputEl.value !== (row.driver_end_date || "")
+      ) {
         inputEl.value = row.driver_end_date || "";
-      } else if (changeAttr.includes("'site', 'old_veh'") && inputEl.value !== (row.site_old_veh || "")) {
+      } else if (
+        changeAttr.includes("'site', 'old_veh'") &&
+        inputEl.value !== (row.site_old_veh || "")
+      ) {
         inputEl.value = row.site_old_veh || "";
-      } else if (changeAttr.includes("'site', 'new_veh'") && inputEl.value !== (row.site_new_veh || "")) {
+      } else if (
+        changeAttr.includes("'site', 'new_veh'") &&
+        inputEl.value !== (row.site_new_veh || "")
+      ) {
         inputEl.value = row.site_new_veh || "";
       }
     });
@@ -3229,9 +3326,9 @@ function updateTableCellsInPlace(freshData) {
 async function startLiveSyncWorker() {
   setInterval(async () => {
     // 1. യൂസർ ഇൻപുട്ട് ടൈപ്പ് ചെയ്യുകയാണെങ്കിലോ മോഡൽ ഓപ്പൺ ആണെങ്കിലോ ഫുൾ റീ-റെൻഡറിംഗ് ഒഴിവാക്കുന്നു
-    const anyModalOpen = Array.from(document.querySelectorAll(".modal-overlay")).some(
-      (m) => window.getComputedStyle(m).display !== "none"
-    );
+    const anyModalOpen = Array.from(
+      document.querySelectorAll(".modal-overlay"),
+    ).some((m) => window.getComputedStyle(m).display !== "none");
     if (anyModalOpen || isSyncing) return;
 
     try {
@@ -3240,7 +3337,11 @@ async function startLiveSyncWorker() {
         headers: { Authorization: "Bearer " + token },
       });
 
-      if (verRes.success && verRes.version && verRes.version !== lastSyncVersion) {
+      if (
+        verRes.success &&
+        verRes.version &&
+        verRes.version !== lastSyncVersion
+      ) {
         if (!lastSyncVersion) {
           lastSyncVersion = verRes.version;
           isSyncing = false;
@@ -3249,8 +3350,12 @@ async function startLiveSyncWorker() {
 
         // മാറ്റം വന്നിട്ടുണ്ടെങ്കിൽ മാത്രം ഡാറ്റ എടുക്കുന്നു
         const [dataJson, logData] = await Promise.all([
-          safeFetch("/timesheet/api/db/data", { headers: { Authorization: "Bearer " + token } }),
-          safeFetch("/timesheet/api/all-logs", { headers: { Authorization: "Bearer " + token } }),
+          safeFetch("/timesheet/api/db/data", {
+            headers: { Authorization: "Bearer " + token },
+          }),
+          safeFetch("/timesheet/api/all-logs", {
+            headers: { Authorization: "Bearer " + token },
+          }),
         ]);
 
         if (dataJson.success) {
@@ -3264,50 +3369,91 @@ async function startLiveSyncWorker() {
             let dLog = drivers.find((d) => d.plate_no === row.plate_no);
             row.current_driver_status = dLog ? dLog.status : "N/A";
             row.latest_driver_log_id = dLog ? dLog.id : null;
-            row.driver_start_date = dLog && dLog.start_date !== "-" ? dLog.start_date : "";
-            row.driver_end_date = dLog && dLog.end_date !== "-" ? dLog.end_date : "";
+            row.driver_start_date =
+              dLog && dLog.start_date !== "-" ? dLog.start_date : "";
+            row.driver_end_date =
+              dLog && dLog.end_date !== "-" ? dLog.end_date : "";
 
             let sLog = sites.find((s) => s.plate_no === row.plate_no);
             row.current_site_status = sLog ? sLog.status : "N/A";
             row.latest_site_log_id = sLog ? sLog.id : null;
-            row.site_start_date = sLog && sLog.start_date !== "-" ? sLog.start_date : "";
-            row.site_end_date = sLog && sLog.end_date !== "-" ? sLog.end_date : "";
+            row.site_start_date =
+              sLog && sLog.start_date !== "-" ? sLog.start_date : "";
+            row.site_end_date =
+              sLog && sLog.end_date !== "-" ? sLog.end_date : "";
             if (sLog && sLog.site_name) row.site_name = sLog.site_name;
-            if (sLog && sLog.project_name !== undefined) row.project_name = sLog.project_name || "";
+            if (sLog && sLog.project_name !== undefined)
+              row.project_name = sLog.project_name || "";
 
-            let curSiteName = sLog && sLog.site_name ? sLog.site_name.trim().toUpperCase() : "";
+            let curSiteName =
+              sLog && sLog.site_name ? sLog.site_name.trim().toUpperCase() : "";
             let rLog = rates.find((r) => {
-              let pMatch = (r.plate_no || "").trim().toUpperCase() === (row.plate_no || "").trim().toUpperCase();
-              let sMatch = !r.site_name || r.site_name.trim() === "" || r.site_name.trim().toUpperCase() === curSiteName;
+              let pMatch =
+                (r.plate_no || "").trim().toUpperCase() ===
+                (row.plate_no || "").trim().toUpperCase();
+              let sMatch =
+                !r.site_name ||
+                r.site_name.trim() === "" ||
+                r.site_name.trim().toUpperCase() === curSiteName;
               return pMatch && sMatch && r.status === "Running";
             });
             if (!rLog) {
-              rLog = rates.find((r) => (r.plate_no || "").trim().toUpperCase() === (row.plate_no || "").trim().toUpperCase() && r.status === "Running");
+              rLog = rates.find(
+                (r) =>
+                  (r.plate_no || "").trim().toUpperCase() ===
+                    (row.plate_no || "").trim().toUpperCase() &&
+                  r.status === "Running",
+              );
             }
 
             function formatCleanRate(val) {
-              if (val === null || val === undefined || val === "" || val === "null") return "";
+              if (
+                val === null ||
+                val === undefined ||
+                val === "" ||
+                val === "null"
+              )
+                return "";
               let num = parseFloat(val);
               if (isNaN(num)) return val;
               return num % 1 !== 0 ? num.toFixed(2) : num.toString();
             }
 
-            row.site_rate = rLog && rLog.rate ? formatCleanRate(rLog.rate) : formatCleanRate(sLog && sLog.rate ? sLog.rate : row.rate || "");
-            row.site_old_veh = sLog && sLog.old_vehicle_no ? sLog.old_vehicle_no : "";
-            row.site_new_veh = sLog && sLog.new_vehicle_no ? sLog.new_vehicle_no : "";
-            row.field_co = sLog && sLog.field_co ? sLog.field_co : row.field_co || "";
-            row.site_co = sLog && sLog.site_co ? sLog.site_co : row.site_co || "";
+            row.site_rate =
+              rLog && rLog.rate
+                ? formatCleanRate(rLog.rate)
+                : formatCleanRate(
+                    sLog && sLog.rate ? sLog.rate : row.rate || "",
+                  );
+            row.site_old_veh =
+              sLog && sLog.old_vehicle_no ? sLog.old_vehicle_no : "";
+            row.site_new_veh =
+              sLog && sLog.new_vehicle_no ? sLog.new_vehicle_no : "";
+            row.field_co =
+              sLog && sLog.field_co ? sLog.field_co : row.field_co || "";
+            row.site_co =
+              sLog && sLog.site_co ? sLog.site_co : row.site_co || "";
 
-            let oLog = owners.find((o) => o.plate_no === row.plate_no && o.status === "Running");
+            let oLog = owners.find(
+              (o) => o.plate_no === row.plate_no && o.status === "Running",
+            );
             if (oLog) {
               row.owner_name = oLog.owner_name || row.owner_name || "";
               row.owner_mobile = oLog.owner_mobile || row.owner_mobile || "";
               row.vat = oLog.vat || row.vat || "No";
               row.vat_no = oLog.vat_no || row.vat_no || "";
-              row.ledger_folio = oLog.ledger_folio !== undefined && oLog.ledger_folio !== null ? oLog.ledger_folio : row.ledger_folio || "";
-              row.company_display_name_ = oLog.company_display_name || row.company_display_name_ || row.company_display_name || "";
+              row.ledger_folio =
+                oLog.ledger_folio !== undefined && oLog.ledger_folio !== null
+                  ? oLog.ledger_folio
+                  : row.ledger_folio || "";
+              row.company_display_name_ =
+                oLog.company_display_name ||
+                row.company_display_name_ ||
+                row.company_display_name ||
+                "";
               row.company_display_name = row.company_display_name_;
-              row.company_arabic_name = oLog.company_arabic_name || row.company_arabic_name || "";
+              row.company_arabic_name =
+                oLog.company_arabic_name || row.company_arabic_name || "";
             }
             return row;
           });

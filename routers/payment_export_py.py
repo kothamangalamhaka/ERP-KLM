@@ -43,9 +43,49 @@ async def generate_excel(payload: ExportRequest):
         for sheet_data in payload.sheets:
             ws = wb.create_sheet(title=sheet_data.sheet_name[:31])
             
-            # 1. അതിവേഗം ഡാറ്റ വരിവരിയായി ചേർക്കുന്നു (Optimized Append)
-            for row in sheet_data.aoa:
-                ws.append([val if (val is not None and str(val).strip() != "") else "" for val in row])
+            # 1. അതിവേഗം ഡാറ്റ വരിവരിയായി ചേർക്കുന്നു (Optimized Append with Typed Casting)
+            month_abbr_map = {
+                "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+                "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12
+            }
+
+            for r_idx, row in enumerate(sheet_data.aoa):
+                parsed_row = []
+                for c_idx, val in enumerate(row):
+                    if r_idx < 2 or val is None or str(val).strip() == "" or str(val).strip() == "-":
+                        parsed_row.append(val if val is not None else "")
+                        continue
+
+                    # Column 0 aanu Date / Month (Single Excel & Normal Report)
+                    if c_idx == 0 and not sheet_data.is_vbv:
+                        parts = str(val).strip().split()
+                        if len(parts) >= 2:
+                            m_token = parts[0].lower()[:3]
+                            y_token = parts[1]
+                            if m_token in month_abbr_map:
+                                try:
+                                    y_val = int(y_token)
+                                    full_year = 2000 + y_val if y_val < 100 else y_val
+                                    import datetime
+                                    parsed_row.append(datetime.date(full_year, month_abbr_map[m_token], 1))
+                                    continue
+                                except Exception:
+                                    pass
+
+                    # Invoice No (col index 33) & Bill No (col index 34) strictly text aayirikkum
+                    if not sheet_data.is_vbv and c_idx in [33, 34]:
+                        parsed_row.append(str(val).strip())
+                        continue
+
+                    clean_str = str(val).replace(",", "").strip()
+                    try:
+                        if "." in clean_str:
+                            parsed_row.append(float(clean_str))
+                        else:
+                            parsed_row.append(int(clean_str))
+                    except ValueError:
+                        parsed_row.append(val)
+                ws.append(parsed_row)
  
             # 2. മെർജ് ചെയ്യുന്നു (Merge Top Headers)
             for m in sheet_data.merges:
@@ -109,8 +149,6 @@ async def generate_excel(payload: ExportRequest):
                     ["334155"] * 4 +
                     ["166534"] * 2
                 )
-                if sheet_data.is_analysis:
-                    col_colors.insert(0, "0F2027")
 
             max_cols = max((len(row) for row in sheet_data.aoa), default=len(col_colors))
 
@@ -144,18 +182,29 @@ async def generate_excel(payload: ExportRequest):
                 target_bill_cols = [12, 13]
                 target_diff_cols = [14, 15]
             else:
-                offset = 1 if sheet_data.is_analysis else 0
-                target_nr_cols = [11 + offset, 12 + offset]
-                target_ot_cols = [13 + offset, 14 + offset]
-                target_bill_cols = [15 + offset, 16 + offset]
-                target_diff_cols = [17 + offset, 18 + offset]
+                target_nr_cols = [11, 12]
+                target_ot_cols = [13, 14]
+                target_bill_cols = [15, 16]
+                target_diff_cols = [17, 18]
 
+            import datetime
             for row in ws.iter_rows(min_row=3, max_row=ws.max_row, min_col=1, max_col=max_cols):
                 for cell in row:
                     c_idx = cell.column
                     cell.font = data_font
                     cell.border = thin_border
                     cell.alignment = Alignment(horizontal="center", vertical="center")
+
+                    if isinstance(cell.value, (datetime.date, datetime.datetime)):
+                        cell.number_format = "mmm yy"
+                    elif c_idx in [34, 35] and not sheet_data.is_vbv:
+                        # 1-based index: Col 34 (AH) = Invoice No, Col 35 (AI) = Bill No
+                        cell.number_format = "@"
+                    elif isinstance(cell.value, (int, float)):
+                        if isinstance(cell.value, float):
+                            cell.number_format = "#,##0.00"
+                        else:
+                            cell.number_format = "#,##0"
 
                     if c_idx in target_nr_cols:
                         cell.fill = fill_nr

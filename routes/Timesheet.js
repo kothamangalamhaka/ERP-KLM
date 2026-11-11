@@ -55,7 +55,14 @@ router.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
       "INSERT INTO timesheet_users (username, email, password_hash, role, status, face_descriptor) VALUES ($1, $2, $3, $4, $5, $6)",
-      [username, email, hashedPassword, "Viewer", "Pending", faceDescriptor ? JSON.stringify(faceDescriptor) : null],
+      [
+        username,
+        email,
+        hashedPassword,
+        "Viewer",
+        "Pending",
+        faceDescriptor ? JSON.stringify(faceDescriptor) : null,
+      ],
     );
     await logAudit(
       { username },
@@ -74,7 +81,10 @@ router.post("/verify-credentials", async (req, res) => {
     if (!username || !password) {
       return res.json({ success: false, message: "Missing credentials." });
     }
-    const result = await pool.query("SELECT * FROM timesheet_users WHERE username = $1", [username]);
+    const result = await pool.query(
+      "SELECT * FROM timesheet_users WHERE username = $1",
+      [username],
+    );
     if (result.rows.length === 0) {
       return res.json({ success: false, message: "User not found." });
     }
@@ -93,11 +103,14 @@ router.post("/reset-face-data", async (req, res) => {
   try {
     const { username, password, faceDescriptor } = req.body;
     if (!username || !password || !faceDescriptor) {
-      return res.json({ success: false, message: "All fields and face scan required." });
+      return res.json({
+        success: false,
+        message: "All fields and face scan required.",
+      });
     }
     const result = await pool.query(
       "SELECT * FROM timesheet_users WHERE username = $1",
-      [username]
+      [username],
     );
     if (result.rows.length === 0) {
       return res.json({ success: false, message: "User not found." });
@@ -109,14 +122,20 @@ router.post("/reset-face-data", async (req, res) => {
     }
     await pool.query(
       "UPDATE timesheet_users SET face_descriptor = $1 WHERE id = $2",
-      [JSON.stringify(faceDescriptor), user.id]
+      [JSON.stringify(faceDescriptor), user.id],
     );
     try {
-      await fetch("http://127.0.0.1:8001/py/timesheet-invalidate-cache", { method: "POST" });
+      await fetch("http://127.0.0.1:8001/py/timesheet-invalidate-cache", {
+        method: "POST",
+      });
     } catch (e) {
       console.warn("Timesheet cache invalidate failed:", e.message);
     }
-    await logAudit(user, "RESET_FACE", `Face data re-registered for ${username}`);
+    await logAudit(
+      user,
+      "RESET_FACE",
+      `Face data re-registered for ${username}`,
+    );
     res.json({ success: true, message: "Face data updated successfully!" });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -445,7 +464,7 @@ router.get("/api/vehicle-info", async (req, res) => {
 
     // 🟢 എല്ലാ പ്ലേറ്റ് മാറ്റങ്ങളുടെയും ലോഗുകൾ എടുത്ത് അയക്കുന്നു
     const plateLogsRes = await pool.query(
-      "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC"
+      "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
     );
     const plateLogs = plateLogsRes.rows;
 
@@ -454,7 +473,7 @@ router.get("/api/vehicle-info", async (req, res) => {
       let matchedLogs = plateLogs.filter(
         (pl) =>
           (pl.new_plate_no || "").trim().toUpperCase() === vPlate ||
-          (pl.old_plate_no || "").trim().toUpperCase() === vPlate
+          (pl.old_plate_no || "").trim().toUpperCase() === vPlate,
       );
       return {
         ...v,
@@ -474,13 +493,29 @@ router.get("/api/vehicle-info", async (req, res) => {
 router.get("/api/vehicle-logs", verifyToken, async (req, res) => {
   try {
     const { plate } = req.query;
-    const [driverLogs, siteLogs, ownerLogs, rateLogs, plateLogs] = await Promise.all([
-      pool.query(`SELECT * FROM vehicle_driver_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
-      pool.query(`SELECT * FROM vehicle_site_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
-      pool.query(`SELECT * FROM vehicle_owner_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
-      pool.query(`SELECT * FROM vehicle_rate_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`, [plate]),
-      pool.query(`SELECT * FROM vehicle_plate_log WHERE UPPER(new_plate_no)=UPPER($1) OR UPPER(old_plate_no)=UPPER($1) ORDER BY change_date DESC, id DESC`, [plate])
-    ]);
+    const [driverLogs, siteLogs, ownerLogs, rateLogs, plateLogs] =
+      await Promise.all([
+        pool.query(
+          `SELECT * FROM vehicle_driver_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`,
+          [plate],
+        ),
+        pool.query(
+          `SELECT * FROM vehicle_site_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`,
+          [plate],
+        ),
+        pool.query(
+          `SELECT * FROM vehicle_owner_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`,
+          [plate],
+        ),
+        pool.query(
+          `SELECT * FROM vehicle_rate_log WHERE plate_no=$1 ORDER BY CASE WHEN status = 'Running' THEN 1 ELSE 2 END ASC, COALESCE(work_start_date, work_end_date, '1970-01-01') DESC, id DESC`,
+          [plate],
+        ),
+        pool.query(
+          `SELECT * FROM vehicle_plate_log WHERE UPPER(new_plate_no)=UPPER($1) OR UPPER(old_plate_no)=UPPER($1) ORDER BY change_date DESC, id DESC`,
+          [plate],
+        ),
+      ]);
 
     res.json({
       success: true,
@@ -488,7 +523,7 @@ router.get("/api/vehicle-logs", verifyToken, async (req, res) => {
       sites: siteLogs.rows,
       owners: ownerLogs.rows,
       rates: rateLogs.rows,
-      plateChanges: plateLogs.rows
+      plateChanges: plateLogs.rows,
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -500,17 +535,31 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const { id, plate_no, owner_name, owner_mobile, vat, vat_no, ledger_folio, company_display_name, company_arabic_name, work_start_date, work_end_date, status, reason } = req.body;
+    const {
+      id,
+      plate_no,
+      owner_name,
+      owner_mobile,
+      vat,
+      vat_no,
+      ledger_folio,
+      company_display_name,
+      company_arabic_name,
+      work_start_date,
+      work_end_date,
+      status,
+      reason,
+    } = req.body;
     const cleanPlate = plate_no ? plate_no.trim().toUpperCase() : "";
     const cleanLf = ledger_folio ? ledger_folio.trim() : "";
     const cleanArabic = company_arabic_name ? company_arabic_name.trim() : "";
-    const calculatedStatus = work_end_date ? "Released" : (status || "Running");
+    const calculatedStatus = work_end_date ? "Released" : status || "Running";
 
     let finalStartDate = work_start_date || null;
     if (!finalStartDate && !id) {
       const minSiteRes = await client.query(
         `SELECT MIN(work_start_date) as first_start FROM vehicle_site_log WHERE UPPER(plate_no) = UPPER($1) AND work_start_date IS NOT NULL`,
-        [cleanPlate]
+        [cleanPlate],
       );
       finalStartDate = minSiteRes.rows[0]?.first_start || null;
     }
@@ -518,7 +567,20 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
     if (id) {
       await client.query(
         `UPDATE vehicle_owner_log SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name=$5, work_start_date=$6, work_end_date=$7, status=$8, reason=$9, ledger_folio=$10, company_arabic_name=$11 WHERE id=$12`,
-        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, cleanLf, cleanArabic || null, id]
+        [
+          owner_name,
+          owner_mobile,
+          vat,
+          vat_no || null,
+          company_display_name,
+          finalStartDate,
+          work_end_date || null,
+          calculatedStatus,
+          reason || null,
+          cleanLf,
+          cleanArabic || null,
+          id,
+        ],
       );
     } else {
       if (calculatedStatus === "Running") {
@@ -528,27 +590,51 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
            SET status = 'Released', 
                work_end_date = COALESCE(work_end_date, $1::date)
            WHERE UPPER(plate_no) = UPPER($2) AND status = 'Running'`,
-          [prevEnd, cleanPlate]
+          [prevEnd, cleanPlate],
         );
       }
 
       await client.query(
         `INSERT INTO vehicle_owner_log (plate_no, owner_name, owner_mobile, vat, vat_no, company_display_name, work_start_date, work_end_date, status, reason, ledger_folio, company_arabic_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-        [cleanPlate, owner_name, owner_mobile, vat, vat_no || null, company_display_name, finalStartDate, work_end_date || null, calculatedStatus, reason || null, cleanLf, cleanArabic || null]
+        [
+          cleanPlate,
+          owner_name,
+          owner_mobile,
+          vat,
+          vat_no || null,
+          company_display_name,
+          finalStartDate,
+          work_end_date || null,
+          calculatedStatus,
+          reason || null,
+          cleanLf,
+          cleanArabic || null,
+        ],
       );
     }
 
     if (calculatedStatus === "Running") {
       await client.query(
         `UPDATE timesheet_vehicles SET owner_name=$1, owner_mobile=$2, vat=$3, vat_no=$4, company_display_name_=$5, ledger_folio=$6, company_arabic_name=$7 WHERE UPPER(plate_no)=UPPER($8)`,
-        [owner_name, owner_mobile, vat, vat_no || null, company_display_name, cleanLf, cleanArabic || null, cleanPlate]
+        [
+          owner_name,
+          owner_mobile,
+          vat,
+          vat_no || null,
+          company_display_name,
+          cleanLf,
+          cleanArabic || null,
+          cleanPlate,
+        ],
       );
     }
 
     // 🟢 Sync past billing records for the edited owner period
     if (finalStartDate) {
       const periodStart = new Date(finalStartDate);
-      const periodEnd = work_end_date ? new Date(work_end_date) : new Date(2099, 11, 31);
+      const periodEnd = work_end_date
+        ? new Date(work_end_date)
+        : new Date(2099, 11, 31);
 
       await client.query(
         `UPDATE billing_records 
@@ -556,11 +642,31 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
          WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($2))
            AND TO_DATE(billing_month, 'Month YYYY') >= DATE_TRUNC('month', $3::date)
            AND TO_DATE(billing_month, 'Month YYYY') <= DATE_TRUNC('month', $4::date)`,
-        [owner_name.trim(), cleanPlate, periodStart, periodEnd]
+        [owner_name.trim(), cleanPlate, periodStart, periodEnd],
       );
+
+      if (id) {
+        const prevOwnerRes = await client.query(
+          `SELECT owner_name FROM vehicle_owner_log WHERE id = $1`,
+          [id],
+        );
+        const oldOwnerVal = prevOwnerRes.rows[0]?.owner_name ? prevOwnerRes.rows[0].owner_name.trim() : null;
+        if (oldOwnerVal && oldOwnerVal.toLowerCase() !== owner_name.trim().toLowerCase()) {
+          await client.query(
+            `UPDATE vat_billing_records 
+             SET supplier = $1, updated_at = CURRENT_TIMESTAMP 
+             WHERE LOWER(TRIM(supplier)) = LOWER(TRIM($2))`,
+            [owner_name.trim(), oldOwnerVal],
+          );
+        }
+      }
     }
 
-    await logAudit(req.user, "OWNER_LOG_UPDATE", `Updated owner log for ${cleanPlate} to ${owner_name}`);
+    await logAudit(
+      req.user,
+      "OWNER_LOG_UPDATE",
+      `Updated owner log for ${cleanPlate} to ${owner_name}`,
+    );
     await client.query("COMMIT");
     res.json({ success: true });
   } catch (error) {
@@ -576,37 +682,69 @@ router.post("/api/update-rate-log", verifyEditor, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const { id, plate_no, site_name, rate, work_start_date, work_end_date, status, reason } = req.body;
-    const calculatedStatus = work_end_date ? "Released" : (status || "Running");
+    const {
+      id,
+      plate_no,
+      site_name,
+      rate,
+      work_start_date,
+      work_end_date,
+      status,
+      reason,
+    } = req.body;
+    const calculatedStatus = work_end_date ? "Released" : status || "Running";
 
     if (id) {
       await client.query(
         `UPDATE vehicle_rate_log SET site_name=$1, rate=$2, work_start_date=$3, work_end_date=$4, status=$5, reason=$6 WHERE id=$7`,
-        [site_name, rate || null, work_start_date || null, work_end_date || null, calculatedStatus, reason || null, id]
+        [
+          site_name,
+          rate || null,
+          work_start_date || null,
+          work_end_date || null,
+          calculatedStatus,
+          reason || null,
+          id,
+        ],
       );
     } else {
       await client.query(
         `INSERT INTO vehicle_rate_log (plate_no, site_name, rate, work_start_date, work_end_date, status, reason) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [plate_no, site_name, rate || null, work_start_date || null, work_end_date || null, calculatedStatus, reason || null]
+        [
+          plate_no,
+          site_name,
+          rate || null,
+          work_start_date || null,
+          work_end_date || null,
+          calculatedStatus,
+          reason || null,
+        ],
       );
     }
 
     if (calculatedStatus === "Running") {
-      let siteCondition = site_name && site_name.trim() !== "" ? "AND UPPER(site_name)=UPPER($3)" : "";
+      let siteCondition =
+        site_name && site_name.trim() !== ""
+          ? "AND UPPER(site_name)=UPPER($3)"
+          : "";
       let siteParams = [rate || null, plate_no];
       if (siteCondition) siteParams.push(site_name);
 
       await client.query(
         `UPDATE vehicle_site_log SET rate=$1 WHERE UPPER(plate_no)=UPPER($2) ${siteCondition}`,
-        siteParams
+        siteParams,
       );
       await client.query(
         `UPDATE timesheet_vehicles SET rate=$1 WHERE UPPER(plate_no)=UPPER($2)`,
-        [rate || null, plate_no]
+        [rate || null, plate_no],
       );
     }
 
-    await logAudit(req.user, "RATE_LOG_UPDATE", `Updated rate log for ${plate_no}`);
+    await logAudit(
+      req.user,
+      "RATE_LOG_UPDATE",
+      `Updated rate log for ${plate_no}`,
+    );
     await client.query("COMMIT");
     res.json({ success: true });
   } catch (error) {
@@ -749,7 +887,7 @@ router.post("/api/fast-update-log", verifyEditor, async (req, res) => {
         // 🟢 സൈറ്റ് എൻഡ് ഡേറ്റ് കൊടുത്താൽ ആ സൈറ്റിലെ active rate log-ഉം close ആക്കുന്നു
         const sLogData = await client.query(
           "SELECT site_name FROM vehicle_site_log WHERE id=$1",
-          [id]
+          [id],
         );
         if (sLogData.rows.length > 0) {
           const targetSite = sLogData.rows[0].site_name;
@@ -761,7 +899,7 @@ router.post("/api/fast-update-log", verifyEditor, async (req, res) => {
                WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($2)) 
                  AND UPPER(TRIM(site_name)) = UPPER(TRIM($3)) 
                  AND status = 'Running'`,
-              [dateVal, plate_no, targetSite]
+              [dateVal, plate_no, targetSite],
             );
           } else {
             // End date റിമൂവ് ചെയ്ത് വീണ്ടും Running ആക്കുകയാണെങ്കിൽ
@@ -772,7 +910,7 @@ router.post("/api/fast-update-log", verifyEditor, async (req, res) => {
                WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($2)) 
                  AND UPPER(TRIM(site_name)) = UPPER(TRIM($3)) 
                ORDER BY id DESC LIMIT 1`,
-              [plate_no, targetSite]
+              [plate_no, targetSite],
             );
           }
         }
@@ -1021,9 +1159,14 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
 
     let previousSiteName = null;
     if (id) {
-      const prevRes = await client.query(`SELECT site_name FROM vehicle_site_log WHERE id = $1`, [id]);
+      const prevRes = await client.query(
+        `SELECT site_name FROM vehicle_site_log WHERE id = $1`,
+        [id],
+      );
       if (prevRes.rows.length > 0) {
-        previousSiteName = prevRes.rows[0].site_name ? prevRes.rows[0].site_name.trim() : null;
+        previousSiteName = prevRes.rows[0].site_name
+          ? prevRes.rows[0].site_name.trim()
+          : null;
       }
 
       updateVals.push(id);
@@ -1040,10 +1183,19 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
     }
 
     // 🟢 Cascade site_name change to billing_records, invoice_records, and vat_billing_records for this period
-    if (id && previousSiteName && site_name && previousSiteName.toLowerCase() !== site_name.trim().toLowerCase()) {
+    if (
+      id &&
+      previousSiteName &&
+      site_name &&
+      previousSiteName.toLowerCase() !== site_name.trim().toLowerCase()
+    ) {
       const cleanPlate = plate_no ? plate_no.trim().toUpperCase() : "";
-      const sDate = work_start_date ? new Date(work_start_date) : new Date(2000, 0, 1);
-      const eDate = work_end_date ? new Date(work_end_date) : new Date(2099, 11, 31);
+      const sDate = work_start_date
+        ? new Date(work_start_date)
+        : new Date(2000, 0, 1);
+      const eDate = work_end_date
+        ? new Date(work_end_date)
+        : new Date(2099, 11, 31);
       const newSite = site_name.trim();
 
       // 1. Update billing_records
@@ -1054,7 +1206,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
            AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))
            AND TO_DATE(billing_month, 'Month YYYY') >= DATE_TRUNC('month', $4::date)
            AND TO_DATE(billing_month, 'Month YYYY') <= DATE_TRUNC('month', $5::date)`,
-        [newSite, cleanPlate, previousSiteName, sDate, eDate]
+        [newSite, cleanPlate, previousSiteName, sDate, eDate],
       );
 
       // 2. Update invoice_records strictly within the active site log period
@@ -1065,7 +1217,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
            AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))
            AND TO_DATE(month, 'Month YYYY') >= DATE_TRUNC('month', $4::date)
            AND TO_DATE(month, 'Month YYYY') <= DATE_TRUNC('month', $5::date)`,
-        [newSite, cleanPlate, previousSiteName, sDate, eDate]
+        [newSite, cleanPlate, previousSiteName, sDate, eDate],
       );
 
       // 3. Update vehicle_rate_log
@@ -1073,7 +1225,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
         `UPDATE vehicle_rate_log 
          SET site_name = $1 
          WHERE UPPER(TRIM(plate_no)) = $2 AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))`,
-        [newSite, cleanPlate, previousSiteName]
+        [newSite, cleanPlate, previousSiteName],
       );
 
       // 4. Update vat_billing_records
@@ -1081,7 +1233,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
         `UPDATE vat_billing_records 
          SET site_name = $1 
          WHERE LOWER(TRIM(site_name)) = LOWER(TRIM($2))`,
-        [newSite, previousSiteName]
+        [newSite, previousSiteName],
       );
     }
 
@@ -1090,9 +1242,11 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
       `SELECT id FROM vehicle_site_log 
        WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) 
        ORDER BY COALESCE(work_start_date, '1970-01-01') DESC, id DESC LIMIT 1`,
-      [plate_no]
+      [plate_no],
     );
-    const isLatestLog = latestLogCheck.rows.length === 0 || latestLogCheck.rows[0].id === parseInt(id || 0);
+    const isLatestLog =
+      latestLogCheck.rows.length === 0 ||
+      latestLogCheck.rows[0].id === parseInt(id || 0);
 
     // 🟢 SYNC RATE LOG WITH SITE LOG LIFECYCLE
     const cleanPlateUpper = plate_no ? plate_no.trim().toUpperCase() : "";
@@ -1100,7 +1254,8 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
 
     // 1. Site end ആയാൽ (Released / Replaced / work_end_date ഉണ്ടെങ്കിൽ) ആ സൈറ്റിന്റെ active rate log-ഉം ക്ലോസ് ചെയ്യുന്നു
     if (work_end_date || status === "Released" || status === "Replaced") {
-      const siteEndDateVal = work_end_date || new Date().toISOString().split("T")[0];
+      const siteEndDateVal =
+        work_end_date || new Date().toISOString().split("T")[0];
       await client.query(
         `UPDATE vehicle_rate_log 
          SET work_end_date = $1::date, 
@@ -1108,7 +1263,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
          WHERE UPPER(TRIM(plate_no)) = $2 
            AND UPPER(TRIM(site_name)) = $3 
            AND (status = 'Running' OR work_end_date IS NULL)`,
-        [siteEndDateVal, cleanPlateUpper, cleanSiteUpper]
+        [siteEndDateVal, cleanPlateUpper, cleanSiteUpper],
       );
     }
 
@@ -1120,7 +1275,7 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
            AND UPPER(TRIM(site_name)) = $2 
            AND status = 'Running'
          ORDER BY id DESC LIMIT 1`,
-        [cleanPlateUpper, cleanSiteUpper]
+        [cleanPlateUpper, cleanSiteUpper],
       );
 
       if (activeRateCheck.rows.length === 0) {
@@ -1128,13 +1283,13 @@ router.post("/api/update-site-log", verifyEditor, async (req, res) => {
         await client.query(
           `INSERT INTO vehicle_rate_log (plate_no, site_name, rate, work_start_date, work_end_date, status, reason)
            VALUES ($1, $2, $3, $4, NULL, 'Running', 'Auto-created from Site Log')`,
-          [cleanPlateUpper, site_name.trim(), rate, work_start_date || null]
+          [cleanPlateUpper, site_name.trim(), rate, work_start_date || null],
         );
       } else if (String(activeRateCheck.rows[0].rate) !== String(rate)) {
         // സൈറ്റ് ലോഗിൽ റേറ്റ് മാറ്റിയാൽ നിലവിലെ റണ്ണിങ് റേറ്റ് ലോഗ് അപ്ഡേറ്റ് ചെയ്യുന്നു
         await client.query(
           `UPDATE vehicle_rate_log SET rate = $1 WHERE id = $2`,
-          [rate, activeRateCheck.rows[0].id]
+          [rate, activeRateCheck.rows[0].id],
         );
       }
     }
@@ -1245,47 +1400,55 @@ router.post("/api/record-lock/release", verifyToken, (req, res) => {
   const existingLock = activeRecordLocks.get(lockKey);
   if (existingLock) {
     // ആ വ്യക്തി തന്നെയാണ് റിലീസ് ചെയ്യുന്നതെങ്കിൽ ഉടൻ മായ്ക്കുന്നു
-    if (String(existingLock.username).trim().toLowerCase() === currentUsername) {
+    if (
+      String(existingLock.username).trim().toLowerCase() === currentUsername
+    ) {
       activeRecordLocks.delete(lockKey);
     }
   }
   res.json({ success: true });
 });
 
-
 // 🟢 NEW: API for User B to request edit access
 router.post("/api/record-lock/request-transfer", verifyToken, (req, res) => {
   const { plate, month, year } = req.body;
-  if (!plate || !month || !year) return res.json({ success: false, message: "Missing parameters" });
-  
+  if (!plate || !month || !year)
+    return res.json({ success: false, message: "Missing parameters" });
+
   const cleanP = String(plate).replace(/\s+/g, "").toUpperCase();
   const lockKey = `${cleanP}_${month}_${year}`;
   const lock = activeRecordLocks.get(lockKey);
-  
+
   if (lock) {
-      lock.requestedBy = req.user.username;
-      lock.requestTime = Date.now();
-      res.json({ success: true });
+    lock.requestedBy = req.user.username;
+    lock.requestTime = Date.now();
+    res.json({ success: true });
   } else {
-      res.json({ success: false, message: "Record is not currently locked." });
+    res.json({ success: false, message: "Record is not currently locked." });
   }
 });
 
 // 🟢 POLL CHECK: തത്സമയം നിലവിലെ സ്റ്റാറ്റസ് ഉറപ്പുവരുത്തുന്നു
 router.get("/api/record-lock/poll", verifyToken, (req, res) => {
   const { plate, month, year } = req.query;
-  const cleanP = String(plate || "").replace(/\s+/g, "").toUpperCase();
+  const cleanP = String(plate || "")
+    .replace(/\s+/g, "")
+    .toUpperCase();
   const lockKey = `${cleanP}_${month}_${year}`;
   const lock = activeRecordLocks.get(lockKey);
 
   // 15 minutes timeout logic included
-  if (!lock || (Date.now() - lock.timestamp >= 15 * 60 * 1000)) {
+  if (!lock || Date.now() - lock.timestamp >= 15 * 60 * 1000) {
     activeRecordLocks.delete(lockKey);
     return res.json({ locked: false });
   }
 
   // 🟢 FIX: Current owner thanneyannu poll cheyyunnathanenkil timestamp refresh cheyyuka (Prevents accidental lock loss)
-  if (req.user && req.user.username && lock.username.toLowerCase() === req.user.username.trim().toLowerCase()) {
+  if (
+    req.user &&
+    req.user.username &&
+    lock.username.toLowerCase() === req.user.username.trim().toLowerCase()
+  ) {
     lock.timestamp = Date.now();
   }
 
@@ -1309,26 +1472,30 @@ router.post("/api/record-lock/resolve-transfer", verifyToken, (req, res) => {
 
   const requester = lock.requestedBy;
 
-  if (action === "force" && requester && String(requester).trim().toLowerCase() === currentUser) {
-      if (lock.requestTime && (Date.now() - lock.requestTime >= 27000)) { 
-          lock.username = req.user.username;
-          lock.timestamp = Date.now();
-          lock.requestedBy = null;
-          lock.requestTime = null;
-          return res.json({ success: true, newOwner: lock.username });
-      }
+  if (
+    action === "force" &&
+    requester &&
+    String(requester).trim().toLowerCase() === currentUser
+  ) {
+    if (lock.requestTime && Date.now() - lock.requestTime >= 27000) {
+      lock.username = req.user.username;
+      lock.timestamp = Date.now();
+      lock.requestedBy = null;
+      lock.requestTime = null;
+      return res.json({ success: true, newOwner: lock.username });
+    }
   } else if (String(lock.username).trim().toLowerCase() === currentUser) {
-      if (action === "approve" && requester) {
-          lock.username = requester;
-          lock.timestamp = Date.now();
-          lock.requestedBy = null;
-          lock.requestTime = null;
-          return res.json({ success: true, newOwner: lock.username });
-      } else if (action === "reject") {
-          lock.requestedBy = "REJECTED";
-          lock.requestTime = null;
-          return res.json({ success: true });
-      }
+    if (action === "approve" && requester) {
+      lock.username = requester;
+      lock.timestamp = Date.now();
+      lock.requestedBy = null;
+      lock.requestTime = null;
+      return res.json({ success: true, newOwner: lock.username });
+    } else if (action === "reject") {
+      lock.requestedBy = "REJECTED";
+      lock.requestTime = null;
+      return res.json({ success: true });
+    }
   }
 
   res.json({ success: false });
@@ -1339,9 +1506,9 @@ router.post("/api/record-lock/clear-rejection", verifyToken, (req, res) => {
   const { plate, month, year } = req.body;
   const lockKey = `${plate}_${month}_${year}`;
   const lock = activeRecordLocks.get(lockKey);
-  
+
   if (lock && lock.requestedBy === "REJECTED") {
-      lock.requestedBy = null;
+    lock.requestedBy = null;
   }
   res.json({ success: true });
 });
@@ -1367,7 +1534,7 @@ router.get("/api/grid-data", verifyToken, async (req, res) => {
         `SELECT * FROM vehicle_plate_log 
          WHERE UPPER(TRIM(old_plate_no)) = $1 OR UPPER(TRIM(new_plate_no)) = $1
          ORDER BY change_date ASC, id ASC`,
-        [cleanPlate]
+        [cleanPlate],
       );
       plateLogs = pLogs.rows;
 
@@ -1381,9 +1548,12 @@ router.get("/api/grid-data", verifyToken, async (req, res) => {
       // Also check if master vehicle table references this
       const masterCheck = await pool.query(
         `SELECT plate_no FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = $1`,
-        [cleanPlate]
+        [cleanPlate],
       );
-      if (masterCheck.rows.length > 0 && !allRelatedPlates.includes(cleanPlate)) {
+      if (
+        masterCheck.rows.length > 0 &&
+        !allRelatedPlates.includes(cleanPlate)
+      ) {
         allRelatedPlates.push(cleanPlate);
       }
 
@@ -1396,11 +1566,11 @@ router.get("/api/grid-data", verifyToken, async (req, res) => {
       return parseInt(a.record_date || 0) - parseInt(b.record_date || 0);
     });
 
-    res.json({ 
-      success: true, 
-      data: sortedData, 
-      plateLogs: plateLogs, 
-      relatedPlates: allRelatedPlates 
+    res.json({
+      success: true,
+      data: sortedData,
+      plateLogs: plateLogs,
+      relatedPlates: allRelatedPlates,
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -1437,19 +1607,23 @@ router.post("/api/upsert-grid-cell", verifyEditor, async (req, res) => {
     // Fetch previous value of this specific cell directly from DB without extra joins
     const oldRowRes = await pool.query(
       `SELECT "${col_name}" FROM timesheet_daily_records WHERE month=$1 AND year=$2 AND plate_no=$3 AND record_date=$4`,
-      [month, year, plate_no, record_date]
+      [month, year, plate_no, record_date],
     );
-    const prevVal = oldRowRes.rows.length > 0 ? (oldRowRes.rows[0][col_name] ?? "") : "";
-    const newVal = col_value === null || col_value === undefined ? "" : String(col_value);
+    const prevVal =
+      oldRowRes.rows.length > 0 ? (oldRowRes.rows[0][col_name] ?? "") : "";
+    const newVal =
+      col_value === null || col_value === undefined ? "" : String(col_value);
 
     // Build audit entry containing column, old value, and new value
-    const newAuditEntry = JSON.stringify([{
-      u: username,
-      t: new Date().toISOString(),
-      c: col_name,
-      o: String(prevVal),
-      v: newVal
-    }]);
+    const newAuditEntry = JSON.stringify([
+      {
+        u: username,
+        t: new Date().toISOString(),
+        c: col_name,
+        o: String(prevVal),
+        v: newVal,
+      },
+    ]);
 
     const query = `
             INSERT INTO timesheet_daily_records (month, year, plate_no, record_date, "${col_name}", calc_distance, calc_time, modified_by, edit_history) 
@@ -1477,13 +1651,13 @@ router.post("/api/upsert-grid-cell", verifyEditor, async (req, res) => {
       calc_distance,
       calc_time,
       username,
-      newAuditEntry
+      newAuditEntry,
     ]);
     const row = upsertRes.rows[0];
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       modified_by: row?.modified_by || username,
-      edit_history: row?.edit_history || []
+      edit_history: row?.edit_history || [],
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -1503,7 +1677,7 @@ router.post("/api/bulk-import", verifyEditor, async (req, res) => {
     }
 
     await client.query("BEGIN");
-    
+
     const username = req.user.username; // Extracting user from token via verifyEditor
 
     // Batch Processing Logic to speed up large imports (reduces overhead)
@@ -1545,7 +1719,7 @@ router.post("/api/bulk-import", verifyEditor, async (req, res) => {
             row.nl_checked,
             row.calc_distance,
             row.calc_time,
-            username
+            username,
           ],
         );
       }
@@ -1599,7 +1773,7 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
   try {
     const { plate_no, col_name, value } = req.body;
     const cleanCol = col_name.replace(/[^a-zA-Z0-9_]/g, "");
-    
+
     // 1. Update the Main Master Table
     await pool.query(
       `UPDATE timesheet_vehicles SET "${cleanCol}" = $1 WHERE plate_no = $2`,
@@ -1610,21 +1784,34 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
     if (["driver_name", "driver_mobile"].includes(cleanCol)) {
       await pool.query(
         `UPDATE vehicle_driver_log SET ${cleanCol} = $1 WHERE UPPER(plate_no) = UPPER($2) AND status = 'Running'`,
-        [value, plate_no]
+        [value, plate_no],
       );
     }
 
     // 3. Auto-Sync to Active Site Log & Cascading Period Sync to Billing, Invoices and VAT Records (Including vehicle_type & project_name)
-    if (["site_name", "rate", "field_co", "site_co", "asset_code", "work_order_no", "old_vehicle_no", "new_vehicle_no", "vehicle_type", "project_name"].includes(cleanCol)) {
+    if (
+      [
+        "site_name",
+        "rate",
+        "field_co",
+        "site_co",
+        "asset_code",
+        "work_order_no",
+        "old_vehicle_no",
+        "new_vehicle_no",
+        "vehicle_type",
+        "project_name",
+      ].includes(cleanCol)
+    ) {
       await pool.query(
         `UPDATE vehicle_site_log SET ${cleanCol} = $1 WHERE UPPER(plate_no) = UPPER($2) AND status = 'Running'`,
-        [value, plate_no]
+        [value, plate_no],
       );
       // Also sync to latest site log if no running log exists
       await pool.query(
         `UPDATE vehicle_site_log SET ${cleanCol} = $1 
          WHERE id = (SELECT id FROM vehicle_site_log WHERE UPPER(plate_no) = UPPER($2) ORDER BY COALESCE(work_start_date, '1970-01-01') DESC, id DESC LIMIT 1)`,
-        [value, plate_no]
+        [value, plate_no],
       );
       // Find the old site name before updating
       let oldSiteName = null;
@@ -1637,18 +1824,24 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
            FROM vehicle_site_log 
            WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) AND status = 'Running' 
            ORDER BY id DESC LIMIT 1`,
-          [plate_no]
+          [plate_no],
         );
         if (curSiteLogRes.rows.length > 0) {
-          oldSiteName = curSiteLogRes.rows[0].site_name ? curSiteLogRes.rows[0].site_name.trim() : null;
-          siteStartDate = curSiteLogRes.rows[0].work_start_date ? new Date(curSiteLogRes.rows[0].work_start_date) : new Date(2000, 0, 1);
-          siteEndDate = curSiteLogRes.rows[0].work_end_date ? new Date(curSiteLogRes.rows[0].work_end_date) : new Date(2099, 11, 31);
+          oldSiteName = curSiteLogRes.rows[0].site_name
+            ? curSiteLogRes.rows[0].site_name.trim()
+            : null;
+          siteStartDate = curSiteLogRes.rows[0].work_start_date
+            ? new Date(curSiteLogRes.rows[0].work_start_date)
+            : new Date(2000, 0, 1);
+          siteEndDate = curSiteLogRes.rows[0].work_end_date
+            ? new Date(curSiteLogRes.rows[0].work_end_date)
+            : new Date(2099, 11, 31);
         }
       }
 
       await pool.query(
         `UPDATE vehicle_site_log SET ${cleanCol} = $1 WHERE UPPER(plate_no) = UPPER($2) AND status = 'Running'`,
-        [value, plate_no]
+        [value, plate_no],
       );
 
       // 🟢 Cascade update site_name across billing_records, invoice_records, vat_billing_records, and rate logs
@@ -1656,7 +1849,10 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
         const cleanPlate = plate_no.trim().toUpperCase();
         const newSite = value.trim();
 
-        if (oldSiteName && oldSiteName.toLowerCase() !== newSite.toLowerCase()) {
+        if (
+          oldSiteName &&
+          oldSiteName.toLowerCase() !== newSite.toLowerCase()
+        ) {
           const sDate = siteStartDate || new Date(2000, 0, 1);
           const eDate = siteEndDate || new Date(2099, 11, 31);
 
@@ -1668,7 +1864,7 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
                AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))
                AND TO_DATE(billing_month, 'Month YYYY') >= DATE_TRUNC('month', $4::date)
                AND TO_DATE(billing_month, 'Month YYYY') <= DATE_TRUNC('month', $5::date)`,
-            [newSite, cleanPlate, oldSiteName, sDate, eDate]
+            [newSite, cleanPlate, oldSiteName, sDate, eDate],
           );
 
           // 2. Update invoice_records for this vehicle strictly within site period
@@ -1679,7 +1875,7 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
                AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))
                AND TO_DATE(month, 'Month YYYY') >= DATE_TRUNC('month', $4::date)
                AND TO_DATE(month, 'Month YYYY') <= DATE_TRUNC('month', $5::date)`,
-            [newSite, cleanPlate, oldSiteName, sDate, eDate]
+            [newSite, cleanPlate, oldSiteName, sDate, eDate],
           );
 
           // 3. Update vehicle_rate_log for this vehicle
@@ -1687,7 +1883,7 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
             `UPDATE vehicle_rate_log 
              SET site_name = $1 
              WHERE UPPER(TRIM(plate_no)) = $2 AND LOWER(TRIM(site_name)) = LOWER(TRIM($3))`,
-            [newSite, cleanPlate, oldSiteName]
+            [newSite, cleanPlate, oldSiteName],
           );
 
           // 4. Update vat_billing_records
@@ -1695,37 +1891,55 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
             `UPDATE vat_billing_records 
              SET site_name = $1 
              WHERE LOWER(TRIM(site_name)) = LOWER(TRIM($2))`,
-            [newSite, oldSiteName]
+            [newSite, oldSiteName],
           );
         }
       }
     }
 
     // 4. Auto-Sync to Active Owner Log & Billing Records (Including ledger_folio & company_arabic_name)
-    if (["owner_name", "owner_mobile", "vat", "vat_no", "ledger_folio", "company_display_name", "company_display_name_", "company_arabic_name"].includes(cleanCol)) {
-      let targetCol = cleanCol === "company_display_name_" ? "company_display_name" : cleanCol;
-      
+    if (
+      [
+        "owner_name",
+        "owner_mobile",
+        "vat",
+        "vat_no",
+        "ledger_folio",
+        "company_display_name",
+        "company_display_name_",
+        "company_arabic_name",
+      ].includes(cleanCol)
+    ) {
+      let targetCol =
+        cleanCol === "company_display_name_"
+          ? "company_display_name"
+          : cleanCol;
+
       // Find the old active owner log values before updating
       let oldOwnerName = null;
       let oldLedgerFolio = null;
 
       const checkActive = await pool.query(
         `SELECT id, owner_name, ledger_folio FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) AND status = 'Running' ORDER BY id DESC LIMIT 1`,
-        [plate_no]
+        [plate_no],
       );
 
       if (checkActive.rows.length > 0) {
-        oldOwnerName = checkActive.rows[0].owner_name ? checkActive.rows[0].owner_name.trim() : null;
-        oldLedgerFolio = checkActive.rows[0].ledger_folio ? checkActive.rows[0].ledger_folio.trim() : null;
+        oldOwnerName = checkActive.rows[0].owner_name
+          ? checkActive.rows[0].owner_name.trim()
+          : null;
+        oldLedgerFolio = checkActive.rows[0].ledger_folio
+          ? checkActive.rows[0].ledger_folio.trim()
+          : null;
 
         await pool.query(
           `UPDATE vehicle_owner_log SET "${targetCol}" = $1 WHERE id = $2`,
-          [value, checkActive.rows[0].id]
+          [value, checkActive.rows[0].id],
         );
       } else {
         await pool.query(
           `INSERT INTO vehicle_owner_log (plate_no, "${targetCol}", status) VALUES ($1, $2, 'Running')`,
-          [plate_no.trim().toUpperCase(), value]
+          [plate_no.trim().toUpperCase(), value],
         );
       }
 
@@ -1738,14 +1952,14 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
             `UPDATE vat_billing_records 
              SET ledger_folio = $1, updated_at = CURRENT_TIMESTAMP 
              WHERE LOWER(TRIM(supplier)) = LOWER(TRIM($2))`,
-            [newLf, oldOwnerName]
+            [newLf, oldOwnerName],
           );
         } else if (oldLedgerFolio && oldLedgerFolio !== newLf) {
           await pool.query(
             `UPDATE vat_billing_records 
              SET ledger_folio = $1, updated_at = CURRENT_TIMESTAMP 
              WHERE ledger_folio = $2`,
-            [newLf, oldLedgerFolio]
+            [newLf, oldLedgerFolio],
           );
         }
       }
@@ -1761,14 +1975,20 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
            FROM vehicle_owner_log 
            WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($1)) AND status = 'Running' 
            ORDER BY id DESC LIMIT 1`,
-          [cleanPlate]
+          [cleanPlate],
         );
 
         if (activeLogRes.rows.length > 0) {
           const activeLog = activeLogRes.rows[0];
-          const oldOwnerName = activeLog.owner_name ? activeLog.owner_name.trim() : null;
-          const startDate = activeLog.work_start_date ? new Date(activeLog.work_start_date) : new Date(2000, 0, 1);
-          const endDate = activeLog.work_end_date ? new Date(activeLog.work_end_date) : new Date(2099, 11, 31);
+          const oldOwnerName = activeLog.owner_name
+            ? activeLog.owner_name.trim()
+            : null;
+          const startDate = activeLog.work_start_date
+            ? new Date(activeLog.work_start_date)
+            : new Date(2000, 0, 1);
+          const endDate = activeLog.work_end_date
+            ? new Date(activeLog.work_end_date)
+            : new Date(2099, 11, 31);
 
           // Update billing_records belonging strictly to this date period
           await pool.query(
@@ -1777,23 +1997,23 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
              WHERE UPPER(TRIM(plate_no)) = $2 
                AND TO_DATE(billing_month, 'Month YYYY') >= DATE_TRUNC('month', $3::date)
                AND TO_DATE(billing_month, 'Month YYYY') <= DATE_TRUNC('month', $4::date)`,
-            [newOwner, cleanPlate, startDate, endDate]
+            [newOwner, cleanPlate, startDate, endDate],
           );
 
           // Sync vat_billing_records for matching periods and supplier names
-          if (oldOwnerName) {
+          if (oldOwnerName && oldOwnerName.toLowerCase() !== newOwner.toLowerCase()) {
             await pool.query(
               `UPDATE vat_billing_records 
-               SET supplier = $1 
+               SET supplier = $1, updated_at = CURRENT_TIMESTAMP 
                WHERE LOWER(TRIM(supplier)) = LOWER(TRIM($2))`,
-              [newOwner, oldOwnerName]
+              [newOwner, oldOwnerName],
             );
           }
         } else {
           // Fallback: update running vehicle billing if no specific log found
           await pool.query(
             `UPDATE billing_records SET owner = $1 WHERE UPPER(TRIM(plate_no)) = $2`,
-            [newOwner, cleanPlate]
+            [newOwner, cleanPlate],
           );
         }
       }
@@ -2095,12 +2315,12 @@ router.get("/api/public/vehicles", async (req, res) => {
       "SELECT plate_no, owner_name, asset_code, site_name FROM timesheet_vehicles ORDER BY plate_no ASC",
     );
     const plateLogsRes = await pool.query(
-      "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC"
+      "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
     );
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       data: result.rows,
-      plateLogs: plateLogsRes.rows 
+      plateLogs: plateLogsRes.rows,
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -2226,19 +2446,19 @@ router.post("/api/public/view-report", async (req, res) => {
       [plates],
     );
     const plateLogs = await pool.query(
-      "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC"
+      "SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC",
     );
 
     res.json({
       success: true,
       vehicles: vehicles,
       records: recordsResult.rows,
-      logs: { 
-        drivers: driverLogs.rows, 
-        sites: siteLogs.rows, 
-        owners: ownerLogs.rows, 
+      logs: {
+        drivers: driverLogs.rows,
+        sites: siteLogs.rows,
+        owners: ownerLogs.rows,
         rates: rateLogs.rows,
-        plates: plateLogs.rows
+        plates: plateLogs.rows,
       },
     });
   } catch (error) {
@@ -2255,10 +2475,12 @@ router.post("/api/db/update-plate-no", verifyEditor, async (req, res) => {
     if (!old_plate_no || !new_plate_no)
       throw new Error("Missing plate numbers");
 
-    const oldPlate = old_plate_no.replace(/\s+/g, ' ').trim().toUpperCase();
-    const newPlate = new_plate_no.replace(/\s+/g, ' ').trim().toUpperCase();
-    const effectiveDate = change_date ? change_date : new Date().toISOString().split('T')[0];
-    const username = req.user ? req.user.username : 'Editor';
+    const oldPlate = old_plate_no.replace(/\s+/g, " ").trim().toUpperCase();
+    const newPlate = new_plate_no.replace(/\s+/g, " ").trim().toUpperCase();
+    const effectiveDate = change_date
+      ? change_date
+      : new Date().toISOString().split("T")[0];
+    const username = req.user ? req.user.username : "Editor";
 
     if (oldPlate === newPlate)
       return res.json({ success: true, new_plate_no: newPlate });
@@ -2269,7 +2491,7 @@ router.post("/api/db/update-plate-no", verifyEditor, async (req, res) => {
     await client.query(
       `INSERT INTO vehicle_plate_log (old_plate_no, new_plate_no, change_date, reason, changed_by)
        VALUES ($1, $2, $3, $4, $5)`,
-      [oldPlate, newPlate, effectiveDate, reason || null, username]
+      [oldPlate, newPlate, effectiveDate, reason || null, username],
     );
 
     // 2. Update Master Vehicles Table
@@ -2337,7 +2559,8 @@ router.post("/api/db/update-plate-no", verifyEditor, async (req, res) => {
     if (error.code === "23505") {
       res.json({
         success: false,
-        message: "New Plate No already exists in the database. Merge or use a unique plate.",
+        message:
+          "New Plate No already exists in the database. Merge or use a unique plate.",
       });
     } else {
       res.json({ success: false, message: error.message });
@@ -2370,20 +2593,25 @@ router.post("/api/verify-klm", (req, res) => {
 // ==========================================
 
 // 1. Auto Cleanup (Runs every 24 hours)
-setInterval(async () => {
-  try {
-    const cleanupQuery = `
+setInterval(
+  async () => {
+    try {
+      const cleanupQuery = `
           DELETE FROM timesheet_entry_logs 
           WHERE created_at < NOW() - INTERVAL '100 days'
       `;
-    const result = await pool.query(cleanupQuery);
-    if (result.rowCount > 0) {
-      console.log(`Auto Cleanup: Successfully deleted ${result.rowCount} old entry logs.`);
+      const result = await pool.query(cleanupQuery);
+      if (result.rowCount > 0) {
+        console.log(
+          `Auto Cleanup: Successfully deleted ${result.rowCount} old entry logs.`,
+        );
+      }
+    } catch (error) {
+      console.error("Auto Cleanup Error:", error.message);
     }
-  } catch (error) {
-    console.error("Auto Cleanup Error:", error.message);
-  }
-}, 24 * 60 * 60 * 1000);
+  },
+  24 * 60 * 60 * 1000,
+);
 
 // 2. Auto Lock Process (2 Months Gap)
 async function runAutoLock() {
@@ -2392,27 +2620,48 @@ async function runAutoLock() {
 
     const lockTargetDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
 
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
     const targetMonthStr = monthNames[lockTargetDate.getMonth()];
     const targetYear = lockTargetDate.getFullYear();
 
-    const res = await pool.query("SELECT lock_month, lock_year FROM timesheet_lock_period WHERE id = 1");
+    const res = await pool.query(
+      "SELECT lock_month, lock_year FROM timesheet_lock_period WHERE id = 1",
+    );
 
     if (res.rows.length > 0) {
-        const current = res.rows[0];
-        let currentLockDate = new Date(1970, 0, 1); 
+      const current = res.rows[0];
+      let currentLockDate = new Date(1970, 0, 1);
 
-        if (current.lock_month && current.lock_year) {
-            currentLockDate = new Date(current.lock_year, monthNames.indexOf(current.lock_month), 1);
-        }
+      if (current.lock_month && current.lock_year) {
+        currentLockDate = new Date(
+          current.lock_year,
+          monthNames.indexOf(current.lock_month),
+          1,
+        );
+      }
 
-        if (lockTargetDate > currentLockDate) {
-            await pool.query(
-                "UPDATE timesheet_lock_period SET lock_month = $1, lock_year = $2 WHERE id = 1",
-                [targetMonthStr, targetYear]
-            );
-            console.log(`Auto-Lock Applied: System automatically locked up to ${targetMonthStr} ${targetYear}`);
-        }
+      if (lockTargetDate > currentLockDate) {
+        await pool.query(
+          "UPDATE timesheet_lock_period SET lock_month = $1, lock_year = $2 WHERE id = 1",
+          [targetMonthStr, targetYear],
+        );
+        console.log(
+          `Auto-Lock Applied: System automatically locked up to ${targetMonthStr} ${targetYear}`,
+        );
+      }
     }
   } catch (error) {
     console.error("Auto Lock Error:", error.message);

@@ -17,5 +17,5 @@ router.get("/api/db/sync-version", verifyToken, async (req, res) => {
 
 module.exports = {
   router,
-  bumpDbSyncVersion
+  bumpDbSyncVersion,
 };

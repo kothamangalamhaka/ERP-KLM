@@ -735,6 +735,47 @@
         background: #f8fafc;
         gap: 10px;
       }
+      .tree-toggle {
+        cursor: pointer;
+        user-select: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        font-size: 10px;
+        color: #64748b;
+        margin-right: 4px;
+        border: 1px solid #cbd5e1;
+        border-radius: 2px;
+        background: #f8fafc;
+        line-height: 1;
+      }
+      .tree-toggle:hover {
+        color: #0f172a;
+        border-color: #94a3b8;
+      }
+      .tree-year-row {
+        padding: 5px 10px;
+        display: flex;
+        align-items: center;
+        background: #ffffff;
+      }
+      .tree-year-row:hover {
+        background: #f1f5f9;
+      }
+      .tree-month-list {
+        padding-left: 22px;
+        background: #fafafa;
+      }
+      .tree-month-row {
+        padding: 4px 10px;
+        display: flex;
+        align-items: center;
+      }
+      .tree-month-row:hover {
+        background: #f1f5f9;
+      }
       .excel-filter-actions button {
         flex: 1;
         padding: 6px;
@@ -4958,7 +4999,6 @@
           let matchO = fOwner === "ALL" || d.owner === fOwner;
           let matchS = fSite === "ALL" || d.site === fSite;
 
-          // 🟢 Filter Menu-വിലും Invoice, Bill സെർച്ച് വരാനുള്ള മാറ്റം
           let matchP =
             fPlate === "" ||
             d.plate.includes(fPlate) ||
@@ -4981,23 +5021,80 @@
         });
 
         tempFiltered.forEach((row) => allOptions.add(String(row[key])));
-        let allDataArr = Array.from(allOptions).sort((a, b) =>
-          a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
-        );
         let previouslySelected = headerFilters[key] || [];
         let isAllSelected = previouslySelected.length === 0;
 
         document.getElementById("filterSelectAll").checked = isAllSelected;
 
-        allDataArr.forEach((val) => {
-          let displayVal = val === "" ? "(Blank)" : val;
-          let isChecked = isAllSelected || previouslySelected.includes(val);
-          let id = "flt_" + Math.random().toString(36).substr(2, 9);
-          listContainer.insertAdjacentHTML(
-            "beforeend",
-            `<div class="filter-item filter-row-item"><input type="checkbox" id="${id}" value="${val.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} class="col-filter-cb"><label for="${id}">${displayVal}</label></div>`,
+        if (key === "report_date") {
+          let treeData = {};
+          allOptions.forEach((val) => {
+            let parts = String(val).trim().split(" ");
+            let mStr = parts[0] || "";
+            let yStr = parts[1] || "";
+            let fullYear = yStr.length === 2 ? "20" + yStr : yStr;
+            if (!treeData[fullYear]) treeData[fullYear] = [];
+            treeData[fullYear].push({ raw: val, mStr: mStr });
+          });
+
+          let sortedYears = Object.keys(treeData).sort((a, b) => Number(b) - Number(a));
+
+          sortedYears.forEach((year) => {
+            let monthItems = treeData[year];
+            monthItems.sort((a, b) => {
+              let idxA = months.findIndex((m) => m.toLowerCase().startsWith(a.mStr.toLowerCase()));
+              let idxB = months.findIndex((m) => m.toLowerCase().startsWith(b.mStr.toLowerCase()));
+              return idxA - idxB;
+            });
+
+            let yearId = "yr_" + year;
+            let yearContainer = document.createElement("div");
+            yearContainer.className = "tree-year-block filter-row-item";
+
+            let yearRow = document.createElement("div");
+            yearRow.className = "tree-year-row";
+            yearRow.innerHTML = `
+              <span class="tree-toggle" onclick="toggleDateTree(this, '${yearId}')">▶</span>
+              <input type="checkbox" id="${yearId}" class="tree-year-cb" onchange="onTreeYearToggle(this, '${yearId}')" style="margin-right: 6px;" />
+              <label for="${yearId}" style="font-weight: 700; cursor: pointer; user-select: none;">${year}</label>
+            `;
+
+            let monthList = document.createElement("div");
+            monthList.id = yearId + "_list";
+            monthList.className = "tree-month-list";
+            monthList.style.display = "none";
+
+            monthItems.forEach((m) => {
+              let isChecked = isAllSelected || previouslySelected.includes(m.raw);
+              let mId = "flt_" + Math.random().toString(36).substr(2, 9);
+              monthList.insertAdjacentHTML(
+                "beforeend",
+                `<div class="tree-month-row filter-row-item">
+                  <input type="checkbox" id="${mId}" value="${m.raw.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} class="col-filter-cb tree-month-cb" data-year-id="${yearId}" onchange="syncTreeYearState('${yearId}')" style="margin-right: 6px;">
+                  <label for="${mId}" style="cursor: pointer; user-select: none;">${m.raw}</label>
+                </div>`
+              );
+            });
+
+            yearContainer.appendChild(yearRow);
+            yearContainer.appendChild(monthList);
+            listContainer.appendChild(yearContainer);
+            syncTreeYearState(yearId);
+          });
+        } else {
+          let allDataArr = Array.from(allOptions).sort((a, b) =>
+            a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
           );
-        });
+          allDataArr.forEach((val) => {
+            let displayVal = val === "" ? "(Blank)" : val;
+            let isChecked = isAllSelected || previouslySelected.includes(val);
+            let id = "flt_" + Math.random().toString(36).substr(2, 9);
+            listContainer.insertAdjacentHTML(
+              "beforeend",
+              `<div class="filter-item filter-row-item"><input type="checkbox" id="${id}" value="${val.replace(/"/g, "&quot;")}" ${isChecked ? "checked" : ""} class="col-filter-cb"><label for="${id}">${displayVal}</label></div>`,
+            );
+          });
+        }
 
         let iconRect = event.target.getBoundingClientRect();
         menu.style.top = iconRect.bottom + window.scrollY + 5 + "px";
@@ -5005,6 +5102,44 @@
         menu.style.display = "block";
         document.getElementById("filterSearchInput").value = "";
         document.getElementById("filterSearchInput").focus();
+      }
+
+      function toggleDateTree(btn, listId) {
+        const list = document.getElementById(listId + "_list");
+        if (!list) return;
+        if (list.style.display === "none") {
+          list.style.display = "block";
+          btn.innerText = "▼";
+        } else {
+          list.style.display = "none";
+          btn.innerText = "▶";
+        }
+      }
+
+      function onTreeYearToggle(yearCb, yearId) {
+        const list = document.getElementById(yearId + "_list");
+        if (!list) return;
+        const childCbs = list.querySelectorAll(".tree-month-cb");
+        childCbs.forEach((cb) => (cb.checked = yearCb.checked));
+        yearCb.indeterminate = false;
+      }
+
+      function syncTreeYearState(yearId) {
+        const yearCb = document.getElementById(yearId);
+        const list = document.getElementById(yearId + "_list");
+        if (!yearCb || !list) return;
+        const childCbs = Array.from(list.querySelectorAll(".tree-month-cb"));
+        const checkedCount = childCbs.filter((cb) => cb.checked).length;
+        if (checkedCount === childCbs.length && childCbs.length > 0) {
+          yearCb.checked = true;
+          yearCb.indeterminate = false;
+        } else if (checkedCount === 0) {
+          yearCb.checked = false;
+          yearCb.indeterminate = false;
+        } else {
+          yearCb.checked = false;
+          yearCb.indeterminate = true;
+        }
       }
 
       document
@@ -5015,17 +5150,40 @@
             if (cb.parentElement.style.display !== "none")
               cb.checked = isChecked;
           });
+          document.querySelectorAll(".tree-year-cb").forEach((yCb) => {
+            yCb.checked = isChecked;
+            yCb.indeterminate = false;
+          });
         });
 
       document
         .getElementById("filterSearchInput")
         ?.addEventListener("keyup", function () {
           let keyword = this.value.toLowerCase();
-          document.querySelectorAll(".filter-row-item").forEach((item) => {
-            if (item.textContent.toLowerCase().includes(keyword))
-              item.style.display = "";
-            else item.style.display = "none";
-          });
+          if (currentFilterColInfo.key === "report_date") {
+            document.querySelectorAll(".tree-year-block").forEach((block) => {
+              let yearMatch = block.querySelector(".tree-year-row label").textContent.toLowerCase().includes(keyword);
+              let hasVisibleMonth = false;
+              block.querySelectorAll(".tree-month-row").forEach((mRow) => {
+                let mMatch = mRow.textContent.toLowerCase().includes(keyword);
+                mRow.style.display = mMatch || yearMatch ? "" : "none";
+                if (mMatch || yearMatch) hasVisibleMonth = true;
+              });
+              block.style.display = yearMatch || hasVisibleMonth ? "" : "none";
+              const mList = block.querySelector(".tree-month-list");
+              const toggleBtn = block.querySelector(".tree-toggle");
+              if (keyword && (yearMatch || hasVisibleMonth)) {
+                if (mList) mList.style.display = "block";
+                if (toggleBtn) toggleBtn.innerText = "▼";
+              }
+            });
+          } else {
+            document.querySelectorAll(".filter-row-item").forEach((item) => {
+              if (item.textContent.toLowerCase().includes(keyword))
+                item.style.display = "";
+              else item.style.display = "none";
+            });
+          }
         });
 
       function closeExcelFilter() {
@@ -5348,18 +5506,14 @@
           return;
         }
 
-        // 1. Owner Name, 2. Plate Number, 3. Month (Chronological Order) എന്ന രീതിയിൽ സോർട്ട് ചെയ്യുന്നു
+        // 1. Month (Chronological Order), 2. Owner Name, 3. Plate Number
         combinedData.sort((a, b) => {
-          // 1. ആദ്യം ഓണറുടെ പേര് (Owner Name) അക്ഷരമാല ക്രമത്തിൽ നോക്കും
+          if (a.sort_date !== b.sort_date) {
+            return a.sort_date - b.sort_date;
+          }
           let ownerCompare = (a.owner || "").localeCompare(b.owner || "");
           if (ownerCompare !== 0) return ownerCompare;
-
-          // 2. ഓണർ സെയിം ആണെങ്കിൽ പ്ലേറ്റ് നമ്പർ നോക്കും
-          let plateCompare = (a.plate || "").localeCompare(b.plate || "");
-          if (plateCompare !== 0) return plateCompare;
-
-          // 3. പ്ലേറ്റും സെയിം ആണെങ്കിൽ ഡേറ്റ് (മാസം) വെച്ച് ഓർഡർ ചെയ്യും
-          return a.sort_date - b.sort_date;
+          return (a.plate || "").localeCompare(b.plate || "");
         });
 
         let sheetObj = createSingleSheetFromData(combinedData);
@@ -5603,7 +5757,7 @@
 
         dataArray.forEach((r) => {
           aoa.push([
-            r.report_date,
+            r.report_date || `${(r.raw_month || "").substring(0, 3)} ${String(r.raw_year || "").slice(-2)}`,
             r.site,
             cleanExportRate(r.rate),
             r.vat.toLowerCase().includes("yes") ? "Yes" : "",
@@ -5636,8 +5790,8 @@
             r.inv_total || "",
             r.deduct_reason || "",
             r.crn_no || "",
-            r.inv_no,
-            r.bill_no,
+            String(r.inv_no || ""),
+            String(r.bill_no || ""),
             r.pwas || "-",
             r.erp || "-",
             r.payment_status || "-",
@@ -5671,7 +5825,6 @@
       function createSingleSheetFromData(dataArray) {
         let aoa = [
           [
-            "REPORT MONTH",
             "VEHICLE INFO",
             "",
             "",
@@ -5716,7 +5869,6 @@
           ],
           [
             "Month",
-            "Date",
             "Site",
             "Rate",
             "VAT",
@@ -5762,8 +5914,7 @@
 
         dataArray.forEach((r) => {
           aoa.push([
-            r.report_month,
-            r.report_date,
+            r.report_month || r.report_date,
             r.site,
             cleanExportRate(r.rate),
             r.vat.toLowerCase().includes("yes") ? "Yes" : "",
@@ -5796,8 +5947,8 @@
             r.inv_total || "",
             r.deduct_reason || "",
             r.crn_no || "",
-            r.inv_no,
-            r.bill_no,
+            String(r.inv_no || ""),
+            String(r.bill_no || ""),
             r.pwas || "-",
             r.erp || "-",
             r.payment_status || "-",
@@ -5807,18 +5958,17 @@
           ]);
         });
 
-        // Merges shifted by +1 because of "REPORT MONTH" (Total 42 columns: 0 to 41)
         let merges = [
-          { s: { r: 0, c: 1 }, e: { r: 0, c: 10 } }, // Vehicle Info (Cols 1..10)
-          { s: { r: 0, c: 11 }, e: { r: 0, c: 12 } }, // Logsheet Collected (Cols 11..12)
-          { s: { r: 0, c: 13 }, e: { r: 0, c: 14 } }, // Bill Summary (Cols 13..14)
-          { s: { r: 0, c: 15 }, e: { r: 0, c: 16 } }, // To Supplier (Cols 15..16)
-          { s: { r: 0, c: 17 }, e: { r: 0, c: 18 } }, // For Driver (Cols 17..18)
-          { s: { r: 0, c: 19 }, e: { r: 0, c: 23 } }, // DIFFERENCE (Cols 19..23)
-          { s: { r: 0, c: 24 }, e: { r: 0, c: 28 } }, // AMOUNT (Cols 24..28)
-          { s: { r: 0, c: 29 }, e: { r: 0, c: 35 } }, // INVOICE (Cols 29..35)
-          { s: { r: 0, c: 36 }, e: { r: 0, c: 39 } }, // EXTRA DETAILS (Cols 36..39)
-          { s: { r: 0, c: 40 }, e: { r: 0, c: 41 } }, // 31 Considered as NR (Cols 40..41)
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }, // VEHICLE INFO (Cols 0..9)
+          { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } }, // Logsheet Collected (Cols 10..11)
+          { s: { r: 0, c: 12 }, e: { r: 0, c: 13 } }, // Bill Summary (Cols 12..13)
+          { s: { r: 0, c: 14 }, e: { r: 0, c: 15 } }, // To Supplier (Cols 14..15)
+          { s: { r: 0, c: 16 }, e: { r: 0, c: 17 } }, // For Driver (Cols 16..17)
+          { s: { r: 0, c: 18 }, e: { r: 0, c: 22 } }, // DIFFERENCE (Cols 18..22)
+          { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }, // AMOUNT (Cols 23..27)
+          { s: { r: 0, c: 28 }, e: { r: 0, c: 34 } }, // INVOICE (Cols 28..34)
+          { s: { r: 0, c: 35 }, e: { r: 0, c: 38 } }, // EXTRA DETAILS (Cols 35..38)
+          { s: { r: 0, c: 39 }, e: { r: 0, c: 40 } }, // 31 Considered as NR (Cols 39..40)
         ];
 
         return {
@@ -6016,6 +6166,16 @@
         await new Promise((r) => setTimeout(r, 40));
 
         let combinedData = resultsArray.filter(Boolean).flat();
+
+        combinedData.sort((a, b) => {
+          let yrA = parseInt(a.raw_year, 10) || 0;
+          let yrB = parseInt(b.raw_year, 10) || 0;
+          if (yrA !== yrB) return yrA - yrB;
+          let mA = months.indexOf(a.raw_month);
+          let mB = months.indexOf(b.raw_month);
+          if (mA !== mB) return mA - mB;
+          return 0;
+        });
 
         masterData = combinedData;
         let uniqueOwners = new Set(),
