@@ -325,10 +325,10 @@
               >dashboard</i
             >
           </button>
-          <!-- 🟢 Month Selector with ◀ Prev / Next ▶ Buttons -->
+          <!-- 🟢 Modern Month & Year Selector -->
           <div
             class="selector-wrapper"
-            style="display: flex; align-items: center; gap: 4px"
+            style="display: flex; align-items: center; gap: 4px; padding: 0 6px;"
           >
             <button
               type="button"
@@ -347,25 +347,52 @@
             >
               ◀
             </button>
-            <div
-              class="custom-dropdown"
-              id="monthDropdownContainer"
-              style="width: 85px"
+            <select
+              id="billingMonthSelect"
+              onchange="onMonthYearChange()"
+              style="
+                padding: 4px 6px;
+                border: 1px solid #cbd5e1;
+                border-radius: 4px;
+                font-weight: 700;
+                font-size: 12px;
+                color: #1e293b;
+                background: white;
+                outline: none;
+                cursor: pointer;
+              "
             >
-              <div
-                class="custom-dropdown-selected"
-                onclick="toggleDropdown('monthOptions')"
-                style="padding: 5px 6px; font-size: 12px; font-weight: bold"
-              >
-                <span id="selectedMonthText">Loading...</span>
-                <span style="font-size: 10px; margin-left: 2px">▼</span>
-              </div>
-              <div
-                class="custom-dropdown-options"
-                id="monthOptions"
-                style="width: 140px"
-              ></div>
-            </div>
+              <option value="January">January</option>
+              <option value="February">February</option>
+              <option value="March">March</option>
+              <option value="April">April</option>
+              <option value="May">May</option>
+              <option value="June">June</option>
+              <option value="July">July</option>
+              <option value="August">August</option>
+              <option value="September">September</option>
+              <option value="October">October</option>
+              <option value="November">November</option>
+              <option value="December">December</option>
+            </select>
+            <input
+              type="number"
+              id="billingYearInput"
+              value="2026"
+              onchange="onMonthYearChange()"
+              style="
+                width: 62px;
+                padding: 4px 6px;
+                border: 1px solid #cbd5e1;
+                border-radius: 4px;
+                font-weight: 700;
+                font-size: 12px;
+                color: #1e293b;
+                background: white;
+                text-align: center;
+                outline: none;
+              "
+            />
             <button
               type="button"
               onclick="nextMonthBilling()"
@@ -383,6 +410,8 @@
             >
               ▶
             </button>
+            <!-- Hidden anchor to keep backward compatibility with script helper selectors -->
+            <span id="selectedMonthText" style="display: none;"></span>
           </div>
 
           <button

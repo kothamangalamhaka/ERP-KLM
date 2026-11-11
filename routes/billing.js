@@ -12,7 +12,8 @@ function getCompanyFromSite(siteName, fallback = "Haka") {
   let s = siteName.toUpperCase().replace(/[\s\-_]/g, "");
   if (s.includes("ALJODA")) return "Aljoda";
   if (s.includes("MASARWHEELS") || s.includes("MASAR")) return "Masar Wheels";
-  if (s.includes("WE1TRACK") || s.includes("WE1") || s.includes("WETRACK")) return "We1 Track";
+  if (s.includes("WE1TRACK") || s.includes("WE1") || s.includes("WETRACK"))
+    return "We1 Track";
   if (s.includes("HAKA")) return "Haka";
   return fallback;
 }
@@ -26,8 +27,13 @@ function calculateLogHours(
   siteLogs = [],
 ) {
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-  const normalizedSite = String(siteName || "").split("&")[0].trim().toUpperCase();
-  const targetSite = String(siteName || "").trim().toUpperCase();
+  const normalizedSite = String(siteName || "")
+    .split("&")[0]
+    .trim()
+    .toUpperCase();
+  const targetSite = String(siteName || "")
+    .trim()
+    .toUpperCase();
   let nhr = 0;
   let othr = 0;
 
@@ -56,8 +62,7 @@ function calculateLogHours(
               return end < dayDate;
             })
             .sort(
-              (a, b) =>
-                new Date(b.work_end_date) - new Date(a.work_end_date),
+              (a, b) => new Date(b.work_end_date) - new Date(a.work_end_date),
             )[0];
       const assignedSite = String(
         activeSiteLog?.site_name || previousSiteLog?.site_name || "N/A",
@@ -68,11 +73,19 @@ function calculateLogHours(
       if (assignedSite !== targetSite) continue;
     }
 
-    const record = records.find((item) => parseInt(item.record_date, 10) === day);
+    const record = records.find(
+      (item) => parseInt(item.record_date, 10) === day,
+    );
     const workHours = record ? parseFloat(record.calc_time) || 0 : 0;
-    let status = record ? String(record.bd || "").trim().toUpperCase() : "";
-    const formattedDate = new Date(year, monthIndex, day)
-      .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    let status = record
+      ? String(record.bd || "")
+          .trim()
+          .toUpperCase()
+      : "";
+    const formattedDate = new Date(year, monthIndex, day).toLocaleDateString(
+      "en-GB",
+      { day: "2-digit", month: "short", year: "numeric" },
+    );
     const specialRule = specialRules.find(
       (rule) =>
         Array.isArray(rule.sites) &&
@@ -85,7 +98,8 @@ function calculateLogHours(
       status = specialRule.rule_type;
     }
 
-    const isFullOt = new Date(year, monthIndex, day).getDay() === 5 ||
+    const isFullOt =
+      new Date(year, monthIndex, day).getDay() === 5 ||
       day === 31 ||
       specialRule?.rule_type === "FULL_OT";
 
@@ -172,7 +186,8 @@ router.get("/vehicles", async (req, res) => {
     let invoiceRows = [];
     let specialRules = [];
     let targetStart, targetEnd;
-    let targetMonthIdx = -1, targetYearNum = 0;
+    let targetMonthIdx = -1,
+      targetYearNum = 0;
 
     if (month && month !== "All") {
       const savedQuery = `SELECT * FROM billing_records WHERE billing_month = $1`;
@@ -201,19 +216,20 @@ router.get("/vehicles", async (req, res) => {
         targetStart = new Date(targetYearNum, mIdx, 1);
         targetEnd = new Date(targetYearNum, mIdx + 1, 0);
 
-        const [timesheetsResult, invoicesResult, specialRulesResult] = await Promise.all([
-          pool.query(
-            "SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month = $1 AND year = $2",
-            [mName, yStr],
-          ),
-          pool.query(
-            "SELECT plate_no, site_name, bill_nr, bill_ot FROM invoice_records WHERE month = $1",
-            [month],
-          ),
-          pool.query(
-            "SELECT sites, dates, rule_type FROM special_days_rules WHERE is_active = true",
-          ),
-        ]);
+        const [timesheetsResult, invoicesResult, specialRulesResult] =
+          await Promise.all([
+            pool.query(
+              "SELECT plate_no, record_date, calc_time, bd FROM timesheet_daily_records WHERE month = $1 AND year = $2",
+              [mName, yStr],
+            ),
+            pool.query(
+              "SELECT plate_no, site_name, bill_nr, bill_ot FROM invoice_records WHERE month = $1",
+              [month],
+            ),
+            pool.query(
+              "SELECT sites, dates, rule_type FROM special_days_rules WHERE is_active = true",
+            ),
+          ]);
         timesheetRows = timesheetsResult.rows;
         invoiceRows = invoicesResult.rows;
         specialRules = specialRulesResult.rows;
@@ -235,7 +251,7 @@ router.get("/vehicles", async (req, res) => {
       let vPlateChanges = plateLogs.rows.filter(
         (pl) =>
           (pl.old_plate_no || "").trim().toUpperCase() === masterPlate ||
-          (pl.new_plate_no || "").trim().toUpperCase() === masterPlate
+          (pl.new_plate_no || "").trim().toUpperCase() === masterPlate,
       );
 
       vPlateChanges.forEach((pl) => {
@@ -251,7 +267,7 @@ router.get("/vehicles", async (req, res) => {
           let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
           let cDate = new Date(cYear, cMonth - 1, cDay);
 
-          if (cYear === targetYearNum && (cMonth - 1) === targetMonthIdx) {
+          if (cYear === targetYearNum && cMonth - 1 === targetMonthIdx) {
             effectivePlate = `${pl.old_plate_no.trim().toUpperCase()} ➔ ${pl.new_plate_no.trim().toUpperCase()}`;
           } else if (targetEnd < cDate) {
             effectivePlate = pl.old_plate_no.trim().toUpperCase();
@@ -266,12 +282,14 @@ router.get("/vehicles", async (req, res) => {
       let correctDriver = (tsItem.driver_name || "").trim();
       let correctOwner = (tsItem.owner_name || tsItem.owner || "").trim();
       let correctOwnerMobile = (tsItem.owner_mobile || "").trim();
-      let correctVat = String(tsItem.vat || tsItem.vat_bill || tsItem["vat (yes/no)"] || "No").trim();
+      let correctVat = String(
+        tsItem.vat || tsItem.vat_bill || tsItem["vat (yes/no)"] || "No",
+      ).trim();
 
       if (targetStart && targetEnd) {
         // --- DRIVER LOGIC (Related plates ഉൾപ്പെടെ പരിശോധിക്കുന്നു) ---
-        let dLogs = driverLogs.rows.filter(
-          (l) => relatedPlates.includes((l.plate_no || "").trim().toUpperCase()),
+        let dLogs = driverLogs.rows.filter((l) =>
+          relatedPlates.includes((l.plate_no || "").trim().toUpperCase()),
         );
         let validDLogs = dLogs.filter((l) => {
           let st = l.work_start_date
@@ -321,7 +339,13 @@ router.get("/vehicles", async (req, res) => {
 
         let uniqueSitesMap = new Map();
         validSLogs.forEach((s) => {
-          if (s.site_name) uniqueSitesMap.set(s.site_name, { rate: s.rate, vehicle_type: s.vehicle_type, start_date: s.work_start_date, end_date: s.work_end_date });
+          if (s.site_name)
+            uniqueSitesMap.set(s.site_name, {
+              rate: s.rate,
+              vehicle_type: s.vehicle_type,
+              start_date: s.work_start_date,
+              end_date: s.work_end_date,
+            });
         });
 
         uniqueSitesMap.forEach((sLogData, siteName) => {
@@ -331,19 +355,35 @@ router.get("/vehicles", async (req, res) => {
           // Priority 1: Check saved billing_records owner for this month & site
           let savedRowMatch = savedResult.rows.find((sb) => {
             let sbPlate = (sb.plate_no || "").trim().toUpperCase();
-            let isPlateOk = relatedPlates.some(rp => rp.replace(/[^A-Z0-9]/g, "") === sbPlate.replace(/[^A-Z0-9]/g, ""));
-            let isSiteOk = (sb.site_name || "").trim().toUpperCase() === siteName.trim().toUpperCase();
+            let isPlateOk = relatedPlates.some(
+              (rp) =>
+                rp.replace(/[^A-Z0-9]/g, "") ===
+                sbPlate.replace(/[^A-Z0-9]/g, ""),
+            );
+            let isSiteOk =
+              (sb.site_name || "").trim().toUpperCase() ===
+              siteName.trim().toUpperCase();
             return isPlateOk && isSiteOk;
           });
 
           // Priority 2: Site-specific Owner Resolution based on Dates
-          let siteStart = sLogData.start_date ? new Date(sLogData.start_date) : targetStart;
-          let siteEnd = sLogData.end_date ? new Date(sLogData.end_date) : targetEnd;
+          let siteStart = sLogData.start_date
+            ? new Date(sLogData.start_date)
+            : targetStart;
+          let siteEnd = sLogData.end_date
+            ? new Date(sLogData.end_date)
+            : targetEnd;
 
-          let oLogs = ownerLogs.rows.filter((l) => (l.plate_no || "").toUpperCase() === plate);
+          let oLogs = ownerLogs.rows.filter(
+            (l) => (l.plate_no || "").toUpperCase() === plate,
+          );
           let validOLogs = oLogs.filter((l) => {
-            let st = l.work_start_date ? new Date(l.work_start_date) : new Date("2000-01-01");
-            let ed = l.work_end_date ? new Date(l.work_end_date) : new Date("2099-01-01");
+            let st = l.work_start_date
+              ? new Date(l.work_start_date)
+              : new Date("2000-01-01");
+            let ed = l.work_end_date
+              ? new Date(l.work_end_date)
+              : new Date("2099-01-01");
             return st <= siteEnd && ed >= siteStart;
           });
 
@@ -352,31 +392,59 @@ router.get("/vehicles", async (req, res) => {
           let siteVat = correctVat;
 
           if (validOLogs.length > 0) {
-            validOLogs.sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"));
+            validOLogs.sort(
+              (a, b) =>
+                new Date(b.work_start_date || "2000-01-01") -
+                new Date(a.work_start_date || "2000-01-01"),
+            );
             let activeOwnerLog = validOLogs[0];
-            if (activeOwnerLog.owner_name) siteOwner = activeOwnerLog.owner_name.trim();
-            if (activeOwnerLog.owner_mobile) siteOwnerMobile = activeOwnerLog.owner_mobile.trim();
+            if (activeOwnerLog.owner_name)
+              siteOwner = activeOwnerLog.owner_name.trim();
+            if (activeOwnerLog.owner_mobile)
+              siteOwnerMobile = activeOwnerLog.owner_mobile.trim();
             if (activeOwnerLog.vat) siteVat = String(activeOwnerLog.vat).trim();
-            tsItem.company_display_name = activeOwnerLog.company_display_name || tsItem.company_display_name || "";
-            tsItem.company_arabic_name = activeOwnerLog.company_arabic_name || tsItem.company_arabic_name || "";
+            tsItem.company_display_name =
+              activeOwnerLog.company_display_name ||
+              tsItem.company_display_name ||
+              "";
+            tsItem.company_arabic_name =
+              activeOwnerLog.company_arabic_name ||
+              tsItem.company_arabic_name ||
+              "";
             tsItem.vat_no = activeOwnerLog.vat_no || tsItem.vat_no || "";
           }
 
           // Override with saved bill owner if exists
-          if (savedRowMatch && savedRowMatch.owner && savedRowMatch.owner.trim() !== "") {
+          if (
+            savedRowMatch &&
+            savedRowMatch.owner &&
+            savedRowMatch.owner.trim() !== ""
+          ) {
             siteOwner = savedRowMatch.owner.trim();
           }
 
           let validRLogs = rLogs.filter((r) => {
-            let matchesSite = !r.site_name || r.site_name.trim() === "" || r.site_name.trim().toUpperCase() === siteName.trim().toUpperCase();
-            let st = r.work_start_date ? new Date(r.work_start_date) : new Date("2000-01-01");
-            let ed = r.work_end_date ? new Date(r.work_end_date) : new Date("2099-01-01");
+            let matchesSite =
+              !r.site_name ||
+              r.site_name.trim() === "" ||
+              r.site_name.trim().toUpperCase() ===
+                siteName.trim().toUpperCase();
+            let st = r.work_start_date
+              ? new Date(r.work_start_date)
+              : new Date("2000-01-01");
+            let ed = r.work_end_date
+              ? new Date(r.work_end_date)
+              : new Date("2099-01-01");
             return matchesSite && st <= targetEnd && ed >= targetStart;
           });
 
           let finalRateVal = 0;
           if (validRLogs.length > 0) {
-            validRLogs.sort((a, b) => new Date(b.work_start_date || "2000-01-01") - new Date(a.work_start_date || "2000-01-01"));
+            validRLogs.sort(
+              (a, b) =>
+                new Date(b.work_start_date || "2000-01-01") -
+                new Date(a.work_start_date || "2000-01-01"),
+            );
             finalRateVal = parseFloat(validRLogs[0].rate) || 0;
           }
 
@@ -384,24 +452,61 @@ router.get("/vehicles", async (req, res) => {
             finalRateVal = parseFloat(sLogRate) || parseFloat(tsItem.rate) || 0;
           }
 
-          pushVehicle(plate, tsItem, correctDriver, siteName, finalRateVal, siteOwner, siteOwnerMobile, siteVat, sLogVType);
+          pushVehicle(
+            plate,
+            tsItem,
+            correctDriver,
+            siteName,
+            finalRateVal,
+            siteOwner,
+            siteOwnerMobile,
+            siteVat,
+            sLogVType,
+          );
         });
       } else {
         // All മോഡ്
         let defaultSite = (tsItem.site_name || "N/A").trim();
         let defaultRate = parseFloat(tsItem.rate) || 0;
-        pushVehicle(plate, tsItem, correctDriver, defaultSite, defaultRate, correctOwner, correctOwnerMobile, correctVat, null);
+        pushVehicle(
+          plate,
+          tsItem,
+          correctDriver,
+          defaultSite,
+          defaultRate,
+          correctOwner,
+          correctOwnerMobile,
+          correctVat,
+          null,
+        );
       }
 
-      function pushVehicle(pPlate, pItem, pDriver, pSite, pRate, pOwner, pOwnerMobile, pVat, pVType = null) {
-        let vtype = (pVType && pVType.trim() !== "" && pVType !== "N/A")
-          ? pVType.trim()
-          : (pItem.vehicle_type || pItem.vtype || pItem["vehicle type"] || pItem.vehicleType || "N/A");
-        
+      function pushVehicle(
+        pPlate,
+        pItem,
+        pDriver,
+        pSite,
+        pRate,
+        pOwner,
+        pOwnerMobile,
+        pVat,
+        pVType = null,
+      ) {
+        let vtype =
+          pVType && pVType.trim() !== "" && pVType !== "N/A"
+            ? pVType.trim()
+            : pItem.vehicle_type ||
+              pItem.vtype ||
+              pItem["vehicle type"] ||
+              pItem.vehicleType ||
+              "N/A";
+
         // ഡ്രൈവർ പേര് എംപ്റ്റി ആണെങ്കിൽ മാസ്റ്റർ ടേബിളിൽ ഉള്ളത് എടുക്കുന്നു
         let finalDriver = pDriver || pItem.driver_name || pItem.driver || "N/A";
 
-        let vatRaw = String(pVat || "No").trim().toLowerCase();
+        let vatRaw = String(pVat || "No")
+          .trim()
+          .toLowerCase();
         let isVatBill =
           vatRaw === "yes" ||
           vatRaw === "true" ||
@@ -413,35 +518,46 @@ router.get("/vehicles", async (req, res) => {
           if (!candidate) return false;
           let raw = String(candidate).trim().toUpperCase();
           let cleanCandidate = raw.replace(/[^A-Z0-9]/g, "");
-          let parts = raw.split(/➔|→|->/).map(p => p.trim().replace(/[^A-Z0-9]/g, "")).filter(Boolean);
-          return relatedPlates.some(rp => {
+          let parts = raw
+            .split(/➔|→|->/)
+            .map((p) => p.trim().replace(/[^A-Z0-9]/g, ""))
+            .filter(Boolean);
+          return relatedPlates.some((rp) => {
             let cleanRp = String(rp).replace(/[^A-Z0-9]/g, "");
             return cleanRp === cleanCandidate || parts.includes(cleanRp);
           });
         }
 
         const vehicleTimesheets = timesheetRows.filter((timesheet) =>
-          isPlateMatchingSet(timesheet.plate_no)
+          isPlateMatchingSet(timesheet.plate_no),
         );
         const vehicleSiteLogs = siteLogs.rows.filter((log) =>
           isPlateMatchingSet(log.plate_no),
         );
-        const logHours = targetMonthIdx >= 0
-          ? calculateLogHours(
-              vehicleTimesheets,
-              targetMonthIdx,
-              targetYearNum,
-              pSite,
-              specialRules,
-              vehicleSiteLogs,
-            )
-          : { nhr: 0, othr: 0 };
+        const logHours =
+          targetMonthIdx >= 0
+            ? calculateLogHours(
+                vehicleTimesheets,
+                targetMonthIdx,
+                targetYearNum,
+                pSite,
+                specialRules,
+                vehicleSiteLogs,
+              )
+            : { nhr: 0, othr: 0 };
         const matchingInvoices = invoiceRows.filter((invoice) =>
-          isPlateMatchingSet(invoice.plate_no)
+          isPlateMatchingSet(invoice.plate_no),
         );
-        const invoice = matchingInvoices.find(
-          (item) => String(item.site_name || "").trim().toUpperCase() === String(pSite || "").trim().toUpperCase(),
-        ) || matchingInvoices[0];
+        const invoice =
+          matchingInvoices.find(
+            (item) =>
+              String(item.site_name || "")
+                .trim()
+                .toUpperCase() ===
+              String(pSite || "")
+                .trim()
+                .toUpperCase(),
+          ) || matchingInvoices[0];
 
         validVehicles.push({
           plate_number: effectivePlate,
@@ -453,7 +569,8 @@ router.get("/vehicles", async (req, res) => {
           otrate: (pRate / 260) * 0.7,
           owner: pOwner,
           owner_mobile: pOwnerMobile,
-          company_display_name: pItem.company_display_name || pItem.company_display_name_ || "",
+          company_display_name:
+            pItem.company_display_name || pItem.company_display_name_ || "",
           company_arabic_name: pItem.company_arabic_name || "",
           vat_no: pItem.vat_no || "",
           site: pSite,
@@ -491,15 +608,20 @@ router.post("/save", async (req, res) => {
       if (!plateNo || !siteName) continue;
 
       // Find all related plates (old & new) for clean deletion
-      let rawSplitPlates = plateNo.split(/➔|→|->/).map(p => p.trim().toUpperCase()).filter(Boolean);
-      let cleanupPlates = [...new Set([plateNo.toUpperCase(), ...rawSplitPlates])];
+      let rawSplitPlates = plateNo
+        .split(/➔|→|->/)
+        .map((p) => p.trim().toUpperCase())
+        .filter(Boolean);
+      let cleanupPlates = [
+        ...new Set([plateNo.toUpperCase(), ...rawSplitPlates]),
+      ];
 
       const pCheck = await client.query(
         `SELECT old_plate_no, new_plate_no FROM vehicle_plate_log 
          WHERE UPPER(TRIM(old_plate_no)) = ANY($1::text[]) OR UPPER(TRIM(new_plate_no)) = ANY($1::text[])`,
-        [cleanupPlates]
+        [cleanupPlates],
       );
-      pCheck.rows.forEach(pl => {
+      pCheck.rows.forEach((pl) => {
         let op = (pl.old_plate_no || "").trim().toUpperCase();
         let np = (pl.new_plate_no || "").trim().toUpperCase();
         if (op && !cleanupPlates.includes(op)) cleanupPlates.push(op);
@@ -560,7 +682,7 @@ router.post("/save", async (req, res) => {
         row.adjustment_desc,
         adjAmt,
         row.after_adjustment,
-      row.remark,
+        row.remark,
         driverOt,
         driverAmount,
       ]);
@@ -691,13 +813,24 @@ router.get("/combined-bill", async (req, res) => {
     if (!plate_no || !from_month || !from_year || !to_month || !to_year) {
       return res.status(400).json({
         success: false,
-        message: "Missing required parameters: plate_no, from_month, from_year, to_month, to_year",
+        message:
+          "Missing required parameters: plate_no, from_month, from_year, to_month, to_year",
       });
     }
 
     const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
 
     const fromMIdx = monthNames.indexOf(from_month.trim());
@@ -706,7 +839,9 @@ router.get("/combined-bill", async (req, res) => {
     const endYr = parseInt(to_year, 10);
 
     if (fromMIdx === -1 || toMIdx === -1 || isNaN(startYr) || isNaN(endYr)) {
-      return res.status(400).json({ success: false, message: "Invalid month or year selection." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid month or year selection." });
     }
 
     // Build ordered list of target months
@@ -724,16 +859,19 @@ router.get("/combined-bill", async (req, res) => {
     const cleanPlate = plate_no.trim().toUpperCase();
 
     // 🟢 ഈ വണ്ടിയുടെ എല്ലാ അനുബന്ധ പ്ലേറ്റ് നമ്പറുകളും (പഴയതും പുതിയതും) കണ്ടെത്തുന്നു
-    let rawPlates = cleanPlate.split(/➔|→|->/).map(p => p.trim().toUpperCase()).filter(Boolean);
+    let rawPlates = cleanPlate
+      .split(/➔|→|->/)
+      .map((p) => p.trim().toUpperCase())
+      .filter(Boolean);
     let relatedPlates = [...new Set([cleanPlate, ...rawPlates])];
 
     const plateChangesQuery = await pool.query(
       `SELECT old_plate_no, new_plate_no FROM vehicle_plate_log 
        WHERE UPPER(TRIM(old_plate_no)) = ANY($1::text[]) OR UPPER(TRIM(new_plate_no)) = ANY($1::text[])`,
-      [relatedPlates]
+      [relatedPlates],
     );
 
-    plateChangesQuery.rows.forEach(pl => {
+    plateChangesQuery.rows.forEach((pl) => {
       let op = (pl.old_plate_no || "").trim().toUpperCase();
       let np = (pl.new_plate_no || "").trim().toUpperCase();
       if (op && !relatedPlates.includes(op)) relatedPlates.push(op);
@@ -752,17 +890,33 @@ router.get("/combined-bill", async (req, res) => {
        )
        AND billing_month = ANY($2::text[])
        ORDER BY TO_DATE(billing_month, 'Month YYYY') ASC, id DESC`,
-      [relatedPlates, targetMonths]
+      [relatedPlates, targetMonths],
     );
 
     // 🟢 എല്ലാ അനുബന്ധ പ്ലേറ്റുകളും (പഴയതും പുതിയതും) ഉപയോഗിച്ച് മാസ്റ്റർ വിവരങ്ങളും ലോഗുകളും ഫെച്ച് ചെയ്യുന്നു
-    const [tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes, plateLogRes] = await Promise.all([
-      pool.query(`SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) LIMIT 1`, [relatedPlates]),
-      pool.query(`SELECT * FROM vehicle_rate_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`, [relatedPlates]),
-      pool.query(`SELECT id, plate_no, site_name, rate, work_start_date, work_end_date, vehicle_type FROM vehicle_site_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`, [relatedPlates]),
-      pool.query(`SELECT * FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`, [relatedPlates]),
-      pool.query(`SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log WHERE UPPER(TRIM(old_plate_no)) = ANY($1::text[]) OR UPPER(TRIM(new_plate_no)) = ANY($1::text[]) ORDER BY change_date ASC`, [relatedPlates])
-    ]);
+    const [tsVehicleRes, rateLogRes, siteLogRes, ownerLogRes, plateLogRes] =
+      await Promise.all([
+        pool.query(
+          `SELECT * FROM timesheet_vehicles WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) LIMIT 1`,
+          [relatedPlates],
+        ),
+        pool.query(
+          `SELECT * FROM vehicle_rate_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`,
+          [relatedPlates],
+        ),
+        pool.query(
+          `SELECT id, plate_no, site_name, rate, work_start_date, work_end_date, vehicle_type FROM vehicle_site_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`,
+          [relatedPlates],
+        ),
+        pool.query(
+          `SELECT * FROM vehicle_owner_log WHERE UPPER(TRIM(plate_no)) = ANY($1::text[]) ORDER BY id DESC`,
+          [relatedPlates],
+        ),
+        pool.query(
+          `SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log WHERE UPPER(TRIM(old_plate_no)) = ANY($1::text[]) OR UPPER(TRIM(new_plate_no)) = ANY($1::text[]) ORDER BY change_date ASC`,
+          [relatedPlates],
+        ),
+      ]);
 
     const vehicleInfo = tsVehicleRes.rows[0] || {};
     const rateLogs = rateLogRes.rows || [];
@@ -771,14 +925,28 @@ router.get("/combined-bill", async (req, res) => {
     const plateLogs = plateLogRes.rows || [];
 
     let combinedRows = [];
-    let totals = { nhr: 0, othr: 0, rent: 0, vat_amount: 0, total: 0, adjusted_amount: 0, after_adjustment: 0 };
+    let totals = {
+      nhr: 0,
+      othr: 0,
+      rent: 0,
+      vat_amount: 0,
+      total: 0,
+      adjusted_amount: 0,
+      after_adjustment: 0,
+    };
 
     function plateMatchesRelated(targetPlate) {
       if (!targetPlate) return false;
       let raw = String(targetPlate).trim().toUpperCase();
-      let parts = raw.split(/➔|→|->/).map(p => p.trim().replace(/[^A-Z0-9]/g, "")).filter(Boolean);
-      let cleanRelated = relatedPlates.map(p => p.replace(/[^A-Z0-9]/g, ""));
-      return parts.some(p => cleanRelated.includes(p)) || cleanRelated.includes(raw.replace(/[^A-Z0-9]/g, ""));
+      let parts = raw
+        .split(/➔|→|->/)
+        .map((p) => p.trim().replace(/[^A-Z0-9]/g, ""))
+        .filter(Boolean);
+      let cleanRelated = relatedPlates.map((p) => p.replace(/[^A-Z0-9]/g, ""));
+      return (
+        parts.some((p) => cleanRelated.includes(p)) ||
+        cleanRelated.includes(raw.replace(/[^A-Z0-9]/g, ""))
+      );
     }
 
     targetMonths.forEach((mStr) => {
@@ -788,7 +956,8 @@ router.get("/combined-bill", async (req, res) => {
       });
 
       const [mName, yStr] = mStr.split(" ");
-      const shortDate = mName.substring(0, 3) + " " + (yStr ? yStr.substring(2, 4) : "");
+      const shortDate =
+        mName.substring(0, 3) + " " + (yStr ? yStr.substring(2, 4) : "");
 
       const mIdxCur = monthNames.indexOf(mName);
       const curYearInt = parseInt(yStr);
@@ -803,7 +972,7 @@ router.get("/combined-bill", async (req, res) => {
           let [cYear, cMonth, cDay] = pl.change_date.split("-").map(Number);
           let cDate = new Date(cYear, cMonth - 1, cDay);
 
-          if (cYear === curYearInt && (cMonth - 1) === mIdxCur) {
+          if (cYear === curYearInt && cMonth - 1 === mIdxCur) {
             rowPlateNumber = `${pl.old_plate_no.trim().toUpperCase()} ➔ ${pl.new_plate_no.trim().toUpperCase()}`;
           } else if (mEnd < cDate) {
             rowPlateNumber = pl.old_plate_no.trim().toUpperCase();
@@ -815,42 +984,69 @@ router.get("/combined-bill", async (req, res) => {
 
       // Find historical rate from vehicle_rate_log for this specific month
       let matchedRateLog = rateLogs.find((r) => {
-        let st = r.work_start_date ? new Date(r.work_start_date) : new Date("2000-01-01");
-        let ed = r.work_end_date ? new Date(r.work_end_date) : new Date("2099-01-01");
+        let st = r.work_start_date
+          ? new Date(r.work_start_date)
+          : new Date("2000-01-01");
+        let ed = r.work_end_date
+          ? new Date(r.work_end_date)
+          : new Date("2099-01-01");
         return st <= mEnd && ed >= mStart;
       });
 
-      let historicalBaseRate = matchedRateLog ? parseFloat(matchedRateLog.rate) : 0;
-      
+      let historicalBaseRate = matchedRateLog
+        ? parseFloat(matchedRateLog.rate)
+        : 0;
+
       if (!historicalBaseRate) {
         let matchedSiteLog = siteLogs.find((s) => {
-          let st = s.work_start_date ? new Date(s.work_start_date) : new Date("2000-01-01");
-          let ed = s.work_end_date ? new Date(s.work_end_date) : new Date("2099-01-01");
+          let st = s.work_start_date
+            ? new Date(s.work_start_date)
+            : new Date("2000-01-01");
+          let ed = s.work_end_date
+            ? new Date(s.work_end_date)
+            : new Date("2099-01-01");
           return st <= mEnd && ed >= mStart;
         });
-        historicalBaseRate = matchedSiteLog ? parseFloat(matchedSiteLog.rate) : (parseFloat(vehicleInfo.rate) || 0);
+        historicalBaseRate = matchedSiteLog
+          ? parseFloat(matchedSiteLog.rate)
+          : parseFloat(vehicleInfo.rate) || 0;
       }
 
-      let fallbackNRate = historicalBaseRate ? (historicalBaseRate / 260) : 0;
-      let fallbackOTRate = historicalBaseRate ? ((historicalBaseRate / 260) * 0.7) : 0;
+      let fallbackNRate = historicalBaseRate ? historicalBaseRate / 260 : 0;
+      let fallbackOTRate = historicalBaseRate
+        ? (historicalBaseRate / 260) * 0.7
+        : 0;
 
       // Find historical owner from vehicle_owner_log for this specific month
       let matchedOwnerLog = ownerLogs.find((o) => {
-        let st = o.work_start_date ? new Date(o.work_start_date) : new Date("2000-01-01");
-        let ed = o.work_end_date ? new Date(o.work_end_date) : new Date("2099-01-01");
+        let st = o.work_start_date
+          ? new Date(o.work_start_date)
+          : new Date("2000-01-01");
+        let ed = o.work_end_date
+          ? new Date(o.work_end_date)
+          : new Date("2099-01-01");
         return st <= mEnd && ed >= mStart;
       });
-      let fallbackOwnerName = matchedOwnerLog?.owner_name || vehicleInfo.owner_name || "COMPANY VEHICLE";
+      let fallbackOwnerName =
+        matchedOwnerLog?.owner_name ||
+        vehicleInfo.owner_name ||
+        "COMPANY VEHICLE";
 
       if (savedRow) {
         let nhr = parseFloat(savedRow.nhr) || 0;
         let othr = parseFloat(savedRow.othr) || 0;
 
-        let rowNRate = (savedRow.nrate !== null && parseFloat(savedRow.nrate) > 0) ? parseFloat(savedRow.nrate) : fallbackNRate;
-        let rowOTRate = (savedRow.otrate !== null && parseFloat(savedRow.otrate) > 0) ? parseFloat(savedRow.otrate) : fallbackOTRate;
+        let rowNRate =
+          savedRow.nrate !== null && parseFloat(savedRow.nrate) > 0
+            ? parseFloat(savedRow.nrate)
+            : fallbackNRate;
+        let rowOTRate =
+          savedRow.otrate !== null && parseFloat(savedRow.otrate) > 0
+            ? parseFloat(savedRow.otrate)
+            : fallbackOTRate;
 
         // 🟢 Live Calculation of Rent from N.Hr, OT Hr, and Rates
-        let rent = Number(((nhr * rowNRate) + (othr * rowOTRate)).toFixed(2));
+        let rent = Number((nhr * rowNRate + othr * rowOTRate).toFixed(2));
         let vatPercent = parseFloat(savedRow.vat_percent) || 0;
         let vatAmt = Number((rent * (vatPercent / 100)).toFixed(2));
         let total = Number((rent + vatAmt).toFixed(2));
@@ -867,21 +1063,36 @@ router.get("/combined-bill", async (req, res) => {
         totals.after_adjustment += afterAdj;
 
         let targetSite = savedRow.site_name || vehicleInfo.site_name || "N/A";
-        let resolvedCompany = savedRow.company || getCompanyFromSite(targetSite, vehicleInfo.company);
+        let resolvedCompany =
+          savedRow.company ||
+          getCompanyFromSite(targetSite, vehicleInfo.company);
 
         // ആ മാസത്തെ സൈറ്റ് ലോഗിൽ പ്രത്യേക vehicle_type ഉണ്ടോ എന്ന് നോക്കുന്നു
         let matchedMonthSiteLog = siteLogs.find((s) => {
-          let st = s.work_start_date ? new Date(s.work_start_date) : new Date("2000-01-01");
-          let ed = s.work_end_date ? new Date(s.work_end_date) : new Date("2099-01-01");
+          let st = s.work_start_date
+            ? new Date(s.work_start_date)
+            : new Date("2000-01-01");
+          let ed = s.work_end_date
+            ? new Date(s.work_end_date)
+            : new Date("2099-01-01");
           return st <= mEnd && ed >= mStart;
         });
-        let fallbackSiteVType = (matchedMonthSiteLog?.vehicle_type && matchedMonthSiteLog.vehicle_type.trim() !== "" && matchedMonthSiteLog.vehicle_type !== "N/A")
-          ? matchedMonthSiteLog.vehicle_type.trim()
-          : (vehicleInfo.vehicle_type || "N/A");
+        let fallbackSiteVType =
+          matchedMonthSiteLog?.vehicle_type &&
+          matchedMonthSiteLog.vehicle_type.trim() !== "" &&
+          matchedMonthSiteLog.vehicle_type !== "N/A"
+            ? matchedMonthSiteLog.vehicle_type.trim()
+            : vehicleInfo.vehicle_type || "N/A";
 
         // 🟢 savedRow-ൽ vtype അല്ലെങ്കിൽ driver ഇല്ലെങ്കിൽ സൈറ്റ് ലോഗിൽ നിന്നോ vehicleInfo-ൽ നിന്നോ നൽകുന്നു
-        let rowVType = savedRow.vtype && savedRow.vtype !== "N/A" ? savedRow.vtype : fallbackSiteVType;
-        let rowDriver = savedRow.driver && savedRow.driver !== "N/A" ? savedRow.driver : (vehicleInfo.driver_name || "N/A");
+        let rowVType =
+          savedRow.vtype && savedRow.vtype !== "N/A"
+            ? savedRow.vtype
+            : fallbackSiteVType;
+        let rowDriver =
+          savedRow.driver && savedRow.driver !== "N/A"
+            ? savedRow.driver
+            : vehicleInfo.driver_name || "N/A";
 
         combinedRows.push({
           billing_month: mStr,
@@ -903,11 +1114,14 @@ router.get("/combined-bill", async (req, res) => {
           adjustment_desc: savedRow.adjustment_desc || "",
           adjusted_amount: adjAmt,
           after_adjustment: afterAdj,
-          remark: savedRow.remark || ""
+          remark: savedRow.remark || "",
         });
       } else {
         let targetSite = vehicleInfo.site_name || "N/A";
-        let resolvedCompany = getCompanyFromSite(targetSite, vehicleInfo.company);
+        let resolvedCompany = getCompanyFromSite(
+          targetSite,
+          vehicleInfo.company,
+        );
 
         combinedRows.push({
           billing_month: mStr,
@@ -929,7 +1143,7 @@ router.get("/combined-bill", async (req, res) => {
           adjustment_desc: "",
           adjusted_amount: 0,
           after_adjustment: 0,
-          remark: ""
+          remark: "",
         });
       }
     });
@@ -939,7 +1153,7 @@ router.get("/combined-bill", async (req, res) => {
       plate_no: cleanPlate,
       vehicle_info: vehicleInfo,
       rows: combinedRows,
-      totals: totals
+      totals: totals,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

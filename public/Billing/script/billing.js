@@ -187,34 +187,6 @@ function loadApp() {
   initMonth();
 }
 
-function initMonth() {
-  const optsContainer = document.getElementById("monthOptions");
-  optsContainer.innerHTML = "";
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  let currentD = new Date();
-  for (let y = 2026; y <= currentD.getFullYear(); y++) {
-    let mEnd = y === currentD.getFullYear() ? currentD.getMonth() : 11;
-    for (let m = 0; m <= mEnd; m++) {
-      let value = `${months[m]} ${y}`;
-      optsContainer.innerHTML += `<div class="custom-dropdown-item" onclick="selectMonth('${value}')">${value}</div>`;
-    }
-  }
-  selectMonth(`${months[currentD.getMonth()]} ${currentD.getFullYear()}`);
-}
-
 const monthsList = [
   "January",
   "February",
@@ -230,22 +202,31 @@ const monthsList = [
   "December",
 ];
 
-function formatShortMonth(fullVal) {
-  const parts = String(fullVal).trim().split(" ");
-  if (parts.length >= 2) {
-    return parts[0].substring(0, 3) + " " + parts[1].substring(2, 4);
-  }
-  return fullVal;
+function initMonth() {
+  const currentD = new Date();
+  const mSelect = document.getElementById("billingMonthSelect");
+  const yInput = document.getElementById("billingYearInput");
+  if (mSelect) mSelect.value = monthsList[currentD.getMonth()];
+  if (yInput) yInput.value = currentD.getFullYear();
+  selectMonth(`${monthsList[currentD.getMonth()]} ${currentD.getFullYear()}`);
+}
+
+function onMonthYearChange() {
+  const mSelect = document.getElementById("billingMonthSelect");
+  const yInput = document.getElementById("billingYearInput");
+  if (!mSelect || !yInput) return;
+  const mName = mSelect.value;
+  const yVal = yInput.value.trim() || new Date().getFullYear();
+  selectMonth(`${mName} ${yVal}`);
 }
 
 function prevMonthBilling() {
-  const textEl = document.getElementById("selectedMonthText");
-  const currentVal = (textEl.dataset.fullMonth || textEl.innerText).trim();
-  const parts = currentVal.split(" ");
-  if (parts.length < 2) return;
+  const mSelect = document.getElementById("billingMonthSelect");
+  const yInput = document.getElementById("billingYearInput");
+  if (!mSelect || !yInput) return;
 
-  let mIdx = monthsList.indexOf(parts[0]);
-  let y = parseInt(parts[1], 10);
+  let mIdx = monthsList.indexOf(mSelect.value);
+  let y = parseInt(yInput.value, 10);
   if (mIdx === -1 || isNaN(y)) return;
 
   if (mIdx === 0) {
@@ -255,17 +236,18 @@ function prevMonthBilling() {
     mIdx -= 1;
   }
 
+  mSelect.value = monthsList[mIdx];
+  yInput.value = y;
   selectMonth(`${monthsList[mIdx]} ${y}`);
 }
 
 function nextMonthBilling() {
-  const textEl = document.getElementById("selectedMonthText");
-  const currentVal = (textEl.dataset.fullMonth || textEl.innerText).trim();
-  const parts = currentVal.split(" ");
-  if (parts.length < 2) return;
+  const mSelect = document.getElementById("billingMonthSelect");
+  const yInput = document.getElementById("billingYearInput");
+  if (!mSelect || !yInput) return;
 
-  let mIdx = monthsList.indexOf(parts[0]);
-  let y = parseInt(parts[1], 10);
+  let mIdx = monthsList.indexOf(mSelect.value);
+  let y = parseInt(yInput.value, 10);
   if (mIdx === -1 || isNaN(y)) return;
 
   if (mIdx === 11) {
@@ -275,15 +257,23 @@ function nextMonthBilling() {
     mIdx += 1;
   }
 
+  mSelect.value = monthsList[mIdx];
+  yInput.value = y;
   selectMonth(`${monthsList[mIdx]} ${y}`);
 }
 
 function selectMonth(val) {
   const textEl = document.getElementById("selectedMonthText");
-  textEl.dataset.fullMonth = val;
-  textEl.innerText = formatShortMonth(val);
-  const mOpts = document.getElementById("monthOptions");
-  if (mOpts) mOpts.classList.remove("show");
+  if (textEl) {
+    textEl.dataset.fullMonth = val;
+    textEl.innerText = val;
+  }
+
+  const parts = val.split(" ");
+  const mSelect = document.getElementById("billingMonthSelect");
+  const yInput = document.getElementById("billingYearInput");
+  if (mSelect && parts[0]) mSelect.value = parts[0];
+  if (yInput && parts[1]) yInput.value = parts[1];
 
   let activeOwners = [];
   document.querySelectorAll(".bill-card").forEach((card) => {
@@ -298,6 +288,13 @@ function selectMonth(val) {
 }
 
 function getShortDate() {
+  const mSelect = document.getElementById("billingMonthSelect");
+  const yInput = document.getElementById("billingYearInput");
+  if (mSelect && yInput) {
+    const m = mSelect.value.substring(0, 3);
+    const y = String(yInput.value).trim().slice(-2);
+    return `${m} ${y}`;
+  }
   const textEl = document.getElementById("selectedMonthText");
   let val = (textEl?.dataset?.fullMonth || textEl?.innerText || "").trim();
   let parts = val.split(" ");
@@ -621,7 +618,10 @@ function rearrangeScreenData() {
       let itemOwner = fallbackOwner;
       if (plate) {
         let savedMatch = savedBillingData.find((s) => {
-          let sPlate = (s.plate_no || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+          let sPlate = (s.plate_no || "")
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, "");
           let rowPlate = plate.replace(/[^A-Z0-9]/g, "");
           let sSite = (s.site_name || "").trim().toUpperCase();
           return sPlate === rowPlate && (!site || sSite === site.toUpperCase());
@@ -630,12 +630,16 @@ function rearrangeScreenData() {
         if (savedMatch && savedMatch.owner && savedMatch.owner.trim() !== "") {
           itemOwner = savedMatch.owner.trim();
         } else {
-          let masterMatch = masterData.find(
-            (m) => (m.plate_number || m.plate || "").toUpperCase() === plate &&
-                   (!site || (m.site || "").trim().toUpperCase() === site.toUpperCase()),
-          ) || masterData.find(
-            (m) => (m.plate_number || m.plate || "").toUpperCase() === plate,
-          );
+          let masterMatch =
+            masterData.find(
+              (m) =>
+                (m.plate_number || m.plate || "").toUpperCase() === plate &&
+                (!site ||
+                  (m.site || "").trim().toUpperCase() === site.toUpperCase()),
+            ) ||
+            masterData.find(
+              (m) => (m.plate_number || m.plate || "").toUpperCase() === plate,
+            );
           if (
             masterMatch &&
             masterMatch.owner &&
@@ -1334,27 +1338,34 @@ window.arrangeSingleCard = function (cardId) {
     if (!plate && !site && nhr === 0 && othr === 0) return;
 
     let itemOwner = fallbackOwner;
-      if (plate) {
-        let savedMatch = savedBillingData.find((s) => {
-          let sPlate = (s.plate_no || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-          let rowPlate = plate.replace(/[^A-Z0-9]/g, "");
-          let sSite = (s.site_name || "").trim().toUpperCase();
-          return sPlate === rowPlate && (!site || sSite === site.toUpperCase());
-        });
+    if (plate) {
+      let savedMatch = savedBillingData.find((s) => {
+        let sPlate = (s.plate_no || "")
+          .trim()
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, "");
+        let rowPlate = plate.replace(/[^A-Z0-9]/g, "");
+        let sSite = (s.site_name || "").trim().toUpperCase();
+        return sPlate === rowPlate && (!site || sSite === site.toUpperCase());
+      });
 
-        if (savedMatch && savedMatch.owner && savedMatch.owner.trim() !== "") {
-          itemOwner = savedMatch.owner.trim();
-        } else {
-          let masterMatch = masterData.find(
-            (m) => (m.plate_number || m.plate || "").toUpperCase() === plate &&
-                   (!site || (m.site || "").trim().toUpperCase() === site.toUpperCase()),
-          ) || masterData.find(
+      if (savedMatch && savedMatch.owner && savedMatch.owner.trim() !== "") {
+        itemOwner = savedMatch.owner.trim();
+      } else {
+        let masterMatch =
+          masterData.find(
+            (m) =>
+              (m.plate_number || m.plate || "").toUpperCase() === plate &&
+              (!site ||
+                (m.site || "").trim().toUpperCase() === site.toUpperCase()),
+          ) ||
+          masterData.find(
             (m) => (m.plate_number || m.plate || "").toUpperCase() === plate,
           );
-          if (masterMatch && masterMatch.owner)
-            itemOwner = masterMatch.owner.trim();
-        }
+        if (masterMatch && masterMatch.owner)
+          itemOwner = masterMatch.owner.trim();
       }
+    }
     if (!itemOwner) itemOwner = "COMPANY VEHICLE";
 
     itemsToGroup.push({
@@ -2292,7 +2303,10 @@ async function copyHighQualityCard(id) {
       imageTimeout: 5000,
       ignoreElements: (element) => {
         // ക്യാമറ/വീഡിയോ എലമെന്റുകൾ ക്ലോൺ ചെയ്യുന്നത് ഒഴിവാക്കുന്നു
-        return element.tagName === "VIDEO" || element.id === "billingAppUniversalVideo";
+        return (
+          element.tagName === "VIDEO" ||
+          element.id === "billingAppUniversalVideo"
+        );
       },
       onclone: (clonedDoc) => {
         let clonedEl = clonedDoc.getElementById(printArea.id);
@@ -2300,7 +2314,7 @@ async function copyHighQualityCard(id) {
           clonedEl.style.width = "1400px";
           clonedEl.style.minWidth = "1400px";
         }
-      }
+      },
     });
 
     revertInputsFromText(printArea);
@@ -2316,7 +2330,11 @@ async function copyHighQualityCard(id) {
 
         try {
           // വിൻഡോ ആക്ടീവ് ആണെങ്കിൽ മാത്രം ക്ലിപ്പ്ബോർഡിലേക്ക് കോപ്പി ചെയ്യുക
-          if (document.hasFocus() && navigator.clipboard && window.isSecureContext) {
+          if (
+            document.hasFocus() &&
+            navigator.clipboard &&
+            window.isSecureContext
+          ) {
             const item = new ClipboardItem({ "image/png": blob });
             await navigator.clipboard.write([item]);
             showToast("High Quality Card Copied to Clipboard!");
@@ -2326,7 +2344,9 @@ async function copyHighQualityCard(id) {
             link.download = getDynamicFileName(card);
             link.href = URL.createObjectURL(blob);
             link.click();
-            showToast("Window not focused. Card downloaded as HD image instead!");
+            showToast(
+              "Window not focused. Card downloaded as HD image instead!",
+            );
           }
         } catch (err) {
           console.warn("Clipboard write failed, downloading fallback:", err);
@@ -3197,7 +3217,11 @@ async function copyCardAndWhatsApp(cardId, ownerName) {
         let copiedSuccessfully = false;
 
         try {
-          if (document.hasFocus() && navigator.clipboard && window.isSecureContext) {
+          if (
+            document.hasFocus() &&
+            navigator.clipboard &&
+            window.isSecureContext
+          ) {
             const item = new ClipboardItem({ "image/png": blob });
             await navigator.clipboard.write([item]);
             copiedSuccessfully = true;
@@ -3206,7 +3230,10 @@ async function copyCardAndWhatsApp(cardId, ownerName) {
             throw new Error("Document not focused or clipboard unavailable");
           }
         } catch (clipErr) {
-          console.warn("Clipboard copy bypassed, downloading fallback:", clipErr);
+          console.warn(
+            "Clipboard copy bypassed, downloading fallback:",
+            clipErr,
+          );
           const link = document.createElement("a");
           link.download = `${ownerName.replace(/\s+/g, "_")}_Bill.png`;
           link.href = URL.createObjectURL(blob);
