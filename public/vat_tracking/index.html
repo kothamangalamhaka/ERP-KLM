@@ -637,9 +637,10 @@
           <a
             href="non_vat_tracker/index.html"
             class="btn-nav-link btn-mini"
-            title="Non Vat Customer Tracking" style="background-color: #6ab2d1;"
-             >📈 Non VAT
-        </a>
+            title="Non Vat Customer Tracking"
+            style="background-color: #6ab2d1"
+            >📈 Non VAT
+          </a>
           <a
             href="QC_Entry.html"
             class="btn-nav-link"
@@ -1047,9 +1048,10 @@
               }
 
               // Site Cell (Shows LF only from 2027 onwards)
-              const siteDisplayHtml = (currentYear >= 2027 && siteData.ledger_folio)
-                ? `<div style="font-weight: 600;">${escapeHTML(siteData.site_name)}</div><div style="font-size: 10px; color: #0284c7; font-weight: 700;">${escapeHTML(siteData.ledger_folio)}</div>`
-                : `<div style="font-weight: 500;">${escapeHTML(siteData.site_name)}</div>`;
+              const siteDisplayHtml =
+                currentYear >= 2027 && siteData.ledger_folio
+                  ? `<div style="font-weight: 600;">${escapeHTML(siteData.site_name)}</div><div style="font-size: 10px; color: #0284c7; font-weight: 700;">${escapeHTML(siteData.ledger_folio)}</div>`
+                  : `<div style="font-weight: 500;">${escapeHTML(siteData.site_name)}</div>`;
               tbody += `<td style="text-align: left; max-width:140px;">${siteDisplayHtml}</td>`;
 
               // Month Columns
@@ -1062,7 +1064,8 @@
                 };
                 let isActive = siteData.active_months[i];
                 let cellClass = isActive ? "" : "inactive-cell";
-                const siteLfVal = currentYear >= 2027 ? (siteData.ledger_folio || "") : "";
+                const siteLfVal =
+                  currentYear >= 2027 ? siteData.ledger_folio || "" : "";
                 let baseArgsStr = `this, 'FIELD_PLACEHOLDER', '${escapeQuotes(group.company)}', '${escapeQuotes(group.supplier)}', '${escapeQuotes(group.vat_no)}', '${escapeQuotes(group.display_name)}', '${escapeQuotes(siteData.site_name)}', ${i}, '${escapeQuotes(siteLfVal)}'`;
 
                 let actionBillNo = isActive
@@ -1079,7 +1082,8 @@
                   ? Number(bill.erp_total).toFixed(2)
                   : "";
                 let displayErp = isActive ? erpVal : "";
-                const siteLfParam = currentYear >= 2027 ? (siteData.ledger_folio || "") : "";
+                const siteLfParam =
+                  currentYear >= 2027 ? siteData.ledger_folio || "" : "";
                 let clickTsAction =
                   isActive && erpVal
                     ? `class="vendor-ts-cell" style="font-weight: 600; color: #0f766e; cursor: pointer;" onclick="openTsDetailsModal('${escapeQuotes(group.supplier)}', '${escapeQuotes(siteData.site_name)}', ${i}, '${escapeQuotes(siteLfParam)}')"`
@@ -1088,8 +1092,8 @@
                 tbody += `
     <td class="${cellClass}" ${actionBillNo}><span class="${isActive ? "editable" : ""}">${isActive ? escapeHTML(bill.bill_no) : ""}</span></td>
     <td class="${cellClass}" ${actionAmount}><span class="${isActive ? "editable" : ""}">${isActive ? escapeHTML(bill.amount) : ""}</span></td>
-    <td ${clickTsAction} title="${isActive && erpVal ? 'Click to view Breakdown' : ''}"><span>${displayErp}</span></td>
-    <td class="${cellClass}" ${actionQuickDice} style="${isActive ? 'background: #eef2ff;' : ''}"><span class="${isActive ? "editable" : ""}" style="${isActive ? 'font-weight: 600; color: #3730a3;' : ''}">${isActive ? escapeHTML(bill.quick_dice || "") : ""}</span></td>
+    <td ${clickTsAction} title="${isActive && erpVal ? "Click to view Breakdown" : ""}"><span>${displayErp}</span></td>
+    <td class="${cellClass}" ${actionQuickDice} style="${isActive ? "background: #eef2ff;" : ""}"><span class="${isActive ? "editable" : ""}" style="${isActive ? "font-weight: 600; color: #3730a3;" : ""}">${isActive ? escapeHTML(bill.quick_dice || "") : ""}</span></td>
 `;
               }
 
@@ -1328,14 +1332,20 @@
             if (!item.site.billing[m]) item.site.billing[m] = {};
             item.site.billing[m][field] = newVal;
 
+            const cleanSiteName = (item.site.site_name || "")
+              .replace(/[\s\-_]*re[\s\-_]*running/gi, "")
+              .replace(/[\s\-_]*running/gi, "")
+              .trim();
+
             updates.push({
               year: currentYear,
               company: item.group.company,
               supplier: item.group.supplier,
               vat_no: item.group.vat_no,
               display_name: item.group.display_name,
-              site_name: item.site.site_name,
-              ledger_folio: currentYear >= 2027 ? (item.site.ledger_folio || "") : "",
+              site_name: cleanSiteName || item.site.site_name,
+              ledger_folio:
+                currentYear >= 2027 ? item.site.ledger_folio || "" : "",
               month_index: m,
               field: field,
               value: newVal,
@@ -1570,12 +1580,10 @@
                             </label>`;
 
         let sortedVals = Array.from(uniqueVals).sort((a, b) =>
-          a
-            .toString()
-            .localeCompare(b.toString(), undefined, {
-              numeric: true,
-              sensitivity: "base",
-            }),
+          a.toString().localeCompare(b.toString(), undefined, {
+            numeric: true,
+            sensitivity: "base",
+          }),
         );
 
         sortedVals.forEach((val) => {
@@ -1734,7 +1742,10 @@
               if (sit) sit.billing[month_index][field] = newValue;
             }
 
-            const cleanLfToPass = currentYear >= 2027 ? (ledger_folio || (sit ? sit.ledger_folio : "") || "") : "";
+            const cleanLfToPass =
+              currentYear >= 2027
+                ? ledger_folio || (sit ? sit.ledger_folio : "") || ""
+                : "";
 
             if (isBulkMode) {
               td.style.backgroundColor = "#fef08a";
@@ -1763,20 +1774,20 @@
                   field,
                   value: newValue,
                 });
+              }
+            } else {
+              await saveCell(
+                company,
+                supplier,
+                vat_no,
+                display_name,
+                site_name,
+                month_index,
+                field,
+                newValue,
+                cleanLfToPass,
+              );
             }
-          } else {
-            await saveCell(
-              company,
-              supplier,
-              vat_no,
-              display_name,
-              site_name,
-              month_index,
-              field,
-              newValue,
-              cleanLfToPass,
-            );
-          }
           }
         };
 
@@ -1801,6 +1812,11 @@
       ) {
         showStatus("Saving...", "saving");
         try {
+          const cleanSite = (site_name || "")
+            .replace(/[\s\-_]*re[\s\-_]*running/gi, "")
+            .replace(/[\s\-_]*running/gi, "")
+            .trim();
+
           const res = await fetch(`/timesheet/api/vat-tracking/update-cell`, {
             method: "POST",
             headers: {
@@ -1813,8 +1829,8 @@
               supplier,
               vat_no,
               display_name,
-              site_name,
-              ledger_folio: currentYear >= 2027 ? (ledger_folio || "") : "",
+              site_name: cleanSite || site_name,
+              ledger_folio: currentYear >= 2027 ? ledger_folio || "" : "",
               month_index,
               field,
               value,
@@ -1998,13 +2014,14 @@
                 amount: "",
                 erp_total: "",
               };
-              const isActive = siteData.active_months && siteData.active_months[i];
+              const isActive =
+                siteData.active_months && siteData.active_months[i];
               if (isActive) {
                 rowData.push(
                   bill.bill_no || "",
                   safeNumber(bill.amount),
                   safeNumber(bill.erp_total),
-                  bill.quick_dice || ""
+                  bill.quick_dice || "",
                 );
               } else {
                 rowData.push("", "", "", "");
@@ -2256,11 +2273,16 @@
                   bill.bill_no || "",
                   safeNumber(bill.amount),
                   safeNumber(bill.erp_total),
-                  bill.quick_dice || ""
+                  bill.quick_dice || "",
                 );
               } else {
                 rowData.push("", "", "", "");
-                inactiveCells.push(currCol, currCol + 1, currCol + 2, currCol + 3);
+                inactiveCells.push(
+                  currCol,
+                  currCol + 1,
+                  currCol + 2,
+                  currCol + 3,
+                );
               }
               currCol += 4;
             });
@@ -2419,7 +2441,12 @@
 
       const tsDetailsCache = {};
 
-      async function fetchVehicleBreakdown(supplier, siteName, monthIdx, ledgerFolio = "") {
+      async function fetchVehicleBreakdown(
+        supplier,
+        siteName,
+        monthIdx,
+        ledgerFolio = "",
+      ) {
         const cleanLf = currentYear >= 2027 ? (ledgerFolio || "").trim() : "";
         const cacheKey = `${supplier}_${siteName}_${cleanLf}_${currentYear}_${monthIdx}`;
         if (tsDetailsCache[cacheKey]) return tsDetailsCache[cacheKey];
@@ -2454,9 +2481,15 @@
         return [];
       }
 
-      async function openTsDetailsModal(supplier, siteName, monthIdx, ledgerFolio = "") {
+      async function openTsDetailsModal(
+        supplier,
+        siteName,
+        monthIdx,
+        ledgerFolio = "",
+      ) {
         const mName = monthsFull[monthIdx];
-        const lfTag = (currentYear >= 2027 && ledgerFolio) ? ` [LF: ${ledgerFolio}]` : "";
+        const lfTag =
+          currentYear >= 2027 && ledgerFolio ? ` [LF: ${ledgerFolio}]` : "";
         document.getElementById("tsModalTitle").innerText =
           `${mName} - ${siteName}${lfTag} Breakdown (${supplier})`;
         const tbody = document.getElementById("tsBreakdownBody");

@@ -82,7 +82,23 @@ router.get("/data", verifyVatCode, async (req, res) => {
       return res.json({ success: true, data: [] });
 
     const vehicles = vehicleResult.rows;
-    const plates = vehicles.map((v) => v.plate_no);
+    let plates = vehicles.map((v) => v.plate_no);
+
+    // 2.0 Fetch plate changes to ensure old plates are checked for site/owner history
+    let plateLogs = [];
+    try {
+      const plRes = await pool.query(
+        `SELECT old_plate_no, new_plate_no, TO_CHAR(change_date, 'YYYY-MM-DD') as change_date FROM vehicle_plate_log ORDER BY change_date ASC, id ASC`
+      );
+      plateLogs = plRes.rows;
+      plateLogs.forEach((pl) => {
+        if (pl.old_plate_no && !plates.includes(pl.old_plate_no)) {
+          plates.push(pl.old_plate_no);
+        }
+      });
+    } catch (plErr) {
+      console.warn("vehicle_plate_log query warning:", plErr.message);
+    }
 
     // 2.1 Fetch Owner Logs with VAT status, LF and safe fallback
     let ownerLogs = [];
@@ -266,7 +282,20 @@ router.get("/data", verifyVatCode, async (req, res) => {
     const groupedData = {};
 
     siteLogResult.rows.forEach((log) => {
-      const vehicle = vehicles.find((v) => v.plate_no === log.plate_no);
+      const logPlateUpper = (log.plate_no || "").trim().toUpperCase();
+      let vehicle = vehicles.find((v) => (v.plate_no || "").trim().toUpperCase() === logPlateUpper);
+
+      if (!vehicle && plateLogs.length > 0) {
+        const foundLog = plateLogs.find(
+          (pl) => (pl.old_plate_no || "").trim().toUpperCase() === logPlateUpper
+        );
+        if (foundLog) {
+          vehicle = vehicles.find(
+            (v) => (v.plate_no || "").trim().toUpperCase() === (foundLog.new_plate_no || "").trim().toUpperCase()
+          );
+        }
+      }
+
       if (!vehicle) return;
 
       const defaultOwner = (vehicle.supplier || "").trim();
@@ -426,7 +455,13 @@ router.get("/data", verifyVatCode, async (req, res) => {
               e.norm_owner === normSupplier || e.clean_owner === cleanSupplier;
 
             if (isMonthMatch && isSiteMatch && isOwnerMatch) {
-              const pKey = (e.plate_no || "").trim().toUpperCase();
+              const rawPKey = (e.plate_no || "").trim().toUpperCase();
+              const candidatePlates = rawPKey.includes("➔")
+                ? rawPKey.split("➔").map((p) => p.trim())
+                : rawPKey.includes("->")
+                  ? rawPKey.split("->").map((p) => p.trim())
+                  : [rawPKey];
+              const pKey = candidatePlates[candidatePlates.length - 1] || rawPKey;
 
               if (currentYear >= 2027) {
                 // 🟢 2027 muthal mathram Ledger Folio (LF) vechu check cheyyunnu
@@ -684,6 +719,16 @@ router.post("/update-bulk", verifyVatCode, async (req, res) => {
             ],
           );
         }
+
+        // 🟢 Broadcast each update live to QC entry screen
+        broadcastQcUpdate({
+          year: cleanYear,
+          supplier: cleanSup,
+          site_name: cleanSite,
+          month_index: parseInt(month_index),
+          field: field,
+          value: valToSave || "",
+        });
       }
       await client.query("COMMIT");
     } catch (err) {

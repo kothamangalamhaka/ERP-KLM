@@ -1581,11 +1581,18 @@
 
         inputs.forEach((input) => {
           const siteName = input.dataset.site;
+          const inputLf = (input.dataset.lf || "").trim().toLowerCase();
           const m = parseInt(input.dataset.month);
           const field = input.dataset.field;
           let newVal = input.value.trim();
 
-          const site = supData.sites.find((s) => s.site_name === siteName);
+          const site = supData.sites.find((s) => {
+            const sMatch = s.site_name === siteName;
+            if (currentYear >= 2027 && inputLf) {
+              return sMatch && (s.ledger_folio || "").trim().toLowerCase() === inputLf;
+            }
+            return sMatch;
+          });
           if (!site) return;
 
           const oldVal = site.billing[m] ? site.billing[m][field] || "" : "";
@@ -1727,7 +1734,16 @@
         const supData = consolidatedSuppliers[selectedSupplierKey];
         if (!supData) return;
 
-        const site = supData.sites.find((s) => s.site_name === siteName);
+        // 🟢 2027 muthal ulla ledger_folio split matching
+        const inputLf = (inputEl.dataset.lf || "").trim().toLowerCase();
+        const site = supData.sites.find((s) => {
+          const sMatch = s.site_name === siteName;
+          if (currentYear >= 2027 && inputLf) {
+            return sMatch && (s.ledger_folio || "").trim().toLowerCase() === inputLf;
+          }
+          return sMatch;
+        });
+
         if (site && site.billing[monthIdx]) {
           site.billing[monthIdx].quick_dice = val;
         }
@@ -2088,18 +2104,19 @@
 
               if (isEditMode) {
                 // 🟢 EDIT MODE: ഇവിടുന്ന് മാത്രമാണ് ഡാറ്റ ടൈപ്പ് ചെയ്യാൻ സാധിക്കുക
+                const sLfAttrForInput = escapeQuotes(site.ledger_folio || "");
                 bodyHtml += `
                                 <td id="${rowUniqueId}">
-                                    <textarea class="qc-textarea qc-val qc-highlight-target ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="bill_no" oninput="autoResizeTextarea(this)">${billVal}</textarea>
+                                    <textarea class="qc-textarea qc-val qc-highlight-target ${hlClass}" data-site="${sNameAttr}" data-lf="${sLfAttrForInput}" data-month="${m}" data-field="bill_no" oninput="autoResizeTextarea(this)">${billVal}</textarea>
                                 </td>
                                 <td>
-                                    <input type="text" class="qc-input qc-val qc-highlight-target ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="amount" value="${amtVal}">
+                                    <input type="text" class="qc-input qc-val qc-highlight-target ${hlClass}" data-site="${sNameAttr}" data-lf="${sLfAttrForInput}" data-month="${m}" data-field="amount" value="${amtVal}">
                                 </td>
                                 <td style="background: #f0fdfa;">
                                     <div class="cell-content qc-highlight-target ${hlClass}" style="font-weight: 600; font-size: 11px;">${erpVal}</div>
                                 </td>
                                 <td>
-                                    <input type="text" class="qc-input qc-val qc-quick-dice ${hlClass}" data-site="${sNameAttr}" data-month="${m}" data-field="quick_dice" value="${qDiceVal}">
+                                    <input type="text" class="qc-input qc-val qc-quick-dice ${hlClass}" data-site="${sNameAttr}" data-lf="${sLfAttrForInput}" data-month="${m}" data-field="quick_dice" value="${qDiceVal}">
                                 </td>
                             `;
               } else {
@@ -2116,7 +2133,8 @@
                   diceCellContent = `<div class="cell-content" style="font-size: 11px; font-weight: 700; color: #312e81;" title="Locked: Click 'Edit' button to modify">${qDiceVal}</div>`;
                 } else {
                   // 🟢 ടൈപ്പ് ചെയ്യുമ്പോൾ ലോക്ക് ആവാതിരിക്കാനും പുറത്ത് ക്ലിക്ക് ചെയ്യുമ്പോൾ (blur) മാത്രം ലോക്ക് ആവാനും ഉള്ള കോഡ്
-                  diceCellContent = `<input type="text" class="qc-input qc-quick-dice" data-site="${sNameAttr}" data-month="${m}" data-field="quick_dice" value="${qDiceVal === "0" ? "" : qDiceVal}" oninput="handleLiveQuickDice(this, '${sNameAttr}', ${m})" onblur="handleDiceBlur(this, '${sNameAttr}', ${m})" onkeydown="if(event.key==='Enter') this.blur();">`;
+                  const sLfAttrForInput = escapeQuotes(site.ledger_folio || "");
+                  diceCellContent = `<input type="text" class="qc-input qc-quick-dice" data-site="${sNameAttr}" data-lf="${sLfAttrForInput}" data-month="${m}" data-field="quick_dice" value="${qDiceVal === "0" ? "" : qDiceVal}" oninput="handleLiveQuickDice(this, '${sNameAttr}', ${m})" onblur="handleDiceBlur(this, '${sNameAttr}', ${m})" onkeydown="if(event.key==='Enter') this.blur();">`;
                 }
 
                 const sLfAttr = escapeQuotes(site.ledger_folio || "");

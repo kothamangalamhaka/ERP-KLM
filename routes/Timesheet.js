@@ -652,10 +652,19 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
         );
         const oldOwnerVal = prevOwnerRes.rows[0]?.owner_name ? prevOwnerRes.rows[0].owner_name.trim() : null;
         if (oldOwnerVal && oldOwnerVal.toLowerCase() !== owner_name.trim().toLowerCase()) {
+          // 🟢 Cascade rename across all companies in vat_billing_records (VAT & NON_VAT)
           await client.query(
             `UPDATE vat_billing_records 
              SET supplier = $1, updated_at = CURRENT_TIMESTAMP 
              WHERE LOWER(TRIM(supplier)) = LOWER(TRIM($2))`,
+            [owner_name.trim(), oldOwnerVal],
+          );
+
+          // 🟢 Cascade rename in supplier_notes as well
+          await client.query(
+            `UPDATE supplier_notes 
+             SET supplier_name = $1 
+             WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($2))`,
             [owner_name.trim(), oldOwnerVal],
           );
         }
@@ -2006,6 +2015,13 @@ router.post("/api/db/update-cell", verifyEditor, async (req, res) => {
               `UPDATE vat_billing_records 
                SET supplier = $1, updated_at = CURRENT_TIMESTAMP 
                WHERE LOWER(TRIM(supplier)) = LOWER(TRIM($2))`,
+              [newOwner, oldOwnerName],
+            );
+
+            await pool.query(
+              `UPDATE supplier_notes 
+               SET supplier_name = $1 
+               WHERE LOWER(TRIM(supplier_name)) = LOWER(TRIM($2))`,
               [newOwner, oldOwnerName],
             );
           }
