@@ -1095,14 +1095,11 @@ async function rowAbout() {
 async function safeFetch(url, options) {
   try {
     const res = await fetch(url, options);
-    if (res.status === 401 || res.status === 403) {
-      localStorage.removeItem("timesheetToken");
-      localStorage.removeItem("timesheetUser");
-      const currentPage = encodeURIComponent(
-        window.location.pathname.split("/").pop() + window.location.search,
-      );
-      window.location.href = "index.html?redirect=" + currentPage;
-      return { success: false, message: "Session expired. Redirecting..." };
+    if (res.status === 401) {
+      return { success: false, message: "Session expired. Please reload page to login." };
+    }
+    if (res.status === 403) {
+      return { success: false, message: "Permission denied for this action." };
     }
     if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
     return await res.json();
@@ -1597,7 +1594,7 @@ async function updateCell(inputEl) {
       }
       showStatus("✓ Saved", "saved");
     } else {
-      showStatus("Error", "error");
+      showStatus(data.message || "Error", "error");
     }
   } catch (e) {
     showStatus("Error", "error");
