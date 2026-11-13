@@ -2011,13 +2011,32 @@
             });
           });
         });
-        masterRows.sort((a, b) =>
-          String(a.owner || "").localeCompare(
+        const shortMonthOrder = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        ];
+        const parseMonthKey = (mKey) => {
+          const [mStr, yStr] = String(mKey || "").trim().split(" ");
+          const yNum = parseInt(yStr, 10) || 0;
+          const mIdx = shortMonthOrder.findIndex(
+            (m) => m.toLowerCase() === (mStr || "").toLowerCase(),
+          );
+          return yNum * 12 + (mIdx >= 0 ? mIdx : 0);
+        };
+
+        masterRows.sort((a, b) => {
+          const ownerCmp = String(a.owner || "").localeCompare(
             String(b.owner || ""),
             undefined,
             { sensitivity: "base" },
-          ),
-        );
+          );
+          if (ownerCmp !== 0) return ownerCmp;
+
+          const monthCmp = parseMonthKey(a.month) - parseMonthKey(b.month);
+          if (monthCmp !== 0) return monthCmp;
+
+          return String(a.plate || "").localeCompare(String(b.plate || ""));
+        });
         masterRows.forEach((r, idx) => {
           r.sn = idx + 1;
         });
@@ -2386,7 +2405,23 @@
         });
 
         if (sortConfig) {
+          const shortMonthsRef = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+          ];
+          const monthRank = (str) => {
+            const [mPart, yPart] = String(str || "").trim().split(" ");
+            const mIdx = shortMonthsRef.findIndex(
+              (m) => m.toLowerCase() === (mPart || "").toLowerCase(),
+            );
+            return (parseInt(yPart, 10) || 0) * 12 + (mIdx >= 0 ? mIdx : 0);
+          };
+
           filtered.sort((a, b) => {
+            if (sortConfig.key === "month") {
+              const diff = monthRank(a.month) - monthRank(b.month);
+              return sortConfig.dir === "asc" ? diff : -diff;
+            }
             let valA = String(a[sortConfig.key] || "");
             let valB = String(b[sortConfig.key] || "");
             let numA = parseFloat(valA);

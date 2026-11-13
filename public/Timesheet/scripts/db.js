@@ -1092,11 +1092,24 @@ async function rowAbout() {
   }
 }
 
+let isRedirectingToLogin = false;
+function handleUnauthorizedSession() {
+  if (isRedirectingToLogin) return;
+  isRedirectingToLogin = true;
+  if (window.liveSyncTimer) clearInterval(window.liveSyncTimer);
+  localStorage.removeItem("timesheetToken");
+  const currentPage = encodeURIComponent(
+    window.location.pathname.split("/").pop() + window.location.search,
+  );
+  window.location.href = "index.html?redirect=" + currentPage;
+}
+
 async function safeFetch(url, options) {
   try {
     const res = await fetch(url, options);
     if (res.status === 401) {
-      return { success: false, message: "Session expired. Please reload page to login." };
+      handleUnauthorizedSession();
+      throw new Error("Unauthorized");
     }
     if (res.status === 403) {
       return { success: false, message: "Permission denied for this action." };
@@ -3321,7 +3334,9 @@ function updateTableCellsInPlace(freshData) {
 
 // 🟢 Smart Live Sync Loop (Server load minimal, 4.5 sec interval)
 async function startLiveSyncWorker() {
-  setInterval(async () => {
+  if (window.liveSyncTimer) clearInterval(window.liveSyncTimer);
+  window.liveSyncTimer = setInterval(async () => {
+    if (isRedirectingToLogin) return;
     // 1. യൂസർ ഇൻപുട്ട് ടൈപ്പ് ചെയ്യുകയാണെങ്കിലോ മോഡൽ ഓപ്പൺ ആണെങ്കിലോ ഫുൾ റീ-റെൻഡറിംഗ് ഒഴിവാക്കുന്നു
     const anyModalOpen = Array.from(
       document.querySelectorAll(".modal-overlay"),
