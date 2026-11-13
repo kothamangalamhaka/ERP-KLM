@@ -3003,12 +3003,25 @@
         }
       }
 
+      function getFormattedExportDate() {
+        const d = new Date();
+        const shortMonths = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        ];
+        const dd = String(d.getDate()).padStart(2, "0");
+        const mmm = shortMonths[d.getMonth()];
+        const yy = String(d.getFullYear()).slice(-2);
+        return `${dd}-${mmm}-${yy}`;
+      }
+
       async function sendExcelBlobRequest(sheets) {
+        const exportFileName = `Johns_Intelligence_Report_${getFormattedExportDate()}.xlsx`;
         const res = await fetch("/py/johns-report/export-excel", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            file_name: "Johns_Intelligence_Report.xlsx",
+            file_name: exportFileName,
             sheets,
           }),
         });
@@ -3016,7 +3029,7 @@
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "Johns_Intelligence_Report.xlsx";
+        a.download = exportFileName;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -3030,8 +3043,7 @@
         }
         showEqualizer("Building Excel Sheets...");
         try {
-          const exportKeys = keys.filter((k) => k !== "Net Supplier");
-          const sheets = exportKeys.map((k) => {
+          const sheets = keys.map((k) => {
             const list = monthsDataset[k] || [];
 
             const cleanRateForExcel = (val) => {
@@ -3040,6 +3052,52 @@
               if (isNaN(num)) return val;
               return num % 1 !== 0 ? num : Math.round(num);
             };
+
+            if (k === "Net Supplier") {
+              const isDetailed = netSupplierViewMode === "detailed";
+              const mKeys = [...netSupplierMonthKeys];
+              const rows = list.map((r, idx) => {
+                if (!isDetailed) {
+                  return [
+                    idx + 1,
+                    r.owner,
+                    Number(r.total_sup || 0),
+                    Number(r.total_inv || 0),
+                    Number(r.net_cf || 0),
+                  ];
+                }
+                const mVals = [];
+                mKeys.forEach((mk) => {
+                  const mObj = (r.months && r.months[mk]) || {
+                    sup: 0,
+                    inv: 0,
+                    net: 0,
+                    hasData: false,
+                  };
+                  mVals.push(mObj.sup ? Number(mObj.sup) : "");
+                  mVals.push(mObj.inv ? Number(mObj.inv) : "");
+                  mVals.push(
+                    mObj.hasData || mObj.net !== 0 ? Number(mObj.net) : "",
+                  );
+                });
+                return [
+                  idx + 1,
+                  r.owner,
+                  ...mVals,
+                  Number(r.total_sup || 0),
+                  Number(r.total_inv || 0),
+                  Number(r.net_cf || 0),
+                ];
+              });
+
+              return {
+                sheet_name: k,
+                rows: rows,
+                is_net_supplier: true,
+                ns_detailed: isDetailed,
+                ns_months: mKeys.map((mk) => mk.replace(" ", "-")),
+              };
+            }
 
             if (k === "Master Data") {
               const rows = list.map((r) => [
@@ -3393,7 +3451,7 @@
             return { sheet_name: k, rows: rows };
           });
 
-          const safeFileName = `${backupName.replace(/[^a-zA-Z0-9_\-]/g, "_")}.xlsx`;
+          const safeFileName = `${backupName.replace(/[^a-zA-Z0-9_\-]/g, "_")}_${getFormattedExportDate()}.xlsx`;
           const expRes = await fetch("/py/johns-report/export-excel", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

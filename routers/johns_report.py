@@ -33,6 +33,9 @@ class ExcelSheetPayload(BaseModel):
     rows: list[list]
     custom_headers: dict = {}
     is_master: bool = False
+    is_net_supplier: bool = False
+    ns_detailed: bool = False
+    ns_months: list[str] = []
 
 class ExportPayload(BaseModel):
     file_name: str
@@ -255,6 +258,106 @@ def export_johns_excel(payload: ExportPayload):
             ws = wb.create_sheet(title=sheet_data.sheet_name[:31])
             ws.views.sheetView[0].showGridLines = True
             ws.freeze_panes = 'A3'
+
+            if sheet_data.is_net_supplier:
+                if not sheet_data.ns_detailed:
+                    ns_top = [
+                        ("SUPPLIER INFO", 1, 2, dark_fill),
+                        ("NET SUPPLIER SUMMARY", 3, 5, amt_fill),
+                    ]
+                    ns_sub = ["SN", "Supplier Name", "Supplier Total", "Invoice Total", "Net C/F"]
+                    ns_sub_fills = [dark_fill, dark_fill, amt_fill, inv_fill, calc_fill]
+                    net_cf_cols = [5]
+                    sup_cols = [3]
+                    inv_cols = [4]
+                else:
+                    ns_top = [("SUPPLIER INFO", 1, 2, dark_fill)]
+                    ns_sub = ["SN", "Supplier Name"]
+                    ns_sub_fills = [dark_fill, dark_fill]
+                    net_cf_cols = []
+                    sup_cols = []
+                    inv_cols = []
+                    col_ptr = 3
+                    for m_idx, m_lbl in enumerate(sheet_data.ns_months):
+                        m_fill = calc_fill if m_idx % 2 == 0 else PatternFill(start_color="115E59", end_color="115E59", fill_type="solid")
+                        ns_top.append((m_lbl, col_ptr, col_ptr + 2, m_fill))
+                        ns_sub.extend(["Supplier", "Invoice", "Net C/F"])
+                        ns_sub_fills.extend([amt_fill, inv_fill, dark_fill])
+                        sup_cols.append(col_ptr)
+                        inv_cols.append(col_ptr + 1)
+                        net_cf_cols.append(col_ptr + 2)
+                        col_ptr += 3
+                    ns_top.append(("OVERALL TOTAL", col_ptr, col_ptr + 2, pl_fill))
+                    ns_sub.extend(["Total Supplier", "Total Invoice", "Net C/F"])
+                    ns_sub_fills.extend([amt_fill, inv_fill, pl_fill])
+                    sup_cols.append(col_ptr)
+                    inv_cols.append(col_ptr + 1)
+                    net_cf_cols.append(col_ptr + 2)
+
+                for title, sc, ec, fill in ns_top:
+                    ws.merge_cells(start_row=1, start_column=sc, end_row=1, end_column=ec)
+                    for col in range(sc, ec + 1):
+                        cell = ws.cell(row=1, column=col)
+                        cell.fill = fill
+                        cell.border = thin_border
+                        if col == sc:
+                            cell.value = title
+                            cell.font = hdr_font
+                            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+                for col_idx, col_name in enumerate(ns_sub, 1):
+                    cell = ws.cell(row=2, column=col_idx, value=col_name)
+                    cell.fill = ns_sub_fills[col_idx - 1]
+                    cell.font = hdr_font
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                    cell.border = thin_border
+
+                ws.row_dimensions[1].height = 24
+                ws.row_dimensions[2].height = 28
+
+                for r_idx, row_values in enumerate(sheet_data.rows, 3):
+                    ws.row_dimensions[r_idx].height = 20
+                    for c_idx, val in enumerate(row_values, 1):
+                        cell = ws.cell(row=r_idx, column=c_idx, value=val)
+                        cell.font = cell_font
+                        cell.border = thin_border
+                        if c_idx == 2:
+                            cell.alignment = Alignment(horizontal="left", vertical="center")
+                            cell.font = Font(name="Calibri", size=10, bold=True)
+                        else:
+                            cell.alignment = Alignment(horizontal="center", vertical="center")
+                        if c_idx in sup_cols:
+                            cell.font = Font(name="Calibri", size=10, bold=True, color="059669")
+                        elif c_idx in inv_cols:
+                            cell.font = Font(name="Calibri", size=10, bold=True, color="B91C1C")
+                        elif c_idx in net_cf_cols and val not in [None, "", "-"]:
+                            try:
+                                num_v = float(val)
+                                if num_v > 0:
+                                    cell.fill = pos_fill
+                                    cell.font = Font(name="Calibri", size=10, bold=True, color="15803D")
+                                elif num_v < 0:
+                                    cell.fill = neg_fill
+                                    cell.font = Font(name="Calibri", size=10, bold=True, color="B91C1C")
+                            except (ValueError, TypeError):
+                                pass
+
+                for col in ws.columns:
+                    c_num = col[0].column
+                    col_letter = get_column_letter(c_num)
+                    if c_num == 1:
+                        ws.column_dimensions[col_letter].width = 7
+                    elif c_num == 2:
+                        ws.column_dimensions[col_letter].width = 30
+                    else:
+                        max_len = max(len(str(cell.value or '')) for cell in col)
+                        ws.column_dimensions[col_letter].width = max(max_len + 4, 13)
+
+                last_row = max(len(sheet_data.rows) + 2, 2)
+                last_col_letter = get_column_letter(len(ns_sub))
+                ws.auto_filter.ref = f"A2:{last_col_letter}{last_row}"
+                ws.sheet_view.zoomScale = 85
+                continue
 
             if sheet_data.is_master:
                 for title, sc, ec, fill in master_top_headers:
