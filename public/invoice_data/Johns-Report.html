@@ -4,11 +4,35 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>John's Intelligence Analysis Report</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
     <style>
+      @font-face {
+        font-family: "Inter";
+        src: url("/webfonts/Inter-Regular.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("/webfonts/Inter-Medium.woff2") format("woff2");
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("/webfonts/Inter-Bold.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+      }
       :root {
         --primary: #0ea5e9;
         --secondary: #0f172a;
@@ -463,6 +487,27 @@
         style="width: 170px"
         onkeyup="applySearchFilter()"
       />
+      <div
+        id="netSupplierModeToggle"
+        style="display: none; gap: 4px; align-items: center; background: #e2e8f0; padding: 3px; border-radius: 5px;"
+      >
+        <button
+          id="btnNsCompact"
+          class="btn"
+          style="padding: 4px 10px; font-size: 11px; background: #0f172a; color: #fff;"
+          onclick="setNetSupplierViewMode('compact')"
+        >
+          Compact
+        </button>
+        <button
+          id="btnNsDetailed"
+          class="btn"
+          style="padding: 4px 10px; font-size: 11px; background: transparent; color: #334155;"
+          onclick="setNetSupplierViewMode('detailed')"
+        >
+          Detailed
+        </button>
+      </div>
       <div
         id="diffSummaryBadges"
         style="display: flex; gap: 6px; align-items: center; margin-left: 4px"
@@ -1142,6 +1187,8 @@
       let headerFilters = {};
       let currentFilterKey = "";
       let sortConfig = null;
+      let netSupplierViewMode = "compact";
+      let netSupplierMonthKeys = [];
 
       let isAuthorizedSession = false;
 
@@ -1908,7 +1955,7 @@
         const bar = document.getElementById("bottomTabsContainer");
         bar.innerHTML = "";
         const keys = Object.keys(monthsDataset).filter(
-          (k) => k !== "Master Data",
+          (k) => k !== "Master Data" && k !== "Net Supplier",
         );
         keys.forEach((key) => {
           const btn = document.createElement("button");
@@ -1925,6 +1972,14 @@
           masterBtn.innerText = "⭐ Master Data";
           masterBtn.onclick = () => switchTab("Master Data");
           bar.appendChild(masterBtn);
+
+          const netSupBtn = document.createElement("button");
+          netSupBtn.className = `tab-btn ${activeMonthKey === "Net Supplier" ? "active" : ""}`;
+          netSupBtn.style.cssText =
+            "background: #1d4ed8; color: #ffffff; border-color: #3b82f6; font-weight: 700;";
+          netSupBtn.innerText = "🏢 Net Supplier";
+          netSupBtn.onclick = () => switchTab("Net Supplier");
+          bar.appendChild(netSupBtn);
         }
       }
 
@@ -1932,7 +1987,7 @@
         let masterRows = [];
         let sn = 1;
         const keys = Object.keys(monthsDataset).filter(
-          (k) => k !== "Master Data",
+          (k) => k !== "Master Data" && k !== "Net Supplier",
         );
         keys.forEach((k) => {
           (monthsDataset[k] || []).forEach((r) => {
@@ -2041,14 +2096,107 @@
           r.sn = idx + 1;
         });
         monthsDataset["Master Data"] = masterRows;
+
+        netSupplierMonthKeys = [...keys].sort(
+          (a, b) => parseMonthKey(a) - parseMonthKey(b),
+        );
+
+        const supplierMap = new Map();
+        masterRows.forEach((r) => {
+          const rawOwner = String(r.owner || "N/A").trim() || "N/A";
+          const normKey = rawOwner.toUpperCase();
+          if (!supplierMap.has(normKey)) {
+            const mObj = {};
+            netSupplierMonthKeys.forEach((mk) => {
+              mObj[mk] = { sup: 0, inv: 0, net: 0, hasData: false };
+            });
+            supplierMap.set(normKey, {
+              owner: rawOwner,
+              months: mObj,
+              total_sup: 0,
+              total_inv: 0,
+              net_cf: 0,
+            });
+          }
+          const entry = supplierMap.get(normKey);
+          const supVal = parseFloat(r.supplier_payment);
+          const invVal = parseFloat(r.invoice_amount);
+          const validSup = !isNaN(supVal) ? supVal : 0;
+          const validInv = !isNaN(invVal) ? invVal : 0;
+
+          if (entry.months[r.month]) {
+            entry.months[r.month].sup += validSup;
+            entry.months[r.month].inv += validInv;
+            if (!isNaN(supVal) || !isNaN(invVal)) {
+              entry.months[r.month].hasData = true;
+            }
+          }
+          entry.total_sup += validSup;
+          entry.total_inv += validInv;
+        });
+
+        const netSupplierRows = Array.from(supplierMap.values()).sort((a, b) =>
+          a.owner.localeCompare(b.owner, undefined, { sensitivity: "base" }),
+        );
+
+        netSupplierRows.forEach((item, idx) => {
+          item.sn = idx + 1;
+          item.total_sup = Number(item.total_sup.toFixed(2));
+          item.total_inv = Number(item.total_inv.toFixed(2));
+          item.net_cf = Number((item.total_inv - item.total_sup).toFixed(2));
+
+          netSupplierMonthKeys.forEach((mk) => {
+            const mData = item.months[mk];
+            mData.sup = Number(mData.sup.toFixed(2));
+            mData.inv = Number(mData.inv.toFixed(2));
+            mData.net = Number((mData.inv - mData.sup).toFixed(2));
+            item[`m_${mk}_sup`] = mData.sup;
+            item[`m_${mk}_inv`] = mData.inv;
+            item[`m_${mk}_net`] = mData.net;
+          });
+        });
+
+        monthsDataset["Net Supplier"] = netSupplierRows;
+      }
+
+      function setNetSupplierViewMode(mode) {
+        netSupplierViewMode = mode;
+        const btnC = document.getElementById("btnNsCompact");
+        const btnD = document.getElementById("btnNsDetailed");
+        if (btnC && btnD) {
+          if (mode === "compact") {
+            btnC.style.background = "#0f172a";
+            btnC.style.color = "#fff";
+            btnD.style.background = "transparent";
+            btnD.style.color = "#334155";
+          } else {
+            btnD.style.background = "#0f172a";
+            btnD.style.color = "#fff";
+            btnC.style.background = "transparent";
+            btnC.style.color = "#334155";
+          }
+        }
+        updateTableHeadersForActiveTab();
+        applyAllFilters();
       }
 
       function switchTab(key) {
         activeMonthKey = key;
+        const toggleDiv = document.getElementById("netSupplierModeToggle");
+        if (toggleDiv) {
+          toggleDiv.style.display = key === "Net Supplier" ? "flex" : "none";
+        }
         renderBottomTabs();
         updateTableHeadersForActiveTab();
         const tbody = document.getElementById("reportTableBody");
-        const colSpan = activeMonthKey === "Master Data" ? 21 : 40;
+        const colSpan =
+          activeMonthKey === "Master Data"
+            ? 21
+            : activeMonthKey === "Net Supplier"
+              ? netSupplierViewMode === "compact"
+                ? 5
+                : 5 + netSupplierMonthKeys.length * 3
+              : 40;
         tbody.innerHTML = `<tr><td colspan="${colSpan}" style="padding: 35px; text-align: center;"><div style="display:inline-flex; align-items:center; gap:8px; font-weight:600; color:#0ea5e9;"><div class="equalizer" style="height:20px; display:inline-flex;"><div class="equalizer-bar" style="width:4px;"></div><div class="equalizer-bar" style="width:4px;"></div><div class="equalizer-bar" style="width:4px;"></div></div> Loading ${key}...</div></td></tr>`;
         setTimeout(() => {
           applyAllFilters();
@@ -2057,6 +2205,59 @@
 
       function updateTableHeadersForActiveTab() {
         const thead = document.querySelector("table thead");
+        const tbl = document.querySelector(".table-wrapper table");
+        if (tbl) {
+          tbl.style.minWidth =
+            activeMonthKey === "Net Supplier" && netSupplierViewMode === "compact"
+              ? "780px"
+              : "1650px";
+        }
+        if (activeMonthKey === "Net Supplier") {
+          if (netSupplierViewMode === "compact") {
+            thead.innerHTML = `
+              <tr>
+                <th colspan="2" style="background:#1e293b; color:#fff;">SUPPLIER INFO</th>
+                <th colspan="3" style="background:#047857; color:#fff;">NET SUPPLIER SUMMARY</th>
+              </tr>
+              <tr>
+                <th style="width: 50px;">SN</th>
+                <th style="width: 240px; cursor: pointer;" onclick="openExcelFilterMenu(event, 'owner')">Supplier Name <span class="filter-icon" data-key="owner">▼</span></th>
+                <th style="width: 140px; background:#047857; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'total_sup')">Supplier Total <span class="filter-icon" data-key="total_sup">▼</span></th>
+                <th style="width: 140px; background:#991b1b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'total_inv')">Invoice Total <span class="filter-icon" data-key="total_inv">▼</span></th>
+                <th style="width: 140px; background:#0f766e; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'net_cf')">Net C/F <span class="filter-icon" data-key="net_cf">▼</span></th>
+              </tr>
+            `;
+          } else {
+            let topMonthHdrs = "";
+            let subMonthHdrs = "";
+            netSupplierMonthKeys.forEach((mk, idx) => {
+              const fmtM = mk.replace(" ", "-");
+              const bgTop = idx % 2 === 0 ? "#0f766e" : "#115e59";
+              topMonthHdrs += `<th colspan="3" style="background:${bgTop}; color:#fff;">${fmtM}</th>`;
+              subMonthHdrs += `
+                <th style="width: 95px; background:#047857; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'm_${mk}_sup')">Supplier <span class="filter-icon" data-key="m_${mk}_sup">▼</span></th>
+                <th style="width: 95px; background:#991b1b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'm_${mk}_inv')">Invoice <span class="filter-icon" data-key="m_${mk}_inv">▼</span></th>
+                <th style="width: 95px; background:#1e293b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'm_${mk}_net')">Net C/F <span class="filter-icon" data-key="m_${mk}_net">▼</span></th>
+              `;
+            });
+            thead.innerHTML = `
+              <tr>
+                <th colspan="2" style="background:#1e293b; color:#fff;">SUPPLIER INFO</th>
+                ${topMonthHdrs}
+                <th colspan="3" style="background:#4338ca; color:#fff;">OVERALL TOTAL</th>
+              </tr>
+              <tr>
+                <th style="width: 50px;">SN</th>
+                <th style="width: 220px; cursor: pointer;" onclick="openExcelFilterMenu(event, 'owner')">Supplier Name <span class="filter-icon" data-key="owner">▼</span></th>
+                ${subMonthHdrs}
+                <th style="width: 115px; background:#047857; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'total_sup')">Total Supplier <span class="filter-icon" data-key="total_sup">▼</span></th>
+                <th style="width: 115px; background:#991b1b; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'total_inv')">Total Invoice <span class="filter-icon" data-key="total_inv">▼</span></th>
+                <th style="width: 115px; background:#3730a3; color:#fff; cursor: pointer;" onclick="openExcelFilterMenu(event, 'net_cf')">Net C/F <span class="filter-icon" data-key="net_cf">▼</span></th>
+              </tr>
+            `;
+          }
+          return;
+        }
         if (activeMonthKey === "Master Data") {
           thead.innerHTML = `
             <tr>
@@ -2154,13 +2355,143 @@
         const tfoot = document.getElementById("reportTableFoot");
         tbody.innerHTML = "";
         if (tfoot) tfoot.innerHTML = "";
-        const colSpan = activeMonthKey === "Master Data" ? 21 : 40;
+        const colSpan =
+          activeMonthKey === "Master Data"
+            ? 21
+            : activeMonthKey === "Net Supplier"
+              ? netSupplierViewMode === "compact"
+                ? 5
+                : 5 + netSupplierMonthKeys.length * 3
+              : 40;
         if (data.length === 0) {
           tbody.innerHTML = `<tr><td colspan="${colSpan}" style="padding: 20px;">No records available for this view.</td></tr>`;
           return;
         }
 
         const badgeContainer = document.getElementById("diffSummaryBadges");
+
+        if (activeMonthKey === "Net Supplier") {
+          let grandSup = 0;
+          let grandInv = 0;
+          let grandNetCf = 0;
+          data.forEach((r) => {
+            grandSup += Number(r.total_sup) || 0;
+            grandInv += Number(r.total_inv) || 0;
+            grandNetCf += Number(r.net_cf) || 0;
+          });
+
+          const visibleOwners = new Set(
+            data.map((r) => String(r.owner || "N/A").trim().toUpperCase()),
+          );
+          let masterMatchedProfit = 0;
+          (monthsDataset["Master Data"] || []).forEach((mr) => {
+            const mOwner = String(mr.owner || "N/A").trim().toUpperCase();
+            if (visibleOwners.has(mOwner) && typeof mr.gain_loss === "number") {
+              masterMatchedProfit += mr.gain_loss;
+            }
+          });
+          const cfDiff = Number((grandNetCf - masterMatchedProfit).toFixed(2));
+
+          if (badgeContainer) {
+            const isProfit = grandNetCf >= 0;
+            const plBg = isProfit ? "#dcfce7" : "#fee2e2";
+            const plBorder = isProfit ? "#86efac" : "#fca5a5";
+            const plColor = isProfit ? "#15803d" : "#b91c1c";
+            const plLabel = isProfit ? "Overall Profit (Net C/F)" : "Overall Loss (Net C/F)";
+
+            const isMasterProfit = masterMatchedProfit >= 0;
+            const mBg = isMasterProfit ? "#eff6ff" : "#fff1f2";
+            const mBorder = isMasterProfit ? "#93c5fd" : "#fda4af";
+            const mColor = isMasterProfit ? "#1d4ed8" : "#be123c";
+            const mLabel = isMasterProfit ? "Master Net Profit" : "Master Net Loss";
+
+            const diffBg = cfDiff >= 0 ? "#fefce8" : "#fff7ed";
+            const diffBorder = cfDiff >= 0 ? "#fde047" : "#fdba74";
+            const diffColor = cfDiff >= 0 ? "#854d0e" : "#c2410c";
+
+            badgeContainer.innerHTML = `
+              <div style="background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; white-space: nowrap;">
+                <div>Total Supplier</div>
+                <div style="font-size: 10.5px; font-weight: 800; margin-top: 1px;">${grandSup.toFixed(2)}</div>
+              </div>
+              <div style="background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; white-space: nowrap;">
+                <div>Total Invoice</div>
+                <div style="font-size: 10.5px; font-weight: 800; margin-top: 1px;">${grandInv.toFixed(2)}</div>
+              </div>
+              <div style="background: ${plBg}; border: 1px solid ${plBorder}; color: ${plColor}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; white-space: nowrap;">
+                <div>${plLabel}</div>
+                <div style="font-size: 10.5px; font-weight: 800; margin-top: 1px;">${grandNetCf.toFixed(2)}</div>
+              </div>
+              <div style="background: ${mBg}; border: 1px solid ${mBorder}; color: ${mColor}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; white-space: nowrap;">
+                <div>${mLabel}</div>
+                <div style="font-size: 10.5px; font-weight: 800; margin-top: 1px;">${masterMatchedProfit.toFixed(2)}</div>
+              </div>
+              <div style="background: ${diffBg}; border: 1px solid ${diffBorder}; color: ${diffColor}; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; white-space: nowrap;">
+                <div>C/F (Net - Master)</div>
+                <div style="font-size: 10.5px; font-weight: 800; margin-top: 1px;">${cfDiff.toFixed(2)}</div>
+              </div>
+            `;
+          }
+
+          const frag = document.createDocumentFragment();
+          data.forEach((r, idx) => {
+            const netBg =
+              r.net_cf > 0 ? "#dcfce7" : r.net_cf < 0 ? "#fee2e2" : "transparent";
+            const netColor =
+              r.net_cf > 0 ? "#15803d" : r.net_cf < 0 ? "#b91c1c" : "#0f172a";
+
+            const tr = document.createElement("tr");
+            if (netSupplierViewMode === "compact") {
+              tr.innerHTML = `
+                <td>${idx + 1}</td>
+                <td style="text-align: left; font-weight: 600;" class="col-owner-name">${r.owner}</td>
+                <td style="font-weight: 700; color: #059669;">${r.total_sup ? r.total_sup.toFixed(2) : "0.00"}</td>
+                <td style="font-weight: 700; color: #b91c1c;">${r.total_inv ? r.total_inv.toFixed(2) : "0.00"}</td>
+                <td style="font-weight: 800; background-color: ${netBg}; color: ${netColor};">${r.net_cf.toFixed(2)}</td>
+              `;
+            } else {
+              let monthCells = "";
+              netSupplierMonthKeys.forEach((mk) => {
+                const mObj = (r.months && r.months[mk]) || {
+                  sup: 0,
+                  inv: 0,
+                  net: 0,
+                  hasData: false,
+                };
+                const mNetBg =
+                  mObj.net > 0
+                    ? "#dcfce7"
+                    : mObj.net < 0
+                      ? "#fee2e2"
+                      : "transparent";
+                const mNetColor =
+                  mObj.net > 0
+                    ? "#15803d"
+                    : mObj.net < 0
+                      ? "#b91c1c"
+                      : "#0f172a";
+
+                monthCells += `
+                  <td style="color:#059669; font-weight:600;">${mObj.sup ? mObj.sup.toFixed(2) : ""}</td>
+                  <td style="color:#b91c1c; font-weight:600;">${mObj.inv ? mObj.inv.toFixed(2) : ""}</td>
+                  <td style="font-weight:700; background-color:${mNetBg}; color:${mNetColor};">${mObj.hasData || mObj.net !== 0 ? mObj.net.toFixed(2) : ""}</td>
+                `;
+              });
+
+              tr.innerHTML = `
+                <td>${idx + 1}</td>
+                <td style="text-align: left; font-weight: 600;" class="col-owner-name">${r.owner}</td>
+                ${monthCells}
+                <td style="font-weight: 700; color: #059669; background: #f0fdf4;">${r.total_sup.toFixed(2)}</td>
+                <td style="font-weight: 700; color: #b91c1c; background: #fef2f2;">${r.total_inv.toFixed(2)}</td>
+                <td style="font-weight: 800; background-color: ${netBg}; color: ${netColor};">${r.net_cf.toFixed(2)}</td>
+              `;
+            }
+            frag.appendChild(tr);
+          });
+          tbody.appendChild(frag);
+          return;
+        }
 
         if (activeMonthKey === "Master Data") {
           let totGainLoss = 0;
@@ -2699,7 +3030,8 @@
         }
         showEqualizer("Building Excel Sheets...");
         try {
-          const sheets = keys.map((k) => {
+          const exportKeys = keys.filter((k) => k !== "Net Supplier");
+          const sheets = exportKeys.map((k) => {
             const list = monthsDataset[k] || [];
 
             const cleanRateForExcel = (val) => {
@@ -2988,6 +3320,9 @@
           if (!resData.success) throw new Error(resData.message);
 
           monthsDataset = resData.data.report_data || {};
+          if (monthsDataset["Master Data"] && !monthsDataset["Net Supplier"]) {
+            generateMasterDataset();
+          }
           closeBackupListModal();
 
           const keys = Object.keys(monthsDataset);
