@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quotations Dashboard</title>
+    <script src="js/qt-session.js"></script>
+    <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
+    <script>
+      (function () {
+        try {
+          const saved = localStorage.getItem("qt_theme");
+          const theme =
+            saved ||
+            (window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
+    <style>
+      :root {
+        --bg: #f1f5f9;
+        --surface: #ffffff;
+        --surface-alt: #f8fafc;
+        --text: #0f172a;
+        --text-muted: #475569;
+        --border: #e2e8f0;
+        --th-bg: #1e293b;
+        --th-text: #ffffff;
+        --primary: #2563eb;
+        --shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+      }
+
+      [data-theme="dark"] {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --surface-alt: #0f172a;
+        --text: #f8fafc;
+        --text-muted: #cbd5e1;
+        --border: #334155;
+        --th-bg: #020617;
+        --th-text: #f8fafc;
+        --primary: #3b82f6;
+        --shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background: var(--bg);
+        padding: 22px;
+        margin: 0;
+        color: var(--text);
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+
+      .container {
+        max-width: 1120px;
+        margin: 0 auto;
+        background: var(--surface);
+        padding: 24px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+
+      .header-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 15px;
+      }
+
+      .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .search-input {
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--surface-alt);
+        color: var(--text);
+        font-size: 13px;
+        outline: none;
+        width: 240px;
+      }
+
+      .search-input:focus {
+        border-color: var(--primary);
+      }
+
+      .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        margin-top: 16px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      th {
+        background: var(--th-bg);
+        color: var(--th-text);
+      }
+
+      tbody tr:hover {
+        background: var(--surface-alt);
+      }
+
+      .btn {
+        padding: 7px 12px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: #ffffff;
+      }
+
+      .btn-view {
+        background: #0284c7;
+        color: #ffffff;
+      }
+
+      .btn-edit {
+        background: #f59e0b;
+        color: #000000;
+      }
+
+      .btn-pdf {
+        background: #10b981;
+        color: #ffffff;
+      }
+
+      .btn-theme {
+        background: var(--surface-alt);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+
+      .btn-logout {
+        background: #ef4444;
+        color: #ffffff;
+      }
+
+      #dashToast {
+        position: fixed;
+        bottom: 26px;
+        right: 26px;
+        background: #0f172a;
+        color: #ffffff;
+        padding: 13px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        border-left: 4px solid #10b981;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        z-index: 999999;
+      }
+
+      .toast-spinner {
+        width: 15px;
+        height: 15px;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="dashToast">
+      <div id="dashToastSpinner" class="toast-spinner"></div>
+      <span id="dashToastMsg">Processing...</span>
+    </div>
+
+    <div class="container">
+      <div class="header-bar">
+        <h2 style="margin: 0; font-size: 20px">
+          <i class="fas fa-file-invoice-dollar"></i> Quotations Dashboard
+        </h2>
+
+        <div class="header-actions">
+          <input
+            type="text"
+            id="qtSearchInput"
+            class="search-input"
+            placeholder="Search Quotation..."
+            oninput="filterQtList(this.value)"
+          />
+          <a href="index.html" class="btn btn-primary">+ Create New Quotation</a>
+          <button class="btn btn-theme" id="themeBtn" onclick="toggleDashTheme()" title="Toggle Theme">
+            <i class="fas fa-moon"></i>
+          </button>
+          <button class="btn btn-logout" onclick="window.qtSession.logoutQT()">Logout</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Quotation No</th>
+              <th>Company</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Location</th>
+              <th>Total (SAR)</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="qtListBody">
+            <tr>
+              <td colspan="7" style="text-align: center">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      let allQuotations = [];
+
+      function toggleDashTheme() {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try {
+          localStorage.setItem("qt_theme", next);
+        } catch (e) {}
+        updateDashThemeIcon();
+      }
+
+      function updateDashThemeIcon() {
+        const btn = document.getElementById("themeBtn");
+        if (!btn) return;
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        btn.innerHTML =
+          current === "dark"
+            ? '<i class="fas fa-sun"></i>'
+            : '<i class="fas fa-moon"></i>';
+      }
+
+      function escapeHtml(str) {
+        return String(str || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      async function loadDashboard() {
+        if (!window.qtSession || !window.qtSession.requirePage()) return;
+        updateDashThemeIcon();
+
+        try {
+          const res = await fetch("/quotation/api/dashboard-qts");
+          const data = await res.json();
+          if (data.success && data.quotations) {
+            allQuotations = data.quotations;
+            renderQtTable(allQuotations);
+          } else {
+            document.getElementById("qtListBody").innerHTML =
+              '<tr><td colspan="7" style="text-align:center;">No Quotation records found</td></tr>';
+          }
+        } catch (e) {
+          document.getElementById("qtListBody").innerHTML =
+            '<tr><td colspan="7" style="text-align:center; color:#ef4444;">Error loading dashboard data</td></tr>';
+        }
+      }
+
+      function renderQtTable(list) {
+        const tbody = document.getElementById("qtListBody");
+        tbody.innerHTML = "";
+        if (list.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="7" style="text-align:center;">No matching Quotations found</td></tr>';
+          return;
+        }
+
+        list.forEach((qt) => {
+          tbody.innerHTML += `
+            <tr>
+              <td><b style="color: #0284c7; font-family: monospace;">${escapeHtml(qt.qt_no)}</b></td>
+              <td style="font-weight: 600;">${escapeHtml(qt.company_name || "-")}</td>
+              <td>${escapeHtml(qt.customer_name || "-")}</td>
+              <td style="font-family: monospace;">${escapeHtml(qt.qt_date || "-")}</td>
+              <td>${escapeHtml(qt.project_location || "-")}</td>
+              <td style="font-weight: 700; font-family: monospace;">${parseFloat(qt.grand_total || 0).toFixed(2)}</td>
+              <td>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-view" onclick="openQT(${qt.id}, false)"><i class="fas fa-eye"></i> View</button>
+                  <button class="btn btn-edit" onclick="openQT(${qt.id}, true)"><i class="fas fa-edit"></i> Edit</button>
+                  <button class="btn btn-pdf" onclick="downloadDirectQT(${qt.id})"><i class="fas fa-download"></i> PDF</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      function filterQtList(query) {
+        const term = (query || "").toLowerCase().trim();
+        if (!term) {
+          renderQtTable(allQuotations);
+          return;
+        }
+        const filtered = allQuotations.filter((qt) => {
+          return (
+            (qt.qt_no || "").toLowerCase().includes(term) ||
+            (qt.company_name || "").toLowerCase().includes(term) ||
+            (qt.customer_name || "").toLowerCase().includes(term) ||
+            (qt.qt_date || "").toLowerCase().includes(term) ||
+            (qt.project_location || "").toLowerCase().includes(term)
+          );
+        });
+        renderQtTable(filtered);
+      }
+
+      async function openQT(id, autoEdit = false) {
+        const res = await fetch(`/quotation/api/qt/${id}`);
+        const data = await res.json();
+        if (data.success && data.qt) {
+          sessionStorage.setItem("activeQTData", JSON.stringify(data.qt));
+          if (autoEdit) {
+            sessionStorage.setItem("autoEditQtTrigger", "true");
+          }
+          window.location.href = "index.html";
+        }
+      }
+
+      function showDashToast(msg, isLoading = true) {
+        const toast = document.getElementById("dashToast");
+        const msgEl = document.getElementById("dashToastMsg");
+        const spinner = document.getElementById("dashToastSpinner");
+        if (!toast) return;
+
+        msgEl.innerText = msg;
+        spinner.style.display = isLoading ? "block" : "none";
+        toast.style.borderLeftColor = isLoading ? "#0284c7" : "#10b981";
+        toast.style.display = "flex";
+
+        if (!isLoading) {
+          setTimeout(() => {
+            toast.style.display = "none";
+          }, 3500);
+        }
+      }
+
+      async function downloadDirectQT(id) {
+        showDashToast("Fetching Quotation details...", true);
+        try {
+          const res = await fetch(`/quotation/api/qt/${id}`);
+          const data = await res.json();
+
+          if (!data.success || !data.qt) {
+            showDashToast("Failed to fetch Quotation data", false);
+            return;
+          }
+
+          showDashToast("Generating PDF...", true);
+          let oldFrame = document.getElementById("hiddenQtDownloadFrame");
+          if (oldFrame) oldFrame.remove();
+
+          const iframe = document.createElement("iframe");
+          iframe.id = "hiddenQtDownloadFrame";
+          iframe.style.position = "fixed";
+          iframe.style.left = "-10000px";
+          iframe.style.top = "0";
+          iframe.style.width = "1000px";
+          iframe.style.height = "1200px";
+          iframe.style.border = "none";
+
+          sessionStorage.setItem("activeQTData", JSON.stringify(data.qt));
+          document.body.appendChild(iframe);
+          iframe.src = "index.html";
+
+          iframe.onload = async () => {
+            try {
+              const frameWin = iframe.contentWindow;
+              await new Promise((r) => setTimeout(r, 700));
+              if (frameWin && typeof frameWin.downloadPDF === "function") {
+                await frameWin.downloadPDF();
+                showDashToast("PDF Generated & Downloaded Successfully!", false);
+              } else {
+                showDashToast("PDF engine not ready", false);
+              }
+            } catch (err) {
+              showDashToast("Error exporting PDF", false);
+            } finally {
+              setTimeout(() => iframe.remove(), 1500);
+            }
+          };
+        } catch (err) {
+          showDashToast("Error connecting to server", false);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", loadDashboard);
+    </script>
+  </body>
+</html>

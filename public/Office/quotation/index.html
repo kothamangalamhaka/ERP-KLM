@@ -1,0 +1,1545 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quotation</title>
+    <script src="js/qt-session.js"></script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
+    <script>
+      (function () {
+        try {
+          var s = localStorage.getItem("qt_theme");
+          var t =
+            s ||
+            (window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light");
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
+    <style>
+      :root {
+        --app-bg: #e2e8f0;
+        --bar-bg: #ffffff;
+        --bar-text: #0f172a;
+        --bar-border: #cbd5e1;
+        --in-bg: #ffffff;
+      }
+      [data-theme="dark"] {
+        --app-bg: #0f172a;
+        --bar-bg: #1e293b;
+        --bar-text: #f8fafc;
+        --bar-border: #475569;
+        --in-bg: #0f172a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--app-bg);
+        font-family: "Segoe UI", Calibri, Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        transition: background 0.2s;
+      }
+
+      /* ribbon */
+      .bar {
+        width: 100%;
+        max-width: 880px;
+        background: var(--bar-bg);
+        color: var(--bar-text);
+        border: 1px solid var(--bar-border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .bar-top,
+      .bar-menu {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .bar-top .grow {
+        flex: 1 1 160px;
+      }
+      .b-mode {
+        background: #16a34a;
+      }
+      .b-def {
+        background: #0d9488;
+      }
+      .hamb {
+        display: none;
+        width: 38px;
+        height: 34px;
+        border: 1px solid var(--bar-border);
+        background: var(--in-bg);
+        border-radius: 6px;
+        cursor: pointer;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+        padding: 0;
+      }
+      .hamb span {
+        display: block;
+        width: 18px;
+        height: 2px;
+        background: var(--bar-text);
+        border-radius: 2px;
+      }
+      @media (max-width: 900px) {
+        .hamb {
+          display: flex;
+        }
+        .bar-menu {
+          display: none;
+        }
+        .bar-menu.open {
+          display: flex;
+        }
+      }
+      .bar input,
+      .bar select {
+        padding: 7px 9px;
+        border: 1px solid var(--bar-border);
+        background: var(--in-bg);
+        color: var(--bar-text);
+        border-radius: 6px;
+        font-size: 12.5px;
+        outline: none;
+        min-width: 0;
+      }
+      .bar .grow {
+        flex: 1 1 190px;
+      }
+      .btn {
+        padding: 7px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        color: #fff;
+        white-space: nowrap;
+      }
+      .b-new {
+        background: #3b82f6;
+      }
+      .b-add {
+        background: #0284c7;
+      }
+      .b-dash {
+        background: #475569;
+      }
+      .b-an {
+        background: #8b5cf6;
+      }
+      .b-seal {
+        background: #d97706;
+      }
+      .b-save {
+        background: #2563eb;
+      }
+      .b-pdf {
+        background: #10b981;
+      }
+      .b-th {
+        background: #334155;
+      }
+      .b-out {
+        background: #ef4444;
+      }
+      .sp {
+        flex: 1;
+      }
+
+      /* sheets */
+      .sheets {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+        overflow-x: auto;
+      }
+      .qt-page {
+        width: 860px;
+        min-height: 1216px;
+        flex: none;
+        background: #fff;
+        color: #000;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+        font-size: 13.5px;
+        line-height: 1.45;
+      }
+      .model-default {
+        --c1: #0b6bb8;
+        --c2: #4b5563;
+      }
+      .model-haka {
+        --c1: #f15a24;
+        --c2: #1f2a6b;
+      }
+      .model-masar {
+        --c1: #1b2a5c;
+        --c2: #f26522;
+      }
+      .model-wefaq {
+        --c1: #1f5fbf;
+        --c2: #d62839;
+      }
+      .model-masar .hdr {
+        border-bottom: 3px solid var(--c2);
+      }
+      .hdr {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin: 30px 40px 0;
+        padding-bottom: 10px;
+      }
+      .logo {
+        max-height: 84px;
+        max-width: 250px;
+        object-fit: contain;
+      }
+      .htxt {
+        text-align: right;
+        color: #1e293b;
+        margin-left: auto;
+      }
+      .h-ar {
+        font-size: 23px;
+        font-weight: 800;
+        direction: rtl;
+        line-height: 1.3;
+        color: var(--c1);
+      }
+      .h-en {
+        font-size: 19px;
+        font-weight: 800;
+        line-height: 1.3;
+      }
+      .h-sub {
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 2px;
+      }
+      .pg-body {
+        flex: 1;
+        padding: 14px 40px 10px;
+        display: flex;
+        flex-direction: column;
+      }
+      .pg-body > * {
+        flex: none;
+      }
+      .ftr {
+        margin-top: auto;
+      }
+      .f-addr {
+        text-align: center;
+        font-size: 12.5px;
+        padding: 8px 40px;
+        color: #1e293b;
+      }
+      .f-bar {
+        height: 12px;
+        background: linear-gradient(90deg, var(--c1) 62%, var(--c2) 62%);
+      }
+
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+      .meta .mr {
+        text-align: right;
+        min-width: 200px;
+      }
+      .b {
+        font-weight: 700;
+      }
+      .u {
+        text-decoration: underline;
+      }
+      .ctr {
+        text-align: center;
+      }
+      .to {
+        margin: 10px 0 12px;
+        min-height: 20px;
+      }
+      .subj {
+        text-align: center;
+        margin: 10px 0 12px;
+        font-size: 15px;
+      }
+      .itm,
+      .scope {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .itm th,
+      .itm td {
+        border: 1px solid #000;
+        padding: 6px 8px;
+        text-align: center;
+        font-size: 13.5px;
+      }
+      .itm td.l {
+        text-align: left;
+      }
+      .itm th:first-child,
+      .itm td:first-child {
+        width: 46px;
+      }
+      .itm th:nth-child(3),
+      .itm td:nth-child(3) {
+        width: 60px;
+      }
+      .itm th:nth-child(4),
+      .itm td:nth-child(4) {
+        width: 150px;
+      }
+      .itm th:nth-child(5),
+      .itm td:nth-child(5) {
+        width: 120px;
+      }
+      .itm th.no-pdf,
+      .itm td.no-pdf {
+        width: 28px;
+        border: none;
+        padding: 0;
+      }
+      .del {
+        border: none;
+        background: #ef4444;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 22px;
+        height: 22px;
+      }
+      .addrow {
+        align-self: flex-start;
+        margin-top: 6px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        background: #e0f2fe;
+        color: #0284c7;
+        border: 1px dashed #0284c7;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .pg-body ul,
+      .pg-body ol {
+        margin: 4px 0 6px;
+        padding-left: 24px;
+      }
+      .notes-h {
+        margin-top: 12px;
+      }
+      .scope {
+        margin-top: 12px;
+        border: 1px solid #000;
+      }
+      .scope td {
+        vertical-align: top;
+        width: 50%;
+        padding: 6px 8px;
+        font-size: 12.5px;
+        text-align: justify;
+      }
+      .scope td + td {
+        border-left: 1px solid #000;
+      }
+      .scope ol {
+        padding-left: 26px;
+      }
+      .terms td {
+        font-size: 12px;
+      }
+      .addl {
+        color: #6b7280;
+        margin: 4px 0 0;
+      }
+      .closing {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        margin-top: 14px;
+      }
+      .cl-l {
+        flex: 1;
+      }
+      .cl-l .sign {
+        margin-top: 18px;
+      }
+      .seal-row {
+        margin-top: auto !important;
+        padding-top: 14px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-start;
+        gap: 8px;
+        min-height: 130px;
+      }
+      .seal-row img,
+      .a-seal img {
+        max-height: 150px;
+        max-width: 230px;
+        object-fit: contain;
+      }
+      .a-seal {
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .a-seal .b {
+        width: 100%;
+      }
+
+      /* editing */
+      [contenteditable] {
+        outline: none;
+        min-height: 1em;
+      }
+      .qt-page [contenteditable]:hover {
+        outline: 1px dashed #94a3b8;
+      }
+      .qt-page [contenteditable]:focus {
+        outline: 2px solid #3b82f6;
+        background: #eff6ff;
+      }
+      .exporting .no-pdf {
+        display: none !important;
+      }
+      .exporting [contenteditable] {
+        outline: none !important;
+        background: transparent !important;
+      }
+      .exporting .qt-page {
+        box-shadow: none;
+      }
+      .ro .edit-only,
+      .ro .no-pdf {
+        display: none !important;
+      }
+      .ro .qt-page [contenteditable]:hover {
+        outline: none;
+      }
+
+      #qtToast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: #0f172a;
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        border-left: 4px solid #10b981;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        z-index: 99999;
+      }
+      .spin {
+        width: 15px;
+        height: 15px;
+        border: 2px solid #fff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: sp 0.8s linear infinite;
+      }
+      @keyframes sp {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media print {
+        @page {
+          size: A4;
+          margin: 0;
+        }
+        .bar,
+        #qtToast,
+        .no-pdf {
+          display: none !important;
+        }
+        body {
+          background: #fff;
+          padding: 0;
+        }
+        .qt-page {
+          box-shadow: none;
+          break-after: page;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="qtToast">
+      <div id="qtSpin" class="spin"></div>
+      <span id="qtMsg"></span>
+    </div>
+
+    <datalist id="eqList"></datalist>
+    <datalist id="cusList"></datalist>
+
+    <div class="bar">
+      <div class="bar-top">
+        <select id="companySelect" class="grow" onchange="onCompanyChange()">
+          <option value="">-- Choose Company --</option>
+        </select>
+        <button
+          class="btn b-mode"
+          id="modeBtn"
+          onclick="toggleEditMode()"
+        ></button>
+        <button
+          class="hamb"
+          id="hambBtn"
+          onclick="toggleMenu()"
+          aria-label="Menu"
+        >
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <div class="bar-menu" id="barMenu">
+        <input
+          id="brandInput"
+          class="grow edit-only"
+          placeholder="Company short name (used in text)"
+          onchange="onBrandChange()"
+        />
+        <input
+          type="date"
+          id="qtDateInput"
+          class="edit-only"
+          onchange="onDateChange()"
+          title="Quotation date"
+        />
+        <input
+          id="cusPick"
+          list="cusList"
+          class="grow edit-only"
+          placeholder="Pick customer..."
+          onchange="pickCustomer(this)"
+        />
+        <input
+          id="eqPick"
+          list="eqList"
+          class="grow edit-only"
+          placeholder="Add equipment row..."
+          onchange="pickEquipment(this)"
+        />
+        <div class="sp"></div>
+        <button class="btn b-new" onclick="resetNewQT()">
+          <i class="fas fa-file-alt"></i> New
+        </button>
+        <button class="btn b-add edit-only" onclick="addRow()">
+          <i class="fas fa-plus"></i> Row
+        </button>
+        <button class="btn b-an" onclick="toggleAnnex()">
+          <i class="fas fa-file"></i> Annexure
+        </button>
+        <button class="btn b-seal" onclick="toggleSeal()">
+          <i class="fas fa-stamp"></i> Seal
+        </button>
+        <button
+          class="btn b-def edit-only"
+          onclick="saveTemplate()"
+          title="Save vendor code, notes, scope and terms as this company's default"
+        >
+          <i class="fas fa-bookmark"></i> Set Default
+        </button>
+        <button class="btn b-save" onclick="saveQT()">
+          <i class="fas fa-save"></i> Save
+        </button>
+        <button class="btn b-pdf" onclick="downloadPDF()">
+          <i class="fas fa-file-pdf"></i> PDF
+        </button>
+        <a href="dashboard.html" class="btn b-dash"
+          ><i class="fas fa-th-list"></i
+        ></a>
+        <button class="btn b-th" id="themeBtn" onclick="togglePageTheme()">
+          <i class="fas fa-moon"></i>
+        </button>
+        <button class="btn b-out" onclick="window.qtSession.logoutQT()">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <div class="sheets" id="sheets">
+      <!-- PAGE 1 -->
+      <div class="qt-page model-default" id="pg1">
+        <div class="pg-body">
+          <div class="meta">
+            <div class="b" data-f="vendor" contenteditable="true"></div>
+            <div class="mr">
+              <div>Date: <span id="dispDate">------</span></div>
+              <div>Ref: <span id="dispQtNo">------</span></div>
+            </div>
+          </div>
+          <div class="to" data-f="to" contenteditable="true"></div>
+          <div class="subj b" data-f="subject" contenteditable="true"></div>
+          <div data-f="dear" contenteditable="true"></div>
+          <div
+            data-f="intro"
+            contenteditable="true"
+            style="margin-bottom: 8px"
+          ></div>
+
+          <table class="itm">
+            <thead>
+              <tr>
+                <th data-f="thSn" contenteditable="true"></th>
+                <th data-f="thItem" contenteditable="true"></th>
+                <th data-f="thQty" contenteditable="true"></th>
+                <th data-f="thPrice" contenteditable="true"></th>
+                <th data-f="thRem" contenteditable="true"></th>
+                <th class="no-pdf"></th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+          <button class="addrow no-pdf" onclick="addRow()">+ Add Row</button>
+
+          <div class="u notes-h" data-f="notesHdr" contenteditable="true"></div>
+          <ul data-l="notes" contenteditable="true"></ul>
+
+          <table class="scope">
+            <tr>
+              <td>
+                <div
+                  class="u b"
+                  data-f="scopeCoHdr"
+                  contenteditable="true"
+                ></div>
+                <ol data-l="scopeCo" contenteditable="true"></ol>
+              </td>
+              <td>
+                <div
+                  class="u b"
+                  data-f="scopeClHdr"
+                  contenteditable="true"
+                ></div>
+                <ol data-l="scopeCl" contenteditable="true"></ol>
+              </td>
+            </tr>
+          </table>
+          <div class="addl" data-f="addl" contenteditable="true"></div>
+
+          <div class="closing">
+            <div class="cl-l">
+              <div data-f="closing" contenteditable="true"></div>
+              <div class="sign" data-f="sign" contenteditable="true"></div>
+            </div>
+          </div>
+          <div class="seal-row">
+            <img class="qSeal" style="display: none" /><img
+              class="qSign"
+              style="display: none"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE 2 -->
+      <div class="qt-page model-default" id="pg2">
+        <div class="pg-body">
+          <div
+            class="b u ctr"
+            style="font-size: 15px; margin-top: 8px"
+            data-f="annexTitle"
+            contenteditable="true"
+          ></div>
+          <div
+            class="b"
+            style="font-size: 15px; margin: 4px 0"
+            data-f="annexSub"
+            contenteditable="true"
+          ></div>
+          <table class="scope terms" style="margin-top: 4px">
+            <tr>
+              <td>
+                <ol
+                  data-l="termsL"
+                  contenteditable="true"
+                  oninput="renumberTerms()"
+                ></ol>
+              </td>
+              <td>
+                <ol
+                  data-l="termsR"
+                  id="termsR"
+                  contenteditable="true"
+                  start="14"
+                ></ol>
+              </td>
+            </tr>
+          </table>
+          <div class="a-seal">
+            <div class="b" data-f="annexLbl" contenteditable="true"></div>
+            <img class="qSeal" style="display: none" /><img
+              class="qSign"
+              style="display: none"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let companiesList = [],
+        savedCustomers = [],
+        savedEquipments = [];
+      let isSeal = false,
+        curBrand = "{COMPANY}",
+        curEmail = "{EMAIL}";
+      const MON = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const $ = (id) => document.getElementById(id);
+
+      const HDR =
+        '<div class="hdr"><img class="logo" style="display:none" /><div class="htxt"><div class="h-ar"></div><div class="h-en"></div><div class="h-sub"></div></div></div>';
+      const FTR =
+        '<div class="ftr"><div class="f-addr"></div><div class="f-bar"></div></div>';
+
+      const DEF = {
+        f: {
+          vendor: "L&T Vendor: ",
+          to: "To,\nMr. Name\nCompany Name\nK.S.A",
+          subject: "Subject: Quotation for Equipment",
+          dear: "Dear Sir,",
+          intro:
+            "Thank you for your interest in our services. Please find the quotation mentioned below for your consideration.",
+          thSn: "SN",
+          thItem: "Item",
+          thQty: "Qty",
+          thPrice: "Monthly Price (SAR)",
+          thRem: "Remarks",
+          notesHdr: "Important Notes:",
+          scopeCoHdr: "{COMPANY} SCOPE OF SERVICES:",
+          scopeClHdr: "CLIENT SCOPE:",
+          addl: "Additional Terms and Conditions as Described in Annexure A.",
+          closing: "Waiting for your favorable reply for PO and Work Order",
+          sign: "Best Regards,\nName\nPhone",
+          annexTitle: "ANNEXURE-A",
+          annexSub: "TERMS AND CONDITIONS:",
+          annexLbl: "{COMPANY}",
+        },
+        l: {
+          notes: [
+            "Payment shall be done within 20 Days after submission of Invoice",
+            "FAT Shall be provided to Operators",
+            "Client shall not deal directly with Third parties who are under {COMPANY} Supervision in Future.",
+          ],
+          scopeCo: [
+            "Providing valid documents of the equipment and operator/driver.",
+            "Oil change and periodic Maintenance of the supplied equipment.",
+            "Mobilization and demobilization of the requested equipment to site as per agreed quotation.",
+            "Mobilization will be done within 5 working days.",
+          ],
+          scopeCl: [
+            "Providing support services while delivery/return of the supplied equipment.",
+            "During the rental period food, accommodation and site transportation for the operator to be provided.",
+            "Fuel and other consumptions for the equipment have to be provided by the Client.",
+            "Gate passes, Work Permit or permission from authorities has to be arranged by Client.",
+            "Maintaining & providing monthly time sheets.",
+            "Internal shifting of any equipment's from one place to another.",
+          ],
+          termsL: [
+            "The rate is based on minimum 10 hours per day, 60 Hours per Week & 260 Hours per Month.",
+            "Working less than 10 Hours per day will be considered as full working day.",
+            "Excess hours and weekend working will be charged on pro-rata.",
+            "Time sheet start from date of equipment/service delivered to work location agreed by Customer.",
+            "{COMPANY} will not accept any reduction in the agreed rental charge for any adverse weather or site condition. Idle hours such as Rain, Windy, sand storm or due to stoppage of client any reason will be considered as working hours.",
+            "Client should provide free access, hard level standing foundation for safe operation of the equipment's.",
+            "Client responsible for Safety and Security for all Equipment and materials",
+            "Gate passes for the equipment and personnel to be arranged by client. Client should arrange all police/permit by applicable regulatory and road permits as and when required for operation of the equipment is restricted area.",
+            "Any delays or stoppage such as waiting for client permission, work permit, Gate passes, waiting for cargo to arrive will be considered as working hours.",
+            "Incase violating terms of agreed contract or quotation by Customer/{COMPANY} or misuse of supplied equipment/personnel by customer then {COMPANY} has rights to withdraw its services with prior notice to the customer.",
+            "The Slings, shackles and beams for the Crane & Boom Truck accessories to be provided in an additional cost, subject to availability.",
+            "Equipment's will be mobilized only after the receipt of your official Purchase Order/Email Confirmation, subject to availability.",
+            "Replacement during contract period is subject to availability.",
+          ],
+          termsR: [
+            "Mechanical breakdown will be repaired by {COMPANY}; rental will not be charged during the breakdown period. Claims for direct, indirect or consequential losses of client will not be made against {COMPANY}. However, Client will be responsible for all expenses involved, including and not limited to rental, arising from any breakdown and all loss or damage incurred by {COMPANY} due to client's negligence, misdirection or misuse of {COMPANY} Equipment. Any damage to the equipment will be repaired by {COMPANY} and charged to the client's account, and the hire shall continue till the time of equipment is completely repaired.",
+            "In case of breakdown inform immediately by email at {EMAIL}",
+            "Insurance covers for Equipment's and personnel as per insured company. Client shall arrange insurance of the client equipment's and machineries.",
+            "Client shall provide at his cost full insurance of contract works, public liability and lifted goods for the duration of the rental period, with {COMPANY} to be noted as co-insured on the policies and all {COMPANY} risks and third party liability shall be covered with an express and unconditional waiver of subrogation to {COMPANY} and its Subcontractors. Insurance for tandem lift operation to be covered by client.",
+            "In case of loss of our supplied equipment due to theft, fire or accident etc... The client is responsible to provide us the complete report and supporting documents in order to claim for our loss.",
+            "Incase equipment without operator/driver supplied to the client, the violations and damages charges will be clear by the client only.",
+            "Our prices are exclusive of any taxes including VAT, duties and or levies. Upon implementation of any such taxes hereafter shall be charged extra at actual as per Saudi Government Standards.",
+            "Other terms and conditions as per Saudi Arabian trade law.",
+          ],
+        },
+      };
+
+      /* ---------- helpers ---------- */
+      function esc(s) {
+        return String(s == null ? "" : s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function num(v) {
+        return parseFloat(String(v || "").replace(/[^0-9.]/g, "")) || 0;
+      }
+      function fmtDate(iso) {
+        const p = String(iso || "").split("-");
+        return p.length === 3 ? `${p[2]}-${MON[+p[1] - 1]}-${p[0]}` : "------";
+      }
+      function curComp() {
+        return companiesList.find(
+          (c) => String(c.id) === $("companySelect").value,
+        );
+      }
+      function brandOf(c) {
+        return (c.company_name_en || "").toUpperCase();
+      }
+      function setList(el, arr) {
+        el.innerHTML = "";
+        (arr || []).forEach((t) => {
+          const li = document.createElement("li");
+          li.textContent = t;
+          el.appendChild(li);
+        });
+      }
+      function renumberTerms() {
+        $("termsR").start =
+          $("pg2").querySelector('[data-l="termsL"]').children.length + 1;
+      }
+      function swapText(a, b) {
+        if (!a || a === b) return;
+        document.querySelectorAll(".pg-body").forEach((root) => {
+          const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+          let n;
+          while ((n = w.nextNode()))
+            if (n.nodeValue.includes(a))
+              n.nodeValue = n.nodeValue.split(a).join(b);
+        });
+      }
+      function applyBrandEmail(brand, email) {
+        swapText(curBrand, brand);
+        curBrand = brand;
+        swapText(curEmail, email);
+        curEmail = email;
+        $("brandInput").value = brand.startsWith("{") ? "" : brand;
+      }
+      function onBrandChange() {
+        const v = $("brandInput").value.trim();
+        if (v) applyBrandEmail(v, curEmail);
+      }
+      document.addEventListener("paste", (e) => {
+        if (e.target.closest && e.target.closest("[contenteditable]")) {
+          e.preventDefault();
+          document.execCommand(
+            "insertText",
+            false,
+            (e.clipboardData || window.clipboardData).getData("text/plain"),
+          );
+        }
+      });
+
+      /* ---------- edit mode & menu ---------- */
+      let editMode = true;
+      function applyEdit() {
+        document
+          .querySelectorAll(".qt-page [contenteditable]")
+          .forEach((e) =>
+            e.setAttribute("contenteditable", editMode ? "true" : "false"),
+          );
+        document.body.classList.toggle("ro", !editMode);
+        $("modeBtn").innerHTML = editMode
+          ? '<i class="fas fa-eye"></i> Read only'
+          : '<i class="fas fa-pen"></i> Edit';
+      }
+      function setEditMode(on) {
+        editMode = on;
+        applyEdit();
+      }
+      function toggleEditMode() {
+        setEditMode(!editMode);
+      }
+      function toggleMenu() {
+        $("barMenu").classList.toggle("open");
+        $("hambBtn").classList.toggle("active");
+      }
+      function fitSheets() {
+        const w = window.innerWidth - 24;
+        $("sheets").style.zoom = w < 860 ? w / 860 : "";
+      }
+
+      /* ---------- theme ---------- */
+      function togglePageTheme() {
+        const next =
+          document.documentElement.getAttribute("data-theme") === "dark"
+            ? "light"
+            : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try {
+          localStorage.setItem("qt_theme", next);
+        } catch (e) {}
+        updateThemeIcon();
+      }
+      function updateThemeIcon() {
+        const dark =
+          document.documentElement.getAttribute("data-theme") === "dark";
+        $("themeBtn").innerHTML = dark
+          ? '<i class="fas fa-sun"></i>'
+          : '<i class="fas fa-moon"></i>';
+      }
+
+      /* ---------- init & load ---------- */
+      async function initQT() {
+        if (!window.qtSession || !window.qtSession.requirePage()) return;
+        document.querySelectorAll(".qt-page").forEach((p) => {
+          p.insertAdjacentHTML("afterbegin", HDR);
+          p.insertAdjacentHTML("beforeend", FTR);
+        });
+        updateThemeIcon();
+        fitSheets();
+        window.addEventListener("resize", fitSheets);
+        await Promise.all([loadCompanies(), loadCustomers(), loadEquipments()]);
+        const autoEdit = sessionStorage.getItem("autoEditQtTrigger") === "true";
+        sessionStorage.removeItem("autoEditQtTrigger");
+        const stored = sessionStorage.getItem("activeQTData");
+        setEditMode(autoEdit);
+        if (stored) {
+          try {
+            await restoreQT(JSON.parse(stored));
+          } catch (e) {
+            console.error(e);
+            resetNewQT();
+          }
+          sessionStorage.removeItem("activeQTData");
+        } else {
+          resetNewQT();
+        }
+      }
+
+      async function loadCompanies() {
+        try {
+          const d = await (await fetch("/e-invoice/api/companies")).json();
+          if (d.success) {
+            companiesList = d.companies || [];
+            $("companySelect").innerHTML =
+              '<option value="">-- Choose Company --</option>' +
+              companiesList
+                .map(
+                  (c) =>
+                    `<option value="${c.id}">${esc(c.company_name_en)}</option>`,
+                )
+                .join("");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      async function loadCustomers() {
+        try {
+          const d = await (await fetch("/quotation/api/customers")).json();
+          if (d.success) {
+            savedCustomers = d.customers || [];
+            $("cusList").innerHTML = savedCustomers
+              .map(
+                (c) => `<option value="${esc(c.customer_name_en)}"></option>`,
+              )
+              .join("");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      async function loadEquipments() {
+        try {
+          const d = await (await fetch("/quotation/api/equipments")).json();
+          if (d.success) {
+            savedEquipments = d.equipments || [];
+            $("eqList").innerHTML = savedEquipments
+              .map(
+                (e) => `<option value="${esc(e.equipment_name_en)}"></option>`,
+              )
+              .join("");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      /* ---------- company / model ---------- */
+      function detectModel(c) {
+        const code = (c.short_code || c.company_name_en || "").toUpperCase();
+        if (code.includes("HAK")) return "haka";
+        if (code.includes("MW") || code.includes("MASAR")) return "masar";
+        if (code.includes("WE")) return "wefaq";
+        return "default";
+      }
+      function applyCompanyVisual(c) {
+        document.querySelectorAll(".qt-page").forEach((p) => {
+          p.className = `qt-page model-${c ? detectModel(c) : "default"}`;
+          const logo = p.querySelector(".logo");
+          if (c && c.logo_url) {
+            logo.src = c.logo_url;
+            logo.style.display = "block";
+          } else {
+            logo.style.display = "none";
+          }
+          p.querySelector(".h-ar").innerText = c ? c.company_name_ar || "" : "";
+          p.querySelector(".h-en").innerText = c ? c.company_name_en || "" : "";
+          p.querySelector(".h-sub").innerText = c
+            ? [
+                c.cr_number ? `C.R: ${c.cr_number}` : "",
+                c.vat_number ? `VAT: ${c.vat_number}` : "",
+              ]
+                .filter(Boolean)
+                .join("   |   ")
+            : "";
+          const addr = c
+            ? [c.address_line_ar, c.address_line_en]
+                .filter(Boolean)
+                .map((x) => x.trim())
+                .join(" | ")
+            : "";
+          p.querySelector(".f-addr").innerText = c
+            ? [addr, c.email ? `Email: ${c.email}` : ""]
+                .filter(Boolean)
+                .join("  -  ")
+            : "";
+        });
+      }
+      async function onCompanyChange() {
+        const c = curComp();
+        setSeal(false);
+        applyCompanyVisual(c);
+        if (!c) {
+          $("dispQtNo").innerText = "------";
+          return;
+        }
+        const keep = {};
+        ["to", "subject"].forEach((k) => {
+          keep[k] = document.querySelector(`[data-f="${k}"]`).innerText;
+        });
+        buildDefaults(await getTemplate(c.id));
+        Object.keys(keep).forEach((k) => {
+          document.querySelector(`[data-f="${k}"]`).innerText = keep[k];
+        });
+        applyBrandEmail(brandOf(c), c.email || "-");
+        fetchNextQtNo(c.id);
+      }
+      async function fetchNextQtNo(id) {
+        try {
+          const d = await (
+            await fetch(`/quotation/api/next-qt-no?company_id=${id || ""}`)
+          ).json();
+          if (d.success) $("dispQtNo").innerText = d.qt_no;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      /* ---------- content ---------- */
+      async function getTemplate(id) {
+        try {
+          const d = await (await fetch(`/quotation/api/template/${id}`)).json();
+          return d.success && d.template && d.template.f ? d.template : null;
+        } catch (e) {
+          return null;
+        }
+      }
+      const TPL_F = [
+        "vendor",
+        "dear",
+        "intro",
+        "thSn",
+        "thItem",
+        "thQty",
+        "thPrice",
+        "thRem",
+        "notesHdr",
+        "scopeCoHdr",
+        "scopeClHdr",
+        "addl",
+        "closing",
+        "sign",
+        "annexTitle",
+        "annexSub",
+        "annexLbl",
+      ];
+      const TPL_L = ["notes", "scopeCo", "scopeCl", "termsL", "termsR"];
+      async function saveTemplate() {
+        const c = curComp();
+        if (!c) return alert("Select company first!");
+        const d = collectDoc();
+        const ph = (x) => {
+          if (curBrand && curBrand.length > 2 && !curBrand.startsWith("{"))
+            x = x.split(curBrand).join("{COMPANY}");
+          if (curEmail && curEmail.includes("@"))
+            x = x.split(curEmail).join("{EMAIL}");
+          return x;
+        };
+        const t = { f: {}, l: {} };
+        TPL_F.forEach((k) => {
+          t.f[k] = ph(d.f[k] || "");
+        });
+        TPL_L.forEach((k) => {
+          t.l[k] = (d.l[k] || []).map(ph);
+        });
+        try {
+          const r = await (
+            await fetch("/quotation/api/save-template", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ company_id: c.id, template: t }),
+            })
+          ).json();
+          showQtToast(
+            r.success
+              ? "Saved as default for this company"
+              : "Failed to save default!",
+            false,
+          );
+        } catch (e) {
+          showQtToast("Network error!", false);
+        }
+      }
+      function buildDefaults(tpl) {
+        tpl = tpl || {};
+        document.querySelectorAll("[data-f]").forEach((e) => {
+          const k = e.dataset.f;
+          e.innerText = (tpl.f && tpl.f[k] != null ? tpl.f[k] : DEF.f[k]) || "";
+        });
+        document.querySelectorAll("[data-l]").forEach((e) => {
+          const k = e.dataset.l;
+          setList(e, (tpl.l && tpl.l[k]) || DEF.l[k]);
+        });
+        curBrand = "{COMPANY}";
+        curEmail = "{EMAIL}";
+        renumberTerms();
+      }
+      function setDate(iso) {
+        $("qtDateInput").value = iso || "";
+        $("dispDate").innerText = fmtDate(iso);
+      }
+      function onDateChange() {
+        $("dispDate").innerText = fmtDate($("qtDateInput").value);
+      }
+
+      function addRow(d) {
+        d = d || {};
+        const tb = $("itemsBody");
+        const tr = document.createElement("tr");
+        const cell = (v, cls) =>
+          `<td contenteditable="${editMode}"${cls ? ` class="${cls}"` : ""}>${esc(v)}</td>`;
+        tr.innerHTML =
+          cell(d.sn != null ? d.sn : tb.children.length + 1) +
+          cell(d.name, "l") +
+          cell(d.qty != null ? d.qty : "01") +
+          cell(d.price) +
+          cell(d.remark) +
+          '<td class="no-pdf"><button class="del" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
+        tb.appendChild(tr);
+      }
+      function pickEquipment(inp) {
+        const v = inp.value.trim().toLowerCase();
+        const e = savedEquipments.find(
+          (x) => (x.equipment_name_en || "").toLowerCase() === v,
+        );
+        addRow(
+          e
+            ? {
+                name: e.equipment_name_en,
+                price: e.default_rent
+                  ? Number(e.default_rent).toLocaleString("en-US")
+                  : "",
+              }
+            : { name: inp.value.trim() },
+        );
+        inp.value = "";
+      }
+      function pickCustomer(inp) {
+        const v = inp.value.trim().toLowerCase();
+        const c = savedCustomers.find(
+          (x) => (x.customer_name_en || "").toLowerCase() === v,
+        );
+        if (c)
+          $("pg1").querySelector('[data-f="to"]').innerText = [
+            "To,",
+            c.contact_person,
+            c.customer_name_en,
+            "K.S.A",
+          ]
+            .filter(Boolean)
+            .join("\n");
+        inp.value = "";
+      }
+      async function resetNewQT() {
+        const c = curComp();
+        buildDefaults(c ? await getTemplate(c.id) : null);
+        $("itemsBody").innerHTML = "";
+        addRow({ sn: 1 });
+        setDate(new Date().toLocaleDateString("en-CA"));
+        setSeal(false);
+        $("pg2").style.display = "flex";
+        if (c) {
+          applyBrandEmail(brandOf(c), c.email || "-");
+          fetchNextQtNo(c.id);
+        } else {
+          $("dispQtNo").innerText = "------";
+        }
+      }
+      function toggleAnnex() {
+        const p = $("pg2");
+        p.style.display = p.style.display === "none" ? "flex" : "none";
+      }
+
+      /* ---------- seal ---------- */
+      function setSeal(on) {
+        isSeal = on;
+        const c = curComp();
+        document.querySelectorAll(".qSeal").forEach((i) => {
+          if (on && c && c.seal_url) {
+            i.src = c.seal_url;
+            i.style.display = "block";
+          } else {
+            i.style.display = "none";
+          }
+        });
+        document.querySelectorAll(".qSign").forEach((i) => {
+          if (on && c && c.signature_url) {
+            i.src = c.signature_url;
+            i.style.display = "block";
+          } else {
+            i.style.display = "none";
+          }
+        });
+      }
+      function toggleSeal() {
+        if (!curComp()) return alert("Select company first!");
+        setSeal(!isSeal);
+      }
+
+      /* ---------- save ---------- */
+      async function autoSaveDirectories(toLines, items) {
+        const post = (u, b) =>
+          fetch(u, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(b),
+          });
+        let added = false;
+        try {
+          const lines = toLines.filter(
+            (x) => !/^(k\.?\s?s\.?\s?a\.?|saudi arabia)$/i.test(x),
+          );
+          const name = lines[lines.length - 1];
+          const contact = lines.length > 1 ? lines[0] : "";
+          if (
+            name &&
+            name !== "Company Name" &&
+            !savedCustomers.some(
+              (c) =>
+                (c.customer_name_en || "").toLowerCase() === name.toLowerCase(),
+            )
+          ) {
+            await post("/quotation/api/save-customer", {
+              customer_name_en: name,
+              contact_person: contact,
+            });
+            added = true;
+          }
+          for (const it of items) {
+            const n = (it.name || "").trim();
+            if (!n || /mobiliz/i.test(n)) continue;
+            if (
+              savedEquipments.some(
+                (e) =>
+                  (e.equipment_name_en || "").toLowerCase() === n.toLowerCase(),
+              )
+            )
+              continue;
+            await post("/quotation/api/save-equipment", {
+              equipment_name_en: n,
+              default_rent: num(it.price),
+            });
+            savedEquipments.push({ equipment_name_en: n });
+            added = true;
+          }
+          if (added) await Promise.all([loadCustomers(), loadEquipments()]);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      function collectDoc() {
+        const f = {},
+          l = {};
+        document.querySelectorAll("[data-f]").forEach((e) => {
+          f[e.dataset.f] = e.innerText.trim();
+        });
+        document.querySelectorAll("[data-l]").forEach((e) => {
+          l[e.dataset.l] = [...e.children]
+            .map((li) => li.innerText.trim())
+            .filter(Boolean);
+        });
+        return {
+          f,
+          l,
+          brand: curBrand,
+          email: curEmail,
+          annex: $("pg2").style.display !== "none",
+        };
+      }
+      function collectItems() {
+        return [...$("itemsBody").children].map((tr) => {
+          const t = [...tr.children].map((td) => td.innerText.trim());
+          return { sn: t[0], name: t[1], qty: t[2], price: t[3], remark: t[4] };
+        });
+      }
+      async function saveQT() {
+        const qtNo = $("dispQtNo").innerText.trim();
+        if (!qtNo || qtNo === "------")
+          return showQtToast(
+            "Select a company to generate Quotation No first!",
+            false,
+          );
+        showQtToast("Saving Quotation...", true);
+        const c = curComp();
+        const items = collectItems();
+        const sub = items.reduce((s, i) => s + num(i.qty) * num(i.price), 0);
+        const vat = sub * 0.15;
+        const doc = collectDoc();
+        const toLines = (doc.f.to || "")
+          .split("\n")
+          .map((x) => x.trim())
+          .filter(Boolean)
+          .filter((x) => !/^to,?$/i.test(x));
+        await autoSaveDirectories(toLines, items);
+        const payload = {
+          qt_no: qtNo,
+          company_id: c ? c.id : null,
+          company_name: c ? c.company_name_en : "",
+          customer_name: toLines.join(" - "),
+          customer_details: { doc },
+          qt_date: $("qtDateInput").value,
+          valid_until: "",
+          attention_to: "",
+          project_location: "",
+          subject: doc.f.subject || "",
+          subtotal: sub,
+          vat_amount: vat,
+          grand_total: sub + vat,
+          has_seal: isSeal,
+          line_items: items,
+          notes_ar: "",
+          notes_en: (doc.l.notes || []).join("\n"),
+        };
+        try {
+          const d = await (
+            await fetch("/quotation/api/save-qt-record", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            })
+          ).json();
+          showQtToast(
+            d.success
+              ? "Quotation Saved Successfully!"
+              : "Failed to save Quotation!",
+            false,
+          );
+        } catch (e) {
+          showQtToast("Network error while saving!", false);
+        }
+      }
+
+      /* ---------- restore ---------- */
+      async function restoreQT(qt) {
+        const c = companiesList.find(
+          (x) => String(x.id) === String(qt.company_id),
+        );
+        $("companySelect").value = c ? String(c.id) : "";
+        applyCompanyVisual(c);
+
+        let iso = "";
+        if (qt.qt_date) {
+          const s = String(qt.qt_date);
+          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) iso = s;
+          else {
+            const d = new Date(s);
+            iso = isNaN(d) ? s.split("T")[0] : d.toLocaleDateString("en-CA");
+          }
+        }
+        setDate(iso);
+        $("dispQtNo").innerText = qt.qt_no || "------";
+
+        const det =
+          typeof qt.customer_details === "object" && qt.customer_details
+            ? qt.customer_details
+            : JSON.parse(qt.customer_details || "{}");
+        buildDefaults(det.doc || !c ? null : await getTemplate(c.id));
+        if (det.doc) {
+          const d = det.doc;
+          document.querySelectorAll("[data-f]").forEach((e) => {
+            if (d.f && d.f[e.dataset.f] != null) e.innerText = d.f[e.dataset.f];
+          });
+          document.querySelectorAll("[data-l]").forEach((e) => {
+            if (d.l && d.l[e.dataset.l]) setList(e, d.l[e.dataset.l]);
+          });
+          curBrand = d.brand || "";
+          curEmail = d.email || "";
+          $("brandInput").value = curBrand.startsWith("{") ? "" : curBrand;
+          $("pg2").style.display = d.annex === false ? "none" : "flex";
+        } else {
+          const attn = (det.attention || qt.attention_to || "")
+            .replace(/^Attn:\s*/i, "")
+            .replace(/^-$/, "");
+          $("pg1").querySelector('[data-f="to"]').innerText = [
+            "To,",
+            attn,
+            qt.customer_name,
+          ]
+            .filter(Boolean)
+            .join("\n");
+          if (qt.subject)
+            $("pg1").querySelector('[data-f="subject"]').innerText =
+              "Subject: " + qt.subject;
+          if (c) applyBrandEmail(brandOf(c), c.email || "-");
+          $("pg2").style.display = "flex";
+        }
+        renumberTerms();
+
+        const items =
+          typeof qt.line_items === "object" && qt.line_items
+            ? qt.line_items
+            : JSON.parse(qt.line_items || "[]");
+        $("itemsBody").innerHTML = "";
+        (items.length ? items : [{}]).forEach((i, n) =>
+          addRow({
+            sn: i.sn != null ? i.sn : n + 1,
+            name: i.name != null ? i.name : i.vtype,
+            qty: i.qty,
+            price: i.price != null ? i.price : i.rate,
+            remark: i.remark,
+          }),
+        );
+        setSeal(false);
+        if (qt.has_seal) setSeal(true);
+      }
+
+      /* ---------- PDF ---------- */
+      async function downloadPDF() {
+        const qtNo = $("dispQtNo").innerText.trim();
+        if (!qtNo || qtNo === "------")
+          return alert("Please select company / Quotation No first!");
+        if (document.activeElement && document.activeElement.blur)
+          document.activeElement.blur();
+        document.body.classList.add("exporting");
+        $("sheets").style.zoom = "";
+        showQtToast("Generating PDF...", true);
+        try {
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF("p", "pt", "a4");
+          const W = pdf.internal.pageSize.getWidth(),
+            H = pdf.internal.pageSize.getHeight();
+          const pages = [...document.querySelectorAll(".qt-page")].filter(
+            (p) => p.style.display !== "none",
+          );
+          for (let i = 0; i < pages.length; i++) {
+            await new Promise((r) => setTimeout(r, 60));
+            const cv = await html2canvas(pages[i], {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: "#ffffff",
+            });
+            let w = W,
+              h = (W * cv.height) / cv.width;
+            if (h > H) {
+              w = (W * H) / h;
+              h = H;
+            }
+            if (i > 0) pdf.addPage();
+            pdf.addImage(
+              cv.toDataURL("image/jpeg", 0.95),
+              "JPEG",
+              (W - w) / 2,
+              0,
+              w,
+              h,
+            );
+          }
+          pdf.save(`${qtNo}.pdf`);
+          showQtToast("PDF Downloaded Successfully!", false);
+        } catch (e) {
+          console.error(e);
+          showQtToast("Failed to export PDF!", false);
+        } finally {
+          document.body.classList.remove("exporting");
+          fitSheets();
+        }
+      }
+
+      function showQtToast(msg, loading) {
+        const t = $("qtToast");
+        $("qtMsg").innerText = msg;
+        $("qtSpin").style.display = loading ? "block" : "none";
+        t.style.borderLeftColor = loading ? "#0284c7" : "#10b981";
+        t.style.display = "flex";
+        if (!loading)
+          setTimeout(() => {
+            t.style.display = "none";
+          }, 3500);
+      }
+
+      document.addEventListener("DOMContentLoaded", initQT);
+    </script>
+  </body>
+</html>

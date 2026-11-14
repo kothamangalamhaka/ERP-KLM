@@ -1,8 +1,8 @@
 require("dotenv").config();
 require("./routes/backup");
-const https = require("https"); 
+const https = require("https");
 const fs = require("fs");
-const { startEmailCron } = require('./services/autoEmailer');
+const { startEmailCron } = require("./services/autoEmailer");
 const {
   verifyToken,
   verifySuperAdmin,
@@ -20,9 +20,7 @@ const fetch = require("node-fetch");
 const compression = require("compression");
 const backupRoutes = require("./routes/backup");
 const we1OwnEqRoutes = require("./routes/We1OwnEq");
-const { createProxyMiddleware } = require('http-proxy-middleware');
-
-
+const { createProxyMiddleware } = require("http-proxy-middleware");
 
 // Routes
 const billingRoutes = require("./routes/billing");
@@ -34,20 +32,20 @@ const masterDatabaseRoutes = require("./routes/master_database");
 const logsheetRoutes = require("./routes/logsheet_api");
 const entrylogRoutes = require("./routes/entrylog");
 const oeledgerRoutes = require("./routes/oeledger");
-const breakRulesRoutes = require("./routes/break_rules"); 
-const vatBillRoute = require('./routes/vatbill');
+const breakRulesRoutes = require("./routes/break_rules");
+const vatBillRoute = require("./routes/vatbill");
 const lockEntryRoute = require("./routes/Lock-entry");
 const ownEquipmentAuthRoutes = require("./routes/ownEquipmentAuthRoutes");
 const ownEquipmentTrackerRoutes = require("./routes/ownEquipmentTrackerRoutes");
 const ownEquipmentAdminRoutes = require("./routes/ownEquipmentAdminRoutes");
-const employeeTrackerAuthRoutes = require('./routes/employeeTrackerAuthRoutes');
-const employeeTrackerAdminRoutes = require('./routes/employeeTrackerAdminRoutes');
-const employeeTrackerRoutes = require('./routes/employeeTracker');
+const employeeTrackerAuthRoutes = require("./routes/employeeTrackerAuthRoutes");
+const employeeTrackerAdminRoutes = require("./routes/employeeTrackerAdminRoutes");
+const employeeTrackerRoutes = require("./routes/employeeTracker");
 const viewBillRoutes = require("./routes/view_bill");
-const we1EqDriverPayrollRoute = require('./routes/We1_EQ_Driver_Payroll');
-const staffSalaryRoute = require('./routes/StaffSalary');
-const invoiceAuthRoutes = require('./routes/invoiceAuth');
-const zohoInvoiceRoute = require('./routes/zoho_download_inv');
+const we1EqDriverPayrollRoute = require("./routes/We1_EQ_Driver_Payroll");
+const staffSalaryRoute = require("./routes/StaffSalary");
+const invoiceAuthRoutes = require("./routes/invoiceAuth");
+const zohoInvoiceRoute = require("./routes/zoho_download_inv");
 const payrollRouter = require("./routes/klm_emp_payroll");
 const monthly_summary = require("./routes/monthly_list_summary");
 const { checkAndSendOwnEqAlerts } = require("./services/ownEqExpiryAlert");
@@ -56,12 +54,12 @@ const driverBillingRoutes = require("./routes/driver_billing");
 const logsheetToolsRoutes = require("./routes/logsheet_tools");
 const debitNotesRoute = require("./routes/debit_note");
 const eInvoiceRoutes = require("./routes/eInvoice");
-const poRoutes = require("./routes/purchaseOrder");
+const poRoutes = require("./routes/KSAOffice/purchaseOrder");
+const quotationRoutes = require("./routes/KSAOffice/quotation");
 const vendorBillRouter = require("./routes/vendorBill");
 const companyIdentifierRoutes = require("./routes/own_eq_tracker_company_identifier");
 const paymentClearanceRoutes = require("./routes/KSAOffice/nonvat_payment_clearence_note");
 const { router: tsdbPart2Routes } = require("./routes/TSDB_part2");
-
 
 const app = express();
 app.use(compression());
@@ -80,48 +78,51 @@ app.use("/api/backup", backupRoutes);
 app.use("/api/entrylog", entrylogRoutes);
 app.use("/api/oeledger", oeledgerRoutes);
 app.use("/timesheet", breakRulesRoutes);
-app.use('/timesheet/api/vat-tracking', vatBillRoute);
+app.use("/timesheet/api/vat-tracking", vatBillRoute);
 app.use("/api/lock", lockEntryRoute);
 app.use("/api/own-equipment/auth", ownEquipmentAuthRoutes);
 app.use("/api/own-equipment/tracker", ownEquipmentTrackerRoutes);
 app.use("/api/own-equipment/admin", ownEquipmentAdminRoutes);
-app.use('/api/employee-tracker/auth', employeeTrackerAuthRoutes);
-app.use('/api/employee-tracker/admin', employeeTrackerAdminRoutes);
-app.use('/api/employee-tracker', employeeTrackerRoutes);
+app.use("/api/employee-tracker/auth", employeeTrackerAuthRoutes);
+app.use("/api/employee-tracker/admin", employeeTrackerAdminRoutes);
+app.use("/api/employee-tracker", employeeTrackerRoutes);
 app.use("/api/view-bill", viewBillRoutes);
 app.use("/api/we1-own-eq", we1OwnEqRoutes);
-app.use('/api/we1-eq-driver-payroll', we1EqDriverPayrollRoute);
-app.use('/api/staff-salary', staffSalaryRoute);
-app.use('/api/invoice-auth', invoiceAuthRoutes);
-app.use('/api', require('./routes/zoho_download_inv'));
+app.use("/api/we1-eq-driver-payroll", we1EqDriverPayrollRoute);
+app.use("/api/staff-salary", staffSalaryRoute);
+app.use("/api/invoice-auth", invoiceAuthRoutes);
+app.use("/api", require("./routes/zoho_download_inv"));
 app.use("/api/payroll", payrollRouter);
 app.use("/api/monthly-summary", monthly_summary);
 app.use("/timesheet/api/non-vat-tracking", nonVatRouter);
 app.use("/driver-billing", driverBillingRoutes);
 app.use("/timesheet/api/logsheets", logsheetToolsRoutes);
-app.use("/timesheet/api/non-vat-pending-diff", require("./routes/non_vat_pending_diff"));
+app.use(
+  "/timesheet/api/non-vat-pending-diff",
+  require("./routes/non_vat_pending_diff"),
+);
 app.use("/debit-notes", debitNotesRoute);
-app.get("/tools/editor", (req, res) => res.sendFile(path.join(__dirname, "public/Tools/editor/index.html")));
+app.get("/tools/editor", (req, res) =>
+  res.sendFile(path.join(__dirname, "public/Tools/editor/index.html")),
+);
 app.use("/e-invoice", eInvoiceRoutes);
 app.use("/purchase-order", poRoutes);
+app.use("/quotation", quotationRoutes);
 app.use("/vendor-bill", vendorBillRouter);
 app.use("/api/own-equipment/company-helper", companyIdentifierRoutes);
 app.use("/office/nonvat-clearance", paymentClearanceRoutes);
 app.use("/timesheet", tsdbPart2Routes);
 
-
-
-
-
-
 // ==========================================
 // 🔄 REVERSE PROXY FOR PYTHON API (Port 8001)
 // ==========================================
-app.use('/api/python', createProxyMiddleware({
-    target: 'http://127.0.0.1:8001',
+app.use(
+  "/api/python",
+  createProxyMiddleware({
+    target: "http://127.0.0.1:8001",
     changeOrigin: true,
-}));
-
+  }),
+);
 
 // ==========================================
 // 🐍 PYTHON ENGINE PROXY (Port 8001 Forwarder)
@@ -133,7 +134,10 @@ app.use("/py", async (req, res) => {
       method: req.method,
       headers: { "Content-Type": "application/json" },
     };
-    if (["POST", "PUT", "PATCH"].includes(req.method) && Object.keys(req.body || {}).length > 0) {
+    if (
+      ["POST", "PUT", "PATCH"].includes(req.method) &&
+      Object.keys(req.body || {}).length > 0
+    ) {
       options.body = JSON.stringify(req.body);
     }
     const pyRes = await fetch(url, options);
@@ -155,9 +159,10 @@ app.use("/py", async (req, res) => {
     return res.status(pyRes.status).send(buffer);
   } catch (err) {
     console.error("Python Server Proxy Error:", err.message);
-    res.status(500).json({ 
-      success: false, 
-      message: "Python Server Offline or Unreachable on Port 8001. Please check if main.py is running." 
+    res.status(500).json({
+      success: false,
+      message:
+        "Python Server Offline or Unreachable on Port 8001. Please check if main.py is running.",
     });
   }
 });
@@ -167,7 +172,6 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_LOG_CHAT_ID =
   process.env.TELEGRAM_LOG_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
-
 
 // ==========================================
 // 🤖 SHARED HELPERS (Telegram & Backup)
@@ -620,7 +624,8 @@ app.get("/api/dashboard-summary", verifyToken, async (req, res) => {
     let params = [];
 
     if (role !== "Admin" && role !== "Super Admin" && role !== "Viewer") {
-      scopeCondition = "deleted_at IS NULL AND TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($1))";
+      scopeCondition =
+        "deleted_at IS NULL AND TRIM(LOWER(COALESCE(record_data->>'Site', site, ''))) = TRIM(LOWER($1))";
       params = [site];
     } else {
       scopeCondition = "deleted_at IS NULL";
@@ -672,7 +677,7 @@ app.get("/api/dashboard-summary", verifyToken, async (req, res) => {
     );
 
     const vehicleDetailsRes = await pool.query(
-  `
+      `
         SELECT 
             COALESCE(
                 NULLIF(TRIM(record_data->>'PLATE NUMBER'), ''),
@@ -701,8 +706,8 @@ app.get("/api/dashboard-summary", verifyToken, async (req, res) => {
         WHERE ${scopeCondition} 
         ORDER BY plate_number ASC
     `,
-  params,
-);
+      params,
+    );
 
     res.json({
       success: true,
@@ -985,10 +990,17 @@ app.post("/api/admin/trigger-alerts", verifySuperAdmin, async (req, res) => {
   res.json(result);
 });
 
-app.post("/api/admin/trigger-own-eq-alerts", verifySuperAdmin, async (req, res) => {
-  await checkAndSendOwnEqAlerts();
-  res.json({ success: true, message: "Own Equipment Expiry Alert triggered." });
-});
+app.post(
+  "/api/admin/trigger-own-eq-alerts",
+  verifySuperAdmin,
+  async (req, res) => {
+    await checkAndSendOwnEqAlerts();
+    res.json({
+      success: true,
+      message: "Own Equipment Expiry Alert triggered.",
+    });
+  },
+);
 
 // ==========================================
 // ⏰ BACKUP & EXCEL SYSTEM ROUTES (Remaining)
@@ -1038,13 +1050,15 @@ const httpolyglot = require("httpolyglot");
 const PORT = process.env.PORT || 5000;
 
 const sslOptions = {
-  key: fs.readFileSync('./fefei.tail129892.ts.net.key'), 
-  cert: fs.readFileSync('./fefei.tail129892.ts.net.crt')
+  key: fs.readFileSync("./fefei.tail129892.ts.net.key"),
+  cert: fs.readFileSync("./fefei.tail129892.ts.net.crt"),
 };
 
 // Handles HTTP (Tailscale proxy & local HTTP) and HTTPS (Local secure access)
 const server = httpolyglot.createServer(sslOptions, app);
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 ERP Server running on Port ${PORT} (HTTP for Tailscale & Local HTTPS)`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(
+    `🚀 ERP Server running on Port ${PORT} (HTTP for Tailscale & Local HTTPS)`,
+  );
 });

@@ -127,18 +127,32 @@
 
     <div class="container">
       <div class="header-bar">
-        <h2 style="margin: 0; font-size: 20px;">📑 Purchase Orders Dashboard</h2>
-        
+        <h2 style="margin: 0; font-size: 20px">📑 Purchase Orders Dashboard</h2>
+
         <!-- 🟢 Create New PO button-te aduthu thanne cheruthayi search box nalkunnu -->
-        <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px">
           <input
             type="text"
             id="poSearchInput"
-            style="padding: 7px 12px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 12.5px; outline: none; width: 230px;"
+            style="
+              padding: 7px 12px;
+              border: 1px solid #cbd5e1;
+              border-radius: 5px;
+              font-size: 12.5px;
+              outline: none;
+              width: 230px;
+            "
             placeholder="🔍 Search PO..."
             oninput="filterPoList(this.value)"
           />
           <a href="index.html" class="btn btn-primary">+ Create New PO</a>
+          <button
+            class="btn"
+            style="background: #ef4444; color: white"
+            onclick="window.poSession.logoutPO()"
+          >
+            Logout
+          </button>
         </div>
       </div>
 
@@ -216,7 +230,9 @@
         }
         const filtered = allOrders.filter((po) => {
           const matchPo = (po.po_no || "").toLowerCase().includes(term);
-          const matchComp = (po.company_name || "").toLowerCase().includes(term);
+          const matchComp = (po.company_name || "")
+            .toLowerCase()
+            .includes(term);
           const matchVen = (po.vendor_name || "").toLowerCase().includes(term);
           const matchDate = (po.po_date || "").toLowerCase().includes(term);
           return matchPo || matchComp || matchVen || matchDate;
@@ -290,7 +306,10 @@
 
               if (frameWin && typeof frameWin.downloadPDF === "function") {
                 await frameWin.downloadPDF();
-                showDashToast("✅ PDF Generated & Downloaded Successfully!", false);
+                showDashToast(
+                  "✅ PDF Generated & Downloaded Successfully!",
+                  false,
+                );
               } else {
                 showDashToast("❌ PDF engine not ready", false);
               }
