@@ -5,13 +5,33 @@
     <title>
       Balance Authentication Certificate - Non VAT Payment Clearance
     </title>
-    <!-- Local Scripts fallback for CDN errors -->
+    <!-- 100% Local Scripts (No CDN issues) -->
     <script src="/node_xlsx_scripts/jquery-3.7.0.min.js"></script>
     <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
     <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
-    <!-- Fallback to CDN if needed -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
+      /* Local Arabic Font Setup (Optional: place Cairo-Regular.ttf & Cairo-Bold.ttf in /node_xlsx_scripts/) */
+      @font-face {
+        font-family: "CairoLocal";
+        src:
+          local("Cairo"),
+          local("Tahoma"),
+          local("Segoe UI"),
+          url("/node_xlsx_scripts/Cairo-Regular.ttf") format("truetype");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "CairoLocal";
+        src:
+          local("Cairo Bold"),
+          local("Tahoma Bold"),
+          url("/node_xlsx_scripts/Cairo-Bold.ttf") format("truetype");
+        font-weight: 700;
+        font-style: normal;
+      }
+
       * {
         box-sizing: border-box;
         margin: 0;
@@ -102,20 +122,22 @@
         outline-offset: -8px;
       }
 
-      /* Arabic Section with Natural Font */
+      /* Arabic Section with Local Natural Font */
       .ar-section {
         text-align: right;
         direction: rtl;
-        font-family: "Cairo", "Amiri", Tahoma, sans-serif;
+        font-family:
+          "CairoLocal", "Cairo", "Geeza Pro", "Arabic Typesetting", Tahoma,
+          Arial, sans-serif;
         font-size: 14.5px;
-        line-height: 1.9;
+        line-height: 1.85;
         color: #111;
       }
       .ar-title {
         text-align: center;
         font-weight: bold;
         font-size: 19px;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
         display: table;
         margin-left: auto;
         margin-right: auto;
@@ -173,7 +195,8 @@
         text-align: left;
         padding-left: 50px;
         font-weight: bold;
-        margin-bottom: 90px;
+        font-family: "CairoLocal", "Cairo", Tahoma, sans-serif;
+        margin-bottom: 75px;
       }
 
       /* Bottom Divider & Signatory */
@@ -187,8 +210,9 @@
         justify-content: flex-start;
         gap: 30px;
         font-size: 13.5px;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
         direction: rtl;
+        font-family: "CairoLocal", "Cairo", Tahoma, sans-serif;
       }
       .auth-sig-title {
         text-align: center;
@@ -208,8 +232,9 @@
         text-align: center;
         font-weight: bold;
         font-size: 13px;
-        margin-top: 70px;
-        margin-bottom: 35px;
+        font-family: "CairoLocal", "Cairo", Tahoma, sans-serif;
+        margin-top: 65px;
+        margin-bottom: 30px;
       }
 
       /* Modals */
@@ -230,12 +255,14 @@
         background: #fff;
         width: 500px;
         max-width: 95%;
+        max-height: 92vh;
+        overflow-y: auto;
         border-radius: 10px;
         padding: 20px 24px;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
       }
       .modal-wide {
-        width: 850px;
+        width: 920px;
         max-height: 85vh;
         display: flex;
         flex-direction: column;
@@ -314,7 +341,9 @@
         box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.3);
         opacity: 0;
         transform: translateY(20px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
         z-index: 3000;
         pointer-events: none;
         border-left: 4px solid #10b981;
@@ -344,10 +373,6 @@
         }
       }
     </style>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
-      rel="stylesheet"
-    />
   </head>
   <body>
     <!-- Hidden Record ID tracker for updates -->
@@ -383,6 +408,10 @@
 
             <div class="ar-meta">
               <p>الساده : <span id="viewArabicName">........</span></p>
+              <p>
+                رقم الهوية :
+                <bdi dir="ltr"><span id="viewIdNo">........</span></bdi>
+              </p>
               <p>اللوحة رقم : <span id="viewPlateArabic">........</span></p>
             </div>
 
@@ -393,8 +422,9 @@
               نؤكد بموجب هذه الرسالة أن الرصيد المستحق لصالح<br />
               وفقاً لسجلاتنا المحاسبية هو
               <b><span id="viewAmountSAR1">........</span></b> حتى تاريخ
-              <bdi dir="ltr"><span id="viewDateArabic">........</span></bdi>. تم إصدار هذه الشهاده
-              لغرض تأكيد الرصيد وتسوية الحسابات المالية.<br /><br />
+              <bdi dir="ltr"><span id="viewDateArabic">........</span></bdi
+              >. تم إصدار هذه الشهاده لغرض تأكيد الرصيد وتسوية الحسابات
+              المالية.<br /><br />
               نرجو منكم تأكيد صحة الرصيد أعلاه، بالتوقيع والختم على هذه الرسالة.
               شاكر لكم تعاونكم.<br />
               مع خالص التحية،
@@ -442,7 +472,12 @@
           <div class="bottom-divider">
             <div class="end-date-row">
               <div>
-                في نهاية يوم <b><bdi dir="ltr"><span id="viewDateFooter">........</span></bdi></b>
+                في نهاية يوم
+                <b
+                  ><bdi dir="ltr"
+                    ><span id="viewDateFooter">........</span></bdi
+                  ></b
+                >
               </div>
               <div>
                 <b><span id="viewAmountFooter">........</span></b> ريال سعودي
@@ -485,11 +520,19 @@
           />
         </div>
         <div class="form-group">
-          <label>3. Plate No</label>
+          <label>3. ID Number (رقم الهوية)</label>
+          <input
+            type="text"
+            id="inpIdNo"
+            placeholder="Enter ID / Iqama Number"
+          />
+        </div>
+        <div class="form-group">
+          <label>4. Plate No</label>
           <input type="text" id="inpPlate" placeholder="Enter Plate No" />
         </div>
         <div class="form-group">
-          <label>4. Date (Select from Calendar)</label>
+          <label>5. Date (Select from Calendar)</label>
           <input
             type="date"
             id="inpDate"
@@ -497,12 +540,25 @@
           />
         </div>
         <div class="form-group">
-          <label>5. Amount (SAR)</label>
+          <label>6. Amount (SAR)</label>
           <input type="text" id="inpAmount" placeholder="9500.00" />
         </div>
         <div class="form-group">
-          <label>6. Custom Note / Clearance Remarks</label>
-          <textarea id="inpCustomNote" rows="3" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit;">This is the last payment/ هذا هو الدفعة الأخيرة</textarea>
+          <label>7. Custom Note / Clearance Remarks</label>
+          <textarea
+            id="inpCustomNote"
+            rows="3"
+            style="
+              width: 100%;
+              padding: 8px 12px;
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              font-size: 13px;
+              font-family: inherit;
+            "
+          >
+This is the last payment/ هذا هو الدفعة الأخيرة</textarea
+          >
         </div>
         <button
           class="btn btn-edit"
@@ -529,6 +585,7 @@
               <tr>
                 <th>ID</th>
                 <th>Name</th>
+                <th>ID No (رقم الهوية)</th>
                 <th>Plate No</th>
                 <th>Clearance Date</th>
                 <th>Amount (SAR)</th>
@@ -538,7 +595,7 @@
             </thead>
             <tbody id="dashboardTbody">
               <tr>
-                <td colspan="7" style="text-align: center">
+                <td colspan="8" style="text-align: center">
                   Loading records...
                 </td>
               </tr>
@@ -600,7 +657,20 @@
         if (isNaN(d.getTime())) {
           const parts = dateStr.split("-");
           if (parts.length === 3) {
-            const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const months = [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May",
+              "Jun",
+              "Jul",
+              "Aug",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Dec",
+            ];
             const mIdx = months.indexOf(parts[1]);
             if (mIdx !== -1) {
               const mm = String(mIdx + 1).padStart(2, "0");
@@ -622,6 +692,8 @@
           document.getElementById("inpName").value.trim() || "........";
         const arName =
           document.getElementById("inpArabicName").value.trim() || "........";
+        const idNo =
+          document.getElementById("inpIdNo").value.trim() || "........";
         const plate =
           document.getElementById("inpPlate").value.trim() || "........";
 
@@ -631,10 +703,13 @@
 
         const rawAmt = document.getElementById("inpAmount").value.trim();
         const amtVal = parseFloat(rawAmt) || 0;
-        const customNote = document.getElementById("inpCustomNote").value.trim() || "This is the last payment/ هذا هو الدفعة الأخيرة";
+        const customNote =
+          document.getElementById("inpCustomNote").value.trim() ||
+          "This is the last payment/ هذا هو الدفعة الأخيرة";
 
         document.getElementById("viewName").innerText = name;
         document.getElementById("viewArabicName").innerText = arName;
+        document.getElementById("viewIdNo").innerText = idNo;
         document.getElementById("viewPlateArabic").innerText = plate;
 
         if (rawAmt === "") {
@@ -663,13 +738,16 @@
         const recordId = document.getElementById("currentRecordId").value;
         const name = document.getElementById("viewName").innerText;
         const arName = document.getElementById("viewArabicName").innerText;
+        const rawIdNo = document.getElementById("viewIdNo").innerText;
+        const idNo = rawIdNo === "........" ? "" : rawIdNo;
         const plate = document.getElementById("viewPlateArabic").innerText;
         const dateVal = document.getElementById("viewDateEng").innerText;
         const rawAmt = document
           .getElementById("viewAmountSAR2")
           .innerText.replace(/[^0-9.-]+/g, "");
         const amtVal = parseFloat(rawAmt) || 0;
-        const customNoteVal = document.getElementById("viewCustomNote").innerText;
+        const customNoteVal =
+          document.getElementById("viewCustomNote").innerText;
 
         if (name === "........" || plate === "........") {
           alert("Please apply details using Edit first!");
@@ -687,6 +765,7 @@
           body: JSON.stringify({
             name: name,
             arabic_name: arName,
+            id_no: idNo,
             plate_no: plate,
             date: dateVal,
             amount: amtVal,
@@ -696,6 +775,10 @@
           .then((res) => res.json())
           .then((data) => {
             if (data.success) {
+              if (!recordId && data.record && data.record.id) {
+                document.getElementById("currentRecordId").value =
+                  data.record.id;
+              }
               alert(
                 recordId
                   ? "Record Updated Successfully!"
@@ -719,7 +802,7 @@
             const tbody = document.getElementById("dashboardTbody");
             if (!data.success || data.records.length === 0) {
               tbody.innerHTML =
-                '<tr><td colspan="7" style="text-align:center;">No clearance records saved yet.</td></tr>';
+                '<tr><td colspan="8" style="text-align:center;">No clearance records saved yet.</td></tr>';
               return;
             }
             tbody.innerHTML = data.records
@@ -728,12 +811,13 @@
             <tr>
               <td>#${r.id}</td>
               <td><b>${r.name}</b><br><small style="color:#64748b;">${r.arabic_name}</small></td>
+              <td>${r.id_no || "-"}</td>
               <td>${r.plate_no}</td>
               <td>${r.clearance_date}</td>
               <td><b>${parseFloat(r.amount).toLocaleString()} SAR</b></td>
               <td>${r.created_at_formatted}</td>
               <td>
-                <button class="btn btn-edit" style="padding:4px 8px; font-size:11px;" onclick="viewRecord(${r.id}, '${r.name.replace(/'/g, "\\'")}', '${r.arabic_name.replace(/'/g, "\\'")}', '${r.plate_no}', '${r.clearance_date}', ${r.amount}, encodeURIComponent('${(r.custom_note || "").replace(/'/g, "\\'")}'))">👁️ View / Modify</button>
+                <button class="btn btn-edit" style="padding:4px 8px; font-size:11px;" onclick="viewRecord(${r.id}, encodeURIComponent('${(r.name || "").replace(/'/g, "\\'")}'), encodeURIComponent('${(r.arabic_name || "").replace(/'/g, "\\'")}'), encodeURIComponent('${(r.id_no || "").replace(/'/g, "\\'")}'), encodeURIComponent('${(r.plate_no || "").replace(/'/g, "\\'")}'), encodeURIComponent('${(r.clearance_date || "").replace(/'/g, "\\'")}'), ${r.amount}, encodeURIComponent('${(r.custom_note || "").replace(/'/g, "\\'")}'))">👁️ View / Modify</button>
               </td>
             </tr>
           `,
@@ -742,7 +826,7 @@
           })
           .catch(() => {
             document.getElementById("dashboardTbody").innerHTML =
-              '<tr><td colspan="7" style="text-align:center; color:red;">Failed to load data.</td></tr>';
+              '<tr><td colspan="8" style="text-align:center; color:red;">Failed to load data.</td></tr>';
           });
       }
 
@@ -758,29 +842,40 @@
       // View Record into the Form to modify and replace/update
       function viewRecord(
         id,
-        name,
-        arabicName,
-        plateNo,
-        clearanceDate,
+        encName,
+        encArabicName,
+        encIdNo,
+        encPlateNo,
+        encClearanceDate,
         amount,
-        encodedNote = ""
+        encodedNote = "",
       ) {
         document.getElementById("currentRecordId").value = id;
-        const decodedNote = encodedNote ? decodeURIComponent(encodedNote) : "This is the last payment/ هذا هو الدفعة الأخيرة";
+        const name = decodeURIComponent(encName);
+        const arabicName = decodeURIComponent(encArabicName);
+        const idNo = decodeURIComponent(encIdNo);
+        const plateNo = decodeURIComponent(encPlateNo);
+        const clearanceDate = decodeURIComponent(encClearanceDate);
+        const decodedNote = encodedNote
+          ? decodeURIComponent(encodedNote)
+          : "This is the last payment/ هذا هو الدفعة الأخيرة";
 
         // Populate Form inputs
         document.getElementById("inpName").value = name;
         document.getElementById("inpArabicName").value = arabicName;
+        document.getElementById("inpIdNo").value = idNo;
         document.getElementById("inpPlate").value = plateNo;
         document.getElementById("inpAmount").value = amount;
         document.getElementById("inpCustomNote").value = decodedNote;
-        document.getElementById("viewCustomNote").innerText = decodedNote;
-        document.getElementById("inpCustomNote").value = document.getElementById("viewCustomNote").innerText;
 
-        // Parse date back if needed or set view directly
-        document.getElementById("viewName").innerText = name;
-        document.getElementById("viewArabicName").innerText = arabicName;
-        document.getElementById("viewPlateArabic").innerText = plateNo;
+        // Update Document View
+        document.getElementById("viewName").innerText = name || "........";
+        document.getElementById("viewArabicName").innerText =
+          arabicName || "........";
+        document.getElementById("viewIdNo").innerText = idNo || "........";
+        document.getElementById("viewPlateArabic").innerText =
+          plateNo || "........";
+        document.getElementById("viewCustomNote").innerText = decodedNote;
 
         const formattedAmt = formatNumber(amount);
         document.getElementById("viewAmountSAR1").innerText =
@@ -795,17 +890,21 @@
         document.getElementById("viewDateFooter").innerText = arDate;
 
         closeModal("dashboardModal");
-        showToast(`Loaded Record #${id} for viewing/modifying. Click 'Save / Update' after changes.`);
+        showToast(
+          `Loaded Record #${id} for viewing/modifying. Click 'Save / Update' after changes.`,
+        );
       }
 
       function saveAsPDF() {
         const element = document.getElementById("printableCertificate");
-        const plateName = document.getElementById("viewPlateArabic").innerText.replace(/\s+/g, "_");
+        const plateName = document
+          .getElementById("viewPlateArabic")
+          .innerText.replace(/\s+/g, "_");
 
         html2canvas(element, {
           scale: 2,
           useCORS: true,
-          logging: false
+          logging: false,
         }).then((canvas) => {
           const imgData = canvas.toDataURL("image/jpeg", 0.98);
           const { jsPDF } = window.jspdf;
