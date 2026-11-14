@@ -373,6 +373,8 @@ router.get("/vehicles", async (req, res) => {
           let siteEnd = sLogData.end_date
             ? new Date(sLogData.end_date)
             : targetEnd;
+          if (siteStart < targetStart) siteStart = targetStart;
+          if (siteEnd > targetEnd) siteEnd = targetEnd;
 
           let oLogs = ownerLogs.rows.filter(
             (l) => (l.plate_no || "").toUpperCase() === plate,
@@ -416,6 +418,7 @@ router.get("/vehicles", async (req, res) => {
 
           // Override with saved bill owner if exists
           if (
+            validOLogs.length === 0 &&
             savedRowMatch &&
             savedRowMatch.owner &&
             savedRowMatch.owner.trim() !== ""

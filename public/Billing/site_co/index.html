@@ -1834,7 +1834,7 @@
 
             activeFilters = {};
 
-            renderCardsView(fetchedRowsCache);
+            renderGroupedCards(fetchedRowsCache);
 
             renderReportTable(fetchedReportCache);
           } else {
@@ -1988,6 +1988,44 @@
         renderReportTable(filteredData);
       }
 
+            /*
+       * Owner + Site Company anusarichu ororo card aayi thirikkunnu.
+       * Ooro card-um separate aayi Copy HQ / Download cheyyaam.
+       */
+      function renderGroupedCards(rows) {
+        const container = document.getElementById("cardsContainer");
+        container.innerHTML = "";
+
+        const valid = (rows || []).filter((r) => {
+          const s = String(r.site || "").trim();
+          return s && s !== "N/A" && s !== "-" && !s.startsWith("Prev:");
+        });
+
+        if (valid.length === 0) {
+          renderCardsView([], false);
+          return;
+        }
+
+        const groups = {};
+        valid.forEach((r) => {
+          const comp = getCompanyFromSite(r.site);
+          const owner = (r.owner || "COMPANY VEHICLE").trim().toUpperCase();
+          const key = `${owner}|||${comp}`;
+          if (!groups[key]) groups[key] = { company: comp, items: [] };
+          groups[key].items.push(r);
+        });
+
+        Object.keys(groups)
+          .sort((a, b) => a.localeCompare(b))
+          .forEach((key) => {
+            const g = groups[key];
+            g.items.sort((a, b) =>
+              (a.plate_no || "").localeCompare(b.plate_no || ""),
+            );
+            renderCardsView(g.items, true, g.company);
+          });
+      }
+
       /*
        * ============================================================
        * CARD BUILDING
@@ -1996,7 +2034,7 @@
        * Each card stores the original rows internally.
        * This allows Cancel to restore the exact original values.
        */
-
+      
       function renderCardsView(rows, append = false, companyTitle = "") {
         const container = document.getElementById("cardsContainer");
 

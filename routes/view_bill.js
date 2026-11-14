@@ -407,6 +407,10 @@ router.get("/suggestions", verifyViewBillUser, async (req, res) => {
       `SELECT DISTINCT old_plate_no, new_plate_no FROM vehicle_plate_log`,
     );
 
+    const ownerLogSugRes = await pool.query(
+      `SELECT DISTINCT plate_no, owner_name FROM vehicle_owner_log WHERE owner_name IS NOT NULL AND TRIM(owner_name) <> ''`,
+    );
+
     let allowedPlates = new Set();
     let allowedOwners = new Set();
     let allowedSites = new Set();
@@ -432,6 +436,13 @@ router.get("/suggestions", verifyViewBillUser, async (req, res) => {
     siteLogRes.rows.forEach((r) => {
       if (r.plate_no) allowedPlates.add(r.plate_no.trim().toUpperCase());
       if (r.site_name) allowedSites.add(r.site_name.trim());
+    });
+
+    ownerLogSugRes.rows.forEach((r) => {
+      const p = (r.plate_no || "").trim().toUpperCase();
+      if (p && allowedPlates.has(p)) {
+        allowedOwners.add(r.owner_name.trim().toUpperCase());
+      }
     });
 
     res.json({
@@ -577,6 +588,18 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
     let resultRows = [];
     let reportData = [];
 
+    // 🟢 Owner search: exact match preferred (owner log + master owners)
+    const searchUpper = String(search_value || "")
+      .trim()
+      .toUpperCase();
+    const allOwnerNames = new Set(
+      [
+        ...ownerLogs.map((o) => (o.owner_name || "").trim().toUpperCase()),
+        ...vehicles.map((v) => (v.owner_name || "").trim().toUpperCase()),
+      ].filter(Boolean),
+    );
+    const exactOwnerSearch = searchUpper !== "" && allOwnerNames.has(searchUpper);
+
     vehicles.forEach((v) => {
       let masterPlate = (v.plate_no || "").trim().toUpperCase();
       let normPlate = cleanPlate(v.plate_no);
@@ -668,12 +691,12 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
 
       if (activeMonthSiteLogs.length === 0) return;
 
-      // 🟢 സർച്ച് ഫിൽട്ടർ പരിശോധന
+      // 🟢 സർച്ച് ഫിൽട്ടർ പരിശോധന (owner check പിന്നീട്, month-wise owner log കിട്ടിയതിന് ശേഷം)
       let resolvedSearchMatch = true;
+      let ownerCheckNeeded = false;
       if (search_value && search_value.trim() !== "") {
         const cleanVal = search_value.trim().toUpperCase();
         const cleanValNorm = cleanPlate(search_value);
-        let match = false;
 
         let plateMatchesSearch =
           allRelatedNorms.some((rn) => rn.includes(cleanValNorm)) ||
@@ -686,15 +709,12 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
             .includes(cleanVal);
 
         if (search_type === "plate") {
-          match = plateMatchesSearch;
+          resolvedSearchMatch = plateMatchesSearch;
         } else if (search_type === "owner") {
-          match = (v.owner_name || "").trim().toUpperCase().includes(cleanVal);
-        } else {
-          match =
-            plateMatchesSearch ||
-            (v.owner_name || "").trim().toUpperCase().includes(cleanVal);
+          ownerCheckNeeded = true;
+        } else if (!plateMatchesSearch) {
+          ownerCheckNeeded = true;
         }
-        resolvedSearchMatch = match;
       }
 
       if (!resolvedSearchMatch) return;
@@ -858,6 +878,15 @@ router.get("/data", verifyViewBillUser, async (req, res) => {
             ).trim();
           if (activeOwnerLog.vat_no)
             effectiveVatNo = String(activeOwnerLog.vat_no).trim();
+        }
+
+        // 🟢 ആ മാസത്തെ Owner Log പ്രകാരമുള്ള owner മാത്രം match ആക്കുന്നു
+        if (ownerCheckNeeded) {
+          const effOwnerUp = effectiveOwner.trim().toUpperCase();
+          const ownerOk = exactOwnerSearch
+            ? effOwnerUp === searchUpper
+            : effOwnerUp.includes(searchUpper);
+          if (!ownerOk) return;
         }
 
         const normalizedVat = effectiveVat.toLowerCase().replace(/\s+/g, "");

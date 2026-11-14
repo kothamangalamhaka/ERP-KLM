@@ -637,11 +637,20 @@ router.post("/api/update-owner-log", verifyEditor, async (req, res) => {
         : new Date(2099, 11, 31);
 
       await client.query(
-        `UPDATE billing_records 
-         SET owner = $1 
-         WHERE UPPER(TRIM(plate_no)) = UPPER(TRIM($2))
-           AND TO_DATE(billing_month, 'Month YYYY') >= DATE_TRUNC('month', $3::date)
-           AND TO_DATE(billing_month, 'Month YYYY') <= DATE_TRUNC('month', $4::date)`,
+        `UPDATE billing_records br
+         SET owner = $1
+         WHERE UPPER(TRIM(br.plate_no)) = UPPER(TRIM($2))
+           AND TO_DATE(br.billing_month, 'Month YYYY') >= DATE_TRUNC('month', $3::date)
+           AND TO_DATE(br.billing_month, 'Month YYYY') <= DATE_TRUNC('month', $4::date)
+           AND EXISTS (
+             SELECT 1 FROM vehicle_site_log vsl
+             WHERE UPPER(TRIM(vsl.plate_no)) = UPPER(TRIM(br.plate_no))
+               AND LOWER(TRIM(vsl.site_name)) = LOWER(TRIM(br.site_name))
+               AND COALESCE(vsl.work_start_date, DATE '2000-01-01')
+                   <= LEAST($4::date, (TO_DATE(br.billing_month, 'Month YYYY') + INTERVAL '1 month')::date - 1)
+               AND COALESCE(vsl.work_end_date, DATE '2099-12-31')
+                   >= GREATEST($3::date, TO_DATE(br.billing_month, 'Month YYYY'))
+           )`,
         [owner_name.trim(), cleanPlate, periodStart, periodEnd],
       );
 

@@ -2474,11 +2474,19 @@ function submitBulkData() {
         let rowAdjDescStr = rowAdjs.length > 0 ? JSON.stringify(rowAdjs) : "";
 
         let realOwner = fallbackOwner;
-        let masterMatch = masterData.find(
-          (m) =>
-            (m.plate_number || m.plate || "").toUpperCase() ===
-            plate.toUpperCase(),
-        );
+        let rowSiteKey = row.querySelector(".site").value.trim().toUpperCase();
+        let masterMatch =
+          masterData.find(
+            (m) =>
+              (m.plate_number || m.plate || "").toUpperCase() ===
+                plate.toUpperCase() &&
+              (m.site || "").trim().toUpperCase() === rowSiteKey,
+          ) ||
+          masterData.find(
+            (m) =>
+              (m.plate_number || m.plate || "").toUpperCase() ===
+              plate.toUpperCase(),
+          );
 
         if (
           masterMatch &&
@@ -2742,11 +2750,19 @@ function submitSingleCard(cardId) {
       let rowAdjDescStr = rowAdjs.length > 0 ? JSON.stringify(rowAdjs) : "";
 
       let realOwner = fallbackOwner;
-      let masterMatch = masterData.find(
-        (m) =>
-          (m.plate_number || m.plate || "").toUpperCase() ===
-          plate.toUpperCase(),
-      );
+      let rowSiteKey = row.querySelector(".site").value.trim().toUpperCase();
+      let masterMatch =
+        masterData.find(
+          (m) =>
+            (m.plate_number || m.plate || "").toUpperCase() ===
+              plate.toUpperCase() &&
+            (m.site || "").trim().toUpperCase() === rowSiteKey,
+        ) ||
+        masterData.find(
+          (m) =>
+            (m.plate_number || m.plate || "").toUpperCase() ===
+            plate.toUpperCase(),
+        );
       if (masterMatch && masterMatch.owner && masterMatch.owner.trim() !== "") {
         realOwner = masterMatch.owner.trim();
       } else if (realOwner === "VARIOUS OWNERS") {
