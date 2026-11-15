@@ -32,6 +32,9 @@ from routers.landtasset_routes import router as landtasset_router
 from routers.AKS.Assets_own_EQ_parts import router as assets_own_eq_router
 from routers.biometric_unlocking.face_unlocking import router as face_unlocking_router
 from routers.KSA_Office.Vat_customer_docs import router as vat_customer_docs_router
+from routers.Spareparts_business.export_dashboard import router as sp_export_dashboard_router
+from routers.Spareparts_business.Export_list import router as sp_export_list_router
+from routers.Spareparts_business.export_stock import router as sp_export_stock_router
 
 
 load_dotenv()
@@ -67,6 +70,9 @@ app.include_router(landtasset_router)
 app.include_router(assets_own_eq_router)
 app.include_router(face_unlocking_router)
 app.include_router(vat_customer_docs_router)
+app.include_router(sp_export_dashboard_router)
+app.include_router(sp_export_list_router)
+app.include_router(sp_export_stock_router)
 
 class ExportRequest(BaseModel):
     headers: list

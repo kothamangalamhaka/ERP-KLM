@@ -1,833 +1,1413 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spare Parts Hub | Dashboard</title>
-  <script>
-    (function () {
-      try {
-        const saved = localStorage.getItem("sp_theme");
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const theme = saved || (prefersDark ? "dark" : "light");
-        document.documentElement.setAttribute("data-theme", theme);
-        document.documentElement.setAttribute("data-bs-theme", theme);
-      } catch (e) {}
-    })();
-  </script>
-  <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
-  <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
-  <link rel="stylesheet" href="/node_xlsx_scripts/flatpickr.min.css" />
-  <style>
-    @font-face {
-      font-family: "InterLocal";
-      src: url("/webfonts/Inter-Regular.woff2") format("woff2");
-      font-weight: 400;
-    }
-    @font-face {
-      font-family: "InterLocal";
-      src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
-      font-weight: 600;
-    }
-    @font-face {
-      font-family: "InterLocal";
-      src: url("/webfonts/Inter-Bold.woff2") format("woff2");
-      font-weight: 700;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spare Parts Hub | Dashboard</title>
+    <script>
+      (function () {
+        try {
+          const saved = localStorage.getItem("sp_theme");
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches;
+          const theme = saved || (prefersDark ? "dark" : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+          document.documentElement.setAttribute("data-bs-theme", theme);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
+    <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
+    <link rel="stylesheet" href="/node_xlsx_scripts/flatpickr.min.css" />
+    <style>
+      @font-face {
+        font-family: "InterLocal";
+        src: url("/webfonts/Inter-Regular.woff2") format("woff2");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "InterLocal";
+        src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
+        font-weight: 600;
+      }
+      @font-face {
+        font-family: "InterLocal";
+        src: url("/webfonts/Inter-Bold.woff2") format("woff2");
+        font-weight: 700;
+      }
 
-    :root {
-      --primary: #2563eb;
-      --accent: #0ea5e9;
-      --bg: #f1f5f9;
-      --surface: rgba(255, 255, 255, 0.86);
-      --border: rgba(148, 163, 184, 0.35);
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --cost-tint: rgba(239, 68, 68, 0.06);
-      --rev-tint: rgba(16, 185, 129, 0.07);
-      --shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
-    }
+      :root {
+        --primary: #2563eb;
+        --accent: #0ea5e9;
+        --bg: #f1f5f9;
+        --surface: rgba(255, 255, 255, 0.86);
+        --border: rgba(148, 163, 184, 0.35);
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --cost-tint: rgba(239, 68, 68, 0.06);
+        --rev-tint: rgba(16, 185, 129, 0.07);
+        --shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+      }
 
-    [data-theme="dark"] {
-      --primary: #3b82f6;
-      --accent: #38bdf8;
-      --bg: #0b1120;
-      --surface: rgba(30, 41, 59, 0.78);
-      --border: rgba(148, 163, 184, 0.18);
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --cost-tint: rgba(239, 68, 68, 0.12);
-      --rev-tint: rgba(16, 185, 129, 0.12);
-      --shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
-    }
+      [data-theme="dark"] {
+        --primary: #3b82f6;
+        --accent: #38bdf8;
+        --bg: #0b1120;
+        --surface: rgba(30, 41, 59, 0.78);
+        --border: rgba(148, 163, 184, 0.18);
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --cost-tint: rgba(239, 68, 68, 0.12);
+        --rev-tint: rgba(16, 185, 129, 0.12);
+        --shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
+      }
 
-    * {
-      font-family: "InterLocal", system-ui, sans-serif;
-    }
+      * {
+        font-family: "InterLocal", system-ui, sans-serif;
+      }
 
-    html, body {
-      height: 100vh;
-      overflow: hidden;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-    }
+      html,
+      body {
+        height: 100vh;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+      }
 
-    .glass-nav {
-      flex-shrink: 0;
-      background: var(--surface);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      box-shadow: var(--shadow);
-    }
+      .glass-nav {
+        flex-shrink: 0;
+        background: var(--surface);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
 
-    .dashboard-main {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      padding-bottom: 0.75rem;
-    }
+      .dashboard-main {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 0.75rem;
+      }
 
-    .kpi-strip {
-      flex-shrink: 0;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.45rem;
-      margin-bottom: 0.65rem;
-    }
+      .kpi-strip {
+        flex-shrink: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-bottom: 0.65rem;
+      }
 
-    .kpi-card {
-      flex: 1 1 auto;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.36rem 0.7rem;
-      box-shadow: var(--shadow);
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.6rem;
-      white-space: nowrap;
-    }
+      .kpi-card {
+        flex: 1 1 auto;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.36rem 0.7rem;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        white-space: nowrap;
+      }
 
-    .glass-panel {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      background: var(--surface);
-      backdrop-filter: blur(18px);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      padding: 0.9rem 1.1rem;
-    }
+      .glass-panel {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        backdrop-filter: blur(18px);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 0.9rem 1.1rem;
+      }
 
-    .table-scroll-box {
-      flex: 1;
-      min-height: 0;
-      overflow: auto;
-      border-radius: 10px;
-    }
+      .table-scroll-box {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        border-radius: 10px;
+      }
 
-    .table-scroll-box thead th {
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      background: var(--bg);
-      box-shadow: inset 0 -1px 0 var(--border);
-      cursor: context-menu;
-      user-select: none;
-    }
+      .table-scroll-box thead th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: var(--bg);
+        box-shadow: inset 0 -1px 0 var(--border);
+        cursor: context-menu;
+        user-select: none;
+      }
 
-    .table-scroll-box thead th.filtered-col {
-      color: var(--primary) !important;
-      box-shadow: inset 0 -2px 0 var(--primary);
-    }
+      .table-scroll-box thead th.filtered-col {
+        color: var(--primary) !important;
+        box-shadow: inset 0 -2px 0 var(--primary);
+      }
 
-    .header-filter-popup {
-      position: fixed;
-      z-index: 9999;
-      width: 240px;
-      background: var(--surface);
-      backdrop-filter: blur(22px);
-      -webkit-backdrop-filter: blur(22px);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      box-shadow: var(--shadow);
-      padding: 0.75rem;
-      display: none;
-      animation: popFade 0.14s ease-out;
-    }
+      .header-filter-popup {
+        position: fixed;
+        z-index: 9999;
+        width: 240px;
+        background: var(--surface);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        padding: 0.75rem;
+        display: none;
+        animation: popFade 0.14s ease-out;
+      }
 
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    input[type="number"] {
-      appearance: textfield;
-      -moz-appearance: textfield;
-    }
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        appearance: textfield;
+        -moz-appearance: textfield;
+      }
 
-    .table {
-      --bs-table-bg: transparent;
-      --bs-table-color: var(--text);
-      --bs-table-border-color: var(--border);
-      font-size: 0.88rem;
-      white-space: nowrap;
-    }
+      .table {
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--text);
+        --bs-table-border-color: var(--border);
+        font-size: 0.88rem;
+        white-space: nowrap;
+      }
 
-    .table thead th {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      font-weight: 700;
-      padding: 0.75rem 0.85rem;
-    }
+      .table thead th {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        font-weight: 700;
+        padding: 0.75rem 0.85rem;
+      }
 
-    .col-cost-area {
-      background-color: var(--cost-tint) !important;
-    }
-    .col-rev-area {
-      background-color: var(--rev-tint) !important;
-    }
+      .col-cost-area {
+        background-color: var(--cost-tint) !important;
+      }
+      .col-rev-area {
+        background-color: var(--rev-tint) !important;
+      }
 
-    .gain-text {
-      color: #10b981;
-      font-weight: 700;
-    }
-    .loss-text {
-      color: #ef4444;
-      font-weight: 700;
-    }
+      .gain-text {
+        color: #10b981;
+        font-weight: 700;
+      }
+      .loss-text {
+        color: #ef4444;
+        font-weight: 700;
+      }
 
-    .glass-context-popup {
-      position: fixed;
-      z-index: 9999;
-      min-width: 240px;
-      background: var(--surface);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      padding: 0.9rem 1rem;
-      display: none;
-      animation: popFade 0.16s ease-out;
-    }
-    @keyframes popFade {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
+      .glass-context-popup {
+        position: fixed;
+        z-index: 9999;
+        min-width: 240px;
+        background: var(--surface);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 0.9rem 1rem;
+        display: none;
+        animation: popFade 0.16s ease-out;
+      }
+      @keyframes popFade {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
 
-    .combo-dropdown-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      z-index: 1060;
-      max-height: 190px;
-      overflow-y: auto;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      box-shadow: var(--shadow);
-      margin-top: 3px;
-      display: none;
-    }
-    .combo-dropdown-item {
-      padding: 0.45rem 0.75rem;
-      font-size: 0.82rem;
-      cursor: pointer;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .combo-dropdown-item:last-child {
-      border-bottom: none;
-    }
-    .combo-dropdown-item:hover:not(.disabled) {
-      background: rgba(37, 99, 235, 0.14);
-    }
-    .combo-dropdown-item.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  </style>
-</head>
-<body>
-  <nav class="navbar glass-nav px-3 py-2 mb-2">
-    <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-2">
-      <div class="d-flex align-items-center gap-2">
-        <i class="fas fa-gears text-primary fs-5"></i>
-        <span class="fw-bold fs-6">Spare Parts Ledger</span>
-        <span class="badge bg-secondary bg-opacity-25 text-reset fw-normal" style="font-size:0.72rem;" id="welcomeUser">Welcome</span>
-      </div>
+      .combo-dropdown-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1060;
+        max-height: 190px;
+        overflow-y: auto;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        margin-top: 3px;
+        display: none;
+      }
+      .combo-dropdown-item {
+        padding: 0.45rem 0.75rem;
+        font-size: 0.82rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .combo-dropdown-item:last-child {
+        border-bottom: none;
+      }
+      .combo-dropdown-item:hover:not(.disabled) {
+        background: rgba(37, 99, 235, 0.14);
+      }
+      .combo-dropdown-item.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .export-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 20000;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8rem;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(4px);
+        color: #ffffff;
+      }
+      .export-overlay.show {
+        display: flex;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar glass-nav px-3 py-2 mb-2">
+      <div
+        class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-2"
+      >
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-gears text-primary fs-5"></i>
+          <span class="fw-bold fs-6">Spare Parts Ledger</span>
+          <span
+            class="badge bg-secondary bg-opacity-25 text-reset fw-normal"
+            style="font-size: 0.72rem"
+            id="welcomeUser"
+            >Welcome</span
+          >
+        </div>
 
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <button id="costLedgerNavBtn" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 d-none" style="font-size:0.78rem;" data-bs-toggle="modal" data-bs-target="#addCostColModal">
-          <i class="fas fa-columns me-1"></i>+ Cost Ledger
-        </button>
-        <a href="/Office/Spare_parts_sale/admin/index.html" id="adminPanelBtn" class="btn btn-sm btn-outline-warning rounded-pill px-3 py-1 d-none" style="font-size:0.78rem;">
-          <i class="fas fa-shield-halved me-1"></i>Admin
-        </a>
-        <button class="btn btn-sm btn-success rounded-pill px-3 py-1 shadow-sm" style="font-size:0.78rem;" onclick="openJvModal()">
-          <i class="fas fa-file-invoice-dollar me-1"></i>Voucher
-        </button>
-        <button class="btn btn-sm btn-info text-dark fw-semibold rounded-pill px-3 py-1 shadow-sm" style="font-size:0.78rem;" onclick="openAddStockModal()">
-          <i class="fas fa-boxes-stacked me-1"></i>Add Stocks
-        </button>
-        <a href="/Office/Spare_parts_sale/stock.html" class="btn btn-sm btn-outline-info fw-semibold rounded-pill px-3 py-1" style="font-size:0.78rem;">
-          <i class="fas fa-warehouse me-1"></i>Stocks
-        </a>
-        <a href="/Office/Spare_parts_sale/list.html" class="btn btn-sm btn-outline-secondary fw-semibold rounded-pill px-3 py-1" style="font-size:0.78rem;">
-          <i class="fas fa-list-ul me-1"></i>List
-        </a>
-        <button class="btn btn-sm btn-primary rounded-pill px-3 py-1 shadow-sm" style="font-size:0.78rem;" onclick="openNewEqModal()">
-          <i class="fas fa-plus me-1"></i>New EQ
-        </button>
-        <div class="vr mx-1 opacity-25 d-none d-md-block"></div>
-        <button class="btn btn-sm btn-outline-secondary rounded-circle" id="themeToggle" style="width:32px;height:32px;padding:0;" title="Switch Theme">
-          <i class="fas fa-moon" id="themeIcon" style="font-size:0.8rem;"></i>
-        </button>
-        <button class="btn btn-sm btn-danger rounded-pill px-3 py-1 shadow-sm" id="logoutBtn" style="font-size:0.78rem;">
-          <i class="fas fa-sign-out-alt me-1"></i>Logout
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <div class="container-fluid px-3 dashboard-main">
-    <!-- DYNAMIC COMPACT KPI SUMMARY STRIP (ACTIVE / TOTAL) -->
-    <div class="kpi-strip" id="kpiStripContainer"></div>
-
-    <!-- LEDGER TABLE -->
-    <div class="glass-panel">
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 flex-shrink-0">
-        <h6 class="fw-bold mb-0"><i class="fas fa-table me-2 text-primary"></i>Vehicle Cost & Revenue Sheet</h6>
-        <div class="d-flex gap-2">
-          <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Search IN No / Chassis..." style="width:220px;" />
-          <button class="btn btn-sm btn-outline-secondary" onclick="loadDashboard()" title="Refresh">
-            <i class="fas fa-rotate"></i>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <button
+            id="costLedgerNavBtn"
+            class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 d-none"
+            style="font-size: 0.78rem"
+            data-bs-toggle="modal"
+            data-bs-target="#addCostColModal"
+          >
+            <i class="fas fa-columns me-1"></i>+ Cost Ledger
+          </button>
+          <a
+            href="/Office/Spare_parts_sale/admin/index.html"
+            id="adminPanelBtn"
+            class="btn btn-sm btn-outline-warning rounded-pill px-3 py-1 d-none"
+            style="font-size: 0.78rem"
+          >
+            <i class="fas fa-shield-halved me-1"></i>Admin
+          </a>
+          <button
+            class="btn btn-sm btn-success rounded-pill px-3 py-1 shadow-sm"
+            style="font-size: 0.78rem"
+            onclick="openJvModal()"
+          >
+            <i class="fas fa-file-invoice-dollar me-1"></i>Voucher
+          </button>
+          <button
+            class="btn btn-sm btn-info text-dark fw-semibold rounded-pill px-3 py-1 shadow-sm"
+            style="font-size: 0.78rem"
+            onclick="openAddStockModal()"
+          >
+            <i class="fas fa-boxes-stacked me-1"></i>Add Stocks
+          </button>
+          <a
+            href="/Office/Spare_parts_sale/stock.html"
+            class="btn btn-sm btn-outline-info fw-semibold rounded-pill px-3 py-1"
+            style="font-size: 0.78rem"
+          >
+            <i class="fas fa-warehouse me-1"></i>Stocks
+          </a>
+          <a
+            href="/Office/Spare_parts_sale/list.html"
+            class="btn btn-sm btn-outline-secondary fw-semibold rounded-pill px-3 py-1"
+            style="font-size: 0.78rem"
+          >
+            <i class="fas fa-list-ul me-1"></i>List
+          </a>
+          <button
+            class="btn btn-sm btn-primary rounded-pill px-3 py-1 shadow-sm"
+            style="font-size: 0.78rem"
+            onclick="openNewEqModal()"
+          >
+            <i class="fas fa-plus me-1"></i>New EQ
+          </button>
+          <button
+            class="btn btn-sm btn-outline-success fw-semibold rounded-pill px-3 py-1"
+            style="font-size: 0.78rem"
+            onclick="exportDashboardExcel()"
+          >
+            <i class="fas fa-file-excel me-1"></i>Export
+          </button>
+          <div class="vr mx-1 opacity-25 d-none d-md-block"></div>
+          <button
+            class="btn btn-sm btn-outline-secondary rounded-circle"
+            id="themeToggle"
+            style="width: 32px; height: 32px; padding: 0"
+            title="Switch Theme"
+          >
+            <i class="fas fa-moon" id="themeIcon" style="font-size: 0.8rem"></i>
+          </button>
+          <button
+            class="btn btn-sm btn-danger rounded-pill px-3 py-1 shadow-sm"
+            id="logoutBtn"
+            style="font-size: 0.78rem"
+          >
+            <i class="fas fa-sign-out-alt me-1"></i>Logout
           </button>
         </div>
       </div>
+    </nav>
 
-      <div class="table-scroll-box">
-        <table class="table table-hover align-middle mb-0" id="ledgerTable">
-          <thead id="ledgerThead"></thead>
-          <tbody id="ledgerTbody">
-            <tr><td colspan="7" class="text-center py-4">Loading dashboard...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+    <div class="container-fluid px-3 dashboard-main">
+      <!-- DYNAMIC COMPACT KPI SUMMARY STRIP (ACTIVE / TOTAL) -->
+      <div class="kpi-strip" id="kpiStripContainer"></div>
 
-  <!-- MODAL: ADD NEW COST LEDGER COLUMN -->
-  <div class="modal fade" id="addCostColModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="background: var(--bg); color: var(--text);">
-        <div class="modal-header">
-          <h6 class="modal-title fw-bold">Add New Cost Ledger Column</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      <!-- LEDGER TABLE -->
+      <div class="glass-panel">
+        <div
+          class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 flex-shrink-0"
+        >
+          <h6 class="fw-bold mb-0">
+            <i class="fas fa-table me-2 text-primary"></i>Vehicle Cost & Revenue
+            Sheet
+          </h6>
+          <div class="d-flex gap-2">
+            <input
+              type="text"
+              id="searchInput"
+              class="form-control form-control-sm"
+              placeholder="Search IN No / Chassis..."
+              style="width: 220px"
+            />
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              onclick="loadDashboard()"
+              title="Refresh"
+            >
+              <i class="fas fa-rotate"></i>
+            </button>
+          </div>
         </div>
-        <form id="addCostColForm">
-          <div class="modal-body">
-            <label class="form-label small fw-semibold">Cost Ledger Name</label>
-            <input type="text" class="form-control" id="newCostHeadName" placeholder="e.g. Transport Cost, Dismantling Cost" required />
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary btn-sm px-4">Add Ledger</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
 
-  <!-- GLASSY RIGHT-CLICK FILTER BOX ON TABLE HEADER (WITH CHECKBOX VALUES) -->
-  <div id="headerFilterPopup" class="header-filter-popup" style="width: 265px;">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <span class="small fw-bold text-primary text-truncate" id="hdrFilterTitle">Filter Column</span>
-      <button type="button" class="btn-close btn-close-sm" style="font-size:0.62rem;" onclick="hideHeaderFilterPopup()"></button>
-    </div>
-    <input type="text" class="form-control form-control-sm mb-2" id="hdrFilterInput" placeholder="Search values..." autocomplete="off" />
-    <div class="border rounded-3 p-2 mb-2" style="border-color: var(--border) !important; background: var(--bg); max-height: 185px; overflow-y: auto;">
-      <div class="form-check small border-bottom pb-1 mb-1" style="border-color: var(--border) !important;">
-        <input class="form-check-input" type="checkbox" id="hdrSelectAllChk" checked />
-        <label class="form-check-label fw-bold" for="hdrSelectAllChk">(Select All)</label>
-      </div>
-      <div id="hdrCheckboxValuesList"></div>
-    </div>
-    <div class="d-flex justify-content-between gap-1">
-      <button type="button" class="btn btn-xs btn-outline-secondary py-1 px-2" style="font-size:0.74rem;" onclick="clearSingleHeaderFilter()">Clear</button>
-      <button type="button" class="btn btn-xs btn-primary py-1 px-3" style="font-size:0.74rem;" onclick="applyHeaderFilter()">Apply</button>
-    </div>
-  </div>
-
-  <!-- GLASSY RIGHT-CLICK POPUP ON CHASSIS NO -->
-  <div id="chassisContextPopup" class="glass-context-popup">
-    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom" style="border-color: var(--border) !important;">
-      <span class="small fw-bold text-primary"><i class="fas fa-truck-pickup me-1"></i>Equipment Info</span>
-      <button type="button" class="btn-close btn-close-sm" style="font-size:0.65rem;" onclick="hideChassisPopup()"></button>
-    </div>
-    <div class="small mb-1">
-      <span style="color: var(--text-muted)">IN / Chassis:</span>
-      <div class="fw-bold" id="ctxChassisTitle">-</div>
-    </div>
-    <div class="small mb-1">
-      <span style="color: var(--text-muted)">Vehicle Type:</span>
-      <div class="fw-semibold" id="ctxVehicleType">-</div>
-    </div>
-    <div class="small">
-      <span style="color: var(--text-muted)">Purchase Date:</span>
-      <div class="fw-semibold" id="ctxPurchaseDate">-</div>
-    </div>
-  </div>
-
-  <!-- MODAL: ADD STOCKS -->
-  <div class="modal fade" id="addStockModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 18px;">
-        <div class="modal-header py-2 px-3">
-          <h6 class="modal-title fw-bold"><i class="fas fa-boxes-stacked text-info me-2"></i>Add Stocks (Current Date)</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="table-scroll-box">
+          <table class="table table-hover align-middle mb-0" id="ledgerTable">
+            <thead id="ledgerThead"></thead>
+            <tbody id="ledgerTbody">
+              <tr>
+                <td colspan="7" class="text-center py-4">
+                  Loading dashboard...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <form id="addStockForm">
-          <div class="modal-body">
-            <div class="mb-2">
-              <label class="form-label small fw-semibold mb-1">Select IN No *</label>
-              <select class="form-select form-select-sm" id="stockInNoSelect" required></select>
-              <small class="text-primary fw-semibold" id="stockChassisPreview">Chassis: -</small>
-            </div>
-            <div class="mb-2 position-relative" id="stockItemComboWrap">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <label class="form-label small fw-semibold mb-0">Item (Code / Name) *</label>
-                <button type="button" class="btn btn-xs btn-outline-primary rounded-pill py-0 px-2" style="font-size:0.74rem;" onclick="openNewItemMasterModal()">
-                  <i class="fas fa-plus me-1"></i>Add New
-                </button>
-              </div>
-              <input type="text" class="form-control form-control-sm" id="stockItemComboInput" placeholder="Type code (e.g. 007) or item name..." autocomplete="off" required />
-              <input type="hidden" id="stockSelectedCode" />
-              <input type="hidden" id="stockSelectedName" />
-              <div id="stockItemComboList" class="combo-dropdown-list"></div>
-            </div>
-            <div class="mb-2">
-              <label class="form-label small fw-semibold mb-1">Add Quantity *</label>
-              <input type="number" step="0.01" min="0.01" class="form-control form-control-sm" id="stockAddQty" placeholder="0" required />
-            </div>
-            <div class="mt-3 p-2 rounded-3" style="background: var(--surface); border: 1px solid var(--border); max-height: 150px; overflow-y: auto;">
-              <div class="small fw-bold mb-1" style="color: var(--text-muted)">Current Available Stock for Selected IN:</div>
-              <div id="currentStockListBox" class="small text-muted">Select an IN No to view stock</div>
-            </div>
-          </div>
-          <div class="modal-footer py-2">
-            <button type="submit" class="btn btn-info text-dark fw-semibold btn-sm px-4 rounded-pill">Add to Stock</button>
-          </div>
-        </form>
       </div>
     </div>
-  </div>
 
-  <!-- MODAL: CREATE NEW ITEM MASTER (CODE + NAME) -->
-  <div class="modal fade" id="newItemMasterModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-      <div class="modal-content" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 16px;">
-        <div class="modal-header py-2 px-3">
-          <h6 class="modal-title fw-bold"><i class="fas fa-tag text-primary me-1"></i>Add New Item</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- MODAL: ADD NEW COST LEDGER COLUMN -->
+    <div class="modal fade" id="addCostColModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div
+          class="modal-content"
+          style="background: var(--bg); color: var(--text)"
+        >
+          <div class="modal-header">
+            <h6 class="modal-title fw-bold">Add New Cost Ledger Column</h6>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form id="addCostColForm">
+            <div class="modal-body">
+              <label class="form-label small fw-semibold"
+                >Cost Ledger Name</label
+              >
+              <input
+                type="text"
+                class="form-control"
+                id="newCostHeadName"
+                placeholder="e.g. Transport Cost, Dismantling Cost"
+                required
+              />
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary btn-sm px-4">
+                Add Ledger
+              </button>
+            </div>
+          </form>
         </div>
-        <form id="newItemMasterForm">
-          <div class="modal-body">
-            <div class="mb-2">
-              <label class="form-label small fw-semibold mb-1">Item Code *</label>
-              <input type="text" class="form-control form-control-sm" id="masterItemCode" placeholder="e.g. 007" required />
-            </div>
-            <div class="mb-1">
-              <label class="form-label small fw-semibold mb-1">Item Name *</label>
-              <input type="text" class="form-control form-control-sm" id="masterItemName" placeholder="e.g. Tyre, Dump Truck Tyre" required />
-            </div>
-          </div>
-          <div class="modal-footer py-2">
-            <button type="submit" class="btn btn-primary btn-sm px-3 rounded-pill">Save Item</button>
-          </div>
-        </form>
       </div>
     </div>
-  </div>
 
-  <!-- MODAL: JOURNAL VOUCHER (JV) -->
-  <div class="modal fade" id="jvModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 18px;">
-        <div class="modal-header py-2 px-3">
-          <h6 class="modal-title fw-bold"><i class="fas fa-file-invoice-dollar text-success me-2"></i>Journal Voucher (JV)</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- GLASSY RIGHT-CLICK FILTER BOX ON TABLE HEADER (WITH CHECKBOX VALUES) -->
+    <div
+      id="headerFilterPopup"
+      class="header-filter-popup"
+      style="width: 265px"
+    >
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span
+          class="small fw-bold text-primary text-truncate"
+          id="hdrFilterTitle"
+          >Filter Column</span
+        >
+        <button
+          type="button"
+          class="btn-close btn-close-sm"
+          style="font-size: 0.62rem"
+          onclick="hideHeaderFilterPopup()"
+        ></button>
+      </div>
+      <input
+        type="text"
+        class="form-control form-control-sm mb-2"
+        id="hdrFilterInput"
+        placeholder="Search values..."
+        autocomplete="off"
+      />
+      <div
+        class="border rounded-3 p-2 mb-2"
+        style="
+          border-color: var(--border) !important;
+          background: var(--bg);
+          max-height: 185px;
+          overflow-y: auto;
+        "
+      >
+        <div
+          class="form-check small border-bottom pb-1 mb-1"
+          style="border-color: var(--border) !important"
+        >
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="hdrSelectAllChk"
+            checked
+          />
+          <label class="form-check-label fw-bold" for="hdrSelectAllChk"
+            >(Select All)</label
+          >
         </div>
-        <form id="jvForm">
-          <div class="modal-body">
-            <div class="row g-2 mb-2">
-              <div class="col-md-4">
-                <label class="form-label small fw-semibold mb-1">Voucher Date *</label>
-                <input type="text" class="form-control form-control-sm" id="jvVoucherDate" required />
-              </div>
-              <div class="col-md-4">
-                <label class="form-label small fw-semibold mb-1">Effective Date *</label>
-                <input type="text" class="form-control form-control-sm" id="jvEffectiveDate" required />
-              </div>
-              <div class="col-md-4">
-                <label class="form-label small fw-semibold mb-1">Voucher Type (Ledger) *</label>
-                <select class="form-select form-select-sm" id="jvVoucherType" required></select>
-              </div>
-            </div>
+        <div id="hdrCheckboxValuesList"></div>
+      </div>
+      <div class="d-flex justify-content-between gap-1">
+        <button
+          type="button"
+          class="btn btn-xs btn-outline-secondary py-1 px-2"
+          style="font-size: 0.74rem"
+          onclick="clearSingleHeaderFilter()"
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          class="btn btn-xs btn-primary py-1 px-3"
+          style="font-size: 0.74rem"
+          onclick="applyHeaderFilter()"
+        >
+          Apply
+        </button>
+      </div>
+    </div>
 
-            <div class="row g-2 mb-3 align-items-end">
-              <div class="col-md-6">
-                <label class="form-label small fw-semibold mb-1">IN No *</label>
-                <select class="form-select form-select-sm" id="jvInNoSelect" required></select>
+    <!-- GLASSY RIGHT-CLICK POPUP ON CHASSIS NO -->
+    <div id="chassisContextPopup" class="glass-context-popup">
+      <div
+        class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom"
+        style="border-color: var(--border) !important"
+      >
+        <span class="small fw-bold text-primary"
+          ><i class="fas fa-truck-pickup me-1"></i>Equipment Info</span
+        >
+        <button
+          type="button"
+          class="btn-close btn-close-sm"
+          style="font-size: 0.65rem"
+          onclick="hideChassisPopup()"
+        ></button>
+      </div>
+      <div class="small mb-1">
+        <span style="color: var(--text-muted)">IN / Chassis:</span>
+        <div class="fw-bold" id="ctxChassisTitle">-</div>
+      </div>
+      <div class="small mb-1">
+        <span style="color: var(--text-muted)">Vehicle Type:</span>
+        <div class="fw-semibold" id="ctxVehicleType">-</div>
+      </div>
+      <div class="small">
+        <span style="color: var(--text-muted)">Purchase Date:</span>
+        <div class="fw-semibold" id="ctxPurchaseDate">-</div>
+      </div>
+    </div>
+
+    <!-- MODAL: ADD STOCKS -->
+    <div class="modal fade" id="addStockModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div
+          class="modal-content"
+          style="
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+          "
+        >
+          <div class="modal-header py-2 px-3">
+            <h6 class="modal-title fw-bold">
+              <i class="fas fa-boxes-stacked text-info me-2"></i>Add Stocks
+              (Current Date)
+            </h6>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form id="addStockForm">
+            <div class="modal-body">
+              <div class="mb-2">
+                <label class="form-label small fw-semibold mb-1"
+                  >Select IN No *</label
+                >
+                <select
+                  class="form-select form-select-sm"
+                  id="stockInNoSelect"
+                  required
+                ></select>
+                <small class="text-primary fw-semibold" id="stockChassisPreview"
+                  >Chassis: -</small
+                >
               </div>
-              <div class="col-md-6">
-                <div class="p-2 rounded-3" style="background: var(--surface); border: 1px solid var(--border);">
-                  <span class="small" style="color: var(--text-muted)">Chassis No: </span>
-                  <span class="fw-bold text-primary" id="jvChassisDisplay">-</span>
+              <div class="mb-2 position-relative" id="stockItemComboWrap">
+                <div
+                  class="d-flex justify-content-between align-items-center mb-1"
+                >
+                  <label class="form-label small fw-semibold mb-0"
+                    >Item (Code / Name) *</label
+                  >
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-outline-primary rounded-pill py-0 px-2"
+                    style="font-size: 0.74rem"
+                    onclick="openNewItemMasterModal()"
+                  >
+                    <i class="fas fa-plus me-1"></i>Add New
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  id="stockItemComboInput"
+                  placeholder="Type code (e.g. 007) or item name..."
+                  autocomplete="off"
+                  required
+                />
+                <input type="hidden" id="stockSelectedCode" />
+                <input type="hidden" id="stockSelectedName" />
+                <div id="stockItemComboList" class="combo-dropdown-list"></div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small fw-semibold mb-1"
+                  >Add Quantity *</label
+                >
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  class="form-control form-control-sm"
+                  id="stockAddQty"
+                  placeholder="0"
+                  required
+                />
+              </div>
+              <div
+                class="mt-3 p-2 rounded-3"
+                style="
+                  background: var(--surface);
+                  border: 1px solid var(--border);
+                  max-height: 150px;
+                  overflow-y: auto;
+                "
+              >
+                <div
+                  class="small fw-bold mb-1"
+                  style="color: var(--text-muted)"
+                >
+                  Current Available Stock for Selected IN:
+                </div>
+                <div id="currentStockListBox" class="small text-muted">
+                  Select an IN No to view stock
                 </div>
               </div>
             </div>
+            <div class="modal-footer py-2">
+              <button
+                type="submit"
+                class="btn btn-info text-dark fw-semibold btn-sm px-4 rounded-pill"
+              >
+                Add to Stock
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
-            <!-- SALES SECTION -->
-            <div id="jvSalesSection" class="p-3 rounded-3 mb-2" style="background: var(--rev-tint); border: 1px solid var(--border);">
+    <!-- MODAL: CREATE NEW ITEM MASTER (CODE + NAME) -->
+    <div class="modal fade" id="newItemMasterModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div
+          class="modal-content"
+          style="
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+          "
+        >
+          <div class="modal-header py-2 px-3">
+            <h6 class="modal-title fw-bold">
+              <i class="fas fa-tag text-primary me-1"></i>Add New Item
+            </h6>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form id="newItemMasterForm">
+            <div class="modal-body">
+              <div class="mb-2">
+                <label class="form-label small fw-semibold mb-1"
+                  >Item Code *</label
+                >
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  id="masterItemCode"
+                  placeholder="e.g. 007"
+                  required
+                />
+              </div>
+              <div class="mb-1">
+                <label class="form-label small fw-semibold mb-1"
+                  >Item Name *</label
+                >
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  id="masterItemName"
+                  placeholder="e.g. Tyre, Dump Truck Tyre"
+                  required
+                />
+              </div>
+            </div>
+            <div class="modal-footer py-2">
+              <button
+                type="submit"
+                class="btn btn-primary btn-sm px-3 rounded-pill"
+              >
+                Save Item
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: JOURNAL VOUCHER (JV) -->
+    <div class="modal fade" id="jvModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div
+          class="modal-content"
+          style="
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+          "
+        >
+          <div class="modal-header py-2 px-3">
+            <h6 class="modal-title fw-bold">
+              <i class="fas fa-file-invoice-dollar text-success me-2"></i
+              >Journal Voucher (JV)
+            </h6>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form id="jvForm">
+            <div class="modal-body">
               <div class="row g-2 mb-2">
-                <div class="col-md-6 position-relative" id="jvItemComboWrap">
-                  <label class="form-label small fw-semibold mb-1">Item (Type Code / Name) *</label>
-                  <input type="text" class="form-control form-control-sm" id="jvItemComboInput" placeholder="Select IN No first, type code/name..." autocomplete="off" />
-                  <input type="hidden" id="jvSelectedCode" />
-                  <input type="hidden" id="jvSelectedName" />
-                  <input type="hidden" id="jvSelectedAvail" value="0" />
-                  <div id="jvItemComboList" class="combo-dropdown-list"></div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold mb-1"
+                    >Voucher Date *</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    id="jvVoucherDate"
+                    readonly
+                    tabindex="-1"
+                    style="pointer-events: none; opacity: 0.85"
+                    required
+                  />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold mb-1"
+                    >Effective Date *</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    id="jvEffectiveDate"
+                    required
+                  />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold mb-1"
+                    >Voucher Type (Ledger) *</label
+                  >
+                  <select
+                    class="form-select form-select-sm"
+                    id="jvVoucherType"
+                    required
+                  ></select>
+                </div>
+              </div>
+
+              <div class="row g-2 mb-3 align-items-end">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold mb-1"
+                    >IN No *</label
+                  >
+                  <select
+                    class="form-select form-select-sm"
+                    id="jvInNoSelect"
+                    required
+                  ></select>
+                </div>
+                <div class="col-md-6">
+                  <div
+                    class="p-2 rounded-3"
+                    style="
+                      background: var(--surface);
+                      border: 1px solid var(--border);
+                    "
+                  >
+                    <span class="small" style="color: var(--text-muted)"
+                      >Chassis No:
+                    </span>
+                    <span class="fw-bold text-primary" id="jvChassisDisplay"
+                      >-</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <!-- SALES SECTION -->
+              <div
+                id="jvSalesSection"
+                class="p-3 rounded-3 mb-2"
+                style="
+                  background: var(--rev-tint);
+                  border: 1px solid var(--border);
+                "
+              >
+                <div class="row g-2 mb-2">
+                  <div class="col-md-6 position-relative" id="jvItemComboWrap">
+                    <label class="form-label small fw-semibold mb-1"
+                      >Item (Type Code / Name) *</label
+                    >
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      id="jvItemComboInput"
+                      placeholder="Select IN No first, type code/name..."
+                      autocomplete="off"
+                    />
+                    <input type="hidden" id="jvSelectedCode" />
+                    <input type="hidden" id="jvSelectedName" />
+                    <input type="hidden" id="jvSelectedAvail" value="0" />
+                    <div id="jvItemComboList" class="combo-dropdown-list"></div>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label small fw-semibold mb-1"
+                      >Quantity *</label
+                    >
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      class="form-control form-control-sm"
+                      id="jvQty"
+                      value="0"
+                    />
+                    <div
+                      id="jvQtyErrorMsg"
+                      class="text-danger fw-semibold mt-1 d-none"
+                      style="font-size: 0.74rem"
+                    ></div>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label small fw-semibold mb-1"
+                      >Rate *</label
+                    >
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      class="form-control form-control-sm"
+                      id="jvRate"
+                      value="0"
+                    />
+                  </div>
+                </div>
+                <div class="row g-2">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold mb-1"
+                      >Sub Total</label
+                    >
+                    <input
+                      type="text"
+                      class="form-control form-control-sm fw-bold"
+                      id="jvSubTotal"
+                      value="0.00"
+                      readonly
+                    />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold mb-1"
+                      >VAT %</label
+                    >
+                    <select
+                      class="form-select form-select-sm"
+                      id="jvVatPercent"
+                    >
+                      <option value="0" selected>0%</option>
+                      <option value="15">15%</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-bold text-success mb-1"
+                      >Total (Add to Sales)</label
+                    >
+                    <input
+                      type="text"
+                      class="form-control form-control-sm fw-bold text-success"
+                      id="jvTotalAmount"
+                      value="0.00"
+                      readonly
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- COST LEDGER SECTION -->
+              <div
+                id="jvCostSection"
+                class="p-3 rounded-3 mb-2 d-none"
+                style="
+                  background: var(--cost-tint);
+                  border: 1px solid var(--border);
+                "
+              >
+                <label class="form-label small fw-bold text-danger mb-1"
+                  >Amount (Add to Selected Cost Ledger) *</label
+                >
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  class="form-control form-control-sm"
+                  id="jvCostAmount"
+                  value="0"
+                />
+              </div>
+
+              <!-- NARRATION -->
+              <div>
+                <label class="form-label small fw-semibold mb-1"
+                  >Narration (Optional)</label
+                >
+                <textarea
+                  class="form-control form-control-sm"
+                  id="jvNarration"
+                  rows="2"
+                  placeholder="Enter voucher notes / reference..."
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer py-2">
+              <button
+                type="submit"
+                class="btn btn-success btn-sm px-4 rounded-pill"
+              >
+                Save JV
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: NEW EQ ENTRY (IN No, Chassis No, Purchase Cost, Purchase Date, Vehicle Type) -->
+    <div class="modal fade" id="newEqModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div
+          class="modal-content"
+          style="
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+          "
+        >
+          <div class="modal-header">
+            <h6 class="modal-title fw-bold">
+              <i class="fas fa-plus-circle text-primary me-2"></i>New EQ
+              Registration
+            </h6>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form id="newEqForm">
+            <div class="modal-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold">IN No *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="newEqInNo"
+                    placeholder="e.g. IN-2026-001"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold"
+                    >Chassis No *</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="newEqChassisNo"
+                    placeholder="Enter Chassis No"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold"
+                    >Vehicle Type *</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="newEqVehicleType"
+                    placeholder="e.g. Wheel Loader, Pickup"
+                    required
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold"
+                    >Purchase Date *</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="newEqPurchaseDate"
+                    placeholder="Select Date"
+                    required
+                  />
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold text-danger"
+                    >Purchase Cost *</label
+                  >
+                  <input
+                    type="number"
+                    step="0.01"
+                    class="form-control"
+                    id="newEqPurchaseCost"
+                    placeholder="0.00"
+                    value="0"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary px-4 rounded-pill">
+                Save New EQ
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: EDIT FULL VEHICLE COST & REVENUE -->
+    <div class="modal fade" id="vehicleEntryModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div
+          class="modal-content"
+          style="
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+          "
+        >
+          <div class="modal-header">
+            <h6 class="modal-title fw-bold">Update EQ Cost & Revenue</h6>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form id="vehicleEntryForm">
+            <div class="modal-body">
+              <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                  <label class="form-label small fw-semibold">IN No *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="entryInNo"
+                    required
+                    readonly
+                  />
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label small fw-semibold mb-1">Quantity *</label>
-                  <input type="number" step="0.01" min="0.01" class="form-control form-control-sm" id="jvQty" value="0" />
-                  <div id="jvQtyErrorMsg" class="text-danger fw-semibold mt-1 d-none" style="font-size:0.74rem;"></div>
+                  <label class="form-label small fw-semibold"
+                    >Chassis No *</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="entryChassisNo"
+                    required
+                  />
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label small fw-semibold mb-1">Rate *</label>
-                  <input type="number" step="0.01" min="0" class="form-control form-control-sm" id="jvRate" value="0" />
+                  <label class="form-label small fw-semibold"
+                    >Vehicle Type</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="entryVehicleType"
+                  />
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small fw-semibold"
+                    >Purchase Date</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="entryPurchaseDate"
+                  />
                 </div>
               </div>
-              <div class="row g-2">
-                <div class="col-md-4">
-                  <label class="form-label small fw-semibold mb-1">Sub Total</label>
-                  <input type="text" class="form-control form-control-sm fw-bold" id="jvSubTotal" value="0.00" readonly />
+
+              <div
+                class="p-3 rounded-3 mb-3"
+                style="
+                  background: var(--cost-tint);
+                  border: 1px solid var(--border);
+                "
+              >
+                <div class="small fw-bold text-danger mb-2">
+                  <i class="fas fa-receipt me-1"></i>Cost Areas (Ledgers)
                 </div>
-                <div class="col-md-4">
-                  <label class="form-label small fw-semibold mb-1">VAT %</label>
-                  <select class="form-select form-select-sm" id="jvVatPercent">
-                    <option value="0" selected>0%</option>
-                    <option value="15">15%</option>
-                  </select>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label small fw-bold text-success mb-1">Total (Add to Sales)</label>
-                  <input type="text" class="form-control form-control-sm fw-bold text-success" id="jvTotalAmount" value="0.00" readonly />
-                </div>
+                <div class="row g-2" id="dynamicCostInputs"></div>
+              </div>
+
+              <div
+                class="p-3 rounded-3"
+                style="
+                  background: var(--rev-tint);
+                  border: 1px solid var(--border);
+                "
+              >
+                <label class="form-label small fw-bold text-success mb-1"
+                  ><i class="fas fa-coins me-1"></i>Sales Revenue</label
+                >
+                <input
+                  type="number"
+                  step="0.01"
+                  class="form-control"
+                  id="entrySalesRevenue"
+                  value="0"
+                />
               </div>
             </div>
-
-            <!-- COST LEDGER SECTION -->
-            <div id="jvCostSection" class="p-3 rounded-3 mb-2 d-none" style="background: var(--cost-tint); border: 1px solid var(--border);">
-              <label class="form-label small fw-bold text-danger mb-1">Amount (Add to Selected Cost Ledger) *</label>
-              <input type="number" step="0.01" min="0.01" class="form-control form-control-sm" id="jvCostAmount" value="0" />
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary px-4 rounded-pill">
+                Update Record
+              </button>
             </div>
-
-            <!-- NARRATION -->
-            <div>
-              <label class="form-label small fw-semibold mb-1">Narration (Optional)</label>
-              <textarea class="form-control form-control-sm" id="jvNarration" rows="2" placeholder="Enter voucher notes / reference..."></textarea>
-            </div>
-          </div>
-          <div class="modal-footer py-2">
-            <button type="submit" class="btn btn-success btn-sm px-4 rounded-pill">Save JV</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: NEW EQ ENTRY (IN No, Chassis No, Purchase Cost, Purchase Date, Vehicle Type) -->
-  <div class="modal fade" id="newEqModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 18px;">
-        <div class="modal-header">
-          <h6 class="modal-title fw-bold"><i class="fas fa-plus-circle text-primary me-2"></i>New EQ Registration</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </form>
         </div>
-        <form id="newEqForm">
-          <div class="modal-body">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label small fw-semibold">IN No *</label>
-                <input type="text" class="form-control" id="newEqInNo" placeholder="e.g. IN-2026-001" required />
-              </div>
-              <div class="col-md-6">
-                <label class="form-label small fw-semibold">Chassis No *</label>
-                <input type="text" class="form-control" id="newEqChassisNo" placeholder="Enter Chassis No" required />
-              </div>
-              <div class="col-md-6">
-                <label class="form-label small fw-semibold">Vehicle Type *</label>
-                <input type="text" class="form-control" id="newEqVehicleType" placeholder="e.g. Wheel Loader, Pickup" required />
-              </div>
-              <div class="col-md-6">
-                <label class="form-label small fw-semibold">Purchase Date *</label>
-                <input type="text" class="form-control" id="newEqPurchaseDate" placeholder="Select Date" required />
-              </div>
-              <div class="col-12">
-                <label class="form-label small fw-semibold text-danger">Purchase Cost *</label>
-                <input type="number" step="0.01" class="form-control" id="newEqPurchaseCost" placeholder="0.00" value="0" required />
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary px-4 rounded-pill">Save New EQ</button>
-          </div>
-        </form>
       </div>
     </div>
-  </div>
 
-  <!-- MODAL: EDIT FULL VEHICLE COST & REVENUE -->
-  <div class="modal fade" id="vehicleEntryModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 18px;">
-        <div class="modal-header">
-          <h6 class="modal-title fw-bold">Update EQ Cost & Revenue</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <form id="vehicleEntryForm">
-          <div class="modal-body">
-            <div class="row g-3 mb-3">
-              <div class="col-md-3">
-                <label class="form-label small fw-semibold">IN No *</label>
-                <input type="text" class="form-control" id="entryInNo" required readonly />
-              </div>
-              <div class="col-md-3">
-                <label class="form-label small fw-semibold">Chassis No *</label>
-                <input type="text" class="form-control" id="entryChassisNo" required />
-              </div>
-              <div class="col-md-3">
-                <label class="form-label small fw-semibold">Vehicle Type</label>
-                <input type="text" class="form-control" id="entryVehicleType" />
-              </div>
-              <div class="col-md-3">
-                <label class="form-label small fw-semibold">Purchase Date</label>
-                <input type="text" class="form-control" id="entryPurchaseDate" />
-              </div>
-            </div>
-
-            <div class="p-3 rounded-3 mb-3" style="background: var(--cost-tint); border: 1px solid var(--border);">
-              <div class="small fw-bold text-danger mb-2"><i class="fas fa-receipt me-1"></i>Cost Areas (Ledgers)</div>
-              <div class="row g-2" id="dynamicCostInputs"></div>
-            </div>
-
-            <div class="p-3 rounded-3" style="background: var(--rev-tint); border: 1px solid var(--border);">
-              <label class="form-label small fw-bold text-success mb-1"><i class="fas fa-coins me-1"></i>Sales Revenue</label>
-              <input type="number" step="0.01" class="form-control" id="entrySalesRevenue" value="0" />
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary px-4 rounded-pill">Update Record</button>
-          </div>
-        </form>
-      </div>
+    <div id="exportOverlay" class="export-overlay">
+      <div
+        class="spinner-border text-light"
+        style="width: 3rem; height: 3rem"
+        role="status"
+      ></div>
+      <div class="fw-semibold">Preparing Excel file... please wait</div>
     </div>
-  </div>
 
-  <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
-  <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
-  <script src="/node_xlsx_scripts/flatpickr.min.js"></script>
-  <script>
-    const token = localStorage.getItem("sp_token");
-    const user = JSON.parse(localStorage.getItem("sp_user") || "{}");
+    <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
+    <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
+    <script src="/node_xlsx_scripts/flatpickr.min.js"></script>
+    <script>
+      const token = localStorage.getItem("sp_token");
+      const user = JSON.parse(localStorage.getItem("sp_user") || "{}");
 
-    // Login Required Check
-    if (!token || !user.username) {
-      window.location.href = "/Office/Spare_parts_sale/index.html";
-    }
+      // Login Required Check
+      if (!token || !user.username) {
+        window.location.href = "/Office/Spare_parts_sale/index.html";
+      }
 
-    document.getElementById("welcomeUser").textContent = `${user.displayName || user.username} (${user.role})`;
-    if (user.role === "Super Admin") {
-      document.getElementById("costLedgerNavBtn").classList.remove("d-none");
-      document.getElementById("adminPanelBtn").classList.remove("d-none");
-    }
+      document.getElementById("welcomeUser").textContent =
+        `${user.displayName || user.username} (${user.role})`;
+      if (user.role === "Super Admin") {
+        document.getElementById("costLedgerNavBtn").classList.remove("d-none");
+        document.getElementById("adminPanelBtn").classList.remove("d-none");
+      }
 
-    // Theme Toggle
-    const themeToggle = document.getElementById("themeToggle");
-    const themeIcon = document.getElementById("themeIcon");
-    function updateIcon() {
-      const t = document.documentElement.getAttribute("data-theme");
-      themeIcon.className = t === "dark" ? "fas fa-sun" : "fas fa-moon";
-    }
-    updateIcon();
-    themeToggle.addEventListener("click", () => {
-      const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      document.documentElement.setAttribute("data-bs-theme", next);
-      try { localStorage.setItem("sp_theme", next); } catch (e) {}
+      // Theme Toggle
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      function updateIcon() {
+        const t = document.documentElement.getAttribute("data-theme");
+        themeIcon.className = t === "dark" ? "fas fa-sun" : "fas fa-moon";
+      }
       updateIcon();
-    });
-
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      localStorage.removeItem("sp_token");
-      localStorage.removeItem("sp_user");
-      window.location.href = "/Office/Spare_parts_sale/index.html";
-    });
-
-    function esc(str) {
-      return String(str || "").replace(/[&<>"']/g, (m) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-      }[m]));
-    }
-
-    function fmt(num) {
-      return Number(num || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    let currentCostHeads = [];
-    let currentRows = [];
-    let columnFilters = {}; // { colKey: "query" }
-    let activeFilterColKey = "";
-
-    function getColDisplayValue(row, colKey) {
-      if (colKey === "in_no") return String(row.in_no || "");
-      if (colKey === "chassis_no") return String(row.chassis_no || "");
-      if (colKey === "total_cost") return fmt(row.total_cost);
-      if (colKey === "sales_revenue") return fmt(row.sales_revenue);
-      if (colKey === "net_cf") return row.net_cf >= 0 ? `+${fmt(row.net_cf)}` : fmt(row.net_cf);
-      if (colKey.startsWith("cost_")) {
-        const hId = Number(colKey.replace("cost_", ""));
-        return fmt((row.costs && row.costs[hId]) || 0);
-      }
-      return "";
-    }
-
-    function isAnyFilterActive() {
-      const globalQ = document.getElementById("searchInput").value.trim();
-      const hasColFilter = Object.keys(columnFilters).length > 0;
-      return globalQ !== "" || hasColFilter;
-    }
-
-    function applyAllFilters() {
-      const globalQ = document.getElementById("searchInput").value.trim().toLowerCase();
-      const filtered = currentRows.filter(r => {
-        if (globalQ) {
-          const matchGlobal = r.in_no.toLowerCase().includes(globalQ) || r.chassis_no.toLowerCase().includes(globalQ);
-          if (!matchGlobal) return false;
-        }
-        for (const [colKey, selectedSet] of Object.entries(columnFilters)) {
-          if (!selectedSet) continue;
-          const cellVal = getColDisplayValue(r, colKey);
-          if (!selectedSet.has(cellVal)) return false;
-        }
-        return true;
+      themeToggle.addEventListener("click", () => {
+        const next =
+          document.documentElement.getAttribute("data-theme") === "dark"
+            ? "light"
+            : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        document.documentElement.setAttribute("data-bs-theme", next);
+        try {
+          localStorage.setItem("sp_theme", next);
+        } catch (e) {}
+        updateIcon();
       });
-      renderTable(filtered);
-    }
 
-    async function loadDashboard() {
-      try {
-        const res = await fetch("/api/spare-parts/dashboard/summary", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem("sp_token");
-          window.location.href = "/Office/Spare_parts_sale/index.html";
-          return;
-        }
-        const data = await res.json();
-        if (!data.success) return;
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        localStorage.removeItem("sp_token");
+        localStorage.removeItem("sp_user");
+        window.location.href = "/Office/Spare_parts_sale/index.html";
+      });
 
-        currentCostHeads = data.costHeads || [];
-        currentRows = data.rows || [];
-        applyAllFilters();
-      } catch (err) {
-        console.error(err);
+      function esc(str) {
+        return String(str || "").replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[m],
+        );
       }
-    }
 
-    function renderTable(rows) {
-      const thead = document.getElementById("ledgerThead");
-      const tbody = document.getElementById("ledgerTbody");
+      function fmt(num) {
+        return Number(num || 0).toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
 
-      const thAttr = (key, label) => {
-        const activeCls = columnFilters[key] ? "filtered-col" : "";
-        const icon = columnFilters[key] ? ` <i class="fas fa-filter" style="font-size:0.68rem;"></i>` : "";
-        return `class="${activeCls}" oncontextmenu="openHeaderFilterPopup(event, '${key}', '${esc(label)}')" title="Right-click to filter"`;
-      };
+      let currentCostHeads = [];
+      let currentRows = [];
+      let currentFiltered = [];
+      let columnFilters = {}; // { colKey: "query" }
+      let activeFilterColKey = "";
 
-      // Header Row: IN No | Chassis No | [Dynamic Cost Areas...] | Total Cost | Sales Revenue | Net C/F
-      let headHtml = `
+      function getColDisplayValue(row, colKey) {
+        if (colKey === "in_no") return String(row.in_no || "");
+        if (colKey === "chassis_no") return String(row.chassis_no || "");
+        if (colKey === "total_cost") return fmt(row.total_cost);
+        if (colKey === "sales_revenue") return fmt(row.sales_revenue);
+        if (colKey === "net_cf")
+          return row.net_cf >= 0 ? `+${fmt(row.net_cf)}` : fmt(row.net_cf);
+        if (colKey.startsWith("cost_")) {
+          const hId = Number(colKey.replace("cost_", ""));
+          return fmt((row.costs && row.costs[hId]) || 0);
+        }
+        return "";
+      }
+
+      function isAnyFilterActive() {
+        const globalQ = document.getElementById("searchInput").value.trim();
+        const hasColFilter = Object.keys(columnFilters).length > 0;
+        return globalQ !== "" || hasColFilter;
+      }
+
+      function applyAllFilters() {
+        const globalQ = document
+          .getElementById("searchInput")
+          .value.trim()
+          .toLowerCase();
+        const filtered = currentRows.filter((r) => {
+          if (globalQ) {
+            const matchGlobal =
+              r.in_no.toLowerCase().includes(globalQ) ||
+              r.chassis_no.toLowerCase().includes(globalQ);
+            if (!matchGlobal) return false;
+          }
+          for (const [colKey, selectedSet] of Object.entries(columnFilters)) {
+            if (!selectedSet) continue;
+            const cellVal = getColDisplayValue(r, colKey);
+            if (!selectedSet.has(cellVal)) return false;
+          }
+          return true;
+        });
+        currentFiltered = filtered;
+        renderTable(filtered);
+      }
+
+      async function loadDashboard() {
+        try {
+          const res = await fetch("/api/spare-parts/dashboard/summary", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.status === 401 || res.status === 403) {
+            localStorage.removeItem("sp_token");
+            window.location.href = "/Office/Spare_parts_sale/index.html";
+            return;
+          }
+          const data = await res.json();
+          if (!data.success) return;
+
+          currentCostHeads = data.costHeads || [];
+          currentRows = data.rows || [];
+          applyAllFilters();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      function renderTable(rows) {
+        const thead = document.getElementById("ledgerThead");
+        const tbody = document.getElementById("ledgerTbody");
+
+        const thAttr = (key, label) => {
+          const activeCls = columnFilters[key] ? "filtered-col" : "";
+          const icon = columnFilters[key]
+            ? ` <i class="fas fa-filter" style="font-size:0.68rem;"></i>`
+            : "";
+          return `class="${activeCls}" oncontextmenu="openHeaderFilterPopup(event, '${key}', '${esc(label)}')" title="Right-click to filter"`;
+        };
+
+        // Header Row: IN No | Chassis No | [Dynamic Cost Areas...] | Total Cost | Sales Revenue | Net C/F
+        let headHtml = `
         <tr>
           <th ${thAttr("in_no", "IN No")}>IN No${columnFilters["in_no"] ? ' <i class="fas fa-filter text-primary" style="font-size:0.68rem;"></i>' : ""}</th>
           <th ${thAttr("chassis_no", "Chassis No")}>Chassis No${columnFilters["chassis_no"] ? ' <i class="fas fa-filter text-primary" style="font-size:0.68rem;"></i>' : ""}</th>
-          ${currentCostHeads.map(h => {
-            const k = `cost_${h.id}`;
-            const hasF = !!columnFilters[k];
-            return `<th class="text-end col-cost-area ${hasF ? "filtered-col" : ""}" oncontextmenu="openHeaderFilterPopup(event, '${k}', '${esc(h.head_name)}')" title="Right-click to filter">${esc(h.head_name)}${hasF ? ' <i class="fas fa-filter" style="font-size:0.68rem;"></i>' : ""}</th>`;
-          }).join("")}
+          ${currentCostHeads
+            .map((h) => {
+              const k = `cost_${h.id}`;
+              const hasF = !!columnFilters[k];
+              return `<th class="text-end col-cost-area ${hasF ? "filtered-col" : ""}" oncontextmenu="openHeaderFilterPopup(event, '${k}', '${esc(h.head_name)}')" title="Right-click to filter">${esc(h.head_name)}${hasF ? ' <i class="fas fa-filter" style="font-size:0.68rem;"></i>' : ""}</th>`;
+            })
+            .join("")}
           <th class="text-end col-cost-area text-danger ${columnFilters["total_cost"] ? "filtered-col" : ""}" oncontextmenu="openHeaderFilterPopup(event, 'total_cost', 'Total Cost')" title="Right-click to filter">Total Cost${columnFilters["total_cost"] ? ' <i class="fas fa-filter" style="font-size:0.68rem;"></i>' : ""}</th>
           <th class="text-end col-rev-area text-success ${columnFilters["sales_revenue"] ? "filtered-col" : ""}" oncontextmenu="openHeaderFilterPopup(event, 'sales_revenue', 'Sales Revenue')" title="Right-click to filter">Sales Revenue${columnFilters["sales_revenue"] ? ' <i class="fas fa-filter" style="font-size:0.68rem;"></i>' : ""}</th>
           <th class="text-end ${columnFilters["net_cf"] ? "filtered-col" : ""}" oncontextmenu="openHeaderFilterPopup(event, 'net_cf', 'Net C/F')" title="Right-click to filter">Net C/F (Gain/Loss)${columnFilters["net_cf"] ? ' <i class="fas fa-filter" style="font-size:0.68rem;"></i>' : ""}</th>
         </tr>
       `;
-      thead.innerHTML = headHtml;
+        thead.innerHTML = headHtml;
 
-      // Active (filtered rows) sums
-      let activeHeadTotals = {};
-      currentCostHeads.forEach(h => activeHeadTotals[h.id] = 0);
-      let activeTotalCost = 0;
-      let activeRev = 0;
-      let activeNet = 0;
+        // Active (filtered rows) sums
+        let activeHeadTotals = {};
+        currentCostHeads.forEach((h) => (activeHeadTotals[h.id] = 0));
+        let activeTotalCost = 0;
+        let activeRev = 0;
+        let activeNet = 0;
 
-      // Overall Total (all currentRows) sums
-      let overallHeadTotals = {};
-      currentCostHeads.forEach(h => overallHeadTotals[h.id] = 0);
-      let overallTotalCost = 0;
-      let overallRev = 0;
-      let overallNet = 0;
+        // Overall Total (all currentRows) sums
+        let overallHeadTotals = {};
+        currentCostHeads.forEach((h) => (overallHeadTotals[h.id] = 0));
+        let overallTotalCost = 0;
+        let overallRev = 0;
+        let overallNet = 0;
 
-      currentRows.forEach(r => {
-        overallTotalCost += Number(r.total_cost || 0);
-        overallRev += Number(r.sales_revenue || 0);
-        overallNet += Number(r.net_cf || 0);
-        currentCostHeads.forEach(h => {
-          overallHeadTotals[h.id] += Number((r.costs && r.costs[h.id]) || 0);
+        currentRows.forEach((r) => {
+          overallTotalCost += Number(r.total_cost || 0);
+          overallRev += Number(r.sales_revenue || 0);
+          overallNet += Number(r.net_cf || 0);
+          currentCostHeads.forEach((h) => {
+            overallHeadTotals[h.id] += Number((r.costs && r.costs[h.id]) || 0);
+          });
         });
-      });
 
-      if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${currentCostHeads.length + 5}" class="text-center py-4 text-muted">No matching records.</td></tr>`;
-      } else {
-        tbody.innerHTML = rows.map(r => {
-          activeTotalCost += Number(r.total_cost || 0);
-          activeRev += Number(r.sales_revenue || 0);
-          activeNet += Number(r.net_cf || 0);
+        if (rows.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="${currentCostHeads.length + 5}" class="text-center py-4 text-muted">No matching records.</td></tr>`;
+        } else {
+          tbody.innerHTML = rows
+            .map((r) => {
+              activeTotalCost += Number(r.total_cost || 0);
+              activeRev += Number(r.sales_revenue || 0);
+              activeNet += Number(r.net_cf || 0);
 
-          const costCells = currentCostHeads.map(h => {
-            const val = Number((r.costs && r.costs[h.id]) || 0);
-            activeHeadTotals[h.id] += val;
-            return `<td class="text-end col-cost-area">${fmt(val)}</td>`;
-          }).join("");
+              const costCells = currentCostHeads
+                .map((h) => {
+                  const val = Number((r.costs && r.costs[h.id]) || 0);
+                  activeHeadTotals[h.id] += val;
+                  return `<td class="text-end col-cost-area">${fmt(val)}</td>`;
+                })
+                .join("");
 
-          const netClass = r.net_cf >= 0 ? "gain-text" : "loss-text";
-          const netLabel = r.net_cf >= 0 ? `+${fmt(r.net_cf)}` : fmt(r.net_cf);
+              const netClass = r.net_cf >= 0 ? "gain-text" : "loss-text";
+              const netLabel =
+                r.net_cf >= 0 ? `+${fmt(r.net_cf)}` : fmt(r.net_cf);
 
-          const safeRowJson = JSON.stringify(r).replace(/'/g, "&#39;");
-          return `
+              const safeRowJson = JSON.stringify(r).replace(/'/g, "&#39;");
+              return `
             <tr>
               <td class="fw-bold">${esc(r.in_no)}</td>
               <td class="chassis-cell fw-semibold text-primary" style="cursor:context-menu;" oncontextmenu='showChassisPopup(event, ${safeRowJson})' title="Right-click for Vehicle Info">${esc(r.chassis_no)}</td>
@@ -837,32 +1417,37 @@
               <td class="text-end ${netClass}">${netLabel}</td>
             </tr>
           `;
-        }).join("");
-      }
+            })
+            .join("");
+        }
 
-      // Render Dynamic KPI Strip (Show Active / Total ONLY when filter is active)
-      const filteredActive = isAnyFilterActive();
-      const fmtSigned = (v) => (v >= 0 ? `+${fmt(v)}` : fmt(v));
-      const formatKpiVal = (actVal, totVal, signed = false) => {
-        const aStr = signed ? fmtSigned(actVal) : fmt(actVal);
-        if (!filteredActive) return aStr;
-        const tStr = signed ? fmtSigned(totVal) : fmt(totVal);
-        return `${aStr} <span class="fw-normal opacity-75">/ ${tStr}</span>`;
-      };
+        // Render Dynamic KPI Strip (Show Active / Total ONLY when filter is active)
+        const filteredActive = isAnyFilterActive();
+        const fmtSigned = (v) => (v >= 0 ? `+${fmt(v)}` : fmt(v));
+        const formatKpiVal = (actVal, totVal, signed = false) => {
+          const aStr = signed ? fmtSigned(actVal) : fmt(actVal);
+          if (!filteredActive) return aStr;
+          const tStr = signed ? fmtSigned(totVal) : fmt(totVal);
+          return `${aStr} <span class="fw-normal opacity-75">/ ${tStr}</span>`;
+        };
 
-      const dynamicCostCards = currentCostHeads.map(h => `
+        const dynamicCostCards = currentCostHeads
+          .map(
+            (h) => `
         <div class="kpi-card" style="background: var(--cost-tint);">
           <span class="small text-truncate" style="color: var(--text-muted); font-size:0.72rem;" title="${esc(h.head_name)}">${esc(h.head_name)}</span>
           <span class="fw-bold" style="font-size:0.84rem;">${formatKpiVal(activeHeadTotals[h.id], overallHeadTotals[h.id])}</span>
         </div>
-      `).join("");
+      `,
+          )
+          .join("");
 
-      const activeNetClass = activeNet >= 0 ? "gain-text" : "loss-text";
-      const unitsDisplay = filteredActive
-        ? `${rows.length} <span class="fw-normal opacity-75">/ ${currentRows.length}</span>`
-        : `${currentRows.length}`;
+        const activeNetClass = activeNet >= 0 ? "gain-text" : "loss-text";
+        const unitsDisplay = filteredActive
+          ? `${rows.length} <span class="fw-normal opacity-75">/ ${currentRows.length}</span>`
+          : `${currentRows.length}`;
 
-      document.getElementById("kpiStripContainer").innerHTML = `
+        document.getElementById("kpiStripContainer").innerHTML = `
         <div class="kpi-card">
           <span class="small" style="color: var(--text-muted); font-size:0.72rem;">Total Units (IN)</span>
           <span class="fw-bold" style="font-size:0.88rem;">${unitsDisplay}</span>
@@ -881,701 +1466,938 @@
           <span class="fw-bold ${activeNetClass}" style="font-size:0.84rem;">${formatKpiVal(activeNet, overallNet, true)}</span>
         </div>
       `;
-    }
-
-    // Prevent mouse wheel scroll from changing any number input (including dynamically created columns)
-    document.addEventListener("wheel", function (e) {
-      if (document.activeElement && document.activeElement.type === "number") {
-        document.activeElement.blur();
       }
-    }, { passive: true });
 
-    // ==========================================
-    // 📦 ITEM MASTER & ADD STOCKS MODAL LOGIC (SINGLE COMBO INPUT)
-    // ==========================================
-    const addStockModal = new bootstrap.Modal(document.getElementById("addStockModal"));
-    const newItemMasterModal = new bootstrap.Modal(document.getElementById("newItemMasterModal"));
-    const stockInSelect = document.getElementById("stockInNoSelect");
-    const stockItemComboInput = document.getElementById("stockItemComboInput");
-    const stockItemComboList = document.getElementById("stockItemComboList");
-    const stockSelectedCode = document.getElementById("stockSelectedCode");
-    const stockSelectedName = document.getElementById("stockSelectedName");
-
-    let masterItemsList = [];
-
-    async function loadMasterItems() {
-      const res = await fetch("/api/spare-parts/dashboard/items", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        masterItemsList = data.items || [];
-      }
-    }
-
-    function renderStockComboList(filterText = "") {
-      const q = filterText.trim().toLowerCase();
-      const filtered = masterItemsList.filter(it =>
-        !q ||
-        it.item_code.toLowerCase().includes(q) ||
-        it.item_name.toLowerCase().includes(q) ||
-        `${it.item_code} - ${it.item_name}`.toLowerCase().includes(q)
+      // Prevent mouse wheel scroll from changing any number input (including dynamically created columns)
+      document.addEventListener(
+        "wheel",
+        function (e) {
+          if (
+            document.activeElement &&
+            document.activeElement.type === "number"
+          ) {
+            document.activeElement.blur();
+          }
+        },
+        { passive: true },
       );
 
-      if (filtered.length === 0) {
-        stockItemComboList.innerHTML = `<div class="combo-dropdown-item disabled">No matching item. Click "+ Add New"</div>`;
-      } else {
-        stockItemComboList.innerHTML = filtered.map(it =>
-          `<div class="combo-dropdown-item" data-code="${esc(it.item_code)}" data-name="${esc(it.item_name)}">
-             <span><b class="text-primary">${esc(it.item_code)}</b> - ${esc(it.item_name)}</span>
-           </div>`
-        ).join("");
-      }
-      stockItemComboList.style.display = "block";
-    }
+      // ==========================================
+      // 📦 ITEM MASTER & ADD STOCKS MODAL LOGIC (SINGLE COMBO INPUT)
+      // ==========================================
+      const addStockModal = new bootstrap.Modal(
+        document.getElementById("addStockModal"),
+      );
+      const newItemMasterModal = new bootstrap.Modal(
+        document.getElementById("newItemMasterModal"),
+      );
+      const stockInSelect = document.getElementById("stockInNoSelect");
+      const stockItemComboInput = document.getElementById(
+        "stockItemComboInput",
+      );
+      const stockItemComboList = document.getElementById("stockItemComboList");
+      const stockSelectedCode = document.getElementById("stockSelectedCode");
+      const stockSelectedName = document.getElementById("stockSelectedName");
 
-    stockItemComboInput.addEventListener("focus", () => renderStockComboList(stockItemComboInput.value));
-    stockItemComboInput.addEventListener("input", function () {
-      stockSelectedCode.value = "";
-      stockSelectedName.value = "";
-      renderStockComboList(this.value);
-    });
+      let masterItemsList = [];
 
-    stockItemComboList.addEventListener("click", function (e) {
-      const itemEl = e.target.closest(".combo-dropdown-item");
-      if (!itemEl || itemEl.classList.contains("disabled")) return;
-      const code = itemEl.getAttribute("data-code");
-      const name = itemEl.getAttribute("data-name");
-      stockSelectedCode.value = code;
-      stockSelectedName.value = name;
-      stockItemComboInput.value = `${code} - ${name}`;
-      stockItemComboList.style.display = "none";
-    });
-
-    function openNewItemMasterModal() {
-      document.getElementById("newItemMasterForm").reset();
-      newItemMasterModal.show();
-    }
-
-    document.getElementById("newItemMasterForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const itemCode = document.getElementById("masterItemCode").value.trim().toUpperCase();
-      const itemName = document.getElementById("masterItemName").value.trim().toUpperCase();
-
-      const res = await fetch("/api/spare-parts/dashboard/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ itemCode, itemName })
-      });
-      const data = await res.json();
-      if (data.success) {
-        newItemMasterModal.hide();
-        await loadMasterItems();
-        stockSelectedCode.value = data.item.item_code;
-        stockSelectedName.value = data.item.item_name;
-        stockItemComboInput.value = `${data.item.item_code} - ${data.item.item_name}`;
-        stockItemComboList.style.display = "none";
-        Swal.fire({ icon: "success", text: data.message, timer: 1200, showConfirmButton: false });
-      } else {
-        Swal.fire({ icon: "error", text: data.message });
-      }
-    });
-
-    function populateInDropdown(selectEl) {
-      selectEl.innerHTML = `<option value="">-- Choose IN No --</option>` +
-        currentRows.map(r => `<option value="${r.id}" data-chassis="${esc(r.chassis_no)}">${esc(r.in_no)}</option>`).join("");
-    }
-
-    async function fetchVehicleStocks(vehicleId) {
-      if (!vehicleId) return [];
-      const res = await fetch(`/api/spare-parts/dashboard/stocks/${vehicleId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      return data.success ? data.stocks : [];
-    }
-
-    async function openAddStockModal() {
-      document.getElementById("addStockForm").reset();
-      stockSelectedCode.value = "";
-      stockSelectedName.value = "";
-      stockItemComboList.style.display = "none";
-      populateInDropdown(stockInSelect);
-      document.getElementById("stockChassisPreview").textContent = "Chassis: -";
-      document.getElementById("currentStockListBox").innerHTML = "Select an IN No to view stock";
-      await loadMasterItems();
-      addStockModal.show();
-    }
-
-    stockInSelect.addEventListener("change", async function () {
-      const opt = this.options[this.selectedIndex];
-      const chassis = opt ? opt.getAttribute("data-chassis") : "-";
-      document.getElementById("stockChassisPreview").textContent = `Chassis: ${chassis || "-"}`;
-
-      const vId = this.value;
-      if (!vId) {
-        document.getElementById("currentStockListBox").innerHTML = "Select an IN No to view stock";
-        return;
-      }
-
-      const stocks = await fetchVehicleStocks(vId);
-      const listBox = document.getElementById("currentStockListBox");
-
-      if (stocks.length === 0) {
-        listBox.innerHTML = `<span class="text-warning">No stock items added yet for this IN No.</span>`;
-      } else {
-        listBox.innerHTML = stocks.map(s =>
-          `<div class="d-flex justify-content-between border-bottom py-1" style="border-color:var(--border)!important;">
-             <span>${s.item_code ? `<b class="text-primary">${esc(s.item_code)}</b> - ` : ""}${esc(s.item_name)}</span>
-             <span class="fw-bold ${Number(s.available_qty) > 0 ? 'text-success' : 'text-danger'}">${Number(s.available_qty)}</span>
-           </div>`
-        ).join("");
-      }
-    });
-
-    document.getElementById("addStockForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      let itemCode = stockSelectedCode.value;
-      let itemName = stockSelectedName.value;
-
-      if (!itemName && stockItemComboInput.value.trim()) {
-        const typed = stockItemComboInput.value.trim().toLowerCase();
-        const exact = masterItemsList.find(it =>
-          `${it.item_code} - ${it.item_name}`.toLowerCase() === typed ||
-          it.item_name.toLowerCase() === typed
-        );
-        if (exact) {
-          itemCode = exact.item_code;
-          itemName = exact.item_name;
+      async function loadMasterItems() {
+        const res = await fetch("/api/spare-parts/dashboard/items", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+          masterItemsList = data.items || [];
         }
       }
 
-      if (!itemName) {
-        Swal.fire({ icon: "warning", text: "Select a valid item from dropdown or click + Add New." });
-        return;
+      function renderStockComboList(filterText = "") {
+        const q = filterText.trim().toLowerCase();
+        const filtered = masterItemsList.filter(
+          (it) =>
+            !q ||
+            it.item_code.toLowerCase().includes(q) ||
+            it.item_name.toLowerCase().includes(q) ||
+            `${it.item_code} - ${it.item_name}`.toLowerCase().includes(q),
+        );
+
+        if (filtered.length === 0) {
+          stockItemComboList.innerHTML = `<div class="combo-dropdown-item disabled">No matching item. Click "+ Add New"</div>`;
+        } else {
+          stockItemComboList.innerHTML = filtered
+            .map(
+              (it) =>
+                `<div class="combo-dropdown-item" data-code="${esc(it.item_code)}" data-name="${esc(it.item_name)}">
+             <span><b class="text-primary">${esc(it.item_code)}</b> - ${esc(it.item_name)}</span>
+           </div>`,
+            )
+            .join("");
+        }
+        stockItemComboList.style.display = "block";
       }
 
-      const res = await fetch("/api/spare-parts/dashboard/stocks/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          vehicleId: stockInSelect.value,
-          itemCode,
-          itemName,
-          qty: document.getElementById("stockAddQty").value
-        })
+      stockItemComboInput.addEventListener("focus", () =>
+        renderStockComboList(stockItemComboInput.value),
+      );
+      stockItemComboInput.addEventListener("input", function () {
+        stockSelectedCode.value = "";
+        stockSelectedName.value = "";
+        renderStockComboList(this.value);
       });
-      const data = await res.json();
-      if (data.success) {
-        Swal.fire({ icon: "success", text: data.message, timer: 1300, showConfirmButton: false });
-        document.getElementById("stockAddQty").value = "";
-        stockInSelect.dispatchEvent(new Event("change"));
-      } else {
-        Swal.fire({ icon: "error", text: data.message });
+
+      stockItemComboList.addEventListener("click", function (e) {
+        const itemEl = e.target.closest(".combo-dropdown-item");
+        if (!itemEl || itemEl.classList.contains("disabled")) return;
+        const code = itemEl.getAttribute("data-code");
+        const name = itemEl.getAttribute("data-name");
+        stockSelectedCode.value = code;
+        stockSelectedName.value = name;
+        stockItemComboInput.value = `${code} - ${name}`;
+        stockItemComboList.style.display = "none";
+      });
+
+      function openNewItemMasterModal() {
+        document.getElementById("newItemMasterForm").reset();
+        newItemMasterModal.show();
       }
-    });
 
-    // ==========================================
-    // 🧾 JOURNAL VOUCHER (JV) MODAL LOGIC (SINGLE COMBO + INLINE QTY ERROR)
-    // ==========================================
-    const jvModal = new bootstrap.Modal(document.getElementById("jvModal"));
-    const jvVoucherDatePicker = flatpickr("#jvVoucherDate", { dateFormat: "Y-m-d", defaultDate: "today" });
-    const jvEffectiveDatePicker = flatpickr("#jvEffectiveDate", { dateFormat: "Y-m-d", defaultDate: "today" });
+      document
+        .getElementById("newItemMasterForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const itemCode = document
+            .getElementById("masterItemCode")
+            .value.trim()
+            .toUpperCase();
+          const itemName = document
+            .getElementById("masterItemName")
+            .value.trim()
+            .toUpperCase();
 
-    const jvTypeSelect = document.getElementById("jvVoucherType");
-    const jvInSelect = document.getElementById("jvInNoSelect");
-    const jvItemComboInput = document.getElementById("jvItemComboInput");
-    const jvItemComboList = document.getElementById("jvItemComboList");
-    const jvSelectedCode = document.getElementById("jvSelectedCode");
-    const jvSelectedName = document.getElementById("jvSelectedName");
-    const jvSelectedAvail = document.getElementById("jvSelectedAvail");
-    const jvQtyInput = document.getElementById("jvQty");
-    const jvQtyErrorMsg = document.getElementById("jvQtyErrorMsg");
-    const jvSaveBtn = document.querySelector("#jvForm button[type='submit']");
-    const jvSalesSection = document.getElementById("jvSalesSection");
-    const jvCostSection = document.getElementById("jvCostSection");
+          const res = await fetch("/api/spare-parts/dashboard/items", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ itemCode, itemName }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            newItemMasterModal.hide();
+            await loadMasterItems();
+            stockSelectedCode.value = data.item.item_code;
+            stockSelectedName.value = data.item.item_name;
+            stockItemComboInput.value = `${data.item.item_code} - ${data.item.item_name}`;
+            stockItemComboList.style.display = "none";
+            Swal.fire({
+              icon: "success",
+              text: data.message,
+              timer: 1200,
+              showConfirmButton: false,
+            });
+          } else {
+            Swal.fire({ icon: "error", text: data.message });
+          }
+        });
 
-    let currentJvVehicleStocks = [];
+      function populateInDropdown(selectEl) {
+        selectEl.innerHTML =
+          `<option value="">-- Choose IN No --</option>` +
+          currentRows
+            .map(
+              (r) =>
+                `<option value="${r.id}" data-chassis="${esc(r.chassis_no)}">${esc(r.in_no)}</option>`,
+            )
+            .join("");
+      }
 
-    function validateJvQtyInline() {
-      if (jvTypeSelect.value !== "SALES") {
+      async function fetchVehicleStocks(vehicleId) {
+        if (!vehicleId) return [];
+        const res = await fetch(
+          `/api/spare-parts/dashboard/stocks/${vehicleId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        const data = await res.json();
+        return data.success ? data.stocks : [];
+      }
+
+      async function openAddStockModal() {
+        document.getElementById("addStockForm").reset();
+        stockSelectedCode.value = "";
+        stockSelectedName.value = "";
+        stockItemComboList.style.display = "none";
+        populateInDropdown(stockInSelect);
+        document.getElementById("stockChassisPreview").textContent =
+          "Chassis: -";
+        document.getElementById("currentStockListBox").innerHTML =
+          "Select an IN No to view stock";
+        await loadMasterItems();
+        addStockModal.show();
+      }
+
+      stockInSelect.addEventListener("change", async function () {
+        const opt = this.options[this.selectedIndex];
+        const chassis = opt ? opt.getAttribute("data-chassis") : "-";
+        document.getElementById("stockChassisPreview").textContent =
+          `Chassis: ${chassis || "-"}`;
+
+        const vId = this.value;
+        if (!vId) {
+          document.getElementById("currentStockListBox").innerHTML =
+            "Select an IN No to view stock";
+          return;
+        }
+
+        const stocks = await fetchVehicleStocks(vId);
+        const listBox = document.getElementById("currentStockListBox");
+
+        if (stocks.length === 0) {
+          listBox.innerHTML = `<span class="text-warning">No stock items added yet for this IN No.</span>`;
+        } else {
+          listBox.innerHTML = stocks
+            .map(
+              (s) =>
+                `<div class="d-flex justify-content-between border-bottom py-1" style="border-color:var(--border)!important;">
+             <span>${s.item_code ? `<b class="text-primary">${esc(s.item_code)}</b> - ` : ""}${esc(s.item_name)}</span>
+             <span class="fw-bold ${Number(s.available_qty) > 0 ? "text-success" : "text-danger"}">${Number(s.available_qty)}</span>
+           </div>`,
+            )
+            .join("");
+        }
+      });
+
+      document
+        .getElementById("addStockForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          let itemCode = stockSelectedCode.value;
+          let itemName = stockSelectedName.value;
+
+          if (!itemName && stockItemComboInput.value.trim()) {
+            const typed = stockItemComboInput.value.trim().toLowerCase();
+            const exact = masterItemsList.find(
+              (it) =>
+                `${it.item_code} - ${it.item_name}`.toLowerCase() === typed ||
+                it.item_name.toLowerCase() === typed,
+            );
+            if (exact) {
+              itemCode = exact.item_code;
+              itemName = exact.item_name;
+            }
+          }
+
+          if (!itemName) {
+            Swal.fire({
+              icon: "warning",
+              text: "Select a valid item from dropdown or click + Add New.",
+            });
+            return;
+          }
+
+          const res = await fetch("/api/spare-parts/dashboard/stocks/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              vehicleId: stockInSelect.value,
+              itemCode,
+              itemName,
+              qty: document.getElementById("stockAddQty").value,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              text: data.message,
+              timer: 1300,
+              showConfirmButton: false,
+            });
+            document.getElementById("stockAddQty").value = "";
+            stockInSelect.dispatchEvent(new Event("change"));
+          } else {
+            Swal.fire({ icon: "error", text: data.message });
+          }
+        });
+
+      // ==========================================
+      // 🧾 JOURNAL VOUCHER (JV) MODAL LOGIC (SINGLE COMBO + INLINE QTY ERROR)
+      // ==========================================
+      const jvModal = new bootstrap.Modal(document.getElementById("jvModal"));
+      const jvEffectiveDatePicker = flatpickr("#jvEffectiveDate", {
+        dateFormat: "Y-m-d",
+        defaultDate: "today",
+      });
+
+      const jvTypeSelect = document.getElementById("jvVoucherType");
+      const jvInSelect = document.getElementById("jvInNoSelect");
+      const jvItemComboInput = document.getElementById("jvItemComboInput");
+      const jvItemComboList = document.getElementById("jvItemComboList");
+      const jvSelectedCode = document.getElementById("jvSelectedCode");
+      const jvSelectedName = document.getElementById("jvSelectedName");
+      const jvSelectedAvail = document.getElementById("jvSelectedAvail");
+      const jvQtyInput = document.getElementById("jvQty");
+      const jvQtyErrorMsg = document.getElementById("jvQtyErrorMsg");
+      const jvSaveBtn = document.querySelector("#jvForm button[type='submit']");
+      const jvSalesSection = document.getElementById("jvSalesSection");
+      const jvCostSection = document.getElementById("jvCostSection");
+
+      let currentJvVehicleStocks = [];
+
+      function validateJvQtyInline() {
+        if (jvTypeSelect.value !== "SALES") {
+          jvQtyErrorMsg.classList.add("d-none");
+          jvQtyInput.classList.remove("is-invalid");
+          jvSaveBtn.disabled = false;
+          return true;
+        }
+
+        const selectedName = jvSelectedName.value;
+        const avail = Number(jvSelectedAvail.value || 0);
+        const reqQty = Number(jvQtyInput.value || 0);
+
+        if (selectedName && avail <= 0) {
+          jvQtyErrorMsg.textContent = `Out of stock! Available: 0`;
+          jvQtyErrorMsg.classList.remove("d-none");
+          jvQtyInput.classList.add("is-invalid");
+          jvSaveBtn.disabled = true;
+          return false;
+        }
+
+        if (selectedName && reqQty > avail) {
+          jvQtyErrorMsg.textContent = `Exceeds available stock (Avail: ${avail})`;
+          jvQtyErrorMsg.classList.remove("d-none");
+          jvQtyInput.classList.add("is-invalid");
+          jvSaveBtn.disabled = true;
+          return false;
+        }
+
         jvQtyErrorMsg.classList.add("d-none");
         jvQtyInput.classList.remove("is-invalid");
         jvSaveBtn.disabled = false;
         return true;
       }
 
-      const selectedName = jvSelectedName.value;
-      const avail = Number(jvSelectedAvail.value || 0);
-      const reqQty = Number(jvQtyInput.value || 0);
+      function renderJvComboList(filterText = "") {
+        if (!jvInSelect.value) {
+          jvItemComboList.innerHTML = `<div class="combo-dropdown-item disabled">Select IN No first</div>`;
+          jvItemComboList.style.display = "block";
+          return;
+        }
+        if (currentJvVehicleStocks.length === 0) {
+          jvItemComboList.innerHTML = `<div class="combo-dropdown-item disabled">No stock available for this IN</div>`;
+          jvItemComboList.style.display = "block";
+          return;
+        }
 
-      if (selectedName && avail <= 0) {
-        jvQtyErrorMsg.textContent = `Out of stock! Available: 0`;
-        jvQtyErrorMsg.classList.remove("d-none");
-        jvQtyInput.classList.add("is-invalid");
-        jvSaveBtn.disabled = true;
-        return false;
-      }
+        const q = filterText.trim().toLowerCase();
+        const filtered = currentJvVehicleStocks.filter(
+          (s) =>
+            !q ||
+            (s.item_code && s.item_code.toLowerCase().includes(q)) ||
+            s.item_name.toLowerCase().includes(q) ||
+            `${s.item_code || ""} - ${s.item_name}`.toLowerCase().includes(q),
+        );
 
-      if (selectedName && reqQty > avail) {
-        jvQtyErrorMsg.textContent = `Exceeds available stock (Avail: ${avail})`;
-        jvQtyErrorMsg.classList.remove("d-none");
-        jvQtyInput.classList.add("is-invalid");
-        jvSaveBtn.disabled = true;
-        return false;
-      }
-
-      jvQtyErrorMsg.classList.add("d-none");
-      jvQtyInput.classList.remove("is-invalid");
-      jvSaveBtn.disabled = false;
-      return true;
-    }
-
-    function renderJvComboList(filterText = "") {
-      if (!jvInSelect.value) {
-        jvItemComboList.innerHTML = `<div class="combo-dropdown-item disabled">Select IN No first</div>`;
-        jvItemComboList.style.display = "block";
-        return;
-      }
-      if (currentJvVehicleStocks.length === 0) {
-        jvItemComboList.innerHTML = `<div class="combo-dropdown-item disabled">No stock available for this IN</div>`;
-        jvItemComboList.style.display = "block";
-        return;
-      }
-
-      const q = filterText.trim().toLowerCase();
-      const filtered = currentJvVehicleStocks.filter(s =>
-        !q ||
-        (s.item_code && s.item_code.toLowerCase().includes(q)) ||
-        s.item_name.toLowerCase().includes(q) ||
-        `${s.item_code || ""} - ${s.item_name}`.toLowerCase().includes(q)
-      );
-
-      if (filtered.length === 0) {
-        jvItemComboList.innerHTML = `<div class="combo-dropdown-item disabled">No matching stock item</div>`;
-      } else {
-        jvItemComboList.innerHTML = filtered.map(s => {
-          const avail = Number(s.available_qty);
-          const isZero = avail <= 0;
-          return `<div class="combo-dropdown-item ${isZero ? "disabled" : ""}" data-code="${esc(s.item_code || "")}" data-name="${esc(s.item_name)}" data-avail="${avail}">
+        if (filtered.length === 0) {
+          jvItemComboList.innerHTML = `<div class="combo-dropdown-item disabled">No matching stock item</div>`;
+        } else {
+          jvItemComboList.innerHTML = filtered
+            .map((s) => {
+              const avail = Number(s.available_qty);
+              const isZero = avail <= 0;
+              return `<div class="combo-dropdown-item ${isZero ? "disabled" : ""}" data-code="${esc(s.item_code || "")}" data-name="${esc(s.item_name)}" data-avail="${avail}">
                     <span>${s.item_code ? `<b class="text-primary">${esc(s.item_code)}</b> - ` : ""}${esc(s.item_name)}</span>
                     <span class="badge ${isZero ? "bg-danger" : "bg-success"}">Avail: ${avail}</span>
                   </div>`;
-        }).join("");
-      }
-      jvItemComboList.style.display = "block";
-    }
-
-    jvItemComboInput.addEventListener("focus", () => renderJvComboList(jvItemComboInput.value));
-    jvItemComboInput.addEventListener("input", function () {
-      jvSelectedCode.value = "";
-      jvSelectedName.value = "";
-      jvSelectedAvail.value = "0";
-      validateJvQtyInline();
-      renderJvComboList(this.value);
-    });
-
-    jvItemComboList.addEventListener("click", function (e) {
-      const itemEl = e.target.closest(".combo-dropdown-item");
-      if (!itemEl || itemEl.classList.contains("disabled")) return;
-      const code = itemEl.getAttribute("data-code");
-      const name = itemEl.getAttribute("data-name");
-      const avail = itemEl.getAttribute("data-avail");
-
-      jvSelectedCode.value = code;
-      jvSelectedName.value = name;
-      jvSelectedAvail.value = avail;
-      jvItemComboInput.value = `${code ? code + " - " : ""}${name} (Avail: ${avail})`;
-      jvItemComboList.style.display = "none";
-      validateJvQtyInline();
-    });
-
-    // Close combo dropdowns when clicking outside
-    document.addEventListener("click", (e) => {
-      if (!document.getElementById("stockItemComboWrap").contains(e.target)) {
-        stockItemComboList.style.display = "none";
-      }
-      if (!document.getElementById("jvItemComboWrap").contains(e.target)) {
-        jvItemComboList.style.display = "none";
-      }
-    });
-
-    function openJvModal() {
-      document.getElementById("jvForm").reset();
-      jvVoucherDatePicker.setDate(new Date(), true);
-      jvEffectiveDatePicker.setDate(new Date(), true);
-
-      // Populate Voucher Type: Sales Revenue + Cost Ledgers (Excluding Purchase Cost)
-      const allowedCostHeads = currentCostHeads.filter(
-        h => h.head_name.trim().toLowerCase() !== "purchase cost"
-      );
-      jvTypeSelect.innerHTML =
-        `<option value="SALES">Sales Revenue</option>` +
-        allowedCostHeads.map(h => `<option value="COST_${h.id}">${esc(h.head_name)} (Cost)</option>`).join("");
-
-      populateInDropdown(jvInSelect);
-      document.getElementById("jvChassisDisplay").textContent = "-";
-      currentJvVehicleStocks = [];
-      jvSelectedCode.value = "";
-      jvSelectedName.value = "";
-      jvSelectedAvail.value = "0";
-      jvItemComboInput.value = "";
-      jvItemComboList.style.display = "none";
-      jvSalesSection.classList.remove("d-none");
-      jvCostSection.classList.add("d-none");
-      validateJvQtyInline();
-      calcJvTotals();
-      jvModal.show();
-    }
-
-    jvTypeSelect.addEventListener("change", function () {
-      if (this.value === "SALES") {
-        jvSalesSection.classList.remove("d-none");
-        jvCostSection.classList.add("d-none");
-      } else {
-        jvSalesSection.classList.add("d-none");
-        jvCostSection.classList.remove("d-none");
-      }
-      validateJvQtyInline();
-    });
-
-    jvInSelect.addEventListener("change", async function () {
-      const opt = this.options[this.selectedIndex];
-      const chassis = opt ? opt.getAttribute("data-chassis") : "-";
-      document.getElementById("jvChassisDisplay").textContent = chassis || "-";
-      jvSelectedCode.value = "";
-      jvSelectedName.value = "";
-      jvSelectedAvail.value = "0";
-      jvItemComboInput.value = "";
-      jvItemComboList.style.display = "none";
-      validateJvQtyInline();
-
-      const vId = this.value;
-      if (!vId) {
-        currentJvVehicleStocks = [];
-        return;
-      }
-
-      currentJvVehicleStocks = await fetchVehicleStocks(vId);
-    });
-
-    function calcJvTotals() {
-      const qty = Number(jvQtyInput.value || 0);
-      const rate = Number(document.getElementById("jvRate").value || 0);
-      const vatPct = Number(document.getElementById("jvVatPercent").value || 0);
-
-      const subTotal = qty * rate;
-      const total = subTotal + (subTotal * vatPct) / 100;
-
-      document.getElementById("jvSubTotal").value = subTotal.toFixed(2);
-      document.getElementById("jvTotalAmount").value = total.toFixed(2);
-      validateJvQtyInline();
-    }
-
-    jvQtyInput.addEventListener("input", calcJvTotals);
-    document.getElementById("jvRate").addEventListener("input", calcJvTotals);
-    document.getElementById("jvVatPercent").addEventListener("change", calcJvTotals);
-
-    document.getElementById("jvForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const rawType = jvTypeSelect.value;
-      const isSales = rawType === "SALES";
-      const costHeadId = isSales ? null : Number(rawType.replace("COST_", ""));
-
-      if (isSales) {
-        if (!jvSelectedName.value) {
-          Swal.fire({ icon: "warning", text: "Please select an item from the list." });
-          return;
+            })
+            .join("");
         }
-        if (!validateJvQtyInline()) return;
+        jvItemComboList.style.display = "block";
       }
 
-      const res = await fetch("/api/spare-parts/dashboard/jv", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          voucherDate: document.getElementById("jvVoucherDate").value,
-          effectiveDate: document.getElementById("jvEffectiveDate").value,
-          voucherType: isSales ? "SALES" : "COST",
-          costHeadId,
-          vehicleId: jvInSelect.value,
-          itemCode: jvSelectedCode.value,
-          itemName: jvSelectedName.value,
-          qty: jvQtyInput.value,
-          rate: document.getElementById("jvRate").value,
-          vatPercent: document.getElementById("jvVatPercent").value,
-          amount: document.getElementById("jvCostAmount").value,
-          narration: document.getElementById("jvNarration").value
-        })
+      jvItemComboInput.addEventListener("focus", () =>
+        renderJvComboList(jvItemComboInput.value),
+      );
+      jvItemComboInput.addEventListener("input", function () {
+        jvSelectedCode.value = "";
+        jvSelectedName.value = "";
+        jvSelectedAvail.value = "0";
+        validateJvQtyInline();
+        renderJvComboList(this.value);
       });
 
-      const data = await res.json();
-      if (data.success) {
-        jvModal.hide();
-        Swal.fire({ icon: "success", text: data.message, timer: 1400, showConfirmButton: false });
-        loadDashboard();
-      } else {
-        Swal.fire({ icon: "error", title: "JV Failed", text: data.message });
+      jvItemComboList.addEventListener("click", function (e) {
+        const itemEl = e.target.closest(".combo-dropdown-item");
+        if (!itemEl || itemEl.classList.contains("disabled")) return;
+        const code = itemEl.getAttribute("data-code");
+        const name = itemEl.getAttribute("data-name");
+        const avail = itemEl.getAttribute("data-avail");
+
+        jvSelectedCode.value = code;
+        jvSelectedName.value = name;
+        jvSelectedAvail.value = avail;
+        jvItemComboInput.value = `${code ? code + " - " : ""}${name} (Avail: ${avail})`;
+        jvItemComboList.style.display = "none";
+        validateJvQtyInline();
+      });
+
+      // Close combo dropdowns when clicking outside
+      document.addEventListener("click", (e) => {
+        if (!document.getElementById("stockItemComboWrap").contains(e.target)) {
+          stockItemComboList.style.display = "none";
+        }
+        if (!document.getElementById("jvItemComboWrap").contains(e.target)) {
+          jvItemComboList.style.display = "none";
+        }
+      });
+
+      function openJvModal() {
+        document.getElementById("jvForm").reset();
+        document.getElementById("jvVoucherDate").value = todayStr();
+        jvEffectiveDatePicker.setDate(new Date(), true);
+
+        // Populate Voucher Type: Sales Revenue + Cost Ledgers (Excluding Purchase Cost)
+        const allowedCostHeads = currentCostHeads.filter(
+          (h) => h.head_name.trim().toLowerCase() !== "purchase cost",
+        );
+        jvTypeSelect.innerHTML =
+          `<option value="SALES">Sales Revenue</option>` +
+          allowedCostHeads
+            .map(
+              (h) =>
+                `<option value="COST_${h.id}">${esc(h.head_name)} (Cost)</option>`,
+            )
+            .join("");
+
+        populateInDropdown(jvInSelect);
+        document.getElementById("jvChassisDisplay").textContent = "-";
+        currentJvVehicleStocks = [];
+        jvSelectedCode.value = "";
+        jvSelectedName.value = "";
+        jvSelectedAvail.value = "0";
+        jvItemComboInput.value = "";
+        jvItemComboList.style.display = "none";
+        jvSalesSection.classList.remove("d-none");
+        jvCostSection.classList.add("d-none");
+        validateJvQtyInline();
+        calcJvTotals();
+        jvModal.show();
       }
-    });
 
-    loadDashboard();
+      jvTypeSelect.addEventListener("change", function () {
+        if (this.value === "SALES") {
+          jvSalesSection.classList.remove("d-none");
+          jvCostSection.classList.add("d-none");
+        } else {
+          jvSalesSection.classList.add("d-none");
+          jvCostSection.classList.remove("d-none");
+        }
+        validateJvQtyInline();
+      });
 
-    // Header Right-Click Filter Popover Logic (With Unique Value Checkboxes)
-    const hdrFilterPopup = document.getElementById("headerFilterPopup");
-    const hdrFilterInput = document.getElementById("hdrFilterInput");
-    const hdrSelectAllChk = document.getElementById("hdrSelectAllChk");
-    const hdrCheckboxValuesList = document.getElementById("hdrCheckboxValuesList");
+      jvInSelect.addEventListener("change", async function () {
+        const opt = this.options[this.selectedIndex];
+        const chassis = opt ? opt.getAttribute("data-chassis") : "-";
+        document.getElementById("jvChassisDisplay").textContent =
+          chassis || "-";
+        jvSelectedCode.value = "";
+        jvSelectedName.value = "";
+        jvSelectedAvail.value = "0";
+        jvItemComboInput.value = "";
+        jvItemComboList.style.display = "none";
+        validateJvQtyInline();
 
-    let currentColUniqueValues = [];
+        const vId = this.value;
+        if (!vId) {
+          currentJvVehicleStocks = [];
+          return;
+        }
 
-    function renderFilterCheckboxes(searchStr = "") {
-      const q = searchStr.trim().toLowerCase();
-      const existingSet = columnFilters[activeFilterColKey];
-      const visibleVals = currentColUniqueValues.filter(v => !q || v.toLowerCase().includes(q));
+        currentJvVehicleStocks = await fetchVehicleStocks(vId);
+      });
 
-      hdrCheckboxValuesList.innerHTML = visibleVals.map((val, idx) => {
-        const isChecked = !existingSet || existingSet.has(val);
-        return `
+      function calcJvTotals() {
+        const qty = Number(jvQtyInput.value || 0);
+        const rate = Number(document.getElementById("jvRate").value || 0);
+        const vatPct = Number(
+          document.getElementById("jvVatPercent").value || 0,
+        );
+
+        const subTotal = qty * rate;
+        const total = subTotal + (subTotal * vatPct) / 100;
+
+        document.getElementById("jvSubTotal").value = subTotal.toFixed(2);
+        document.getElementById("jvTotalAmount").value = total.toFixed(2);
+        validateJvQtyInline();
+      }
+
+      jvQtyInput.addEventListener("input", calcJvTotals);
+      document.getElementById("jvRate").addEventListener("input", calcJvTotals);
+      document
+        .getElementById("jvVatPercent")
+        .addEventListener("change", calcJvTotals);
+
+      document
+        .getElementById("jvForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const rawType = jvTypeSelect.value;
+          const isSales = rawType === "SALES";
+          const costHeadId = isSales
+            ? null
+            : Number(rawType.replace("COST_", ""));
+
+          if (isSales) {
+            if (!jvSelectedName.value) {
+              Swal.fire({
+                icon: "warning",
+                text: "Please select an item from the list.",
+              });
+              return;
+            }
+            if (!validateJvQtyInline()) return;
+          }
+
+          const res = await fetch("/api/spare-parts/dashboard/jv", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              voucherDate: document.getElementById("jvVoucherDate").value,
+              effectiveDate: document.getElementById("jvEffectiveDate").value,
+              voucherType: isSales ? "SALES" : "COST",
+              costHeadId,
+              vehicleId: jvInSelect.value,
+              itemCode: jvSelectedCode.value,
+              itemName: jvSelectedName.value,
+              qty: jvQtyInput.value,
+              rate: document.getElementById("jvRate").value,
+              vatPercent: document.getElementById("jvVatPercent").value,
+              amount: document.getElementById("jvCostAmount").value,
+              narration: document.getElementById("jvNarration").value,
+            }),
+          });
+
+          const data = await res.json();
+          if (data.success) {
+            jvModal.hide();
+            Swal.fire({
+              icon: "success",
+              text: data.message,
+              timer: 1400,
+              showConfirmButton: false,
+            });
+            loadDashboard();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "JV Failed",
+              text: data.message,
+            });
+          }
+        });
+
+      loadDashboard();
+
+      // Header Right-Click Filter Popover Logic (With Unique Value Checkboxes)
+      const hdrFilterPopup = document.getElementById("headerFilterPopup");
+      const hdrFilterInput = document.getElementById("hdrFilterInput");
+      const hdrSelectAllChk = document.getElementById("hdrSelectAllChk");
+      const hdrCheckboxValuesList = document.getElementById(
+        "hdrCheckboxValuesList",
+      );
+
+      let currentColUniqueValues = [];
+
+      function renderFilterCheckboxes(searchStr = "") {
+        const q = searchStr.trim().toLowerCase();
+        const existingSet = columnFilters[activeFilterColKey];
+        const visibleVals = currentColUniqueValues.filter(
+          (v) => !q || v.toLowerCase().includes(q),
+        );
+
+        hdrCheckboxValuesList.innerHTML = visibleVals
+          .map((val, idx) => {
+            const isChecked = !existingSet || existingSet.has(val);
+            return `
           <div class="form-check small mb-1">
             <input class="form-check-input hdr-val-chk" type="checkbox" value="${esc(val)}" id="hdrChk_${idx}" ${isChecked ? "checked" : ""} />
             <label class="form-check-label text-truncate d-block" for="hdrChk_${idx}" title="${esc(val)}">${esc(val)}</label>
           </div>
         `;
-      }).join("");
+          })
+          .join("");
 
-      syncSelectAllCheckbox();
-    }
-
-    function syncSelectAllCheckbox() {
-      const boxes = Array.from(hdrCheckboxValuesList.querySelectorAll(".hdr-val-chk"));
-      const checkedCount = boxes.filter(b => b.checked).length;
-      hdrSelectAllChk.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
-      hdrSelectAllChk.checked = boxes.length > 0 && checkedCount === boxes.length;
-    }
-
-    hdrSelectAllChk.addEventListener("change", function () {
-      hdrCheckboxValuesList.querySelectorAll(".hdr-val-chk").forEach(cb => {
-        cb.checked = this.checked;
-      });
-    });
-
-    hdrCheckboxValuesList.addEventListener("change", syncSelectAllCheckbox);
-    hdrFilterInput.addEventListener("input", function () {
-      renderFilterCheckboxes(this.value);
-    });
-
-    function openHeaderFilterPopup(e, colKey, colLabel) {
-      e.preventDefault();
-      e.stopPropagation();
-      hideChassisPopup();
-
-      activeFilterColKey = colKey;
-      document.getElementById("hdrFilterTitle").textContent = `Filter: ${colLabel}`;
-      hdrFilterInput.value = "";
-
-      const uniq = Array.from(new Set(currentRows.map(r => getColDisplayValue(r, colKey))));
-      currentColUniqueValues = uniq.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-      renderFilterCheckboxes("");
-
-      hdrFilterPopup.style.display = "block";
-      const popW = hdrFilterPopup.offsetWidth || 265;
-      const popH = hdrFilterPopup.offsetHeight || 290;
-      const posX = Math.min(e.clientX, window.innerWidth - popW - 12);
-      const posY = Math.min(e.clientY, window.innerHeight - popH - 12);
-
-      hdrFilterPopup.style.left = `${Math.max(10, posX)}px`;
-      hdrFilterPopup.style.top = `${Math.max(10, posY)}px`;
-      hdrFilterInput.focus();
-    }
-
-    function hideHeaderFilterPopup() {
-      hdrFilterPopup.style.display = "none";
-    }
-
-    function applyHeaderFilter() {
-      if (!activeFilterColKey) return;
-      const checkedBoxes = Array.from(hdrCheckboxValuesList.querySelectorAll(".hdr-val-chk:checked"));
-      const selectedVals = new Set(checkedBoxes.map(cb => cb.value));
-
-      if (selectedVals.size === currentColUniqueValues.length && hdrFilterInput.value.trim() === "") {
-        delete columnFilters[activeFilterColKey];
-      } else {
-        columnFilters[activeFilterColKey] = selectedVals;
+        syncSelectAllCheckbox();
       }
-      hideHeaderFilterPopup();
-      applyAllFilters();
-    }
 
-    function clearSingleHeaderFilter() {
-      if (activeFilterColKey) delete columnFilters[activeFilterColKey];
-      hdrFilterInput.value = "";
-      hideHeaderFilterPopup();
-      applyAllFilters();
-    }
+      function syncSelectAllCheckbox() {
+        const boxes = Array.from(
+          hdrCheckboxValuesList.querySelectorAll(".hdr-val-chk"),
+        );
+        const checkedCount = boxes.filter((b) => b.checked).length;
+        hdrSelectAllChk.indeterminate =
+          checkedCount > 0 && checkedCount < boxes.length;
+        hdrSelectAllChk.checked =
+          boxes.length > 0 && checkedCount === boxes.length;
+      }
 
-    hdrFilterInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
+      hdrSelectAllChk.addEventListener("change", function () {
+        hdrCheckboxValuesList.querySelectorAll(".hdr-val-chk").forEach((cb) => {
+          cb.checked = this.checked;
+        });
+      });
+
+      hdrCheckboxValuesList.addEventListener("change", syncSelectAllCheckbox);
+      hdrFilterInput.addEventListener("input", function () {
+        renderFilterCheckboxes(this.value);
+      });
+
+      function openHeaderFilterPopup(e, colKey, colLabel) {
         e.preventDefault();
-        applyHeaderFilter();
-      } else if (e.key === "Escape") {
+        e.stopPropagation();
+        hideChassisPopup();
+
+        activeFilterColKey = colKey;
+        document.getElementById("hdrFilterTitle").textContent =
+          `Filter: ${colLabel}`;
+        hdrFilterInput.value = "";
+
+        const uniq = Array.from(
+          new Set(currentRows.map((r) => getColDisplayValue(r, colKey))),
+        );
+        currentColUniqueValues = uniq.sort((a, b) =>
+          a.localeCompare(b, undefined, { numeric: true }),
+        );
+        renderFilterCheckboxes("");
+
+        hdrFilterPopup.style.display = "block";
+        const popW = hdrFilterPopup.offsetWidth || 265;
+        const popH = hdrFilterPopup.offsetHeight || 290;
+        const posX = Math.min(e.clientX, window.innerWidth - popW - 12);
+        const posY = Math.min(e.clientY, window.innerHeight - popH - 12);
+
+        hdrFilterPopup.style.left = `${Math.max(10, posX)}px`;
+        hdrFilterPopup.style.top = `${Math.max(10, posY)}px`;
+        hdrFilterInput.focus();
+      }
+
+      function hideHeaderFilterPopup() {
+        hdrFilterPopup.style.display = "none";
+      }
+
+      function applyHeaderFilter() {
+        if (!activeFilterColKey) return;
+        const checkedBoxes = Array.from(
+          hdrCheckboxValuesList.querySelectorAll(".hdr-val-chk:checked"),
+        );
+        const selectedVals = new Set(checkedBoxes.map((cb) => cb.value));
+
+        if (
+          selectedVals.size === currentColUniqueValues.length &&
+          hdrFilterInput.value.trim() === ""
+        ) {
+          delete columnFilters[activeFilterColKey];
+        } else {
+          columnFilters[activeFilterColKey] = selectedVals;
+        }
         hideHeaderFilterPopup();
+        applyAllFilters();
       }
-    });
 
-    document.addEventListener("click", (e) => {
-      if (!hdrFilterPopup.contains(e.target)) hideHeaderFilterPopup();
-    });
+      function clearSingleHeaderFilter() {
+        if (activeFilterColKey) delete columnFilters[activeFilterColKey];
+        hdrFilterInput.value = "";
+        hideHeaderFilterPopup();
+        applyAllFilters();
+      }
 
-    // Global Search Filter
-    document.getElementById("searchInput").addEventListener("input", applyAllFilters);
-
-    // Add New Cost Ledger Column
-    document.getElementById("addCostColForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const headName = document.getElementById("newCostHeadName").value.trim();
-      if (!headName) return;
-
-      const res = await fetch("/api/spare-parts/dashboard/cost-head", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ headName })
+      hdrFilterInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          applyHeaderFilter();
+        } else if (e.key === "Escape") {
+          hideHeaderFilterPopup();
+        }
       });
-      const data = await res.json();
-      if (data.success) {
-        bootstrap.Modal.getInstance(document.getElementById("addCostColModal")).hide();
-        document.getElementById("newCostHeadName").value = "";
-        loadDashboard();
-      } else {
-        Swal.fire({ icon: "error", text: data.message });
-      }
-    });
 
-    // Flatpickr Date Inputs
-    flatpickr("#newEqPurchaseDate", { dateFormat: "Y-m-d", defaultDate: "today" });
-    const editDatePicker = flatpickr("#entryPurchaseDate", { dateFormat: "Y-m-d" });
-
-    // Right-Click Glassy Context Popup on Chassis No
-    const ctxPopup = document.getElementById("chassisContextPopup");
-
-    function showChassisPopup(e, rowData) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      document.getElementById("ctxChassisTitle").textContent = `${rowData.in_no} / ${rowData.chassis_no}`;
-      document.getElementById("ctxVehicleType").textContent = rowData.vehicle_type || "Not specified";
-      document.getElementById("ctxPurchaseDate").textContent = rowData.purchase_date || "Not specified";
-
-      ctxPopup.style.display = "block";
-      const popupW = ctxPopup.offsetWidth || 250;
-      const popupH = ctxPopup.offsetHeight || 150;
-      const posX = Math.min(e.clientX, window.innerWidth - popupW - 12);
-      const posY = Math.min(e.clientY, window.innerHeight - popupH - 12);
-
-      ctxPopup.style.left = `${Math.max(10, posX)}px`;
-      ctxPopup.style.top = `${Math.max(10, posY)}px`;
-    }
-
-    function hideChassisPopup() {
-      ctxPopup.style.display = "none";
-    }
-
-    document.addEventListener("click", (e) => {
-      if (!ctxPopup.contains(e.target)) hideChassisPopup();
-    });
-
-    // New EQ Modal
-    const newEqModal = new bootstrap.Modal(document.getElementById("newEqModal"));
-
-    function openNewEqModal() {
-      document.getElementById("newEqForm").reset();
-      document.getElementById("newEqPurchaseCost").value = 0;
-      newEqModal.show();
-    }
-
-    document.getElementById("newEqForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const purchaseHead = currentCostHeads.find(h => h.head_name.toLowerCase() === "purchase cost");
-      const costs = {};
-      if (purchaseHead) {
-        costs[purchaseHead.id] = Number(document.getElementById("newEqPurchaseCost").value || 0);
-      }
-
-      const res = await fetch("/api/spare-parts/dashboard/vehicle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          inNo: document.getElementById("newEqInNo").value,
-          chassisNo: document.getElementById("newEqChassisNo").value,
-          vehicleType: document.getElementById("newEqVehicleType").value,
-          purchaseDate: document.getElementById("newEqPurchaseDate").value,
-          salesRevenue: 0,
-          costs
-        })
+      document.addEventListener("click", (e) => {
+        if (!hdrFilterPopup.contains(e.target)) hideHeaderFilterPopup();
       });
-      const data = await res.json();
-      if (data.success) {
-        newEqModal.hide();
-        loadDashboard();
-      } else {
-        Swal.fire({ icon: "error", text: data.message });
+
+      function todayStr() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       }
-    });
 
-    // Edit Full Vehicle Modal
-    const vehicleModal = new bootstrap.Modal(document.getElementById("vehicleEntryModal"));
+      async function exportExcel(endpoint, payload, fileName) {
+        const overlay = document.getElementById("exportOverlay");
+        overlay.classList.add("show");
+        try {
+          await new Promise((r) => setTimeout(r, 60));
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error("Export failed.");
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          Swal.fire({ icon: "error", text: err.message });
+        } finally {
+          overlay.classList.remove("show");
+        }
+      }
 
-    function editRow(rowData) {
-      hideChassisPopup();
-      document.getElementById("entryInNo").value = rowData.in_no || "";
-      document.getElementById("entryChassisNo").value = rowData.chassis_no || "";
-      document.getElementById("entryVehicleType").value = rowData.vehicle_type || "";
-      editDatePicker.setDate(rowData.purchase_date || "", false);
-      document.getElementById("entrySalesRevenue").value = rowData.sales_revenue || 0;
+      function exportDashboardExcel() {
+        const rows = currentFiltered;
+        if (!rows.length) {
+          Swal.fire({ icon: "warning", text: "No records to export." });
+          return;
+        }
+        const headers = [
+          "IN No",
+          "Purchase Date",
+          "Vehicle Type",
+          "Chassis No",
+          ...currentCostHeads.map((h) => h.head_name),
+          "Total Cost",
+          "Sales Revenue",
+          "Net C/F",
+        ];
+        const data = rows.map((r) => [
+          r.in_no,
+          r.purchase_date,
+          r.vehicle_type,
+          r.chassis_no,
+          ...currentCostHeads.map((h) =>
+            Number((r.costs && r.costs[h.id]) || 0),
+          ),
+          Number(r.total_cost || 0),
+          Number(r.sales_revenue || 0),
+          Number(r.net_cf || 0),
+        ]);
+        const numCols = headers.map((_, i) => i).filter((i) => i >= 4);
+        exportExcel(
+          "/py/spare-parts/export-dashboard",
+          {
+            headers,
+            rows: data,
+            date_cols: [1],
+            num_cols: numCols,
+            sheet_name: "Dashboard",
+          },
+          `Dashboard_${todayStr()}.xlsx`,
+        );
+      }
 
-      const container = document.getElementById("dynamicCostInputs");
-      container.innerHTML = currentCostHeads.map(h => {
-        const val = rowData.costs ? (rowData.costs[h.id] || 0) : 0;
-        return `
+      // Global Search Filter
+      document
+        .getElementById("searchInput")
+        .addEventListener("input", applyAllFilters);
+
+      // Add New Cost Ledger Column
+      document
+        .getElementById("addCostColForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const headName = document
+            .getElementById("newCostHeadName")
+            .value.trim();
+          if (!headName) return;
+
+          const res = await fetch("/api/spare-parts/dashboard/cost-head", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ headName }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            bootstrap.Modal.getInstance(
+              document.getElementById("addCostColModal"),
+            ).hide();
+            document.getElementById("newCostHeadName").value = "";
+            loadDashboard();
+          } else {
+            Swal.fire({ icon: "error", text: data.message });
+          }
+        });
+
+      // Flatpickr Date Inputs
+      flatpickr("#newEqPurchaseDate", {
+        dateFormat: "Y-m-d",
+        defaultDate: "today",
+      });
+      const editDatePicker = flatpickr("#entryPurchaseDate", {
+        dateFormat: "Y-m-d",
+      });
+
+      // Right-Click Glassy Context Popup on Chassis No
+      const ctxPopup = document.getElementById("chassisContextPopup");
+
+      function showChassisPopup(e, rowData) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        document.getElementById("ctxChassisTitle").textContent =
+          `${rowData.in_no} / ${rowData.chassis_no}`;
+        document.getElementById("ctxVehicleType").textContent =
+          rowData.vehicle_type || "Not specified";
+        document.getElementById("ctxPurchaseDate").textContent =
+          rowData.purchase_date || "Not specified";
+
+        ctxPopup.style.display = "block";
+        const popupW = ctxPopup.offsetWidth || 250;
+        const popupH = ctxPopup.offsetHeight || 150;
+        const posX = Math.min(e.clientX, window.innerWidth - popupW - 12);
+        const posY = Math.min(e.clientY, window.innerHeight - popupH - 12);
+
+        ctxPopup.style.left = `${Math.max(10, posX)}px`;
+        ctxPopup.style.top = `${Math.max(10, posY)}px`;
+      }
+
+      function hideChassisPopup() {
+        ctxPopup.style.display = "none";
+      }
+
+      document.addEventListener("click", (e) => {
+        if (!ctxPopup.contains(e.target)) hideChassisPopup();
+      });
+
+      // New EQ Modal
+      const newEqModal = new bootstrap.Modal(
+        document.getElementById("newEqModal"),
+      );
+
+      function openNewEqModal() {
+        document.getElementById("newEqForm").reset();
+        document.getElementById("newEqPurchaseCost").value = 0;
+        newEqModal.show();
+      }
+
+      document
+        .getElementById("newEqForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const purchaseHead = currentCostHeads.find(
+            (h) => h.head_name.toLowerCase() === "purchase cost",
+          );
+          const costs = {};
+          if (purchaseHead) {
+            costs[purchaseHead.id] = Number(
+              document.getElementById("newEqPurchaseCost").value || 0,
+            );
+          }
+
+          const res = await fetch("/api/spare-parts/dashboard/vehicle", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              inNo: document.getElementById("newEqInNo").value,
+              chassisNo: document.getElementById("newEqChassisNo").value,
+              vehicleType: document.getElementById("newEqVehicleType").value,
+              purchaseDate: document.getElementById("newEqPurchaseDate").value,
+              salesRevenue: 0,
+              costs,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            newEqModal.hide();
+            loadDashboard();
+          } else {
+            Swal.fire({ icon: "error", text: data.message });
+          }
+        });
+
+      // Edit Full Vehicle Modal
+      const vehicleModal = new bootstrap.Modal(
+        document.getElementById("vehicleEntryModal"),
+      );
+
+      function editRow(rowData) {
+        hideChassisPopup();
+        document.getElementById("entryInNo").value = rowData.in_no || "";
+        document.getElementById("entryChassisNo").value =
+          rowData.chassis_no || "";
+        document.getElementById("entryVehicleType").value =
+          rowData.vehicle_type || "";
+        editDatePicker.setDate(rowData.purchase_date || "", false);
+        document.getElementById("entrySalesRevenue").value =
+          rowData.sales_revenue || 0;
+
+        const container = document.getElementById("dynamicCostInputs");
+        container.innerHTML = currentCostHeads
+          .map((h) => {
+            const val = rowData.costs ? rowData.costs[h.id] || 0 : 0;
+            return `
           <div class="col-md-4">
             <label class="form-label small mb-1">${esc(h.head_name)}</label>
             <input type="number" step="0.01" class="form-control form-control-sm cost-head-input" data-head-id="${h.id}" value="${val}" />
           </div>
         `;
-      }).join("");
+          })
+          .join("");
 
-      vehicleModal.show();
-    }
-
-    document.getElementById("vehicleEntryForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const costs = {};
-      document.querySelectorAll(".cost-head-input").forEach(inp => {
-        costs[inp.getAttribute("data-head-id")] = Number(inp.value || 0);
-      });
-
-      const res = await fetch("/api/spare-parts/dashboard/vehicle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          inNo: document.getElementById("entryInNo").value,
-          chassisNo: document.getElementById("entryChassisNo").value,
-          vehicleType: document.getElementById("entryVehicleType").value,
-          purchaseDate: document.getElementById("entryPurchaseDate").value,
-          salesRevenue: document.getElementById("entrySalesRevenue").value,
-          costs
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        vehicleModal.hide();
-        loadDashboard();
-      } else {
-        Swal.fire({ icon: "error", text: data.message });
+        vehicleModal.show();
       }
-    });
 
-    loadDashboard();
-  </script>
-</body>
+      document
+        .getElementById("vehicleEntryForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const costs = {};
+          document.querySelectorAll(".cost-head-input").forEach((inp) => {
+            costs[inp.getAttribute("data-head-id")] = Number(inp.value || 0);
+          });
+
+          const res = await fetch("/api/spare-parts/dashboard/vehicle", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              inNo: document.getElementById("entryInNo").value,
+              chassisNo: document.getElementById("entryChassisNo").value,
+              vehicleType: document.getElementById("entryVehicleType").value,
+              purchaseDate: document.getElementById("entryPurchaseDate").value,
+              salesRevenue: document.getElementById("entrySalesRevenue").value,
+              costs,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            vehicleModal.hide();
+            loadDashboard();
+          } else {
+            Swal.fire({ icon: "error", text: data.message });
+          }
+        });
+
+      loadDashboard();
+    </script>
+  </body>
 </html>

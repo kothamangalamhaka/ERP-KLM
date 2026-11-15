@@ -1,369 +1,522 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spare Parts Hub | Stock Inventory</title>
-  <script>
-    (function () {
-      try {
-        const saved = localStorage.getItem("sp_theme");
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const theme = saved || (prefersDark ? "dark" : "light");
-        document.documentElement.setAttribute("data-theme", theme);
-        document.documentElement.setAttribute("data-bs-theme", theme);
-      } catch (e) {}
-    })();
-  </script>
-  <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
-  <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
-  <style>
-    @font-face {
-      font-family: "InterLocal";
-      src: url("/webfonts/Inter-Regular.woff2") format("woff2");
-      font-weight: 400;
-    }
-    @font-face {
-      font-family: "InterLocal";
-      src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
-      font-weight: 600;
-    }
-    @font-face {
-      font-family: "InterLocal";
-      src: url("/webfonts/Inter-Bold.woff2") format("woff2");
-      font-weight: 700;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spare Parts Hub | Stock Inventory</title>
+    <script>
+      (function () {
+        try {
+          const saved = localStorage.getItem("sp_theme");
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)",
+          ).matches;
+          const theme = saved || (prefersDark ? "dark" : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+          document.documentElement.setAttribute("data-bs-theme", theme);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
+    <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
+    <style>
+      @font-face {
+        font-family: "InterLocal";
+        src: url("/webfonts/Inter-Regular.woff2") format("woff2");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "InterLocal";
+        src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
+        font-weight: 600;
+      }
+      @font-face {
+        font-family: "InterLocal";
+        src: url("/webfonts/Inter-Bold.woff2") format("woff2");
+        font-weight: 700;
+      }
 
-    :root {
-      --primary: #2563eb;
-      --bg: #f1f5f9;
-      --surface: rgba(255, 255, 255, 0.88);
-      --border: rgba(148, 163, 184, 0.35);
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --shadow: 0 12px 35px rgba(15, 23, 42, 0.12);
-    }
+      :root {
+        --primary: #2563eb;
+        --bg: #f1f5f9;
+        --surface: rgba(255, 255, 255, 0.88);
+        --border: rgba(148, 163, 184, 0.35);
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --shadow: 0 12px 35px rgba(15, 23, 42, 0.12);
+      }
 
-    [data-theme="dark"] {
-      --primary: #3b82f6;
-      --bg: #0b1120;
-      --surface: rgba(30, 41, 59, 0.82);
-      --border: rgba(148, 163, 184, 0.18);
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
-    }
+      [data-theme="dark"] {
+        --primary: #3b82f6;
+        --bg: #0b1120;
+        --surface: rgba(30, 41, 59, 0.82);
+        --border: rgba(148, 163, 184, 0.18);
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+      }
 
-    * {
-      font-family: "InterLocal", system-ui, sans-serif;
-    }
+      * {
+        font-family: "InterLocal", system-ui, sans-serif;
+      }
 
-    html, body {
-      height: 100vh;
-      overflow: hidden;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-    }
+      html,
+      body {
+        height: 100vh;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+      }
 
-    .glass-nav {
-      flex-shrink: 0;
-      background: var(--surface);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      box-shadow: var(--shadow);
-    }
+      .glass-nav {
+        flex-shrink: 0;
+        background: var(--surface);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
 
-    .main-wrap {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      padding-bottom: 0.75rem;
-    }
+      .main-wrap {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 0.75rem;
+      }
 
-    .kpi-strip {
-      flex-shrink: 0;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 0.65rem;
-    }
+      .kpi-strip {
+        flex-shrink: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.65rem;
+      }
 
-    .kpi-card {
-      flex: 1 1 auto;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.36rem 0.75rem;
-      box-shadow: var(--shadow);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.6rem;
-      white-space: nowrap;
-    }
+      .kpi-card {
+        flex: 1 1 auto;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.36rem 0.75rem;
+        box-shadow: var(--shadow);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        white-space: nowrap;
+      }
 
-    .glass-panel {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      background: var(--surface);
-      backdrop-filter: blur(18px);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      padding: 0.9rem 1.1rem;
-    }
+      .glass-panel {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        backdrop-filter: blur(18px);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 0.9rem 1.1rem;
+      }
 
-    .table-scroll-box {
-      flex: 1;
-      min-height: 0;
-      overflow: auto;
-      border-radius: 10px;
-    }
+      .table-scroll-box {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        border-radius: 10px;
+      }
 
-    .table {
-      --bs-table-bg: transparent;
-      --bs-table-color: var(--text);
-      --bs-table-border-color: var(--border);
-      font-size: 0.88rem;
-      white-space: nowrap;
-    }
+      .table {
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--text);
+        --bs-table-border-color: var(--border);
+        font-size: 0.88rem;
+        white-space: nowrap;
+      }
 
-    .table-scroll-box thead th {
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      background: var(--bg);
-      box-shadow: inset 0 -1px 0 var(--border);
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      font-weight: 700;
-      padding: 0.7rem 0.85rem;
-    }
+      .table-scroll-box thead th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: var(--bg);
+        box-shadow: inset 0 -1px 0 var(--border);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        font-weight: 700;
+        padding: 0.7rem 0.85rem;
+      }
 
-    .code-cell {
-      cursor: context-menu;
-    }
+      .code-cell {
+        cursor: context-menu;
+      }
 
-    .glass-breakdown-popup {
-      position: fixed;
-      z-index: 9999;
-      min-width: 340px;
-      max-width: 92vw;
-      background: var(--surface);
-      backdrop-filter: blur(22px);
-      -webkit-backdrop-filter: blur(22px);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      padding: 0.85rem 1rem;
-      display: none;
-      animation: popFade 0.15s ease-out;
-    }
-    @keyframes popFade {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-  </style>
-</head>
-<body>
-  <nav class="navbar glass-nav px-3 py-2 mb-2">
-    <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-2">
-      <div class="d-flex align-items-center gap-2">
-        <i class="fas fa-warehouse text-info fs-5"></i>
-        <span class="fw-bold fs-6">Stock Inventory (Code Wise)</span>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <a href="/Office/Spare_parts_sale/dashboard.html" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1" style="font-size:0.78rem;">
-          <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
-        </a>
-        <button class="btn btn-sm btn-outline-secondary rounded-circle" id="themeToggle" style="width:32px;height:32px;padding:0;">
-          <i class="fas fa-moon" id="themeIcon" style="font-size:0.8rem;"></i>
-        </button>
-      </div>
-    </div>
-  </nav>
-
-  <div class="container-fluid px-3 main-wrap">
-    <!-- SINGLE-LINE KPI STRIP -->
-    <div class="kpi-strip">
-      <div class="kpi-card">
-        <span class="small" style="color: var(--text-muted); font-size:0.75rem;">Total Item Codes</span>
-        <span class="fw-bold" style="font-size:0.88rem;" id="kpiItemCount">0</span>
-      </div>
-      <div class="kpi-card">
-        <span class="small text-primary fw-semibold" style="font-size:0.75rem;">Total Quantity</span>
-        <span class="fw-bold text-primary" style="font-size:0.88rem;" id="kpiTotalQty">0</span>
-      </div>
-      <div class="kpi-card">
-        <span class="small text-warning fw-semibold" style="font-size:0.75rem;">Sold Quantity</span>
-        <span class="fw-bold text-warning" style="font-size:0.88rem;" id="kpiSoldQty">0</span>
-      </div>
-      <div class="kpi-card">
-        <span class="small text-success fw-semibold" style="font-size:0.75rem;">Available Quantity</span>
-        <span class="fw-bold text-success" style="font-size:0.88rem;" id="kpiAvailQty">0</span>
-      </div>
-    </div>
-
-    <!-- STOCK TABLE -->
-    <div class="glass-panel">
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 flex-shrink-0">
-        <span class="small fw-semibold" style="color: var(--text-muted)">
-          <i class="fas fa-circle-info text-primary me-1"></i>Right-click any <b>Item Code</b> to view IN-wise breakdown
-        </span>
-        <div class="d-flex gap-2">
-          <input type="text" id="stockSearchInput" class="form-control form-control-sm" placeholder="Search Code / Item / IN..." style="width:240px;" />
-          <button class="btn btn-sm btn-outline-secondary" onclick="loadStocks()" title="Refresh">
-            <i class="fas fa-rotate"></i>
+      .glass-breakdown-popup {
+        position: fixed;
+        z-index: 9999;
+        min-width: 340px;
+        max-width: 92vw;
+        background: var(--surface);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 0.85rem 1rem;
+        display: none;
+        animation: popFade 0.15s ease-out;
+      }
+      @keyframes popFade {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .export-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 20000;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.8rem;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(4px);
+        color: #ffffff;
+      }
+      .export-overlay.show {
+        display: flex;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar glass-nav px-3 py-2 mb-2">
+      <div
+        class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-2"
+      >
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-warehouse text-info fs-5"></i>
+          <span class="fw-bold fs-6">Stock Inventory (Code Wise)</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a
+            href="/Office/Spare_parts_sale/dashboard.html"
+            class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1"
+            style="font-size: 0.78rem"
+          >
+            <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+          </a>
+          <button
+            class="btn btn-sm btn-outline-secondary rounded-circle"
+            id="themeToggle"
+            style="width: 32px; height: 32px; padding: 0"
+          >
+            <i class="fas fa-moon" id="themeIcon" style="font-size: 0.8rem"></i>
           </button>
         </div>
       </div>
+    </nav>
 
-      <div class="table-scroll-box">
-        <table class="table table-hover align-middle mb-0">
+    <div class="container-fluid px-3 main-wrap">
+      <!-- SINGLE-LINE KPI STRIP -->
+      <div class="kpi-strip">
+        <div class="kpi-card">
+          <span
+            class="small"
+            style="color: var(--text-muted); font-size: 0.75rem"
+            >Total Item Codes</span
+          >
+          <span class="fw-bold" style="font-size: 0.88rem" id="kpiItemCount"
+            >0</span
+          >
+        </div>
+        <div class="kpi-card">
+          <span
+            class="small text-primary fw-semibold"
+            style="font-size: 0.75rem"
+            >Total Quantity</span
+          >
+          <span
+            class="fw-bold text-primary"
+            style="font-size: 0.88rem"
+            id="kpiTotalQty"
+            >0</span
+          >
+        </div>
+        <div class="kpi-card">
+          <span
+            class="small text-warning fw-semibold"
+            style="font-size: 0.75rem"
+            >Sold Quantity</span
+          >
+          <span
+            class="fw-bold text-warning"
+            style="font-size: 0.88rem"
+            id="kpiSoldQty"
+            >0</span
+          >
+        </div>
+        <div class="kpi-card">
+          <span
+            class="small text-success fw-semibold"
+            style="font-size: 0.75rem"
+            >Available Quantity</span
+          >
+          <span
+            class="fw-bold text-success"
+            style="font-size: 0.88rem"
+            id="kpiAvailQty"
+            >0</span
+          >
+        </div>
+      </div>
+
+      <!-- STOCK TABLE -->
+      <div class="glass-panel">
+        <div
+          class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 flex-shrink-0"
+        >
+          <span class="small fw-semibold" style="color: var(--text-muted)">
+            <i class="fas fa-circle-info text-primary me-1"></i>Right-click any
+            <b>Item Code</b> to view IN-wise breakdown
+          </span>
+          <div class="d-flex gap-2">
+            <input
+              type="text"
+              id="stockSearchInput"
+              class="form-control form-control-sm"
+              placeholder="Search Code / Item / IN..."
+              style="width: 240px"
+            />
+            <button
+              class="btn btn-sm btn-outline-success"
+              onclick="exportStockExcel()"
+              title="Export to Excel"
+            >
+              <i class="fas fa-file-excel me-1"></i>Export
+            </button>
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              onclick="loadStocks()"
+              title="Refresh"
+            >
+              <i class="fas fa-rotate"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-scroll-box">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Item Code</th>
+                <th>Item Name</th>
+                <th class="text-center">Total Quantity</th>
+                <th class="text-center">Sold Quantity</th>
+                <th class="text-center">Available Quantity</th>
+                <th>Notes (Available IN No)</th>
+              </tr>
+            </thead>
+            <tbody id="stockTbody">
+              <tr>
+                <td colspan="6" class="text-center py-4">
+                  Loading stock inventory...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- GLASSY RIGHT-CLICK POPUP ON ITEM CODE -->
+    <div id="codeBreakdownPopup" class="glass-breakdown-popup">
+      <div
+        class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom"
+        style="border-color: var(--border) !important"
+      >
+        <span class="small fw-bold text-primary" id="popupItemTitle"
+          >Item Summary</span
+        >
+        <button
+          type="button"
+          class="btn-close btn-close-sm"
+          style="font-size: 0.65rem"
+          onclick="hideBreakdownPopup()"
+        ></button>
+      </div>
+      <div
+        class="small mb-1"
+        style="color: var(--text-muted); font-size: 0.72rem"
+      >
+        Right-click any IN No below for date-wise log
+      </div>
+      <div class="table-responsive" style="max-height: 220px">
+        <table class="table table-sm mb-0" style="font-size: 0.8rem">
           <thead>
             <tr>
-              <th>Item Code</th>
-              <th>Item Name</th>
-              <th class="text-center">Total Quantity</th>
-              <th class="text-center">Sold Quantity</th>
-              <th class="text-center">Available Quantity</th>
-              <th>Notes (Available IN No)</th>
+              <th>IN No</th>
+              <th class="text-center">Total</th>
+              <th class="text-center">Sold</th>
+              <th class="text-center">Available</th>
             </tr>
           </thead>
-          <tbody id="stockTbody">
-            <tr><td colspan="6" class="text-center py-4">Loading stock inventory...</td></tr>
-          </tbody>
+          <tbody id="popupBreakdownBody"></tbody>
         </table>
       </div>
     </div>
-  </div>
 
-  <!-- GLASSY RIGHT-CLICK POPUP ON ITEM CODE -->
-  <div id="codeBreakdownPopup" class="glass-breakdown-popup">
-    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom" style="border-color: var(--border) !important;">
-      <span class="small fw-bold text-primary" id="popupItemTitle">Item Summary</span>
-      <button type="button" class="btn-close btn-close-sm" style="font-size:0.65rem;" onclick="hideBreakdownPopup()"></button>
+    <!-- GLASSY SECOND POPUP: DATE-WISE ADD / SOLD LOGS FOR IN NO -->
+    <div
+      id="inDateHistoryPopup"
+      class="glass-breakdown-popup"
+      style="z-index: 10000; min-width: 300px"
+    >
+      <div
+        class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom"
+        style="border-color: var(--border) !important"
+      >
+        <span class="small fw-bold text-info" id="historyPopupTitle"
+          >IN History</span
+        >
+        <button
+          type="button"
+          class="btn-close btn-close-sm"
+          style="font-size: 0.65rem"
+          onclick="hideHistoryPopup()"
+        ></button>
+      </div>
+      <div class="table-responsive" style="max-height: 210px">
+        <table class="table table-sm mb-0" style="font-size: 0.79rem">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th class="text-center">Type</th>
+              <th class="text-center">Qty</th>
+            </tr>
+          </thead>
+          <tbody id="historyPopupBody"></tbody>
+        </table>
+      </div>
     </div>
-    <div class="small mb-1" style="color: var(--text-muted); font-size:0.72rem;">Right-click any IN No below for date-wise log</div>
-    <div class="table-responsive" style="max-height: 220px;">
-      <table class="table table-sm mb-0" style="font-size:0.8rem;">
-        <thead>
-          <tr>
-            <th>IN No</th>
-            <th class="text-center">Total</th>
-            <th class="text-center">Sold</th>
-            <th class="text-center">Available</th>
-          </tr>
-        </thead>
-        <tbody id="popupBreakdownBody"></tbody>
-      </table>
+
+    <div id="exportOverlay" class="export-overlay">
+      <div
+        class="spinner-border text-light"
+        style="width: 3rem; height: 3rem"
+        role="status"
+      ></div>
+      <div class="fw-semibold">Preparing Excel file... please wait</div>
     </div>
-  </div>
 
-  <!-- GLASSY SECOND POPUP: DATE-WISE ADD / SOLD LOGS FOR IN NO -->
-  <div id="inDateHistoryPopup" class="glass-breakdown-popup" style="z-index: 10000; min-width: 300px;">
-    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom" style="border-color: var(--border) !important;">
-      <span class="small fw-bold text-info" id="historyPopupTitle">IN History</span>
-      <button type="button" class="btn-close btn-close-sm" style="font-size:0.65rem;" onclick="hideHistoryPopup()"></button>
-    </div>
-    <div class="table-responsive" style="max-height: 210px;">
-      <table class="table table-sm mb-0" style="font-size:0.79rem;">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th class="text-center">Type</th>
-            <th class="text-center">Qty</th>
-          </tr>
-        </thead>
-        <tbody id="historyPopupBody"></tbody>
-      </table>
-    </div>
-  </div>
+    <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
+    <script>
+      const token = localStorage.getItem("sp_token");
+      const user = JSON.parse(localStorage.getItem("sp_user") || "{}");
 
-  <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
-  <script>
-    const token = localStorage.getItem("sp_token");
-    const user = JSON.parse(localStorage.getItem("sp_user") || "{}");
-
-    if (!token || !user.username) {
-      window.location.href = "/Office/Spare_parts_sale/index.html";
-    }
-
-    // Theme
-    const themeToggle = document.getElementById("themeToggle");
-    const themeIcon = document.getElementById("themeIcon");
-    function updateIcon() {
-      const t = document.documentElement.getAttribute("data-theme");
-      themeIcon.className = t === "dark" ? "fas fa-sun" : "fas fa-moon";
-    }
-    updateIcon();
-    themeToggle.addEventListener("click", () => {
-      const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      document.documentElement.setAttribute("data-bs-theme", next);
-      try { localStorage.setItem("sp_theme", next); } catch (e) {}
-      updateIcon();
-    });
-
-    function esc(str) {
-      return String(str || "").replace(/[&<>"']/g, (m) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-      }[m]));
-    }
-
-    function fmtQty(n) {
-      const val = Number(n || 0);
-      return Number.isInteger(val) ? val.toString() : val.toFixed(2);
-    }
-
-    let allStockItems = [];
-
-    async function loadStocks() {
-      try {
-        const res = await fetch("/api/spare-parts/stock/summary", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.status === 401 || res.status === 403) {
-          window.location.href = "/Office/Spare_parts_sale/index.html";
-          return;
-        }
-        const data = await res.json();
-        if (!data.success) return;
-
-        allStockItems = data.items || [];
-        applySearch();
-      } catch (err) {
-        console.error(err);
+      if (!token || !user.username) {
+        window.location.href = "/Office/Spare_parts_sale/index.html";
       }
-    }
 
-    function renderStockTable(items) {
-      const tbody = document.getElementById("stockTbody");
-      let sumTotal = 0;
-      let sumSold = 0;
-      let sumAvail = 0;
+      // Theme
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      function updateIcon() {
+        const t = document.documentElement.getAttribute("data-theme");
+        themeIcon.className = t === "dark" ? "fas fa-sun" : "fas fa-moon";
+      }
+      updateIcon();
+      themeToggle.addEventListener("click", () => {
+        const next =
+          document.documentElement.getAttribute("data-theme") === "dark"
+            ? "light"
+            : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        document.documentElement.setAttribute("data-bs-theme", next);
+        try {
+          localStorage.setItem("sp_theme", next);
+        } catch (e) {}
+        updateIcon();
+      });
 
-      if (items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No stock records found.</td></tr>`;
-      } else {
-        tbody.innerHTML = items.map(it => {
-          sumTotal += Number(it.total_qty || 0);
-          sumSold += Number(it.sold_qty || 0);
-          sumAvail += Number(it.available_qty || 0);
+      function esc(str) {
+        return String(str || "").replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[m],
+        );
+      }
 
-          const avail = Number(it.available_qty || 0);
-          const notesHtml = it.available_ins && it.available_ins.length > 0
-            ? it.available_ins.map(x => `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 me-1">${esc(x)}</span>`).join("")
-            : `<span class="badge bg-danger bg-opacity-10 text-danger">Out of Stock</span>`;
+      function fmtQty(n) {
+        const val = Number(n || 0);
+        return Number.isInteger(val) ? val.toString() : val.toFixed(2);
+      }
 
-          const safeJson = JSON.stringify(it).replace(/'/g, "&#39;");
-          return `
+      let allStockItems = [];
+
+      async function loadStocks() {
+        try {
+          const res = await fetch("/api/spare-parts/stock/summary", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.status === 401 || res.status === 403) {
+            window.location.href = "/Office/Spare_parts_sale/index.html";
+            return;
+          }
+          const data = await res.json();
+          if (!data.success) return;
+
+          allStockItems = data.items || [];
+          applySearch();
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      let currentStockView = [];
+
+      function renderStockTable(items) {
+        currentStockView = items;
+        const tbody = document.getElementById("stockTbody");
+        let sumTotal = 0;
+        let sumSold = 0;
+        let sumAvail = 0;
+
+        if (items.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No stock records found.</td></tr>`;
+        } else {
+          tbody.innerHTML = items
+            .map((it) => {
+              sumTotal += Number(it.total_qty || 0);
+              sumSold += Number(it.sold_qty || 0);
+              sumAvail += Number(it.available_qty || 0);
+
+              const avail = Number(it.available_qty || 0);
+              const notesHtml =
+                it.available_ins && it.available_ins.length > 0
+                  ? it.available_ins
+                      .map(
+                        (x) =>
+                          `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 me-1">${esc(x)}</span>`,
+                      )
+                      .join("")
+                  : `<span class="badge bg-danger bg-opacity-10 text-danger">Out of Stock</span>`;
+
+              const safeJson = JSON.stringify(it).replace(/'/g, "&#39;");
+              return `
             <tr>
               <td class="code-cell fw-bold text-primary" oncontextmenu='showBreakdownPopup(event, ${safeJson})' title="Right-click for IN-wise breakdown">
                 ${esc(it.item_code)}
@@ -375,40 +528,110 @@
               <td>${notesHtml}</td>
             </tr>
           `;
-        }).join("");
+            })
+            .join("");
+        }
+
+        document.getElementById("kpiItemCount").textContent = items.length;
+        document.getElementById("kpiTotalQty").textContent = fmtQty(sumTotal);
+        document.getElementById("kpiSoldQty").textContent = fmtQty(sumSold);
+        document.getElementById("kpiAvailQty").textContent = fmtQty(sumAvail);
       }
 
-      document.getElementById("kpiItemCount").textContent = items.length;
-      document.getElementById("kpiTotalQty").textContent = fmtQty(sumTotal);
-      document.getElementById("kpiSoldQty").textContent = fmtQty(sumSold);
-      document.getElementById("kpiAvailQty").textContent = fmtQty(sumAvail);
-    }
+      function applySearch() {
+        const q = document
+          .getElementById("stockSearchInput")
+          .value.trim()
+          .toLowerCase();
+        if (!q) return renderStockTable(allStockItems);
+        const filtered = allStockItems.filter(
+          (it) =>
+            it.item_code.toLowerCase().includes(q) ||
+            it.item_name.toLowerCase().includes(q) ||
+            (it.available_ins || []).some((x) => x.toLowerCase().includes(q)),
+        );
+        renderStockTable(filtered);
+      }
 
-    function applySearch() {
-      const q = document.getElementById("stockSearchInput").value.trim().toLowerCase();
-      if (!q) return renderStockTable(allStockItems);
-      const filtered = allStockItems.filter(it =>
-        it.item_code.toLowerCase().includes(q) ||
-        it.item_name.toLowerCase().includes(q) ||
-        (it.available_ins || []).some(x => x.toLowerCase().includes(q))
-      );
-      renderStockTable(filtered);
-    }
+      document
+        .getElementById("stockSearchInput")
+        .addEventListener("input", applySearch);
 
-    document.getElementById("stockSearchInput").addEventListener("input", applySearch);
+      function todayStr() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      }
 
-    // Right-Click Glassy Breakdown Popup on Item Code
-    const popupEl = document.getElementById("codeBreakdownPopup");
-    const historyPopupEl = document.getElementById("inDateHistoryPopup");
+      async function exportExcel(endpoint, payload, fileName) {
+        const overlay = document.getElementById("exportOverlay");
+        overlay.classList.add("show");
+        try {
+          await new Promise((r) => setTimeout(r, 60));
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error("Export failed.");
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          alert(err.message);
+        } finally {
+          overlay.classList.remove("show");
+        }
+      }
 
-    function showBreakdownPopup(e, itemData) {
-      e.preventDefault();
-      e.stopPropagation();
-      hideHistoryPopup();
+      function exportStockExcel() {
+        if (!currentStockView.length) {
+          alert("No records to export.");
+          return;
+        }
+        const headers = [
+          "Item Code",
+          "Item Name",
+          "Total Quantity",
+          "Sold Quantity",
+          "Available Quantity",
+          "Available IN No",
+        ];
+        const data = currentStockView.map((it) => [
+          it.item_code,
+          it.item_name,
+          Number(it.total_qty || 0),
+          Number(it.sold_qty || 0),
+          Number(it.available_qty || 0),
+          (it.available_ins || []).join(", "),
+        ]);
+        exportExcel(
+          "/py/spare-parts/export-stock",
+          { headers, rows: data, qty_cols: [2, 3, 4], sheet_name: "Stock" },
+          `Stock_${todayStr()}.xlsx`,
+        );
+      }
 
-      document.getElementById("popupItemTitle").textContent = `${itemData.item_code} - ${itemData.item_name}`;
-      const rows = itemData.breakdown || [];
-      document.getElementById("popupBreakdownBody").innerHTML = rows.map(b => `
+      // Right-Click Glassy Breakdown Popup on Item Code
+      const popupEl = document.getElementById("codeBreakdownPopup");
+      const historyPopupEl = document.getElementById("inDateHistoryPopup");
+
+      function showBreakdownPopup(e, itemData) {
+        e.preventDefault();
+        e.stopPropagation();
+        hideHistoryPopup();
+
+        document.getElementById("popupItemTitle").textContent =
+          `${itemData.item_code} - ${itemData.item_name}`;
+        const rows = itemData.breakdown || [];
+        document.getElementById("popupBreakdownBody").innerHTML = rows
+          .map(
+            (b) => `
         <tr>
           <td class="fw-bold text-primary" style="cursor:context-menu;"
               oncontextmenu="showInDateHistory(event, '${esc(b.in_no)}', '${esc(itemData.item_code)}', '${esc(itemData.item_name)}')"
@@ -419,49 +642,56 @@
           <td class="text-center text-warning">${fmtQty(b.sold_qty)}</td>
           <td class="text-center fw-bold ${Number(b.available_qty) > 0 ? "text-success" : "text-danger"}">${fmtQty(b.available_qty)}</td>
         </tr>
-      `).join("");
+      `,
+          )
+          .join("");
 
-      popupEl.style.display = "block";
-      const popW = popupEl.offsetWidth || 350;
-      const popH = popupEl.offsetHeight || 200;
-      const posX = Math.min(e.clientX, window.innerWidth - popW - 12);
-      const posY = Math.min(e.clientY, window.innerHeight - popH - 12);
+        popupEl.style.display = "block";
+        const popW = popupEl.offsetWidth || 350;
+        const popH = popupEl.offsetHeight || 200;
+        const posX = Math.min(e.clientX, window.innerWidth - popW - 12);
+        const posY = Math.min(e.clientY, window.innerHeight - popH - 12);
 
-      popupEl.style.left = `${Math.max(10, posX)}px`;
-      popupEl.style.top = `${Math.max(10, posY)}px`;
-    }
+        popupEl.style.left = `${Math.max(10, posX)}px`;
+        popupEl.style.top = `${Math.max(10, posY)}px`;
+      }
 
-    async function showInDateHistory(e, inNo, itemCode, itemName) {
-      e.preventDefault();
-      e.stopPropagation();
+      async function showInDateHistory(e, inNo, itemCode, itemName) {
+        e.preventDefault();
+        e.stopPropagation();
 
-      document.getElementById("historyPopupTitle").textContent = `IN: ${inNo} | ${itemCode} - ${itemName}`;
-      const bodyEl = document.getElementById("historyPopupBody");
-      bodyEl.innerHTML = `<tr><td colspan="3" class="text-center py-2">Loading...</td></tr>`;
+        document.getElementById("historyPopupTitle").textContent =
+          `IN: ${inNo} | ${itemCode} - ${itemName}`;
+        const bodyEl = document.getElementById("historyPopupBody");
+        bodyEl.innerHTML = `<tr><td colspan="3" class="text-center py-2">Loading...</td></tr>`;
 
-      historyPopupEl.style.display = "block";
-      const popW = historyPopupEl.offsetWidth || 310;
-      const popH = historyPopupEl.offsetHeight || 190;
-      const posX = Math.min(e.clientX + 12, window.innerWidth - popW - 12);
-      const posY = Math.min(e.clientY, window.innerHeight - popH - 12);
+        historyPopupEl.style.display = "block";
+        const popW = historyPopupEl.offsetWidth || 310;
+        const popH = historyPopupEl.offsetHeight || 190;
+        const posX = Math.min(e.clientX + 12, window.innerWidth - popW - 12);
+        const posY = Math.min(e.clientY, window.innerHeight - popH - 12);
 
-      historyPopupEl.style.left = `${Math.max(10, posX)}px`;
-      historyPopupEl.style.top = `${Math.max(10, posY)}px`;
+        historyPopupEl.style.left = `${Math.max(10, posX)}px`;
+        historyPopupEl.style.top = `${Math.max(10, posY)}px`;
 
-      try {
-        const params = new URLSearchParams({ inNo, itemCode, itemName });
-        const res = await fetch(`/api/spare-parts/stock/history?${params.toString()}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (!data.success || !data.entries || data.entries.length === 0) {
-          bodyEl.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-2">No date logs found.</td></tr>`;
-          return;
-        }
+        try {
+          const params = new URLSearchParams({ inNo, itemCode, itemName });
+          const res = await fetch(
+            `/api/spare-parts/stock/history?${params.toString()}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          const data = await res.json();
+          if (!data.success || !data.entries || data.entries.length === 0) {
+            bodyEl.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-2">No date logs found.</td></tr>`;
+            return;
+          }
 
-        bodyEl.innerHTML = data.entries.map(row => {
-          const isAdd = row.tx_type === "ADDED";
-          return `
+          bodyEl.innerHTML = data.entries
+            .map((row) => {
+              const isAdd = row.tx_type === "ADDED";
+              return `
             <tr>
               <td>${esc(row.tx_date)}</td>
               <td class="text-center">
@@ -472,30 +702,34 @@
               </td>
             </tr>
           `;
-        }).join("");
-      } catch (err) {
-        bodyEl.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-2">Error loading logs.</td></tr>`;
+            })
+            .join("");
+        } catch (err) {
+          bodyEl.innerHTML = `<tr><td colspan="3" class="text-center text-danger py-2">Error loading logs.</td></tr>`;
+        }
       }
-    }
 
-    function hideBreakdownPopup() {
-      popupEl.style.display = "none";
-      hideHistoryPopup();
-    }
-
-    function hideHistoryPopup() {
-      historyPopupEl.style.display = "none";
-    }
-
-    document.addEventListener("click", (e) => {
-      if (!historyPopupEl.contains(e.target) && !popupEl.contains(e.target)) {
-        hideBreakdownPopup();
-      } else if (!historyPopupEl.contains(e.target) && popupEl.contains(e.target)) {
+      function hideBreakdownPopup() {
+        popupEl.style.display = "none";
         hideHistoryPopup();
       }
-    });
 
-    loadStocks();
-  </script>
-</body>
+      function hideHistoryPopup() {
+        historyPopupEl.style.display = "none";
+      }
+
+      document.addEventListener("click", (e) => {
+        if (!historyPopupEl.contains(e.target) && !popupEl.contains(e.target)) {
+          hideBreakdownPopup();
+        } else if (
+          !historyPopupEl.contains(e.target) &&
+          popupEl.contains(e.target)
+        ) {
+          hideHistoryPopup();
+        }
+      });
+
+      loadStocks();
+    </script>
+  </body>
 </html>

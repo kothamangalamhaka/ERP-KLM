@@ -538,11 +538,7 @@
             localStorage.setItem("sp_user", JSON.stringify(data.user));
           } catch (e) {}
 
-          if (data.user.role === "Super Admin") {
-            window.location.href = "/Office/Spare_parts_sale/admin/index.html";
-          } else {
-            window.location.href = "/Office/Spare_parts_sale/dashboard.html";
-          }
+          window.location.href = "/Office/Spare_parts_sale/dashboard.html";
         } else {
           Swal.fire({ icon: "warning", title: "Access Denied", text: data.message });
         }

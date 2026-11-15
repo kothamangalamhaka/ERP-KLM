@@ -8,11 +8,14 @@ const JWT_SECRET = process.env.JWT_SECRET;
 function verifySpUser(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
-  if (!token) return res.status(401).json({ success: false, message: "Login required." });
+  if (!token)
+    return res.status(401).json({ success: false, message: "Login required." });
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err || decoded.module !== "spare_parts") {
-      return res.status(403).json({ success: false, message: "Invalid session." });
+      return res
+        .status(403)
+        .json({ success: false, message: "Invalid session." });
     }
     req.spUser = decoded;
     next();
@@ -46,11 +49,12 @@ router.get("/transactions", verifySpUser, async (req, res) => {
         COALESCE(j.qty, 0) AS qty,
         COALESCE(j.total_amount, 0) AS amount,
         COALESCE(j.narration, '') AS narration,
-        COALESCE(j.created_by, '-') AS recorded_by,
+        COALESCE(NULLIF(TRIM(u.display_name), ''), j.created_by, '-') AS recorded_by,
         j.created_at
       FROM spare_parts_jv j
       JOIN spare_parts_vehicles v ON v.id = j.vehicle_id
       LEFT JOIN spare_parts_cost_heads h ON h.id = j.cost_head_id
+      LEFT JOIN spare_parts_users u ON u.username = j.created_by
     `);
 
     // 2. New EQ Registrations (Initial Purchase Cost)
@@ -68,11 +72,12 @@ router.get("/transactions", verifySpUser, async (req, res) => {
         1 AS qty,
         COALESCE(c.amount, 0) AS amount,
         'Initial EQ Registration' AS narration,
-        COALESCE(v.created_by, '-') AS recorded_by,
+        COALESCE(NULLIF(TRIM(u.display_name), ''), v.created_by, '-') AS recorded_by,
         v.created_at
       FROM spare_parts_vehicles v
       LEFT JOIN spare_parts_cost_heads h ON LOWER(TRIM(h.head_name)) = 'purchase cost'
       LEFT JOIN spare_parts_costs c ON c.vehicle_id = v.id AND c.cost_head_id = h.id
+      LEFT JOIN spare_parts_users u ON u.username = v.created_by
     `);
 
     // 3. Stock Additions
@@ -90,22 +95,25 @@ router.get("/transactions", verifySpUser, async (req, res) => {
         COALESCE(l.added_qty, 0) AS qty,
         0 AS amount,
         'Stock Quantity Added' AS narration,
-        COALESCE(l.created_by, '-') AS recorded_by,
+        COALESCE(NULLIF(TRIM(u.display_name), ''), l.created_by, '-') AS recorded_by,
         l.created_at
       FROM spare_parts_stock_logs l
       JOIN spare_parts_vehicles v ON v.id = l.vehicle_id
+      LEFT JOIN spare_parts_users u ON u.username = l.created_by
     `);
 
     const allTx = [...jvRes.rows, ...eqRes.rows, ...stockRes.rows].sort(
       (a, b) =>
         b.voucher_date.localeCompare(a.voucher_date) ||
-        new Date(b.created_at) - new Date(a.created_at)
+        new Date(b.created_at) - new Date(a.created_at),
     );
 
     res.json({ success: true, transactions: allTx });
   } catch (err) {
     console.error("SpareParts JVList Error:", err.message);
-    res.status(500).json({ success: false, message: "Failed to load transactions." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to load transactions." });
   }
 });
 

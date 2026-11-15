@@ -146,12 +146,10 @@ router.post("/vehicle", verifySpUser, async (req, res) => {
     const rev = Number(salesRevenue || 0);
 
     if (!cleanIn || !cleanChassis) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "IN No and Chassis No are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "IN No and Chassis No are required.",
+      });
     }
 
     await client.query("BEGIN");
@@ -224,9 +222,10 @@ router.post("/items", verifySpUser, async (req, res) => {
       .toUpperCase();
 
     if (!cleanCode || !cleanName) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Item Code and Item Name are required." });
+      return res.status(400).json({
+        success: false,
+        message: "Item Code and Item Name are required.",
+      });
     }
 
     const insertRes = await pool.query(
@@ -279,12 +278,10 @@ router.post("/stocks/add", verifySpUser, async (req, res) => {
     const addQty = Number(req.body.qty || 0);
 
     if (!vehicleId || !cleanItem || addQty <= 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Select IN No, item and valid quantity (> 0).",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Select IN No, item and valid quantity (> 0).",
+      });
     }
 
     await client.query("BEGIN");
@@ -366,12 +363,10 @@ router.post("/jv", verifySpUser, async (req, res) => {
 
       if (!cleanItem || saleQty <= 0 || saleRate < 0) {
         await client.query("ROLLBACK");
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Select item, valid quantity (> 0) and rate.",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Select item, valid quantity (> 0) and rate.",
+        });
       }
 
       // Lock stock row and check available quantity
@@ -441,12 +436,10 @@ router.post("/jv", verifySpUser, async (req, res) => {
       const costAmt = Number(amount || 0);
       if (!headId || costAmt <= 0) {
         await client.query("ROLLBACK");
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Select cost ledger and enter amount (> 0).",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Select cost ledger and enter amount (> 0).",
+        });
       }
 
       // Cumulative add to Cost Ledger cell
