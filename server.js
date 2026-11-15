@@ -113,6 +113,18 @@ app.use("/api/own-equipment/company-helper", companyIdentifierRoutes);
 app.use("/office/nonvat-clearance", paymentClearanceRoutes);
 app.use("/timesheet", tsdbPart2Routes);
 
+// Spare Parts Sale Business Routes
+const sparePartsAuthRoutes = require("./routes/Spareparts_business/login_cridentials");
+const sparePartsAdminRoutes = require("./routes/Spareparts_business/admin");
+const sparePartsDashboardRoutes = require("./routes/Spareparts_business/Dashboard");
+const sparePartsStockRoutes = require("./routes/Spareparts_business/stock");
+const sparePartsJvListRoutes = require("./routes/Spareparts_business/JVlist");
+app.use("/api/spare-parts/auth", sparePartsAuthRoutes);
+app.use("/api/spare-parts/admin", sparePartsAdminRoutes);
+app.use("/api/spare-parts/dashboard", sparePartsDashboardRoutes);
+app.use("/api/spare-parts/stock", sparePartsStockRoutes);
+app.use("/api/spare-parts/jv-list", sparePartsJvListRoutes);
+
 // ==========================================
 // 🔄 REVERSE PROXY FOR PYTHON API (Port 8001)
 // ==========================================

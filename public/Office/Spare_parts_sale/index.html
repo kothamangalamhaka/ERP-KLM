@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spare Parts Portal | Login</title>
+  <script>
+    (function () {
+      try {
+        const saved = localStorage.getItem("sp_theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = saved || (prefersDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-bs-theme", theme);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/node_xlsx_scripts/bootstrap.min.css" />
+  <link rel="stylesheet" href="/node_xlsx_scripts/all.min.css" />
+  <style>
+    @font-face {
+      font-family: "InterLocal";
+      src: url("/webfonts/Inter-Regular.woff2") format("woff2");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "InterLocal";
+      src: url("/webfonts/Inter-Medium.woff2") format("woff2");
+      font-weight: 500;
+    }
+    @font-face {
+      font-family: "InterLocal";
+      src: url("/webfonts/Inter-SemiBold.woff2") format("woff2");
+      font-weight: 600;
+    }
+    @font-face {
+      font-family: "InterLocal";
+      src: url("/webfonts/Inter-Bold.woff2") format("woff2");
+      font-weight: 700;
+    }
+
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent: #0ea5e9;
+      --bg-grad-1: #e0e7ff;
+      --bg-grad-2: #f0f9ff;
+      --bg-grad-3: #dbeafe;
+      --glass-bg: rgba(255, 255, 255, 0.72);
+      --glass-border: rgba(255, 255, 255, 0.85);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --input-bg: rgba(255, 255, 255, 0.85);
+      --input-border: rgba(148, 163, 184, 0.45);
+      --shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+      --radius: 20px;
+    }
+
+    [data-theme="dark"] {
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --accent: #38bdf8;
+      --bg-grad-1: #090d16;
+      --bg-grad-2: #0f172a;
+      --bg-grad-3: #1e1b4b;
+      --glass-bg: rgba(15, 23, 42, 0.68);
+      --glass-border: rgba(148, 163, 184, 0.18);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --input-bg: rgba(30, 41, 59, 0.75);
+      --input-border: rgba(148, 163, 184, 0.25);
+      --shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: "InterLocal", system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      color: var(--text);
+      background: linear-gradient(135deg, var(--bg-grad-1), var(--bg-grad-2), var(--bg-grad-3));
+      position: relative;
+      overflow-x: hidden;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      z-index: 0;
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    .orb-1 {
+      width: 340px;
+      height: 340px;
+      background: var(--primary);
+      top: -80px;
+      left: -80px;
+    }
+    .orb-2 {
+      width: 300px;
+      height: 300px;
+      background: var(--accent);
+      bottom: -80px;
+      right: -60px;
+    }
+
+    .theme-btn {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.25rem;
+      z-index: 10;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s ease;
+    }
+    .theme-btn:hover {
+      transform: scale(1.06);
+    }
+
+    .glass-card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 440px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 2.25rem 2rem;
+    }
+
+    .brand-badge {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 1.5rem;
+      margin: 0 auto 1rem;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+    }
+
+    .tab-switcher {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 1.5rem;
+    }
+    .tab-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.55rem;
+      border-radius: 9px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .form-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+    .form-control, .form-select {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 0.68rem 0.95rem;
+      font-size: 0.92rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-control:focus, .form-select:focus {
+      background: var(--input-bg);
+      color: var(--text);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-glass-primary {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: 0.3px;
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.32);
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .btn-glass-primary:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
+    .btn-glass-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .hidden-form {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <button class="theme-btn" id="themeToggle" title="Toggle Theme">
+    <i class="fas fa-moon" id="themeIcon"></i>
+  </button>
+
+  <div class="glass-card">
+    <div class="text-center mb-3">
+      <div class="brand-badge">
+        <i class="fas fa-gears"></i>
+      </div>
+      <h4 class="fw-bold mb-1">Spare Parts Hub</h4>
+      <p class="small mb-0" style="color: var(--text-muted)">Vehicle Collection & Spare Parts Sales</p>
+    </div>
+
+    <div class="tab-switcher">
+      <button type="button" class="tab-btn active" id="tabLogin">Sign In</button>
+      <button type="button" class="tab-btn" id="tabSignup">Sign Up</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <form id="loginForm">
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input type="text" class="form-control" id="loginUsername" placeholder="Enter username" required autocomplete="username" />
+      </div>
+      <div class="mb-2">
+        <label class="form-label">Password</label>
+        <div class="input-group">
+          <input type="password" class="form-control" id="loginPassword" placeholder="Enter password" required autocomplete="current-password" />
+          <button class="btn btn-outline-secondary" type="button" id="toggleLoginPass" style="border-color: var(--input-border); border-radius: 0 12px 12px 0;">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+      <div class="text-end mb-4">
+        <a href="javascript:void(0)" id="openForgotLink" class="small text-decoration-none fw-semibold" style="color: var(--accent);">
+          Forgot Password?
+        </a>
+      </div>
+      <button type="submit" class="btn-glass-primary" id="loginBtn">
+        <i class="fas fa-right-to-bracket me-2"></i>Login to Portal
+      </button>
+    </form>
+
+    <!-- SIGNUP FORM -->
+    <form id="signupForm" class="hidden-form">
+      <div class="mb-3">
+        <label class="form-label">Full Name</label>
+        <input type="text" class="form-control" id="regName" placeholder="e.g. Fefei Team Lead" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input type="text" class="form-control" id="regUsername" placeholder="Choose unique username" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Email (For OTP Recovery)</label>
+        <input type="email" class="form-control" id="regEmail" placeholder="name@example.com" required />
+      </div>
+      <div class="mb-4">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-control" id="regPassword" placeholder="Min 4 characters" required />
+      </div>
+      <button type="submit" class="btn-glass-primary" id="signupBtn">
+        <i class="fas fa-user-plus me-2"></i>Request Account
+      </button>
+    </form>
+
+    <!-- FORGOT PASSWORD FORM -->
+    <div id="forgotForm" class="hidden-form">
+      <div class="mb-3">
+        <label class="form-label">Enter Username</label>
+        <div class="input-group">
+          <input type="text" class="form-control" id="fpUsername" placeholder="Your registered username" />
+          <button class="btn btn-primary" type="button" id="sendOtpBtn" style="border-radius: 0 12px 12px 0;">
+            Send OTP
+          </button>
+        </div>
+      </div>
+      <div id="otpResetSection" class="hidden-form">
+        <div class="mb-3">
+          <label class="form-label">6-Digit OTP (Check Email)</label>
+          <input type="text" class="form-control" id="fpOtp" placeholder="Enter 6-digit OTP" maxlength="6" />
+        </div>
+        <div class="mb-4">
+          <label class="form-label">New Password</label>
+          <input type="password" class="form-control" id="fpNewPass" placeholder="Min 4 characters" />
+        </div>
+        <button type="button" class="btn-glass-primary mb-3" id="resetPassBtn">
+          <i class="fas fa-key me-2"></i>Verify OTP & Reset Password
+        </button>
+      </div>
+      <div class="text-center mt-2">
+        <a href="javascript:void(0)" id="backToLoginLink" class="small text-decoration-none fw-semibold" style="color: var(--text-muted);">
+          <i class="fas fa-arrow-left me-1"></i>Back to Sign In
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/node_xlsx_scripts/bootstrap.bundle.min.js"></script>
+  <script src="/node_xlsx_scripts/sweetalert2.all.min.js"></script>
+  <script>
+    // Theme Toggle
+    const themeToggle = document.getElementById("themeToggle");
+    const themeIcon = document.getElementById("themeIcon");
+
+    function updateThemeIcon() {
+      const current = document.documentElement.getAttribute("data-theme");
+      themeIcon.className = current === "dark" ? "fas fa-sun" : "fas fa-moon";
+    }
+    updateThemeIcon();
+
+    themeToggle.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme");
+      const next = current === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      document.documentElement.setAttribute("data-bs-theme", next);
+      try { localStorage.setItem("sp_theme", next); } catch (e) {}
+      updateThemeIcon();
+    });
+
+    // Tab Switcher
+    const tabLogin = document.getElementById("tabLogin");
+    const tabSignup = document.getElementById("tabSignup");
+    const loginForm = document.getElementById("loginForm");
+    const signupForm = document.getElementById("signupForm");
+    const forgotForm = document.getElementById("forgotForm");
+
+    tabLogin.addEventListener("click", () => {
+      tabLogin.classList.add("active");
+      tabSignup.classList.remove("active");
+      loginForm.classList.remove("hidden-form");
+      signupForm.classList.add("hidden-form");
+      forgotForm.classList.add("hidden-form");
+    });
+
+    tabSignup.addEventListener("click", () => {
+      tabSignup.classList.add("active");
+      tabLogin.classList.remove("active");
+      signupForm.classList.remove("hidden-form");
+      loginForm.classList.add("hidden-form");
+      forgotForm.classList.add("hidden-form");
+    });
+
+    document.getElementById("openForgotLink").addEventListener("click", () => {
+      tabLogin.classList.remove("active");
+      tabSignup.classList.remove("active");
+      loginForm.classList.add("hidden-form");
+      signupForm.classList.add("hidden-form");
+      forgotForm.classList.remove("hidden-form");
+    });
+
+    document.getElementById("backToLoginLink").addEventListener("click", () => {
+      tabLogin.click();
+    });
+
+    // Send OTP
+    document.getElementById("sendOtpBtn").addEventListener("click", async () => {
+      const uname = document.getElementById("fpUsername").value.trim();
+      if (!uname) {
+        Swal.fire({ icon: "warning", text: "Please enter your username first." });
+        return;
+      }
+      const btn = document.getElementById("sendOtpBtn");
+      btn.disabled = true;
+      btn.textContent = "Sending...";
+
+      try {
+        const res = await fetch("/api/spare-parts/auth/forgot-password/request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: uname })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById("otpResetSection").classList.remove("hidden-form");
+          Swal.fire({ icon: "success", title: "OTP Sent", text: data.message });
+        } else {
+          Swal.fire({ icon: "error", title: "Failed", text: data.message });
+        }
+      } catch (err) {
+        Swal.fire({ icon: "error", text: "Server error while sending OTP." });
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Send OTP";
+      }
+    });
+
+    // Reset Password with OTP
+    document.getElementById("resetPassBtn").addEventListener("click", async () => {
+      const username = document.getElementById("fpUsername").value.trim();
+      const otp = document.getElementById("fpOtp").value.trim();
+      const newPassword = document.getElementById("fpNewPass").value;
+
+      if (!username || !otp || !newPassword) {
+        Swal.fire({ icon: "warning", text: "Please enter OTP and new password." });
+        return;
+      }
+
+      const btn = document.getElementById("resetPassBtn");
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("/api/spare-parts/auth/forgot-password/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, otp, newPassword })
+        });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire({ icon: "success", title: "Success", text: data.message });
+          document.getElementById("fpOtp").value = "";
+          document.getElementById("fpNewPass").value = "";
+          document.getElementById("otpResetSection").classList.add("hidden-form");
+          tabLogin.click();
+        } else {
+          Swal.fire({ icon: "error", title: "Error", text: data.message });
+        }
+      } catch (err) {
+        Swal.fire({ icon: "error", text: "Server error during password reset." });
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Show/Hide Password
+    document.getElementById("toggleLoginPass").addEventListener("click", function () {
+      const pwd = document.getElementById("loginPassword");
+      const icon = this.querySelector("i");
+      if (pwd.type === "password") {
+        pwd.type = "text";
+        icon.className = "fas fa-eye-slash";
+      } else {
+        pwd.type = "password";
+        icon.className = "fas fa-eye";
+      }
+    });
+
+    // Sign Up Submit
+    signupForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("signupBtn");
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("/api/spare-parts/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            displayName: document.getElementById("regName").value,
+            username: document.getElementById("regUsername").value,
+            email: document.getElementById("regEmail").value,
+            password: document.getElementById("regPassword").value
+          })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          Swal.fire({ icon: "success", title: "Submitted!", text: data.message });
+          signupForm.reset();
+          tabLogin.click();
+        } else {
+          Swal.fire({ icon: "error", title: "Error", text: data.message });
+        }
+      } catch (err) {
+        Swal.fire({ icon: "error", title: "Network Error", text: "Could not connect to server." });
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Login Submit
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("loginBtn");
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("/api/spare-parts/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: document.getElementById("loginUsername").value,
+            password: document.getElementById("loginPassword").value
+          })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          try {
+            localStorage.setItem("sp_token", data.token);
+            localStorage.setItem("sp_user", JSON.stringify(data.user));
+          } catch (e) {}
+
+          if (data.user.role === "Super Admin") {
+            window.location.href = "/Office/Spare_parts_sale/admin/index.html";
+          } else {
+            window.location.href = "/Office/Spare_parts_sale/dashboard.html";
+          }
+        } else {
+          Swal.fire({ icon: "warning", title: "Access Denied", text: data.message });
+        }
+      } catch (err) {
+        Swal.fire({ icon: "error", title: "Network Error", text: "Could not connect to server." });
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
