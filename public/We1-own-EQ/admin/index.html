@@ -1,17 +1,415 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Redirecting...</title>
-  <!-- Option 1: Meta Tag Redirect -->
-  <meta http-equiv="refresh" content="0; url=TARGET_URL_HERE">
-  
-  <!-- Option 2: Instant JavaScript Redirect -->
-  <script>
-    window.location.href = "/Own_Equipment_Tracker/admin/index.html";
-  </script>
-</head>
-<body>
-  <p>Redirecting, please wait...</p>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Equipment Tracker - User Management</title>
+    <script src="../js/eq-session.js"></script>
+    <style>
+      body {
+        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+        background: radial-gradient(
+          circle at 15% 20%,
+          #1e3a8a 0%,
+          #0f172a 55%,
+          #020617 100%
+        );
+        padding: 20px;
+        min-height: 100vh;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      .container {
+        max-width: 900px;
+        margin: auto;
+        background: #ffffff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        display: none; /* Authenticate aavunnathu vare dashboard content hide cheyyunnu */
+      }
+      .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 12px;
+        margin-bottom: 15px;
+      }
+      h2 {
+        color: #0f172a;
+        margin: 0;
+        font-size: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+      th,
+      td {
+        border: 1px solid #cbd5e1;
+        padding: 10px 12px;
+        text-align: left;
+        font-size: 13.5px;
+      }
+      th {
+        background: #0f172a;
+        color: white;
+      }
+      .btn-approve {
+        background: #16a34a;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: 600;
+        margin-right: 5px;
+      }
+      .btn-reject {
+        background: #d97706;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: 600;
+        margin-right: 5px;
+      }
+      .btn-delete {
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-weight: 600;
+        border-radius: 5px;
+      }
+      .btn-logout {
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+        border-radius: 6px;
+        font-weight: 600;
+      }
+      .btn-logout:hover {
+        background: #b91c1c;
+      }
+
+      /* ================= Glassmorphism Modal Styles ================= */
+      .glass-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 20px;
+      }
+
+      .glass-modal {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        box-shadow:
+          0 25px 50px rgba(0, 0, 0, 0.5),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        border-radius: 20px;
+        padding: 32px 28px;
+        width: 100%;
+        max-width: 390px;
+        color: #ffffff;
+        box-sizing: border-box;
+        animation: fadeInScale 0.3s ease-out;
+      }
+
+      @keyframes fadeInScale {
+        from {
+          opacity: 0;
+          transform: scale(0.92);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .glass-modal h3 {
+        margin: 0 0 6px 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: #ffffff;
+        text-align: center;
+      }
+
+      .glass-modal p {
+        margin: 0 0 22px 0;
+        font-size: 13px;
+        color: rgba(226, 232, 240, 0.75);
+        text-align: center;
+      }
+
+      .glass-modal input {
+        width: 100%;
+        padding: 11px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        font-size: 14px;
+        outline: none;
+        box-sizing: border-box;
+        margin-bottom: 15px;
+        transition: all 0.2s ease;
+      }
+
+      .glass-modal input:focus {
+        border-color: #38bdf8;
+        background: rgba(255, 255, 255, 0.16);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+      }
+
+      .glass-modal input::placeholder {
+        color: rgba(203, 213, 225, 0.55);
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 5px;
+      }
+
+      .btn-glass-cancel {
+        background: rgba(255, 255, 255, 0.1);
+        color: #e2e8f0;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 10px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13.5px;
+        transition: background 0.2s;
+        flex: 1;
+      }
+
+      .btn-glass-cancel:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-glass-submit {
+        background: linear-gradient(135deg, #0284c7, #0369a1);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 13.5px;
+        box-shadow: 0 8px 20px rgba(2, 132, 199, 0.35);
+        transition:
+          filter 0.2s,
+          transform 0.15s;
+        flex: 1.2;
+      }
+
+      .btn-glass-submit:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+      }
+
+      .error-msg {
+        color: #fca5a5;
+        font-size: 12px;
+        margin: -8px 0 12px 0;
+        text-align: center;
+        display: none;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Glassmorphism Login Modal -->
+    <div id="superAdminModal" class="glass-overlay">
+      <div class="glass-modal">
+        <h3>Admin Verification</h3>
+        <p>Enter your admin credentials to access this console.</p>
+
+        <form id="glassLoginForm" onsubmit="handleSuperAdminAuth(event)">
+          <input
+            type="text"
+            id="superAdminUser"
+            placeholder="Admin Username"
+            autocomplete="username"
+            autofocus
+            required
+          />
+          <input
+            type="password"
+            id="superAdminPass"
+            placeholder="Admin Password"
+            autocomplete="current-password"
+            required
+          />
+          <div id="errorText" class="error-msg">
+            Invalid credentials or Admin access required!
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn-glass-cancel"
+              onclick="returnBack()"
+            >
+              Cancel
+            </button>
+            <button type="submit" id="unlockBtn" class="btn-glass-submit">
+              Unlock
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container" id="mainContainer">
+      <div class="page-header">
+        <h2>User Management Console</h2>
+        <button class="btn-logout" onclick="logout()" type="button">
+          Logout
+        </button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="userTable"></tbody>
+      </table>
+      <br />
+      <button
+        onclick="window.location.href = '../Dashboard.html'"
+        style="
+          padding: 10px 16px;
+          background: #0f172a;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-weight: 600;
+          cursor: pointer;
+        "
+      >
+        Go to Dashboard
+      </button>
+    </div>
+
+    <script>
+      function returnBack() {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else if (
+          document.referrer &&
+          document.referrer !== window.location.href
+        ) {
+          window.location.replace(document.referrer);
+        } else {
+          window.location.replace("../Dashboard.html");
+        }
+      }
+
+      function unlockScreen() {
+        const modal = document.getElementById("superAdminModal");
+        const container = document.getElementById("mainContainer");
+        if (modal) modal.style.display = "none";
+        if (container) container.style.display = "block";
+      }
+
+      async function handleSuperAdminAuth(event) {
+        event.preventDefault();
+        const username = document.getElementById("superAdminUser").value.trim();
+        const password = document.getElementById("superAdminPass").value;
+        const errorText = document.getElementById("errorText");
+        const unlockBtn = document.getElementById("unlockBtn");
+
+        errorText.style.display = "none";
+        unlockBtn.disabled = true;
+        unlockBtn.innerText = "Verifying...";
+
+        try {
+          // Backend-ൽ നിന്ന് യഥാർത്ഥ അഡ്മിൻ ലോഗിൻ API വഴി പരിശോധിക്കുന്നു (fefei ഉൾപ്പെടെയുള്ളവർക്ക് വർക്ക് ചെയ്യാൻ)
+          const res = await fetch("/api/own-equipment/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
+
+          if (res.ok && data.success && data.token && data.user) {
+            const role = String(data.user.role || "")
+              .trim()
+              .toLowerCase()
+              .replace(/[_\s-]/g, "");
+            if (["admin", "superadmin"].includes(role)) {
+              localStorage.setItem("eq_token", data.token);
+              localStorage.setItem("eq_user", JSON.stringify(data.user));
+              sessionStorage.setItem("userRole", "super_admin");
+              unlockScreen();
+              if (typeof loadAllUsers === "function") {
+                loadAllUsers();
+              }
+            } else {
+              errorText.innerText = "Access Denied: Admin privileges required.";
+              errorText.style.display = "block";
+            }
+          } else {
+            errorText.innerText =
+              data.message || "Invalid Username or Password!";
+            errorText.style.display = "block";
+          }
+        } catch (err) {
+          errorText.innerText = "Server error during verification!";
+          errorText.style.display = "block";
+        } finally {
+          unlockBtn.disabled = false;
+          unlockBtn.innerText = "Unlock";
+          document.getElementById("superAdminPass").value = "";
+        }
+      }
+
+      // Initial Session Validation
+      (function init() {
+        const token = localStorage.getItem("eq_token");
+        let eqUser = null;
+        try {
+          eqUser = JSON.parse(localStorage.getItem("eq_user") || "null");
+        } catch (e) {
+          eqUser = null;
+        }
+        const normalizedRole = String(eqUser?.role || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[_\s-]/g, "");
+
+        if (token && ["admin", "superadmin"].includes(normalizedRole)) {
+          document.addEventListener("DOMContentLoaded", unlockScreen);
+        }
+      })();
+    </script>
+
+    <!-- External JS Link -->
+    <script src="../js/admin.js"></script>
+  </body>
 </html>

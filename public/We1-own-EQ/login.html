@@ -5,32 +5,275 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - We1 Own EQ</title>
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f6f8fa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
-        h2 { text-align: center; color: #24292f; margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
-        input { width: 100%; padding: 10px; border: 1px solid #d0d7de; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #0969da; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button:hover { background: #065bbf; }
-        #errorMsg { color: #cf222e; text-align: center; font-size: 13px; margin-top: 10px; display: none; }
+        * {
+            box-sizing: border-box;
+            font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: radial-gradient(circle at 15% 20%, #1e3a8a 0%, #0f172a 55%, #020617 100%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glowing Glass Orbs */
+        body::before,
+        body::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(75px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::before {
+            width: 340px;
+            height: 340px;
+            background: rgba(56, 189, 248, 0.35);
+            top: -80px;
+            left: -80px;
+        }
+
+        body::after {
+            width: 380px;
+            height: 380px;
+            background: rgba(99, 102, 241, 0.32);
+            bottom: -100px;
+            right: -90px;
+        }
+
+        /* Glassmorphism Card */
+        .auth-card {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 390px;
+            padding: 34px 30px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            color: #f8fafc;
+        }
+
+        .brand-badge {
+            width: 54px;
+            height: 54px;
+            margin: 0 auto 14px auto;
+            border-radius: 15px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(99, 102, 241, 0.35));
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .auth-card h2 {
+            text-align: center;
+            margin: 0 0 6px 0;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: #ffffff;
+        }
+
+        .auth-subtitle {
+            text-align: center;
+            margin: 0 0 24px 0;
+            font-size: 12.5px;
+            color: rgba(226, 232, 240, 0.75);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 12.5px;
+            color: rgba(241, 245, 249, 0.9);
+            letter-spacing: 0.2px;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 11px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(203, 213, 225, 0.55);
+        }
+
+        .form-group input:focus {
+            border-color: #38bdf8;
+            background: rgba(255, 255, 255, 0.16);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+        }
+
+        .pass-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(226, 232, 240, 0.75);
+            cursor: pointer;
+            font-size: 15px;
+            padding: 2px;
+        }
+
+        .pass-toggle:hover {
+            color: #ffffff;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: #ffffff;
+            cursor: pointer;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(16, 185, 129, 0.45);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .btn-signup {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
+        }
+
+        .btn-signup:hover {
+            box-shadow: 0 10px 24px rgba(59, 130, 246, 0.45);
+        }
+
+        .toggle-link {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #7dd3fc;
+            font-weight: 500;
+            transition: color 0.15s;
+        }
+
+        .toggle-link:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        .alert {
+            display: none;
+            padding: 10px 12px;
+            margin-bottom: 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.22);
+            border: 1px solid rgba(248, 113, 113, 0.45);
+            color: #fecaca;
+            display: block;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.22);
+            border: 1px solid rgba(74, 222, 128, 0.45);
+            color: #bbf7d0;
+            display: block;
+        }
     </style>
 </head>
 <body>
 
-<div class="login-card">
-    <h2>We1 EQ Login</h2>
-    <form id="loginForm">
+<div class="auth-card">
+    <div class="brand-badge">🚜</div>
+    <div id="alertBox" class="alert"></div>
+    
+    <form id="loginForm" onsubmit="handleLogin(event)">
+        <h2>We1 EQ Login</h2>
+        <p class="auth-subtitle">Sign in to manage own equipment operations</p>
         <div class="form-group">
             <label for="username">Username</label>
-            <input type="text" id="username" placeholder="Enter username" autocomplete="off" required>
+            <div class="input-wrap">
+                <input type="text" id="username" placeholder="Enter username" autocomplete="off" required>
+            </div>
         </div>
         <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Enter password" autocomplete="new-password" required>
+            <div class="input-wrap">
+                <input type="password" id="password" placeholder="Enter password" autocomplete="new-password" required style="padding-right: 38px;">
+                <button type="button" class="pass-toggle" onclick="togglePassVisibility('password', this)" title="Show/Hide Password">👁️</button>
+            </div>
         </div>
-        <button type="submit">Login</button>
-        <div id="errorMsg">Invalid credentials!</div>
+        <button type="submit" id="loginBtn" class="btn">Login</button>
+        <div class="toggle-link" onclick="toggleView('signup')">New User? Sign Up Here</div>
+    </form>
+
+    <form id="signupForm" onsubmit="handleSignup(event)" style="display: none;">
+        <h2>User Signup</h2>
+        <p class="auth-subtitle">Request access to We1 Own EQ</p>
+        <div class="form-group">
+            <label for="signupUser">Username</label>
+            <div class="input-wrap">
+                <input type="text" id="signupUser" placeholder="Choose a username" autocomplete="off" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="signupPass">Password</label>
+            <div class="input-wrap">
+                <input type="password" id="signupPass" placeholder="Choose a password" autocomplete="new-password" required style="padding-right: 38px;">
+                <button type="button" class="pass-toggle" onclick="togglePassVisibility('signupPass', this)" title="Show/Hide Password">👁️</button>
+            </div>
+        </div>
+        <button type="submit" id="signupBtn" class="btn btn-signup">Request Access</button>
+        <div class="toggle-link" onclick="toggleView('login')">Already have an account? Login</div>
     </form>
 </div>
 
@@ -47,30 +290,59 @@
         }
 
         document.getElementById('loginForm').reset();
-        const errorMsg = document.getElementById('errorMsg');
-        errorMsg.innerText = '';
-        errorMsg.style.display = 'none';
+        document.getElementById('signupForm').reset();
+        showAlert('', '');
     });
 
-    document.getElementById('loginForm').addEventListener('submit', function (event) {
+    function toggleView(type) {
+        document.getElementById('loginForm').style.display = type === 'login' ? 'block' : 'none';
+        document.getElementById('signupForm').style.display = type === 'signup' ? 'block' : 'none';
+        showAlert('', '');
+    }
+
+    function showAlert(msg, type) {
+        const box = document.getElementById('alertBox');
+        if (!box) return;
+        if (!msg) {
+            box.style.display = 'none';
+            box.className = 'alert';
+            box.innerText = '';
+            return;
+        }
+        box.className = `alert alert-${type}`;
+        box.innerText = msg;
+        box.style.display = 'block';
+    }
+
+    function togglePassVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.innerText = '🙈';
+        } else {
+            input.type = 'password';
+            btn.innerText = '👁️';
+        }
+    }
+
+    async function handleLogin(event) {
         event.preventDefault();
-        handleLogin();
-    });
-
-    async function handleLogin() {
-        const username = document.getElementById('username').value;
+        const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;
-        const errorMsg = document.getElementById('errorMsg');
-        errorMsg.style.display = 'none';
+        showAlert('', '');
 
         if (!username || !password) {
-            errorMsg.innerText = 'Please enter both fields';
-            errorMsg.style.display = 'block';
+            showAlert('Please enter both fields', 'error');
             return;
         }
 
+        const btn = document.getElementById('loginBtn');
+        const origText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = 'Signing in...';
+
         try {
-            // ഈ API റൂട്ട് employloguser ടേബിളിൽ നിന്ന് ഡാറ്റ എടുക്കുന്നതാണ്
             const res = await fetch('/api/own-equipment/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -79,20 +351,57 @@
             const data = await res.json();
 
             if (data.success && data.token) {
-                // Token ഉം User ഡാറ്റയും സേവ് ചെയ്യുന്നു
                 localStorage.setItem('emp_token', data.token);
                 localStorage.setItem('emp_user', JSON.stringify(data.user));
                 window.location.replace(getLoginDestination());
             } else {
-                errorMsg.innerText = data.message || 'Login failed';
-                errorMsg.style.display = 'block';
+                showAlert(data.message || 'Login failed', 'error');
             }
         } catch (err) {
-            errorMsg.innerText = 'Server Error! Please try again.';
-            errorMsg.style.display = 'block';
+            showAlert('Server Error! Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = origText;
         }
     }
-    
+
+    async function handleSignup(event) {
+        event.preventDefault();
+        const username = document.getElementById('signupUser').value.trim();
+        const password = document.getElementById('signupPass').value;
+        showAlert('', '');
+
+        if (!username || !password) {
+            showAlert('Please enter username and password', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('signupBtn');
+        const origText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = 'Submitting...';
+
+        try {
+            const res = await fetch('/api/own-equipment/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                showAlert(data.message || 'User registered successfully. Waiting for admin approval.', 'success');
+                setTimeout(() => toggleView('login'), 2000);
+            } else {
+                showAlert(data.message || 'Signup failed', 'error');
+            }
+        } catch (err) {
+            showAlert('Server Error! Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = origText;
+        }
+    }
 </script>
 </body>
 </html>

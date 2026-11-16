@@ -1,23 +1,31 @@
-const token = localStorage.getItem("eq_token");
-let eqUser = null;
-try {
-  eqUser = JSON.parse(localStorage.getItem("eq_user") || "null");
-} catch (err) {
-  eqUser = null;
+function getToken() {
+  return localStorage.getItem("eq_token");
 }
-const normalizedRole = String(eqUser?.role || "")
-  .trim()
-  .toLowerCase()
-  .replace(/[_\s-]/g, "");
-const isAdminUser = Boolean(token && ["admin", "superadmin"].includes(normalizedRole));
 
-if (!token) {
-  window.location.replace("../");
-} else if (!isAdminUser) {
-  window.location.replace("../Dashboard.html");
+function isAdminSession() {
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem("eq_user") || "null");
+  } catch (err) {
+    user = null;
+  }
+  const role = String(user?.role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s-]/g, "");
+  return Boolean(getToken() && ["admin", "superadmin"].includes(role));
+}
+
+// Session invalid aayaal redirect cheyyaathe login modal vendum kaanikkum
+function lockScreen() {
+  const modal = document.getElementById("superAdminModal");
+  const container = document.getElementById("mainContainer");
+  if (modal) modal.style.display = "flex";
+  if (container) container.style.display = "none";
 }
 
 function getAuthHeaders() {
+  const token = getToken();
   return {
     Authorization: token ? "Bearer " + token : "",
     "Content-Type": "application/json",
@@ -28,7 +36,9 @@ function getAuthHeaders() {
 
 function handleAdminAccessFailure(res) {
   if (res.status === 401) {
-    logout();
+    localStorage.removeItem("eq_token");
+    localStorage.removeItem("eq_user");
+    lockScreen();
     return true;
   }
   if (res.status === 403) {
@@ -39,7 +49,7 @@ function handleAdminAccessFailure(res) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (!isAdminUser) return;
+  if (!isAdminSession()) return; // modal തന്നെ കാണിക്കും, redirect ഇല്ല
   loadAllUsers();
 });
 

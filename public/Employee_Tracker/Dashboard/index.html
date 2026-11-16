@@ -185,6 +185,14 @@
       .card:hover {
         transform: translateY(-3px);
       }
+      .card.loading {
+        opacity: 0.7;
+        cursor: wait !important;
+        pointer-events: none;
+      }
+      .card.loading h3::after {
+        content: " ⏳";
+      }
       .card img {
         width: 80px;
         height: 80px;
@@ -852,7 +860,7 @@
                 emp.vehicle_model || emp.plate_no
                   ? `<p style="font-size:12px; color:#475569;">🚗 ${emp.vehicle_model || ""} ${emp.plate_no ? `(${emp.plate_no})` : ""}</p>`
                   : "";
-              sectionHtml += `<div class="card" onclick="viewDetails(${emp.id})">
+              sectionHtml += `<div class="card" id="staffCard-${emp.id}" onclick="viewDetails(${emp.id}, this)">
                             <img src="${emp.image_path || "https://via.placeholder.com/80"}" alt="Staff">
                             <h3>${emp.name}</h3>
                             <p><b>${emp.unique_id}</b></p>
@@ -1512,10 +1520,13 @@
         }
       }
 
-      async function viewDetails(id) {
-        const res = await fetch(`/api/employee-tracker/details/${id}`);
-        const data = await res.json();
-        if (!data.success) return;
+      async function viewDetails(id, cardElement) {
+        if (cardElement) cardElement.classList.add("loading");
+        
+        try {
+          const res = await fetch(`/api/employee-tracker/details/${id}`);
+          const data = await res.json();
+          if (!data.success) return;
 
         const emp = data.employee;
         const history = data.history || [];
@@ -1746,6 +1757,9 @@
           </div>
         `;
         document.getElementById("staffModal").style.display = "flex";
+        } finally {
+          if (cardElement) cardElement.classList.remove("loading");
+        }
       }
 
       async function copyStaffProfileCardPNG(staffName) {
