@@ -39,6 +39,7 @@ def get_we1_own_eq_expiry_data():
                 m.plate_no,
                 m.vehicle_type,
                 m.driver_name,
+                m.vehicle_owner,
                 m.driver_mobile,
                 m.site_name,
                 m.status,
@@ -201,6 +202,7 @@ def export_we1_own_eq_expiry_excel():
                 m.plate_no,
                 m.vehicle_type,
                 m.driver_name,
+                m.vehicle_owner,
                 m.site_name,
                 m.chassis_no,
                 m.serial_no,
@@ -261,7 +263,11 @@ def export_we1_own_eq_expiry_excel():
             {
                 "tab_name": "Operation Card Exp",
                 "key": "op_card_exp",
-                "doc_cols": [("Chassis No", "chassis_no"), ("Serial No", "serial_no")],
+                "doc_cols": [
+                    ("Owner Name", "vehicle_owner"),
+                    ("Chassis No", "chassis_no"),
+                    ("Serial No", "serial_no"),
+                ],
             },
             {
                 "tab_name": "Isthimaara Exp",

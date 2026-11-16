@@ -1,161 +1,490 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <!-- Meta Tags to Prevent Caching -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
     <title>Employee Tracker - Authentication</title>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background: #eef2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .auth-card { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 350px; }
-        .auth-card h2 { text-align: center; margin-bottom: 20px; color: #2c3e50; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
-        .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        .btn { width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .btn:hover { background: #219150; }
-        .toggle-link { text-align: center; margin-top: 15px; font-size: 13px; cursor: pointer; color: #2980b9; }
-        .alert { display: none; padding: 10px; margin-bottom: 15px; border-radius: 4px; font-size: 13px; }
-        .alert-error { background: #f8d7da; color: #721c24; }
-        .alert-success { background: #d4edda; color: #155724; }
+      * {
+        box-sizing: border-box;
+        font-family:
+          "Inter",
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        background: radial-gradient(
+          circle at 15% 20%,
+          #1e3a8a 0%,
+          #0f172a 55%,
+          #020617 100%
+        );
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* Ambient Glowing Glass Orbs */
+      body::before,
+      body::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(75px);
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        width: 340px;
+        height: 340px;
+        background: rgba(56, 189, 248, 0.35);
+        top: -80px;
+        left: -80px;
+      }
+
+      body::after {
+        width: 380px;
+        height: 380px;
+        background: rgba(99, 102, 241, 0.32);
+        bottom: -100px;
+        right: -90px;
+      }
+
+      /* Glassmorphism Card */
+      .auth-card {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 390px;
+        padding: 34px 30px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        box-shadow:
+          0 25px 50px rgba(0, 0, 0, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        color: #f8fafc;
+      }
+
+      .brand-badge {
+        width: 54px;
+        height: 54px;
+        margin: 0 auto 14px auto;
+        border-radius: 15px;
+        background: linear-gradient(
+          135deg,
+          rgba(56, 189, 248, 0.35),
+          rgba(99, 102, 241, 0.35)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      }
+
+      .auth-card h2 {
+        text-align: center;
+        margin: 0 0 6px 0;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: #ffffff;
+      }
+
+      .auth-subtitle {
+        text-align: center;
+        margin: 0 0 24px 0;
+        font-size: 12.5px;
+        color: rgba(226, 232, 240, 0.75);
+      }
+
+      .form-group {
+        margin-bottom: 16px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+        font-size: 12.5px;
+        color: rgba(241, 245, 249, 0.9);
+        letter-spacing: 0.2px;
+      }
+
+      .input-wrap {
+        position: relative;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 11px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        font-size: 14px;
+        outline: none;
+        transition: all 0.2s ease;
+      }
+
+      .form-group input::placeholder {
+        color: rgba(203, 213, 225, 0.55);
+      }
+
+      .form-group input:focus {
+        border-color: #38bdf8;
+        background: rgba(255, 255, 255, 0.16);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+      }
+
+      .pass-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: rgba(226, 232, 240, 0.75);
+        cursor: pointer;
+        font-size: 15px;
+        padding: 2px;
+      }
+
+      .pass-toggle:hover {
+        color: #ffffff;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: #ffffff;
+        cursor: pointer;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease,
+          opacity 0.15s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(16, 185, 129, 0.45);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }
+
+      .btn-signup {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
+      }
+
+      .btn-signup:hover {
+        box-shadow: 0 10px 24px rgba(59, 130, 246, 0.45);
+      }
+
+      .toggle-link {
+        text-align: center;
+        margin-top: 18px;
+        font-size: 13px;
+        cursor: pointer;
+        color: #7dd3fc;
+        font-weight: 500;
+        transition: color 0.15s;
+      }
+
+      .toggle-link:hover {
+        color: #ffffff;
+        text-decoration: underline;
+      }
+
+      .alert {
+        display: none;
+        padding: 10px 12px;
+        margin-bottom: 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+      }
+
+      .alert-error {
+        background: rgba(239, 68, 68, 0.22);
+        border: 1px solid rgba(248, 113, 113, 0.45);
+        color: #fecaca;
+      }
+
+      .alert-success {
+        background: rgba(34, 197, 94, 0.22);
+        border: 1px solid rgba(74, 222, 128, 0.45);
+        color: #bbf7d0;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <div class="auth-card">
+      <div class="brand-badge">👥</div>
+      <div id="alertBox" class="alert"></div>
 
-<div class="auth-card">
-    <div id="alertBox" class="alert"></div>
-    
-    <div id="loginForm">
+      <form id="loginForm" onsubmit="handleLogin(event)">
         <h2>Employee Tracker</h2>
+        <p class="auth-subtitle">
+          Sign in to manage staff directory & documents
+        </p>
         <div class="form-group">
-            <label>Username</label>
-            <input type="text" id="loginUser" autocomplete="off" required>
+          <label>Username</label>
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="loginUser"
+              placeholder="Enter your username"
+              autocomplete="off"
+              required
+            />
+          </div>
         </div>
         <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="loginPass" autocomplete="new-password" required>
+          <label>Password</label>
+          <div class="input-wrap">
+            <input
+              type="password"
+              id="loginPass"
+              placeholder="Enter your password"
+              autocomplete="new-password"
+              required
+              style="padding-right: 38px"
+            />
+            <button
+              type="button"
+              class="pass-toggle"
+              onclick="togglePassVisibility('loginPass', this)"
+              title="Show/Hide Password"
+            >
+              👁️
+            </button>
+          </div>
         </div>
-        <button class="btn" onclick="handleLogin()">Login</button>
-        <div class="toggle-link" onclick="toggleView('signup')">New User? Sign Up Here</div>
-    </div>
+        <button type="submit" id="loginBtn" class="btn">Login</button>
+        <div class="toggle-link" onclick="toggleView('signup')">
+          New User? Sign Up Here
+        </div>
+      </form>
 
-    <div id="signupForm" style="display: none;">
+      <form
+        id="signupForm"
+        onsubmit="handleSignup(event)"
+        style="display: none"
+      >
         <h2>User Signup</h2>
+        <p class="auth-subtitle">Request access to Employee Tracker</p>
         <div class="form-group">
-            <label>Username</label>
-            <input type="text" id="signupUser" autocomplete="off" required>
+          <label>Username</label>
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="signupUser"
+              placeholder="Choose a username"
+              autocomplete="off"
+              required
+            />
+          </div>
         </div>
         <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="signupPass" autocomplete="new-password" required>
+          <label>Password</label>
+          <div class="input-wrap">
+            <input
+              type="password"
+              id="signupPass"
+              placeholder="Choose a password"
+              autocomplete="new-password"
+              required
+              style="padding-right: 38px"
+            />
+            <button
+              type="button"
+              class="pass-toggle"
+              onclick="togglePassVisibility('signupPass', this)"
+              title="Show/Hide Password"
+            >
+              👁️
+            </button>
+          </div>
         </div>
-        <button class="btn" style="background: #2980b9;" onclick="handleSignup()">Request Access</button>
-        <div class="toggle-link" onclick="toggleView('login')">Already have an account? Login</div>
+        <button type="submit" id="signupBtn" class="btn btn-signup">
+          Request Access
+        </button>
+        <div class="toggle-link" onclick="toggleView('login')">
+          Already have an account? Login
+        </div>
+      </form>
     </div>
-</div>
 
-<script>
-// Clears all inputs when the page is loaded or restored from bfcache
-window.addEventListener('pageshow', function(event) {
-    document.getElementById('loginUser').value = '';
-    document.getElementById('loginPass').value = '';
-    document.getElementById('signupUser').value = '';
-    document.getElementById('signupPass').value = '';
-});
+    <script>
+      // Clears all inputs when the page is loaded or restored from bfcache
+      window.addEventListener("pageshow", function (event) {
+        document.getElementById("loginUser").value = "";
+        document.getElementById("loginPass").value = "";
+        document.getElementById("signupUser").value = "";
+        document.getElementById("signupPass").value = "";
+      });
 
-// Function to handle redirection properly with a default dashboard page
-function navigateBack() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const redirectUrl = urlParams.get('redirect');
-    
-    if (redirectUrl) {
-        window.location.replace(redirectUrl);
-    } else {
-        // ലോഗിൻ ആയിട്ടുണ്ടെങ്കിൽ നേരിട്ട് ഡാഷ്‌ബോർഡിലേക്ക് റീഡയറക്റ്റ് ചെയ്യുന്നു
-        window.location.replace('/Employee_Tracker/Dashboard/');
-    }
-}
+      // Function to handle redirection properly with a default dashboard page
+      function navigateBack() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectUrl = urlParams.get("redirect");
 
-document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('emp_token');
-    if (token) {
-        navigateBack();
-    }
-});
+        if (redirectUrl) {
+          window.location.replace(redirectUrl);
+        } else {
+          // ലോഗിൻ ആയിട്ടുണ്ടെങ്കിൽ നേരിട്ട് ഡാഷ്‌ബോർഡിലേക്ക് റീഡയറക്റ്റ് ചെയ്യുന്നു
+          window.location.replace("/Employee_Tracker/Dashboard/");
+        }
+      }
 
-function toggleView(type) {
-    document.getElementById('loginForm').style.display = type === 'login' ? 'block' : 'none';
-    document.getElementById('signupForm').style.display = type === 'signup' ? 'block' : 'none';
-    showAlert('', '');
-}
+      document.addEventListener("DOMContentLoaded", () => {
+        const token = localStorage.getItem("emp_token");
+        if (token) {
+          navigateBack();
+        }
+      });
 
-function showAlert(msg, type) {
-    const box = document.getElementById('alertBox');
-    if (!box) return;
-    if (!msg) { box.style.display = 'none'; return; }
-    box.className = `alert alert-${type}`;
-    box.innerText = msg;
-    box.style.display = 'block';
-}
+      function toggleView(type) {
+        document.getElementById("loginForm").style.display =
+          type === "login" ? "block" : "none";
+        document.getElementById("signupForm").style.display =
+          type === "signup" ? "block" : "none";
+        showAlert("", "");
+      }
 
-async function handleLogin() {
-    const username = document.getElementById('loginUser').value;
-    const password = document.getElementById('loginPass').value;
+      function showAlert(msg, type) {
+        const box = document.getElementById("alertBox");
+        if (!box) return;
+        if (!msg) {
+          box.style.display = "none";
+          return;
+        }
+        box.className = `alert alert-${type}`;
+        box.innerText = msg;
+        box.style.display = "block";
+      }
 
-    if (!username || !password) return showAlert('Please enter both username and password', 'error');
+      function togglePassVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        if (input.type === "password") {
+          input.type = "text";
+          btn.innerText = "🙈";
+        } else {
+          input.type = "password";
+          btn.innerText = "👁️";
+        }
+      }
 
-    try {
-        const res = await fetch('/api/employee-tracker/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
+      async function handleLogin(e) {
+        if (e) e.preventDefault();
+        const username = document.getElementById("loginUser").value.trim();
+        const password = document.getElementById("loginPass").value;
 
-        if (res.ok) {
-            localStorage.setItem('emp_token', data.token);
-            localStorage.setItem('emp_user', JSON.stringify(data.user));
-            
-            // Redirect using the new navigateBack function
+        if (!username || !password)
+          return showAlert("Please enter both username and password", "error");
+
+        const btn = document.getElementById("loginBtn");
+        const origText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "Signing in...";
+
+        try {
+          const res = await fetch("/api/employee-tracker/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
+
+          if (res.ok) {
+            localStorage.setItem("emp_token", data.token);
+            localStorage.setItem("emp_user", JSON.stringify(data.user));
             navigateBack();
-        } else {
-            showAlert(data.message, 'error');
+          } else {
+            showAlert(data.message, "error");
+          }
+        } catch (err) {
+          showAlert("Server error! Please try again.", "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerText = origText;
         }
-    } catch (err) {
-        showAlert('Server error! Please try again.', 'error');
-    }
-}
+      }
 
-async function handleSignup() {
-    const username = document.getElementById('signupUser').value;
-    const password = document.getElementById('signupPass').value;
+      async function handleSignup(e) {
+        if (e) e.preventDefault();
+        const username = document.getElementById("signupUser").value.trim();
+        const password = document.getElementById("signupPass").value;
 
-    if (!username || !password) return showAlert('Please enter username and password', 'error');
+        if (!username || !password)
+          return showAlert("Please enter username and password", "error");
 
-    try {
-        const res = await fetch('/api/employee-tracker/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
+        const btn = document.getElementById("signupBtn");
+        const origText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "Submitting...";
 
-        if (res.ok) {
-            showAlert(data.message, 'success');
-            setTimeout(() => toggleView('login'), 2000);
-        } else {
-            showAlert(data.message, 'error');
+        try {
+          const res = await fetch("/api/employee-tracker/auth/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json();
+
+          if (res.ok) {
+            showAlert(data.message, "success");
+            setTimeout(() => toggleView("login"), 2000);
+          } else {
+            showAlert(data.message, "error");
+          }
+        } catch (err) {
+          showAlert("Server error! Please try again.", "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerText = origText;
         }
-    } catch (err) {
-        showAlert('Server error! Please try again.', 'error');
-    }
-}
-</script>
-</body>
+      }
+    </script>
+  </body>
 </html>

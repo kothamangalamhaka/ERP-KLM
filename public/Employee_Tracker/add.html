@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Staff Self-Registration — Employee Directory</title>
+    <style>
+      :root {
+        --bg: #f1f5f9;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #cbd5e1;
+        --primary: #0969da;
+        --green: #16a34a;
+      }
+
+      * {
+        box-sizing: border-box;
+        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 12px;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 13px;
+      }
+
+      .container {
+        max-width: 1140px;
+        margin: 6px auto 24px auto;
+        background: var(--card);
+        border-radius: 10px;
+        padding: 18px 22px;
+        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e2e8f0;
+      }
+
+      .page-header {
+        text-align: center;
+        border-bottom: 1.5px solid #e2e8f0;
+        padding-bottom: 10px;
+        margin-bottom: 14px;
+      }
+
+      .page-header h1 {
+        margin: 0 0 3px 0;
+        font-size: 19px;
+        color: #0f172a;
+      }
+
+      .page-header p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .section-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 5px;
+        margin: 16px 0 10px 0;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .section-title {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--primary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin: 0;
+      }
+
+      /* Compact Responsive Grid: 4-5 inputs per row on PC, 1-2 on Mobile */
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+        gap: 10px 12px;
+      }
+
+      .full-width {
+        grid-column: 1 / -1;
+      }
+
+      .form-group label {
+        display: block;
+        font-weight: 600;
+        font-size: 11.5px;
+        color: #334155;
+        margin-bottom: 3px;
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 7px 9px;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        font-size: 12.5px;
+        outline: none;
+        background: #ffffff;
+        transition: border-color 0.15s;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        border-color: var(--primary);
+      }
+
+      .ksa-box {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 7px;
+        padding: 10px 12px;
+        margin-top: 10px;
+      }
+
+      .ksa-box h4 {
+        margin: 0 0 8px 0;
+        font-size: 12.5px;
+        color: #334155;
+      }
+
+      /* 6 Quick Document Buttons Grid (4 in Row 1, 2 + Other in Row 2) */
+      .doc-btn-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      @media (max-width: 720px) {
+        .doc-btn-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .container {
+          padding: 14px 12px;
+        }
+        .form-grid {
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 8px 10px;
+        }
+      }
+
+      .qdoc-btn {
+        background: #f8fafc;
+        border: 1.5px solid #cbd5e1;
+        color: #1e293b;
+        padding: 8px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        transition: all 0.15s ease;
+      }
+
+      .qdoc-btn:hover {
+        border-color: var(--primary);
+        background: #eff6ff;
+        color: #0369a1;
+      }
+
+      .qdoc-btn.uploaded {
+        background: #dcfce7;
+        border-color: #16a34a;
+        color: #15803d;
+      }
+
+      .btn {
+        padding: 7px 12px;
+        border: none;
+        border-radius: 5px;
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+        color: #ffffff;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+      }
+
+      .btn-info {
+        background: #0e9db3;
+      }
+
+      .btn-warning {
+        background: #f59e0b;
+        color: #0f172a;
+      }
+
+      .btn-danger {
+        background: #dc2626;
+      }
+
+      .btn-submit {
+        width: 100%;
+        padding: 11px;
+        font-size: 14px;
+        background: var(--green);
+        margin-top: 16px;
+        box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+      }
+
+      .btn-submit:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }
+
+      /* Progress Bar */
+      .progress-wrap {
+        display: none;
+        margin-top: 12px;
+        background: #e2e8f0;
+        border-radius: 6px;
+        overflow: hidden;
+        height: 12px;
+      }
+      .progress-fill {
+        width: 0%;
+        height: 100%;
+        background: var(--green);
+        transition: width 0.25s;
+      }
+      .progress-label {
+        text-align: center;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #334155;
+        margin-top: 4px;
+      }
+
+      /* Popup Sub-Modal */
+      .sub-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(2px);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+      }
+      .sub-modal-card {
+        background: #ffffff;
+        width: 400px;
+        max-width: 94vw;
+        border-radius: 10px;
+        padding: 18px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+      }
+
+      /* Success Screen */
+      .success-card {
+        display: none;
+        text-align: center;
+        padding: 36px 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="formWrapper">
+        <div class="page-header">
+          <h1>📋 Staff Registration Form</h1>
+          <p>Fill in your details and upload clear copies of your documents.</p>
+        </div>
+
+        <form id="publicStaffForm" onsubmit="submitPublicStaff(event)">
+          <!-- Personal & Contact Information + Past Designations Button on Right -->
+          <div class="section-bar" style="margin-top: 4px">
+            <div class="section-title">Personal & Contact Information</div>
+            <button
+              type="button"
+              id="pubPastDesigBtn"
+              class="btn btn-primary"
+              style="font-size: 11.5px; padding: 5px 10px"
+              onclick="openPubPastDesigModal()"
+            >
+              📜 Past Designations (0)
+            </button>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Full Name <span style="color: #dc2626">*</span></label>
+              <input
+                type="text"
+                name="name"
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Joining Date <span style="color: #dc2626">*</span></label>
+              <input type="date" name="joining_date" required />
+            </div>
+            <div class="form-group">
+              <label>Working Country</label>
+              <select name="country" onchange="toggleKsaSection(this.value)">
+                <option value="Kingdom of Saudi Arabia" selected>
+                  Kingdom of Saudi Arabia
+                </option>
+                <option value="India">India</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Mobile No <span style="color: #dc2626">*</span></label>
+              <input
+                type="text"
+                name="mobile"
+                placeholder="e.g. 9665XXXXXXXX"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Alt Mobile No</label>
+              <input
+                type="text"
+                name="alt_mobile"
+                placeholder="Alternate number"
+              />
+            </div>
+            <div class="form-group">
+              <label>Passport No</label>
+              <input
+                type="text"
+                name="passport_no"
+                placeholder="Enter Passport No"
+              />
+            </div>
+            <div class="form-group">
+              <label>Passport Expiry</label>
+              <input type="date" name="passport_expiry" />
+            </div>
+            <div class="form-group">
+              <label>Your Photo (JPG / PNG)</label>
+              <input
+                type="file"
+                name="image"
+                accept=".jpg, .jpeg, .png"
+                style="padding: 5px"
+              />
+            </div>
+            <div class="form-group full-width">
+              <label>Home Address</label>
+              <textarea
+                name="address"
+                rows="1"
+                placeholder="Enter your complete home address..."
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- KSA Documents Box -->
+          <div id="ksaSectionBox" class="ksa-box">
+            <h4>KSA Documents</h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>IQAMA No</label>
+                <input
+                  type="text"
+                  name="iqama_no"
+                  placeholder="Enter IQAMA No"
+                />
+              </div>
+              <div class="form-group">
+                <label>IQAMA Expiry</label>
+                <input type="date" name="iqama_expiry" />
+              </div>
+              <div class="form-group">
+                <label>Licence Expiry</label>
+                <input type="date" name="licence_expiry" />
+              </div>
+              <div class="form-group">
+                <label>Health Ins. Expiry</label>
+                <input type="date" name="health_insurance_expiry" />
+              </div>
+              <div class="form-group">
+                <label>Sponsor Name</label>
+                <input
+                  type="text"
+                  name="sponsor_name"
+                  placeholder="Enter Sponsor Name"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Emergency Contact -->
+          <div class="section-bar">
+            <div class="section-title">Emergency Contact</div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Contact Person Name</label>
+              <input type="text" name="emergency_name" placeholder="Name" />
+            </div>
+            <div class="form-group">
+              <label>Relationship</label>
+              <input
+                list="relOptions"
+                name="emergency_relation"
+                placeholder="Select or type..."
+              />
+              <datalist id="relOptions">
+                <option value="Father"></option>
+                <option value="Mother"></option>
+                <option value="Spouse"></option>
+                <option value="Brother"></option>
+                <option value="Friend"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label>Emergency Mobile</label>
+              <input
+                type="text"
+                name="emergency_mobile"
+                placeholder="Mobile Number"
+              />
+            </div>
+            <div class="form-group">
+              <label>Emergency Alt Mobile</label>
+              <input
+                type="text"
+                name="emergency_alt"
+                placeholder="Alt Number"
+              />
+            </div>
+          </div>
+
+          <!-- Vehicle Details + Add Past Vehicle Data Button on Right -->
+          <div class="section-bar">
+            <div class="section-title">Vehicle Details</div>
+            <button
+              type="button"
+              id="pubPastVehBtn"
+              class="btn btn-info"
+              style="font-size: 11.5px; padding: 5px 10px"
+              onclick="openPubPastVehModal()"
+            >
+              🚗 Add Past Vehicle Data (0)
+            </button>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Vehicle Model</label>
+              <input
+                type="text"
+                name="vehicle_model"
+                placeholder="e.g. Hilux"
+              />
+            </div>
+            <div class="form-group">
+              <label>Plate No</label>
+              <input type="text" name="plate_no" placeholder="e.g. 5974 BVA" />
+            </div>
+            <div class="form-group">
+              <label>Chassis No</label>
+              <input
+                type="text"
+                name="chassis_no"
+                placeholder="Enter Chassis No"
+              />
+            </div>
+            <div class="form-group">
+              <label>Serial No</label>
+              <input
+                type="text"
+                name="serial_no"
+                placeholder="Enter Serial No"
+              />
+            </div>
+            <div class="form-group">
+              <label>Received Date</label>
+              <input type="date" name="vehicle_purchase_date" />
+            </div>
+            <div class="form-group">
+              <label>FAHS Expiry</label>
+              <input type="date" name="fahs_expiry" />
+            </div>
+            <div class="form-group">
+              <label>Insurance Expiry</label>
+              <input type="date" name="insurance_expiry" />
+            </div>
+          </div>
+
+          <!-- Upload Documents (All 6 Standard Buttons + Custom Doc) -->
+          <div class="section-bar">
+            <div class="section-title">Upload Documents (Optional)</div>
+          </div>
+          <div id="publicDocGrid" class="doc-btn-grid"></div>
+
+          <div class="progress-wrap" id="progressWrap">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-label" id="progressLabel"></div>
+
+          <button type="submit" id="publicSubmitBtn" class="btn btn-submit">
+            ✅ Submit My Details
+          </button>
+        </form>
+      </div>
+
+      <!-- Success Confirmation Screen -->
+      <div id="successScreen" class="success-card">
+        <div style="font-size: 48px; margin-bottom: 10px">🎉</div>
+        <h2 style="color: #15803d; margin: 0 0 8px 0">
+          Registration Submitted!
+        </h2>
+        <p
+          style="
+            color: #475569;
+            font-size: 13.5px;
+            max-width: 460px;
+            margin: 0 auto 20px auto;
+          "
+        >
+          Thank you! Your personal details and documents have been safely sent
+          to the HR / Admin team.
+        </p>
+        <button
+          type="button"
+          class="btn btn-primary"
+          onclick="location.reload()"
+        >
+          + Register Another Staff
+        </button>
+      </div>
+    </div>
+
+    <!-- Popup Sub-Modal -->
+    <div id="docPopupModal" class="sub-modal-overlay">
+      <div class="sub-modal-card" id="docPopupBody"></div>
+    </div>
+
+    <script>
+      const STANDARD_DOCS = [
+        { name: "IQAMA", icon: "🪪" },
+        { name: "Licence", icon: "🚗" },
+        { name: "Passport", icon: "🛂" },
+        { name: "Health Insurance", icon: "🏥" },
+        { name: "FHAS", icon: "🔧" },
+        { name: "EQ Insurance", icon: "🛡️" },
+      ];
+
+      let stagedFiles = [];
+      let pubPastDesignations = [];
+      let pubPastVehicles = [];
+
+      document.addEventListener("DOMContentLoaded", () => {
+        renderPublicDocButtons();
+      });
+
+      function toggleKsaSection(country) {
+        const box = document.getElementById("ksaSectionBox");
+        if (box) box.style.display = country === "India" ? "none" : "block";
+      }
+
+      function openSubModal(html) {
+        document.getElementById("docPopupBody").innerHTML = html;
+        document.getElementById("docPopupModal").style.display = "flex";
+      }
+
+      function closeSubModal() {
+        document.getElementById("docPopupModal").style.display = "none";
+      }
+
+      // 📜 Past Designations Modal
+      function openPubPastDesigModal() {
+        const listHtml = pubPastDesignations.length
+          ? pubPastDesignations
+              .map(
+                (item, idx) => `
+                  <div style="display:flex; justify-content:space-between; align-items:center; background:#f1f5f9; border:1px solid #cbd5e1; padding:6px 10px; border-radius:6px; margin-bottom:6px; font-size:12px;">
+                    <div>
+                      <strong>${item.previous_category}</strong> ${item.previous_designation ? `(${item.previous_designation})` : ""}
+                      ${item.previous_site ? `• Site: ${item.previous_site}` : ""}
+                      ${item.previous_department ? `• Dept: ${item.previous_department}` : ""}<br>
+                      <small style="color:#475569;">${item.start_date || "N/A"} to ${item.end_date || "N/A"}</small>
+                    </div>
+                    <button type="button" style="border:none; background:none; color:#dc2626; font-weight:bold; cursor:pointer; font-size:14px;" onclick="removePubPastDesig(${idx})">✖</button>
+                  </div>
+                `,
+              )
+              .join("")
+          : '<p style="font-size:12px; color:#64748b; margin:4px 0 8px 0;">No past designations added yet.</p>';
+
+        openSubModal(`
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:10px;">
+            <strong style="font-size:14px; color:#0f172a;">📜 Past Designations</strong>
+            <button type="button" onclick="closeSubModal()" style="border:none; background:none; font-size:16px; color:#dc2626; cursor:pointer;">✖</button>
+          </div>
+          <div style="max-height:140px; overflow-y:auto; margin-bottom:8px;">${listHtml}</div>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:8px;">
+            <div class="form-group">
+              <label>Division / Category</label>
+              <select id="pubPdCat">
+                <option value="Director">Director</option>
+                <option value="Site Co">Site Co</option>
+                <option value="Field Co">Field Co</option>
+                <option value="Business Co">Business Co</option>
+                <option value="Office Staff" selected>Office Staff</option>
+                <option value="Office Accounts">Office Accounts</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Designation</label>
+              <input type="text" id="pubPdDesig" placeholder="e.g. Co-Ordinator">
+            </div>
+            <div class="form-group">
+              <label>Site Name</label>
+              <input type="text" id="pubPdSite" placeholder="e.g. Bisha">
+            </div>
+            <div class="form-group">
+              <label>Department</label>
+              <input type="text" id="pubPdDept" placeholder="e.g. Operations">
+            </div>
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" id="pubPdStart">
+            </div>
+            <div class="form-group">
+              <label>End Date</label>
+              <input type="date" id="pubPdEnd">
+            </div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+            <button type="button" class="btn" style="background:#64748b;" onclick="closeSubModal()">Done</button>
+            <button type="button" class="btn btn-primary" onclick="savePubPastDesig()">+ Add Entry</button>
+          </div>
+        `);
+      }
+
+      function savePubPastDesig() {
+        const start = document.getElementById("pubPdStart").value;
+        const end = document.getElementById("pubPdEnd").value;
+        if (!start || !end) {
+          alert("Please select Start Date and End Date!");
+          return;
+        }
+        pubPastDesignations.push({
+          previous_category: document.getElementById("pubPdCat").value,
+          previous_designation: document
+            .getElementById("pubPdDesig")
+            .value.trim(),
+          previous_site: document.getElementById("pubPdSite").value.trim(),
+          previous_department: document
+            .getElementById("pubPdDept")
+            .value.trim(),
+          start_date: start,
+          end_date: end,
+        });
+        document.getElementById("pubPastDesigBtn").innerText =
+          `📜 Past Designations (${pubPastDesignations.length})`;
+        openPubPastDesigModal();
+      }
+
+      function removePubPastDesig(idx) {
+        pubPastDesignations.splice(idx, 1);
+        document.getElementById("pubPastDesigBtn").innerText =
+          `📜 Past Designations (${pubPastDesignations.length})`;
+        openPubPastDesigModal();
+      }
+
+      // 🚗 Past Vehicles Modal
+      function openPubPastVehModal() {
+        const listHtml = pubPastVehicles.length
+          ? pubPastVehicles
+              .map(
+                (v, idx) => `
+                  <div style="display:flex; justify-content:space-between; align-items:center; background:#f1f5f9; border:1px solid #cbd5e1; padding:6px 10px; border-radius:6px; margin-bottom:6px; font-size:12px;">
+                    <div>
+                      <strong>${v.plate_no || "N/A"}</strong> (${v.vehicle_model || "N/A"})<br>
+                      <small style="color:#475569;">Received: ${v.purchase_date || "N/A"} | Sold: ${v.sold_date || "N/A"}</small>
+                    </div>
+                    <button type="button" style="border:none; background:none; color:#dc2626; font-weight:bold; cursor:pointer; font-size:14px;" onclick="removePubPastVeh(${idx})">✖</button>
+                  </div>
+                `,
+              )
+              .join("")
+          : '<p style="font-size:12px; color:#64748b; margin:4px 0 8px 0;">No past vehicles added yet.</p>';
+
+        openSubModal(`
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:10px;">
+            <strong style="font-size:14px; color:#0f172a;">🚗 Past Vehicle Data</strong>
+            <button type="button" onclick="closeSubModal()" style="border:none; background:none; font-size:16px; color:#dc2626; cursor:pointer;">✖</button>
+          </div>
+          <div style="max-height:140px; overflow-y:auto; margin-bottom:8px;">${listHtml}</div>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:8px;">
+            <div class="form-group">
+              <label>Vehicle Model</label>
+              <input type="text" id="pubPvModel" placeholder="e.g. Hilux">
+            </div>
+            <div class="form-group">
+              <label>Plate No</label>
+              <input type="text" id="pubPvPlate" placeholder="e.g. 5974 BVA">
+            </div>
+            <div class="form-group">
+              <label>Chassis No</label>
+              <input type="text" id="pubPvChassis" placeholder="Chassis No">
+            </div>
+            <div class="form-group">
+              <label>Serial No</label>
+              <input type="text" id="pubPvSerial" placeholder="Serial No">
+            </div>
+            <div class="form-group">
+              <label>Received Date</label>
+              <input type="date" id="pubPvPurchase">
+            </div>
+            <div class="form-group">
+              <label>Sold Date</label>
+              <input type="date" id="pubPvSold">
+            </div>
+            <div class="form-group">
+              <label>FAHS Expiry</label>
+              <input type="date" id="pubPvFahs">
+            </div>
+            <div class="form-group">
+              <label>Insurance Expiry</label>
+              <input type="date" id="pubPvIns">
+            </div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+            <button type="button" class="btn" style="background:#64748b;" onclick="closeSubModal()">Done</button>
+            <button type="button" class="btn btn-primary" onclick="savePubPastVeh()">+ Add Vehicle</button>
+          </div>
+        `);
+      }
+
+      function savePubPastVeh() {
+        const model = document.getElementById("pubPvModel").value.trim();
+        const plate = document.getElementById("pubPvPlate").value.trim();
+        if (!model && !plate) {
+          alert("Please enter Vehicle Model or Plate No!");
+          return;
+        }
+        pubPastVehicles.push({
+          vehicle_model: model,
+          plate_no: plate,
+          chassis_no: document.getElementById("pubPvChassis").value.trim(),
+          serial_no: document.getElementById("pubPvSerial").value.trim(),
+          purchase_date: document.getElementById("pubPvPurchase").value,
+          sold_date: document.getElementById("pubPvSold").value,
+          fahs_expiry: document.getElementById("pubPvFahs").value,
+          insurance_expiry: document.getElementById("pubPvIns").value,
+        });
+        document.getElementById("pubPastVehBtn").innerText =
+          `🚗 Add Past Vehicle Data (${pubPastVehicles.length})`;
+        openPubPastVehModal();
+      }
+
+      function removePubPastVeh(idx) {
+        pubPastVehicles.splice(idx, 1);
+        document.getElementById("pubPastVehBtn").innerText =
+          `🚗 Add Past Vehicle Data (${pubPastVehicles.length})`;
+        openPubPastVehModal();
+      }
+
+      // 📄 6 Document Buttons + Custom Document
+      function renderPublicDocButtons() {
+        const grid = document.getElementById("publicDocGrid");
+        const standardLower = new Set(
+          STANDARD_DOCS.map((d) => d.name.toLowerCase()),
+        );
+
+        const stdHtml = STANDARD_DOCS.map((doc) => {
+          const found = stagedFiles.find(
+            (s) => s.name.toLowerCase() === doc.name.toLowerCase(),
+          );
+          const badge = found ? "✅" : doc.icon;
+          const safeName = doc.name.replace(/'/g, "\\'");
+          return `
+            <button type="button" class="qdoc-btn ${found ? "uploaded" : ""}" onclick="onDocBtnClick('${safeName}')">
+              <span>${badge}</span>
+              <span>${doc.name}</span>
+            </button>
+          `;
+        }).join("");
+
+        const customHtml = stagedFiles
+          .filter((s) => !standardLower.has(s.name.toLowerCase()))
+          .map((s) => {
+            const safeName = s.name.replace(/'/g, "\\'");
+            return `
+              <button type="button" class="qdoc-btn uploaded" onclick="onDocBtnClick('${safeName}')">
+                <span>✅</span>
+                <span>${s.name}</span>
+              </button>
+            `;
+          })
+          .join("");
+
+        const addOtherHtml = `
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:11px; margin-bottom:2px;">Document Name (Other)</label>
+            <input type="text" id="otherDocName" placeholder="e.g. National ID" style="height:34px;">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:11px; margin-bottom:2px;">Upload File</label>
+            <div style="display:flex; gap:6px;">
+              <input type="file" id="otherDocFile" accept=".pdf, .png, .jpg, .jpeg" style="flex:1; padding:4px; height:34px;">
+              <button type="button" class="btn btn-primary" style="padding:0 12px; height:34px;" onclick="addOtherDoc()">Add</button>
+            </div>
+          </div>
+        `;
+
+        grid.innerHTML = stdHtml + customHtml + addOtherHtml;
+      }
+
+      function addOtherDoc() {
+        const nameEl = document.getElementById("otherDocName");
+        const fileEl = document.getElementById("otherDocFile");
+        if (!fileEl || !fileEl.files.length) {
+          alert("Please choose a file first!");
+          return;
+        }
+        const file = fileEl.files[0];
+        const docName =
+          nameEl.value.trim() || file.name.replace(/\.[^/.]+$/, "");
+        stagedFiles = stagedFiles.filter(
+          (s) => s.name.toLowerCase() !== docName.toLowerCase(),
+        );
+        stagedFiles.push({ name: docName, file });
+        renderPublicDocButtons();
+      }
+
+      function onDocBtnClick(docName) {
+        const safeName = docName.replace(/'/g, "\\'");
+        const existing = stagedFiles.find(
+          (s) => s.name.toLowerCase() === docName.toLowerCase(),
+        );
+
+        if (existing) {
+          openSubModal(`
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
+              <strong style="font-size:15px;">📄 ${docName}</strong>
+              <button type="button" onclick="closeSubModal()" style="border:none; background:none; font-size:16px; color:#dc2626; cursor:pointer;">✖</button>
+            </div>
+            <p style="font-size:13px; color:#334155; margin:0 0 14px 0;">
+              <strong>${docName}</strong> (${existing.file.name}) is attached. Choose an option:
+            </p>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <button type="button" class="btn btn-primary" onclick="previewFile('${safeName}')">👁️ View ${docName}</button>
+              <button type="button" class="btn btn-warning" onclick="openUploadPicker('${safeName}', true)">🔄 Replace ${docName}</button>
+              <button type="button" class="btn btn-danger" onclick="confirmDeleteStaged('${safeName}')">🗑️ Delete ${docName}</button>
+              <button type="button" class="btn" style="background:#64748b;" onclick="closeSubModal()">Cancel</button>
+            </div>
+          `);
+          return;
+        }
+
+        openUploadPicker(docName, false);
+      }
+
+      function openUploadPicker(docName, isReplace) {
+        const safeName = docName.replace(/'/g, "\\'");
+        openSubModal(`
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:12px;">
+            <strong style="font-size:15px;">${isReplace ? "🔄 Replace" : "📎 Upload"} ${docName}</strong>
+            <button type="button" onclick="closeSubModal()" style="border:none; background:none; font-size:16px; color:#dc2626; cursor:pointer;">✖</button>
+          </div>
+          <div class="form-group">
+            <label>Choose ${docName} File (PDF, PNG, JPG)</label>
+            <input type="file" id="popupFileInput" accept=".pdf, .png, .jpg, .jpeg" style="width:100%;">
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+            <button type="button" class="btn" style="background:#64748b;" onclick="closeSubModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="savePopupFile('${safeName}')">Attach File</button>
+          </div>
+        `);
+      }
+
+      function savePopupFile(docName) {
+        const input = document.getElementById("popupFileInput");
+        if (!input || !input.files.length) {
+          alert("Please select a file!");
+          return;
+        }
+        const file = input.files[0];
+        stagedFiles = stagedFiles.filter(
+          (s) => s.name.toLowerCase() !== docName.toLowerCase(),
+        );
+        stagedFiles.push({ name: docName, file });
+        closeSubModal();
+        renderPublicDocButtons();
+      }
+
+      function previewFile(docName) {
+        const found = stagedFiles.find(
+          (s) => s.name.toLowerCase() === docName.toLowerCase(),
+        );
+        if (!found) return;
+        const url = URL.createObjectURL(found.file);
+        window.open(url, "_blank");
+      }
+
+      function confirmDeleteStaged(docName) {
+        stagedFiles = stagedFiles.filter(
+          (s) => s.name.toLowerCase() !== docName.toLowerCase(),
+        );
+        closeSubModal();
+        renderPublicDocButtons();
+      }
+
+      function submitPublicStaff(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        if (pubPastDesignations.length > 0) {
+          formData.append(
+            "past_designations",
+            JSON.stringify(pubPastDesignations),
+          );
+        }
+        if (pubPastVehicles.length > 0) {
+          formData.append("past_vehicles", JSON.stringify(pubPastVehicles));
+        }
+
+        stagedFiles.forEach((doc) => {
+          formData.append("documents", doc.file);
+          formData.append("doc_names", doc.name);
+        });
+
+        const btn = document.getElementById("publicSubmitBtn");
+        const wrap = document.getElementById("progressWrap");
+        const fill = document.getElementById("progressFill");
+        const label = document.getElementById("progressLabel");
+
+        btn.disabled = true;
+        btn.innerText = "⏳ Uploading & Submitting...";
+        wrap.style.display = "block";
+
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener("progress", (ev) => {
+          if (ev.lengthComputable) {
+            const pct = Math.round((ev.loaded / ev.total) * 100);
+            fill.style.width = pct + "%";
+            label.innerText = `Uploading... ${pct}%`;
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            if (xhr.status >= 200 && xhr.status < 300 && res.success) {
+              document.getElementById("formWrapper").style.display = "none";
+              document.getElementById("successScreen").style.display = "block";
+            } else {
+              alert("Error: " + (res.message || "Submission failed"));
+              btn.disabled = false;
+              btn.innerText = "✅ Submit My Details";
+            }
+          } catch (err) {
+            alert("Unexpected server response.");
+            btn.disabled = false;
+            btn.innerText = "✅ Submit My Details";
+          }
+        });
+
+        xhr.addEventListener("error", () => {
+          alert("Network error! Please check your connection and try again.");
+          btn.disabled = false;
+          btn.innerText = "✅ Submit My Details";
+        });
+
+        xhr.open("POST", "/api/employee-tracker/public-add");
+        xhr.send(formData);
+      }
+    </script>
+  </body>
+</html>

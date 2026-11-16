@@ -1,0 +1,1351 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Tracker - Expiry Tracker</title>
+    <script src="/node_xlsx_scripts/exceljs.min.js"></script>
+    <script src="/node_xlsx_scripts/FileSaver.min.js"></script>
+    <script src="/node_xlsx_scripts/html2canvas.min.js"></script>
+    <script src="/node_xlsx_scripts/jspdf.umd.min.js"></script>
+    <style>
+      :root {
+        --bg: #f8fafc;
+        --text-main: #0f172a;
+        --border: #e2e8f0;
+        --primary: #0969da;
+        --red-solid: #dc2626;
+        --orange-bg: #fef3c7;
+        --orange-text: #b45309;
+        --orange-solid: #d97706;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        padding: 0;
+        font-size: 13px;
+      }
+
+      /* Top Header Ribbon */
+      .ribbon {
+        background: #ffffff;
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        flex-wrap: wrap;
+      }
+
+      .ribbon-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-right: auto;
+      }
+
+      .btn-back {
+        background: #f1f5f9;
+        color: #0f172a;
+        border: 1px solid #cbd5e1;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-back:hover {
+        background: #e2e8f0;
+      }
+
+      .btn-export {
+        background: #0969da;
+        color: #ffffff;
+        border: none;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-export:hover {
+        background: #0550ae;
+      }
+
+      .btn-pdf {
+        background: #dc2626;
+        color: #ffffff;
+        border: none;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-pdf:hover {
+        background: #b91c1c;
+      }
+
+      .btn-png {
+        background: #16a34a;
+        color: #ffffff;
+        border: none;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-png:hover {
+        background: #15803d;
+      }
+
+      .search-box {
+        padding: 7px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 12px;
+        width: 220px;
+        outline: none;
+      }
+      .search-box:focus {
+        border-color: var(--primary);
+      }
+
+      .status-filter-select {
+        padding: 7px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #334155;
+        background: #ffffff;
+        outline: none;
+        cursor: pointer;
+      }
+
+      /* Category Buttons Bar */
+      .category-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 16px 24px 12px 24px;
+      }
+
+      .cat-btn {
+        background: #ffffff;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 9px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.15s ease;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+      }
+
+      .cat-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-1px);
+      }
+
+      .cat-btn.active {
+        background: #0f172a;
+        border-color: #0f172a;
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+      }
+
+      .badge-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .badge-red {
+        background: var(--red-solid);
+        color: #ffffff;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .badge-orange {
+        background: var(--orange-solid);
+        color: #ffffff;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      /* Table Card */
+      .table-wrapper {
+        padding: 0 24px 24px 24px;
+      }
+
+      .table-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: auto;
+        max-height: calc(100vh - 135px);
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        white-space: nowrap;
+      }
+
+      thead th {
+        background: #f1f5f9;
+        color: #334155;
+        font-weight: 700;
+        font-size: 12px;
+        text-align: left;
+        padding: 10px 14px;
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 1.5px solid #94a3b8;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      thead th:last-child,
+      tbody td:last-child {
+        border-right: none;
+      }
+
+      tbody td {
+        padding: 9px 14px;
+        border-right: 1px solid #cbd5e1;
+        border-bottom: 1px solid #cbd5e1;
+        color: #1e293b;
+      }
+
+      tbody tr:hover td:not(.cell-expired):not(.cell-soon) {
+        background-color: #f1f5f9;
+      }
+
+      .sn-cell {
+        color: #64748b;
+        font-weight: 600;
+        width: 50px;
+        text-align: center;
+      }
+
+      .id-cell {
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .doc-no-cell {
+        font-family: "JetBrains Mono", monospace, sans-serif;
+        font-weight: 600;
+        color: #0969da;
+      }
+
+      /* Full Cell Status Color Fill */
+      td.cell-expired {
+        background-color: #dc2626 !important;
+        color: #ffffff !important;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      td.cell-soon {
+        background-color: #fef3c7 !important;
+        color: #b45309 !important;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      /* Expiry Date Cell with Right-Side Pencil Icon */
+      .date-text-bold {
+        position: relative;
+        font-weight: 700;
+        color: #0f172a;
+        cursor: pointer;
+        text-align: center;
+        padding-right: 28px !important;
+        transition: background 0.15s;
+      }
+
+      .date-text-bold:hover {
+        background-color: #e0f2fe !important;
+        color: #0369a1 !important;
+      }
+
+      .date-edit-icon {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 11px;
+        opacity: 0.75;
+        pointer-events: none;
+      }
+
+      .date-text-bold:hover .date-edit-icon {
+        opacity: 1;
+      }
+
+      /* Safe Date Update Modal */
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(2px);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-box {
+        background: #ffffff;
+        width: 400px;
+        max-width: 92vw;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 15px 35px rgba(15, 23, 42, 0.2);
+        border: 1px solid #cbd5e1;
+      }
+
+      .modal-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .info-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 10px 12px;
+        margin-bottom: 14px;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #334155;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ribbon">
+      <div class="ribbon-title">
+        <span>⏰ Employee Tracker — Document & Vehicle Expiry</span>
+      </div>
+
+      <select
+        id="statusFilterSelect"
+        class="status-filter-select"
+        onchange="renderExpiryTable()"
+      >
+        <option value="expired_and_soon">
+          🚨 Expired & Expiring Soon (≤ 30 Days)
+        </option>
+        <option value="expired">🔴 Expired Only</option>
+        <option value="soon">🟠 Expiring ≤ 30 Days Only</option>
+      </select>
+
+      <input
+        type="text"
+        id="expirySearchInput"
+        class="search-box"
+        placeholder="Search ID, Name, Doc/Plate No..."
+        oninput="renderExpiryTable()"
+      />
+
+      <button id="copyPngBtn" class="btn-png" onclick="copyExpiryTableAsPNG()">
+        🖼️ Copy HD PNG
+      </button>
+
+      <button
+        id="exportPdfBtn"
+        class="btn-pdf"
+        onclick="exportExpiryTableAsPDF()"
+      >
+        📕 Export PDF
+      </button>
+
+      <button
+        id="exportExcelBtn"
+        class="btn-export"
+        onclick="exportExpiryExcel()"
+      >
+        📊 Export Excel
+      </button>
+
+      <button class="btn-back" onclick="window.location.href = 'index.html'">
+        ⬅ Back to Directory
+      </button>
+    </div>
+
+    <!-- Expiry Category Buttons + All Button at the End -->
+    <div class="category-bar" id="categoryButtonsBar"></div>
+
+    <!-- Safe Expiry Date Update Modal -->
+    <div id="dateUpdateModal" class="modal-backdrop">
+      <div class="modal-box">
+        <div class="modal-title">
+          <span id="modalCategoryTitle">📅 Update Expiry Date</span>
+          <button
+            onclick="closeDateUpdateModal()"
+            style="
+              background: none;
+              border: none;
+              font-size: 16px;
+              color: #dc2626;
+              cursor: pointer;
+            "
+          >
+            ✖
+          </button>
+        </div>
+        <div id="modalTargetInfo" class="info-box"></div>
+        <input type="hidden" id="updEmpId" />
+        <input type="hidden" id="updUniqueId" />
+        <input type="hidden" id="updFieldKey" />
+        <div style="margin-bottom: 14px">
+          <label
+            style="
+              display: block;
+              font-weight: 700;
+              font-size: 12px;
+              color: #0f172a;
+              margin-bottom: 5px;
+            "
+            >New Expiry Date:</label
+          >
+          <input
+            type="date"
+            id="updNewDateInput"
+            style="
+              width: 100%;
+              padding: 8px 10px;
+              border: 1.5px solid #0969da;
+              border-radius: 6px;
+              font-size: 13px;
+              font-weight: 600;
+              outline: none;
+            "
+          />
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end">
+          <button
+            onclick="closeDateUpdateModal()"
+            style="
+              padding: 8px 14px;
+              background: #e2e8f0;
+              color: #1e293b;
+              border: none;
+              border-radius: 6px;
+              font-weight: 600;
+              cursor: pointer;
+            "
+          >
+            Cancel
+          </button>
+          <button
+            id="saveDateBtn"
+            onclick="submitExpiryDateUpdate()"
+            style="
+              padding: 8px 16px;
+              background: #16a34a;
+              color: #ffffff;
+              border: none;
+              border-radius: 6px;
+              font-weight: 700;
+              cursor: pointer;
+            "
+          >
+            💾 Save Date
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiry Data Table -->
+    <div class="table-wrapper">
+      <div class="table-card">
+        <table>
+          <thead id="expiryTableHead"></thead>
+          <tbody id="expiryTableBody">
+            <tr>
+              <td
+                colspan="8"
+                style="text-align: center; padding: 24px; color: #64748b"
+              >
+                Loading expiry records...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const user = localStorage.getItem("emp_user");
+      if (!user) {
+        window.location.href =
+          "../index.html?redirect=" + encodeURIComponent(window.location.href);
+      }
+
+      const EXPIRY_CATEGORIES = [
+        {
+          key: "iqama_expiry",
+          label: "🪪 IQAMA Expiry",
+          shortName: "IQAMA Expiry",
+          type: "doc",
+          docCols: [{ header: "IQAMA No", field: "iqama_no" }],
+        },
+        {
+          key: "passport_expiry",
+          label: "🛂 Passport Expiry",
+          shortName: "Passport Expiry",
+          type: "doc",
+          docCols: [{ header: "Passport No", field: "passport_no" }],
+        },
+        {
+          key: "licence_expiry",
+          label: "🚗 Licence Expiry",
+          shortName: "Licence Expiry",
+          type: "doc",
+          docCols: [{ header: "IQAMA No", field: "iqama_no" }],
+        },
+        {
+          key: "health_insurance_expiry",
+          label: "🏥 Health Ins. Expiry",
+          shortName: "Health Ins. Expiry",
+          type: "doc",
+          docCols: [{ header: "IQAMA No", field: "iqama_no" }],
+        },
+        {
+          key: "fahs_expiry",
+          label: "🔧 Vehicle FAHS Expiry",
+          shortName: "Vehicle FAHS Expiry",
+          type: "veh",
+          docCols: [
+            { header: "Vehicle Model", field: "vehicle_model" },
+            { header: "Plate No", field: "plate_no" },
+            { header: "Chassis No", field: "chassis_no" },
+            { header: "Serial No", field: "serial_no" },
+          ],
+        },
+        {
+          key: "insurance_expiry",
+          label: "🛡️ Vehicle Insurance Exp",
+          shortName: "Vehicle Insurance Exp",
+          type: "veh",
+          docCols: [
+            { header: "Vehicle Model", field: "vehicle_model" },
+            { header: "Plate No", field: "plate_no" },
+            { header: "Chassis No", field: "chassis_no" },
+            { header: "Serial No", field: "serial_no" },
+          ],
+        },
+      ];
+
+      const COPYABLE_FIELDS = new Set([
+        "unique_id",
+        "name",
+        "iqama_no",
+        "passport_no",
+        "plate_no",
+        "vehicle_model",
+        "chassis_no",
+        "serial_no",
+      ]);
+
+      let activeEmployees = [];
+      let currentRenderedRows = [];
+      let activeCategoryKey = "iqama_expiry"; // Can also be "ALL"
+
+      document.addEventListener("DOMContentLoaded", () =>
+        loadEmployeeExpiryData(),
+      );
+
+      function showToast(msg) {
+        let toast = document.getElementById("copyToastNotification");
+        if (!toast) {
+          toast = document.createElement("div");
+          toast.id = "copyToastNotification";
+          toast.style.cssText =
+            "position:fixed; bottom:24px; right:24px; background:#0969da; color:#fff; padding:10px 18px; border-radius:6px; font-size:13px; font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,0.18); z-index:9999; transition:opacity 0.3s;";
+          document.body.appendChild(toast);
+        }
+        toast.innerText = msg;
+        toast.style.opacity = "1";
+        toast.style.display = "block";
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => {
+            toast.style.display = "none";
+          }, 300);
+        }, 2000);
+      }
+
+      function writeToClipboard(text, msg) {
+        navigator.clipboard
+          .writeText(text)
+          .then(() => showToast(msg))
+          .catch(() => {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            showToast(msg);
+          });
+      }
+
+      function copyExpiryColumn(event, fieldKey, label) {
+        if (!COPYABLE_FIELDS.has(fieldKey)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (currentRenderedRows.length === 0) return;
+
+        const lines = currentRenderedRows.map((row) => {
+          const val = row[fieldKey];
+          return !val || val === "-" ? "" : String(val).trim();
+        });
+        writeToClipboard(
+          lines.join("\r\n"),
+          `📋 Copied ${lines.length} rows of "${label}"!`,
+        );
+      }
+
+      function copyExpiryCell(event, fieldKey, value) {
+        if (!COPYABLE_FIELDS.has(fieldKey)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const clean = !value || value === "-" ? "" : String(value).trim();
+        if (!clean) return;
+        writeToClipboard(clean, `📋 Copied: ${clean}`);
+      }
+
+      function formatUIDate(dateStr) {
+        if (!dateStr || dateStr === "null" || String(dateStr).trim() === "")
+          return "-";
+        const cleanStr = String(dateStr).split("T")[0].trim();
+        const parts = cleanStr.split(/[-/]/);
+        if (parts.length === 3 && parts[0].length === 4) {
+          const year = parts[0].slice(-2);
+          const monthNum = parseInt(parts[1], 10) - 1;
+          const day = String(parts[2]).padStart(2, "0");
+          const monthNames = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
+          return `${day}-${monthNames[monthNum] || parts[1]}-${year}`;
+        }
+        return dateStr;
+      }
+
+      function toInputDate(dateStr) {
+        if (!dateStr) return "";
+        return String(dateStr).split("T")[0].trim();
+      }
+
+      function computeDiffDays(dateStr) {
+        if (!dateStr || dateStr === "null" || String(dateStr).trim() === "")
+          return null;
+        const cleanStr = String(dateStr).split("T")[0].trim();
+        const parts = cleanStr.split("-");
+        if (parts.length !== 3) return null;
+        const target = new Date(
+          Number(parts[0]),
+          Number(parts[1]) - 1,
+          Number(parts[2]),
+        );
+        if (isNaN(target.getTime())) return null;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        target.setHours(0, 0, 0, 0);
+        return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+      }
+
+      async function loadEmployeeExpiryData() {
+        try {
+          const res = await fetch(`/api/employee-tracker/all?category=All`);
+          const data = await res.json();
+          if (!data.success)
+            throw new Error(data.message || "Failed to load employees");
+
+          // Exclude Released employees from active expiry tracking
+          activeEmployees = (data.employees || []).filter(
+            (e) => e.category !== "Released",
+          );
+          renderCategoryButtons();
+          renderExpiryTable();
+        } catch (err) {
+          document.getElementById("expiryTableBody").innerHTML = `
+            <tr><td colspan="8" style="text-align:center; color:#dc2626; padding:20px;">Error: ${err.message}</td></tr>
+          `;
+        }
+      }
+
+      function renderCategoryButtons() {
+        const bar = document.getElementById("categoryButtonsBar");
+        let totalExpiredAll = 0;
+        let totalSoonAll = 0;
+
+        const catBtnsHtml = EXPIRY_CATEGORIES.map((cat) => {
+          let expiredCount = 0;
+          let soonCount = 0;
+
+          activeEmployees.forEach((emp) => {
+            if (
+              cat.type === "veh" &&
+              (emp.vehicle_status === "Sold" ||
+                (!emp.vehicle_model && !emp.plate_no))
+            )
+              return;
+            const days = computeDiffDays(emp[cat.key]);
+            if (days !== null) {
+              if (days < 0) expiredCount++;
+              else if (days <= 30) soonCount++;
+            }
+          });
+
+          totalExpiredAll += expiredCount;
+          totalSoonAll += soonCount;
+
+          const isActive = activeCategoryKey === cat.key ? "active" : "";
+          return `
+            <button class="cat-btn ${isActive}" onclick="selectExpiryCategory('${cat.key}')">
+              <span>${cat.label}</span>
+              <span class="badge-group">
+                ${expiredCount > 0 ? `<span class="badge-red" title="Expired">${expiredCount}</span>` : ""}
+                ${soonCount > 0 ? `<span class="badge-orange" title="Expiring ≤ 30 days">${soonCount}</span>` : ""}
+              </span>
+            </button>
+          `;
+        }).join("");
+
+        const isAllActive = activeCategoryKey === "ALL" ? "active" : "";
+        const allBtnHtml = `
+          <button class="cat-btn ${isAllActive}" onclick="selectExpiryCategory('ALL')">
+            <span>📋 All</span>
+            <span class="badge-group">
+              ${totalExpiredAll > 0 ? `<span class="badge-red" title="Total Expired">${totalExpiredAll}</span>` : ""}
+              ${totalSoonAll > 0 ? `<span class="badge-orange" title="Total Expiring ≤ 30 days">${totalSoonAll}</span>` : ""}
+            </span>
+          </button>
+        `;
+
+        bar.innerHTML = catBtnsHtml + allBtnHtml;
+      }
+
+      function selectExpiryCategory(key) {
+        activeCategoryKey = key;
+        renderCategoryButtons();
+        renderExpiryTable();
+      }
+
+      function buildRowsForCategory(cat) {
+        const list = [];
+        activeEmployees.forEach((emp) => {
+          if (
+            cat.type === "veh" &&
+            (emp.vehicle_status === "Sold" ||
+              (!emp.vehicle_model && !emp.plate_no))
+          )
+            return;
+          const rawDate = emp[cat.key];
+          const days = computeDiffDays(rawDate);
+          if (days === null || days > 30) return;
+
+          const bucket = days < 0 ? "expired" : "soon";
+          let refNo = "-";
+          if (cat.key === "passport_expiry")
+            refNo = (emp.passport_no || "").trim() || "-";
+          else if (cat.type === "doc")
+            refNo = (emp.iqama_no || "").trim() || "-";
+          else
+            refNo =
+              [emp.vehicle_model, emp.plate_no].filter(Boolean).join(" - ") ||
+              "-";
+
+          list.push({
+            ...emp,
+            _fieldKey: cat.key,
+            _categoryLabel: cat.shortName,
+            _refNo: refNo,
+            _rawDate: rawDate,
+            _days: days,
+            _bucket: bucket,
+          });
+        });
+        return list;
+      }
+
+      function renderExpiryTable() {
+        const thead = document.getElementById("expiryTableHead");
+        const tbody = document.getElementById("expiryTableBody");
+        const searchQuery = (
+          document.getElementById("expirySearchInput").value || ""
+        )
+          .trim()
+          .toLowerCase();
+        const statusFilter =
+          document.getElementById("statusFilterSelect").value;
+        const isAllMode = activeCategoryKey === "ALL";
+
+        let rawList = [];
+        let activeCat = null;
+
+        if (isAllMode) {
+          EXPIRY_CATEGORIES.forEach((c) => {
+            rawList = rawList.concat(buildRowsForCategory(c));
+          });
+          thead.innerHTML = `
+            <tr>
+              <th style="width: 55px; text-align: center;">SN</th>
+              <th oncontextmenu="copyExpiryColumn(event, 'unique_id', 'Staff ID')" style="cursor: context-menu;">Staff ID</th>
+              <th oncontextmenu="copyExpiryColumn(event, 'name', 'Employee Name')" style="cursor: context-menu;">Employee Name</th>
+              <th>Expiry Type</th>
+              <th>Doc / Plate No</th>
+              <th style="text-align: center;">Expiry Date</th>
+              <th style="text-align: center;">Remaining / Status</th>
+            </tr>
+          `;
+        } else {
+          activeCat =
+            EXPIRY_CATEGORIES.find((c) => c.key === activeCategoryKey) ||
+            EXPIRY_CATEGORIES[0];
+          rawList = buildRowsForCategory(activeCat);
+
+          const docHeadersHtml = activeCat.docCols
+            .map(
+              (col) =>
+                `<th oncontextmenu="copyExpiryColumn(event, '${col.field}', '${col.header}')" title="Right-click to copy entire ${col.header} column" style="cursor: context-menu;">${col.header}</th>`,
+            )
+            .join("");
+
+          thead.innerHTML = `
+            <tr>
+              <th style="width: 55px; text-align: center;">SN</th>
+              <th oncontextmenu="copyExpiryColumn(event, 'unique_id', 'Staff ID')" style="cursor: context-menu;">Staff ID</th>
+              <th oncontextmenu="copyExpiryColumn(event, 'name', 'Employee Name')" style="cursor: context-menu;">Employee Name</th>
+              ${docHeadersHtml}
+              <th style="text-align: center;">Expiry Date</th>
+              <th style="text-align: center;">Remaining / Status</th>
+            </tr>
+          `;
+        }
+
+        const filteredRows = rawList.filter((r) => {
+          if (statusFilter === "expired" && r._bucket !== "expired")
+            return false;
+          if (statusFilter === "soon" && r._bucket !== "soon") return false;
+
+          if (searchQuery !== "") {
+            const haystack = [
+              r.unique_id,
+              r.name,
+              r.category,
+              r.site_name,
+              r.iqama_no,
+              r.passport_no,
+              r.plate_no,
+              r.vehicle_model,
+              r._categoryLabel,
+              formatUIDate(r._rawDate),
+            ]
+              .map((v) => String(v || "").toLowerCase())
+              .join(" ");
+            if (!haystack.includes(searchQuery)) return false;
+          }
+          return true;
+        });
+
+        // Sort: Expired first (most overdue first), then Expiring Soon (0 to 30 days)
+        filteredRows.sort((a, b) => a._days - b._days);
+        currentRenderedRows = filteredRows;
+
+        const colSpanCount = isAllMode ? 7 : 5 + activeCat.docCols.length;
+        if (filteredRows.length === 0) {
+          tbody.innerHTML = `
+            <tr><td colspan="${colSpanCount}" style="text-align:center; padding:24px; color:#15803d; font-weight:600;">✅ No expired or expiring (≤ 30 days) records found.</td></tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = filteredRows
+          .map((r, idx) => {
+            const isExpired = r._bucket === "expired";
+            const overdueDays = Math.abs(r._days);
+            const statusText = isExpired
+              ? `Expired (${overdueDays} day${overdueDays === 1 ? "" : "s"} ago)`
+              : r._days === 0
+                ? "Expires Today"
+                : `In ${r._days} day${r._days === 1 ? "" : "s"}`;
+            const statusCellClass = isExpired ? "cell-expired" : "cell-soon";
+
+            const safeId = String(r.unique_id || "").replace(/'/g, "\\'");
+            const safeName = String(r.name || "").replace(/'/g, "\\'");
+
+            let middleColsHtml = "";
+            if (isAllMode) {
+              middleColsHtml = `
+                <td style="font-weight:600; color:#334155;">${r._categoryLabel}</td>
+                <td class="doc-no-cell">${r._refNo}</td>
+              `;
+            } else {
+              middleColsHtml = activeCat.docCols
+                .map((col) => {
+                  const val = (r[col.field] || "").trim();
+                  const safeVal = val.replace(/'/g, "\\'");
+                  return `<td class="doc-no-cell" oncontextmenu="copyExpiryCell(event, '${col.field}', '${safeVal}')" title="Right-click to copy ${col.header}" style="cursor: context-menu;">${val || "-"}</td>`;
+                })
+                .join("");
+            }
+
+            return `
+              <tr>
+                <td class="sn-cell">${idx + 1}</td>
+                <td class="id-cell" oncontextmenu="copyExpiryCell(event, 'unique_id', '${safeId}')" style="cursor: context-menu;">${r.unique_id || "-"}</td>
+                <td oncontextmenu="copyExpiryCell(event, 'name', '${safeName}')" style="cursor: context-menu;">${r.name || "-"}</td>
+                ${middleColsHtml}
+                <td class="date-text-bold" onclick="openDateUpdateModal(${Number(r.id)}, '${r._fieldKey}')" title="Click to update expiry date"><span>${formatUIDate(r._rawDate)}</span><span class="date-edit-icon no-export-icon">✏️</span></td>
+                <td class="${statusCellClass}">${statusText}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      // 🟢 Exact Employee ID + Field Key Date Update Popup
+      function openDateUpdateModal(empId, fieldKey) {
+        const emp = activeEmployees.find((e) => Number(e.id) === Number(empId));
+        const cat = EXPIRY_CATEGORIES.find((c) => c.key === fieldKey);
+        if (!emp || !cat) {
+          alert("Employee record not found. Please refresh.");
+          return;
+        }
+
+        document.getElementById("modalCategoryTitle").innerText =
+          `📅 Update ${cat.shortName}`;
+        document.getElementById("updEmpId").value = emp.id;
+        document.getElementById("updUniqueId").value = emp.unique_id;
+        document.getElementById("updFieldKey").value = fieldKey;
+        document.getElementById("updNewDateInput").value = toInputDate(
+          emp[fieldKey],
+        );
+
+        const extraInfo =
+          cat.type === "veh"
+            ? `<div><strong>Vehicle:</strong> ${emp.vehicle_model || "-"} (${emp.plate_no || "-"})</div>`
+            : cat.key === "passport_expiry"
+              ? `<div><strong>Passport No:</strong> ${emp.passport_no || "-"}</div>`
+              : `<div><strong>IQAMA No:</strong> ${emp.iqama_no || "-"}</div>`;
+
+        document.getElementById("modalTargetInfo").innerHTML = `
+          <div><strong>Staff ID:</strong> <span style="color:#0969da; font-weight:700;">${emp.unique_id}</span></div>
+          <div><strong>Name:</strong> ${emp.name} (${emp.category})</div>
+          ${extraInfo}
+          <div><strong>Current Expiry:</strong> ${formatUIDate(emp[fieldKey])}</div>
+        `;
+
+        document.getElementById("dateUpdateModal").style.display = "flex";
+      }
+
+      function closeDateUpdateModal() {
+        document.getElementById("dateUpdateModal").style.display = "none";
+      }
+
+      async function submitExpiryDateUpdate() {
+        const empId = document.getElementById("updEmpId").value;
+        const uniqueId = document.getElementById("updUniqueId").value;
+        const fieldKey = document.getElementById("updFieldKey").value;
+        const newDate = document.getElementById("updNewDateInput").value;
+
+        if (!newDate) {
+          alert("Please select a valid Expiry Date.");
+          return;
+        }
+
+        const btn = document.getElementById("saveDateBtn");
+        const origText = btn.innerHTML;
+        btn.innerHTML = "⏳ Saving...";
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/employee-tracker/update-expiry", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              emp_id: Number(empId),
+              unique_id: uniqueId,
+              field: fieldKey,
+              new_date: newDate,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || "Update failed.");
+          }
+
+          closeDateUpdateModal();
+          showToast(`✅ Updated expiry date for ${uniqueId}!`);
+          await loadEmployeeExpiryData();
+        } catch (err) {
+          alert("Update Error: " + err.message);
+        } finally {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+        }
+      }
+
+      // 📊 Export Excel (Each Category with >= 1 row as its own Tab, No Pencil Icons, 80% Zoom)
+      async function exportExpiryExcel() {
+        if (typeof ExcelJS === "undefined" || typeof saveAs === "undefined") {
+          alert("Excel libraries not loaded!");
+          return;
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        let addedSheets = 0;
+
+        for (const cat of EXPIRY_CATEGORIES) {
+          const rows = buildRowsForCategory(cat).sort(
+            (a, b) => a._days - b._days,
+          );
+          if (rows.length === 0) continue; // Skip empty tabs
+
+          addedSheets++;
+          const ws = workbook.addWorksheet(cat.shortName, {
+            views: [
+              {
+                state: "frozen",
+                ySplit: 1,
+                showGridLines: true,
+                zoomScale: 80,
+              },
+            ],
+          });
+
+          const docHeaders = cat.docCols.map((c) => c.header);
+          const headers = [
+            "SN",
+            "Staff ID",
+            "Employee Name",
+            ...docHeaders,
+            "Expiry Date",
+            "Remaining / Status",
+          ];
+          ws.addRow(headers);
+
+          const headerRow = ws.getRow(1);
+          headerRow.height = 24;
+          headerRow.eachCell((cell) => {
+            cell.font = {
+              name: "Arial",
+              size: 10,
+              bold: true,
+              color: { argb: "FFFFFFFF" },
+            };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FF0F172A" },
+            };
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+            cell.border = {
+              top: { style: "thin", color: { argb: "FFCBD5E1" } },
+              bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+              left: { style: "thin", color: { argb: "FFCBD5E1" } },
+              right: { style: "thin", color: { argb: "FFCBD5E1" } },
+            };
+          });
+
+          rows.forEach((r, idx) => {
+            const isExpired = r._bucket === "expired";
+            const overdueDays = Math.abs(r._days);
+            const statusText = isExpired
+              ? `Expired (${overdueDays} day${overdueDays === 1 ? "" : "s"} ago)`
+              : r._days === 0
+                ? "Expires Today"
+                : `In ${r._days} day${r._days === 1 ? "" : "s"}`;
+
+            const docVals = cat.docCols.map((c) => r[c.field] || "");
+            const rowValues = [
+              idx + 1,
+              r.unique_id || "",
+              r.name || "",
+              ...docVals,
+              formatUIDate(r._rawDate),
+              statusText,
+            ];
+            const addedRow = ws.addRow(rowValues);
+
+            const dateColIdx = 3 + docHeaders.length + 1;
+            const statusColIdx = dateColIdx + 1;
+
+            addedRow.eachCell((cell, colNumber) => {
+              cell.font = { name: "Arial", size: 10 };
+              cell.border = {
+                top: { style: "thin", color: { argb: "FFCBD5E1" } },
+                bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+                left: { style: "thin", color: { argb: "FFCBD5E1" } },
+                right: { style: "thin", color: { argb: "FFCBD5E1" } },
+              };
+              if (colNumber === 1) {
+                cell.alignment = { horizontal: "center", vertical: "middle" };
+              } else if (colNumber === dateColIdx) {
+                cell.alignment = { horizontal: "center", vertical: "middle" };
+                cell.font = { name: "Arial", size: 10, bold: true };
+              } else if (colNumber === statusColIdx) {
+                cell.alignment = { horizontal: "center", vertical: "middle" };
+                if (isExpired) {
+                  cell.fill = {
+                    type: "pattern",
+                    pattern: "solid",
+                    fgColor: { argb: "FFDC2626" },
+                  };
+                  cell.font = {
+                    name: "Arial",
+                    size: 10,
+                    bold: true,
+                    color: { argb: "FFFFFFFF" },
+                  };
+                } else {
+                  cell.fill = {
+                    type: "pattern",
+                    pattern: "solid",
+                    fgColor: { argb: "FFFEF3C7" },
+                  };
+                  cell.font = {
+                    name: "Arial",
+                    size: 10,
+                    bold: true,
+                    color: { argb: "FFB45309" },
+                  };
+                }
+              }
+            });
+          });
+
+          ws.autoFilter = {
+            from: { row: 1, column: 1 },
+            to: { row: rows.length + 1, column: headers.length },
+          };
+          ws.columns.forEach((col) => {
+            let maxLen = 10;
+            col.eachCell({ includeEmpty: true }, (c) => {
+              const len = String(c.value || "").length;
+              if (len > maxLen) maxLen = len;
+            });
+            col.width = maxLen + 4;
+          });
+        }
+
+        if (addedSheets === 0) {
+          alert("No expired or expiring (≤ 30 days) records to export.");
+          return;
+        }
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        saveAs(
+          blob,
+          `Employee_Expiry_Tracker_${new Date().toISOString().split("T")[0]}.xlsx`,
+        );
+        showToast("📊 Excel exported successfully!");
+      }
+
+      // 🟢 Capture Active Table Without Pencil Icons for HD PNG / Single-Page PDF
+      async function captureActiveTableCanvas() {
+        const table = document.querySelector(".table-card table");
+        if (!table || currentRenderedRows.length === 0) {
+          throw new Error("No table data visible on screen.");
+        }
+
+        const titleLabel =
+          activeCategoryKey === "ALL"
+            ? "All Expiries"
+            : EXPIRY_CATEGORIES.find((c) => c.key === activeCategoryKey)
+                ?.shortName || "Expiry";
+
+        const wrapper = document.createElement("div");
+        wrapper.style.cssText =
+          "position:fixed; left:-99999px; top:0; background:#ffffff; padding:20px; display:inline-block; z-index:-1;";
+
+        const titleBar = document.createElement("div");
+        titleBar.style.cssText =
+          "display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:2px solid #0f172a; font-family:Inter,sans-serif;";
+        titleBar.innerHTML = `
+          <div style="font-size:18px; font-weight:800; color:#0f172a;">Employee Tracker — ${titleLabel} Report</div>
+          <div style="font-size:12px; font-weight:600; color:#475569;">Date: ${formatUIDate(new Date().toISOString().split("T")[0])} | Total: ${currentRenderedRows.length}</div>
+        `;
+
+        const clonedTable = table.cloneNode(true);
+        clonedTable.style.width = "auto";
+        clonedTable.style.borderCollapse = "collapse";
+
+        clonedTable
+          .querySelectorAll(".no-export-icon")
+          .forEach((el) => el.remove());
+        clonedTable.querySelectorAll(".date-text-bold").forEach((td) => {
+          td.style.paddingRight = "14px";
+        });
+        clonedTable.querySelectorAll("th").forEach((th) => {
+          th.style.position = "static";
+          th.style.border = "1px solid #94a3b8";
+          th.style.background = "#f1f5f9";
+        });
+        clonedTable.querySelectorAll("td").forEach((td) => {
+          td.style.border = "1px solid #cbd5e1";
+        });
+
+        wrapper.appendChild(titleBar);
+        wrapper.appendChild(clonedTable);
+        document.body.appendChild(wrapper);
+
+        try {
+          const fullWidth = wrapper.scrollWidth;
+          const fullHeight = wrapper.scrollHeight;
+          const canvas = await html2canvas(wrapper, {
+            scale: 3,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            width: fullWidth,
+            height: fullHeight,
+            windowWidth: fullWidth,
+            windowHeight: fullHeight,
+          });
+          return { canvas, titleLabel };
+        } finally {
+          document.body.removeChild(wrapper);
+        }
+      }
+
+      async function exportExpiryTableAsPDF() {
+        const btn = document.getElementById("exportPdfBtn");
+        const origText = btn.innerHTML;
+        btn.innerHTML = "⏳ Generating PDF...";
+        btn.disabled = true;
+
+        try {
+          const { canvas, titleLabel } = await captureActiveTableCanvas();
+          const imgData = canvas.toDataURL("image/png", 1.0);
+          const pdfWidth = (canvas.width / 3) * 0.75;
+          const pdfHeight = (canvas.height / 3) * 0.75;
+          const orientation = pdfWidth >= pdfHeight ? "l" : "p";
+
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF({
+            orientation,
+            unit: "pt",
+            format: [pdfWidth, pdfHeight],
+            compress: true,
+          });
+          pdf.addImage(
+            imgData,
+            "PNG",
+            0,
+            0,
+            pdfWidth,
+            pdfHeight,
+            undefined,
+            "FAST",
+          );
+          const safeName = titleLabel.replace(/[^a-zA-Z0-9_-]+/g, "_");
+          pdf.save(
+            `Employee_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`,
+          );
+        } catch (err) {
+          alert("PDF Export Error: " + err.message);
+        } finally {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+        }
+      }
+
+      async function copyExpiryTableAsPNG() {
+        const btn = document.getElementById("copyPngBtn");
+        const origText = btn.innerHTML;
+        btn.innerHTML = "⏳ Copying HD PNG...";
+        btn.disabled = true;
+
+        try {
+          const { canvas } = await captureActiveTableCanvas();
+          await new Promise((resolve, reject) => {
+            canvas.toBlob(
+              async (blob) => {
+                if (!blob)
+                  return reject(new Error("Failed to create PNG image."));
+                try {
+                  await navigator.clipboard.write([
+                    new ClipboardItem({ "image/png": blob }),
+                  ]);
+                  showToast("🖼️ High-Quality HD PNG copied to clipboard!");
+                  resolve();
+                } catch (clipErr) {
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `Employee_Expiry_HD_${new Date().toISOString().split("T")[0]}.png`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  showToast("🖼️ HD PNG downloaded!");
+                  resolve();
+                }
+              },
+              "image/png",
+              1.0,
+            );
+          });
+        } catch (err) {
+          alert("PNG Copy Error: " + err.message);
+        } finally {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>
